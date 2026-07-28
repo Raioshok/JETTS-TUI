@@ -27,18 +27,18 @@ import os
 # Ordered tiers. The picker renders them in this order, separated by a rule.
 CURATED_TIERS: tuple[tuple[str, str, tuple[str, ...]], ...] = (
     (
-        "no signup",
-        "Works right now, no account and no key",
-        (
-            # Qwen3-Coder-30B at 262k context, EU-hosted. Anonymous access is
-            # 2 requests/min per IP — fine for a conversation, not for a batch.
-            "ovhcloud",
-        ),
-    ),
-    (
         "free key",
         "One free key, no card, genuinely usable for real work",
         (
+            # Qwen3-Coder-30B at 262k context, EU-hosted.
+            #
+            # OVHcloud ALSO serves this endpoint anonymously at 2 req/min, but
+            # only when the request carries no Authorization header at all — a
+            # placeholder token returns 403. This fork's transport always sends
+            # credentials, so the keyless path is not reachable here and a free
+            # token is required. Listed under "free key" rather than "no signup"
+            # because that is what actually works today.
+            "ovhcloud",
             # gpt-oss-120b / qwen3.6-27b / minimax-m2.7 — the fastest free tier.
             "groq",
             # glm-5.2, deepseek-v4-flash, minimax-m3. Verified working.

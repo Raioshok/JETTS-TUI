@@ -1115,6 +1115,9 @@ CANONICAL_PROVIDERS: list[ProviderEntry] = [
     ProviderEntry("qwen-oauth",     "Qwen OAuth (Portal)",      "Qwen OAuth (Reuses local Qwen CLI login)"),
 ]
 
+
+_PROVIDER_LABELS = {p.slug: p.label for p in CANONICAL_PROVIDERS}
+
 # Auto-extend CANONICAL_PROVIDERS with any provider registered in providers/
 # that is not already in the list above.  Adding plugins/model-providers/<name>/
 # is sufficient to expose a new provider in the model picker, /model, and all
@@ -1134,8 +1137,33 @@ try:
 except Exception:
     pass
 
+# ── Curation ────────────────────────────────────────────────────────────────
+# Upstream offers 50 providers here. Most are paid or enterprise backends,
+# which are noise in a tool built to run on free inference — a 50-item picker
+# is a menu you re-read every time you switch models, not a feature.
+#
+# Reduce the OFFERED set to providers with a capable coding model AND a real
+# free tier, in curated tier order. This is presentation only: every provider
+# still resolves by name, so `--provider bedrock` and any existing config keep
+# working. FREEIDE_ALL_PROVIDERS=1 restores the full list.
+try:
+    from providers.curated import CURATED_TIERS as _FI_TIERS, show_all as _fi_show_all
+
+    if not _fi_show_all():
+        _fi_by_slug = {e.slug: e for e in CANONICAL_PROVIDERS}
+        _fi_curated: list[ProviderEntry] = []
+        for _t, _b, _names in _FI_TIERS:
+            for _n in _names:
+                _e = _fi_by_slug.get(_n)
+                if _e is not None and _e not in _fi_curated:
+                    _fi_curated.append(_e)
+        if _fi_curated:
+            CANONICAL_PROVIDERS = _fi_curated
+except Exception:
+    # Never let curation break the picker — an unfiltered list beats no list.
+    pass
+
 # Derived dicts — used throughout the codebase
-_PROVIDER_LABELS = {p.slug: p.label for p in CANONICAL_PROVIDERS}
 _PROVIDER_LABELS["custom"] = "Custom endpoint"  # special case: not a named provider
 
 

@@ -79,19 +79,15 @@ def get_provider_profile(name: str) -> ProviderProfile | None:
     return _REGISTRY.get(canonical)
 
 
-def list_providers(*, all_providers: bool = False) -> list[ProviderProfile]:
-    """Registered provider profiles, curated down to the ones worth offering.
+def list_providers() -> list[ProviderProfile]:
+    """Every registered provider profile (one per canonical name).
 
-    A 46-entry picker is a menu, not a feature. By default this returns only
-    providers with a capable coding model AND a real free tier, in curated
-    order (see ``providers/curated.py``). Pass ``all_providers=True`` — or set
-    FREEIDE_ALL_PROVIDERS=1 — for the unfiltered list.
+    This is the CAPABILITY list — what the tool can resolve and authenticate.
+    It must stay complete: ``freeide_cli.auth`` builds PROVIDER_REGISTRY from
+    it, so filtering here does not hide a provider, it makes it unusable.
 
-    Filtering happens HERE rather than in the picker so every consumer (setup
-    wizard, model switcher, doctor, env-var injection) agrees on one answer.
-    ``get_provider_profile()`` is deliberately untouched: an excluded provider
-    still resolves by name, so an existing config or ``--provider bedrock``
-    keeps working.
+    For the much shorter list a human should be OFFERED, see
+    ``list_curated_providers()``.
     """
     if not _discovered:
         _discover_providers()
@@ -103,13 +99,28 @@ def list_providers(*, all_providers: bool = False) -> list[ProviderProfile]:
         if pid not in seen:
             seen.add(pid)
             result.append(profile)
+    return result
 
+
+def list_curated_providers() -> list[ProviderProfile]:
+    """The providers worth putting in front of a person, in curated order.
+
+    A 45-entry picker is a menu, not a feature: most inherited profiles are
+    paid or enterprise backends, which are noise in a tool built to run on free
+    inference. This returns only providers with a capable coding model AND a
+    real free tier (see ``providers/curated.py``).
+
+    PRESENTATION ONLY. Everything excluded here still resolves by name, so
+    ``--provider bedrock`` and any existing config keep working. Set
+    FREEIDE_ALL_PROVIDERS=1 to be offered everything again.
+    """
     from providers.curated import CURATED_TIERS, show_all
 
-    if all_providers or show_all():
-        return result
+    everything = list_providers()
+    if show_all():
+        return everything
 
-    by_name = {p.name: p for p in result}
+    by_name = {p.name: p for p in everything}
     curated: list[ProviderProfile] = []
     for _title, _blurb, names in CURATED_TIERS:
         for name in names:
@@ -118,10 +129,10 @@ def list_providers(*, all_providers: bool = False) -> list[ProviderProfile]:
                 curated.append(profile)
     # A provider the USER installed is their own deliberate choice, so it is
     # never hidden. Provenance is recorded at registration rather than guessed
-    # from directory names, because a bundled plugin may register several
+    # from directory names, because one bundled plugin may register several
     # profiles (kimi-coding also registers kimi-coding-cn) and those would
     # otherwise look like user additions.
-    for profile in result:
+    for profile in everything:
         if _PROVENANCE.get(profile.name) == "user" and profile not in curated:
             curated.append(profile)
     return curated
