@@ -50,6 +50,15 @@ class GeminiProfile(ProviderProfile):
 
 gemini = GeminiProfile(
     name="gemini",
+    display_name="Google Gemini",
+    description="Gemini — generous free tier on AI Studio keys",
+    signup_url="https://aistudio.google.com/apikey",
+    fallback_models=(
+        "gemini-3.6-flash",
+        "gemini-3.5-flash",
+        "gemini-3.5-flash-lite",
+        "gemini-2.5-flash",
+    ),
     aliases=("google", "google-gemini", "google-ai-studio"),
     api_mode="chat_completions",
     env_vars=("GOOGLE_API_KEY", "GEMINI_API_KEY"),

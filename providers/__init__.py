@@ -50,6 +50,11 @@ _BUNDLED_PLUGINS_DIR = (
 )
 
 
+#: provider name -> "bundled" | "user", recorded as each plugin imports.
+_PROVENANCE: dict[str, str] = {}
+_current_source: str | None = None
+
+
 def register_provider(profile: ProviderProfile) -> None:
     """Register a provider profile by name and aliases.
 
@@ -58,6 +63,7 @@ def register_provider(profile: ProviderProfile) -> None:
     bundled profiles without editing repo code.
     """
     _REGISTRY[profile.name] = profile
+    _PROVENANCE[profile.name] = _current_source or "bundled"
     for alias in profile.aliases:
         _ALIASES[alias] = profile.name
 
@@ -73,8 +79,20 @@ def get_provider_profile(name: str) -> ProviderProfile | None:
     return _REGISTRY.get(canonical)
 
 
-def list_providers() -> list[ProviderProfile]:
-    """Return all registered provider profiles (one per canonical name)."""
+def list_providers(*, all_providers: bool = False) -> list[ProviderProfile]:
+    """Registered provider profiles, curated down to the ones worth offering.
+
+    A 46-entry picker is a menu, not a feature. By default this returns only
+    providers with a capable coding model AND a real free tier, in curated
+    order (see ``providers/curated.py``). Pass ``all_providers=True`` — or set
+    FREEIDE_ALL_PROVIDERS=1 — for the unfiltered list.
+
+    Filtering happens HERE rather than in the picker so every consumer (setup
+    wizard, model switcher, doctor, env-var injection) agrees on one answer.
+    ``get_provider_profile()`` is deliberately untouched: an excluded provider
+    still resolves by name, so an existing config or ``--provider bedrock``
+    keeps working.
+    """
     if not _discovered:
         _discover_providers()
     # Deduplicate: _REGISTRY has canonical names; _ALIASES points to same objects
@@ -85,7 +103,28 @@ def list_providers() -> list[ProviderProfile]:
         if pid not in seen:
             seen.add(pid)
             result.append(profile)
-    return result
+
+    from providers.curated import CURATED_TIERS, show_all
+
+    if all_providers or show_all():
+        return result
+
+    by_name = {p.name: p for p in result}
+    curated: list[ProviderProfile] = []
+    for _title, _blurb, names in CURATED_TIERS:
+        for name in names:
+            profile = by_name.get(name)
+            if profile is not None:
+                curated.append(profile)
+    # A provider the USER installed is their own deliberate choice, so it is
+    # never hidden. Provenance is recorded at registration rather than guessed
+    # from directory names, because a bundled plugin may register several
+    # profiles (kimi-coding also registers kimi-coding-cn) and those would
+    # otherwise look like user additions.
+    for profile in result:
+        if _PROVENANCE.get(profile.name) == "user" and profile not in curated:
+            curated.append(profile)
+    return curated
 
 
 def _user_plugins_dir() -> Path | None:
@@ -112,6 +151,8 @@ def _import_plugin_dir(plugin_dir: Path, source: str) -> None:
     # so relative imports within the plugin work. User plugins load via
     # ``importlib.util.spec_from_file_location`` with a unique module name so
     # multiple FREEIDE_HOME profiles don't alias each other.
+    global _current_source
+    _current_source = source
     safe_name = plugin_dir.name.replace("-", "_")
     if source == "bundled":
         module_name = f"plugins.model_providers.{safe_name}"

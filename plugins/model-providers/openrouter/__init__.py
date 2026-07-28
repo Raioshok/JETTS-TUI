@@ -200,12 +200,15 @@ openrouter = OpenRouterProfile(
     signup_url="https://openrouter.ai/keys",
     base_url="https://openrouter.ai/api/v1",
     models_url="https://openrouter.ai/api/v1/models",
+    # This is a free-tier CLI, so the offered defaults are models that cost
+    # nothing. The ":free" suffix is part of the id and must be sent verbatim.
+    # Verified present in GET /api/v1/models.
     fallback_models=(
-        "anthropic/claude-sonnet-4.6",
-        "openai/gpt-5.4",
-        "deepseek/deepseek-chat",
-        "google/gemini-3-flash-preview",
-        "qwen/qwen3-plus",
+        "cohere/north-mini-code:free",
+        "poolside/laguna-s-2.1:free",
+        "openai/gpt-oss-20b:free",
+        "nvidia/nemotron-3-super-120b-a12b:free",
+        "google/gemma-4-31b-it:free",
     ),
 )
 
