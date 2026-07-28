@@ -14,6 +14,26 @@ from freeide_cli.colors import Colors, color
 # Plain ``str`` items remain fully supported.
 RadioItem = Union[str, Sequence[Tuple[str, Optional[str]]]]
 
+# A menu row that is a heading rather than a choice. Renderers draw it as a
+# rule and never give it a selection number, so a long list can be grouped
+# without the group titles eating the numbering.
+SEPARATOR_PREFIX = '@@SEP@@'
+
+
+def separator(text):
+    """Build a non-selectable heading row for a radio list."""
+    return SEPARATOR_PREFIX + text
+
+
+def is_separator(item):
+    """True when this row is a heading, not a selectable choice."""
+    return radio_item_plain(item).startswith(SEPARATOR_PREFIX)
+
+
+def separator_text(item):
+    """The heading text, without the marker."""
+    return radio_item_plain(item)[len(SEPARATOR_PREFIX):]
+
 
 def radio_item_plain(item: RadioItem) -> str:
     """Flatten a radiolist item to searchable/plain display text."""
@@ -786,6 +806,13 @@ def curses_radiolist(
 
     def _draw_row(stdscr, y, i, is_cursor, max_x):
         import curses
+        if is_separator(items[i]):
+            # Heading: no radio, no cursor highlight — just a dim rule.
+            try:
+                stdscr.addnstr(y, 1, separator_text(items[i]), max_x - 2, curses.A_DIM)
+            except curses.error:
+                pass
+            return
         radio = "\u25cf" if i == selected else "\u25cb"
         arrow = "\u2192" if is_cursor else " "
         prefix = f" {arrow} ({radio}) "
@@ -844,25 +871,39 @@ def _radio_numbered_fallback(
     selected: int,
     cancel_returns: int,
 ) -> int:
-    """Text-based numbered fallback for radio selection."""
-    print(color(f"\n  {title}", Colors.YELLOW))
+    """Text-based numbered fallback for radio selection.
+
+    Heading rows print as a rule and take no number, so the numbers the
+    user types stay contiguous across real choices only.
+    """
+    print(color("\n  " + title, Colors.YELLOW))
     print(color("  Select by number, Enter to confirm.\n", Colors.DIM))
 
+    number_to_index = {}
+    default_number = 1
+    n = 0
     for i, label in enumerate(items):
+        if is_separator(label):
+            print()
+            print(color("  " + separator_text(label), Colors.DIM))
+            continue
+        n += 1
+        number_to_index[n] = i
+        if i == selected:
+            default_number = n
         marker = color("(\u25cf)", Colors.GREEN) if i == selected else "(\u25cb)"
-        print(f"  {marker} {i + 1:>2}. {format_radio_item_ansi(label)}")
+        print("  " + marker + " " + str(n).rjust(2) + ". " + format_radio_item_ansi(label))
     print()
     try:
-        val = input(color(f"  Choice [default {selected + 1}]: ", Colors.DIM)).strip()
+        val = input(color("  Choice [default " + str(default_number) + "]: ", Colors.DIM)).strip()
         if not val:
             return selected
-        idx = int(val) - 1
-        if 0 <= idx < len(items):
-            return idx
+        picked = int(val)
+        if picked in number_to_index:
+            return number_to_index[picked]
         return selected
     except (ValueError, KeyboardInterrupt, EOFError):
         return cancel_returns
-
 
 def curses_single_select(
     title: str,

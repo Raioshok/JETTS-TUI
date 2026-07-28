@@ -3314,6 +3314,53 @@ def select_provider_and_model(args=None):
     ordered.append(("aux-config", "Configure auxiliary models...", []))
     ordered.append(("cancel", "Leave unchanged", []))
 
+    # Group the provider rows under PAID / FREE / LOCAL headings. The list is
+    # long enough that a flat run of 18 names tells you nothing about what each
+    # one costs, which is the first thing you actually want to know.
+    try:
+        from freeide_cli.curses_ui import separator as _fi_sep
+        from providers.curated import CURATED_TIERS as _FI_TIERS, show_all as _fi_show_all
+
+        if not _fi_show_all():
+            _fi_rank = {}
+            for _gi, (_t, _b, _names) in enumerate(_FI_TIERS):
+                for _n in _names:
+                    _fi_rank[_n] = (_gi, _t, _b)
+            _fi_grouped = []
+            _fi_tail = []
+            for _entry in ordered:
+                (_fi_grouped if _entry[0] in _fi_rank else _fi_tail).append(_entry)
+            if _fi_grouped:
+                _fi_grouped.sort(key=lambda e: _fi_rank[e[0]][0])
+                _fi_out = []
+                _fi_seen = None
+                for _entry in _fi_grouped:
+                    _gi, _title, _blurb = _fi_rank[_entry[0]]
+                    if _gi != _fi_seen:
+                        _fi_seen = _gi
+                        _fi_out.append((
+                            "__sep__",
+                            _fi_sep("===== " + _title.upper() + " \u2014 " + _blurb + " ====="),
+                            [],
+                        ))
+                    _fi_out.append(_entry)
+                # Custom endpoints and menu actions are not providers; give
+                # them their own heading so they do not read as part of LOCAL.
+                if _fi_tail:
+                    _fi_out.append(("__sep__", _fi_sep("===== OTHER ====="), []))
+                # Recompute the default: inserting headings shifts every index.
+                _fi_final = _fi_out + _fi_tail
+                _fi_active = ordered[default_idx][0] if 0 <= default_idx < len(ordered) else None
+                ordered = _fi_final
+                if _fi_active is not None:
+                    for _i, _e in enumerate(ordered):
+                        if _e[0] == _fi_active:
+                            default_idx = _i
+                            break
+    except Exception:
+        # A grouping failure must never cost the user their picker.
+        pass
+
     provider_idx = _prompt_provider_choice(
         [label for _, label, _ in ordered],
         default=default_idx,
