@@ -1,0 +1,33 @@
+FreeIDE
+=======
+
+FreeIDE is a fork of Hermes Agent by Nous Research.
+
+  Upstream:  https://github.com/NousResearch/hermes-agent
+  License:   MIT (see LICENSE)
+
+The original work is Copyright (c) 2025 Nous Research and remains under the
+MIT License, which is reproduced in full in the LICENSE file alongside this
+notice. That copyright notice must be preserved in this and any derived
+distribution — removing it would put the fork outside the terms that make it
+lawful.
+
+Modifications in this fork
+--------------------------
+
+* Renamed the project, CLI entry points, Python modules, configuration
+  directory (~/.freeide) and environment variable prefix (FREEIDE_*).
+* Replaced the startup wordmark and colour palette.
+* Added ten model-provider plugins covering free and no-signup inference
+  tiers that upstream does not carry: Groq, Cerebras, SambaNova, Mistral,
+  OVHcloud, LLM7, Nebius Token Factory, Alibaba DashScope, GitHub Models and
+  local Ollama. Each carries the request quirks that were verified against
+  the live APIs rather than read from documentation — for example that
+  Mistral rejects any unrecognised body field with a 422, that Cerebras
+  refuses max_tokens in favour of max_completion_tokens, and that OVHcloud's
+  anonymous tier answers only when no Authorization header is sent at all.
+* Added per-provider reasoning-effort mapping, since the field that controls
+  thinking differs per provider and per model family.
+
+Changes are Copyright (c) 2026 the FreeIDE contributors and are likewise
+released under the MIT License.

@@ -1,0 +1,1 @@
+# FreeIDE plugins package

@@ -1,0 +1,5 @@
+name: dashscope-provider
+kind: model-provider
+version: 1.0.0
+description: Alibaba Qwen (Model Studio)
+author: FreeIDE

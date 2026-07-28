@@ -1,0 +1,5 @@
+name: nebius-provider
+kind: model-provider
+version: 1.0.0
+description: Nebius Token Factory
+author: FreeIDE
