@@ -191,54 +191,6 @@ def _xai_curated_models() -> list[str]:
 
 _PROVIDER_MODELS: dict[str, list[str]] = {
     "moa": ["default"],
-    "nous": [
-        # Anthropic
-        "anthropic/claude-fable-5",
-        "anthropic/claude-opus-5",
-        "anthropic/claude-opus-4.8",
-        "anthropic/claude-sonnet-5",
-        "anthropic/claude-haiku-4.5",
-        # OpenAI
-        "openai/gpt-5.6-sol",
-        "openai/gpt-5.6-sol-pro",
-        "openai/gpt-5.6-terra",
-        "openai/gpt-5.6-terra-pro",
-        "openai/gpt-5.6-luna",
-        "openai/gpt-5.6-luna-pro",
-        "openai/gpt-5.5",
-        "openai/gpt-5.5-pro",
-        "openai/gpt-5.4-mini",
-        # Google
-        "google/gemini-3-pro-preview",
-        "google/gemini-3.1-pro-preview",
-        "google/gemini-3.5-flash",
-        # xAI
-        "x-ai/grok-4.5",
-        # DeepSeek
-        "deepseek/deepseek-v4-pro",
-        "deepseek/deepseek-v4-flash",
-        # Qwen
-        "qwen/qwen3.7-max",
-        "qwen/qwen3.7-plus",
-        "qwen/qwen3.6-35b-a3b",
-        # MoonshotAI
-        "moonshotai/kimi-k3",
-        # MiniMax
-        "minimax/minimax-m3",
-        # Z-AI
-        "z-ai/glm-5.2",
-        "z-ai/glm-5.1",
-        # Xiaomi
-        "xiaomi/mimo-v2.5-pro",
-        # Tencent
-        "tencent/hy3",
-        # StepFun
-        "stepfun/step-3.7-flash",
-        # NVIDIA
-        "nvidia/nemotron-3-super-120b-a12b",
-        # Sakana
-        "sakana/fugu-ultra",
-    ],
     # Native OpenAI Chat Completions (api.openai.com). Used by /model counts and
     # provider_model_ids fallback when /v1/models is unavailable.
     "openai": [
@@ -1076,7 +1028,6 @@ class ProviderEntry(NamedTuple):
     tui_desc: str   # detailed description for `freeide model` TUI
 
 CANONICAL_PROVIDERS: list[ProviderEntry] = [
-    ProviderEntry("nous",           "FreeIDE Portal",              "FreeIDE Portal (Everything your agent needs, 300+ models with bundled tool use)"),
     ProviderEntry("fireworks",      "Fireworks AI",             "Fireworks AI (OpenAI-compatible direct model API)"),
     ProviderEntry("openrouter",     "OpenRouter",               "OpenRouter (Pay-per-use API aggregator)"),
     ProviderEntry("moa",            "Mixture of Agents",        "Mixture of Agents (named presets; aggregator acts after reference models)"),
@@ -1420,7 +1371,7 @@ def pick_silent_default_model(model_ids: list[str], provider: str = "openrouter"
 # ``freeide model``) uses the richer free/paid-tier-aware resolver — see
 # ``get_recommended_default_model`` in freeide_cli/web_server.py and
 # ``partition_nous_models_by_tier`` — which can hit the Portal.
-_SILENT_DEFAULT_PROVIDERS: frozenset[str] = frozenset({"nous", "openrouter"})
+_SILENT_DEFAULT_PROVIDERS: frozenset[str] = frozenset({"openrouter"})
 
 
 def get_default_model_for_provider(provider: str) -> str:
@@ -2134,7 +2085,7 @@ def _model_in_provider_catalog(name_lower: str, providers: set[str]) -> bool:
 
 
 _AGGREGATOR_PROVIDERS = frozenset(
-    {"nous", "openrouter", "copilot", "kilocode"}
+    {"openrouter", "copilot", "kilocode"}
 )
 
 # Subscription/OAuth providers whose catalogs RE-EXPOSE other vendors' models

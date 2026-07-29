@@ -2633,88 +2633,6 @@ SETUP_SECTIONS = [
 ]
 
 
-def _run_portal_one_shot(config: dict) -> None:
-    """One-shot FreeIDE Portal setup — OAuth + model pick + provider + Tool Gateway.
-
-    Wired into ``freeide setup --portal`` and ``freeide portal``. This is the
-    FreeIDE-Portal slice of the first-time quick setup, collapsed into a single
-    shareable command so a brand-new user goes from zero to a fully working
-    FreeIDE session — model selected, provider set, and web/image/tts/browser
-    tools routed via their Portal sub — without being told to run
-    ``freeide setup`` and hunt for the quick-setup option.
-
-    The login + model selection + provider switch + Tool Gateway opt-in are all
-    delegated to ``_model_flow_nous`` — the exact same flow quick setup uses
-    (``_run_first_time_quick_setup``) and the same one ``freeide model`` runs
-    when you pick FreeIDE. Routing through it (instead of hand-rolling the auth +
-    provider write here) means ``freeide portal`` always offers a model picker,
-    and there is a single source of truth for the FreeIDE onboarding steps.
-    """
-    from freeide_cli.config import load_config
-
-    print()
-    print(
-        color(
-            "┌─────────────────────────────────────────────────────────┐",
-            Colors.MAGENTA,
-        )
-    )
-    print(color("│     ◆ FreeIDE Setup — FreeIDE Portal (one-shot)             │", Colors.MAGENTA))
-    print(
-        color(
-            "└─────────────────────────────────────────────────────────┘",
-            Colors.MAGENTA,
-        )
-    )
-    print()
-    print_info("  One subscription, 300+ models, plus the Tool Gateway:")
-    print_info("    web search, image generation, TTS, browser automation")
-    print_info("    — all routed through your FreeIDE Portal sub.")
-    print()
-    print_info("  Sign up: https://portal.freeide.dev/manage-subscription")
-    print()
-
-    # _model_flow_nous handles BOTH the logged-out path (device-code OAuth,
-    # which selects a model internally) and the already-logged-in path (curated
-    # FreeIDE model picker), then offers the Tool Gateway opt-in and sets
-    # provider=nous via the login/model save. This is the same routine quick
-    # setup calls, so `freeide portal` == quick setup's FreeIDE step.
-    try:
-        from freeide_cli.main import _model_flow_nous
-
-        _model_flow_nous(config)
-    except (KeyboardInterrupt, EOFError, SystemExit):
-        # _login_nous raises SystemExit(130)/(1) on cancel/failure; the
-        # logged-out path inside _model_flow_nous catches it, but the
-        # expired-session re-login path only catches Exception, so a
-        # SystemExit there would otherwise escape and kill the whole CLI.
-        # Treat all of these as a graceful cancel/abort for the portal flow.
-        print()
-        print_info("  Setup cancelled.")
-        print_info("  You can retry later with `freeide portal`.")
-        return
-    except Exception as exc:
-        logger.debug("_model_flow_nous error during `freeide portal`: %s", exc)
-        print()
-        print_error(f"  FreeIDE Portal setup encountered an error: {exc}")
-        print_info("  You can retry later with `freeide portal`.")
-        return
-
-    # Re-sync the in-memory config from disk — _model_flow_nous (and the
-    # underlying login/model save) write via their own load/save cycle, so any
-    # later save_config(config) by a caller must not clobber those values.
-    try:
-        _refreshed = load_config()
-        if isinstance(_refreshed, dict):
-            config.clear()
-            config.update(_refreshed)
-    except Exception:
-        pass
-
-    print()
-    print_success("Portal setup complete.")
-    print_info("  Run `freeide portal info` to inspect routing.")
-    print_info("  Run `freeide` to start chatting.")
 
 
 def run_setup_wizard(args):
@@ -2770,11 +2688,6 @@ def run_setup_wizard(args):
         print_noninteractive_setup_guidance(
             "Running in a non-interactive environment (no TTY detected)."
         )
-        return
-
-    # --portal: one-shot FreeIDE Portal setup. Skips the rest of the wizard.
-    if bool(getattr(args, "portal", False)):
-        _run_portal_one_shot(config)
         return
 
     # Check if a specific section was requested
@@ -2877,19 +2790,17 @@ def run_setup_wizard(args):
         setup_mode = prompt_choice(
             "How do you want to connect?",
             [
-                "Quick — sign in to FreeIDE Portal (free OAuth, 300+ models, no keys)   ◆ recommended",
-                "Bring your own key — pick a free or paid provider and paste a key",
+                "Bring your own key — pick a free or paid provider and paste a key   ◆ recommended",
                 "Blank slate — start with nothing, switch features on one at a time",
             ],
             0,
         )
 
-        if setup_mode == 0:
-            _run_first_time_quick_setup(config, freeide_home, is_existing)
-            return
-        if setup_mode == 2:
+        if setup_mode == 1:
             _run_blank_slate_setup(config, freeide_home, is_existing)
             return
+        # setup_mode == 0 falls through to Full Setup, whose first step is the
+        # bring-your-own-key provider picker (free and paid providers alike).
 
     # ── Full Setup — run all sections ──
     print_header("Configuration Location")
@@ -2937,78 +2848,6 @@ def run_setup_wizard(args):
     _print_setup_summary(config, freeide_home)
 
 
-def _run_first_time_quick_setup(config: dict, freeide_home, is_existing: bool):
-    """Streamlined first-time setup via FreeIDE Portal: OAuth, model, terminal & messaging.
-
-    Routes straight to the FreeIDE Portal provider — runs the device-code OAuth
-    login, picks a FreeIDE model, then configures the terminal backend and (optionally)
-    a messaging platform. Applies sensible defaults for everything else (agent
-    settings, tools); the user can customize later via ``freeide setup <section>``
-    or switch providers with ``freeide model``.
-    """
-    from freeide_cli.config import load_config
-
-    # Step 1: FreeIDE Portal — OAuth login + model selection.
-    # _model_flow_nous() handles both the logged-out path (device-code OAuth,
-    # which selects a model internally) and the already-logged-in path (curated
-    # FreeIDE model picker). Provider is set to "nous" by the login/model save.
-    print()
-    print_header("Sign in to FreeIDE Portal")
-    print_info("One login, 300+ models, and the tool gateway — no API keys to manage.")
-    print_info("Bundled: web search · image generation · TTS · browser automation.")
-    print_info("Need an account? → https://portal.freeide.dev/manage-subscription")
-    print()
-    try:
-        from freeide_cli.main import _model_flow_nous
-        _model_flow_nous(config)
-    except (KeyboardInterrupt, EOFError):
-        print()
-        print_info("FreeIDE Portal setup cancelled.")
-    except Exception as exc:
-        logger.debug("_model_flow_nous error during quick setup: %s", exc)
-        print_warning(f"FreeIDE Portal setup encountered an error: {exc}")
-        print_info("You can try again later with: freeide model")
-
-    # Re-sync the wizard's config dict from disk — _model_flow_nous (and the
-    # underlying login/model save) write via their own load/save cycle, and the
-    # wizard's later save_config(config) must not clobber those values (#4172).
-    _refreshed = load_config()
-    config.clear()
-    config.update(_refreshed)
-
-    # Step 2: Terminal Backend — where commands run is a core decision
-    setup_terminal_backend(config)
-
-    # Step 3: Apply defaults for everything else
-    _apply_default_agent_settings(config)
-
-    save_config(config)
-
-    # Step 4: Offer messaging gateway setup
-    print()
-    gateway_choice = prompt_choice(
-        "Connect a messaging platform? (Telegram, Discord, etc.)",
-        [
-            "Set up messaging now (recommended)",
-            "Skip — set up later with 'freeide setup gateway'",
-        ],
-        0,
-    )
-
-    if gateway_choice == 0:
-        setup_gateway(config)
-        save_config(config)
-
-    print()
-    print_success("You're all set. ◆")
-    print()
-    print_info("  Start coding:              freeide")
-    print_info("  Change anything:           freeide setup")
-    if gateway_choice != 0:
-        print_info("  Connect Telegram/Discord:  freeide setup gateway")
-    print()
-
-    _print_setup_summary(config, freeide_home)
 
 
 def _blank_slate_minimal_toolsets(config: dict):
