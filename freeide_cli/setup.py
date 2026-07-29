@@ -182,7 +182,7 @@ def is_interactive_stdin() -> bool:
 def print_noninteractive_setup_guidance(reason: str | None = None) -> None:
     """Print guidance for headless/non-interactive setup flows."""
     print()
-    print(color("⚕ FreeIDE Setup — Non-interactive mode", Colors.CYAN, Colors.BOLD))
+    print(color("◆ FreeIDE Setup — Non-interactive mode", Colors.CYAN, Colors.BOLD))
     print()
     if reason:
         print_info(reason)
@@ -2659,7 +2659,7 @@ def _run_portal_one_shot(config: dict) -> None:
             Colors.MAGENTA,
         )
     )
-    print(color("│     ⚕ FreeIDE Setup — Nous Portal (one-shot)             │", Colors.MAGENTA))
+    print(color("│     ◆ FreeIDE Setup — Nous Portal (one-shot)             │", Colors.MAGENTA))
     print(
         color(
             "└─────────────────────────────────────────────────────────┘",
@@ -2789,7 +2789,7 @@ def run_setup_wizard(args):
                         Colors.MAGENTA,
                     )
                 )
-                print(color(f"│     ⚕ FreeIDE Setup — {label:<34s} │", Colors.MAGENTA))
+                print(color(f"│     ◆ FreeIDE Setup — {label:<34s} │", Colors.MAGENTA))
                 print(
                     color(
                         "└─────────────────────────────────────────────────────────┘",
@@ -2816,40 +2816,25 @@ def run_setup_wizard(args):
         or active_provider is not None
     )
 
+    # Rounded, self-aligning banner — content is centered programmatically so a
+    # copy edit can never knock the borders out of alignment again.
+    _bw = 58
+    _bc = Colors.MAGENTA
+
+    def _band(text: str = "", *, rule: bool = False) -> None:
+        if rule:
+            print(color("├" + "─" * _bw + "┤", _bc))
+        else:
+            print(color("│" + text.center(_bw) + "│", _bc))
+
     print()
-    print(
-        color(
-            "┌─────────────────────────────────────────────────────────┐",
-            Colors.MAGENTA,
-        )
-    )
-    print(
-        color(
-            "│             ⚕ FreeIDE Agent Setup Wizard                │", Colors.MAGENTA
-        )
-    )
-    print(
-        color(
-            "├─────────────────────────────────────────────────────────┤",
-            Colors.MAGENTA,
-        )
-    )
-    print(
-        color(
-            "│  Let's configure your FreeIDE Agent installation.       │", Colors.MAGENTA
-        )
-    )
-    print(
-        color(
-            "│  Press Ctrl+C at any time to exit.                     │", Colors.MAGENTA
-        )
-    )
-    print(
-        color(
-            "└─────────────────────────────────────────────────────────┘",
-            Colors.MAGENTA,
-        )
-    )
+    print(color("╭" + "─" * _bw + "╮", _bc))
+    _band("◆  F R E E I D E")
+    _band("the free AI coding agent")
+    _band(rule=True)
+    _band("Let's get you a working agent — takes about a minute.")
+    _band("Ctrl+C anytime to bail.")
+    print(color("╰" + "─" * _bw + "╯", _bc))
 
     migration_ran = False
 
@@ -2890,11 +2875,11 @@ def run_setup_wizard(args):
             config = load_config()
 
         setup_mode = prompt_choice(
-            "How would you like to set up FreeIDE?",
+            "How do you want to connect?",
             [
-                "Quick Setup (Nous Portal) — free OAuth login, no API keys, model + tools (recommended)",
-                "Full setup — configure every provider, tool & option yourself (bring your own keys)",
-                "Blank Slate — everything off except the bare minimum; opt in to each capability",
+                "Quick — sign in to Nous Portal (free OAuth, 300+ models, no keys)   ◆ recommended",
+                "Bring your own key — pick a free or paid provider and paste a key",
+                "Blank slate — start with nothing, switch features on one at a time",
             ],
             0,
         )
@@ -2968,10 +2953,10 @@ def _run_first_time_quick_setup(config: dict, freeide_home, is_existing: bool):
     # which selects a model internally) and the already-logged-in path (curated
     # Nous model picker). Provider is set to "nous" by the login/model save.
     print()
-    print_header("Nous Portal")
-    print_info("One subscription, 300+ models, plus the Tool Gateway:")
-    print_info("  web search, image generation, TTS, browser automation.")
-    print_info("Sign up: https://portal.nousresearch.com/manage-subscription")
+    print_header("Sign in to Nous Portal")
+    print_info("One login, 300+ models, and the tool gateway — no API keys to manage.")
+    print_info("Bundled: web search · image generation · TTS · browser automation.")
+    print_info("Need an account? → https://portal.nousresearch.com/manage-subscription")
     print()
     try:
         from freeide_cli.main import _model_flow_nous
@@ -3015,9 +3000,10 @@ def _run_first_time_quick_setup(config: dict, freeide_home, is_existing: bool):
         save_config(config)
 
     print()
-    print_success("Setup complete! You're ready to go.")
+    print_success("You're all set. ◆")
     print()
-    print_info("  Configure all settings:    freeide setup")
+    print_info("  Start coding:              freeide")
+    print_info("  Change anything:           freeide setup")
     if gateway_choice != 0:
         print_info("  Connect Telegram/Discord:  freeide setup gateway")
     print()

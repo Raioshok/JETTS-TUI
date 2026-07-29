@@ -238,7 +238,7 @@ def run_whatsapp_cloud_setup() -> int:
     from freeide_cli.config import get_env_value, save_env_value
 
     print()
-    print("⚕ WhatsApp Business Cloud API Setup")
+    print("◆ WhatsApp Business Cloud API Setup")
     print("=" * 50)
     print()
     print("This wizard configures FreeIDE to talk to WhatsApp via Meta's")

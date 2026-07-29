@@ -348,7 +348,7 @@ def _cmd_migrate(args):
     )
     print(
         color(
-            "│          ⚕ FreeIDE — OpenClaw Migration                 │",
+            "│          ◆ FreeIDE — OpenClaw Migration                 │",
             Colors.MAGENTA,
         )
     )
@@ -574,7 +574,7 @@ def _cmd_cleanup(args):
     )
     print(
         color(
-            "│          ⚕ FreeIDE — OpenClaw Cleanup                   │",
+            "│          ◆ FreeIDE — OpenClaw Cleanup                   │",
             Colors.MAGENTA,
         )
     )
