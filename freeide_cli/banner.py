@@ -601,282 +601,183 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
         else:
             disabled_tools.update(tools_in_ts)
 
-    layout_table = Table.grid(padding=(0, 2))
-    layout_table.add_column("left", justify="center")
-    layout_table.add_column("right", justify="left")
+    from rich.panel import Panel
+    from rich.table import Table
+    from rich.console import Group
+    from rich.rule import Rule
+    from rich.text import Text
+    from rich.align import Align
+    from rich import box
 
-    # Resolve skin colors once for the entire banner
+    # ── Palette (Catppuccin Mocha, violet accent) ────────────────────────
     accent = _skin_color("banner_accent", "#cba6f7")
     dim = _skin_color("banner_dim", "#7f849c")
     text = _skin_color("banner_text", "#cdd6f4")
-    session_color = _skin_color("session_border", "#6c7086")
+    title_color = _skin_color("banner_title", "#b4befe")
+    border_color = _skin_color("banner_border", "#585b70")
 
-    # Use skin's custom emblem art if provided
     try:
         from freeide_cli.skin_engine import get_active_skin
         _bskin = get_active_skin()
-        _hero = _bskin.banner_hero if hasattr(_bskin, 'banner_hero') and _bskin.banner_hero else FREEIDE_CADUCEUS
     except Exception:
         _bskin = None
-        _hero = FREEIDE_CADUCEUS
-    left_lines = ["", _hero, ""]
-    if (provider or "").strip().lower() == "moa":
-        # MoA virtual provider: ``model`` is a preset name. Show the preset and
-        # its aggregator so the banner is meaningful instead of a bare slug.
-        preset_name = model
-        agg_label = ""
-        try:
-            from freeide_cli.config import load_config
-            from freeide_cli.moa_config import normalize_moa_config
 
-            _moa = normalize_moa_config(load_config().get("moa") or {})
-            _preset = _moa.get("presets", {}).get(preset_name)
-            if _preset:
-                _agg = _preset.get("aggregator") or {}
-                _am = str(_agg.get("model") or "")
-                agg_label = _am.split("/")[-1] if "/" in _am else _am
-        except Exception:
-            agg_label = ""
-        if len(preset_name) > 28:
-            preset_name = preset_name[:25] + "..."
-        agg_str = f" [dim {dim}]·[/] [dim {dim}]agg {agg_label}[/]" if agg_label else ""
-        ctx_str = f" [dim {dim}]·[/] [dim {dim}]{_format_context_length(context_length)} context[/]" if context_length else ""
-        left_lines.append(f"[{accent}]MoA: {preset_name}[/]{agg_str}{ctx_str} [dim {dim}]·[/] [dim {dim}]FreeIDE[/]")
-    else:
-        model_short = model.split("/")[-1] if "/" in model else model
-        if model_short.endswith(".gguf"):
-            model_short = model_short[:-5]
-        if len(model_short) > 28:
-            model_short = model_short[:25] + "..."
-        ctx_str = f" [dim {dim}]·[/] [dim {dim}]{_format_context_length(context_length)} context[/]" if context_length else ""
-        left_lines.append(f"[{accent}]{model_short}[/]{ctx_str} [dim {dim}]·[/] [dim {dim}]FreeIDE[/]")
-
-    if os.getenv("FREEIDE_YOLO_MODE"):
-        left_lines.append(f"[bold red]⚠ YOLO mode[/] [dim {dim}]— all approval prompts bypassed[/]")
-    left_lines.append(f"[dim {dim}]{cwd}[/]")
-    if session_id:
-        left_lines.append(f"[dim {session_color}]Session: {session_id}[/]")
-    left_content = "\n".join(left_lines)
-
-    right_lines = [f"[bold {accent}]Available Tools[/]"]
+    # ── Counts, not walls ────────────────────────────────────────────────
     toolsets_dict: Dict[str, list] = {}
-
     for tool in tools:
-        tool_name = tool["function"]["name"]
-        toolset = _display_toolset_name(get_toolset_for_tool(tool_name) or "other")
-        toolsets_dict.setdefault(toolset, []).append(tool_name)
-
+        tname = tool["function"]["name"]
+        ts = _display_toolset_name(get_toolset_for_tool(tname) or "other")
+        toolsets_dict.setdefault(ts, []).append(tname)
     for item in unavailable_toolsets:
-        toolset_id = item.get("id", item.get("name", "unknown"))
-        display_name = _display_toolset_name(toolset_id)
-        if display_name not in toolsets_dict:
-            toolsets_dict[display_name] = []
-        for tool_name in item.get("tools", []):
-            if tool_name not in toolsets_dict[display_name]:
-                toolsets_dict[display_name].append(tool_name)
+        dn = _display_toolset_name(item.get("id", item.get("name", "unknown")))
+        toolsets_dict.setdefault(dn, [])
+        for tname in item.get("tools", []):
+            if tname not in toolsets_dict[dn]:
+                toolsets_dict[dn].append(tname)
+    toolset_names = sorted(toolsets_dict)
 
-    sorted_toolsets = sorted(toolsets_dict.keys())
-    display_toolsets = sorted_toolsets[:8]
-    remaining_toolsets = len(sorted_toolsets) - 8
-
-    for toolset in display_toolsets:
-        tool_names = toolsets_dict[toolset]
-        colored_names = []
-        for name in sorted(tool_names):
-            if name in disabled_tools:
-                colored_names.append(f"[red]{name}[/]")
-            elif name in lazy_tools:
-                colored_names.append(f"[yellow]{name}[/]")
-            else:
-                colored_names.append(f"[{text}]{name}[/]")
-
-        tools_str = ", ".join(colored_names)
-        if len(", ".join(sorted(tool_names))) > 45:
-            short_names = []
-            length = 0
-            for name in sorted(tool_names):
-                if length + len(name) + 2 > 42:
-                    short_names.append("...")
-                    break
-                short_names.append(name)
-                length += len(name) + 2
-            colored_names = []
-            for name in short_names:
-                if name == "...":
-                    colored_names.append("[dim]...[/]")
-                elif name in disabled_tools:
-                    colored_names.append(f"[red]{name}[/]")
-                elif name in lazy_tools:
-                    colored_names.append(f"[yellow]{name}[/]")
-                else:
-                    colored_names.append(f"[{text}]{name}[/]")
-            tools_str = ", ".join(colored_names)
-
-        right_lines.append(f"[dim {dim}]{toolset}:[/] {tools_str}")
-
-    if remaining_toolsets > 0:
-        right_lines.append(f"[dim {dim}](and {remaining_toolsets} more toolsets...)[/]")
-
-    # MCP Servers section (only if configured)
     try:
         from tools.mcp_tool import get_mcp_status
         mcp_status = get_mcp_status()
     except Exception:
         mcp_status = []
+    mcp_connected = sum(1 for s in mcp_status if s.get("connected")) if mcp_status else 0
 
-    if mcp_status:
-        right_lines.append("")
-        right_lines.append(f"[bold {accent}]MCP Servers[/]")
-        for srv in mcp_status:
-            status = srv.get("status")
-            if srv["connected"]:
-                right_lines.append(
-                    f"[dim {dim}]{srv['name']}[/] [{text}]({srv['transport']})[/] "
-                    f"[dim {dim}]—[/] [{text}]{srv['tools']} tool(s)[/]"
-                )
-            elif srv.get("disabled") or status == "disabled":
-                right_lines.append(
-                    f"[dim {dim}]{srv['name']}[/] [dim]({srv['transport']})[/] "
-                    f"[dim {dim}]— disabled[/]"
-                )
-            elif status == "connecting":
-                right_lines.append(
-                    f"[dim {dim}]{srv['name']}[/] [dim]({srv['transport']})[/] "
-                    f"[yellow]— connecting[/]"
-                )
-            elif status == "configured":
-                right_lines.append(
-                    f"[dim {dim}]{srv['name']}[/] [dim]({srv['transport']})[/] "
-                    f"[dim {dim}]— configured[/]"
-                )
-            else:
-                right_lines.append(
-                    f"[red]{srv['name']}[/] [dim]({srv['transport']})[/] "
-                    f"[red]— failed[/]"
-                )
-
-    right_lines.append("")
-    right_lines.append(f"[bold {accent}]Available Skills[/]")
-    # The skills catalog is only reachable when the `skills` toolset is enabled
-    # (it exposes skill_view / skill_manage). When it's disabled — e.g. a Blank
-    # Slate install — the agent literally cannot load any skill, so advertising
-    # the on-disk catalog here is misleading. Reflect the real state instead.
     _skills_enabled = (not _enabled_ts) or ("skills" in _enabled_ts)
     if _skills_enabled:
         skills_by_category = get_available_skills()
         total_skills = sum(len(s) for s in skills_by_category.values())
     else:
-        skills_by_category = {}
         total_skills = 0
 
-    # Dynamically size skills display based on terminal width.
-    # Rich grid with 2 columns; right column gets roughly 60% of terminal.
-    _term_cols = shutil.get_terminal_size().columns
-    _right_col_width = max(int(_term_cols * 0.6) - 10, 30)
-
-    if not _skills_enabled:
-        right_lines.append(f"[dim {dim}]Skills toolset disabled[/]")
-    elif skills_by_category:
-        for category in sorted(skills_by_category.keys()):
-            skill_names = sorted(skills_by_category[category])
-            # Account for "category: " prefix
-            _prefix_len = len(category) + 2
-            _avail = max(_right_col_width - _prefix_len, 20)
-            # Accumulate skills until we run out of space
-            parts, length = [], 0
-            for i, name in enumerate(skill_names):
-                _sep = ", " if parts else ""
-                _needed = len(_sep) + len(name)
-                # Estimate indicator size IF we were to add this skill then stop
-                _after = len(skill_names) - (i + 1)  # remaining after adding this
-                _ind_len = len(f", +{_after} more") if _after > 0 else 0
-                if parts and length + _needed + _ind_len > _avail:
-                    remaining = len(skill_names) - len(parts)
-                    parts.append(f"+{remaining} more")
-                    break
-                parts.append(name)
-                length += _needed
-            skills_str = ", ".join(parts)
-            right_lines.append(f"[dim {dim}]{category}:[/] [{text}]{skills_str}[/]")
-    else:
-        right_lines.append(f"[dim {dim}]No skills installed[/]")
-
-    right_lines.append("")
-    mcp_connected = sum(1 for s in mcp_status if s["connected"]) if mcp_status else 0
-    summary_parts = [f"{len(tools)} tools", f"{total_skills} skills"]
-    if mcp_connected:
-        summary_parts.append(f"{mcp_connected} MCP servers")
-    summary_parts.append("/help for commands")
-    # Indicate when the codex_app_server runtime is active so users
-    # understand why tool counts may not match what's actually reachable
-    # (codex builds its own tool list inside the spawned subprocess).
     try:
-        from freeide_cli.codex_runtime_switch import get_current_runtime
-        from freeide_cli.config import load_config as _load_cfg
-        if get_current_runtime(_load_cfg()) == "codex_app_server":
-            right_lines.append(
-                f"[bold {accent}]Runtime:[/] [{text}]codex app-server[/] "
-                f"[dim {dim}](terminal/file ops/MCP run inside codex)[/]"
-            )
+        from freeide_cli.models import CANONICAL_PROVIDERS as _CP
+        n_providers = len(_CP)
+    except Exception:
+        n_providers = 0
+
+    # ── Model / provider label ───────────────────────────────────────────
+    if (provider or "").strip().lower() == "moa":
+        model_short = model
+        prov_label = "MoA"
+    else:
+        model_short = model.split("/")[-1] if "/" in model else model
+        if model_short.endswith(".gguf"):
+            model_short = model_short[:-5]
+        prov_label = (provider or "").strip()
+    if len(model_short) > 36:
+        model_short = model_short[:33] + "..."
+
+    # Fold $HOME to ~ and clip a long cwd so the line never wraps.
+    _cwd = cwd
+    try:
+        _home = str(Path.home())
+        if _cwd.startswith(_home):
+            _cwd = "~" + _cwd[len(_home):]
     except Exception:
         pass
-    # Show active profile name when not 'default'
+    if len(_cwd) > 44:
+        _cwd = "..." + _cwd[-41:]
+
+    # ── Aligned fact rows ────────────────────────────────────────────────
+    facts = Table.grid(padding=(0, 1))
+    facts.add_column(justify="center", width=1)
+    facts.add_column(justify="left", width=8)
+    facts.add_column(justify="left")
+
+    def _fact(glyph: str, label: str, value_markup: str) -> None:
+        facts.add_row(f"[{accent}]{glyph}[/]", f"[{dim}]{label}[/]", value_markup)
+
+    _prov = f"  [{dim}]·[/]  [{dim}]{prov_label}[/]" if prov_label else ""
+    _fact("◆", "model", f"[bold {text}]{model_short}[/]{_prov}")
+    if context_length:
+        _fact("◈", "context", f"[{text}]{_format_context_length(context_length)} tokens[/]")
+    _fact("▸", "cwd", f"[{text}]{_cwd}[/]")
+    if session_id:
+        _fact("⟩", "session", f"[{dim}]{session_id}[/]")
+    if os.getenv("FREEIDE_YOLO_MODE"):
+        _fact("⚠", "mode", "[bold red]YOLO — approvals bypassed[/]")
+
+    # ── Toolset chips (names only — no per-tool wall) ────────────────────
+    chip_line = None
+    if toolset_names:
+        shown = toolset_names[:8]
+        more = len(toolset_names) - len(shown)
+        chips = f"[{dim}] · [/]".join(f"[{text}]{t}[/]" for t in shown)
+        if more > 0:
+            chips += f"[{dim}] · +{more}[/]"
+        chip_line = Text.from_markup(f"[{dim}]toolsets[/]  " + chips)
+
+    # ── One compact stat line ────────────────────────────────────────────
+    stats = [
+        f"[{accent}]{len(tools)}[/] [{dim}]tools[/]",
+        f"[{accent}]{total_skills}[/] [{dim}]skills[/]",
+        f"[{accent}]{n_providers}[/] [{dim}]providers[/]",
+    ]
+    if mcp_connected:
+        stats.append(f"[{accent}]{mcp_connected}[/] [{dim}]MCP[/]")
+    stats.append(f"[{dim}]/help[/]")
+    stat_line = Align.center(Text.from_markup(f"[{dim}]  ·  [/]".join(stats)))
+
+    body: list = [facts, Rule(style=border_color)]
+    if chip_line is not None:
+        body.append(chip_line)
+        body.append(Rule(style=border_color))
+    body.append(stat_line)
+
+    # Update / profile notices — minimal, only when they matter.
+    try:
+        behind = get_update_result(timeout=0.5)
+        if behind:
+            from freeide_cli.config import recommended_update_command, get_managed_update_command
+            if behind > 0:
+                _w = "commit" if behind == 1 else "commits"
+                body.append(Text.from_markup(
+                    f"[bold yellow]⚠ {behind} {_w} behind[/] [dim yellow]· run {recommended_update_command()}[/]"))
+            else:
+                _cmd = get_managed_update_command()
+                body.append(Text.from_markup(
+                    "[bold yellow]⚠ update available[/]" + (f" [dim yellow]· run {_cmd}[/]" if _cmd else "")))
+    except Exception:
+        pass
+
     try:
         from freeide_cli.profiles import get_active_profile_name
         _profile_name = get_active_profile_name()
         if _profile_name and _profile_name != "default":
-            right_lines.append(f"[bold {accent}]Profile:[/] [{text}]{_profile_name}[/]")
+            body.append(Text.from_markup(f"[{dim}]profile[/]  [{text}]{_profile_name}[/]"))
     except Exception:
-        pass  # Never break the banner over a profiles.py bug
+        pass
 
-    right_lines.append(f"[dim {dim}]{' · '.join(summary_parts)}[/]")
-
-    # Update check — use prefetched result if available
-    try:
-        behind = get_update_result(timeout=0.5)
-        if behind is not None and behind != 0:
-            from freeide_cli.config import get_managed_update_command, recommended_update_command
-            if behind > 0:
-                commits_word = "commit" if behind == 1 else "commits"
-                right_lines.append(
-                    f"[bold yellow]⚠ {behind} {commits_word} behind[/]"
-                    f"[dim yellow] — run [bold]{recommended_update_command()}[/bold] to update[/]"
-                )
-            else:
-                # UPDATE_AVAILABLE_NO_COUNT: nix-built freeide; we know an update
-                # exists but not by how much, and we don't know how the user
-                # installed it (nix run, profile, system flake, home-manager).
-                managed_cmd = get_managed_update_command()
-                line = "[bold yellow]⚠ update available[/]"
-                if managed_cmd:
-                    line += f"[dim yellow] — run [bold]{managed_cmd}[/bold][/]"
-                right_lines.append(line)
-    except Exception:
-        pass  # Never break the banner over an update check
-
-    right_content = "\n".join(right_lines)
-    layout_table.add_row(left_content, right_content)
-
-    title_color = _skin_color("banner_title", "#b4befe")
-    border_color = _skin_color("banner_border", "#585b70")
     version_label = format_banner_version_label()
     release_info = get_latest_release_tag()
     if release_info:
         _tag, _url = release_info
-        title_markup = f"[bold {title_color}][link={_url}]{version_label}[/link][/]"
+        title_markup = f"[bold {title_color}][link={_url}]  {version_label}  [/link][/]"
     else:
-        title_markup = f"[bold {title_color}]{version_label}[/]"
+        title_markup = f"[bold {title_color}]  {version_label}  [/]"
+
+    _card_width = min(shutil.get_terminal_size().columns, 72)
     outer_panel = Panel(
-        layout_table,
+        Group(*body),
         title=title_markup,
+        title_align="center",
         border_style=border_color,
-        padding=(0, 2),
+        box=box.ROUNDED,
+        padding=(1, 3),
+        width=_card_width,
     )
 
     console.print()
     term_width = shutil.get_terminal_size().columns
-    if term_width >= 95:
-        _logo = _bskin.banner_logo if _bskin and hasattr(_bskin, 'banner_logo') and _bskin.banner_logo else FREEIDE_AGENT_LOGO
-        console.print(_logo)
+    # The gradient wordmark is the hero on a roomy terminal; the compact prism
+    # emblem stands in when there isn't room for it.
+    if term_width >= 52:
+        _logo = _bskin.banner_logo if _bskin and getattr(_bskin, "banner_logo", "") else FREEIDE_AGENT_LOGO
+        console.print(Align.center(_logo, width=_card_width))
         console.print()
-    console.print(outer_panel)
+    else:
+        _hero = _bskin.banner_hero if _bskin and getattr(_bskin, "banner_hero", "") else FREEIDE_CADUCEUS
+        console.print(_hero)
+        console.print()
+    console.print(Align.center(outer_panel, width=_card_width))
