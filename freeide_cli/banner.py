@@ -67,9 +67,9 @@ FREEIDE_AGENT_LOGO = """[bold #cba6f7]███████╗██████
 [#89b4fa]██║     ██║  ██║███████╗███████╗██║██████╔╝███████╗[/]
 [#89dceb]╚═╝     ╚═╝  ╚═╝╚══════╝╚══════╝╚═╝╚═════╝ ╚══════╝[/]"""
 
-# Abstract prism emblem — a violet→sky gradient diamond. Replaces the old
-# caduceus (which is literally the staff of Hermes); this carries no upstream
-# symbolism and matches the wordmark's gradient.
+# Abstract prism emblem — a violet→sky gradient diamond that matches the
+# wordmark. Replaces the old winged-staff mascot, which carried upstream
+# symbolism; this one is pure FreeIDE.
 FREEIDE_CADUCEUS = """[#cba6f7]          ╱╲          [/]
 [#c0a9f8]         ╱  ╲         [/]
 [#b4befe]        ╱ ╱╲ ╲        [/]
