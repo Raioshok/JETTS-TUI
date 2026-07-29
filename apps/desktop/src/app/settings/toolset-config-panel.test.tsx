@@ -519,7 +519,7 @@ describe('ToolsetConfigPanel', () => {
 
   describe('readiness pills', () => {
     it('renders the server status instead of assuming keyless rows are Ready', async () => {
-      // The false-Ready bug: a logged-out Nous Subscription row and a
+      // The false-Ready bug: a logged-out FreeIDE Subscription row and a
       // never-installed local TTS both have zero env vars — the old client
       // heuristic pilled every such row "Ready". The server now sends an
       // honest per-provider status; the pill must follow it.
@@ -537,7 +537,7 @@ describe('ToolsetConfigPanel', () => {
               status: 'ready'
             },
             {
-              name: 'Nous Subscription',
+              name: 'FreeIDE Subscription',
               badge: 'subscription',
               tag: 'Managed OpenAI TTS',
               env_vars: [],
@@ -767,14 +767,14 @@ describe('ToolsetConfigPanel', () => {
     })
   })
 
-  describe('managed Nous provider activation', () => {
+  describe('managed FreeIDE provider activation', () => {
     const nousBrowserConfig = () =>
       config({
         name: 'browser',
         active_provider: null,
         providers: [
           {
-            name: 'Nous Subscription (Browser Use cloud)',
+            name: 'FreeIDE Subscription (Browser Use cloud)',
             badge: 'subscription',
             tag: 'Managed Browser Use billed to your subscription',
             env_vars: [],
@@ -798,7 +798,7 @@ describe('ToolsetConfigPanel', () => {
       selectToolsetProvider.mockResolvedValue({
         ok: true,
         name: 'browser',
-        provider: 'Nous Subscription (Browser Use cloud)',
+        provider: 'FreeIDE Subscription (Browser Use cloud)',
         needs_nous_auth: true,
         feature: 'browser'
       })
@@ -806,10 +806,10 @@ describe('ToolsetConfigPanel', () => {
       const { ToolsetConfigPanel } = await import('./toolset-config-panel')
       render(<ToolsetConfigPanel onConfiguredChange={vi.fn()} toolset="browser" />)
 
-      fireEvent.click(await screen.findByRole('button', { name: /Nous Subscription/ }))
+      fireEvent.click(await screen.findByRole('button', { name: /FreeIDE Subscription/ }))
 
       await waitFor(() =>
-        expect(selectToolsetProvider).toHaveBeenCalledWith('browser', 'Nous Subscription (Browser Use cloud)')
+        expect(selectToolsetProvider).toHaveBeenCalledWith('browser', 'FreeIDE Subscription (Browser Use cloud)')
       )
       await waitFor(() =>
         expect(notify).toHaveBeenCalledWith(
@@ -823,14 +823,14 @@ describe('ToolsetConfigPanel', () => {
       expect(notify).not.toHaveBeenCalledWith(expect.objectContaining({ kind: 'success' }))
     })
 
-    it('drives the existing Nous OAuth device-code flow from the sign-in action and refetches', async () => {
+    it('drives the existing FreeIDE OAuth device-code flow from the sign-in action and refetches', async () => {
       const { notify } = await import('@/store/notifications')
 
       getToolsetConfig.mockResolvedValue(nousBrowserConfig())
       selectToolsetProvider.mockResolvedValue({
         ok: true,
         name: 'browser',
-        provider: 'Nous Subscription (Browser Use cloud)',
+        provider: 'FreeIDE Subscription (Browser Use cloud)',
         needs_nous_auth: true,
         feature: 'browser'
       })
@@ -838,7 +838,7 @@ describe('ToolsetConfigPanel', () => {
         flow: 'device_code',
         session_id: 'sess-1',
         user_code: 'NOUS-1234',
-        verification_url: 'https://portal.nousresearch.com/device?user_code=NOUS-1234',
+        verification_url: 'https://portal.freeide.dev/device?user_code=NOUS-1234',
         poll_interval: 5,
         expires_in: 600
       })
@@ -849,7 +849,7 @@ describe('ToolsetConfigPanel', () => {
         const { ToolsetConfigPanel } = await import('./toolset-config-panel')
         render(<ToolsetConfigPanel onConfiguredChange={vi.fn()} toolset="browser" />)
 
-        fireEvent.click(await screen.findByRole('button', { name: /Nous Subscription/ }))
+        fireEvent.click(await screen.findByRole('button', { name: /FreeIDE Subscription/ }))
 
         // Grab the sign-in action off the warning notification and invoke it —
         // this is the affordance the toast renders as a button.
@@ -866,7 +866,7 @@ describe('ToolsetConfigPanel', () => {
 
         await waitFor(() => expect(startOAuthLogin).toHaveBeenCalledWith('nous'))
         expect(openSpy).toHaveBeenCalledWith(
-          'https://portal.nousresearch.com/device?user_code=NOUS-1234',
+          'https://portal.freeide.dev/device?user_code=NOUS-1234',
           '_blank',
           'noopener,noreferrer'
         )
@@ -885,13 +885,13 @@ describe('ToolsetConfigPanel', () => {
       selectToolsetProvider.mockResolvedValue({
         ok: true,
         name: 'browser',
-        provider: 'Nous Subscription (Browser Use cloud)'
+        provider: 'FreeIDE Subscription (Browser Use cloud)'
       })
 
       const { ToolsetConfigPanel } = await import('./toolset-config-panel')
       render(<ToolsetConfigPanel onConfiguredChange={vi.fn()} toolset="browser" />)
 
-      fireEvent.click(await screen.findByRole('button', { name: /Nous Subscription/ }))
+      fireEvent.click(await screen.findByRole('button', { name: /FreeIDE Subscription/ }))
 
       await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ kind: 'success' })))
       expect(startOAuthLogin).not.toHaveBeenCalled()

@@ -83,7 +83,7 @@ freeide webhook subscribe todoist-freeide \
   --deliver telegram --deliver-chat-id "12345"
 ```
 
-Full filter syntax: https://freeide-agent.nousresearch.com/docs/user-guide/messaging/webhooks#payload-filters
+Full filter syntax: https://freeide-agent.freeide.dev/docs/user-guide/messaging/webhooks#payload-filters
 
 ### List subscriptions
 ```bash

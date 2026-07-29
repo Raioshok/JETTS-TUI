@@ -14,7 +14,7 @@ You need at least one way to connect to an LLM. Use `freeide model` to switch pr
 
 | Provider | Setup |
 |----------|-------|
-| **Nous Portal** | `freeide model` (OAuth, subscription-based) |
+| **FreeIDE Portal** | `freeide model` (OAuth, subscription-based) |
 | **OpenAI Codex** | `freeide model` (ChatGPT OAuth, uses Codex models) |
 | **GitHub Copilot** | `freeide model` (OAuth device code flow, `COPILOT_GITHUB_TOKEN`, `GH_TOKEN`, or `gh auth token`) |
 | **GitHub Copilot ACP** | `freeide model` (spawns local `copilot --acp --stdio`) |
@@ -60,19 +60,19 @@ In the `model:` config section, you can use either `default:` or `model:` as the
 :::
 
 
-### Nous Portal
+### FreeIDE Portal
 
-[Nous Portal](https://portal.nousresearch.com) is FreeIDE's unified subscription gateway and **the recommended way to run FreeIDE Agent**. One OAuth login covers 300+ frontier agentic models (Claude, GPT, Gemini, DeepSeek, Qwen, Kimi, GLM, MiniMax, Grok, ...) plus the [Tool Gateway](/user-guide/features/tool-gateway) (web search, image generation, TTS, browser automation) — billed against your Nous subscription instead of separate per-provider accounts.
+[FreeIDE Portal](https://portal.freeide.dev) is FreeIDE's unified subscription gateway and **the recommended way to run FreeIDE Agent**. One OAuth login covers 300+ frontier agentic models (Claude, GPT, Gemini, DeepSeek, Qwen, Kimi, GLM, MiniMax, Grok, ...) plus the [Tool Gateway](/user-guide/features/tool-gateway) (web search, image generation, TTS, browser automation) — billed against your FreeIDE subscription instead of separate per-provider accounts.
 
 ```bash
 freeide setup --portal     # fresh install — OAuth + provider + gateway in one command
-freeide model              # existing install — pick "Nous Portal" from the list
+freeide model              # existing install — pick "FreeIDE Portal" from the list
 freeide portal info        # inspect login + routing at any time
 ```
 
-Don't have a subscription yet? Get one at [portal.nousresearch.com/manage-subscription](https://portal.nousresearch.com/manage-subscription).
+Don't have a subscription yet? Get one at [portal.freeide.dev/manage-subscription](https://portal.freeide.dev/manage-subscription).
 
-**For full details:** see the dedicated [Nous Portal integration page](/integrations/nous-portal) (what's in the subscription, model catalog, troubleshooting) and the step-by-step [Run FreeIDE Agent with Nous Portal guide](/guides/run-freeide-with-nous-portal).
+**For full details:** see the dedicated [FreeIDE Portal integration page](/integrations/nous-portal) (what's in the subscription, model catalog, troubleshooting) and the step-by-step [Run FreeIDE Agent with FreeIDE Portal guide](/guides/run-freeide-with-nous-portal).
 
 **Client identification.** Every Portal request from FreeIDE Agent carries a `client=freeide-client-v<version>` tag (e.g. `client=freeide-client-v0.13.0`) auto-aligned to your installed release. This is sent on all Portal pathways — main chat loop, auxiliary calls, compression summarizer, web extraction — and lets Portal-side telemetry distinguish FreeIDE traffic from other clients. No config required; the tag updates automatically when you `freeide update`.
 
@@ -86,11 +86,11 @@ If a token refresh fails with a terminal error (HTTP 4xx, `invalid_grant`, revok
 :::
 
 :::warning
-Even when using Nous Portal, Codex, or a custom endpoint, some tools (vision, web summarization, MoA) use a separate "auxiliary" model. By default (`auxiliary.*.provider: "auto"`), FreeIDE routes these tasks to your **main chat model** — the same model you picked in `freeide model`. You can override each task individually to route it to a cheaper/faster model (e.g. Gemini Flash on OpenRouter) — see [Auxiliary Models](/user-guide/configuration#auxiliary-models).
+Even when using FreeIDE Portal, Codex, or a custom endpoint, some tools (vision, web summarization, MoA) use a separate "auxiliary" model. By default (`auxiliary.*.provider: "auto"`), FreeIDE routes these tasks to your **main chat model** — the same model you picked in `freeide model`. You can override each task individually to route it to a cheaper/faster model (e.g. Gemini Flash on OpenRouter) — see [Auxiliary Models](/user-guide/configuration#auxiliary-models).
 :::
 
-:::tip Nous Tool Gateway
-Paid Nous Portal subscribers also get access to the **[Tool Gateway](/user-guide/features/tool-gateway)** — web search, image generation, TTS, and browser automation routed through your subscription. No extra API keys needed. On a fresh install, `freeide setup --portal` logs you in, sets Nous as your provider, and turns the gateway on in one command. Existing users can enable it from `freeide model` or per-tool from `freeide tools`. Inspect routing at any time with `freeide portal info`.
+:::tip FreeIDE Tool Gateway
+Paid FreeIDE Portal subscribers also get access to the **[Tool Gateway](/user-guide/features/tool-gateway)** — web search, image generation, TTS, and browser automation routed through your subscription. No extra API keys needed. On a fresh install, `freeide setup --portal` logs you in, sets FreeIDE as your provider, and turns the gateway on in one command. Existing users can enable it from `freeide model` or per-tool from `freeide tools`. Inspect routing at any time with `freeide portal info`.
 :::
 
 ### Two Commands for Model Management
@@ -1156,7 +1156,7 @@ FreeIDE uses a multi-source resolution chain to detect the correct context windo
 4. **Endpoint `/models`** — queries your server's API (local/custom endpoints)
 5. **Anthropic `/v1/models`** — queries Anthropic's API for `max_input_tokens` (API-key users only)
 6. **OpenRouter API** — live model metadata from OpenRouter
-7. **Nous Portal** — suffix-matches Nous model IDs against OpenRouter metadata
+7. **FreeIDE Portal** — suffix-matches FreeIDE model IDs against OpenRouter metadata
 8. **[models.dev](https://models.dev)** — community-maintained registry with provider-specific context lengths for 3800+ models across 100+ providers
 9. **Fallback defaults** — broad model family patterns (128K default)
 
@@ -1378,7 +1378,7 @@ model:
 
 | Use Case | Recommended |
 |----------|-------------|
-| **Just want it to work** | OpenRouter (default) or Nous Portal |
+| **Just want it to work** | OpenRouter (default) or FreeIDE Portal |
 | **Local models, easy setup** | Ollama |
 | **Production GPU serving** | vLLM or SGLang |
 | **Mac / no GPU** | Ollama or llama.cpp |

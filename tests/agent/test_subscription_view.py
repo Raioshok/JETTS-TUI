@@ -43,12 +43,12 @@ def test_manage_url_attaches_org_and_path_to_portal_origin():
     s = SubscriptionState(
         logged_in=True,
         org_id="org_x",
-        portal_url="https://portal.nousresearch.com/billing/whatever",
+        portal_url="https://portal.freeide.dev/billing/whatever",
     )
     # Path is replaced with /manage-subscription; org_id is pinned; origin kept.
     assert (
         subscription_manage_url(s)
-        == "https://portal.nousresearch.com/manage-subscription?org_id=org_x"
+        == "https://portal.freeide.dev/manage-subscription?org_id=org_x"
     )
 
 
@@ -64,11 +64,11 @@ def test_manage_url_appends_plan_when_tier_picked():
     s = SubscriptionState(
         logged_in=True,
         org_id="org_x",
-        portal_url="https://portal.nousresearch.com/billing",
+        portal_url="https://portal.freeide.dev/billing",
     )
     assert (
         subscription_manage_url(s, tier_id="plus")
-        == "https://portal.nousresearch.com/manage-subscription?org_id=org_x&plan=plus"
+        == "https://portal.freeide.dev/manage-subscription?org_id=org_x&plan=plus"
     )
 
 

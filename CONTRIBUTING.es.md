@@ -154,7 +154,7 @@ freeide-agent/
 │   ├── main.py                   # Punto de entrada, análisis de argumentos, despacho de comandos
 │   ├── config.py                 # Gestión de configuración, migración, definiciones de variables de entorno
 │   ├── setup.py                  # Asistente de configuración interactivo
-│   ├── auth.py                   # Resolución de proveedor, OAuth, Nous Portal
+│   ├── auth.py                   # Resolución de proveedor, OAuth, FreeIDE Portal
 │   ├── models.py                 # Listas de selección de modelos de OpenRouter
 │   ├── banner.py                 # Banner de bienvenida, arte ASCII
 │   ├── commands.py               # Registro central de comandos de barra (CommandDef), autocompletado, ayudantes del gateway
@@ -194,7 +194,7 @@ freeide-agent/
 ├── skills/                   # Habilidades incluidas (copiadas a ~/.freeide/skills/ en la instalación)
 ├── optional-skills/          # Habilidades opcionales oficiales (descubribles vía hub, no activadas por defecto)
 ├── tests/                    # Suite de tests
-├── website/                  # Sitio de documentación (freeide-agent.nousresearch.com)
+├── website/                  # Sitio de documentación (freeide-agent.freeide.dev)
 │
 ├── cli-config.yaml.example   # Configuración de ejemplo (copiada a ~/.freeide/config.yaml)
 └── AGENTS.md                 # Guía de desarrollo para asistentes de codificación IA
@@ -206,7 +206,7 @@ freeide-agent/
 |------|-----------|
 | `~/.freeide/config.yaml` | Configuración (modelo, terminal, toolsets, compresión, etc.) |
 | `~/.freeide/.env` | Claves API y secretos |
-| `~/.freeide/auth.json` | Credenciales OAuth (Nous Portal) |
+| `~/.freeide/auth.json` | Credenciales OAuth (FreeIDE Portal) |
 | `~/.freeide/skills/` | Todas las habilidades activas (incluidas + instaladas desde hub + creadas por el agente) |
 | `~/.freeide/memories/` | Memoria persistente (MEMORY.md, USER.md) |
 | `~/.freeide/state.db` | Base de datos de sesiones SQLite |

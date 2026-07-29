@@ -445,7 +445,7 @@ def test_upgrade_transport_failure_is_ambiguous_not_flat_failure(cli, monkeypatc
     monkeypatch.setattr(nb, "post_subscription_preview", lambda **kw: {"effect": "charge_now", "targetTierName": "Ultra", "amountDueNowCents": 4630})
 
     def _boom(**kw):
-        raise nb.BillingError("Could not reach Nous Portal", error="endpoint_unavailable")
+        raise nb.BillingError("Could not reach FreeIDE Portal", error="endpoint_unavailable")
 
     monkeypatch.setattr(nb, "post_subscription_upgrade", _boom)
 
@@ -499,7 +499,7 @@ def test_upgrade_transport_failure_still_ambiguous_after_narrowing(cli, monkeypa
     monkeypatch.setattr(nb, "post_subscription_preview", lambda **kw: {"effect": "charge_now", "targetTierName": "Ultra", "amountDueNowCents": 4630})
 
     def _net(**kw):
-        raise nb.BillingError("Could not reach Nous Portal: timeout", error="network_error")
+        raise nb.BillingError("Could not reach FreeIDE Portal: timeout", error="network_error")
 
     monkeypatch.setattr(nb, "post_subscription_upgrade", _net)
 

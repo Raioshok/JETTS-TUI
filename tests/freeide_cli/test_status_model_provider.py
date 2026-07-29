@@ -77,7 +77,7 @@ def test_show_status_reports_managed_nous_features(monkeypatch, capsys, tmp_path
     )
     monkeypatch.setattr(status_mod, "resolve_requested_provider", lambda requested=None: "nous", raising=False)
     monkeypatch.setattr(status_mod, "resolve_provider", lambda requested=None, **kwargs: "nous", raising=False)
-    monkeypatch.setattr(status_mod, "provider_label", lambda provider: "Nous Portal", raising=False)
+    monkeypatch.setattr(status_mod, "provider_label", lambda provider: "FreeIDE Portal", raising=False)
     monkeypatch.setattr(
         status_mod,
         "get_nous_subscription_features",
@@ -103,7 +103,7 @@ def test_show_status_reports_managed_nous_features(monkeypatch, capsys, tmp_path
     out = capsys.readouterr().out
     assert "Nous Tool Gateway" in out
     assert "Browser automation" in out
-    assert "active via Nous subscription" in out
+    assert "active via FreeIDE subscription" in out
 
 
 def test_show_status_hides_nous_subscription_section_when_feature_flag_is_off(monkeypatch, capsys, tmp_path):
@@ -119,7 +119,7 @@ def test_show_status_hides_nous_subscription_section_when_feature_flag_is_off(mo
     )
     monkeypatch.setattr(status_mod, "resolve_requested_provider", lambda requested=None: "nous", raising=False)
     monkeypatch.setattr(status_mod, "resolve_provider", lambda requested=None, **kwargs: "nous", raising=False)
-    monkeypatch.setattr(status_mod, "provider_label", lambda provider: "Nous Portal", raising=False)
+    monkeypatch.setattr(status_mod, "provider_label", lambda provider: "FreeIDE Portal", raising=False)
 
     status_mod.show_status(SimpleNamespace(all=False, deep=False))
 
@@ -169,7 +169,7 @@ def test_show_status_reports_exhausted_nous_credits(monkeypatch, capsys, tmp_pat
     monkeypatch.setattr(status_mod, "load_config", lambda: {"model": {"provider": "nous"}}, raising=False)
     monkeypatch.setattr(status_mod, "resolve_requested_provider", lambda requested=None: "nous", raising=False)
     monkeypatch.setattr(status_mod, "resolve_provider", lambda requested=None, **kwargs: "nous", raising=False)
-    monkeypatch.setattr(status_mod, "provider_label", lambda provider: "Nous Portal", raising=False)
+    monkeypatch.setattr(status_mod, "provider_label", lambda provider: "FreeIDE Portal", raising=False)
 
     status_mod.show_status(SimpleNamespace(all=False, deep=False))
 
@@ -177,7 +177,7 @@ def test_show_status_reports_exhausted_nous_credits(monkeypatch, capsys, tmp_pat
     assert "Nous Tool Gateway" in out
     assert "credits are exhausted" in out
     assert "https://portal.example.test/billing" in out
-    assert "free-tier Nous account" not in out
+    assert "free-tier FreeIDE account" not in out
 
 
 def test_show_status_reports_empty_lmstudio_listing_as_reachable(monkeypatch, capsys, tmp_path):

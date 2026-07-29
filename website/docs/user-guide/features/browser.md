@@ -33,8 +33,8 @@ Key capabilities:
 
 ## Setup
 
-:::tip Nous Subscribers
-If you have a paid [Nous Portal](https://portal.nousresearch.com) subscription, you can use browser automation through the **[Tool Gateway](tool-gateway.md)** without any separate API keys. New installs can run `freeide setup --portal` to log in and turn on every gateway tool at once; existing installs can pick **Nous Subscription** as the browser provider via `freeide model` or `freeide tools`.
+:::tip FreeIDE Subscribers
+If you have a paid [FreeIDE Portal](https://portal.freeide.dev) subscription, you can use browser automation through the **[Tool Gateway](tool-gateway.md)** without any separate API keys. New installs can run `freeide setup --portal` to log in and turn on every gateway tool at once; existing installs can pick **FreeIDE Subscription** as the browser provider via `freeide model` or `freeide tools`.
 :::
 
 ### Browserbase cloud mode

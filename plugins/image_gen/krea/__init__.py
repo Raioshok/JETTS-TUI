@@ -165,7 +165,7 @@ def _resolve_managed_krea_gateway():
     """Return managed Krea gateway config when the user is on the managed path.
 
     Mirrors ``_resolve_managed_fal_gateway`` in ``tools/image_generation_tool.py``:
-    the Nous-hosted Krea gateway wins when it is resolvable AND either no direct
+    the FreeIDE-hosted Krea gateway wins when it is resolvable AND either no direct
     ``KREA_API_KEY`` is configured or the user explicitly opted into the gateway
     for ``image_gen``. Returns ``None`` (direct/BYO path) otherwise, and never
     raises — plugin discovery and availability scans must stay robust.
@@ -230,8 +230,8 @@ class KreaImageGenProvider(ImageGenProvider):
         return "Krea"
 
     def is_available(self) -> bool:
-        # Available with a direct Krea key OR via the managed Nous gateway
-        # (Nous Subscription), so portal users with no Krea key can still
+        # Available with a direct Krea key OR via the managed FreeIDE gateway
+        # (FreeIDE Subscription), so portal users with no Krea key can still
         # reach Krea 2 through the gateway.
         return bool(os.environ.get("KREA_API_KEY")) or _managed_krea_gateway_ready()
 
@@ -254,7 +254,7 @@ class KreaImageGenProvider(ImageGenProvider):
         return {
             "name": "Krea",
             "badge": "paid",
-            "tag": "Krea 2 foundation model — Medium ($0.03), Large ($0.06), Medium Turbo ($0.015). Style transfer, moodboards, reference-guided generation. Direct key or managed Nous Subscription gateway.",
+            "tag": "Krea 2 foundation model — Medium ($0.03), Large ($0.06), Medium Turbo ($0.015). Style transfer, moodboards, reference-guided generation. Direct key or managed FreeIDE Subscription gateway.",
             "env_vars": [
                 {
                     "key": "KREA_API_KEY",
@@ -327,10 +327,10 @@ class KreaImageGenProvider(ImageGenProvider):
                 aspect_ratio=aspect,
             )
 
-        # Route through the managed Nous gateway (Nous Subscription) when the
+        # Route through the managed FreeIDE gateway (FreeIDE Subscription) when the
         # user is on the managed path; otherwise use the direct Krea API with a
         # BYO ``KREA_API_KEY``. The gateway owns the shared Krea credential and
-        # meters/bills per generation, so the caller token is the Nous access
+        # meters/bills per generation, so the caller token is the FreeIDE access
         # token, not a Krea key.
         managed = _resolve_managed_krea_gateway()
         if managed is not None:
@@ -345,7 +345,7 @@ class KreaImageGenProvider(ImageGenProvider):
                         "KREA_API_KEY not set. Run `freeide tools` → Image "
                         "Generation → Krea to configure, get a key at "
                         "https://www.krea.ai/settings/api-tokens, or sign in to "
-                        "a Nous account with the managed Krea gateway enabled "
+                        "a FreeIDE account with the managed Krea gateway enabled "
                         "(`freeide setup`)."
                     ),
                     error_type="auth_required",
@@ -364,7 +364,7 @@ class KreaImageGenProvider(ImageGenProvider):
             if isinstance(kwargs.get("styles"), list) and kwargs.get("styles"):
                 return error_response(
                     error=(
-                        "Managed Krea (Nous Subscription) does not support "
+                        "Managed Krea (FreeIDE Subscription) does not support "
                         "trained styles (LoRAs). Set KREA_API_KEY to use Krea "
                         "directly, or omit `styles`."
                     ),
@@ -377,7 +377,7 @@ class KreaImageGenProvider(ImageGenProvider):
             if isinstance(kwargs.get("moodboards"), list) and kwargs.get("moodboards"):
                 return error_response(
                     error=(
-                        "Managed Krea (Nous Subscription) does not support "
+                        "Managed Krea (FreeIDE Subscription) does not support "
                         "moodboards. Set KREA_API_KEY to use Krea directly, or "
                         "omit `moodboards`."
                     ),
@@ -463,7 +463,7 @@ class KreaImageGenProvider(ImageGenProvider):
             logger.error("Krea submit failed (%d): %s", status, err_msg)
             # On a managed 4xx, surface actionable remediation mirroring the
             # FAL managed gateway path: the model may not be enabled/priced on
-            # the Nous Portal, or the gateway's shared Krea key hit its
+            # the FreeIDE Portal, or the gateway's shared Krea key hit its
             # concurrency cap (429).
             if managed is not None and 400 <= status < 500:
                 hint = (
@@ -471,14 +471,14 @@ class KreaImageGenProvider(ImageGenProvider):
                     if status == 429
                     else (
                         f"Model '{model_id}' may not be enabled/priced on the "
-                        "Nous Portal's Krea gateway. Set KREA_API_KEY to use "
+                        "FreeIDE Portal's Krea gateway. Set KREA_API_KEY to use "
                         "Krea directly, or pick a different model via "
                         "`freeide tools` → Image Generation."
                     )
                 )
                 return error_response(
                     error=(
-                        f"Nous Subscription Krea gateway rejected '{model_id}' "
+                        f"FreeIDE Subscription Krea gateway rejected '{model_id}' "
                         f"(HTTP {status}): {err_msg}. {hint}"
                     ),
                     error_type="api_error",
@@ -539,7 +539,7 @@ class KreaImageGenProvider(ImageGenProvider):
 
         # 2. Poll for completion. Status/result polling is bound to the same
         # principal at the gateway, so the managed path polls the gateway's
-        # ``/jobs/{id}`` with the Nous token (404 on cross-user/unknown jobs).
+        # ``/jobs/{id}`` with the FreeIDE token (404 on cross-user/unknown jobs).
         job_url = f"{base_url}/jobs/{job_id}"
         poll_headers = {
             "Authorization": f"Bearer {auth_token}",

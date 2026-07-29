@@ -181,7 +181,7 @@ export const ja = defineLocale({
   },
 
   billingBlock: {
-    titleNous: 'Nous クレジットが不足しています',
+    titleNous: 'FreeIDE クレジットが不足しています',
     titleProvider: provider => `クレジット不足 — ${provider}`,
     fallbackMessage: 'アカウントのクレジットが不足しています。続行するにはクレジットを追加してください。',
     openBilling: '請求を開く',
@@ -785,7 +785,7 @@ export const ja = defineLocale({
       sshErrHostKey:
         '前回の接続以降、ホスト鍵が変更されています。想定どおりか確認し、ssh-keygen -R <host> を実行してから再接続してください。',
       sshErrNotInstalled:
-        'リモートホストに FreeIDE がインストールされていません。リモートでインストールする（curl -fsSL https://freeide-agent.nousresearch.com/install.sh | sh）か、FreeIDE パスを設定してください。',
+        'リモートホストに FreeIDE がインストールされていません。リモートでインストールする（curl -fsSL https://freeide-agent.freeide.dev/install.sh | sh）か、FreeIDE パスを設定してください。',
       sshErrPlatform:
         'サポートされていないリモートプラットフォームです。FreeIDE Desktop の SSH モードは Linux、macOS、Windows のリモートホストに対応しています。',
       sshErrTimeout: 'SSH 接続がタイムアウトしました。ホストが到達不能、またはスリープ中の可能性があります。',
@@ -944,14 +944,14 @@ export const ja = defineLocale({
       ready: '準備完了',
       needsSignIn: 'サインインが必要',
       needsSetup: 'セットアップが必要',
-      nousIncluded: 'Nous サブスクリプションに含まれています。有効にするには Nous Portal にサインインしてください。',
-      nousAuthNeededTitle: 'Nous Portal にサインイン',
+      nousIncluded: 'FreeIDE サブスクリプションに含まれています。有効にするには FreeIDE Portal にサインインしてください。',
+      nousAuthNeededTitle: 'FreeIDE Portal にサインイン',
       nousAuthNeededMessage: provider =>
-        `${provider} は保存されましたが、Nous Portal にサインインするまで有効になりません。`,
+        `${provider} は保存されましたが、FreeIDE Portal にサインインするまで有効になりません。`,
       nousAuthSignIn: 'サインイン',
-      nousAuthDoneTitle: 'Nous Portal に接続しました',
+      nousAuthDoneTitle: 'FreeIDE Portal に接続しました',
       nousAuthDoneMessage: 'サブスクリプションのバックエンドが有効になりました。',
-      nousAuthFailed: 'Nous Portal のサインインが完了しませんでした',
+      nousAuthFailed: 'FreeIDE Portal のサインインが完了しませんでした',
       noApiKeyRequired: 'API キーは不要です。',
       postSetupHint: step =>
         `このバックエンドは一度だけインストールが必要です (${step})。このマシン上で実行され、数分かかる場合があります。`,
@@ -2191,7 +2191,7 @@ export const ja = defineLocale({
     loadFailed: 'モデルを読み込めませんでした',
     noAuthenticatedProviders: '認証済みプロバイダーがありません。',
     pro: 'Pro',
-    proNeedsSubscription: 'Pro モデルには有料の Nous サブスクリプションが必要です。',
+    proNeedsSubscription: 'Pro モデルには有料の FreeIDE サブスクリプションが必要です。',
     free: '無料',
     freeTier: '無料プラン',
     priceTitle: '100 万トークンあたりの入力/出力価格',

@@ -14,7 +14,7 @@ description: "配置 FreeIDE Agent — config.yaml、providers、模型、API �
 ~/.freeide/
 ├── config.yaml     # 设置（模型、终端、TTS、压缩等）
 ├── .env            # API 密钥和机密
-├── auth.json       # OAuth provider 凭据（Nous Portal 等）
+├── auth.json       # OAuth provider 凭据（FreeIDE Portal 等）
 ├── SOUL.md         # 主要 agent 身份（系统提示词第 #1 槽位）
 ├── memories/       # 持久记忆（MEMORY.md、USER.md）
 ├── skills/         # Agent 创建的技能（通过 skill_manage 工具管理）
@@ -709,7 +709,7 @@ credential_pool_strategies:
 
 当活跃 provider 支持时，FreeIDE 自动开启跨会话 prompt 缓存 —— 无需用户配置。
 
-对于**原生 Anthropic**、**OpenRouter** 和 **Nous Portal** 上的 Claude，FreeIDE 在系统提示词和技能块上附加带有 1 小时 TTL（`ttl: "1h"`）的 `cache_control` 断点。在新鲜的一小时内首次发送时按完整输入费率计费；同一小时内任何会话的后续发送以折扣缓存读取费率从缓存中提取。这意味着系统提示词、加载的技能内容以及任何长上下文包含的早期部分在第一个小时内跨 `freeide` 会话和分叉子 agent 被重用。
+对于**原生 Anthropic**、**OpenRouter** 和 **FreeIDE Portal** 上的 Claude，FreeIDE 在系统提示词和技能块上附加带有 1 小时 TTL（`ttl: "1h"`）的 `cache_control` 断点。在新鲜的一小时内首次发送时按完整输入费率计费；同一小时内任何会话的后续发送以折扣缓存读取费率从缓存中提取。这意味着系统提示词、加载的技能内容以及任何长上下文包含的早期部分在第一个小时内跨 `freeide` 会话和分叉子 agent 被重用。
 
 Qwen Cloud（阿里巴巴 DashScope）上游将缓存 TTL 限制为 5 分钟，因此 FreeIDE 在那里使用 5 分钟断点 TTL。其他通过第三方的 Claude 路径（AWS Bedrock、Azure Foundry）回退到 provider 自己的缓存默认值。xAI Grok 使用单独的会话固定对话 ID 机制 —— 参阅 [xAI prompt 缓存](/integrations/providers#xai-grok--responses-api--prompt-caching)。
 
@@ -720,7 +720,7 @@ Qwen Cloud（阿里巴巴 DashScope）上游将缓存 TTL 限制为 5 分钟，�
 FreeIDE 使用"辅助"模型处理图像分析、网页摘要、浏览器截图分析、会话标题生成和上下文压缩等附带任务。默认情况下（`auxiliary.*.provider: "auto"`），FreeIDE 将每个辅助任务路由到您的**主聊天模型** —— 与您在 `freeide model` 中选择的相同 provider/模型。您无需配置任何内容即可开始，但请注意，在昂贵的推理模型（Opus、MiniMax M2.7 等）上，辅助任务会增加显著成本。如果您希望无论主模型如何都使用便宜且快速的附带任务，请显式设置 `auxiliary.<task>.provider` 和 `auxiliary.<task>.model`（例如，在 OpenRouter 上使用 Gemini Flash 进行视觉和网页提取）。
 
 :::note 为什么 "auto" 使用您的主模型
-早期版本将聚合器用户（OpenRouter、Nous Portal）分流到便宜的 provider 端默认值。这令人惊讶 —— 付费购买聚合器订阅的用户会看到不同的模型处理其辅助流量。`auto` 现在对所有人使用主模型，`config.yaml` 中的每任务覆盖仍然优先（见下方[完整辅助配置参考](#full-auxiliary-config-reference)）。
+早期版本将聚合器用户（OpenRouter、FreeIDE Portal）分流到便宜的 provider 端默认值。这令人惊讶 —— 付费购买聚合器订阅的用户会看到不同的模型处理其辅助流量。`auto` 现在对所有人使用主模型，`config.yaml` 中的每任务覆盖仍然优先（见下方[完整辅助配置参考](#full-auxiliary-config-reference)）。
 :::
 
 ### 交互式配置辅助模型
@@ -932,7 +932,7 @@ AUXILIARY_VISION_MODEL=openai/gpt-4o
 |----------|-------------|-------------|
 | `"auto"` | 最佳可用（默认）。Vision 尝试 OpenRouter → Nous → Codex。 | — |
 | `"openrouter"` | 强制 OpenRouter —— 路由到任何模型（Gemini、GPT-4o、Claude 等） | `OPENROUTER_API_KEY` |
-| `"nous"` | 强制 Nous Portal | `freeide auth` |
+| `"nous"` | 强制 FreeIDE Portal | `freeide auth` |
 | `"codex"` | 强制 Codex OAuth（ChatGPT 账户）。支持视觉（gpt-5.3-codex）。 | `freeide model` → Codex |
 | `"minimax-oauth"` | 强制 MiniMax OAuth（浏览器登录，无需 API 密钥）。辅助任务使用 MiniMax-M2.7-highspeed。 | `freeide model` → MiniMax (OAuth) |
 | `"xai-oauth"` | 强制 xAI Grok OAuth（SuperGrok 或 X Premium+ 订阅者的浏览器登录，无需 API 密钥）。相同的 OAuth token 涵盖聊天、TTS、图像、视频和转录。 | `freeide model` → xAI Grok OAuth (SuperGrok / Premium+) |

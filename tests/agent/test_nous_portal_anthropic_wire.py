@@ -1,7 +1,7 @@
-"""Nous Portal ``anthropic/*`` models route on the native Messages wire.
+"""FreeIDE Portal ``anthropic/*`` models route on the native Messages wire.
 
 Portal serves its ``anthropic/*`` catalog at
-``https://inference-api.nousresearch.com/v1/messages`` alongside the
+``https://inference-api.freeide.dev/v1/messages`` alongside the
 OpenAI-compatible ``/v1/chat/completions`` used by everything else it proxies.
 These tests pin the contracts that make that routing correct:
 
@@ -23,7 +23,7 @@ import pytest
 from freeide_cli import runtime_provider as rp
 from freeide_cli.providers import nous_api_mode
 
-PORTAL_URL = "https://inference-api.nousresearch.com/v1"
+PORTAL_URL = "https://inference-api.freeide.dev/v1"
 # Staging / preview hosts used via NOUS_INFERENCE_BASE_URL — not the prod
 # hostname, so Portal behaviour must key off provider=nous.
 STAGING_URL = "https://ai.wildebeest-newton.ts.net/v1"
@@ -214,7 +214,7 @@ class TestClientShape:
         from agent.anthropic_adapter import _is_nous_portal_endpoint
 
         assert _is_nous_portal_endpoint(PORTAL_URL)
-        assert _is_nous_portal_endpoint("https://inference-api.nousresearch.com")
+        assert _is_nous_portal_endpoint("https://inference-api.freeide.dev")
         assert not _is_nous_portal_endpoint("https://api.anthropic.com")
         assert not _is_nous_portal_endpoint("")
         assert not _is_nous_portal_endpoint(None)
@@ -245,7 +245,7 @@ class TestClientShape:
             _requires_bearer_auth,
         )
 
-        spoofed = "https://inference-api.nousresearch.com.attacker.test/v1"
+        spoofed = "https://inference-api.freeide.dev.attacker.test/v1"
         assert not _is_nous_portal_endpoint(spoofed)
         assert not _requires_bearer_auth(spoofed)
 
@@ -257,7 +257,7 @@ class TestClientShape:
         client = build_anthropic_client("portal-invoke-jwt", PORTAL_URL)
 
         assert str(client.base_url).rstrip("/") == (
-            "https://inference-api.nousresearch.com"
+            "https://inference-api.freeide.dev"
         )
 
     def test_portal_jwt_authenticates_with_bearer_not_x_api_key(self):

@@ -4,21 +4,21 @@
 
 # FreeIDE Agent ☤
 <p align="center">
-  <a href="https://freeide-agent.nousresearch.com/">FreeIDE Agent</a> | <a href="https://freeide-agent.nousresearch.com/">FreeIDE Desktop</a>
+  <a href="https://freeide-agent.freeide.dev/">FreeIDE Agent</a> | <a href="https://freeide-agent.freeide.dev/">FreeIDE Desktop</a>
 </p>
 <p align="center">
-  <a href="https://freeide-agent.nousresearch.com/docs/"><img src="https://img.shields.io/badge/Docs-freeide--agent.nousresearch.com-FFD700?style=for-the-badge" alt="Documentación"></a>
+  <a href="https://freeide-agent.freeide.dev/docs/"><img src="https://img.shields.io/badge/Docs-freeide--agent.freeide.dev-FFD700?style=for-the-badge" alt="Documentación"></a>
   <a href="https://discord.gg/freeide"><img src="https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"></a>
   <a href="https://github.com/freeide/freeide/blob/main/LICENSE"><img src="https://img.shields.io/badge/Licencia-MIT-green?style=for-the-badge" alt="Licencia: MIT"></a>
-  <a href="https://nousresearch.com"><img src="https://img.shields.io/badge/Creado%20por-Nous%20Research-blueviolet?style=for-the-badge" alt="Creado por FreeIDE"></a>
+  <a href="https://freeide.dev"><img src="https://img.shields.io/badge/Creado%20por-FreeIDE-blueviolet?style=for-the-badge" alt="Creado por FreeIDE"></a>
   <a href="README.md"><img src="https://img.shields.io/badge/Lang-English-blue?style=for-the-badge" alt="English"></a>
   <a href="README.zh-CN.md"><img src="https://img.shields.io/badge/Lang-中文-red?style=for-the-badge" alt="中文"></a>
   <a href="README.ur-pk.md"><img src="https://img.shields.io/badge/Lang-اردو-green?style=for-the-badge" alt="اردو"></a>
 </p>
 
-**El agente de IA con mejora continua creado por [FreeIDE](https://nousresearch.com).** Es el único agente con un bucle de aprendizaje integrado: crea habilidades a partir de la experiencia, las mejora durante el uso, se impulsa a sí mismo a persistir el conocimiento, busca en sus propias conversaciones pasadas y construye un modelo cada vez más profundo de quién eres a lo largo de las sesiones. Ejecútalo en un VPS de $5, un clúster de GPUs o infraestructura sin servidor que cuesta casi nada cuando está inactivo. No está atado a tu laptop — habla con él desde Telegram mientras trabaja en una VM en la nube.
+**El agente de IA con mejora continua creado por [FreeIDE](https://freeide.dev).** Es el único agente con un bucle de aprendizaje integrado: crea habilidades a partir de la experiencia, las mejora durante el uso, se impulsa a sí mismo a persistir el conocimiento, busca en sus propias conversaciones pasadas y construye un modelo cada vez más profundo de quién eres a lo largo de las sesiones. Ejecútalo en un VPS de $5, un clúster de GPUs o infraestructura sin servidor que cuesta casi nada cuando está inactivo. No está atado a tu laptop — habla con él desde Telegram mientras trabaja en una VM en la nube.
 
-Usa cualquier modelo que quieras — [Nous Portal](https://portal.nousresearch.com), [OpenRouter](https://openrouter.ai) (más de 200 modelos), [NovitaAI](https://novita.ai), [NVIDIA NIM](https://build.nvidia.com) (Nemotron), [Xiaomi MiMo](https://platform.xiaomimimo.com), [z.ai/GLM](https://z.ai), [Kimi/Moonshot](https://platform.moonshot.ai), [MiniMax](https://www.minimax.io), [Hugging Face](https://huggingface.co), OpenAI, o tu propio endpoint. Cambia con `freeide model` — sin cambios de código, sin dependencias.
+Usa cualquier modelo que quieras — [FreeIDE Portal](https://portal.freeide.dev), [OpenRouter](https://openrouter.ai) (más de 200 modelos), [NovitaAI](https://novita.ai), [NVIDIA NIM](https://build.nvidia.com) (Nemotron), [Xiaomi MiMo](https://platform.xiaomimimo.com), [z.ai/GLM](https://z.ai), [Kimi/Moonshot](https://platform.moonshot.ai), [MiniMax](https://www.minimax.io), [Hugging Face](https://huggingface.co), OpenAI, o tu propio endpoint. Cambia con `freeide model` — sin cambios de código, sin dependencias.
 
 <table>
 <tr><td><b>Una interfaz de terminal real</b></td><td>TUI completa con edición multilínea, autocompletado de comandos, historial de conversaciones, interrupción y redirección, y salida de herramientas en streaming.</td></tr>
@@ -37,7 +37,7 @@ Usa cualquier modelo que quieras — [Nous Portal](https://portal.nousresearch.c
 ### Linux, macOS, WSL2, Termux
 
 ```bash
-curl -fsSL https://freeide-agent.nousresearch.com/install.sh | bash
+curl -fsSL https://freeide-agent.freeide.dev/install.sh | bash
 ```
 
 ### Windows (nativo, PowerShell)
@@ -47,14 +47,14 @@ curl -fsSL https://freeide-agent.nousresearch.com/install.sh | bash
 Ejecuta esto en PowerShell:
 
 ```powershell
-iex (irm https://freeide-agent.nousresearch.com/install.ps1)
+iex (irm https://freeide-agent.freeide.dev/install.ps1)
 ```
 
 El instalador se encarga de todo: uv, Python 3.11, Node.js, ripgrep, ffmpeg, **y un Git Bash portátil** (MinGit, descomprimido en `%LOCALAPPDATA%\freeide\git` — no requiere administrador, completamente aislado de cualquier instalación de Git del sistema). FreeIDE usa este Git Bash incluido para ejecutar comandos de shell.
 
 Si ya tienes Git instalado, el instalador lo detecta y lo usa en su lugar. De lo contrario, una descarga de ~45MB de MinGit es todo lo que necesitas — no tocará ni interferirá con ningún Git del sistema.
 
-> **Android / Termux:** La ruta manual probada está documentada en la [guía de Termux](https://freeide-agent.nousresearch.com/docs/getting-started/termux). En Termux, FreeIDE instala el extra `.[termux]` curado porque el extra completo `.[all]` actualmente incluye dependencias de voz incompatibles con Android.
+> **Android / Termux:** La ruta manual probada está documentada en la [guía de Termux](https://freeide-agent.freeide.dev/docs/getting-started/termux). En Termux, FreeIDE instala el extra `.[termux]` curado porque el extra completo `.[all]` actualmente incluye dependencias de voz incompatibles con Android.
 >
 > **Windows:** Windows nativo es totalmente compatible — el comando de PowerShell de arriba instala todo. Si prefieres usar WSL2, el comando de Linux también funciona allí. La instalación nativa de Windows se encuentra en `%LOCALAPPDATA%\freeide`; WSL2 instala en `~/.freeide` como en Linux.
 
@@ -81,13 +81,13 @@ freeide update       # Actualiza a la última versión
 freeide doctor       # Diagnostica cualquier problema
 ```
 
-📖 **[Documentación completa →](https://freeide-agent.nousresearch.com/docs/)**
+📖 **[Documentación completa →](https://freeide-agent.freeide.dev/docs/)**
 
 ---
 
-## Evita la colección de claves API — Nous Portal
+## Evita la colección de claves API — FreeIDE Portal
 
-FreeIDE funciona con cualquier proveedor que quieras — eso no cambiará. Pero si prefieres no recopilar cinco claves API separadas para el modelo, búsqueda web, generación de imágenes, TTS y un navegador en la nube, **[Nous Portal](https://portal.nousresearch.com)** las cubre todas bajo una sola suscripción:
+FreeIDE funciona con cualquier proveedor que quieras — eso no cambiará. Pero si prefieres no recopilar cinco claves API separadas para el modelo, búsqueda web, generación de imágenes, TTS y un navegador en la nube, **[FreeIDE Portal](https://portal.freeide.dev)** las cubre todas bajo una sola suscripción:
 
 - **Más de 300 modelos** — elige cualquiera con `/model <nombre>`
 - **Tool Gateway** — búsqueda web (Firecrawl), generación de imágenes (FAL), texto a voz (OpenAI), navegador en la nube (Browser Use), todo enrutado a través de tu suscripción. Sin cuentas adicionales.
@@ -98,7 +98,7 @@ Un comando desde una instalación nueva:
 freeide setup --portal
 ```
 
-Esto te autentica vía OAuth, establece Nous como tu proveedor y activa el Tool Gateway. Comprueba qué está conectado en cualquier momento con `freeide portal info`. Detalles completos en la [página de documentación del Tool Gateway](https://freeide-agent.nousresearch.com/docs/user-guide/features/tool-gateway).
+Esto te autentica vía OAuth, establece Nous como tu proveedor y activa el Tool Gateway. Comprueba qué está conectado en cualquier momento con `freeide portal info`. Detalles completos en la [página de documentación del Tool Gateway](https://freeide-agent.freeide.dev/docs/user-guide/features/tool-gateway).
 
 Puedes seguir usando tus propias claves por herramienta cuando quieras — el gateway es por backend, no todo o nada.
 
@@ -120,31 +120,31 @@ FreeIDE tiene dos puntos de entrada: inicia la interfaz de terminal con `freeide
 | Interrumpir trabajo actual          | `Ctrl+C` o enviar un nuevo mensaje            | `/stop` o enviar un nuevo mensaje                                                 |
 | Estado específico de plataforma     | `/platforms`                                  | `/status`, `/sethome`                                                             |
 
-Para las listas de comandos completas, consulta la [guía de CLI](https://freeide-agent.nousresearch.com/docs/user-guide/cli) y la [guía del Gateway de Mensajería](https://freeide-agent.nousresearch.com/docs/user-guide/messaging).
+Para las listas de comandos completas, consulta la [guía de CLI](https://freeide-agent.freeide.dev/docs/user-guide/cli) y la [guía del Gateway de Mensajería](https://freeide-agent.freeide.dev/docs/user-guide/messaging).
 
 ---
 
 ## Documentación
 
-Toda la documentación está en **[freeide-agent.nousresearch.com/docs](https://freeide-agent.nousresearch.com/docs/)**:
+Toda la documentación está en **[freeide-agent.freeide.dev/docs](https://freeide-agent.freeide.dev/docs/)**:
 
 | Sección                                                                                             | Contenido                                                    |
 | --------------------------------------------------------------------------------------------------- | ------------------------------------------------------------ |
-| [Inicio rápido](https://freeide-agent.nousresearch.com/docs/getting-started/quickstart)              | Instalar → configurar → primera conversación en 2 minutos   |
-| [Uso de CLI](https://freeide-agent.nousresearch.com/docs/user-guide/cli)                             | Comandos, atajos de teclado, personalidades, sesiones        |
-| [Configuración](https://freeide-agent.nousresearch.com/docs/user-guide/configuration)               | Archivo de configuración, proveedores, modelos, todas las opciones |
-| [Gateway de Mensajería](https://freeide-agent.nousresearch.com/docs/user-guide/messaging)           | Telegram, Discord, Slack, WhatsApp, Signal, Home Assistant   |
-| [Seguridad](https://freeide-agent.nousresearch.com/docs/user-guide/security)                        | Aprobación de comandos, emparejamiento por DM, aislamiento en contenedor |
-| [Herramientas y Toolsets](https://freeide-agent.nousresearch.com/docs/user-guide/features/tools)   | Más de 40 herramientas, sistema de toolsets, backends de terminal |
-| [Sistema de Habilidades](https://freeide-agent.nousresearch.com/docs/user-guide/features/skills)   | Memoria procedimental, Skills Hub, creación de habilidades   |
-| [Memoria](https://freeide-agent.nousresearch.com/docs/user-guide/features/memory)                   | Memoria persistente, perfiles de usuario, mejores prácticas  |
-| [Integración MCP](https://freeide-agent.nousresearch.com/docs/user-guide/features/mcp)              | Conecta cualquier servidor MCP para capacidades extendidas   |
-| [Programación Cron](https://freeide-agent.nousresearch.com/docs/user-guide/features/cron)           | Tareas programadas con entrega a plataforma                  |
-| [Archivos de Contexto](https://freeide-agent.nousresearch.com/docs/user-guide/features/context-files) | Contexto de proyecto que da forma a cada conversación      |
-| [Arquitectura](https://freeide-agent.nousresearch.com/docs/developer-guide/architecture)            | Estructura del proyecto, bucle del agente, clases principales |
-| [Contribuir](https://freeide-agent.nousresearch.com/docs/developer-guide/contributing)              | Configuración de desarrollo, proceso de PR, estilo de código |
-| [Referencia de CLI](https://freeide-agent.nousresearch.com/docs/reference/cli-commands)             | Todos los comandos y flags                                   |
-| [Variables de Entorno](https://freeide-agent.nousresearch.com/docs/reference/environment-variables) | Referencia completa de variables de entorno                  |
+| [Inicio rápido](https://freeide-agent.freeide.dev/docs/getting-started/quickstart)              | Instalar → configurar → primera conversación en 2 minutos   |
+| [Uso de CLI](https://freeide-agent.freeide.dev/docs/user-guide/cli)                             | Comandos, atajos de teclado, personalidades, sesiones        |
+| [Configuración](https://freeide-agent.freeide.dev/docs/user-guide/configuration)               | Archivo de configuración, proveedores, modelos, todas las opciones |
+| [Gateway de Mensajería](https://freeide-agent.freeide.dev/docs/user-guide/messaging)           | Telegram, Discord, Slack, WhatsApp, Signal, Home Assistant   |
+| [Seguridad](https://freeide-agent.freeide.dev/docs/user-guide/security)                        | Aprobación de comandos, emparejamiento por DM, aislamiento en contenedor |
+| [Herramientas y Toolsets](https://freeide-agent.freeide.dev/docs/user-guide/features/tools)   | Más de 40 herramientas, sistema de toolsets, backends de terminal |
+| [Sistema de Habilidades](https://freeide-agent.freeide.dev/docs/user-guide/features/skills)   | Memoria procedimental, Skills Hub, creación de habilidades   |
+| [Memoria](https://freeide-agent.freeide.dev/docs/user-guide/features/memory)                   | Memoria persistente, perfiles de usuario, mejores prácticas  |
+| [Integración MCP](https://freeide-agent.freeide.dev/docs/user-guide/features/mcp)              | Conecta cualquier servidor MCP para capacidades extendidas   |
+| [Programación Cron](https://freeide-agent.freeide.dev/docs/user-guide/features/cron)           | Tareas programadas con entrega a plataforma                  |
+| [Archivos de Contexto](https://freeide-agent.freeide.dev/docs/user-guide/features/context-files) | Contexto de proyecto que da forma a cada conversación      |
+| [Arquitectura](https://freeide-agent.freeide.dev/docs/developer-guide/architecture)            | Estructura del proyecto, bucle del agente, clases principales |
+| [Contribuir](https://freeide-agent.freeide.dev/docs/developer-guide/contributing)              | Configuración de desarrollo, proceso de PR, estilo de código |
+| [Referencia de CLI](https://freeide-agent.freeide.dev/docs/reference/cli-commands)             | Todos los comandos y flags                                   |
+| [Variables de Entorno](https://freeide-agent.freeide.dev/docs/reference/environment-variables) | Referencia completa de variables de entorno                  |
 
 ---
 
@@ -217,4 +217,4 @@ scripts/run_tests.sh
 
 MIT — ver [LICENSE](LICENSE).
 
-Creado por [FreeIDE](https://nousresearch.com).
+Creado por [FreeIDE](https://freeide.dev).

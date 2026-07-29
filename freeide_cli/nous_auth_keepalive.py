@@ -1,4 +1,4 @@
-"""Background keepalive for long-lived Nous Portal sessions."""
+"""Background keepalive for long-lived FreeIDE Portal sessions."""
 
 from __future__ import annotations
 
@@ -48,17 +48,17 @@ def _refresh_selected_pool_entry(
     *,
     min_key_ttl_seconds: int,
 ) -> Optional[bool]:
-    """Refresh the current Nous credential pool entry when it is stale.
+    """Refresh the current FreeIDE credential pool entry when it is stale.
 
     Returns True when a pool entry exists and is usable/refreshed, False when a
-    pool exists but no entry can be used, and None when no Nous pool exists.
+    pool exists but no entry can be used, and None when no FreeIDE pool exists.
     """
     try:
         from agent.credential_pool import load_pool
 
         pool = load_pool("nous")
     except Exception as exc:
-        logger.debug("Nous auth keepalive: credential pool unavailable: %s", exc)
+        logger.debug("FreeIDE auth keepalive: credential pool unavailable: %s", exc)
         return None
 
     if not pool or not pool.has_credentials():
@@ -67,7 +67,7 @@ def _refresh_selected_pool_entry(
     try:
         entry = pool.select()
     except Exception as exc:
-        logger.debug("Nous auth keepalive: credential pool selection failed: %s", exc)
+        logger.debug("FreeIDE auth keepalive: credential pool selection failed: %s", exc)
         return False
 
     if entry is None:
@@ -82,7 +82,7 @@ def _refresh_selected_pool_entry(
         refreshed = pool.try_refresh_current()
         if refreshed is None:
             return False
-        logger.debug("Nous auth keepalive: refreshed credential pool entry")
+        logger.debug("FreeIDE auth keepalive: refreshed credential pool entry")
         return True
 
     return True
@@ -93,7 +93,7 @@ def refresh_nous_auth_keepalive_once(
     min_key_ttl_seconds: int = NOUS_INVOKE_JWT_MIN_TTL_SECONDS,
     timeout_seconds: Optional[float] = None,
 ) -> bool:
-    """Refresh Nous auth once if credentials are configured."""
+    """Refresh FreeIDE auth once if credentials are configured."""
     min_key_ttl_seconds = max(60, int(min_key_ttl_seconds))
 
     pool_result = _refresh_selected_pool_entry(
@@ -110,16 +110,16 @@ def refresh_nous_auth_keepalive_once(
         resolve_nous_runtime_credentials(
             timeout_seconds=_timeout_seconds(timeout_seconds),
         )
-        logger.debug("Nous auth keepalive: refreshed singleton auth state")
+        logger.debug("FreeIDE auth keepalive: refreshed singleton auth state")
         return True
     except AuthError as exc:
         if exc.relogin_required:
-            logger.info("Nous auth keepalive requires re-login: %s", exc)
+            logger.info("FreeIDE auth keepalive requires re-login: %s", exc)
         else:
-            logger.debug("Nous auth keepalive failed: %s", exc)
+            logger.debug("FreeIDE auth keepalive failed: %s", exc)
         return False
     except Exception as exc:
-        logger.debug("Nous auth keepalive failed: %s", exc)
+        logger.debug("FreeIDE auth keepalive failed: %s", exc)
         return False
 
 
@@ -149,7 +149,7 @@ def start_nous_auth_keepalive(
     min_key_ttl_seconds: int = NOUS_INVOKE_JWT_MIN_TTL_SECONDS,
     timeout_seconds: Optional[float] = None,
 ) -> Optional[threading.Thread]:
-    """Start the process-wide Nous auth keepalive thread."""
+    """Start the process-wide FreeIDE auth keepalive thread."""
     if interval_seconds <= 0:
         return None
 
@@ -172,7 +172,7 @@ def start_nous_auth_keepalive(
             name="nous-auth-keepalive",
         )
         _keepalive_thread.start()
-        logger.debug("Nous auth keepalive started")
+        logger.debug("FreeIDE auth keepalive started")
         return _keepalive_thread
 
 

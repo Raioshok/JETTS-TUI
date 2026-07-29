@@ -40,7 +40,7 @@ docker run -it --rm \
 This drops you into the setup wizard, which will prompt you for your API keys and write them to `~/.freeide/.env`. You only need to do this once. It is highly recommended to set up a chat system for the gateway to work with at this point.
 
 :::tip
-Inside the container, run `freeide setup --portal` once — the refresh token persists in the mounted `~/.freeide` volume. See [Nous Portal](/integrations/nous-portal).
+Inside the container, run `freeide setup --portal` once — the refresh token persists in the mounted `~/.freeide` volume. See [FreeIDE Portal](/integrations/nous-portal).
 :::
 
 ## Running in gateway mode
@@ -133,7 +133,7 @@ The dashboard's auth gate engages automatically when both of the following are t
 There are three bundled ways to satisfy the second condition:
 
 - **Username/password** — the simplest for a self-hosted / on-prem / homelab container on a trusted network or behind a VPN: set `FREEIDE_DASHBOARD_BASIC_AUTH_USERNAME` + `FREEIDE_DASHBOARD_BASIC_AUTH_PASSWORD` (and `FREEIDE_DASHBOARD_BASIC_AUTH_SECRET` for restart-stable sessions). Not suitable for direct public-internet exposure.
-- **OAuth (Nous Portal)** — for hosted/public deploys: the `dashboard_auth/nous` provider activates whenever `FREEIDE_DASHBOARD_OAUTH_CLIENT_ID` is set.
+- **OAuth (FreeIDE Portal)** — for hosted/public deploys: the `dashboard_auth/nous` provider activates whenever `FREEIDE_DASHBOARD_OAUTH_CLIENT_ID` is set.
 - **Self-hosted OIDC** — to authenticate against your own identity provider via standard OpenID Connect: the `dashboard_auth/self_hosted` provider activates when `FREEIDE_DASHBOARD_OIDC_ISSUER` + `FREEIDE_DASHBOARD_OIDC_CLIENT_ID` are set.
 
 Whichever you choose, the gate redirects callers to a login page before they can reach any protected route. See [Web Dashboard → Authentication](features/web-dashboard.md#authentication-gated-mode) for all three providers.

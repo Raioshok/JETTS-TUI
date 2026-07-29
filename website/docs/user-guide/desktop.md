@@ -127,7 +127,7 @@ The app also surfaces the broader FreeIDE management surface so you don't have t
 
 The app checks for updates in the background and offers a one-click update when one is ready.
 
-The [manual update process](https://freeide-agent.nousresearch.com/docs/getting-started/updating) also works with the GUI.
+The [manual update process](https://freeide-agent.freeide.dev/docs/getting-started/updating) also works with the GUI.
 
 ## Uninstalling
 
@@ -176,7 +176,7 @@ The connection has two halves: on the backend you protect it with an **auth prov
 
 **Pick a provider based on where the backend lives:**
 
-- **OAuth (Nous Portal) — preferred for anything reachable beyond your own machine.** Logins are verified against your Nous account, so this is the option suitable for a VPS, a public host, or any remote backend. Register the dashboard with `freeide dashboard register` (or the Portal [`/local-dashboards`](https://portal.nousresearch.com/local-dashboards) page) to provision its OAuth client, then sign in from the app with **Sign in with FreeIDE**. A self-hosted OIDC provider works the same way if you run your own identity provider.
+- **OAuth (FreeIDE Portal) — preferred for anything reachable beyond your own machine.** Logins are verified against your FreeIDE account, so this is the option suitable for a VPS, a public host, or any remote backend. Register the dashboard with `freeide dashboard register` (or the Portal [`/local-dashboards`](https://portal.freeide.dev/local-dashboards) page) to provision its OAuth client, then sign in from the app with **Sign in with FreeIDE**. A self-hosted OIDC provider works the same way if you run your own identity provider.
 - **Username/password — local / trusted-network use only.** The simplest option when the backend is on the same trusted LAN or reachable only over a VPN (e.g. Tailscale). It protects a single shared credential with no external identity provider, so **do not use it for a dashboard exposed to the public internet** — reach for OAuth there instead.
 
 The rest of this section shows the username/password path because it's the quickest to stand up on a trusted network; for the OAuth path see [Web Dashboard → Default provider: FreeIDE](./features/web-dashboard.md#default-provider-nous-research).
@@ -211,7 +211,7 @@ Prefer not to keep a plaintext password at rest? Set `FREEIDE_DASHBOARD_BASIC_AU
 Running the backend as a systemd service? Give the unit `EnvironmentFile=%h/.freeide/.env` so the credentials are in the environment at boot.
 
 :::warning
-The backend reads and writes your `.env` (API keys, secrets) and can run agent commands. The **username/password** setup shown above is for a trusted network — never expose a password-protected backend directly to the open internet; put it behind a VPN. [Tailscale](https://tailscale.com/) is the clean option: bind to the machine's tailscale IP (`--host <tailscale-ip>`) and use `http://<tailscale-ip>:9119` as the Remote URL so only your tailnet can reach it. To reach a backend over the public internet, use the **OAuth (Nous Portal)** provider instead.
+The backend reads and writes your `.env` (API keys, secrets) and can run agent commands. The **username/password** setup shown above is for a trusted network — never expose a password-protected backend directly to the open internet; put it behind a VPN. [Tailscale](https://tailscale.com/) is the clean option: bind to the machine's tailscale IP (`--host <tailscale-ip>`) and use `http://<tailscale-ip>:9119` as the Remote URL so only your tailnet can reach it. To reach a backend over the public internet, use the **OAuth (FreeIDE Portal)** provider instead.
 :::
 
 ### In the app
@@ -266,7 +266,7 @@ rm "$HOME/.freeide/freeide-agent/.freeide-bootstrap-complete"
 rm -rf "$HOME/.freeide/freeide-agent/venv"
 
 # Reset a stuck macOS microphone prompt
-tccutil reset Microphone com.nousresearch.freeide
+tccutil reset Microphone com.freeide.freeide
 ```
 
 ### "Build desktop app" stuck on Electron download

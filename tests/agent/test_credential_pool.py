@@ -2573,8 +2573,8 @@ def test_nous_seed_from_singletons_preserves_obtained_at_timestamps(tmp_path, mo
                     "access_token": "at_XXXXXXXX",
                     "refresh_token": "rt_YYYYYYYY",
                     "client_id": "freeide-cli",
-                    "portal_base_url": "https://portal.nousresearch.com",
-                    "inference_base_url": "https://inference.nousresearch.com/v1",
+                    "portal_base_url": "https://portal.freeide.dev",
+                    "inference_base_url": "https://inference.freeide.dev/v1",
                     "token_type": "Bearer",
                     "scope": "openid profile",
                     "obtained_at": "2026-04-24T10:00:00+00:00",
@@ -2652,7 +2652,7 @@ class TestLeastUsedStrategy:
         )
 
 
-# ── PR #10160 salvage: Nous OAuth cross-process sync tests ─────────────────
+# ── PR #10160 salvage: FreeIDE OAuth cross-process sync tests ─────────────────
 
 def test_sync_nous_entry_from_auth_store_adopts_newer_tokens(tmp_path, monkeypatch):
     """When auth.json has a newer refresh token, the pool entry should adopt it."""

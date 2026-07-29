@@ -42,7 +42,7 @@ def _valid_manifest() -> dict:
                 ],
             },
             "nous": {
-                "metadata": {"display_name": "Nous Portal"},
+                "metadata": {"display_name": "FreeIDE Portal"},
                 "models": [
                     {"id": "anthropic/claude-opus-4.7"},
                     {"id": "moonshotai/kimi-k2.6"},
@@ -180,7 +180,7 @@ class TestFallbackChain:
     releases (opus 4.8, etc.) never reach the picker.
     """
 
-    PRIMARY = "https://freeide-agent.nousresearch.com/docs/api/model-catalog.json"
+    PRIMARY = "https://freeide-agent.freeide.dev/docs/api/model-catalog.json"
     FALLBACK = (
         "https://raw.githubusercontent.com/freeide/freeide"
         "/main/website/static/api/model-catalog.json"

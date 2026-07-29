@@ -1,9 +1,9 @@
-"""Centralized Nous Portal request tags.
+"""Centralized FreeIDE Portal request tags.
 
-Every FreeIDE request that hits the Nous Portal — main agent loop, auxiliary
+Every FreeIDE request that hits the FreeIDE Portal — main agent loop, auxiliary
 client (compression / titles / vision / web_extract / session_search / etc.),
 and any future code path — must carry the same product-attribution tags so
-Nous can attribute usage to FreeIDE Agent and bucket it by client release.
+FreeIDE can attribute usage to FreeIDE Agent and bucket it by client release.
 
 Tag shape (sent in OpenAI-compatible ``extra_body['tags']``):
 
@@ -96,7 +96,7 @@ def _freeide_version() -> str:
 
 
 def freeide_client_tag() -> str:
-    """Return the ``client=...`` tag for Nous Portal requests.
+    """Return the ``client=...`` tag for FreeIDE Portal requests.
 
     Format: ``client=freeide-client-v<MAJOR>.<MINOR>.<PATCH>``.
     """
@@ -118,7 +118,7 @@ def conversation_tag(session_id: str) -> str:
 
 
 def nous_portal_tags(session_id: str | None = None) -> List[str]:
-    """Return the canonical list of Nous Portal product tags.
+    """Return the canonical list of FreeIDE Portal product tags.
 
     Always returns a fresh list so callers can mutate it freely
     (e.g. ``merged_extra.setdefault("tags", []).extend(nous_portal_tags())``).

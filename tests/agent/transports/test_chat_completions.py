@@ -997,7 +997,7 @@ class TestChatCompletionsNormalize:
         assert nr.provider_data == {"reasoning_content": "model-extra scratchpad"}
 
     def test_refusal_field_promoted_to_content_filter(self, transport):
-        """OpenAI-compatible proxies (e.g. Nous Portal fronting Anthropic) can
+        """OpenAI-compatible proxies (e.g. FreeIDE Portal fronting Anthropic) can
         surface a Claude refusal via ``message.refusal`` with empty content and
         ``finish_reason="stop"``. Promote it to content + a ``content_filter``
         finish reason so the agent loop's refusal handler surfaces it instead
@@ -1193,7 +1193,7 @@ class TestChatCompletionsGeminiNativeExtraBodyStrip:
             [{"role": "user", "content": "hi"}],
             None,
             provider_profile=self._nous_profile(),
-            base_url="https://inference.nousresearch.com/v1",
+            base_url="https://inference.freeide.dev/v1",
             session_id="s1",
             max_tokens=None,
         )

@@ -46,7 +46,7 @@ python -m pip install -e '.[termux]' -c constraints-termux.txt
 FreeIDE 现已内置 Termux 感知的安装路径：
 
 ```bash
-curl -fsSL https://freeide-agent.nousresearch.com/install.sh | bash
+curl -fsSL https://freeide-agent.freeide.dev/install.sh | bash
 ```
 
 在 Termux 上，安装程序会自动：

@@ -1,12 +1,12 @@
 ---
 sidebar_position: 1
-title: "Run FreeIDE Agent with Nous Portal"
+title: "Run FreeIDE Agent with FreeIDE Portal"
 description: "Start-to-finish walkthrough: subscribe, set up, switch models, enable gateway tools, and verify routing"
 ---
 
-# Run FreeIDE Agent with Nous Portal
+# Run FreeIDE Agent with FreeIDE Portal
 
-This guide walks you through running FreeIDE Agent on a [Nous Portal](https://portal.nousresearch.com) subscription end to end — from signing up to verifying that every tool routes correctly. If you just want the overview of what the Portal is and what's in the subscription, see the [Nous Portal integration page](/integrations/nous-portal). This page is the task script.
+This guide walks you through running FreeIDE Agent on a [FreeIDE Portal](https://portal.freeide.dev) subscription end to end — from signing up to verifying that every tool routes correctly. If you just want the overview of what the Portal is and what's in the subscription, see the [FreeIDE Portal integration page](/integrations/nous-portal). This page is the task script.
 
 ## Prerequisites
 
@@ -18,7 +18,7 @@ You do **not** need: an OpenAI key, an Anthropic key, a Firecrawl account, a FAL
 
 ## 1. Get a subscription
 
-Open [portal.nousresearch.com/manage-subscription](https://portal.nousresearch.com/manage-subscription), sign up, and pick a plan.
+Open [portal.freeide.dev/manage-subscription](https://portal.freeide.dev/manage-subscription), sign up, and pick a plan.
 
 Already subscribed? Skip to step 2.
 
@@ -30,7 +30,7 @@ freeide setup --portal
 
 This single command does five things:
 
-1. Opens your browser to portal.nousresearch.com for OAuth login
+1. Opens your browser to portal.freeide.dev for OAuth login
 2. Stores the refresh token at `~/.freeide/auth.json`
 3. Sets `model.provider: nous` in `~/.freeide/config.yaml`
 4. Picks a default agentic model (`anthropic/claude-sonnet-4.6` or similar)
@@ -63,21 +63,21 @@ freeide portal info
 You should see:
 
 ```
-  Nous Portal
+  FreeIDE Portal
   ───────────
   Auth:    ✓ logged in
-  Portal:  https://portal.nousresearch.com
+  Portal:  https://portal.freeide.dev
   Model:   ✓ using Nous as inference provider
 
   Tool Gateway
   ────────────
-  Web search & extract  via Nous Portal
-  Image generation      via Nous Portal
-  Text-to-speech        via Nous Portal
-  Browser automation    via Nous Portal
+  Web search & extract  via FreeIDE Portal
+  Image generation      via FreeIDE Portal
+  Text-to-speech        via FreeIDE Portal
+  Browser automation    via FreeIDE Portal
 ```
 
-If any line shows something other than "via Nous Portal" or the auth line says "not logged in", jump to [Troubleshooting](#troubleshooting) below.
+If any line shows something other than "via FreeIDE Portal" or the auth line says "not logged in", jump to [Troubleshooting](#troubleshooting) below.
 
 ## 4. Run your first conversation
 
@@ -122,7 +122,7 @@ freeide config set model.default anthropic/claude-sonnet-4.6
 
 FreeIDE-4-70B and FreeIDE-4-405B are available on the Portal at deep discounts, but they're **chat/reasoning models**, not tool-call-tuned. They will struggle with multi-step agent loops. Use them for conversation/research work through the [subscription proxy](/user-guide/features/subscription-proxy) from non-agent tools. For FreeIDE Agent itself, stick to the frontier agentic models above.
 
-The Portal's own [info page](https://portal.nousresearch.com/info) carries this warning too — it's the official Nous guidance, not just a FreeIDE-side opinion.
+The Portal's own [info page](https://portal.freeide.dev/info) carries this warning too — it's the official Nous guidance, not just a FreeIDE-side opinion.
 
 ## 6. (Optional) Customize Tool Gateway routing
 
@@ -136,7 +136,7 @@ freeide tools
 # → TTS              → "Nous Subscription"     (recommended)
 ```
 
-These rows appear in `freeide tools` even before you've logged into Nous Portal — if you pick "Nous Subscription" without an active session, FreeIDE runs the Portal login inline (without changing your inference provider or your other tools).
+These rows appear in `freeide tools` even before you've logged into FreeIDE Portal — if you pick "Nous Subscription" without an active session, FreeIDE runs the Portal login inline (without changing your inference provider or your other tools).
 
 Verify your mix with:
 
@@ -144,7 +144,7 @@ Verify your mix with:
 freeide portal tools
 ```
 
-You'll see per-tool routing — `via Nous Portal` for the ones routed through the subscription, and the partner name (`browserbase`, `firecrawl`, etc.) for the ones using your own keys.
+You'll see per-tool routing — `via FreeIDE Portal` for the ones routed through the subscription, and the partner name (`browserbase`, `firecrawl`, etc.) for the ones using your own keys.
 
 ## 7. (Optional) Enable voice mode
 
@@ -200,12 +200,12 @@ Or interactively:
 
 ```bash
 freeide model
-# pick Nous Portal
+# pick FreeIDE Portal
 ```
 
 Re-verify with `freeide portal info`.
 
-### Tool Gateway tools showing partner names instead of "via Nous Portal"
+### Tool Gateway tools showing partner names instead of "via FreeIDE Portal"
 
 Per-tool config is overriding the gateway. Run:
 
@@ -268,7 +268,7 @@ That's the deal. If you're using more than two of those backends anyway, the sub
 
 ## See also
 
-- **[Nous Portal integration page](/integrations/nous-portal)** — Overview of what's in the subscription
+- **[FreeIDE Portal integration page](/integrations/nous-portal)** — Overview of what's in the subscription
 - **[Tool Gateway](/user-guide/features/tool-gateway)** — Full details on every gateway-routed tool
 - **[Subscription proxy](/user-guide/features/subscription-proxy)** — Use your Portal subscription from non-FreeIDE tools
 - **[Voice mode](/user-guide/features/voice-mode)** — Set up voice conversations on the Portal subscription

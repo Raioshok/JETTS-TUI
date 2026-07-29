@@ -18,7 +18,7 @@ class TestBuildOrHeaders:
         from agent.auxiliary_client import build_or_headers
 
         headers = build_or_headers(or_config={"response_cache": False})
-        assert headers["HTTP-Referer"] == "https://freeide-agent.nousresearch.com"
+        assert headers["HTTP-Referer"] == "https://freeide-agent.freeide.dev"
         assert headers["X-Title"] == "FreeIDE Agent"
         assert headers["X-OpenRouter-Categories"] == "productivity,cli-agent"
 

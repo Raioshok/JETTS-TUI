@@ -32,8 +32,8 @@ High-level categories:
 
 For the authoritative code-derived registry, see [Built-in Tools Reference](/reference/tools-reference) and [Toolsets Reference](/reference/toolsets-reference).
 
-:::tip Nous Tool Gateway
-Paid [Nous Portal](https://portal.nousresearch.com) subscribers can use web search, image generation, TTS, and browser automation through the **[Tool Gateway](tool-gateway.md)** — no separate API keys needed. Run `freeide model` to enable it, or configure individual tools with `freeide tools`.
+:::tip FreeIDE Tool Gateway
+Paid [FreeIDE Portal](https://portal.freeide.dev) subscribers can use web search, image generation, TTS, and browser automation through the **[Tool Gateway](tool-gateway.md)** — no separate API keys needed. Run `freeide model` to enable it, or configure individual tools with `freeide tools`.
 :::
 
 ## Using Toolsets

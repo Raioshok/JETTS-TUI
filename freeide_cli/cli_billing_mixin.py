@@ -1,6 +1,6 @@
 """Billing and subscription handlers for the interactive CLI (god-file decomposition).
 
-This module hosts the Nous billing/subscription methods lifted out of
+This module hosts the FreeIDE billing/subscription methods lifted out of
 ``cli.py``'s ``FreeIDECLI`` class. ``FreeIDECLI`` inherits
 ``CLIBillingMixin`` so every ``self.<handler>`` call resolves unchanged
 via the MRO — behavior-neutral apart from focused billing fixes.
@@ -22,13 +22,13 @@ class CLIBillingMixin:
     """Mixin holding interactive-CLI billing and subscription handlers."""
 
     def _print_nous_credits_block(self) -> bool:
-        """Print the Nous dollar balance block (two-bar view) when a Nous account
+        """Print the FreeIDE dollar balance block (two-bar view) when a FreeIDE account
         is logged in. Returns True if it printed anything.
 
         Prefers the shared dollar usage model (``agent.billing_usage`` — two-bar
         plan/top-up view, dollars-only, the /usage + /subscription source of
         truth). Falls back to the legacy ``nous_credits_lines`` text only when the
-        model is unavailable. Agent-independent (a portal fetch gated on "a Nous
+        model is unavailable. Agent-independent (a portal fetch gated on "a FreeIDE
         account is logged in"), so /usage shows the block even in the TUI
         slash-worker subprocess that resumes WITHOUT a live agent. Fail-open and
         wall-clock-bounded; honors FREEIDE_DEV_CREDITS_FIXTURE for offline testing.
@@ -90,8 +90,8 @@ class CLIBillingMixin:
         """Print the `/usage` call-to-action pointing at /subscription + /topup.
 
         Mirrors the TUI's ``USAGE_CTA`` (``session.ts``) so every surface ends a
-        usage read with the same nudge. Only called when a Nous account is logged
-        in (the balance block printed), since both commands are Nous-account only.
+        usage read with the same nudge. Only called when a FreeIDE account is logged
+        in (the balance block printed), since both commands are FreeIDE-account only.
         """
         from cli import _cprint, _d
 
@@ -102,7 +102,7 @@ class CLIBillingMixin:
     # ------------------------------------------------------------------
 
     def _show_subscription(self):
-        """`/subscription` (alias `/upgrade`) — view the Nous plan + browser hand-off.
+        """`/subscription` (alias `/upgrade`) — view the FreeIDE plan + browser hand-off.
 
         The CLI mirror of the TUI ``SubscriptionOverlay``: a read of the current
         plan, this cycle's subscription credits, renewal date, and the plans you
@@ -124,7 +124,7 @@ class CLIBillingMixin:
             if state.error:
                 _cprint(f"  💳 {_d(f'Could not load subscription: {state.error}')}")
             else:
-                _cprint(f"  💳 {_d('Not logged into Nous Portal.')}")
+                _cprint(f"  💳 {_d('Not logged into FreeIDE Portal.')}")
                 print("  Run `freeide portal` to log in, then /subscription.")
             return
 
@@ -753,7 +753,7 @@ class CLIBillingMixin:
     # ------------------------------------------------------------------
 
     def _show_billing(self, command: str = "/topup"):
-        """`/topup` — Remote Spending for Nous (one interactive modal).
+        """`/topup` — Remote Spending for FreeIDE (one interactive modal).
 
         ZERO sub-commands: any argument is ignored. Bare ``/topup`` always
         opens the Overview (Screen 1), whose numbered menu is the *only* way to
@@ -777,7 +777,7 @@ class CLIBillingMixin:
                 _msg = f"Couldn't load billing: {state.error}"
                 _cprint(f"  💳 {_d(_msg)}")
             else:
-                _cprint(f"  💳 {_d('Not logged into Nous Portal.')}")
+                _cprint(f"  💳 {_d('Not logged into FreeIDE Portal.')}")
                 print("  Run `freeide portal` to log in, then /topup.")
             return
 

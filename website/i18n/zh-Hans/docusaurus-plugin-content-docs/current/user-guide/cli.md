@@ -25,7 +25,7 @@ freeide chat -q "Hello"
 freeide chat --model "anthropic/claude-sonnet-4"
 
 # 使用指定提供商
-freeide chat --provider nous        # 使用 Nous Portal
+freeide chat --provider nous        # 使用 FreeIDE Portal
 freeide chat --provider openrouter  # 强制使用 OpenRouter
 
 # 使用指定工具集

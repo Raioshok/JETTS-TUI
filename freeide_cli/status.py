@@ -238,7 +238,7 @@ def show_status(args):
     else:
         nous_label = "not logged in (run: freeide portal)"
     print(
-        f"  {'Nous Portal':<12}  {check_mark(nous_logged_in)} "
+        f"  {'FreeIDE Portal':<12}  {check_mark(nous_logged_in)} "
         f"{nous_label}"
     )
     portal_url = nous_status.get("portal_base_url") or "(unknown)"
@@ -334,12 +334,12 @@ def show_status(args):
         print()
         print(color("◆ Nous Tool Gateway", Colors.CYAN, Colors.BOLD))
         if not features.nous_auth_present:
-            print("  Nous Portal   ✗ not logged in")
+            print("  FreeIDE Portal   ✗ not logged in")
         else:
-            print("  Nous Portal   ✓ managed tools available")
+            print("  FreeIDE Portal   ✓ managed tools available")
         for feature in features.items():
             if feature.managed_by_nous:
-                state = "active via Nous subscription"
+                state = "active via FreeIDE subscription"
             elif feature.active:
                 current = feature.current_provider or "configured provider"
                 state = f"active via {current}"
@@ -351,7 +351,7 @@ def show_status(args):
                 state = "not configured"
             print(f"  {feature.label:<15} {check_mark(feature.available or feature.active or feature.managed_by_nous)} {state}")
     elif nous_logged_in or nous_inference_present:
-        # Nous OAuth without entitlement, or an opaque inference key without
+        # FreeIDE OAuth without entitlement, or an opaque inference key without
         # Portal account information, cannot enable the Tool Gateway.
         print()
         print(color("◆ Nous Tool Gateway", Colors.CYAN, Colors.BOLD))

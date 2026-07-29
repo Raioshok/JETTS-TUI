@@ -31,7 +31,7 @@ from freeide_cli.model_switch import (
         "freeide-4-405b",
         "freeide_4_70b",
         "openrouter/freeide3:70b",
-        "openrouter/nousresearch/freeide-4-405b",
+        "openrouter/freeide/freeide-4-405b",
         "freeide/FreeIDE3",
         "freeide-3.1",
     ],

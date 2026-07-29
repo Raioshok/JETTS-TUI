@@ -21,7 +21,7 @@ export function SidebarFooter({ status }: SidebarFooterProps) {
       </Typography>
 
       <a
-        href="https://nousresearch.com"
+        href="https://freeide.dev"
         target="_blank"
         rel="noopener noreferrer"
         className={cn(

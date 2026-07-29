@@ -1070,9 +1070,9 @@ export interface SelectToolsetProviderResponse {
   provider: string
   /** Present when the selection was scoped to one web capability. */
   capability?: string
-  /** Present (true) when a managed Nous row was selected but the Portal
+  /** Present (true) when a managed FreeIDE row was selected but the Portal
    *  entitlement is missing — the row won't activate until the user signs
-   *  in to Nous Portal. */
+   *  in to FreeIDE Portal. */
   needs_nous_auth?: boolean
   /** The managed feature key (e.g. "browser") when needs_nous_auth is set. */
   feature?: string
@@ -1414,12 +1414,12 @@ export function getGlobalModelOptions(opts?: {
 export interface RecommendedDefaultModel {
   provider: string
   model: string
-  /** True/false for Nous (free vs paid tier); null for other providers. */
+  /** True/false for FreeIDE (free vs paid tier); null for other providers. */
   free_tier: boolean | null
 }
 
 // Recommended default model for a freshly-authenticated provider. Mirrors the
-// curation `freeide model` does — for Nous it honors the free/paid tier so a
+// curation `freeide model` does — for FreeIDE it honors the free/paid tier so a
 // free user gets a free model instead of a paid default.
 export function getRecommendedDefaultModel(provider: string): Promise<RecommendedDefaultModel> {
   return window.freeideDesktop.api<RecommendedDefaultModel>({

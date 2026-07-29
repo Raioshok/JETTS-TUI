@@ -1,6 +1,6 @@
-"""Nous Portal upstream adapter.
+"""FreeIDE Portal upstream adapter.
 
-Reads the user's Nous OAuth state from ``~/.freeide/auth.json`` through the
+Reads the user's FreeIDE OAuth state from ``~/.freeide/auth.json`` through the
 shared runtime resolver, validates or refreshes the inference JWT, then exposes
 the upstream base URL plus bearer for the proxy server to forward to.
 """
@@ -29,7 +29,7 @@ from freeide_cli.proxy.adapters.base import UpstreamAdapter, UpstreamCredential
 
 logger = logging.getLogger(__name__)
 
-# Endpoints inference-api.nousresearch.com actually serves. Anything else
+# Endpoints inference-api.freeide.dev actually serves. Anything else
 # the proxy will reject with 404 — keeps stray clients from leaking weird
 # requests to the upstream.
 _ALLOWED_PATHS: FrozenSet[str] = frozenset(
@@ -43,7 +43,7 @@ _ALLOWED_PATHS: FrozenSet[str] = frozenset(
 
 
 class NousPortalAdapter(UpstreamAdapter):
-    """Proxy upstream for the Nous Portal inference API."""
+    """Proxy upstream for the FreeIDE Portal inference API."""
 
     def __init__(self) -> None:
         # Serialize proxy requests in this process; cross-process token refresh
@@ -56,7 +56,7 @@ class NousPortalAdapter(UpstreamAdapter):
 
     @property
     def display_name(self) -> str:
-        return "Nous Portal"
+        return "FreeIDE Portal"
 
     @property
     def allowed_paths(self) -> FrozenSet[str]:
@@ -85,7 +85,7 @@ class NousPortalAdapter(UpstreamAdapter):
         _ = failed_credential
         if status_code != 401:
             return None
-        logger.info("proxy: Nous upstream rejected bearer; force-refreshing invoke JWT")
+        logger.info("proxy: FreeIDE upstream rejected bearer; force-refreshing invoke JWT")
         return self._get_credential(
             force_refresh=True,
         )
@@ -99,7 +99,7 @@ class NousPortalAdapter(UpstreamAdapter):
             state = self._read_state()
             if state is None:
                 raise RuntimeError(
-                    "Not logged into Nous Portal. Run `freeide auth add nous` first."
+                    "Not logged into FreeIDE Portal. Run `freeide auth add nous` first."
                 )
 
             try:
@@ -119,17 +119,17 @@ class NousPortalAdapter(UpstreamAdapter):
                         quarantine_reason="proxy_refresh_failure",
                     )
                 raise RuntimeError(
-                    f"Failed to refresh Nous Portal credentials: {exc}"
+                    f"Failed to refresh FreeIDE Portal credentials: {exc}"
                 ) from exc
             except Exception as exc:
                 raise RuntimeError(
-                    f"Failed to refresh Nous Portal credentials: {exc}"
+                    f"Failed to refresh FreeIDE Portal credentials: {exc}"
                 ) from exc
 
             runtime_key = refreshed.get("api_key")
             if not runtime_key:
                 raise RuntimeError(
-                    "Nous Portal refresh did not return a usable inference JWT. "
+                    "FreeIDE Portal refresh did not return a usable inference JWT. "
                     "Try `freeide auth add nous` to re-authenticate."
                 )
 
@@ -193,7 +193,7 @@ class NousPortalAdapter(UpstreamAdapter):
                 _save_auth_store(store)
             _write_shared_nous_state(state)
         except Exception as exc:
-            logger.warning("proxy: failed to persist Nous quarantine state: %s", exc)
+            logger.warning("proxy: failed to persist FreeIDE quarantine state: %s", exc)
 
 
 __all__ = ["NousPortalAdapter"]

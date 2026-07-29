@@ -1,10 +1,10 @@
-"""Cross-session rate limit guard for Nous Portal.
+"""Cross-session rate limit guard for FreeIDE Portal.
 
 Writes rate limit state to a shared file so all sessions (CLI, gateway,
-cron, auxiliary) can check whether Nous Portal is currently rate-limited
+cron, auxiliary) can check whether FreeIDE Portal is currently rate-limited
 before making requests.  Prevents retry amplification when RPH is tapped.
 
-Each 429 from Nous triggers up to 9 API calls per conversation turn
+Each 429 from FreeIDE triggers up to 9 API calls per conversation turn
 (3 SDK retries x 3 FreeIDE retries), and every one of those calls counts
 against RPH.  By recording the rate limit state on first 429 and checking
 it before subsequent attempts, we eliminate the amplification effect.
@@ -27,7 +27,7 @@ _STATE_FILENAME = "nous.json"
 
 
 def _state_path() -> str:
-    """Return the path to the Nous rate limit state file."""
+    """Return the path to the FreeIDE rate limit state file."""
     try:
         from freeide_constants import get_freeide_home
         base = get_freeide_home()
@@ -74,7 +74,7 @@ def record_nous_rate_limit(
     error_context: Optional[dict[str, Any]] = None,
     default_cooldown: float = 300.0,
 ) -> None:
-    """Record that Nous Portal is rate-limited.
+    """Record that FreeIDE Portal is rate-limited.
 
     Parses the reset time from response headers or error context.
     Falls back to ``default_cooldown`` (5 minutes) if no reset info
@@ -129,15 +129,15 @@ def record_nous_rate_limit(
             raise
 
         logger.info(
-            "Nous rate limit recorded: resets in %.0fs (at %.0f)",
+            "FreeIDE rate limit recorded: resets in %.0fs (at %.0f)",
             reset_at - now, reset_at,
         )
     except Exception as exc:
-        logger.debug("Failed to write Nous rate limit state: %s", exc)
+        logger.debug("Failed to write FreeIDE rate limit state: %s", exc)
 
 
 def nous_rate_limit_remaining() -> Optional[float]:
-    """Check if Nous Portal is currently rate-limited.
+    """Check if FreeIDE Portal is currently rate-limited.
 
     Returns:
         Seconds remaining until reset, or None if not rate-limited.
@@ -161,13 +161,13 @@ def nous_rate_limit_remaining() -> Optional[float]:
 
 
 def clear_nous_rate_limit() -> None:
-    """Clear the rate limit state (e.g., after a successful Nous request)."""
+    """Clear the rate limit state (e.g., after a successful FreeIDE request)."""
     try:
         os.unlink(_state_path())
     except FileNotFoundError:
         pass
     except OSError as exc:
-        logger.debug("Failed to clear Nous rate limit state: %s", exc)
+        logger.debug("Failed to clear FreeIDE rate limit state: %s", exc)
 
 
 def format_remaining(seconds: float) -> str:
@@ -194,27 +194,27 @@ def is_genuine_nous_rate_limit(
     headers: Optional[Mapping[str, str]] = None,
     last_known_state: Optional[Any] = None,
 ) -> bool:
-    """Decide whether a 429 from Nous Portal is a real account rate limit.
+    """Decide whether a 429 from FreeIDE Portal is a real account rate limit.
 
-    Nous Portal multiplexes multiple upstream providers (DeepSeek, Kimi,
+    FreeIDE Portal multiplexes multiple upstream providers (DeepSeek, Kimi,
     MiMo, FreeIDE, ...) behind one endpoint.  A 429 can mean either:
 
-      (a) The caller's own RPM / RPH / TPM / TPH bucket on Nous is
+      (a) The caller's own RPM / RPH / TPM / TPH bucket on FreeIDE is
           exhausted — a genuine rate limit that will last until the
           bucket resets.
       (b) The upstream provider is out of capacity for a specific model
           — transient, clears in seconds, and has nothing to do with
-          the caller's quota on Nous.
+          the caller's quota on FreeIDE.
 
-    Tripping the cross-session breaker on (b) blocks ALL Nous requests
-    (and all models, since Nous is one provider key) for minutes even
+    Tripping the cross-session breaker on (b) blocks ALL FreeIDE requests
+    (and all models, since FreeIDE is one provider key) for minutes even
     though the caller's account is healthy and a different model would
     have worked.  That's the bug users hit when DeepSeek V4 Pro 429s
     trigger a breaker that then blocks Kimi 2.6 and MiMo V2.5 Pro.
 
     We tell the two apart by looking at:
 
-      1. The 429 response's own ``x-ratelimit-*`` headers.  Nous emits
+      1. The 429 response's own ``x-ratelimit-*`` headers.  FreeIDE emits
          the full suite on every response including 429s.  An exhausted
          bucket (``remaining == 0`` with a reset window >= 60s) is
          proof of (a).

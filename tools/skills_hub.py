@@ -3801,7 +3801,7 @@ def check_for_skill_updates(
 # FreeIDE centralized index source
 # ---------------------------------------------------------------------------
 
-FREEIDE_INDEX_URL = "https://freeide-agent.nousresearch.com/docs/api/skills-index.json"
+FREEIDE_INDEX_URL = "https://freeide-agent.freeide.dev/docs/api/skills-index.json"
 FREEIDE_INDEX_TTL = 6 * 3600  # 6 hours
 
 

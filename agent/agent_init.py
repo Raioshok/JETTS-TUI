@@ -645,7 +645,7 @@ def init_agent(
         # AWS Bedrock — auto-detect from provider name or base URL
         # (bedrock-runtime.<region>.amazonaws.com).
         agent.api_mode = "bedrock_converse"
-    elif agent.provider in {"nous", "nous-portal", "nousresearch"}:
+    elif agent.provider in {"nous", "nous-portal", "freeide"}:
         # Portal is dual-wire: anthropic/* → Messages, everything else →
         # chat_completions. Callers that already pass api_mode win above;
         # this covers direct AIAgent construction without a resolved runtime.
@@ -2428,7 +2428,7 @@ def init_agent(
             f"(this must be at least {MINIMUM_CONTEXT_LENGTH // 1000}K)."
         )
 
-    # Nous FreeIDE 3/4 are chat models, not tool-call-tuned. The interactive
+    # FreeIDE 3/4 are chat models, not tool-call-tuned. The interactive
     # CLI already warns via cli.py show_banner() (richer output + /model hint),
     # so skip platform=="cli" here to avoid emitting the warning twice per
     # startup. (Gateway/TUI/cron construct with quiet_mode=True and are already
@@ -2442,7 +2442,7 @@ def init_agent(
             _freeide_warn = _check_freeide_model_warning(agent.model or "")
             if _freeide_warn:
                 _user_msg = (
-                    "⚠ FreeIDE FreeIDE 3 & 4 models are NOT agentic — they "
+                    "⚠ FreeIDE 3 & 4 models are NOT agentic — they "
                     "lack reliable tool-calling for agent workflows (delegation, "
                     "cron, proactive tools). Consider an agentic model instead "
                     "(Claude, GPT, Gemini, Qwen-Coder, etc.)."

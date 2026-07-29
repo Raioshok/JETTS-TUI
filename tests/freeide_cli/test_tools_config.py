@@ -743,7 +743,7 @@ def test_visible_providers_include_nous_subscription_when_logged_in(monkeypatch)
     # sorts first so a fresh-install Enter lands on the free local backend).
     assert any(p["name"].startswith("Nous Subscription") for p in providers)
     # "Local Browser" must be the index-0 default so pressing Enter never
-    # walks a user into a paid Nous Portal login.
+    # walks a user into a paid FreeIDE Portal login.
     assert providers[0]["name"] == "Local Browser"
 
 
@@ -1595,7 +1595,7 @@ def test_reconfigure_provider_runs_post_setup_for_env_var_providers(
 
 
 # ---------------------------------------------------------------------------
-# Inline Nous Portal login gate on managed-provider selection
+# Inline FreeIDE Portal login gate on managed-provider selection
 # ---------------------------------------------------------------------------
 
 
@@ -1640,7 +1640,7 @@ def test_configure_managed_provider_enables_when_entitled(monkeypatch):
 
 
 def test_configure_non_managed_provider_skips_portal_gate(monkeypatch):
-    """A self-hosted provider must never trigger the Nous Portal login gate."""
+    """A self-hosted provider must never trigger the FreeIDE Portal login gate."""
     called = {"gate": False}
 
     def _boom(**kwargs):

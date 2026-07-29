@@ -495,12 +495,12 @@ def _resolve_relay_identity_token() -> str:
     ``freeide gateway enroll`` CLI. Two modes, in precedence order:
 
       1. **Generic OIDC client-credentials** (air-gapped / self-hosted-IdP, NO
-         Nous Portal): when ``gateway.idp.token_url`` (or
+         FreeIDE Portal): when ``gateway.idp.token_url`` (or
          ``GATEWAY_RELAY_IDP_TOKEN_URL``) is configured, obtain a workload access
          token via the OAuth2 ``client_credentials`` grant against the operator's
          own IdP (Entra; Authentik in the sandbox). The connector's Seam-A OIDC
          verifier reads a claim (default ``tid``) off it as the tenant.
-      2. **Nous Portal** (default): ``resolve_nous_access_token()`` — existing
+      2. **FreeIDE Portal** (default): ``resolve_nous_access_token()`` — existing
          managed/hosted behaviour.
 
     Raises on failure; callers decide whether that's fatal (enroll CLI) or a
@@ -523,7 +523,7 @@ def _resolve_relay_identity_token() -> str:
             token_url = token_url or ""
 
     if not token_url:
-        # Mode 2 — Nous Portal (default, unchanged behaviour).
+        # Mode 2 — FreeIDE Portal (default, unchanged behaviour).
         from freeide_cli.auth import resolve_nous_access_token
 
         return resolve_nous_access_token()
@@ -566,8 +566,8 @@ def self_provision_relay() -> bool:
     """Boot-time relay self-provision: mint relay creds in-process, no human, no disk.
 
     Fires when relay is configured (``relay_url()`` set) and NO per-gateway secret
-    is already present, AND the agent can resolve its own Nous access token. In
-    that case the runtime resolves the agent's own Nous access token (the same
+    is already present, AND the agent can resolve its own FreeIDE access token. In
+    that case the runtime resolves the agent's own FreeIDE access token (the same
     ``resolve_nous_access_token()`` the enroll CLI / dashboard register use),
     POSTs ``/relay/provision`` asserting its own endpoint + route keys, and sets
     ``GATEWAY_RELAY_ID`` / ``GATEWAY_RELAY_SECRET`` / ``GATEWAY_RELAY_DELIVERY_KEY``

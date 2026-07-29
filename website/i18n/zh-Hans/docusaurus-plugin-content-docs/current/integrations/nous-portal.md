@@ -1,12 +1,12 @@
 ---
 sidebar_position: 1
-title: "Nous Portal"
+title: "FreeIDE Portal"
 description: "一个订阅，300+ 前沿模型，以及 Tool Gateway —— 运行 FreeIDE Agent 的推荐方式"
 ---
 
-# Nous Portal
+# FreeIDE Portal
 
-[Nous Portal](https://portal.nousresearch.com) 是 FreeIDE 的统一订阅网关，也是**运行 FreeIDE Agent 的推荐方式**。一次 OAuth 登录，即可替代原本需要手动配置的各模型厂商独立账号、API 密钥和计费关系。
+[FreeIDE Portal](https://portal.freeide.dev) 是 FreeIDE 的统一订阅网关，也是**运行 FreeIDE Agent 的推荐方式**。一次 OAuth 登录，即可替代原本需要手动配置的各模型厂商独立账号、API 密钥和计费关系。
 
 如果你只有时间配置一件事，就配置这个。最快路径：
 
@@ -16,7 +16,7 @@ freeide setup --portal
 
 这条命令会完成 Portal OAuth 认证，让你选择一个 Nous 模型，在 `config.yaml` 中将 Nous 设为推理提供商，并开启 Tool Gateway。完成后即可立即运行 `freeide chat`。
 
-还没有订阅？前往 [portal.nousresearch.com/manage-subscription](https://portal.nousresearch.com/manage-subscription) 注册，然后回来运行上面的命令。
+还没有订阅？前往 [portal.freeide.dev/manage-subscription](https://portal.freeide.dev/manage-subscription) 注册，然后回来运行上面的命令。
 
 ## 订阅包含的内容
 
@@ -81,7 +81,7 @@ FreeIDE 自家的 **FreeIDE 4** 系列（FreeIDE-4-70B、FreeIDE-4-405B）通过
 /model deepseek/deepseek-v3.2          # 高性价比代码模型
 ```
 
-Portal 自身的[模型信息页](https://portal.nousresearch.com/info)也有相同警告，因此这不是 FreeIDE 侧的主观意见——这是 FreeIDE 的官方指导。
+Portal 自身的[模型信息页](https://portal.freeide.dev/info)也有相同警告，因此这不是 FreeIDE 侧的主观意见——这是 FreeIDE 的官方指导。
 
 ## 配置
 
@@ -93,14 +93,14 @@ freeide setup --portal
 
 一次性完成全部配置：
 
-1. 打开浏览器跳转至 portal.nousresearch.com 进行 OAuth 登录
+1. 打开浏览器跳转至 portal.freeide.dev 进行 OAuth 登录
 2. 将 refresh token 存储至 `~/.freeide/auth.json`
 3. 让你从精选列表中选择一个 Nous 模型（也可跳过以保留当前模型）
 4. 在 `~/.freeide/config.yaml` 中将 Nous 设为推理提供商（当你选择模型时）
 5. 开启 Tool Gateway（网页、图像、TTS、浏览器路由）
 6. 返回终端，即可运行 `freeide chat`
 
-如果还没有订阅，请先在 [portal.nousresearch.com/manage-subscription](https://portal.nousresearch.com/manage-subscription) 注册。
+如果还没有订阅，请先在 [portal.freeide.dev/manage-subscription](https://portal.freeide.dev/manage-subscription) 注册。
 
 ### 已有安装——在现有提供商旁添加 Portal
 
@@ -108,7 +108,7 @@ freeide setup --portal
 
 ```bash
 freeide model
-# 从提供商列表中选择 "Nous Portal"
+# 从提供商列表中选择 "FreeIDE Portal"
 # 浏览器打开，登录，完成
 ```
 
@@ -127,7 +127,7 @@ OAuth 需要浏览器，但回调的 loopback 运行在 FreeIDE 所在的机器�
 ### 查看当前配置状态
 
 ```bash
-freeide portal            # 登录 Nous Portal 并完成配置（一键引导）
+freeide portal            # 登录 FreeIDE Portal 并完成配置（一键引导）
 freeide portal info       # 登录状态、订阅信息、模型与 gateway 路由
 freeide portal tools      # 详细的 Tool Gateway 目录及每个工具的路由信息
 freeide portal open       # 在浏览器中打开订阅管理页面
@@ -138,18 +138,18 @@ freeide portal open       # 在浏览器中打开订阅管理页面
 `freeide portal info` 给出高层概览：
 
 ```
-  Nous Portal
+  FreeIDE Portal
   ───────────
   Auth:    ✓ logged in
-  Portal:  https://portal.nousresearch.com
+  Portal:  https://portal.freeide.dev
   Model:   ✓ using Nous as inference provider
 
   Tool Gateway
   ────────────
-  Web search & extract  via Nous Portal
-  Image generation      via Nous Portal
-  Text-to-speech        via Nous Portal
-  Browser automation    via Nous Portal
+  Web search & extract  via FreeIDE Portal
+  Image generation      via FreeIDE Portal
+  Text-to-speech        via FreeIDE Portal
+  Browser automation    via FreeIDE Portal
   Cloud terminal        not configured
 ```
 
@@ -194,7 +194,7 @@ Tool Gateway 是按工具单独选择启用的，而非全部或全不。完整�
 
 随时管理套餐、查看用量或升级/取消：
 
-- **网页端：** [portal.nousresearch.com/manage-subscription](https://portal.nousresearch.com/manage-subscription)
+- **网页端：** [portal.freeide.dev/manage-subscription](https://portal.freeide.dev/manage-subscription)
 - **CLI 快捷方式：** `freeide portal open`（在默认浏览器中打开同一页面）
 
 ## 配置参考
@@ -205,7 +205,7 @@ Tool Gateway 是按工具单独选择启用的，而非全部或全不。完整�
 model:
   provider: nous
   default: anthropic/claude-sonnet-4.6     # 或你选择的其他模型
-  base_url: https://inference.nousresearch.com/v1
+  base_url: https://inference.freeide.dev/v1
 ```
 
 Tool Gateway 设置位于各自工具的配置节下：
@@ -242,7 +242,7 @@ FreeIDE 在每次推理调用时从存储的 Portal refresh token 生成短期 J
 freeide portal
 ```
 
-或使用 `freeide model` 重新选择 Nous Portal。
+或使用 `freeide model` 重新选择 FreeIDE Portal。
 
 ### 会话中途收到"需要重新认证"提示
 
@@ -260,7 +260,7 @@ Portal 会为每个模型选择合适的后端——部分模型通过 OpenRoute
 
 ### 账单未出现在我的 Portal 账号中
 
-先检查 `freeide portal info`——如果显示你正在使用其他提供商（`Model: currently openrouter` 而非 `using Nous as inference provider`），说明本地配置已偏离。运行 `freeide model`，选择 Nous Portal，下一次请求将通过你的订阅路由。
+先检查 `freeide portal info`——如果显示你正在使用其他提供商（`Model: currently openrouter` 而非 `using Nous as inference provider`），说明本地配置已偏离。运行 `freeide model`，选择 FreeIDE Portal，下一次请求将通过你的订阅路由。
 
 ## 另请参阅
 

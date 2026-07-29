@@ -41,9 +41,9 @@ export const CONTROL_TEXT = 'text-xs'
 export const PROVIDER_GROUPS: ProviderPrefix[] = [
   {
     prefix: 'NOUS_',
-    name: 'Nous Portal',
-    description: 'Hosted FreeIDE & Nous-trained models',
-    docsUrl: 'https://portal.nousresearch.com',
+    name: 'FreeIDE Portal',
+    description: 'Hosted FreeIDE models',
+    docsUrl: 'https://portal.freeide.dev',
     priority: 0
   },
   {
@@ -51,7 +51,7 @@ export const PROVIDER_GROUPS: ProviderPrefix[] = [
     name: 'Fireworks AI',
     description: 'OpenAI-compatible direct model API',
     docsUrl: 'https://app.fireworks.ai/settings/users/api-keys',
-    // Slot #2 — mirrors CANONICAL_PROVIDERS (after Nous, ahead of OpenRouter).
+    // Slot #2 — mirrors CANONICAL_PROVIDERS (after FreeIDE, ahead of OpenRouter).
     // Same numeric priority as OpenRouter; name sort puts Fireworks first.
     priority: 1
   },

@@ -49,7 +49,7 @@ development environment on the same layout the CLI, updater, lazy dependency
 installer, gateway, and docs assume.
 
 ```bash
-curl -fsSL https://freeide-agent.nousresearch.com/install.sh | bash
+curl -fsSL https://freeide-agent.freeide.dev/install.sh | bash
 cd "${FREEIDE_HOME:-$HOME/.freeide}/freeide-agent"
 
 # Add dev/test extras on top of the standard install.

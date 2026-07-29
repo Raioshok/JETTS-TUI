@@ -1220,7 +1220,7 @@ def _build_child_agent(
     When override_* params are set (from delegation config), the child uses
     those credentials instead of inheriting from the parent.  This enables
     routing subagents to a different provider:model pair (e.g. cheap/fast
-    model on OpenRouter while the parent runs on Nous Portal).
+    model on OpenRouter while the parent runs on FreeIDE Portal).
     """
     from run_agent import AIAgent
     import uuid as _uuid
@@ -1322,7 +1322,7 @@ def _build_child_agent(
         max_spawn_depth=max_spawn,
         child_depth=child_depth,
     )
-    # Extract parent's API key so subagents inherit auth (e.g. Nous Portal).
+    # Extract parent's API key so subagents inherit auth (e.g. FreeIDE Portal).
     parent_api_key = getattr(parent_agent, "api_key", None)
     if (not parent_api_key) and hasattr(parent_agent, "_client_kwargs"):
         parent_api_key = parent_agent._client_kwargs.get("api_key")
@@ -1378,7 +1378,7 @@ def _build_child_agent(
     # Inheriting the parent's mode causes 404 errors when the child routes to the
     # wrong endpoint.  Derive the mode from the target provider when it differs.
     #
-    # Nous Portal is dual-wire within a single provider: anthropic/* → Messages,
+    # FreeIDE Portal is dual-wire within a single provider: anthropic/* → Messages,
     # everything else → chat_completions. Same-provider inheritance would pin a
     # child FreeIDE/Qwen subagent onto the parent's Claude Messages wire (or the
     # reverse). agent_init honors an explicit api_mode above its nous branch, so
@@ -1387,7 +1387,7 @@ def _build_child_agent(
     _effective_provider_norm = (effective_provider or "").strip().lower()
     if override_api_mode is not None:
         effective_api_mode = override_api_mode
-    elif _effective_provider_norm in {"nous", "nous-portal", "nousresearch"}:
+    elif _effective_provider_norm in {"nous", "nous-portal", "freeide"}:
         from freeide_cli.providers import nous_api_mode
 
         effective_api_mode = nous_api_mode(effective_model)

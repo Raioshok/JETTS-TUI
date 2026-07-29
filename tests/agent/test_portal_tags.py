@@ -1,4 +1,4 @@
-"""Tests for agent.portal_tags — Nous Portal request tag contract."""
+"""Tests for agent.portal_tags — FreeIDE Portal request tag contract."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ def test_freeide_client_tag_includes_current_version():
 
 
 def test_freeide_client_tag_format():
-    """The client tag has the exact shape Nous Portal expects."""
+    """The client tag has the exact shape FreeIDE Portal expects."""
     from agent.portal_tags import freeide_client_tag
 
     tag = freeide_client_tag()
@@ -23,7 +23,7 @@ def test_freeide_client_tag_format():
 
 
 def test_nous_portal_tags_contains_product_and_client():
-    """Every Nous Portal request gets BOTH the product tag and the version tag."""
+    """Every FreeIDE Portal request gets BOTH the product tag and the version tag."""
     from agent.portal_tags import freeide_client_tag, nous_portal_tags
 
     tags = nous_portal_tags()

@@ -1,12 +1,12 @@
 ---
 sidebar_position: 1
-title: "通过 Nous Portal 运行 FreeIDE Agent"
+title: "通过 FreeIDE Portal 运行 FreeIDE Agent"
 description: "完整操作指南：订阅、配置、切换模型、启用 gateway 工具并验证路由"
 ---
 
-# 通过 Nous Portal 运行 FreeIDE Agent
+# 通过 FreeIDE Portal 运行 FreeIDE Agent
 
-本指南带你从头到尾完成在 [Nous Portal](https://portal.nousresearch.com) 订阅下运行 FreeIDE Agent 的全过程——从注册账号到验证每个工具的路由是否正确。如果你只想了解 Portal 的概述及订阅内容，请参阅 [Nous Portal 集成页面](/integrations/nous-portal)。本页是操作步骤脚本。
+本指南带你从头到尾完成在 [FreeIDE Portal](https://portal.freeide.dev) 订阅下运行 FreeIDE Agent 的全过程——从注册账号到验证每个工具的路由是否正确。如果你只想了解 Portal 的概述及订阅内容，请参阅 [FreeIDE Portal 集成页面](/integrations/nous-portal)。本页是操作步骤脚本。
 
 ## 前提条件
 
@@ -18,7 +18,7 @@ description: "完整操作指南：订阅、配置、切换模型、启用 gatew
 
 ## 1. 获取订阅
 
-打开 [portal.nousresearch.com/manage-subscription](https://portal.nousresearch.com/manage-subscription)，注册并选择一个套餐。
+打开 [portal.freeide.dev/manage-subscription](https://portal.freeide.dev/manage-subscription)，注册并选择一个套餐。
 
 已订阅？跳至第 2 步。
 
@@ -30,7 +30,7 @@ freeide setup --portal
 
 这条命令会完成五件事：
 
-1. 打开浏览器跳转至 portal.nousresearch.com 进行 OAuth 登录
+1. 打开浏览器跳转至 portal.freeide.dev 进行 OAuth 登录
 2. 将 refresh token 存储至 `~/.freeide/auth.json`
 3. 在 `~/.freeide/config.yaml` 中设置 `model.provider: nous`
 4. 选择一个默认的 agentic 模型（`anthropic/claude-sonnet-4.6` 或类似模型）
@@ -63,21 +63,21 @@ freeide portal info
 你应该看到：
 
 ```
-  Nous Portal
+  FreeIDE Portal
   ───────────
   Auth:    ✓ logged in
-  Portal:  https://portal.nousresearch.com
+  Portal:  https://portal.freeide.dev
   Model:   ✓ using Nous as inference provider
 
   Tool Gateway
   ────────────
-  Web search & extract  via Nous Portal
-  Image generation      via Nous Portal
-  Text-to-speech        via Nous Portal
-  Browser automation    via Nous Portal
+  Web search & extract  via FreeIDE Portal
+  Image generation      via FreeIDE Portal
+  Text-to-speech        via FreeIDE Portal
+  Browser automation    via FreeIDE Portal
 ```
 
-如果任何一行显示的不是"via Nous Portal"，或者 auth 行显示"not logged in"，请跳至下方的[故障排查](#troubleshooting)。
+如果任何一行显示的不是"via FreeIDE Portal"，或者 auth 行显示"not logged in"，请跳至下方的[故障排查](#troubleshooting)。
 
 ## 4. 运行第一次对话
 
@@ -122,7 +122,7 @@ freeide config set model.default anthropic/claude-sonnet-4.6
 
 FreeIDE-4-70B 和 FreeIDE-4-405B 在 Portal 上以大幅折扣提供，但它们是**对话/推理模型**，并非针对工具调用优化的模型。它们在多步骤 agent 循环中表现不佳。请通过[订阅代理](/user-guide/features/subscription-proxy)从非 agent 工具中将它们用于对话或研究工作。对于 FreeIDE Agent 本身，请坚持使用上述前沿 agentic 模型。
 
-Portal 的[信息页面](https://portal.nousresearch.com/info)也有此说明——这是 Nous 官方指导，并非仅代表 FreeIDE 一方的意见。
+Portal 的[信息页面](https://portal.freeide.dev/info)也有此说明——这是 Nous 官方指导，并非仅代表 FreeIDE 一方的意见。
 
 ## 6. （可选）自定义 Tool Gateway 路由
 
@@ -142,7 +142,7 @@ freeide tools
 freeide portal tools
 ```
 
-你将看到每个工具的路由情况——通过订阅路由的工具显示 `via Nous Portal`，使用你自己密钥的工具显示合作方名称（`browserbase`、`firecrawl` 等）。
+你将看到每个工具的路由情况——通过订阅路由的工具显示 `via FreeIDE Portal`，使用你自己密钥的工具显示合作方名称（`browserbase`、`firecrawl` 等）。
 
 ## 7. （可选）启用语音模式
 
@@ -197,12 +197,12 @@ freeide config set model.provider nous
 
 ```bash
 freeide model
-# 选择 Nous Portal
+# 选择 FreeIDE Portal
 ```
 
 使用 `freeide portal info` 重新验证。
 
-### Tool Gateway 工具显示合作方名称而非"via Nous Portal"
+### Tool Gateway 工具显示合作方名称而非"via FreeIDE Portal"
 
 按工具的配置覆盖了 gateway 设置。运行：
 
@@ -265,7 +265,7 @@ freeide auth logout nous       # 清除本地 refresh token
 
 ## 另请参阅
 
-- **[Nous Portal 集成页面](/integrations/nous-portal)** — 订阅内容概述
+- **[FreeIDE Portal 集成页面](/integrations/nous-portal)** — 订阅内容概述
 - **[Tool Gateway](/user-guide/features/tool-gateway)** — 每个 gateway 路由工具的完整说明
 - **[订阅代理](/user-guide/features/subscription-proxy)** — 在非 FreeIDE 工具中使用你的 Portal 订阅
 - **[语音模式](/user-guide/features/voice-mode)** — 在 Portal 订阅上配置语音对话

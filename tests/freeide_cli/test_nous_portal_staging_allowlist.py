@@ -1,10 +1,10 @@
-"""Regression tests for the Nous Portal env-override bypassing the host
+"""Regression tests for the FreeIDE Portal env-override bypassing the host
 allowlist, mirroring the existing NOUS_INFERENCE_BASE_URL /
 _ALLOWED_NOUS_INFERENCE_HOSTS treatment.
 
 Real incident (2026-07): a hosted agent provisioned by nous-account-service
 on the `staging` Vercel environment is stamped with
-``FREEIDE_PORTAL_BASE_URL=https://portal.staging-nousresearch.com`` in its
+``FREEIDE_PORTAL_BASE_URL=https://portal.staging-freeide.dev`` in its
 container env (the documented dev/staging override), while its bootstrap
 ``auth.json`` ALSO persists ``portal_base_url`` to the same staging host.
 
@@ -46,20 +46,20 @@ class TestPortalEnvOverrideHelper:
 
     def test_freeide_portal_base_url_wins(self, monkeypatch):
         monkeypatch.setenv(
-            "FREEIDE_PORTAL_BASE_URL", "https://portal.staging-nousresearch.com/"
+            "FREEIDE_PORTAL_BASE_URL", "https://portal.staging-freeide.dev/"
         )
         monkeypatch.delenv("NOUS_PORTAL_BASE_URL", raising=False)
         assert (
-            _nous_portal_env_override() == "https://portal.staging-nousresearch.com"
+            _nous_portal_env_override() == "https://portal.staging-freeide.dev"
         )
 
     def test_nous_portal_base_url_used_as_fallback(self, monkeypatch):
         monkeypatch.delenv("FREEIDE_PORTAL_BASE_URL", raising=False)
         monkeypatch.setenv(
-            "NOUS_PORTAL_BASE_URL", "https://portal.staging-nousresearch.com"
+            "NOUS_PORTAL_BASE_URL", "https://portal.staging-freeide.dev"
         )
         assert (
-            _nous_portal_env_override() == "https://portal.staging-nousresearch.com"
+            _nous_portal_env_override() == "https://portal.staging-freeide.dev"
         )
 
     def test_env_override_not_gated_by_allowlist(self, monkeypatch):
@@ -67,11 +67,11 @@ class TestPortalEnvOverrideHelper:
         _NOUS_PORTAL_ALLOWED_HOSTS, and the helper must return it anyway —
         gating happens only for network-provenance values."""
         monkeypatch.setenv(
-            "FREEIDE_PORTAL_BASE_URL", "https://portal.staging-nousresearch.com"
+            "FREEIDE_PORTAL_BASE_URL", "https://portal.staging-freeide.dev"
         )
-        assert "portal.staging-nousresearch.com" not in _NOUS_PORTAL_ALLOWED_HOSTS
+        assert "portal.staging-freeide.dev" not in _NOUS_PORTAL_ALLOWED_HOSTS
         assert (
-            _nous_portal_env_override() == "https://portal.staging-nousresearch.com"
+            _nous_portal_env_override() == "https://portal.staging-freeide.dev"
         )
 
 
@@ -134,7 +134,7 @@ class TestResolveAccessTokenEnvOverrideWins:
         allowlist-rejection warning must never fire."""
         import freeide_cli.auth as auth
 
-        staging_portal = "https://portal.staging-nousresearch.com"
+        staging_portal = "https://portal.staging-freeide.dev"
         monkeypatch.setenv("FREEIDE_HOME", str(tmp_path))
         monkeypatch.setenv("FREEIDE_PORTAL_BASE_URL", staging_portal)
         self._write_auth_file(tmp_path, stored_portal_url=staging_portal)
@@ -152,7 +152,7 @@ class TestResolveAccessTokenEnvOverrideWins:
         win for the actual refresh call."""
         import freeide_cli.auth as auth
 
-        staging_portal = "https://portal.staging-nousresearch.com"
+        staging_portal = "https://portal.staging-freeide.dev"
         monkeypatch.setenv("FREEIDE_HOME", str(tmp_path))
         monkeypatch.setenv("FREEIDE_PORTAL_BASE_URL", staging_portal)
         self._write_auth_file(tmp_path, stored_portal_url=DEFAULT_NOUS_PORTAL_URL)
@@ -169,7 +169,7 @@ class TestResolveAccessTokenEnvOverrideWins:
         allowlist's actual job — preserved, not regressed, by this fix)."""
         import freeide_cli.auth as auth
 
-        staging_portal = "https://portal.staging-nousresearch.com"
+        staging_portal = "https://portal.staging-freeide.dev"
         monkeypatch.setenv("FREEIDE_HOME", str(tmp_path))
         monkeypatch.delenv("FREEIDE_PORTAL_BASE_URL", raising=False)
         monkeypatch.delenv("NOUS_PORTAL_BASE_URL", raising=False)

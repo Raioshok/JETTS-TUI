@@ -1,18 +1,18 @@
 ---
-title: "Nous Tool Gateway"
-description: "One subscription, every tool. Web search, image generation, TTS, and cloud browsers — all routed through Nous Portal with no extra API keys."
+title: "FreeIDE Tool Gateway"
+description: "One subscription, every tool. Web search, image generation, TTS, and cloud browsers — all routed through FreeIDE Portal with no extra API keys."
 sidebar_label: "Tool Gateway"
 sidebar_position: 2
 ---
 
-# Nous Tool Gateway
+# FreeIDE Tool Gateway
 
 **One subscription. Every tool built in.**
 
-The Tool Gateway is included with every paid [Nous Portal](https://portal.nousresearch.com) subscription. It routes FreeIDE' tool calls — web search, image generation, text-to-speech, and cloud browser automation — through infrastructure Nous already runs, so you don't have to sign up with Firecrawl, FAL, OpenAI, Browser Use, or anyone else just to make your agent useful.
+The Tool Gateway is included with every paid [FreeIDE Portal](https://portal.freeide.dev) subscription. It routes FreeIDE's tool calls — web search, image generation, text-to-speech, and cloud browser automation — through infrastructure FreeIDE already runs, so you don't have to sign up with Firecrawl, FAL, OpenAI, Browser Use, or anyone else just to make your agent useful.
 
 <div style={{display: 'flex', gap: '1rem', flexWrap: 'wrap', margin: '1.5rem 0'}}>
-  <a href="https://portal.nousresearch.com/manage-subscription" style={{background: 'var(--ifm-color-primary)', color: 'white', padding: '0.75rem 1.5rem', borderRadius: '6px', textDecoration: 'none', fontWeight: 'bold'}}>Start or manage subscription →</a>
+  <a href="https://portal.freeide.dev/manage-subscription" style={{background: 'var(--ifm-color-primary)', color: 'white', padding: '0.75rem 1.5rem', borderRadius: '6px', textDecoration: 'none', fontWeight: 'bold'}}>Start or manage subscription →</a>
 </div>
 
 ## What's included
@@ -24,15 +24,15 @@ The Tool Gateway is included with every paid [Nous Portal](https://portal.nousre
 | 🔊 | **Text-to-speech** | OpenAI TTS voices wired into the `text_to_speech` tool. Drop voice notes into Telegram, generate audio for pipelines, narrate anything. |
 | 🌐 | **Cloud browser automation** | Headless Chromium sessions via Browser Use. `browser_navigate`, `browser_click`, `browser_type`, `browser_vision` — all the agent-driving primitives, no Browserbase account required. |
 
-All four are pay-as-you-use billed against your Nous subscription. Use any combination — run the gateway for web and images while keeping your own ElevenLabs key for TTS, or route everything through Nous.
+All four are pay-as-you-use billed against your FreeIDE subscription. Use any combination — run the gateway for web and images while keeping your own ElevenLabs key for TTS, or route everything through FreeIDE.
 
 ## Why it's here
 
 Building an agent that can actually *do things* means stitching together 5+ API subscriptions — each with their own signup, rate limits, billing, and quirks. The gateway collapses that into one account:
 
-- **One bill.** Pay Nous; we handle the rest.
+- **One bill.** Pay FreeIDE; we handle the rest.
 - **One signup.** No Firecrawl, FAL, Browser Use, or OpenAI audio accounts to manage.
-- **One key.** Your Nous Portal OAuth covers every tool.
+- **One key.** Your FreeIDE Portal OAuth covers every tool.
 - **Same quality.** Same backends the direct-key route uses — just fronted by us.
 
 Bring your own keys anytime — per-tool, whenever you want to. The gateway isn't a lock-in, it's a shortcut.
@@ -42,20 +42,20 @@ Bring your own keys anytime — per-tool, whenever you want to. The gateway isn'
 There are three ways in — pick whichever fits where you are:
 
 ```bash
-freeide setup --portal     # Fresh install: Nous OAuth + set Nous as provider + turn on the Tool Gateway in one go
+freeide setup --portal     # Fresh install: FreeIDE OAuth + set FreeIDE as provider + turn on the Tool Gateway in one go
 ```
 
 ```bash
-freeide model              # Switch your inference provider to Nous Portal — FreeIDE then offers to turn on the gateway for all tools
+freeide model              # Switch your inference provider to FreeIDE Portal — FreeIDE then offers to turn on the gateway for all tools
 ```
 
 ```bash
-freeide tools              # Enable the gateway per-tool — pick "Nous Subscription" for any tool you want
+freeide tools              # Enable the gateway per-tool — pick "FreeIDE Subscription" for any tool you want
 ```
 
 `freeide setup --portal` and `freeide model` are the all-at-once paths: log in once, optionally flip every tool to the gateway. `freeide tools` is the à la carte path — turn on just the tools you want, one at a time.
 
-**You don't have to log in first.** With `freeide tools`, the Nous-managed backends (Web search, Image, Video, TTS, Browser) are always listed, even if you've never signed into Nous Portal. Select one and FreeIDE runs the Portal login right there if you aren't already authenticated — no need to run `freeide model` beforehand. If your Nous OAuth is already active, selecting the backend enables it immediately with no extra prompt. This path only logs you in and turns on the one tool you picked — it does **not** switch your inference provider, and it does **not** prompt you to enable the gateway for every other tool.
+**You don't have to log in first.** With `freeide tools`, the FreeIDE-managed backends (Web search, Image, Video, TTS, Browser) are always listed, even if you've never signed into FreeIDE Portal. Select one and FreeIDE runs the Portal login right there if you aren't already authenticated — no need to run `freeide model` beforehand. If your FreeIDE OAuth is already active, selecting the backend enables it immediately with no extra prompt. This path only logs you in and turns on the one tool you picked — it does **not** switch your inference provider, and it does **not** prompt you to enable the gateway for every other tool.
 
 Check what's active at any time:
 
@@ -68,19 +68,19 @@ freeide status             # Full system status (Tool Gateway is one section)
 `freeide portal info` shows a section like:
 
 ```
-◆ Nous Tool Gateway
-  Nous Portal     ✓ managed tools available
-  Web tools       ✓ active via Nous subscription
-  Image gen       ✓ active via Nous subscription
-  TTS             ✓ active via Nous subscription
+◆ FreeIDE Tool Gateway
+  FreeIDE Portal     ✓ managed tools available
+  Web tools       ✓ active via FreeIDE subscription
+  Image gen       ✓ active via FreeIDE subscription
+  TTS             ✓ active via FreeIDE subscription
   Browser         ○ active via Browser Use key
 ```
 
-Tools marked "active via Nous subscription" are going through the gateway. Anything else is using your own keys.
+Tools marked "active via FreeIDE subscription" are going through the gateway. Anything else is using your own keys.
 
 ## Eligibility
 
-The Tool Gateway is a **paid-subscription** feature. Free-tier Nous accounts can use Portal for inference but don't include managed tools — [upgrade your plan](https://portal.nousresearch.com/manage-subscription) to unlock the gateway.
+The Tool Gateway is a **paid-subscription** feature. Free-tier FreeIDE accounts can use Portal for inference but don't include managed tools — [upgrade your plan](https://portal.freeide.dev/manage-subscription) to unlock the gateway.
 
 Some accounts are also entitled to a **free tool pool** — a small managed-tool allowance that covers gateway tool calls without a paid subscription. When a free pool is available, the gateway surfaces it and shows a setup prompt on first use, so you can opt in and start using managed tools right away.
 
@@ -88,8 +88,8 @@ Some accounts are also entitled to a **free tool pool** — a small managed-tool
 
 The gateway is per-tool. Turn it on for just what you want:
 
-- **All tools through Nous** — easiest; one subscription, done.
-- **Gateway for web + images, bring your own TTS** — keep your ElevenLabs voice, let Nous handle the rest.
+- **All tools through FreeIDE** — easiest; one subscription, done.
+- **Gateway for web + images, bring your own TTS** — keep your ElevenLabs voice, let FreeIDE handle the rest.
 - **Gateway only for things you don't have keys for** — "I already pay for Browserbase, but I don't want a Firecrawl account" works fine.
 
 Switch any tool at any time via:
@@ -98,7 +98,7 @@ Switch any tool at any time via:
 freeide tools          # Interactive picker for each tool category
 ```
 
-Select the tool, pick **Nous Subscription** as the provider (or any direct provider you prefer). No config editing required. If you aren't logged into Nous Portal yet, picking **Nous Subscription** kicks off the Portal login inline — you don't need to authenticate through `freeide model` first.
+Select the tool, pick **FreeIDE Subscription** as the provider (or any direct provider you prefer). No config editing required. If you aren't logged into FreeIDE Portal yet, picking **FreeIDE Subscription** kicks off the Portal login inline — you don't need to authenticate through `freeide model` first.
 
 ## Using individual image models
 
@@ -145,7 +145,7 @@ browser:
   use_gateway: true
 ```
 
-Precedence: `use_gateway: true` routes through Nous regardless of any direct keys in `.env`. `use_gateway: false` (or absent) uses direct keys if available and only falls back to the gateway when none exist.
+Precedence: `use_gateway: true` routes through FreeIDE regardless of any direct keys in `.env`. `use_gateway: false` (or absent) uses direct keys if available and only falls back to the gateway when none exist.
 
 ### Disabling the gateway
 
@@ -158,7 +158,7 @@ web:
 
 ### Self-hosted gateway (advanced)
 
-Running your own Nous-compatible gateway? Override endpoints in `~/.freeide/.env`:
+Running your own FreeIDE-compatible gateway? Override endpoints in `~/.freeide/.env`:
 
 ```bash
 TOOL_GATEWAY_DOMAIN=your-domain.example.com
@@ -181,11 +181,11 @@ Tools routed through the gateway stop working until you renew or swap in direct 
 
 ### Can I see usage or costs per tool?
 
-Yes — the [Nous Portal dashboard](https://portal.nousresearch.com) breaks usage down by tool so you can see what's driving your bill.
+Yes — the [FreeIDE Portal dashboard](https://portal.freeide.dev) breaks usage down by tool so you can see what's driving your bill.
 
 ### Is Modal (serverless terminal) included?
 
-Modal is available as an **optional add-on** through the Nous subscription, not part of the default Tool Gateway bundle. Configure it via `freeide setup terminal` or directly in `config.yaml` when you want a remote sandbox for shell execution.
+Modal is available as an **optional add-on** through the FreeIDE subscription, not part of the default Tool Gateway bundle. Configure it via `freeide setup terminal` or directly in `config.yaml` when you want a remote sandbox for shell execution.
 
 ### Do I need to delete my existing API keys when I enable the gateway?
 

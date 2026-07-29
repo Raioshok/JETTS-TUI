@@ -606,7 +606,7 @@ class TestBuildCallKwargsMaxTokens:
             ("copilot", "gpt-5.5", "https://api.githubcopilot.com"),
             ("custom", "gpt-5", "https://api.openai.com/v1"),
             ("openrouter", "anthropic/claude-sonnet-4.6", "https://openrouter.ai/api/v1"),
-            ("nous", "freeide-4", "https://inference-api.nousresearch.com/v1"),
+            ("nous", "freeide-4", "https://inference-api.freeide.dev/v1"),
             ("custom", "qwen", "http://localhost:8080/v1"),
             ("zai", "glm-4v-flash", "https://open.bigmodel.cn/api/paas/v4"),
         ],
@@ -664,7 +664,7 @@ class TestBuildCallKwargsMaxTokens:
             ("zai", "glm-5.2", "https://api.z.ai/api/coding/paas/v4", "max_tokens"),
             ("openrouter", "deepseek/deepseek-v4-flash:nitro", "https://openrouter.ai/api/v1", "max_tokens"),
             ("copilot", "gpt-5.5", "https://api.githubcopilot.com", "max_completion_tokens"),
-            ("nous", "freeide-4", "https://inference-api.nousresearch.com/v1", "max_tokens"),
+            ("nous", "freeide-4", "https://inference-api.freeide.dev/v1", "max_tokens"),
         ],
     )
     def test_moa_task_sends_max_tokens_on_openai_compatible(self, provider, model, base_url, expected_key):
@@ -1893,7 +1893,7 @@ class TestAuxiliaryPoolAwareness:
 
     def test_try_nous_uses_portal_recommendation_for_text(self):
         """When the Portal recommends a compaction model, _try_nous honors it."""
-        fresh_base = "https://inference-api.nousresearch.com/v1"
+        fresh_base = "https://inference-api.freeide.dev/v1"
         with (
             patch("agent.auxiliary_client._read_nous_auth", return_value={"access_token": "***"}),
             patch("agent.auxiliary_client._resolve_nous_runtime_api", return_value=("fresh-agent-key", fresh_base)),
@@ -1911,7 +1911,7 @@ class TestAuxiliaryPoolAwareness:
 
     def test_try_nous_uses_portal_recommendation_for_vision(self):
         """Vision tasks should ask for the vision-specific recommendation."""
-        fresh_base = "https://inference-api.nousresearch.com/v1"
+        fresh_base = "https://inference-api.freeide.dev/v1"
         with (
             patch("agent.auxiliary_client._read_nous_auth", return_value={"access_token": "***"}),
             patch("agent.auxiliary_client._resolve_nous_runtime_api", return_value=("fresh-agent-key", fresh_base)),
@@ -1927,7 +1927,7 @@ class TestAuxiliaryPoolAwareness:
 
     def test_try_nous_falls_back_when_recommendation_lookup_raises(self):
         """If the Portal lookup throws, we must still return a usable model."""
-        fresh_base = "https://inference-api.nousresearch.com/v1"
+        fresh_base = "https://inference-api.freeide.dev/v1"
         with (
             patch("agent.auxiliary_client._read_nous_auth", return_value={"access_token": "***"}),
             patch("agent.auxiliary_client._resolve_nous_runtime_api", return_value=("fresh-agent-key", fresh_base)),
@@ -1945,11 +1945,11 @@ class TestAuxiliaryPoolAwareness:
             status_code = 401
 
         stale_client = MagicMock()
-        stale_client.base_url = "https://inference-api.nousresearch.com/v1"
+        stale_client.base_url = "https://inference-api.freeide.dev/v1"
         stale_client.chat.completions.create.side_effect = _Auth401("stale nous key")
 
         fresh_client = MagicMock()
-        fresh_client.base_url = "https://inference-api.nousresearch.com/v1"
+        fresh_client.base_url = "https://inference-api.freeide.dev/v1"
         fresh_client.chat.completions.create.return_value = {"ok": True}
 
         with (
@@ -1957,7 +1957,7 @@ class TestAuxiliaryPoolAwareness:
             patch("agent.auxiliary_client._get_cached_client", return_value=(stale_client, "nous-model")),
             patch("agent.auxiliary_client.OpenAI", return_value=fresh_client),
             patch("agent.auxiliary_client._validate_llm_response", side_effect=lambda resp, _task, **_kw: resp),
-            patch("agent.auxiliary_client._resolve_nous_runtime_api", return_value=("fresh-agent-key", "https://inference-api.nousresearch.com/v1")),
+            patch("agent.auxiliary_client._resolve_nous_runtime_api", return_value=("fresh-agent-key", "https://inference-api.freeide.dev/v1")),
         ):
             result = call_llm(
                 task="compression",
@@ -1975,13 +1975,13 @@ class TestAuxiliaryPoolAwareness:
             status_code = 404
 
         stale_client = MagicMock()
-        stale_client.base_url = "https://inference-api.nousresearch.com/v1"
+        stale_client.base_url = "https://inference-api.freeide.dev/v1"
         stale_client.chat.completions.create.side_effect = _Payment404(
             "model_not_supported_on_free_tier: model is not available on the free tier"
         )
 
         fresh_client = MagicMock()
-        fresh_client.base_url = "https://inference-api.nousresearch.com/v1"
+        fresh_client.base_url = "https://inference-api.freeide.dev/v1"
         fresh_client.chat.completions.create.return_value = {"ok": True}
 
         with (
@@ -1989,7 +1989,7 @@ class TestAuxiliaryPoolAwareness:
             patch("agent.auxiliary_client._get_cached_client", return_value=(stale_client, "nous-model")),
             patch("agent.auxiliary_client.OpenAI", return_value=fresh_client),
             patch("agent.auxiliary_client._validate_llm_response", side_effect=lambda resp, _task, **_kw: resp),
-            patch("agent.auxiliary_client._resolve_nous_runtime_api", return_value=("fresh-agent-key", "https://inference-api.nousresearch.com/v1")),
+            patch("agent.auxiliary_client._resolve_nous_runtime_api", return_value=("fresh-agent-key", "https://inference-api.freeide.dev/v1")),
             patch(
                 "freeide_cli.nous_account.get_nous_portal_account_info",
                 return_value=NousPortalAccountInfo(
@@ -2015,11 +2015,11 @@ class TestAuxiliaryPoolAwareness:
             status_code = 401
 
         stale_client = MagicMock()
-        stale_client.base_url = "https://inference-api.nousresearch.com/v1"
+        stale_client.base_url = "https://inference-api.freeide.dev/v1"
         stale_client.chat.completions.create = AsyncMock(side_effect=_Auth401("stale nous key"))
 
         fresh_async_client = MagicMock()
-        fresh_async_client.base_url = "https://inference-api.nousresearch.com/v1"
+        fresh_async_client.base_url = "https://inference-api.freeide.dev/v1"
         fresh_async_client.chat.completions.create = AsyncMock(return_value={"ok": True})
 
         with (
@@ -2027,7 +2027,7 @@ class TestAuxiliaryPoolAwareness:
             patch("agent.auxiliary_client._get_cached_client", return_value=(stale_client, "nous-model")),
             patch("agent.auxiliary_client._to_async_client", return_value=(fresh_async_client, "nous-model")),
             patch("agent.auxiliary_client._validate_llm_response", side_effect=lambda resp, _task, **_kw: resp),
-            patch("agent.auxiliary_client._resolve_nous_runtime_api", return_value=("fresh-agent-key", "https://inference-api.nousresearch.com/v1")),
+            patch("agent.auxiliary_client._resolve_nous_runtime_api", return_value=("fresh-agent-key", "https://inference-api.freeide.dev/v1")),
         ):
             result = await async_call_llm(
                 task="session_search",
@@ -2046,13 +2046,13 @@ class TestAuxiliaryPoolAwareness:
             status_code = 404
 
         stale_client = MagicMock()
-        stale_client.base_url = "https://inference-api.nousresearch.com/v1"
+        stale_client.base_url = "https://inference-api.freeide.dev/v1"
         stale_client.chat.completions.create = AsyncMock(side_effect=_Payment404(
             "model_not_supported_on_free_tier: model is not available on the free tier"
         ))
 
         fresh_async_client = MagicMock()
-        fresh_async_client.base_url = "https://inference-api.nousresearch.com/v1"
+        fresh_async_client.base_url = "https://inference-api.freeide.dev/v1"
         fresh_async_client.chat.completions.create = AsyncMock(return_value={"ok": True})
 
         with (
@@ -2060,7 +2060,7 @@ class TestAuxiliaryPoolAwareness:
             patch("agent.auxiliary_client._get_cached_client", return_value=(stale_client, "nous-model")),
             patch("agent.auxiliary_client._to_async_client", return_value=(fresh_async_client, "nous-model")),
             patch("agent.auxiliary_client._validate_llm_response", side_effect=lambda resp, _task, **_kw: resp),
-            patch("agent.auxiliary_client._resolve_nous_runtime_api", return_value=("fresh-agent-key", "https://inference-api.nousresearch.com/v1")),
+            patch("agent.auxiliary_client._resolve_nous_runtime_api", return_value=("fresh-agent-key", "https://inference-api.freeide.dev/v1")),
             patch(
                 "freeide_cli.nous_account.get_nous_portal_account_info",
                 return_value=NousPortalAccountInfo(
@@ -2144,7 +2144,7 @@ class TestIsPaymentError:
     def test_404_free_tier_model_block_is_payment(self):
         exc = Exception(
             "Model 'gpt-5' is not available on the Free Tier. "
-            "Upgrade at https://portal.nousresearch.com or pick a free model."
+            "Upgrade at https://portal.freeide.dev or pick a free model."
         )
         exc.status_code = 404
         assert _is_payment_error(exc) is True
@@ -5974,9 +5974,9 @@ class TestOpenRouterExplicitApiKey:
 def test_pool_runtime_base_url_uses_nous_env_override(monkeypatch):
     entry = SimpleNamespace(
         provider="nous",
-        runtime_base_url="https://inference-api.nousresearch.com/v1",
-        inference_base_url="https://inference-api.nousresearch.com/v1",
-        base_url="https://inference-api.nousresearch.com/v1",
+        runtime_base_url="https://inference-api.freeide.dev/v1",
+        inference_base_url="https://inference-api.freeide.dev/v1",
+        base_url="https://inference-api.freeide.dev/v1",
     )
     monkeypatch.setenv("NOUS_INFERENCE_BASE_URL", "https://ai.wildebeest-newton.ts.net/v1")
 

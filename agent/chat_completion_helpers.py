@@ -191,12 +191,12 @@ def _provider_preferences_for_agent(agent) -> Dict[str, Any]:
 def _merge_nous_portal_messages_extra_body(agent, anthropic_kwargs: dict) -> dict:
     """Merge Portal ``tags`` / ``session_id`` onto an Anthropic Messages kwargs dict.
 
-    The Nous provider profile is only consulted by the OpenAI-wire transport;
+    The FreeIDE provider profile is only consulted by the OpenAI-wire transport;
     anthropic_messages callers must merge it themselves. Passes ``session_id``
     only — not ``provider_preferences`` (those become a top-level ``provider``
     routing object on the OpenAI wire). Never blocks a turn on tagging.
     """
-    if getattr(agent, "provider", None) not in {"nous", "nous-portal", "nousresearch"}:
+    if getattr(agent, "provider", None) not in {"nous", "nous-portal", "freeide"}:
         return anthropic_kwargs
     try:
         from providers import get_provider_profile
@@ -209,7 +209,7 @@ def _merge_nous_portal_messages_extra_body(agent, anthropic_kwargs: dict) -> dic
                 )
             )
     except Exception as exc:  # noqa: BLE001 — never block a turn on tagging
-        logger.debug("Nous Portal extra_body merge failed: %s", exc)
+        logger.debug("FreeIDE Portal extra_body merge failed: %s", exc)
     return anthropic_kwargs
 
 
@@ -1061,7 +1061,7 @@ def build_api_kwargs(agent, api_messages: list) -> dict:
             fast_mode=(agent.request_overrides or {}).get("speed") == "fast",
             drop_context_1m_beta=bool(getattr(agent, "_oauth_1m_beta_disabled", False)),
         )
-        # Nous Portal reads ``tags`` and ``session_id`` as top-level body fields
+        # FreeIDE Portal reads ``tags`` and ``session_id`` as top-level body fields
         # on its Messages route the same way it does on /chat/completions, but
         # the profile hook that produces them is only consulted by the
         # OpenAI-wire transport. Merge them here so Messages traffic keeps
@@ -1160,7 +1160,7 @@ def build_api_kwargs(agent, api_messages: list) -> dict:
         base_url_host_matches(agent._base_url_lower, "models.github.ai")
         or base_url_host_matches(agent._base_url_lower, "githubcopilot.com")
     )
-    _is_nous = "nousresearch" in agent._base_url_lower
+    _is_nous = "freeide" in agent._base_url_lower
     _is_nvidia = "integrate.api.nvidia.com" in agent._base_url_lower
     _is_kimi = (
         base_url_host_matches(agent.base_url, "api.kimi.com")
@@ -1191,7 +1191,7 @@ def build_api_kwargs(agent, api_messages: list) -> dict:
     # Anthropic Messages API treats it as mandatory and proxies that omit it
     # (AWS Bedrock, NVIDIA, LiteLLM, vLLM, corporate gateways) default as low
     # as 4096 output tokens — easily exhausted by thinking + large tool calls
-    # like write_file/patch.  OpenRouter/Nous were the only routes covered
+    # like write_file/patch.  OpenRouter/FreeIDE were the only routes covered
     # before; gating on _ANTHROPIC_OUTPUT_LIMITS membership covers them all.
     _ant_max = None
     try:
@@ -1743,10 +1743,10 @@ def try_activate_fallback(agent, reason: "FailoverReason | None" = None) -> bool
         _fb_is_azure = agent._is_azure_openai_url(fb_base_url)
         if fb_provider == "openai-codex":
             fb_api_mode = "codex_responses"
-        elif fb_provider in {"nous", "nous-portal", "nousresearch"}:
+        elif fb_provider in {"nous", "nous-portal", "freeide"}:
             # Portal is dual-wire: anthropic/* must land on /v1/messages.
             # resolve_provider_client still returns an OpenAI client for
-            # Nous; the anthropic_messages branch below rebuilds the native
+            # FreeIDE; the anthropic_messages branch below rebuilds the native
             # client from that credential + base_url.
             from freeide_cli.providers import nous_api_mode
 
@@ -2077,7 +2077,7 @@ def handle_max_iterations(agent, messages: list, api_call_count: int) -> str:
         )
         _omit_summary_temperature = _raw_summary_temp is _OMIT_TEMP
         _summary_temperature = None if _omit_summary_temperature else _raw_summary_temp
-        _is_nous = "nousresearch" in agent._base_url_lower
+        _is_nous = "freeide" in agent._base_url_lower
         # LM Studio uses top-level `reasoning_effort` (not extra_body.reasoning).
         # Mirror ChatCompletionsTransport.build_kwargs() so the summary path
         # — which calls chat.completions.create() directly without going
@@ -3143,7 +3143,7 @@ def interruptible_streaming_api_call(agent, api_kwargs: dict, *, on_first_delta=
         #      upstream dropped/stalled the connection mid tool-call.  This
         #      is NOT an output cap — the model never reported hitting one.
         #      Some dedicated endpoints (e.g. NVIDIA Nemotron Ultra on the
-        #      Nous dedicated endpoint) stall for minutes during large
+        #      FreeIDE dedicated endpoint) stall for minutes during large
         #      tool-arg generation, then close the stream cleanly without a
         #      finish_reason.  Stamping "length" here sends it down the
         #      max_tokens-boost truncation path, which retries 3× to no

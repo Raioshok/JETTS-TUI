@@ -7,7 +7,7 @@ const config: Config = {
   tagline: 'The self-improving AI agent',
   favicon: 'img/favicon.ico',
 
-  url: 'https://freeide-agent.nousresearch.com',
+  url: 'https://freeide-agent.freeide.dev',
   baseUrl: '/docs/',
 
   organizationName: 'freeide',
@@ -145,7 +145,7 @@ const config: Config = {
           position: 'left',
         },
         {
-          href: 'https://freeide-agent.nousresearch.com/',
+          href: 'https://freeide-agent.freeide.dev/',
           label: 'Download',
           position: 'left',
         },
@@ -154,7 +154,7 @@ const config: Config = {
           position: 'right',
         },
         {
-          href: 'https://freeide-agent.nousresearch.com',
+          href: 'https://freeide-agent.freeide.dev',
           label: 'Home',
           position: 'right',
         },
@@ -193,13 +193,13 @@ const config: Config = {
         {
           title: 'More',
           items: [
-            { label: 'Desktop Download', href: 'https://freeide-agent.nousresearch.com/' },
+            { label: 'Desktop Download', href: 'https://freeide-agent.freeide.dev/' },
             { label: 'GitHub', href: 'https://github.com/freeide/freeide' },
-            { label: 'FreeIDE', href: 'https://nousresearch.com' },
+            { label: 'FreeIDE', href: 'https://freeide.dev' },
           ],
         },
       ],
-      copyright: `Built by <a href="https://nousresearch.com">FreeIDE</a> · MIT License · ${new Date().getFullYear()}`,
+      copyright: `Built by <a href="https://freeide.dev">FreeIDE</a> · MIT License · ${new Date().getFullYear()}`,
     },
     prism: {
       theme: prismThemes.github,

@@ -246,7 +246,7 @@ def format_model_for_display(model_name: str) -> str:
 
 # ---------------------------------------------------------------------------
 def is_nous_freeide_non_agentic(model_name: str) -> bool:
-    """Return True if *model_name* is a real Nous FreeIDE 3/4 chat model.
+    """Return True if *model_name* is a real FreeIDE 3/4 chat model.
 
     Used to decide whether to surface the non-agentic warning at startup.
     Callers in :mod:`cli.py` and here should go through this single helper
@@ -258,7 +258,7 @@ def is_nous_freeide_non_agentic(model_name: str) -> bool:
 
 
 def _check_freeide_model_warning(model_name: str) -> str:
-    """Return a warning string if *model_name* is a Nous FreeIDE 3/4 chat model."""
+    """Return a warning string if *model_name* is a FreeIDE 3/4 chat model."""
     if is_nous_freeide_non_agentic(model_name):
         return _FREEIDE_MODEL_WARNING
     return ""
@@ -848,7 +848,7 @@ def resolve_display_context_length(
     but provider-enforced limits can be lower (e.g. Codex OAuth caps the
     same slug at 272k). The authoritative source is
     ``agent.model_metadata.get_model_context_length`` which already knows
-    about Codex OAuth, Copilot, Nous, and falls back to models.dev for the
+    about Codex OAuth, Copilot, FreeIDE, and falls back to models.dev for the
     rest.
 
     When ``custom_providers`` is provided, per-model ``context_length``
@@ -1560,12 +1560,12 @@ def switch_model(
     if target_provider in {"opencode-zen", "opencode-go", "opencode"}:
         api_mode = opencode_model_api_mode(target_provider, new_model)
 
-    # --- Nous Portal dual-wire override ---
+    # --- FreeIDE Portal dual-wire override ---
     # Portal serves anthropic/* on /v1/messages and everything else on
     # /chat/completions. resolve_runtime_provider already sets this when it
     # succeeds; always re-derive from the *final* (post-normalize) model so
     # alias clears / empty fallbacks cannot leave Claude on the OpenAI wire.
-    if target_provider in {"nous", "nous-portal", "nousresearch"}:
+    if target_provider in {"nous", "nous-portal", "freeide"}:
         from freeide_cli.providers import nous_api_mode
 
         api_mode = nous_api_mode(new_model)
@@ -1741,7 +1741,7 @@ def list_authenticated_providers(
       - source: str — "built-in", "models.dev", "user-config"
 
     Only includes providers that have API keys set or are user-defined endpoints.
-    ``force_fresh_nous_tier`` bypasses the short Nous tier cache for explicit
+    ``force_fresh_nous_tier`` bypasses the short FreeIDE tier cache for explicit
     account-sensitive flows. UI picker opens should leave it false so they do
     not block on fresh Portal/account checks every time.
 
@@ -1876,7 +1876,7 @@ def list_authenticated_providers(
     curated: dict[str, list[str]] = dict(_PROVIDER_MODELS)
     curated["openrouter"] = [mid for mid, _ in OPENROUTER_MODELS]
     # "nous" pulls from the remote model-catalog manifest published at
-    # https://freeide-agent.nousresearch.com/docs/api/model-catalog.json so
+    # https://freeide-agent.freeide.dev/docs/api/model-catalog.json so
     # newly added Portal models surface in the /model picker without
     # requiring a FreeIDE release. Falls back to the in-repo
     # _PROVIDER_MODELS["nous"] snapshot when the manifest is unreachable.
@@ -2169,7 +2169,7 @@ def list_authenticated_providers(
             except Exception:
                 model_ids = curated.get(freeide_slug, []) or curated.get(pid, [])
         elif freeide_slug == "nous":
-            # Nous serves a large live /v1/models catalog (vendor-prefixed
+            # FreeIDE serves a large live /v1/models catalog (vendor-prefixed
             # models from many providers, returned alphabetically). The
             # `freeide model` picker deliberately shows ONLY the curated agentic
             # list — augmented with the Portal's free/paid recommendations so

@@ -1962,7 +1962,7 @@ DEFAULT_CONFIG = {
         # class of over-claim that otherwise forces users to run
         # `git status` to verify edits landed.  Set false to suppress.
         "file_mutation_verifier": True,
-        # Nous credits status-bar notices (usage bands, grant-spent, depleted /
+        # FreeIDE credits status-bar notices (usage bands, grant-spent, depleted /
         # restored).  When false, no credits notices are emitted — balance data
         # is still captured and /usage keeps working.  Off switch for sub +
         # top-up users who find the gauge noisy.
@@ -2143,7 +2143,7 @@ DEFAULT_CONFIG = {
         # that the numbers are a local lower-bound estimate, not billing.
         "show_token_analytics": False,
         # OAuth gate configuration (engaged when ``--host`` is set and
-        # ``--insecure`` is not). The bundled Nous Portal plugin reads
+        # ``--insecure`` is not). The bundled FreeIDE Portal plugin reads
         # both keys at startup; they are the canonical surface for these
         # settings. Each can be overridden by an environment variable —
         # ``FREEIDE_DASHBOARD_OAUTH_CLIENT_ID`` and
@@ -2154,7 +2154,7 @@ DEFAULT_CONFIG = {
         # touch config.yaml. Local dev / non-Fly deploys can set either
         # surface; missing values fall through to the plugin's defaults
         # (no provider registered when ``client_id`` is empty;
-        # ``portal_url`` defaults to https://portal.nousresearch.com).
+        # ``portal_url`` defaults to https://portal.freeide.dev).
         "oauth": {
             "client_id": "",  # agent:{instance_id} — Portal provisions this
             "portal_url": "",  # blank → use plugin default (production Portal)
@@ -2419,7 +2419,7 @@ DEFAULT_CONFIG = {
     # Subagent delegation — override the provider:model used by delegate_task
     # so child agents can run on a different (cheaper/faster) provider and model.
     # Uses the same runtime provider resolution as CLI/gateway startup, so all
-    # configured providers (OpenRouter, Nous, Z.ai, Kimi, etc.) are supported.
+    # configured providers (OpenRouter, FreeIDE, Z.ai, Kimi, etc.) are supported.
     "delegation": {
         "model": "",       # e.g. "google/gemini-3-flash-preview" (empty = inherit parent model)
         "provider": "",    # e.g. "openrouter" (empty = inherit parent provider + credentials)
@@ -2918,11 +2918,11 @@ DEFAULT_CONFIG = {
         # provider == "chronos". All non-secret (URLs + the JWT audience): the
         # agent holds NO external-scheduler credentials. For hosted agents, NAS
         # sets these at provision time. The outbound provision call reuses the
-        # agent's existing Nous Portal token — there is no token key here.
+        # agent's existing FreeIDE Portal token — there is no token key here.
         "chronos": {
             # NAS / portal base URL the agent calls to arm/cancel one-shots
             # and that mints the inbound fire JWT (used as the expected issuer).
-            "portal_url": "https://portal.nousresearch.com",
+            "portal_url": "https://portal.freeide.dev",
             # The agent's OWN publicly-reachable base URL for NAS→agent fires
             # (NAS POSTs {callback_url}/api/cron/fire). Empty → Chronos is
             # unavailable and the resolver falls back to the built-in ticker.
@@ -3116,13 +3116,13 @@ DEFAULT_CONFIG = {
     },
 
     # Remotely-hosted model catalog manifest.  When enabled, the CLI fetches
-    # curated model lists for OpenRouter and Nous Portal from this URL,
+    # curated model lists for OpenRouter and FreeIDE Portal from this URL,
     # falling back to the in-repo snapshot on network failure.  Lets us
     # update model picker lists without shipping a freeide-agent release.
     # The default URL is served by the docs site GitHub Pages deploy.
     "model_catalog": {
         "enabled": True,
-        "url": "https://freeide-agent.nousresearch.com/docs/api/model-catalog.json",
+        "url": "https://freeide-agent.freeide.dev/docs/api/model-catalog.json",
         # Disk cache TTL in hours.  Beyond this, the CLI refetches on the
         # next /model or `freeide model` invocation; network failures
         # silently fall back to the stale cache.
@@ -3731,7 +3731,7 @@ DEFAULT_CONFIG = {
         "upstream_deny_cidrs": None,
         # Extra allowed upstream hosts beyond the bundled defaults (which
         # cover OpenRouter, OpenAI, Anthropic, Google, xAI, Mistral, Groq,
-        # Together, DeepSeek, Nous).  Wildcards (`*.foo.com`) are supported.
+        # Together, DeepSeek, FreeIDE).  Wildcards (`*.foo.com`) are supported.
         "extra_allowed_hosts": [],
     },
 
@@ -3809,7 +3809,7 @@ ENV_VARS_BY_VERSION: Dict[int, List[str]] = {
 
 # Required environment variables with metadata for migration prompts.
 # LLM provider is required but handled in the setup wizard's provider
-# selection step (Nous Portal / OpenRouter / Custom endpoint), so this
+# selection step (FreeIDE Portal / OpenRouter / Custom endpoint), so this
 # dict is intentionally empty — no single env var is universally required.
 REQUIRED_ENV_VARS = {}
 
@@ -3817,8 +3817,8 @@ REQUIRED_ENV_VARS = {}
 OPTIONAL_ENV_VARS = {
     # ── Provider (handled in provider selection, not shown in checklists) ──
     "NOUS_BASE_URL": {
-        "description": "Nous Portal base URL override",
-        "prompt": "Nous Portal base URL (leave empty for default)",
+        "description": "FreeIDE Portal base URL override",
+        "prompt": "FreeIDE Portal base URL (leave empty for default)",
         "url": None,
         "password": False,
         "category": "provider",
@@ -4256,7 +4256,7 @@ OPTIONAL_ENV_VARS = {
         "advanced": True,
     },
     "FIRECRAWL_GATEWAY_URL": {
-        "description": "Exact Firecrawl tool-gateway origin override for Nous Subscribers only (optional)",
+        "description": "Exact Firecrawl tool-gateway origin override for FreeIDE Subscribers only (optional)",
         "prompt": "Firecrawl gateway URL (leave empty to derive from domain)",
         "url": None,
         "password": False,
@@ -4264,7 +4264,7 @@ OPTIONAL_ENV_VARS = {
         "advanced": True,
     },
     "TOOL_GATEWAY_DOMAIN": {
-        "description": "Shared tool-gateway domain suffix for Nous Subscribers only, used to derive vendor hosts, e.g. nousresearch.com -> firecrawl-gateway.nousresearch.com",
+        "description": "Shared tool-gateway domain suffix for FreeIDE Subscribers only, used to derive vendor hosts, e.g. freeide.dev -> firecrawl-gateway.freeide.dev",
         "prompt": "Tool-gateway domain suffix",
         "url": None,
         "password": False,
@@ -4272,7 +4272,7 @@ OPTIONAL_ENV_VARS = {
         "advanced": True,
     },
     "TOOL_GATEWAY_SCHEME": {
-        "description": "Shared tool-gateway URL scheme for Nous Subscribers only, used to derive vendor hosts (`https` by default, set `http` for local gateway testing)",
+        "description": "Shared tool-gateway URL scheme for FreeIDE Subscribers only, used to derive vendor hosts (`https` by default, set `http` for local gateway testing)",
         "prompt": "Tool-gateway URL scheme",
         "url": None,
         "password": False,
@@ -4280,7 +4280,7 @@ OPTIONAL_ENV_VARS = {
         "advanced": True,
     },
     "TOOL_GATEWAY_USER_TOKEN": {
-        "description": "Explicit Nous Subscriber access token for tool-gateway requests (optional; otherwise read from the FreeIDE auth store)",
+        "description": "Explicit FreeIDE Subscriber access token for tool-gateway requests (optional; otherwise read from the FreeIDE auth store)",
         "prompt": "Tool-gateway user token",
         "url": None,
         "password": True,
@@ -7828,7 +7828,7 @@ _FALLBACK_COMMENT = """
 # Supported providers:
 #   openrouter   (OPENROUTER_API_KEY)  — routes to any model
 #   openai-codex (OAuth — freeide auth) — OpenAI Codex
-#   nous         (OAuth — freeide auth) — Nous Portal
+#   nous         (OAuth — freeide auth) — FreeIDE Portal
 #   zai          (ZAI_API_KEY)         — Z.AI / GLM
 #   kimi-coding  (KIMI_API_KEY)        — Kimi / Moonshot
 #   kimi-coding-cn (KIMI_CN_API_KEY)   — Kimi / Moonshot (China)
@@ -7860,7 +7860,7 @@ _COMMENTED_SECTIONS = """
 # Supported providers:
 #   openrouter   (OPENROUTER_API_KEY)  — routes to any model
 #   openai-codex (OAuth — freeide auth) — OpenAI Codex
-#   nous         (OAuth — freeide auth) — Nous Portal
+#   nous         (OAuth — freeide auth) — FreeIDE Portal
 #   zai          (ZAI_API_KEY)         — Z.AI / GLM
 #   kimi-coding  (KIMI_API_KEY)        — Kimi / Moonshot
 #   kimi-coding-cn (KIMI_CN_API_KEY)   — Kimi / Moonshot (China)

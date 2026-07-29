@@ -25,7 +25,7 @@ That's it. `coder` is now its own FreeIDE profile with its own config, memory, a
 ## Creating a profile
 
 :::tip
-Quickest setup: run `freeide setup --portal` inside the new profile to wire up models + tools at once. See [Nous Portal](/integrations/nous-portal).
+Quickest setup: run `freeide setup --portal` inside the new profile to wire up models + tools at once. See [FreeIDE Portal](/integrations/nous-portal).
 :::
 
 ### Blank profile

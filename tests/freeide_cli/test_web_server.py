@@ -3592,7 +3592,7 @@ class TestWebServerEndpoints:
         assert "personal WeChat" in weixin["description"]
         assert "Official Account" not in f"{weixin['name']} {weixin['description']}"
         assert weixin["docs_url"] == (
-            "https://freeide-agent.nousresearch.com/docs/user-guide/messaging/weixin/"
+            "https://freeide-agent.freeide.dev/docs/user-guide/messaging/weixin/"
         )
 
         fields = {field["key"]: field for field in weixin["env_vars"]}
@@ -3610,7 +3610,7 @@ class TestWebServerEndpoints:
 
         teams = _build_catalog_entry("teams")
         assert teams["docs_url"] == (
-            "https://freeide-agent.nousresearch.com/docs/user-guide/messaging/teams"
+            "https://freeide-agent.freeide.dev/docs/user-guide/messaging/teams"
         )
 
     def test_google_chat_messaging_metadata_links_setup_guide(self):
@@ -3623,7 +3623,7 @@ class TestWebServerEndpoints:
         google_chat = _build_catalog_entry("google_chat")
         assert google_chat["name"] == "Google Chat"
         assert google_chat["docs_url"] == (
-            "https://freeide-agent.nousresearch.com/docs/user-guide/messaging/google_chat"
+            "https://freeide-agent.freeide.dev/docs/user-guide/messaging/google_chat"
         )
 
     def test_messaging_catalog_covers_gateway_platforms(self):
@@ -6517,7 +6517,7 @@ class TestNewEndpoints:
         import freeide_cli.tools_config as tools_config
         from freeide_cli.nous_account import NousPortalAccountInfo
 
-        # Logged out of Nous Portal → managed subscription rows need sign-in.
+        # Logged out of FreeIDE Portal → managed subscription rows need sign-in.
         monkeypatch.setattr(
             "freeide_cli.nous_subscription.get_nous_portal_account_info",
             lambda *a, **k: NousPortalAccountInfo(
@@ -6643,7 +6643,7 @@ class TestNewEndpoints:
         but skipped the Portal entitlement handshake the CLI runs inline
         (ensure_nous_portal_access) — so the row never activated and nothing
         told the user to sign in. The endpoint now reports the entitlement
-        gap so the client can drive the existing Nous OAuth flow.
+        gap so the client can drive the existing FreeIDE OAuth flow.
         """
         from freeide_cli.nous_account import NousPortalAccountInfo
 

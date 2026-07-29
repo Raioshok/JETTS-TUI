@@ -1,12 +1,12 @@
 ---
 sidebar_position: 1
-title: "Nous Portal"
+title: "FreeIDE Portal"
 description: "One subscription, 300+ frontier models, and the Tool Gateway — the recommended way to run FreeIDE Agent"
 ---
 
-# Nous Portal
+# FreeIDE Portal
 
-[Nous Portal](https://portal.nousresearch.com) is FreeIDE's unified subscription gateway and **the recommended way to run FreeIDE Agent**. One OAuth login replaces the juggling act of separate accounts, API keys, and billing relationships across every model lab, search API, image generator, and browser provider you'd otherwise need to wire up by hand.
+[FreeIDE Portal](https://portal.freeide.dev) is FreeIDE's unified subscription gateway and **the recommended way to run FreeIDE Agent**. One OAuth login replaces the juggling act of separate accounts, API keys, and billing relationships across every model lab, search API, image generator, and browser provider you'd otherwise need to wire up by hand.
 
 If you only have time to set up one thing, set up this. The fastest path:
 
@@ -14,15 +14,15 @@ If you only have time to set up one thing, set up this. The fastest path:
 freeide setup --portal
 ```
 
-That single command runs the Portal OAuth, lets you pick a Nous model, sets Nous as your inference provider in `config.yaml`, and turns on the Tool Gateway. You're ready to `freeide chat` immediately after.
+That single command runs the Portal OAuth, lets you pick a FreeIDE model, sets FreeIDE as your inference provider in `config.yaml`, and turns on the Tool Gateway. You're ready to `freeide chat` immediately after.
 
-Don't have a subscription yet? [portal.nousresearch.com/manage-subscription](https://portal.nousresearch.com/manage-subscription) — sign up, then come back and run the command above.
+Don't have a subscription yet? [portal.freeide.dev/manage-subscription](https://portal.freeide.dev/manage-subscription) — sign up, then come back and run the command above.
 
 ## What's in the subscription
 
 ### 300+ frontier models, one bill
 
-The Portal proxies a curated catalog of agentic models from across the ecosystem — billed against your Nous subscription instead of one credit balance per lab.
+The Portal proxies a curated catalog of agentic models from across the ecosystem — billed against your FreeIDE subscription instead of one credit balance per lab.
 
 | Family | Models |
 |--------|--------|
@@ -42,15 +42,15 @@ The Portal proxies a curated catalog of agentic models from across the ecosystem
 | **FreeIDE** | FreeIDE-4-70B, FreeIDE-4-405B (chat, see [note below](#a-note-on-freeide-4)) |
 | **+ everything else** | 280+ additional models — the full agentic frontier |
 
-Under the hood, the Portal routes each model to the backend best suited for it — some models go through OpenRouter, others through proprietary or secondary providers, and the routing for a given model can change over time. Everything is billed against your Nous subscription either way. Switch between Claude Sonnet 4.6 for code and Gemini 3 Pro for long context with `/model` mid-session — no new credentials, no top-ups, no surprise zero-balance errors.
+Under the hood, the Portal routes each model to the backend best suited for it — some models go through OpenRouter, others through proprietary or secondary providers, and the routing for a given model can change over time. Everything is billed against your FreeIDE subscription either way. Switch between Claude Sonnet 4.6 for code and Gemini 3 Pro for long context with `/model` mid-session — no new credentials, no top-ups, no surprise zero-balance errors.
 
 :::note
 Because routing is per-model and not always through OpenRouter, OpenRouter-specific request extensions (such as `provider` routing preferences, `session_id` sticky routing, or top-level `cache_control`) are not part of the Portal's API contract and may be ignored depending on which backend serves the model.
 :::
 
-### The Nous Tool Gateway
+### The FreeIDE Tool Gateway
 
-The same subscription unlocks the [Tool Gateway](/user-guide/features/tool-gateway), which routes FreeIDE Agent's tool calls through Nous-managed infrastructure. Five backends, one login:
+The same subscription unlocks the [Tool Gateway](/user-guide/features/tool-gateway), which routes FreeIDE Agent's tool calls through FreeIDE-managed infrastructure. Five backends, one login:
 
 | Tool | Partner | What it does |
 |------|---------|--------------|
@@ -85,7 +85,7 @@ They are **not recommended for use inside FreeIDE Agent**, however. FreeIDE 4 is
 /model deepseek/deepseek-v4-pro        # cost-effective coder
 ```
 
-The Portal's own [model info page](https://portal.nousresearch.com/info) carries the same warning, so this isn't a FreeIDE-side opinion — it's the official guidance from FreeIDE.
+The Portal's own [model info page](https://portal.freeide.dev/info) carries the same warning, so this isn't a FreeIDE-side opinion — it's the official guidance from FreeIDE.
 
 ## Setup
 
@@ -97,14 +97,14 @@ freeide setup --portal
 
 This runs the full setup in one shot:
 
-1. Opens your browser to portal.nousresearch.com for OAuth login
+1. Opens your browser to portal.freeide.dev for OAuth login
 2. Stores the refresh token at `~/.freeide/auth.json`
-3. Lets you pick a Nous model from the curated list (or skip to keep your current one)
-4. Sets Nous as your inference provider in `~/.freeide/config.yaml` (when you pick a model)
+3. Lets you pick a FreeIDE model from the curated list (or skip to keep your current one)
+4. Sets FreeIDE as your inference provider in `~/.freeide/config.yaml` (when you pick a model)
 5. Turns on the Tool Gateway (web, image, TTS, browser routing)
 6. Returns you to your terminal ready to `freeide chat`
 
-If you don't have a subscription yet, sign up at [portal.nousresearch.com/manage-subscription](https://portal.nousresearch.com/manage-subscription) first.
+If you don't have a subscription yet, sign up at [portal.freeide.dev/manage-subscription](https://portal.freeide.dev/manage-subscription) first.
 
 ### Existing install — add Portal alongside other providers
 
@@ -112,7 +112,7 @@ If you already have FreeIDE configured with OpenRouter, Anthropic, or any other 
 
 ```bash
 freeide model
-# pick "Nous Portal" from the provider list
+# pick "FreeIDE Portal" from the provider list
 # browser opens, sign in, done
 ```
 
@@ -131,30 +131,30 @@ If you use [FreeIDE profiles](/user-guide/profiles), the Portal refresh token is
 ### Inspecting what's wired up
 
 ```bash
-freeide portal            # log in to Nous Portal + set it up (one-shot onboarding)
+freeide portal            # log in to FreeIDE Portal + set it up (one-shot onboarding)
 freeide portal info       # login status, subscription info, model + gateway routing
 freeide portal status     # alias for `portal info`
 freeide portal tools      # detailed Tool Gateway catalog with per-tool routing
 freeide portal open       # open the subscription management page in your browser
 ```
 
-`freeide portal` (with no subcommand) is the human-readable alias for `freeide auth add nous --type oauth` — it logs you in, lets you pick a Nous model, sets Nous as your inference provider, and offers the Tool Gateway opt-in (identical to `freeide setup --portal`, and the same Nous flow as the first-time quick setup).
+`freeide portal` (with no subcommand) is the human-readable alias for `freeide auth add nous --type oauth` — it logs you in, lets you pick a FreeIDE model, sets FreeIDE as your inference provider, and offers the Tool Gateway opt-in (identical to `freeide setup --portal`, and the same FreeIDE flow as the first-time quick setup).
 
 `freeide portal info` gives you the high-level overview:
 
 ```
-  Nous Portal
+  FreeIDE Portal
   ───────────
   Auth:    ✓ logged in
-  Portal:  https://portal.nousresearch.com
-  Model:   ✓ using Nous as inference provider
+  Portal:  https://portal.freeide.dev
+  Model:   ✓ using FreeIDE as inference provider
 
   Tool Gateway
   ────────────
-  Web search & extract  via Nous Portal
-  Image generation      via Nous Portal
-  Text-to-speech        via Nous Portal
-  Browser automation    via Nous Portal
+  Web search & extract  via FreeIDE Portal
+  Image generation      via FreeIDE Portal
+  Text-to-speech        via FreeIDE Portal
+  Browser automation    via FreeIDE Portal
   Cloud terminal        not configured
 ```
 
@@ -183,23 +183,23 @@ freeide model
 
 ### Mixing the gateway with your own backends
 
-If you already have, say, a Browserbase account and want to keep using it while routing web search and image generation through Nous, that's supported. Use `freeide tools` to pick backends per tool:
+If you already have, say, a Browserbase account and want to keep using it while routing web search and image generation through FreeIDE, that's supported. Use `freeide tools` to pick backends per tool:
 
 ```bash
 freeide tools
-# → Web search       → "Nous Subscription"
-# → Image generation → "Nous Subscription"
+# → Web search       → "FreeIDE Subscription"
+# → Image generation → "FreeIDE Subscription"
 # → Browser          → "Browserbase"  (your existing key)
-# → TTS              → "Nous Subscription"
+# → TTS              → "FreeIDE Subscription"
 ```
 
-The Tool Gateway is opt-in per tool, not all-or-nothing. The managed backends show up in `freeide tools` whether or not you're logged into Nous Portal — if you pick "Nous Subscription" before authenticating, FreeIDE runs the Portal login inline (it won't change your inference provider or touch your other tools). See the [Tool Gateway docs](/user-guide/features/tool-gateway) for the full per-tool configuration matrix.
+The Tool Gateway is opt-in per tool, not all-or-nothing. The managed backends show up in `freeide tools` whether or not you're logged into FreeIDE Portal — if you pick "FreeIDE Subscription" before authenticating, FreeIDE runs the Portal login inline (it won't change your inference provider or touch your other tools). See the [Tool Gateway docs](/user-guide/features/tool-gateway) for the full per-tool configuration matrix.
 
 ### Subscription management
 
 Manage your plan, view usage, or upgrade/cancel at any time:
 
-- **Web:** [portal.nousresearch.com/manage-subscription](https://portal.nousresearch.com/manage-subscription)
+- **Web:** [portal.freeide.dev/manage-subscription](https://portal.freeide.dev/manage-subscription)
 - **CLI shortcut:** `freeide portal open` (opens the same page in your default browser)
 
 ## Configuration reference
@@ -210,7 +210,7 @@ After `freeide setup --portal`, `~/.freeide/config.yaml` will look like:
 model:
   provider: nous
   default: anthropic/claude-sonnet-4.6     # or whatever model you picked
-  base_url: https://inference-api.nousresearch.com/v1
+  base_url: https://inference-api.freeide.dev/v1
 ```
 
 The Tool Gateway settings live under their respective tool sections:
@@ -247,7 +247,7 @@ You haven't completed the OAuth flow, or your refresh token was wiped. Run:
 freeide portal
 ```
 
-or use `freeide model` and re-select Nous Portal.
+or use `freeide model` and re-select FreeIDE Portal.
 
 ### Got a "re-authentication required" message mid-session
 
@@ -265,7 +265,7 @@ If a model is genuinely missing, [open an issue](https://github.com/freeide/free
 
 ### Bills not appearing on my Portal account
 
-Check `freeide portal info` first — if it shows you're using a different provider (`Model: currently openrouter` instead of `using Nous as inference provider`), your local config has drifted. Run `freeide model`, pick Nous Portal, and the next request will route through your subscription.
+Check `freeide portal info` first — if it shows you're using a different provider (`Model: currently openrouter` instead of `using FreeIDE as inference provider`), your local config has drifted. Run `freeide model`, pick FreeIDE Portal, and the next request will route through your subscription.
 
 ## See also
 

@@ -1,4 +1,4 @@
-"""Nous Portal provider profile."""
+"""FreeIDE Portal provider profile."""
 
 from typing import Any
 
@@ -8,7 +8,7 @@ from providers.base import ProviderProfile
 
 
 class NousProfile(ProviderProfile):
-    """Nous Portal — product tags, reasoning with Nous-specific omission."""
+    """FreeIDE Portal — product tags, reasoning with FreeIDE-specific omission."""
 
     def build_extra_body(
         self, *, session_id: str | None = None, **context
@@ -55,13 +55,13 @@ class NousProfile(ProviderProfile):
         supports_reasoning: bool = False,
         **context,
     ) -> tuple[dict[str, Any], dict[str, Any]]:
-        """Nous: passes full reasoning_config, but OMITS when disabled."""
+        """FreeIDE: passes full reasoning_config, but OMITS when disabled."""
         extra_body = {}
         if supports_reasoning:
             if reasoning_config is not None:
                 rc = dict(reasoning_config)
                 if rc.get("enabled") is False:
-                    pass  # Nous omits reasoning when disabled
+                    pass  # FreeIDE omits reasoning when disabled
                 else:
                     extra_body["reasoning"] = rc
             else:
@@ -71,16 +71,16 @@ class NousProfile(ProviderProfile):
 
 nous = NousProfile(
     name="nous",
-    aliases=("nous-portal", "nousresearch"),
+    aliases=("nous-portal", "freeide"),
     env_vars=("NOUS_API_KEY",),
     display_name="FreeIDE",
     description="FreeIDE — FreeIDE model family",
-    signup_url="https://nousresearch.com/",
+    signup_url="https://freeide.dev/",
     fallback_models=(
         "freeide-3-405b",
         "freeide-3-70b",
     ),
-    base_url="https://inference-api.nousresearch.com/v1",
+    base_url="https://inference-api.freeide.dev/v1",
     auth_type="oauth_device_code",
 )
 

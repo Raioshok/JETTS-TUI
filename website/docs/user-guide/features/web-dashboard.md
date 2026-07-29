@@ -9,7 +9,7 @@ description: "Browser-based administration panel for managing configuration, API
 The web dashboard is a browser-based UI for managing your FreeIDE Agent installation. Instead of editing YAML files or running CLI commands, you can configure settings, manage API keys, and monitor sessions from a clean web interface.
 
 :::tip
-Hosted-mode auth uses Nous Portal OAuth; if you also want the dashboard to talk to a real backend, `freeide setup --portal` wires up the model and tool gateway too. See [Nous Portal](/integrations/nous-portal).
+Hosted-mode auth uses FreeIDE Portal OAuth; if you also want the dashboard to talk to a real backend, `freeide setup --portal` wires up the model and tool gateway too. See [FreeIDE Portal](/integrations/nous-portal).
 :::
 
 ## Quick Start
@@ -310,7 +310,7 @@ block in `config.yaml` that `freeide mcp` reads from.
 - **Remove** — delete a server from the config
 - Secret-shaped env values are redacted in the list view
 
-**Catalog:** browse the Nous-approved MCP servers (the bundled `optional-mcps/`
+**Catalog:** browse the FreeIDE-approved MCP servers (the bundled `optional-mcps/`
 catalog) and install any of them with one click. Entries that need API keys
 prompt for them inline; the values go to `.env`. This is the same catalog
 `freeide mcp catalog` / `freeide mcp install` use.
@@ -362,7 +362,7 @@ the API server and webhook endpoints) with its live connection status.
 A consolidated administration panel for installation-wide operations:
 
 - **Host** — live system stats: OS / kernel, architecture, hostname, Python and FreeIDE versions, CPU core count + utilization, memory, disk usage of the FreeIDE home, uptime, and load average. (CPU/memory/disk come from `psutil` when installed; identity fields are always shown.) The FreeIDE version shows an **update-status badge** (up to date / N commits behind) and a **Check for updates** button. When an update is available on a git install, an **Update now** button opens a confirmation dialog — showing how many commits you'll pull — before running `freeide update` in the background. On Docker/Nix installs the dashboard can't apply the update in place, so it shows the correct out-of-band command instead.
-- **Nous Portal** — login status, the active inference provider, and the Tool Gateway routing table (which tools run via the Portal vs. locally), with a link to manage your subscription. Read-only mirror of `freeide portal`.
+- **FreeIDE Portal** — login status, the active inference provider, and the Tool Gateway routing table (which tools run via the Portal vs. locally), with a link to manage your subscription. Read-only mirror of `freeide portal`.
 - **Skill curator** — the background skill-maintenance status (active / paused, interval, last run) with pause/resume and a run-now button. Mirrors `freeide curator`.
 - **Gateway** — start, stop, and restart the messaging gateway, with live status (running/stopped, PID, state)
 - **Memory** — pick the external memory provider (or built-in only), and reset the built-in `MEMORY.md` / `USER.md` stores
@@ -371,7 +371,7 @@ A consolidated administration panel for installation-wide operations:
 - **Checkpoints** — see the `/rollback` shadow store size and prune it
 - **Shell hooks** — list configured hooks with their consent + executable status, **create** a hook (event, command, matcher, timeout, with an opt-in consent grant), and remove one. Hooks run arbitrary commands, so the create form carries a security warning and the hook only fires after consent is granted.
 
-![System admin page — host stats and Nous Portal status](/img/dashboard/admin-system-top.png)
+![System admin page — host stats and FreeIDE Portal status](/img/dashboard/admin-system-top.png)
 
 ![System admin page — skill curator, gateway, memory, and credential pool](/img/dashboard/admin-system-curator.png)
 
@@ -518,7 +518,7 @@ same auth gate as the rest of `/api/`.
 | `POST /api/mcp/servers/{name}/test` | Connect, list tools, disconnect |
 | `PUT /api/mcp/servers/{name}/enabled` | Enable / disable a server |
 | `DELETE /api/mcp/servers/{name}` | Remove a server |
-| `GET /api/mcp/catalog` | Browse the Nous-approved MCP catalog |
+| `GET /api/mcp/catalog` | Browse the FreeIDE-approved MCP catalog |
 | `POST /api/mcp/catalog/install` | Install a catalog entry (with required env) |
 | `GET /api/messaging/platforms` | List every messaging channel with status + per-platform setup fields |
 | `PUT /api/messaging/platforms/{id}` | Configure a channel. Body: `{enabled?, env?, clear_env?}` (env writes to `.env`, enabled to `config.yaml`) |
@@ -544,7 +544,7 @@ same auth gate as the rest of `/api/`.
 | `GET /api/system/stats` | Host stats — OS, CPU, memory, disk, uptime |
 | `GET /api/freeide/update/check` | Report update availability (commits behind, install method) without applying. For git installs that are behind, also returns a `commits` list (`sha`, `summary`, `author`, `at`) of what's changed. `?force=1` busts the 6h cache |
 | `GET /api/curator` · `PUT .../paused` · `POST .../run` | Skill-curator status + pause/resume + run |
-| `GET /api/portal` | Nous Portal auth + Tool Gateway routing (read-only) |
+| `GET /api/portal` | FreeIDE Portal auth + Tool Gateway routing (read-only) |
 | `POST /api/ops/prompt-size` · `/dump` · `/config-migrate` | Diagnostics (backgrounded) |
 | `PUT /api/webhooks/{name}/enabled` | Enable / disable a webhook route |
 | `POST /api/skills/hub/install` · `/uninstall` · `/update` | Skills hub actions (backgrounded) |
@@ -560,8 +560,8 @@ same auth gate as the rest of `/api/`.
 When the dashboard is bound to a public or non-loopback address — anything other than `127.0.0.1` / `localhost` — FreeIDE Agent engages an auth gate. Every request must carry a verified session cookie or it's bounced to the login page. Three providers ship in the box:
 
 - **[Username/password](#usernamepassword-provider-no-oauth-idp)** — the simplest way to put auth on a self-hosted / on-prem / homelab dashboard. No external identity provider. **Use it only on a trusted network or behind a VPN — not for public-internet exposure.**
-- **[OAuth (Nous Portal)](#default-provider-nous-research)** — for hosted deployments and any dashboard reachable over the public internet, and the recommended path for a [remote FreeIDE Desktop connection](#connecting-freeide-desktop-to-a-remote-backend). Every login is verified against your Nous account, so this is the provider suitable for internet-facing use.
-- **[Self-hosted OIDC](#self-hosted-oidc-provider)** — for bringing your own identity provider via standard OpenID Connect (Keycloak, Auth0, Okta, Google, GitHub via an OIDC bridge, etc.). No Nous Portal involved; suitable for public-internet exposure when fronted by a conformant OIDC server.
+- **[OAuth (FreeIDE Portal)](#default-provider-freeide)** — for hosted deployments and any dashboard reachable over the public internet, and the recommended path for a [remote FreeIDE Desktop connection](#connecting-freeide-desktop-to-a-remote-backend). Every login is verified against your FreeIDE account, so this is the provider suitable for internet-facing use.
+- **[Self-hosted OIDC](#self-hosted-oidc-provider)** — for bringing your own identity provider via standard OpenID Connect (Keycloak, Auth0, Okta, Google, GitHub via an OIDC bridge, etc.). No FreeIDE Portal involved; suitable for public-internet exposure when fronted by a conformant OIDC server.
 
 Operator-owned dashboards bound to loopback are unaffected — no auth, no login page.
 
@@ -583,7 +583,7 @@ The gate is on if and only if:
 
 ### Fail-closed semantics
 
-If the gate would engage but **no** `DashboardAuthProvider` is registered (no Nous plugin, no custom plugin), `freeide dashboard` refuses to bind with an explicit error message. There is no "default-deny but accept everything" fallback — a misconfigured gated dashboard never starts.
+If the gate would engage but **no** `DashboardAuthProvider` is registered (no FreeIDE plugin, no custom plugin), `freeide dashboard` refuses to bind with an explicit error message. There is no "default-deny but accept everything" fallback — a misconfigured gated dashboard never starts.
 
 When you run `freeide dashboard --host 0.0.0.0` **interactively** (a real terminal) and no provider is configured yet, FreeIDE doesn't just fail — it offers to set one up on the spot: pick **username & password** (writes `dashboard.basic_auth` to `config.yaml` and you're running in seconds) or **OAuth** (points you at `freeide dashboard register`). Non-interactive callers — Docker/s6, CI, piped runs — skip the prompt and hit the fail-closed error above, so an unattended deploy still never starts without auth.
 
@@ -591,13 +591,13 @@ When you run `freeide dashboard --host 0.0.0.0` **interactively** (a real termin
 
 The bundled `plugins/dashboard_auth/nous` plugin is **always installed** and auto-loaded. It auto-registers a `DashboardAuthProvider` named `nous` when a client ID is configured.
 
-Because every login is verified against Nous Portal and protected by your Nous account, **the Nous provider is the one suitable for exposing a dashboard to the public internet.**
+Because every login is verified against FreeIDE Portal and protected by your FreeIDE account, **the FreeIDE provider is the one suitable for exposing a dashboard to the public internet.**
 
 #### Registering a dashboard
 
-To use the Nous provider you need an OAuth client ID (shape `agent:{id}`). There are two ways to get one:
+To use the FreeIDE provider you need an OAuth client ID (shape `agent:{id}`). There are two ways to get one:
 
-- **CLI — `freeide dashboard register`.** Run it on the host where the dashboard lives. It resolves your existing Nous login (run `freeide setup` first if you're not logged in), registers a self-hosted OAuth client with the Portal, and writes `FREEIDE_DASHBOARD_OAUTH_CLIENT_ID` into `~/.freeide/.env` for you. Optional flags: `--name` (a human-readable label, otherwise auto-generated) and `--redirect-uri` (a public HTTPS callback URL for an internet-facing host).
+- **CLI — `freeide dashboard register`.** Run it on the host where the dashboard lives. It resolves your existing FreeIDE login (run `freeide setup` first if you're not logged in), registers a self-hosted OAuth client with the Portal, and writes `FREEIDE_DASHBOARD_OAUTH_CLIENT_ID` into `~/.freeide/.env` for you. Optional flags: `--name` (a human-readable label, otherwise auto-generated) and `--redirect-uri` (a public HTTPS callback URL for an internet-facing host).
 
   ```bash
   freeide dashboard register
@@ -605,7 +605,7 @@ To use the Nous provider you need an OAuth client ID (shape `agent:{id}`). There
   # …writes FREEIDE_DASHBOARD_OAUTH_CLIENT_ID to ~/.freeide/.env
   ```
 
-- **GUI — the Local Dashboards page.** Open [`/local-dashboards`](https://portal.nousresearch.com/local-dashboards) in the Nous Portal to register, name, manage, and revoke self-hosted dashboards from the browser. Copy the resulting `agent:{id}` client ID into `FREEIDE_DASHBOARD_OAUTH_CLIENT_ID` (env) or `dashboard.oauth.client_id` (config.yaml). This is also where you revoke a dashboard registered via the CLI.
+- **GUI — the Local Dashboards page.** Open [`/local-dashboards`](https://portal.freeide.dev/local-dashboards) in the FreeIDE Portal to register, name, manage, and revoke self-hosted dashboards from the browser. Copy the resulting `agent:{id}` client ID into `FREEIDE_DASHBOARD_OAUTH_CLIENT_ID` (env) or `dashboard.oauth.client_id` (config.yaml). This is also where you revoke a dashboard registered via the CLI.
 
 #### Configuration
 
@@ -637,7 +637,7 @@ non-loopback binds, but no auth providers are registered.
 
 Bundled providers reported these issues:
   • nous: FREEIDE_DASHBOARD_OAUTH_CLIENT_ID is not set (and
-    dashboard.oauth.client_id in config.yaml is empty). The Nous Portal
+    dashboard.oauth.client_id in config.yaml is empty). The FreeIDE Portal
     provisions this env var (shape 'agent:{instance_id}') when it
     deploys a FreeIDE Agent instance — set it to your provisioned
     client id (either as an env var or under dashboard.oauth.client_id
@@ -649,12 +649,12 @@ networks).
 
 #### Worked example: FreeIDE
 
-From a logged-in FreeIDE install to a Nous-gated dashboard in three steps.
+From a logged-in FreeIDE install to a FreeIDE-gated dashboard in three steps.
 
-**1. Log in and register the dashboard.** `freeide dashboard register` uses your existing Nous login to provision an OAuth client and writes `FREEIDE_DASHBOARD_OAUTH_CLIENT_ID` into `~/.freeide/.env` for you:
+**1. Log in and register the dashboard.** `freeide dashboard register` uses your existing FreeIDE login to provision an OAuth client and writes `FREEIDE_DASHBOARD_OAUTH_CLIENT_ID` into `~/.freeide/.env` for you:
 
 ```bash
-freeide setup            # if you're not already logged into Nous Portal
+freeide setup            # if you're not already logged into FreeIDE Portal
 freeide dashboard register
 # ✓ Registered dashboard "swift_falcon"
 # …writes FREEIDE_DASHBOARD_OAUTH_CLIENT_ID to ~/.freeide/.env
@@ -683,12 +683,12 @@ If you don't want to wire up an OAuth identity provider — a self-hosted "just 
 It plugs into the same gate as the OAuth provider: the gate engages on a non-loopback bind without `--insecure`, the login page renders a credential form for this provider (instead of a "Log in with X" button), and everything downstream of login — session cookies, transparent refresh, WS tickets, logout, the audit log — is identical to the OAuth path. Sessions are stateless HMAC-signed tokens the provider mints itself, so there's **no database and no external IDP**. Password hashing uses stdlib `scrypt` (no third-party dependency).
 
 :::warning Use this on trusted networks only — not the public internet
-The username/password provider is intended for self-hosted / on-prem / homelab dashboards on a **trusted network**, or reachable only over a **VPN**. It protects a single shared credential with no external identity provider, MFA, or per-user accounts behind it, so it is **not suitable for exposing a dashboard directly to the public internet**. For an internet-facing dashboard, use the [FreeIDE provider](#default-provider-nous-research) (or your own [self-hosted OIDC](#self-hosted-oidc-provider) / [custom OAuth](#custom-providers) provider) instead.
+The username/password provider is intended for self-hosted / on-prem / homelab dashboards on a **trusted network**, or reachable only over a **VPN**. It protects a single shared credential with no external identity provider, MFA, or per-user accounts behind it, so it is **not suitable for exposing a dashboard directly to the public internet**. For an internet-facing dashboard, use the [FreeIDE provider](#default-provider-freeide) (or your own [self-hosted OIDC](#self-hosted-oidc-provider) / [custom OAuth](#custom-providers) provider) instead.
 :::
 
 #### Configuration
 
-Like the Nous provider, it reads from `config.yaml` (canonical) with environment variables winning when set non-empty. It activates only when `username` plus either `password_hash` (preferred) or `password` are configured — otherwise it's a no-op, so OAuth users and loopback/`--insecure` operators are unaffected.
+Like the FreeIDE provider, it reads from `config.yaml` (canonical) with environment variables winning when set non-empty. It activates only when `username` plus either `password_hash` (preferred) or `password` are configured — otherwise it's a no-op, so OAuth users and loopback/`--insecure` operators are unaffected.
 
 **`config.yaml`:**
 
@@ -753,7 +753,7 @@ curl -s http://<host>:9119/api/status | jq '.auth_required, .auth_providers'
 # ["basic"]
 ```
 
-`GET /api/auth/me` then returns the verified session (`provider: basic`). Keep this behind a VPN — see the warning above; for a public host use the [FreeIDE](#default-provider-nous-research) or [self-hosted OIDC](#self-hosted-oidc-provider) provider instead.
+`GET /api/auth/me` then returns the verified session (`provider: basic`). Keep this behind a VPN — see the warning above; for a public host use the [FreeIDE](#default-provider-freeide) or [self-hosted OIDC](#self-hosted-oidc-provider) provider instead.
 
 #### Writing your own password provider
 
@@ -761,11 +761,11 @@ curl -s http://<host>:9119/api/status | jq '.auth_required, .auth_providers'
 
 ### Self-hosted OIDC provider
 
-If you run your own identity provider, the bundled `plugins/dashboard_auth/self_hosted` plugin authenticates the dashboard against it using **standard OpenID Connect** — no per-IDP code, no Nous Portal involved. It's verified against and works with any conformant OIDC server:
+If you run your own identity provider, the bundled `plugins/dashboard_auth/self_hosted` plugin authenticates the dashboard against it using **standard OpenID Connect** — no per-IDP code, no FreeIDE Portal involved. It's verified against and works with any conformant OIDC server:
 
 > **Authentik · Keycloak · Zitadel · Authelia · Auth0 · Okta · Google · …**
 
-Like the Nous provider, it auto-loads and only registers itself once it's configured, so it's a no-op for loopback / `--insecure` dashboards.
+Like the FreeIDE provider, it auto-loads and only registers itself once it's configured, so it's a no-op for loopback / `--insecure` dashboards.
 
 #### Configuration
 
@@ -912,11 +912,11 @@ Validation rejects values without `http://` / `https://` scheme, without a host,
 
 ### OAuth flow
 
-The provider implements the [Nous Portal OAuth contract v1](https://github.com/freeide/nous-account-service/blob/main/docs/agent-dashboard-oauth-contract.md) — authorization-code grant with PKCE (S256):
+The provider implements the [FreeIDE Portal OAuth contract v1](https://github.com/freeide/nous-account-service/blob/main/docs/agent-dashboard-oauth-contract.md) — authorization-code grant with PKCE (S256):
 
 1. User hits `/` without a session cookie → gate redirects to `/login`.
 2. Login page shows a "Continue with FreeIDE" button → `/auth/login?provider=nous`.
-3. Server stashes PKCE state in a short-lived cookie, redirects user to `https://portal.nousresearch.com/oauth/authorize?…`.
+3. Server stashes PKCE state in a short-lived cookie, redirects user to `https://portal.freeide.dev/oauth/authorize?…`.
 4. User authenticates with Portal, lands at `/auth/callback?code=…&state=…`.
 5. Server exchanges the code for an access token at `POST /api/oauth/token`, verifies the JWT signature against the Portal's JWKS (`/.well-known/jwks.json`), and sets the `freeide_session_at` cookie.
 6. User is redirected to `/` (or to the original deep-link path via the `next=` query parameter).
@@ -943,7 +943,7 @@ Every login start, success, failure, and session-verify failure is written as a 
 
 ### Custom providers
 
-To plug a non-Nous OAuth provider (e.g. Google, GitHub, custom OIDC), create a plugin that registers a `DashboardAuthProvider`:
+To plug a non-FreeIDE OAuth provider (e.g. Google, GitHub, custom OIDC), create a plugin that registers a `DashboardAuthProvider`:
 
 ```python
 # ~/.freeide/plugins/dashboard-auth-myidp/__init__.py
@@ -1001,9 +1001,9 @@ The dashboard's React StatusPage shows the same fields under "Web server". A sid
 
 FreeIDE Desktop can drive a FreeIDE backend running on another machine (a VPS, a home server, a Mini behind Tailscale). In the app this lives under **Settings → Gateway → Remote gateway**, which asks for a **Remote URL** and a way to **Sign in**. (For the desktop app itself — install, settings, chat — see the [FreeIDE Desktop](/user-guide/desktop) page.)
 
-You protect the remote dashboard with one of the bundled auth providers, and the desktop app signs in against whichever one the backend advertises. For a backend reachable beyond your own machine — a VPS, a public host, anything internet-facing — the recommended provider is **OAuth (Nous Portal)** (register it with [`freeide dashboard register`](#registering-a-dashboard) and sign in with *Sign in with FreeIDE*). The bundled [username/password provider](#usernamepassword-provider-no-oauth-idp) is the quickest option when the backend is on a trusted LAN or reachable only over a VPN, but is **not suitable for direct public-internet exposure**. Binding the dashboard to a non-loopback address engages its auth gate; once signed in, Desktop reuses the session for the chat WebSocket automatically — there is no token to copy or paste.
+You protect the remote dashboard with one of the bundled auth providers, and the desktop app signs in against whichever one the backend advertises. For a backend reachable beyond your own machine — a VPS, a public host, anything internet-facing — the recommended provider is **OAuth (FreeIDE Portal)** (register it with [`freeide dashboard register`](#registering-a-dashboard) and sign in with *Sign in with FreeIDE*). The bundled [username/password provider](#usernamepassword-provider-no-oauth-idp) is the quickest option when the backend is on a trusted LAN or reachable only over a VPN, but is **not suitable for direct public-internet exposure**. Binding the dashboard to a non-loopback address engages its auth gate; once signed in, Desktop reuses the session for the chat WebSocket automatically — there is no token to copy or paste.
 
-The recipe below uses the username/password path because it's the quickest to stand up on a trusted network; for the OAuth path see [Default provider: FreeIDE](#default-provider-nous-research).
+The recipe below uses the username/password path because it's the quickest to stand up on a trusted network; for the OAuth path see [Default provider: FreeIDE](#default-provider-freeide).
 
 ### On the backend (the remote machine)
 
@@ -1027,7 +1027,7 @@ Prefer no plaintext at rest? Use `FREEIDE_DASHBOARD_BASIC_AUTH_PASSWORD_HASH` wi
 If you run the dashboard as a systemd service, `~/.freeide/.env` is picked up automatically when the unit has `EnvironmentFile=%h/.freeide/.env`, so the credentials are in the environment at boot.
 
 :::warning
-The dashboard reads and writes your `.env` (API keys, secrets) and can run agent commands. The **username/password** setup shown here is for a trusted network — never expose a password-protected dashboard directly to the open internet. Put it behind a VPN. [Tailscale](https://tailscale.com/) is the clean option: bind to the machine's tailscale IP (`--host <tailscale-ip>`) and use `http://<tailscale-ip>:9119` as the Remote URL. Only devices on your tailnet can reach it. To reach a backend over the public internet, use the **OAuth (Nous Portal)** provider instead.
+The dashboard reads and writes your `.env` (API keys, secrets) and can run agent commands. The **username/password** setup shown here is for a trusted network — never expose a password-protected dashboard directly to the open internet. Put it behind a VPN. [Tailscale](https://tailscale.com/) is the clean option: bind to the machine's tailscale IP (`--host <tailscale-ip>`) and use `http://<tailscale-ip>:9119` as the Remote URL. Only devices on your tailnet can reach it. To reach a backend over the public internet, use the **OAuth (FreeIDE Portal)** provider instead.
 :::
 
 ### In FreeIDE Desktop
@@ -1102,7 +1102,7 @@ Built-in themes:
 |-------|-----------|
 | **FreeIDE Teal** (`default`) | Dark teal + cream, system fonts, comfortable spacing |
 | **FreeIDE Teal (Large)** (`default-large`) | Same as default with 18px text and roomier spacing |
-| **Nous Blue** (`nous-blue`) | Nous-branded blue accents with airy spacing |
+| **FreeIDE Blue** (`nous-blue`) | FreeIDE-branded blue accents with airy spacing |
 | **Midnight** (`midnight`) | Deep blue-violet, Inter + JetBrains Mono |
 | **Ember** (`ember`) | Warm crimson + bronze, Spectral serif + IBM Plex Mono |
 | **Mono** (`mono`) | Grayscale, IBM Plex, compact |

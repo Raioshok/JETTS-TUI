@@ -373,7 +373,7 @@ freeide config set stt.use_gateway true
 freeide gateway restart
 ```
 
-This uses your Nous Portal access token instead of needing a separate OpenAI key.
+This uses your FreeIDE Portal access token instead of needing a separate OpenAI key.
 
 ---
 

@@ -15,7 +15,7 @@
 
 [Unit]
 Description=FreeIDE Kanban dispatcher (DEPRECATED standalone daemon — prefer gateway-embedded dispatch)
-Documentation=https://freeide-agent.nousresearch.com/docs/user-guide/features/kanban
+Documentation=https://freeide-agent.freeide.dev/docs/user-guide/features/kanban
 After=network.target
 
 [Service]

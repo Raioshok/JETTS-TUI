@@ -127,7 +127,7 @@ A nightly backlog triage on Sonnet costs roughly $0.02-0.05. A monitoring check 
 FreeIDE Agent is open source and free. The automation infrastructure — cron scheduler, webhook platform, skill system, multi-platform delivery — is built in.
 
 ```bash
-curl -fsSL https://freeide-agent.nousresearch.com/install.sh | bash
+curl -fsSL https://freeide-agent.freeide.dev/install.sh | bash
 freeide setup
 ```
 
@@ -149,12 +149,12 @@ freeide webhook subscribe pr-review \
   --deliver github_comment
 ```
 
-Full automation blueprints gallery: [freeide-agent.nousresearch.com/docs/reference/automation-blueprints-catalog](https://freeide-agent.nousresearch.com/docs/reference/automation-blueprints-catalog)
+Full automation blueprints gallery: [freeide-agent.freeide.dev/docs/reference/automation-blueprints-catalog](https://freeide-agent.freeide.dev/docs/reference/automation-blueprints-catalog)
 
-Documentation: [freeide-agent.nousresearch.com](https://freeide-agent.nousresearch.com)
+Documentation: [freeide-agent.freeide.dev](https://freeide-agent.freeide.dev)
 
 GitHub: [github.com/freeide/freeide](https://github.com/freeide/freeide)
 
 ---
 
-*FreeIDE Agent is built by [FreeIDE](https://nousresearch.com). Open source, model-agnostic, runs on your infrastructure.*
+*FreeIDE Agent is built by [FreeIDE](https://freeide.dev). Open source, model-agnostic, runs on your infrastructure.*

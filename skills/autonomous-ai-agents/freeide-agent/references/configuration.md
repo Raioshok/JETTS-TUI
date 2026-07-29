@@ -1,7 +1,7 @@
 # Configuration, Toolsets & Voice
 
 Edit with `freeide config edit` or `freeide config set section.key value`.
-Full reference: https://freeide-agent.nousresearch.com/docs/user-guide/configuration
+Full reference: https://freeide-agent.freeide.dev/docs/user-guide/configuration
 
 ### Config Sections (most-used keys)
 

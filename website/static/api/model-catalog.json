@@ -3,7 +3,7 @@
   "updated_at": "2026-07-24T19:06:06Z",
   "metadata": {
     "source": "freeide-agent repo",
-    "docs": "https://freeide-agent.nousresearch.com/docs/reference/model-catalog"
+    "docs": "https://freeide-agent.freeide.dev/docs/reference/model-catalog"
   },
   "providers": {
     "openrouter": {
@@ -181,7 +181,7 @@
     },
     "nous": {
       "metadata": {
-        "display_name": "Nous Portal",
+        "display_name": "FreeIDE Portal",
         "note": "Free-tier gating is determined live via Portal pricing (partition_nous_models_by_tier), not this manifest. The entry labeled \"default\": true is the model FreeIDE silently lands on when the user never picked one."
       },
       "models": [

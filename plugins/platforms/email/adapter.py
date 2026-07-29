@@ -141,7 +141,7 @@ def _send_imap_id(imap: "imaplib.IMAP4") -> None:
             "ID",
             f'("name" "freeide-agent" "version" "{_freeide_version}" '
             '"vendor" "freeide" '
-            '"support-email" "noreply@nousresearch.com")',
+            '"support-email" "noreply@freeide.dev")',
         )
     except Exception as e:  # noqa: BLE001 — best-effort, never fatal
         logger.debug("[Email] IMAP ID command not accepted: %s", e)

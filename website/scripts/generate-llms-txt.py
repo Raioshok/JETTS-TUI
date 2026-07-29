@@ -9,8 +9,8 @@ Outputs:
                                     comments separating files.
 
 Both publish at:
-  https://freeide-agent.nousresearch.com/docs/llms.txt
-  https://freeide-agent.nousresearch.com/docs/llms-full.txt
+  https://freeide-agent.freeide.dev/docs/llms.txt
+  https://freeide-agent.freeide.dev/docs/llms-full.txt
 
 The `/docs/` prefix is not a mistake — Docusaurus serves `website/static/`
 at the `docs/` base path. Clients and IDE plugins that probe the classic
@@ -31,7 +31,7 @@ WEBSITE = SCRIPT_DIR.parent
 DOCS = WEBSITE / "docs"
 STATIC = WEBSITE / "static"
 
-SITE_BASE = "https://freeide-agent.nousresearch.com/docs"
+SITE_BASE = "https://freeide-agent.freeide.dev/docs"
 
 # Curated sections for llms.txt — mirrors the product story, not the filesystem.
 # Each entry: (docs-relative path without .md, display title, optional short desc).
@@ -205,7 +205,7 @@ def emit_llms_index() -> str:
         "and a messaging gateway that lives on 21+ messaging platforms — 19 native to "
         "the gateway plus IRC and Microsoft Teams via plugins (Telegram, Discord, Slack, "
         "SMS, Matrix, ...). Runs on local, Docker, SSH, Daytona, Modal, or Singularity "
-        "backends. Works with Nous Portal, OpenRouter, OpenAI, Anthropic, Google, or any "
+        "backends. Works with FreeIDE Portal, OpenRouter, OpenAI, Anthropic, Google, or any "
         "OpenAI-compatible endpoint."
     )
     lines.append("")
@@ -248,8 +248,8 @@ def emit_llms_full() -> str:
             "Started, Using FreeIDE, Features, Messaging, Integrations, Guides, "
             "Developer Guide, Reference, then everything else.\n"
         ),
-        "Canonical site: https://freeide-agent.nousresearch.com/docs\n",
-        "Short index: https://freeide-agent.nousresearch.com/docs/llms.txt\n",
+        "Canonical site: https://freeide-agent.freeide.dev/docs\n",
+        "Short index: https://freeide-agent.freeide.dev/docs/llms.txt\n",
         "\n---\n\n",
     ]
 

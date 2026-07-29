@@ -34,7 +34,7 @@ _IN_NIX_BUILD = os.environ.get("FREEIDE_NIX_BUILD") == "1"
 _BLOCK_MESSAGE = (
     "Building wheels or sdists for freeide-agent is not supported.\n"
     "FreeIDE is distributed via the shell installer, Docker image, or Nix.\n"
-    "See: https://freeide-agent.nousresearch.com/docs/getting-started/installation\n"
+    "See: https://freeide-agent.freeide.dev/docs/getting-started/installation\n"
     "\n"
     "If you are developing, use an editable install instead:\n"
     "  uv sync          # or: uv pip install -e .\n"

@@ -20,7 +20,7 @@ from utils import base_url_host_matches
 class BillingBlock:
     """Structured billing-wall descriptor shared across every surface.
 
-    ``is_nous`` is the routing bit: Nous has a first-class in-app billing surface
+    ``is_nous`` is the routing bit: FreeIDE has a first-class in-app billing surface
     (desktop Settings → Billing, TUI/CLI ``/topup``), so surfaces prefer that over
     ``billing_url``; third-party providers have no in-app flow, so ``billing_url``
     is the deep link the user actually needs.
@@ -71,20 +71,20 @@ _BY_SLUG: dict[str, _Provider] = {slug: p for p in _PROVIDERS for slug in p.slug
 
 
 def is_nous_inference_route(provider: str, base_url: str) -> bool:
-    """True when the failing route is the Nous-managed inference gateway."""
+    """True when the failing route is the FreeIDE-managed inference gateway."""
     if (provider or "").strip().lower() == "nous":
         return True
-    return base_url_host_matches(str(base_url or ""), "inference-api.nousresearch.com")
+    return base_url_host_matches(str(base_url or ""), "inference-api.freeide.dev")
 
 
 def _nous_billing_url() -> Optional[str]:
-    """Best-effort Nous portal billing URL (text-surface fallback; Nous prefers the in-app flow)."""
+    """Best-effort FreeIDE portal billing URL (text-surface fallback; FreeIDE prefers the in-app flow)."""
     try:
         from freeide_cli.nous_account import nous_portal_billing_url
 
         return nous_portal_billing_url(None)
     except Exception:
-        return "https://portal.nousresearch.com/billing"
+        return "https://portal.freeide.dev/billing"
 
 
 def _resolve_provider_link(slug: str, base_url: str) -> tuple[str, Optional[str]]:
@@ -118,7 +118,7 @@ def build_billing_block(
     model = (model or "").strip()
 
     if is_nous_inference_route(slug, base_url):
-        return BillingBlock(slug or "nous", "Nous Portal", model, _nous_billing_url(), True, message or "")
+        return BillingBlock(slug or "nous", "FreeIDE Portal", model, _nous_billing_url(), True, message or "")
 
     label, url = _resolve_provider_link(slug, base_url)
     return BillingBlock(slug, label, model, url, False, message or "")

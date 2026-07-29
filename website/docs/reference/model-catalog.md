@@ -1,19 +1,19 @@
 ---
 sidebar_position: 11
 title: Model Catalog
-description: Remotely-hosted manifest driving curated model picker lists for OpenRouter and Nous Portal.
+description: Remotely-hosted manifest driving curated model picker lists for OpenRouter and FreeIDE Portal.
 ---
 
 # Model Catalog
 
-FreeIDE fetches curated model lists for **OpenRouter** and **Nous Portal** from a JSON manifest hosted alongside the docs site. This lets maintainers update picker lists without shipping a new `freeide-agent` release.
+FreeIDE fetches curated model lists for **OpenRouter** and **FreeIDE Portal** from a JSON manifest hosted alongside the docs site. This lets maintainers update picker lists without shipping a new `freeide-agent` release.
 
 When the manifest is unreachable (offline, network blocked, hosting failure), FreeIDE silently falls back to the in-repo snapshot that ships with the CLI. The manifest never breaks the picker — worst case you see whatever list was bundled with your installed version.
 
 ## Live manifest URL
 
 ```
-https://freeide-agent.nousresearch.com/docs/api/model-catalog.json
+https://freeide-agent.freeide.dev/docs/api/model-catalog.json
 ```
 
 Published on every merge to `main` via the existing `deploy-site.yml` GitHub Pages pipeline. The source of truth lives in the repo at `website/static/api/model-catalog.json`.
@@ -50,7 +50,7 @@ Field notes:
 
 - **`version`** — integer schema version. Future schemas bump this; FreeIDE refuses manifests with versions it doesn't understand and falls back to the hardcoded snapshot.
 - **`metadata`** — free-form dict at the manifest, provider, and model level. Any keys. FreeIDE ignores unknown fields, so you can annotate entries (`"tier": "paid"`, `"tags": [...]`, etc.) without coordinating a schema change.
-- **`description`** — OpenRouter-only. Drives picker badge text (`"recommended"`, `"free"`, `"default"`, or empty). Nous Portal doesn't use this — free-tier gating is determined live from the Portal's pricing endpoint.
+- **`description`** — OpenRouter-only. Drives picker badge text (`"recommended"`, `"free"`, `"default"`, or empty). FreeIDE Portal doesn't use this — free-tier gating is determined live from the Portal's pricing endpoint.
 - **`default`** — exactly one entry per provider may carry `"default": true`. That model is the **silent default**: what FreeIDE lands on when the user never selected a model (GUI onboarding confirm card, `provider` configured with no `model`, empty `model.default`). Read cache-only at runtime (`get_default_model_from_cache`) so hot resolution paths never hit the network; when no cached manifest exists, FreeIDE falls back to the in-repo `PREFERRED_SILENT_DEFAULT_MODEL` constant, which must match the labeled entry. This lets maintainers rotate the silent default without shipping a release. It is deliberately a capable low-cost model, never the priciest flagship.
 - **Pricing and context length** are NOT in the manifest. Those come from live provider APIs (`/v1/models` endpoints, models.dev) at fetch time.
 
@@ -71,7 +71,7 @@ Cache location: `~/.freeide/cache/model_catalog.json`.
 ```yaml
 model_catalog:
   enabled: true
-  url: https://freeide-agent.nousresearch.com/docs/api/model-catalog.json
+  url: https://freeide-agent.freeide.dev/docs/api/model-catalog.json
   ttl_hours: 1
   providers: {}
 ```

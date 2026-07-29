@@ -302,7 +302,7 @@ class TestDefaultContextLengths:
 
         # Longest-first substring matching must resolve both the bare V4
         # ids (native DeepSeek) and the vendor-prefixed forms (OpenRouter
-        # / Nous Portal) to 1M without probing down to the legacy 128K
+        # / FreeIDE Portal) to 1M without probing down to the legacy 128K
         # ``deepseek`` substring fallback.
         with mock_patch("agent.model_metadata.fetch_model_metadata", return_value={}), \
              mock_patch("agent.model_metadata.fetch_endpoint_model_metadata", return_value={}), \
@@ -699,11 +699,11 @@ class TestCodexOAuthContextLength:
 
 
 # =========================================================================
-# Nous Portal context-window resolution (provider="nous")
+# FreeIDE Portal context-window resolution (provider="nous")
 # =========================================================================
 
 class TestNousPortalContextResolution:
-    """Nous Portal /v1/models is authoritative for what Nous infra enforces
+    """FreeIDE Portal /v1/models is authoritative for what Nous infra enforces
     and may diverge from the OpenRouter catalog.
 
     Invariants this class pins down:
@@ -743,7 +743,7 @@ class TestNousPortalContextResolution:
 
         ctx = mm.get_model_context_length(
             model="qwen3.6-plus",
-            base_url="https://inference-api.nousresearch.com/v1",
+            base_url="https://inference-api.freeide.dev/v1",
             api_key="fake-token",
             provider="nous",
         )
@@ -767,7 +767,7 @@ class TestNousPortalContextResolution:
         }
         mock_or.return_value = {}
 
-        base_url = "https://inference-api.nousresearch.com/v1"
+        base_url = "https://inference-api.freeide.dev/v1"
         ctx = mm.get_model_context_length(
             model="qwen3.6-plus",
             base_url=base_url,
@@ -799,7 +799,7 @@ class TestNousPortalContextResolution:
             "qwen/qwen3.6-plus": {"context_length": 1_000_000},
         }
 
-        base_url = "https://inference-api.nousresearch.com/v1"
+        base_url = "https://inference-api.freeide.dev/v1"
         ctx = mm.get_model_context_length(
             model="qwen3.6-plus",
             base_url=base_url,
@@ -827,7 +827,7 @@ class TestNousPortalContextResolution:
         cache_file = tmp_path / "context_length_cache.yaml"
         monkeypatch.setattr(mm, "_get_context_cache_path", lambda: cache_file)
 
-        base_url = "https://inference-api.nousresearch.com/v1"
+        base_url = "https://inference-api.freeide.dev/v1"
         stale_key = f"qwen3.6-plus@{base_url}"
         other_key = "other-model@https://api.openai.com/v1"
         cache_file.write_text(yaml.dump({"context_lengths": {
@@ -871,7 +871,7 @@ class TestNousPortalContextResolution:
         cache_file = tmp_path / "context_length_cache.yaml"
         monkeypatch.setattr(mm, "_get_context_cache_path", lambda: cache_file)
 
-        base_url = "https://inference-api.nousresearch.com/v1"
+        base_url = "https://inference-api.freeide.dev/v1"
         existing_key = f"qwen3.6-plus@{base_url}"
         cache_file.write_text(yaml.dump({"context_lengths": {
             existing_key: 1_000_000,
@@ -900,14 +900,14 @@ class TestNousPortalContextResolution:
         self, mock_or, mock_portal, tmp_path, monkeypatch
     ):
         """Some call sites pass ``provider=""`` or ``provider="openrouter"``
-        when the user is really on Nous Portal (e.g. cred-pool fallback).
+        when the user is really on FreeIDE Portal (e.g. cred-pool fallback).
         The Nous-URL bypass must trigger off the URL host, not the provider
         string, so the portal-first resolver still runs in that case."""
         import agent.model_metadata as mm
         cache_file = tmp_path / "context_length_cache.yaml"
         monkeypatch.setattr(mm, "_get_context_cache_path", lambda: cache_file)
 
-        base_url = "https://inference-api.nousresearch.com/v1"
+        base_url = "https://inference-api.freeide.dev/v1"
         cache_file.write_text(yaml.dump({"context_lengths": {
             f"qwen3.6-plus@{base_url}": 1_000_000,  # stale
         }}))

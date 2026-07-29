@@ -1016,7 +1016,7 @@ def _has_any_provider_configured() -> bool:
     except Exception:
         pass
 
-    # Check for Nous Portal OAuth credentials
+    # Check for FreeIDE Portal OAuth credentials
     auth_file = get_freeide_home() / "auth.json"
     if auth_file.exists():
         try:
@@ -3665,7 +3665,7 @@ def _aux_config_menu() -> None:
         print("  Side tasks (vision, compression, web extraction, etc.) default")
         print('  to your main chat model.  "auto" means "use my main model" —')
         print("  FreeIDE only falls back to a lightweight backend (OpenRouter,")
-        print("  Nous Portal) if the main model is unavailable.  Override a")
+        print("  FreeIDE Portal) if the main model is unavailable.  Override a")
         print("  task below if you want it pinned to a specific provider/model.")
         print()
 
@@ -7052,7 +7052,7 @@ def _print_curator_first_run_notice() -> None:
     print("  Preview now:  freeide curator run --dry-run")
     print("  Pause it:     freeide curator pause")
     print(
-        "  Docs:         https://freeide-agent.nousresearch.com/docs/user-guide/features/curator"
+        "  Docs:         https://freeide-agent.freeide.dev/docs/user-guide/features/curator"
     )
 
 
@@ -12038,7 +12038,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
         else:
             print("✗ Not a git repository. Please reinstall:")
             print(
-                "  curl -fsSL https://freeide-agent.nousresearch.com/install.sh | bash"
+                "  curl -fsSL https://freeide-agent.freeide.dev/install.sh | bash"
             )
             sys.exit(1)
 
@@ -14590,7 +14590,7 @@ def _maybe_setup_dashboard_auth_interactively(args) -> None:
     print()
     print("  How do you want to authenticate the dashboard?")
     print("    [1] Username & password (quickest; for a trusted LAN / VPN)")
-    print("    [2] OAuth via Nous Portal (run `freeide dashboard register`)")
+    print("    [2] OAuth via FreeIDE Portal (run `freeide dashboard register`)")
     print("    [3] Cancel")
     print()
 
@@ -14606,9 +14606,9 @@ def _maybe_setup_dashboard_auth_interactively(args) -> None:
             "  Run this on the host where the dashboard lives, then start "
             "the dashboard again:\n"
             "    freeide dashboard register\n"
-            "  It provisions a Nous Portal OAuth client and writes "
+            "  It provisions a FreeIDE Portal OAuth client and writes "
             "FREEIDE_DASHBOARD_OAUTH_CLIENT_ID into ~/.freeide/.env for you.\n"
-            "  Docs: https://freeide-agent.nousresearch.com/docs/"
+            "  Docs: https://freeide-agent.freeide.dev/docs/"
             "user-guide/features/web-dashboard#authentication-gated-mode"
         )
         sys.exit(0)
@@ -15102,7 +15102,7 @@ def cmd_dashboard(args):
 
 
 def cmd_dashboard_register(args):
-    """Register a self-hosted dashboard OAuth client with Nous Portal."""
+    """Register a self-hosted dashboard OAuth client with FreeIDE Portal."""
     from freeide_cli.dashboard_register import cmd_dashboard_register as _impl
 
     _impl(args)
@@ -15771,7 +15771,7 @@ def main():
             "Manage the fallback provider chain.  Fallback providers are tried "
             "in order when the primary model fails with rate-limit, overload, or "
             "connection errors.  See: "
-            "https://freeide-agent.nousresearch.com/docs/user-guide/features/fallback-providers"
+            "https://freeide-agent.freeide.dev/docs/user-guide/features/fallback-providers"
         ),
     )
     fallback_subparsers = fallback_parser.add_subparsers(dest="fallback_command")
@@ -15805,7 +15805,7 @@ def main():
             "Pull API keys from an external secret manager at process startup "
             "instead of storing them in ~/.freeide/.env.  Supports Bitwarden "
             "Secrets Manager and 1Password.  See: "
-            "https://freeide-agent.nousresearch.com/docs/user-guide/secrets/"
+            "https://freeide-agent.freeide.dev/docs/user-guide/secrets/"
         ),
     )
     secrets_subparsers = secrets_parser.add_subparsers(dest="secrets_command")
@@ -15855,7 +15855,7 @@ def main():
             "Manage iron-proxy, the optional TLS-intercepting egress firewall "
             "that swaps proxy tokens for real API credentials before outbound "
             "requests leave a sandbox.  Disabled by default.  See: "
-            "https://freeide-agent.nousresearch.com/docs/user-guide/egress/iron-proxy"
+            "https://freeide-agent.freeide.dev/docs/user-guide/egress/iron-proxy"
         ),
     )
 
@@ -15997,7 +15997,7 @@ def main():
     build_webhook_parser(subparsers, cmd_webhook=cmd_webhook)
 
     # =========================================================================
-    # portal command — Nous Portal status + Tool Gateway routing
+    # portal command — FreeIDE Portal status + Tool Gateway routing
     # =========================================================================
     from freeide_cli.portal_cli import add_parser as _add_portal_parser
     _add_portal_parser(subparsers)

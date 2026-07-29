@@ -339,7 +339,7 @@ describe('OAuth onboarding', () => {
         return {
           providers: [
             {
-              name: 'Nous Portal',
+              name: 'FreeIDE Portal',
               slug: 'nous',
               models: [model]
             }
@@ -380,7 +380,7 @@ describe('OAuth onboarding', () => {
       baseState({
         flow: {
           status: 'awaiting_user',
-          provider: provider('nous', 'Nous Portal'),
+          provider: provider('nous', 'FreeIDE Portal'),
           start: {
             auth_url: 'https://portal.example/auth',
             expires_in: 600,
@@ -390,7 +390,7 @@ describe('OAuth onboarding', () => {
           code: 'fresh-code'
         },
         reason:
-          'No access token found for Nous Portal login. setup.status reports configured credentials, but runtime resolution still failed.',
+          'No access token found for FreeIDE Portal login. setup.status reports configured credentials, but runtime resolution still failed.',
         requested: true
       })
     )
@@ -402,7 +402,7 @@ describe('OAuth onboarding', () => {
     expect(state.flow.status).toBe('confirming_model')
 
     if (state.flow.status === 'confirming_model') {
-      expect(state.flow.label).toBe('Nous Portal')
+      expect(state.flow.label).toBe('FreeIDE Portal')
       expect(state.flow.currentModel).toBe(model)
     }
 

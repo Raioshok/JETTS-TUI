@@ -16,15 +16,15 @@ from agent.billing_links import (
 def test_nous_route_by_provider_slug():
     block = build_billing_block(provider="nous", base_url="", model="freeide-4")
     assert block.is_nous is True
-    assert block.provider_label == "Nous Portal"
+    assert block.provider_label == "FreeIDE Portal"
     # Nous always resolves an in-app/portal billing URL as a fallback.
-    assert block.billing_url and "nousresearch.com" in block.billing_url
+    assert block.billing_url and "freeide.dev" in block.billing_url
 
 
 def test_nous_route_by_base_url_host():
     block = build_billing_block(
         provider="openai_compatible",
-        base_url="https://inference-api.nousresearch.com/v1",
+        base_url="https://inference-api.freeide.dev/v1",
         model="freeide-4",
     )
     assert block.is_nous is True
@@ -32,7 +32,7 @@ def test_nous_route_by_base_url_host():
 
 def test_is_nous_inference_route_helper():
     assert is_nous_inference_route("nous", "") is True
-    assert is_nous_inference_route("", "https://inference-api.nousresearch.com/v1") is True
+    assert is_nous_inference_route("", "https://inference-api.freeide.dev/v1") is True
     assert is_nous_inference_route("openai", "https://api.openai.com/v1") is False
 
 

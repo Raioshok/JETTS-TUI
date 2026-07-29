@@ -10,7 +10,7 @@ FreeIDE can optionally hand `openai/*` and `openai-codex/*` turns to the [Codex 
 This is **opt-in only**. Default FreeIDE behavior is unchanged unless you flip the flag. FreeIDE never auto-routes you onto this runtime.
 
 :::tip
-Not using OpenAI Codex? `freeide setup --portal` configures a non-Codex backend with Claude/Gemini/etc. in one step. See [Nous Portal](/integrations/nous-portal).
+Not using OpenAI Codex? `freeide setup --portal` configures a non-Codex backend with Claude/Gemini/etc. in one step. See [FreeIDE Portal](/integrations/nous-portal).
 :::
 
 ## Why

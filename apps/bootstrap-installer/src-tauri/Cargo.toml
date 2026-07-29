@@ -2,7 +2,7 @@
 name = "freeide-bootstrap"
 version = "0.0.1"
 description = "FreeIDE Setup — signed installer that drives scripts/install.ps1"
-authors = ["FreeIDE <info@nousresearch.com>"]
+authors = ["FreeIDE <info@freeide.dev>"]
 edition = "2021"
 rust-version = "1.77"
 

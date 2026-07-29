@@ -48,21 +48,21 @@ Pick the row that matches your goal:
 
 ## 1. Install FreeIDE Agent
 ### With the FreeIDE Desktop installer on macOS or Windows (recommended)
-To easily install the command-line and desktop applications, [download the FreeIDE Desktop installer](https://freeide-agent.nousresearch.com/) from our website and run it.
+To easily install the command-line and desktop applications, [download the FreeIDE Desktop installer](https://freeide-agent.freeide.dev/) from our website and run it.
 
 ### Without FreeIDE Desktop:
 For a command-line only install without FreeIDE Desktop, run:
 
 #### Linux / macOS / WSL2 / Android (Termux)
 ```bash
-curl -fsSL https://freeide-agent.nousresearch.com/install.sh | bash
+curl -fsSL https://freeide-agent.freeide.dev/install.sh | bash
 ```
 
 #### Windows (native)
 
 Run in powershell:
 ```powershell
-iex (irm https://freeide-agent.nousresearch.com/install.ps1) 
+iex (irm https://freeide-agent.freeide.dev/install.ps1) 
 ```
 
 :::tip Android / Termux
@@ -85,20 +85,20 @@ The single most important setup step. Use `freeide model` to walk through the ch
 freeide model
 ```
 
-:::tip Easiest path: Nous Portal
+:::tip Easiest path: FreeIDE Portal
 One subscription covers 300+ models plus the [Tool Gateway](../user-guide/features/tool-gateway.md) (web search, image generation, TTS, cloud browser). On a fresh install:
 
 ```bash
 freeide setup --portal
 ```
 
-That logs you in, sets Nous as your provider, and turns on the Tool Gateway in one command.
+That logs you in, sets FreeIDE as your provider, and turns on the Tool Gateway in one command.
 :::
 
 :::info Setup modes
 On a fresh install, `freeide setup` offers three modes:
 
-- **Quick Setup (Nous Portal)** — free OAuth login, no API keys; sets up a model plus the Tool Gateway tools. The recommended fast path.
+- **Quick Setup (FreeIDE Portal)** — free OAuth login, no API keys; sets up a model plus the Tool Gateway tools. The recommended fast path.
 - **Full Setup** — walk through every provider, tool, and option yourself (bring your own keys).
 - **Blank Slate** — everything starts **off** except the bare minimum needed to run an agent: **provider & model, the File Operations toolset, and the Terminal toolset**. No web, browser, code execution, vision, memory, delegation, cron, skills, plugins, or MCP servers — and compression, checkpoints, smart routing, and memory capture are all disabled. After the minimal baseline is applied, you choose one of two paths: **start with everything disabled** (finish now with the minimal agent), or **walk through all configurations** (opt in to tools, skills, plugins, MCP, and messaging). Pick this when you want a minimal, fully-controlled agent and intend to enable only exactly what you need.
 
@@ -109,7 +109,7 @@ Good defaults:
 
 | Provider | What it is | How to set up |
 |----------|-----------|---------------|
-| **Nous Portal** | Subscription-based, zero-config | OAuth login via `freeide model` |
+| **FreeIDE Portal** | Subscription-based, zero-config | OAuth login via `freeide model` |
 | **OpenAI Codex** | ChatGPT OAuth, uses Codex models | Device code auth via `freeide model` |
 | **Anthropic** | Claude models directly — Max plan + extra usage credits (OAuth), or API key for pay-per-token | `freeide model` → OAuth login (requires Max + extra credits), or an Anthropic API key |
 | **OpenRouter** | Multi-provider routing across many models | Enter your API key |

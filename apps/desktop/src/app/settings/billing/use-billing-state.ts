@@ -8,8 +8,8 @@ import { resolveRefusal } from './errors'
 import type { BillingStateResponse, SubscriptionStateResponse, SubscriptionTierOption, UsageModelData } from './types'
 
 export const EMPTY_BILLING_VALUE = '—'
-export const FALLBACK_PORTAL_BILLING_URL = 'https://portal.nousresearch.com/billing'
-export const FALLBACK_PORTAL_URL = 'https://portal.nousresearch.com'
+export const FALLBACK_PORTAL_BILLING_URL = 'https://portal.freeide.dev/billing'
+export const FALLBACK_PORTAL_URL = 'https://portal.freeide.dev'
 
 // The billing endpoint is the authoritative source of truth for balance / cap /
 // plan — the inference `x-nous-credits-*` headers are best-effort and can drift
@@ -201,8 +201,8 @@ export function deriveBillingView(
     return {
       notice: {
         action: { label: 'Open portal ↗', url: billing.portal_url ?? subscription?.portal_url ?? FALLBACK_PORTAL_URL },
-        message: 'Run /portal in the TUI or open the Nous portal to connect your account.',
-        title: 'Connect your Nous account'
+        message: 'Run /portal in the TUI or open the FreeIDE portal to connect your account.',
+        title: 'Connect your FreeIDE account'
       },
       status: 'logged_out',
       summary: emptySummary(),

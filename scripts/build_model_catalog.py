@@ -17,7 +17,7 @@ Usage::
 Output: ``website/static/api/model-catalog.json``
 
 Live URL (after ``deploy-site.yml`` runs on merge to main):
-``https://freeide-agent.nousresearch.com/docs/api/model-catalog.json``
+``https://freeide-agent.freeide.dev/docs/api/model-catalog.json``
 """
 
 from __future__ import annotations
@@ -64,7 +64,7 @@ def build_catalog() -> dict:
         "updated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "metadata": {
             "source": "freeide-agent repo",
-            "docs": "https://freeide-agent.nousresearch.com/docs/reference/model-catalog",
+            "docs": "https://freeide-agent.freeide.dev/docs/reference/model-catalog",
         },
         "providers": {
             "openrouter": {
@@ -84,7 +84,7 @@ def build_catalog() -> dict:
             },
             "nous": {
                 "metadata": {
-                    "display_name": "Nous Portal",
+                    "display_name": "FreeIDE Portal",
                     "note": (
                         "Free-tier gating is determined live via Portal pricing "
                         "(partition_nous_models_by_tier), not this manifest. "

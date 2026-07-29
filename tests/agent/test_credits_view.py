@@ -152,7 +152,7 @@ def _make_gateway_stub():
 def test_gateway_topup_renders_block_and_url(monkeypatch):
     view = CreditsView(
         logged_in=True,
-        balance_lines=("📈 Nous credits", "Total usable: $52.50"),
+        balance_lines=("📈 FreeIDE credits", "Total usable: $52.50"),
         identity_line="Topping up as alice@example.test / org Acme",
         topup_url="https://portal.example.test/orgs/acme/billing?topup=open",
         depleted=False,
@@ -168,7 +168,7 @@ def test_gateway_topup_renders_block_and_url(monkeypatch):
     assert "https://portal.example.test/orgs/acme/billing?topup=open" in out
     assert "Manage billing on the portal" in out
     # The helper's own 📈 header line is dropped (we render our own 💳 header).
-    assert "📈 Nous credits" not in out
+    assert "📈 FreeIDE credits" not in out
 
 
 def test_gateway_topup_not_logged_in(monkeypatch):
@@ -177,7 +177,7 @@ def test_gateway_topup_not_logged_in(monkeypatch):
     )
     stub = _make_gateway_stub()
     out = asyncio.run(stub._handle_topup_command(_FakeEvent()))
-    assert "Not logged into Nous Portal" in out
+    assert "Not logged into FreeIDE Portal" in out
 
 
 def test_gateway_topup_fetch_exception_is_not_logged_in(monkeypatch):
@@ -187,7 +187,7 @@ def test_gateway_topup_fetch_exception_is_not_logged_in(monkeypatch):
     monkeypatch.setattr(account_usage, "build_credits_view", _boom)
     stub = _make_gateway_stub()
     out = asyncio.run(stub._handle_topup_command(_FakeEvent()))
-    assert "Not logged into Nous Portal" in out
+    assert "Not logged into FreeIDE Portal" in out
 
 
 # ── command registry ────────────────────────────────────────────────────────

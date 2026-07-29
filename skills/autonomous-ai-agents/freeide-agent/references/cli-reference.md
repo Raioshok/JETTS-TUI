@@ -1,7 +1,7 @@
 # FreeIDE CLI Reference
 
 Live sources when anything looks stale: `freeide --help`, `freeide <command> --help`,
-https://freeide-agent.nousresearch.com/docs/reference/cli-commands
+https://freeide-agent.freeide.dev/docs/reference/cli-commands
 
 ### Global Flags
 
@@ -79,7 +79,7 @@ freeide gateway run|install|start|stop|restart|status|setup
 ```
 
 20+ platforms: Telegram, Discord, Slack, WhatsApp (Baileys + Business Cloud API), iMessage (Photon — `freeide photon setup`), Signal, Email, SMS, Matrix, Mattermost, Teams, LINE, SimpleX, ntfy, Google Chat, Home Assistant, DingTalk, Feishu, WeCom, Weixin, API Server, Webhooks. Open WebUI connects via the API Server adapter. Most adapters ship under `plugins/platforms/`.
-Docs: https://freeide-agent.nousresearch.com/docs/user-guide/messaging/
+Docs: https://freeide-agent.freeide.dev/docs/user-guide/messaging/
 
 ### Sessions
 
@@ -118,7 +118,7 @@ Multiple credentials per provider form a pool that rotates automatically and ski
 freeide desktop / gui        Native desktop app
 freeide dashboard            Web admin panel + embedded chat (--stop / --status)
 freeide proxy                OpenAI-compatible local proxy backed by an OAuth provider
-freeide portal               Quick setup / sign in via Nous Portal
+freeide portal               Quick setup / sign in via FreeIDE Portal
 freeide kanban <verb>        Multi-agent work-queue board
 freeide project              Named multi-folder workspaces
 freeide skin list|use|set    Switch/tweak skins (see references/themes.md)
@@ -141,10 +141,10 @@ Plugin- and provider-supplied subcommands (e.g. `freeide photon setup`) only app
 
 | Looking for... | Location |
 |---|---|
-| Config options | `freeide config edit` · [Configuration docs](https://freeide-agent.nousresearch.com/docs/user-guide/configuration) |
-| Tools / toolsets | `freeide tools list` · [Tools reference](https://freeide-agent.nousresearch.com/docs/reference/tools-reference) |
-| Skills catalog | `freeide skills browse` · [Skills catalog](https://freeide-agent.nousresearch.com/docs/reference/skills-catalog) |
-| Provider setup | `freeide model` · [Providers guide](https://freeide-agent.nousresearch.com/docs/integrations/providers) |
-| Env variables | `freeide config env-path` · [Env vars reference](https://freeide-agent.nousresearch.com/docs/reference/environment-variables) |
+| Config options | `freeide config edit` · [Configuration docs](https://freeide-agent.freeide.dev/docs/user-guide/configuration) |
+| Tools / toolsets | `freeide tools list` · [Tools reference](https://freeide-agent.freeide.dev/docs/reference/tools-reference) |
+| Skills catalog | `freeide skills browse` · [Skills catalog](https://freeide-agent.freeide.dev/docs/reference/skills-catalog) |
+| Provider setup | `freeide model` · [Providers guide](https://freeide-agent.freeide.dev/docs/integrations/providers) |
+| Env variables | `freeide config env-path` · [Env vars reference](https://freeide-agent.freeide.dev/docs/reference/environment-variables) |
 | Gateway logs | `~/.freeide/logs/gateway.log` (or `freeide logs`) |
 | Sessions | `freeide sessions browse` (reads state.db) |

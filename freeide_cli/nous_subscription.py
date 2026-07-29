@@ -1,4 +1,4 @@
-"""Helpers for Nous subscription managed-tool capabilities."""
+"""Helpers for FreeIDE subscription managed-tool capabilities."""
 
 from __future__ import annotations
 
@@ -1089,7 +1089,7 @@ def prompt_enable_tool_gateway(
         and account_info.tool_access is not None
         and account_info.tool_access.enabled
     )
-    source_label = "free tool pool" if pool_only else "Nous subscription"
+    source_label = "free tool pool" if pool_only else "FreeIDE subscription"
 
     # Per-tool checklist: unconfigured tools first (pre-checked for new users),
     # then tools where the user already has their own key (left unchecked so we
@@ -1106,7 +1106,7 @@ def prompt_enable_tool_gateway(
         title = "Your free Nous tool pool — pick the tools to enable:"
     else:
         title = (
-            "Your Nous subscription includes the Tool Gateway — "
+            "Your FreeIDE subscription includes the Tool Gateway — "
             "pick the tools to enable:"
         )
 
@@ -1131,7 +1131,7 @@ def prompt_enable_tool_gateway(
 
 
 # ---------------------------------------------------------------------------
-# Inline Nous Portal login for the Tool Gateway picker (`freeide tools`)
+# Inline FreeIDE Portal login for the Tool Gateway picker (`freeide tools`)
 # ---------------------------------------------------------------------------
 
 
@@ -1144,14 +1144,14 @@ def ensure_nous_portal_access(
     needed.
 
     Used by ``freeide tools`` when a user selects a Nous-managed Tool Gateway
-    backend (e.g. "Firecrawl (Nous Portal)").  Unlike ``freeide model``'s Nous
+    backend (e.g. "Firecrawl (FreeIDE Portal)").  Unlike ``freeide model``'s Nous
     login, this:
 
     - does NOT change the inference provider (``model.provider`` is untouched),
     - does NOT run model selection, and
     - does NOT offer the bulk "enable for all tools" Tool Gateway prompt.
 
-    It only performs the Nous Portal device-code OAuth (when the user isn't
+    It only performs the FreeIDE Portal device-code OAuth (when the user isn't
     already logged in) and refreshes entitlement, so the caller can enable the
     single tool the user picked.
 
@@ -1204,7 +1204,7 @@ def ensure_nous_portal_access(
 
 
 def _run_nous_portal_login_only(*, capability: str) -> bool:
-    """Run the Nous Portal device-code OAuth and persist credentials only.
+    """Run the FreeIDE Portal device-code OAuth and persist credentials only.
 
     No model selection, no provider switch, no Tool Gateway bulk prompt.
     Returns ``True`` on a successful login, ``False`` if the user declined or
@@ -1223,18 +1223,18 @@ def _run_nous_portal_login_only(*, capability: str) -> bool:
             _write_shared_nous_state,
         )
     except Exception as exc:  # pragma: no cover - defensive
-        print(f"  Could not start Nous Portal login: {exc}")
+        print(f"  Could not start FreeIDE Portal login: {exc}")
         return False
 
     print()
-    print(f"  {capability} requires a Nous Portal login.")
+    print(f"  {capability} requires a FreeIDE Portal login.")
     try:
-        proceed = input("  Log in to Nous Portal now? [Y/n]: ").strip().lower()
+        proceed = input("  Log in to FreeIDE Portal now? [Y/n]: ").strip().lower()
     except (EOFError, KeyboardInterrupt):
         print()
         return False
     if proceed not in {"", "y", "yes"}:
-        print("  Skipped Nous Portal login.")
+        print("  Skipped FreeIDE Portal login.")
         return False
 
     try:
@@ -1248,7 +1248,7 @@ def _run_nous_portal_login_only(*, capability: str) -> bool:
         if shared:
             try:
                 do_import = input(
-                    "  Found existing Nous OAuth credentials. Import them? [Y/n]: "
+                    "  Found existing FreeIDE OAuth credentials. Import them? [Y/n]: "
                 ).strip().lower()
             except (EOFError, KeyboardInterrupt):
                 do_import = "y"
@@ -1271,7 +1271,7 @@ def _run_nous_portal_login_only(*, capability: str) -> bool:
 
         _write_shared_nous_state(auth_state)
         _sync_nous_pool_from_auth_store()
-        print("  Nous Portal login successful.")
+        print("  FreeIDE Portal login successful.")
         return True
     except KeyboardInterrupt:
         print("\n  Login cancelled.")
@@ -1281,5 +1281,5 @@ def _run_nous_portal_login_only(*, capability: str) -> bool:
         # it already printed billing guidance.
         return False
     except Exception as exc:
-        print(f"  Nous Portal login failed: {exc}")
+        print(f"  FreeIDE Portal login failed: {exc}")
         return False

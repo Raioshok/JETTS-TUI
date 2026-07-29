@@ -107,7 +107,7 @@ describe('createGatewayEventHandler', () => {
           message: 'out of credits',
           model: 'm',
           provider: 'nous',
-          provider_label: 'Nous Portal'
+          provider_label: 'FreeIDE Portal'
         },
         text: 'Billing or credits exhausted: ...'
       },

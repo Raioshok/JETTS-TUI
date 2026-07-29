@@ -4,8 +4,8 @@ Standalone Web Tools Module
 
 This module provides generic web tools that work with multiple backend providers.
 Backend is selected during ``freeide tools`` setup (web.backend in config.yaml).
-When available, FreeIDE can route Firecrawl calls through a Nous-hosted tool-gateway
-for Nous Subscribers only.
+When available, FreeIDE can route Firecrawl calls through a FreeIDE-hosted tool-gateway
+for FreeIDE Subscribers only.
 
 Available tools:
 - web_search_tool: Search the web for information
@@ -13,7 +13,7 @@ Available tools:
 
 Backend compatibility:
 - Exa: https://exa.ai (search, extract)
-- Firecrawl: https://docs.firecrawl.dev/introduction (search, extract; direct or derived firecrawl-gateway.<domain> for Nous Subscribers)
+- Firecrawl: https://docs.firecrawl.dev/introduction (search, extract; direct or derived firecrawl-gateway.<domain> for FreeIDE Subscribers)
 - Parallel: https://docs.parallel.ai (search, extract)
 - Tavily: https://tavily.com (search, extract)
 
@@ -234,7 +234,7 @@ def _get_backend() -> str:
     # Fallback for manual / legacy config — pick the highest-priority
     # available backend. Explicit user credentials (TAVILY_API_KEY etc.)
     # beat the managed-tool-gateway probe so a deliberate setup is not
-    # pre-empted by a Nous OAuth token whose subscription tier may not
+    # pre-empted by a FreeIDE OAuth token whose subscription tier may not
     # actually grant web-search access (the gateway then fails at runtime
     # with "no subscription" and the tool returns an error to the agent
     # without falling back). Free-tier backends trail the paid ones.
@@ -383,7 +383,7 @@ def _web_requires_env() -> list[str]:
     used by the tool registry to light up the tool when the variable is
     set.  Gating them on ``managed_nous_tools_enabled()`` only saved
     string noise in the metadata list, but cost a synchronous HTTP
-    refresh against the Nous portal on every CLI startup (invoked at
+    refresh against the FreeIDE portal on every CLI startup (invoked at
     tool-registration time).  The behavioral contract is: if the env var
     is set, the tool sees it; if not, it doesn't.  Not-logged-in users
     simply don't have the vars set, so the extra entries are harmless.

@@ -320,7 +320,7 @@ def test_403_cli_billing_disabled_stays_generic_with_portal_url(monkeypatch):
     assert type(ei.value) is nb.BillingError
     assert ei.value.code == "remote_spending_disabled"
     assert ei.value.recovery == "enable_account_toggle"
-    assert ei.value.portal_url == "https://portal.nousresearch.com/billing"
+    assert ei.value.portal_url == "https://portal.freeide.dev/billing"
 
 
 def test_429_retry_after_header_maps_to_rate_limited(monkeypatch):
@@ -427,7 +427,7 @@ def test_urlerror_dns_maps_to_network_error(monkeypatch):
         nb.get_billing_state()
 
     assert ei.value.error == "network_error"
-    assert "Could not reach Nous Portal" in str(ei.value)
+    assert "Could not reach FreeIDE Portal" in str(ei.value)
 
 
 def test_urlerror_wrapped_timeout_maps_to_network_error(monkeypatch):
@@ -438,7 +438,7 @@ def test_urlerror_wrapped_timeout_maps_to_network_error(monkeypatch):
         nb.get_billing_state()
 
     assert ei.value.error == "network_error"
-    assert "Could not reach Nous Portal" in str(ei.value)
+    assert "Could not reach FreeIDE Portal" in str(ei.value)
 
 
 def test_bare_socket_timeout_normalizes_to_network_error(monkeypatch):

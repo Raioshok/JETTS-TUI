@@ -10,7 +10,7 @@ upstream credential to the forwarded request. The credential is refreshed
 automatically when it approaches expiry.
 
 First-class adapter:
-  - ``nous`` — Nous Portal (https://inference-api.nousresearch.com/v1)
+  - ``nous`` — FreeIDE Portal (https://inference-api.freeide.dev/v1)
 
 Future adapters can plug in by implementing ``UpstreamAdapter``.
 """

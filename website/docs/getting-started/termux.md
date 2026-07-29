@@ -51,7 +51,7 @@ That does not stop FreeIDE from working well as a phone-native CLI agent — it 
 FreeIDE now ships a Termux-aware installer path:
 
 ```bash
-curl -fsSL https://freeide-agent.nousresearch.com/install.sh | bash
+curl -fsSL https://freeide-agent.freeide.dev/install.sh | bash
 ```
 
 On Termux, the installer automatically:

@@ -78,7 +78,7 @@ freeide [global-options] <command> [subcommand/options]
 | `freeide acp` | Run FreeIDE as an ACP server for editor integration. |
 | `freeide mcp` | Manage MCP server configurations and run FreeIDE as an MCP server. |
 | `freeide plugins` | Manage FreeIDE Agent plugins (install, enable, disable, remove). |
-| `freeide portal` | Nous Portal status, subscription link, and Tool Gateway routing. See [Tool Gateway](../user-guide/features/tool-gateway.md). |
+| `freeide portal` | FreeIDE Portal status, subscription link, and Tool Gateway routing. See [Tool Gateway](../user-guide/features/tool-gateway.md). |
 | `freeide tools` | Configure enabled tools per platform. |
 | `freeide computer-use` | Install or check the cua-driver backend (macOS Computer Use). |
 | `freeide pets` | Browse, install, and select [petdex](../user-guide/features/pets.md) animated pets shown across the CLI, TUI, and desktop app. Subcommands: `list`, `install`, `select`, `show`, `off`, `scale`, `remove`, `doctor`. |
@@ -173,7 +173,7 @@ freeide model
 
 Use this when you want to:
 - **add a new provider** (OpenRouter, Anthropic, Copilot, DeepSeek, custom, etc.)
-- log into OAuth-backed providers (Anthropic, Copilot, Codex, Nous Portal)
+- log into OAuth-backed providers (Anthropic, Copilot, Codex, FreeIDE Portal)
 - enter or update API keys
 - pick from provider-specific model lists
 - configure a custom/self-hosted endpoint
@@ -290,7 +290,7 @@ the full guide, supported languages, and configuration knobs.
 freeide setup [model|tts|terminal|gateway|tools|agent] [--non-interactive] [--reset] [--quick] [--reconfigure] [--portal]
 ```
 
-**Easiest path:** `freeide setup --portal` — OAuth into Nous Portal and opt into the [Tool Gateway](../user-guide/features/tool-gateway.md) in one shot.
+**Easiest path:** `freeide setup --portal` — OAuth into FreeIDE Portal and opt into the [Tool Gateway](../user-guide/features/tool-gateway.md) in one shot.
 
 **First run:** launches the first-time wizard.
 
@@ -314,7 +314,7 @@ Options:
 | `--non-interactive` | Use defaults / environment values without prompts. |
 | `--reset` | Reset configuration to defaults before setup. |
 | `--reconfigure` | Backwards-compat alias — bare `freeide setup` on an existing install now does this by default. |
-| `--portal` | One-shot Nous Portal setup: log in via OAuth, set Nous as the inference provider, and opt into the [Tool Gateway](../user-guide/features/tool-gateway.md). Skips the rest of the wizard. |
+| `--portal` | One-shot FreeIDE Portal setup: log in via OAuth, set Nous as the inference provider, and opt into the [Tool Gateway](../user-guide/features/tool-gateway.md). Skips the rest of the wizard. |
 
 ## `freeide portal`
 
@@ -322,13 +322,13 @@ Options:
 freeide portal [status|open|tools]
 ```
 
-Inspect Nous Portal auth, Tool Gateway routing, and reach the subscription page. Subcommand-less invocation runs `status`.
+Inspect FreeIDE Portal auth, Tool Gateway routing, and reach the subscription page. Subcommand-less invocation runs `status`.
 
 | Subcommand | Description |
 |------------|-------------|
 | `status` (default) | Portal auth state + per-tool Tool Gateway routing summary. Also shown when no subcommand is given. |
-| `open` | Open `portal.nousresearch.com/manage-subscription` in your default browser. |
-| `tools` | List every Tool Gateway partner (Firecrawl, FAL, OpenAI TTS, Browser Use, Modal) and which are routed via Nous. |
+| `open` | Open `portal.freeide.dev/manage-subscription` in your default browser. |
+| `tools` | List every Tool Gateway partner (Firecrawl, FAL, OpenAI TTS, Browser Use, Modal) and which are routed via FreeIDE. |
 
 For configuration of the gateway itself, see [Tool Gateway](../user-guide/features/tool-gateway.md). For the one-shot setup path, see `freeide setup --portal` above.
 
@@ -471,7 +471,7 @@ Common flags for migration subcommands:
 freeide proxy <subcommand>
 ```
 
-Run a local OpenAI-compatible HTTP server that forwards requests to an OAuth-authenticated upstream provider (e.g. Nous Portal, xAI). External apps can point at the proxy with any bearer token; the proxy attaches your real OAuth credentials on the way out. See [Subscription Proxy](../user-guide/features/subscription-proxy.md) for the full guide.
+Run a local OpenAI-compatible HTTP server that forwards requests to an OAuth-authenticated upstream provider (e.g. FreeIDE Portal, xAI). External apps can point at the proxy with any bearer token; the proxy attaches your real OAuth credentials on the way out. See [Subscription Proxy](../user-guide/features/subscription-proxy.md) for the full guide.
 
 | Subcommand | Description |
 |------------|-------------|
@@ -849,13 +849,13 @@ Upload a debug report (system info + recent logs) to a paste service and get a s
 |--------|-------------|
 | `--lines <N>` | Number of log lines to include per log file (default: 200). |
 | `--expire <days>` | Paste expiry in days (default: 7). |
-| `--nous` | Upload to Nous-internal diagnostics storage instead of a public paste service. Use this when Nous support asks for a private diagnostic bundle. |
+| `--nous` | Upload to FreeIDE-internal diagnostics storage instead of a public paste service. Use this when FreeIDE support asks for a private diagnostic bundle. |
 | `--local` | Print the report locally instead of uploading. |
 | `--no-redact` | Disable upload-time secret redaction. By default, uploads are redacted. |
 
 The report includes system info (OS, Python version, FreeIDE version), recent agent, gateway, GUI/dashboard, and desktop logs (512 KB limit per file), and redacted API key status. By default, uploads are redacted so secrets are not included.
 
-Default uploads use public paste services tried in order: paste.rs, dpaste.com. `--nous` uploads the same debug bundle to private Nous diagnostics storage instead; the returned viewer link is for the Nous team and auto-deletes after 14 days.
+Default uploads use public paste services tried in order: paste.rs, dpaste.com. `--nous` uploads the same debug bundle to private FreeIDE diagnostics storage instead; the returned viewer link is for the FreeIDE team and auto-deletes after 14 days.
 
 ### Examples
 
@@ -863,7 +863,7 @@ Default uploads use public paste services tried in order: paste.rs, dpaste.com. 
 freeide debug share              # Upload debug report, print URL
 freeide debug share --lines 500  # Include more log lines
 freeide debug share --expire 30  # Keep paste for 30 days
-freeide debug share --nous       # Upload a private diagnostics bundle for Nous support
+freeide debug share --nous       # Upload a private diagnostics bundle for FreeIDE support
 freeide debug share --local      # Print report to terminal (no upload)
 ```
 
@@ -1555,13 +1555,13 @@ Launch the web dashboard — a browser-based UI for managing configuration, API 
 
 ### `freeide dashboard register`
 
-Register this install as a self-hosted dashboard with your Nous Portal account. Creates an OAuth client, writes `FREEIDE_DASHBOARD_OAUTH_CLIENT_ID` into `~/.freeide/.env`, and prints how to engage the login gate. Requires being logged in (`freeide setup`).
+Register this install as a self-hosted dashboard with your FreeIDE Portal account. Creates an OAuth client, writes `FREEIDE_DASHBOARD_OAUTH_CLIENT_ID` into `~/.freeide/.env`, and prints how to engage the login gate. Requires being logged in (`freeide setup`).
 
 | Option | Description |
 |--------|-------------|
 | `--name` | Human-readable label for the dashboard (default: auto-generated). |
 | `--redirect-uri` | Public HTTPS OAuth redirect URI (e.g. `https://freeide.example.com/auth/callback`). Omit for localhost-only use. |
-| `--portal-url` | Override the Nous Portal base URL for registration (default: the portal you logged into). Also settable via `FREEIDE_DASHBOARD_PORTAL_URL`. |
+| `--portal-url` | Override the FreeIDE Portal base URL for registration (default: the portal you logged into). Also settable via `FREEIDE_DASHBOARD_PORTAL_URL`. |
 
 ```bash
 # Default — opens browser to http://127.0.0.1:9119

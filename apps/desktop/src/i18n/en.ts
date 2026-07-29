@@ -180,7 +180,7 @@ export const en: Translations = {
   },
 
   billingBlock: {
-    titleNous: 'Out of Nous credits',
+    titleNous: 'Out of FreeIDE credits',
     titleProvider: provider => `Out of credits — ${provider}`,
     fallbackMessage: 'Your account is out of credits. Add credits to keep going.',
     openBilling: 'Open billing',
@@ -617,7 +617,7 @@ export const en: Translations = {
       cloudLoadingAgents: 'Loading your agents…',
       cloudNoAgents: {
         before: 'No agents found on this account. Create one in the ',
-        linkText: 'Nous portal',
+        linkText: 'FreeIDE portal',
         after: ', then refresh.'
       },
       cloudRefresh: 'Refresh',
@@ -709,7 +709,7 @@ export const en: Translations = {
       sshErrHostKey:
         'The host key has CHANGED since you last connected. Verify this is expected, then run ssh-keygen -R <host> and reconnect.',
       sshErrNotInstalled:
-        'FreeIDE is not installed on the remote host. Install it there (curl -fsSL https://freeide-agent.nousresearch.com/install.sh | sh) or set the FreeIDE path.',
+        'FreeIDE is not installed on the remote host. Install it there (curl -fsSL https://freeide-agent.freeide.dev/install.sh | sh) or set the FreeIDE path.',
       sshErrPlatform:
         'Unsupported remote platform. FreeIDE Desktop SSH mode supports Linux, macOS, and Windows remote hosts.',
       sshErrTimeout: 'SSH connection timed out. The host may be unreachable or asleep.',
@@ -901,13 +901,13 @@ export const en: Translations = {
       ready: 'Ready',
       needsSignIn: 'Needs sign-in',
       needsSetup: 'Needs setup',
-      nousIncluded: 'Included with a Nous subscription — sign in to Nous Portal to activate.',
-      nousAuthNeededTitle: 'Sign in to Nous Portal',
-      nousAuthNeededMessage: provider => `${provider} is saved but won't activate until you sign in to Nous Portal.`,
+      nousIncluded: 'Included with a FreeIDE subscription — sign in to FreeIDE Portal to activate.',
+      nousAuthNeededTitle: 'Sign in to FreeIDE Portal',
+      nousAuthNeededMessage: provider => `${provider} is saved but won't activate until you sign in to FreeIDE Portal.`,
       nousAuthSignIn: 'Sign in',
-      nousAuthDoneTitle: 'Nous Portal connected',
+      nousAuthDoneTitle: 'FreeIDE Portal connected',
       nousAuthDoneMessage: 'Your subscription backends are now active.',
-      nousAuthFailed: 'Nous Portal sign-in did not complete',
+      nousAuthFailed: 'FreeIDE Portal sign-in did not complete',
       noApiKeyRequired: 'No API key required.',
       postSetupHint: step =>
         `This backend needs a one-time install (${step}). Runs on this machine — may take a few minutes.`,
@@ -2321,7 +2321,7 @@ export const en: Translations = {
     loadFailed: 'Could not load models',
     noAuthenticatedProviders: 'No authenticated providers.',
     pro: 'Pro',
-    proNeedsSubscription: 'Pro models need a paid Nous subscription.',
+    proNeedsSubscription: 'Pro models need a paid FreeIDE subscription.',
     free: 'Free',
     freeTier: 'Free tier',
     priceTitle: 'Input / Output price per million tokens',

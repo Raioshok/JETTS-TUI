@@ -50,7 +50,7 @@ description: "与 FreeIDE Agent 的第一次对话——从安装到开始聊天
 
 ### 在 macOS 或 Windows 上使用 FreeIDE Desktop 安装器（推荐）
 
-如需同时安装命令行与桌面应用，请从我们的官网[下载 FreeIDE Desktop 安装器](https://freeide-agent.nousresearch.com/)并运行。
+如需同时安装命令行与桌面应用，请从我们的官网[下载 FreeIDE Desktop 安装器](https://freeide-agent.freeide.dev/)并运行。
 
 ### 不使用 FreeIDE Desktop：
 
@@ -58,7 +58,7 @@ description: "与 FreeIDE Agent 的第一次对话——从安装到开始聊天
 
 ```bash
 # Linux / macOS / WSL2 / Android (Termux)
-curl -fsSL https://freeide-agent.nousresearch.com/install.sh | bash
+curl -fsSL https://freeide-agent.freeide.dev/install.sh | bash
 ```
 
 安装脚本会在 `~/.freeide/freeide-agent` 创建一个受管理的隔离环境（独立的 uv 托管解释器和 venv），这是唯一受支持的安装方式 —— 包括开发用途。请勿使用 `pip install freeide-agent`。
@@ -87,7 +87,7 @@ source ~/.bashrc   # 或 source ~/.zshrc
 freeide model
 ```
 
-:::tip 最简路径：Nous Portal
+:::tip 最简路径：FreeIDE Portal
 一个订阅涵盖 300+ 个模型，以及 [Tool Gateway](../user-guide/features/tool-gateway.md)（网页搜索、图像生成、TTS、云端浏览器）。全新安装时：
 
 ```bash
@@ -101,7 +101,7 @@ freeide setup --portal
 
 | Provider | 说明 | 配置方式 |
 |----------|-----------|---------------|
-| **Nous Portal** | 订阅制，零配置 | 通过 `freeide model` 进行 OAuth 登录 |
+| **FreeIDE Portal** | 订阅制，零配置 | 通过 `freeide model` 进行 OAuth 登录 |
 | **OpenAI Codex** | ChatGPT OAuth，使用 Codex 模型 | 通过 `freeide model` 进行设备码认证 |
 | **Anthropic** | 直接使用 Claude 模型——Max 计划 + 额外用量积分（OAuth），或按 token 付费的 API key | `freeide model` → OAuth 登录（需要 Max + 额外积分），或 Anthropic API key |
 | **OpenRouter** | 跨多个 provider 的多模型路由 | 输入 API key |

@@ -65,7 +65,7 @@ export interface ApiKeyOption {
 }
 
 // Curated order mirrors CANONICAL_PROVIDERS: Fireworks sits #2 overall (after
-// Nous Portal OAuth), ahead of OpenRouter and the rest of the key catalog.
+// FreeIDE Portal OAuth), ahead of OpenRouter and the rest of the key catalog.
 const API_KEY_OPTIONS: ApiKeyOption[] = [
   {
     id: 'fireworks',
@@ -467,7 +467,7 @@ export function Picker({ ctx }: { ctx: OnboardingContext }) {
   const select = (p: OAuthProvider) => void startProviderOAuth(p, ctx)
   const featured = ordered.find(p => p.id === FEATURED_ID) ?? null
   const rest = featured ? ordered.filter(p => p.id !== FEATURED_ID) : ordered
-  // Collapse the secondary providers behind a disclosure only when Nous
+  // Collapse the secondary providers behind a disclosure only when FreeIDE
   // Portal is present to anchor the choice — otherwise show the full list.
   const collapsible = Boolean(featured) && rest.length > 0
   const showRest = !collapsible || showAll
@@ -476,7 +476,7 @@ export function Picker({ ctx }: { ctx: OnboardingContext }) {
     <div className="grid gap-2">
       <div className="grid max-h-[60dvh] gap-2 overflow-y-auto p-1">
         {featured ? <FeaturedProviderRow onSelect={select} provider={featured} /> : null}
-        {/* Slot #2 — always visible, matching CANONICAL_PROVIDERS (Nous → Fireworks). */}
+        {/* Slot #2 — always visible, matching CANONICAL_PROVIDERS (FreeIDE → Fireworks). */}
         <FireworksProviderRow onClick={() => openKeyForm('FIREWORKS_API_KEY')} />
         {showRest ? (
           <>

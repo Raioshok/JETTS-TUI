@@ -2,7 +2,7 @@
 
 Set via `freeide model` (picker) or `freeide setup`. 35+ provider profiles ship as
 plugins under `plugins/model-providers/`; user plugins of the same name override.
-Full docs: https://freeide-agent.nousresearch.com/docs/integrations/providers
+Full docs: https://freeide-agent.freeide.dev/docs/integrations/providers
 
 ### Providers
 

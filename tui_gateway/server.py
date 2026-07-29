@@ -219,7 +219,7 @@ _LONG_HANDLERS = frozenset(
         "complete.slash",
         "llm.oneshot",
         # model.options builds the full picker payload — per-provider credential
-        # pool checks, pricing fetch, Nous tier check, optional custom-provider
+        # pool checks, pricing fetch, FreeIDE tier check, optional custom-provider
         # probe — measured seconds inline. While it runs on the reader thread,
         # prompt.submit / session.interrupt sit unread (same class as #21123),
         # and the Desktop model pill / picker block on it every open.
@@ -8409,9 +8409,9 @@ def _(rid, params: dict) -> dict:
     usage: dict = _session_usage_snapshot(session)
     if agent is None and not usage:
         usage = {"calls": 0, "input": 0, "output": 0, "total": 0}
-    # Nous credits block — agent-independent (a portal fetch), so it shows even
+    # FreeIDE credits block — agent-independent (a portal fetch), so it shows even
     # with zero API calls or on a resumed session. The TUI /usage panel renders
-    # these lines regardless of `calls`. Fail-open: [] when not logged into Nous
+    # these lines regardless of `calls`. Fail-open: [] when not logged into FreeIDE
     # or on any portal hiccup.
     try:
         from agent.account_usage import nous_credits_lines
@@ -9197,7 +9197,7 @@ def _(rid, params: dict) -> dict:
 def _(rid, params: dict) -> dict:
     """Whether pet generation is possible right now.
 
-    True only when a reference-capable image backend (Nous Portal / OpenRouter /
+    True only when a reference-capable image backend (FreeIDE Portal / OpenRouter /
     OpenAI gpt-image) is configured — the desktop checks this on open so it can
     offer setup instead of a dead prompt. Cheap (config + plugin discovery).
     """

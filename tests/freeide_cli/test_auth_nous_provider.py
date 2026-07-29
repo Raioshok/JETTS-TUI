@@ -1,4 +1,4 @@
-"""Regression tests for Nous OAuth refresh and inference JWT interactions."""
+"""Regression tests for FreeIDE OAuth refresh and inference JWT interactions."""
 
 import base64
 import json
@@ -234,7 +234,7 @@ def test_resolve_nous_runtime_credentials_env_override_wins_live_not_persisted(
 
     freeide_home = tmp_path / "freeide"
     override_url = "https://ai.wildebeest-newton.ts.net/v1"
-    network_url = "https://inference-api.nousresearch.com/v1"
+    network_url = "https://inference-api.freeide.dev/v1"
     refreshed_token = _invoke_jwt(seconds=3600)
     _setup_nous_auth(
         freeide_home,
@@ -295,8 +295,8 @@ def test_resolve_nous_runtime_credentials_invoke_jwt_is_idempotent(
         "active_provider": "nous",
         "providers": {
             "nous": {
-                "portal_base_url": "https://portal.nousresearch.com",
-                "inference_base_url": "https://inference-api.nousresearch.com/v1",
+                "portal_base_url": "https://portal.freeide.dev",
+                "inference_base_url": "https://inference-api.freeide.dev/v1",
                 "client_id": "freeide-cli",
                 "token_type": "Bearer",
                 "scope": auth_mod.DEFAULT_NOUS_SCOPE,
@@ -1016,7 +1016,7 @@ def test_unusable_access_token_refresh_uses_latest_rotated_refresh_token(tmp_pat
 
 
 class TestLoginNousSkipKeepsCurrent:
-    """When a user runs `freeide model` → Nous Portal → Skip (keep current) after
+    """When a user runs `freeide model` → FreeIDE Portal → Skip (keep current) after
     a successful OAuth login, the prior provider and model MUST be preserved.
 
     Regression: previously, _update_config_for_provider was called
@@ -1056,8 +1056,8 @@ class TestLoginNousSkipKeepsCurrent:
         fake_auth_state = {
             "access_token": "fake-nous-token",
             "agent_key": "fake-agent-key",
-            "inference_base_url": "https://inference-api.nousresearch.com",
-            "portal_base_url": "https://portal.nousresearch.com",
+            "inference_base_url": "https://inference-api.freeide.dev",
+            "portal_base_url": "https://portal.freeide.dev",
             "refresh_token": "fake-refresh",
             "token_expires_at": 9999999999,
         }
@@ -1250,7 +1250,7 @@ def test_persist_nous_credentials_writes_both_pool_and_providers(tmp_path, monke
 
 def test_persist_nous_credentials_allows_recovery_from_401(tmp_path, monkeypatch):
     """End-to-end: after persisting via the helper, resolve_nous_runtime_credentials
-    must succeed (not raise "FreeIDE is not logged into Nous Portal").
+    must succeed (not raise "FreeIDE is not logged into FreeIDE Portal").
 
     This is the exact path that run_agent.py's `_try_refresh_nous_client_credentials`
     calls after a Nous 401 — before the fix it would raise AuthError because
@@ -1273,7 +1273,7 @@ def test_persist_nous_credentials_allows_recovery_from_401(tmp_path, monkeypatch
 
     # Stub the network-touching steps so we don't actually contact the
     # portal — the point of this test is that state lookup succeeds and
-    # doesn't raise "FreeIDE is not logged into Nous Portal".
+    # doesn't raise "FreeIDE is not logged into FreeIDE Portal".
     def _fake_refresh_access_token(*, client, portal_base_url, client_id, refresh_token):
         return {
             "access_token": new_jwt,
@@ -1442,7 +1442,7 @@ def test_persist_nous_credentials_no_label_uses_auto_derived(tmp_path, monkeypat
 def test_refresh_token_reuse_detection_surfaces_actionable_message():
     """Regression for #15099.
 
-    When the Nous Portal server returns ``invalid_grant`` with
+    When the FreeIDE Portal server returns ``invalid_grant`` with
     ``error_description`` containing "reuse detected", FreeIDE must surface an
     actionable message explaining that an external process consumed the
     refresh token.  The default opaque "Refresh token reuse detected; please
@@ -1468,7 +1468,7 @@ def test_refresh_token_reuse_detection_surfaces_actionable_message():
     with pytest.raises(AuthError) as exc_info:
         _refresh_access_token(
             client=_FakeClient(),
-            portal_base_url="https://portal.nousresearch.com",
+            portal_base_url="https://portal.freeide.dev",
             client_id="freeide-cli",
             refresh_token="rt_consumed_elsewhere",
         )
@@ -1503,7 +1503,7 @@ def test_refresh_token_reuse_error_code_is_terminal():
     with pytest.raises(AuthError) as exc_info:
         auth_mod._refresh_access_token(
             client=_FakeClient(),
-            portal_base_url="https://portal.nousresearch.com",
+            portal_base_url="https://portal.freeide.dev",
             client_id="freeide-cli",
             refresh_token="rt_consumed_elsewhere",
         )
@@ -1538,7 +1538,7 @@ def test_refresh_token_exchange_sends_refresh_token_header():
 
     payload = _refresh_access_token(
         client=client,
-        portal_base_url="https://portal.nousresearch.com",
+        portal_base_url="https://portal.freeide.dev",
         client_id="freeide-cli",
         refresh_token="refresh-1",
     )
@@ -1579,7 +1579,7 @@ def test_refresh_non_reuse_error_keeps_original_description():
     with pytest.raises(AuthError) as exc_info:
         _refresh_access_token(
             client=_FakeClient(),
-            portal_base_url="https://portal.nousresearch.com",
+            portal_base_url="https://portal.freeide.dev",
             client_id="freeide-cli",
             refresh_token="rt_anything",
         )
@@ -1961,7 +1961,7 @@ def test_runtime_credentials_merges_shared_token_before_empty_local_access_token
 
     ``resolve_nous_access_token()`` already merges shared OAuth state before
     giving up. The runtime path must do the same so sibling profiles that
-    share a valid Nous login do not dead-end on an empty local auth.json.
+    share a valid FreeIDE login do not dead-end on an empty local auth.json.
     """
     from freeide_cli import auth as auth_mod
 
@@ -2252,7 +2252,7 @@ class TestStalePortalBaseUrlMigration:
             "active_provider": "nous",
             "providers": {
                 "nous": {
-                    "portal_base_url": "https://api.nousresearch.com",
+                    "portal_base_url": "https://api.freeide.dev",
                     "access_token": "test-token",
                     "refresh_token": "test-refresh",
                 }
@@ -2324,7 +2324,7 @@ class TestStalePortalBaseUrlMigration:
         )
         auth_file = tmp_path / "auth.json"
         store = json.loads(auth_file.read_text())
-        store["providers"]["nous"]["portal_base_url"] = "https://api.nousresearch.com"
+        store["providers"]["nous"]["portal_base_url"] = "https://api.freeide.dev"
         auth_file.write_text(json.dumps(store, indent=2))
 
         refresh_calls = []
@@ -2413,7 +2413,7 @@ class TestStalePortalBaseUrlMigration:
                 "expires_in": 3600,
                 "token_type": "Bearer",
                 "scope": "inference:invoke",
-                "inference_base_url": "https://inference-api.nousresearch.com/v1",
+                "inference_base_url": "https://inference-api.freeide.dev/v1",
             }
 
         monkeypatch.setattr(auth_mod, "_refresh_access_token", _fake_refresh_access_token)
@@ -2440,7 +2440,7 @@ class TestStalePortalBaseUrlMigration:
         auth_file = freeide_home / "auth.json"
         store = json.loads(auth_file.read_text())
         store["providers"]["nous"]["portal_base_url"] = (
-            "http://portal.nousresearch.com"
+            "http://portal.freeide.dev"
         )
         auth_file.write_text(json.dumps(store, indent=2))
 
