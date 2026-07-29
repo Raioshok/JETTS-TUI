@@ -27,13 +27,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/NousResearch/FreeIDE-Agent.git"
+    "url": "git+https://github.com/freeide/FreeIDE-Agent.git"
   },
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/NousResearch/FreeIDE-Agent/issues"
+    "url": "https://github.com/freeide/FreeIDE-Agent/issues"
   },
-  "homepage": "https://github.com/NousResearch/FreeIDE-Agent#readme",
+  "homepage": "https://github.com/freeide/FreeIDE-Agent#readme",
   "dependencies": {
     "@streamdown/math": "^1.0.2",
     "agent-browser": "^0.26.0"

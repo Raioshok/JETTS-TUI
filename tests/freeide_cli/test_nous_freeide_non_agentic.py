@@ -5,7 +5,7 @@ Prior to this check, the warning fired on any model whose name contained
 local Modelfiles such as ``freeide-brain:qwen3-14b-ctx16k`` — a tool-capable
 Qwen3 wrapper that happens to live under the "freeide" tag namespace.
 
-``is_nous_freeide_non_agentic`` should only match the actual Nous Research
+``is_nous_freeide_non_agentic`` should only match the actual FreeIDE
 FreeIDE-3 / FreeIDE-4 chat family.
 """
 
@@ -23,8 +23,8 @@ from freeide_cli.model_switch import (
 @pytest.mark.parametrize(
     "model_name",
     [
-        "NousResearch/FreeIDE-3-Llama-3.1-70B",
-        "NousResearch/FreeIDE-3-Llama-3.1-405B",
+        "freeide/FreeIDE-3-Llama-3.1-70B",
+        "freeide/FreeIDE-3-Llama-3.1-405B",
         "freeide-3",
         "FreeIDE-3",
         "freeide-4",
@@ -32,7 +32,7 @@ from freeide_cli.model_switch import (
         "freeide_4_70b",
         "openrouter/freeide3:70b",
         "openrouter/nousresearch/freeide-4-405b",
-        "NousResearch/FreeIDE3",
+        "freeide/FreeIDE3",
         "freeide-3.1",
     ],
 )

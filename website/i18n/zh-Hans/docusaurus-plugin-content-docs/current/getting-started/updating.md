@@ -123,7 +123,7 @@ tail -f ~/.freeide/logs/update.log
 freeide version
 ```
 
-与 [GitHub releases 页面](https://github.com/NousResearch/hermes-agent/releases) 上的最新版本进行比较。
+与 [GitHub releases 页面](https://github.com/freeide/freeide/releases) 上的最新版本进行比较。
 
 ### 从消息平台更新
 

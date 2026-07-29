@@ -64,8 +64,8 @@ async function stampExeIdentity(exe, desktopRoot = resolve(import.meta.dirname, 
     'version-string': {
       ProductName: 'FreeIDE',
       FileDescription: 'FreeIDE',
-      CompanyName: 'Nous Research',
-      LegalCopyright: 'Copyright (c) 2026 Nous Research'
+      CompanyName: 'FreeIDE',
+      LegalCopyright: 'Copyright (c) 2026 FreeIDE'
     }
   })
 

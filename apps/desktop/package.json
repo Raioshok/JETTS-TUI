@@ -4,7 +4,7 @@
   "private": true,
   "version": "0.17.0",
   "description": "Native desktop shell for FreeIDE Agent.",
-  "author": "Nous Research",
+  "author": "FreeIDE",
   "type": "module",
   "main": "dist/electron-main.mjs",
   "engines": {
@@ -261,7 +261,7 @@
     },
     "linux": {
       "category": "Development",
-      "maintainer": "Nous Research <support@nousresearch.com>",
+      "maintainer": "FreeIDE <support@nousresearch.com>",
       "synopsis": "Native desktop shell for FreeIDE Agent.",
       "target": [
         "AppImage",

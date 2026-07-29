@@ -201,38 +201,42 @@ class SkinConfig:
 _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
     "default": {
         "name": "default",
-        "description": "Classic FreeIDE — gold and kawaii",
-        # Dark-authored. Values match the TUI's DARK_THEME so the classic CLI
-        # and the TUI render the same FreeIDE gold.
+        "description": "FreeIDE — Catppuccin Mocha, violet accent",
+        # Catppuccin Mocha with a mauve/violet accent — the modern riced
+        # terminal palette. Roles map onto Catppuccin's named colours so the
+        # whole UI reads as one deliberate scheme rather than scattered hexes:
+        #   accent  = mauve #cba6f7   title = lavender #b4befe
+        #   text    = text  #cdd6f4   dim   = overlay1 #7f849c
+        #   border  = surface2 #585b70
         "colors": {
-            "banner_border": "#CD7F32",
-            "banner_title": "#FFD700",
-            "banner_accent": "#FFBF00",
-            "banner_dim": "#B8860B",
-            "banner_text": "#FFF8DC",
-            "ui_accent": "#FFBF00",
-            "ui_label": "#DAA520",
-            "ui_ok": "#4caf50",
-            "ui_error": "#ef5350",
-            "ui_warn": "#ffa726",
-            "prompt": "#FFF8DC",
-            "input_rule": "#CD7F32",
-            "response_border": "#FFD700",
-            "status_bar_bg": "#1a1a2e",
-            "status_bar_text": "#C0C0C0",
-            "status_bar_strong": "#FFD700",
-            "status_bar_dim": "#8A7A4A",
-            "status_bar_good": "#8FBC8F",
-            "status_bar_warn": "#FFD700",
-            "status_bar_bad": "#FF8C00",
-            "status_bar_critical": "#FF6B6B",
-            "session_label": "#DAA520",
-            "session_border": "#8B8682",
-            "completion_menu_bg": "#1a1a2e",
-            "completion_menu_current_bg": "#333355",
-            "selection_bg": "#3a3a55",
-            "shell_dollar": "#4dabf7",
-            "voice_status_bg": "#1a1a2e",
+            "banner_border": "#585b70",
+            "banner_title": "#b4befe",
+            "banner_accent": "#cba6f7",
+            "banner_dim": "#7f849c",
+            "banner_text": "#cdd6f4",
+            "ui_accent": "#cba6f7",
+            "ui_label": "#b4befe",
+            "ui_ok": "#a6e3a1",
+            "ui_error": "#f38ba8",
+            "ui_warn": "#fab387",
+            "prompt": "#cdd6f4",
+            "input_rule": "#585b70",
+            "response_border": "#cba6f7",
+            "status_bar_bg": "#181825",
+            "status_bar_text": "#a6adc8",
+            "status_bar_strong": "#b4befe",
+            "status_bar_dim": "#6c7086",
+            "status_bar_good": "#a6e3a1",
+            "status_bar_warn": "#f9e2af",
+            "status_bar_bad": "#fab387",
+            "status_bar_critical": "#f38ba8",
+            "session_label": "#cba6f7",
+            "session_border": "#6c7086",
+            "completion_menu_bg": "#1e1e2e",
+            "completion_menu_current_bg": "#45475a",
+            "selection_bg": "#45475a",
+            "shell_dollar": "#89dceb",
+            "voice_status_bg": "#181825",
         },
         # Light overlay (merged onto `colors`; dark mode renders the vivid
         # block above untouched). The goldenrod ladder: on white, the vivid

@@ -153,8 +153,8 @@ Full automation blueprints gallery: [freeide-agent.nousresearch.com/docs/referen
 
 Documentation: [freeide-agent.nousresearch.com](https://freeide-agent.nousresearch.com)
 
-GitHub: [github.com/NousResearch/hermes-agent](https://github.com/NousResearch/hermes-agent)
+GitHub: [github.com/freeide/freeide](https://github.com/freeide/freeide)
 
 ---
 
-*FreeIDE Agent is built by [Nous Research](https://nousresearch.com). Open source, model-agnostic, runs on your infrastructure.*
+*FreeIDE Agent is built by [FreeIDE](https://nousresearch.com). Open source, model-agnostic, runs on your infrastructure.*

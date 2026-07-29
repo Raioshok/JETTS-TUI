@@ -2776,7 +2776,7 @@ def build_anthropic_kwargs(
                 text = text.replace("FreeIDE Agent", "Claude Code")
                 text = text.replace("FreeIDE agent", "Claude Code")
                 text = text.replace("freeide-agent", "claude-code")
-                text = text.replace("Nous Research", "Anthropic")
+                text = text.replace("FreeIDE", "Anthropic")
                 block["text"] = text
 
         # 3. Normalize tool names so NOTHING goes on the OAuth wire with a

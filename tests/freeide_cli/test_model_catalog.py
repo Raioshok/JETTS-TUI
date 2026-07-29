@@ -182,7 +182,7 @@ class TestFallbackChain:
 
     PRIMARY = "https://freeide-agent.nousresearch.com/docs/api/model-catalog.json"
     FALLBACK = (
-        "https://raw.githubusercontent.com/NousResearch/hermes-agent"
+        "https://raw.githubusercontent.com/freeide/freeide"
         "/main/website/static/api/model-catalog.json"
     )
 

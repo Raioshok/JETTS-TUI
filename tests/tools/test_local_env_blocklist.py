@@ -4,8 +4,8 @@ Verifies that FreeIDE-managed provider, tool, and gateway env vars are
 stripped from subprocess environments so external CLIs are not silently
 misrouted or handed FreeIDE secrets.
 
-See: https://github.com/NousResearch/hermes-agent/issues/1002
-See: https://github.com/NousResearch/hermes-agent/issues/1264
+See: https://github.com/freeide/freeide/issues/1002
+See: https://github.com/freeide/freeide/issues/1264
 """
 
 import os

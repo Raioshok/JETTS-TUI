@@ -8,7 +8,7 @@ description: >
   running locally.
 platforms: [linux, macos, windows]
 version: 1.0.0
-author: FreeIDE Agent + Nous Research
+author: FreeIDE Agent + FreeIDE
 license: MIT
 metadata:
   freeide:

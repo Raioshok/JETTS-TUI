@@ -72,7 +72,7 @@ The legacy `freeide honcho setup` command still works (it now redirects to `free
 
 **Headless / remote machines:** for cloud auth on a box without a browser (SSH, remote VM), pick **device** at the wizard's auth-method prompt. The CLI prints a short code and a verification link; open the link in a browser on any other machine, approve, and setup completes — no API key copy-paste. The wizard defaults to this option automatically when it detects no usable local browser.
 
-**Config:** `$FREEIDE_HOME/honcho.json` (profile-local) or `~/.honcho/config.json` (global). Resolution order: `$FREEIDE_HOME/honcho.json` > `~/.freeide/honcho.json` > `~/.honcho/config.json`. See the [config reference](https://github.com/NousResearch/hermes-agent/blob/main/plugins/memory/honcho/README.md) and the [Honcho integration guide](https://docs.honcho.dev/v3/guides/integrations/freeide).
+**Config:** `$FREEIDE_HOME/honcho.json` (profile-local) or `~/.honcho/config.json` (global). Resolution order: `$FREEIDE_HOME/honcho.json` > `~/.freeide/honcho.json` > `~/.honcho/config.json`. See the [config reference](https://github.com/freeide/freeide/blob/main/plugins/memory/honcho/README.md) and the [Honcho integration guide](https://docs.honcho.dev/v3/guides/integrations/freeide).
 
 <details>
 <summary>Full config reference</summary>
@@ -274,7 +274,7 @@ Off-gateway these keys do nothing. `freeide memory setup` only prompts for them 
 
 </details>
 
-See the [config reference](https://github.com/NousResearch/hermes-agent/blob/main/plugins/memory/honcho/README.md) and [Honcho integration guide](https://docs.honcho.dev/v3/guides/integrations/freeide).
+See the [config reference](https://github.com/freeide/freeide/blob/main/plugins/memory/honcho/README.md) and [Honcho integration guide](https://docs.honcho.dev/v3/guides/integrations/freeide).
 
 
 ---
@@ -454,7 +454,7 @@ The setup wizard installs dependencies automatically and only installs what's ne
 | `retain_assistant_prefix` | `Assistant` | Label used before assistant turns in auto-retained transcripts |
 | `recall_tags` | — | Tags to filter on recall |
 
-See [plugin README](https://github.com/NousResearch/hermes-agent/blob/main/plugins/memory/hindsight/README.md) for the full configuration reference.
+See [plugin README](https://github.com/freeide/freeide/blob/main/plugins/memory/hindsight/README.md) for the full configuration reference.
 
 ---
 

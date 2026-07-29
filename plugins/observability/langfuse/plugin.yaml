@@ -1,7 +1,7 @@
 name: langfuse
 version: "1.0.0"
 description: "Optional Langfuse observability for FreeIDE — traces conversations, LLM calls, and tool usage. Opt-in via `freeide plugins enable observability/langfuse` or `freeide tools → Langfuse Observability`."
-author: NousResearch
+author: freeide
 requires_env:
   - FREEIDE_LANGFUSE_PUBLIC_KEY
   - FREEIDE_LANGFUSE_SECRET_KEY

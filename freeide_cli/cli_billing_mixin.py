@@ -1109,7 +1109,7 @@ class CLIBillingMixin:
                 _cprint(f"  {_d('Your card saved on the portal will be charged.')}")
         print(f"  {'─' * 41}")
         _consent = (
-            "By confirming, you allow Nous Research to charge your card."
+            "By confirming, you allow FreeIDE to charge your card."
         )
         _cprint(f"  {_d(_consent)}")
 
@@ -1479,7 +1479,7 @@ class CLIBillingMixin:
 
         print()
         _ar_consent = (
-            f"By confirming, you authorize Nous Research to charge {card.masked} "
+            f"By confirming, you authorize FreeIDE to charge {card.masked} "
             f"whenever your balance reaches {format_money(threshold_amt)}. "
             f"Turn off any time here or on the portal."
         )

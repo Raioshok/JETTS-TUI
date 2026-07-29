@@ -2,7 +2,7 @@
 name: xlsx
 description: "Create, read, edit Excel .xlsx spreadsheets and CSVs."
 version: 1.0.0
-author: Anthropic (adapted by Nous Research)
+author: Anthropic (adapted by FreeIDE)
 license: Proprietary. LICENSE.txt has complete terms
 platforms: [linux, macos, windows]
 metadata:

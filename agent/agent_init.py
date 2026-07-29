@@ -2442,7 +2442,7 @@ def init_agent(
             _freeide_warn = _check_freeide_model_warning(agent.model or "")
             if _freeide_warn:
                 _user_msg = (
-                    "⚠ Nous Research FreeIDE 3 & 4 models are NOT agentic — they "
+                    "⚠ FreeIDE FreeIDE 3 & 4 models are NOT agentic — they "
                     "lack reliable tool-calling for agent workflows (delegation, "
                     "cron, proactive tools). Consider an agentic model instead "
                     "(Claude, GPT, Gemini, Qwen-Coder, etc.)."

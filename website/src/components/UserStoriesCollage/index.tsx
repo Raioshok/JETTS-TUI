@@ -295,15 +295,15 @@ export default function UserStoriesCollage(): JSX.Element {
       <div className={styles.footer}>
         Built something with FreeIDE?{' '}
         <a
-          href="https://github.com/NousResearch/hermes-agent/edit/main/website/src/data/userStories.json"
+          href="https://github.com/freeide/freeide/edit/main/website/src/data/userStories.json"
           target="_blank"
           rel="noopener noreferrer"
         >
           Add your story to this page
         </a>{' '}
         by editing <code>userStories.json</code>, or post it in the{' '}
-        <a href="https://discord.gg/NousResearch" target="_blank" rel="noopener noreferrer">
-          Nous Research Discord
+        <a href="https://discord.gg/freeide" target="_blank" rel="noopener noreferrer">
+          FreeIDE Discord
         </a>{' '}
         and we&apos;ll pick it up.
       </div>

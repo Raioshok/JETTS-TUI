@@ -37,7 +37,7 @@ class TestDoctorPlatformHints:
 
         hint = doctor._sqlite_upgrade_hint()
 
-        assert "docker pull nousresearch/hermes-agent:latest" in hint
+        assert "docker pull freeide/freeide:latest" in hint
         assert "recreate all FreeIDE containers" in hint
         assert "freeide update" not in hint
 

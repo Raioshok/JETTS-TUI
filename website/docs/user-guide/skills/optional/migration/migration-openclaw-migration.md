@@ -17,7 +17,7 @@ Import an OpenClaw setup (memories, skills) into FreeIDE.
 | Source | Optional — install with `freeide skills install official/migration/openclaw-migration` |
 | Path | `optional-skills/migration/openclaw-migration` |
 | Version | `1.0.0` |
-| Author | FreeIDE Agent (Nous Research) |
+| Author | FreeIDE Agent (FreeIDE) |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `Migration`, `OpenClaw`, `FreeIDE`, `Memory`, `Persona`, `Import` |

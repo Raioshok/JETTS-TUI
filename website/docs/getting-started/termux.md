@@ -87,7 +87,7 @@ Why these packages?
 ### 2. Clone FreeIDE
 
 ```bash
-git clone https://github.com/NousResearch/hermes-agent.git
+git clone https://github.com/freeide/freeide.git
 cd freeide-agent
 ```
 

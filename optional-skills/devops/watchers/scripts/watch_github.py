@@ -6,7 +6,7 @@ Usage (via cron with --no-agent):
     freeide cron create freeide-issues \\
       --schedule "*/5 * * * *" --no-agent \\
       --script "$FREEIDE_HOME/skills/devops/watchers/scripts/watch_github.py" \\
-      --script-args "--name freeide-issues --repo NousResearch/hermes-agent --scope issues"
+      --script-args "--name freeide-issues --repo freeide/freeide --scope issues"
 
 Set GITHUB_TOKEN (or GH_TOKEN) in the FreeIDE .env file
 (``${FREEIDE_HOME:-~/.freeide}/.env``) to avoid the 60 req/hr

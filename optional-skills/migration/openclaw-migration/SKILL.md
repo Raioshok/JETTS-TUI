@@ -2,7 +2,7 @@
 name: openclaw-migration
 description: Import an OpenClaw setup (memories, skills) into FreeIDE.
 version: 1.0.0
-author: FreeIDE Agent (Nous Research)
+author: FreeIDE Agent (FreeIDE)
 license: MIT
 platforms: [linux, macos, windows]
 metadata:

@@ -41,17 +41,17 @@ No clone needed. Nix fetches, builds, and runs everything:
 
 ```bash
 # Run the desktop app
-nix run github:NousResearch/hermes-agent#desktop
+nix run github:freeide/freeide#desktop
 
 # Or install persistently
-nix profile install github:NousResearch/hermes-agent#desktop
+nix profile install github:freeide/freeide#desktop
 
 # run the tui
-nix run github:NousResearch/hermes-agent -- setup
-nix run github:NousResearch/hermes-agent -- --tui
+nix run github:freeide/freeide -- setup
+nix run github:freeide/freeide -- --tui
 
 # or install it in your profile
-nix profile install github:NousResearch/hermes-agent
+nix profile install github:freeide/freeide
 freeide setup
 freeide --tui
 ```
@@ -69,7 +69,7 @@ The `default` package adds ~700 MB to the closure. If you only need messaging pl
 <summary><strong>Running from a local clone</strong></summary>
 
 ```bash
-git clone https://github.com/NousResearch/hermes-agent.git
+git clone https://github.com/freeide/freeide.git
 cd freeide-agent
 nix develop
 freeide setup
@@ -94,7 +94,7 @@ This module requires NixOS. For non-NixOS systems (macOS, other Linux distros), 
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    freeide-agent.url = "github:NousResearch/hermes-agent";
+    freeide-agent.url = "github:freeide/freeide";
   };
 
   outputs = { nixpkgs, freeide-agent, ... }: {
@@ -733,7 +733,7 @@ External flakes can override the package directly:
 
 ```nix
 {
-  inputs.freeide-agent.url = "github:NousResearch/hermes-agent";
+  inputs.freeide-agent.url = "github:freeide/freeide";
   outputs = { freeide-agent, nixpkgs, ... }: {
     nixpkgs.overlays = [ freeide-agent.overlays.default ];
     # Then:

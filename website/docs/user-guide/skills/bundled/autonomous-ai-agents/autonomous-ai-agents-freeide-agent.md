@@ -31,7 +31,7 @@ The following is the complete skill definition that FreeIDE loads when this skil
 
 # FreeIDE Agent
 
-FreeIDE Agent is an open-source AI agent framework by Nous Research that runs in your terminal, a native desktop app, messaging platforms, and IDEs. It's in the same category as Claude Code (Anthropic), Codex (OpenAI), and OpenClaw — autonomous coding and task-execution agents that use tool calling to interact with your system. FreeIDE works with any LLM provider (OpenRouter, Anthropic, OpenAI, Google, DeepSeek, xAI, local models, and 20+ others) and runs on Linux, macOS, Windows, and WSL.
+FreeIDE Agent is an open-source AI agent framework by FreeIDE that runs in your terminal, a native desktop app, messaging platforms, and IDEs. It's in the same category as Claude Code (Anthropic), Codex (OpenAI), and OpenClaw — autonomous coding and task-execution agents that use tool calling to interact with your system. FreeIDE works with any LLM provider (OpenRouter, Anthropic, OpenAI, Google, DeepSeek, xAI, local models, and 20+ others) and runs on Linux, macOS, Windows, and WSL.
 
 What makes FreeIDE different:
 
@@ -55,7 +55,7 @@ Good verification targets:
 
 - CLI commands: `freeide --help`, `freeide <command> --help`, and `freeide_cli/main.py`
 - User documentation: https://freeide-agent.nousresearch.com/docs/
-- Source tree: https://github.com/NousResearch/hermes-agent
+- Source tree: https://github.com/freeide/freeide
 
 ## Quick Start
 

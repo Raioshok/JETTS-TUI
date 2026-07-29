@@ -81,7 +81,7 @@ Watch a GitHub repo (set `GITHUB_TOKEN` in `${FREEIDE_HOME:-~/.freeide}/.env` to
 
 ```bash
 python $FREEIDE_HOME/skills/devops/watchers/scripts/watch_github.py \
-  --name freeide-issues --repo NousResearch/hermes-agent --scope issues
+  --name freeide-issues --repo freeide/freeide --scope issues
 ```
 
 Poll an arbitrary JSON API:

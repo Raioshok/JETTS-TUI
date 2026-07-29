@@ -6,7 +6,7 @@ description: "One subscription, 300+ frontier models, and the Tool Gateway — t
 
 # Nous Portal
 
-[Nous Portal](https://portal.nousresearch.com) is Nous Research's unified subscription gateway and **the recommended way to run FreeIDE Agent**. One OAuth login replaces the juggling act of separate accounts, API keys, and billing relationships across every model lab, search API, image generator, and browser provider you'd otherwise need to wire up by hand.
+[Nous Portal](https://portal.nousresearch.com) is FreeIDE's unified subscription gateway and **the recommended way to run FreeIDE Agent**. One OAuth login replaces the juggling act of separate accounts, API keys, and billing relationships across every model lab, search API, image generator, and browser provider you'd otherwise need to wire up by hand.
 
 If you only have time to set up one thing, set up this. The fastest path:
 
@@ -74,7 +74,7 @@ Because everything routes through one OAuth-authenticated Portal session, you do
 
 ## A note on FreeIDE 4
 
-Nous Research's own **FreeIDE 4** family (FreeIDE-4-70B, FreeIDE-4-405B) is available through the Portal at heavily discounted rates. These are **frontier hybrid-reasoning chat models** — strong at math, science, instruction following, schema adherence, roleplay, and long-form writing.
+FreeIDE's own **FreeIDE 4** family (FreeIDE-4-70B, FreeIDE-4-405B) is available through the Portal at heavily discounted rates. These are **frontier hybrid-reasoning chat models** — strong at math, science, instruction following, schema adherence, roleplay, and long-form writing.
 
 They are **not recommended for use inside FreeIDE Agent**, however. FreeIDE 4 is tuned for chat and reasoning, not the rapid-fire tool-calling loop the agent relies on. Use them for research workflows or via the [subscription proxy](/user-guide/features/subscription-proxy) from other tooling — but for agent work, pick a frontier agentic model from the catalog instead:
 
@@ -85,7 +85,7 @@ They are **not recommended for use inside FreeIDE Agent**, however. FreeIDE 4 is
 /model deepseek/deepseek-v4-pro        # cost-effective coder
 ```
 
-The Portal's own [model info page](https://portal.nousresearch.com/info) carries the same warning, so this isn't a FreeIDE-side opinion — it's the official guidance from Nous Research.
+The Portal's own [model info page](https://portal.nousresearch.com/info) carries the same warning, so this isn't a FreeIDE-side opinion — it's the official guidance from FreeIDE.
 
 ## Setup
 
@@ -261,7 +261,7 @@ The Portal routes each model to a suitable backend — some through OpenRouter, 
 /model anthropic/claude-opus-4.6
 ```
 
-If a model is genuinely missing, [open an issue](https://github.com/NousResearch/hermes-agent/issues) — we surface the Portal's catalog to FreeIDE and gaps usually mean a routing config we can update.
+If a model is genuinely missing, [open an issue](https://github.com/freeide/freeide/issues) — we surface the Portal's catalog to FreeIDE and gaps usually mean a routing config we can update.
 
 ### Bills not appearing on my Portal account
 

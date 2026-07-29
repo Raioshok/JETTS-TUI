@@ -81,7 +81,7 @@ python $FREEIDE_HOME/skills/devops/watchers/scripts/watch_rss.py \
 
 ```bash
 python $FREEIDE_HOME/skills/devops/watchers/scripts/watch_github.py \
-  --name freeide-issues --repo NousResearch/hermes-agent --scope issues
+  --name freeide-issues --repo freeide/freeide --scope issues
 ```
 
 轮询任意 JSON API：

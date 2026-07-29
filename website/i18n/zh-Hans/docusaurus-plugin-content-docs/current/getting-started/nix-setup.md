@@ -35,11 +35,11 @@ FreeIDE Agent 提供了一个 Nix flake，支持三个层级的集成：
 
 ```bash
 # 直接运行（首次使用时构建，之后使用缓存）
-nix run github:NousResearch/hermes-agent -- setup
-nix run github:NousResearch/hermes-agent -- chat
+nix run github:freeide/freeide -- setup
+nix run github:freeide/freeide -- chat
 
 # 或持久化安装
-nix profile install github:NousResearch/hermes-agent
+nix profile install github:freeide/freeide
 freeide setup
 freeide chat
 ```
@@ -50,7 +50,7 @@ freeide chat
 <summary><strong>从本地克隆构建</strong></summary>
 
 ```bash
-git clone https://github.com/NousResearch/hermes-agent.git
+git clone https://github.com/freeide/freeide.git
 cd freeide-agent
 nix build
 ./result/bin/freeide setup
@@ -75,7 +75,7 @@ nix build
 {
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
-    freeide-agent.url = "github:NousResearch/hermes-agent";
+    freeide-agent.url = "github:freeide/freeide";
   };
 
   outputs = { nixpkgs, freeide-agent, ... }: {
@@ -685,7 +685,7 @@ services.freeide-agent = {
 
 ```nix
 {
-  inputs.freeide-agent.url = "github:NousResearch/hermes-agent";
+  inputs.freeide-agent.url = "github:freeide/freeide";
   outputs = { freeide-agent, nixpkgs, ... }: {
     nixpkgs.overlays = [ freeide-agent.overlays.default ];
     # 然后：

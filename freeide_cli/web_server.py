@@ -3230,7 +3230,7 @@ async def get_status(profile: Optional[str] = None):
 
         # Dashboard auth gate (Phase 7): surface whether the gate is engaged
         # and which providers are registered so ``freeide status`` and the
-        # SPA's StatusPage can show "OAuth gate ON via Nous Research" or
+        # SPA's StatusPage can show "OAuth gate ON via FreeIDE" or
         # "loopback only — no auth gate" with no extra round trips.
         auth_required = bool(getattr(app.state, "auth_required", False))
         auth_providers: list[str] = []

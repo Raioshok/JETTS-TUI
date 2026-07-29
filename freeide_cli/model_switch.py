@@ -179,19 +179,19 @@ def _bare_custom_provider_def(current_base_url: str) -> Optional[ProviderDef]:
 # ---------------------------------------------------------------------------
 
 _FREEIDE_MODEL_WARNING = (
-    "Nous Research FreeIDE 3 & 4 models are NOT agentic and are not designed "
+    "FreeIDE FreeIDE 3 & 4 models are NOT agentic and are not designed "
     "for use with FreeIDE Agent. They lack the tool-calling capabilities "
     "required for agent workflows. Consider using an agentic model instead "
     "(Claude, GPT, Gemini, DeepSeek, etc.)."
 )
 
-# Match only the real Nous Research FreeIDE 3 / FreeIDE 4 chat families.
+# Match only the real FreeIDE FreeIDE 3 / FreeIDE 4 chat families.
 # The previous substring check (`"freeide" in name.lower()`) false-positived on
 # unrelated local Modelfiles like ``freeide-brain:qwen3-14b-ctx16k`` that just
 # happen to carry "freeide" in their tag but are fully tool-capable.
 #
 # Positive examples the regex must match:
-#   NousResearch/FreeIDE-3-Llama-3.1-70B, freeide-4-405b, openrouter/freeide3:70b
+#   freeide/FreeIDE-3-Llama-3.1-70B, freeide-4-405b, openrouter/freeide3:70b
 # Negative examples it must NOT match:
 #   freeide-brain:qwen3-14b-ctx16k, qwen3:14b, claude-opus-4-6
 _NOUS_FREEIDE_NON_AGENTIC_RE = re.compile(

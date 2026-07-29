@@ -60,28 +60,27 @@ def _skin_color(key: str, fallback: str) -> str:
 
 from freeide_cli import __version__ as VERSION, __release_date__ as RELEASE_DATE
 
-FREEIDE_AGENT_LOGO = """[bold #b3a6ff]███████╗██████╗ ███████╗███████╗██╗██████╗ ███████╗[/]
-[bold #a294ff]██╔════╝██╔══██╗██╔════╝██╔════╝██║██╔══██╗██╔════╝[/]
-[#9483ff]█████╗  ██████╔╝█████╗  █████╗  ██║██║  ██║█████╗  [/]
-[#8b7bff]██╔══╝  ██╔══██╗██╔══╝  ██╔══╝  ██║██║  ██║██╔══╝  [/]
-[#7c6cff]██║     ██║  ██║███████╗███████╗██║██████╔╝███████╗[/]
-[#6d5de6]╚═╝     ╚═╝  ╚═╝╚══════╝╚══════╝╚═╝╚═════╝ ╚══════╝[/]"""
+FREEIDE_AGENT_LOGO = """[bold #cba6f7]███████╗██████╗ ███████╗███████╗██╗██████╗ ███████╗[/]
+[bold #b9a9fb]██╔════╝██╔══██╗██╔════╝██╔════╝██║██╔══██╗██╔════╝[/]
+[#b4befe]█████╗  ██████╔╝█████╗  █████╗  ██║██║  ██║█████╗  [/]
+[#a6b8fc]██╔══╝  ██╔══██╗██╔══╝  ██╔══╝  ██║██║  ██║██╔══╝  [/]
+[#89b4fa]██║     ██║  ██║███████╗███████╗██║██████╔╝███████╗[/]
+[#89dceb]╚═╝     ╚═╝  ╚═╝╚══════╝╚══════╝╚═╝╚═════╝ ╚══════╝[/]"""
 
-FREEIDE_CADUCEUS = """[#CD7F32]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⡀⠀⣀⣀⠀⢀⣀⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#CD7F32]⠀⠀⠀⠀⠀⠀⢀⣠⣴⣾⣿⣿⣇⠸⣿⣿⠇⣸⣿⣿⣷⣦⣄⡀⠀⠀⠀⠀⠀⠀[/]
-[#FFBF00]⠀⢀⣠⣴⣶⠿⠋⣩⡿⣿⡿⠻⣿⡇⢠⡄⢸⣿⠟⢿⣿⢿⣍⠙⠿⣶⣦⣄⡀⠀[/]
-[#FFBF00]⠀⠀⠉⠉⠁⠶⠟⠋⠀⠉⠀⢀⣈⣁⡈⢁⣈⣁⡀⠀⠉⠀⠙⠻⠶⠈⠉⠉⠀⠀[/]
-[#FFD700]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣴⣿⡿⠛⢁⡈⠛⢿⣿⣦⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#FFD700]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠿⣿⣦⣤⣈⠁⢠⣴⣿⠿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#FFBF00]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠉⠻⢿⣿⣦⡉⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#FFBF00]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠘⢷⣦⣈⠛⠃⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#CD7F32]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢠⣴⠦⠈⠙⠿⣦⡄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#CD7F32]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠸⣿⣤⡈⠁⢤⣿⠇⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#B8860B]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠉⠛⠷⠄⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#B8860B]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⢀⣀⠑⢶⣄⡀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#B8860B]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⣿⠁⢰⡆⠈⡿⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#B8860B]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠳⠈⣡⠞⠁⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]
-[#B8860B]⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠈⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀⠀[/]"""
+# Abstract prism emblem — a violet→sky gradient diamond. Replaces the old
+# caduceus (which is literally the staff of Hermes); this carries no upstream
+# symbolism and matches the wordmark's gradient.
+FREEIDE_CADUCEUS = """[#cba6f7]          ╱╲          [/]
+[#c0a9f8]         ╱  ╲         [/]
+[#b4befe]        ╱ ╱╲ ╲        [/]
+[#adbafd]       ╱ ╱  ╲ ╲       [/]
+[#a6b8fc]      ╱ ╱ ╱╲ ╲ ╲      [/]
+[#9fb6fb]     ◈─╱─╱  ╲─╲─◈     [/]
+[#98b5fb]      ╲ ╲ ╲╱ ╱ ╱      [/]
+[#91b4fa]       ╲ ╲  ╱ ╱       [/]
+[#89b4fa]        ╲ ╲╱ ╱        [/]
+[#84c1ef]         ╲  ╱         [/]
+[#89dceb]          ╲╱          [/]"""
 
 
 
@@ -120,8 +119,8 @@ _UPDATE_CHECK_CACHE_SECONDS = 6 * 3600
 # (e.g. nix-built freeide — no local git history to count against).
 UPDATE_AVAILABLE_NO_COUNT = -1
 
-_UPSTREAM_REPO_URL = "https://github.com/NousResearch/hermes-agent.git"
-_OFFICIAL_REPO_CANONICAL = "github.com/nousresearch/hermes-agent"
+_UPSTREAM_REPO_URL = "https://github.com/freeide/freeide.git"
+_OFFICIAL_REPO_CANONICAL = "github.com/freeide/freeide"
 
 
 def _canonical_github_remote(url: str | None) -> str:
@@ -422,7 +421,7 @@ def get_git_banner_state(repo_dir: Optional[Path] = None) -> Optional[dict]:
     return {"upstream": upstream, "local": local, "ahead": max(ahead, 0)}
 
 
-_RELEASE_URL_BASE = "https://github.com/NousResearch/hermes-agent/releases/tag"
+_RELEASE_URL_BASE = "https://github.com/freeide/freeide/releases/tag"
 _latest_release_cache: Optional[tuple] = None  # (tag, url) once resolved
 
 
@@ -431,7 +430,7 @@ def get_latest_release_tag(repo_dir: Optional[Path] = None) -> Optional[tuple]:
 
     Local-only — runs ``git describe --tags --abbrev=0`` against the
     FreeIDE checkout. Cached per-process. Release URL always points at the
-    canonical NousResearch/hermes-agent repo (forks don't get a link).
+    canonical freeide/freeide repo (forks don't get a link).
     """
     global _latest_release_cache
     if _latest_release_cache is not None:
@@ -551,7 +550,7 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
                          get_toolset_for_tool=None,
                          context_length: int = None,
                          provider: str = None):
-    """Build and print a welcome banner with caduceus on left and info on right.
+    """Build and print a welcome banner with the emblem on left and info on right.
 
     Args:
         console: Rich Console instance.
@@ -607,12 +606,12 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
     layout_table.add_column("right", justify="left")
 
     # Resolve skin colors once for the entire banner
-    accent = _skin_color("banner_accent", "#FFBF00")
-    dim = _skin_color("banner_dim", "#B8860B")
-    text = _skin_color("banner_text", "#FFF8DC")
-    session_color = _skin_color("session_border", "#8B8682")
+    accent = _skin_color("banner_accent", "#cba6f7")
+    dim = _skin_color("banner_dim", "#7f849c")
+    text = _skin_color("banner_text", "#cdd6f4")
+    session_color = _skin_color("session_border", "#6c7086")
 
-    # Use skin's custom caduceus art if provided
+    # Use skin's custom emblem art if provided
     try:
         from freeide_cli.skin_engine import get_active_skin
         _bskin = get_active_skin()
@@ -642,7 +641,7 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
             preset_name = preset_name[:25] + "..."
         agg_str = f" [dim {dim}]·[/] [dim {dim}]agg {agg_label}[/]" if agg_label else ""
         ctx_str = f" [dim {dim}]·[/] [dim {dim}]{_format_context_length(context_length)} context[/]" if context_length else ""
-        left_lines.append(f"[{accent}]MoA: {preset_name}[/]{agg_str}{ctx_str} [dim {dim}]·[/] [dim {dim}]Nous Research[/]")
+        left_lines.append(f"[{accent}]MoA: {preset_name}[/]{agg_str}{ctx_str} [dim {dim}]·[/] [dim {dim}]FreeIDE[/]")
     else:
         model_short = model.split("/")[-1] if "/" in model else model
         if model_short.endswith(".gguf"):
@@ -650,7 +649,7 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
         if len(model_short) > 28:
             model_short = model_short[:25] + "..."
         ctx_str = f" [dim {dim}]·[/] [dim {dim}]{_format_context_length(context_length)} context[/]" if context_length else ""
-        left_lines.append(f"[{accent}]{model_short}[/]{ctx_str} [dim {dim}]·[/] [dim {dim}]Nous Research[/]")
+        left_lines.append(f"[{accent}]{model_short}[/]{ctx_str} [dim {dim}]·[/] [dim {dim}]FreeIDE[/]")
 
     if os.getenv("FREEIDE_YOLO_MODE"):
         left_lines.append(f"[bold red]⚠ YOLO mode[/] [dim {dim}]— all approval prompts bypassed[/]")
@@ -858,8 +857,8 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
     right_content = "\n".join(right_lines)
     layout_table.add_row(left_content, right_content)
 
-    title_color = _skin_color("banner_title", "#FFD700")
-    border_color = _skin_color("banner_border", "#CD7F32")
+    title_color = _skin_color("banner_title", "#b4befe")
+    border_color = _skin_color("banner_border", "#585b70")
     version_label = format_banner_version_label()
     release_info = get_latest_release_tag()
     if release_info:
