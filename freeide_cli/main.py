@@ -1015,7 +1015,7 @@ def _has_any_provider_configured() -> bool:
     except Exception:
         pass
 
-    # Check for FreeIDE Portal OAuth credentials
+    # Check for stored OAuth credentials
     auth_file = get_freeide_home() / "auth.json"
     if auth_file.exists():
         try:
@@ -3661,8 +3661,8 @@ def _aux_config_menu() -> None:
         print()
         print("  Side tasks (vision, compression, web extraction, etc.) default")
         print('  to your main chat model.  "auto" means "use my main model" —')
-        print("  FreeIDE only falls back to a lightweight backend (OpenRouter,")
-        print("  FreeIDE Portal) if the main model is unavailable.  Override a")
+        print("  FreeIDE only falls back to a lightweight backend (OpenRouter)")
+        print("  if the main model is unavailable.  Override a")
         print("  task below if you want it pinned to a specific provider/model.")
         print()
 
@@ -15039,7 +15039,7 @@ def cmd_dashboard(args):
         print(f"→ Using web dist from FREEIDE_WEB_DIST: {_dist_root}")
 
     # Discover and load plugins so any DashboardAuthProvider plugin
-    # (e.g. plugins/dashboard_auth/nous) registers BEFORE start_server's
+    # registers BEFORE start_server's
     # fail-closed gate check runs. The top-level argparse setup skips
     # plugin discovery for built-in subcommands like ``dashboard`` to
     # save ~500ms startup; we have to trigger it explicitly here because
@@ -15168,7 +15168,7 @@ def _build_provider_choices() -> list[str]:
     except Exception:
         # Fallback: static list guarantees the CLI always works
         return [
-            "auto", "openrouter", "nous", "openai-codex", "xai-oauth", "copilot-acp", "copilot",
+            "auto", "openrouter", "openai-codex", "xai-oauth", "copilot-acp", "copilot",
             "anthropic", "gemini", "vertex", "xai", "bedrock", "azure-foundry",
             "ollama-cloud", "huggingface", "zai", "kimi-coding", "kimi-coding-cn",
             "stepfun", "minimax", "minimax-cn", "kilocode", "novita", "xiaomi", "arcee",
@@ -15193,7 +15193,7 @@ _BUILTIN_SUBCOMMANDS = frozenset(
         "dump", "egress", "fallback", "gateway", "hooks", "import", "insights",
         "gui", "desktop", "kanban", "login", "logout", "logs", "lsp", "mcp", "memory", "migrate", "moa",
         "journey", "memory-graph", "learning",
-        "model", "pairing", "pets", "plugins", "portal", "profile",
+        "model", "pairing", "pets", "plugins", "profile",
         "project", "proxy",
         "prompt-size",
         "send", "sessions", "setup",
@@ -15994,12 +15994,6 @@ def main():
     build_webhook_parser(subparsers, cmd_webhook=cmd_webhook)
 
     # =========================================================================
-    # portal command — FreeIDE Portal status + Tool Gateway routing
-    # =========================================================================
-    from freeide_cli.portal_cli import add_parser as _add_portal_parser
-    _add_portal_parser(subparsers)
-
-    # =========================================================================
     # kanban command — multi-profile collaboration board
     # =========================================================================
     from freeide_cli.kanban import build_parser as _build_kanban_parser
@@ -16512,7 +16506,7 @@ def main():
         p.add_argument(
             "--provider",
             help="Only match sessions billed through this provider "
-            "(e.g. openrouter, anthropic, nous)",
+            "(e.g. openrouter, anthropic, xai)",
         )
         p.add_argument(
             "--user", help="Only match sessions from this user ID"

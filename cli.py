@@ -4092,7 +4092,7 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
         Args:
             model: Model to use (default: from env or claude-sonnet)
             toolsets: List of toolsets to enable (default: all)
-            provider: Inference provider ("auto", "openrouter", "nous", "openai-codex", "zai", "kimi-coding", "minimax", "minimax-cn")
+            provider: Inference provider ("auto", "openrouter", "openai-codex", "zai", "kimi-coding", "minimax", "minimax-cn")
             api_key: API key (default: from environment)
             base_url: API base URL (default: OpenRouter)
             max_turns: Maximum tool-calling iterations shared with subagents (default: 500)
@@ -6979,11 +6979,11 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
                     "[dim]   Fix: Set model.context_length in config.yaml, or increase your server's context setting[/]"
                 )
 
-        # Warn if the configured model is a Nous FreeIDE LLM (not agentic)
-        from freeide_cli.model_switch import is_nous_freeide_non_agentic
+        # Warn if the configured model is a FreeIDE 3/4 chat LLM (not agentic)
+        from freeide_cli.model_switch import is_freeide_non_agentic
 
         model_name = getattr(self, "model", "") or ""
-        if is_nous_freeide_non_agentic(model_name):
+        if is_freeide_non_agentic(model_name):
             self._console_print()
             self._console_print(
                 "[bold yellow]⚠  FreeIDE FreeIDE 3 & 4 models are NOT agentic and are not "
@@ -8841,7 +8841,7 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
         _cprint(f"    Provider: {provider_label}")
 
         # Context: always resolve via the provider-aware chain so Codex OAuth,
-        # Copilot, and Nous-enforced caps win over the raw models.dev entry
+        # Copilot-enforced caps win over the raw models.dev entry
         # (e.g. gpt-5.5 is 1.05M on openai but 272K on Codex OAuth).
         mi = result.model_info
         try:
@@ -9193,7 +9193,7 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
         _cprint(f"    Provider: {provider_label}")
 
         # Context: always resolve via the provider-aware chain so Codex OAuth,
-        # Copilot, and Nous-enforced caps win over the raw models.dev entry
+        # Copilot-enforced caps win over the raw models.dev entry
         # (e.g. gpt-5.5 is 1.05M on openai but 272K on Codex OAuth).
         mi = result.model_info
         from freeide_cli.model_switch import resolve_display_context_length
@@ -10816,12 +10816,8 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
         print()
 
     def _show_usage(self):
-        """Rate limits + session token usage (when a live agent exists) + Nous credits.
+        """Rate limits + session token usage (when a live agent exists).
 
-        The Nous credits block is agent-independent (a portal fetch), so it runs even
-        with no live agent — important for the TUI, where /usage runs in a slash-worker
-        subprocess that resumes the session WITHOUT building an agent (self.agent is None),
-        which would otherwise early-return before any credits showed.
         """
         if not self.agent:
             print("(._.) No active agent -- send a message first.")
@@ -13387,7 +13383,7 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
 
                 # Durable, provider-agnostic billing CTA below the response. The
                 # response panel carries the full guidance; this pins the single
-                # action to take (Nous → /topup, other providers → their billing
+                # action to take (provider billing surfaces)
                 # page) so it stays visible instead of scrolling away as prose.
                 if result and result.get("failure_reason") == "billing":
                     _bb = result.get("billing_block") or {}
@@ -16746,7 +16742,7 @@ def main(
         toolsets: Comma-separated list of toolsets to enable (e.g., "web,terminal")
         skills: Comma-separated or repeated list of skills to preload for the session
         model: Model to use (default: anthropic/claude-opus-4-20250514)
-        provider: Inference provider ("auto", "openrouter", "nous", "openai-codex", "zai", "kimi-coding", "minimax", "minimax-cn")
+        provider: Inference provider ("auto", "openrouter", "openai-codex", "zai", "kimi-coding", "minimax", "minimax-cn")
         api_key: API key for authentication
         base_url: Base URL for the API
         max_turns: Maximum tool-calling iterations (default: 60)

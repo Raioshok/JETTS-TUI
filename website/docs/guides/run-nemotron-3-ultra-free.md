@@ -1,12 +1,12 @@
 ---
 sidebar_position: 0
 title: "Run Nemotron 3 Ultra free in FreeIDE Agent"
-description: "Try NVIDIA Nemotron 3 Ultra on FreeIDE Portal — free June 4–18 — with day 0 support in FreeIDE Agent"
+description: "Try NVIDIA Nemotron 3 Ultra free — June 4–18 — with day 0 support in FreeIDE Agent"
 ---
 
 # Run Nemotron 3 Ultra free in FreeIDE Agent
 
-FreeIDE has been inducted into the **Nemotron Coalition** of leading AI labs working with **NVIDIA** to advance open frontier foundation models. In honor of this, we've partnered with **Nebius** to provide **Nemotron 3 Ultra** free on [FreeIDE Portal](https://portal.freeide.dev) for two weeks (**June 4th – June 18th**). Follow the instructions below to try the model in your FreeIDE Agent today.
+FreeIDE has been inducted into the **Nemotron Coalition** of leading AI labs working with **NVIDIA** to advance open frontier foundation models. In honor of this, we've partnered with **Nebius** to provide **Nemotron 3 Ultra** free for two weeks (**June 4th – June 18th**), available through free providers like OpenRouter. Follow the instructions below to try the model in your FreeIDE Agent today.
 
 :::info Limited-time offer
 The `nvidia/nemotron-3-ultra:free` tier is available from **June 4th to June 18th**. The `:free` tag is what keeps it on the no-cost plan — pick that exact variant.
@@ -22,9 +22,9 @@ The simplest path: a one-click installer with a guided, point-and-click setup. N
 
 [Download the FreeIDE Desktop installer](https://freeide-agent.freeide.dev/) for macOS or Windows, then open it. On first launch it finishes setting itself up (usually under a minute).
 
-### 2. Connect FreeIDE Portal
+### 2. Connect a provider
 
-When the app opens, you'll see a "Let's get you set up" screen. Click **FreeIDE Portal** (marked **Recommended**). Your browser opens — create a [FreeIDE Portal](https://portal.freeide.dev) account (or sign in), choose the **Free** plan, and authorize FreeIDE. The app connects automatically.
+When the app opens, you'll see a "Let's get you set up" screen. Pick a provider that offers Nemotron 3 Ultra — for example **OpenRouter** — and paste your API key (create a free key from the provider's dashboard). The app connects automatically.
 
 ### 3. Pick the free Nemotron 3 Ultra model
 
@@ -66,23 +66,15 @@ After it finishes, reload your shell:
 source ~/.bashrc   # or source ~/.zshrc
 ```
 
-### 2. Run Quick Setup
+### 2. Run setup and pick a provider
 
 ```bash
 freeide setup
 ```
 
-Select **Quick Setup**. FreeIDE opens a browser tab and waits for you to finish the next steps.
+When prompted, choose a provider that offers Nemotron 3 Ultra — for example **OpenRouter** — and paste your API key. Create a free key from the provider's dashboard if you don't have one yet.
 
-### 3. Create a FreeIDE Portal account
-
-In the browser, create a [FreeIDE Portal](https://portal.freeide.dev) account (or sign in) and choose the **Free** plan.
-
-### 4. Connect your account
-
-When prompted to connect your account to FreeIDE Agent, click **Connect**. You'll see a confirmation once it's linked.
-
-### 5. Select the free Nemotron 3 Ultra model
+### 3. Select the free Nemotron 3 Ultra model
 
 Return to your terminal. From the model list, select:
 
@@ -92,9 +84,9 @@ nvidia/nemotron-3-ultra:free
 
 The `:free` tag is what keeps it on the no-cost tier, so make sure you pick that variant.
 
-### 6. Start chatting
+### 4. Start chatting
 
-Complete the remaining Quick Setup prompts, then run:
+Complete the remaining setup prompts, then run:
 
 ```bash
 freeide
@@ -111,13 +103,11 @@ Already set up with another model?
 
 ## Troubleshooting
 
-- **Don't see the model in the list?** Make sure you finished the FreeIDE Portal connection and that you're on the **Free** plan. In the CLI, `freeide portal info` confirms you're logged in and routing through FreeIDE.
+- **Don't see the model in the list?** Make sure you selected a provider that offers Nemotron 3 Ultra and that your API key is valid. Re-run `freeide setup` to check or change your provider.
 - **Picked the wrong variant?** Re-select `nvidia/nemotron-3-ultra:free` — the `:free` suffix is required to stay on the no-cost tier.
 - **Browser didn't open / you're on a remote host (CLI)?** See [OAuth over SSH / Remote Hosts](/guides/oauth-over-ssh) for port-forwarding workarounds.
 
 ## See also
 
 - **[Desktop App](/user-guide/desktop)** — The native one-click app (macOS, Windows, Linux)
-- **[Run FreeIDE Agent with FreeIDE Portal](/guides/run-freeide-with-nous-portal)** — Full Portal walkthrough: models, Tool Gateway, and verification
-- **[FreeIDE Portal integration](/integrations/nous-portal)** — What's in the subscription
 - **[Quickstart](/getting-started/quickstart)** — Install-to-chat in under 5 minutes

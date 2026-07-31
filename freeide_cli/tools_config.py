@@ -2828,8 +2828,8 @@ def provider_readiness_status(
     renders from (the old client-side heuristic showed Ready for every
     zero-env-var row, including logged-out FreeIDE Subscription rows).
 
-    ``features`` (a ``NousSubscriptionFeatures``) can be passed to avoid
-    re-fetching portal state per row. ``is_active`` is the completed-setup
+    ``features`` (a tool-features snapshot) can be passed to avoid
+    re-fetching managed feature state per row. ``is_active`` is the completed-setup
     fallback signal for post_setup hooks with no registered installed-check
     (selecting a row runs its hook, so the active row has been set up).
     """

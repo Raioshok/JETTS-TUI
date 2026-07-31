@@ -14,7 +14,6 @@ You need at least one way to connect to an LLM. Use `freeide model` to switch pr
 
 | Provider | Setup |
 |----------|-------|
-| **FreeIDE Portal** | `freeide model` (OAuth, subscription-based) |
 | **OpenAI Codex** | `freeide model` (ChatGPT OAuth, uses Codex models) |
 | **GitHub Copilot** | `freeide model` (OAuth device code flow, `COPILOT_GITHUB_TOKEN`, `GH_TOKEN`, or `gh auth token`) |
 | **GitHub Copilot ACP** | `freeide model` (spawns local `copilot --acp --stdio`) |
@@ -60,25 +59,6 @@ In the `model:` config section, you can use either `default:` or `model:` as the
 :::
 
 
-### FreeIDE Portal
-
-[FreeIDE Portal](https://portal.freeide.dev) is FreeIDE's unified subscription gateway and **the recommended way to run FreeIDE Agent**. One OAuth login covers 300+ frontier agentic models (Claude, GPT, Gemini, DeepSeek, Qwen, Kimi, GLM, MiniMax, Grok, ...) plus the [Tool Gateway](/user-guide/features/tool-gateway) (web search, image generation, TTS, browser automation) — billed against your FreeIDE subscription instead of separate per-provider accounts.
-
-```bash
-freeide setup --portal     # fresh install — OAuth + provider + gateway in one command
-freeide model              # existing install — pick "FreeIDE Portal" from the list
-freeide portal info        # inspect login + routing at any time
-```
-
-Don't have a subscription yet? Get one at [portal.freeide.dev/manage-subscription](https://portal.freeide.dev/manage-subscription).
-
-**For full details:** see the dedicated [FreeIDE Portal integration page](/integrations/nous-portal) (what's in the subscription, model catalog, troubleshooting) and the step-by-step [Run FreeIDE Agent with FreeIDE Portal guide](/guides/run-freeide-with-nous-portal).
-
-**Client identification.** Every Portal request from FreeIDE Agent carries a `client=freeide-client-v<version>` tag (e.g. `client=freeide-client-v0.13.0`) auto-aligned to your installed release. This is sent on all Portal pathways — main chat loop, auxiliary calls, compression summarizer, web extraction — and lets Portal-side telemetry distinguish FreeIDE traffic from other clients. No config required; the tag updates automatically when you `freeide update`.
-
-**JWT auth (automatic).** FreeIDE prefers scoped `inference:invoke` JWTs for Portal requests with the legacy opaque session-key path as a fallback. No configuration is required — credentials are managed by the OAuth flow and rotate transparently. Revoked refresh tokens are quarantined to avoid replay loops.
-
-
 :::info Codex Note
 The OpenAI Codex provider authenticates via device code (open a URL, enter a code). FreeIDE stores the resulting credentials in its own auth store under `~/.freeide/auth.json` and can import existing Codex CLI credentials from `~/.codex/auth.json` when present. No Codex CLI installation is required.
 
@@ -86,11 +66,7 @@ If a token refresh fails with a terminal error (HTTP 4xx, `invalid_grant`, revok
 :::
 
 :::warning
-Even when using FreeIDE Portal, Codex, or a custom endpoint, some tools (vision, web summarization, MoA) use a separate "auxiliary" model. By default (`auxiliary.*.provider: "auto"`), FreeIDE routes these tasks to your **main chat model** — the same model you picked in `freeide model`. You can override each task individually to route it to a cheaper/faster model (e.g. Gemini Flash on OpenRouter) — see [Auxiliary Models](/user-guide/configuration#auxiliary-models).
-:::
-
-:::tip FreeIDE Tool Gateway
-Paid FreeIDE Portal subscribers also get access to the **[Tool Gateway](/user-guide/features/tool-gateway)** — web search, image generation, TTS, and browser automation routed through your subscription. No extra API keys needed. On a fresh install, `freeide setup --portal` logs you in, sets FreeIDE as your provider, and turns the gateway on in one command. Existing users can enable it from `freeide model` or per-tool from `freeide tools`. Inspect routing at any time with `freeide portal info`.
+Even when using Codex or a custom endpoint, some tools (vision, web summarization, MoA) use a separate "auxiliary" model. By default (`auxiliary.*.provider: "auto"`), FreeIDE routes these tasks to your **main chat model** — the same model you picked in `freeide model`. You can override each task individually to route it to a cheaper/faster model (e.g. Gemini Flash on OpenRouter) — see [Auxiliary Models](/user-guide/configuration#auxiliary-models).
 :::
 
 ### Two Commands for Model Management
@@ -1156,9 +1132,8 @@ FreeIDE uses a multi-source resolution chain to detect the correct context windo
 4. **Endpoint `/models`** — queries your server's API (local/custom endpoints)
 5. **Anthropic `/v1/models`** — queries Anthropic's API for `max_input_tokens` (API-key users only)
 6. **OpenRouter API** — live model metadata from OpenRouter
-7. **FreeIDE Portal** — suffix-matches FreeIDE model IDs against OpenRouter metadata
-8. **[models.dev](https://models.dev)** — community-maintained registry with provider-specific context lengths for 3800+ models across 100+ providers
-9. **Fallback defaults** — broad model family patterns (128K default)
+7. **[models.dev](https://models.dev)** — community-maintained registry with provider-specific context lengths for 3800+ models across 100+ providers
+8. **Fallback defaults** — broad model family patterns (128K default)
 
 For most setups this works out of the box. The system is provider-aware — the same model can have different context limits depending on who serves it (e.g., `claude-opus-4.6` is 1M on Anthropic direct but 128K on GitHub Copilot).
 
@@ -1378,7 +1353,7 @@ model:
 
 | Use Case | Recommended |
 |----------|-------------|
-| **Just want it to work** | OpenRouter (default) or FreeIDE Portal |
+| **Just want it to work** | OpenRouter (default) |
 | **Local models, easy setup** | Ollama |
 | **Production GPU serving** | vLLM or SGLang |
 | **Mac / no GPU** | Ollama or llama.cpp |
@@ -1491,7 +1466,7 @@ fallback_model:
 
 When activated, the fallback swaps the model and provider mid-session without losing your conversation. The chain is tried entry-by-entry; activation is one-shot per session.
 
-Supported providers: `openrouter`, `nous`, `novita`, `openai-codex`, `copilot`, `copilot-acp`, `anthropic`, `gemini`, `qwen-oauth`, `huggingface`, `zai`, `kimi-coding`, `kimi-coding-cn`, `minimax`, `minimax-cn`, `minimax-oauth`, `deepseek`, `nvidia`, `xai`, `xai-oauth`, `ollama-cloud`, `bedrock`, `azure-foundry`, `opencode-zen`, `opencode-go`, `kilocode`, `xiaomi`, `arcee`, `gmi`, `stepfun`, `lmstudio`, `alibaba`, `alibaba-coding-plan`, `tencent-tokenhub`, `custom`.
+Supported providers: `openrouter`, `novita`, `openai-codex`, `copilot`, `copilot-acp`, `anthropic`, `gemini`, `qwen-oauth`, `huggingface`, `zai`, `kimi-coding`, `kimi-coding-cn`, `minimax`, `minimax-cn`, `minimax-oauth`, `deepseek`, `nvidia`, `xai`, `xai-oauth`, `ollama-cloud`, `bedrock`, `azure-foundry`, `opencode-zen`, `opencode-go`, `kilocode`, `xiaomi`, `arcee`, `gmi`, `stepfun`, `lmstudio`, `alibaba`, `alibaba-coding-plan`, `tencent-tokenhub`, `custom`.
 
 :::tip
 Fallback is configured exclusively through `config.yaml` — or interactively via `freeide fallback`. For full details on when it triggers, how the chain advances, and how it interacts with auxiliary tasks and delegation, see [Fallback Providers](/user-guide/features/fallback-providers).

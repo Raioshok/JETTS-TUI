@@ -2,13 +2,13 @@
 
 The desktop app is a *native* OAuth client that wants to sign in to a gated
 gateway **without an embedded webview and without relying on browser session
-cookies**. It cannot be a direct OAuth client of the upstream IDP (Nous
-Portal): the Portal ``client_id`` is per-gateway-instance
-(``agent:{instance_id}``) and the Portal validates that the ``redirect_uri``
+cookies**. It cannot be a direct OAuth client of the upstream IDP: the IDP
+``client_id`` is per-gateway-instance
+(``agent:{instance_id}``) and the IDP validates that the ``redirect_uri``
 ends in ``/auth/callback`` on the gateway's own public origin — a desktop
 loopback ``127.0.0.1`` redirect is rejected. So the **gateway brokers** the
 flow: it is the authorization server *to the desktop*, and an OAuth client *to
-the Portal*. This is still a textbook RFC 8252 deployment — system browser,
+the IDP*. This is still a textbook RFC 8252 deployment — system browser,
 loopback redirect, PKCE, tokens returned to the app (never cookies).
 
 Wire shape (all gateway-side state lives in this module):
@@ -19,11 +19,11 @@ Wire shape (all gateway-side state lives in this module):
      ``state``, and its loopback ``redirect_uri``.
   2. The gateway ``authorize`` route stashes a **pending authorization**
      (``register_pending``) keyed by an opaque ``broker_state`` and runs the
-     EXISTING upstream PKCE flow (``provider.start_login`` → Portal
+     EXISTING upstream PKCE flow (``provider.start_login`` → IDP
      ``/oauth/authorize`` → gateway ``/auth/callback``). The desktop's
      ``cc_d`` / ``state`` / loopback ``redirect_uri`` ride through the upstream
      round trip inside the gateway's own PKCE cookie, so no desktop secret is
-     ever exposed to the Portal.
+     ever exposed to the IDP.
   3. On the upstream callback the gateway holds a verified :class:`Session`. It
      **mints a one-time gateway authorization code** (``complete_pending``)
      bound to the desktop's ``cc_d``, and 302s the browser to the desktop's
@@ -72,7 +72,7 @@ from typing import Dict, Optional
 from freeide_cli.dashboard_auth.base import Session
 
 # TTL for a pending authorization (step 2→3): the whole interactive login,
-# including the user typing Portal credentials / approving in the browser.
+# including the user typing IDP credentials / approving in the browser.
 _PENDING_TTL_SECONDS = 600  # 10 minutes — mirrors the PKCE cookie lifetime.
 
 # TTL for a minted gateway code (step 3→4): only the loopback redirect + the

@@ -9,10 +9,7 @@ The proxy listens on ``127.0.0.1:<port>``, accepts any bearer (the client's
 upstream credential to the forwarded request. The credential is refreshed
 automatically when it approaches expiry.
 
-First-class adapter:
-  - ``nous`` — FreeIDE Portal (https://inference-api.freeide.dev/v1)
-
-Future adapters can plug in by implementing ``UpstreamAdapter``.
+Adapters plug in by implementing ``UpstreamAdapter``.
 """
 
 from freeide_cli.proxy.adapters.base import UpstreamAdapter

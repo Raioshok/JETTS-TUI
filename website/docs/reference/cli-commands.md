@@ -49,7 +49,7 @@ freeide [global-options] <command> [subcommand/options]
 | `freeide whatsapp` | Configure and pair the WhatsApp bridge. |
 | `freeide whatsapp-cloud` | Configure the official Meta WhatsApp Business Cloud API adapter (Business account + public webhook required). Distinct from `freeide whatsapp` (Baileys personal-account bridge). |
 | `freeide slack` | Slack helpers (currently: generate the app manifest with every command as a native slash). |
-| `freeide auth` | Manage credentials — add, list, remove, reset, status, logout. Handles OAuth flows for Codex/Nous/Anthropic. |
+| `freeide auth` | Manage credentials — add, list, remove, reset, status, logout. Handles OAuth flows for Codex/Anthropic. |
 | `freeide login` / `logout` | **Deprecated** — use `freeide auth` instead. |
 | `freeide send` | Send a one-shot message to a configured messaging platform (Telegram, Discord, Slack, Signal, SMS, …). Useful from shell scripts, cron jobs, CI hooks, and monitoring daemons — no agent loop, no LLM. |
 | `freeide secrets` | Manage external secret sources (currently Bitwarden Secrets Manager) for pulling API keys at process startup instead of from `~/.freeide/.env`. |
@@ -78,7 +78,6 @@ freeide [global-options] <command> [subcommand/options]
 | `freeide acp` | Run FreeIDE as an ACP server for editor integration. |
 | `freeide mcp` | Manage MCP server configurations and run FreeIDE as an MCP server. |
 | `freeide plugins` | Manage FreeIDE Agent plugins (install, enable, disable, remove). |
-| `freeide portal` | FreeIDE Portal status, subscription link, and Tool Gateway routing. See [Tool Gateway](../user-guide/features/tool-gateway.md). |
 | `freeide tools` | Configure enabled tools per platform. |
 | `freeide computer-use` | Install or check the cua-driver backend (macOS Computer Use). |
 | `freeide pets` | Browse, install, and select [petdex](../user-guide/features/pets.md) animated pets shown across the CLI, TUI, and desktop app. Subcommands: `list`, `install`, `select`, `show`, `off`, `scale`, `remove`, `doctor`. |
@@ -107,7 +106,7 @@ Common options:
 | `-q`, `--query "..."` | One-shot, non-interactive prompt. |
 | `-m`, `--model <model>` | Override the model for this run. |
 | `-t`, `--toolsets <csv>` | Enable a comma-separated set of toolsets. |
-| `--provider <provider>` | Force a provider: `auto`, `openrouter`, `nous`, `openai-codex`, `copilot-acp`, `copilot`, `anthropic`, `gemini`, `huggingface`, `novita` (aliases `novita-ai`, `novitaai`), `openai-api`, `zai`, `kimi-coding`, `kimi-coding-cn`, `minimax`, `minimax-cn`, `minimax-oauth`, `kilocode`, `xiaomi`, `arcee`, `gmi`, `upstage` (alias `solar`), `alibaba`, `alibaba-coding-plan` (alias `alibaba_coding`), `deepseek`, `nvidia`, `ollama-cloud`, `xai` (alias `grok`), `xai-oauth` (alias `grok-oauth`), `qwen-oauth`, `bedrock`, `opencode-zen`, `opencode-go`, `azure-foundry`, `lmstudio`, `stepfun`, `tencent-tokenhub` (alias `tencent`, `tokenhub`). |
+| `--provider <provider>` | Force a provider: `auto`, `openrouter`, `openai-codex`, `copilot-acp`, `copilot`, `anthropic`, `gemini`, `huggingface`, `novita` (aliases `novita-ai`, `novitaai`), `openai-api`, `zai`, `kimi-coding`, `kimi-coding-cn`, `minimax`, `minimax-cn`, `minimax-oauth`, `kilocode`, `xiaomi`, `arcee`, `gmi`, `upstage` (alias `solar`), `alibaba`, `alibaba-coding-plan` (alias `alibaba_coding`), `deepseek`, `nvidia`, `ollama-cloud`, `xai` (alias `grok`), `xai-oauth` (alias `grok-oauth`), `qwen-oauth`, `bedrock`, `opencode-zen`, `opencode-go`, `azure-foundry`, `lmstudio`, `stepfun`, `tencent-tokenhub` (alias `tencent`, `tokenhub`). |
 | `-s`, `--skills <name>` | Preload one or more skills for the session (can be repeated or comma-separated). |
 | `-v`, `--verbose` | Verbose output. |
 | `-Q`, `--quiet` | Programmatic mode: suppress banner/spinner/tool previews. |
@@ -173,7 +172,7 @@ freeide model
 
 Use this when you want to:
 - **add a new provider** (OpenRouter, Anthropic, Copilot, DeepSeek, custom, etc.)
-- log into OAuth-backed providers (Anthropic, Copilot, Codex, FreeIDE Portal)
+- log into OAuth-backed providers (Anthropic, Copilot, Codex, xAI, Qwen)
 - enter or update API keys
 - pick from provider-specific model lists
 - configure a custom/self-hosted endpoint
@@ -287,10 +286,10 @@ the full guide, supported languages, and configuration knobs.
 ## `freeide setup`
 
 ```bash
-freeide setup [model|tts|terminal|gateway|tools|agent] [--non-interactive] [--reset] [--quick] [--reconfigure] [--portal]
+freeide setup [model|tts|terminal|gateway|tools|agent] [--non-interactive] [--reset] [--quick] [--reconfigure]
 ```
 
-**Easiest path:** `freeide setup --portal` — OAuth into FreeIDE Portal and opt into the [Tool Gateway](../user-guide/features/tool-gateway.md) in one shot.
+**Easiest path:** run `freeide setup` and pick a provider — FreeIDE is bring-your-own-key, so choose a free or paid provider and paste an API key (or use a provider's own OAuth, e.g. openai-codex, xai-oauth, qwen-oauth).
 
 **First run:** launches the first-time wizard.
 
@@ -314,23 +313,6 @@ Options:
 | `--non-interactive` | Use defaults / environment values without prompts. |
 | `--reset` | Reset configuration to defaults before setup. |
 | `--reconfigure` | Backwards-compat alias — bare `freeide setup` on an existing install now does this by default. |
-| `--portal` | One-shot FreeIDE Portal setup: log in via OAuth, set Nous as the inference provider, and opt into the [Tool Gateway](../user-guide/features/tool-gateway.md). Skips the rest of the wizard. |
-
-## `freeide portal`
-
-```bash
-freeide portal [status|open|tools]
-```
-
-Inspect FreeIDE Portal auth, Tool Gateway routing, and reach the subscription page. Subcommand-less invocation runs `status`.
-
-| Subcommand | Description |
-|------------|-------------|
-| `status` (default) | Portal auth state + per-tool Tool Gateway routing summary. Also shown when no subcommand is given. |
-| `open` | Open `portal.freeide.dev/manage-subscription` in your default browser. |
-| `tools` | List every Tool Gateway partner (Firecrawl, FAL, OpenAI TTS, Browser Use, Modal) and which are routed via FreeIDE. |
-
-For configuration of the gateway itself, see [Tool Gateway](../user-guide/features/tool-gateway.md). For the one-shot setup path, see `freeide setup --portal` above.
 
 ## `freeide whatsapp`
 
@@ -471,11 +453,11 @@ Common flags for migration subcommands:
 freeide proxy <subcommand>
 ```
 
-Run a local OpenAI-compatible HTTP server that forwards requests to an OAuth-authenticated upstream provider (e.g. FreeIDE Portal, xAI). External apps can point at the proxy with any bearer token; the proxy attaches your real OAuth credentials on the way out. See [Subscription Proxy](../user-guide/features/subscription-proxy.md) for the full guide.
+Run a local OpenAI-compatible HTTP server that forwards requests to an OAuth-authenticated upstream provider (e.g. xAI). External apps can point at the proxy with any bearer token; the proxy attaches your real OAuth credentials on the way out. See [Subscription Proxy](../user-guide/features/subscription-proxy.md) for the full guide.
 
 | Subcommand | Description |
 |------------|-------------|
-| `start` | Run the proxy in the foreground. Flags: `--provider <nous\|xai>` (default `nous`), `--host <addr>` (default `127.0.0.1`; use `0.0.0.0` to expose on LAN), `--port <int>` (default `8645`). |
+| `start` | Run the proxy in the foreground. Flags: `--provider <xai>` (default `xai`), `--host <addr>` (default `127.0.0.1`; use `0.0.0.0` to expose on LAN), `--port <int>` (default `8645`). |
 | `status` | Show which proxy upstreams are ready (credentials present, OAuth valid). |
 | `providers` | List available proxy upstream providers. |
 
@@ -806,7 +788,6 @@ api_keys:
   openrouter           set
   openai               not set
   anthropic            set
-  nous                 not set
   firecrawl            set
   ...
 
@@ -1326,8 +1307,8 @@ Manage MCP (Model Context Protocol) server configurations and run FreeIDE as an 
 
 | Subcommand | Description |
 |------------|-------------|
-| *(none)* or `picker` | Interactive catalog picker — browse Nous-approved MCPs and install/enable/disable. |
-| `catalog` | List Nous-approved MCPs (plain text, scriptable). |
+| *(none)* or `picker` | Interactive catalog picker — browse curated MCPs and install/enable/disable. |
+| `catalog` | List curated MCPs (plain text, scriptable). |
 | `install <name>` | Install a catalog entry (e.g. `freeide mcp install n8n`). |
 | `serve [-v\|--verbose]` | Run FreeIDE as an MCP server — expose conversations to other agents. |
 | `add <name> [--url URL] [--command CMD] [--auth oauth\|header] [--args ...]` | Add a custom MCP server with automatic tool discovery. `--args` passes the remaining argv to the stdio command, so put it last. |
@@ -1553,15 +1534,7 @@ Launch the web dashboard — a browser-based UI for managing configuration, API 
 | `--stop` | — | Stop running `freeide dashboard` processes and exit. |
 | `--status` | — | List running `freeide dashboard` processes and exit. |
 
-### `freeide dashboard register`
-
-Register this install as a self-hosted dashboard with your FreeIDE Portal account. Creates an OAuth client, writes `FREEIDE_DASHBOARD_OAUTH_CLIENT_ID` into `~/.freeide/.env`, and prints how to engage the login gate. Requires being logged in (`freeide setup`).
-
-| Option | Description |
-|--------|-------------|
-| `--name` | Human-readable label for the dashboard (default: auto-generated). |
-| `--redirect-uri` | Public HTTPS OAuth redirect URI (e.g. `https://freeide.example.com/auth/callback`). Omit for localhost-only use. |
-| `--portal-url` | Override the FreeIDE Portal base URL for registration (default: the portal you logged into). Also settable via `FREEIDE_DASHBOARD_PORTAL_URL`. |
+For an internet-facing dashboard, gate it with the bundled username/password provider or your own self-hosted OIDC provider. See [Web Dashboard → Authentication](/user-guide/features/web-dashboard#authentication-gated-mode) and the `FREEIDE_DASHBOARD_*` variables in the [Environment Variables](./environment-variables.md#web-dashboard--freeide-desktop) reference.
 
 ```bash
 # Default — opens browser to http://127.0.0.1:9119

@@ -11,7 +11,7 @@ In this tutorial, you'll build a personal briefing bot that wakes up every morni
 By the end, you'll have a fully automated workflow combining **web search**, **cron scheduling**, **delegation**, and **messaging delivery** — no code required.
 
 :::tip
-This recipe hits web search, summarization, and optional TTS — all bundled in a Portal subscription. The fastest setup is `freeide setup --portal`. See [FreeIDE Portal](/integrations/nous-portal).
+This recipe hits web search, summarization, and optional TTS. Run `freeide setup` and pick a provider, then bring your own keys for the tool backends you want (e.g. Firecrawl/Tavily/Exa for search, OpenAI for TTS).
 :::
 
 ## What We're Building

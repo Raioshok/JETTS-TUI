@@ -1,9 +1,9 @@
 """Remote model catalog fetcher.
 
 The FreeIDE docs site hosts a JSON manifest of curated models for providers
-we want to update without shipping a release (currently OpenRouter and
-FreeIDE Portal). This module fetches, validates, and caches that manifest,
-falling back to the in-repo hardcoded lists when the network is unavailable.
+we want to update without shipping a release (currently OpenRouter). This
+module fetches, validates, and caches that manifest, falling back to the
+in-repo hardcoded lists when the network is unavailable.
 
 Pipeline
 --------
@@ -13,9 +13,9 @@ Pipeline
    - Fetches the master URL if disk cache is stale or missing.
    - On any fetch failure, keeps using the stale cache (or empty dict).
 
-2. ``get_curated_openrouter_models()`` / ``get_curated_nous_models()`` —
-   thin accessors returning the shapes existing callers expect. Each
-   falls back to the in-repo hardcoded list on any lookup failure.
+2. ``get_curated_openrouter_models()`` — thin accessor returning the shape
+   existing callers expect. Falls back to the in-repo hardcoded list on any
+   lookup failure.
 
 Schema (version 1)
 ------------------
@@ -32,8 +32,7 @@ Schema (version 1)
             {"id": "vendor/model", "description": "recommended",
              "metadata": {...}}          # free-form, model-level
           ]
-        },
-        "nous": {...}
+        }
       }
     }
 
@@ -340,22 +339,6 @@ def get_curated_openrouter_models() -> list[tuple[str, str]] | None:
     return out or None
 
 
-def get_curated_nous_models() -> list[str] | None:
-    """Return FreeIDE Portal's curated list of model ids from the manifest.
-
-    Returns ``None`` when the manifest is unavailable.
-    """
-    block = _get_provider_block("nous")
-    if not block:
-        return None
-    out: list[str] = []
-    for m in block.get("models", []):
-        mid = str(m.get("id") or "").strip()
-        if mid:
-            out.append(mid)
-    return out or None
-
-
 def _default_model_from_block(block: dict[str, Any] | None) -> str | None:
     """Return the id of the model entry labeled ``"default": true``, or None."""
     if not isinstance(block, dict):
@@ -398,8 +381,7 @@ def seed_cache_from_checkout(project_root: "Path | str") -> bool:
     ``freeide update`` pulls the latest repo, so the freshly-pulled
     ``website/static/api/model-catalog.json`` IS the newest catalog — no
     network round-trip needed. Copying it straight over the disk cache keeps
-    the model picker current even when the remote manifest fetch is bot-gated
-    or the Portal hiccups.
+    the model picker current even when the remote manifest fetch is bot-gated.
 
     Reads the shipped manifest, validates it against the schema, and writes it
     to ``~/.freeide/cache/model_catalog.json`` via the same atomic writer the

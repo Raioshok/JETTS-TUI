@@ -54,11 +54,6 @@ FREEIDE_OVERLAYS: Dict[str, FreeIDEOverlay] = {
         is_aggregator=True,
         base_url_env_var="OPENROUTER_BASE_URL",
     ),
-    "nous": FreeIDEOverlay(
-        transport="openai_chat",
-        auth_type="oauth_device_code",
-        base_url_override="https://inference-api.freeide.dev/v1",
-    ),
     "openai-codex": FreeIDEOverlay(
         transport="codex_responses",
         auth_type="oauth_external",
@@ -392,7 +387,6 @@ ALIASES: Dict[str, str] = {
 
 _LABEL_OVERRIDES: Dict[str, str] = {
     "moa": "Mixture of Agents",
-    "nous": "FreeIDE Portal",
     "openai-codex": "OpenAI Codex",
     "copilot-acp": "GitHub Copilot ACP",
     "stepfun": "StepFun Step Plan",
@@ -435,7 +429,7 @@ def get_provider(name: str) -> Optional[ProviderDef]:
     """Look up a built-in provider by id or alias.
 
     Resolution order:
-      1. FreeIDE overlays (for providers not in models.dev: nous, openai-codex, etc.)
+      1. FreeIDE overlays (for providers not in models.dev: openai-codex, etc.)
       2. models.dev catalog + FreeIDE overlay
 
     User-defined providers from config.yaml (``providers:`` / ``custom_providers:``)
@@ -597,49 +591,21 @@ def host_mandated_api_mode(base_url: str = "") -> Optional[str]:
     return None
 
 
-def nous_api_mode(model: str = "") -> str:
-    """Resolve the wire protocol for a FreeIDE Portal model.
-
-    Portal serves its ``anthropic/*`` catalog on a native Anthropic Messages
-    route (``/v1/messages``) alongside the OpenAI-compatible
-    ``/v1/chat/completions`` used by every other model it proxies.  Claude
-    traffic goes to the native route so it gets Anthropic's own request shape
-    (inner-block ``cache_control`` breakpoints, thinking blocks) instead of the
-    OpenAI-wire translation.
-
-    When *model* is empty/unknown, defaults to ``chat_completions`` — the
-    historical FreeIDE transport — so callers that don't yet know the model
-    stay on the safer OpenAI-compatible path.
-    """
-    if str(model or "").strip().lower().startswith("anthropic/"):
-        return "anthropic_messages"
-    return "chat_completions"
-
-
 def determine_api_mode(provider: str, base_url: str = "", model: str = "") -> str:
     """Determine the API mode (wire protocol) for a provider/endpoint.
 
     Resolution order:
       1. Host-mandated mode (special endpoints that only accept one protocol).
-      2. FreeIDE Portal dual-wire (model-derived; overlay alone is openai_chat).
-      3. Known provider → transport → TRANSPORT_TO_API_MODE.
-      4. Direct provider checks (bedrock).
-      5. Default: 'chat_completions'.
+      2. Known provider → transport → TRANSPORT_TO_API_MODE.
+      3. Direct provider checks (bedrock).
+      4. Default: 'chat_completions'.
 
-    *model* is optional but required for dual-wire providers (FreeIDE) whose
-    transport depends on the catalog id, not just the provider/host.
+    *model* is accepted for signature compatibility but no longer affects the
+    resolution.
     """
     mandated = host_mandated_api_mode(base_url)
     if mandated is not None:
         return mandated
-
-    # FreeIDE is dual-wire: anthropic/* → Messages, everything else →
-    # chat_completions. The FreeIDE overlay still advertises openai_chat
-    # (the majority of the Portal catalog), so the transport lookup below
-    # would pin Claude on the wrong wire without this carve-out.
-    provider_norm = (provider or "").strip().lower()
-    if provider_norm in {"nous", "nous-portal", "freeide"}:
-        return nous_api_mode(model)
 
     pdef = get_provider(provider)
     if pdef is not None:

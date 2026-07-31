@@ -13,7 +13,7 @@ If you haven't installed FreeIDE Agent yet, begin with the [Installation guide](
 :::
 
 :::tip First-time provider setup
-First-time users almost always want `freeide setup --portal` — one OAuth covers a model plus the four Tool Gateway tools (search/image/TTS/browser). See [FreeIDE Portal](/integrations/nous-portal).
+First-time users should run `freeide setup` and pick a provider — FreeIDE is bring-your-own-key, so choose a free or paid provider and paste an API key (or use a provider's own OAuth like openai-codex, xai-oauth, or qwen-oauth).
 :::
 
 ## How to Use This Page

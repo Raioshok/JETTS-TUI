@@ -125,7 +125,6 @@ EXCLUDED: dict[str, str] = {
     "opencode-zen": "aggregator subscription",
     "opencode-go": "aggregator subscription",
     "kilocode": "aggregator subscription",
-    "nous": "upstream's own portal",
     "custom": "user-supplied endpoint, configured directly",
 }
 

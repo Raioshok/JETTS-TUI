@@ -52,7 +52,7 @@ from typing import List, Optional
 # MoA fan-out, tool executor) inherit it through the copied Context; bare
 # threads (title generator) capture it explicitly at spawn time.
 _conversation_id: ContextVar[Optional[str]] = ContextVar(
-    "nous_portal_conversation_id", default=None
+    "freeide_conversation_id", default=None
 )
 
 

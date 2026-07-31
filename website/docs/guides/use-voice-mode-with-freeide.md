@@ -11,7 +11,7 @@ This guide is the practical companion to the [Voice Mode feature reference](/use
 If the feature page explains what voice mode can do, this guide shows how to actually use it well.
 
 :::tip
-[FreeIDE Portal](/integrations/nous-portal) bundles both the LLM and TTS through one OAuth — voice mode works end-to-end with no extra credentials.
+Voice mode needs an LLM plus a TTS backend. Configure each with your own key — pick a chat provider with `freeide setup`, then add a TTS backend (for example OpenAI TTS) with its own API key.
 :::
 
 ## What voice mode is good for

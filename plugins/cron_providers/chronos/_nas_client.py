@@ -41,9 +41,16 @@ class NasCronClient:
     # -- auth -------------------------------------------------------------
 
     def _access_token(self) -> str:
-        """The agent's existing FreeIDE Portal access token (refresh-aware)."""
-        from freeide_cli.auth import resolve_nous_access_token
-        return resolve_nous_access_token()
+        """The agent's portal access token.
+
+        The managed portal auth backend has been removed, so no token is
+        available. This client is only constructed when Chronos is active,
+        which no longer happens; the method is kept importable for
+        compatibility.
+        """
+        raise NasCronClientError(
+            "portal access token unavailable: managed portal auth was removed"
+        )
 
     def _headers(self) -> Dict[str, str]:
         return {

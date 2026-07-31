@@ -546,49 +546,15 @@ def _is_deepseek_anthropic_endpoint(base_url: str | None) -> bool:
     return "/anthropic" in normalized.rstrip("/").lower()
 
 
-def _is_nous_portal_endpoint(base_url: str | None) -> bool:
-    """Return True for FreeIDE Portal's Anthropic Messages route.
-
-    Portal serves its ``anthropic/*`` catalog natively at
-    ``https://inference-api.freeide.dev/v1/messages``.  Portal-specific
-    behaviours key off this: Bearer JWT auth, verbatim catalog model ids,
-    and native thinking-signature replay.
-
-    Trusted hosts only:
-
-    1. Prod hostname ``inference-api.freeide.dev``
-    2. The operator-set ``NOUS_INFERENCE_BASE_URL`` hostname (staging/preview)
-
-    Lookalikes such as ``inference-api.freeide.dev.attacker.test`` are
-    rejected (hostname match, not substring).
-    """
-    if base_url_host_matches(base_url or "", "inference-api.freeide.dev"):
-        return True
-    try:
-        from freeide_cli.auth import _nous_inference_env_override
-
-        override = _nous_inference_env_override()
-    except Exception:
-        return False
-    if not override:
-        return False
-    # Exact host equality (not subdomain) so the env override can't broaden
-    # into sibling hosts the operator did not set.
-    override_host = base_url_hostname(override)
-    return bool(override_host) and base_url_hostname(base_url or "") == override_host
-
-
 def _requires_bearer_auth(base_url: str | None) -> bool:
     """Return True for Anthropic-compatible providers that require Bearer auth.
 
     Some third-party /anthropic endpoints implement Anthropic's Messages API but
     require Authorization: Bearer instead of Anthropic's native x-api-key header.
     MiniMax's global and China Anthropic-compatible endpoints, Azure AI
-    Foundry's Anthropic-style endpoint, Palantir Foundry's LLM proxy, and FreeIDE
-    Portal's Messages route follow this pattern.
+    Foundry's Anthropic-style endpoint, and Palantir Foundry's LLM proxy follow
+    this pattern.
     """
-    if _is_nous_portal_endpoint(base_url):
-        return True
     normalized = _normalize_base_url_text(base_url)
     if not normalized:
         return False
@@ -892,8 +858,8 @@ def build_anthropic_client(
     # Bearer-only construction leaves ``api_key`` unset, so the SDK fills it
     # from ``ANTHROPIC_API_KEY`` (FreeIDE loads that into the process env from
     # ``~/.freeide/.env``). The result is dual auth —
-    # ``X-Api-Key: sk-ant-…`` *and* ``Authorization: Bearer <portal-jwt>`` —
-    # on every Portal / MiniMax / OAuth Messages request. Clear the env-filled
+    # ``X-Api-Key: sk-ant-…`` *and* ``Authorization: Bearer <jwt>`` —
+    # on every MiniMax / OAuth Messages request. Clear the env-filled
     # key whenever we intentionally authenticated via auth_token alone.
     if "auth_token" in kwargs and "api_key" not in kwargs:
         client.api_key = None
@@ -2463,22 +2429,10 @@ def _manage_thinking_signatures(
     replayed assistant tool-call messages.  See freeide-agent#13848 (Kimi) and
     freeide-agent#16748 (DeepSeek).
 
-    FreeIDE Portal's ``/v1/messages`` route is the exception among third-party
-    hosts: it proxies Claude to Anthropic/Vertex/Bedrock and validates the
-    same signed thinking blocks.  Sticky ``session_id`` keeps a conversation
-    on one upstream instance so those signatures stay warm — stripping them
-    here would 400 the first tool-loop turn ("thinking must be passed back").
-    Portal therefore takes the native Anthropic replay path below.
-
     Mutates ``result`` in place.
     """
     _THINKING_TYPES = frozenset(("thinking", "redacted_thinking"))
-    # Portal speaks Anthropic's thinking contract end-to-end; do not treat it
-    # as a signature-blind proxy even though the host is not anthropic.com.
-    _is_third_party = (
-        _is_third_party_anthropic_endpoint(base_url)
-        and not _is_nous_portal_endpoint(base_url)
-    )
+    _is_third_party = _is_third_party_anthropic_endpoint(base_url)
 
     last_assistant_idx = None
     for i in range(len(result) - 1, -1, -1):
@@ -2735,12 +2689,7 @@ def build_anthropic_kwargs(
     )
     anthropic_tools = convert_tools_to_anthropic(tools) if tools else []
 
-    # FreeIDE Portal routes on its own catalog ids (``anthropic/claude-opus-4.8``);
-    # normalizing to the bare Anthropic slug would make the model unresolvable
-    # there. Skipping the call preserves the prefix AND the dots, so
-    # ``preserve_dots`` stays irrelevant for Portal.
-    if not _is_nous_portal_endpoint(base_url):
-        model = normalize_model_name(model, preserve_dots=preserve_dots)
+    model = normalize_model_name(model, preserve_dots=preserve_dots)
     # effective_max_tokens = output cap for this call (≠ total context window)
     # Use the resolver helper so non-positive values (negative ints,
     # fractional floats, NaN, non-numeric) fail locally with a clear error
@@ -3001,9 +2950,8 @@ def create_anthropic_message(
     ``on_response``: optional callable invoked once with the underlying httpx
     response before the message is aggregated (best-effort, exceptions
     swallowed). Response *headers* carry out-of-band provider state that the
-    parsed ``Message`` drops — FreeIDE Portal's ``x-nous-credits-*`` balance family
-    in particular. Only fires on the streaming path, which is the one the main
-    turn loop takes.
+    parsed ``Message`` drops. Only fires on the streaming path, which is the one
+    the main turn loop takes.
     """
     sanitize_anthropic_kwargs(api_kwargs, log_prefix=log_prefix)
 

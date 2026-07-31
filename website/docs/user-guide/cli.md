@@ -9,7 +9,7 @@ description: "Master the FreeIDE Agent terminal interface — commands, keybindi
 FreeIDE Agent's CLI is a full terminal user interface (TUI) — not a web UI. It features multiline editing, slash-command autocomplete, conversation history, interrupt-and-redirect, and streaming tool output. Built for people who live in the terminal.
 
 :::tip First-time setup
-One command — `freeide setup --portal` — and you're ready to `freeide chat`. See [FreeIDE Portal](/integrations/nous-portal).
+Run `freeide setup`, pick a provider, and paste your API key (or use a provider's own OAuth) — then you're ready to `freeide chat`.
 :::
 
 :::tip
@@ -29,7 +29,6 @@ freeide chat -q "Hello"
 freeide chat --model "anthropic/claude-sonnet-4"
 
 # With a specific provider
-freeide chat --provider nous        # Use FreeIDE Portal
 freeide chat --provider openrouter  # Force OpenRouter
 
 # With specific toolsets

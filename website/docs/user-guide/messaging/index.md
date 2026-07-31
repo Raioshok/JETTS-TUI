@@ -11,7 +11,7 @@ Chat with FreeIDE from Telegram, Discord, Slack, WhatsApp, Signal, SMS, Email, H
 For the full voice feature set — including CLI microphone mode, spoken replies in messaging, and Discord voice-channel conversations — see [Voice Mode](/user-guide/features/voice-mode) and [Use Voice Mode with FreeIDE](/guides/use-voice-mode-with-freeide).
 
 :::tip
-Bots need both a model provider and tool providers (TTS, web). A [FreeIDE Portal](/integrations/nous-portal) subscription bundles all of them.
+Bots need both a model provider and tool providers (TTS, web). Run `freeide setup`, pick a model provider, and configure each tool backend with your own key (Exa/Firecrawl/Tavily for web, OpenAI TTS for speech, etc.).
 :::
 
 ## Platform Comparison

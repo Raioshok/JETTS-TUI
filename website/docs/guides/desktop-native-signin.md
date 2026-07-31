@@ -44,7 +44,7 @@ For FreeIDE specifically, native sign-in means:
 ## How it works
 
 ```
-Desktop app                Gateway (/auth/native/*)          FreeIDE Portal (IDP)
+Desktop app                Gateway (/auth/native/*)          Upstream OAuth provider (IDP)
    │ 1. open loopback 127.0.0.1:<random port>
    │ 2. system browser ─►  /auth/native/authorize
    │    (PKCE challenge)    (starts the normal PKCE login) ─► /oauth/authorize
@@ -57,11 +57,11 @@ Desktop app                Gateway (/auth/native/*)          FreeIDE Portal (IDP
 ```
 
 The gateway **brokers** the flow: it is the authorization server *to the
-desktop app* and an OAuth client *to the upstream identity provider* (FreeIDE
-Portal). This is required because the upstream `client_id` and permitted
-redirect URIs are bound to the gateway's own origin — a desktop app can't be a
-direct client of the Portal. The desktop still gets the full RFC 8252
-experience: its own PKCE pair, its own loopback redirect, and tokens it owns.
+desktop app* and an OAuth client *to the upstream identity provider*. This is
+required because the upstream `client_id` and permitted redirect URIs are bound
+to the gateway's own origin — a desktop app can't be a direct client of the
+upstream provider. The desktop still gets the full RFC 8252 experience: its own
+PKCE pair, its own loopback redirect, and tokens it owns.
 
 **PKCE (RFC 7636)** protects the loopback hop: the one-time gateway code is
 useless without the code verifier, which never leaves the app. The code is
@@ -98,8 +98,8 @@ tool blocks the loopback listener, or you close the browser tab — the app
 ## For gateway operators
 
 Native sign-in is available automatically on any gated gateway that has a
-brokerable OAuth provider registered (e.g. the bundled **FreeIDE** provider). No
-configuration is required — the `/auth/native/*` routes and the `auth_flows`
+brokerable OAuth provider registered (any upstream provider with a redirect-based
+authorization endpoint). No configuration is required — the `/auth/native/*` routes and the `auth_flows`
 advertisement are part of the dashboard-auth subsystem. Password-only and
 token-only providers do not advertise `native_pkce` (there is no upstream
 redirect to broker), and those deployments continue to use their existing
@@ -116,4 +116,3 @@ The relevant endpoints (all public, pre-auth bootstrap, same as the existing
 
 - [OAuth over SSH / Remote Hosts](./oauth-over-ssh.md) — the loopback-callback
   pattern for provider/MCP OAuth on remote machines.
-- [Run FreeIDE with FreeIDE Portal](./run-freeide-with-nous-portal.md)

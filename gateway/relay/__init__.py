@@ -492,19 +492,17 @@ def _resolve_relay_identity_token() -> str:
     """Resolve the caller-identity bearer token the connector introspects to a tenant.
 
     Canonical resolver shared by the runtime self-provision path and the
-    ``freeide gateway enroll`` CLI. Two modes, in precedence order:
+    ``freeide gateway enroll`` CLI, via generic OIDC client-credentials:
 
-      1. **Generic OIDC client-credentials** (air-gapped / self-hosted-IdP, NO
-         FreeIDE Portal): when ``gateway.idp.token_url`` (or
-         ``GATEWAY_RELAY_IDP_TOKEN_URL``) is configured, obtain a workload access
-         token via the OAuth2 ``client_credentials`` grant against the operator's
-         own IdP (Entra; Authentik in the sandbox). The connector's Seam-A OIDC
-         verifier reads a claim (default ``tid``) off it as the tenant.
-      2. **FreeIDE Portal** (default): ``resolve_nous_access_token()`` — existing
-         managed/hosted behaviour.
+      **Generic OIDC client-credentials** (air-gapped / self-hosted-IdP): when
+      ``gateway.idp.token_url`` (or ``GATEWAY_RELAY_IDP_TOKEN_URL``) is
+      configured, obtain a workload access token via the OAuth2
+      ``client_credentials`` grant against the operator's own IdP (Entra;
+      Authentik in the sandbox). The connector's Seam-A OIDC verifier reads a
+      claim (default ``tid``) off it as the tenant.
 
-    Raises on failure; callers decide whether that's fatal (enroll CLI) or a
-    graceful boot no-op (self-provision).
+    Raises on failure (including when no IdP is configured); callers decide
+    whether that's fatal (enroll CLI) or a graceful boot no-op (self-provision).
     """
     token_url = os.environ.get("GATEWAY_RELAY_IDP_TOKEN_URL", "").strip()
     client_id = os.environ.get("GATEWAY_RELAY_IDP_CLIENT_ID", "").strip()
@@ -523,12 +521,12 @@ def _resolve_relay_identity_token() -> str:
             token_url = token_url or ""
 
     if not token_url:
-        # Mode 2 — FreeIDE Portal (default, unchanged behaviour).
-        from freeide_cli.auth import resolve_nous_access_token
+        # No IdP configured ⇒ no resolvable caller identity.
+        raise RuntimeError(
+            "no relay identity token source configured (set gateway.idp.token_url)"
+        )
 
-        return resolve_nous_access_token()
-
-    # Mode 1 — generic OAuth2 client_credentials grant.
+    # Generic OAuth2 client_credentials grant.
     import json
     import urllib.error
     import urllib.parse
@@ -568,7 +566,7 @@ def self_provision_relay() -> bool:
     Fires when relay is configured (``relay_url()`` set) and NO per-gateway secret
     is already present, AND the agent can resolve its own FreeIDE access token. In
     that case the runtime resolves the agent's own FreeIDE access token (the same
-    ``resolve_nous_access_token()`` the enroll CLI / dashboard register use),
+    ``_resolve_relay_identity_token()`` the enroll CLI uses),
     POSTs ``/relay/provision`` asserting its own endpoint + route keys, and sets
     ``GATEWAY_RELAY_ID`` / ``GATEWAY_RELAY_SECRET`` / ``GATEWAY_RELAY_DELIVERY_KEY``
     into ``os.environ`` so the subsequent ``register_relay_adapter()`` picks them
@@ -586,7 +584,7 @@ def self_provision_relay() -> bool:
       - A self-hosted operator who ran ``freeide gateway enroll``: has a PINNED
         ``GATEWAY_RELAY_SECRET`` -> skipped (the secret-present guard below).
       - A self-hosted box with a relay URL but no NAS identity:
-        ``resolve_nous_access_token()`` fails -> graceful no-op.
+        ``_resolve_relay_identity_token()`` fails -> graceful no-op.
 
     Stateless: process-env creds don't survive a restart, so a hosted container
     re-provisions every boot; the connector's rotation window covers a still-

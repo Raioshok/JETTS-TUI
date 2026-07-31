@@ -21,15 +21,14 @@ from pathlib import Path
 logger = logging.getLogger(__name__)
 
 # Providers that can ground generation on a reference image, in preference order
-# (FreeIDE Portal → OpenAI → OpenRouter → …). OpenRouter/FreeIDE run a quality-first
-# model chain and may fall back depending on account access and endpoint behavior,
-# so fidelity can vary by configured backend + model availability.
-_REF_CAPABLE = ("nous", "openai", "openai-codex", "openrouter", "krea")
+# (OpenAI → OpenRouter → …). OpenRouter runs a quality-first model chain and may
+# fall back depending on account access and endpoint behavior, so fidelity can
+# vary by configured backend + model availability.
+_REF_CAPABLE = ("openai", "openai-codex", "openrouter", "krea")
 
 # Friendly display label per reference-capable provider, surfaced in the desktop
 # pet-gen picker.
 _PROVIDER_LABELS: dict[str, str] = {
-    "nous": "FreeIDE Portal",
     "openrouter": "OpenRouter",
     "openai": "OpenAI",
     "openai-codex": "OpenAI (Codex)",

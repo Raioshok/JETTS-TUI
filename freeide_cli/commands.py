@@ -263,7 +263,7 @@ COMMAND_REGISTRY: list[CommandDef] = [
     CommandDef("update", "Update FreeIDE Agent to the latest version", "Info"),
     CommandDef("version", "Show FreeIDE Agent version", "Info", aliases=("v",)),
     CommandDef("debug", "Upload debug report (system info + logs) and get shareable links", "Info",
-               args_hint="[nous|local]"),
+               args_hint="[local]"),
 
     # Exit
     CommandDef("quit", "Exit the CLI (use --delete to also remove session history)", "Exit",

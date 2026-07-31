@@ -71,21 +71,16 @@ class ChronosCronScheduler(CronScheduler):
         """
         if not (_cfg("cron", "chronos", "portal_url") and _cfg("cron", "chronos", "callback_url")):
             return False
-        return self._have_nous_token()
+        return self._have_access_token()
 
-    def _have_nous_token(self) -> bool:
-        """True if the agent has a FreeIDE Portal login (no network call).
+    def _have_access_token(self) -> bool:
+        """True if the agent has a portal login (no network call).
 
-        Checks the stored auth state for a FreeIDE access token — does NOT refresh
-        or hit the network (is_available must stay offline). The actual
-        refresh-aware token is resolved lazily at provision time.
+        The managed portal auth backend has been removed, so no stored access
+        token is available; Chronos therefore reports unavailable and
+        ``resolve_cron_scheduler`` falls back to the built-in ticker.
         """
-        try:
-            from freeide_cli.auth import get_provider_auth_state
-            state = get_provider_auth_state("nous") or {}
-            return bool(state.get("access_token"))
-        except Exception:
-            return False
+        return False
 
     # -- client -----------------------------------------------------------
 

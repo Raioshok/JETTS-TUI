@@ -9,12 +9,11 @@ copies of this list:
   non-loopback mode, gates on the OAuth session cookie.
 
 When the lists drifted, ``/api/status`` ended up public under the legacy
-gate but 401'd under the OAuth gate. That broke the portal's wildcard
-liveness probe (``nous-account-service`` ``fly-provider.ts``
-``getInstanceRuntimeStatus``), which fetches ``/api/status`` without a
-cookie as its sole signal of "agent dashboard is alive": every healthy
-wildcard-subdomain agent surfaced as STARTING/down in the portal UI even
-though the dashboard was serving correctly.
+gate but 401'd under the OAuth gate. That broke the upstream wildcard
+liveness probe, which fetches ``/api/status`` without a cookie as its sole
+signal of "agent dashboard is alive": every healthy wildcard-subdomain
+agent surfaced as STARTING/down in the upstream UI even though the
+dashboard was serving correctly.
 
 Centralising the allowlist here so both middlewares import the same
 frozenset prevents the next drift. Keep this list minimal — only truly

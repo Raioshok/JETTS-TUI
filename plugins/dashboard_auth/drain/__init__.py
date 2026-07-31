@@ -7,8 +7,9 @@ the route-agnostic ``token_auth`` middleware seam).
 
 What it is
 ----------
-A service-to-service auth provider. ``nous-account-service`` (NAS) provisions a
-**per-agent unique** shared secret into each deployed agent's environment; this
+A service-to-service auth provider. The account-provisioning service (NAS)
+provisions a **per-agent unique** shared secret into each deployed agent's
+environment; this
 provider verifies an inbound ``Authorization`` bearer token against that secret
 with a constant-time compare and, on a match, vouches for the caller as the
 ``drain-control`` principal. It is NOT an interactive identity provider — there

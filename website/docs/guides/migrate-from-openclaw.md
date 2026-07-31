@@ -13,7 +13,7 @@ Coming from **Claude Code** or **OpenAI Codex CLI** instead? Use [`freeide impor
 :::
 
 :::tip
-If your OpenClaw setup was multi-provider, `freeide setup --portal` collapses it to one OAuth — 300+ models plus the Tool Gateway in a single login. See [FreeIDE Portal](/integrations/nous-portal).
+FreeIDE is bring-your-own-key: after migrating, run `freeide setup` and pick a provider (paste an API key, or use a provider's own OAuth like openai-codex / xai-oauth / qwen-oauth). Your migrated provider keys carry over when you pass `--migrate-secrets`.
 :::
 
 ## Quick start

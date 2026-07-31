@@ -5,7 +5,7 @@ Image 1.5, Recraft, Imagen 4, Qwen, Ideogram, …) as an
 :class:`ImageGenProvider` implementation.
 
 The heavy lifting — model catalog, payload construction, request
-submission, managed-Nous-gateway selection, Clarity Upscaler chaining
+submission, Clarity Upscaler chaining
 — lives in :mod:`tools.image_generation_tool`. This plugin reaches into
 that module via call-time indirection (``import tools.image_generation_tool as _it``)
 so:
@@ -42,9 +42,9 @@ class FalImageGenProvider(ImageGenProvider):
 
     Delegates to ``tools.image_generation_tool.image_generate_tool`` so
     the in-tree FAL implementation (model catalog, payload builder,
-    managed-gateway selection, Clarity Upscaler chaining) is the single
-    source of truth. Everything is resolved at call time via the
-    ``_it`` indirection so tests can monkey-patch the legacy module.
+    Clarity Upscaler chaining) is the single source of truth. Everything
+    is resolved at call time via the ``_it`` indirection so tests can
+    monkey-patch the legacy module.
     """
 
     @property
@@ -56,10 +56,9 @@ class FalImageGenProvider(ImageGenProvider):
         return "FAL.ai"
 
     def is_available(self) -> bool:
-        # Available when direct FAL_KEY is set OR the managed Nous
-        # gateway resolves a fal-queue origin. Both checks come from the
-        # legacy module so this provider tracks whatever logic ships
-        # there.
+        # Available when FAL is configured (direct FAL_KEY). The check
+        # comes from the legacy module so this provider tracks whatever
+        # logic ships there.
         import tools.image_generation_tool as _it
         try:
             return bool(_it.check_fal_api_key())

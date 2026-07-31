@@ -50,7 +50,7 @@ import threading
 import uuid
 from pathlib import Path
 from typing import Callable, Dict, Any, Optional
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urlparse
 
 from freeide_cli._subprocess_compat import windows_hide_flags
 from freeide_constants import display_freeide_home
@@ -69,13 +69,7 @@ def get_env_value(name, default=None):
         return os.getenv(name, default)
     value = _get_env_value(name)
     return default if value is None else value
-from tools.managed_tool_gateway import resolve_managed_tool_gateway
-from tools.tool_backend_helpers import (
-    managed_nous_tools_enabled,
-    nous_tool_gateway_unavailable_message,
-    prefers_gateway,
-    resolve_openai_audio_api_key,
-)
+from tools.tool_backend_helpers import resolve_openai_audio_api_key
 from tools.xai_http import freeide_xai_user_agent
 
 # ---------------------------------------------------------------------------
@@ -172,10 +166,10 @@ DEFAULT_ELEVENLABS_VOICE_ID = "pNInz6obpgDQGcFmaJgB"  # Adam
 DEFAULT_ELEVENLABS_MODEL_ID = "eleven_multilingual_v2"
 DEFAULT_ELEVENLABS_STREAMING_MODEL_ID = "eleven_flash_v2_5"
 DEFAULT_OPENAI_MODEL = "gpt-4o-mini-tts"
-# The managed OpenAI audio gateway (FreeIDE portal proxy) only proxies these speech
-# models. A user's tts.openai.model set for *direct* OpenAI (e.g. "tts-1-hd")
-# is rejected with a 400 "Unsupported managed OpenAI speech model", so it must be
-# coerced to a supported model when routing through the gateway.
+# The managed OpenAI audio gateway only proxies these speech models. A user's
+# tts.openai.model set for *direct* OpenAI (e.g. "tts-1-hd") is rejected with a
+# 400 "Unsupported managed OpenAI speech model", so it must be coerced to a
+# supported model when routing through the gateway.
 MANAGED_OPENAI_TTS_MODELS = frozenset({"gpt-4o-mini-tts"})
 DEFAULT_KITTENTTS_MODEL = "KittenML/kitten-tts-nano-0.8-int8"  # 25MB
 DEFAULT_KITTENTTS_VOICE = "Jasper"
@@ -2798,37 +2792,20 @@ def check_tts_requirements() -> bool:
 def _resolve_openai_audio_client_config() -> tuple[str, str, bool]:
     """Return ``(api_key, base_url, is_managed)`` for the OpenAI audio client.
 
-    ``is_managed`` is True when the config resolves to the FreeIDE managed audio
-    gateway (a restricted proxy), so callers can coerce the request to what the
-    gateway supports. When ``tts.use_gateway`` is set the gateway is preferred
-    even if direct OpenAI credentials are present.
+    Resolves direct OpenAI credentials (``VOICE_TOOLS_OPENAI_KEY`` /
+    ``OPENAI_API_KEY``). ``is_managed`` is always ``False`` — the tuple shape is
+    kept for callers that branch on it.
     """
     direct_api_key = resolve_openai_audio_api_key()
-    if direct_api_key and not prefers_gateway("tts"):
+    if direct_api_key:
         return direct_api_key, DEFAULT_OPENAI_BASE_URL, False
 
-    managed_gateway = resolve_managed_tool_gateway("openai-audio")
-    if managed_gateway is None:
-        message = "Neither VOICE_TOOLS_OPENAI_KEY nor OPENAI_API_KEY is set"
-        if managed_nous_tools_enabled() or prefers_gateway("tts"):
-            message += (
-                ". "
-                + nous_tool_gateway_unavailable_message(
-                    "managed OpenAI audio for TTS",
-                )
-            )
-        raise ValueError(message)
-
-    return (
-        managed_gateway.nous_user_token,
-        urljoin(f"{managed_gateway.gateway_origin.rstrip('/')}/", "v1"),
-        True,
-    )
+    raise ValueError("Neither VOICE_TOOLS_OPENAI_KEY nor OPENAI_API_KEY is set")
 
 
 def _has_openai_audio_backend() -> bool:
-    """Return True when OpenAI audio can use direct credentials or the managed gateway."""
-    return bool(resolve_openai_audio_api_key() or resolve_managed_tool_gateway("openai-audio"))
+    """Return True when OpenAI audio can use direct credentials."""
+    return bool(resolve_openai_audio_api_key())
 
 
 # ===========================================================================

@@ -164,7 +164,7 @@ def _unauth_response(request: Request, *, reason: str) -> Response:
 
 
 def _auto_sso_response(request: Request) -> Response | None:
-    """Maybe auto-initiate the portal OAuth redirect on an unauth HTML load.
+    """Maybe auto-initiate the IDP OAuth redirect on an unauth HTML load.
 
     Returns a 302 → ``/auth/login`` (the existing OAuth-initiation route)
     when ALL of the following hold, else ``None`` (caller falls back to the
@@ -179,14 +179,14 @@ def _auto_sso_response(request: Request) -> Response | None:
       * that provider is OAuth-style, not a password form provider. Password
         providers must render ``/login`` so the user can enter credentials;
       * the one-shot loop-guard marker is ABSENT. Its presence means we
-        already bounced to the portal once and came back still
-        unauthenticated (no portal session) — auto-redirecting again would
+        already bounced to the IDP once and came back still
+        unauthenticated (no IDP session) — auto-redirecting again would
         ping-pong, so we fall through to ``/login`` and clear the marker.
 
-    The portal ``/oauth/authorize`` auto-approves any current member of the
-    dashboard's org and is a silent 302 when the user already holds a portal
+    The IDP ``/oauth/authorize`` auto-approves any current member of the
+    dashboard's org and is a silent 302 when the user already holds an IDP
     session, so for the common case (clicked a dashboard link while signed
-    in to the portal) this removes the interstitial CLICK entirely. It
+    in to the IDP) this removes the interstitial CLICK entirely. It
     removes a click, not a security check: the redirect lands on
     ``/auth/login`` which runs the unchanged PKCE auth-code flow.
     """
@@ -195,7 +195,7 @@ def _auto_sso_response(request: Request) -> Response | None:
     if path.startswith("/api/"):
         return None
 
-    # Already bounced once and still no session → portal has no session for
+    # Already bounced once and still no session → IDP has no session for
     # this user. Stop here, clear the marker, let /login render.
     if read_sso_attempt_cookie(request):
         from freeide_cli.dashboard_auth.prefix import prefix_from_request
@@ -377,11 +377,11 @@ async def gated_auth_middleware(
     if not at and not _rt:
         # Neither token present — no session at all. Nothing to verify or
         # refresh. Before falling back to the /login interstitial, try to
-        # silently bounce the user through the portal OAuth flow: the portal
+        # silently bounce the user through the IDP OAuth flow: the IDP
         # auto-approves org members and 302s straight back when they already
-        # hold a portal session, so the interstitial click is pure friction
+        # hold an IDP session, so the interstitial click is pure friction
         # for the common case. The one-shot loop-guard inside _auto_sso_response
-        # prevents a ping-pong when the portal genuinely has no session.
+        # prevents a ping-pong when the IDP genuinely has no session.
         auto = _auto_sso_response(request)
         if auto is not None:
             return auto
@@ -411,8 +411,8 @@ async def gated_auth_middleware(
         # unreachable, so it can neither confirm nor deny the token). With
         # multiple providers stacked, that MUST NOT abort the chain — the
         # token may belong to a *different*, reachable provider. (Concretely:
-        # a self-hosted-OIDC session hits the `nous` provider first, which
-        # tries to reach FreeIDE Portal's JWKS; if that's unreachable it raises,
+        # a self-hosted-OIDC session hits another provider first, which tries
+        # to reach that provider's JWKS; if that's unreachable it raises,
         # but the `self-hosted` provider can still verify the token.) So we
         # remember the unreachable error and keep going. Only if NO provider
         # verifies the token AND at least one was unreachable do we surface a
@@ -471,10 +471,10 @@ async def gated_auth_middleware(
             new_session, refreshing_provider = refreshed
             request.state.session = new_session
             response = await call_next(request)
-            # Persist the ROTATED tokens. Portal rotates the refresh token on
+            # Persist the ROTATED tokens. The IDP rotates the refresh token on
             # every refresh and runs reuse-detection, so writing the new RT
             # back is mandatory: a stale RT cookie would replay a rotated
-            # token on the next refresh and (outside Portal's grace) revoke
+            # token on the next refresh and (outside the IDP's grace) revoke
             # the whole session. Bind cookie Secure/Path to the request shape.
             from freeide_cli.dashboard_auth.cookies import (
                 detect_https,

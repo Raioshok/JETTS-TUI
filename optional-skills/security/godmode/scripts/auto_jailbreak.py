@@ -178,7 +178,7 @@ MODEL_STRATEGIES = {
             ),
         },
     },
-    # Nous/FreeIDE models — already uncensored, just needs clean prompt
+    # FreeIDE models — already uncensored, just needs clean prompt
     "freeide": {
         "order": ["prefill_only"],
         "system_templates": {},
@@ -305,7 +305,7 @@ def _detect_model_family(model: str) -> str:
         return "gemini"
     if "grok" in model_lower or "x-ai" in model_lower:
         return "grok"
-    if "freeide" in model_lower or "nous" in model_lower:
+    if "freeide" in model_lower:
         return "freeide"
     if "deepseek" in model_lower:
         return "deepseek"
