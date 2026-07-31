@@ -42,7 +42,7 @@ from typing import List, Optional
 # funnel through ``agent.auxiliary_client.call_llm`` which has no session
 # handle. Rather than threading a ``session_id`` parameter through every one
 # of those call sites (and every future one), the agent loop publishes the
-# active conversation id here and ``nous_portal_tags()`` picks it up as a
+# active conversation id here and ``client_tags()`` picks it up as a
 # fallback whenever no explicit ``session_id`` is passed.
 #
 # ContextVar (not a module global) so concurrent agents in one process —
@@ -96,7 +96,7 @@ def _freeide_version() -> str:
 
 
 def freeide_client_tag() -> str:
-    """Return the ``client=...`` tag for FreeIDE Portal requests.
+    """Return the ``client=...`` tag for FreeIDE requests.
 
     Format: ``client=freeide-client-v<MAJOR>.<MINOR>.<PATCH>``.
     """
@@ -117,14 +117,14 @@ def conversation_tag(session_id: str) -> str:
     return f"conversation={session_id}"
 
 
-def nous_portal_tags(session_id: str | None = None) -> List[str]:
-    """Return the canonical list of FreeIDE Portal product tags.
+def client_tags(session_id: str | None = None) -> List[str]:
+    """Return the canonical list of FreeIDE client telemetry tags.
 
     Always returns a fresh list so callers can mutate it freely
-    (e.g. ``merged_extra.setdefault("tags", []).extend(nous_portal_tags())``).
+    (e.g. ``merged_extra.setdefault("tags", []).extend(client_tags())``).
 
     When ``session_id`` is provided, a ``conversation=<session_id>`` tag is
-    appended so Portal usage can be attributed to a specific FreeIDE
+    appended so usage can be attributed to a specific FreeIDE
     conversation. When it is omitted, the ambient conversation context
     (``set_conversation_context``, published by the agent loop at turn
     entry) is used instead — this is how auxiliary calls (compression,

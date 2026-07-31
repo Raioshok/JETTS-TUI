@@ -3,7 +3,7 @@
 import logging
 from typing import Any
 
-from agent.portal_tags import get_conversation_context
+from agent.client_tags import get_conversation_context
 from providers import register_provider
 from providers.base import ProviderProfile
 

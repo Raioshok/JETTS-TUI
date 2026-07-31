@@ -732,11 +732,11 @@ def build_nvidia_nim_headers(base_url: str | None) -> dict:
 # Callers should pass this as extra_body in chat.completions.create()
 # when the auxiliary client is backed by FreeIDE Portal.
 #
-# The tags are computed from agent.portal_tags so the client= marker stays
+# The tags are computed from agent.client_tags so the client= marker stays
 # in lockstep with freeide_cli.__version__ across every Portal call site
 # (main loop, aux, compression, web_extract). Do not inline a literal here;
-# see agent/portal_tags.py for the rationale.
-from agent.portal_tags import nous_portal_tags as _nous_portal_tags
+# see agent/client_tags.py for the rationale.
+from agent.client_tags import client_tags as _client_tags
 
 
 def _nous_extra_body() -> dict:
@@ -745,13 +745,13 @@ def _nous_extra_body() -> dict:
     Computed at call time so a hot-reloaded ``freeide_cli.__version__`` is
     reflected without restarting long-running processes.
     """
-    return {"tags": _nous_portal_tags()}
+    return {"tags": _client_tags()}
 
 
 # Backwards-compatible module attribute. Some callers (tests, third-party
 # plugins) read ``NOUS_EXTRA_BODY`` directly; keep it as a snapshot of the
 # current tags. Callers that need the freshest value should call
-# ``_nous_extra_body()`` or import ``nous_portal_tags`` directly.
+# ``_nous_extra_body()`` or import ``client_tags`` directly.
 NOUS_EXTRA_BODY = _nous_extra_body()
 
 # Set at resolve time — True if the auxiliary client points to FreeIDE Portal
@@ -7196,10 +7196,10 @@ def _build_call_kwargs(
     _provider_for_portal = str(provider or "").strip().lower()
     if _provider_for_portal in {"nous", "nous-portal", "freeide"}:
         if "tags" not in merged_extra:
-            merged_extra["tags"] = _nous_portal_tags()
+            merged_extra["tags"] = _client_tags()
         if "session_id" not in merged_extra:
             try:
-                from agent.portal_tags import get_conversation_context
+                from agent.client_tags import get_conversation_context
 
                 sticky_key = get_conversation_context()
             except Exception:

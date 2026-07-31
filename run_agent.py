@@ -6593,7 +6593,7 @@ class AIAgent:
         ``force=False``.
         """
         from agent.conversation_compression import compress_context
-        from agent.portal_tags import (
+        from agent.client_tags import (
             get_conversation_context,
             reset_conversation_context,
             set_conversation_context,
@@ -6852,7 +6852,7 @@ class AIAgent:
             set_accounting_context,
         )
         from agent.conversation_loop import run_conversation
-        from agent.portal_tags import (
+        from agent.client_tags import (
             reset_conversation_context,
             set_conversation_context,
         )
