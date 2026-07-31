@@ -258,7 +258,7 @@ For webhooks from cloud messaging providers (Telegram `setWebhook`, Slack events
 
 ## Running FreeIDE services long-term on Windows
 
-The FreeIDE [Tool Gateway](/user-guide/features/tool-gateway) and the API server are long-lived processes. In WSL2 you have a few options for keeping them up.
+The FreeIDE API server and the messaging gateway are long-lived processes. In WSL2 you have a few options for keeping them up.
 
 ### Desktop shortcut for opening FreeIDE quickly
 
@@ -355,4 +355,4 @@ WSL2 stores its VM disk as a sparse VHDX under `%LOCALAPPDATA%\Packages\...`. It
 - **[Installation](/getting-started/installation)** — actual install steps (Linux/WSL2/Termux all use the same installer).
 - **[Integrations → Providers → WSL2 Networking](/integrations/providers#wsl2-networking-windows-users)** — the canonical networking deep-dive for local model servers.
 - **[MCP guide → WSL → Windows Chrome](/guides/use-mcp-with-freeide#wsl2-bridge-freeide-in-wsl-to-windows-chrome)** — controlling your signed-in Windows Chrome from FreeIDE in WSL.
-- **[Tool Gateway](/user-guide/features/tool-gateway)** and **[Web Dashboard](/user-guide/features/web-dashboard)** — the long-lived services you'll most often want to expose from WSL to the rest of your network.
+- **[Web Dashboard](/user-guide/features/web-dashboard)** — the long-lived service you'll most often want to expose from WSL to the rest of your network.

@@ -11,10 +11,8 @@ FreeIDE uses two kinds of model slots:
 
 This page covers configuring both from the dashboard. If you prefer config files or the CLI, jump to [Alternative methods](#alternative-methods) at the bottom.
 
-:::tip Fastest path: FreeIDE Portal
-[FreeIDE Portal](/user-guide/features/tool-gateway) provides 300+ models under one subscription. On a fresh install, run `freeide setup --portal` to log in and set FreeIDE as your provider in one command. Inspect what's wired up with `freeide portal info`.
-
-- Portal subscribers also get **10% off token-billed providers**.
+:::tip Fastest path: `freeide setup`
+On a fresh install, run `freeide setup` to pick a free or paid provider and paste your API key (or use a provider's own OAuth, such as `openai-codex`, `xai-oauth`, `qwen-oauth`, or `minimax-oauth`). FreeIDE is bring-your-own-key, so you connect the model provider you already have.
 :::
 
 :::note `model:` schema — empty string vs. mapping

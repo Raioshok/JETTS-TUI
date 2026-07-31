@@ -1,12 +1,10 @@
 """Tests for freeide_cli.tools_config platform tool persistence."""
 
 import logging
-from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
 
-from freeide_cli.nous_account import NousPortalAccountInfo
 from freeide_cli.tools_config import (
     _DEFAULT_OFF_TOOLSETS,
     _apply_toolset_change,
@@ -724,108 +722,6 @@ def test_save_platform_tools_still_preserves_mcp_with_platform_default_present()
     assert "terminal" not in saved
 
 
-def test_visible_providers_include_nous_subscription_when_logged_in(monkeypatch):
-    config = {"model": {"provider": "nous"}}
-
-    monkeypatch.setattr(
-        "freeide_cli.nous_subscription.get_nous_portal_account_info",
-        lambda: NousPortalAccountInfo(
-            logged_in=True,
-            source="jwt",
-            fresh=False,
-            paid_service_access=True,
-        ),
-    )
-
-    providers = _visible_providers(TOOL_CATEGORIES["browser"], config)
-
-    # The managed Nous row is listed (not necessarily first — "Local Browser"
-    # sorts first so a fresh-install Enter lands on the free local backend).
-    assert any(p["name"].startswith("Nous Subscription") for p in providers)
-    # "Local Browser" must be the index-0 default so pressing Enter never
-    # walks a user into a paid FreeIDE Portal login.
-    assert providers[0]["name"] == "Local Browser"
-
-
-def test_visible_providers_show_nous_subscription_when_logged_out(monkeypatch):
-    """Nous-managed Tool Gateway rows are always listed, even logged out.
-
-    Selecting one triggers an inline Portal login (entitlement is checked at
-    selection time, not visibility time).
-    """
-    config = {"model": {"provider": "openrouter"}}
-
-    monkeypatch.setattr(
-        "freeide_cli.nous_subscription.get_nous_portal_account_info",
-        lambda: NousPortalAccountInfo(
-            logged_in=False,
-            source="none",
-            fresh=False,
-            paid_service_access=None,
-        ),
-    )
-
-    providers = _visible_providers(TOOL_CATEGORIES["browser"], config)
-
-    assert any(p["name"].startswith("Nous Subscription") for p in providers)
-
-
-def test_visible_providers_show_nous_subscription_when_paid_access_is_false(monkeypatch):
-    """Logged-in-but-unpaid users still see the managed rows.
-
-    The paid-access gate moved from visibility to selection time — the row is
-    shown; ``ensure_nous_portal_access`` blocks activation if still unpaid.
-    """
-    config = {"model": {"provider": "nous"}}
-
-    monkeypatch.setattr(
-        "freeide_cli.nous_subscription.get_nous_portal_account_info",
-        lambda: NousPortalAccountInfo(
-                logged_in=True,
-                source="jwt",
-                fresh=False,
-                paid_service_access=False,
-            ),
-    )
-
-    providers = _visible_providers(TOOL_CATEGORIES["browser"], config)
-
-    assert any(p["name"].startswith("Nous Subscription") for p in providers)
-
-
-def test_visible_providers_force_fresh_shows_nous_subscription_after_upgrade(monkeypatch):
-    calls = []
-
-    def fake_subscription_features(config, *, force_fresh=False):
-        calls.append(("features", force_fresh))
-        return SimpleNamespace(
-            nous_auth_present=True,
-            account_info=NousPortalAccountInfo(
-                logged_in=True,
-                source="account_api" if force_fresh else "jwt",
-                fresh=force_fresh,
-                paid_service_access=True if force_fresh else False,
-            ),
-            features={},
-        )
-
-    monkeypatch.setattr(
-        "freeide_cli.tools_config.get_nous_subscription_features",
-        fake_subscription_features,
-    )
-
-    providers = _visible_providers(
-        TOOL_CATEGORIES["browser"],
-        {"model": {"provider": "nous"}},
-        force_fresh=True,
-    )
-
-    # The managed Nous row reappears after the entitlement upgrade. It is no
-    # longer asserted to be first — "Local Browser" sorts first by design.
-    assert any(p["name"].startswith("Nous Subscription") for p in providers)
-    assert ("features", True) in calls
-
-
 def test_local_browser_provider_is_saved_explicitly(monkeypatch):
     config = {}
     local_provider = next(
@@ -984,123 +880,6 @@ def test_configure_single_platform_configures_selected_tool_missing_provider(mon
     assert configured == ["web"]
     assert config["platform_toolsets"]["cli"] == ["web"]
 
-
-def test_first_install_nous_auto_configures_managed_defaults(monkeypatch):
-    monkeypatch.setattr("freeide_cli.nous_subscription.managed_nous_tools_enabled", lambda: True)
-    config = {
-        "model": {"provider": "nous"},
-        "platform_toolsets": {"cli": []},
-    }
-    for env_var in (
-        "VOICE_TOOLS_OPENAI_KEY",
-        "OPENAI_API_KEY",
-        "ELEVENLABS_API_KEY",
-        "FIRECRAWL_API_KEY",
-        "FIRECRAWL_API_URL",
-        "TAVILY_API_KEY",
-        "PARALLEL_API_KEY",
-        "BROWSERBASE_API_KEY",
-        "BROWSERBASE_PROJECT_ID",
-        "BROWSER_USE_API_KEY",
-        "FAL_KEY",
-    ):
-        monkeypatch.delenv(env_var, raising=False)
-
-    monkeypatch.setattr(
-        "freeide_cli.tools_config._prompt_toolset_checklist",
-        lambda *args, **kwargs: {"web", "image_gen", "tts", "browser"},
-    )
-    monkeypatch.setattr("freeide_cli.tools_config.save_config", lambda config: None)
-    # Prevent leaked platform tokens (e.g. DISCORD_BOT_TOKEN from gateway.run
-    # import) from adding extra platforms. The loop in tools_command runs
-    # apply_nous_managed_defaults per platform; a second iteration sees values
-    # set by the first as "explicit" and skips them.
-    monkeypatch.setattr(
-        "freeide_cli.tools_config._get_enabled_platforms",
-        lambda: ["cli"],
-    )
-    monkeypatch.setattr(
-        "freeide_cli.nous_subscription.get_nous_portal_account_info",
-        lambda *args, **kwargs: NousPortalAccountInfo(
-            logged_in=True,
-            source="jwt",
-            fresh=False,
-            paid_service_access=True,
-        ),
-    )
-
-    configured = []
-    monkeypatch.setattr(
-        "freeide_cli.tools_config._configure_toolset",
-        lambda ts_key, config: configured.append(ts_key),
-    )
-
-    tools_command(first_install=True, config=config)
-
-    assert config["web"]["backend"] == "firecrawl"
-    assert config["tts"]["provider"] == "openai"
-    assert config["browser"]["cloud_provider"] == "browser-use"
-    assert config["image_gen"]["use_gateway"] is True
-    assert configured == []
-
-
-def test_first_install_nous_auto_configures_video_gen(monkeypatch):
-    """When a Nous subscriber checks video_gen in the toolset checklist,
-    apply_nous_managed_defaults must write video_gen.provider and
-    video_gen.use_gateway so the FAL plugin can route through the gateway
-    at runtime.  Regression test for the bug where video_gen was marked as
-    auto-configured but no config was actually written."""
-    monkeypatch.setattr("freeide_cli.nous_subscription.managed_nous_tools_enabled", lambda: True)
-    config = {
-        "model": {"provider": "nous"},
-        "platform_toolsets": {"cli": []},
-    }
-    for env_var in (
-        "VOICE_TOOLS_OPENAI_KEY",
-        "OPENAI_API_KEY",
-        "ELEVENLABS_API_KEY",
-        "FIRECRAWL_API_KEY",
-        "FIRECRAWL_API_URL",
-        "TAVILY_API_KEY",
-        "PARALLEL_API_KEY",
-        "BROWSERBASE_API_KEY",
-        "BROWSERBASE_PROJECT_ID",
-        "BROWSER_USE_API_KEY",
-        "FAL_KEY",
-    ):
-        monkeypatch.delenv(env_var, raising=False)
-
-    monkeypatch.setattr(
-        "freeide_cli.tools_config._prompt_toolset_checklist",
-        lambda *args, **kwargs: {"video_gen"},
-    )
-    monkeypatch.setattr("freeide_cli.tools_config.save_config", lambda config: None)
-    monkeypatch.setattr(
-        "freeide_cli.tools_config._get_enabled_platforms",
-        lambda: ["cli"],
-    )
-    monkeypatch.setattr(
-        "freeide_cli.nous_subscription.get_nous_portal_account_info",
-        lambda *args, **kwargs: NousPortalAccountInfo(
-            logged_in=True,
-            source="jwt",
-            fresh=False,
-            paid_service_access=True,
-        ),
-    )
-
-    configured = []
-    monkeypatch.setattr(
-        "freeide_cli.tools_config._configure_toolset",
-        lambda ts_key, config: configured.append(ts_key),
-    )
-
-    tools_command(first_install=True, config=config)
-
-    assert config["video_gen"]["provider"] == "fal"
-    assert config["video_gen"]["use_gateway"] is True
-    # video_gen should NOT appear in the manual configure list — it's auto-configured
-    assert "video_gen" not in configured
 
 # ── Platform / toolset consistency ────────────────────────────────────────────
 
@@ -1541,22 +1320,12 @@ def test_get_effective_configurable_toolsets_dedupes_bundled_plugins():
 
 
 @pytest.mark.parametrize("provider,config_key,expected", [
-    # managed provider → use_gateway True
-    ({"name": "T", "tts_provider": "elevenlabs", "managed_nous_feature": "tts", "env_vars": []}, "tts", True),
-    ({"name": "B", "browser_provider": "browserbase", "managed_nous_feature": "browser", "env_vars": []}, "browser", True),
-    ({"name": "W", "web_backend": "tavily", "managed_nous_feature": "web", "env_vars": []}, "web", True),
     # self-hosted provider → use_gateway False
     ({"name": "T", "tts_provider": "elevenlabs", "env_vars": []}, "tts", False),
     ({"name": "B", "browser_provider": "browserbase", "env_vars": []}, "browser", False),
     ({"name": "W", "web_backend": "tavily", "env_vars": []}, "web", False),
 ])
 def test_reconfigure_provider_syncs_use_gateway(monkeypatch, provider, config_key, expected):
-    # Managed providers run the inline Portal entitlement gate; treat the user
-    # as already entitled so the test exercises the use_gateway sync.
-    monkeypatch.setattr(
-        "freeide_cli.nous_subscription.ensure_nous_portal_access",
-        lambda **kwargs: True,
-    )
     config = {}
     _reconfigure_provider(provider, config)
     assert config[config_key]["use_gateway"] is expected
@@ -1592,72 +1361,6 @@ def test_reconfigure_provider_runs_post_setup_for_env_var_providers(
     _reconfigure_provider(provider, {})
 
     assert called == [post_setup_key]
-
-
-# ---------------------------------------------------------------------------
-# Inline FreeIDE Portal login gate on managed-provider selection
-# ---------------------------------------------------------------------------
-
-
-def test_configure_managed_provider_blocks_when_not_entitled(monkeypatch):
-    """Selecting a Nous-managed backend without paid access writes no config."""
-    monkeypatch.setattr(
-        "freeide_cli.nous_subscription.ensure_nous_portal_access",
-        lambda **kwargs: False,
-    )
-    provider = {
-        "name": "Nous Subscription (Firecrawl)",
-        "web_backend": "firecrawl",
-        "managed_nous_feature": "web",
-        "env_vars": [],
-    }
-    config = {}
-
-    _configure_provider(provider, config)
-
-    # No use_gateway / backend written — the gate returned before any mutation.
-    assert "web" not in config
-
-
-def test_configure_managed_provider_enables_when_entitled(monkeypatch):
-    """Once entitled, selecting the managed backend sets use_gateway=True."""
-    monkeypatch.setattr(
-        "freeide_cli.nous_subscription.ensure_nous_portal_access",
-        lambda **kwargs: True,
-    )
-    provider = {
-        "name": "Nous Subscription (Firecrawl)",
-        "web_backend": "firecrawl",
-        "managed_nous_feature": "web",
-        "env_vars": [],
-    }
-    config = {}
-
-    _configure_provider(provider, config)
-
-    assert config["web"]["backend"] == "firecrawl"
-    assert config["web"]["use_gateway"] is True
-
-
-def test_configure_non_managed_provider_skips_portal_gate(monkeypatch):
-    """A self-hosted provider must never trigger the FreeIDE Portal login gate."""
-    called = {"gate": False}
-
-    def _boom(**kwargs):
-        called["gate"] = True
-        return False
-
-    monkeypatch.setattr(
-        "freeide_cli.nous_subscription.ensure_nous_portal_access", _boom
-    )
-    provider = {"name": "Tavily", "web_backend": "tavily", "env_vars": []}
-    config = {}
-
-    _configure_provider(provider, config)
-
-    assert called["gate"] is False
-    assert config["web"]["backend"] == "tavily"
-    assert config["web"]["use_gateway"] is False
 
 
 def test_apply_provider_selection_web_sets_backend():
@@ -1934,19 +1637,6 @@ def test_save_platform_tools_disabling_a_toolset_does_not_touch_disabled_toolset
 # Subscription rows and never-installed KittenTTS/Piper).
 
 
-def _fake_features(*, logged_in: bool, paid: bool = True):
-    account = (
-        NousPortalAccountInfo(
-            logged_in=True, source="jwt", fresh=False, paid_service_access=paid
-        )
-        if logged_in
-        else NousPortalAccountInfo(
-            logged_in=False, source="none", fresh=False, paid_service_access=None
-        )
-    )
-    return SimpleNamespace(nous_auth_present=logged_in, account_info=account)
-
-
 def test_provider_readiness_env_vars_gate_keys(monkeypatch):
     provider = {"name": "ElevenLabs", "env_vars": [{"key": "ELEVENLABS_API_KEY"}]}
 
@@ -1961,46 +1651,6 @@ def test_provider_readiness_keyless_ungated_row_is_ready():
     # Edge TTS: no env vars, no post_setup, no nous auth → genuinely free.
     provider = {"name": "Microsoft Edge TTS", "env_vars": [], "tts_provider": "edge"}
     assert provider_readiness_status(provider, {}) == "ready"
-
-
-def test_provider_readiness_managed_nous_row_needs_auth_when_logged_out():
-    provider = {
-        "name": "Nous Subscription",
-        "env_vars": [],
-        "requires_nous_auth": True,
-        "managed_nous_feature": "tts",
-    }
-    status = provider_readiness_status(
-        provider, {}, features=_fake_features(logged_in=False)
-    )
-    assert status == "needs_auth"
-
-
-def test_provider_readiness_managed_nous_row_ready_when_entitled():
-    provider = {
-        "name": "Nous Subscription",
-        "env_vars": [],
-        "requires_nous_auth": True,
-        "managed_nous_feature": "tts",
-    }
-    status = provider_readiness_status(
-        provider, {}, features=_fake_features(logged_in=True, paid=True)
-    )
-    assert status == "ready"
-
-
-def test_provider_readiness_managed_nous_row_needs_auth_when_unentitled():
-    # Logged in but unpaid and no free tool pool → still gated.
-    provider = {
-        "name": "Nous Subscription",
-        "env_vars": [],
-        "requires_nous_auth": True,
-        "managed_nous_feature": "video_gen",
-    }
-    status = provider_readiness_status(
-        provider, {}, features=_fake_features(logged_in=True, paid=False)
-    )
-    assert status == "needs_auth"
 
 
 def test_provider_readiness_xai_grok_row_tracks_credentials(monkeypatch):
@@ -2108,12 +1758,12 @@ def test_provider_readiness_agent_browser_tracks_local_install(monkeypatch):
     provider = {"name": "Local Browser", "env_vars": [], "post_setup": "agent_browser"}
 
     monkeypatch.setattr(
-        "freeide_cli.nous_subscription._local_browser_runnable", lambda: False
+        "freeide_cli.tool_features._local_browser_runnable", lambda: False
     )
     assert provider_readiness_status(provider, {}) == "needs_setup"
 
     monkeypatch.setattr(
-        "freeide_cli.nous_subscription._local_browser_runnable", lambda: True
+        "freeide_cli.tool_features._local_browser_runnable", lambda: True
     )
     assert provider_readiness_status(provider, {}) == "ready"
 
@@ -2124,12 +1774,12 @@ def test_provider_readiness_cloud_browser_hook_tracks_cli_only(monkeypatch):
     provider = {"name": "Browserbase", "env_vars": [], "post_setup": "browserbase"}
 
     monkeypatch.setattr(
-        "freeide_cli.nous_subscription._has_agent_browser", lambda: False
+        "freeide_cli.tool_features._has_agent_browser", lambda: False
     )
     assert provider_readiness_status(provider, {}) == "needs_setup"
 
     monkeypatch.setattr(
-        "freeide_cli.nous_subscription._has_agent_browser", lambda: True
+        "freeide_cli.tool_features._has_agent_browser", lambda: True
     )
     assert provider_readiness_status(provider, {}) == "ready"
 

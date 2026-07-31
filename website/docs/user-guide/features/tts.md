@@ -8,10 +8,6 @@ description: "Text-to-speech and voice message transcription across all platform
 
 FreeIDE Agent supports both text-to-speech output and voice message transcription across all messaging platforms.
 
-:::tip FreeIDE Subscribers
-If you have a paid [FreeIDE Portal](https://portal.freeide.dev) subscription, OpenAI TTS is available through the **[Tool Gateway](tool-gateway.md)** without a separate OpenAI API key. New installs can run `freeide setup --portal` to log in and turn on every gateway tool at once; existing installs can pick **FreeIDE Subscription** for just TTS via `freeide model` or `freeide tools`.
-:::
-
 ## Text-to-Speech
 
 Convert text to speech with ten providers:

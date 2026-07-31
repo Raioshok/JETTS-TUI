@@ -16,8 +16,6 @@ description: "FreeIDE Agent 使用的所有环境变量完整参考"
 | `OPENROUTER_BASE_URL` | 覆盖 OpenRouter 兼容的 base URL |
 | `FREEIDE_OPENROUTER_CACHE` | 启用 OpenRouter 响应缓存（`1`/`true`/`yes`/`on`）。覆盖 config.yaml 中的 `openrouter.response_cache`。参见 [Response Caching](https://openrouter.ai/docs/guides/features/response-caching)。 |
 | `FREEIDE_OPENROUTER_CACHE_TTL` | 缓存 TTL（秒，1-86400）。覆盖 config.yaml 中的 `openrouter.response_cache_ttl`。 |
-| `NOUS_BASE_URL` | 覆盖 FreeIDE Portal base URL（极少使用；仅用于开发/测试） |
-| `NOUS_INFERENCE_BASE_URL` | 直接覆盖 Nous 推理端点 |
 | `OPENAI_API_KEY` | 自定义 OpenAI 兼容端点的 API 密钥（与 `OPENAI_BASE_URL` 配合使用） |
 | `OPENAI_BASE_URL` | 自定义端点的 base URL（VLLM、SGLang 等） |
 | `COPILOT_GITHUB_TOKEN` | 用于 Copilot API 的 GitHub token——最高优先级（OAuth `gho_*` 或细粒度 PAT `github_pat_*`；经典 PAT `ghp_*` **不支持**） |
@@ -108,10 +106,6 @@ description: "FreeIDE Agent 使用的所有环境变量完整参考"
 
 | 变量 | 描述 |
 |----------|-------------|
-| `FREEIDE_PORTAL_BASE_URL` | 覆盖 FreeIDE Portal URL（用于开发/测试） |
-| `NOUS_INFERENCE_BASE_URL` | 覆盖 Nous 推理 API URL |
-| `FREEIDE_NOUS_MIN_KEY_TTL_SECONDS` | 重新铸造前的最小 agent 密钥 TTL（默认：1800 = 30 分钟） |
-| `FREEIDE_NOUS_TIMEOUT_SECONDS` | Nous 凭证/token 流程的 HTTP 超时 |
 | `FREEIDE_DUMP_REQUESTS` | 将 API 请求载荷转储到日志文件（`true`/`false`） |
 | `FREEIDE_PREFILL_MESSAGES_FILE` | 包含在 API 调用时注入的临时预填消息的 JSON 文件路径 |
 | `FREEIDE_TIMEZONE` | IANA 时区覆盖（例如 `America/New_York`） |
@@ -167,17 +161,6 @@ description: "FreeIDE Agent 使用的所有环境变量完整参考"
 | `FREEIDE_LANGFUSE_MAX_CHARS` | 序列化载荷的每字段截断长度（默认：`12000`） |
 | `FREEIDE_LANGFUSE_DEBUG` | `true` 可将详细插件日志输出到 `agent.log` |
 | `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` / `LANGFUSE_BASE_URL` | 标准 Langfuse SDK 变量名。当对应的 `FREEIDE_LANGFUSE_*` 未设置时作为回退。 |
-
-### Nous Tool Gateway
-
-这些变量为付费 Nous 订阅者或自托管 gateway 部署配置 [Tool Gateway](/user-guide/features/tool-gateway)。大多数用户无需设置——gateway 通过 `freeide model` 或 `freeide tools` 自动配置。
-
-| 变量 | 描述 |
-|----------|-------------|
-| `TOOL_GATEWAY_DOMAIN` | Tool Gateway 路由的基础域名（默认：`freeide.dev`） |
-| `TOOL_GATEWAY_SCHEME` | gateway URL 的 HTTP 或 HTTPS 协议（默认：`https`） |
-| `TOOL_GATEWAY_USER_TOKEN` | Tool Gateway 的认证 token（通常由 Nous 认证自动填充） |
-| `FIRECRAWL_GATEWAY_URL` | 专门覆盖 Firecrawl gateway 端点的 URL |
 
 ## 终端后端
 

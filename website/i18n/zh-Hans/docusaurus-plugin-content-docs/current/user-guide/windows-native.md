@@ -78,8 +78,8 @@ iex (irm https://freeide-agent.freeide.dev/install.ps1)
 9. **将 `%LOCALAPPDATA%\freeide\bin` 添加到用户 PATH** — 打开新终端后即可使用 `freeide` 命令。
 10. **运行 `freeide setup`** — 正常的首次运行向导（模型、提供商、工具集）。使用 `-SkipSetup` 跳过。
 
-:::tip 在 Windows 上跳过繁琐的提供商配置
-在 Windows 上，逐个配置工具 API key（Firecrawl、FAL、Browser Use、OpenAI TTS）是获得可用 agent 摩擦最大的部分。[FreeIDE Portal](/user-guide/features/tool-gateway) 订阅通过一次 OAuth 登录即可覆盖模型**以及**所有这些工具。安装程序完成后，运行 `freeide setup --portal` 完成配置。
+:::tip 在 Windows 上配置提供商
+在 Windows 上，逐个配置工具 API key（Firecrawl、FAL、Browser Use、OpenAI TTS）是获得可用 agent 摩擦最大的部分。FreeIDE 采用自带密钥模式：安装程序完成后，运行 `freeide setup` 选择一个免费或付费的模型 provider 并粘贴其 API key（或使用某个 provider 自带的 OAuth），然后按各后端用你自己的密钥配置每个工具。
 :::
 
 ## 功能矩阵

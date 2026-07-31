@@ -37,17 +37,6 @@ def _tool_defs(*names):
     ]
 
 
-def _fake_invoke_jwt() -> str:
-    def _part(payload):
-        raw = json.dumps(payload, separators=(",", ":")).encode("utf-8")
-        return base64.urlsafe_b64encode(raw).decode("ascii").rstrip("=")
-
-    return (
-        f"{_part({'alg': 'none', 'typ': 'JWT'})}."
-        f"{_part({'scope': 'inference:invoke', 'exp': 4102444800})}.sig"
-    )
-
-
 class _FakeOpenAI:
     def __init__(self, **kw):
         self.api_key = kw.get("api_key", "test")
@@ -81,8 +70,6 @@ def _make_agent(monkeypatch, provider, api_mode="chat_completions", base_url="ht
     )
     if model:
         kwargs["model"] = model
-    elif provider == "nous":
-        kwargs["model"] = "gpt-5"
     base_url="https://openrouter.ai/api/v1",
     api_key="test-key",
     base_url="https://openrouter.ai/api/v1",
@@ -357,20 +344,6 @@ class TestDeveloperRoleSwap:
         # Original messages must be untouched (internal representation stays "system")
         assert messages[0]["role"] == "system"
 
-    def test_developer_role_via_nous_portal(self, monkeypatch):
-        agent = _make_agent(
-            monkeypatch,
-            "nous",
-            base_url="https://inference-api.freeide.dev/v1",
-            model="gpt-5",
-        )
-        messages = [
-            {"role": "system", "content": "You are helpful."},
-            {"role": "user", "content": "hi"},
-        ]
-        kwargs = agent._build_api_kwargs(messages)
-        assert kwargs["messages"][0]["role"] == "developer"
-
 
 class TestBuildApiKwargsChatCompletionsServiceTier:
     """service_tier via request_overrides works on the chat_completions path."""
@@ -415,33 +388,6 @@ class TestBuildApiKwargsKimiNoTemperatureOverride:
         messages = [{"role": "user", "content": "hi"}]
         kwargs = agent._build_api_kwargs(messages)
         assert "temperature" not in kwargs
-
-
-class TestBuildApiKwargsNousPortal:
-    def test_includes_nous_product_tags(self, monkeypatch):
-        from agent.portal_tags import nous_portal_tags
-        agent = _make_agent(
-            monkeypatch,
-            "nous",
-            base_url="https://inference-api.freeide.dev/v1",
-            model="gpt-5",
-        )
-        messages = [{"role": "user", "content": "hi"}]
-        kwargs = agent._build_api_kwargs(messages)
-        extra = kwargs.get("extra_body", {})
-        assert extra.get("tags") == nous_portal_tags(session_id=agent.session_id)
-
-    def test_uses_chat_completions_format(self, monkeypatch):
-        agent = _make_agent(
-            monkeypatch,
-            "nous",
-            base_url="https://inference-api.freeide.dev/v1",
-            model="gpt-5",
-        )
-        messages = [{"role": "user", "content": "hi"}]
-        kwargs = agent._build_api_kwargs(messages)
-        assert "messages" in kwargs
-        assert "input" not in kwargs
 
 
 class TestBuildApiKwargsCustomEndpoint:
@@ -1028,19 +974,6 @@ class TestAuxiliaryClientProviderPriority:
         assert model == "google/gemini-3-flash-preview"
         assert "openrouter" in str(mock.call_args.kwargs["base_url"]).lower()
 
-    def test_nous_when_no_openrouter(self, monkeypatch):
-        monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
-        from agent.auxiliary_client import get_text_auxiliary_client
-        nous_auth = {
-            "access_token": _fake_invoke_jwt(),
-            "scope": "inference:invoke",
-        }
-        with patch("agent.auxiliary_client._read_nous_auth", return_value=nous_auth), \
-             patch("agent.auxiliary_client.OpenAI") as mock, \
-             patch("freeide_cli.models.get_nous_recommended_aux_model", return_value=None):
-            client, model = get_text_auxiliary_client()
-        assert model == "google/gemini-3-flash-preview"
-
     def test_custom_endpoint_when_no_nous(self, monkeypatch):
         """Custom endpoint is used when no OpenRouter/Nous keys are available.
 
@@ -1051,8 +984,7 @@ class TestAuxiliaryClientProviderPriority:
         monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
         monkeypatch.setenv("OPENAI_API_KEY", "local-key")
         from agent.auxiliary_client import get_text_auxiliary_client
-        with patch("agent.auxiliary_client._read_nous_auth", return_value=None), \
-             patch("agent.auxiliary_client._resolve_custom_runtime",
+        with patch("agent.auxiliary_client._resolve_custom_runtime",
                    return_value=("http://localhost:1234/v1", "local-key")), \
              patch("agent.auxiliary_client.OpenAI") as mock:
             client, model = get_text_auxiliary_client()
@@ -1071,8 +1003,7 @@ class TestAuxiliaryClientProviderPriority:
         monkeypatch.delenv("OPENAI_BASE_URL", raising=False)
         monkeypatch.delenv("OPENAI_API_KEY", raising=False)
         from agent.auxiliary_client import get_text_auxiliary_client
-        with patch("agent.auxiliary_client._read_nous_auth", return_value=None), \
-             patch("agent.auxiliary_client._read_codex_access_token", return_value="codex-tok"), \
+        with patch("agent.auxiliary_client._read_codex_access_token", return_value="codex-tok"), \
              patch("agent.auxiliary_client.OpenAI"):
             client, model = get_text_auxiliary_client()
         assert client is None

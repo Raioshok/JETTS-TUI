@@ -87,21 +87,14 @@ source ~/.bashrc   # 或 source ~/.zshrc
 freeide model
 ```
 
-:::tip 最简路径：FreeIDE Portal
-一个订阅涵盖 300+ 个模型，以及 [Tool Gateway](../user-guide/features/tool-gateway.md)（网页搜索、图像生成、TTS、云端浏览器）。全新安装时：
-
-```bash
-freeide setup --portal
-```
-
-该命令一次性完成登录、设置 Nous 为 provider 并开启 Tool Gateway。
+:::tip 自带密钥（Bring your own key）
+FreeIDE 采用自带密钥模式。运行 `freeide setup`，选择一个免费或付费的 provider，然后粘贴 API key——或使用某个 provider 自带的 OAuth（`openai-codex`、`xai-oauth`、`qwen-oauth`、`minimax-oauth`）。工具（网页搜索、图像/视频、TTS、浏览器）按各后端用你自己的密钥单独配置。
 :::
 
 推荐默认选项：
 
 | Provider | 说明 | 配置方式 |
 |----------|-----------|---------------|
-| **FreeIDE Portal** | 订阅制，零配置 | 通过 `freeide model` 进行 OAuth 登录 |
 | **OpenAI Codex** | ChatGPT OAuth，使用 Codex 模型 | 通过 `freeide model` 进行设备码认证 |
 | **Anthropic** | 直接使用 Claude 模型——Max 计划 + 额外用量积分（OAuth），或按 token 付费的 API key | `freeide model` → OAuth 登录（需要 Max + 额外积分），或 Anthropic API key |
 | **OpenRouter** | 跨多个 provider 的多模型路由 | 输入 API key |

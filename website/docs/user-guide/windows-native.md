@@ -78,8 +78,8 @@ Top-to-bottom, in order:
 9. **Adds `%LOCALAPPDATA%\freeide\freeide-agent\venv\Scripts` to User PATH and sets `FREEIDE_HOME=%LOCALAPPDATA%\freeide`** — exposes the `freeide` command (and points it at your data dir) after you open a new terminal.
 10. **Runs `freeide setup`** — the normal first-run wizard (model, provider, toolsets). Skip with `-SkipSetup`.
 
-:::tip Skip provider hunting on Windows
-On Windows, per-tool API key setup (Firecrawl, FAL, Browser Use, OpenAI TTS) is the highest-friction part of getting a useful agent. A [FreeIDE Portal](/user-guide/features/tool-gateway) subscription covers the model **and** all of those tools through one OAuth login. After the installer finishes, run `freeide setup --portal` to wire everything up.
+:::tip Provider setup on Windows
+On Windows, per-tool API key setup (Firecrawl, FAL, Browser Use, OpenAI TTS) is the highest-friction part of getting a useful agent. FreeIDE is bring-your-own-key: after the installer finishes, run `freeide setup` to pick a free or paid model provider and paste its API key (or use a provider's own OAuth), then configure each tool with your own keys per backend.
 :::
 
 ## Feature matrix

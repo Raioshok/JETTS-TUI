@@ -42,7 +42,7 @@ freeide [global-options] <command> [subcommand/options]
 | `freeide moa` | Configure named Mixture of Agents presets selectable from the model picker. |
 | `freeide fallback` | Manage fallback providers tried when the primary model errors. |
 | `freeide gateway` | Run or manage the messaging gateway service. |
-| `freeide proxy` | Local OpenAI-compatible proxy that attaches OAuth provider credentials. See [Subscription Proxy](../user-guide/features/subscription-proxy.md). |
+| `freeide proxy` | Local OpenAI-compatible proxy that attaches OAuth provider credentials for an upstream provider (e.g. xAI). |
 | `freeide egress` | Outbound credential-injection firewall for remote terminal sandboxes (iron-proxy). Disabled by default. See [Egress proxy](../user-guide/egress/iron-proxy.md). |
 | `freeide lsp` | Manage Language Server Protocol integration (semantic diagnostics for write_file/patch). |
 | `freeide setup` | Interactive setup wizard for all or part of the configuration. |
@@ -453,7 +453,7 @@ Common flags for migration subcommands:
 freeide proxy <subcommand>
 ```
 
-Run a local OpenAI-compatible HTTP server that forwards requests to an OAuth-authenticated upstream provider (e.g. xAI). External apps can point at the proxy with any bearer token; the proxy attaches your real OAuth credentials on the way out. See [Subscription Proxy](../user-guide/features/subscription-proxy.md) for the full guide.
+Run a local OpenAI-compatible HTTP server that forwards requests to an OAuth-authenticated upstream provider (e.g. xAI). External apps can point at the proxy with any bearer token; the proxy attaches your real OAuth credentials on the way out.
 
 | Subcommand | Description |
 |------------|-------------|
@@ -830,13 +830,12 @@ Upload a debug report (system info + recent logs) to a paste service and get a s
 |--------|-------------|
 | `--lines <N>` | Number of log lines to include per log file (default: 200). |
 | `--expire <days>` | Paste expiry in days (default: 7). |
-| `--nous` | Upload to FreeIDE-internal diagnostics storage instead of a public paste service. Use this when FreeIDE support asks for a private diagnostic bundle. |
 | `--local` | Print the report locally instead of uploading. |
 | `--no-redact` | Disable upload-time secret redaction. By default, uploads are redacted. |
 
 The report includes system info (OS, Python version, FreeIDE version), recent agent, gateway, GUI/dashboard, and desktop logs (512 KB limit per file), and redacted API key status. By default, uploads are redacted so secrets are not included.
 
-Default uploads use public paste services tried in order: paste.rs, dpaste.com. `--nous` uploads the same debug bundle to private FreeIDE diagnostics storage instead; the returned viewer link is for the FreeIDE team and auto-deletes after 14 days.
+Default uploads use public paste services tried in order: paste.rs, dpaste.com.
 
 ### Examples
 
@@ -844,7 +843,6 @@ Default uploads use public paste services tried in order: paste.rs, dpaste.com. 
 freeide debug share              # Upload debug report, print URL
 freeide debug share --lines 500  # Include more log lines
 freeide debug share --expire 30  # Keep paste for 30 days
-freeide debug share --nous       # Upload a private diagnostics bundle for FreeIDE support
 freeide debug share --local      # Print report to terminal (no upload)
 ```
 

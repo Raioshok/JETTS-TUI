@@ -47,9 +47,9 @@ List the files in /home/user/projects and summarize the repo structure.
 
 FreeIDE will discover the MCP server's tools and use them like any other tool.
 
-## Catalog: one-click install for Nous-approved MCPs
+## Catalog: one-click install for FreeIDE-approved MCPs
 
-FreeIDE ships a curated catalog of MCP servers that Nous staff has reviewed
+FreeIDE ships a curated catalog of MCP servers that FreeIDE staff has reviewed
 and merged. They're disabled by default — install only what you actually
 want.
 
@@ -70,7 +70,7 @@ github       installed (disabled)   GitHub repo + PR tools
 Hit `Enter` on a row to install (and walk through any required credentials),
 enable, disable, or uninstall. Catalog entries are stored under
 `optional-mcps/` in the freeide-agent repo — presence in that directory means
-Nous approval. There is no community submission tier; entries are added by
+FreeIDE approval. There is no community submission tier; entries are added by
 merging a PR.
 
 Catalog entries can require:
@@ -119,7 +119,7 @@ reachable to refine.
 Installing a catalog entry runs whatever the manifest specifies — `git clone`,
 the entry's `bootstrap` commands (`pip install`, `npm install`, etc.), and
 ultimately the MCP server's own code. Manifests are gated by PR review into
-the freeide-agent repo, so Nous has reviewed each entry before it shipped —
+the freeide-agent repo, so FreeIDE has reviewed each entry before it shipped —
 **but you should still read the manifest before installing**, especially the
 `source:` field's repository, the `install.bootstrap:` commands, and any
 `transport.command:` invocation.

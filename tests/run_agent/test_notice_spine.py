@@ -14,8 +14,27 @@ from unittest.mock import patch
 
 import pytest
 
-from agent.credits_tracker import AgentNotice
+from dataclasses import dataclass
+from typing import Optional
+
 from run_agent import AIAgent
+
+
+@dataclass
+class AgentNotice:
+    """Local stand-in for the removed ``agent.credits_tracker.AgentNotice``.
+
+    The notice spine (``_emit_notice`` / ``_emit_notice_clear`` and the TUI
+    ``_agent_cbs`` binding) is KEPT and fully duck-typed, so a faithful data
+    holder with the same fields exercises exactly the same behaviour.
+    """
+
+    text: str
+    level: str = "info"
+    kind: str = "sticky"
+    ttl_ms: Optional[int] = None
+    key: Optional[str] = None
+    id: Optional[str] = None
 
 
 # ── A. Emitter behaviour ─────────────────────────────────────────────────────

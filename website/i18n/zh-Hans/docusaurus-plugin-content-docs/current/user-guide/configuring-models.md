@@ -11,8 +11,8 @@ FreeIDE 使用两类模型槽位：
 
 本页介绍如何通过仪表板配置上述两类模型。如需使用配置文件或 CLI，请跳至底部的[其他方法](#alternative-methods)。
 
-:::tip 最快路径：FreeIDE Portal
-[FreeIDE Portal](/user-guide/features/tool-gateway) 在单一订阅下提供 300+ 个模型。全新安装后，运行 `freeide setup --portal` 即可登录并一键将 Nous 设为提供商。使用 `freeide portal info` 查看当前配置。
+:::tip 最快路径：`freeide setup`
+全新安装后，运行 `freeide setup` 选择一个免费或付费的 provider 并粘贴你的 API key（或使用某个 provider 自带的 OAuth，例如 `openai-codex`、`xai-oauth`、`qwen-oauth` 或 `minimax-oauth`）。FreeIDE 采用自带密钥模式，因此你连接的是自己已有的模型 provider。
 :::
 
 ## Models 页面

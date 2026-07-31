@@ -109,7 +109,7 @@ Type `/` in the CLI to open the autocomplete menu. Built-in commands are case-in
 | `/reload` | Reload `.env` variables into the running session (picks up new API keys without restarting) |
 | `/plugins` | List installed plugins and their status |
 | `/pet [list\|<slug>]` | Toggle or adopt a [petdex](/user-guide/features/pets) mascot. `/pet` toggles the pane, `/pet list` shows installed pets, `/pet <slug>` adopts a specific one. |
-| `/hatch <description>` (alias: `/generate-pet`) | Generate a brand-new petdex pet from a text description, using the configured image backend (OpenRouter / FreeIDE Portal). See [Pets](/user-guide/features/pets). |
+| `/hatch <description>` (alias: `/generate-pet`) | Generate a brand-new petdex pet from a text description, using the configured image backend (e.g. OpenRouter or a FAL image backend). See [Pets](/user-guide/features/pets). |
 
 ### Info
 
