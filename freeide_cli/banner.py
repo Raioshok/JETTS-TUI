@@ -14,6 +14,8 @@ from urllib.parse import urlparse
 from freeide_constants import get_freeide_home
 from typing import TYPE_CHECKING, Dict, List, Optional
 
+from freeide_cli import rice
+
 # rich and prompt_toolkit are imported lazily (inside the functions that use
 # them) rather than at module level.  Importing this module is on the TUI
 # gateway's critical startup path purely to reach the lightweight update-check
@@ -719,10 +721,16 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
     stats.append(f"[{dim}]/help[/]")
     stat_line = Align.center(Text.from_markup(f"[{dim}]  ·  [/]".join(stats)))
 
-    body: list = [facts, Rule(style=border_color)]
+    # Gradient hairline rules (violet→sky) instead of a flat border color —
+    # the bold-gradient-rice signature carried into the info card.
+    _inner_w = max(8, min(shutil.get_terminal_size().columns, 72) - 8)
+    def _grule():
+        return Text.from_markup(rice.gradient_rule(_inner_w))
+
+    body: list = [facts, _grule()]
     if chip_line is not None:
         body.append(chip_line)
-        body.append(Rule(style=border_color))
+        body.append(_grule())
     body.append(stat_line)
 
     # Update / profile notices — minimal, only when they matter.
@@ -775,6 +783,9 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
     if term_width >= 52:
         _logo = _bskin.banner_logo if _bskin and getattr(_bskin, "banner_logo", "") else FREEIDE_AGENT_LOGO
         console.print(Align.center(_logo, width=_card_width))
+        # Gradient hairline + tagline tie the wordmark to the info card.
+        console.print(Align.center(Text.from_markup(rice.gradient_rule(min(_card_width - 2, 52))), width=_card_width))
+        console.print(Align.center(Text.from_markup(f"[{dim}]bring-your-own-key coding agent[/]"), width=_card_width))
         console.print()
     else:
         _hero = _bskin.banner_hero if _bskin and getattr(_bskin, "banner_hero", "") else FREEIDE_CADUCEUS

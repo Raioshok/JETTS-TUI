@@ -5821,6 +5821,100 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
         except Exception:
             return f"◆ {self.model if getattr(self, 'model', None) else 'FreeIDE'}"
 
+    def _use_powerline_statusbar(self) -> bool:
+        """Bold-gradient-rice powerline bar is the default skin's signature.
+
+        Gated to the ``default`` skin (the other themes keep their clean flat
+        bar) and to nerd-font terminals (``FREEIDE_POWERLINE=0`` opts out).
+        """
+        try:
+            from freeide_cli.skin_engine import get_active_skin_name
+            from freeide_cli import rice
+            return get_active_skin_name() == "default" and rice.powerline_enabled()
+        except Exception:
+            return False
+
+    def _powerline_status_frags(self, snapshot, width):
+        """Render the status bar as gradient powerline segments.
+
+        model ▸ context ▸ meta, with a violet→sky segment ramp and a
+        usage-tinted context segment. Returns None to fall back to the flat bar.
+        """
+        try:
+            from freeide_cli import rice
+            from freeide_cli.skin_engine import get_active_skin
+            skin = get_active_skin()
+
+            crust = "#11111b"                                   # dark ink for bright segments
+            ink = skin.get_color("banner_text", "#cdd6f4")
+            surf1 = skin.get_color("completion_menu_current_bg", "#45475a")
+            surf2 = skin.get_color("banner_border", "#585b70")
+            model_bg = rice.gradient_at(0.0)                    # mauve
+            ctx_bg = rice.gradient_at(0.5)                      # periwinkle
+
+            percent = snapshot.get("context_percent")
+            if percent is not None:
+                if percent >= 95:
+                    ctx_bg = skin.get_color("status_bar_critical", "#f38ba8")
+                elif percent >= 85:
+                    ctx_bg = skin.get_color("status_bar_bad", "#fab387")
+                elif percent >= 75:
+                    ctx_bg = skin.get_color("status_bar_warn", "#f9e2af")
+
+            model_short = snapshot.get("model_short", "FreeIDE")
+            duration_label = snapshot.get("duration", "")
+            goal_segment = self._status_bar_goal_segment(snapshot)
+            battery_label = snapshot.get("battery_label") or ""
+            focus_label = snapshot.get("focus_label") or ""
+            yolo_active = self._is_session_yolo_active()
+
+            segments = []  # (fg, bg, text)
+            if battery_label:
+                segments.append((crust, surf2, battery_label))
+            segments.append((crust, model_bg, f"◆ {model_short}"))
+
+            # Context segment
+            percent_label = f"{percent}%" if percent is not None else "--"
+            if width >= 76 and snapshot.get("context_length"):
+                ctx_total = _format_context_length(snapshot["context_length"])
+                ctx_used = format_token_count_compact(snapshot["context_tokens"])
+                ctx_text = f"{ctx_used}/{ctx_total} · {percent_label}"
+            else:
+                ctx_text = percent_label
+            segments.append((crust, ctx_bg, ctx_text))
+
+            # Meta segment: duration + activity indicators + goal + focus
+            meta = [duration_label] if duration_label else []
+            compressions = snapshot.get("compressions", 0)
+            if compressions:
+                meta.append(f"🗜 {compressions}")
+            if snapshot.get("active_background_tasks", 0):
+                meta.append(f"▶ {snapshot['active_background_tasks']}")
+            if snapshot.get("active_background_processes", 0):
+                meta.append(f"⚙ {snapshot['active_background_processes']}")
+            if snapshot.get("active_background_subagents", 0):
+                meta.append(f"⛓ {snapshot['active_background_subagents']}")
+            if goal_segment:
+                meta.append(goal_segment)
+            prompt_elapsed = snapshot.get("prompt_elapsed")
+            if width >= 76 and prompt_elapsed:
+                meta.append(prompt_elapsed)
+            idle_since = snapshot.get("idle_since")
+            if width >= 76 and idle_since:
+                meta.append(idle_since)
+            if focus_label:
+                meta.append(focus_label)
+            if meta:
+                segments.append((ink, surf1, " · ".join(meta)))
+
+            if yolo_active:
+                segments.append((crust, skin.get_color("status_bar_critical", "#f38ba8"), "⚠ YOLO"))
+
+            frags = [("", " ")] + rice.powerline_segments(segments)
+            return frags
+        except Exception:
+            return None
+
     def _get_status_bar_fragments(self):
         if not self._status_bar_visible or getattr(self, '_model_picker_state', None):
             return []
@@ -5838,6 +5932,15 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
             battery_label = snapshot.get("battery_label") or ""
             battery_style = self._battery_status_style(snapshot.get("battery_category", "dim"))
             focus_label = snapshot.get("focus_label") or ""
+
+            # Bold-gradient-rice powerline bar (default skin). Falls through to
+            # the flat class-based bar when it doesn't fit or isn't active.
+            if width >= 52 and self._use_powerline_statusbar():
+                pl = self._powerline_status_frags(snapshot, width)
+                if pl is not None:
+                    pl_width = sum(self._status_bar_display_width(t) for _, t in pl)
+                    if pl_width <= width:
+                        return pl
 
             if width < 52:
                 frags = [
@@ -15814,13 +15917,26 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
         # Horizontal rules above and below the input.
         # On narrow/mobile terminals we keep the top separator for structure but
         # hide the bottom one to recover a full row for conversation content.
+        # Bold-gradient-rice: the default skin fades the rules violet→sky;
+        # other skins keep the flat single-color line.
+        def _rule_fragments():
+            try:
+                from prompt_toolkit.application import get_app
+                w = max(1, get_app().output.get_size().columns)
+            except Exception:
+                w = 80
+            if cli_ref._use_powerline_statusbar():
+                from freeide_cli import rice
+                return rice.gradient_rule_fragments(w)
+            return [('class:input-rule', '─' * w)]
+
         input_rule_top = Window(
-            char='─',
+            content=FormattedTextControl(_rule_fragments),
             height=lambda: cli_ref._tui_input_rule_height("top"),
             style='class:input-rule',
         )
         input_rule_bot = Window(
-            char='─',
+            content=FormattedTextControl(_rule_fragments),
             height=lambda: cli_ref._tui_input_rule_height("bottom"),
             style='class:input-rule',
         )
