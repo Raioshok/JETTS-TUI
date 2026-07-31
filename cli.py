@@ -6091,7 +6091,7 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
         """Queue an out-of-band AgentNotice for rendering at the next clean boundary.
 
         Notices fire from inside the agent turn (cold-start seed during _init_agent,
-        per-turn _capture_credits after the API call) — printing immediately races the
+        per-turn header capture after the API call) — printing immediately races the
         streaming response and the line gets buried behind the prompt (see _cprint's
         bg-thread caveat). So we QUEUE here and flush in _flush_credit_notices(), called
         right after run_conversation returns. Fail-soft: never break the turn.
