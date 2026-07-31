@@ -201,7 +201,7 @@ class SkinConfig:
 _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
     "default": {
         "name": "default",
-        "description": "FreeIDE — Catppuccin Mocha, violet accent",
+        "description": "FreeIDE — Catppuccin Mocha, bold gradient rice (violet→sky)",
         # Catppuccin Mocha with a mauve/violet accent — the modern riced
         # terminal palette. Roles map onto Catppuccin's named colours so the
         # whole UI reads as one deliberate scheme rather than scattered hexes:
@@ -274,8 +274,22 @@ _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
             "status_bar_bg": "#F5F5F5",
             "voice_status_bg": "#F5F5F5",
         },
+        # Bold-gradient-rice spinner: a breathing prism/diamond instead of the
+        # kawaii faces, so the default look reads as one geometric, riced scheme.
         "spinner": {
-            # Empty = use hardcoded defaults in display.py
+            "waiting_faces": ["(◇)", "(◈)", "(◆)", "(◈)"],
+            "thinking_faces": ["(◆)", "(◈)", "(◇)", "(⌁)", "(✦)"],
+            "thinking_verbs": [
+                "refracting", "focusing the beam", "aligning facets",
+                "bending light", "tracing rays", "splitting the spectrum",
+                "tuning the prism", "sharpening the edge",
+            ],
+            "wings": [
+                ["⟪◆", "◆⟫"],
+                ["⟪◈", "◈⟫"],
+                ["⟪✦", "✦⟫"],
+                ["⟪◇", "◇⟫"],
+            ],
         },
         "branding": {
             "agent_name": "FreeIDE Agent",
@@ -283,7 +297,7 @@ _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
             "goodbye": "Goodbye! ◆",
             "response_label": " ◆ FreeIDE ",
             "prompt_symbol": "❯",
-            "help_header": "(^_^)? Available Commands",
+            "help_header": "◆ Available Commands",
         },
         "tool_prefix": "┊",
     },

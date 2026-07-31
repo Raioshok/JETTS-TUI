@@ -532,7 +532,11 @@ def _run_curses_menu(
             if curses.has_colors():
                 curses.start_color()
                 curses.use_default_colors()
-                curses.init_pair(1, curses.COLOR_GREEN, -1)
+                # Bold-gradient-rice: the cursor row glows mauve (Catppuccin
+                # #cba6f7 ≈ xterm-256 183) to match the TUI's violet accent;
+                # fall back to magenta on 8/16-color terminals.
+                _cursor_color = 183 if curses.COLORS >= 256 else curses.COLOR_MAGENTA
+                curses.init_pair(1, _cursor_color, -1)
                 curses.init_pair(2, curses.COLOR_YELLOW, -1)
                 if extra_color_pairs:
                     curses.init_pair(
