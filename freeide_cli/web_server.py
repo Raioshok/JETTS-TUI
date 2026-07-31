@@ -3677,9 +3677,9 @@ async def get_portal_status():
 
     features = []
     try:
-        from freeide_cli.nous_subscription import get_nous_subscription_features
+        from freeide_cli.tool_features import get_tool_features
 
-        feats = get_nous_subscription_features(cfg)
+        feats = get_tool_features(cfg)
         if feats is not None:
             for feat in feats.items():
                 if getattr(feat, "managed_by_nous", False):
@@ -7056,9 +7056,9 @@ def _apply_model_assignment_sync(
 
         # When switching the main provider to Nous, mirror the CLI's
         # post-model-selection behaviour (freeide_cli/main.py
-        # prompt_enable_tool_gateway / tools_config apply_nous_managed_defaults):
+        # prompt_enable_tool_gateway / tools_config apply_managed_defaults):
         # auto-route any *unconfigured* tools through the Nous Tool Gateway.
-        # This is purely additive — apply_nous_managed_defaults skips every
+        # This is purely additive — apply_managed_defaults skips every
         # tool where the user already has a direct key (FIRECRAWL_API_KEY,
         # FAL_KEY, etc.) or an explicit backend/provider in config, so it
         # never overwrites a user's own setup. GUI users thus land on the
@@ -7066,13 +7066,13 @@ def _apply_model_assignment_sync(
         gateway_tools: list[str] = []
         if provider.strip().lower() == "nous":
             try:
-                from freeide_cli.nous_subscription import apply_nous_managed_defaults
+                from freeide_cli.tool_features import apply_managed_defaults
                 from freeide_cli.tools_config import _get_platform_tools
 
                 enabled = _get_platform_tools(
                     cfg, "cli", include_default_mcp_servers=False
                 )
-                changed = apply_nous_managed_defaults(
+                changed = apply_managed_defaults(
                     cfg,
                     enabled_toolsets=enabled,
                     force_fresh=True,
@@ -7081,7 +7081,7 @@ def _apply_model_assignment_sync(
             except Exception:
                 # Portal lookup hiccups / non-subscriber / non-nous gating
                 # must never block saving the model assignment.
-                _log.debug("apply_nous_managed_defaults skipped", exc_info=True)
+                _log.debug("apply_managed_defaults skipped", exc_info=True)
 
         save_config(cfg)
 
@@ -15891,7 +15891,7 @@ async def get_toolset_config(name: str, profile: Optional[str] = None):
         web_provider_capabilities,
     )
     from freeide_cli.config import get_env_value
-    from freeide_cli.nous_subscription import get_nous_subscription_features
+    from freeide_cli.tool_features import get_tool_features
 
     valid = {ts_key for ts_key, _, _ in _get_effective_configurable_toolsets()}
     if name not in valid:
@@ -15908,7 +15908,7 @@ async def get_toolset_config(name: str, profile: Optional[str] = None):
             # Fetch portal/entitlement state once for the whole matrix — the
             # per-provider readiness computation below reuses it instead of
             # re-probing per row.
-            features = get_nous_subscription_features(config, force_fresh=True)
+            features = get_tool_features(config, force_fresh=True)
             for prov in _visible_providers(cat, config, force_fresh=True):
                 env_vars = [
                     {
@@ -16183,7 +16183,7 @@ async def select_toolset_provider(
 
     Managed Nous rows (``managed_nous_feature``) additionally report the
     Portal entitlement state: the CLI flow gates these selections on
-    ``ensure_nous_portal_access`` (inline login), but the GUI has no inline
+    ``ensure_tool_backend_access`` (inline login), but the GUI has no inline
     prompt, so selecting one while logged out / unentitled used to write the
     config keys and then never activate (``_is_provider_active`` requires
     ``managed_by_nous``). The response now carries an additive
@@ -16198,9 +16198,9 @@ async def select_toolset_provider(
         _get_effective_configurable_toolsets,
         _visible_providers,
     )
-    from freeide_cli.nous_subscription import (
+    from freeide_cli.tool_features import (
         MANAGED_FEATURE_COVERAGE_CATEGORY,
-        get_nous_subscription_features,
+        get_tool_features,
     )
 
     valid = {ts_key for ts_key, _, _ in _get_effective_configurable_toolsets()}
@@ -16261,7 +16261,7 @@ async def select_toolset_provider(
             response["capability"] = body.capability
 
         # Entitlement check for managed Nous rows — mirrors the gate the CLI
-        # applies via ensure_nous_portal_access at selection time.
+        # applies via ensure_tool_backend_access at selection time.
         cat = TOOL_CATEGORIES.get(name)
         row = None
         if cat:
@@ -16275,7 +16275,7 @@ async def select_toolset_provider(
             )
         managed_feature = (row or {}).get("managed_nous_feature")
         if managed_feature:
-            features = get_nous_subscription_features(config, force_fresh=True)
+            features = get_tool_features(config, force_fresh=True)
             acct = features.account_info
             category = MANAGED_FEATURE_COVERAGE_CATEGORY.get(managed_feature)
             entitled = bool(

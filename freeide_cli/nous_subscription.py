@@ -33,7 +33,7 @@ _DEFAULT_PLATFORM_TOOLSETS = {
 # coverage category (freeide_cli.nous_account.TOOL_COVERAGE_CATEGORIES). Lets the
 # `freeide tools` picker scope its entitlement gate to the selected backend, so a
 # free-tool-pool user is allowed image gen but denied video gen at select time —
-# consistent with the per-category feature gates in get_nous_subscription_features.
+# consistent with the per-category feature gates in get_tool_features.
 MANAGED_FEATURE_COVERAGE_CATEGORY: Dict[str, str] = {
     "web": "firecrawl",
     "image_gen": "fal",
@@ -237,7 +237,7 @@ def _local_stt_backend_available() -> bool:
 
     True when faster-whisper is importable or a custom local STT command
     is configured. Used both for feature detection and to stop
-    ``apply_nous_managed_defaults`` from flipping a working local setup
+    ``apply_managed_defaults`` from flipping a working local setup
     to the managed gateway.
     """
     if get_env_value("FREEIDE_LOCAL_STT_COMMAND"):
@@ -326,7 +326,7 @@ def _resolve_browser_feature_state(
     return "local", available, active, False
 
 
-def get_nous_subscription_features(
+def get_tool_features(
     config: Optional[Dict[str, object]] = None,
     *,
     force_fresh: bool = False,
@@ -381,7 +381,7 @@ def get_nous_subscription_features(
     # STT default is "local" (faster-whisper) per DEFAULT_CONFIG, which
     # requires `pip install faster-whisper`. For Nous subscribers we'd
     # rather route through the managed OpenAI audio gateway — see
-    # apply_nous_managed_defaults below.
+    # apply_managed_defaults below.
     stt_provider = str(stt_cfg.get("provider") or "local").strip().lower()
     browser_provider_explicit = "cloud_provider" in browser_cfg
     browser_provider = normalize_browser_cloud_provider(
@@ -737,20 +737,20 @@ def get_nous_subscription_features(
 
 
 
-def apply_nous_managed_defaults(
+def apply_managed_defaults(
     config: Dict[str, object],
     *,
     enabled_toolsets: Optional[Iterable[str]] = None,
     force_fresh: bool = False,
 ) -> set[str]:
-    features = get_nous_subscription_features(config, force_fresh=force_fresh)
+    features = get_tool_features(config, force_fresh=force_fresh)
     if not (
         features.account_info
         and features.account_info.logged_in
         and features.account_info.tool_gateway_entitled
     ):
         return set()
-    if not features.provider_is_nous:
+    if not False:
         return set()
 
     selected_toolsets = set(enabled_toolsets or ())
@@ -935,7 +935,7 @@ def get_gateway_eligible_tools(
     if config is None:
         config = load_config() or {}
 
-    # Quick provider check without the heavy get_nous_subscription_features call
+    # Quick provider check without the heavy get_tool_features call
     model_cfg = config.get("model")
     if not isinstance(model_cfg, dict) or str(model_cfg.get("provider") or "").strip().lower() != "nous":
         return [], [], []
@@ -1135,7 +1135,7 @@ def prompt_enable_tool_gateway(
 # ---------------------------------------------------------------------------
 
 
-def ensure_nous_portal_access(
+def ensure_tool_backend_access(
     *,
     capability: str = "the Nous Tool Gateway",
     coverage_category: Optional[str] = None,

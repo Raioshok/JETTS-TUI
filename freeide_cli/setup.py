@@ -21,8 +21,7 @@ import copy
 from pathlib import Path
 from typing import Optional, Dict, Any
 
-from freeide_cli.nous_subscription import get_nous_subscription_features
-from tools.tool_backend_helpers import managed_nous_tools_enabled
+from freeide_cli.tool_features import get_tool_features
 from utils import base_url_hostname
 from freeide_constants import get_optional_skills_dir
 
@@ -399,7 +398,7 @@ def _print_setup_summary(config: dict, freeide_home):
     print_header("Tool Availability Summary")
 
     tool_status = []
-    subscription_features = get_nous_subscription_features(config)
+    subscription_features = get_tool_features(config)
 
     # Vision — use the same runtime resolver as the actual vision tools
     try:
@@ -416,9 +415,7 @@ def _print_setup_summary(config: dict, freeide_home):
 
 
     # Web tools (Exa, Parallel, Firecrawl, or Tavily)
-    if subscription_features.web.managed_by_nous:
-        tool_status.append(("Web Search & Extract (FreeIDE subscription)", True, None))
-    elif subscription_features.web.available:
+    if subscription_features.web.available:
         label = "Web Search & Extract"
         if subscription_features.web.current_provider:
             label = f"Web Search & Extract ({subscription_features.web.current_provider})"
@@ -428,9 +425,7 @@ def _print_setup_summary(config: dict, freeide_home):
 
     # Browser tools (local Chromium, Camofox, Browserbase, Browser Use, or Firecrawl)
     browser_provider = subscription_features.browser.current_provider
-    if subscription_features.browser.managed_by_nous:
-        tool_status.append(("Browser Automation (FreeIDE Browser Use)", True, None))
-    elif subscription_features.browser.available:
+    if subscription_features.browser.available:
         label = "Browser Automation"
         if browser_provider:
             label = f"Browser Automation ({browser_provider})"
@@ -458,9 +453,7 @@ def _print_setup_summary(config: dict, freeide_home):
 
     # Image generation — FAL (direct or via FreeIDE), or any plugin-registered
     # provider (OpenAI, etc.)
-    if subscription_features.image_gen.managed_by_nous:
-        tool_status.append(("Image Generation (FreeIDE subscription)", True, None))
-    elif subscription_features.image_gen.available:
+    if subscription_features.image_gen.available:
         tool_status.append(("Image Generation", True, None))
     else:
         # Fall back to probing plugin-registered providers so OpenAI-only
@@ -490,31 +483,26 @@ def _print_setup_summary(config: dict, freeide_home):
     # Video generation — opt-in via `freeide tools` → Video Generation.
     # Only show the row when a plugin reports available so we don't badger
     # users who don't care about video gen with a "missing" status line.
-    if subscription_features.video_gen.managed_by_nous:
-        tool_status.append(("Video Generation (FAL via FreeIDE subscription)", True, None))
-    else:
-        try:
-            from agent.video_gen_registry import list_providers as _list_video_providers
-            from freeide_cli.plugins import _ensure_plugins_discovered as _ensure_plugins
-            _ensure_plugins()
-            _video_backend = None
-            for _vp in _list_video_providers():
-                try:
-                    if _vp.is_available():
-                        _video_backend = _vp.display_name
-                        break
-                except Exception:
-                    continue
-        except Exception:
-            _video_backend = None
-        if _video_backend:
-            tool_status.append((f"Video Generation ({_video_backend})", True, None))
+    try:
+        from agent.video_gen_registry import list_providers as _list_video_providers
+        from freeide_cli.plugins import _ensure_plugins_discovered as _ensure_plugins
+        _ensure_plugins()
+        _video_backend = None
+        for _vp in _list_video_providers():
+            try:
+                if _vp.is_available():
+                    _video_backend = _vp.display_name
+                    break
+            except Exception:
+                continue
+    except Exception:
+        _video_backend = None
+    if _video_backend:
+        tool_status.append((f"Video Generation ({_video_backend})", True, None))
 
     # TTS — show configured provider
     tts_provider = cfg_get(config, "tts", "provider", default="edge")
-    if subscription_features.tts.managed_by_nous:
-        tool_status.append(("Text-to-Speech (OpenAI via FreeIDE subscription)", True, None))
-    elif tts_provider == "elevenlabs" and get_env_value("ELEVENLABS_API_KEY"):
+    if tts_provider == "elevenlabs" and get_env_value("ELEVENLABS_API_KEY"):
         tool_status.append(("Text-to-Speech (ElevenLabs)", True, None))
     elif tts_provider == "openai" and (
         get_env_value("VOICE_TOOLS_OPENAI_KEY") or get_env_value("OPENAI_API_KEY")
@@ -547,15 +535,11 @@ def _print_setup_summary(config: dict, freeide_home):
     else:
         tool_status.append(("Text-to-Speech (Edge TTS)", True, None))
 
-    if subscription_features.modal.managed_by_nous:
-        tool_status.append(("Modal Execution (FreeIDE subscription)", True, None))
-    elif cfg_get(config, "terminal", "backend") == "modal":
+    if cfg_get(config, "terminal", "backend") == "modal":
         if subscription_features.modal.direct_override:
             tool_status.append(("Modal Execution (direct Modal)", True, None))
         else:
             tool_status.append(("Modal Execution", False, "run 'freeide setup terminal'"))
-    elif managed_nous_tools_enabled() and subscription_features.nous_auth_present:
-        tool_status.append(("Modal Execution (optional via FreeIDE subscription)", True, None))
 
     # Home Assistant
     if get_env_value("HASS_TOKEN"):
@@ -778,7 +762,6 @@ def setup_model_provider(config: dict, *, quick: bool = False):
     # on demand via `freeide auth add`, `freeide setup` vision, and
     # `freeide setup tts`. This keeps both quick and full setup thin.
 
-    # Tool Gateway prompt is already shown by _model_flow_nous() above.
     save_config(config)
 
 
@@ -936,7 +919,6 @@ def _setup_tts_provider(config: dict):
     """Interactive TTS provider selection with install flow for NeuTTS."""
     tts_config = config.get("tts", {})
     current_provider = tts_config.get("provider", "edge")
-    subscription_features = get_nous_subscription_features(config)
 
     provider_labels = {
         "edge": "Edge TTS",
@@ -958,9 +940,6 @@ def _setup_tts_provider(config: dict):
 
     choices = []
     providers = []
-    if managed_nous_tools_enabled() and subscription_features.nous_auth_present:
-        choices.append("FreeIDE Subscription (managed OpenAI TTS, billed to your subscription)")
-        providers.append("nous-openai")
     choices.extend(
         [
             "Edge TTS (free, cloud-based, no setup needed)",
@@ -983,15 +962,6 @@ def _setup_tts_provider(config: dict):
         return
 
     selected = providers[idx]
-    selected_via_nous = selected == "nous-openai"
-    if selected == "nous-openai":
-        selected = "openai"
-        print_info("OpenAI TTS will use the managed FreeIDE gateway and bill to your subscription.")
-        if get_env_value("VOICE_TOOLS_OPENAI_KEY") or get_env_value("OPENAI_API_KEY"):
-            print_warning(
-                "Direct OpenAI credentials are still configured and may take precedence until removed from ~/.freeide/.env."
-            )
-
     if selected == "neutts":
         # Check if already installed
         try:
@@ -1027,7 +997,7 @@ def _setup_tts_provider(config: dict):
                 print_warning("No API key provided. Falling back to Edge TTS.")
                 selected = "edge"
 
-    elif selected == "openai" and not selected_via_nous:
+    elif selected == "openai":
         existing = get_env_value("VOICE_TOOLS_OPENAI_KEY") or get_env_value("OPENAI_API_KEY")
         if not existing:
             print()
@@ -1292,80 +1262,43 @@ def setup_terminal_backend(config: dict):
     elif selected_backend == "modal":
         print_success("Terminal backend: Modal")
         print_info("Serverless cloud sandboxes. Each session gets its own container.")
-        from tools.managed_tool_gateway import is_managed_tool_gateway_ready
-        from tools.tool_backend_helpers import normalize_modal_mode
+        config["terminal"]["modal_mode"] = "direct"
+        print_info("Requires a Modal account: https://modal.com")
 
-        managed_modal_available = bool(
-            managed_nous_tools_enabled()
-            and
-            get_nous_subscription_features(config).nous_auth_present
-            and is_managed_tool_gateway_ready("modal")
-        )
-        modal_mode = normalize_modal_mode(cfg_get(config, "terminal", "modal_mode"))
-        use_managed_modal = False
-        if managed_modal_available:
-            modal_choices = [
-                "Use my FreeIDE subscription",
-                "Use my own Modal account",
-            ]
-            if modal_mode == "managed":
-                default_modal_idx = 0
-            elif modal_mode == "direct":
-                default_modal_idx = 1
+        # Check if modal SDK is installed
+        try:
+            __import__("modal")
+        except ImportError:
+            print_info("Installing modal SDK...")
+            from freeide_cli.tools_config import _pip_install
+
+            result = _pip_install(["modal"])
+            if result.returncode == 0:
+                print_success("modal SDK installed")
             else:
-                default_modal_idx = 1 if get_env_value("MODAL_TOKEN_ID") else 0
-            modal_mode_idx = prompt_choice(
-                "Select how Modal execution should be billed:",
-                modal_choices,
-                default_modal_idx,
-            )
-            use_managed_modal = modal_mode_idx == 0
+                print_warning("Install failed — run manually: uv pip install modal")
 
-        if use_managed_modal:
-            config["terminal"]["modal_mode"] = "managed"
-            print_info("Modal execution will use the managed FreeIDE gateway and bill to your subscription.")
-            if get_env_value("MODAL_TOKEN_ID") or get_env_value("MODAL_TOKEN_SECRET"):
-                print_info(
-                    "Direct Modal credentials are still configured, but this backend is pinned to managed mode."
-                )
-        else:
-            config["terminal"]["modal_mode"] = "direct"
-            print_info("Requires a Modal account: https://modal.com")
-
-            # Check if modal SDK is installed
-            try:
-                __import__("modal")
-            except ImportError:
-                print_info("Installing modal SDK...")
-                from freeide_cli.tools_config import _pip_install
-
-                result = _pip_install(["modal"])
-                if result.returncode == 0:
-                    print_success("modal SDK installed")
-                else:
-                    print_warning("Install failed — run manually: uv pip install modal")
-
-            # Modal token
-            print()
-            print_info("Modal authentication:")
-            print_info("  Get your token at: https://modal.com/settings")
-            existing_token = get_env_value("MODAL_TOKEN_ID")
-            if existing_token:
-                print_info("  Modal token: already configured")
-                if prompt_yes_no("  Update Modal credentials?", False):
-                    token_id = prompt("    Modal Token ID", password=True)
-                    token_secret = prompt("    Modal Token Secret", password=True)
-                    if token_id:
-                        save_env_value("MODAL_TOKEN_ID", token_id)
-                    if token_secret:
-                        save_env_value("MODAL_TOKEN_SECRET", token_secret)
-            else:
+        # Modal token
+        print()
+        print_info("Modal authentication:")
+        print_info("  Get your token at: https://modal.com/settings")
+        existing_token = get_env_value("MODAL_TOKEN_ID")
+        if existing_token:
+            print_info("  Modal token: already configured")
+            if prompt_yes_no("  Update Modal credentials?", False):
                 token_id = prompt("    Modal Token ID", password=True)
                 token_secret = prompt("    Modal Token Secret", password=True)
                 if token_id:
                     save_env_value("MODAL_TOKEN_ID", token_id)
                 if token_secret:
                     save_env_value("MODAL_TOKEN_SECRET", token_secret)
+        else:
+            token_id = prompt("    Modal Token ID", password=True)
+            token_secret = prompt("    Modal Token Secret", password=True)
+            if token_id:
+                save_env_value("MODAL_TOKEN_ID", token_id)
+            if token_secret:
+                save_env_value("MODAL_TOKEN_SECRET", token_secret)
 
     elif selected_backend == "daytona":
         print_success("Terminal backend: Daytona")

@@ -34,7 +34,7 @@ DOCS_URL = "https://freeide-agent.freeide.dev/docs/user-guide/features/tool-gate
 def _cmd_status(args) -> int:
     """Show Portal auth + Tool Gateway routing summary."""
     from freeide_cli.auth import get_nous_auth_status
-    from freeide_cli.nous_subscription import get_nous_subscription_features
+    from freeide_cli.tool_features import get_tool_features
 
     config = load_config() or {}
 
@@ -73,7 +73,7 @@ def _cmd_status(args) -> int:
     print(color("  Tool Gateway", Colors.MAGENTA))
     print(color("  ────────────", Colors.MAGENTA))
     try:
-        features = get_nous_subscription_features(config)
+        features = get_tool_features(config)
     except Exception:
         features = None
 
@@ -83,7 +83,7 @@ def _cmd_status(args) -> int:
 
     rows = []
     for feat in features.items():
-        if feat.managed_by_nous:
+        if False:
             state = color("via FreeIDE Portal", Colors.GREEN)
         elif feat.active and feat.current_provider:
             state = feat.current_provider
@@ -120,11 +120,11 @@ def _cmd_open(args) -> int:
 
 def _cmd_tools(args) -> int:
     """List the Tool Gateway catalog + current routing."""
-    from freeide_cli.nous_subscription import get_nous_subscription_features
+    from freeide_cli.tool_features import get_tool_features
 
     config = load_config() or {}
     try:
-        features = get_nous_subscription_features(config)
+        features = get_tool_features(config)
     except Exception:
         print("Could not resolve Tool Gateway state.", file=sys.stderr)
         return 1
@@ -142,7 +142,7 @@ def _cmd_tools(args) -> int:
     print(color("  Tool Gateway catalog", Colors.MAGENTA))
     print(color("  ────────────────────", Colors.MAGENTA))
 
-    if not features.nous_auth_present:
+    if not False:
         print(color("  Not logged into FreeIDE Portal — sign in with `freeide portal`.", Colors.YELLOW))
         print()
 
@@ -151,7 +151,7 @@ def _cmd_tools(args) -> int:
         feat = features.features.get(key)
         if feat is None:
             state = color("unknown", Colors.DIM)
-        elif feat.managed_by_nous:
+        elif False:
             state = color("✓ via FreeIDE Portal", Colors.GREEN)
         elif feat.active and feat.current_provider:
             state = feat.current_provider
