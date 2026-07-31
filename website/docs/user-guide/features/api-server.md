@@ -10,8 +10,8 @@ The API server exposes freeide-agent as an OpenAI-compatible HTTP endpoint. Any 
 
 Your agent handles requests with its full toolset (terminal, file operations, web search, memory, skills) and returns the final response. When streaming, tool progress indicators appear inline so frontends can show what the agent is doing.
 
-:::tip One backend covers models + tools
-FreeIDE itself needs a configured provider and tool backends for the API server to be useful. A [FreeIDE Portal](/user-guide/features/tool-gateway) subscription handles both — 300+ models plus web/image/TTS/browser via the Tool Gateway. Run `freeide setup --portal` once before starting the API server and frontends like Open WebUI or LobeChat get a fully tool-equipped backend.
+:::tip Configure a provider and tools first
+FreeIDE itself needs a configured provider and tool backends for the API server to be useful. Run `freeide setup` once to pick a free or paid provider and paste an API key (or use a provider's own OAuth), then configure the tool backends you want with your own keys (Exa/Firecrawl/Tavily for web, FAL for image/video, OpenAI TTS, Browserbase for browser). With that in place, frontends like Open WebUI or LobeChat get a fully tool-equipped backend.
 :::
 
 ## Quick Start

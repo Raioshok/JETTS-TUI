@@ -35,7 +35,7 @@ python batch_runner.py --list_distributions
 ```
 
 :::tip Predictable cost at scale
-Batch runs spin up many concurrent agent sessions, each making model calls and tool calls. A [FreeIDE Portal](/user-guide/features/tool-gateway) subscription bundles model access plus web search, image gen, TTS, and cloud browsers under one bill — useful when you want stable cost-per-trajectory without juggling rate limits across five vendor accounts. Set up with `freeide setup --portal`, then point `--model` at a Nous model.
+Batch runs spin up many concurrent agent sessions, each making model calls and tool calls. Run `freeide setup` to configure a provider with your own API key, then configure the tool backends you need (web search, image gen, TTS, cloud browsers) with their own keys — pick providers whose pricing gives you a stable cost-per-trajectory before pointing `--model` at your chosen model.
 :::
 
 ## Dataset Format

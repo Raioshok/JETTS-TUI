@@ -48,7 +48,6 @@ Each entry requires both `provider` and `model`. Entries missing either field ar
 | Provider | Value | Requirements |
 |----------|-------|-------------|
 | OpenRouter | `openrouter` | `OPENROUTER_API_KEY` |
-| FreeIDE Portal | `nous` | `freeide setup --portal` (fresh) or `freeide auth add nous` (OAuth) |
 | OpenAI Codex | `openai-codex` | `freeide model` (ChatGPT OAuth) |
 | GitHub Copilot | `copilot` | `COPILOT_GITHUB_TOKEN`, `GH_TOKEN`, or `GITHUB_TOKEN` |
 | GitHub Copilot ACP | `copilot-acp` | External process (editor integration) |
@@ -137,17 +136,6 @@ fallback_providers:
     model: anthropic/claude-sonnet-4
 ```
 
-**FreeIDE Portal as fallback for OpenRouter:**
-```yaml
-model:
-  provider: openrouter
-  default: anthropic/claude-opus-4
-
-fallback_providers:
-  - provider: nous
-    model: nous-freeide-3
-```
-
 **Local model as fallback for cloud:**
 ```yaml
 fallback_providers:
@@ -211,14 +199,14 @@ The task-specific chain is most precise and wins when present. The top-level `fa
 **Built-in text discovery chain (compression, web extract, title generation, etc.):**
 
 ```text
-OpenRouter → FreeIDE Portal → Custom endpoint → Codex OAuth →
+OpenRouter → Custom endpoint → Codex OAuth →
 API-key providers (z.ai, Kimi, MiniMax, Xiaomi MiMo, Hugging Face, Anthropic) → give up
 ```
 
 **Built-in vision discovery chain:**
 
 ```text
-Main provider (if vision-capable) → OpenRouter → FreeIDE Portal →
+Main provider (if vision-capable) → OpenRouter →
 Codex OAuth → Anthropic → Custom endpoint → give up
 ```
 
@@ -231,7 +219,7 @@ Each task can be configured independently in `config.yaml`:
 ```yaml
 auxiliary:
   vision:
-    provider: "auto"              # auto | openrouter | nous | codex | main | anthropic
+    provider: "auto"              # auto | openrouter | codex | main | anthropic
     model: ""                     # e.g. "openai/gpt-4o"
     base_url: ""                  # direct endpoint (takes precedence over provider)
     api_key: ""                   # API key for base_url
@@ -287,7 +275,6 @@ These options apply to `auxiliary:`, `compression:`, and `fallback_providers:` e
 |----------|-------------|-------------|
 | `"auto"` | Try providers in order until one works (default) | At least one provider configured |
 | `"openrouter"` | Force OpenRouter | `OPENROUTER_API_KEY` |
-| `"nous"` | Force FreeIDE Portal | `freeide auth` |
 | `"codex"` | Force Codex OAuth | `freeide model` → Codex |
 | `"main"` | Use whatever provider the main agent uses (auxiliary tasks only) | Active main provider configured |
 | `"anthropic"` | Force Anthropic native | `ANTHROPIC_API_KEY` or Claude Code credentials |
@@ -333,8 +320,8 @@ auxiliary:
     fallback_chain:
       - provider: openrouter
         model: google/gemini-3-flash-preview
-      - provider: nous
-        model: anthropic/claude-sonnet-4
+      - provider: anthropic
+        model: claude-sonnet-4
 
   compression:
     provider: openrouter
@@ -367,7 +354,7 @@ Context compression uses the `auxiliary.compression` config block to control whi
 ```yaml
 auxiliary:
   compression:
-    provider: "auto"                              # auto | openrouter | nous | main
+    provider: "auto"                              # auto | openrouter | main
     model: "google/gemini-3-flash-preview"
 ```
 
