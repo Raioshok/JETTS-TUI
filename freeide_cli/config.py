@@ -4417,11 +4417,25 @@ OPTIONAL_ENV_VARS = {
         "category": "tool",
     },
     "MISTRAL_API_KEY": {
-        "description": "Mistral API key for Voxtral TTS and transcription (STT)",
+        "description": "Mistral API key for model inference, Voxtral TTS, and transcription (STT)",
         "prompt": "Mistral API key",
         "url": "https://console.mistral.ai/",
         "password": True,
-        "category": "tool",
+        "category": "provider",
+    },
+    "GITHUB_MODELS_TOKEN": {
+        "description": "GitHub Models token with models:read permission",
+        "prompt": "GitHub Models token",
+        "url": "https://github.com/settings/tokens",
+        "password": True,
+        "category": "provider",
+    },
+    "OLLAMA_LOCAL_BASE_URL": {
+        "description": "Local Ollama server URL (defaults to http://localhost:11434/v1)",
+        "prompt": "Local Ollama server URL",
+        "url": "https://ollama.com/download",
+        "password": False,
+        "category": "provider",
     },
     "GITHUB_TOKEN": {
         "description": "GitHub token for Skills Hub (higher API rate limits, skill publish)",

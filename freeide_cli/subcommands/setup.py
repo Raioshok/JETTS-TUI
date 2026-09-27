@@ -51,8 +51,7 @@ def build_setup_parser(subparsers, *, cmd_setup: Callable) -> None:
     setup_parser.add_argument(
         "--portal",
         action="store_true",
-        help="One-shot FreeIDE Portal setup: log in via OAuth, pick a FreeIDE "
-        "model, set FreeIDE as the inference provider, and opt into the Tool "
-        "Gateway. Skips the rest of the wizard.",
+        help="Legacy compatibility flag. Managed Portal onboarding is "
+        "unavailable in this checkout; this flag exits with guidance.",
     )
     setup_parser.set_defaults(func=cmd_setup)

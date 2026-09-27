@@ -16661,8 +16661,14 @@ def _format_live_review_output(arg: str, cwd: str | None = None) -> str:
     else:
         return "Usage: /review [unstaged|staged|all|base <branch>|commit <sha>]"
     try:
-        stat = subprocess.run(commands[0], cwd=cwd or os.getcwd(), capture_output=True, text=True, timeout=20)
-        names = subprocess.run(commands[1], cwd=cwd or os.getcwd(), capture_output=True, text=True, timeout=20)
+        stat = subprocess.run(
+            commands[0], cwd=cwd or os.getcwd(), stdin=subprocess.DEVNULL,
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=20,
+        )
+        names = subprocess.run(
+            commands[1], cwd=cwd or os.getcwd(), stdin=subprocess.DEVNULL,
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=20,
+        )
     except Exception as exc:
         return f"Review unavailable: {exc}"
     if stat.returncode != 0:

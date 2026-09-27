@@ -2969,6 +2969,12 @@ def cmd_whatsapp_cloud(args):
 
 def cmd_setup(args):
     """Interactive setup wizard."""
+    if getattr(args, "portal", False):
+        raise SystemExit(
+            "Managed Portal onboarding is unavailable in this checkout. "
+            "Use `jetts-tui setup` with a direct provider API key for now. "
+            "The --portal flag is retained for compatibility while the integration is restored."
+        )
     from freeide_cli.setup import run_setup_wizard
 
     run_setup_wizard(args)

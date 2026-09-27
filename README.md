@@ -109,22 +109,9 @@ jetts-tui doctor       # Diagnose any issues
 
 ---
 
-## Optional Portal integration
+## Provider availability
 
-Jetts-TUI supports an existing subscription-backed [Portal service](https://portal.freeide.dev) alongside direct provider API keys. The Portal is externally hosted; Jetts-TUI does not operate or rebrand that service.
-
-- **300+ models** — pick any of them with `/model <name>`
-- **Tool Gateway** — web search (Firecrawl), image generation (FAL), text-to-speech (OpenAI), cloud browser (Browser Use), all routed through your sub. No extra accounts.
-
-One command from a fresh install:
-
-```bash
-jetts-tui setup --portal
-```
-
-That logs you in via OAuth, sets Jetts-TUI as your provider, and turns on the Tool Gateway. Check what's wired up any time with `jetts-tui portal info`. Full details on the [Tool Gateway docs page](website/docs/user-guide/features/tool-gateway).
-
-You can still bring your own keys per-tool whenever you want — the gateway is per-backend, not all-or-nothing.
+Direct provider API keys and compatible custom endpoints are supported. The older fork history removed the managed [Portal service](https://portal.freeide.dev) login and inference adapter; the leftover `setup --portal` flag does not currently perform Portal onboarding. We are tracking restoration separately and do not claim that flow works in this source release. The Portal is externally hosted and is not operated or rebranded by Jetts-TUI.
 
 ---
 

@@ -6,6 +6,7 @@ subprocess calls are added without stdin=subprocess.DEVNULL.
 """
 
 import importlib.util
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -28,6 +29,8 @@ def test_all_tui_subprocess_calls_have_stdin():
         [sys.executable, str(SCRIPT)],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        env={**os.environ, "PYTHONIOENCODING": "utf-8"},
         timeout=30,
     )
     assert result.returncode == 0, (

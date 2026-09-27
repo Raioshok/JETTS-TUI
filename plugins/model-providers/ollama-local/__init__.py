@@ -27,7 +27,7 @@ class _Ollama_localProfile(ProviderProfile):
 
 ollama_local = _Ollama_localProfile(
     name="ollama-local",
-    env_vars=("OLLAMA_API_KEY",),
+    env_vars=("OLLAMA_API_KEY", "OLLAMA_LOCAL_BASE_URL"),
     display_name="Ollama (local)",
     description="Ollama — runs entirely on your machine",
     signup_url="https://ollama.com/download",

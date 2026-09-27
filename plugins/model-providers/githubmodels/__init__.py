@@ -22,7 +22,7 @@ class _GithubmodelsProfile(ProviderProfile):
 
 githubmodels = _GithubmodelsProfile(
     name="githubmodels",
-    env_vars=("GITHUB_TOKEN",),
+    env_vars=("GITHUB_MODELS_TOKEN", "GITHUB_TOKEN"),
     display_name="GitHub Models",
     description="GitHub Models — uses a PAT with models:read",
     signup_url="https://github.com/settings/tokens",

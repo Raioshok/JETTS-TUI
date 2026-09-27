@@ -3117,15 +3117,17 @@ class TestWebServerEndpoints:
         for d in provider_catalog():
             if d.tab != "keys" or not d.api_key_env_vars:
                 continue
-            # The PRIMARY credential var must surface as this provider's card.
-            # (Shared aliases like GITHUB_TOKEN are intentionally left on their
-            # existing tool category and not hijacked — see the copilot test.)
-            primary = d.api_key_env_vars[0]
-            assert primary in data, f"{primary} ({d.slug}) missing from /api/env"
-            info = data[primary]
-            assert info["category"] == "provider"
-            assert info["provider"] == d.slug
-            assert info["provider_label"] == d.label
+            # A shared credential alias can belong to only one card in this
+            # env-var-keyed API. Local Ollama, for example, shares
+            # OLLAMA_API_KEY with Ollama Cloud but owns a distinct base URL.
+            vars_for_provider = (*d.api_key_env_vars, d.base_url_env_var)
+            owned = [
+                data[var] for var in vars_for_provider
+                if var in data and data[var].get("provider") == d.slug
+            ]
+            assert owned, f"{d.slug} has no provider card in /api/env"
+            assert all(info["category"] == "provider" for info in owned)
+            assert all(info["provider_label"] == d.label for info in owned)
 
     def test_get_env_vars_provider_rows_carry_grouping_hints(self):
         """Provider env rows expose the backend `provider`/`provider_label` the
