@@ -1,15 +1,9 @@
-"""Tests for the configurable default interface (cli vs tui).
+"""Tests for the single interactive terminal interface.
 
-`freeide` launches the classic prompt_toolkit REPL by default, but users can
-flip ``display.interface: tui`` in config.yaml to make the modern Ink TUI the
-default for bare ``freeide`` / ``freeide chat``. Explicit flags always win:
-
-    --cli                forces the classic REPL (highest precedence)
-    --tui                forces the TUI
-    (no TTY)             forces the classic REPL — ambient prefs don't apply
-    FREEIDE_TUI=1         the env default
-    display.interface    the configured default
-    (unset)              classic REPL
+`freeide` and `freeide chat` launch the Ink TUI whenever stdin/stdout are real
+terminals. The Python runner remains available only for headless jobs and
+redirected stdio. Legacy interface flags/config values stay parse-compatible
+but cannot expose a second interactive UI.
 
 The no-TTY gate exists because ambient TUI preferences must never hijack
 non-interactive invocations: kanban workers / cron / pipelines run
@@ -74,14 +68,15 @@ def _patch_config(monkeypatch, interface):
 # _resolve_use_tui — args-aware resolver
 # ---------------------------------------------------------------------------
 class TestResolveUseTui:
-    def test_cli_flag_beats_config_tui(self, monkeypatch):
+    def test_legacy_cli_flag_does_not_select_another_interactive_ui(self, monkeypatch):
         _patch_config(monkeypatch, "tui")
-        assert m._resolve_use_tui(_args(cli=True)) is False
+        _fake_tty(monkeypatch, True)
+        assert m._resolve_use_tui(_args(cli=True)) is True
 
-    def test_cli_flag_beats_tui_flag_and_env(self, monkeypatch):
+    def test_tui_flag_remains_compatible(self, monkeypatch):
         _patch_config(monkeypatch, "tui")
         monkeypatch.setenv("FREEIDE_TUI", "1")
-        assert m._resolve_use_tui(_args(cli=True, tui=True)) is False
+        assert m._resolve_use_tui(_args(cli=True, tui=True)) is True
 
     def test_tui_flag_beats_config_cli(self, monkeypatch):
         _patch_config(monkeypatch, "cli")
@@ -98,17 +93,17 @@ class TestResolveUseTui:
         _fake_tty(monkeypatch, True)
         assert m._resolve_use_tui(_args()) is True
 
-    def test_config_cli_is_default(self, monkeypatch):
+    def test_legacy_config_cli_is_ignored_for_interactive_launches(self, monkeypatch):
         _patch_config(monkeypatch, "cli")
         _fake_tty(monkeypatch, True)
-        assert m._resolve_use_tui(_args()) is False
+        assert m._resolve_use_tui(_args()) is True
 
     def test_interface_value_is_case_insensitive(self, monkeypatch):
         _patch_config(monkeypatch, "TUI")
         _fake_tty(monkeypatch, True)
         assert m._resolve_use_tui(_args()) is True
 
-    def test_load_config_failure_falls_back_to_cli(self, monkeypatch):
+    def test_load_config_failure_still_uses_tui(self, monkeypatch):
         import freeide_cli.config as cfg
 
         def boom():
@@ -116,7 +111,7 @@ class TestResolveUseTui:
 
         monkeypatch.setattr(cfg, "load_config", boom)
         _fake_tty(monkeypatch, True)
-        assert m._resolve_use_tui(_args()) is False
+        assert m._resolve_use_tui(_args()) is True
 
     # ── the no-TTY gate: ambient prefs never hijack non-interactive runs ────
     def test_no_tty_blocks_env_tui(self, monkeypatch):
@@ -171,9 +166,10 @@ class TestWantsTuiEarly:
         _fake_tty(monkeypatch, False)
         assert m._wants_tui_early(["--tui"]) is True
 
-    def test_cli_flag_overrides_config_tui(self, home_with_interface):
+    def test_legacy_cli_flag_is_ignored_on_a_tty(self, home_with_interface, monkeypatch):
         home_with_interface("tui")
-        assert m._wants_tui_early(["--cli"]) is False
+        _fake_tty(monkeypatch, True)
+        assert m._wants_tui_early(["--cli"]) is True
 
     def test_tui_flag_with_config_cli(self, home_with_interface):
         home_with_interface("cli")
@@ -184,22 +180,25 @@ class TestWantsTuiEarly:
         monkeypatch.setenv("FREEIDE_TUI", "1")
         assert m._wants_tui_early([]) is True
 
-    def test_config_cli_bare_argv(self, home_with_interface):
+    def test_config_cli_bare_argv_still_uses_tui(self, home_with_interface, monkeypatch):
         home_with_interface("cli")
-        assert m._wants_tui_early([]) is False
+        _fake_tty(monkeypatch, True)
+        assert m._wants_tui_early([]) is True
 
-    def test_missing_config_defaults_to_cli(self, tmp_path, monkeypatch):
+    def test_missing_config_defaults_to_tui(self, tmp_path, monkeypatch):
         # FREEIDE_HOME points at an empty dir — no config.yaml.
         monkeypatch.setenv("FREEIDE_HOME", str(tmp_path))
         monkeypatch.setattr(m, "_EARLY_INTERFACE_CACHE", None)
-        assert m._wants_tui_early([]) is False
+        _fake_tty(monkeypatch, True)
+        assert m._wants_tui_early([]) is True
 
-    def test_unreadable_config_defaults_to_cli(self, tmp_path, monkeypatch):
+    def test_unreadable_config_defaults_to_tui(self, tmp_path, monkeypatch):
         # Garbage YAML must not crash the hot path; falls back to cli.
         (tmp_path / "config.yaml").write_text("this: : : not valid yaml\n")
         monkeypatch.setenv("FREEIDE_HOME", str(tmp_path))
         monkeypatch.setattr(m, "_EARLY_INTERFACE_CACHE", None)
-        assert m._wants_tui_early([]) is False
+        _fake_tty(monkeypatch, True)
+        assert m._wants_tui_early([]) is True
 
 
 # ---------------------------------------------------------------------------
@@ -237,9 +236,9 @@ class TestParserFlags:
 
 
 # ---------------------------------------------------------------------------
-# config default — shipped default preserves classic behavior
+# config default — TUI is the only interactive terminal surface
 # ---------------------------------------------------------------------------
-def test_default_config_interface_is_cli():
+def test_default_config_interface_is_tui():
     from freeide_cli.config import DEFAULT_CONFIG
 
-    assert DEFAULT_CONFIG["display"]["interface"] == "cli"
+    assert DEFAULT_CONFIG["display"]["interface"] == "tui"

@@ -1,6 +1,6 @@
 import { execFile } from 'child_process'
 
-import { forceRedraw, onTerminalBackground, onTerminalForeground } from '@freeide/ink'
+import { forceRedraw, onTerminalBackground, onTerminalForeground } from '@jetts-tui/ink'
 
 import { STARTUP_IMAGE, STARTUP_QUERY } from '../config/env.js'
 import { STREAM_BATCH_MS } from '../config/timing.js'

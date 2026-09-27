@@ -30,6 +30,7 @@ If a skill is missing from this list but present in the repo, the catalog is reg
 | [`computer-use`](/docs/user-guide/skills/bundled/autonomous-ai-agents/autonomous-ai-agents-computer-use) | Drive the user's desktop in the background — clicking, typing, scrolling, dragging — without stealing the cursor, keyboard focus, or switching virtual desktops / Spaces. Cross-platform: macOS, Windows, Linux. Works with any tool-capable... | `autonomous-ai-agents/computer-use` |
 | [`freeide-agent`](/docs/user-guide/skills/bundled/autonomous-ai-agents/autonomous-ai-agents-freeide-agent) | Use, configure, theme, extend, and orchestrate FreeIDE Agent. | `autonomous-ai-agents/freeide-agent` |
 | [`opencode`](/docs/user-guide/skills/bundled/autonomous-ai-agents/autonomous-ai-agents-opencode) | Delegate coding to OpenCode CLI (features, PR review). | `autonomous-ai-agents/opencode` |
+| [`token-efficient-work`](/docs/user-guide/skills/bundled/autonomous-ai-agents/autonomous-ai-agents-token-efficient-work) | Plan and execute expensive or repeated agent work with explicit budgets, narrow delegation, concise reporting, persistent preferences, and resumable progress. | `autonomous-ai-agents/token-efficient-work` |
 
 ## creative
 
@@ -81,9 +82,9 @@ If a skill is missing from this list but present in the repo, the catalog is reg
 
 | Skill | Description | Path |
 |-------|-------------|------|
+| [`evaluating-llms-harness`](/docs/user-guide/skills/bundled/mlops/mlops-evaluation-evaluating-llms-harness) | lm-eval-harness: benchmark LLMs (MMLU, GSM8K, etc.). | `mlops/evaluation/evaluating-llms-harness` |
 | [`huggingface-hub`](/docs/user-guide/skills/bundled/mlops/mlops-huggingface-hub) | HuggingFace hf CLI: search/download/upload models, datasets. | `mlops/huggingface-hub` |
 | [`llama-cpp`](/docs/user-guide/skills/bundled/mlops/mlops-inference-llama-cpp) | llama.cpp local GGUF inference + HF Hub model discovery. | `mlops/inference/llama-cpp` |
-| [`evaluating-llms-harness`](/docs/user-guide/skills/bundled/mlops/mlops-evaluation-evaluating-llms-harness) | lm-eval-harness: benchmark LLMs (MMLU, GSM8K, etc.). | `mlops/evaluation/evaluating-llms-harness` |
 | [`serving-llms-vllm`](/docs/user-guide/skills/bundled/mlops/mlops-inference-serving-llms-vllm) | vLLM: high-throughput LLM serving, OpenAI API, quantization. | `mlops/inference/serving-llms-vllm` |
 | [`weights-and-biases`](/docs/user-guide/skills/bundled/mlops/mlops-evaluation-weights-and-biases) | W&B: log ML experiments, sweeps, model registry, dashboards. | `mlops/evaluation/weights-and-biases` |
 
@@ -137,6 +138,7 @@ If a skill is missing from this list but present in the repo, the catalog is reg
 |-------|-------------|------|
 | [`dogfood`](/docs/user-guide/skills/bundled/software-development/software-development-dogfood) | Exploratory QA of web apps: find bugs, evidence, reports. | `software-development/dogfood` |
 | [`freeide-agent-skill-authoring`](/docs/user-guide/skills/bundled/software-development/software-development-freeide-agent-skill-authoring) | Author in-repo SKILL.md files: frontmatter and structure. | `software-development/freeide-agent-skill-authoring` |
+| [`inspecting-freeide-desktop-dom`](/docs/user-guide/skills/bundled/software-development/software-development-inspecting-freeide-desktop-dom) | Read the live FreeIDE desktop DOM/CSS over CDP. | `software-development/inspecting-freeide-desktop-dom` |
 | [`node-inspect-debugger`](/docs/user-guide/skills/bundled/software-development/software-development-node-inspect-debugger) | Debug Node.js via --inspect + Chrome DevTools Protocol CLI. | `software-development/node-inspect-debugger` |
 | [`plan`](/docs/user-guide/skills/bundled/software-development/software-development-plan) | Write a markdown plan to .freeide/plans/; no execution. | `software-development/plan` |
 | [`python-debugpy`](/docs/user-guide/skills/bundled/software-development/software-development-python-debugpy) | Debug Python: pdb REPL + debugpy remote (DAP). | `software-development/python-debugpy` |

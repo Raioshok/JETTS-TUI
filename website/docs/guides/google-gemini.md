@@ -105,9 +105,15 @@ The `freeide model` picker shows Gemini models maintained in FreeIDE' provider r
 | Model | ID | Notes |
 |-------|----|-------|
 | Gemini 3.1 Pro Preview | `gemini-3.1-pro-preview` | Most capable preview model when available |
-| Gemini 3 Pro Preview | `gemini-3-pro-preview` | Strong reasoning and coding model |
-| Gemini 3 Flash Preview | `gemini-3-flash-preview` | Recommended default balance of speed and capability |
-| Gemini 3.1 Flash Lite Preview | `gemini-3.1-flash-lite-preview` | Fastest / lowest-cost option when available |
+| Gemini 3.8 Flash | `gemini-3.8-flash` | Current-generation default (released 2026-09-02) |
+| Gemini 3.6 Flash | `gemini-3.6-flash` | Previous generation |
+| Gemini 3 Flash Preview | `gemini-3-flash-preview` | Still served, but superseded by `gemini-3.6-flash` |
+| Gemini 3.1 Flash Lite | `gemini-3.1-flash-lite` | Fastest / lowest-cost option when available |
+
+Two ids that used to be listed here are **gone**: `gemini-3-pro-preview` (shut down
+2026-03-09, replaced by `gemini-3.1-pro-preview`) and `gemini-3.1-flash-lite-preview`
+(shut down 2026-05-25, replaced by `gemini-3.1-flash-lite`). Verified 2026-09-23 against
+Google's deprecations table: https://ai.google.dev/gemini-api/docs/deprecations
 
 Model availability changes over time. If a model disappears or is not enabled for your key, run `freeide model` again and pick one from the current list.
 
@@ -162,10 +168,10 @@ Use the `/model` command during a conversation:
 ```text
 /model gemini-3-flash-preview
 /model gemini-flash-latest
-/model gemini-3-pro-preview
+/model gemini-3.1-pro-preview
 /model gemini-pro-latest
 /model gemma-4-31b-it
-/model gemini-3.1-flash-lite-preview
+/model gemini-3.1-flash-lite
 ```
 
 If you have not configured Gemini yet, exit the session and run `freeide model` first. `/model` switches among already-configured providers and models; it does not collect new API keys.

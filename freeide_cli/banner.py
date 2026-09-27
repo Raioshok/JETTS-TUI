@@ -62,12 +62,12 @@ def _skin_color(key: str, fallback: str) -> str:
 
 from freeide_cli import __version__ as VERSION, __release_date__ as RELEASE_DATE
 
-FREEIDE_AGENT_LOGO = """[bold #cba6f7]███████╗██████╗ ███████╗███████╗██╗██████╗ ███████╗[/]
-[bold #b9a9fb]██╔════╝██╔══██╗██╔════╝██╔════╝██║██╔══██╗██╔════╝[/]
-[#b4befe]█████╗  ██████╔╝█████╗  █████╗  ██║██║  ██║█████╗  [/]
-[#a6b8fc]██╔══╝  ██╔══██╗██╔══╝  ██╔══╝  ██║██║  ██║██╔══╝  [/]
-[#89b4fa]██║     ██║  ██║███████╗███████╗██║██████╔╝███████╗[/]
-[#89dceb]╚═╝     ╚═╝  ╚═╝╚══════╝╚══════╝╚═╝╚═════╝ ╚══════╝[/]"""
+FREEIDE_AGENT_LOGO = """[bold #cba6f7]╭──────────────────────────────╮[/]
+[bold #b9a9fb]│                              │[/]
+[#b4befe]│          JETTS-TUI           │[/]
+[#a6b8fc]│                              │[/]
+[#89b4fa]│     YOUR AI WORKSPACE        │[/]
+[#89dceb]╰──────────────────────────────╯[/]"""
 
 # Abstract prism emblem — a violet→sky gradient diamond that matches the
 # wordmark. Replaces the old winged-staff mascot, which carried upstream
@@ -121,8 +121,8 @@ _UPDATE_CHECK_CACHE_SECONDS = 6 * 3600
 # (e.g. nix-built freeide — no local git history to count against).
 UPDATE_AVAILABLE_NO_COUNT = -1
 
-_UPSTREAM_REPO_URL = "https://github.com/freeide/freeide.git"
-_OFFICIAL_REPO_CANONICAL = "github.com/freeide/freeide"
+_UPSTREAM_REPO_URL = "https://github.com/Raioshok/JETTS-TUI.git"
+_OFFICIAL_REPO_CANONICAL = "github.com/raioshok/jetts-tui"
 
 
 def _canonical_github_remote(url: str | None) -> str:
@@ -423,7 +423,7 @@ def get_git_banner_state(repo_dir: Optional[Path] = None) -> Optional[dict]:
     return {"upstream": upstream, "local": local, "ahead": max(ahead, 0)}
 
 
-_RELEASE_URL_BASE = "https://github.com/freeide/freeide/releases/tag"
+_RELEASE_URL_BASE = "https://github.com/Raioshok/JETTS-TUI/releases/tag"
 _latest_release_cache: Optional[tuple] = None  # (tag, url) once resolved
 
 
@@ -431,8 +431,8 @@ def get_latest_release_tag(repo_dir: Optional[Path] = None) -> Optional[tuple]:
     """Return ``(tag, release_url)`` for the latest git tag, or None.
 
     Local-only — runs ``git describe --tags --abbrev=0`` against the
-    FreeIDE checkout. Cached per-process. Release URL always points at the
-    canonical freeide/freeide repo (forks don't get a link).
+    Jetts-TUI checkout. Cached per-process. Release URL always points at the
+    canonical Jetts-TUI repo (forks don't get a link).
     """
     global _latest_release_cache
     if _latest_release_cache is not None:
@@ -473,7 +473,7 @@ def get_latest_release_tag(repo_dir: Optional[Path] = None) -> Optional[tuple]:
 
 def format_banner_version_label() -> str:
     """Return the version label shown in the startup banner title."""
-    base = f"FreeIDE Agent v{VERSION} ({RELEASE_DATE})"
+    base = f"Jetts-TUI v{VERSION} ({RELEASE_DATE})"
     state = get_git_banner_state()
     if not state:
         return base
@@ -610,6 +610,7 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
     from rich.text import Text
     from rich.align import Align
     from rich import box
+    from rich.markup import escape
 
     # ── Palette (Catppuccin Mocha, violet accent) ────────────────────────
     accent = _skin_color("banner_accent", "#cba6f7")
@@ -669,6 +670,8 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
         prov_label = (provider or "").strip()
     if len(model_short) > 36:
         model_short = model_short[:33] + "..."
+    model_short = escape(model_short)
+    prov_label = escape(prov_label)
 
     # Fold $HOME to ~ and clip a long cwd so the line never wraps.
     _cwd = cwd
@@ -680,6 +683,7 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
         pass
     if len(_cwd) > 44:
         _cwd = "..." + _cwd[-41:]
+    _cwd = escape(_cwd)
 
     # ── Aligned fact rows ────────────────────────────────────────────────
     facts = Table.grid(padding=(0, 1))
@@ -696,7 +700,7 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
         _fact("◈", "context", f"[{text}]{_format_context_length(context_length)} tokens[/]")
     _fact("▸", "cwd", f"[{text}]{_cwd}[/]")
     if session_id:
-        _fact("⟩", "session", f"[{dim}]{session_id}[/]")
+        _fact("⟩", "session", f"[{dim}]{escape(session_id)}[/]")
     if os.getenv("FREEIDE_YOLO_MODE"):
         _fact("⚠", "mode", "[bold red]YOLO — approvals bypassed[/]")
 
@@ -732,6 +736,7 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
         body.append(chip_line)
         body.append(_grule())
     body.append(stat_line)
+    notice_start = len(body)
 
     # Update / profile notices — minimal, only when they matter.
     try:
@@ -753,9 +758,21 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
         from freeide_cli.profiles import get_active_profile_name
         _profile_name = get_active_profile_name()
         if _profile_name and _profile_name != "default":
-            body.append(Text.from_markup(f"[{dim}]profile[/]  [{text}]{_profile_name}[/]"))
+            body.append(Text.from_markup(f"[{dim}]profile[/]  [{text}]{escape(_profile_name)}[/]"))
     except Exception:
         pass
+
+    if _bskin and _bskin.name == "studio":
+        from freeide_cli.studio import welcome_panel
+        notices = body[notice_start:]
+        if os.getenv("FREEIDE_YOLO_MODE"):
+            notices.append(Text("YOLO · approvals bypassed", style="bold red"))
+        console.print(welcome_panel(
+            skin=_bskin, width=console.width, model=model, provider=provider,
+            cwd=cwd, tools=len(tools), skills=total_skills,
+            context=context_length, session=session_id, notices=notices,
+        ))
+        return
 
     version_label = format_banner_version_label()
     release_info = get_latest_release_tag()

@@ -1,6 +1,6 @@
-# Contributing to FreeIDE Agent
+# Contributing to Jetts-TUI
 
-Thank you for contributing to FreeIDE Agent! This guide covers everything you need: setting up your dev environment, understanding the architecture, deciding what to build, and getting your PR merged.
+Thank you for contributing to Jetts-TUI! This guide covers everything you need: setting up your dev environment, understanding the architecture, deciding what to build, and getting your PR merged.
 
 ---
 
@@ -9,7 +9,7 @@ Thank you for contributing to FreeIDE Agent! This guide covers everything you ne
 We value contributions in this order:
 
 1. **Bug fixes** — crashes, incorrect behavior, data loss. Always top priority.
-2. **Cross-platform compatibility** — macOS, different Linux distros, and WSL2 on Windows. We want FreeIDE to work everywhere.
+2. **Cross-platform compatibility** — macOS, different Linux distros, and WSL2 on Windows. We want Jetts-TUI to work everywhere.
 3. **Security hardening** — shell injection, prompt injection, path traversal, privilege escalation. See [Security](#security-considerations).
 4. **Performance and robustness** — retry logic, error handling, graceful degradation.
 5. **New skills** — but only broadly useful ones. See [Should it be a Skill or a Tool?](#should-it-be-a-skill-or-a-tool)
@@ -24,10 +24,10 @@ A quick search before you build saves your time and keeps the PR queue clean —
 
 - **Search both open *and* merged PRs and issues** for your topic or error symptom — the duplicate-check in the PR template fires at review time, after you've already done the work:
   ```bash
-  gh search issues --repo freeide/freeide "<your terms>"
-  gh search prs --repo freeide/freeide --state all "<your terms>"
+  gh search issues --repo Raioshok/JETTS-TUI "<your terms>"
+  gh search prs --repo Raioshok/JETTS-TUI --state all "<your terms>"
   ```
-  Or use the web UI: [issues](https://github.com/freeide/freeide/issues?q=) · [PRs (all states)](https://github.com/freeide/freeide/pulls?q=is%3Apr).
+  Or use the web UI: [issues](https://github.com/Raioshok/JETTS-TUI/issues?q=) · [PRs (all states)](https://github.com/Raioshok/JETTS-TUI/pulls?q=is%3Apr).
 - **The issue tracker can lag the code.** Many requested features are already implemented in-tree, so also search the source (`search_files`, or your editor's grep) for the capability before proposing it.
 - **If an open PR already addresses it**, consider reviewing or improving that one instead of opening a competing duplicate.
 - **For larger work**, comment on the issue to signal you're working on it, so others don't start the same thing.
@@ -124,7 +124,7 @@ development environment on the same layout the CLI, updater, lazy dependency
 installer, gateway, and docs assume.
 
 ```bash
-curl -fsSL https://freeide-agent.freeide.dev/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Raioshok/JETTS-TUI/main/scripts/install.sh | bash
 cd "${FREEIDE_HOME:-$HOME/.freeide}/freeide-agent"
 
 # Add dev/test extras on top of the standard install.
@@ -143,7 +143,7 @@ scripts/run_tests.sh
 
 ### Manual clone fallback
 
-Use this only if you intentionally do not want FreeIDE' managed install layout
+Use this only if you intentionally do not want Jetts-TUI's managed install layout
 (for example, a throwaway clone inside a container or CI job). If you install
 this way, make sure you run the `freeide` entrypoint from this venv; running the
 system `python3 -m freeide_cli.main` can pick up unrelated system Python
@@ -156,8 +156,8 @@ which silently destroys the running runtime mid-session. Keeping it outside the
 tree means no relative path from the workspace resolves to it.
 
 ```bash
-git clone https://github.com/freeide/freeide.git
-cd freeide-agent
+git clone https://github.com/Raioshok/JETTS-TUI.git
+cd JETTS-TUI
 
 # Create venv with Python 3.11, OUTSIDE the source tree
 uv venv ~/.freeide/venvs/freeide-dev --python 3.11
@@ -987,7 +987,7 @@ test(tools): add unit tests for file_operations
 
 ## Reporting Issues
 
-- Use [GitHub Issues](https://github.com/freeide/freeide/issues)
+- Use [GitHub Issues](https://github.com/Raioshok/JETTS-TUI/issues)
 - Include: OS, Python version, FreeIDE version (`freeide version`), full error traceback
 - Include steps to reproduce
 - Check existing issues before creating duplicates

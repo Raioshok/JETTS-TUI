@@ -505,55 +505,57 @@ class TestDelegateTask(unittest.TestCase):
             self.assertEqual(kwargs["provider"], parent.provider)
             self.assertEqual(kwargs["api_mode"], parent.api_mode)
 
-    def test_nous_child_rederives_api_mode_from_model(self):
-        """Portal is dual-wire — same provider + different model prefix must
-        not inherit the parent's Messages/chat_completions mode verbatim."""
+    def test_child_api_mode_rederived_only_when_provider_differs(self):
+        """Bug #20558 / PR #20563: a child routed to a DIFFERENT provider must
+        not inherit the parent's wire — each provider has its own API surface,
+        so an inherited mode aims the request at the wrong endpoint (404).
+        Same provider keeps the parent's mode.
+
+        Replaces the former portal-specific dual-wire case: the FreeIDE Portal
+        provider was removed in fea9d55..dbe611f, so that scenario no longer
+        exists — but the rule it exercised still does, and this is the only
+        test covering it.
+        """
         parent = _make_mock_parent(depth=0)
-        parent.base_url = "https://inference-api.freeide.dev/v1"
-        parent.api_key = "portal-jwt"
-        parent.provider = "nous"
-        parent.api_mode = "anthropic_messages"
-        parent.model = "anthropic/claude-opus-4.8"
+        parent.provider = "minimax"
+        parent.api_mode = "anthropic_messages"  # dual-wire provider, messages wire
+        parent.model = "minimax-m2.7"
 
         with patch("run_agent.AIAgent") as MockAgent:
-            mock_child = MagicMock()
-            MockAgent.return_value = mock_child
-
+            MockAgent.return_value = MagicMock()
             _build_child_agent(
                 task_index=0,
-                goal="Stay on chat completions",
+                goal="Same provider",
                 context=None,
                 toolsets=None,
-                model="freeide-4-405b",
+                model="minimax-m2.7",
                 max_iterations=10,
                 parent_agent=parent,
                 task_count=1,
             )
-
-            _, kwargs = MockAgent.call_args
-            self.assertEqual(kwargs["provider"], "nous")
-            self.assertEqual(kwargs["model"], "freeide-4-405b")
-            self.assertEqual(kwargs["api_mode"], "chat_completions")
+            same = MockAgent.call_args.kwargs
+            self.assertEqual(same["provider"], "minimax")
+            self.assertEqual(same["api_mode"], "anthropic_messages")
 
         with patch("run_agent.AIAgent") as MockAgent:
-            mock_child = MagicMock()
-            MockAgent.return_value = mock_child
-            parent.api_mode = "chat_completions"
-            parent.model = "freeide-4-405b"
-
+            MockAgent.return_value = MagicMock()
             _build_child_agent(
                 task_index=0,
-                goal="Move onto Messages",
+                goal="Different provider",
                 context=None,
                 toolsets=None,
-                model="anthropic/claude-opus-4.8",
+                model="deepseek-flash",
                 max_iterations=10,
                 parent_agent=parent,
                 task_count=1,
+                override_provider="deepseek",
             )
-
-            _, kwargs = MockAgent.call_args
-            self.assertEqual(kwargs["api_mode"], "anthropic_messages")
+            diff = MockAgent.call_args.kwargs
+            self.assertEqual(diff["provider"], "deepseek")
+            # None forces re-derivation from the target provider's defaults;
+            # handing the child the parent's "anthropic_messages" is the bug.
+            self.assertIsNone(diff["api_mode"])
+            self.assertNotEqual(diff["api_mode"], parent.api_mode)
 
     def test_child_inherits_parent_print_fn(self):
         parent = _make_mock_parent(depth=0)
@@ -1047,6 +1049,36 @@ class TestDelegateObservability(unittest.TestCase):
 
             result = json.loads(delegate_task(goal="Test empty sentinel", parent_agent=parent))
             self.assertEqual(result["results"][0]["status"], "failed")
+
+    def test_provider_error_summary_marks_status_failed(self):
+        """Regression: a child whose model is gone reports the provider error
+        as its final response ("HTTP 410: ...eol..."). That text is non-empty,
+        so the old predicate classified it "completed" — a subagent that never
+        ran was reported as a success (observed: every delegation to an EOL
+        model "completed" in ~2s with the HTTP error as its summary)."""
+        parent = _make_mock_parent(depth=0)
+
+        with patch("run_agent.AIAgent") as MockAgent:
+            mock_child = MagicMock()
+            mock_child.model = "deepseek-ai/deepseek-v4-flash"
+            mock_child.session_prompt_tokens = 0
+            mock_child.session_completion_tokens = 0
+            mock_child.run_conversation.return_value = {
+                "final_response": (
+                    'HTTP 410: {"detail":"The model has reached its end of '
+                    'life and is no longer available."}'
+                ),
+                "completed": True,
+                "interrupted": False,
+                "api_calls": 1,
+                "messages": [],
+            }
+            MockAgent.return_value = mock_child
+
+            result = json.loads(delegate_task(goal="Test provider error", parent_agent=parent))
+            entry = result["results"][0]
+            self.assertEqual(entry["status"], "failed")
+            self.assertIn("410", entry["error"])
 
 
 class TestSubagentCostRollup(unittest.TestCase):

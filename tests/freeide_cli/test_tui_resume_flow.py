@@ -23,6 +23,16 @@ def _args(**overrides):
     return Namespace(**base)
 
 
+def _stdout_lines(raw: bytes) -> bytes:
+    """Subprocess stdout with platform line endings normalised.
+
+    A child writing "ok\n" through a text-mode stdout emits "ok\r\n" on
+    Windows, so an exact b"ok\n" comparison failed there for a child that had
+    behaved correctly — the assertion, not the code, was wrong.
+    """
+    return raw.replace(b"\r\n", b"\n")
+
+
 def _raise_exit(rc):
     raise SystemExit(rc)
 
@@ -1077,7 +1087,7 @@ def test_oneshot_subprocess_exits_without_teardown_abort():
     )
 
     assert result.returncode == 0
-    assert result.stdout == b"ok\n"
+    assert _stdout_lines(result.stdout) == b"ok\n"
     # Don't demand byte-empty stderr — an import-time warning from the heavy
     # CLI import chain shouldn't fail this. What matters is no crash traceback.
     assert b"Traceback" not in result.stderr
@@ -1106,7 +1116,7 @@ def test_exit_after_oneshot_bypasses_late_atexit_abort():
     )
 
     assert result.returncode == 0
-    assert result.stdout == b"done\n"
+    assert _stdout_lines(result.stdout) == b"done\n"
 
 
 def test_run_and_exit_oneshot_passes_through_nonzero_return(monkeypatch, main_mod):
@@ -1163,7 +1173,7 @@ def test_main_oneshot_path_bypasses_late_atexit_abort():
     )
 
     assert result.returncode == 0
-    assert result.stdout == b"ok\n"
+    assert _stdout_lines(result.stdout) == b"ok\n"
     assert b"Traceback" not in result.stderr
 
 
@@ -1818,7 +1828,7 @@ def test_launch_tui_sets_resume_env_from_resume_arg(monkeypatch, main_mod):
 def test_make_tui_argv_dev_prebuilds_freeide_ink(monkeypatch, main_mod, tmp_path):
     tui_dir = tmp_path / "ui-tui"
     tsx = tui_dir / "node_modules" / ".bin" / "tsx"
-    ink_dir = tui_dir / "packages" / "freeide-ink"
+    ink_dir = tui_dir / "packages" / "jetts-tui-ink"
     tsx.parent.mkdir(parents=True)
     ink_dir.mkdir(parents=True)
     tsx.write_text("#!/usr/bin/env node\n", encoding="utf-8")

@@ -1,10 +1,10 @@
-import { forceRedraw, type MouseTrackingMode } from '@freeide/ink'
+import { forceRedraw, type MouseTrackingMode } from '@jetts-tui/ink'
 
 import { DASHBOARD_TUI_MODE, NO_CONFIRM_DESTRUCTIVE } from '../../../config/env.js'
-import { dailyFortune, randomFortune } from '../../../content/fortunes.js'
 import { HOTKEYS } from '../../../content/hotkeys.js'
 import { isSectionName, nextDetailsMode, parseDetailsMode, SECTION_NAMES } from '../../../domain/details.js'
 import type {
+  CommandsCatalogResponse,
   ConfigGetValueResponse,
   ConfigSetResponse,
   SessionSaveResponse,
@@ -77,6 +77,26 @@ const DETAILS_USAGE =
 
 const DETAILS_SECTION_USAGE = 'usage: /details <section> [hidden|collapsed|expanded|reset]'
 
+const showCommandHelp = (
+  categories: { name: string; pairs: [string, string][] }[],
+  skillCount: number,
+  ctx: Parameters<SlashCommand['run']>[1],
+  advanced: boolean
+) => {
+  const sections: PanelSection[] = categories.map(cat => ({ rows: cat.pairs, title: cat.name }))
+
+  if (skillCount) {
+    sections.push({ text: `${skillCount} skill commands available — /skills to browse` })
+  }
+
+  if (!advanced) {
+    sections.push({ text: 'Only everyday commands are shown. Use /help all for advanced and recovery commands.' })
+  }
+
+  sections.push({ rows: HOTKEYS, title: 'Hotkeys' })
+  ctx.transcript.panel(advanced ? `${ctx.ui.theme.brand.helpHeader} · all` : ctx.ui.theme.brand.helpHeader, sections)
+}
+
 // Shown when /exit or /quit is refused in the hosted dashboard chat. Kept as a
 // constant so the test asserts against the same source of truth as production.
 export const DASHBOARD_EXIT_DISABLED_MESSAGE =
@@ -89,40 +109,29 @@ export const coreCommands: SlashCommand[] = [
   {
     help: 'list commands + hotkeys',
     name: 'help',
-    run: (_arg, ctx) => {
-      const sections: PanelSection[] = (ctx.local.catalog?.categories ?? []).map(cat => ({
-        rows: cat.pairs,
-        title: cat.name
-      }))
+    run: (arg, ctx) => {
+      if (arg.trim().toLowerCase() !== 'all') {
+        const catalog = ctx.local.catalog
 
-      if (ctx.local.catalog?.skillCount) {
-        sections.push({ text: `${ctx.local.catalog.skillCount} skill commands available — /skills to browse` })
+        showCommandHelp(catalog?.categories ?? [], catalog?.skillCount ?? 0, ctx, false)
+
+        return
       }
 
-      sections.push(
-        {
-          rows: [
-            ['/details [hidden|collapsed|expanded|cycle]', 'set global agent detail visibility mode'],
-            [
-              '/details <section> [hidden|collapsed|expanded|reset]',
-              'override one section (thinking/tools/subagents/activity)'
-            ],
-            ['/fortune [random|daily]', 'show a random or daily local fortune'],
-            ['/grid-test [cols]x[rows]', 'open the interactive widget-grid demo'],
-            ['/dialog-test [zone]', 'open a sample dialog overlay with a faked backdrop']
-          ],
-          title: 'TUI'
-        },
-        { rows: HOTKEYS, title: 'Hotkeys' }
-      )
-
-      ctx.transcript.panel(ctx.ui.theme.brand.helpHeader, sections)
+      void ctx.gateway
+        .rpc<CommandsCatalogResponse>('commands.catalog', { include_advanced: true })
+        .then(
+          ctx.guarded<CommandsCatalogResponse>(catalog =>
+            showCommandHelp(catalog.categories ?? [], catalog.skill_count ?? 0, ctx, true)
+          )
+        )
+        .catch(ctx.guardedErr)
     }
   },
 
   {
     aliases: ['exit'],
-    help: 'exit freeide',
+    help: 'exit Jetts-TUI',
     name: 'quit',
     run: (_arg, ctx) => {
       // In the hosted dashboard chat there is no in-page restart path after
@@ -143,7 +152,7 @@ export const coreCommands: SlashCommand[] = [
   },
 
   {
-    help: 'update FreeIDE Agent to the latest version (exits TUI)',
+    help: 'update Jetts-TUI to the latest version (exits TUI)',
     name: 'update',
     run: (_arg, ctx) => {
       if (DASHBOARD_TUI_MODE) {
@@ -359,24 +368,6 @@ export const coreCommands: SlashCommand[] = [
   },
 
   {
-    help: 'local fortune',
-    name: 'fortune',
-    run: (arg, ctx) => {
-      const key = arg.trim().toLowerCase()
-
-      if (!arg || key === 'random') {
-        return ctx.transcript.sys(randomFortune())
-      }
-
-      if (['daily', 'stable', 'today'].includes(key)) {
-        return ctx.transcript.sys(dailyFortune(ctx.sid))
-      }
-
-      ctx.transcript.sys('usage: /fortune [random|daily]')
-    }
-  },
-
-  {
     help: 'copy selection or assistant message',
     name: 'copy',
     run: async (arg, ctx) => {
@@ -510,7 +501,7 @@ export const coreCommands: SlashCommand[] = [
       const preview = Math.max(80, parseInt(arg, 10) || 400)
 
       const lines = items.map((m, i) => {
-        const tag = m.role === 'user' ? `You #${i + 1}` : `FreeIDE #${i + 1}`
+        const tag = m.role === 'user' ? `You #${i + 1}` : `Jetts-TUI #${i + 1}`
         const body = m.text.trim() || (m.tools?.length ? `(${m.tools.length} tool calls)` : '(empty)')
         const clipped = body.length > preview ? `${body.slice(0, preview).trimEnd()}…` : body
 

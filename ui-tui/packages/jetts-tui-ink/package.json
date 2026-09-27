@@ -1,5 +1,5 @@
 {
-  "name": "@freeide/ink",
+  "name": "@jetts-tui/ink",
   "version": "0.0.1",
   "private": true,
   "type": "module",

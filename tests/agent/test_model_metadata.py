@@ -234,9 +234,14 @@ class TestDefaultContextLengths:
         # to DEFAULT_CONTEXT_LENGTHS.
         with mock_patch("agent.model_metadata.fetch_model_metadata", return_value={}),              mock_patch("agent.model_metadata.fetch_endpoint_model_metadata", return_value={}),              mock_patch("agent.model_metadata.get_cached_context_length", return_value=None):
             cases = [
-                ("grok-4.20-0309-reasoning", 2000000),
-                ("grok-4.20-0309-non-reasoning", 2000000),
-                ("grok-4.20-multi-agent-0309", 2000000),
+                # xAI's own model page lists grok-4.20-0309-* as "1M" context
+                # (the ≥200k/ <200k rows are pricing tiers, not window sizes).
+                # The old expectation of 2,000,000 was OpenRouter's resale
+                # figure echoed back (re-verified 2026-09-23,
+                # https://docs.x.ai/developers/models.md).
+                ("grok-4.20-0309-reasoning", 1000000),
+                ("grok-4.20-0309-non-reasoning", 1000000),
+                ("grok-4.20-multi-agent-0309", 1000000),
                 ("grok-4-fast-reasoning", 2000000),
                 ("grok-4-fast-non-reasoning", 2000000),
                 ("grok-4", 256000),
@@ -957,7 +962,11 @@ class TestGetModelContextLength:
     @patch("agent.model_metadata.fetch_model_metadata")
     def test_partial_match_in_defaults(self, mock_fetch):
         mock_fetch.return_value = {}
+        # gpt-4o now has its own key; before 2026-09-23 this asserted 128000
+        # and passed only because the generic "gpt-4" key was itself wrongly
+        # set to 128000 (GPT-4 Turbo's window). Both are now explicit.
         assert get_model_context_length("openai/gpt-4o") == 128000
+        assert get_model_context_length("openai/gpt-4") == 8192
 
     @patch("agent.model_metadata.fetch_model_metadata")
     def test_qwen3_coder_plus_context_length(self, mock_fetch):
@@ -975,11 +984,14 @@ class TestGetModelContextLength:
     def test_qwen3_6_plus_context_length(self, mock_fetch):
         """qwen3.6-plus has a 1M context window, not the generic 128K Qwen default."""
         mock_fetch.return_value = {}
-        assert get_model_context_length("qwen3.6-plus") == 1048576
+        # 1,000,000 (decimal), not 1,048,576: Alibaba publishes "1M"/100万 for
+        # the Qwen Plus line and never a binary figure (verified 2026-09-23 via
+        # models.dev provider:alibaba; OpenRouter also serves 1000000).
+        assert get_model_context_length("qwen3.6-plus") == 1000000
         # Provider-prefixed variants must resolve to the same explicit entry
         # via the longest-substring fallback (no portal/OR cache available).
-        assert get_model_context_length("qwen/qwen3.6-plus") == 1048576
-        assert get_model_context_length("dashscope/qwen3.6-plus") == 1048576
+        assert get_model_context_length("qwen/qwen3.6-plus") == 1000000
+        assert get_model_context_length("dashscope/qwen3.6-plus") == 1000000
 
     @patch("agent.model_metadata.fetch_model_metadata")
     def test_qwen_generic_context_length(self, mock_fetch):

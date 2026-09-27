@@ -58,6 +58,21 @@ def test_plain_text_status_omits_indicator_when_idle():
     assert "▶" not in text
 
 
+def test_plain_text_status_pins_non_default_work_mode():
+    cli_obj = _make_cli()
+    cli_obj._work_mode = "plan"
+
+    assert "◇ PLAN" in cli_obj._build_status_bar_text(width=40)
+    assert cli_obj._work_mode_status_label() == "◇ PLAN"
+
+
+def test_plain_text_status_keeps_default_work_mode_quiet():
+    cli_obj = _make_cli()
+    cli_obj._work_mode = "default"
+
+    assert cli_obj._work_mode_status_label() == ""
+
+
 def test_plain_text_status_shows_indicator_when_active():
     cli_obj = _make_cli()
     cli_obj._background_tasks = {"bg_a": _stub_thread()}

@@ -1,4 +1,4 @@
-import { stringWidth, wrapAnsi } from '@freeide/ink'
+import { stringWidth, wrapAnsi } from '@jetts-tui/ink'
 
 import type { Role } from '../types.js'
 

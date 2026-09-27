@@ -42,7 +42,7 @@ connected.
 
 ## Prerequisites
 
-1. Install the MCP server from the FreeIDE MCP catalog (one-time):
+1. Install the MCP server from the Nous catalog (one-time):
 
        freeide mcp install blender
 

@@ -16,7 +16,7 @@
  * authoring/activating a skin from a prompt, or `/skin` elsewhere) repaints.
  */
 
-import type { FreeIDESkin } from '@freeide/shared/skin'
+import type { FreeIDESkin } from '@jetts-tui/shared/skin'
 import { atom } from 'nanostores'
 
 import { BUILTIN_THEMES } from './presets'

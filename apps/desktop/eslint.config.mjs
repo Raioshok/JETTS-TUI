@@ -16,7 +16,7 @@ export default [
     }
   },
   {
-    // THE PLUGIN FENCE: plugins speak @freeide/plugin-sdk (+ react), never `@/…`
+    // THE PLUGIN FENCE: plugins speak @jetts-tui/plugin-sdk (+ react), never `@/…`
     // internals — the same isolation a runtime-fetched published plugin gets,
     // enforced on bundled ones so the SDK surface stays honest and sufficient.
     files: ['src/plugins/**/*.{ts,tsx}'],
@@ -26,8 +26,8 @@ export default [
         {
           patterns: [
             {
-              group: ['@/*', '../*', '@freeide/shared'],
-              message: 'Plugins import only @freeide/plugin-sdk (and react). Missing something? Add it to the SDK.'
+              group: ['@/*', '../*', '@jetts-tui/shared'],
+              message: 'Plugins import only @jetts-tui/plugin-sdk (and react). Missing something? Add it to the SDK.'
             }
           ]
         }

@@ -1,4 +1,4 @@
-import type { SkinBranding, SkinColors } from '@freeide/shared/skin'
+import type { SkinBranding, SkinColors } from '@jetts-tui/shared/skin'
 
 import { desaturate, grayOf, liftForContrast, mix, parseColor, relativeLuminance, toHex } from './lib/color.js'
 
@@ -149,8 +149,8 @@ function circularDistance(a: number, b: number): number {
   return Math.min(distance, 1 - distance)
 }
 
-// Mirrors @freeide/ink's colorize.ts. Keep local: app code compiles from
-// ui-tui/src, while @freeide/ink is bundled separately from packages/.
+// Mirrors @jetts-tui/ink's colorize.ts. Keep local: app code compiles from
+// ui-tui/src, while @jetts-tui/ink is bundled separately from packages/.
 function richEightBitColorNumber(red: number, green: number, blue: number): number {
   const [, saturation, lightness] = rgbToHsl(red, green, blue)
 
@@ -250,11 +250,11 @@ export function themeToneHex(tone: string): string {
 // ── Defaults ─────────────────────────────────────────────────────────
 
 const BRAND: ThemeBrand = {
-  name: 'FreeIDE Agent',
-  icon: '⚕',
+  name: 'Jetts-TUI',
+  icon: '◆',
   prompt: '❯',
   welcome: 'Type your message or /help for commands.',
-  goodbye: 'Goodbye! ⚕',
+  goodbye: 'Goodbye! ◆',
   tool: '┊',
   helpHeader: '(^_^)? Commands'
 }

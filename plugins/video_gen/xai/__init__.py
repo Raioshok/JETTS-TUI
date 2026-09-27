@@ -63,14 +63,14 @@ _MODELS: Dict[str, Dict[str, Any]] = {
         "display": "Grok Imagine Video",
         "speed": "~60-240s",
         "strengths": "Text-to-video; legacy image-to-video fallback.",
-        "price": "see https://docs.x.ai/developers/models/grok-imagine-video",
+        "price": "$0.050/sec (verified 2026-09-23, https://docs.x.ai/developers/pricing.md)",
         "modalities": ["text", "image"],
     },
     "grok-imagine-video-1.5": {
         "display": "Grok Imagine Video 1.5",
         "speed": "~60-240s",
         "strengths": "Latest xAI image-to-video model.",
-        "price": "see https://docs.x.ai/developers/pricing",
+        "price": "$0.080/sec (verified 2026-09-23, https://docs.x.ai/developers/pricing.md)",
         "modalities": ["image"],
     },
 }

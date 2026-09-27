@@ -40,8 +40,8 @@ const DEFAULT_LAYOUT: ThemeLayout = {
 
 export const defaultTheme: DashboardTheme = {
   name: "default",
-  label: "FreeIDE Teal",
-  description: "Classic dark teal — the canonical FreeIDE look",
+  label: "Jetts Teal",
+  description: "Classic dark teal Jetts-TUI theme",
   palette: {
     background: { hex: "#041c1c", alpha: 1 },
     midground: { hex: "#ffe6cb", alpha: 1 },
@@ -214,8 +214,8 @@ export const nousBlueTheme: DashboardTheme = {
  */
 export const defaultLargeTheme: DashboardTheme = {
   name: "default-large",
-  label: "FreeIDE Teal (Large)",
-  description: "FreeIDE Teal with bigger fonts and roomier spacing",
+  label: "Jetts Teal (Large)",
+  description: "Jetts Teal with bigger fonts and roomier spacing",
   palette: defaultTheme.palette,
   typography: {
     ...DEFAULT_TYPOGRAPHY,

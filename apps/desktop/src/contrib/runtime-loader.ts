@@ -3,7 +3,7 @@
  * build time. The pipeline every non-bundled plugin takes:
  *
  *   source (plain ESM js) -> [integrity check] -> bare-specifier rewrite
- *   (`@freeide/plugin-sdk` / `react*` -> live shim blobs, see sdk/runtime.ts)
+ *   (`@jetts-tui/plugin-sdk` / `react*` -> live shim blobs, see sdk/runtime.ts)
  *   -> blob `import()` -> validate default FreeIDEPlugin -> register(ctx)
  *
  * Loading the same plugin id again disposes the previous registrations first
@@ -51,7 +51,7 @@ const loaded = new Map<string, (() => void)[]>()
 // literal or comment (e.g. `notify('react')`) is never touched.
 const importSpecifierRe = () => /(from\s*|import\s*\(\s*|import\s+)(['"])([^'"]+)\2/g
 
-/** Rewrite ONLY mapped import specifiers (@freeide/plugin-sdk, react*) to their
+/** Rewrite ONLY mapped import specifiers (@jetts-tui/plugin-sdk, react*) to their
  *  live shim blob URLs — never occurrences inside strings/comments. */
 function rewriteSpecifiers(source: string): string {
   const map = sdkImportMap()
@@ -117,7 +117,7 @@ export async function loadRuntimePlugin(
     if (unsupported.length > 0) {
       throw new Error(
         `unsupported import${unsupported.length > 1 ? 's' : ''}: ${unsupported.join(', ')} — ` +
-          `runtime plugins may only import @freeide/plugin-sdk and react`
+          `runtime plugins may only import @jetts-tui/plugin-sdk and react`
       )
     }
 

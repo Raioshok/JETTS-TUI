@@ -1802,6 +1802,22 @@ class CLICommandsMixin:
         else:  # pragma: no cover - defensive (no live input loop)
             print("  /init needs an active chat session to run.")
 
+    def _handle_brain_command(self, cmd: str):
+        """Handle /brain without adding a permanent model tool."""
+        from freeide_cli.brain import handle_brain_slash
+
+        result = handle_brain_slash(
+            cmd,
+            cwd=os.getenv("TERMINAL_CWD", os.getcwd()),
+        )
+        if result.text:
+            print(f"\n{result.text}")
+        if result.prompt:
+            if hasattr(self, "_pending_input"):
+                self._pending_input.put(result.prompt)
+            else:  # pragma: no cover - defensive (no live input loop)
+                print("  /brain sync and /brain improve need an active chat session.")
+
     def _handle_memory_command(self, cmd: str):
         """Handle /memory slash command — pending review + approval-gate toggle."""
         from freeide_cli.write_approval_commands import handle_pending_subcommand
@@ -2787,6 +2803,205 @@ class CLICommandsMixin:
         requested = parts[1] if len(parts) > 1 else None
         result = run_approval_mode_command(requested)
         _cprint(f"  {result.message}")
+
+    def _set_work_mode(self, mode: str) -> None:
+        """Set a session-only mode without rebuilding the cached prompt."""
+        self._work_mode = mode
+        agent = getattr(self, "agent", None)
+        if agent is not None:
+            agent._work_mode = mode
+
+    def _cycle_work_mode(self) -> str:
+        from tools.work_mode import next_mode
+
+        mode = next_mode(getattr(self, "_work_mode", "default"))
+        self._set_work_mode(mode)
+        return mode
+
+    def _handle_mode_command(self, cmd_original: str) -> None:
+        from cli import _cprint
+        from tools.work_mode import VALID_MODES, normalize_mode
+
+        parts = (cmd_original or "").strip().split(None, 1)
+        if len(parts) == 1:
+            current = getattr(self, "_work_mode", "default")
+            _cprint(f"  Work mode: {current} (session only).")
+            _cprint("  Modes: default · plan · accept-edits")
+            return
+        requested = normalize_mode(parts[1])
+        if requested not in VALID_MODES:
+            _cprint("  Usage: /mode [default|plan|accept-edits]")
+            return
+        self._set_work_mode(requested)
+        detail = {
+            "default": "normal tool behavior",
+            "plan": "read-only except .freeide/plans and .freeide/specs",
+            "accept-edits": "workspace edits accepted; dangerous-command approvals remain",
+        }[requested]
+        _cprint(f"  Work mode: {requested} — {detail}.")
+
+    def _format_permissions_text(self) -> str:
+        """Return a compact authority/status summary for /permissions."""
+        work_mode = getattr(self, "_work_mode", "default")
+        approval_mode = "manual"
+        try:
+            from tools.approval import _get_approval_mode
+
+            approval_mode = _get_approval_mode()
+        except Exception:
+            try:
+                cfg = getattr(self, "config", {}) if isinstance(getattr(self, "config", {}), dict) else {}
+                approval_mode = str((cfg.get("approvals") or {}).get("mode") or approval_mode)
+            except Exception:
+                pass
+        yolo = bool(getattr(self, "yolo_mode", False) or getattr(self, "_yolo_mode", False))
+        cwd = os.getenv("TERMINAL_CWD", os.getcwd())
+        enabled = sorted(getattr(self, "enabled_toolsets", None) or [])
+        disabled = sorted(getattr(self, "disabled_toolsets", None) or [])
+        lines = [
+            "Permissions / authority",
+            f"  Work mode:       {work_mode}",
+            f"  Approvals:       {approval_mode}",
+            f"  YOLO:            {'on' if yolo else 'off'}",
+            f"  Workspace:       {cwd}",
+            f"  Enabled tools:   {', '.join(enabled) if enabled else 'default'}",
+            f"  Disabled tools:  {', '.join(disabled) if disabled else 'none'}",
+            "",
+            "Controls:",
+            "  /mode default|plan|accept-edits",
+            "  /approvals manual|smart|off",
+            "  /yolo",
+            "  /tools list|enable|disable <name>",
+        ]
+        if work_mode == "plan":
+            lines.insert(2, "  Plan boundary:   read-only except .freeide/plans and .freeide/specs")
+        return "\n".join(lines)
+
+    def _handle_permissions_command(self, _cmd_original: str = "") -> None:
+        self._console_print(self._format_permissions_text())
+
+    def _handle_review_command(self, cmd_original: str) -> None:
+        """Read-only working-tree review summary with exact next-step prompt."""
+        import shlex
+        import subprocess
+
+        try:
+            args = shlex.split(cmd_original)[1:]
+        except ValueError:
+            args = cmd_original.split()[1:]
+        mode = (args[0].lower() if args else "unstaged")
+        cwd = os.getenv("TERMINAL_CWD", os.getcwd())
+
+        commands: list[list[str]]
+        label: str
+        if mode in {"staged", "--staged", "cached", "--cached"}:
+            label = "staged changes"
+            commands = [["git", "diff", "--cached", "--stat"], ["git", "diff", "--cached", "--name-only"]]
+        elif mode in {"all", "--all", "head"}:
+            label = "all changes vs HEAD"
+            commands = [["git", "diff", "HEAD", "--stat"], ["git", "diff", "HEAD", "--name-only"]]
+        elif mode == "base" and len(args) >= 2:
+            base = args[1]
+            label = f"changes vs {base}"
+            commands = [["git", "diff", f"{base}...HEAD", "--stat"], ["git", "diff", f"{base}...HEAD", "--name-only"]]
+        elif mode == "commit" and len(args) >= 2:
+            sha = args[1]
+            label = f"commit {sha}"
+            commands = [["git", "show", "--stat", "--oneline", "--no-renames", sha], ["git", "show", "--name-only", "--format=", sha]]
+        elif mode in {"unstaged", "working", "--unstaged"}:
+            label = "unstaged changes"
+            commands = [["git", "diff", "--stat"], ["git", "diff", "--name-only"]]
+        else:
+            self._console_print("Usage: /review [unstaged|staged|all|base <branch>|commit <sha>]")
+            return
+
+        try:
+            stat = subprocess.run(commands[0], cwd=cwd, capture_output=True, text=True, timeout=20)
+            names = subprocess.run(commands[1], cwd=cwd, capture_output=True, text=True, timeout=20)
+        except Exception as exc:
+            self._console_print(f"Review unavailable: {exc}")
+            return
+        if stat.returncode != 0:
+            self._console_print((stat.stderr or stat.stdout or "git diff failed").strip())
+            return
+        files = [line.strip() for line in (names.stdout or "").splitlines() if line.strip()]
+        if not (stat.stdout or "").strip() and not files:
+            self._console_print(f"No {label}.")
+            return
+        shown = "\n".join(f"  - {f}" for f in files[:30])
+        extra = f"\n  ... and {len(files) - 30} more" if len(files) > 30 else ""
+        prompt = (
+            f"Review the {label}. Inspect the changed files and report prioritized bugs, "
+            "security issues, regressions, missing tests, and UX risks. Do not edit files."
+        )
+        self._console_print(
+            "\n".join(
+                [
+                    f"Review target: {label}",
+                    "",
+                    (stat.stdout or "").rstrip(),
+                    "",
+                    "Changed files:",
+                    shown or "  (none listed)",
+                    extra,
+                    "",
+                    "To run a deeper model review, send:",
+                    prompt,
+                ]
+            )
+        )
+
+    def _handle_doctor_command(self, cmd_original: str) -> None:
+        """Quick in-session setup health check."""
+        import shutil
+        import sys
+        from pathlib import Path
+
+        arg = (cmd_original.split(None, 1)[1].strip().lower() if len(cmd_original.split(None, 1)) > 1 else "quick")
+        cfg = getattr(self, "config", {}) if isinstance(getattr(self, "config", {}), dict) else {}
+        provider = str(getattr(self, "provider", "") or ((cfg.get("model") or {}).get("provider") if isinstance(cfg.get("model"), dict) else "") or "unknown")
+        model = str(getattr(self, "model", "") or ((cfg.get("model") or {}).get("name") if isinstance(cfg.get("model"), dict) else "") or "unknown")
+        from freeide_constants import get_freeide_home
+
+        env_path = get_freeide_home() / ".env"
+        checks = [
+            ("Python", sys.version.split()[0]),
+            ("Git", "found" if shutil.which("git") else "missing"),
+            ("Node", "found" if shutil.which("node") else "missing"),
+            ("FreeIDE home", display_freeide_home()),
+            ("Config provider", provider),
+            ("Config model", model),
+            (".env", "found" if env_path.exists() else "missing"),
+        ]
+        lines = ["Doctor: quick runtime check", ""]
+        for name, value in checks:
+            glyph = "✓" if value not in {"missing", "unknown"} else "⚠"
+            lines.append(f"  {glyph} {name:<16} {value}")
+        if arg == "full":
+            lines.extend(["", "For the full diagnostic suite, run: freeide doctor"])
+        else:
+            lines.extend(["", "Use /doctor full for the external full-suite command hint."])
+        self._console_print("\n".join(lines))
+
+    def _handle_spec_command(self, cmd_original: str) -> None:
+        """Create and advance a three-file, approval-gated feature spec."""
+        from pathlib import Path
+        from freeide_cli.specs import run_spec_command
+
+        parts = (cmd_original or "").strip().split(None, 1)
+        args = parts[1] if len(parts) > 1 else ""
+        result = run_spec_command(
+            args,
+            Path.cwd(),
+            active_spec=getattr(self, "_active_spec_slug", None),
+        )
+        self._console_print(result.text)
+        if result.active_spec:
+            self._active_spec_slug = result.active_spec
+        if result.requested_mode:
+            self._set_work_mode(result.requested_mode)
+        if result.agent_seed:
+            self._pending_agent_seed = result.agent_seed
 
     def _handle_footer_command(self, cmd_original: str) -> None:
         """Toggle or inspect ``display.runtime_footer.enabled`` from the CLI.

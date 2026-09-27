@@ -24,6 +24,7 @@ const MUTATING_COMMANDS = [
   'compress',
   'fast',
   'model',
+  'mode',
   'new',
   'personality',
   'queue',

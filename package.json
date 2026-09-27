@@ -1,8 +1,12 @@
 {
-  "name": "freeide-agent",
+  "name": "jetts-tui",
   "version": "1.0.0",
-  "description": "An AI agent with advanced tool-calling capabilities, featuring a flexible toolsets system for organizing and managing tools.",
+  "description": "Jetts-TUI terminal-first AI workspace and agent runtime.",
   "private": true,
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Raioshok/JETTS-TUI.git"
+  },
   "workspaces": [
     "apps/*",
     "ui-tui",
@@ -25,15 +29,7 @@
     "check": "npm run --ws check",
     "fix": "npm run --ws fix"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/freeide/FreeIDE-Agent.git"
-  },
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/freeide/FreeIDE-Agent/issues"
-  },
-  "homepage": "https://github.com/freeide/FreeIDE-Agent#readme",
   "dependencies": {
     "@streamdown/math": "^1.0.2",
     "agent-browser": "^0.26.0"

@@ -66,7 +66,7 @@ ULTRAPLINIAN_MODELS = [
     'qwen/qwen3.5-plus-02-15',
     'z-ai/glm-5',
     'openai/gpt-5.2',
-    'google/gemini-3-pro-preview',
+    'google/gemini-3.1-pro-preview',
     'google/gemini-3.1-pro-preview',
     'anthropic/claude-opus-4.6',
     'openai/gpt-oss-120b',

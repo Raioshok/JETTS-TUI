@@ -7,6 +7,7 @@ from freeide_cli.commands import (
     COMMAND_REGISTRY,
     COMMANDS,
     COMMANDS_BY_CATEGORY,
+    DISCOVERABLE_COMMANDS,
     CommandDef,
     GATEWAY_KNOWN_COMMANDS,
     SUBCOMMANDS,
@@ -21,6 +22,7 @@ from freeide_cli.commands import (
     _sanitize_telegram_name,
     discord_skill_commands,
     gateway_help_lines,
+    is_command_discoverable,
     resolve_command,
     slack_app_manifest,
     slack_native_slashes,
@@ -151,19 +153,22 @@ class TestDerivedDicts:
                 assert f"/{cmd.name}" not in COMMANDS, \
                     f"gateway_only command /{cmd.name} should not be in COMMANDS"
 
-    def test_commands_dict_includes_all_cli_commands(self):
+    def test_commands_dict_is_the_curated_cli_surface(self):
         for cmd in COMMAND_REGISTRY:
-            if not cmd.gateway_only:
+            if not cmd.gateway_only and is_command_discoverable(cmd):
                 assert f"/{cmd.name}" in COMMANDS, \
                     f"/{cmd.name} missing from COMMANDS dict"
+            else:
+                assert f"/{cmd.name}" not in COMMANDS
 
-    def test_commands_dict_includes_aliases(self):
-        assert "/bg" in COMMANDS
-        assert "/reset" in COMMANDS
-        assert "/q" in COMMANDS
-        assert "/exit" in COMMANDS
-        assert "/reload_mcp" in COMMANDS
-        assert "/gateway" in COMMANDS
+    def test_aliases_resolve_without_cluttering_discovery(self):
+        for alias in ("bg", "reset", "q", "exit", "reload_mcp", "gateway"):
+            assert f"/{alias}" not in COMMANDS
+            assert resolve_command(alias) is not None
+
+    def test_discoverable_commands_are_real_canonical_commands(self):
+        canonical = {cmd.name for cmd in COMMAND_REGISTRY}
+        assert DISCOVERABLE_COMMANDS <= canonical
 
     def test_commands_by_category_covers_all_categories(self):
         registry_categories = {cmd.category for cmd in COMMAND_REGISTRY if not cmd.gateway_only}
@@ -530,9 +535,10 @@ class TestSlashCommandCompleter:
         completions = _completions(SlashCommandCompleter(), "/re")
         texts = {item.text for item in completions}
 
-        assert "reset" in texts
         assert "retry" in texts
-        assert "reload-mcp" in texts
+        assert "resume" in texts
+        assert "reset" not in texts
+        assert "reload-mcp" not in texts
 
     def test_builtin_completion_display_meta_shows_description(self):
         completions = _completions(SlashCommandCompleter(), "/help")

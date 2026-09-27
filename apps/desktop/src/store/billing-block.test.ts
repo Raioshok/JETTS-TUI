@@ -1,4 +1,4 @@
-import type { BillingBlock } from '@freeide/shared'
+import type { BillingBlock } from '@jetts-tui/shared'
 import { beforeEach, expect, test, vi } from 'vitest'
 
 vi.mock('@/lib/external-link', () => ({ openExternalLink: vi.fn() }))

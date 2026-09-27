@@ -355,6 +355,27 @@ def test_integrity_error_reports_corruption_reason(tmp_path):
 # ─── _desktop_packaged_executable arch preference (win32) ───────────────────
 
 
+def test_packaged_executable_finds_jetts_tui_build(tmp_path, monkeypatch):
+    monkeypatch.setattr(cli_main.sys, "platform", "win32")
+    desktop_dir = tmp_path / "apps" / "desktop"
+    exe = make_pe(desktop_dir / "release" / "win-unpacked" / "Jetts-TUI.exe", PE_AMD64)
+
+    with patch("freeide_cli.main._windows_native_machine", return_value="AMD64"):
+        assert cli_main._desktop_packaged_executable(desktop_dir) == exe
+
+
+def test_packaged_executable_prefers_jetts_tui_over_legacy_build(tmp_path, monkeypatch):
+    monkeypatch.setattr(cli_main.sys, "platform", "win32")
+    desktop_dir = tmp_path / "apps" / "desktop"
+    current = make_pe(desktop_dir / "release" / "win-unpacked" / "Jetts-TUI.exe", PE_AMD64)
+    legacy = make_pe(desktop_dir / "release" / "win-unpacked" / "FreeIDE.exe", PE_AMD64)
+    import os
+
+    os.utime(legacy, (legacy.stat().st_atime + 1000, legacy.stat().st_mtime + 1000))
+    with patch("freeide_cli.main._windows_native_machine", return_value="AMD64"):
+        assert cli_main._desktop_packaged_executable(desktop_dir) == current
+
+
 def test_packaged_executable_prefers_host_arch_over_mtime(tmp_path, monkeypatch):
     """A newer wrong-arch tree must not shadow the loadable one (#69179)."""
     monkeypatch.setattr(cli_main.sys, "platform", "win32")

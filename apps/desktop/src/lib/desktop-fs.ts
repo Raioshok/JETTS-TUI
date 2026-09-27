@@ -51,7 +51,7 @@ function bridge() {
   const desktop = window.freeideDesktop
 
   if (!desktop) {
-    throw new Error('FreeIDE Desktop bridge is unavailable')
+    throw new Error('Jetts-TUI Desktop bridge is unavailable')
   }
 
   return desktop

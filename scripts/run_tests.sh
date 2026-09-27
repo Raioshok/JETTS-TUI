@@ -48,16 +48,26 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 # .venv — every file then died with "No module named pytest" and the run
 # reported "0 tests passed" (which reads green at a glance even though the
 # exit code is 1). Skip such a venv and keep probing instead.
-VENV=""
 SKIPPED_VENVS=""
 for candidate in "$REPO_ROOT/.venv" "$REPO_ROOT/venv" "$HOME/.freeide/freeide-agent/venv"; do
+  # Accept both POSIX (bin/python) and native Windows (Scripts/python.exe)
+  # layouts. Probing only bin/ matched nothing on Windows/MSYS, so with
+  # FREEIDE_PYTHON also unset the script fell through to the "no virtualenv
+  # with pytest" error instead of running anything.
+  venv_python=""
   if [ -f "$candidate/bin/activate" ]; then
-    if "$candidate/bin/python" -c 'import pytest' 2>/dev/null; then
-      VENV="$candidate"
-      break
-    fi
-    SKIPPED_VENVS="$SKIPPED_VENVS $candidate"
+    venv_python="$candidate/bin/python"
+  elif [ -f "$candidate/Scripts/python.exe" ]; then
+    venv_python="$candidate/Scripts/python.exe"
   fi
+  [ -n "$venv_python" ] || continue
+  # The loop is the single source of truth: it validates the interpreter and
+  # sets PYTHON, so nothing downstream has to re-derive the layout.
+  if "$venv_python" -c 'import pytest' 2>/dev/null; then
+    PYTHON="$venv_python"
+    break
+  fi
+  SKIPPED_VENVS="$SKIPPED_VENVS $candidate"
 done
 
 if [ -n "$SKIPPED_VENVS" ]; then
@@ -66,16 +76,16 @@ if [ -n "$SKIPPED_VENVS" ]; then
   done
 fi
 
-if [ -n "$VENV" ]; then
-  PYTHON="$VENV/bin/python"
-elif [ -n "${FREEIDE_PYTHON:-}" ] && [ -x "$FREEIDE_PYTHON" ] \
+if [ -z "${PYTHON:-}" ] && [ -n "${FREEIDE_PYTHON:-}" ] && [ -x "$FREEIDE_PYTHON" ] \
     && "$FREEIDE_PYTHON" -c 'import pytest' 2>/dev/null; then
   # Guard with an import check: FREEIDE_PYTHON may point at the RELEASE
   # venv (no pytest) when inherited from a wrapped `freeide` binary rather
   # than the devShell hook.
   PYTHON="$FREEIDE_PYTHON"
   echo "▶ no local venv — using Nix dev venv via FREEIDE_PYTHON: $PYTHON"
-else
+fi
+
+if [ -z "${PYTHON:-}" ]; then
   echo "error: no virtualenv with pytest found in $REPO_ROOT/.venv or $REPO_ROOT/venv," >&2
   echo "       and FREEIDE_PYTHON is not a python with pytest (enter the Nix devShell or create a venv)" >&2
   if [ -n "$SKIPPED_VENVS" ]; then
@@ -111,6 +121,14 @@ echo "▶ pre-compiling bytecode cache"
 "$PYTHON" -m compileall -q -j 0 -- $(git ls-files '*.py') >/dev/null 2>&1 || true
 
 echo "▶ launching test runner"
+# `env -i` is deliberate: it guarantees no credential var leaks into a test
+# subprocess. But the blank slate must still carry what the interpreter needs
+# to *start* — on Windows that means USERPROFILE (Path.home() raises
+# "Could not determine home directory." without it, killing the runner before
+# it prints a single result) plus SYSTEMROOT/TEMP/TMP/APPDATA/LOCALAPPDATA.
+# PYTHONIOENCODING matters everywhere: the runner prints ✓/✗ and dies with
+# UnicodeEncodeError on a cp1252 stream whenever stdout is redirected.
+# None of these are secrets, so the CI property (no credentials) is intact.
 exec env -i \
   PATH="$PATH" \
   HOME="$HOME" \
@@ -118,6 +136,15 @@ exec env -i \
   LANG=C.UTF-8 \
   LC_ALL=C.UTF-8 \
   PYTHONHASHSEED=0 \
+  PYTHONIOENCODING=utf-8 \
+  ${USERPROFILE:+USERPROFILE="$USERPROFILE"} \
+  ${SYSTEMROOT:+SYSTEMROOT="$SYSTEMROOT"} \
+  ${TEMP:+TEMP="$TEMP"} \
+  ${TMP:+TMP="$TMP"} \
+  ${APPDATA:+APPDATA="$APPDATA"} \
+  ${LOCALAPPDATA:+LOCALAPPDATA="$LOCALAPPDATA"} \
+  ${NUMBER_OF_PROCESSORS:+NUMBER_OF_PROCESSORS="$NUMBER_OF_PROCESSORS"} \
+  ${PATHEXT:+PATHEXT="$PATHEXT"} \
   ${FREEIDE_RUN_SLOW_PET_TESTS:+FREEIDE_RUN_SLOW_PET_TESTS="$FREEIDE_RUN_SLOW_PET_TESTS"} \
   ${EXTRA_PYTHONPATH:+PYTHONPATH="$EXTRA_PYTHONPATH"} \
   ${EXTRA_PYTEST_PLUGINS:+PYTEST_PLUGINS="$EXTRA_PYTEST_PLUGINS"} \

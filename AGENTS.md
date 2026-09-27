@@ -26,6 +26,34 @@ reviewing any change:
   high. Most new capability should arrive as a CLI command + skill, a
   service-gated tool, or a plugin — not as core surface.
 
+## Token-Efficient Agent Work
+
+The user prefers concise, evidence-backed execution. Apply these rules to work
+in this repository:
+
+- State or infer a realistic task budget before broad exploration. The budget
+  is a planning constraint, not permission to stop before the requested result
+  is safe and complete.
+- Delegate only narrow, independent, reasoning-heavy tasks when parallelism or
+  context isolation repays the duplicated prompt cost. Use the configured cheap
+  child model; do mechanical work locally and verify child claims yourself.
+- Batch independent reads, searches, and checks. Give tools exact paths,
+  bounded queries, and the expected result. Keep tool-call narration to one
+  useful line.
+- Reuse or update a skill when a workflow truly recurs. Persist durable user
+  preferences in instructions or memory; do not promote one-off task state.
+- Correct a disproven approach immediately. Do not spend more calls defending
+  sunk work.
+- Keep unused plugins and toolsets disabled. Enable one only for a concrete
+  task, and prefer service-gated or skill-based capabilities over core tools.
+- For work expected to exceed 12 model/tool turns or survive a handoff, maintain
+  `.freeide-progress.md` with the objective, constraints, completed work, next
+  step, and verification. Remove it when the task is complete unless the user
+  asks to retain it.
+- Keep final answers concise: outcome, important verification, and blockers.
+- Do not send automated quota-window pings. They consume usage without advancing
+  a user task; schedule only meaningful work or monitoring.
+
 ## Contribution Rubric — What We Want / What We Don't
 
 This is the project's intent layer. Use it two ways:
@@ -467,9 +495,9 @@ Newline-delimited JSON-RPC over stdio. Requests from Ink, events from Python. Se
 ```bash
 cd ui-tui
 npm install       # first time
-npm run dev       # watch mode (rebuilds freeide-ink + tsx --watch)
+npm run dev       # watch mode (rebuilds jetts-tui-ink + tsx --watch)
 npm start         # production
-npm run build     # full build (freeide-ink + tsc)
+npm run build     # full build (jetts-tui-ink + tsc)
 npm run typecheck # typecheck only (tsc --noEmit)
 npm run lint      # eslint
 npm run fmt       # prettier
@@ -491,7 +519,7 @@ The dashboard embeds the real `freeide --tui` — **not** a rewrite.  See `freei
 
 ### Electron Desktop Chat App (`apps/desktop/`)
 
-A **separate** chat surface from both the classic CLI and the dashboard's embedded TUI. It is an Electron + React + nanostore renderer (`@assistant-ui/react`) that talks to a `tui_gateway` backend over JSON-RPC (`requestGateway(method, params)`). The WebSocket/JSON-RPC transport lives in the framework-agnostic `apps/shared` package (`@freeide/shared` — `JsonRpcGatewayClient` + WS URL helpers), which the web dashboard (`web/`) also consumes; **desktop has no build/runtime dependency on the dashboard frontend** — it spawns a headless `freeide serve` backend server (the same gateway `dashboard` serves, minus the browser UI entirely: `serve` sets `headless_backend=True`, so `cmd_dashboard` skips `_build_web_ui` AND exports `FREEIDE_SERVE_HEADLESS=1` so `mount_spa()` disables the SPA even if a stray `web_dist/` exists — only the JSON-RPC/WS/API surface is reachable). `dashboard` and `serve` share `cmd_dashboard`/`start_server` but are independent surfaces — neither launches the other. The one exception is a backward-compat *fallback*: `serve` is newer, so the desktop spawn (`electron/backend-command.ts` + `backendSupportsServe()` in `electron/main.ts`) detects whether the resolved runtime registers `serve` and, only when it does not (an older managed install / PATH `freeide` the app hasn't updated yet), rewrites the argv to the legacy `dashboard --no-open`. Without that, a new app against an un-upgraded runtime would crash on an unknown subcommand and brick every mid-upgrade user. It does NOT embed `freeide --tui` — it has its own composer, transcript, and slash-command pipeline. For scoped Desktop architecture, state, resolver, transport, and testing rules, read `apps/desktop/AGENTS.md`.
+A **separate** chat surface from both the classic CLI and the dashboard's embedded TUI. It is an Electron + React + nanostore renderer (`@assistant-ui/react`) that talks to a `tui_gateway` backend over JSON-RPC (`requestGateway(method, params)`). The WebSocket/JSON-RPC transport lives in the framework-agnostic `apps/shared` package (`@jetts-tui/shared` — `JsonRpcGatewayClient` + WS URL helpers), which the web dashboard (`web/`) also consumes; **desktop has no build/runtime dependency on the dashboard frontend** — it spawns a headless `freeide serve` backend server (the same gateway `dashboard` serves, minus the browser UI entirely: `serve` sets `headless_backend=True`, so `cmd_dashboard` skips `_build_web_ui` AND exports `FREEIDE_SERVE_HEADLESS=1` so `mount_spa()` disables the SPA even if a stray `web_dist/` exists — only the JSON-RPC/WS/API surface is reachable). `dashboard` and `serve` share `cmd_dashboard`/`start_server` but are independent surfaces — neither launches the other. The one exception is a backward-compat *fallback*: `serve` is newer, so the desktop spawn (`electron/backend-command.ts` + `backendSupportsServe()` in `electron/main.ts`) detects whether the resolved runtime registers `serve` and, only when it does not (an older managed install / PATH `freeide` the app hasn't updated yet), rewrites the argv to the legacy `dashboard --no-open`. Without that, a new app against an un-upgraded runtime would crash on an unknown subcommand and brick every mid-upgrade user. It does NOT embed `freeide --tui` — it has its own composer, transcript, and slash-command pipeline. For scoped Desktop architecture, state, resolver, transport, and testing rules, read `apps/desktop/AGENTS.md`.
 
 **Slash commands in the desktop app are curated client-side, then dispatched to the backend.** The pipeline:
 
@@ -613,7 +641,7 @@ its own provider/model/base_url/max_tokens/reasoning_effort. See
     "prompt": "Display name",
     "url": "https://...",
     "password": True,
-    "category": "tool",  # provider, tool, messaging, setting
+    "category": "tool",  # provider, tool, messaging, setting, skill
 },
 ```
 

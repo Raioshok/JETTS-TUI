@@ -91,12 +91,17 @@ deepseek = DeepSeekProfile(
     display_name="DeepSeek",
     description="DeepSeek — native DeepSeek API",
     signup_url="https://platform.deepseek.com/",
+    # DeepSeek retired the `deepseek-v4-flash` name: its pricing page states
+    # "Use `deepseek-flash` as the model name. The legacy names
+    # `deepseek-v4-flash` ... are still accepted, but the corresponding models
+    # have been retired, their requests are served by the DeepSeek-V4.1-Flash
+    # model and billed at the Flash price" (verified 2026-09-23).
     fallback_models=(
         "deepseek-v4-pro",
-        "deepseek-v4-flash",
+        "deepseek-flash",
     ),
     base_url="https://api.deepseek.com/v1",
-    default_aux_model="deepseek-v4-flash",
+    default_aux_model="deepseek-flash",
 )
 
 register_provider(deepseek)

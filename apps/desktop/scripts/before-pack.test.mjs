@@ -122,15 +122,15 @@ test('beforePack on win32 preserves the previous build instead of wiping it', as
   try {
     const appOutDir = path.join(tempRoot, 'win-unpacked')
     fs.mkdirSync(appOutDir, { recursive: true })
-    fs.writeFileSync(path.join(appOutDir, 'FreeIDE.exe'), 'MZ-working', 'utf8')
+    fs.writeFileSync(path.join(appOutDir, 'Jetts-TUI.exe'), 'MZ-working', 'utf8')
 
-    // No packager info in the context → default 'FreeIDE.exe' product name.
+    // No packager info in the context → default 'Jetts-TUI.exe' product name.
     // node-pty staging is skipped because arch is not a number here.
     await beforePack({ appOutDir, electronPlatformName: 'win32' })
 
     assert.equal(fs.existsSync(appOutDir), false)
     assert.equal(
-      fs.readFileSync(path.join(`${appOutDir}.bak`, 'FreeIDE.exe'), 'utf8'),
+      fs.readFileSync(path.join(`${appOutDir}.bak`, 'Jetts-TUI.exe'), 'utf8'),
       'MZ-working'
     )
   } finally {

@@ -1,5 +1,5 @@
-import type { BillingBlock } from '@freeide/shared'
-import type { FreeIDESkin } from '@freeide/shared/skin'
+import type { BillingBlock } from '@jetts-tui/shared'
+import type { FreeIDESkin } from '@jetts-tui/shared/skin'
 import type { QueryClient } from '@tanstack/react-query'
 import { type MutableRefObject, useCallback, useEffect, useRef } from 'react'
 

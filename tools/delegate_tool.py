@@ -2304,9 +2304,21 @@ def _run_single_child(
         # it instead of silently accepting zero-content "success".
         _empty_sentinel = summary.strip() == "(empty)"
 
+        # Same class of bug as the sentinel above, one step subtler: a persistent
+        # provider/transport failure arrives as the response TEXT itself
+        # (run_agent.py formats "HTTP <code>: <body>"), so a dead model — e.g. an
+        # HTTP 410 model end-of-life — yields a non-empty summary that reads as
+        # success. A subagent that never ran must not be reported as one that
+        # did, so the machine-generated error prefixes count as failure too.
+        _stripped = summary.strip()
+        _error_shaped = (
+            (_stripped.startswith("HTTP ") and _stripped[5:8].isdigit())
+            or _stripped.startswith("Error code: ")
+        )
+
         if interrupted:
             status = "interrupted"
-        elif summary and not _empty_sentinel:
+        elif summary and not _empty_sentinel and not _error_shaped:
             # A summary means the subagent produced usable output.
             # exit_reason ("completed" vs "max_iterations") already
             # tells the parent *how* the task ended.
@@ -2401,7 +2413,13 @@ def _run_single_child(
             ),
         }
         if status == "failed":
-            entry["error"] = result.get("error", "Subagent did not produce a response.")
+            # Surface WHY it failed: for an error-shaped summary the response
+            # text *is* the diagnosis, and the generic message below would
+            # actively mislead ("did not produce a response" when it produced
+            # nothing but an error).
+            entry["error"] = result.get("error") or (
+                _stripped if _error_shaped else "Subagent did not produce a response."
+            )
 
         # Cross-agent file-state reminder.  If this subagent wrote any
         # files the parent had already read, surface it so the parent

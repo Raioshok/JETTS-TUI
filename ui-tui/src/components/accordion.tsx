@@ -1,4 +1,4 @@
-import { Box, Text } from '@freeide/ink'
+import { Box, Text } from '@jetts-tui/ink'
 import { type ReactNode, useState } from 'react'
 
 import type { Theme } from '../theme.js'

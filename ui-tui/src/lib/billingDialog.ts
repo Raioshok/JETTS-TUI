@@ -1,4 +1,4 @@
-import type { BillingBlock } from '@freeide/shared/billing'
+import type { BillingBlock } from '@jetts-tui/shared/billing'
 
 export interface BillingDialogCopy {
   cancelLabel: string

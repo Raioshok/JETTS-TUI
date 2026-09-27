@@ -14,7 +14,7 @@ import type {
   SubscriptionTierOption,
   UsageBarData,
   UsageModelData
-} from '@freeide/shared/billing'
+} from '@jetts-tui/shared/billing'
 
 export type {
   BillingAutoReload,

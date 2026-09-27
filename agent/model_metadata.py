@@ -239,6 +239,13 @@ DEFAULT_CONTEXT_LENGTHS = {
     "gpt-5.6-luna": 1050000,
     "gpt-5.6-terra": 1050000,
     "gpt-5.6-sol": 1050000,
+    # GPT-6 generation (Astra / Sol / Luna) — published by OpenAI and priced on
+    # its list; the repo had no entry, so a gpt-6 route resolved through a
+    # gateway fell back to the generic pattern. Context per models.dev
+    # provider:openai (verified 2026-09-23), same 1.05M as the GPT-5/5.5 family.
+    "gpt-6-astra": 1050000,
+    "gpt-6-sol": 1050000,
+    "gpt-6-luna": 1050000,
     "gpt-5.5": 1050000,
     "gpt-5.4-nano": 400000,           # 400k (not 1.05M like full 5.4)
     "gpt-5.4-mini": 400000,           # 400k (not 1.05M like full 5.4)
@@ -253,13 +260,18 @@ DEFAULT_CONTEXT_LENGTHS = {
     "gpt-5.1-chat": 128000,           # Chat variant has 128k context
     "gpt-5": 400000,                  # GPT-5.x base, mini, codex variants (400k)
     "gpt-4.1": 1047576,
-    "gpt-4": 128000,
+    "gpt-4o": 128000,                 # GPT-4o / GPT-4o-mini (verified 2026-09-23)
+    "gpt-4o-mini": 128000,
+    "gpt-4": 8192,                    # plain GPT-4 = 8,192; 128K was GPT-4 Turbo's
+    # NOTE: keep specific keys above the generic "gpt-4" entry — the fallback
+    # resolves by longest-substring match, so adding a shorter generic key
+    # ("gpt-4" -> 8192) without these would have re-pointed gpt-4o to 8192.
     # Google
     "gemini": 1048576,
     # Gemma (open models served via AI Studio)
-    "gemma-4": 256000,  # Gemma 4 family
-    "gemma4": 256000,  # Ollama-style naming (e.g. gemma4:31b-cloud)
-    "gemma-4-31b": 256000,
+    "gemma-4": 262144,  # Gemma 4 family
+    "gemma4": 262144,  # Ollama-style naming (e.g. gemma4:31b-cloud)
+    "gemma-4-31b": 262144,
     "gemma-3": 131072,
     "gemma": 8192,  # fallback for older gemma models
     # DeepSeek — V4 family ships with a 1M context window. The legacy
@@ -278,9 +290,18 @@ DEFAULT_CONTEXT_LENGTHS = {
     "llama": 131072,
     # Qwen — specific model families before the catch-all.
     # Official docs: https://help.aliyun.com/zh/model-studio/developer-reference/
-    "qwen3.6-plus": 1048576,      # 1M context (DashScope/Alibaba & OpenRouter)
-    "qwen3.7-plus": 1048576,      # 1M context (DashScope/Alibaba)
+    "qwen3.6-plus": 1000000,      # 1M context (DashScope/Alibaba & OpenRouter)
+    "qwen3.7-plus": 1000000,      # 1M context (DashScope/Alibaba)
+    # Alibaba's own model page (help.aliyun.com/zh/model-studio/text-generation-model,
+    # verified 2026-09-23) lists qwen3-coder-plus AND qwen3-coder-flash at "1M"
+    # while qwen3-coder-next / qwen3-coder-480b-a35b-instruct are "256k". Alibaba
+    # publishes decimal windows, so "1M" = 1,000,000 (this resolves the earlier
+    # OR-vs-registry conflict: models.dev's 1048576 for -plus is a binary
+    # conversion artifact, and the repo's value was already correct).
     "qwen3-coder-plus": 1000000,  # 1M context
+    # Without this key qwen3-coder-flash inherits the generic "qwen3-coder"
+    # 256K entry below and is understated 4x.
+    "qwen3-coder-flash": 1000000,
     "qwen3-coder": 262144,        # 256K context
     "qwen3-max": 262144,          # 256K context (qwen3-max-2026-01-23 snapshot, Coding Plan)
     "qwen": 131072,
@@ -289,7 +310,7 @@ DEFAULT_CONTEXT_LENGTHS = {
     # the generic "minimax" catch-all for the M3 slug on every surface
     # (native MiniMax-M3, OpenRouter/FreeIDE minimax/minimax-m3).
     # https://platform.minimax.io/docs/api-reference/text-chat-openai
-    "minimax-m3": 1000000,
+    "minimax-m3": 1048576,
     "minimax": 204800,
     # GLM — GLM-5.2 ships with a 1M context window (verified empirically:
     # needle-in-a-haystack retrieval at 789K prompt tokens succeeded with
@@ -315,7 +336,7 @@ DEFAULT_CONTEXT_LENGTHS = {
     "grok-code-fast": 256000,   # grok-code-fast-1
     "grok-2-vision": 8192,      # grok-2-vision, -1212, -latest
     "grok-4-fast": 2000000,     # grok-4-fast-(non-)reasoning, also matches -reasoning
-    "grok-4.20": 2000000,       # grok-4.20-0309-(non-)reasoning, -multi-agent-0309
+    "grok-4.20": 1000000,       # grok-4.20-0309-(non-)reasoning, -multi-agent-0309
     "grok-4.5": 500000,         # grok-4.5, grok-4.5-latest — 500K context per docs.x.ai
     "grok-4.3": 1000000,        # grok-4.3, grok-4.3-latest — 1M context per docs.x.ai
     "grok-4": 256000,           # grok-4, grok-4-0709
@@ -346,15 +367,24 @@ DEFAULT_CONTEXT_LENGTHS = {
     # Tencent — Hy3 (GA successor to Hy3 Preview), same 256K window.
     "hy3": 262144,
     # Nemotron — NVIDIA's open-weights series (128K context across all sizes)
+    # Nemotron-3 generation — the generic catch-all below is correct only for
+    # the nano/super-49b tier (131,072). Without these keys the flagships
+    # resolved 2x-8x too low, including the nvidia plugin's advertised
+    # nemotron-3.5-lightning-30b-a3b. Values: models.dev provider:nvidia
+    # (re-verified 2026-09-23).
+    "nemotron-3-ultra": 1000000,
+    "nemotron-3-super": 262144,
+    "nemotron-3.5-lightning": 262144,
+    "nemotron-3-nano-omni": 256000,
     "nemotron": 131072,
     # Arcee
     "trinity": 262144,
     # OpenRouter
     "elephant": 262144,
     # Hugging Face Inference Providers — model IDs use org/name format
-    "Qwen/Qwen3.5-397B-A17B": 131072,
-    "Qwen/Qwen3.5-35B-A3B": 131072,
-    "deepseek-ai/DeepSeek-V3.2": 65536,
+    "Qwen/Qwen3.5-397B-A17B": 262144,
+    "Qwen/Qwen3.5-35B-A3B": 262144,
+    "deepseek-ai/DeepSeek-V3.2": 163840,
     "moonshotai/Kimi-K2.5": 262144,
     "moonshotai/Kimi-K2.6": 262144,
     "moonshotai/Kimi-K2-Thinking": 262144,

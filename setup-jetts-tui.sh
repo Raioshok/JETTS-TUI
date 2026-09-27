@@ -1,19 +1,21 @@
 #!/bin/bash
 # ============================================================================
-# FreeIDE Agent Setup Script
+# Jetts-TUI Setup Script
 # ============================================================================
 # Quick setup for developers who cloned the repo manually.
 # Uses uv for desktop/server setup and Python's stdlib venv + pip on Termux.
 #
 # Usage:
-#   ./setup-freeide.sh
+#   bash setup-jetts-tui.sh
+#   bash setup-jetts-tui.sh --skip-setup
+#   bash setup-jetts-tui.sh --recreate
 #
 # This script:
 # 1. Detects desktop/server vs Android/Termux setup path
 # 2. Creates a Python 3.11 virtual environment
 # 3. Installs the appropriate dependency set for the platform
 # 4. Creates .env from template (if not exists)
-# 5. Symlinks the 'freeide' CLI command into a user-facing bin dir
+# 5. Symlinks the 'jetts-tui' CLI command into a user-facing bin dir
 # 6. Runs the setup wizard (optional)
 # ============================================================================
 
@@ -34,6 +36,52 @@ cd "$SCRIPT_DIR"
 export UV_NO_CONFIG=1
 
 PYTHON_VERSION="3.11"
+RUN_SETUP=true
+RECREATE_VENV=false
+
+usage() {
+    cat <<'EOF'
+Jetts-TUI local checkout setup (Linux, macOS, WSL2, and Termux)
+
+Usage: bash setup-jetts-tui.sh [options]
+
+Options:
+  --skip-setup   Install the checkout but do not launch the provider wizard
+  --recreate     Rebuild the local venv instead of updating it in place
+  -h, --help     Show this help
+EOF
+}
+
+while [ "$#" -gt 0 ]; do
+    case "$1" in
+        --skip-setup)
+            RUN_SETUP=false
+            ;;
+        --recreate)
+            RECREATE_VENV=true
+            ;;
+        -h|--help)
+            usage
+            exit 0
+            ;;
+        *)
+            echo "Unknown option: $1" >&2
+            usage >&2
+            exit 2
+            ;;
+    esac
+    shift
+done
+
+# Prefer the repository-standard .venv, while continuing to reuse legacy
+# checkouts that already have a working venv directory.
+if [ -x "$SCRIPT_DIR/.venv/bin/python" ]; then
+    VENV_DIR="$SCRIPT_DIR/.venv"
+elif [ -x "$SCRIPT_DIR/venv/bin/python" ]; then
+    VENV_DIR="$SCRIPT_DIR/venv"
+else
+    VENV_DIR="$SCRIPT_DIR/.venv"
+fi
 
 is_termux() {
     [ -n "${TERMUX_VERSION:-}" ] || [[ "${PREFIX:-}" == *"com.termux/files/usr"* ]]
@@ -56,7 +104,7 @@ get_command_link_display_dir() {
 }
 
 echo ""
-echo -e "${CYAN}⚕ FreeIDE Agent Setup${NC}"
+echo -e "${CYAN}◆ Jetts-TUI Setup${NC}"
 echo ""
 
 # ============================================================================
@@ -168,21 +216,25 @@ fi
 
 echo -e "${CYAN}→${NC} Setting up virtual environment..."
 
-if [ -d "venv" ]; then
+if [ -d "$VENV_DIR" ] && [ "$RECREATE_VENV" = true ]; then
     echo -e "${CYAN}→${NC} Removing old venv..."
-    rm -rf venv
+    rm -rf "$VENV_DIR"
 fi
 
-if is_termux; then
-    "$PYTHON_PATH" -m venv venv
-    echo -e "${GREEN}✓${NC} venv created with stdlib venv"
+if [ -x "$VENV_DIR/bin/python" ]; then
+    echo -e "${GREEN}✓${NC} Reusing existing venv (pass --recreate to rebuild)"
 else
-    $UV_CMD venv venv --python "$PYTHON_VERSION"
-    echo -e "${GREEN}✓${NC} venv created (Python $PYTHON_VERSION)"
+    if is_termux; then
+        "$PYTHON_PATH" -m venv "$VENV_DIR"
+        echo -e "${GREEN}✓${NC} venv created with stdlib venv"
+    else
+        $UV_CMD venv "$VENV_DIR" --python "$PYTHON_VERSION"
+        echo -e "${GREEN}✓${NC} venv created (Python $PYTHON_VERSION)"
+    fi
 fi
 
-export VIRTUAL_ENV="$SCRIPT_DIR/venv"
-SETUP_PYTHON="$SCRIPT_DIR/venv/bin/python"
+export VIRTUAL_ENV="$VENV_DIR"
+SETUP_PYTHON="$VENV_DIR/bin/python"
 
 # ============================================================================
 # Dependencies
@@ -251,7 +303,7 @@ else
         # at first use.
         # Also: stream stderr through directly so the user sees uv's
         # progress UI instead of staring at a frozen prompt.
-        if UV_PROJECT_ENVIRONMENT="$SCRIPT_DIR/venv" $UV_CMD sync --extra all --locked; then
+        if UV_PROJECT_ENVIRONMENT="$VENV_DIR" $UV_CMD sync --extra all --locked; then
             echo -e "${GREEN}✓${NC} Dependencies installed (hash-verified via uv.lock)"
         else
             echo -e "${YELLOW}⚠${NC} Lockfile sync failed (see uv output above)."
@@ -277,9 +329,14 @@ if command -v rg &> /dev/null; then
     echo -e "${GREEN}✓${NC} ripgrep found"
 else
     echo -e "${YELLOW}⚠${NC} ripgrep not found (file search will use grep fallback)"
-    read -p "Install ripgrep for faster search? [Y/n] " -n 1 -r
-    echo
-    if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
+    if [ -t 0 ]; then
+        read -p "Install ripgrep for faster search? [Y/n] " -n 1 -r
+        echo
+    else
+        REPLY="n"
+        echo "    Non-interactive shell detected; skipping optional ripgrep install."
+    fi
+    if [[ ${REPLY:-} =~ ^[Yy]$ ]] || [[ -z ${REPLY:-} ]]; then
         INSTALLED=false
 
         if is_termux; then
@@ -342,17 +399,17 @@ else
 fi
 
 # ============================================================================
-# PATH setup — symlink freeide into a user-facing bin dir
+# PATH setup — symlink jetts-tui into a user-facing bin dir
 # ============================================================================
 
-echo -e "${CYAN}→${NC} Setting up freeide command..."
+echo -e "${CYAN}→${NC} Setting up jetts-tui command..."
 
-FREEIDE_BIN="$SCRIPT_DIR/venv/bin/freeide"
+FREEIDE_BIN="$VENV_DIR/bin/jetts-tui"
 COMMAND_LINK_DIR="$(get_command_link_dir)"
 COMMAND_LINK_DISPLAY_DIR="$(get_command_link_display_dir)"
 mkdir -p "$COMMAND_LINK_DIR"
-ln -sf "$FREEIDE_BIN" "$COMMAND_LINK_DIR/freeide"
-echo -e "${GREEN}✓${NC} Symlinked freeide → $COMMAND_LINK_DISPLAY_DIR/freeide"
+ln -sf "$FREEIDE_BIN" "$COMMAND_LINK_DIR/jetts-tui"
+echo -e "${GREEN}✓${NC} Symlinked jetts-tui → $COMMAND_LINK_DISPLAY_DIR/jetts-tui"
 
 if is_termux; then
     export PATH="$COMMAND_LINK_DIR:$PATH"
@@ -373,6 +430,10 @@ else
             SHELL_CONFIG="$HOME/.bashrc"
         elif [ -f "$HOME/.bash_profile" ]; then
             SHELL_CONFIG="$HOME/.bash_profile"
+        else
+            # POSIX shells read ~/.profile broadly; using it gives brand-new
+            # accounts a durable PATH instead of printing `source ` with no file.
+            SHELL_CONFIG="$HOME/.profile"
         fi
     fi
 
@@ -383,7 +444,7 @@ else
         if ! echo "$PATH" | tr ':' '\n' | grep -q "^$HOME/.local/bin$"; then
             if ! grep -q '\.local/bin' "$SHELL_CONFIG" 2>/dev/null; then
                 echo "" >> "$SHELL_CONFIG"
-                echo "# FreeIDE Agent — ensure ~/.local/bin is on PATH" >> "$SHELL_CONFIG"
+                echo "# Jetts-TUI — ensure ~/.local/bin is on PATH" >> "$SHELL_CONFIG"
                 echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$SHELL_CONFIG"
                 echo -e "${GREEN}✓${NC} Added ~/.local/bin to PATH in $SHELL_CONFIG"
             else
@@ -404,7 +465,7 @@ mkdir -p "$FREEIDE_SKILLS_DIR"
 
 echo ""
 echo "Syncing bundled skills to ~/.freeide/skills/ ..."
-if "$SCRIPT_DIR/venv/bin/python" "$SCRIPT_DIR/tools/skills_sync.py" 2>/dev/null; then
+if "$SETUP_PYTHON" "$SCRIPT_DIR/tools/skills_sync.py" 2>/dev/null; then
     echo -e "${GREEN}✓${NC} Skills synced"
 else
     # Fallback: copy if sync script fails (missing deps, etc.)
@@ -425,38 +486,42 @@ echo "Next steps:"
 echo ""
 if is_termux; then
     echo "  1. Run the setup wizard to configure API keys:"
-    echo "     freeide setup"
+    echo "     jetts-tui setup"
     echo ""
     echo "  2. Start chatting:"
-    echo "     freeide"
+    echo "     jetts-tui"
     echo ""
 else
     echo "  1. Reload your shell:"
     echo "     source $SHELL_CONFIG"
     echo ""
     echo "  2. Run the setup wizard to configure API keys:"
-    echo "     freeide setup"
+    echo "     jetts-tui setup"
     echo ""
     echo "  3. Start chatting:"
-    echo "     freeide"
+    echo "     jetts-tui"
     echo ""
 fi
 echo "Other commands:"
-echo "  freeide status        # Check configuration"
+echo "  jetts-tui status        # Check configuration"
 if is_termux; then
-    echo "  freeide gateway       # Run gateway in foreground"
+    echo "  jetts-tui gateway       # Run gateway in foreground"
 else
-    echo "  freeide gateway install # Install gateway service (messaging + cron)"
+    echo "  jetts-tui gateway install # Install gateway service (messaging + cron)"
 fi
-echo "  freeide cron list     # View scheduled jobs"
-echo "  freeide doctor        # Diagnose issues"
+echo "  jetts-tui cron list     # View scheduled jobs"
+echo "  jetts-tui doctor        # Diagnose issues"
 echo ""
 
-# Ask if they want to run setup wizard now
-read -p "Would you like to run the setup wizard now? [Y/n] " -n 1 -r
-echo
-if [[ $REPLY =~ ^[Yy]$ ]] || [[ -z $REPLY ]]; then
-    echo ""
-    # Run directly with venv Python (no activation needed)
-    "$SCRIPT_DIR/venv/bin/python" -m freeide_cli.main setup
+# Ask if they want to run setup wizard now. Never block a redirected shell.
+if [ "$RUN_SETUP" = true ] && [ -t 0 ]; then
+    read -p "Would you like to run the setup wizard now? [Y/n] " -n 1 -r
+    echo
+    if [[ ${REPLY:-} =~ ^[Yy]$ ]] || [[ -z ${REPLY:-} ]]; then
+        echo ""
+        # Run directly with venv Python (no activation needed)
+        "$SETUP_PYTHON" -m freeide_cli.main setup
+    fi
+elif [ "$RUN_SETUP" = true ]; then
+    echo "Non-interactive shell detected. Finish configuration with: jetts-tui setup"
 fi

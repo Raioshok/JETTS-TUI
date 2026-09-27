@@ -53,7 +53,7 @@ export function recordParentLifecycle(line: string): void {
   } catch {
     if (!warned) {
       warned = true
-      process.stderr.write('freeide-tui: parent lifecycle log unavailable\n')
+      process.stderr.write('jetts-tui: parent lifecycle log unavailable\n')
     }
   }
 }

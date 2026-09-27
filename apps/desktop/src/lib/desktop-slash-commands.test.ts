@@ -25,6 +25,9 @@ describe('desktop slash command curation', () => {
     expect(isDesktopSlashSuggestion('/approvals')).toBe(true)
     expect(isDesktopSlashCommand('/approvals')).toBe(true)
     expect(resolveDesktopCommand('/approvals')?.surface).toEqual({ kind: 'exec' })
+    expect(isDesktopSlashSuggestion('/permissions')).toBe(true)
+    expect(isDesktopSlashCommand('/permissions')).toBe(true)
+    expect(resolveDesktopCommand('/permissions')?.surface).toEqual({ kind: 'exec' })
   })
 
   it('surfaces skill and quick commands (extensions) in suggestions and lets them run', () => {
@@ -129,12 +132,17 @@ describe('desktop slash command curation', () => {
   it('still routes commands without dedicated RPCs through exec()', () => {
     const execNames = [
       '/background',
+      '/brain',
       '/debug',
+      '/doctor',
       '/goal',
+      '/mode',
       '/personality',
       '/queue',
+      '/review',
       '/retry',
       '/rollback',
+      '/spec',
       '/tools',
       '/undo',
       '/version'
@@ -150,6 +158,9 @@ describe('desktop slash command curation', () => {
     expect(desktopSlashCommandArgumentMode('/steer')).toBe('text')
     expect(desktopSlashCommandArgumentMode('/queue')).toBe('text')
     expect(desktopSlashCommandArgumentMode('/personality')).toBe('options')
+    expect(desktopSlashCommandArgumentMode('/mode')).toBe('options')
+    expect(desktopSlashCommandArgumentMode('/review')).toBe('mixed')
+    expect(desktopSlashCommandArgumentMode('/spec')).toBe('mixed')
     expect(desktopSlashCommandArgumentMode('/handoff')).toBe('options')
     expect(desktopSlashCommandArgumentMode('/version')).toBeNull()
   })

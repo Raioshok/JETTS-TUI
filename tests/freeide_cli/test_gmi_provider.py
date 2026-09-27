@@ -342,13 +342,18 @@ class TestGmiMainFlow:
 
     def test_model_flow_api_key_provider_persists_gmi_selection(self, monkeypatch):
         monkeypatch.setenv("GMI_API_KEY", "gmi-test-key")
+        offered_models = []
+
+        def _select(models, **kwargs):
+            offered_models.extend(models)
+            return "openai/gpt-5.4-mini"
 
         with patch(
             "freeide_cli.models.fetch_api_models",
             return_value=["zai-org/GLM-5.1-FP8", "openai/gpt-5.4-mini"],
         ), patch(
             "freeide_cli.auth._prompt_model_selection",
-            return_value="openai/gpt-5.4-mini",
+            side_effect=_select,
         ), patch(
             "freeide_cli.auth.deactivate_provider",
         ), patch(
@@ -368,3 +373,7 @@ class TestGmiMainFlow:
         assert model_cfg["provider"] == "gmi"
         assert model_cfg["default"] == "openai/gpt-5.4-mini"
         assert model_cfg["base_url"] == "https://api.gmi-serving.com/v1"
+        assert offered_models == [
+            "zai-org/GLM-5.1-FP8",
+            "openai/gpt-5.4-mini",
+        ]

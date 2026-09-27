@@ -293,7 +293,7 @@ async fn run_update(app: AppHandle) -> Result<()> {
             emit_stage(&app, "update", StageState::Succeeded, Some(update_ms), None);
         }
         Some(code) if code == UPDATE_EXIT_CONCURRENT => {
-            let msg = "FreeIDE is still running. Close all FreeIDE windows and try \
+            let msg = "Jetts-TUI is still running. Close all Jetts-TUI windows and try \
                        the update again."
                 .to_string();
             emit_stage(
@@ -314,7 +314,7 @@ async fn run_update(app: AppHandle) -> Result<()> {
         }
         other => {
             let msg = format!(
-                "freeide update failed (exit {:?}). See {} for details.",
+                "jetts-tui update failed (exit {:?}). See {} for details.",
                 other,
                 crate::paths::freeide_home()
                     .join("logs")
@@ -386,7 +386,7 @@ async fn run_update(app: AppHandle) -> Result<()> {
     if rebuild.exit_code != Some(0) {
         let msg = format!(
             "Rebuilding the desktop app failed (exit {:?}). The update was \
-             applied but the app could not be rebuilt; run `freeide desktop` \
+             applied but the app could not be rebuilt; run `jetts-tui desktop` \
              from a terminal to see the error.",
             rebuild.exit_code
         );
@@ -460,7 +460,7 @@ async fn run_update(app: AppHandle) -> Result<()> {
                 &app,
                 None,
                 LogStream::Stderr,
-                &format!("[update] could not auto-launch desktop: {err}. Launch FreeIDE manually."),
+                &format!("[update] could not auto-launch desktop: {err}. Launch Jetts-TUI manually."),
             );
         }
     } else if let Err(err) =
@@ -473,7 +473,7 @@ async fn run_update(app: AppHandle) -> Result<()> {
             &app,
             None,
             LogStream::Stdout,
-            &format!("[update] could not auto-launch desktop: {err}. Launch FreeIDE manually."),
+            &format!("[update] could not auto-launch desktop: {err}. Launch Jetts-TUI manually."),
         );
     }
 
@@ -540,7 +540,7 @@ pub(crate) async fn wait_for_install_locks_free(install_root: &Path, app: &AppHa
 }
 
 fn install_lock_probe_paths(install_root: &Path) -> Vec<PathBuf> {
-    let mut paths = vec![venv_freeide(install_root)];
+    let mut paths = vec![venv_jetts(install_root), venv_freeide(install_root)];
     paths.extend(desktop_app_payload_paths(install_root));
     paths
 }
@@ -554,6 +554,8 @@ fn desktop_app_payload_paths(install_root: &Path) -> Vec<PathBuf> {
         ]
     } else if cfg!(target_os = "macos") {
         vec![
+            release.join("mac").join("Jetts-TUI.app").join("Contents").join("Resources").join("app.asar"),
+            release.join("mac-arm64").join("Jetts-TUI.app").join("Contents").join("Resources").join("app.asar"),
             release.join("mac").join("FreeIDE.app").join("Contents").join("Resources").join("app.asar"),
             release.join("mac-arm64").join("FreeIDE.app").join("Contents").join("Resources").join("app.asar"),
         ]
@@ -592,18 +594,13 @@ fn force_kill_other_freeide() {
     {
         let my_pid = std::process::id();
         // /FI excludes our own PID; /T kills the tree; /F forces.
-        let _ = std::process::Command::new("taskkill")
-            .args([
-                "/F",
-                "/T",
-                "/IM",
-                "freeide.exe",
-                "/FI",
-                &format!("PID ne {my_pid}"),
-            ])
-            .stdout(std::process::Stdio::null())
-            .stderr(std::process::Stdio::null())
-            .status();
+        for image in ["jetts-tui.exe", "freeide.exe"] {
+            let _ = std::process::Command::new("taskkill")
+                .args(["/F", "/T", "/IM", image, "/FI", &format!("PID ne {my_pid}")])
+                .stdout(std::process::Stdio::null())
+                .stderr(std::process::Stdio::null())
+                .status();
+        }
     }
 }
 
@@ -702,6 +699,14 @@ struct CmdResult {
 }
 
 /// Path to the venv freeide shim under an install root, regardless of existence.
+fn venv_jetts(install_root: &Path) -> PathBuf {
+    if cfg!(target_os = "windows") {
+        install_root.join("venv").join("Scripts").join("jetts-tui.exe")
+    } else {
+        install_root.join("venv").join("bin").join("jetts-tui")
+    }
+}
+
 fn venv_freeide(install_root: &Path) -> PathBuf {
     if cfg!(target_os = "windows") {
         install_root.join("venv").join("Scripts").join("freeide.exe")
@@ -713,18 +718,25 @@ fn venv_freeide(install_root: &Path) -> PathBuf {
 /// Resolve the freeide CLI to drive. Prefer the venv shim in the install we
 /// just updated; fall back to `freeide` on PATH.
 fn resolve_freeide(install_root: &Path) -> Option<PathBuf> {
-    let shim = venv_freeide(install_root);
-    if shim.exists() {
-        return Some(shim);
+    for shim in [venv_jetts(install_root), venv_freeide(install_root)] {
+        if shim.exists() {
+            return Some(shim);
+        }
     }
     // PATH fallback. which-style probe via env, kept dependency-free.
-    let exe = if cfg!(target_os = "windows") { "freeide.exe" } else { "freeide" };
     if let Ok(path) = std::env::var("PATH") {
         let sep = if cfg!(target_os = "windows") { ';' } else { ':' };
-        for dir in path.split(sep) {
-            let cand = Path::new(dir).join(exe);
-            if cand.exists() {
-                return Some(cand);
+        let names = if cfg!(target_os = "windows") {
+            ["jetts-tui.exe", "freeide.exe"]
+        } else {
+            ["jetts-tui", "freeide"]
+        };
+        for name in names {
+            for dir in path.split(sep) {
+                let cand = Path::new(dir).join(name);
+                if cand.exists() {
+                    return Some(cand);
+                }
             }
         }
     }
@@ -821,7 +833,7 @@ async fn install_macos_app_update(
 
     let rebuilt_app = crate::bootstrap::resolve_freeide_desktop_app(install_root).ok_or_else(|| {
         anyhow!(
-            "desktop rebuild succeeded but no FreeIDE.app was found under {}",
+            "desktop rebuild succeeded but no Jetts-TUI.app was found under {}",
             install_root.join("apps").join("desktop").join("release").display()
         )
     })?;
@@ -1072,6 +1084,10 @@ mod tests {
         let root = Path::new("/x/freeide-agent");
         let probes = install_lock_probe_paths(root);
 
+        assert!(
+            probes.iter().any(|p| p == &venv_jetts(root)),
+            "Jetts-TUI venv shim must be part of the update lock probe"
+        );
         assert!(
             probes.iter().any(|p| p == &venv_freeide(root)),
             "venv shim remains part of the update lock probe"

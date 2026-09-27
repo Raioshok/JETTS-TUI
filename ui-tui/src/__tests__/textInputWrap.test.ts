@@ -1,4 +1,4 @@
-import { wrapAnsi } from '@freeide/ink'
+import { wrapAnsi } from '@jetts-tui/ink'
 import { describe, expect, it } from 'vitest'
 
 import { offsetFromPosition } from '../components/textInput.js'

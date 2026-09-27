@@ -142,25 +142,38 @@ class TestPriorityProcessingModels(unittest.TestCase):
             assert model_supports_fast_mode(model), f"{model} should support fast mode"
 
     def test_all_anthropic_models_supported(self):
-        """The speed=fast parameter is gated to Opus 4.6.
+        """speed=fast is supported on Opus 5.5 / Opus 5 / Opus 4.8 (+ 4.6).
 
-        Sending speed=fast to Opus 4.7, Sonnet, or Haiku returns HTTP 400.
-        (Opus 4.8's fast offering is a separate ``…-fast`` model id selected
-        via the model field, not this parameter — see the adapter test.)
+        Re-verified 2026-09-23 against
+        https://platform.claude.com/docs/en/build-with-claude/fast-mode, which
+        states: "Fast mode is supported on the following models: Claude Opus 5.5
+        (claude-opus-5-5), Claude Opus 5 (claude-opus-5), Claude Opus 4.8
+        (claude-opus-4-8)". Opus 4.6 is kept as a union member so existing 4.6
+        users do not lose the toggle.
+
+        The previous version of this test asserted "Opus 4.6 only" and that
+        Opus 4.8's fast offering was a separate ``…-fast`` model id. Neither
+        holds: no catalogue (Anthropic's docs, nor OpenRouter's 454-id
+        catalogue) lists a ``-fast`` Anthropic model id, and 4.8 is on the
+        supported list for the parameter.
         """
         from freeide_cli.models import model_supports_fast_mode
 
-        # Supported: Opus 4.6 in any form
+        # Supported: the documented set, in Anthropic-native and dotted forms
         supported = [
+            "claude-opus-5-5", "claude-opus-5.5",
+            "claude-opus-5", "anthropic/claude-opus-5",
+            "claude-opus-4-8", "anthropic/claude-opus-4.8",
             "claude-opus-4-6", "claude-opus-4.6",
             "anthropic/claude-opus-4-6", "anthropic/claude-opus-4.6",
         ]
         for model in supported:
             assert model_supports_fast_mode(model), f"{model} should support fast mode"
 
-        # Unsupported per Anthropic API: Opus 4.7/4.8, Sonnet, Haiku
+        # Unsupported per Anthropic API: Opus 4.7, Sonnet, Haiku
         unsupported = [
-            "claude-opus-4-7", "claude-opus-4-8", "claude-opus-4.8",
+            "claude-opus-4-7",
+            "claude-opus-4-5",
             "claude-sonnet-4-6", "claude-sonnet-4.6", "claude-sonnet-4",
             "claude-haiku-4-5", "claude-3-5-haiku",
         ]
@@ -287,12 +300,12 @@ class TestAnthropicFastMode(unittest.TestCase):
         assert model_supports_fast_mode("anthropic/claude-opus-4-6") is True
         assert model_supports_fast_mode("anthropic/claude-opus-4.6") is True
 
-    def test_anthropic_non_opus46_models_excluded(self):
-        """The speed=fast parameter is gated to Opus 4.6 — others excluded.
+    def test_anthropic_unsupported_models_excluded(self):
+        """Sonnet / Haiku / Opus 4.7 are excluded from the speed=fast parameter.
 
-        Per https://platform.claude.com/docs/en/build-with-claude/fast-mode,
-        sending speed=fast to Opus 4.7, Sonnet, or Haiku returns HTTP 400.
-        Opus 4.8 uses a separate ``…-fast`` model id, not this parameter.
+        Per https://platform.claude.com/docs/en/build-with-claude/fast-mode
+        (re-verified 2026-09-23), the supported set is Opus 5.5 / 5 / 4.8.
+        Opus 4.7 is explicitly excluded (it 400s on the parameter).
         """
         from freeide_cli.models import model_supports_fast_mode
 
@@ -300,7 +313,7 @@ class TestAnthropicFastMode(unittest.TestCase):
         assert model_supports_fast_mode("claude-sonnet-4.6") is False
         assert model_supports_fast_mode("claude-haiku-4-5") is False
         assert model_supports_fast_mode("claude-opus-4-7") is False
-        assert model_supports_fast_mode("claude-opus-4-8") is False
+        assert model_supports_fast_mode("claude-opus-4-5") is False
         assert model_supports_fast_mode("anthropic/claude-sonnet-4.6") is False
         assert model_supports_fast_mode("anthropic/claude-opus-4-7") is False
 
@@ -329,15 +342,15 @@ class TestAnthropicFastMode(unittest.TestCase):
         assert result == {"speed": "fast"}
 
     def test_resolve_overrides_returns_none_for_unsupported_claude(self):
-        """Opus 4.7/4.8 and other Claude models don't take the speed param.
+        """Opus 4.7 and non-Opus Claude models don't take the speed param.
 
-        The speed=fast parameter is Opus 4.6 only (Opus 4.8 uses a separate
-        ``…-fast`` model id instead).
+        Note Opus 4.8 DOES (documented supported set, re-verified 2026-09-23);
+        it is asserted positive in test_resolve_overrides_returns_speed_*.
         """
         from freeide_cli.models import resolve_fast_mode_overrides
 
         assert resolve_fast_mode_overrides("claude-opus-4-7") is None
-        assert resolve_fast_mode_overrides("claude-opus-4-8") is None
+        assert resolve_fast_mode_overrides("claude-sonnet-5") is None
         assert resolve_fast_mode_overrides("claude-sonnet-4-6") is None
         assert resolve_fast_mode_overrides("claude-haiku-4-5") is None
 
@@ -357,10 +370,14 @@ class TestAnthropicFastMode(unittest.TestCase):
         assert _is_anthropic_fast_model("claude-opus-4.6") is True
         assert _is_anthropic_fast_model("anthropic/claude-opus-4-6") is True
         assert _is_anthropic_fast_model("claude-opus-4.6:fast") is True
+        # Documented supported set (re-verified 2026-09-23)
+        assert _is_anthropic_fast_model("claude-opus-5-5") is True
+        assert _is_anthropic_fast_model("claude-opus-5") is True
+        assert _is_anthropic_fast_model("claude-opus-4-8") is True
+        assert _is_anthropic_fast_model("anthropic/claude-opus-4.8") is True
 
-        # Unsupported — would 400 (4.7) or uses a separate model id (4.8)
+        # Unsupported — 4.7 explicitly 400s on the parameter
         assert _is_anthropic_fast_model("claude-opus-4-7") is False
-        assert _is_anthropic_fast_model("claude-opus-4-8") is False
         assert _is_anthropic_fast_model("claude-sonnet-4-6") is False
         assert _is_anthropic_fast_model("claude-haiku-4-5") is False
 

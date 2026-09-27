@@ -1,4 +1,4 @@
-import { Box, Text } from '@freeide/ink'
+import { Box, Text } from '@jetts-tui/ink'
 
 import { ShimmerRows } from '../../components/loaders.js'
 import { Dialog } from '../../components/overlay.js'

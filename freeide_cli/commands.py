@@ -113,11 +113,21 @@ COMMAND_REGISTRY: list[CommandDef] = [
                args_hint="<prompt>"),
     CommandDef("goal", "Set a standing goal FreeIDE works on across turns until achieved", "Session",
                args_hint="[text | draft <text> | show | pause | resume | clear | status | wait <pid> | unwait]"),
+    CommandDef("spec", "Create and approve a Kiro-style requirements/design/tasks spec", "Session",
+               cli_only=True,
+               args_hint="[list|new <feature>|quick <feature>|status <name>|approve <name> <stage>|implement <name>]",
+               subcommands=("list", "new", "quick", "status", "approve", "implement")),
     CommandDef("moa", "Run one prompt through the default Mixture of Agents preset, then restore your model", "Session",
                args_hint="<prompt>"),
     CommandDef("subgoal", "Add or manage extra criteria on the active goal", "Session",
                args_hint="[text | remove N | clear]"),
     CommandDef("status", "Show session, model, token, and context info", "Session"),
+    CommandDef("permissions", "Show current authority, work mode, approvals, and writable boundaries", "Session",
+               aliases=("perms",)),
+    CommandDef("review", "Review git changes without editing files", "Session",
+               args_hint="[unstaged|staged|all|base <branch>|commit <sha>]"),
+    CommandDef("doctor", "Run a quick FreeIDE setup and runtime health check", "Session",
+               args_hint="[quick|full]"),
     CommandDef("egress", "Show Docker egress proxy status", "Session",
                args_hint="[status]", subcommands=("status",)),
     CommandDef("context", "Show detailed context window view with usage gauge, category breakdown, compression stats, and throughput", "Session",
@@ -168,6 +178,10 @@ COMMAND_REGISTRY: list[CommandDef] = [
     CommandDef("approvals", "Show or set the persistent dangerous-command approval mode",
                "Configuration", args_hint="[manual|smart|off]",
                subcommands=("manual", "smart", "off")),
+    CommandDef("mode", "Switch session work mode: default, plan, or accept-edits",
+               "Configuration", cli_only=True,
+               args_hint="[default|plan|accept-edits]",
+               subcommands=("default", "plan", "accept-edits")),
     CommandDef("reasoning", "Manage reasoning effort and display", "Configuration",
                args_hint="[level|show|hide|full|clamp] [--global]",
                subcommands=("none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra", "show", "hide", "on", "off", "full", "clamp", "--global")),
@@ -207,6 +221,10 @@ COMMAND_REGISTRY: list[CommandDef] = [
                "Tools & Skills", cli_only=True, aliases=("generate-pet",), args_hint="[description]"),
     CommandDef("learn", "Learn a reusable skill from anything you describe (dirs, URLs, this chat, notes)",
                "Tools & Skills", args_hint="<what to learn from>"),
+    CommandDef("brain", "Create and maintain an Obsidian project brain",
+               "Tools & Skills", cli_only=True,
+               args_hint="[init|status|capture|sync|improve|doctor|open] ...",
+               subcommands=("init", "status", "capture", "sync", "improve", "doctor", "open")),
     CommandDef("init", "Generate or update AGENTS.md project instructions from a repo scan",
                "Tools & Skills", args_hint="[notes]"),
     CommandDef("cron", "Manage scheduled tasks", "Tools & Skills",
@@ -260,8 +278,8 @@ COMMAND_REGISTRY: list[CommandDef] = [
                cli_only=True),
     CommandDef("image", "Attach a local image file for your next prompt", "Info",
                cli_only=True, args_hint="<path>"),
-    CommandDef("update", "Update FreeIDE Agent to the latest version", "Info"),
-    CommandDef("version", "Show FreeIDE Agent version", "Info", aliases=("v",)),
+    CommandDef("update", "Update Jetts-TUI to the latest version", "Info"),
+    CommandDef("version", "Show Jetts-TUI version", "Info", aliases=("v",)),
     CommandDef("debug", "Upload debug report (system info + logs) and get shareable links", "Info",
                args_hint="[local]"),
 
@@ -269,6 +287,37 @@ COMMAND_REGISTRY: list[CommandDef] = [
     CommandDef("quit", "Exit the CLI (use --delete to also remove session history)", "Exit",
                cli_only=True, aliases=("exit",), args_hint="[--delete]"),
 ]
+
+# The command registry is an execution contract, not a menu.  Keep legacy,
+# platform-specific, recovery, and expert commands callable without forcing
+# every user to scan them on each `/` completion or help screen.  A command is
+# added here only when it earns a place in the primary interactive workflow.
+DISCOVERABLE_COMMANDS: frozenset[str] = frozenset(
+    {
+        # Conversation
+        "new", "history", "save", "retry", "undo", "title", "handoff",
+        "branch", "compress", "rollback", "stop", "background", "agents",
+        "queue", "steer", "goal", "spec", "status", "review", "doctor",
+        "resume",
+        # Model and behavior
+        "model", "personality", "approvals", "mode", "reasoning", "fast",
+        "skin", "voice",
+        # Capabilities
+        "tools", "skills", "learn", "brain", "init", "cron", "browser",
+        # Essentials
+        "help", "usage", "paste", "image", "update", "quit",
+    }
+)
+
+
+def is_command_discoverable(command: CommandDef | str) -> bool:
+    """Whether a built-in belongs in primary menus and completion lists.
+
+    Hidden commands continue to resolve and dispatch.  This intentionally
+    separates backward compatibility from the everyday UX surface.
+    """
+    name = command.name if isinstance(command, CommandDef) else command
+    return name in DISCOVERABLE_COMMANDS
 
 
 # ---------------------------------------------------------------------------
@@ -306,19 +355,15 @@ def _build_description(cmd: CommandDef) -> str:
 # Backwards-compatible flat dict: "/command" -> description
 COMMANDS: dict[str, str] = {}
 for _cmd in COMMAND_REGISTRY:
-    if not _cmd.gateway_only:
+    if not _cmd.gateway_only and is_command_discoverable(_cmd):
         COMMANDS[f"/{_cmd.name}"] = _build_description(_cmd)
-        for _alias in _cmd.aliases:
-            COMMANDS[f"/{_alias}"] = f"{_cmd.description} (alias for /{_cmd.name})"
 
 # Backwards-compatible categorized dict
 COMMANDS_BY_CATEGORY: dict[str, dict[str, str]] = {}
 for _cmd in COMMAND_REGISTRY:
-    if not _cmd.gateway_only:
+    if not _cmd.gateway_only and is_command_discoverable(_cmd):
         _cat = COMMANDS_BY_CATEGORY.setdefault(_cmd.category, {})
         _cat[f"/{_cmd.name}"] = COMMANDS[f"/{_cmd.name}"]
-        for _alias in _cmd.aliases:
-            _cat[f"/{_alias}"] = COMMANDS[f"/{_alias}"]
 
 
 # Subcommands lookup: "/cmd" -> ["sub1", "sub2", ...]
@@ -484,7 +529,6 @@ def gateway_help_lines() -> list[str]:
         args = f" {cmd.args_hint}" if cmd.args_hint else ""
         alias_parts: list[str] = []
         for a in cmd.aliases:
-            # Skip internal aliases like reload_mcp (underscore variant)
             if a.replace("-", "_") == cmd.name.replace("-", "_") and a != cmd.name:
                 continue
             alias_parts.append(f"`/{a}`")
@@ -1195,7 +1239,14 @@ _SLACK_PRIORITY_ALIASES = ("btw", "bg")
 #     /freeide update on Slack. Demoted to free the native slot /approvals now
 #     claims — without this entry /approvals tips the registry past the 50-cap
 #     and silently clamps /update off, breaking Telegram parity.
-_SLACK_VIA_FREEIDE_ONLY = frozenset({"moa", "debug", "egress", "init", "version", "diff", "update"})
+_SLACK_VIA_FREEIDE_ONLY = frozenset(
+    {
+        "moa", "debug", "egress", "init", "version", "diff", "update",
+        # Lower-frequency reporting/operations stay available through the
+        # catch-all without consuming Slack's capped native command slots.
+        "insights", "platform", "usage",
+    }
+)
 
 
 def _sanitize_slack_name(raw: str) -> str:
@@ -1213,14 +1264,8 @@ def _sanitize_slack_name(raw: str) -> str:
 def slack_native_slashes() -> list[tuple[str, str, str]]:
     """Return (slash_name, description, usage_hint) triples for Slack.
 
-    Every gateway-available command in ``COMMAND_REGISTRY`` is surfaced as
-    a standalone Slack slash command (e.g. ``/btw``, ``/stop``, ``/model``),
-    matching Discord's and Telegram's model where every command is a
-    first-class slash and not a ``/freeide <verb>`` subcommand.
-
-    Both canonical names and aliases are included so users can type any
-    documented form (e.g. ``/background``, ``/bg``, and ``/btw`` all work).
-    Plugin-registered slash commands are included too.
+    Every gateway-available command and alias is surfaced when Slack's native
+    command cap permits it. Plugin-registered slash commands are included too.
 
     Commands whose sanitized name collides with a Slack built-in
     (e.g. ``/status``, ``/me``, ``/join``) are silently skipped.  Users
@@ -1254,10 +1299,6 @@ def slack_native_slashes() -> list[tuple[str, str, str]]:
         entries.append((slack_name, desc[:140], hint[:100]))
         seen.add(slack_name)
 
-    # Priority pass: pin high-value aliases (e.g. /btw, /bg, /reset) ahead of
-    # everything except /freeide, so a new canonical command can never silently
-    # clamp them off the 50-slash cap. Each alias borrows its parent command's
-    # description and hint.
     _alias_to_cmd = {
         alias: cmd
         for cmd in COMMAND_REGISTRY
@@ -1269,22 +1310,17 @@ def slack_native_slashes() -> list[tuple[str, str, str]]:
         if cmd is not None:
             _add(alias, f"Alias for /{cmd.name} — {cmd.description}", cmd.args_hint or "")
 
-    # First pass: canonical names (so they win slots if we hit the cap).
     for cmd in COMMAND_REGISTRY:
         if not _is_gateway_available(cmd, overrides):
             continue
         _add(cmd.name, cmd.description, cmd.args_hint or "")
 
-    # Second pass: aliases.
     for cmd in COMMAND_REGISTRY:
         if not _is_gateway_available(cmd, overrides):
             continue
         for alias in cmd.aliases:
-            # Skip aliases that only differ from canonical by case/punctuation
-            # normalization (already covered by _add dedup).
             _add(alias, f"Alias for /{cmd.name} — {cmd.description}", cmd.args_hint or "")
 
-    # Third pass: plugin commands.
     for name, description, args_hint in _iter_plugin_command_entries():
         _add(name, description, args_hint or "")
 

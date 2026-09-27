@@ -1,4 +1,4 @@
-import { Ansi, Box, NoSelect, Text } from '@freeide/ink'
+import { Ansi, Box, NoSelect, Text } from '@jetts-tui/ink'
 import { memo, useState } from 'react'
 
 import { TERMUX_TUI_MODE } from '../config/env.js'

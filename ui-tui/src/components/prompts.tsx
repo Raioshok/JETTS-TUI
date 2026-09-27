@@ -1,4 +1,4 @@
-import { Box, Text, useInput, wrapAnsi } from '@freeide/ink'
+import { Box, Text, useInput, wrapAnsi } from '@jetts-tui/ink'
 import { useState } from 'react'
 
 import { isMac } from '../lib/platform.js'

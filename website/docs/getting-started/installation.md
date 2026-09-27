@@ -1,12 +1,12 @@
 ---
 sidebar_position: 2
 title: "Installation"
-description: "Install FreeIDE Agent on Linux, macOS, WSL2, native Windows, or Android via Termux"
+description: "Install Jetts-TUI on Linux, macOS, WSL2, native Windows, or Android via Termux"
 ---
 
 # Installation
 
-Get FreeIDE Agent up and running in under two minutes!
+Get Jetts-TUI up and running.
 
 :::tip Platform Support
 For the full platform support matrix (which OSes, distribution methods, and
@@ -14,25 +14,25 @@ platform-gated features are supported), see **[Platform Support](./platform-supp
 :::
 
 ## Quick Install
-### With the FreeIDE Desktop installer on macOS or Windows (recommended)
-To easily install the command-line and desktop applications, [download the FreeIDE Desktop installer](https://freeide-agent.freeide.dev/) from our website and run it.
+### Desktop app on macOS or Windows
+Build the desktop app from the repository after installing the CLI. Prebuilt Jetts-TUI desktop releases will be linked here once published; the old project's installer does not install Jetts-TUI.
 
-### Without FreeIDE Desktop:
-For a command-line only install without FreeIDE Desktop, run:
+### Terminal install
+For a terminal install, run:
 
 #### Linux / macOS / WSL2 / Android (Termux)
 ```bash
-curl -fsSL https://freeide-agent.freeide.dev/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Raioshok/JETTS-TUI/main/scripts/install.sh | bash
 ```
 
 #### Windows (native)
 
 Run in powershell:
 ```powershell
-iex (irm https://freeide-agent.freeide.dev/install.ps1) 
+iex (irm https://raw.githubusercontent.com/Raioshok/JETTS-TUI/main/scripts/install.ps1)
 ```
 
-If you want to install & run FreeIDE Desktop after a command-line only install, simply run
+To build and run the desktop app from a source install, run
 ```bash
 freeide desktop
 ```
@@ -108,6 +108,24 @@ Nix is **no longer an explicitly supported install path** (best-effort only). If
 
 If you want to clone the repo and install from source — for contributing, running from a specific branch, or having full control over the virtual environment — see the [Development Setup](../developer-guide/contributing.md#development-setup) section in the Contributing guide.
 
+For the fastest local-checkout bootstrap, clone the repository and run the
+platform helper from its root:
+
+```bash title="Linux / macOS / WSL2"
+bash setup-jetts-tui.sh
+```
+
+```powershell title="Native Windows"
+.\setup-jetts-tui.ps1
+```
+
+If PowerShell blocks local scripts, run
+`powershell -NoProfile -ExecutionPolicy Bypass -File .\setup-jetts-tui.ps1`.
+
+Both helpers update an existing local environment by default. Use
+`--recreate` on Linux or `-Recreate` on Windows only when you want a clean
+environment, and use `--skip-setup` / `-SkipSetup` to postpone provider setup.
+
 ---
 
 ## Non-Sudo / System Service User Installs
@@ -124,12 +142,12 @@ Running FreeIDE as a dedicated unprivileged user (e.g. a `freeide` systemd servi
 
 2. **As the unprivileged service user**, run the regular installer. It will detect the missing sudo, skip `--with-deps`, and install Chromium into the user's local Playwright cache:
    ```bash
-   curl -fsSL https://freeide-agent.freeide.dev/install.sh | bash
+   curl -fsSL https://raw.githubusercontent.com/Raioshok/JETTS-TUI/main/scripts/install.sh | bash
    ```
 
    If you want to skip the Playwright step entirely — for example because you're running headless and don't need browser automation — pass `--skip-browser`:
    ```bash
-   curl -fsSL https://freeide-agent.freeide.dev/install.sh | bash -s -- --skip-browser
+   curl -fsSL https://raw.githubusercontent.com/Raioshok/JETTS-TUI/main/scripts/install.sh | bash -s -- --skip-browser
    ```
 
 3. **Make `freeide` available to the service user's shells.** The installer writes the launcher to `~/.local/bin/freeide`. System service accounts often have a minimal PATH that doesn't include `~/.local/bin`. Either add it to the user's environment, or symlink the launcher into a system location:

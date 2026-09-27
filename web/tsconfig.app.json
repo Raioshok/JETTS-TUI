@@ -19,7 +19,7 @@
     /* Path aliases */
     "paths": {
       "@/*": ["./src/*"],
-      "@freeide/shared": ["../apps/shared/src/index.ts"]
+      "@jetts-tui/shared": ["../apps/shared/src/index.ts"]
     },
 
     /* Linting */

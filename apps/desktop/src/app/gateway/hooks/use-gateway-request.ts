@@ -1,4 +1,4 @@
-import { isGatewayReauthRequired, resolveGatewayWsUrl } from '@freeide/shared'
+import { isGatewayReauthRequired, resolveGatewayWsUrl } from '@jetts-tui/shared'
 import { useStore } from '@nanostores/react'
 import { useCallback, useEffect, useRef } from 'react'
 

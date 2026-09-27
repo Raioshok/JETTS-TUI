@@ -1,4 +1,4 @@
-import { skillInvocationText } from '@freeide/shared'
+import { skillInvocationText } from '@jetts-tui/shared'
 import { type MutableRefObject, useCallback, useRef } from 'react'
 
 import { getProfiles } from '@/freeide'

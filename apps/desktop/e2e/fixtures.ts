@@ -509,13 +509,13 @@ providers:
  */
 function resolvePackagedBinaryPath(): string {
   if (process.platform === 'win32') {
-    return path.join(RELEASE_ROOT, 'win-unpacked', 'FreeIDE.exe')
+    return path.join(RELEASE_ROOT, 'win-unpacked', 'Jetts-TUI.exe')
   }
 
   if (process.platform === 'darwin') {
     const arch = process.arch === 'arm64' ? 'arm64' : 'x64'
 
-    return path.join(RELEASE_ROOT, `mac-${arch}`, 'FreeIDE.app', 'Contents', 'MacOS', 'FreeIDE')
+    return path.join(RELEASE_ROOT, `mac-${arch}`, 'Jetts-TUI.app', 'Contents', 'MacOS', 'Jetts-TUI')
   }
 
   return path.join(RELEASE_ROOT, 'linux-unpacked', 'freeide')

@@ -13,7 +13,7 @@ Run `freeide setup`, pick a provider, and paste your API key (or use a provider'
 :::
 
 :::tip
-FreeIDE also ships a modern TUI with modal overlays, mouse selection, and non-blocking input. Launch it with `freeide --tui` — see the [TUI](tui.md) guide.
+The Ink TUI is FreeIDE's only interactive terminal surface. Launch it with `freeide`; the older `freeide --tui` spelling remains compatible. See the [TUI](tui.md) guide.
 :::
 
 ## Running the CLI
@@ -110,6 +110,7 @@ When resuming a previous session (`freeide -c` or `freeide --resume <id>`), a "P
 | `Ctrl+D` | Exit |
 | `Ctrl+Z` | Suspend FreeIDE to background (Unix only). Run `fg` in the shell to resume. |
 | `Tab` | Accept auto-suggestion (ghost text) or autocomplete slash commands |
+| `Shift+Tab` | Cycle the session work mode: Default → Accept Edits → Plan. With completion open, move to the previous suggestion instead. |
 
 **Multiline paste preview.** When you paste a multi-line block, the CLI echoes a compact single-line preview (`[pasted: 47 lines, 1,842 chars — press Enter to send]`) instead of dumping the whole payload into the scrollback. The full content is still what gets sent; this is just display polish.
 
@@ -135,7 +136,7 @@ Common examples:
 | `/title My Session` | Name the current session |
 | `/status` | Show session info — model/profile/tokens/duration — followed by a local **Session recap** block (recent turn counts, top tools used, files touched, latest user prompt + assistant reply). Pure local compute; no LLM call. |
 | `/context [all]` | Visual context-usage breakdown — glyph block grid + per-category token table (system prompt / tools / skills / memory / conversation / free space). `/context all` adds per-skill and per-toolset costs. |
-| `/sessions` | Open an interactive session picker right inside the classic CLI (same surface the TUI uses). Type to filter, arrow keys to navigate, Enter to resume. |
+| `/sessions` | Open the interactive session picker. Type to filter, use arrow keys to navigate, and press Enter to resume. |
 
 For the full built-in CLI and messaging lists, see [Slash Commands Reference](../reference/slash-commands.md).
 

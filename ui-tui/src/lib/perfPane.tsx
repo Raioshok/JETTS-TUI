@@ -15,8 +15,8 @@ import { appendFileSync, mkdirSync } from 'node:fs'
 import { homedir } from 'node:os'
 import { dirname, join } from 'node:path'
 
-import type { FrameEvent } from '@freeide/ink'
-import { scrollFastPathStats } from '@freeide/ink'
+import type { FrameEvent } from '@jetts-tui/ink'
+import { scrollFastPathStats } from '@jetts-tui/ink'
 import { Profiler, type ProfilerOnRenderCallback, type ReactNode } from 'react'
 
 const ENABLED = /^(?:1|true|yes|on)$/i.test((process.env.FREEIDE_DEV_PERF ?? '').trim())

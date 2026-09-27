@@ -7,5 +7,5 @@ import { tmpdir } from 'os'
 import { join } from 'path'
 
 export function visualOutDir() {
-  return process.env.FREEIDE_TUI_VISUAL_DIR || join(tmpdir(), 'freeide-tui-visual')
+  return process.env.FREEIDE_TUI_VISUAL_DIR || join(tmpdir(), 'jetts-tui-visual')
 }

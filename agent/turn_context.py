@@ -377,6 +377,19 @@ def build_turn_context(
     # Bind the skill write-origin ContextVar for this thread.
     set_current_write_origin(getattr(agent, "_memory_write_origin", "assistant_tool"))
 
+    # Bind work-mode policy and add its instruction only to this turn's API
+    # suffix. Persist the user's clean text, keeping the cached system prefix
+    # byte-stable across mode switches.
+    from tools.work_mode import decorate_user_message, set_current_work_mode
+    _work_mode = getattr(agent, "_work_mode", "default")
+    set_current_work_mode(_work_mode)
+    _clean_work_mode_message = user_message
+    _decorated_work_mode_message = decorate_user_message(user_message, _work_mode)
+    if _decorated_work_mode_message != user_message:
+        if persist_user_message is None:
+            persist_user_message = _clean_work_mode_message
+        user_message = _decorated_work_mode_message
+
     # Restore the primary runtime if the previous turn activated fallback.
     agent._restore_primary_runtime()
 

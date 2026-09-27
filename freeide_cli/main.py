@@ -230,7 +230,7 @@ def _set_process_title() -> None:
     try:
         import setproctitle  # type: ignore[import-untyped]
 
-        setproctitle.setproctitle("freeide")
+        setproctitle.setproctitle("jetts-tui")
         return
     except ImportError:
         pass
@@ -243,30 +243,28 @@ def _set_process_title() -> None:
         system = platform.system()
         if system == "Linux":
             libc = ctypes.CDLL("libc.so.6", use_errno=True)
-            libc.prctl(15, b"freeide", 0, 0, 0)  # PR_SET_NAME = 15
+            libc.prctl(15, b"jetts-tui", 0, 0, 0)  # PR_SET_NAME = 15
         elif system == "Darwin":
             libc = ctypes.CDLL("libc.dylib", use_errno=True)
-            libc.pthread_setname_np(b"freeide")
+            libc.pthread_setname_np(b"jetts-tui")
         # Windows: the .exe name is already ``freeide.exe`` — nothing to do.
     except Exception:
         pass
 
 
-# Cheap, dependency-free read of `display.interface` from config.yaml for the
-# earliest hot-path decisions (mouse-residue suppression, Termux fast launch)
-# that run *before* freeide_cli.config is importable. Mirrors the explicit
-# precedence used everywhere else: `--cli` always wins, then `--tui`/env, then
-# this config value. Cached so the multiple early callers don't re-parse YAML.
+# Compatibility reader for older config files. Interactive launches no longer
+# branch on this value: Ink is the sole terminal UI. The helper stays available
+# for migrations and old callers that inspect it directly.
 _EARLY_INTERFACE_CACHE: "list | None" = None
 
 
 def _config_default_interface_early() -> str:
     """Return the configured default interface ("cli"/"tui") via a minimal
-    YAML read. Best-effort: any error falls back to "cli" (legacy behavior)."""
+    YAML read. Best-effort: any error falls back to the sole UI, "tui"."""
     global _EARLY_INTERFACE_CACHE
     if _EARLY_INTERFACE_CACHE is not None:
         return _EARLY_INTERFACE_CACHE[0]
-    value = "cli"
+    value = "tui"
     try:
         home = os.environ.get("FREEIDE_HOME")
         if home:
@@ -286,7 +284,7 @@ def _config_default_interface_early() -> str:
                 if isinstance(iface, str) and iface.strip().lower() == "tui":
                     value = "tui"
     except Exception:
-        value = "cli"  # best-effort — default to classic REPL on any error
+        value = "tui"
     _EARLY_INTERFACE_CACHE = [value]
     return value
 
@@ -294,10 +292,10 @@ def _config_default_interface_early() -> str:
 def _wants_tui_early(argv: "list[str] | None" = None) -> bool:
     """Earliest TUI decision, usable before argparse/config imports.
 
-    Precedence: explicit ``--cli`` wins (forces classic REPL), then
-    explicit ``--tui``/``FREEIDE_TUI=1``, then a real-TTY gate (a
-    non-interactive stdio can't host the Ink UI, so ambient config never
-    boots it there), then ``display.interface`` in config.
+    Interactive terminals always use Ink. Non-interactive stdio stays on the
+    headless Python runner so cron, kanban workers, pipes, and one-shot calls do
+    not accidentally boot a screen UI. ``--tui`` remains a compatibility flag
+    and still reaches the informative no-TTY error when explicitly requested.
 
     The TTY gate is load-bearing for headless spawners — kanban workers,
     cron jobs, pipes run ``freeide … chat -q`` with stdio on a pipe. This
@@ -309,8 +307,6 @@ def _wants_tui_early(argv: "list[str] | None" = None) -> bool:
     """
     if argv is None:
         argv = sys.argv[1:]
-    if "--cli" in argv:
-        return False
     if os.environ.get("FREEIDE_TUI") == "1" or "--tui" in argv:
         return True
     try:
@@ -318,7 +314,7 @@ def _wants_tui_early(argv: "list[str] | None" = None) -> bool:
             return False
     except Exception:
         return False
-    return _config_default_interface_early() == "tui"
+    return True
 
 
 # Mouse-tracking residue suppression — runs BEFORE every other import on the
@@ -391,7 +387,7 @@ def _read_openai_version_fast() -> str | None:
 def _print_fast_version_info() -> None:
     from freeide_cli import __release_date__, __version__
 
-    print(f"FreeIDE Agent v{__version__} ({__release_date__})")
+    print(f"Jetts-TUI v{__version__} ({__release_date__})")
     print(f"Install directory: {PROJECT_ROOT}")
 
     print(f"Python: {sys.version.split()[0]}")
@@ -452,6 +448,7 @@ from freeide_cli.subcommands.backup import build_backup_parser
 from freeide_cli.subcommands.import_cmd import build_import_cmd_parser
 from freeide_cli.subcommands.config import build_config_parser
 from freeide_cli.subcommands.skin import build_skin_parser
+from freeide_cli.subcommands.brain import build_brain_parser
 from freeide_cli.subcommands.console import build_console_parser
 from freeide_cli.subcommands.version import build_version_parser
 from freeide_cli.subcommands.update import build_update_parser
@@ -1648,7 +1645,7 @@ def _termux_workspace_install_context(
 
 
 def _tui_need_npm_install(root: Path) -> bool:
-    """True when @freeide/ink is missing or node_modules is behind package-lock.json.
+    """True when @jetts-tui/ink is missing or node_modules is behind package-lock.json.
 
     Prebuilt bundle mode: when ``dist/entry.js`` exists and there is no
     ``package-lock.json`` (nix install layout only ships ``dist/`` +
@@ -1667,7 +1664,13 @@ def _tui_need_npm_install(root: Path) -> bool:
     already match, which used to trigger a spurious "Installing TUI
     dependencies" on every launch.
 
-    For each entry in the root lock's ``packages`` map:
+    A selective ``npm install --workspace ui-tui`` intentionally does not
+    actualize unrelated workspaces such as Electron/Desktop. For that layout,
+    compare the TUI workspace's direct runtime and build dependencies only;
+    comparing the entire monorepo lock would otherwise force a reinstall on
+    every launch. Standalone TUI installs continue to compare every lock entry.
+
+    For each selected entry in the root lock's ``packages`` map:
       - missing from hidden lock → reinstall (unless the entry is marked
         ``optional`` or ``peer``, which npm may intentionally skip per platform)
       - present but with differing fields (excluding npm-written runtime
@@ -1687,7 +1690,7 @@ def _tui_need_npm_install(root: Path) -> bool:
     if entry.is_file() and not lock.is_file():
         return False
 
-    ink = ws_root / "node_modules" / "@freeide" / "ink" / "package.json"
+    ink = ws_root / "node_modules" / "@jetts-tui" / "ink" / "package.json"
     if not ink.is_file():
         return True
     if not lock.is_file():
@@ -1708,7 +1711,25 @@ def _tui_need_npm_install(root: Path) -> bool:
     def comparable(pkg: dict) -> dict:
         return {k: v for k, v in pkg.items() if k not in _NPM_LOCK_RUNTIME_KEYS}
 
-    for name, pkg in wanted.items():
+    selected = wanted
+    try:
+        workspace_key = root.relative_to(ws_root).as_posix()
+    except ValueError:
+        workspace_key = ""
+    workspace = wanted.get(workspace_key)
+    if workspace_key and isinstance(workspace, dict):
+        dependency_names = set()
+        for field in ("dependencies", "devDependencies", "optionalDependencies"):
+            values = workspace.get(field)
+            if isinstance(values, dict):
+                dependency_names.update(str(name) for name in values)
+        selected = {
+            f"node_modules/{name}": wanted[f"node_modules/{name}"]
+            for name in dependency_names
+            if f"node_modules/{name}" in wanted
+        }
+
+    for name, pkg in selected.items():
         if not name:
             continue
 
@@ -1730,7 +1751,7 @@ def _tui_need_npm_install(root: Path) -> bool:
 
 _TUI_BUILD_INPUT_DIRS = (
     "src",
-    "packages/freeide-ink/src",
+    "packages/jetts-tui-ink/src",
 )
 
 _TUI_BUILD_INPUT_FILES = (
@@ -1740,9 +1761,9 @@ _TUI_BUILD_INPUT_FILES = (
     "tsconfig.build.json",
     "babel.compiler.config.cjs",
     "scripts/build.mjs",
-    "packages/freeide-ink/package.json",
-    "packages/freeide-ink/index.js",
-    "packages/freeide-ink/text-input.js",
+    "packages/jetts-tui-ink/package.json",
+    "packages/jetts-tui-ink/index.js",
+    "packages/jetts-tui-ink/text-input.js",
 )
 
 _TUI_BUILD_INPUT_SUFFIXES = frozenset(
@@ -1905,11 +1926,11 @@ def _ensure_tui_workspace(tui_dir: Path) -> None:
         return
 
     print(
-        "Error: the TUI workspace is missing from this FreeIDE checkout.\n"
+        "Error: the TUI workspace is missing from this Jetts-TUI checkout.\n"
         f"Expected directory: {tui_dir}\n"
         "This usually means `freeide update` left tracked ui-tui files deleted.\n"
         "Recovery:\n"
-        "  1. From the FreeIDE checkout, run `git restore -- ui-tui`\n"
+        "  1. From the Jetts-TUI checkout, run `git restore -- ui-tui`\n"
         "  2. Run `npm install --silent --no-fund --no-audit --progress=false`\n"
         "  3. Retry `freeide --tui`\n"
         "If the checkout is still inconsistent, run `freeide update --force`.",
@@ -2046,13 +2067,13 @@ def _make_tui_argv(tui_dir: Path, tui_dev: bool) -> tuple[list[str], Path]:
         did_install = True
 
     if tui_dev:
-        # Keep the local @freeide/ink package exports in sync with source.
-        # --dev runs src/entry.tsx directly, but @freeide/ink resolves through
-        # packages/freeide-ink/dist/entry-exports.js. If that dist bundle is
+        # Keep the local @jetts-tui/ink package exports in sync with source.
+        # --dev runs src/entry.tsx directly, but @jetts-tui/ink resolves through
+        # packages/jetts-tui-ink/dist/entry-exports.js. If that dist bundle is
         # stale after a pull, newer hooks/components can exist in src while
         # being missing at runtime (e.g. useCursorAdvance). Prebuild it here.
         npm = _node_bin("npm")
-        ink_dir = tui_dir / "packages" / "freeide-ink"
+        ink_dir = tui_dir / "packages" / "jetts-tui-ink"
         result = subprocess.run(
             [npm, "run", "build"],
             cwd=str(ink_dir),
@@ -2437,16 +2458,11 @@ def _sync_bundled_skills_quietly() -> None:
 def _resolve_use_tui(args) -> bool:
     """Decide whether to launch the TUI for a chat/bare invocation.
 
-    Precedence (highest first):
-      1. ``--cli`` flag         → always classic REPL
-      2. ``--tui`` flag         → always TUI (explicit ask)
-      3. no TTY                 → always classic (ambient prefs don't apply)
-      4. ``FREEIDE_TUI=1`` env   → TUI
-      5. ``display.interface`` config value ("cli" | "tui")
-      6. default → classic REPL
-
-    Explicit flags always win over config so muscle memory and scripts keep
-    working regardless of the configured default.
+    Interactive terminals always launch the Ink TUI. The Python conversation
+    runner remains only as a headless execution engine for redirected stdio,
+    cron/kanban workers, and other programmatic callers. ``--tui`` is retained
+    as a compatibility flag; the old ``--cli`` spelling is accepted but hidden
+    and cannot select a second interactive UI.
 
     The TTY gate (3) is load-bearing: ambient TUI preferences (env var or
     config default) must never hijack a NON-interactive invocation. Kanban
@@ -2457,8 +2473,6 @@ def _resolve_use_tui(args) -> bool:
     on every attempt (found dogfooding the desktop kanban board). A user
     who *explicitly* passes ``--tui`` still gets the informative bail-out.
     """
-    if getattr(args, "cli", False):
-        return False
     if getattr(args, "tui", False):
         return True
     try:
@@ -2466,15 +2480,7 @@ def _resolve_use_tui(args) -> bool:
             return False
     except Exception:
         return False
-    if os.environ.get("FREEIDE_TUI") == "1":
-        return True
-    try:
-        from freeide_cli.config import load_config
-
-        iface = (load_config().get("display", {}) or {}).get("interface", "cli")
-        return isinstance(iface, str) and iface.strip().lower() == "tui"
-    except Exception:
-        return False
+    return True
 
 
 def cmd_chat(args):
@@ -2565,7 +2571,7 @@ def cmd_chat(args):
     if not _has_any_provider_configured():
         print()
         print(
-            "It looks like FreeIDE isn't configured yet -- no API keys or providers found."
+            "It looks like Jetts-TUI isn't configured yet -- no API keys or providers found."
         )
         print()
         print("  Run:  freeide setup")
@@ -2723,7 +2729,7 @@ def cmd_whatsapp(args):
     current_mode = get_env_value("WHATSAPP_MODE") or ""
     if not current_mode:
         print()
-        print("How will you use WhatsApp with FreeIDE?")
+        print("How will you use WhatsApp with Jetts-TUI?")
         print()
         print("  1. Separate bot number (recommended)")
         print("     People message the bot's number directly — cleanest experience.")
@@ -2927,14 +2933,14 @@ def cmd_whatsapp(args):
             print("    2. Send a message to the bot's WhatsApp number")
             print("    3. The agent will reply automatically")
             print()
-            print("  Tip: Agent responses are prefixed with '◆ FreeIDE Agent'")
+            print("  Tip: Agent responses are prefixed with '◆ Jetts-TUI'")
         else:
             print("  Next steps:")
             print("    1. Start the gateway:  freeide gateway")
             print("    2. Open WhatsApp → Message Yourself")
             print("    3. Type a message — the agent will reply")
             print()
-            print("  Tip: Agent responses are prefixed with '◆ FreeIDE Agent'")
+            print("  Tip: Agent responses are prefixed with '◆ Jetts-TUI'")
             print("  so you can tell them apart from your own messages.")
         print()
         print("  Or install as a service: freeide gateway install")
@@ -3661,7 +3667,7 @@ def _aux_config_menu() -> None:
         print()
         print("  Side tasks (vision, compression, web extraction, etc.) default")
         print('  to your main chat model.  "auto" means "use my main model" —')
-        print("  FreeIDE only falls back to a lightweight backend (OpenRouter)")
+        print("  Jetts-TUI only falls back to a lightweight backend (OpenRouter)")
         print("  if the main model is unavailable.  Override a")
         print("  task below if you want it pinned to a specific provider/model.")
         print()
@@ -3958,7 +3964,7 @@ def _prompt_custom_api_mode_selection(base_url: str, current_api_mode: str = "")
         (
             "",
             "Auto-detect",
-            "Use FreeIDE URL heuristics; best for standard OpenAI-compatible endpoints.",
+            "Use Jetts-TUI URL heuristics; best for standard OpenAI-compatible endpoints.",
         ),
         (
             "chat_completions",
@@ -4452,7 +4458,7 @@ def _run_anthropic_oauth_flow(save_env_value):
             from freeide_constants import display_freeide_home as _dhh_fn
 
             print(
-                f"    FreeIDE will use Claude's credential store directly instead of copying a setup-token into {_dhh_fn()}/.env."
+                f"    Jetts-TUI will use Claude's credential store directly instead of copying a setup-token into {_dhh_fn()}/.env."
             )
             return True
         return False
@@ -4675,6 +4681,13 @@ def cmd_skin(args):
     from freeide_cli.skin_cmd import skin_command
 
     skin_command(args)
+
+
+def cmd_brain(args):
+    """Create, inspect, and maintain an Obsidian project brain."""
+    from freeide_cli.brain import brain_command
+
+    return brain_command(args)
 
 
 def cmd_backup(args):
@@ -5763,15 +5776,21 @@ def _desktop_packaged_executable(desktop_dir: Path) -> Optional[Path]:
     """Return the current platform's unpacked Electron app executable."""
     release_dir = desktop_dir / "release"
     if sys.platform == "darwin":
-        candidates = list(release_dir.glob("mac*/FreeIDE.app/Contents/MacOS/FreeIDE"))
+        candidates = list(release_dir.glob("mac*/Jetts-TUI.app/Contents/MacOS/Jetts-TUI"))
+        candidates += list(release_dir.glob("mac*/FreeIDE.app/Contents/MacOS/FreeIDE"))
     elif sys.platform == "win32":
         candidates = [
+            release_dir / "win-unpacked" / "Jetts-TUI.exe",
+            release_dir / "win-ia32-unpacked" / "Jetts-TUI.exe",
+            release_dir / "win-arm64-unpacked" / "Jetts-TUI.exe",
             release_dir / "win-unpacked" / "FreeIDE.exe",
             release_dir / "win-ia32-unpacked" / "FreeIDE.exe",
             release_dir / "win-arm64-unpacked" / "FreeIDE.exe",
         ]
     else:
         candidates = [
+            release_dir / "linux-unpacked" / "Jetts-TUI",
+            release_dir / "linux-arm64-unpacked" / "Jetts-TUI",
             release_dir / "linux-unpacked" / "freeide",
             release_dir / "linux-unpacked" / "FreeIDE",
             release_dir / "linux-arm64-unpacked" / "freeide",
@@ -5792,7 +5811,9 @@ def _desktop_packaged_executable(desktop_dir: Path) -> Optional[Path]:
         matching = [p for p in existing if _pe_machine_or_none(p) in expected]
         if matching:
             existing = matching
-    return max(existing, key=lambda p: p.stat().st_mtime)
+    # A legacy unpacked build can remain beside a fresh Jetts-TUI build.
+    # Once architecture is safe, the current product must win over stale files.
+    return max(existing, key=lambda p: (p.name.startswith("Jetts-TUI"), p.stat().st_mtime))
 
 
 # ─── Desktop exe integrity gate (#69179) ────────────────────────────────────
@@ -6812,7 +6833,7 @@ def cmd_gui(args: argparse.Namespace):
         return
 
     if source_mode:
-        print("→ Launching FreeIDE Desktop from source build...")
+        print("→ Launching Jetts-TUI Desktop from source build...")
         launch_result = subprocess.run([npm, "exec", "--", "electron", "."], cwd=desktop_dir, env=env, check=False)
         sys.exit(launch_result.returncode)
 
@@ -6830,7 +6851,7 @@ def cmd_gui(args: argparse.Namespace):
             sys.exit(1)
 
     launch_command.extend(config_electron_flags)
-    print(f"→ Launching packaged FreeIDE Desktop: {' '.join(launch_command)}")
+    print(f"→ Launching packaged Jetts-TUI Desktop: {' '.join(launch_command)}")
     launch_result = subprocess.run(launch_command, cwd=desktop_dir, env=env, check=False)
     sys.exit(launch_result.returncode)
 
@@ -7819,7 +7840,7 @@ def _atomic_replace_dir(src: str, dst: str) -> None:
 
 
 def _update_via_zip(args):
-    """Update FreeIDE Agent by downloading a ZIP archive.
+    """Update Jetts-TUI by downloading a ZIP archive.
 
     Used on Windows when git file I/O is broken (antivirus, NTFS filter
     drivers causing 'Invalid argument' errors on file creation).
@@ -7847,21 +7868,19 @@ def _update_via_zip(args):
             f"--branch {branch}`, or update against main with `freeide update`."
         )
         sys.exit(1)
-    zip_url = (
-        f"https://github.com/freeide/freeide/archive/refs/heads/{branch}.zip"
-    )
+    zip_url = f"https://github.com/Raioshok/JETTS-TUI/archive/refs/heads/{branch}.zip"
 
     print("→ Downloading latest version...")
-    tmp_dir = tempfile.mkdtemp(prefix="freeide-update-")
+    tmp_dir = tempfile.mkdtemp(prefix="jetts-tui-update-")
     try:
-        zip_path = os.path.join(tmp_dir, f"freeide-agent-{branch}.zip")
+        zip_path = os.path.join(tmp_dir, f"jetts-tui-{branch}.zip")
         urlretrieve(zip_url, zip_path)
 
         print("→ Extracting...")
         import stat as _stat
         with zipfile.ZipFile(zip_path, "r") as zf:
             # Validate paths to prevent zip-slip (path traversal) AND reject
-            # symlink members. A GitHub source ZIP for freeide-agent itself
+            # symlink members. A GitHub source ZIP for Jetts-TUI itself
             # should never contain symlinks — they'd point outside the
             # extracted tree and let an attacker who can compromise the
             # update mirror plant arbitrary files via the update path.
@@ -7884,8 +7903,8 @@ def _update_via_zip(args):
                     )
             zf.extractall(tmp_dir)
 
-        # GitHub ZIPs extract to freeide-agent-<branch>/
-        extracted = os.path.join(tmp_dir, f"freeide-agent-{branch}")
+        # GitHub ZIPs extract to JETTS-TUI-<branch>/.
+        extracted = os.path.join(tmp_dir, f"JETTS-TUI-{branch}")
         if not os.path.isdir(extracted):
             # Try to find it
             for d in os.listdir(tmp_dir):
@@ -8433,12 +8452,12 @@ def _discard_stashed_changes(
 # =========================================================================
 
 OFFICIAL_REPO_URLS = {
-    "https://github.com/freeide/freeide.git",
-    "git@github.com:freeide/freeide.git",
-    "https://github.com/freeide/freeide",
-    "git@github.com:freeide/freeide",
+    "https://github.com/Raioshok/JETTS-TUI.git",
+    "git@github.com:Raioshok/JETTS-TUI.git",
+    "https://github.com/Raioshok/JETTS-TUI",
+    "git@github.com:Raioshok/JETTS-TUI",
 }
-OFFICIAL_REPO_URL = "https://github.com/freeide/freeide.git"
+OFFICIAL_REPO_URL = "https://github.com/Raioshok/JETTS-TUI.git"
 SKIP_UPSTREAM_PROMPT_FILE = ".skip_upstream_prompt"
 
 
@@ -8571,8 +8590,8 @@ def _sync_with_upstream_if_needed(git_cmd: list[str], cwd: Path) -> None:
 
         # Ask user if they want to add upstream
         print()
-        print("ℹ Your fork is not tracking the official FreeIDE repository.")
-        print("  This means you may miss updates from freeide/freeide.")
+        print("ℹ Your fork is not tracking the official Jetts-TUI repository.")
+        print("  This means you may miss updates from Raioshok/JETTS-TUI.")
         print()
         try:
             response = (
@@ -8586,7 +8605,7 @@ def _sync_with_upstream_if_needed(git_cmd: list[str], cwd: Path) -> None:
             print("→ Adding upstream remote...")
             if _add_upstream_remote(git_cmd, cwd):
                 print(
-                    "  ✓ Added upstream: https://github.com/freeide/freeide.git"
+                    f"  ✓ Added upstream: {OFFICIAL_REPO_URL}"
                 )
                 has_upstream = True
             else:
@@ -8594,7 +8613,7 @@ def _sync_with_upstream_if_needed(git_cmd: list[str], cwd: Path) -> None:
                 return
         else:
             print(
-                "  Skipped. Run 'git remote add upstream https://github.com/freeide/freeide.git' to add later."
+                f"  Skipped. Run 'git remote add upstream {OFFICIAL_REPO_URL}' to add later."
             )
             _mark_skip_upstream_prompt()
             return
@@ -12035,7 +12054,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
         else:
             print("✗ Not a git repository. Please reinstall:")
             print(
-                "  curl -fsSL https://freeide-agent.freeide.dev/install.sh | bash"
+                "  curl -fsSL https://raw.githubusercontent.com/Raioshok/JETTS-TUI/main/scripts/install.sh | bash"
             )
             sys.exit(1)
 
@@ -15187,7 +15206,7 @@ def _build_provider_choices() -> list[str]:
 # to parse.
 _BUILTIN_SUBCOMMANDS = frozenset(
     {
-        "acp", "approvals", "auth", "backup", "bundles", "checkpoints", "claw", "completion",
+        "acp", "approvals", "auth", "backup", "brain", "bundles", "checkpoints", "claw", "completion",
         "computer-use",
         "config", "console", "cron", "curator", "dashboard", "serve", "debug", "doctor",
         "dump", "egress", "fallback", "gateway", "hooks", "import", "insights",
@@ -15298,7 +15317,7 @@ _AGENT_SUBCOMMANDS = {
 
 
 def _is_tui_chat_launch(args) -> bool:
-    return bool(getattr(args, "tui", False) or os.environ.get("FREEIDE_TUI") == "1")
+    return _resolve_use_tui(args)
 
 
 def _command_has_dedicated_mcp_startup(args) -> bool:
@@ -15428,9 +15447,8 @@ def _try_termux_fast_cli_launch() -> bool:
     argv = sys.argv[1:]
     if "-h" in argv or "--help" in argv:
         return False
-    # Let the TUI fast path (or full dispatch) handle anything that resolves to
-    # the TUI — explicit --tui/env or display.interface=tui. `--cli` forces this
-    # to stay False so the classic fast path still runs.
+    # Let the TUI fast path handle every interactive terminal launch. This
+    # lightweight Python path remains for non-interactive and one-shot work.
     if _wants_tui_early(argv):
         return False
 
@@ -16076,6 +16094,11 @@ def main():
     # skin command  (parser built in freeide_cli/subcommands/skin.py)
     # =========================================================================
     build_skin_parser(subparsers, cmd_skin=cmd_skin)
+
+    # =========================================================================
+    # brain command  (plugin-light Obsidian project memory)
+    # =========================================================================
+    build_brain_parser(subparsers, cmd_brain=cmd_brain)
 
     # =========================================================================
     # console command  (parser built in freeide_cli/subcommands/console.py)

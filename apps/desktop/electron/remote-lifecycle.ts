@@ -204,7 +204,7 @@ async function locateFreeIDE(ssh, remoteFreeIDEPath) {
 
   const err: any = new Error(
     'FreeIDE is not installed on the remote host (could not find a `freeide` executable). ' +
-      'Install it on the remote with:  curl -fsSL https://freeide-agent.freeide.dev/install.sh | sh  ' +
+      'Install it on the remote with:  curl -fsSL https://raw.githubusercontent.com/Raioshok/JETTS-TUI/main/scripts/install.sh | sh  ' +
       '— or set the FreeIDE path explicitly in the SSH connection settings.'
   )
 

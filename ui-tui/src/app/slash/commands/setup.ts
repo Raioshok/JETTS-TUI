@@ -1,4 +1,4 @@
-import { withInkSuspended } from '@freeide/ink'
+import { withInkSuspended } from '@jetts-tui/ink'
 
 import { launchFreeIDECommand } from '../../../lib/externalCli.js'
 import { runExternalSetup } from '../../setupHandoff.js'
@@ -6,7 +6,7 @@ import type { SlashCommand } from '../types.js'
 
 export const setupCommands: SlashCommand[] = [
   {
-    help: 'run full setup wizard (launches `freeide setup`)',
+    help: 'run full setup wizard (launches `jetts-tui setup`)',
     name: 'setup',
     run: (arg, ctx) =>
       void runExternalSetup({

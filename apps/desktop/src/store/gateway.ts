@@ -1,4 +1,4 @@
-import { type ConnectionState, type GatewayEvent, resolveGatewayWsUrl } from '@freeide/shared'
+import { type ConnectionState, type GatewayEvent, resolveGatewayWsUrl } from '@jetts-tui/shared'
 import { atom } from 'nanostores'
 
 import { FreeIDEGateway } from '@/freeide'

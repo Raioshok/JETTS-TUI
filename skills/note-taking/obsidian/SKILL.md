@@ -12,11 +12,37 @@ Use this skill for filesystem-first Obsidian vault work: reading notes, listing 
 
 Use a known or resolved vault path before calling file tools.
 
-The documented vault-path convention is the `OBSIDIAN_VAULT_PATH` environment variable, for example from `${FREEIDE_HOME:-~/.freeide}/.env`. If it is unset, use `~/Documents/Obsidian Vault`.
+Resolve the path in this order: an explicit path from the user, `obsidian.vault_path`
+in `config.yaml`, the legacy `OBSIDIAN_VAULT_PATH` environment variable, then
+`~/Documents/FreeIDE Brain`. Behavioral configuration belongs in `config.yaml`;
+the environment variable is supported for backward compatibility.
 
 File tools do not expand shell variables. Do not pass paths containing `$OBSIDIAN_VAULT_PATH` to `read_file`, `write_file`, `patch`, or `search_files`; resolve the vault path first and pass a concrete absolute path. Vault paths may contain spaces, which is another reason to prefer file tools over shell commands.
 
 If the vault path is unknown, `terminal` is acceptable for resolving `OBSIDIAN_VAULT_PATH` or checking whether the fallback path exists. Once the path is known, switch back to file tools.
+
+## FreeIDE Brain mode
+
+When `.freeide-brain.json` exists at the vault root, this is a managed project
+brain. Read `00-System/Agent Protocol.md`, `01-Projects/Project Index.md`, and
+only the selected project's index before retrieving other notes. Follow the
+progressive retrieval path: index, smallest useful summary tier, linked maps,
+then targeted raw source. Never scan the whole vault during ordinary work.
+
+- `/brain init` creates or safely upgrades the structure without overwriting
+  customized notes.
+- `/brain capture <text>` is the low-friction inbox path.
+- `/brain sync` refreshes only changed project material by source hash.
+- `/brain improve` triages and reconciles only when a material-change gate fires.
+- `/brain doctor` explicitly audits structure and unresolved links.
+
+Treat summaries as derivative caches. If a source hash changed, the source wins.
+Keep contradictory claims with provenance and mark them for review rather than
+silently choosing one. Do not claim token savings until baseline and current
+usage are measured on comparable tasks.
+
+The official Obsidian CLI is optional and useful for opening notes or querying
+native Obsidian state. Filesystem tools remain the portable default.
 
 ## Read a note
 

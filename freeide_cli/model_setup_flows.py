@@ -200,7 +200,10 @@ def _model_flow_openrouter(config, current_model=""):
 
     from freeide_cli.models import model_ids, get_pricing_for_provider
 
-    openrouter_models = model_ids(force_refresh=True)
+    openrouter_models = model_ids(
+        api_key=_resolved or existing_key,
+        force_refresh=True,
+    )
 
     # Fetch live pricing (non-blocking — returns empty dict on failure)
     pricing = get_pricing_for_provider("openrouter", force_refresh=True)
@@ -2287,7 +2290,7 @@ def _model_flow_vertex(config, current_model=""):
 
     # 4. Model selection (curated list — Vertex has no /models listing route).
     model_list = _PROVIDER_MODELS.get("vertex", []) or [
-        "google/gemini-3-pro-preview",
+        "google/gemini-3.1-pro-preview",
         "google/gemini-3-flash-preview",
     ]
     base_url_preview = (
@@ -2529,9 +2532,9 @@ def _model_flow_api_key_provider(config, provider_id, current_model=""):
                 effective_base = override
 
     # Model selection — resolution order:
-    #   1. models.dev registry (cached, filtered for agentic/tool-capable models)
-    #   2. Curated static fallback list (offline insurance)
-    #   3. Live /models endpoint probe (small providers without models.dev data)
+    #   1. Live provider /models endpoint (authoritative and complete)
+    #   2. models.dev registry (offline discovery fallback)
+    #   3. Curated static list (last-resort offline insurance)
     #
     # LM Studio: live /api/v1/models probe (no models.dev catalog).
     # Ollama Cloud: merged discovery (live API + models.dev + disk cache).
@@ -2598,51 +2601,35 @@ def _model_flow_api_key_provider(config, provider_id, current_model=""):
                     )
     else:
         curated = _PROVIDER_MODELS.get(provider_id, [])
-
-        # Try models.dev first — returns tool-capable models, filtered for noise
-        mdev_models: list = []
-        try:
-            from agent.models_dev import list_agentic_models
-
-            mdev_models = list_agentic_models(provider_id)
-        except Exception:
-            pass
-
-        if mdev_models:
-            # Merge models.dev with curated list so newly added models
-            # (not yet in models.dev) still appear in the picker.
-            if curated:
-                seen = {m.lower() for m in mdev_models}
-                merged = list(mdev_models)
-                for m in curated:
-                    if m.lower() not in seen:
-                        merged.append(m)
-                        seen.add(m.lower())
-                model_list = merged
-            else:
-                model_list = mdev_models
-            print(f"  Found {len(model_list)} model(s) from models.dev registry")
-        elif curated and len(curated) >= 8:
-            # Curated list is substantial — use it directly, skip live probe
-            model_list = curated
-            print(
-                f'  Showing {len(model_list)} curated models — use "Enter custom model name" for others.'
-            )
+        api_key_for_probe = existing_key or (
+            get_env_value(key_env) if key_env else ""
+        )
+        live_models = fetch_api_models(api_key_for_probe, effective_base)
+        if live_models:
+            # A successful endpoint response is authoritative.  Do not limit,
+            # reorder, or pad it with presets: newly released and account-
+            # specific models must appear immediately.
+            model_list = list(dict.fromkeys(m for m in live_models if m))
+            print(f"  Found {len(model_list)} model(s) from {pconfig.name} API")
         else:
-            api_key_for_probe = existing_key or (
-                get_env_value(key_env) if key_env else ""
-            )
-            live_models = fetch_api_models(api_key_for_probe, effective_base)
-            if live_models and len(live_models) >= len(curated):
-                model_list = live_models
-                print(f"  Found {len(model_list)} model(s) from {pconfig.name} API")
-            else:
-                model_list = curated
-                if model_list:
-                    print(
-                        f'  Showing {len(model_list)} curated models — use "Enter custom model name" for others.'
-                    )
-            # else: no defaults either, will fall through to raw input
+            mdev_models: list = []
+            try:
+                from agent.models_dev import list_agentic_models
+
+                mdev_models = list_agentic_models(provider_id)
+            except Exception:
+                pass
+
+            model_list = mdev_models or curated
+            if mdev_models:
+                print(
+                    f"  Endpoint unavailable; showing {len(model_list)} cached registry model(s)"
+                )
+            elif model_list:
+                print(
+                    f'  Endpoint unavailable; showing {len(model_list)} offline fallback models — use "Enter custom model name" for others.'
+                )
+            # No fallback either: fall through to raw input.
 
     if provider_id in {"opencode-zen", "opencode-go"}:
         model_list = [

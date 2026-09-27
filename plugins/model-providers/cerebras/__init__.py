@@ -32,10 +32,13 @@ cerebras = _CerebrasProfile(
     description="Cerebras — very fast, strict request schema",
     signup_url="https://cloud.cerebras.ai",
     base_url="https://api.cerebras.ai/v1",
+    # Verified 2026-09-23 against Cerebras' live public catalogue
+    # (https://api.cerebras.ai/public/v1/models, no key required), which serves
+    # exactly two models: it carries neither `zai-glm-4.7` nor `gemma-4-31b`.
+    # Both were phantom fallbacks; `qwen-3.8-27b` is added as the second real id.
     fallback_models=(
-        "zai-glm-4.7",
         "gpt-oss-120b",
-        "gemma-4-31b",
+        "qwen-3.8-27b",
     ),
     default_max_tokens=8192,
 )

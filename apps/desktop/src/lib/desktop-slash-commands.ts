@@ -214,6 +214,42 @@ const DESKTOP_COMMAND_SPECS: readonly DesktopCommandSpec[] = [
     argumentMode: 'options'
   },
   {
+    name: '/permissions',
+    description: 'Show current authority, work mode, approvals, and writable boundaries',
+    aliases: ['/perms'],
+    surface: exec()
+  },
+  {
+    name: '/mode',
+    description: 'Inspect or switch work mode [default|accept-edits|plan]',
+    surface: exec(),
+    argumentMode: 'options'
+  },
+  {
+    name: '/review',
+    description: 'Review git changes without editing files',
+    surface: exec(),
+    argumentMode: 'mixed'
+  },
+  {
+    name: '/doctor',
+    description: 'Run a quick setup and runtime health check',
+    surface: exec(),
+    argumentMode: 'options'
+  },
+  {
+    name: '/spec',
+    description: 'Create and approve a Kiro-style requirements/design/tasks spec',
+    surface: exec(),
+    argumentMode: 'mixed'
+  },
+  {
+    name: '/brain',
+    description: 'Create and maintain an Obsidian project brain',
+    surface: exec(),
+    argumentMode: 'mixed'
+  },
+  {
     name: '/agents',
     description: 'Show active desktop sessions and running tasks',
     aliases: ['/tasks'],
@@ -296,7 +332,7 @@ const DESKTOP_COMMAND_SPECS: readonly DesktopCommandSpec[] = [
   },
   { name: '/undo', description: 'Remove the last user/assistant exchange', surface: exec() },
   { name: '/usage', description: 'Show token usage for this session', surface: exec() },
-  { name: '/version', description: 'Show FreeIDE Agent version', surface: exec() },
+  { name: '/version', description: 'Show Jetts-TUI version', surface: exec() },
 
   // No desktop surface, but carry an alias (underscore spelling variants).
   { name: '/reload-mcp', aliases: ['/reload_mcp'], surface: unavailable('advanced') },

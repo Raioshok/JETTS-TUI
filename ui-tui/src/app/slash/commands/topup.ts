@@ -1,4 +1,4 @@
-import { driveChargeSettlement, type SettlementOutcome } from '@freeide/shared/charge-settlement'
+import { driveChargeSettlement, type SettlementOutcome } from '@jetts-tui/shared/charge-settlement'
 
 import type {
   BillingChargeResponse,

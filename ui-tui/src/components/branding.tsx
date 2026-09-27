@@ -1,8 +1,8 @@
-import { Box, Text, useStdout } from '@freeide/ink'
+import { Box, Text, useStdout } from '@jetts-tui/ink'
 import { useEffect, useState } from 'react'
 import unicodeSpinners from 'unicode-animations'
 
-import { artWidth, caduceus, CADUCEUS_WIDTH, logo, LOGO_WIDTH } from '../banner.js'
+import { artWidth, logo, LOGO_WIDTH } from '../banner.js'
 import { mix } from '../lib/color.js'
 import { flat } from '../lib/text.js'
 import type { Theme } from '../theme.js'
@@ -54,9 +54,9 @@ export function ArtLines({ lines }: { lines: [string, string][] }) {
 // Terminals can't scale glyphs, so "responsive" means picking a layout that
 // fits the available columns. Thresholds are picked so each tier reads
 // comfortably without forcing wrap or truncation drift on box-drawing edges.
-const TAG_FULL = 'FreeIDE · Messenger of the Digital Gods'
-const TAG_MID = 'Messenger of the Digital Gods'
-const TAG_TINY = 'FreeIDE'
+const TAG_FULL = 'Jetts-TUI · your AI workspace'
+const TAG_MID = 'Your AI workspace'
+const TAG_TINY = 'Jetts-TUI'
 const HIDE_BELOW = 34
 const COMPACT_FROM = 58
 
@@ -211,11 +211,9 @@ const TOOLSETS_MAX = 8
 
 export function SessionPanel({ info, maxWidth, sid, t }: SessionPanelProps) {
   const term = useStdout().stdout?.columns ?? 100
-  const cols = Math.max(20, Math.min(term, maxWidth ?? term))
-  const heroLines = caduceus(t.color, t.bannerHero || undefined)
-  const leftW = Math.min((artWidth(heroLines) || CADUCEUS_WIDTH) + 4, Math.floor(cols * 0.4))
-  const wide = cols >= 90 && leftW + 40 < cols
-  const w = Math.max(20, wide ? cols - leftW - 14 : cols - 12)
+  const cols = Math.max(1, Math.min(term, maxWidth ?? term))
+  const compactFrame = cols < 28
+  const w = Math.max(1, cols - (compactFrame ? 0 : 6))
   const lineBudget = Math.max(12, w - 2)
   const strip = (s: string) => (s.endsWith('_tools') ? s.slice(0, -6) : s)
 
@@ -226,7 +224,7 @@ export function SessionPanel({ info, maxWidth, sid, t }: SessionPanelProps) {
   const listFade = mix(t.color.muted, t.color.text, 0.5)
 
   // ── Local collapse state for each section ──
-  const [toolsOpen, setToolsOpen] = useState(true)
+  const [toolsOpen, setToolsOpen] = useState(false)
   const [skillsOpen, setSkillsOpen] = useState(false)
   const [systemOpen, setSystemOpen] = useState(false)
   const [mcpOpen, setMcpOpen] = useState(false)
@@ -343,65 +341,29 @@ export function SessionPanel({ info, maxWidth, sid, t }: SessionPanelProps) {
     return <Text color={t.color.muted}>{info.system_prompt}</Text>
   }
 
-  // The wide layout is a real two-column grid: a fixed-width hero track and a
-  // flexible info track (grid-template-columns: <leftW> 1fr, gap 2) — the
-  // terminal equivalent of the desktop pane shell's fixed-vs-flex tracks.
-  // Narrow drops to a single flexible track. Track math reproduces the old
-  // hand-rolled widths exactly: usable = (leftW + 2 + w) - gap = leftW + w.
-  const heroColumn = wide ? (
+  const infoColumn = (
     <Box flexDirection="column" width="100%">
-      <ArtLines lines={heroLines} />
-      <Text />
-
-      <Text color={t.color.accent}>
-        {info.model.split('/').pop()}
-        <Text color={t.color.muted}> · FreeIDE</Text>
-      </Text>
-
+      <Box justifyContent="space-between">
+        <Text bold color={t.color.accent} wrap="truncate-end">
+          {info.model.split('/').pop()}
+        </Text>
+        <Text color={t.color.muted} wrap="truncate-end">
+          {info.reasoning_effort ? `${info.reasoning_effort} reasoning` : ''}
+          {info.fast || info.service_tier === 'priority' ? ' · fast' : ''}
+        </Text>
+      </Box>
       <Text color={t.color.muted} wrap="truncate-end">
         {info.cwd || process.cwd()}
       </Text>
-
-      {sid && (
-        <Text>
-          <Text color={t.color.sessionLabel}>Session: </Text>
-          <Text color={t.color.sessionBorder}>{sid}</Text>
+      {(sid || info.version) && (
+        <Text color={t.color.sessionBorder} wrap="truncate-end">
+          {sid ? `session ${sid}` : ''}
+          {sid && info.version ? '  ·  ' : ''}
+          {info.version ? `v${info.version}${info.release_date ? ` · ${info.release_date}` : ''}` : ''}
         </Text>
       )}
-    </Box>
-  ) : null
 
-  const infoColumn = (
-    <Box flexDirection="column" width="100%">
-      {wide ? (
-        <Box justifyContent="center" marginBottom={1}>
-          <Text bold color={t.color.primary}>
-            {t.brand.name}
-            {info.version ? ` v${info.version}` : ''}
-            {info.release_date ? ` (${info.release_date})` : ''}
-          </Text>
-        </Box>
-      ) : (
-        // Narrow layout hides the hero column; surface model/cwd/session
-        // here so they aren't lost.
-        <Box flexDirection="column" marginBottom={1}>
-          <Text color={t.color.accent} wrap="truncate-end">
-            {info.model.split('/').pop()}
-            <Text color={t.color.muted}> · FreeIDE</Text>
-          </Text>
-          <Text color={t.color.muted} wrap="truncate-end">
-            {info.cwd || process.cwd()}
-          </Text>
-          {sid && (
-            <Text wrap="truncate-end">
-              <Text color={t.color.sessionLabel}>Session: </Text>
-              <Text color={t.color.sessionBorder}>{sid}</Text>
-            </Text>
-          )}
-        </Box>
-      )}
-
-      {/* ── Tools (expanded by default) ── */}
+      {/* ── Tools (collapsed by default; details stay one click away) ── */}
       <Box flexDirection="column" marginTop={1}>
         <Accordion onToggle={() => setToolsOpen(v => !v)} open={toolsOpen} t={t} title="Available Tools">
           {toolsBody()}
@@ -472,7 +434,7 @@ export function SessionPanel({ info, maxWidth, sid, t }: SessionPanelProps) {
             - run{' '}
           </Text>
           <Text bold color={t.color.warn}>
-            {info.update_command || 'freeide update'}
+            {info.update_command || 'jetts-tui update'}
           </Text>
           <Text bold={false} color={t.color.warn} dimColor>
             {' '}
@@ -490,22 +452,21 @@ export function SessionPanel({ info, maxWidth, sid, t }: SessionPanelProps) {
   )
 
   return (
-    <Box borderColor={t.color.border} borderStyle="round" marginBottom={1} paddingX={2} paddingY={1}>
+    <Box
+      borderColor={t.color.border}
+      borderStyle={compactFrame ? undefined : 'round'}
+      marginBottom={1}
+      paddingX={compactFrame ? 0 : 2}
+      paddingY={compactFrame ? 0 : 1}
+    >
       <WidgetGrid
-        cols={wide ? leftW + 2 + w : w}
-        columns={wide ? [leftW, { fr: 1 }] : 1}
-        gap={2}
+        cols={w}
+        columns={1}
+        gap={0}
         paddingX={0}
         paddingY={0}
         rowGap={0}
-        widgets={
-          wide
-            ? [
-                { children: heroColumn, id: 'session-hero' },
-                { children: infoColumn, id: 'session-info' }
-              ]
-            : [{ children: infoColumn, id: 'session-info' }]
-        }
+        widgets={[{ children: infoColumn, id: 'session-info' }]}
       />
     </Box>
   )

@@ -1892,6 +1892,7 @@ def _start_agent_build(sid: str, session: dict) -> None:
 
             # Session DB row deferred to first run_conversation() call.
             # pending_title applied post-first-message (see cli.exec handler).
+            agent._work_mode = current.get("work_mode", "default")
             current["agent"] = agent
             # Baseline for the per-turn config sync; the profile home
             # override is still active here.
@@ -3443,6 +3444,20 @@ def _load_show_reasoning() -> bool:
     return bool((_load_cfg().get("display") or {}).get("show_reasoning", True))
 
 
+def _load_resident_workspace() -> str:
+    """Resident multi-session workspace preference from config.yaml.
+
+    ``display.resident_workspace`` accepts ``auto`` (default; only when the
+    terminal is wide enough), ``on`` (always, as long as live sessions exist),
+    and ``off`` (never). Reads the raw user YAML without the DEFAULT_CONFIG
+    merge, mirroring the other display loaders; anything unrecognized falls
+    back to ``auto``.
+    """
+    raw = (_load_cfg().get("display") or {}).get("resident_workspace")
+    value = str(raw).lower() if raw is not None else "auto"
+    return value if value in {"auto", "on", "off"} else "auto"
+
+
 def _load_memory_notifications() -> str:
     """Self-improvement review notification mode from config.yaml.
 
@@ -4417,6 +4432,10 @@ def _session_info(agent, session: dict | None = None) -> dict:
         "reasoning_effort": reasoning_effort,
         "service_tier": service_tier,
         "fast": service_tier == "priority",
+        "work_mode": (session or {}).get(
+            "work_mode", getattr(agent, "_work_mode", "default")
+        ),
+        "resident_workspace": _load_resident_workspace(),
         "yolo": yolo,
         "approval_mode": approval_mode,
         "tools": dict(mirror.get("tools") or {}) if isinstance(mirror.get("tools"), dict) else {},
@@ -5829,6 +5848,10 @@ def _init_session(
     profile_home: str | None = None,
 ):
     now = time.time()
+    try:
+        agent._work_mode = "default"
+    except Exception:
+        pass
     with _sessions_lock:
         _sessions[sid] = {
             "agent": agent,
@@ -5848,6 +5871,7 @@ def _init_session(
             "show_reasoning": _load_show_reasoning(),
             "source": _resolve_session_source(source),
             "tool_progress_mode": _load_tool_progress_mode(),
+            "work_mode": "default",
             "edit_snapshots": {},
             "tool_started_at": {},
             # Profile-scoped FREEIDE_HOME for app-global remote mode; None =
@@ -6999,6 +7023,7 @@ def _(rid, params: dict) -> dict:
             "source": source,
             "slash_worker": None,
             "tool_progress_mode": _load_tool_progress_mode(),
+            "work_mode": "default",
             "tool_started_at": {},
             "transport": current_transport() or _stdio_transport,
         }
@@ -7048,6 +7073,7 @@ def _(rid, params: dict) -> dict:
                 "lazy": True,
                 "desktop_contract": DESKTOP_BACKEND_CONTRACT,
                 "profile_name": _response_profile_name(profile),
+                "work_mode": "default",
             },
         },
     )
@@ -7213,6 +7239,7 @@ def _lazy_resume_info(
         "tools": {},
         "skills": {},
         "lazy": True,
+        "work_mode": "default",
         "desktop_contract": DESKTOP_BACKEND_CONTRACT,
         "profile_name": _response_profile_name(profile),
     }
@@ -7270,6 +7297,7 @@ def _deferred_session_record(
         "slash_worker": None,
         "source": source,
         "tool_progress_mode": _load_tool_progress_mode(),
+        "work_mode": "default",
         "tool_started_at": {},
         "transport": current_transport() or _stdio_transport,
     }
@@ -12991,9 +13019,45 @@ def _(rid, params: dict) -> dict:
                 _emit("session.info", sid, _session_info(agent, sess))
         return _ok(rid, {"key": "approvals.mode", "value": raw})
 
+    if key in {"mode", "work_mode"}:
+        if session is None:
+            return _err(rid, 4002, "work mode needs an active session")
+
+        from tools.work_mode import next_mode, normalize_mode
+
+        raw = str(value or "").strip().lower()
+        if raw in {"", "cycle", "next"}:
+            mode = next_mode(session.get("work_mode", "default"))
+        else:
+            mode = normalize_mode(raw)
+            if mode is None:
+                return _err(
+                    rid,
+                    4002,
+                    f"unknown work mode: {value}; pick default|accept-edits|plan",
+                )
+
+        session["work_mode"] = mode
+        agent = session.get("agent")
+        if agent is not None:
+            agent._work_mode = mode
+            _emit(
+                "session.info",
+                params.get("session_id", ""),
+                _session_info(agent, session),
+            )
+        return _ok(
+            rid,
+            {
+                "key": "work_mode",
+                "value": mode,
+                "deferred": bool(session.get("running")),
+            },
+        )
+
     if key == "yolo":
         # Approval bypass. Two scopes:
-        #   scope="session" (default) — same as the TUI's Shift+Tab. Toggles
+        #   scope="session" (default) — used by /yolo and the desktop control. Toggles
         #     ONLY this session's _session_yolo flag; never touches global
         #     config, so CLI / TUI / cron behavior is unaffected.
         #   scope="global" (Shift+click the zap) — flips the persistent global
@@ -14597,18 +14661,26 @@ _TUI_HIDDEN: frozenset[str] = frozenset(
         "commands",
         "approve",
         "deny",
+        # Compatibility or novelty commands with a clearer primary workflow.
+        "sessions",
+        "toolsets",
+        "yolo",
+        "diff",
+        "bundles",
+        "journey",
+        "pet",
+        "hatch",
+        "moa",
+        "kanban",
+        "curator",
+        "suggestions",
+        "blueprint",
+        "egress",
     }
 )
 
 _TUI_EXTRA: list[tuple[str, str, str]] = [
-    ("/density", "Toggle compact display mode", "TUI"),
-    ("/logs", "Show recent gateway log lines", "TUI"),
-    (
-        "/mouse",
-        "Set mouse tracking preset [on|off|toggle|wheel|buttons|all]",
-        "TUI",
-    ),
-    ("/sessions", "Switch between live TUI sessions", "TUI"),
+    ("/details", "Control agent detail visibility", "Display"),
 ]
 
 # Commands that queue messages onto _pending_input in the CLI.
@@ -14625,6 +14697,8 @@ _PENDING_INPUT_COMMANDS: frozenset[str] = frozenset(
         "plan",
         "goal",
         "moa",
+        "spec",
+        "brain",
         "undo",
         "learn",
         "init",
@@ -14638,13 +14712,16 @@ _WORKER_BLOCKED_COMMANDS: frozenset[str] = frozenset({"snapshot", "snap"})
 
 @method("commands.catalog")
 def _(rid, params: dict) -> dict:
-    """Registry-backed slash metadata for the TUI — categorized, no aliases."""
+    """Registry-backed TUI metadata with a curated default command surface."""
     try:
         from freeide_cli.commands import (
             COMMAND_REGISTRY,
             SUBCOMMANDS,
             _build_description,
+            is_command_discoverable,
         )
+
+        include_advanced = bool(params.get("include_advanced"))
 
         all_pairs: list[list[str]] = []
         canon: dict[str, str] = {}
@@ -14653,7 +14730,11 @@ def _(rid, params: dict) -> dict:
         cat_order: list[str] = []
 
         for cmd in COMMAND_REGISTRY:
-            if cmd.name in _TUI_HIDDEN or cmd.gateway_only:
+            if (
+                cmd.name in _TUI_HIDDEN
+                or cmd.gateway_only
+                or (not include_advanced and not is_command_discoverable(cmd))
+            ):
                 continue
 
             c = f"/{cmd.name}"
@@ -15055,6 +15136,59 @@ def _(rid, params: dict) -> dict:
             )
         except Exception as exc:
             return _err(rid, 5030, f"moa unavailable: {exc}")
+
+    if name == "spec":
+        try:
+            from freeide_cli.specs import run_spec_command
+
+            cwd = Path(session.get("cwd") or os.getcwd()) if session else Path.cwd()
+            result = run_spec_command(
+                arg,
+                cwd,
+                active_spec=session.get("active_spec_slug") if session else None,
+            )
+            if session is not None:
+                if result.active_spec:
+                    session["active_spec_slug"] = result.active_spec
+                if result.requested_mode:
+                    session["work_mode"] = result.requested_mode
+                    agent = session.get("agent")
+                    if agent is not None:
+                        agent._work_mode = result.requested_mode
+                    _emit("session.info", params.get("session_id", ""), _session_info(agent, session))
+            if result.agent_seed:
+                return _ok(
+                    rid,
+                    {
+                        "type": "send",
+                        "notice": result.text,
+                        "message": result.agent_seed,
+                        "display": f"/spec {arg}".strip(),
+                    },
+                )
+            return _ok(rid, {"type": "exec", "output": result.text})
+        except Exception as exc:
+            return _err(rid, 5030, f"spec unavailable: {exc}")
+
+    if name == "brain":
+        try:
+            from freeide_cli.brain import handle_brain_slash
+
+            cwd = session.get("cwd") if session else os.getcwd()
+            result = handle_brain_slash(f"/brain {arg}".strip(), cwd=cwd)
+            if result.prompt:
+                return _ok(
+                    rid,
+                    {
+                        "type": "send",
+                        "notice": result.text,
+                        "message": result.prompt,
+                        "display": f"/brain {arg}".strip(),
+                    },
+                )
+            return _ok(rid, {"type": "exec", "output": result.text})
+        except Exception as exc:
+            return _err(rid, 5030, f"brain unavailable: {exc}")
 
     if name == "focus":
         # /focus is display-only. Route it through the same config.set branch the
@@ -16014,27 +16148,9 @@ def _(rid, params: dict) -> dict:
         text_lower = text.lower()
         extras = [
             {
-                "text": "/density",
-                "display": "/density",
-                "meta": "Toggle compact display mode",
-                "kind": "command",
-            },
-            {
                 "text": "/details",
                 "display": "/details",
                 "meta": "Control agent detail visibility",
-                "kind": "command",
-            },
-            {
-                "text": "/logs",
-                "display": "/logs",
-                "meta": "Show recent gateway log lines",
-                "kind": "command",
-            },
-            {
-                "text": "/mouse",
-                "display": "/mouse",
-                "meta": "Set mouse tracking preset [on|off|toggle|wheel|buttons|all]",
                 "kind": "command",
             },
         ]
@@ -16258,11 +16374,15 @@ _LIVE_SESSION_DIRECT_COMMANDS = frozenset(
     {
         "clear",
         "compress",
+        "doctor",
         "effort",
         "history",
+        "mode",
         "models",
+        "permissions",
         "prompt",
         "rename",
+        "review",
         "status",
         "usage",
     }
@@ -16444,6 +16564,134 @@ def _format_live_model_output(session: dict) -> str:
     return "Current model: (unknown)"
 
 
+def _format_live_permissions_output(session: dict) -> str:
+    agent = session.get("agent") if session else None
+    cfg = _load_cfg()
+    approvals = "manual"
+    try:
+        from tools.approval import _get_approval_mode
+
+        approvals = _get_approval_mode()
+    except Exception:
+        approvals = str((cfg.get("approvals") or {}).get("mode") or approvals)
+    work_mode = (
+        session.get("work_mode")
+        or getattr(agent, "_work_mode", None)
+        or "default"
+    )
+    disabled = session.get("disabled_toolsets")
+    if not disabled and agent is not None:
+        disabled = getattr(agent, "disabled_toolsets", None)
+    enabled = session.get("enabled_toolsets")
+    if not enabled and agent is not None:
+        enabled = getattr(agent, "enabled_toolsets", None)
+    lines = [
+        "Permissions / authority",
+        f"  Work mode:       {work_mode}",
+    ]
+    if work_mode == "plan":
+        lines.append("  Plan boundary:   read-only except .freeide/plans and .freeide/specs")
+    lines.extend(
+        [
+            f"  Approvals:       {approvals}",
+            f"  YOLO:            {'on' if bool(session.get('yolo') or getattr(agent, 'yolo_mode', False)) else 'off'}",
+            f"  Workspace:       {session.get('cwd') or os.getcwd()}",
+            f"  Enabled tools:   {', '.join(sorted(enabled)) if enabled else 'default'}",
+            f"  Disabled tools:  {', '.join(sorted(disabled)) if disabled else 'none'}",
+            "",
+            "Controls:",
+            "  /mode default|plan|accept-edits",
+            "  /approvals manual|smart|off",
+            "  /yolo",
+            "  /tools list|enable|disable <name>",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def _format_live_doctor_output(session: dict, arg: str) -> str:
+    import shutil
+
+    cfg = _load_cfg()
+    model_cfg = cfg.get("model") if isinstance(cfg.get("model"), dict) else {}
+    agent = session.get("agent") if session else None
+    provider = getattr(agent, "provider", None) or model_cfg.get("provider") or "unknown"
+    model = getattr(agent, "model", None) or model_cfg.get("name") or model_cfg.get("model") or "unknown"
+    env_path = Path(get_freeide_home()) / ".env"
+    checks = [
+        ("Python", sys.version.split()[0]),
+        ("Git", "found" if shutil.which("git") else "missing"),
+        ("Node", "found" if shutil.which("node") else "missing"),
+        ("FreeIDE home", str(get_freeide_home())),
+        ("Provider", str(provider)),
+        ("Model", str(model)),
+        (".env", "found" if env_path.exists() else "missing"),
+    ]
+    lines = ["Doctor: quick runtime check", ""]
+    for name, value in checks:
+        glyph = "✓" if value not in {"missing", "unknown"} else "⚠"
+        lines.append(f"  {glyph} {name:<16} {value}")
+    if arg.strip().lower() == "full":
+        lines.extend(["", "For the full diagnostic suite, run: freeide doctor"])
+    else:
+        lines.extend(["", "Use /doctor full for the external full-suite command hint."])
+    return "\n".join(lines)
+
+
+def _format_live_review_output(arg: str, cwd: str | None = None) -> str:
+    parts = arg.split()
+    mode = parts[0].lower() if parts else "unstaged"
+    if mode in {"staged", "--staged", "cached", "--cached"}:
+        label = "staged changes"
+        commands = [["git", "diff", "--cached", "--stat"], ["git", "diff", "--cached", "--name-only"]]
+    elif mode in {"all", "--all", "head"}:
+        label = "all changes vs HEAD"
+        commands = [["git", "diff", "HEAD", "--stat"], ["git", "diff", "HEAD", "--name-only"]]
+    elif mode == "base" and len(parts) >= 2:
+        base = parts[1]
+        label = f"changes vs {base}"
+        commands = [["git", "diff", f"{base}...HEAD", "--stat"], ["git", "diff", f"{base}...HEAD", "--name-only"]]
+    elif mode == "commit" and len(parts) >= 2:
+        sha = parts[1]
+        label = f"commit {sha}"
+        commands = [["git", "show", "--stat", "--oneline", "--no-renames", sha], ["git", "show", "--name-only", "--format=", sha]]
+    elif mode in {"unstaged", "working", "--unstaged"}:
+        label = "unstaged changes"
+        commands = [["git", "diff", "--stat"], ["git", "diff", "--name-only"]]
+    else:
+        return "Usage: /review [unstaged|staged|all|base <branch>|commit <sha>]"
+    try:
+        stat = subprocess.run(commands[0], cwd=cwd or os.getcwd(), capture_output=True, text=True, timeout=20)
+        names = subprocess.run(commands[1], cwd=cwd or os.getcwd(), capture_output=True, text=True, timeout=20)
+    except Exception as exc:
+        return f"Review unavailable: {exc}"
+    if stat.returncode != 0:
+        return (stat.stderr or stat.stdout or "git diff failed").strip()
+    files = [line.strip() for line in (names.stdout or "").splitlines() if line.strip()]
+    if not (stat.stdout or "").strip() and not files:
+        return f"No {label}."
+    shown = "\n".join(f"  - {f}" for f in files[:30])
+    extra = f"\n  ... and {len(files) - 30} more" if len(files) > 30 else ""
+    prompt = (
+        f"Review the {label}. Inspect the changed files and report prioritized bugs, "
+        "security issues, regressions, missing tests, and UX risks. Do not edit files."
+    )
+    return "\n".join(
+        [
+            f"Review target: {label}",
+            "",
+            (stat.stdout or "").rstrip(),
+            "",
+            "Changed files:",
+            shown or "  (none listed)",
+            extra,
+            "",
+            "To run a deeper model review, send:",
+            prompt,
+        ]
+    )
+
+
 def _live_slash_command_output(sid: str, session: Optional[dict], name: str, arg: str) -> Optional[str]:
     name = (name or "").lstrip("/").lower()
     arg = arg or ""
@@ -16482,6 +16730,30 @@ def _live_slash_command_output(sid: str, session: Optional[dict], name: str, arg
         if response.get("error"):
             return str(response["error"].get("message") or "status unavailable")
         return str(response.get("result", {}).get("output") or "")
+    if name == "mode":
+        requested = arg.strip()
+        if not requested:
+            current = (session or {}).get("work_mode") or "default"
+            return f"Work mode: {current} (session only).\nModes: default · plan · accept-edits"
+        response = _methods["config.set"]("mode", {"session_id": sid, "key": "work_mode", "value": requested})
+        if response.get("error"):
+            return str(response["error"].get("message") or "mode unavailable")
+        payload = response.get("result") or {}
+        mode = payload.get("value") or requested
+        deferred = " (applies next turn)" if payload.get("deferred") else ""
+        detail = {
+            "default": "normal tool behavior",
+            "plan": "read-only except .freeide/plans and .freeide/specs",
+            "accept-edits": "workspace edits accepted; dangerous-command approvals remain",
+        }.get(str(mode), "")
+        suffix = f" — {detail}" if detail else ""
+        return f"Work mode: {mode}{deferred}{suffix}."
+    if name == "permissions":
+        return _format_live_permissions_output(session or {})
+    if name == "doctor":
+        return _format_live_doctor_output(session or {}, arg)
+    if name == "review":
+        return _format_live_review_output(arg, (session or {}).get("cwd"))
     if name == "context":
         if session is None:
             return "Conversation is empty (no messages yet)."

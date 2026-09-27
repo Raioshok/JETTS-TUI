@@ -1,4 +1,4 @@
-import type { MouseTrackingMode, ScrollBoxHandle } from '@freeide/ink'
+import type { MouseTrackingMode, ScrollBoxHandle } from '@jetts-tui/ink'
 import type { MutableRefObject, ReactNode, RefObject, SetStateAction } from 'react'
 
 import type { PasteEvent } from '../components/textInput.js'
@@ -8,6 +8,7 @@ import type {
   BillingMutationResponse,
   BillingStateResponse,
   ImageAttachResponse,
+  SessionActiveItem,
   SessionCloseResponse,
   SubscriptionPreviewResponse,
   SubscriptionStateResponse,
@@ -329,6 +330,8 @@ export interface UiState {
   focusView: boolean
   info: null | SessionInfo
   liveSessionCount: number
+  /** Live gateway sessions backing the wide resident-agent workspace. */
+  liveSessions: SessionActiveItem[]
   inlineDiffs: boolean
   mouseTracking: MouseTrackingMode
   notice: Notice | null
@@ -415,6 +418,7 @@ export interface UseComposerStateResult {
 }
 
 export interface InputHandlerActions {
+  activateLiveSession: (id: string) => void
   answerClarify: (answer: string) => void
   appendMessage: (msg: Msg) => void
   die: () => void

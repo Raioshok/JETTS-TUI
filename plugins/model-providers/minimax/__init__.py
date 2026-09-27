@@ -85,7 +85,9 @@ minimax_oauth = MiniMaxProfile(
     api_mode="anthropic_messages",
     display_name="MiniMax (OAuth)",
     description="MiniMax via OAuth browser flow — no API key required",
-    signup_url="https://api.minimax.io/",
+    # Was "https://api.minimax.io/" — that is the API host root and returns 404
+    # (verified 2026-09-23); the console where keys are issued is here.
+    signup_url="https://platform.minimax.io/console/access",
     env_vars=(),  # OAuth — tokens in auth.json, not env
     base_url="https://api.minimax.io/anthropic",
     auth_type="oauth_external",

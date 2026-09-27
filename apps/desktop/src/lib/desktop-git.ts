@@ -21,7 +21,7 @@ function desktopApi<T>(path: string, body?: Record<string, unknown>): Promise<T>
   const desktop = window.freeideDesktop
 
   if (!desktop) {
-    throw new Error('FreeIDE Desktop bridge is unavailable')
+    throw new Error('Jetts-TUI Desktop bridge is unavailable')
   }
 
   return desktop.api<T>(

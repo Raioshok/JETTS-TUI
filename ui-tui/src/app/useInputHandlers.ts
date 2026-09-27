@@ -1,4 +1,4 @@
-import { forceRedraw, useInput } from '@freeide/ink'
+import { forceRedraw, useInput } from '@jetts-tui/ink'
 import { useStore } from '@nanostores/react'
 import { useEffect, useRef } from 'react'
 
@@ -9,6 +9,7 @@ import type {
   ApprovalRespondResponse,
   ConfigSetResponse,
   SecretRespondResponse,
+  SessionActiveItem,
   SudoRespondResponse,
   VoiceRecordResponse
 } from '../gatewayTypes.js'
@@ -28,12 +29,22 @@ import {
 import { $isBlocked, $overlayState, patchOverlayState } from './overlayStore.js'
 import { turnController } from './turnController.js'
 import { patchTurnState } from './turnStore.js'
-import { getUiState } from './uiStore.js'
+import { getUiState, patchUiState } from './uiStore.js'
+import { isWorkMode, workModeNotice } from './workModes.js'
 
 const isCtrl = (key: { ctrl: boolean }, ch: string, target: string) => key.ctrl && ch.toLowerCase() === target
 const DASHBOARD_NEW_SESSION_MESSAGE = 'starting a fresh dashboard chat...'
 
 export const shouldAllowIdleHotkeyExit = (dashboardTuiMode = DASHBOARD_TUI_MODE) => !dashboardTuiMode
+
+export const previousCompletionIndex = (index: number, length: number): number =>
+  length > 0 ? (index - 1 + length) % length : 0
+
+export const residentSessionTargetForHotkey = (
+  ch: string,
+  meta: boolean,
+  sessions: readonly SessionActiveItem[]
+) => (meta && /^[1-9]$/.test(ch) ? sessions[Number(ch) - 1] : undefined)
 
 export function handleIdleHotkeyExit(
   actions: Pick<InputHandlerActions, 'die' | 'sys'>,
@@ -557,6 +568,21 @@ export function useInputHandlers(ctx: InputHandlerContext): InputHandlerResult {
       return cActions.clearIn()
     }
 
+    // The resident-session workspace labels its first nine agents Alt+1…9.
+    // Switching only retargets the single composer; sibling agents keep
+    // running in the gateway and no synthetic conversation message is added.
+    const residentTarget = residentSessionTargetForHotkey(ch, key.meta, live.liveSessions)
+
+    if (residentTarget) {
+      const target = residentTarget
+
+      if (target && target.id !== live.sid) {
+        return actions.activateLiveSession(target.id)
+      }
+
+      return
+    }
+
     if (isCtrl(key, ch, 'x')) {
       return patchOverlayState({ sessions: true })
     }
@@ -614,25 +640,34 @@ export function useInputHandlers(ctx: InputHandlerContext): InputHandlerResult {
       })
     }
 
-    // shift-tab flips yolo without spending a turn (claude-code parity)
+    // Keep conventional reverse-completion behavior when the palette is open;
+    // only an idle Shift+Tab cycles the session's work posture.
+    if (key.shift && key.tab && cState.completions.length) {
+      cActions.setCompIdx(index => previousCompletionIndex(index, cState.completions.length))
+
+      return
+    }
+
     if (key.shift && key.tab && !cState.completions.length) {
       if (!live.sid) {
-        return void actions.sys('yolo needs an active session')
+        return void actions.sys('mode switch needs an active session')
       }
 
       // gateway.rpc swallows errors with its own sys() message and resolves to null,
       // so we only speak when it came back with a real shape. null = rpc already spoke.
-      return void gateway.rpc<ConfigSetResponse>('config.set', { key: 'yolo', session_id: live.sid }).then(r => {
-        if (r?.value === '1') {
-          return actions.sys('yolo on')
-        }
+      return void gateway.rpc<ConfigSetResponse>('config.set', {
+        key: 'work_mode',
+        session_id: live.sid,
+        value: 'cycle'
+      }).then(r => {
+        const mode = r?.value
 
-        if (r?.value === '0') {
-          return actions.sys('yolo off')
-        }
-
-        if (r) {
-          actions.sys('failed to toggle yolo')
+        if (mode && isWorkMode(mode)) {
+          patchUiState(state => ({
+            ...state,
+            info: state.info ? { ...state.info, work_mode: mode } : state.info
+          }))
+          actions.sys(workModeNotice(mode, r.deferred))
         }
       })
     }

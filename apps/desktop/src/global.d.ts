@@ -1,4 +1,4 @@
-import type { GatewayWsUrlResult } from '@freeide/shared'
+import type { GatewayWsUrlResult } from '@jetts-tui/shared'
 
 import type {
   PetOverlayBounds,

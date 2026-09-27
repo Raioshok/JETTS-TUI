@@ -19,10 +19,10 @@ const PLATFORM = process.platform
 // launch via install.ps1 / install.sh, per the Phase 1 thin-installer flow).
 const APP = (() => {
   if (PLATFORM === 'darwin') {
-    const appPath = path.join(RELEASE_ROOT, `mac-${ARCH}`, 'FreeIDE.app')
+    const appPath = path.join(RELEASE_ROOT, `mac-${ARCH}`, 'Jetts-TUI.app')
     return {
       appPath,
-      binary: path.join(appPath, 'Contents', 'MacOS', 'FreeIDE'),
+      binary: path.join(appPath, 'Contents', 'MacOS', 'Jetts-TUI'),
       resourcesPath: path.join(appPath, 'Contents', 'Resources'),
       asarPath: path.join(appPath, 'Contents', 'Resources', 'app.asar'),
       unpackedDistIndex: path.join(appPath, 'Contents', 'Resources', 'app.asar.unpacked', 'dist', 'index.html')
@@ -32,7 +32,7 @@ const APP = (() => {
     const unpacked = path.join(RELEASE_ROOT, 'win-unpacked')
     return {
       appPath: unpacked,
-      binary: path.join(unpacked, 'FreeIDE.exe'),
+      binary: path.join(unpacked, 'Jetts-TUI.exe'),
       resourcesPath: path.join(unpacked, 'resources'),
       asarPath: path.join(unpacked, 'resources', 'app.asar'),
       unpackedDistIndex: path.join(unpacked, 'resources', 'app.asar.unpacked', 'dist', 'index.html')
@@ -42,7 +42,7 @@ const APP = (() => {
   const unpacked = path.join(RELEASE_ROOT, 'linux-unpacked')
   return {
     appPath: unpacked,
-    binary: path.join(unpacked, 'FreeIDE'),
+    binary: path.join(unpacked, 'Jetts-TUI'),
     resourcesPath: path.join(unpacked, 'resources'),
     asarPath: path.join(unpacked, 'resources', 'app.asar'),
     unpackedDistIndex: path.join(unpacked, 'resources', 'app.asar.unpacked', 'dist', 'index.html')
@@ -124,10 +124,10 @@ function ensurePackagedApp() {
 
 function resolveDmgPath() {
   if (!exists(RELEASE_ROOT)) {
-    return path.join(RELEASE_ROOT, `FreeIDE-${PACKAGE_JSON.version}-${ARCH}.dmg`)
+    return path.join(RELEASE_ROOT, `Jetts-TUI-${PACKAGE_JSON.version}-${ARCH}.dmg`)
   }
 
-  const prefix = `FreeIDE-${PACKAGE_JSON.version}`
+  const prefix = `Jetts-TUI-${PACKAGE_JSON.version}`
   const candidates = fs
     .readdirSync(RELEASE_ROOT)
     .filter(name => name.endsWith('.dmg'))
@@ -141,11 +141,11 @@ function resolveDmgPath() {
 
   return candidates.length > 0
     ? path.join(RELEASE_ROOT, candidates[0])
-    : path.join(RELEASE_ROOT, `FreeIDE-${PACKAGE_JSON.version}-${ARCH}.dmg`)
+    : path.join(RELEASE_ROOT, `Jetts-TUI-${PACKAGE_JSON.version}-${ARCH}.dmg`)
 }
 
 function resolveNsisPath() {
-  // electron-builder NSIS artifactName template is 'FreeIDE-${version}-${os}-${arch}.${ext}'
+  // electron-builder NSIS artifactName template is 'Jetts-TUI-${version}-${os}-${arch}.${ext}'
   if (!exists(RELEASE_ROOT)) return null
   const candidates = fs
     .readdirSync(RELEASE_ROOT)

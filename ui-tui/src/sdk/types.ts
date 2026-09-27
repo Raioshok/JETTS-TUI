@@ -1,4 +1,4 @@
-import type { Key } from '@freeide/ink'
+import type { Key } from '@jetts-tui/ink'
 import type { ReactNode } from 'react'
 
 import type { Theme } from '../theme.js'

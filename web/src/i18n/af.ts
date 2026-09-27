@@ -50,12 +50,12 @@ export const af: Translations = {
   },
 
   app: {
-    brand: "FreeIDE Agent",
+    brand: "Jetts-TUI",
     brandShort: "HA",
     closeNavigation: "Maak navigasie toe",
     closeModelTools: "Maak model en gereedskap toe",
     footer: {
-      org: "FreeIDE",
+      org: "Jetts-TUI",
     },
     activeSessionsLabel: "Aktiewe Sessies:",
     gatewayStatusLabel: "Gateway-status:",
@@ -120,8 +120,8 @@ export const af: Translations = {
     starting: "Begin",
     startedInBackground: "Begin in agtergrond — kyk logs vir vordering",
     stopped: "Gestop",
-    updateFreeIDE: "Werk FreeIDE op",
-    updatingFreeIDE: "Besig om FreeIDE op te werk…",
+    updateFreeIDE: "Werk Jetts-TUI op",
+    updatingFreeIDE: "Besig om Jetts-TUI op te werk…",
     waitingForOutput: "Wag vir uitset…",
   },
 
@@ -320,7 +320,7 @@ export const af: Translations = {
     enableRuntime: "Aktiveer",
     forceReinstall: "Forseer herinstallasie (skrap eers bestaande gids)",
     headline:
-      "Ontdek, installeer, aktiveer en werk FreeIDE-inproppe op (`freeide plugins` ekwivalent).",
+      "Ontdek, installeer, aktiveer en werk Jetts-TUI-inproppe op (`jetts-tui plugins` ekwivalent).",
     identifierLabel: "Git-URL of owner/repo",
     inactive: "onaktief",
     installBtn: "Installeer",
@@ -434,7 +434,7 @@ export const af: Translations = {
     showValue: "Wys werklike waarde",
     hideValue: "Versteek waarde",
     customTitle: "Pasgemaakte sleutels",
-    customHint: "Arbitrêre omgewingsveranderlikes wat in jou .env gestoor is en wat FreeIDE nie herken nie. Gebruik dit om omgewingsveranderlikes vir vaardighede, MCP-bedieners of jou eie gereedskap in te spuit.",
+    customHint: "Arbitrêre omgewingsveranderlikes wat in jou .env gestoor is en wat Jetts-TUI nie herken nie. Gebruik dit om omgewingsveranderlikes vir vaardighede, MCP-bedieners of jou eie gereedskap in te spuit.",
     customConfigured: "{count} pasgemaakte sleutel(s) gestel",
     addCustomKey: "Voeg 'n pasgemaakte sleutel by",
     customKeyName: "Veranderlike naam",
@@ -497,11 +497,11 @@ export const af: Translations = {
   achievements: {
     hero: {
       kicker: "Agentic Gamerscore",
-      title: "FreeIDE Achievements",
+      title: "Jetts-TUI Achievements",
       subtitle:
-        "Versamelbare FreeIDE-kentekens wat verdien word uit werklike sessiegeskiedenis. Bekende, onvoltooide prestasies word as Ontdek vertoon; Geheime prestasies bly verborge totdat die eerste ooreenstemmende gedrag verskyn.",
+        "Versamelbare Jetts-TUI-kentekens wat verdien word uit werklike sessiegeskiedenis. Bekende, onvoltooide prestasies word as Ontdek vertoon; Geheime prestasies bly verborge totdat die eerste ooreenstemmende gedrag verskyn.",
       scan_subtitle:
-        "FreeIDE-sessiegeskiedenis word geskandeer. Die eerste skandering kan 5–10 sekondes neem op groot geskiedenisse.",
+        "Jetts-TUI-sessiegeskiedenis word geskandeer. Die eerste skandering kan 5–10 sekondes neem op groot geskiedenisse.",
     },
     actions: {
       rescan: "Herskandeer",
@@ -516,7 +516,7 @@ export const af: Translations = {
       highest_tier: "Hoogste vlak",
       highest_tier_hint: "Copper → Silver → Gold → Diamond → Olympian",
       latest: "Jongste",
-      latest_hint_empty: "gebruik FreeIDE meer",
+      latest_hint_empty: "gebruik Jetts-TUI meer",
       none_yet: "Nog geen",
     },
     state: {
@@ -547,10 +547,10 @@ export const af: Translations = {
       tiers_header: "Vlakke",
       secret_header: "Geheime prestasies",
       secret_body:
-        "Geheime hou hul presiese sneller verborge. Sodra FreeIDE 'n verwante sein sien, word die kaart Ontdek en wys sy vereiste.",
+        "Geheime hou hul presiese sneller verborge. Sodra Jetts-TUI 'n verwante sein sien, word die kaart Ontdek en wys sy vereiste.",
       scan_status_header: "Skanderingstatus",
       scan_status_body:
-        "FreeIDE skandeer plaaslike geskiedenis een keer, daarna verskyn kaarte outomaties. Niks is vasgevang as dit 'n paar sekondes neem nie.",
+        "Jetts-TUI skandeer plaaslike geskiedenis een keer, daarna verskyn kaarte outomaties. Niks is vasgevang as dit 'n paar sekondes neem nie.",
       what_scanned_header: "Wat geskandeer word",
       what_scanned_body:
         "Sessies, gereedskaproepe, modelmetadata, foute, prestasies en plaaslike ontsluitstatus.",
@@ -597,7 +597,7 @@ export const af: Translations = {
         "Deel op X maak 'n vooraf-ingevulde plasing in 'n nuwe oortjie oop. Klik eers op Kopieer beeld as jy die 1200×630-kenteken aangeheg wil hê — X laat jou dit direk in die tweet-skrywer plak. Laai PNG af stoor die lêer om enige plek te gebruik.",
       clipboard_unsupported:
         "Beeldkopiëring na knipbord word nie in hierdie blaaier ondersteun nie — gebruik eerder Aflaai.",
-      tweet_text: "Just unlocked {tier_part}\"{name}\" in FreeIDE Agent ☤",
+      tweet_text: "Just unlocked {tier_part}\"{name}\" in Jetts-TUI ☤",
     },
   },
   kanban: {

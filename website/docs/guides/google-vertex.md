@@ -89,9 +89,10 @@ Vertex requires the `google/` vendor prefix on model IDs. The `freeide model` pi
 | Model | ID |
 |-------|----|
 | Gemini 3.1 Pro Preview | `google/gemini-3.1-pro-preview` |
-| Gemini 3 Pro Preview | `google/gemini-3-pro-preview` |
+| Gemini 3.8 Flash | `google/gemini-3.8-flash` |
+| Gemini 3.6 Flash | `google/gemini-3.6-flash` |
 | Gemini 3 Flash Preview | `google/gemini-3-flash-preview` |
-| Gemini 3.1 Flash Lite Preview | `google/gemini-3.1-flash-lite-preview` |
+| Gemini 3.1 Flash Lite | `google/gemini-3.1-flash-lite` |
 | Gemini 2.5 Pro | `google/gemini-2.5-pro` |
 | Gemini 2.5 Flash | `google/gemini-2.5-flash` |
 

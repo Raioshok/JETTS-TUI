@@ -19,6 +19,7 @@ import { applyConfiguredTuiTheme } from '../../createGatewayEventHandler.js'
 import { DEFAULT_INDICATOR_STYLE, INDICATOR_STYLES, type IndicatorStyle } from '../../interfaces.js'
 import { patchOverlayState } from '../../overlayStore.js'
 import { patchUiState } from '../../uiStore.js'
+import { isWorkMode, workModeNotice } from '../../workModes.js'
 import type { SlashCommand } from '../types.js'
 
 const USAGE_CTA = 'Run /subscription to change plan · /topup to add to your balance'
@@ -160,9 +161,9 @@ export const sessionCommands: SlashCommand[] = [
   },
 
   {
-    aliases: ['switch', 'session', 'resume'],
+    aliases: ['switch', 'session', 'sessions'],
     help: 'browse, switch, or resume sessions',
-    name: 'sessions',
+    name: 'resume',
     run: (arg, ctx) => {
       const trimmed = arg.trim()
 
@@ -512,6 +513,45 @@ export const sessionCommands: SlashCommand[] = [
       ctx.gateway
         .rpc<ConfigSetResponse>('config.set', { key: 'yolo', session_id: ctx.sid })
         .then(ctx.guarded<ConfigSetResponse>(r => ctx.transcript.sys(`yolo ${r.value === '1' ? 'on' : 'off'}`)))
+    }
+  },
+
+  {
+    help: 'inspect or set work mode [default|accept-edits|plan]',
+    name: 'mode',
+    run: (arg, ctx) => {
+      const requested = arg.trim().toLowerCase()
+
+      if (!requested) {
+        return ctx.transcript.sys(workModeNotice(ctx.ui.info?.work_mode ?? 'default'))
+      }
+
+      if (!isWorkMode(requested)) {
+        return ctx.transcript.sys('usage: /mode [default|accept-edits|plan]')
+      }
+
+      ctx.gateway
+        .rpc<ConfigSetResponse>('config.set', {
+          key: 'work_mode',
+          session_id: ctx.sid,
+          value: requested
+        })
+        .then(
+          ctx.guarded<ConfigSetResponse>(r => {
+            const mode = r.value
+
+            if (!mode || !isWorkMode(mode)) {
+              return
+            }
+
+            patchUiState(state => ({
+              ...state,
+              info: state.info ? { ...state.info, work_mode: mode } : state.info
+            }))
+            ctx.transcript.sys(workModeNotice(mode, r.deferred))
+          })
+        )
+        .catch(ctx.guardedErr)
     }
   },
 

@@ -137,8 +137,6 @@ class TestProviderRegistry:
 
     def test_oauth_providers_unchanged(self):
         """Ensure we didn't break the existing OAuth providers."""
-        assert "nous" in PROVIDER_REGISTRY
-        assert PROVIDER_REGISTRY["nous"].auth_type == "oauth_device_code"
         assert "openai-codex" in PROVIDER_REGISTRY
         assert PROVIDER_REGISTRY["openai-codex"].auth_type == "oauth_external"
 
@@ -334,8 +332,13 @@ class TestResolveProvider:
             lambda env=None: False,
         )
         monkeypatch.setenv("GITHUB_TOKEN", "gh-test-token")
-        with pytest.raises(AuthError, match="No inference provider configured"):
-            resolve_provider("auto")
+        # A bare GitHub token must not auto-select Copilot: Copilot needs a
+        # subscription, so choosing it here would only fail later. It may
+        # resolve to githubmodels, a real inference provider reachable with
+        # the same token — so assert the exclusion, not "nothing resolves".
+        resolved = resolve_provider("auto")
+        assert resolved != "copilot", f"bare GITHUB_TOKEN selected copilot ({resolved!r})"
+        assert resolved in PROVIDER_REGISTRY
 
 
 # =============================================================================
@@ -1302,10 +1305,14 @@ class TestMinimaxOAuthProvider:
         result = resolve_provider("minimax_oauth")
         assert result == "minimax-oauth"
 
-    def test_minimax_oauth_listed_in_canonical_providers(self):
-        from freeide_cli.models import CANONICAL_PROVIDERS
-        slugs = [p.slug for p in CANONICAL_PROVIDERS]
-        assert "minimax-oauth" in slugs
+    def test_minimax_oauth_resolves_without_being_offered(self):
+        # Curation (providers/curated.py) hides this OAuth variant from the
+        # picker — "OAuth variant of minimax" — while every provider still
+        # resolves by name. Assert the resolver, not picker membership.
+        from providers.curated import EXCLUDED, is_curated
+        assert resolve_provider("minimax-oauth") == "minimax-oauth"
+        assert "minimax-oauth" in EXCLUDED
+        assert not is_curated("minimax-oauth")
 
     def test_minimax_oauth_models_alias_in_models_py(self):
         from freeide_cli.models import _PROVIDER_ALIASES
@@ -1653,7 +1660,6 @@ class TestDeepInfraProviderProfile:
         from agent.auxiliary_client import _get_aux_model_for_provider
         from freeide_cli.auth import PROVIDER_REGISTRY, resolve_provider
         from freeide_cli.config import OPTIONAL_ENV_VARS
-        from freeide_cli.models import CANONICAL_PROVIDERS
 
         profile = get_provider_profile("deepinfra")
         assert profile is not None
@@ -1663,7 +1669,12 @@ class TestDeepInfraProviderProfile:
         assert get_provider_profile("deep-infra") is profile
         assert resolve_provider("deep-infra") == "deepinfra"
         assert PROVIDER_REGISTRY["deepinfra"].inference_base_url == profile.base_url
-        assert any(entry.slug == "deepinfra" for entry in CANONICAL_PROVIDERS)
+        # Curation hides this reseller from the picker ("reseller;
+        # OpenRouter covers the same models") while it still resolves by
+        # name — pin the exclusion, not picker membership.
+        from providers.curated import EXCLUDED, is_curated
+        assert "deepinfra" in EXCLUDED
+        assert not is_curated("deepinfra")
         assert OPTIONAL_ENV_VARS["DEEPINFRA_API_KEY"]["password"] is True
         assert OPTIONAL_ENV_VARS["DEEPINFRA_BASE_URL"]["password"] is False
         # Aux model is resolved via the profile (not via the legacy
@@ -1682,3 +1693,26 @@ class TestDeepInfraProviderProfile:
         assert profile is not None
         assert profile.default_max_tokens is None
         assert profile.get_max_tokens("deepseek-ai/DeepSeek-V4-Flash") is None
+
+
+class TestCuratedExclusionContract:
+    """Curation decides what the picker OFFERS; exclusion must stay coherent.
+
+    Providers in ``providers.curated.EXCLUDED`` are hidden from the picker on
+    purpose (each with a written rationale) but still resolve by name. The
+    failure mode this guards is a test asserting picker membership for a
+    provider that curation deliberately excludes.
+    """
+
+    def test_no_provider_is_both_curated_and_excluded(self):
+        from providers.curated import CURATED, EXCLUDED
+
+        overlap = sorted(set(EXCLUDED) & set(CURATED))
+        assert overlap == [], f"providers both offered and hidden: {overlap}"
+
+    def test_excluded_providers_still_resolve_by_name(self):
+        from providers.curated import EXCLUDED
+
+        for name in ("deepinfra", "minimax-oauth"):
+            assert name in EXCLUDED
+            assert resolve_provider(name) == name

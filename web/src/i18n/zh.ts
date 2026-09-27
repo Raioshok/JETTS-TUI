@@ -49,12 +49,12 @@ export const zh: Translations = {
   },
 
   app: {
-    brand: "FreeIDE Agent",
+    brand: "Jetts-TUI",
     brandShort: "HA",
     closeNavigation: "关闭导航",
     closeModelTools: "关闭模型与工具",
     footer: {
-      org: "FreeIDE",
+      org: "Jetts-TUI",
     },
     activeSessionsLabel: "活跃会话：",
     gatewayStatusLabel: "网关状态：",
@@ -119,8 +119,8 @@ export const zh: Translations = {
     starting: "启动中",
     startedInBackground: "已在后台启动 — 请查看日志",
     stopped: "已停止",
-    updateFreeIDE: "更新 FreeIDE",
-    updatingFreeIDE: "正在更新 FreeIDE…",
+    updateFreeIDE: "更新 Jetts-TUI",
+    updatingFreeIDE: "正在更新 Jetts-TUI…",
     waitingForOutput: "等待输出…",
   },
 
@@ -315,7 +315,7 @@ export const zh: Translations = {
     enableAfterInstall: "安装后启用",
     enableRuntime: "启用",
     forceReinstall: "强制重装（先删除已有目录）",
-    headline: "发现、安装、启用和更新 FreeIDE 插件（对齐 `freeide plugins` CLI）。",
+    headline: "发现、安装、启用和更新 Jetts-TUI 插件（对齐 `jetts-tui plugins` CLI）。",
     identifierLabel: "Git 地址或 owner/repo",
     inactive: "未启用",
     installBtn: "安装",
@@ -428,7 +428,7 @@ export const zh: Translations = {
     showValue: "显示实际值",
     hideValue: "隐藏值",
     customTitle: "自定义密钥",
-    customHint: "存储在 .env 中、FreeIDE 无法识别的任意环境变量。可用于为技能、MCP 服务器或你自己的工具注入环境变量。",
+    customHint: "存储在 .env 中、Jetts-TUI 无法识别的任意环境变量。可用于为技能、MCP 服务器或你自己的工具注入环境变量。",
     customConfigured: "已设置 {count} 个自定义密钥",
     addCustomKey: "添加自定义密钥",
     customKeyName: "变量名",
@@ -491,11 +491,11 @@ export const zh: Translations = {
   achievements: {
     hero: {
       kicker: "Agentic Gamerscore",
-      title: "FreeIDE Achievements",
+      title: "Jetts-TUI Achievements",
       subtitle:
-        "从真实会话历史中获得的 FreeIDE 可收集徽章。已知尚未达成的成就显示为「已发现」；秘密成就在首次出现匹配行为之前保持隐藏。",
+        "从真实会话历史中获得的 Jetts-TUI 可收集徽章。已知尚未达成的成就显示为「已发现」；秘密成就在首次出现匹配行为之前保持隐藏。",
       scan_subtitle:
-        "正在扫描 FreeIDE 会话历史。在历史记录较多时，首次扫描可能需要 5–10 秒。",
+        "正在扫描 Jetts-TUI 会话历史。在历史记录较多时，首次扫描可能需要 5–10 秒。",
     },
     actions: {
       rescan: "重新扫描",
@@ -510,7 +510,7 @@ export const zh: Translations = {
       highest_tier: "最高等级",
       highest_tier_hint: "Copper → Silver → Gold → Diamond → Olympian",
       latest: "最新",
-      latest_hint_empty: "多多运行 FreeIDE",
+      latest_hint_empty: "多多运行 Jetts-TUI",
       none_yet: "暂无",
     },
     state: {
@@ -541,10 +541,10 @@ export const zh: Translations = {
       tiers_header: "等级",
       secret_header: "秘密成就",
       secret_body:
-        "秘密成就会隐藏其确切触发条件。一旦 FreeIDE 检测到相关信号，卡片将变为「已发现」并显示其要求。",
+        "秘密成就会隐藏其确切触发条件。一旦 Jetts-TUI 检测到相关信号，卡片将变为「已发现」并显示其要求。",
       scan_status_header: "扫描状态",
       scan_status_body:
-        "FreeIDE 正在对本地历史进行一次扫描，之后卡片会自动出现。即使这需要几秒钟，也没有卡住。",
+        "Jetts-TUI 正在对本地历史进行一次扫描，之后卡片会自动出现。即使这需要几秒钟，也没有卡住。",
       what_scanned_header: "扫描内容",
       what_scanned_body:
         "会话、工具调用、模型元数据、错误、成就和本地解锁状态。",
@@ -591,7 +591,7 @@ export const zh: Translations = {
         "「在 X 上分享」会在新标签页中打开预填好的帖子。如果想附上 1200×630 的徽章，请先点击「复制图片」—— X 允许你直接粘贴到推文编辑器中。「下载 PNG」会将文件保存下来，可在任意位置使用。",
       clipboard_unsupported:
         "此浏览器不支持复制剪贴板图片 —— 请改用「下载」。",
-      tweet_text: "Just unlocked {tier_part}\"{name}\" in FreeIDE Agent ☤",
+      tweet_text: "Just unlocked {tier_part}\"{name}\" in Jetts-TUI ☤",
     },
   },
 

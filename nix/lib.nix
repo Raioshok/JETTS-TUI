@@ -135,7 +135,7 @@ let
           "SECURITY.md"
           "README.zh-CN.md"
           ".gitignore"
-          "setup-freeide.sh"
+          "setup-jetts-tui.sh"
         ];
       in
       if relPath == "" then

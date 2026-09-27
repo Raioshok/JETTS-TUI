@@ -14,7 +14,7 @@ It runs on **macOS, Windows, and Linux**.
 FreeIDE has several front ends that all talk to the same agent:
 
 - **Desktop App** (this page) — a native application with a purpose-built UI for chat, configuration, and management.
-- **CLI** (`freeide`) and **[TUI](./tui.md)** (`freeide --tui`) — terminal interfaces.
+- **[Terminal UI](./tui.md)** (`freeide`) — the single interactive terminal interface.
 - **[Web Dashboard](./features/web-dashboard.md)** (`freeide dashboard`) — a browser admin panel; its optional **Chat** tab embeds the TUI through a pseudo-terminal.
 
 Pick whichever fits the moment. They share state, so you can start a session in one and resume it in another.
@@ -320,8 +320,8 @@ macOS/Windows signing and notarization run automatically when the relevant crede
 
 ## See also
 
-- [CLI Guide](./cli.md) — the terminal interface
-- [TUI](./tui.md) — the modern terminal UI used by `freeide --tui` and the dashboard chat tab
+- [CLI Guide](./cli.md) — commands and terminal workflows
+- [TUI](./tui.md) — the terminal UI used by `freeide` and the dashboard chat tab
 - [Web Dashboard](./features/web-dashboard.md) — browser admin panel with an embedded chat tab
 - [Configuration](./configuration.md) — config that the desktop app reads and writes
 - [Windows (Native)](./windows-native.md) — native Windows install path

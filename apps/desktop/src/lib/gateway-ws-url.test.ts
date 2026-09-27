@@ -1,4 +1,4 @@
-import { GatewayReauthRequiredError, isGatewayReauthRequired, resolveGatewayWsUrl } from '@freeide/shared'
+import { GatewayReauthRequiredError, isGatewayReauthRequired, resolveGatewayWsUrl } from '@jetts-tui/shared'
 import { describe, expect, it, vi } from 'vitest'
 
 const oauthConn = { authMode: 'oauth' as const, wsUrl: 'ws://host/api/ws?ticket=stale' }

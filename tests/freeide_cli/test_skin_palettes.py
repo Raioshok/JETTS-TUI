@@ -193,7 +193,9 @@ def test_base_palette_contrast_and_polarity(skin, palette, is_light):
 
 @pytest.mark.parametrize(("skin", "block", "palette", "is_light"), OVERLAYS, ids=OVERLAY_IDS)
 def test_overlay_keys_and_fill_polarity(skin, block, palette, is_light):
-    unknown = palette.keys() - REQUIRED_KEYS
+    # Paired variants may override optional roles (syntax, tool markers and
+    # background) declared by their base palette, not just the required core.
+    unknown = palette.keys() - (REQUIRED_KEYS | _BUILTIN_SKINS[skin]["colors"].keys())
     assert not unknown, f"{skin}.{block} has unknown keys: {sorted(unknown)}"
 
     problems = []

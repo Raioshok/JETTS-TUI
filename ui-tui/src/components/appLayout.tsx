@@ -1,7 +1,7 @@
 // Importing the apps barrel registers the reference widget apps at startup.
 import '../sdk/apps/index.js'
 
-import { AlternateScreen, Box, NoSelect, ScrollBox, Text } from '@freeide/ink'
+import { AlternateScreen, Box, NoSelect, ScrollBox, Text, useStdout } from '@jetts-tui/ink'
 import { useStore } from '@nanostores/react'
 import { Fragment, memo, useEffect, useMemo, useRef } from 'react'
 
@@ -9,7 +9,8 @@ import { useGateway } from '../app/gatewayContext.js'
 import type { AppLayoutProps } from '../app/interfaces.js'
 import { $isBlocked, $overlayState, patchOverlayState } from '../app/overlayStore.js'
 import { $petBox } from '../app/petFlashStore.js'
-import { $uiState } from '../app/uiStore.js'
+import { useTurnSelector } from '../app/turnStore.js'
+import { $uiState, $unreadBySession } from '../app/uiStore.js'
 import { usePet } from '../app/usePet.js'
 import { INLINE_MODE, SHOW_FPS, TERMUX_TUI_MODE } from '../config/env.js'
 import { PLACEHOLDER } from '../content/placeholders.js'
@@ -27,15 +28,22 @@ import { ActiveWidgetSlot, AmbientDock, AmbientRail, useAmbientRailWidth } from 
 import { AgentsOverlay } from './agentsOverlay.js'
 import { GoodVibesHeart, StatusRule, StickyPromptTracker, TranscriptScrollbar } from './appChrome.js'
 import { FloatingOverlays, PromptZone } from './appOverlays.js'
-import { Banner, Panel, SessionPanel } from './branding.js'
+import { Panel, SessionPanel } from './branding.js'
 import { FpsOverlay } from './fpsOverlay.js'
 import { HelpHint } from './helpHint.js'
 import { Journey } from './journey.js'
 import { MessageLine } from './messageLine.js'
 import { PetKitty, PetSprite } from './petSprite.js'
 import { QueuedMessages } from './queuedMessages.js'
+import {
+  ResidentInputTarget,
+  ResidentSessionPreview,
+  ResidentWorkspaceSidebar,
+  shouldUseResidentWorkspace
+} from './residentWorkspace.js'
 import { LiveTodoPanel, StreamingAssistant } from './streamingAssistant.js'
 import { TextInput, type TextInputMouseApi } from './textInput.js'
+import { ComposerToolbar, TurnDivider, WorkspaceHeader } from './workspaceChrome.js'
 
 // Box geometry, kept here so the transcript's reservation math matches the
 // rendered overlay exactly.
@@ -139,8 +147,9 @@ const TranscriptPane = memo(function TranscriptPane({
   actions,
   composer,
   progress,
+  status,
   transcript
-}: Pick<AppLayoutProps, 'actions' | 'composer' | 'progress' | 'transcript'>) {
+}: Pick<AppLayoutProps, 'actions' | 'composer' | 'progress' | 'status' | 'transcript'>) {
   const ui = useStore($uiState)
   const petBox = useStore($petBox)
   const railCols = useAmbientRailWidth('left') + useAmbientRailWidth('right')
@@ -179,86 +188,97 @@ const TranscriptPane = memo(function TranscriptPane({
   )
 
   return (
-    <>
-      <ScrollBox
-        flexDirection="column"
-        flexGrow={1}
-        flexShrink={1}
-        onClick={(e: { cellIsBlank?: boolean }) => {
-          if (e.cellIsBlank) {
-            actions.clearSelection()
-          }
-        }}
-        ref={transcript.scrollRef}
-        stickyScroll
-      >
-        <Box flexDirection="column" paddingX={1}>
-          {transcript.virtualHistory.topSpacer > 0 ? <Box height={transcript.virtualHistory.topSpacer} /> : null}
+    <Box flexDirection="column" flexGrow={1}>
+      <WorkspaceHeader
+        brand={ui.theme.brand.name}
+        busy={ui.busy}
+        cols={composer.cols - railCols}
+        cwd={status.cwdLabel}
+        mode={ui.info?.work_mode}
+        model={ui.info?.model ?? ''}
+        project={ui.info?.project?.name || ui.sessionTitle}
+        t={ui.theme}
+      />
 
-          {transcript.virtualRows.slice(transcript.virtualHistory.start, transcript.virtualHistory.end).map(row => (
-            <Box flexDirection="column" key={row.key} ref={transcript.virtualHistory.measureRef(row.key)}>
-              {row.msg.role === 'user' && firstUserIdx >= 0 && row.index > firstUserIdx && (
-                <Box marginTop={1}>
-                  <Text color={ui.theme.color.border}>───</Text>
-                </Box>
-              )}
+      <Box flexDirection="row" flexGrow={1}>
+        <ScrollBox
+          flexDirection="column"
+          flexGrow={1}
+          flexShrink={1}
+          onClick={(e: { cellIsBlank?: boolean }) => {
+            if (e.cellIsBlank) {
+              actions.clearSelection()
+            }
+          }}
+          ref={transcript.scrollRef}
+          stickyScroll
+        >
+          <Box flexDirection="column" paddingX={1}>
+            {transcript.virtualHistory.topSpacer > 0 ? <Box height={transcript.virtualHistory.topSpacer} /> : null}
 
-              {row.msg.kind === 'intro' ? (
-                <Box flexDirection="column" paddingTop={1}>
-                  <Banner maxWidth={Math.max(1, composer.cols - 2)} t={ui.theme} />
+            {transcript.virtualRows.slice(transcript.virtualHistory.start, transcript.virtualHistory.end).map(row => (
+              <Box flexDirection="column" key={row.key} ref={transcript.virtualHistory.measureRef(row.key)}>
+                {row.msg.role === 'user' && firstUserIdx >= 0 && row.index > firstUserIdx && (
+                  <TurnDivider t={ui.theme} />
+                )}
 
-                  {row.msg.info && (
-                    <SessionPanel
-                      info={row.msg.info}
-                      maxWidth={Math.max(1, composer.cols - 2)}
-                      sid={ui.sid}
-                      t={ui.theme}
-                    />
-                  )}
-                </Box>
-              ) : row.msg.kind === 'panel' && row.msg.panelData ? (
-                <Panel sections={row.msg.panelData.sections} t={ui.theme} title={row.msg.panelData.title} />
-              ) : (
-                <MessageLine
-                  cols={bodyCols}
-                  compact={ui.compact}
-                  detailsMode={ui.detailsMode}
-                  detailsModeCommandOverride={ui.detailsModeCommandOverride}
-                  msg={row.msg}
-                  prev={prevRenderedMsg(i => transcript.virtualRows[i]?.msg, row.index, {
-                    commandOverride: ui.detailsModeCommandOverride,
-                    detailsMode: ui.detailsMode,
-                    sections: ui.sections
-                  })}
-                  sections={ui.sections}
-                  t={ui.theme}
-                />
-              )}
+                {row.msg.kind === 'intro' ? (
+                  <Box flexDirection="column" paddingTop={1}>
+                    {row.msg.info && (
+                      <SessionPanel
+                        info={row.msg.info}
+                        maxWidth={Math.max(1, composer.cols - 2)}
+                        sid={ui.sid}
+                        t={ui.theme}
+                      />
+                    )}
+                  </Box>
+                ) : row.msg.kind === 'panel' && row.msg.panelData ? (
+                  <Panel sections={row.msg.panelData.sections} t={ui.theme} title={row.msg.panelData.title} />
+                ) : (
+                  <MessageLine
+                    cols={bodyCols}
+                    compact={ui.compact}
+                    detailsMode={ui.detailsMode}
+                    detailsModeCommandOverride={ui.detailsModeCommandOverride}
+                    msg={row.msg}
+                    prev={prevRenderedMsg(i => transcript.virtualRows[i]?.msg, row.index, {
+                      commandOverride: ui.detailsModeCommandOverride,
+                      detailsMode: ui.detailsMode,
+                      sections: ui.sections
+                    })}
+                    sections={ui.sections}
+                    t={ui.theme}
+                  />
+                )}
 
-              {row.index === lastUserIdx && <LiveTodoPanel />}
-            </Box>
-          ))}
+                {row.index === lastUserIdx && <LiveTodoPanel />}
+              </Box>
+            ))}
 
-          {transcript.virtualHistory.bottomSpacer > 0 ? <Box height={transcript.virtualHistory.bottomSpacer} /> : null}
+            {transcript.virtualHistory.bottomSpacer > 0 ? (
+              <Box height={transcript.virtualHistory.bottomSpacer} />
+            ) : null}
 
-          <StreamingAssistant
-            cols={bodyCols}
-            compact={ui.compact}
-            detailsMode={ui.detailsMode}
-            detailsModeCommandOverride={ui.detailsModeCommandOverride}
-            prevMsg={transcript.historyItems[transcript.historyItems.length - 1]}
-            progress={progress}
-            sections={ui.sections}
-          />
+            <StreamingAssistant
+              cols={bodyCols}
+              compact={ui.compact}
+              detailsMode={ui.detailsMode}
+              detailsModeCommandOverride={ui.detailsModeCommandOverride}
+              prevMsg={transcript.historyItems[transcript.historyItems.length - 1]}
+              progress={progress}
+              sections={ui.sections}
+            />
 
-          {/* Narrow terminals: reserve rows so the newest lines sit above the pet. */}
-          {petBandRows > 0 ? <Box height={petBandRows} /> : null}
-        </Box>
-      </ScrollBox>
+            {/* Narrow terminals: reserve rows so the newest lines sit above the pet. */}
+            {petBandRows > 0 ? <Box height={petBandRows} /> : null}
+          </Box>
+        </ScrollBox>
 
-      <NoSelect flexShrink={0} marginLeft={1}>
-        <TranscriptScrollbar scrollRef={transcript.scrollRef} t={ui.theme} />
-      </NoSelect>
+        <NoSelect flexShrink={0} marginLeft={1}>
+          <TranscriptScrollbar scrollRef={transcript.scrollRef} t={ui.theme} />
+        </NoSelect>
+      </Box>
 
       <StickyPromptTracker
         messages={transcript.historyItems}
@@ -266,15 +286,16 @@ const TranscriptPane = memo(function TranscriptPane({
         onChange={actions.setStickyPrompt}
         scrollRef={transcript.scrollRef}
       />
-    </>
+    </Box>
   )
 })
 
 const ComposerPane = memo(function ComposerPane({
   actions,
   composer,
+  residentWorkspace = false,
   status
-}: Pick<AppLayoutProps, 'actions' | 'composer' | 'status'>) {
+}: Pick<AppLayoutProps, 'actions' | 'composer' | 'status'> & { residentWorkspace?: boolean }) {
   const ui = useStore($uiState)
   const isBlocked = useStore($isBlocked)
   const sh = (composer.inputBuf[0] ?? composer.input).startsWith('!')
@@ -339,6 +360,18 @@ const ComposerPane = memo(function ComposerPane({
       }}
       paddingX={1}
     >
+      {residentWorkspace ? (
+        <ResidentInputTarget currentSessionId={ui.sid} sessions={ui.liveSessions} t={ui.theme} />
+      ) : null}
+
+      <ComposerToolbar
+        busy={ui.busy}
+        cols={composer.cols}
+        mode={ui.info?.work_mode}
+        queueCount={composer.queuedDisplay.length}
+        t={ui.theme}
+      />
+
       <QueuedMessages
         cols={composer.cols}
         queued={composer.queuedDisplay}
@@ -508,6 +541,7 @@ const StatusRulePane = memo(function StatusRulePane({
         turnStartedAt={status.turnStartedAt}
         usage={ui.usage}
         voiceLabel={status.voiceLabel}
+        workMode={ui.info?.work_mode}
       />
     </Box>
   )
@@ -523,6 +557,31 @@ export const AppLayout = memo(function AppLayout({
 }: AppLayoutProps) {
   const overlay = useStore($overlayState)
   const ui = useStore($uiState)
+  const unreadBySession = useStore($unreadBySession)
+  const subagents = useTurnSelector(state => state.subagents)
+  const { stdout } = useStdout()
+  const terminalRows = stdout?.rows ?? 24
+
+  const residentWorkspace =
+    !overlay.agents &&
+    !overlay.journey &&
+    shouldUseResidentWorkspace(
+      composer.cols,
+      terminalRows,
+      ui.liveSessions.length,
+      ui.info?.resident_workspace ?? 'auto'
+    )
+
+  const residentPreviews = residentWorkspace
+    ? ui.liveSessions
+        .map((session, index) => ({ index, session }))
+        .filter(({ session }) => (ui.sid ? session.id !== ui.sid : !session.current))
+        .slice(0, Math.max(1, Math.min(3, Math.floor((terminalRows - 22) / 7))))
+    : []
+
+  const residentComposer = residentWorkspace
+    ? { ...composer, cols: Math.max(40, composer.cols - 30) }
+    : composer
 
   // Inline mode skips AlternateScreen so the host terminal's native
   // scrollback captures rows scrolled off the top; composer + progress
@@ -533,8 +592,14 @@ export const AppLayout = memo(function AppLayout({
   return (
     <Shell {...shellProps}>
       <Box flexDirection="column" flexGrow={1} position="relative">
-        <Box flexDirection="row" flexGrow={1}>
-          {!overlay.agents && !overlay.journey && <AmbientRail side="left" />}
+        <Box
+          flexDirection="row"
+          flexGrow={1}
+          flexShrink={1}
+          height={residentWorkspace ? Math.max(12, terminalRows - 7) : undefined}
+          minHeight={0}
+        >
+          {!overlay.agents && !overlay.journey && !residentWorkspace && <AmbientRail side="left" />}
           {overlay.agents ? (
             <PerfPane id="agents">
               <AgentsOverlayPane />
@@ -543,12 +608,51 @@ export const AppLayout = memo(function AppLayout({
             <PerfPane id="journey">
               <JourneyPane />
             </PerfPane>
+          ) : residentWorkspace ? (
+            <>
+              <ResidentWorkspaceSidebar
+                currentSessionId={ui.sid}
+                onNew={actions.newLiveSession}
+                onOpenAgents={() => patchOverlayState({ agents: true, agentsInitialHistoryIndex: 0 })}
+                onSelect={actions.activateLiveSession}
+                sessions={ui.liveSessions}
+                subagents={subagents}
+                t={ui.theme}
+                unread={unreadBySession}
+              />
+              <Box flexDirection="column" flexGrow={1}>
+                {residentPreviews.map(({ index, session }) => (
+                  <ResidentSessionPreview
+                    index={index}
+                    key={session.id}
+                    onSelect={actions.activateLiveSession}
+                    session={session}
+                    t={ui.theme}
+                  />
+                ))}
+                <PerfPane id="transcript">
+                  <TranscriptPane
+                    actions={actions}
+                    composer={residentComposer}
+                    progress={progress}
+                    status={status}
+                    transcript={transcript}
+                  />
+                </PerfPane>
+              </Box>
+            </>
           ) : (
             <PerfPane id="transcript">
-              <TranscriptPane actions={actions} composer={composer} progress={progress} transcript={transcript} />
+              <TranscriptPane
+                actions={actions}
+                composer={composer}
+                progress={progress}
+                status={status}
+                transcript={transcript}
+              />
             </PerfPane>
           )}
-          {!overlay.agents && !overlay.journey && <AmbientRail side="right" />}
+          {!overlay.agents && !overlay.journey && !residentWorkspace && <AmbientRail side="right" />}
         </Box>
 
         {!overlay.agents && !overlay.journey && (
@@ -564,7 +668,12 @@ export const AppLayout = memo(function AppLayout({
             </PerfPane>
 
             <PerfPane id="composer">
-              <ComposerPane actions={actions} composer={composer} status={status} />
+              <ComposerPane
+                actions={actions}
+                composer={composer}
+                residentWorkspace={residentWorkspace}
+                status={status}
+              />
             </PerfPane>
 
             {SHOW_FPS && (

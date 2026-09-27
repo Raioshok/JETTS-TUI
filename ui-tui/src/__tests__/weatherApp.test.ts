@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { getOverlayState, resetOverlayState } from '../app/overlayStore.js'
-import { weatherApp, type WeatherState } from '../sdk/apps/index.js'
+import { weatherApp, type WeatherState } from '../sdk/apps/weather.js'
 import { launchWidget } from '../sdk/host.js'
 import type { WidgetInput } from '../sdk/types.js'
 

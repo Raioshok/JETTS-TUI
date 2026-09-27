@@ -172,6 +172,7 @@ export interface SessionInfo {
   project?: null | ProjectInfo
   reasoning_effort?: string
   release_date?: string
+  resident_workspace?: 'auto' | 'off' | 'on'
   service_tier?: string
   skills: Record<string, string[]>
   system_prompt?: string
@@ -180,6 +181,7 @@ export interface SessionInfo {
   update_command?: string
   usage?: Usage
   version?: string
+  work_mode?: 'accept-edits' | 'default' | 'plan'
 }
 
 export interface Usage {

@@ -1,6 +1,6 @@
 import { PassThrough } from 'stream'
 
-import { Box, renderSync } from '@freeide/ink'
+import { Box, renderSync } from '@jetts-tui/ink'
 import React from 'react'
 import { describe, expect, it } from 'vitest'
 

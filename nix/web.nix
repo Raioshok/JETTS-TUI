@@ -1,7 +1,7 @@
 # nix/web.nix — FreeIDE Web Dashboard (Vite/React) frontend build
 { pkgs, freeideNpmLib, ... }:
 let
-  # @freeide/shared ships as a file: workspace dep of web, so its source
+  # @jetts-tui/shared ships as a file: workspace dep of web, so its source
   # must be in the filtered src tree too.
   npm = freeideNpmLib.mkNpmPassthru {
     dirs = [

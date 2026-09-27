@@ -1,4 +1,4 @@
-import { Box, Text } from '@freeide/ink'
+import { Box, Text } from '@jetts-tui/ink'
 import { memo, useState } from 'react'
 
 import { countPendingTodos } from '../lib/liveProgress.js'

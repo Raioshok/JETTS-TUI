@@ -2,7 +2,7 @@
   "extends": "./tsconfig.json",
   "compilerOptions": {
     "paths": {
-      "@freeide/ink": ["src/types/freeide-ink.d.ts"]
+      "@jetts-tui/ink": ["src/types/jetts-tui-ink.d.ts"]
     }
   }
 }

@@ -1228,6 +1228,16 @@ def handle_function_call(
         except Exception as _mw_err:
             logger.debug("tool_request middleware error: %s", _mw_err)
 
+    # Enforce the session work mode against the effective post-middleware tool
+    # call. Plan mode is a real mutation boundary, not just prompt guidance.
+    try:
+        from tools.work_mode import maybe_block_tool
+        _work_mode_block = maybe_block_tool(function_name, function_args)
+        if _work_mode_block is not None:
+            return _work_mode_block
+    except Exception as _work_mode_err:
+        logger.debug("work-mode guard error: %s", _work_mode_err)
+
     try:
         if function_name in _AGENT_LOOP_TOOLS:
             return json.dumps({"error": f"{function_name} must be handled by the agent loop"})

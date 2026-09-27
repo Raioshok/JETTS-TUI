@@ -29,13 +29,14 @@ import { fileURLToPath } from "node:url";
 
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const websiteDir = resolve(scriptDir, "..");
+const repoDir = resolve(websiteDir, "..");
 const extractScript = join(scriptDir, "extract-skills.py");
 const llmsScript = join(scriptDir, "generate-llms-txt.py");
 const cronBlueprintsScript = join(scriptDir, "extract-automation-blueprints.py");
 const outputFile = join(websiteDir, "static", "api", "skills.json");
 const unifiedIndexFile = join(websiteDir, "static", "api", "skills-index.json");
 const UNIFIED_INDEX_URL =
-  "https://freeide-agent.freeide.dev/docs/api/skills-index.json";
+  "https://raw.githubusercontent.com/Raioshok/JETTS-TUI/main/website/static/api/skills-index.json";
 const UNIFIED_INDEX_MAX_AGE_MS = 24 * 60 * 60 * 1000; // 24h
 
 function writeEmptyFallback(reason) {
@@ -52,16 +53,25 @@ function runPython(script, label) {
     console.warn(`[prebuild] ${label} skipped (script missing)`);
     return false;
   }
-  const r = spawnSync("python3", [script], { stdio: "inherit", cwd: websiteDir });
-  if (r.error && r.error.code === "ENOENT") {
-    console.warn(`[prebuild] ${label} skipped (python3 not found)`);
-    return false;
+  const localPython = process.platform === "win32"
+    ? join(repoDir, ".venv", "Scripts", "python.exe")
+    : join(repoDir, ".venv", "bin", "python");
+  const candidates = [
+    ...(existsSync(localPython) ? [[localPython]] : []),
+    ["python3"],
+    ["python"],
+  ];
+  for (const [command] of candidates) {
+    const r = spawnSync(command, [script], { stdio: "inherit", cwd: websiteDir });
+    if (r.error?.code === "ENOENT" || r.status === 9009) continue;
+    if (r.status !== 0) {
+      console.warn(`[prebuild] ${label} exited with status ${r.status}`);
+      return false;
+    }
+    return true;
   }
-  if (r.status !== 0) {
-    console.warn(`[prebuild] ${label} exited with status ${r.status}`);
-    return false;
-  }
-  return true;
+  console.warn(`[prebuild] ${label} skipped (Python not found)`);
+  return false;
 }
 
 async function ensureUnifiedIndex() {
@@ -125,16 +135,8 @@ await ensureUnifiedIndex();
 // 1) skills.json — required for the Skills Hub page.
 if (!existsSync(extractScript)) {
   writeEmptyFallback("extract script missing");
-} else {
-  const r = spawnSync("python3", [extractScript], {
-    stdio: "inherit",
-    cwd: websiteDir,
-  });
-  if (r.error && r.error.code === "ENOENT") {
-    writeEmptyFallback("python3 not found");
-  } else if (r.status !== 0) {
-    writeEmptyFallback(`extract-skills.py exited with status ${r.status}`);
-  }
+} else if (!runPython(extractScript, "extract-skills.py")) {
+  writeEmptyFallback("extract-skills.py failed");
 }
 
 // 2) llms.txt + llms-full.txt — agent-friendly docs entrypoints. Non-fatal.

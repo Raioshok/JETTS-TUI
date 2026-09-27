@@ -70,6 +70,25 @@ def _stable_prompt(agent):
         return build_system_prompt_parts(agent)["stable"]
 
 
+class TestEfficiencyGuidance:
+    def test_disabled_has_zero_prompt_footprint(self):
+        prompt = _stable_prompt(_make_agent(_efficiency_enabled=False))
+        assert "TOKEN-EFFICIENCY CONTRACT" not in prompt
+
+    def test_enabled_exposes_budget_and_progress_contract(self):
+        prompt = _stable_prompt(_make_agent(
+            _efficiency_enabled=True,
+            _task_token_budget=24_000,
+            _long_task_progress_file=".task-progress.md",
+            _long_task_turn_threshold=10,
+        ))
+
+        assert "24,000 total input + output tokens" in prompt
+        assert "narrow, independent, reasoning-heavy work" in prompt
+        assert "10 model/tool turns" in prompt
+        assert "`.task-progress.md`" in prompt
+
+
 def _prompt_parts(agent):
     with (
         patch("run_agent.load_soul_md", return_value=""),

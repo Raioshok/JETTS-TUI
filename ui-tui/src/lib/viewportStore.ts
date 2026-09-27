@@ -1,4 +1,4 @@
-import type { ScrollBoxHandle } from '@freeide/ink'
+import type { ScrollBoxHandle } from '@jetts-tui/ink'
 import type { RefObject } from 'react'
 import { useCallback, useMemo, useSyncExternalStore } from 'react'
 

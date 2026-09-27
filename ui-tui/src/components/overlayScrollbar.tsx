@@ -1,4 +1,4 @@
-import { Box, type ScrollBoxHandle, Text } from '@freeide/ink'
+import { Box, type ScrollBoxHandle, Text } from '@jetts-tui/ink'
 import { type RefObject, useState } from 'react'
 
 import type { Theme } from '../theme.js'

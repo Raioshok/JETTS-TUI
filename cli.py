@@ -476,6 +476,12 @@ def load_cli_config() -> Dict[str, Any]:
             "prefill_messages_file": "",
             "reasoning_effort": "",
             "service_tier": "",
+            "efficiency": {
+                "enabled": False,
+                "task_token_budget": 0,
+                "long_task_progress_file": ".freeide-progress.md",
+                "long_task_turn_threshold": 12,
+            },
             "personalities": {
                 "helpful": "You are a helpful, friendly AI assistant.",
                 "concise": "You are a concise assistant. Keep responses brief and to the point.",
@@ -3854,11 +3860,14 @@ def _build_compact_banner() -> str:
     title_color = _skin.get_color("banner_title", "#FFBF00") if _skin else "#FFBF00"
     dim_color = _skin.get_color("banner_dim", "#B8860B") if _skin else "#B8860B"
 
+    if skin_name == "studio":
+        return f"\n[bold {title_color}]FreeIDE[/]  [{dim_color}]/ Studio[/]\n"
+
     if skin_name == "default":
         line1 = "◆ FreeIDE — the free AI coding agent"
         tiny_line = "◆ FreeIDE"
     else:
-        agent_name = _skin.get_branding("agent_name", "FreeIDE Agent") if _skin else "FreeIDE Agent"
+        agent_name = _skin.get_branding("agent_name", "Jetts-TUI") if _skin else "Jetts-TUI"
         line1 = f"{agent_name} - AI Agent Framework"
         tiny_line = agent_name
 
@@ -3866,7 +3875,7 @@ def _build_compact_banner() -> str:
         from freeide_cli import __release_date__ as _release_date
         from freeide_cli import __version__ as _version
 
-        version_line = f"FreeIDE Agent v{_version} ({_release_date})"
+        version_line = f"Jetts-TUI v{_version} ({_release_date})"
     else:
         version_line = format_banner_version_label()
 
@@ -4347,6 +4356,33 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
             _resolve_prefill_messages_file(CLI_CONFIG)
         )
         
+        # ── Jailbreak Override ───────────────────────────────────────────
+        # Applies a built-in jailbreak preset (E/F/D) at runtime, overriding
+        # both system_prompt and prefill_messages.  Activated by:
+        #   • config.yaml:  agent.jailbreak: e  (or f, d)
+        #   • env var:      FREEIDE_JAILBREAK=e
+        #   • CLI flag:     --jailbreak e        (routed via env by main.py)
+        #
+        # The jailbreak is applied AFTER normal config resolution, so it
+        # unconditionally overrides whatever system_prompt/prefill was set.
+        _jb_key = (
+            os.getenv("FREEIDE_JAILBREAK", "")
+            or str(CLI_CONFIG.get("agent", {}).get("jailbreak", "")).strip()
+        )
+        if _jb_key:
+            from freeide_cli.jailbreak import resolve_jailbreak
+            _jb_sys, _jb_prefill = resolve_jailbreak(_jb_key)
+            if _jb_sys or _jb_prefill:
+                self.system_prompt = _jb_sys or self.system_prompt
+                if _jb_prefill:
+                    self.prefill_messages = _jb_prefill
+                logger.info(
+                    "Jailbreak preset '%s' applied (sys_prompt=%s, prefill=%d msgs)",
+                    _jb_key,
+                    "set" if _jb_sys else "unchanged",
+                    len(_jb_prefill),
+                )
+
         # Reasoning config (OpenRouter reasoning effort level)
         # Per-model override > global reasoning_effort — resolved through the
         # shared chokepoint in freeide_constants (Closes #21256).
@@ -4511,6 +4547,8 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
         # that wants its output run as the next agent turn. Consumed and cleared
         # by the interactive loop immediately after process_command() returns.
         self._pending_agent_seed = None
+        self._work_mode = "default"
+        self._active_spec_slug = None
         self._secret_state = None
         self._secret_deadline = 0
         self._spinner_text: str = ""  # thinking spinner text for TUI
@@ -5342,6 +5380,14 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
             return ""
         flow = self._spinner_token_flow()
         t0 = getattr(self, "_tool_start_time", 0) or 0
+        if self._studio_activity_enabled():
+            from freeide_cli.studio import activity_line
+            now = time.monotonic()
+            return activity_line(
+                txt, width=self._get_tui_terminal_width(), now=now,
+                elapsed=now - t0 if t0 > 0 else None, tokens=flow,
+                reduce_motion=CLI_CONFIG.get("display", {}).get("reduce_motion", False),
+            )
         if t0 > 0:
             elapsed = time.monotonic() - t0
             if elapsed >= 60:
@@ -5358,6 +5404,10 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
         if flow:
             return f"  {txt}  ({flow})"
         return f"  {txt}"
+
+    def _studio_activity_enabled(self) -> bool:
+        from freeide_cli.skin_engine import get_active_skin_name
+        return get_active_skin_name() == "studio"
 
     # ── Per-turn accounting (display.turn_summary / spinner_token_flow) ──
     #
@@ -5733,6 +5783,12 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
             return f"⊙ goal {used}/{max_turns}"
         return "⊙ goal"
 
+    def _work_mode_status_label(self) -> str:
+        return {
+            "plan": "◇ PLAN",
+            "accept-edits": "✎ EDITS",
+        }.get(getattr(self, "_work_mode", "default"), "")
+
     def _build_status_bar_text(self, width: Optional[int] = None) -> str:
         """Return a compact one-line session status string for the TUI footer."""
         try:
@@ -5745,6 +5801,7 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
             battery_label = snapshot.get("battery_label") or ""
             battery_prefix = f"{battery_label} │ " if battery_label else ""
             focus_label = snapshot.get("focus_label") or ""
+            work_mode_label = self._work_mode_status_label()
 
             yolo_active = self._is_session_yolo_active()
             goal_segment = self._status_bar_goal_segment(snapshot)
@@ -5754,6 +5811,8 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
                     text += f" · {goal_segment}"
                 if focus_label:
                     text += f" · {focus_label}"
+                if work_mode_label:
+                    text += f" · {work_mode_label}"
                 if yolo_active:
                     text += " · ⚠ YOLO"
                 return self._trim_status_bar_text(text, width)
@@ -5778,6 +5837,8 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
                 parts.append(duration_label)
                 if focus_label:
                     parts.append(focus_label)
+                if work_mode_label:
+                    parts.append(work_mode_label)
                 if yolo_active:
                     parts.append("⚠ YOLO")
                 return self._trim_status_bar_text(" · ".join(parts), width)
@@ -5815,6 +5876,8 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
                 parts.append(idle_since)
             if focus_label:
                 parts.append(focus_label)
+            if work_mode_label:
+                parts.append(work_mode_label)
             if yolo_active:
                 parts.append("⚠ YOLO")
             return self._trim_status_bar_text(" │ ".join(parts), width)
@@ -5866,6 +5929,7 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
             goal_segment = self._status_bar_goal_segment(snapshot)
             battery_label = snapshot.get("battery_label") or ""
             focus_label = snapshot.get("focus_label") or ""
+            work_mode_label = self._work_mode_status_label()
             yolo_active = self._is_session_yolo_active()
 
             segments = []  # (fg, bg, text)
@@ -5904,6 +5968,8 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
                 meta.append(idle_since)
             if focus_label:
                 meta.append(focus_label)
+            if work_mode_label:
+                meta.append(work_mode_label)
             if meta:
                 segments.append((ink, surf1, " · ".join(meta)))
 
@@ -5932,6 +5998,7 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
             battery_label = snapshot.get("battery_label") or ""
             battery_style = self._battery_status_style(snapshot.get("battery_category", "dim"))
             focus_label = snapshot.get("focus_label") or ""
+            work_mode_label = self._work_mode_status_label()
 
             # Bold-gradient-rice powerline bar (default skin). Falls through to
             # the flat class-based bar when it doesn't fit or isn't active.
@@ -5955,6 +6022,9 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
                 if focus_label:
                     frags.append(("class:status-bar-dim", " · "))
                     frags.append(("class:status-bar-strong", focus_label))
+                if work_mode_label:
+                    frags.append(("class:status-bar-dim", " · "))
+                    frags.append(("class:status-bar-strong", work_mode_label))
                 if yolo_active:
                     frags.append(("class:status-bar-dim", " · "))
                     frags.append(("class:status-bar-yolo", "⚠ YOLO"))
@@ -5995,6 +6065,9 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
                     if focus_label:
                         frags.append(("class:status-bar-dim", " · "))
                         frags.append(("class:status-bar-strong", focus_label))
+                    if work_mode_label:
+                        frags.append(("class:status-bar-dim", " · "))
+                        frags.append(("class:status-bar-strong", work_mode_label))
                     if yolo_active:
                         frags.append(("class:status-bar-dim", " · "))
                         frags.append(("class:status-bar-yolo", "⚠ YOLO"))
@@ -6056,6 +6129,9 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
                     if focus_label:
                         frags.append(("class:status-bar-dim", " │ "))
                         frags.append(("class:status-bar-strong", focus_label))
+                    if work_mode_label:
+                        frags.append(("class:status-bar-dim", " │ "))
+                        frags.append(("class:status-bar-strong", work_mode_label))
                     if yolo_active:
                         frags.append(("class:status-bar-dim", " │ "))
                         frags.append(("class:status-bar-yolo", "⚠ YOLO"))
@@ -6805,6 +6881,8 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
 
     def _command_spinner_frame(self) -> str:
         """Return the current spinner frame for slow slash commands."""
+        if CLI_CONFIG.get("display", {}).get("reduce_motion", False):
+            return "·"
         frame_idx = int(time.monotonic() * 10) % len(_COMMAND_SPINNER_FRAMES)
         return _COMMAND_SPINNER_FRAMES[frame_idx]
 
@@ -9770,6 +9848,8 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
                 self._handle_skills_command(cmd_original)
         elif canonical == "learn":
             self._handle_learn_command(cmd_original)
+        elif canonical == "brain":
+            self._handle_brain_command(cmd_original)
         elif canonical == "init":
             self._handle_init_command(cmd_original)
         elif canonical == "memory":
@@ -9778,6 +9858,12 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
             self._show_gateway_status()
         elif canonical == "status":
             self._show_session_status()
+        elif canonical == "permissions":
+            self._handle_permissions_command(cmd_original)
+        elif canonical == "review":
+            self._handle_review_command(cmd_original)
+        elif canonical == "doctor":
+            self._handle_doctor_command(cmd_original)
         elif canonical == "context":
             self._show_context_breakdown(cmd_original)
         elif canonical == "egress":
@@ -9804,6 +9890,8 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
             self._toggle_yolo()
         elif canonical == "approvals":
             self._handle_approvals_command(cmd_original)
+        elif canonical == "mode":
+            self._handle_mode_command(cmd_original)
         elif canonical == "reasoning":
             self._handle_reasoning_command(cmd_original)
         elif canonical == "fast":
@@ -9959,6 +10047,8 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
                 _cprint(f"  No agent running; queued as next turn: {payload[:80]}{'...' if len(payload) > 80 else ''}")
         elif canonical == "goal":
             self._handle_goal_command(cmd_original)
+        elif canonical == "spec":
+            self._handle_spec_command(cmd_original)
         elif canonical == "moa":
             # /moa is one-shot sugar only: run a single prompt through the
             # default MoA preset, then restore the prior model. To *switch* to a
@@ -14055,10 +14145,10 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
         try:
             from freeide_cli.skin_engine import get_active_skin
             _welcome_skin = get_active_skin()
-            _welcome_text = _welcome_skin.get_branding("welcome", "Welcome to FreeIDE Agent! Type your message or /help for commands.")
+            _welcome_text = _welcome_skin.get_branding("welcome", "Welcome to Jetts-TUI! Type your message or /help for commands.")
             _welcome_color = _welcome_skin.get_color("banner_text", "#FFF8DC")
         except Exception:
-            _welcome_text = "Welcome to FreeIDE Agent! Type your message or /help for commands."
+            _welcome_text = "Welcome to Jetts-TUI! Type your message or /help for commands."
             _welcome_color = "#FFF8DC"
         self._console_print(f"[{_welcome_color}]{_welcome_text}[/]")
 
@@ -14759,6 +14849,23 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
             lambda: not self._clarify_state and not self._approval_state and not self._slash_confirm_state and not self._sudo_state and not self._secret_state and not self._model_picker_state
         )
 
+        @kb.add(_IgnoreKeys.BackTab, filter=_normal_input, eager=True)
+        def cycle_work_mode(event):
+            """Shift+Tab: reverse completion, otherwise cycle work mode."""
+            buf = event.current_buffer
+            if buf.complete_state:
+                buf.complete_previous()
+                return
+            mode = self._cycle_work_mode()
+            label = {
+                "default": "Default — normal tool behavior",
+                "accept-edits": "Accept Edits — workspace edits allowed",
+                "plan": "Plan — read-only except plans/specs",
+            }[mode]
+            suffix = " (takes effect next turn)" if self._agent_running else ""
+            _cprint(f"  ⇧Tab  {label}{suffix}")
+            event.app.invalidate()
+
         def _recall_without_recollapse(buf, move):
             """Run a history-navigation move, suppressing paste-collapse.
 
@@ -15013,7 +15120,7 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
             import signal as _sig
             from prompt_toolkit.application import run_in_terminal
             from freeide_cli.skin_engine import get_active_skin
-            agent_name = get_active_skin().get_branding("agent_name", "FreeIDE Agent")
+            agent_name = get_active_skin().get_branding("agent_name", "Jetts-TUI")
             msg = f"\n{agent_name} has been suspended. Run `fg` to bring {agent_name} back."
             def _suspend():
                 os.write(1, msg.encode())
@@ -15396,11 +15503,16 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
                 status = cli_ref._command_status or "Processing command..."
                 return f"{frame} {status}"
             if cli_ref._agent_running:
-                return "msg=interrupt · /queue · /bg · /steer · Ctrl+C cancel"
+                from freeide_cli.studio import composer_hint
+                mode = cli_ref.busy_input_mode
+                if mode == "steer" and cli_ref._attached_images:
+                    mode = "queue"
+                return composer_hint(busy=True, mode=mode)
             if cli_ref._voice_mode:
                 _label = cli_ref._voice_record_key_label()
                 return f"type or {_label} to record"
-            return ""
+            from freeide_cli.studio import composer_hint
+            return composer_hint(width=cli_ref._get_tui_terminal_width())
 
         input_area.control.input_processors.append(_PlaceholderProcessor(_get_placeholder))
 
@@ -16199,6 +16311,14 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
                 if self._command_running:
                     self._invalidate(min_interval=0.1)
                     time.sleep(0.1)
+                elif (self._agent_running and self._spinner_text
+                      and self._studio_activity_enabled()
+                      and not self._use_minimal_tui_chrome()):
+                    # Only active work animates. Reduced motion still updates
+                    # elapsed time once a second; idle terminals never repaint.
+                    interval = 1.0 if CLI_CONFIG.get("display", {}).get("reduce_motion", False) else 0.12
+                    self._invalidate(min_interval=interval)
+                    time.sleep(interval)
                 else:
                     # Do not repaint the idle prompt every second. In non-full-screen
                     # prompt_toolkit mode, background redraws can fight tmux/Ghostty/cmux

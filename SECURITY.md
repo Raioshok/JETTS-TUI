@@ -1,15 +1,14 @@
-# FreeIDE Agent Security Policy
+# Jetts-TUI Security Policy
 
-This document describes FreeIDE Agent's trust model, names the one
+This document describes Jetts-TUI's trust model, names the one
 security boundary the project treats as load-bearing, and defines the
 scope for vulnerability reports.
 
 ## 1. Reporting a Vulnerability
 
-Report privately via [GitHub Security Advisories](https://github.com/freeide/freeide/security/advisories/new)
-or **security@freeide.dev**. Do not open public issues for
-security vulnerabilities. **FreeIDE Agent does not operate a bug
-bounty program.**
+Report privately via [GitHub Security Advisories](https://github.com/Raioshok/JETTS-TUI/security/advisories/new).
+Do not open public issues for security vulnerabilities. Jetts-TUI does not
+operate a bug bounty program.
 
 A useful report includes:
 
@@ -326,7 +325,6 @@ that:
 
 - **Coordinated disclosure window:** 90 days from report, or until a
   fix is released, whichever comes first.
-- **Channel:** the GHSA thread or email correspondence with
-  security@freeide.dev.
+- **Channel:** the [Jetts-TUI GHSA thread](https://github.com/Raioshok/JETTS-TUI/security/advisories/new).
 - **Credit:** reporters are credited in release notes unless
   anonymity is requested.

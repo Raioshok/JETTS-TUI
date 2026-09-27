@@ -1,4 +1,4 @@
-import { Box, type ScrollBoxHandle, stringWidth, Text } from '@freeide/ink'
+import { Box, type ScrollBoxHandle, stringWidth, Text } from '@jetts-tui/ink'
 import { useStore } from '@nanostores/react'
 import { type ReactNode, type RefObject, useEffect, useMemo, useRef, useState } from 'react'
 import unicodeSpinners from 'unicode-animations'
@@ -443,6 +443,7 @@ export function StatusRule({
   model,
   modelFast,
   modelReasoningEffort,
+  workMode,
   indicatorStyle = 'kaomoji',
   notice,
   usage,
@@ -471,6 +472,12 @@ export function StatusRule({
 
   const bar = !segs.compactCtx && usage.context_max ? ctxBar(pct) : ''
   const modelText = modelLabel(model, modelReasoningEffort, modelFast)
+  const workModeText = workMode === 'plan' ? '◇ plan' : workMode === 'accept-edits' ? '✎ edits' : ''
+  const showFocus = !!focusView
+
+  const pinnedBadgeWidth =
+    (workModeText ? stringWidth(' │ ') + stringWidth(workModeText) : 0) +
+    (showFocus ? stringWidth(' │ ◉ focus') : 0)
 
   // Battery read-out — the first (pinned) status-bar element when enabled.
   const showBattery = !!battery && battery.available && battery.percent != null
@@ -507,7 +514,8 @@ export function StatusRule({
     slotWidth +
     stringWidth(' │ ') +
     stringWidth(modelText) +
-    (ctxLabel ? stringWidth(' │ ') + stringWidth(ctxLabel) : 0)
+    (ctxLabel ? stringWidth(' │ ') + stringWidth(ctxLabel) : 0) +
+    pinnedBadgeWidth
 
   const { leftWidth, rightWidth, separatorWidth } = statusRuleWidths(cols, cwdLabel, essentialWidth)
 
@@ -570,11 +578,6 @@ export function StatusRule({
   // Dev-gated readout (FREEIDE_DEV_CREDITS), lowest priority,
   // so it consumes tail budget LAST and drops first on a narrow terminal.
   const showDevCredits = !!devCreditsText && fits(SEP + stringWidth(devCreditsText))
-
-  // Focus-view badge. Pinned (not tail-budgeted) on purpose: the whole point of
-  // the indicator is that the user can never be in reduced-output mode without
-  // seeing it, so it must not drop off a narrow terminal.
-  const showFocus = !!focusView
 
   const handleSessionCountClick = (event: { stopImmediatePropagation?: () => void }) => {
     event.stopImmediatePropagation?.()
@@ -640,6 +643,12 @@ export function StatusRule({
             </Text>
           ) : null}
         </Box>
+        {workModeText ? (
+          <Box flexDirection="row" flexShrink={0}>
+            <Text color={t.color.muted}>{' │ '}</Text>
+            <Text color={workMode === 'plan' ? t.color.warn : t.color.accent}>{workModeText}</Text>
+          </Box>
+        ) : null}
         {showFocus ? (
           <Box flexDirection="row" flexShrink={0}>
             <Text color={t.color.muted}>{' │ '}</Text>
@@ -834,6 +843,7 @@ interface StatusRuleProps {
   model: string
   modelFast?: boolean
   modelReasoningEffort?: string
+  workMode?: 'accept-edits' | 'default' | 'plan'
   indicatorStyle?: IndicatorStyle
   notice?: Notice | null
   sessionStartedAt?: null | number

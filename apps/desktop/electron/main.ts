@@ -647,7 +647,7 @@ const BOOT_FAKE_STEP_MS = (() => {
   return Math.max(120, raw)
 })()
 
-const APP_NAME = process.env.FREEIDE_DESKTOP_APP_NAME || 'FreeIDE'
+const APP_NAME = process.env.FREEIDE_DESKTOP_APP_NAME || 'Jetts-TUI'
 const TITLEBAR_HEIGHT = 34
 const MACOS_TRAFFIC_LIGHTS_HEIGHT = 14
 
@@ -945,7 +945,7 @@ app.setName(APP_NAME)
 // need this, so gate it on Windows. (Fixes: desktop approval/turn notifications
 // never firing on Windows.)
 if (IS_WINDOWS) {
-  app.setAppUserModelId('com.freeide.freeide')
+  app.setAppUserModelId('com.jetts.tui')
 }
 
 // Seed the native About panel with the live FreeIDE version. This is refreshed
@@ -2546,17 +2546,22 @@ let quitPromptOpen = false
 let quitConfirmedWithActiveWork = false
 
 // Resolve the staged updater binary. The Tauri installer copies itself to
-// FREEIDE_HOME/freeide-setup.exe on a successful install (see
+// FREEIDE_HOME/jetts-tui-setup.exe on a successful install (see
 // apps/bootstrap-installer paths::copy_self_to_freeide_home). That binary owns
 // ALL repo mutation — running `freeide update` + rebuilding the desktop — so
 // the desktop never touches its own bits while running. Returns null when the
 // updater isn't staged (e.g. a dev/source run that never went through the
 // installer); callers degrade gracefully.
 function resolveUpdaterBinary() {
-  const name = IS_WINDOWS ? 'freeide-setup.exe' : 'freeide-setup'
-  const candidate = path.join(FREEIDE_HOME, name)
+  const names = IS_WINDOWS
+    ? ['jetts-tui-setup.exe', 'freeide-setup.exe']
+    : ['jetts-tui-setup', 'freeide-setup']
 
-  return fileExists(candidate) ? candidate : null
+  for (const name of names) {
+    const candidate = path.join(FREEIDE_HOME, name)
+    if (fileExists(candidate)) return candidate
+  }
+  return null
 }
 
 function repairMacUpdaterHelper(updater) {
@@ -3363,11 +3368,13 @@ async function applyUpdatesPosixInApp(opts: any) {
       sandboxBlocked: true,
       message:
         'Backend updated. The rebuilt app can’t relaunch automatically ' +
-        '(sandbox helper needs root). Quit and reopen FreeIDE to finish.'
+        '(sandbox helper needs root). Quit and reopen Jetts-TUI to finish.'
     }
   }
 
   const rebuiltApp = [
+    path.join(updateRoot, 'apps', 'desktop', 'release', 'mac-arm64', 'Jetts-TUI.app'),
+    path.join(updateRoot, 'apps', 'desktop', 'release', 'mac', 'Jetts-TUI.app'),
     path.join(updateRoot, 'apps', 'desktop', 'release', 'mac-arm64', 'FreeIDE.app'),
     path.join(updateRoot, 'apps', 'desktop', 'release', 'mac', 'FreeIDE.app')
   ].find(directoryExists)
@@ -3882,7 +3889,7 @@ function resolveFreeIDEBackend(backendArgs) {
   //    is a recoverable state the GUI can drive through.
   return {
     kind: 'bootstrap-needed',
-    label: 'FreeIDE Agent not installed yet; bootstrap required',
+    label: 'Jetts-TUI not installed yet; bootstrap required',
     command: null,
     args: backendArgs,
     bootstrap: true,
@@ -3917,7 +3924,7 @@ async function ensureRuntime(backend) {
 
     if (await handOffWindowsBootstrapRecovery('bootstrap-needed')) {
       const handoffError: Error & { isBootstrapFailure?: boolean; bootstrapHandedOff?: boolean } = new Error(
-        'FreeIDE recovery was handed off to FreeIDE Setup. The desktop will restart when recovery completes.'
+        'Jetts-TUI recovery was handed off to setup. The desktop will restart when recovery completes.'
       )
 
       handoffError.isBootstrapFailure = true
@@ -3978,7 +3985,7 @@ async function ensureRuntime(backend) {
     bootstrapAbortController = null
 
     if (bootstrapResult.cancelled) {
-      const cancelledError = new Error('FreeIDE install was cancelled.') as any
+      const cancelledError = new Error('Jetts-TUI install was cancelled.') as any
       cancelledError.isBootstrapFailure = true
       cancelledError.bootstrapCancelled = true
       bootstrapFailure = cancelledError
@@ -4055,7 +4062,7 @@ async function ensureRuntime(backend) {
   backend.label = `FreeIDE at ${ACTIVE_FREEIDE_ROOT} (venv: ${VENV_ROOT})`
   updateBootProgress({
     phase: 'runtime.ready',
-    message: 'FreeIDE runtime is ready',
+    message: 'Jetts-TUI runtime is ready',
     progress: 82,
     running: true,
     error: null
@@ -8257,7 +8264,7 @@ async function startFreeIDE() {
 
     if (!processOwner) {
       stopBackendChild(freeideProcess)
-      throw new Error('FreeIDE backend start was superseded by a newer connection attempt.')
+      throw new Error('Jetts-TUI backend start was superseded by a newer connection attempt.')
     }
 
     freeideProcess.stdout.on('data', rememberLog)
@@ -8272,7 +8279,7 @@ async function startFreeIDE() {
     freeideProcess.once('error', error => {
       if (!backendConnectionState.clearForCurrentProcess(processOwner)) {
         rememberLog(`Ignoring stale FreeIDE backend error: ${error.message}`)
-        rejectBackendStart?.(new Error('FreeIDE backend start was superseded by a newer connection attempt.'))
+        rejectBackendStart?.(new Error('Jetts-TUI backend start was superseded by a newer connection attempt.'))
 
         return
       }
@@ -8295,7 +8302,7 @@ async function startFreeIDE() {
         rememberLog(`Ignoring stale FreeIDE backend exit (${signal || code})`)
 
         if (!backendReady) {
-          rejectBackendStart?.(new Error('FreeIDE backend start was superseded by a newer connection attempt.'))
+          rejectBackendStart?.(new Error('Jetts-TUI backend start was superseded by a newer connection attempt.'))
         }
 
         return
@@ -8348,7 +8355,7 @@ async function startFreeIDE() {
 
     updateBootProgress({
       phase: 'backend.ready',
-      message: 'FreeIDE backend is ready. Finalizing desktop startup',
+      message: 'Jetts-TUI backend is ready. Finalizing desktop startup',
       progress: 94,
       running: true,
       error: null
@@ -8481,7 +8488,7 @@ function spawnSecondaryWindow({ sessionId, watch }: { sessionId?: string; watch?
     height: SESSION_WINDOW_MIN_HEIGHT,
     minWidth: SESSION_WINDOW_MIN_WIDTH,
     minHeight: SESSION_WINDOW_MIN_HEIGHT,
-    title: 'FreeIDE',
+    title: 'Jetts-TUI',
     titleBarStyle: 'hidden',
     titleBarOverlay: getTitleBarOverlayOptions(),
     trafficLightPosition: IS_MAC ? WINDOW_BUTTON_POSITION : undefined,
@@ -8566,7 +8573,7 @@ function createInstanceWindow() {
     ...nextInstanceBounds(),
     minWidth: WINDOW_MIN_WIDTH,
     minHeight: WINDOW_MIN_HEIGHT,
-    title: 'FreeIDE',
+    title: 'Jetts-TUI',
     titleBarStyle: 'hidden',
     titleBarOverlay: getTitleBarOverlayOptions(),
     trafficLightPosition: IS_MAC ? WINDOW_BUTTON_POSITION : undefined,
@@ -8959,7 +8966,7 @@ function createWindow() {
     ...computeWindowOptions(savedWindowState, screen.getAllDisplays()),
     minWidth: WINDOW_MIN_WIDTH,
     minHeight: WINDOW_MIN_HEIGHT,
-    title: 'FreeIDE',
+    title: 'Jetts-TUI',
     // Frameless title bar on every platform so the renderer can paint the
     // "hide sidebar" button (and other left-side titlebar tools) flush with
     // the top edge — matching the macOS layout where the traffic lights sit
@@ -10019,7 +10026,7 @@ ipcMain.handle('freeide:notify', (_event, payload) => {
   const actions = Array.isArray(payload?.actions) ? payload.actions : []
 
   const notification = new Notification({
-    title: payload?.title || 'FreeIDE',
+    title: payload?.title || 'Jetts-TUI',
     body: payload?.body || '',
     silent: Boolean(payload?.silent),
     actions: actions.map(action => ({ type: 'button', text: String(action?.text || '') }))
@@ -10580,7 +10587,7 @@ function terminalShellEnv() {
   env.COLORTERM = 'truecolor'
   env.LC_CTYPE = env.LC_CTYPE || 'UTF-8'
   env.TERM = 'xterm-256color'
-  env.TERM_PROGRAM = 'FreeIDE'
+  env.TERM_PROGRAM = 'Jetts-TUI'
   env.TERM_PROGRAM_VERSION = app.getVersion()
 
   // Let a freeide/--tui launched in this pane know it's embedded in the desktop
@@ -11262,7 +11269,8 @@ ipcMain.handle('freeide:vscode-theme:search', async (_event, query) => searchMar
 // running app's chat composer. Three delivery paths: macOS 'open-url',
 // Win/Linux running-app 'second-instance' (argv), Win/Linux cold-start argv.
 // ---------------------------------------------------------------------------
-const FREEIDE_PROTOCOL = 'freeide'
+const FREEIDE_PROTOCOL = 'jetts-tui'
+const LEGACY_PROTOCOL = 'freeide'
 let _pendingDeepLink = null
 let _rendererReadyForDeepLink = false
 
@@ -11271,7 +11279,9 @@ function _extractDeepLink(argv) {
     return null
   }
 
-  return argv.find(a => typeof a === 'string' && a.startsWith(`${FREEIDE_PROTOCOL}://`)) || null
+  return argv.find(a => typeof a === 'string' && (
+    a.startsWith(`${FREEIDE_PROTOCOL}://`) || a.startsWith(`${LEGACY_PROTOCOL}://`)
+  )) || null
 }
 
 function handleDeepLink(url) {
@@ -11336,12 +11346,14 @@ ipcMain.handle('freeide:deep-link-ready', () => {
 
 function registerDeepLinkProtocol() {
   try {
-    if (process.defaultApp && process.argv.length >= 2) {
-      // Dev: register with the electron exec path + entry script so the OS can
-      // relaunch us with the URL.
-      app.setAsDefaultProtocolClient(FREEIDE_PROTOCOL, process.execPath, [path.resolve(process.argv[1])])
-    } else {
-      app.setAsDefaultProtocolClient(FREEIDE_PROTOCOL)
+    for (const scheme of [FREEIDE_PROTOCOL, LEGACY_PROTOCOL]) {
+      if (process.defaultApp && process.argv.length >= 2) {
+        // Dev: register with the electron exec path + entry script so the OS can
+        // relaunch us with the URL.
+        app.setAsDefaultProtocolClient(scheme, process.execPath, [path.resolve(process.argv[1])])
+      } else {
+        app.setAsDefaultProtocolClient(scheme)
+      }
     }
   } catch (err) {
     rememberLog(`[deeplink] protocol registration failed: ${err.message}`)

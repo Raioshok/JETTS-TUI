@@ -112,7 +112,8 @@ def _pending_dir(subsystem: str) -> Path:
 
 
 def stage_write(subsystem: str, payload: Dict[str, Any],
-                *, summary: str, origin: str) -> Dict[str, Any]:
+                *, summary: str, origin: str,
+                metadata: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
     """Persist a pending write and return a short record describing it.
 
     Args:
@@ -139,6 +140,8 @@ def stage_write(subsystem: str, payload: Dict[str, Any],
         "created_at": time.time(),
         "payload": payload,
     }
+    if metadata:
+        record["metadata"] = metadata
     try:
         d = _pending_dir(subsystem)
         d.mkdir(parents=True, exist_ok=True)

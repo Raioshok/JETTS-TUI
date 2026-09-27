@@ -1,9 +1,9 @@
-# FreeIDE TUI
+# Jetts-TUI
 
-React + Ink terminal UI for FreeIDE. TypeScript owns the screen. Python owns sessions, tools, model calls, and most command logic.
+React + Ink terminal UI for Jetts-TUI. TypeScript owns the screen. Python owns sessions, tools, model calls, and most command logic.
 
 ```bash
-freeide --tui
+jetts-tui
 ```
 
 ## What runs
@@ -38,7 +38,7 @@ Malformed stdout lines are treated as protocol noise and surfaced as `gateway.pr
 From the repo root, the normal path is:
 
 ```bash
-freeide --tui
+jetts-tui
 ```
 
 The CLI expects `ui-tui/dist/entry.js` to exist, or the whole source code available in which to run `npm install` and `npm run dev`.
@@ -87,7 +87,7 @@ npm run test:watch
 - `src/app/inputSelectionStore.ts` — nanostore exposing the active text-input selection handle
 - `src/app/gatewayContext.tsx` — React context for the gateway client
 - `src/app/gatewayRecovery.ts` — pure function that decides whether to respawn and resume after a gateway crash, with a 3-attempt / 60 s budget
-- `src/app/setupHandoff.ts` — launches external `freeide setup`, suspends Ink while it runs, opens a new session on success
+- `src/app/setupHandoff.ts` — launches external `jetts-tui setup`, suspends Ink while it runs, opens a new session on success
 - `src/app/scroll.ts` — scrolls the viewport while keeping the text selection anchor in sync
 - `src/app/interfaces.ts` — internal interfaces (ComposerActions, GatewayRpc, etc.)
 
@@ -136,6 +136,7 @@ Current input behavior is split across `app.tsx`, `components/textInput.tsx`, an
 | `Ctrl+D`                        | Exit                                                                                                                                                    |
 | `Cmd/Ctrl+G` / `Alt+G`          | Open `$EDITOR` with the current draft (use `Alt+G` in VSCode/Cursor — they bind the primary keystroke to Find Next)                                     |
 | `Ctrl+L`                        | New session (same as `/clear`)                                                                                                                          |
+| `Alt+1` … `Alt+9`              | Target the matching live session in the wide resident workspace without stopping sibling sessions                                                      |
 | `Ctrl+V` / `Alt+V`              | Paste text first, then fall back to image/path attachment when applicable                                                                               |
 | `Tab`                           | Apply the active completion                                                                                                                             |
 | `Up/Down`                       | Cycle completions if the completion list is open; otherwise edit queued messages first, then walk input history                                         |
@@ -248,7 +249,7 @@ The following commands are handled directly by the TUI client. Unrecognized comm
 `/credits` — Nous credit balance and browser top-up
 
 ### Setup (`setup.ts`)
-`/setup` — launches external `freeide setup` wizard, suspends Ink while it runs
+`/setup` — launches external `jetts-tui setup` wizard, suspends Ink while it runs
 
 ### Debug (`debug.ts`)
 `/heapdump`, `/mem` — V8 memory diagnostics
@@ -329,7 +330,7 @@ Current color overrides:
 
 ```text
 ui-tui/
-  packages/freeide-ink/   forked Ink renderer (local dep)
+  packages/jetts-tui-ink/   forked Ink renderer (local dep; upstream MIT attribution in the root LICENSE)
   src/
     entry.tsx            TTY gate + render()
     app.tsx              top-level Ink tree, composes src/app/*
@@ -349,7 +350,7 @@ ui-tui/
       interfaces.ts                 internal interfaces (ComposerActions, GatewayRpc, etc.)
       overlayStore.ts               nanostores for overlay state
       scroll.ts                     viewport scroll with text-selection anchor sync
-      setupHandoff.ts               launches external freeide setup, suspends Ink while it runs
+      setupHandoff.ts               launches external jetts-tui setup, suspends Ink while it runs
       spawnHistoryStore.ts          ring buffer of finished subagent fan-out snapshots
       turnController.ts             stateful turn lifecycle driver (streaming, tools, reasoning)
       turnStore.ts                  nanostore for turn state (streaming, tools, reasoning, subagents)
@@ -476,7 +477,7 @@ ui-tui/
       paste.ts                   bracketed paste snippet token regex
 
     types/
-      freeide-ink.d.ts            type declarations for @freeide/ink
+      jetts-tui-ink.d.ts            type declarations for @jetts-tui/ink
 
     __tests__/                   vitest suite
 ```
@@ -488,5 +489,5 @@ tui_gateway/
   entry.py               stdio entrypoint
   server.py              RPC handlers and session logic
   render.py              optional rich/ANSI bridge
-  slash_worker.py        persistent FreeIDECLI subprocess for slash commands
+  slash_worker.py        persistent Jetts-TUICLI subprocess for slash commands
 ```

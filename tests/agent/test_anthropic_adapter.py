@@ -1708,21 +1708,24 @@ class TestBuildAnthropicKwargs:
         assert _forbids_sampling_params("claude-sonnet-4-5") is False
 
     def test_supports_fast_mode_predicate(self):
-        """Fast mode is Opus 4.6 only — Opus 4.7 and others must be excluded.
+        """Fast mode (the ``speed: "fast"`` parameter) is Opus 5.5/5/4.8 only.
 
-        For Opus 4.8 the fast variant is a separate model ID
-        (anthropic/claude-opus-4.8-fast) routed through the normal model
-        field, NOT via the ``speed: "fast"`` request parameter. So
-        ``_supports_fast_mode`` (which gates the parameter) must stay
-        False for both opus-4-8 and opus-4-8-fast.
+        Contract per https://platform.claude.com/docs/en/build-with-claude/fast-mode
+        (verified 2026-09-23): the three supported models gate True, every
+        other Claude model gates False so the parameter is not sent. Note
+        the earlier version of this test asserted Opus 4.6 -> True and
+        Opus 4.8 -> False on the (now disproved) premise that Opus 4.8's
+        fast variant was a separate model ID; no such ID exists and 4.8 is
+        a supported model for the parameter.
         """
         from agent.anthropic_adapter import _supports_fast_mode
-        assert _supports_fast_mode("claude-opus-4-6") is True
-        assert _supports_fast_mode("anthropic/claude-opus-4-6") is True
+        assert _supports_fast_mode("claude-opus-5-5") is True
+        assert _supports_fast_mode("anthropic/claude-opus-5.5") is True
+        assert _supports_fast_mode("claude-opus-5") is True
+        assert _supports_fast_mode("claude-opus-4-8") is True
+        assert _supports_fast_mode("anthropic/claude-opus-4.8") is True
         assert _supports_fast_mode("claude-opus-4-7") is False
-        assert _supports_fast_mode("claude-opus-4-8") is False
-        assert _supports_fast_mode("claude-opus-4-8-fast") is False
-        assert _supports_fast_mode("claude-sonnet-4-6") is False
+        assert _supports_fast_mode("claude-sonnet-5") is False
         assert _supports_fast_mode("claude-haiku-4-5") is False
         assert _supports_fast_mode("") is False
 

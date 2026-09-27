@@ -156,7 +156,7 @@ pub async fn get_bootstrap_status(
     })
 }
 
-/// Spawn the locally-built FreeIDE desktop binary, then close the installer
+/// Spawn the locally-built Jetts-TUI desktop binary, then close the installer
 /// window. Caller resolves the binary path from `install_root`.
 ///
 /// Returns Err with a human-readable message if the binary doesn't exist
@@ -170,14 +170,14 @@ pub async fn launch_freeide_desktop(
     let install_root = PathBuf::from(install_root);
     let exe_path = resolve_freeide_desktop_exe(&install_root).ok_or_else(|| {
         format!(
-            "Couldn't find a built FreeIDE desktop at {}. The desktop build step \
-             may have been skipped or failed. Run `freeide desktop` from a \
+            "Couldn't find a built Jetts-TUI desktop at {}. The desktop build step \
+             may have been skipped or failed. Run `jetts-tui desktop` from a \
              terminal to build and launch it.",
             install_root.join("apps").join("desktop").join("release").display()
         )
     })?;
 
-    tracing::info!(?exe_path, "launching FreeIDE desktop");
+    tracing::info!(?exe_path, "launching Jetts-TUI desktop");
 
     // Detach from us — the installer is about to exit. On macOS launch the
     // bundle through LaunchServices instead of exec'ing Contents/MacOS/FreeIDE
@@ -214,16 +214,20 @@ pub(crate) fn resolve_freeide_desktop_exe(install_root: &std::path::Path) -> Opt
     let release_dir = install_root.join("apps").join("desktop").join("release");
     let candidates: &[(&str, &str)] = if cfg!(target_os = "windows") {
         &[
+            ("win-unpacked", "Jetts-TUI.exe"),
+            ("win-arm64-unpacked", "Jetts-TUI.exe"),
             ("win-unpacked", "FreeIDE.exe"),
             ("win-arm64-unpacked", "FreeIDE.exe"),
         ]
     } else if cfg!(target_os = "macos") {
         &[
+            ("mac/Jetts-TUI.app/Contents/MacOS", "Jetts-TUI"),
+            ("mac-arm64/Jetts-TUI.app/Contents/MacOS", "Jetts-TUI"),
             ("mac/FreeIDE.app/Contents/MacOS", "FreeIDE"),
             ("mac-arm64/FreeIDE.app/Contents/MacOS", "FreeIDE"),
         ]
     } else {
-        &[("linux-unpacked", "freeide")]
+        &[("linux-unpacked", "Jetts-TUI"), ("linux-unpacked", "freeide")]
     };
     for (subdir, exe) in candidates {
         let p = release_dir.join(subdir).join(exe);
@@ -366,7 +370,7 @@ fn write_bootstrap_complete_marker(install_root: &Path, pin: &Pin) -> Result<ser
 /// installer UI.
 pub(crate) fn spawn_installed_desktop(install_root: &std::path::Path) -> std::io::Result<()> {
     let exe = resolve_freeide_desktop_exe(install_root).ok_or_else(|| {
-        std::io::Error::new(std::io::ErrorKind::NotFound, "no built FreeIDE desktop app")
+        std::io::Error::new(std::io::ErrorKind::NotFound, "no built Jetts-TUI desktop app")
     })?;
     let mut cmd = desktop_launch_command_std(&exe, install_root);
     #[cfg(target_os = "windows")]

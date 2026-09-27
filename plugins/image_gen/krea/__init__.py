@@ -67,8 +67,21 @@ _MODELS: Dict[str, Dict[str, Any]] = {
         "display": "Krea 2 Medium Turbo",
         "speed": "~8-15s",
         "strengths": "Fastest Krea 2 — medium quality at lower latency / cost.",
-        "price": "$0.015 (text) / $0.0175 (style refs)",
+        # Corrected 2026-09-23: the previous "$0.015 (text) / $0.0175 (style
+        # refs)" had no published source — it was exactly Medium's $0.030 / 2,
+        # i.e. derived rather than quoted. Krea's API pricing table lists only
+        # Medium and Large; the Turbo doc page quotes "2 credits per
+        # generation" (consumer credits, not API dollars).
+        # Its endpoint is undocumented (Krea's Endpoints table lists only
+        # /krea-2/medium and /krea-2/large) but it is NOT a dead route, checked
+        # 2026-09-23: an unauthenticated POST to
+        # https://api.krea.ai/generate/image/krea/krea-2/medium-turbo returns
+        # 401 (route exists, auth required) — a 404 only appears with a wrong
+        # "/api" prefix. So an earlier note claiming this "may 404" was wrong;
+        # it stays for a maintainer only because its price is unpublished.
+        "price": "unpublished (Krea quotes 2 credits/generation; no API dollar rate listed)",
         "path": "medium-turbo",
+        "endpoint_documented": False,
     },
 }
 

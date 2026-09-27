@@ -605,9 +605,9 @@ export default function App() {
                 <PluginSlot name="header-left" />
 
                 <Typography className="font-bold text-[1.125rem] leading-[0.95] tracking-[0.0525rem] text-midground uppercase">
-                  FreeIDE
+                  Jetts-TUI
                   <br />
-                  Agent
+                  Workspace
                 </Typography>
               </div>
 
@@ -967,12 +967,12 @@ function SidebarSystemActions({
     if (updateConfirmInfo?.behind && updateConfirmInfo.behind > 0) {
       const cmd = updateConfirmInfo.update_command;
       const n = updateConfirmInfo.behind;
-      return `This will run 'freeide update' (${cmd}) and pull ${n} new commit${n === 1 ? "" : "s"}. The gateway restarts when the update finishes; the current session keeps its prompt cache until then.`;
+      return `This will run the update command (${cmd}) and pull ${n} new commit${n === 1 ? "" : "s"}. The gateway restarts when the update finishes; the current session keeps its prompt cache until then.`;
     }
-    const cmd = updateConfirmInfo?.update_command ?? "freeide update";
+    const cmd = updateConfirmInfo?.update_command ?? "jetts-tui update";
     return (
       t.status.updateFreeIDEConfirmMessage ??
-      `This will run 'freeide update' (${cmd}) and restart the gateway when it finishes.`
+      `This will run the update command (${cmd}) and restart the gateway when it finishes.`
     );
   }, [t.status.updateFreeIDEConfirmMessage, updateConfirmInfo]);
 
@@ -1070,7 +1070,7 @@ function SidebarSystemActions({
       confirmLabel={t.status.restartGateway}
       description={
         t.status.restartGatewayConfirmMessage ??
-        "This restarts the FreeIDE gateway process. Connected channels and active sessions will reconnect afterward."
+        "This restarts the Jetts-TUI gateway process. Connected channels and active sessions will reconnect afterward."
       }
       loading={pendingAction === "restart"}
       onCancel={() => setRestartConfirmOpen(false)}

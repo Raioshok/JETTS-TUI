@@ -7,7 +7,7 @@ import {
   useSelection,
   useStdout,
   useTerminalTitle
-} from '@freeide/ink'
+} from '@jetts-tui/ink'
 import { useStore } from '@nanostores/react'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
@@ -34,6 +34,7 @@ import { useVirtualHistory } from '../hooks/useVirtualHistory.js'
 import { composerPromptWidth } from '../lib/inputMetrics.js'
 import { appendTranscriptMessage } from '../lib/messages.js'
 import { DEFAULT_VOICE_RECORD_KEY, isMac, type ParsedVoiceRecordKey } from '../lib/platform.js'
+import { type LastSeenMap, syncLastSeen } from '../lib/residentActivity.js'
 import { createResizeCoalescer } from '../lib/resizeCoalescer.js'
 import { asRpcResult, rpcErrorMessage } from '../lib/rpc.js'
 import { terminalParityHints } from '../lib/terminalParity.js'
@@ -52,7 +53,7 @@ import { $goodVibesTick } from './petFlashStore.js'
 import { scrollWithSelectionBy } from './scroll.js'
 import { turnController } from './turnController.js'
 import { patchTurnState, useTurnSelector } from './turnStore.js'
-import { $uiState, getUiState, patchUiState } from './uiStore.js'
+import { $uiState, $unreadBySession, getUiState, patchUiState, patchUnreadBySession } from './uiStore.js'
 import { useBatteryPoll } from './useBatteryPoll.js'
 import { useComposerState } from './useComposerState.js'
 import { useConfigSync } from './useConfigSync.js'
@@ -64,6 +65,11 @@ import { useSubmission } from './useSubmission.js'
 const BRACKET_PASTE_ON = '\x1b[?2004h'
 const BRACKET_PASTE_OFF = '\x1b[?2004l'
 const MAX_HEIGHT_CACHE_BUCKETS = 12
+
+// Last-focused snapshot per live session id, module-scoped so it survives
+// hook re-renders. Fed exclusively by syncLastSeen in the active_list poll;
+// never rendered directly (only its derived `unread` map is published).
+let lastSeenBySession: LastSeenMap = new Map()
 
 const capHistory = (items: Msg[]): Msg[] => {
   if (items.length <= MAX_HISTORY) {
@@ -572,7 +578,9 @@ export function useMainApp(gw: GatewayClient) {
 
   useEffect(() => {
     if (!ui.sid) {
-      patchUiState({ liveSessionCount: 0 })
+      patchUiState({ liveSessionCount: 0, liveSessions: [] })
+      lastSeenBySession = new Map()
+      patchUnreadBySession(new Map())
 
       return
     }
@@ -600,8 +608,45 @@ export function useMainApp(gw: GatewayClient) {
             // the whole TUI and causes idle flicker.
             const prev = getUiState()
 
-            if (prev.liveSessionCount !== liveSessionCount || prev.sessionTitle !== sessionTitle) {
-              patchUiState({ liveSessionCount, sessionTitle })
+            const liveSessionsChanged =
+              prev.liveSessions.length !== result.sessions.length ||
+              prev.liveSessions.some((session, index) => {
+                const next = result.sessions?.[index]
+
+                return (
+                  !next ||
+                  session.id !== next.id ||
+                  session.current !== next.current ||
+                  session.status !== next.status ||
+                  session.title !== next.title ||
+                  session.model !== next.model ||
+                  session.preview !== next.preview ||
+                  session.message_count !== next.message_count
+                )
+              })
+
+            if (
+              prev.liveSessionCount !== liveSessionCount ||
+              prev.sessionTitle !== sessionTitle ||
+              liveSessionsChanged
+            ) {
+              patchUiState({ liveSessionCount, liveSessions: result.sessions, sessionTitle })
+            }
+
+            // Unread tracking is independent of the above patch: focus changes
+            // clear it even when the session list itself is unchanged. Only
+            // publish when the derived map actually differs to avoid a
+            // re-render storm on every idle poll.
+            const { lastSeen, unread } = syncLastSeen(lastSeenBySession, result.sessions, currentSid, Date.now())
+            lastSeenBySession = lastSeen
+            const prevUnread = $unreadBySession.get()
+
+            const unreadChanged =
+              prevUnread.size !== unread.size ||
+              [...unread].some(([id, count]) => prevUnread.get(id) !== count)
+
+            if (unreadChanged) {
+              patchUnreadBySession(unread)
             }
           }
         })
@@ -626,7 +671,7 @@ export function useMainApp(gw: GatewayClient) {
   const tabCwd = ui.info?.cwd
 
   useTerminalTitle(
-    model ? composeTabTitle(marker, ui.sessionTitle, model, tabCwd ? shortCwd(tabCwd, 24) : '') : 'FreeIDE'
+    model ? composeTabTitle(marker, ui.sessionTitle, model, tabCwd ? shortCwd(tabCwd, 24) : '') : 'Jetts-TUI'
   )
 
   useEffect(() => {
@@ -765,6 +810,7 @@ export function useMainApp(gw: GatewayClient) {
 
   const { pagerPageSize } = useInputHandlers({
     actions: {
+      activateLiveSession: session.activateLiveSession,
       answerClarify,
       appendMessage,
       die,

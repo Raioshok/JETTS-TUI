@@ -1,4 +1,4 @@
-import { isGatewayReauthRequired, resolveGatewayWsUrl } from '@freeide/shared'
+import { isGatewayReauthRequired, resolveGatewayWsUrl } from '@jetts-tui/shared'
 import { useEffect, useRef } from 'react'
 
 import type { FreeIDEConnection } from '@/global'

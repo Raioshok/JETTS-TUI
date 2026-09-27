@@ -56,7 +56,7 @@ class TestParseModelInput:
         assert model == "anthropic/claude-sonnet-4.5"
 
     def test_provider_colon_model_switches_provider(self):
-        provider, model = parse_model_input("openrouter:anthropic/claude-sonnet-4.5", "nous")
+        provider, model = parse_model_input("openrouter:anthropic/claude-sonnet-4.5", "stepfun")
         assert provider == "openrouter"
         assert model == "anthropic/claude-sonnet-4.5"
 
@@ -75,14 +75,17 @@ class TestParseModelInput:
         assert provider == "openrouter"
         assert model == "gpt-5.4"
 
-    def test_nous_provider_switch(self):
+    def test_removed_provider_prefix_does_not_switch_provider(self):
+        # "nous" was removed as a provider (fea9d55..dbe611f). An unknown or
+        # removed prefix must not switch the provider: the input falls
+        # through as a model name and the current provider is kept.
         provider, model = parse_model_input("nous:freeide-3", "openrouter")
-        assert provider == "nous"
-        assert model == "freeide-3"
+        assert provider == "openrouter"
+        assert model == "nous:freeide-3"
 
     def test_empty_model_after_colon_keeps_current(self):
-        provider, model = parse_model_input("openrouter:", "nous")
-        assert provider == "nous"
+        provider, model = parse_model_input("openrouter:", "stepfun")
+        assert provider == "stepfun"
         assert model == "openrouter:"
 
     def test_colon_at_start_keeps_current(self):

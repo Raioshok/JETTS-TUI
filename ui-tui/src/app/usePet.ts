@@ -1,4 +1,4 @@
-import { useStdout } from '@freeide/ink'
+import { useStdout } from '@jetts-tui/ink'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import type { PetGrid } from '../components/petSprite.js'

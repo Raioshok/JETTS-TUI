@@ -1,12 +1,12 @@
 #!/bin/bash
 # ============================================================================
-# FreeIDE Agent Installer
+# Jetts-TUI Installer
 # ============================================================================
 # Installation script for Linux, macOS, and Android/Termux.
 # Uses uv for desktop/server installs and Python's stdlib venv + pip on Termux.
 #
 # Usage:
-#   curl -fsSL https://freeide-agent.freeide.dev/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/Raioshok/JETTS-TUI/main/scripts/install.sh | bash
 #
 # Or with options:
 #   curl -fsSL ... | bash -s -- --no-venv --skip-setup
@@ -43,8 +43,8 @@ NC='\033[0m' # No Color
 BOLD='\033[1m'
 
 # Configuration
-REPO_URL_SSH="git@github.com:freeide/freeide.git"
-REPO_URL_HTTPS="https://github.com/freeide/freeide.git"
+REPO_URL_SSH="git@github.com:Raioshok/JETTS-TUI.git"
+REPO_URL_HTTPS="https://github.com/Raioshok/JETTS-TUI.git"
 FREEIDE_HOME="${FREEIDE_HOME:-$HOME/.freeide}"
 # INSTALL_DIR is resolved AFTER arg parsing and OS detection so we can pick an
 # FHS-style layout for root installs.  Track whether the user gave us an
@@ -152,7 +152,7 @@ while [[ $# -gt 0 ]]; do
             ;;
 
         -h|--help)
-            echo "FreeIDE Agent Installer"
+            echo "Jetts-TUI Installer"
             echo ""
             echo "Usage: install.sh [OPTIONS]"
             echo ""
@@ -169,7 +169,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --stage NAME   Run one desktop bootstrap stage"
             echo "  --json         Print a JSON result frame for --stage"
             echo "  --non-interactive  Skip stages that require user input"
-            echo "  --include-desktop  Also build the desktop app (apps/desktop -> FreeIDE.app)"
+            echo "  --include-desktop  Also build the desktop app (apps/desktop -> Jetts-TUI.app)"
             echo "  --dir PATH     Installation directory"
             echo "                   default (non-root):  ~/.freeide/freeide-agent"
             echo "                   default (root, Linux): /usr/local/lib/freeide-agent"
@@ -177,7 +177,7 @@ while [[ $# -gt 0 ]]; do
             echo "  -h, --help     Show this help"
             echo ""
             echo "Notes:"
-            echo "  When running as root on Linux, FreeIDE installs the code under"
+            echo "  When running as root on Linux, Jetts-TUI installs the code under"
             echo "  /usr/local/lib/freeide-agent and links the command into"
             echo "  /usr/local/bin/freeide (FHS layout — matches Claude Code / Codex CLI)."
             echo "  Data, config, sessions, and logs still live in \$FREEIDE_HOME"
@@ -205,9 +205,9 @@ print_banner() {
     echo ""
     echo -e "${MAGENTA}${BOLD}"
     echo "┌─────────────────────────────────────────────────────────┐"
-    echo "│             ⚕ FreeIDE Agent Installer                    │"
+    echo "│             ◆ Jetts-TUI Installer                        │"
     echo "├─────────────────────────────────────────────────────────┤"
-    echo "│  An open source AI agent by FreeIDE.              │"
+    echo "│  Your terminal-first AI workspace.                │"
     echo "└─────────────────────────────────────────────────────────┘"
     echo -e "${NC}"
 }
@@ -315,7 +315,7 @@ emit_manifest() {
     if [ "$INCLUDE_DESKTOP" = true ]; then
         desktop_stage='{"name":"desktop","title":"Build desktop app","category":"runtime","needs_user_input":false},'
     fi
-    printf '%s' '{"protocol_version":1,"stages":[{"name":"prerequisites","title":"System prerequisites","category":"runtime","needs_user_input":false},{"name":"repository","title":"Download FreeIDE Agent","category":"runtime","needs_user_input":false},{"name":"venv","title":"Create Python virtual environment","category":"runtime","needs_user_input":false},{"name":"python-deps","title":"Install Python dependencies","category":"runtime","needs_user_input":false},{"name":"node-deps","title":"Install browser-tool dependencies","category":"runtime","needs_user_input":false},{"name":"path","title":"Install freeide command","category":"runtime","needs_user_input":false},{"name":"config","title":"Prepare config and skills","category":"configuration","needs_user_input":false},{"name":"setup","title":"Configure API keys and settings","category":"configuration","needs_user_input":true},{"name":"gateway","title":"Configure gateway service","category":"configuration","needs_user_input":true},'"$desktop_stage"'{"name":"complete","title":"Finish install","category":"runtime","needs_user_input":false}]}'
+    printf '%s' '{"protocol_version":1,"stages":[{"name":"prerequisites","title":"System prerequisites","category":"runtime","needs_user_input":false},{"name":"repository","title":"Download Jetts-TUI","category":"runtime","needs_user_input":false},{"name":"venv","title":"Create Python virtual environment","category":"runtime","needs_user_input":false},{"name":"python-deps","title":"Install Python dependencies","category":"runtime","needs_user_input":false},{"name":"node-deps","title":"Install browser-tool dependencies","category":"runtime","needs_user_input":false},{"name":"path","title":"Install jetts-tui command","category":"runtime","needs_user_input":false},{"name":"config","title":"Prepare config and skills","category":"configuration","needs_user_input":false},{"name":"setup","title":"Configure API keys and settings","category":"configuration","needs_user_input":true},{"name":"gateway","title":"Configure gateway service","category":"configuration","needs_user_input":true},'"$desktop_stage"'{"name":"complete","title":"Finish install","category":"runtime","needs_user_input":false}]}'
     printf '\n'
 }
 
@@ -522,7 +522,7 @@ detect_os() {
             OS="windows"
             DISTRO="windows"
             log_error "Windows detected. Please use the PowerShell installer:"
-            log_info "  iex (irm https://freeide-agent.freeide.dev/install.ps1)"
+            log_info "  iex (irm https://raw.githubusercontent.com/Raioshok/JETTS-TUI/main/scripts/install.ps1)"
             exit 1
             ;;
         *)
@@ -1832,7 +1832,7 @@ copy_config_templates() {
     # here is self-healing, but keep them in sync to avoid a churn on first run.
     if [ ! -f "$FREEIDE_HOME/SOUL.md" ]; then
         cat > "$FREEIDE_HOME/SOUL.md" << 'SOUL_EOF'
-You are FreeIDE Agent, an intelligent AI assistant created by FreeIDE. You are helpful, knowledgeable, and direct. You assist users with a wide range of tasks including answering questions, writing and editing code, analyzing information, creative work, and executing actions via your tools. You communicate clearly, admit uncertainty when appropriate, and prioritize being genuinely useful over being verbose unless otherwise directed below. Be targeted and efficient in your exploration and investigations.
+You are Jetts-TUI, an AI assistant running in the Jetts-TUI workspace. You are helpful, knowledgeable, and direct. You assist users with a wide range of tasks including answering questions, writing and editing code, analyzing information, creative work, and executing actions via your tools. You communicate clearly, admit uncertainty when appropriate, and prioritize being genuinely useful over being verbose unless otherwise directed below. Be targeted and efficient in your exploration and investigations.
 SOUL_EOF
         log_success "Created ~/.freeide/SOUL.md (edit to customize personality)"
     fi
@@ -2919,7 +2919,9 @@ install_desktop() {
 
     local app=""
     if [ "$OS" = "linux" ]; then
-        if [ -x "$desktop_dir/release/linux-unpacked/FreeIDE" ]; then
+        if [ -x "$desktop_dir/release/linux-unpacked/Jetts-TUI" ]; then
+            app="$desktop_dir/release/linux-unpacked/Jetts-TUI"
+        elif [ -x "$desktop_dir/release/linux-unpacked/FreeIDE" ]; then
             app="$desktop_dir/release/linux-unpacked/FreeIDE"
         elif [ -x "$desktop_dir/release/linux-unpacked/freeide" ]; then
             app="$desktop_dir/release/linux-unpacked/freeide"
@@ -2927,6 +2929,8 @@ install_desktop() {
     else
         local cand
         for cand in \
+            "$desktop_dir/release/mac-arm64/Jetts-TUI.app" \
+            "$desktop_dir/release/mac/Jetts-TUI.app" \
             "$desktop_dir/release/mac-arm64/FreeIDE.app" \
             "$desktop_dir/release/mac/FreeIDE.app"; do
             if [ -d "$cand" ]; then

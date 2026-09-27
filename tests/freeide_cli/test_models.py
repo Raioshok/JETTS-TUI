@@ -62,14 +62,15 @@ class TestFetchOpenRouterModels:
                 return False
 
             def read(self):
-                return b'{"data":[{"id":"anthropic/claude-opus-4.8","pricing":{"prompt":"0.000015","completion":"0.000075"}},{"id":"qwen/qwen3.7-max","pricing":{"prompt":"0.000000325","completion":"0.00000195"}},{"id":"nvidia/nemotron-3-super-120b-a12b:free","pricing":{"prompt":"0","completion":"0"}}]}'
+                return b'{"data":[{"id":"vendor/just-released","pricing":{"prompt":"0.000001","completion":"0.000002"}},{"id":"anthropic/claude-opus-4.8","pricing":{"prompt":"0.000015","completion":"0.000075"}},{"id":"qwen/qwen3.7-max","pricing":{"prompt":"0.000000325","completion":"0.00000195"}},{"id":"nvidia/nemotron-3-super-120b-a12b:free","pricing":{"prompt":"0","completion":"0"}}]}'
 
         monkeypatch.setattr(_models_mod, "_openrouter_catalog_cache", None)
         with patch("freeide_cli.models._urlopen_model_catalog_request", return_value=_Resp()):
             models = fetch_openrouter_models(force_refresh=True)
 
         assert models == [
-            ("anthropic/claude-opus-4.8", "recommended"),
+            ("vendor/just-released", ""),
+            ("anthropic/claude-opus-4.8", ""),
             ("qwen/qwen3.7-max", ""),
             ("nvidia/nemotron-3-super-120b-a12b:free", "free"),
         ]
@@ -85,13 +86,8 @@ class TestFetchOpenRouterModels:
 
         assert models == OPENROUTER_MODELS
 
-    def test_filters_out_models_without_tool_support(self, monkeypatch):
-        """Models whose supported_parameters omits 'tools' must not appear in the picker.
-
-        freeide-agent is tool-calling-first — surfacing a non-tool model leads to
-        immediate runtime failures when the user selects it. Ported from
-        Kilo-Org/kilocode#9068.
-        """
+    def test_keeps_models_without_tool_support_and_labels_them(self, monkeypatch):
+        """The endpoint inventory is complete, including non-tool text models."""
         class _Resp:
             def __enter__(self):
                 return self
@@ -100,9 +96,7 @@ class TestFetchOpenRouterModels:
                 return False
 
             def read(self):
-                # opus-4.6 advertises tools → kept
-                # nano-image has explicit supported_parameters that OMITS tools → dropped
-                # qwen3.7-max advertises tools → kept
+                # All endpoint rows are kept; missing tool support is labelled.
                 return (
                     b'{"data":['
                     b'{"id":"anthropic/claude-opus-4.6","pricing":{"prompt":"0.000015","completion":"0.000075"},'
@@ -114,7 +108,7 @@ class TestFetchOpenRouterModels:
                     b']}'
                 )
 
-        # Include the image-only id in the curated list so it has a chance to be surfaced.
+        # Static presets must not control which live models are visible.
         monkeypatch.setattr(
             _models_mod,
             "OPENROUTER_MODELS",
@@ -134,8 +128,42 @@ class TestFetchOpenRouterModels:
         ids = [mid for mid, _ in models]
         assert "anthropic/claude-opus-4.6" in ids
         assert "qwen/qwen3.7-max" in ids
-        # Image-only model advertised supported_parameters WITHOUT tools → must be dropped.
-        assert "google/gemini-3-pro-image-preview" not in ids
+        assert "google/gemini-3-pro-image-preview" in ids
+        descriptions = dict(models)
+        assert descriptions["google/gemini-3-pro-image-preview"] == "no tool calling"
+
+    def test_sends_configured_api_key_to_openrouter_catalog(self, monkeypatch):
+        seen = {}
+
+        class _Resp:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, exc_type, exc, tb):
+                return False
+
+            def read(self):
+                return b'{"data":[{"id":"vendor/account-model"}]}'
+
+        def _open(request, *, timeout):
+            seen["authorization"] = request.get_header("Authorization")
+            seen["timeout"] = timeout
+            return _Resp()
+
+        monkeypatch.setattr(_models_mod, "_openrouter_catalog_cache", None)
+        monkeypatch.setattr(_models_mod, "_urlopen_model_catalog_request", _open)
+
+        models = fetch_openrouter_models(
+            api_key="test-openrouter-key",
+            timeout=3.0,
+            force_refresh=True,
+        )
+
+        assert models == [("vendor/account-model", "")]
+        assert seen == {
+            "authorization": "Bearer test-openrouter-key",
+            "timeout": 3.0,
+        }
 
     def test_permissive_when_supported_parameters_missing(self, monkeypatch):
         """Models missing the supported_parameters field keep appearing in the picker.

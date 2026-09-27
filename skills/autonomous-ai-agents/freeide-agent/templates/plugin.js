@@ -7,10 +7,10 @@
  * Then run "Reload desktop plugins" from ⌘K in the desktop app.
  *
  * Plain ESM, loaded uncompiled — UI is jsx() calls, not JSX syntax.
- * Only these imports resolve: @freeide/plugin-sdk, react, react/jsx-runtime.
+ * Only these imports resolve: @jetts-tui/plugin-sdk, react, react/jsx-runtime.
  */
 
-import { cn, haptic, host, Tip, usePluginI18n, useValue } from '@freeide/plugin-sdk'
+import { cn, haptic, host, Tip, usePluginI18n, useValue } from '@jetts-tui/plugin-sdk'
 import { jsx, jsxs } from 'react/jsx-runtime'
 
 // Ship your OWN strings (never edit core en.ts). `usePluginI18n` resolves them

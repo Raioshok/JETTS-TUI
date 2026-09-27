@@ -423,9 +423,9 @@ function SkillCard({
               </div>
             )}
             <div className={styles.installHint}>
-              <code>{skill.installCmd || `freeide skills install ${skill.name}`}</code>
+              <code>{skill.installCmd || `jetts-tui skills install ${skill.name}`}</code>
               <CopyButton
-                text={skill.installCmd || `freeide skills install ${skill.name}`}
+                text={skill.installCmd || `jetts-tui skills install ${skill.name}`}
               />
             </div>
             <div className={styles.cardLinks}>
@@ -642,13 +642,13 @@ export default function SkillsDashboard() {
   return (
     <Layout
       title="Skills Hub"
-      description="Browse all skills and plugins available for FreeIDE Agent"
+      description="Browse skills and plugins available for Jetts-TUI"
     >
       <div className={styles.page}>
         <header className={styles.hero}>
           <div className={styles.heroGlow} />
           <div className={styles.heroContent}>
-            <p className={styles.heroEyebrow}>FreeIDE Agent</p>
+            <p className={styles.heroEyebrow}>Jetts-TUI</p>
             <h1 className={styles.heroTitle}>Skills Hub</h1>
             <p className={styles.heroSub}>
               Discover, search, and install from{" "}

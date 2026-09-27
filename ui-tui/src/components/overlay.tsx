@@ -1,4 +1,4 @@
-import { Box, Text, useStdout } from '@freeide/ink'
+import { Box, Text, useStdout } from '@jetts-tui/ink'
 import { useStore } from '@nanostores/react'
 import { type ReactNode } from 'react'
 

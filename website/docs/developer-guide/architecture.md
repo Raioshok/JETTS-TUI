@@ -32,8 +32,8 @@ This page is the top-level map of FreeIDE Agent internals. Use it to orient your
 │  ┌──────┴───────┐  ┌──────┴───────┐  ┌──────┴───────┐               │
 │  │ Compression  │  │ 3 API Modes  │  │ Tool Registry│               │
 │  │ & Caching    │  │ chat_compl.  │  │ (registry.py)│               │
-│  │              │  │ codex_resp.  │  │ 70+ tools    │               │
-│  │              │  │ anthropic    │  │ 28 toolsets  │               │
+│  │              │  │ codex_resp.  │  │ 80+ tools    │               │
+│  │              │  │ anthropic    │  │ 57 toolsets  │               │
 │  └──────────────┘  └──────────────┘  └──────────────┘               │
 └─────────┴─────────────────┴─────────────────┴───────────────────────┘
            │                                    │
@@ -211,7 +211,7 @@ A shared runtime resolver used by CLI, gateway, cron, ACP, and auxiliary calls. 
 
 ### Tool System
 
-Central tool registry (`tools/registry.py`) with 70+ registered tools across ~28 toolsets. Each tool file self-registers at import time. The registry handles schema collection, dispatch, availability checking, and error wrapping. Terminal tools support 6 backends (local, Docker, SSH, Daytona, Modal, Singularity).
+Central tool registry (`tools/registry.py`) with **81 registered tool names** (31 of them enabled for a default agent) — the count is measured, not fixed. Each tool file self-registers at import time. The registry handles schema collection, dispatch, availability checking, and error wrapping. Terminal tools support 6 backends (local, Docker, SSH, Daytona, Modal, Singularity).
 
 → [Tools Runtime](./tools-runtime.md)
 

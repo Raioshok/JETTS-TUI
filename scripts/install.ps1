@@ -1,11 +1,11 @@
 # ============================================================================
-# FreeIDE Agent Installer for Windows
+# Jetts-TUI Installer for Windows
 # ============================================================================
 # Installation script for Windows (PowerShell).
 # Uses uv for fast Python provisioning and package management.
 #
 # Usage:
-#   iex (irm https://freeide-agent.freeide.dev/install.ps1)
+#   iex (irm https://raw.githubusercontent.com/Raioshok/JETTS-TUI/main/scripts/install.ps1)
 #
 # Or download and run with options:
 #   .\install.ps1 -NoVenv -SkipSetup
@@ -136,8 +136,8 @@ foreach ($tmpVar in @('TEMP', 'TMP')) {
 # Configuration
 # ============================================================================
 
-$RepoUrlSsh = "git@github.com:freeide/freeide.git"
-$RepoUrlHttps = "https://github.com/freeide/freeide.git"
+$RepoUrlSsh = "git@github.com:Raioshok/JETTS-TUI.git"
+$RepoUrlHttps = "https://github.com/Raioshok/JETTS-TUI.git"
 $PythonVersion = "3.11"
 # Minor versions the installer accepts when the requested $PythonVersion isn't
 # available, in preference order.  uv discovers both uv-managed and system
@@ -207,9 +207,9 @@ function Get-WindowsArch {
 function Write-Banner {
     Write-Host ""
     Write-Host "+---------------------------------------------------------+" -ForegroundColor Magenta
-    Write-Host "|             * FreeIDE Agent Installer                    |" -ForegroundColor Magenta
+    Write-Host "|             * Jetts-TUI Installer                        |" -ForegroundColor Magenta
     Write-Host "+---------------------------------------------------------+" -ForegroundColor Magenta
-    Write-Host "|  An open source AI agent by FreeIDE.              |" -ForegroundColor Magenta
+    Write-Host "|  Your terminal-first AI workspace.                |" -ForegroundColor Magenta
     Write-Host "+---------------------------------------------------------+" -ForegroundColor Magenta
     Write-Host ""
 }
@@ -1663,13 +1663,13 @@ function Install-Repository {
                 # for.  GitHub supports archive URLs for commits, tags, and
                 # branches; we honour Commit > Tag > Branch.
                 if ($Commit) {
-                    $zipUrl = "https://github.com/freeide/freeide/archive/$Commit.zip"
+                    $zipUrl = "https://github.com/Raioshok/JETTS-TUI/archive/$Commit.zip"
                     $zipLabel = $Commit
                 } elseif ($Tag) {
-                    $zipUrl = "https://github.com/freeide/freeide/archive/refs/tags/$Tag.zip"
+                    $zipUrl = "https://github.com/Raioshok/JETTS-TUI/archive/refs/tags/$Tag.zip"
                     $zipLabel = $Tag
                 } else {
-                    $zipUrl = "https://github.com/freeide/freeide/archive/refs/heads/$Branch.zip"
+                    $zipUrl = "https://github.com/Raioshok/JETTS-TUI/archive/refs/heads/$Branch.zip"
                     $zipLabel = $Branch
                 }
                 $zipPath = "$env:TEMP\freeide-agent-$zipLabel.zip"
@@ -2421,7 +2421,7 @@ function Copy-ConfigTemplates {
         # upgrades the old comment-only scaffold to this text on next run, so
         # drift is self-healing, but keep them in sync to avoid first-run churn.
         $soulContent = @"
-You are FreeIDE Agent, an intelligent AI assistant created by FreeIDE. You are helpful, knowledgeable, and direct. You assist users with a wide range of tasks including answering questions, writing and editing code, analyzing information, creative work, and executing actions via your tools. You communicate clearly, admit uncertainty when appropriate, and prioritize being genuinely useful over being verbose unless otherwise directed below. Be targeted and efficient in your exploration and investigations.
+You are Jetts-TUI, an AI assistant running in the Jetts-TUI workspace. You are helpful, knowledgeable, and direct. You assist users with a wide range of tasks including answering questions, writing and editing code, analyzing information, creative work, and executing actions via your tools. You communicate clearly, admit uncertainty when appropriate, and prioritize being genuinely useful over being verbose unless otherwise directed below. Be targeted and efficient in your exploration and investigations.
 "@
         $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
         [System.IO.File]::WriteAllText($soulPath, $soulContent, $utf8NoBom)
@@ -3055,6 +3055,8 @@ function Install-Desktop {
     # 3. Sanity-check the produced binary. Probe both arches so this works
     # on x64 and arm64 build machines.
     $exeCandidates = @(
+        "$desktopDir\release\win-unpacked\Jetts-TUI.exe",
+        "$desktopDir\release\win-arm64-unpacked\Jetts-TUI.exe",
         "$desktopDir\release\win-unpacked\FreeIDE.exe",
         "$desktopDir\release\win-arm64-unpacked\FreeIDE.exe"
     )
@@ -3069,7 +3071,7 @@ function Install-Desktop {
         }
     }
     if (-not $found) {
-        throw "Desktop build completed but no FreeIDE.exe was found under $desktopDir\release\*-unpacked\"
+        throw "Desktop build completed but no Jetts-TUI.exe was found under $desktopDir\release\*-unpacked\"
     }
 
     # 3b. The FreeIDE icon + identity are stamped onto FreeIDE.exe by the
@@ -3129,8 +3131,8 @@ function New-DesktopShortcuts {
         }
 
         $targets = @(
-            (Join-Path ([Environment]::GetFolderPath('Programs')) 'FreeIDE.lnk'),
-            (Join-Path ([Environment]::GetFolderPath('Desktop')) 'FreeIDE.lnk')
+            (Join-Path ([Environment]::GetFolderPath('Programs')) 'Jetts-TUI.lnk'),
+            (Join-Path ([Environment]::GetFolderPath('Desktop')) 'Jetts-TUI.lnk')
         )
 
         foreach ($lnkPath in $targets) {
@@ -3143,7 +3145,7 @@ function New-DesktopShortcuts {
                 $sc.TargetPath = $TargetExe
                 $sc.WorkingDirectory = $workDir
                 $sc.IconLocation = $iconLocation
-                $sc.Description = 'FreeIDE Agent'
+                $sc.Description = 'Jetts-TUI'
                 $sc.Save()
                 Write-Success "Shortcut created: $lnkPath"
             } catch {
@@ -3824,7 +3826,7 @@ try {
     Write-Err "Installation failed: $_"
     Write-Host ""
     Write-Info "If the error is unclear, try downloading and running the script directly:"
-    Write-Host "  Invoke-WebRequest -Uri 'https://freeide-agent.freeide.dev/install.ps1' -OutFile install.ps1" -ForegroundColor Yellow
+    Write-Host "  Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/Raioshok/JETTS-TUI/main/scripts/install.ps1' -OutFile install.ps1" -ForegroundColor Yellow
     Write-Host "  .\install.ps1" -ForegroundColor Yellow
     Write-Host ""
 }

@@ -48,14 +48,14 @@ export default function Success() {
           }
         >
           <span>
-            <span>FreeIDE is ready</span>
+            <span>Jetts-TUI is ready</span>
           </span>
-          <span aria-hidden="true">FreeIDE is ready</span>
+          <span aria-hidden="true">Jetts-TUI is ready</span>
         </p>
 
         <p className="m-0 text-center text-base leading-normal tracking-tight text-muted-foreground">
           You can launch from here, or any time from your terminal with{' '}
-          <code className="font-mono text-sm text-foreground/80">freeide desktop</code>.
+          <code className="font-mono text-sm text-foreground/80">jetts-tui desktop</code>.
         </p>
       </div>
 

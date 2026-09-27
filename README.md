@@ -1,24 +1,10 @@
-<p align="center">
-  <img src="assets/banner.png" alt="FreeIDE Agent" width="100%">
-</p>
+# Jetts-TUI
 
-# FreeIDE Agent ☤
-<p align="center">
-  <a href="https://freeide-agent.freeide.dev/">FreeIDE Agent</a> | <a href="https://freeide-agent.freeide.dev/">FreeIDE Desktop</a>
-</p>
-<p align="center">
-  <a href="https://freeide-agent.freeide.dev/docs/"><img src="https://img.shields.io/badge/Docs-freeide--agent.freeide.dev-FFD700?style=for-the-badge" alt="Documentation"></a>
-  <a href="https://discord.gg/freeide"><img src="https://img.shields.io/badge/Discord-5865F2?style=for-the-badge&logo=discord&logoColor=white" alt="Discord"></a>
-  <a href="https://github.com/freeide/freeide/blob/main/LICENSE"><img src="https://img.shields.io/badge/License-MIT-green?style=for-the-badge" alt="License: MIT"></a>
-  <a href="https://freeide.dev"><img src="https://img.shields.io/badge/Built%20by-FreeIDE-blueviolet?style=for-the-badge" alt="Built by FreeIDE"></a>
-  <a href="README.zh-CN.md"><img src="https://img.shields.io/badge/Lang-中文-red?style=for-the-badge" alt="中文"></a>
-  <a href="README.ur-pk.md"><img src="https://img.shields.io/badge/Lang-اردو-green?style=for-the-badge" alt="اردو"></a>
-  <a href="README.es.md"><img src="https://img.shields.io/badge/Lang-Español-orange?style=for-the-badge" alt="Español"></a>
-</p>
+Jetts-TUI is a terminal-first AI workspace with a full-screen TUI, an agent runtime, memory, subagents, scheduled work, and messaging integrations. The same runtime also powers the desktop and web surfaces in this repository.
 
-**The self-improving AI agent built by [FreeIDE](https://freeide.dev).** It's the only agent with a built-in learning loop — it creates skills from experience, improves them during use, nudges itself to persist knowledge, searches its own past conversations, and builds a deepening model of who you are across sessions. Run it on a $5 VPS, a GPU cluster, or serverless infrastructure that costs nearly nothing when idle. It's not tied to your laptop — talk to it from Telegram while it works on a cloud VM.
+Choose a supported provider or your own endpoint with `jetts-tui model`. Existing provider and hosted-service integrations remain available; this rebrand does not redirect those connections.
 
-Use any model you want — [FreeIDE Portal](https://portal.freeide.dev), OpenRouter, OpenAI, your own endpoint, and [many others](https://freeide-agent.freeide.dev/docs/integrations/providers). Switch with `freeide model` — no code changes, no lock-in.
+The code is MIT licensed. The copyright notice and third-party attributions remain in [LICENSE](LICENSE) and the relevant dependency licenses.
 
 <table>
 <tr><td><b>A real terminal interface</b></td><td>Full TUI with multiline editing, slash-command autocomplete, conversation history, interrupt-and-redirect, and streaming tool output.</td></tr>
@@ -32,44 +18,49 @@ Use any model you want — [FreeIDE Portal](https://portal.freeide.dev), OpenRou
 
 ---
 
-## Quick Install
+## Install from this repository
 
-### Linux, macOS, WSL2, Termux
+Clone or download this repository, then run the local setup script. Do not use installers hosted on a different project's domain for a Jetts-TUI install.
+
+### Linux, macOS, or WSL2
+
+Use the local-checkout setup script for your platform. It installs dependencies,
+reuses the local virtual environment on later runs, exposes `jetts-tui` on PATH,
+syncs bundled skills, and opens the provider/model wizard.
 
 ```bash
-curl -fsSL https://freeide-agent.freeide.dev/install.sh | bash
+bash setup-jetts-tui.sh
 ```
 
-### Windows (native, PowerShell)
-
-> **Heads up:** Native Windows runs FreeIDE without WSL — CLI, gateway, TUI, and tools all work natively. If you'd rather use WSL2, the Linux/macOS one-liner above works there too. Found a bug? Please [file issues](https://github.com/freeide/freeide/issues).
-
-Run this in PowerShell:
+### Native Windows PowerShell
 
 ```powershell
-iex (irm https://freeide-agent.freeide.dev/install.ps1)
+.\setup-jetts-tui.ps1
 ```
 
-The installer handles everything: uv, Python 3.11, Node.js, ripgrep, ffmpeg, **and a portable Git Bash** (MinGit, unpacked to `%LOCALAPPDATA%\freeide\git` — no admin required, completely isolated from any system Git install). FreeIDE uses this bundled Git Bash to run shell commands.
+If local script execution is restricted, use the policy-scoped form (it changes
+nothing outside this one process):
 
-If you already have Git installed, the installer detects it and uses that instead. Otherwise a ~45MB MinGit download is all you need — it won't touch or interfere with any system Git.
+```powershell
+powershell -NoProfile -ExecutionPolicy Bypass -File .\setup-jetts-tui.ps1
+```
 
-> **Android / Termux:** The tested manual path is documented in the [Termux guide](https://freeide-agent.freeide.dev/docs/getting-started/termux). On Termux, FreeIDE installs a curated `.[termux]` extra because the full `.[all]` extra currently pulls Android-incompatible voice dependencies.
->
-> **Windows:** Native Windows is fully supported — the PowerShell one-liner above installs everything. If you'd rather use WSL2, the Linux command works there too. Native Windows install lives under `%LOCALAPPDATA%\freeide`; WSL2 installs under `~/.freeide` as on Linux.
+Pass `--skip-setup` on Linux or `-SkipSetup` on Windows to postpone the wizard.
+Pass `--recreate` or `-Recreate` only when you intentionally want to rebuild
+the checkout's virtual environment.
 
 After installation:
 
 ```bash
 source ~/.bashrc    # reload shell (or: source ~/.zshrc)
-freeide              # start chatting!
+jetts-tui              # start chatting!
 ```
 
 ### Troubleshooting
 
 #### Windows Defender or antivirus flags `uv.exe` as malware
 
-If your antivirus (Bitdefender, Windows Defender, etc.) quarantines `uv.exe` from the FreeIDE `bin` folder (`%LOCALAPPDATA%\freeide\bin\uv.exe`), this is a **false positive**. The file is Astral's `uv` — the Rust Python package manager FreeIDE bundles to manage its Python environment. ML-based antivirus engines commonly flag unsigned Rust binaries that download and install packages.
+If your antivirus quarantines `uv.exe` from the Jetts-TUI `bin` folder (`%LOCALAPPDATA%\freeide\bin\uv.exe`), do not assume the detection is a false positive. Jetts-TUI uses Astral's `uv` to manage its Python environment; verify the specific binary before restoring or running it.
 
 **To verify your copy is authentic:**
 
@@ -93,10 +84,7 @@ Expand-Archive $zip "$env:TEMP\uv_x" -Force
 
 If attestation says "Verification succeeded" and the last line prints `True`, you're good.
 
-**To whitelist FreeIDE:**
-- **Windows Defender:** Run PowerShell as Admin → `Add-MpPreference -ExclusionPath "$env:LOCALAPPDATA\freeide\bin"`
-- **Bitdefender:** Add an exception in the Bitdefender console (Protection > Antivirus > Settings > Manage Exceptions)
-- Whitelist the **folder**, not the file hash — FreeIDE updates `uv` and the hash changes every version
+If verification fails or you cannot verify the binary, leave it quarantined and report the installer source and detection details. Avoid excluding the entire Jetts-TUI directory from antivirus scanning.
 
 For more context, see the upstream Astral reports: [astral-sh/uv#13553](https://github.com/astral-sh/uv/issues/13553), [astral-sh/uv#15011](https://github.com/astral-sh/uv/issues/15011), [astral-sh/uv#10079](https://github.com/astral-sh/uv/issues/10079).
 
@@ -105,25 +93,25 @@ For more context, see the upstream Astral reports: [astral-sh/uv#13553](https://
 ## Getting Started
 
 ```bash
-freeide              # Interactive CLI — start a conversation
-freeide model        # Choose your LLM provider and model
-freeide tools        # Configure which tools are enabled
-freeide config set   # Set individual config values
-freeide config get   # Print individual config values
-freeide gateway      # Start the messaging gateway (Telegram, Discord, etc.)
-freeide setup        # Run the full setup wizard (configures everything at once)
-freeide claw migrate # Migrate from OpenClaw (if coming from OpenClaw)
-freeide update       # Update to the latest version
-freeide doctor       # Diagnose any issues
+jetts-tui              # Interactive CLI — start a conversation
+jetts-tui model        # Choose your LLM provider and model
+jetts-tui tools        # Configure which tools are enabled
+jetts-tui config set   # Set individual config values
+jetts-tui config get   # Print individual config values
+jetts-tui gateway      # Start the messaging gateway (Telegram, Discord, etc.)
+jetts-tui setup        # Run the full setup wizard (configures everything at once)
+jetts-tui claw migrate # Migrate from OpenClaw (if coming from OpenClaw)
+jetts-tui update       # Update to the latest version
+jetts-tui doctor       # Diagnose any issues
 ```
 
-📖 **[Full documentation →](https://freeide-agent.freeide.dev/docs/)**
+📖 **[Full documentation →](website/docs/)**
 
 ---
 
-## Skip the API-key collection — FreeIDE Portal
+## Optional Portal integration
 
-FreeIDE works with whatever provider you want — that's not changing. But if you'd rather not collect five separate API keys for the model, web search, image generation, TTS, and a cloud browser, **[FreeIDE Portal](https://portal.freeide.dev)** covers all of them under one subscription:
+Jetts-TUI supports an existing subscription-backed [Portal service](https://portal.freeide.dev) alongside direct provider API keys. The Portal is externally hosted; Jetts-TUI does not operate or rebrand that service.
 
 - **300+ models** — pick any of them with `/model <name>`
 - **Tool Gateway** — web search (Firecrawl), image generation (FAL), text-to-speech (OpenAI), cloud browser (Browser Use), all routed through your sub. No extra accounts.
@@ -131,10 +119,10 @@ FreeIDE works with whatever provider you want — that's not changing. But if yo
 One command from a fresh install:
 
 ```bash
-freeide setup --portal
+jetts-tui setup --portal
 ```
 
-That logs you in via OAuth, sets FreeIDE as your provider, and turns on the Tool Gateway. Check what's wired up any time with `freeide portal info`. Full details on the [Tool Gateway docs page](https://freeide-agent.freeide.dev/docs/user-guide/features/tool-gateway).
+That logs you in via OAuth, sets Jetts-TUI as your provider, and turns on the Tool Gateway. Check what's wired up any time with `jetts-tui portal info`. Full details on the [Tool Gateway docs page](website/docs/user-guide/features/tool-gateway).
 
 You can still bring your own keys per-tool whenever you want — the gateway is per-backend, not all-or-nothing.
 
@@ -142,11 +130,11 @@ You can still bring your own keys per-tool whenever you want — the gateway is 
 
 ## CLI vs Messaging Quick Reference
 
-FreeIDE has two entry points: start the terminal UI with `freeide`, or run the gateway and talk to it from Telegram, Discord, Slack, WhatsApp, Signal, or Email. Once you're in a conversation, many slash commands are shared across both interfaces.
+Jetts-TUI has two entry points: start the terminal UI with `jetts-tui`, or run the gateway and talk to it from Telegram, Discord, Slack, WhatsApp, Signal, or Email. Once you're in a conversation, many slash commands are shared across both interfaces.
 
 | Action                         | CLI                                           | Messaging platforms                                                              |
 | ------------------------------ | --------------------------------------------- | -------------------------------------------------------------------------------- |
-| Start chatting                 | `freeide`                                      | Run `freeide gateway setup` + `freeide gateway start`, then send the bot a message |
+| Start chatting                 | `jetts-tui`                                      | Run `jetts-tui gateway setup` + `jetts-tui gateway start`, then send the bot a message |
 | Start fresh conversation       | `/new` or `/reset`                            | `/new` or `/reset`                                                               |
 | Change model                   | `/model [provider:model]`                     | `/model [provider:model]`                                                        |
 | Set a personality              | `/personality [name]`                         | `/personality [name]`                                                            |
@@ -156,47 +144,47 @@ FreeIDE has two entry points: start the terminal UI with `freeide`, or run the g
 | Interrupt current work         | `Ctrl+C` or send a new message                | `/stop` or send a new message                                                    |
 | Platform-specific status       | `/platforms`                                  | `/status`, `/sethome`                                                            |
 
-For the full command lists, see the [CLI guide](https://freeide-agent.freeide.dev/docs/user-guide/cli) and the [Messaging Gateway guide](https://freeide-agent.freeide.dev/docs/user-guide/messaging).
+For the full command lists, see the [CLI guide](website/docs/user-guide/cli) and the [Messaging Gateway guide](website/docs/user-guide/messaging).
 
 ---
 
 ## Documentation
 
-All documentation lives at **[freeide-agent.freeide.dev/docs](https://freeide-agent.freeide.dev/docs/)**:
+The documentation source is in **[website/docs](website/docs/)**:
 
 | Section                                                                                             | What's Covered                                             |
 | --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| [Quickstart](https://freeide-agent.freeide.dev/docs/getting-started/quickstart)                 | Install → setup → first conversation in 2 minutes          |
-| [CLI Usage](https://freeide-agent.freeide.dev/docs/user-guide/cli)                              | Commands, keybindings, personalities, sessions             |
-| [Configuration](https://freeide-agent.freeide.dev/docs/user-guide/configuration)                | Config file, providers, models, all options                |
-| [Messaging Gateway](https://freeide-agent.freeide.dev/docs/user-guide/messaging)                | Telegram, Discord, Slack, WhatsApp, Signal, Home Assistant |
-| [Security](https://freeide-agent.freeide.dev/docs/user-guide/security)                          | Command approval, DM pairing, container isolation          |
-| [Tools & Toolsets](https://freeide-agent.freeide.dev/docs/user-guide/features/tools)            | 40+ tools, toolset system, terminal backends               |
-| [Skills System](https://freeide-agent.freeide.dev/docs/user-guide/features/skills)              | Procedural memory, Skills Hub, creating skills             |
-| [Memory](https://freeide-agent.freeide.dev/docs/user-guide/features/memory)                     | Persistent memory, user profiles, best practices           |
-| [MCP Integration](https://freeide-agent.freeide.dev/docs/user-guide/features/mcp)               | Connect any MCP server for extended capabilities           |
-| [Cron Scheduling](https://freeide-agent.freeide.dev/docs/user-guide/features/cron)              | Scheduled tasks with platform delivery                     |
-| [Context Files](https://freeide-agent.freeide.dev/docs/user-guide/features/context-files)       | Project context that shapes every conversation             |
-| [Architecture](https://freeide-agent.freeide.dev/docs/developer-guide/architecture)             | Project structure, agent loop, key classes                 |
-| [Contributing](https://freeide-agent.freeide.dev/docs/developer-guide/contributing)             | Development setup, PR process, code style                  |
-| [CLI Reference](https://freeide-agent.freeide.dev/docs/reference/cli-commands)                  | All commands and flags                                     |
-| [Environment Variables](https://freeide-agent.freeide.dev/docs/reference/environment-variables) | Complete env var reference                                 |
+| [Quickstart](website/docs/getting-started/quickstart)                 | Install → setup → first conversation in 2 minutes          |
+| [CLI Usage](website/docs/user-guide/cli)                              | Commands, keybindings, personalities, sessions             |
+| [Configuration](website/docs/user-guide/configuration)                | Config file, providers, models, all options                |
+| [Messaging Gateway](website/docs/user-guide/messaging)                | Telegram, Discord, Slack, WhatsApp, Signal, Home Assistant |
+| [Security](website/docs/user-guide/security)                          | Command approval, DM pairing, container isolation          |
+| [Tools & Toolsets](website/docs/user-guide/features/tools)            | 80+ tools, toolset system, terminal backends               |
+| [Skills System](website/docs/user-guide/features/skills)              | Procedural memory, Skills Hub, creating skills             |
+| [Memory](website/docs/user-guide/features/memory)                     | Persistent memory, user profiles, best practices           |
+| [MCP Integration](website/docs/user-guide/features/mcp)               | Connect any MCP server for extended capabilities           |
+| [Cron Scheduling](website/docs/user-guide/features/cron)              | Scheduled tasks with platform delivery                     |
+| [Context Files](website/docs/user-guide/features/context-files)       | Project context that shapes every conversation             |
+| [Architecture](website/docs/developer-guide/architecture)             | Project structure, agent loop, key classes                 |
+| [Contributing](website/docs/developer-guide/contributing)             | Development setup, PR process, code style                  |
+| [CLI Reference](website/docs/reference/cli-commands)                  | All commands and flags                                     |
+| [Environment Variables](website/docs/reference/environment-variables) | Complete env var reference                                 |
 
 ---
 
 ## Migrating from OpenClaw
 
-If you're coming from OpenClaw, FreeIDE can automatically import your settings, memories, skills, and API keys.
+If you're coming from OpenClaw, Jetts-TUI can automatically import your settings, memories, skills, and API keys.
 
-**During first-time setup:** The setup wizard (`freeide setup`) automatically detects `~/.openclaw` and offers to migrate before configuration begins.
+**During first-time setup:** The setup wizard (`jetts-tui setup`) automatically detects `~/.openclaw` and offers to migrate before configuration begins.
 
 **Anytime after install:**
 
 ```bash
-freeide claw migrate              # Interactive migration (full preset)
-freeide claw migrate --dry-run    # Preview what would be migrated
-freeide claw migrate --preset user-data   # Migrate without secrets
-freeide claw migrate --overwrite  # Overwrite existing conflicts
+jetts-tui claw migrate              # Interactive migration (full preset)
+jetts-tui claw migrate --dry-run    # Preview what would be migrated
+jetts-tui claw migrate --preset user-data   # Migrate without secrets
+jetts-tui claw migrate --overwrite  # Overwrite existing conflicts
 ```
 
 What gets imported:
@@ -210,22 +198,18 @@ What gets imported:
 - **TTS assets** — workspace audio files
 - **Workspace instructions** — AGENTS.md (with `--workspace-target`)
 
-See `freeide claw migrate --help` for all options, or use the `openclaw-migration` skill for an interactive agent-guided migration with dry-run previews.
+See `jetts-tui claw migrate --help` for all options, or use the `openclaw-migration` skill for an interactive agent-guided migration with dry-run previews.
 
 ---
 
 ## Contributing
 
-We welcome contributions! See the [Contributing Guide](https://freeide-agent.freeide.dev/docs/developer-guide/contributing) for development setup, code style, and PR process.
+We welcome contributions! See the [Contributing Guide](website/docs/developer-guide/contributing) for development setup, code style, and PR process.
 
-Quick start for contributors — use the standard installer, then work from the
-full git checkout it creates at `$FREEIDE_HOME/freeide-agent` (usually
-`~/.freeide/freeide-agent`). This matches the layout used by `freeide update`, the
-managed venv, lazy dependencies, gateway, and docs tooling.
+Quick start for contributors from a local checkout:
 
 ```bash
-curl -fsSL https://freeide-agent.freeide.dev/install.sh | bash
-cd "${FREEIDE_HOME:-$HOME/.freeide}/freeide-agent"
+bash setup-jetts-tui.sh --skip-setup
 uv pip install -e ".[all,dev]"
 scripts/run_tests.sh
 ```
@@ -247,18 +231,6 @@ scripts/run_tests.sh
 
 ---
 
-## Community
-
-- 💬 [Discord](https://discord.gg/freeide)
-- 📚 [Skills Hub](https://agentskills.io)
-- 🐛 [Issues](https://github.com/freeide/freeide/issues)
-- 🔌 [computer-use-linux](https://github.com/avifenesh/computer-use-linux) — Linux desktop-control MCP server for FreeIDE and other MCP hosts, with AT-SPI accessibility trees, Wayland/X11 input, screenshots, and compositor window targeting.
-- 🔌 [FreeIDEClaw](https://github.com/AaronWong1999/freeideclaw) — Community WeChat bridge: Run FreeIDE Agent and OpenClaw on the same WeChat account.
-
----
-
 ## License
 
 MIT — see [LICENSE](LICENSE).
-
-Built by [FreeIDE](https://freeide.dev).

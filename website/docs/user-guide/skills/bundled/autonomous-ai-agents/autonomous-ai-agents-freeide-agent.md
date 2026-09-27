@@ -1,12 +1,12 @@
 ---
-title: "FreeIDE Agent — Use, configure, theme, extend, and orchestrate FreeIDE Agent"
-sidebar_label: "FreeIDE Agent"
+title: "Freeide Agent — Use, configure, theme, extend, and orchestrate FreeIDE Agent"
+sidebar_label: "Freeide Agent"
 description: "Use, configure, theme, extend, and orchestrate FreeIDE Agent"
 ---
 
 {/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
 
-# FreeIDE Agent
+# Freeide Agent
 
 Use, configure, theme, extend, and orchestrate FreeIDE Agent.
 
@@ -120,6 +120,7 @@ Profiles use `~/.freeide/profiles/<name>/` with the same layout. When a profile 
 | Debugging: voice, tools missing, gateway, aux models | `references/troubleshooting.md` |
 | Contributing code: adding tools, slash commands, tests | `references/contributor-guide.md` |
 | delegate_task "capped at N" reports | `references/delegate-task-concurrency-diagnosis.md` |
+| "Can app X use my FreeIDE Portal subscription/OAuth?" | `references/portal-auth-for-third-party-apps.md` |
 
 Two theming rules that hold even without loading the reference: **you apply skins yourself** (`freeide config set display.skin <name>` — every surface repaints live within ~a second; don't tell the user to run `/skin`), and **to tweak one color, edit the ACTIVE skin** (`freeide skin set <key> <hex>`) — never fork `default`, which drops the palette and resets the background.
 
@@ -202,6 +203,7 @@ terminal(command="tmux new-session -d -s resumed 'freeide --resume 20260225_1430
 - **Use tmux for interactive sessions** — raw PTY mode has `\r` vs `\n` issues with prompt_toolkit
 - **For scheduled tasks**, use the `cronjob` tool instead of spawning — handles delivery and retry
 - **"delegate_task is capped at N" reports** — see `references/delegate-task-concurrency-diagnosis.md`. Three real cap paths in FreeIDE; if none fired, the model is self-limiting and rationalising it as "the runtime caps."
+- **"Can $external_app use my FreeIDE Portal subscription / OAuth?"** — see `references/portal-auth-for-third-party-apps.md`. Walk the user through three layers (plugin-vs-app, what Portal actually exposes, local-broker-proxy option).
 
 ## Surfaces (quick orientation)
 

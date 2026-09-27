@@ -1,4 +1,4 @@
-import { Box } from '@freeide/ink'
+import { Box } from '@jetts-tui/ink'
 import { Fragment, memo, type ReactNode, useMemo } from 'react'
 
 import {

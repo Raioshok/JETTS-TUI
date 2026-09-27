@@ -1,4 +1,4 @@
-import { Text } from '@freeide/ink'
+import { Text } from '@jetts-tui/ink'
 import { useStore } from '@nanostores/react'
 import type { ReactNode } from 'react'
 

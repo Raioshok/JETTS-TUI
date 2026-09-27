@@ -17,9 +17,9 @@
     "jsx": "react-jsx",
     "paths": {
       "@/*": ["./src/*"],
-      "@freeide/plugin-sdk": ["./src/sdk/index.ts"],
-      "@freeide/shared/billing": ["../shared/src/billing-types.ts"],
-      "@freeide/shared": ["../shared/src/index.ts"]
+      "@jetts-tui/plugin-sdk": ["./src/sdk/index.ts"],
+      "@jetts-tui/shared/billing": ["../shared/src/billing-types.ts"],
+      "@jetts-tui/shared": ["../shared/src/index.ts"]
     }
   },
   "include": ["src", "../shared/src"],

@@ -1,4 +1,4 @@
-import { Text, useInput } from '@freeide/ink'
+import { Text, useInput } from '@jetts-tui/ink'
 
 import type { Theme } from '../theme.js'
 

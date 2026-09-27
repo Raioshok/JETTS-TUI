@@ -19,7 +19,7 @@ import {
   type ConnectionState,
   type GatewayEvent,
   type GatewayEventName,
-} from "@freeide/shared";
+} from "@jetts-tui/shared";
 
 import { FREEIDE_BASE_PATH, buildWsAuthParam } from "@/lib/api";
 

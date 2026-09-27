@@ -20,6 +20,7 @@ const buildUiState = (): UiState => ({
   indicatorStyle: DEFAULT_INDICATOR_STYLE,
   info: null,
   liveSessionCount: 0,
+  liveSessions: [],
   inlineDiffs: true,
   mouseTracking: MOUSE_TRACKING,
   notice: null,
@@ -29,7 +30,7 @@ const buildUiState = (): UiState => ({
   sessionTitle: '',
   showReasoning: false,
   sid: null,
-  status: 'summoning freeide…',
+  status: 'starting Jetts-TUI…',
   statusBar: 'top',
   streaming: true,
   // Last session's resolved theme paints frame one (flash-free boot, like
@@ -42,6 +43,15 @@ export const $uiState = atom<UiState>(buildUiState())
 
 export const $uiTheme = computed($uiState, state => state.theme)
 export const $uiSessionId = computed($uiState, state => state.sid)
+
+// Unread delta per live session id, fed by the 1.5s active_list poll. Kept as
+// a separate atom (not part of UiState) so a background session finishing a
+// turn re-renders only the resident sidebar/pane, not the whole TUI. A value
+// of -1 means "changed" (message count reset by resume/compaction) — renderers
+// show a dot instead of a number.
+export const $unreadBySession = atom<Map<string, number>>(new Map())
+
+export const patchUnreadBySession = (next: Map<string, number>) => $unreadBySession.set(next)
 
 export const getUiState = () => $uiState.get()
 

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from 'react';
-import stories from '@site/src/data/userStories.json';
+import stories from '../../data/userStories.json';
 import styles from './styles.module.css';
 
 interface Story {
@@ -145,7 +145,7 @@ function sourceColor(source: string): string {
   }
 }
 
-export default function UserStoriesCollage(): JSX.Element {
+export default function UserStoriesCollage(): React.JSX.Element {
   const [activeCategory, setActiveCategory] = useState<string>('all');
   const [activeSource, setActiveSource] = useState<string>('all');
 
@@ -174,10 +174,9 @@ export default function UserStoriesCollage(): JSX.Element {
       <div className={styles.hero}>
         <h1>User Stories &amp; Use Cases</h1>
         <p>
-          What the FreeIDE Agent community is actually building. Every tile
-          below links to a real post, issue, video, or gist where someone
-          describes how they use FreeIDE &mdash; scraped from X, GitHub, Reddit,
-          Hacker News, YouTube, blogs, and podcasts.
+          Archived community stories from the upstream FreeIDE project. Every tile
+          links to its original post, issue, video, or gist. These examples
+          describe the upstream project, not Jetts-TUI users.
         </p>
         <div className={styles.meta}>
           <span><strong>{allStories.length}</strong> stories</span>
@@ -293,17 +292,17 @@ export default function UserStoriesCollage(): JSX.Element {
       )}
 
       <div className={styles.footer}>
-        Built something with FreeIDE?{' '}
+        These are upstream FreeIDE stories.{' '}
         <a
           href="https://github.com/freeide/freeide/edit/main/website/src/data/userStories.json"
           target="_blank"
           rel="noopener noreferrer"
         >
-          Add your story to this page
+          Suggest an upstream story
         </a>{' '}
-        by editing <code>userStories.json</code>, or post it in the{' '}
+        by editing the upstream <code>userStories.json</code>, or post it in the{' '}
         <a href="https://discord.gg/freeide" target="_blank" rel="noopener noreferrer">
-          FreeIDE Discord
+          upstream FreeIDE Discord
         </a>{' '}
         and we&apos;ll pick it up.
       </div>

@@ -1,4 +1,4 @@
-import type { BillingBlock } from '@freeide/shared/billing'
+import type { BillingBlock } from '@jetts-tui/shared/billing'
 import { describe, expect, it } from 'vitest'
 
 import { billingDialogCopy } from './billingDialog.js'
@@ -16,9 +16,9 @@ function makeBlock(overrides: Partial<BillingBlock> = {}): BillingBlock {
 }
 
 describe('billingDialogCopy', () => {
-  it('routes FreeIDE to the /topup flow', () => {
-    const copy = billingDialogCopy(makeBlock({ is_nous: true, provider: 'nous', provider_label: 'FreeIDE Portal' }))
-    expect(copy.title).toContain('FreeIDE')
+  it('routes Nous credits to the /topup flow', () => {
+    const copy = billingDialogCopy(makeBlock({ is_nous: true, provider: 'nous', provider_label: 'Nous Portal' }))
+    expect(copy.title).toContain('Nous')
     expect(copy.confirmLabel).toBe('Top up')
     expect(copy.cancelLabel).toBe('Dismiss')
   })

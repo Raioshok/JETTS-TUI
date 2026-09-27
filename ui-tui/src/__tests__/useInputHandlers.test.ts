@@ -5,9 +5,11 @@ import {
   applyVoiceRecordResponse,
   dismissSensitivePrompt,
   handleIdleHotkeyExit,
+  previousCompletionIndex,
   shouldAllowIdleHotkeyExit,
   shouldFallThroughForScroll
 } from '../app/useInputHandlers.js'
+import { workModeNotice } from '../app/workModes.js'
 
 const baseKey = {
   downArrow: false,
@@ -56,6 +58,26 @@ describe('shouldAllowIdleHotkeyExit', () => {
 
   it('disables idle exit hotkeys in dashboard chat', () => {
     expect(shouldAllowIdleHotkeyExit(true)).toBe(false)
+  })
+})
+
+describe('workModeNotice', () => {
+  it('uses clear labels for all Shift+Tab modes', () => {
+    expect(workModeNotice('default')).toBe('mode → default')
+    expect(workModeNotice('accept-edits')).toBe('mode → accept edits')
+    expect(workModeNotice('plan')).toBe('mode → plan (read-only)')
+  })
+
+  it('warns when a busy turn keeps its current mode', () => {
+    expect(workModeNotice('plan', true)).toBe('mode → plan (read-only) (applies next turn)')
+  })
+})
+
+describe('previousCompletionIndex', () => {
+  it('wraps Shift+Tab navigation to the final completion', () => {
+    expect(previousCompletionIndex(0, 4)).toBe(3)
+    expect(previousCompletionIndex(2, 4)).toBe(1)
+    expect(previousCompletionIndex(0, 0)).toBe(0)
   })
 })
 

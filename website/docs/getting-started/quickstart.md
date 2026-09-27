@@ -1,7 +1,7 @@
 ---
 sidebar_position: 1
 title: "Quickstart"
-description: "Your first conversation with FreeIDE Agent — from install to chatting in under 5 minutes"
+description: "Your first conversation with Jetts-TUI — from install to chatting"
 ---
 
 # Quickstart
@@ -46,23 +46,21 @@ Pick the row that matches your goal:
 
 ---
 
-## 1. Install FreeIDE Agent
-### With the FreeIDE Desktop installer on macOS or Windows (recommended)
-To easily install the command-line and desktop applications, [download the FreeIDE Desktop installer](https://freeide-agent.freeide.dev/) from our website and run it.
+## 1. Install Jetts-TUI
+Prebuilt desktop installers are not published yet. Install from source using the scripts below, then run `jetts-tui desktop` if you want the desktop app.
 
-### Without FreeIDE Desktop:
-For a command-line only install without FreeIDE Desktop, run:
+### Terminal install
 
 #### Linux / macOS / WSL2 / Android (Termux)
 ```bash
-curl -fsSL https://freeide-agent.freeide.dev/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Raioshok/JETTS-TUI/main/scripts/install.sh | bash
 ```
 
 #### Windows (native)
 
 Run in powershell:
 ```powershell
-iex (irm https://freeide-agent.freeide.dev/install.ps1) 
+iex (irm https://raw.githubusercontent.com/Raioshok/JETTS-TUI/main/scripts/install.ps1)
 ```
 
 :::tip Android / Termux
@@ -167,14 +165,13 @@ The right value goes to the right file automatically.
 ## 3. Run Your First Chat
 
 ```bash
-freeide            # classic CLI
-freeide --tui      # modern TUI (recommended)
+freeide            # launch the terminal UI
 ```
 
 You'll see a welcome banner with your model, available tools, and skills. Use a prompt that's specific and easy to verify:
 
-:::tip Pick your interface
-FreeIDE ships with two terminal interfaces: the classic `prompt_toolkit` CLI and a newer [TUI](../user-guide/tui.md) with modal overlays, mouse selection, and non-blocking input. Both share the same sessions, slash commands, and config — try each with `freeide` vs `freeide --tui`.
+:::tip One terminal experience
+FreeIDE uses its Ink [TUI](../user-guide/tui.md) for interactive terminal sessions, with modal overlays, mouse selection, and non-blocking input. `freeide --tui` remains accepted for compatibility, but plain `freeide` is the canonical command.
 :::
 
 ```

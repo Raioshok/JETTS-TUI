@@ -1,55 +1,55 @@
 ---
 sidebar_position: 2
 title: "TUI"
-description: "Launch the modern terminal UI for FreeIDE — mouse-friendly, rich overlays, and non-blocking input."
+description: "Launch the modern terminal UI for Jetts-TUI — mouse-friendly, rich overlays, and non-blocking input."
 ---
 
 # TUI
 
-The TUI is the modern front-end for FreeIDE — a terminal UI backed by the same Python runtime as the [Classic CLI](cli.md). Same agent, same sessions, same slash commands; a cleaner, more responsive surface for interacting with them.
+The TUI is Jetts-TUI's interactive terminal experience, backed by the Python agent runtime. It combines the agent, sessions, and slash commands in one clean, responsive surface.
 
-It's the recommended way to run FreeIDE interactively.
+It's the recommended way to run Jetts-TUI interactively.
 
 ## Launch
 
 ```bash
 # Launch the TUI
-freeide --tui
+jetts-tui
 
 # Resume the latest TUI session (falls back to the latest classic session)
-freeide --tui -c
-freeide --tui --continue
+jetts-tui -c
+jetts-tui --continue
 
 # Resume a specific session by ID or title
-freeide --tui -r 20260409_000000_aa11bb
-freeide --tui --resume "my t0p session"
+jetts-tui -r 20260409_000000_aa11bb
+jetts-tui --resume "my t0p session"
 
 # Run source directly — skips the prebuild step (for TUI contributors)
-freeide --tui --dev
+jetts-tui --dev
 ```
 
-You can also enable it via env var:
+The legacy environment switch remains accepted:
 
 ```bash
 export FREEIDE_TUI=1
-freeide          # now uses the TUI
-freeide chat     # same
+jetts-tui          # TUI (already the default)
+jetts-tui chat     # same
 ```
 
-Or make it the persistent default in `~/.freeide/config.yaml`:
+Older configuration files may still contain:
 
 ```yaml
 display:
-  interface: tui   # "cli" (default) or "tui"
+  interface: tui   # compatibility key; Ink is the only interactive terminal UI
 ```
 
-With `display.interface: tui`, a bare `freeide` (and `freeide chat`) launches the TUI. Explicit flags always win — run `freeide --cli` to drop back to the classic REPL for a single invocation, or `freeide --tui` / `FREEIDE_TUI=1` to force the TUI when the config default is `cli`.
+Bare `jetts-tui` and `jetts-tui chat` launch the TUI. Older `display.interface` values and the `--cli` spelling are accepted for configuration and script compatibility, but no longer expose a second interactive interface. Redirected and automated invocations still use the headless Python runner.
 
-The classic CLI remains the shipped default. Anything documented in [CLI Interface](cli.md) — slash commands, quick commands, skill preloading, personalities, multi-line input, interrupts — works in the TUI identically.
+The [CLI command guide](cli.md) documents slash commands, quick commands, skill preloading, personalities, multiline input, and interrupts available in this interface.
 
 ## Why the TUI
 
-- **Instant first frame** — the banner paints before the app finishes loading, so the terminal never feels frozen while FreeIDE is starting.
+- **Instant first frame** — the banner paints before the app finishes loading, so the terminal never feels frozen while Jetts-TUI is starting.
 - **Non-blocking input** — type and queue messages before the session is ready. Your first prompt sends the moment the agent comes online.
 - **Rich overlays** — model picker, session picker, approval and clarification prompts all render as modal panels rather than inline flows.
 - **Live session panel** — tools and skills fill in progressively as they initialize.
@@ -74,35 +74,36 @@ Click anywhere on a section header (or its chevron) to toggle it. The Tools list
 
 ## Requirements
 
-- **Node.js** ≥ 20 — the TUI runs as a subprocess launched from the Python CLI. `freeide doctor` verifies this.
-- **TTY** — like the classic CLI, piping stdin or running in non-interactive environments falls back to single-query mode.
+- **Node.js** ≥ 20 — the TUI runs as a subprocess launched from the Python CLI. `jetts-tui doctor` verifies this.
+- **TTY** — interactive sessions require a terminal. Piped and automated invocations use the headless runner.
 
-On first launch FreeIDE installs the TUI's Node dependencies into `ui-tui/node_modules` (one-time, a few seconds). Subsequent launches are fast. If you pull a new FreeIDE version, the TUI bundle is rebuilt automatically when sources are newer than the dist.
+On first launch Jetts-TUI installs the TUI's Node dependencies into `ui-tui/node_modules` (one-time, a few seconds). Subsequent launches are fast. If you pull a new Jetts-TUI version, the TUI bundle is rebuilt automatically when sources are newer than the dist.
 
 :::tip Working across git worktrees?
-Contributors who run `freeide --tui --dev` from many worktrees can share one `node_modules` instead of installing per checkout — see [TUI & Desktop from Worktrees](../developer-guide/worktree-ui-dev.md).
+Contributors who run `jetts-tui --tui --dev` from many worktrees can share one `node_modules` instead of installing per checkout — see [TUI & Desktop from Worktrees](../developer-guide/worktree-ui-dev.md).
 :::
 
 ### External prebuild
 
-Distributions that ship a prebuilt bundle (Nix, system packages) can point FreeIDE at it:
+Distributions that ship a prebuilt bundle (Nix, system packages) can point Jetts-TUI at it:
 
 ```bash
 export FREEIDE_TUI_DIR=/path/to/prebuilt/ui-tui
-freeide --tui
+jetts-tui
 ```
 
 The directory must contain `dist/entry.js`.
 
 ## Keybindings
 
-Keybindings match the [Classic CLI](cli.md#keybindings) exactly. The only behavioral differences:
+The complete keybinding reference lives in the [CLI guide](cli.md#keybindings). TUI-specific behavior includes:
 
 - **Mouse drag** highlights text with a uniform selection background.
 - **`Cmd+V` / `Ctrl+V`** first tries normal text paste, then falls back to OSC52/native clipboard reads, and finally image attach when the clipboard or pasted payload resolves to an image.
 - **`/terminal-setup`** installs local VS Code / Cursor / Windsurf terminal bindings for better `Cmd+Enter` and undo/redo parity on macOS.
 - **Slash autocompletion** opens as a floating panel with descriptions, not an inline dropdown.
 - **`Ctrl+X`** opens the live session switcher. When a queued message is highlighted (sent while the agent was still running), it still deletes that queued message instead. **`Esc`** cancels editing and unhighlights without deleting.
+- **`Alt+1` … `Alt+9`** targets the matching live session directly. On wide terminals the numbered targets stay visible in the resident-session sidebar.
 - **`Ctrl+G` / `Ctrl+X Ctrl+E`** — open the current input buffer in `$EDITOR` for multi-line / long-prompt composition; save-and-exit sends the contents back as the prompt.
 
 ## Slash commands
@@ -121,11 +122,11 @@ All slash commands work unchanged. A few are TUI-owned — they produce richer o
 | `/reload` | Re-reads `~/.freeide/.env` into the running TUI process so newly added API keys take effect without a restart |
 | `/mouse [on\|off\|toggle\|wheel\|buttons\|all]` | Pick a mouse tracking preset at runtime (also persists to `display.mouse_tracking` in `config.yaml`). `wheel` (1000+1006) keeps scroll-wheel scrolling without the hover events that make tmux spam "No image in clipboard" over the prompt row; `buttons` adds drag-to-select; `all` is the default with hover-driven UI. |
 
-Every other slash command (including installed skills, quick commands, and personality toggles) works identically to the classic CLI. See [Slash Commands Reference](../reference/slash-commands.md).
+Every other slash command, including installed skills, quick commands, and personality toggles, is available through the shared command registry. See [Slash Commands Reference](../reference/slash-commands.md).
 
 ## Live session switcher
 
-Use the live session switcher when you want one terminal to act as a dispatcher for several TUI sessions. It lists only sessions that are currently live in this TUI process; closed sessions remain saved transcripts and can still be reopened with `/resume` or `freeide --tui --resume <id-or-title>`.
+Use the live session switcher when you want one terminal to act as a dispatcher for several TUI sessions. It lists only sessions that are currently live in this TUI process; closed sessions remain saved transcripts and can still be reopened with `/resume` or `jetts-tui --resume <id-or-title>`.
 
 Open it with any of these:
 
@@ -134,9 +135,9 @@ Open it with any of these:
 - `/sessions new` to create a fresh live session immediately.
 - Click the `N live sessions` count in the status line.
 
-<img alt="FreeIDE TUI Session Orchestrator with one live session and a +new row" src="/docs/img/docs/tui-session-orchestrator/session-orchestrator.png" />
+<img alt="Jetts-TUI Session Orchestrator with one live session and a +new row" src="/docs/img/docs/tui-session-orchestrator/session-orchestrator.png" />
 
-<video controls muted loop playsInline src="/docs/img/docs/tui-session-orchestrator/session-orchestrator-demo.mp4" title="FreeIDE TUI Session Orchestrator demo" style={{maxWidth: '100%'}}></video>
+<video controls muted loop playsInline src="/docs/img/docs/tui-session-orchestrator/session-orchestrator-demo.mp4" title="Jetts-TUI Session Orchestrator demo" style={{maxWidth: '100%'}}></video>
 
 Inside the switcher:
 
@@ -148,11 +149,23 @@ Inside the switcher:
 - `Esc` closes the switcher.
 - Select `+new`, type a prompt, and press `Enter` to dispatch a new live session. Press `Tab` first if you want to choose a model just for that new session.
 
+### Wide resident workspace
+
+At 118 columns and 30 rows or larger, the TUI automatically expands into a multi-session workspace. The left sidebar keeps live sessions and their status visible, the Comms panel shows each session's latest activity, and background sessions remain as compact resident panes above the focused transcript. One composer stays authoritative: the `INPUT →` strip always names its target, so switching sessions never risks sending a prompt to the wrong agent.
+
+Click a session or resident pane to focus it, use `Alt+1` … `Alt+9` for direct targeting, or press `Ctrl+X` for the complete live/resumable session picker. Shrinking the terminal returns to the normal single-transcript layout without closing any live session.
+
+Subagents spawned inside the focused session appear in **CHILD AGENTS** beneath the session list; active children are shown first, and Comms shows their latest activity. Click that section or use `/agents` to inspect and control them. Children are not independent live sessions, so they do not change the `N live` count or get their own `Alt+N` composer target.
+
+For a repeatable busy-input, child-agent, keyboard, and resize check, follow `TUI-SMOKE.md` in the repository root.
+
+While another session runs in the background, its sidebar row shows a `+N` unread badge (a `•` when a resumed session's count reset), and the Comms panel lists the three most recently active sessions with a relative `3m`/`2h` age. Focusing a session clears its badge. Set `display.resident_workspace` in `config.yaml` to `auto` (default), `on` (always when sessions exist), or `off` (never — keep the single-transcript layout) to override the automatic width/height gate.
+
 ## LaTeX math rendering
 
 The TUI's markdown pipeline renders LaTeX math inline: `$E = mc^2$` and `$$\frac{a}{b}$$` render as Unicode-formatted math instead of the raw TeX source. Works for inline and block math; unsupported syntax falls back to showing the literal TeX wrapped in a code span so it remains copyable.
 
-This is always-on — nothing to configure. Classic CLI keeps the raw TeX.
+This is always on; unsupported syntax remains copyable as literal TeX.
 
 ## Light-terminal detection
 
@@ -170,7 +183,7 @@ export FREEIDE_TUI_THEME=light
 
 ## Busy indicator styles
 
-The status-bar busy indicator is pluggable — the default rotates FreeIDE' kawaii face palette every 2.5 seconds during agent work. Pick a different style via config or the `/indicator` slash command:
+The status-bar busy indicator is pluggable — the default rotates Jetts-TUI' kawaii face palette every 2.5 seconds during agent work. Pick a different style via config or the `/indicator` slash command:
 
 ```yaml
 display:
@@ -181,7 +194,7 @@ Or in-session: `/indicator emoji` (etc.). Styles ship with matched glyph widths 
 
 ## Auto-resume
 
-By default, `freeide --tui` starts a fresh session each launch. To re-attach to the most recent TUI session automatically (useful when your terminal or SSH connection drops unexpectedly), opt in:
+By default, `jetts-tui --tui` starts a fresh session each launch. To re-attach to the most recent TUI session automatically (useful when your terminal or SSH connection drops unexpectedly), opt in:
 
 ```bash
 export FREEIDE_TUI_RESUME=1          # most-recent TUI session
@@ -203,7 +216,7 @@ The TUI's status line tracks agent state in real time:
 | `interrupted` | Current turn was cancelled; press Enter to send again. |
 | `forging session…` / `resuming…` | Initial connect or `--resume` handshake. |
 
-The per-skin status-bar colors and thresholds are shared with the classic CLI — see [Skins](features/skins.md) for customization.
+Status-bar colors and thresholds come from the shared skin system — see [Skins](features/skins.md) for customization.
 
 The status line also shows:
 
@@ -211,11 +224,11 @@ The status line also shows:
 - **Per-prompt elapsed time** — `⏱ 12s/3m 45s` while the turn is running (live), frozen to `⏲ 32s / 3m 45s` after the turn completes. First number is time since last user message; second is total session duration. Resets on every new prompt.
 - **`🗜️ N`** — number of times the running session has been auto-compressed. Appears once the first compression fires.
 - **`▶ N`** — number of `/background` tasks currently running in this session. Appears whenever at least one task is in flight.
-- **`⚠ YOLO`** — visible warning whenever YOLO mode is on (`freeide --yolo`, `/yolo`, or `FREEIDE_YOLO_MODE=1`). The same badge also appears in the startup banner so you cannot launch an auto-approving session without noticing.
+- **`⚠ YOLO`** — visible warning whenever YOLO mode is on (`jetts-tui --yolo`, `/yolo`, or `FREEIDE_YOLO_MODE=1`). The same badge also appears in the startup banner so you cannot launch an auto-approving session without noticing.
 
 ## Configuration
 
-The TUI respects all standard FreeIDE config: `~/.freeide/config.yaml`, profiles, personalities, skins, quick commands, credential pools, memory providers, tool/skill enablement. No TUI-specific config file exists.
+The TUI respects all standard Jetts-TUI config: `~/.freeide/config.yaml`, profiles, personalities, skins, quick commands, credential pools, memory providers, tool/skill enablement. No TUI-specific config file exists.
 
 A handful of keys tune the TUI surface specifically:
 
@@ -271,7 +284,7 @@ existing configs keep working unchanged.
 
 ## Sessions
 
-Sessions are shared between the TUI and the classic CLI — both write to the same `~/.freeide/state.db`. You can start a session in one, resume in the other. The session picker surfaces sessions from both sources, with a source tag.
+Sessions are stored in `~/.freeide/state.db`, so terminal, desktop, dashboard, and messaging surfaces can resume the same conversation history. Older sessions may retain a legacy source tag.
 
 See [Sessions](sessions.md) for lifecycle, search, compression, and export.
 
@@ -279,22 +292,22 @@ See [Sessions](sessions.md) for lifecycle, search, compression, and export.
 
 By default the TUI spawns its own in-process gateway, so each TUI instance is self-contained — there's nothing to configure.
 
-You may see a `FREEIDE_TUI_GATEWAY_URL` env var referenced in the codebase or logs. This is an **internal wiring detail of the web dashboard**, not a user-facing remote-attach knob. When you open the dashboard's "Chat" tab (`freeide dashboard` → `/chat`), the dashboard's web server spawns an embedded TUI child process and injects `FREEIDE_TUI_GATEWAY_URL` so that child attaches to the dashboard's own in-process `tui_gateway` over a loopback WebSocket (`/api/ws`). The `/api/ws` endpoint exists only inside the dashboard server (`freeide_cli/web_server.py`) and is bound to that process's lifetime and auth.
+You may see a `FREEIDE_TUI_GATEWAY_URL` env var referenced in the codebase or logs. This is an **internal wiring detail of the web dashboard**, not a user-facing remote-attach knob. When you open the dashboard's "Chat" tab (`jetts-tui dashboard` → `/chat`), the dashboard's web server spawns an embedded TUI child process and injects `FREEIDE_TUI_GATEWAY_URL` so that child attaches to the dashboard's own in-process `tui_gateway` over a loopback WebSocket (`/api/ws`). The `/api/ws` endpoint exists only inside the dashboard server (`freeide_cli/web_server.py`) and is bound to that process's lifetime and auth.
 
-There is no general "point any TUI at any standalone gateway port" mode. In particular, the OpenAI-compatible API server (`freeide gateway` / the `api_server` platform) does **not** serve `/api/ws` — it's the model-backend surface (`/v1/chat/completions`, `/v1/models`, …) and deliberately does not expose the TUI's JSON-RPC control channel. Setting `FREEIDE_TUI_GATEWAY_URL` to that port will 404.
+There is no general "point any TUI at any standalone gateway port" mode. In particular, the OpenAI-compatible API server (`jetts-tui gateway` / the `api_server` platform) does **not** serve `/api/ws` — it's the model-backend surface (`/v1/chat/completions`, `/v1/models`, …) and deliberately does not expose the TUI's JSON-RPC control channel. Setting `FREEIDE_TUI_GATEWAY_URL` to that port will 404.
 
 If you want multiple surfaces to share one set of sessions, use the shared `~/.freeide/state.db` (see [Sessions](sessions.md)) or the web dashboard's embedded chat (see [Web Dashboard](features/web-dashboard.md#chat)) — not a hand-set gateway URL.
 
-## Reverting to the classic CLI
+## Compatibility
 
-Launching `freeide` (without `--tui`) stays on the classic CLI by default. To make a machine prefer the TUI, set `display.interface: tui` in `~/.freeide/config.yaml` (persistent) or `FREEIDE_TUI=1` in your shell profile (per-shell). To go back, set `interface: cli` / unset the env var, or pass `freeide --cli` for a one-off.
+Launching `jetts-tui` starts the TUI. The `--tui` flag and `FREEIDE_TUI=1` remain supported for older scripts, but are no longer necessary.
 
-If the TUI fails to launch (no Node, missing bundle, TTY issue), FreeIDE prints a diagnostic and falls back — rather than leaving you stuck.
+If the TUI cannot launch because Node or its bundle is unavailable, Jetts-TUI prints an actionable diagnostic. Run `jetts-tui doctor` to repair the local runtime.
 
 ## See also
 
 - [CLI Interface](cli.md) — full slash command and keybinding reference (shared)
 - [Sessions](sessions.md) — resume, branch, and history
 - [Skins & Themes](features/skins.md) — theme the banner, status bar, and overlays
-- [Voice Mode](features/voice-mode.md) — works in both interfaces
+- [Voice Mode](features/voice-mode.md) — speech input and playback in the TUI
 - [Configuration](configuration.md) — all config keys

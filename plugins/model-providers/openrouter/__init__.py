@@ -55,18 +55,19 @@ class OpenRouterProfile(ProviderProfile):
         base_url: str | None = None,
         timeout: float = 8.0,
     ) -> list[str] | None:
-        """Fetch from public OpenRouter catalog — no auth required.
+        """Fetch OpenRouter's complete live catalog.
 
-        Note: Tool-call capability filtering is applied by freeide_cli/models.py
-        via fetch_openrouter_models() → _openrouter_model_supports_tools(), not
-        here. The picker early-returns via the dedicated openrouter path before
-        reaching this method, so filtering here would be unreachable.
+        Authentication is forwarded when available.  The endpoint can be read
+        publicly, but using the configured credential keeps discovery aligned
+        with provider-side account policy.
         """
         global _CACHE  # noqa: PLW0603
         if _CACHE is not None:
             return _CACHE
         try:
-            result = super().fetch_models(api_key=None, base_url=base_url, timeout=timeout)
+            result = super().fetch_models(
+                api_key=api_key, base_url=base_url, timeout=timeout
+            )
             if result is not None:
                 _CACHE = result
             return result
@@ -206,7 +207,7 @@ openrouter = OpenRouterProfile(
     fallback_models=(
         "cohere/north-mini-code:free",
         "poolside/laguna-s-2.1:free",
-        "openai/gpt-oss-20b:free",
+        "openai/gpt-oss-20b",
         "nvidia/nemotron-3-super-120b-a12b:free",
         "google/gemma-4-31b-it:free",
     ),

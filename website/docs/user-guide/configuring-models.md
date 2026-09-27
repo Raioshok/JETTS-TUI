@@ -39,7 +39,7 @@ Click **Change** on the Main model row:
 The picker has two columns:
 
 - **Left** — authenticated providers. Only providers you've set up (API key set, OAuth'd, or defined as a custom endpoint) show up here. If a provider is missing, head to **Keys** and add its credential.
-- **Right** — the curated model list for the selected provider. These are the agentic models FreeIDE recommends for that provider, not the raw `/models` dump (which on OpenRouter includes 400+ models including TTS, image generators, and rerankers).
+- **Right** — the provider's live model inventory. FreeIDE reads the configured `/models` endpoint, preserves its order, and shows newly released or account-specific IDs without waiting for a FreeIDE update. OpenRouter's endpoint defaults to text-output models; entries that explicitly lack tool calling remain visible so the catalog is complete, but are labelled accordingly. Cached registry or bundled lists appear only when the live endpoint is unavailable.
 
 Type in the filter box to narrow by provider name, slug, or model ID.
 

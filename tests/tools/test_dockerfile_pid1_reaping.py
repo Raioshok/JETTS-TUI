@@ -142,7 +142,7 @@ def test_dockerfile_entrypoint_routes_through_the_init(dockerfile_text):
 
 def test_dockerfile_installs_tui_dependencies(dockerfile_text):
     # The TUI workspace manifests must be present so ``npm install`` can
-    # resolve dependencies. The bundled ``freeide-ink`` workspace package is
+    # resolve dependencies. The bundled ``jetts-tui-ink`` workspace package is
     # now COPIED into the image as a whole tree (not just its lockfile)
     # because it's referenced as a ``file:`` workspace dependency from
     # ``ui-tui/package.json`` — copying the tree avoids npm stopping at a
@@ -150,7 +150,7 @@ def test_dockerfile_installs_tui_dependencies(dockerfile_text):
     # With a single workspace root lockfile, only the root package-lock.json
     # is copied; per-workspace lockfiles no longer exist.
     assert "ui-tui/package.json" in dockerfile_text
-    assert "ui-tui/packages/freeide-ink/" in dockerfile_text
+    assert "ui-tui/packages/jetts-tui-ink/" in dockerfile_text
     assert "package-lock.json" in dockerfile_text
     assert any(
         "npm" in step and (" install" in step or " ci" in step)
@@ -222,17 +222,17 @@ def test_dockerfile_builds_tui_assets(dockerfile_text):
 
 
 def test_dockerfile_materializes_local_tui_ink_package(dockerfile_text):
-    # ``freeide-ink`` is a bundled workspace package referenced from
+    # ``jetts-tui-ink`` is a bundled workspace package referenced from
     # ``ui-tui/package.json`` via ``file:`` — not pulled from the npm
     # registry. The contract this test pins is just that the image
-    # actually carries the package source so ``await import('@freeide/ink')``
+    # actually carries the package source so ``await import('@jetts-tui/ink')``
     # can resolve at runtime; the previous, much pickier assertion (manual
-    # ``rm -rf`` + ``npm install --omit=dev --prefix node_modules/@freeide/ink``)
+    # ``rm -rf`` + ``npm install --omit=dev --prefix node_modules/@jetts-tui/ink``)
     # baked in implementation details of an older materialisation flow that
     # was simplified once npm workspaces handled the resolution natively.
-    assert "ui-tui/packages/freeide-ink/" in dockerfile_text, (
-        "Dockerfile must COPY the bundled freeide-ink workspace package "
-        "so ``await import('@freeide/ink')`` resolves at runtime."
+    assert "ui-tui/packages/jetts-tui-ink/" in dockerfile_text, (
+        "Dockerfile must COPY the bundled jetts-tui-ink workspace package "
+        "so ``await import('@jetts-tui/ink')`` resolves at runtime."
     )
 
 

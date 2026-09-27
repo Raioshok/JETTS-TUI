@@ -1508,6 +1508,9 @@ def init_agent(
     # This preserves the message-local durable marker if close persistence wins
     # the race before the agent's normal early turn flush.
     agent._pending_cli_user_message = None
+    # Session-scoped execution posture. It stays out of the system prompt so a
+    # mode switch does not invalidate the conversation's cached prefix.
+    agent._work_mode = "default"
     agent._last_flushed_db_idx = 0  # tracks DB-write cursor to prevent duplicate writes
     agent._session_db_created = False  # DB row deferred to run_conversation()
     # Most agents own their session row and should finalize it on close().
@@ -1719,6 +1722,27 @@ def init_agent(
     # the other.  Steers the model to batch independent tool calls into a
     # single turn; the runtime already executes such batches concurrently.
     agent._parallel_tool_call_guidance = bool(_agent_section.get("parallel_tool_call_guidance", True))
+
+    # Resolved once and rendered into the stable prompt tier, so enabling the
+    # efficiency contract does not invalidate prompt caching mid-conversation.
+    _efficiency = _agent_section.get("efficiency", {})
+    if not isinstance(_efficiency, dict):
+        _efficiency = {}
+    agent._efficiency_enabled = bool(_efficiency.get("enabled", False))
+    try:
+        agent._task_token_budget = max(0, int(_efficiency.get("task_token_budget", 0) or 0))
+    except (TypeError, ValueError):
+        agent._task_token_budget = 0
+    agent._long_task_progress_file = str(
+        _efficiency.get("long_task_progress_file", ".freeide-progress.md")
+        or ".freeide-progress.md"
+    ).strip()
+    try:
+        agent._long_task_turn_threshold = max(
+            1, int(_efficiency.get("long_task_turn_threshold", 12) or 12)
+        )
+    except (TypeError, ValueError):
+        agent._long_task_turn_threshold = 12
 
     # Local Python toolchain probe toggle.  Default True.  When False,
     # the probe is skipped entirely (no subprocess calls, no system-prompt

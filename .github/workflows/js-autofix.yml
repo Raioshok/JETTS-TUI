@@ -56,6 +56,9 @@ concurrency:
 
 jobs:
   generate-patch:
+    # New public repository: enable the write-capable bot only after its own
+    # GitHub App identity and branch-protection policy have been configured.
+    if: github.repository == 'Raioshok/JETTS-TUI' && vars.JETTS_TUI_AUTOFIX_ENABLED == 'true'
     name: Generate eslint --fix patch
     runs-on: ubuntu-latest
     timeout-minutes: 5

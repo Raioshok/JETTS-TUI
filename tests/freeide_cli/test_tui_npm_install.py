@@ -15,7 +15,7 @@ def main_mod():
 
 
 def _touch_ink(root: Path) -> None:
-    ink = root / "node_modules" / "@freeide" / "ink" / "package.json"
+    ink = root / "node_modules" / "@jetts-tui" / "ink" / "package.json"
     ink.parent.mkdir(parents=True, exist_ok=True)
     ink.write_text("{}")
 
@@ -46,6 +46,47 @@ def test_no_install_when_lock_newer_but_hidden_lock_matches(tmp_path: Path, main
     os.utime(tmp_path / "package-lock.json", (200, 200))
     os.utime(tmp_path / "node_modules" / ".package-lock.json", (100, 100))
     assert main_mod._tui_need_npm_install(tmp_path) is False
+
+
+def test_workspace_tui_ignores_uninstalled_unrelated_workspace_packages(tmp_path: Path, main_mod) -> None:
+    """A TUI-only install must not reinstall just because Desktop is absent."""
+    tui = tmp_path / "ui-tui"
+    tui.mkdir()
+    (tui / "package.json").write_text('{"name":"jetts-tui-terminal"}')
+    _touch_ink(tmp_path)
+    (tmp_path / "package-lock.json").write_text(
+        '{"packages":{'
+        '"ui-tui":{"dependencies":{"ink":"1.0.0"},"devDependencies":{"esbuild":"1.0.0"}},'
+        '"apps/desktop":{"dependencies":{"electron":"1.0.0"}},'
+        '"node_modules/ink":{"version":"1.0.0"},'
+        '"node_modules/esbuild":{"version":"1.0.0"},'
+        '"node_modules/electron":{"version":"1.0.0"}'
+        '}}'
+    )
+    (tmp_path / "node_modules" / ".package-lock.json").write_text(
+        '{"packages":{'
+        '"node_modules/ink":{"version":"1.0.0"},'
+        '"node_modules/esbuild":{"version":"1.0.0"}'
+        '}}'
+    )
+
+    assert main_mod._tui_need_npm_install(tui) is False
+
+
+def test_workspace_tui_detects_missing_direct_dependency(tmp_path: Path, main_mod) -> None:
+    tui = tmp_path / "ui-tui"
+    tui.mkdir()
+    (tui / "package.json").write_text('{"name":"jetts-tui-terminal"}')
+    _touch_ink(tmp_path)
+    (tmp_path / "package-lock.json").write_text(
+        '{"packages":{'
+        '"ui-tui":{"dependencies":{"ink":"1.0.0"}},'
+        '"node_modules/ink":{"version":"1.0.0"}'
+        '}}'
+    )
+    (tmp_path / "node_modules" / ".package-lock.json").write_text('{"packages":{}}')
+
+    assert main_mod._tui_need_npm_install(tui) is True
 
 
 def test_need_install_when_required_package_missing_from_hidden_lock(tmp_path: Path, main_mod) -> None:
@@ -204,7 +245,7 @@ def test_make_tui_argv_scopes_npm_install_on_termux_workspace(
     tui_dir = tmp_path / "ui-tui"
     tui_dir.mkdir()
     (tui_dir / "package.json").write_text("{}")
-    ink_dir = tui_dir / "packages" / "freeide-ink"
+    ink_dir = tui_dir / "packages" / "jetts-tui-ink"
     ink_dir.mkdir(parents=True)
     (ink_dir / "package.json").write_text("{}")
     (tmp_path / "package-lock.json").write_text("{}")
@@ -230,7 +271,7 @@ def test_make_tui_argv_scopes_npm_install_on_termux_workspace(
         "--workspace",
         "ui-tui",
         "--workspace",
-        "ui-tui/packages/freeide-ink",
+        "ui-tui/packages/jetts-tui-ink",
         "--include-workspace-root=false",
     ]
     assert calls[0][1]["cwd"] == str(tmp_path)
@@ -336,7 +377,7 @@ def test_make_tui_argv_keeps_desktop_always_build_behaviour(
 def test_make_tui_argv_decodes_dev_prebuild_with_utf8_replace(
     tmp_path: Path, main_mod, monkeypatch
 ) -> None:
-    ink_dir = tmp_path / "packages" / "freeide-ink"
+    ink_dir = tmp_path / "packages" / "jetts-tui-ink"
     ink_dir.mkdir(parents=True)
     tsx = tmp_path / "node_modules" / ".bin" / "tsx"
     tsx.parent.mkdir(parents=True)
@@ -593,7 +634,7 @@ def test_no_stray_lockfiles_in_workspace_subdirs(main_mod) -> None:
         root / "apps" / "desktop",
         root / "apps" / "shared",
     ]
-    # Also sweep ui-tui/packages/* (freeide-ink etc.)
+    # Also sweep ui-tui/packages/* (jetts-tui-ink etc.)
     tui_pkgs = root / "ui-tui" / "packages"
     if tui_pkgs.is_dir():
         subdirs.extend(d for d in tui_pkgs.iterdir() if d.is_dir())

@@ -24,7 +24,8 @@ import {
   resumableHistory,
   selectedSessionRowStyle,
   sessionRowKindAt,
-  sessionsCountLabel
+  sessionsCountLabel,
+  sessionSwitcherVisibleRows
 } from '../components/activeSessionSwitcher.js'
 import { listRowStyle } from '../components/overlayPrimitives.js'
 import type { SessionActiveItem } from '../gatewayTypes.js'
@@ -175,6 +176,12 @@ describe('session orchestrator helpers', () => {
 })
 
 describe('unified Sessions overlay helpers', () => {
+  it('fits the session window above the composer on short terminals', () => {
+    expect(sessionSwitcherVisibleRows(24)).toBe(8)
+    expect(sessionSwitcherVisibleRows(32)).toBe(12)
+    expect(sessionSwitcherVisibleRows(18)).toBe(2)
+  })
+
   it('orders rows as [new][live…][history…]', () => {
     // 2 live sessions, any number of history rows after them.
     expect(sessionRowKindAt(0, 2)).toBe('new')

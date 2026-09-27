@@ -1,6 +1,6 @@
 import { randomUUID } from 'node:crypto'
 
-import { Box, Text, useInput } from '@freeide/ink'
+import { Box, Text, useInput } from '@jetts-tui/ink'
 import { useEffect, useRef, useState } from 'react'
 
 import type {

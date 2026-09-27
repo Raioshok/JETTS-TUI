@@ -1,9 +1,9 @@
-import type { BillingBlock, UsageModelData } from '@freeide/shared/billing'
-import type { FreeIDESkin } from '@freeide/shared/skin'
+import type { BillingBlock, UsageModelData } from '@jetts-tui/shared/billing'
+import type { FreeIDESkin } from '@jetts-tui/shared/skin'
 
 import type { SessionInfo, SlashCategory, SubagentStatus, Usage } from './types.js'
 
-/** The cross-surface skin contract (canonical shape in `@freeide/shared`).
+/** The cross-surface skin contract (canonical shape in `@jetts-tui/shared`).
  *  Includes the paired light_colors/dark_colors overlays from #20379. */
 export type GatewaySkin = FreeIDESkin
 
@@ -48,7 +48,7 @@ export interface SlashExecResponse {
 
 // ── Remote Spending (Phase 2b) ───────────────────────────────────────
 
-// Wire shapes now live in @freeide/shared for reuse by TypeScript clients.
+// Wire shapes now live in @jetts-tui/shared for reuse by TypeScript clients.
 export type {
   BillingAutoReload,
   BillingBlock,
@@ -65,7 +65,7 @@ export type {
   SubscriptionUpgradeResponse,
   UsageBarData,
   UsageModelData
-} from '@freeide/shared/billing'
+} from '@jetts-tui/shared/billing'
 
 export type CommandDispatchResponse =
   | { output?: string; type: 'exec' | 'plugin' }
@@ -144,6 +144,7 @@ export interface ConfigSetResponse {
   confirm_message?: string
   confirm_required?: boolean
   credential_warning?: string
+  deferred?: boolean
   history_reset?: boolean
   info?: SessionInfo
   value?: string

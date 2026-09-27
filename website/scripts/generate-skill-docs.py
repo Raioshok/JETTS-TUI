@@ -300,7 +300,12 @@ def derive_skill_meta(skill_path: Path, source_dir: Path, source_kind: str) -> d
         "category": category,
         "sub": sub,
         "slug": slug,
-        "rel_path": str(rel),
+        # as_posix(), not str(): on Windows `rel` is a WindowsPath, so str()
+        # emits backslashes, which corrupted the generated `Path` rows, the
+        # catalog's Path column, and the GitHub blob URLs when this script was
+        # run on Windows (197 files, observed 2026-09-23). Identical output on
+        # POSIX, so this is a no-op there.
+        "rel_path": rel.as_posix(),
     }
 
 

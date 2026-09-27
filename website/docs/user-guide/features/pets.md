@@ -18,7 +18,7 @@ the agent's behavior** — the sprite is a display concern only. The feature is
 ## How it works
 
 - Pets are installed into your profile's `pets/` directory
-  (`<FREEIDE_HOME>/pets/<slug>/`), so each [profile](../profiles.md) keeps its
+  (`<FREEIDE_HOME>/pets/<slug>/`), so each [profile](/user-guide/profiles) keeps its
   own set.
 - Selecting a pet writes `display.pet.slug` and `display.pet.enabled` to
   `config.yaml` — nothing is stored as a secret or env var.

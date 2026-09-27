@@ -149,6 +149,39 @@ def _tui_embedded_pane_clarifier(hint: str) -> str:
     return hint + _TUI_EMBEDDED_PANE_CLARIFIER
 
 
+def _efficiency_guidance(agent: Any) -> str:
+    """Build the opt-in, byte-stable efficiency contract for this session."""
+    if not getattr(agent, "_efficiency_enabled", False):
+        return ""
+    budget = int(getattr(agent, "_task_token_budget", 0) or 0)
+    budget_line = (
+        f"Planning budget: aim to finish each user task within {budget:,} total input + output tokens. "
+        if budget > 0
+        else "Use the smallest reasonable token footprint for each task. "
+    )
+    progress_file = str(
+        getattr(agent, "_long_task_progress_file", ".freeide-progress.md")
+        or ".freeide-progress.md"
+    )
+    threshold = int(getattr(agent, "_long_task_turn_threshold", 12) or 12)
+    return (
+        "TOKEN-EFFICIENCY CONTRACT\n"
+        + budget_line
+        + "Treat this as a planning target, never as permission to leave requested work incomplete. "
+        "Batch independent reads and checks. Give tools exact paths and bounded scope. "
+        "Delegate only narrow, independent, reasoning-heavy work when isolation or parallelism repays "
+        "the duplicated context; children use the configured delegation model. Keep child goals and "
+        "returned summaries compact. Reuse or improve an existing skill when a workflow genuinely "
+        "recurs. Save durable user preferences through memory, not transient task facts. Correct a "
+        "bad approach as soon as evidence disproves it. Do not enable tools, plugins, or integrations "
+        "without a concrete need. Keep progress updates and the final answer concise while reporting "
+        "verification and blockers honestly. For work likely to exceed "
+        f"{threshold} model/tool turns or survive a session handoff, maintain `{progress_file}` with "
+        "objective, constraints, completed work, next step, and verification; remove it when the task "
+        "is complete unless the user asks to retain it."
+    )
+
+
 def build_system_prompt_parts(agent: Any, system_message: Optional[str] = None) -> Dict[str, str]:
     """Assemble the system prompt as three ordered cache tiers.
 
@@ -222,6 +255,10 @@ def build_system_prompt_parts(agent: Any, system_message: Optional[str] = None) 
     # (default True) and only injected when tools are actually loaded.
     if getattr(agent, "_parallel_tool_call_guidance", True) and agent.valid_tool_names:
         stable_parts.append(PARALLEL_TOOL_CALL_GUIDANCE)
+
+    efficiency = _efficiency_guidance(agent)
+    if efficiency:
+        stable_parts.append(efficiency)
 
     # Tool-aware behavioral guidance: only inject when the tools are loaded
     tool_guidance = []

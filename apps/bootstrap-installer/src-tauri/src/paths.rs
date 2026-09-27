@@ -66,13 +66,13 @@ pub fn bootstrap_cache_dir() -> PathBuf {
 /// FREEIDE_HOME so it survives repo checkout deletion (unlike anything under
 /// freeide-agent/).
 ///
-/// On Windows this is `%LOCALAPPDATA%\freeide\freeide-setup.exe`; on other
+/// On Windows this is `%LOCALAPPDATA%\freeide\jetts-tui-setup.exe`; on other
 /// platforms the extension differs but the directory is the same.
 pub fn installer_dest() -> PathBuf {
     let name = if cfg!(target_os = "windows") {
-        "freeide-setup.exe"
+        "jetts-tui-setup.exe"
     } else {
-        "freeide-setup"
+        "jetts-tui-setup"
     };
     freeide_home().join(name)
 }

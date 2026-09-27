@@ -155,7 +155,7 @@ You no longer need to wrap `freeide update` in `screen` or `tmux` to survive a t
 freeide version
 ```
 
-Compare against the latest release at the [GitHub releases page](https://github.com/freeide/freeide/releases).
+Compare against the latest release at the [Jetts-TUI GitHub releases page](https://github.com/Raioshok/JETTS-TUI/releases).
 
 ### Updating from Messaging Platforms
 

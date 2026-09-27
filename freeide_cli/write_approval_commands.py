@@ -38,6 +38,12 @@ def _fmt_pending_list(subsystem: str) -> str:
     for r in records:
         origin = r.get("origin", "foreground")
         tag = " [auto]" if origin == "background_review" else ""
+        evaluation = (r.get("metadata") or {}).get("quality_evaluation") or {}
+        score = evaluation.get("after_score")
+        if score is not None:
+            delta = evaluation.get("delta")
+            delta_text = "" if delta is None else f", Δ{delta:+d}"
+            tag += f" [eval {score}/{evaluation.get('max_score', 8)}{delta_text}]"
         lines.append(f"  {r['id']}{tag}  {r.get('summary', '')}")
     where = "/{s} approve <id>".format(s=subsystem)
     lines.append("")
@@ -178,6 +184,16 @@ def _diff(rest: List[str]) -> str:
         return f"No pending skill write with id '{rest[0]}'."
     diff = wa.skill_pending_diff(rec)
     header = f"# Pending skill write {rec['id']}: {rec.get('summary', '')}\n"
+    evaluation = (rec.get("metadata") or {}).get("quality_evaluation") or {}
+    if evaluation:
+        delta = evaluation.get("delta")
+        delta_text = "n/a" if delta is None else f"{delta:+d}"
+        reasons = "; ".join(evaluation.get("reasons", []))
+        header += (
+            f"# Locked eval: {evaluation.get('verdict')} "
+            f"{evaluation.get('after_score')}/{evaluation.get('max_score')} "
+            f"(delta {delta_text}) — {reasons}\n"
+        )
     return header + "\n" + diff
 
 

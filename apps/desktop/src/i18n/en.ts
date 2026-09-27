@@ -62,18 +62,18 @@ export const en: Translations = {
   },
 
   boot: {
-    ready: 'FreeIDE Desktop is ready',
+    ready: 'Jetts-TUI Desktop is ready',
     desktopBootFailedWithMessage: message => `Desktop boot failed: ${message}`,
     steps: {
       connectingGateway: 'Connecting live desktop gateway',
-      loadingSettings: 'Loading FreeIDE settings',
+      loadingSettings: 'Loading Jetts-TUI settings',
       loadingSessions: 'Loading recent sessions',
       startingDesktopConnection: 'Starting desktop connection',
-      startingFreeIDEDesktop: 'Starting FreeIDE Desktop…'
+      startingFreeIDEDesktop: 'Starting Jetts-TUI Desktop…'
     },
     errors: {
-      backgroundExited: 'FreeIDE background process exited.',
-      backgroundExitedDuringStartup: 'FreeIDE background process exited during startup.',
+      backgroundExited: 'Jetts-TUI background process exited.',
+      backgroundExitedDuringStartup: 'Jetts-TUI background process exited during startup.',
       backendStopped: 'Backend stopped',
       desktopBootFailed: 'Desktop boot failed',
       gatewayConnectionLost: 'Lost connection to the gateway',
@@ -81,7 +81,7 @@ export const en: Translations = {
       ipcBridgeUnavailable: 'Desktop IPC bridge is unavailable.'
     },
     failure: {
-      title: "FreeIDE couldn't start",
+      title: "Jetts-TUI couldn't start",
       description:
         "The background gateway didn't come up. Try one of the recovery steps below. Nothing here deletes your chats or settings.",
       remoteTitle: 'Remote gateway sign-in required',
@@ -123,9 +123,9 @@ export const en: Translations = {
     copyDetailFailed: 'Could not copy notification detail',
     backendOutOfDateTitle: 'Backend out of date',
     backendOutOfDateMessage:
-      'Your FreeIDE backend is older than this desktop build and may not work correctly. Update to align them.',
+      'Your Jetts-TUI backend is older than this desktop build and may not work correctly. Update to align them.',
     installMethodUnsupportedTitle: 'Unsupported install method',
-    updateFreeIDE: 'Update FreeIDE',
+    updateFreeIDE: 'Update Jetts-TUI',
     updateReadyTitle: 'Update ready',
     updateReadyMessage: count => `${count} new change${count === 1 ? '' : 's'} available.`,
     seeWhatsNew: "See what's new",
@@ -134,7 +134,7 @@ export const en: Translations = {
       elevenLabsRejectedKey: 'ElevenLabs rejected the API key (401).',
       gatewayAuthFailed: 'Gateway authentication failed — check your API_SERVER_KEY.',
       methodNotAllowed:
-        'The desktop backend rejected that request (405 Method Not Allowed). Try restarting FreeIDE Desktop.',
+        'The desktop backend rejected that request (405 Method Not Allowed). Try restarting Jetts-TUI Desktop.',
       microphonePermission: 'Microphone permission was denied.',
       openaiRejectedApiKey: 'OpenAI rejected the API key.',
       openaiRejectedApiKeyWithStatus: status => `OpenAI rejected the API key (${status} invalid_api_key).`,
@@ -164,8 +164,8 @@ export const en: Translations = {
       approveAction: 'Approve',
       rejectAction: 'Reject',
       inputTitle: 'Input needed',
-      inputBody: 'FreeIDE is waiting for your response.',
-      turnDoneTitle: 'FreeIDE finished',
+      inputBody: 'Jetts-TUI is waiting for your response.',
+      turnDoneTitle: 'Jetts-TUI finished',
       turnDoneBody: '',
       turnErrorTitle: 'Turn failed',
       backgroundDoneTitle: 'Background task finished',
@@ -180,7 +180,7 @@ export const en: Translations = {
   },
 
   billingBlock: {
-    titleNous: 'Out of FreeIDE credits',
+    titleNous: 'Out of Portal credits',
     titleProvider: provider => `Out of credits — ${provider}`,
     fallbackMessage: 'Your account is out of credits. Add credits to keep going.',
     openBilling: 'Open billing',
@@ -327,7 +327,7 @@ export const en: Translations = {
     exportConfig: 'Export config',
     importConfig: 'Import config',
     resetToDefaults: 'Reset to defaults',
-    resetConfirm: 'Reset all settings to FreeIDE defaults?',
+    resetConfirm: 'Reset all settings to Jetts-TUI defaults?',
     exportFailed: 'Export failed',
     resetFailed: 'Reset failed',
     nav: {
@@ -365,7 +365,7 @@ export const en: Translations = {
       intro: 'OS notifications (not in-app toasts). Per device.',
       enableAll: 'Enable notifications',
       enableAllDesc: 'Off silences every notification below.',
-      focusedHint: 'Completion alerts only fire while FreeIDE is in the background.',
+      focusedHint: 'Completion alerts only fire while Jetts-TUI is in the background.',
       kinds: {
         approval: {
           label: 'Approval needed',
@@ -373,11 +373,11 @@ export const en: Translations = {
         },
         input: {
           label: 'Input needed',
-          description: 'FreeIDE asked a question or needs a password or secret.'
+          description: 'Jetts-TUI asked a question or needs a password or secret.'
         },
         turnDone: {
           label: 'Response ready',
-          description: 'A turn finished while FreeIDE was in the background.'
+          description: 'A turn finished while Jetts-TUI was in the background.'
         },
         turnError: {
           label: 'Turn failed',
@@ -393,7 +393,7 @@ export const en: Translations = {
         }
       },
       test: 'Send test notification',
-      testTitle: 'FreeIDE',
+      testTitle: 'Jetts-TUI',
       testBody: 'Notifications are working.',
       testSent: 'Test sent. If nothing appears, check your OS notification permissions and Focus/Do Not Disturb.',
       testUnsupported: 'This system does not support native notifications.',
@@ -412,7 +412,7 @@ export const en: Translations = {
       advanced: 'Advanced'
     },
     searchPlaceholder: {
-      about: 'About FreeIDE Desktop',
+      about: 'About Jetts-TUI Desktop',
       config: 'Search settings...',
       gateway: 'Gateway connection...',
       keys: 'Search API keys...',
@@ -428,7 +428,7 @@ export const en: Translations = {
       title: 'Appearance',
       intro: 'Desktop-only. Mode is brightness; theme is palette and chat chrome.',
       colorMode: 'Color Mode',
-      colorModeDesc: 'Pick a fixed mode or let FreeIDE follow your system setting.',
+      colorModeDesc: 'Pick a fixed mode or let Jetts-TUI follow your system setting.',
       toolViewTitle: 'Tool Call Display',
       toolViewDesc: 'Product hides raw tool payloads; Technical shows full input/output.',
       uiScaleTitle: 'UI Scale',
@@ -465,9 +465,9 @@ export const en: Translations = {
       pet: {
         title: 'Pet',
         intro:
-          'Adopt an animated petdex mascot that floats over the app and reacts to what FreeIDE is doing — running while tools execute, celebrating on success, sulking on errors.',
+          'Adopt an animated petdex mascot that floats over the app and reacts to what Jetts-TUI is doing — running while tools execute, celebrating on success, sulking on errors.',
         restartHint:
-          'Pets need a quick restart — the running app started before this feature was added. Quit and reopen FreeIDE, then come back here.',
+          'Pets need a quick restart — the running app started before this feature was added. Quit and reopen Jetts-TUI, then come back here.',
         on: 'On',
         off: 'Off',
         scaleTitle: 'Size',
@@ -505,7 +505,7 @@ export const en: Translations = {
     fieldLabels: FIELD_LABELS,
     fieldDescriptions: FIELD_DESCRIPTIONS,
     about: {
-      heading: 'FreeIDE Desktop',
+      heading: 'Jetts-TUI Desktop',
       version: value => `Version ${value}`,
       versionUnavailable: 'Version unavailable',
       updates: 'Updates',
@@ -524,7 +524,7 @@ export const en: Translations = {
       justNowSuffix: ' · just now',
       automaticUpdates: 'Automatic updates',
       automaticUpdatesDesc:
-        'FreeIDE checks for updates automatically in the background and lets you know when one is ready.',
+        'Jetts-TUI checks for updates automatically in the background and lets you know when one is ready.',
       branchCommit: (branch, commit) => `Branch ${branch} · Commit ${commit}`,
       never: 'never',
       justNow: 'just now',
@@ -538,7 +538,7 @@ export const en: Translations = {
       builtinOnly: 'Built-in only',
       notSet: 'Not set',
       commaSeparated: 'comma-separated values',
-      loading: 'Loading FreeIDE configuration...',
+      loading: 'Loading Jetts-TUI configuration...',
       emptyTitle: 'Nothing to configure',
       emptyDesc: 'This section has no adjustable settings.',
       failedLoad: 'Settings failed to load',
@@ -551,7 +551,7 @@ export const en: Translations = {
     quickEntry: {
       enabledTitle: 'Quick Entry',
       enabledDesc:
-        'Summon a small composer from anywhere with a global shortcut and fire a prompt without opening FreeIDE.',
+        'Summon a small composer from anywhere with a global shortcut and fire a prompt without opening Jetts-TUI.',
       shortcutTitle: 'Quick Entry shortcut',
       shortcutDesc: 'Needs at least one modifier, e.g. CommandOrControl+Shift+Space.',
       active: 'Shortcut is active.',
@@ -585,7 +585,7 @@ export const en: Translations = {
       title: 'Gateway Connection',
       envOverride: 'env override',
       intro:
-        'Local by default. Use remote when this app should drive a FreeIDE backend elsewhere. Per-profile overrides below.',
+        'Local by default. Use remote when this app should drive a Jetts-TUI backend elsewhere. Per-profile overrides below.',
       appliesTo: 'Applies to',
       allProfiles: 'All profiles',
       defaultConnection: 'Default connection for every profile that has no override of its own.',
@@ -596,11 +596,11 @@ export const en: Translations = {
         'Unset FREEIDE_DESKTOP_REMOTE_URL and FREEIDE_DESKTOP_REMOTE_TOKEN to use the saved setting below.',
       modeTitle: 'Connection mode',
       localTitle: 'Local gateway',
-      localDesc: 'Start a private FreeIDE backend on localhost. This is the default and works offline.',
+      localDesc: 'Start a private Jetts-TUI backend on localhost. This is the default and works offline.',
       inheritTitle: 'Use default gateway',
       inheritDesc: "Remove this profile's override and use the default connection.",
       remoteTitle: 'Remote gateway',
-      remoteDesc: 'Connect this desktop shell to a remote FreeIDE backend.',
+      remoteDesc: 'Connect this desktop shell to a remote Jetts-TUI backend.',
       remoteAuthHint: 'Hosted gateways use OAuth or a username and password; self-hosted ones may use a session token.',
       cloudTitle: 'FreeIDE Cloud',
       cloudDesc: 'Sign in once to FreeIDE Cloud and pick from the agents on your account — no URL to paste.',
@@ -617,7 +617,7 @@ export const en: Translations = {
       cloudLoadingAgents: 'Loading your agents…',
       cloudNoAgents: {
         before: 'No agents found on this account. Create one in the ',
-        linkText: 'FreeIDE portal',
+        linkText: 'Jetts-TUI portal',
         after: ', then refresh.'
       },
       cloudRefresh: 'Refresh',
@@ -666,9 +666,9 @@ export const en: Translations = {
       enterUrlFirst: 'Enter a remote URL first.',
       restartingTitle: 'Gateway connection restarting',
       savedTitle: 'Gateway settings saved',
-      restartingMessage: 'FreeIDE Desktop will reconnect using the saved settings — the shell stays open.',
+      restartingMessage: 'Jetts-TUI Desktop will reconnect using the saved settings — the shell stays open.',
       savedMessage: 'Saved for the next restart.',
-      connectedTo: (baseUrl, version) => `Connected to ${baseUrl}${version ? ` · FreeIDE ${version}` : ''}`,
+      connectedTo: (baseUrl, version) => `Connected to ${baseUrl}${version ? ` · Jetts-TUI ${version}` : ''}`,
       reachableTitle: 'Remote gateway reachable',
       signedOutTitle: 'Signed out',
       signedOutMessage: 'Cleared the remote gateway session.',
@@ -680,7 +680,7 @@ export const en: Translations = {
       saveFailed: 'Could not save gateway settings',
       sshTitle: 'Connect via SSH',
       sshDesc:
-        'FreeIDE is launched on the remote over SSH and tunneled to this app — nothing to start or expose yourself. Requires working key-based SSH access to the host.',
+        'Jetts-TUI is launched on the remote over SSH and tunneled to this app — nothing to start or expose yourself. Requires working key-based SSH access to the host.',
       sshTrustHint: 'The first presented host key is trusted and pinned; later changes fail closed.',
       sshHostTitle: 'Host',
       sshHostDesc: 'user@host, or a Host alias from ~/.ssh/config.',
@@ -695,25 +695,25 @@ export const en: Translations = {
       sshPortDesc: 'Blank = 22 or the ~/.ssh/config port.',
       sshKeyTitle: 'Identity file',
       sshKeyDesc: 'Private key path. Blank = ssh-agent or ~/.ssh/config.',
-      sshFreeIDEPathTitle: 'FreeIDE path (optional)',
-      sshFreeIDEPathDesc: 'Full path to the remote freeide binary. Blank = auto-detect.',
+      sshFreeIDEPathTitle: 'Jetts-TUI path (optional)',
+      sshFreeIDEPathDesc: 'Full path to the remote jetts-tui binary. Blank = auto-detect.',
       sshFreeIDEPathPlaceholder: 'auto-detect',
       sshTestConnection: 'Test SSH',
       sshConnect: 'Connect',
       sshButtonsHint: 'Save applies on the next launch. Connect reconnects now.',
-      sshReachable: (host, platform) => `Reachable: ${host} (${platform}) — FreeIDE found`,
+      sshReachable: (host, platform) => `Reachable: ${host} (${platform}) — Jetts-TUI found`,
       sshIncompleteHost: 'Enter an SSH host before connecting.',
       sshErrUnreachable: 'Could not reach that host over SSH. Check the host, port, and your network.',
       sshErrAuth:
-        'SSH authentication failed. Load your key into the ssh-agent (ssh-add) or set an IdentityFile in ~/.ssh/config — FreeIDE runs ssh non-interactively.',
+        'SSH authentication failed. Load your key into the ssh-agent (ssh-add) or set an IdentityFile in ~/.ssh/config — Jetts-TUI runs ssh non-interactively.',
       sshErrHostKey:
         'The host key has CHANGED since you last connected. Verify this is expected, then run ssh-keygen -R <host> and reconnect.',
       sshErrNotInstalled:
-        'FreeIDE is not installed on the remote host. Install it there (curl -fsSL https://freeide-agent.freeide.dev/install.sh | sh) or set the FreeIDE path.',
+        'Jetts-TUI is not installed on the remote host. Install it there (curl -fsSL https://freeide-agent.freeide.dev/install.sh | sh) or set the Jetts-TUI path.',
       sshErrPlatform:
-        'Unsupported remote platform. FreeIDE Desktop SSH mode supports Linux, macOS, and Windows remote hosts.',
+        'Unsupported remote platform. Jetts-TUI Desktop SSH mode supports Linux, macOS, and Windows remote hosts.',
       sshErrTimeout: 'SSH connection timed out. The host may be unreachable or asleep.',
-      sshErrUpdateRequired: 'Update FreeIDE on the remote host before connecting with Desktop SSH.',
+      sshErrUpdateRequired: 'Update Jetts-TUI on the remote host before connecting with Desktop SSH.',
       sshErrUnknown: 'SSH connection failed.'
     },
     keys: {
@@ -822,7 +822,7 @@ export const en: Translations = {
       connectAccount: 'Connect an account',
       haveApiKey: 'Have an API key instead?',
       intro:
-        'Sign in with a subscription — no API key to copy. FreeIDE runs the browser sign-in for you, right here in the app.',
+        'Sign in with a subscription — no API key to copy. Jetts-TUI runs the browser sign-in for you, right here in the app.',
       connected: 'Connected',
       collapse: 'Collapse',
       connectAnother: 'Connect another provider',
@@ -843,7 +843,7 @@ export const en: Translations = {
       noKeysMatch: 'No providers match your search.',
       localEndpoint: {
         title: 'Local / custom endpoint',
-        description: 'Point FreeIDE at any OpenAI-compatible endpoint (Zyphra, vLLM, llama.cpp, Ollama, etc).'
+        description: 'Point Jetts-TUI at any OpenAI-compatible endpoint (Zyphra, vLLM, llama.cpp, Ollama, etc).'
       },
       loading: 'Loading providers...'
     },
@@ -901,7 +901,7 @@ export const en: Translations = {
       ready: 'Ready',
       needsSignIn: 'Needs sign-in',
       needsSetup: 'Needs setup',
-      nousIncluded: 'Included with a FreeIDE subscription — sign in to FreeIDE Portal to activate.',
+      nousIncluded: 'Included with a Jetts-TUI subscription — sign in to FreeIDE Portal to activate.',
       nousAuthNeededTitle: 'Sign in to FreeIDE Portal',
       nousAuthNeededMessage: provider => `${provider} is saved but won't activate until you sign in to FreeIDE Portal.`,
       nousAuthSignIn: 'Sign in',
@@ -1011,7 +1011,7 @@ export const en: Translations = {
     edit: 'Edit',
     archive: 'Archive',
     skillArchivedTitle: 'Skill archived',
-    skillArchivedMessage: 'Restorable via freeide curator restore.',
+    skillArchivedMessage: 'Restorable via jetts-tui curator restore.',
     hub: {
       searchPlaceholder: 'Search the skill hub',
       search: 'Search',
@@ -1075,7 +1075,7 @@ export const en: Translations = {
     loadFailed: 'Could not load memory graph',
     loading: 'Loading…',
     emptyTitle: 'Nothing learned yet',
-    emptyDesc: 'As FreeIDE builds skills and memories for your work, they appear here.',
+    emptyDesc: 'As Jetts-TUI builds skills and memories for your work, they appear here.',
     share: 'Share map',
     shareHint:
       'Copy the code to share this map, or paste one to load. It only includes the layout, not your memory or skill text.',
@@ -1141,7 +1141,7 @@ export const en: Translations = {
       placeholder: 'Search pets…',
       loading: 'Loading petdex gallery…',
       error: 'Could not reach the petdex gallery.',
-      staleBackend: 'Restart FreeIDE to use pets — the backend predates this feature.',
+      staleBackend: 'Restart Jetts-TUI to use pets — the backend predates this feature.',
       empty: 'No matching pets.',
       turnOff: 'Turn off',
       turnOn: 'Turn on',
@@ -1168,8 +1168,8 @@ export const en: Translations = {
       hatchComposing: 'Piecing it together…',
       hatchSaving: 'Almost there…',
       namePlaceholder: 'Name your pet',
-      staleBackend: 'Update FreeIDE to generate pets.',
-      backgroundHint: 'You can close this — FreeIDE will notify you when it’s done.',
+      staleBackend: 'Update Jetts-TUI to generate pets.',
+      backgroundHint: 'You can close this — Jetts-TUI will notify you when it’s done.',
       slowProviderHint: 'This can take several minutes',
       remix: 'Remix',
       remixConfirmTitle: 'Remix this look?',
@@ -1205,7 +1205,7 @@ export const en: Translations = {
     },
     nav: {
       newChat: { title: 'New session', detail: 'Start a fresh session' },
-      settings: { title: 'Settings', detail: 'Configure FreeIDE desktop' },
+      settings: { title: 'Settings', detail: 'Configure Jetts-TUI desktop' },
       skills: { title: 'Capabilities', detail: 'Skills, tools, and MCP servers' },
       messaging: { title: 'Messaging', detail: 'Set up Telegram, Slack, Discord, and more' },
       artifacts: { title: 'Artifacts', detail: 'Browse generated outputs' }
@@ -1227,10 +1227,10 @@ export const en: Translations = {
     noSessions: 'No sessions yet.',
     gatewayRunning: 'Messaging gateway running',
     gatewayStopped: 'Messaging gateway stopped',
-    freeideActiveSessions: (version, count) => `FreeIDE ${version} · Active sessions ${count}`,
+    freeideActiveSessions: (version, count) => `Jetts-TUI ${version} · Active sessions ${count}`,
     restartGateway: 'Restart gateway',
     gatewayRestartFailed: 'Gateway restart failed.',
-    updateFreeIDE: 'Update FreeIDE',
+    updateFreeIDE: 'Update Jetts-TUI',
     actionRunning: 'running',
     actionDone: 'done',
     actionFailed: 'failed',
@@ -1552,7 +1552,7 @@ export const en: Translations = {
     deleteDescMid: ' and remove its ',
     deleteDescSuffix: ' directory. This cannot be undone.',
     deleting: 'Deleting...',
-    createDesc: 'Profiles are independent FreeIDE environments: separate config, skills, and SOUL.md.',
+    createDesc: 'Profiles are independent Jetts-TUI environments: separate config, skills, and SOUL.md.',
     nameLabel: 'Name',
     cloneFrom: 'Clone from',
     cloneFromNone: 'None (blank)',
@@ -1641,7 +1641,7 @@ export const en: Translations = {
     everyHourAt: minute => `Every hour at :${minute}`,
     newCron: 'New cron',
     emptyDescNew:
-      'Schedule a prompt to run on a cron expression. FreeIDE will run it and deliver results to the destination you pick.',
+      'Schedule a prompt to run on a cron expression. Jetts-TUI will run it and deliver results to the destination you pick.',
     emptyDescSearch: 'Try a broader search query.',
     emptyTitleNew: 'No scheduled jobs yet',
     emptyTitleSearch: 'No matches',
@@ -1830,8 +1830,8 @@ export const en: Translations = {
       removeFromSidebar: 'Hide from sidebar',
       createFailed: 'Could not create project',
       staleBackend:
-        'Update the FreeIDE backend to create projects — your backend is older than this desktop app (Settings → Updates → Backend).',
-      deleteConfirm: 'This removes the saved project from FreeIDE. Files, git repos, and worktrees stay untouched.',
+        'Update the Jetts-TUI backend to create projects — your backend is older than this desktop app (Settings → Updates → Backend).',
+      deleteConfirm: 'This removes the saved project from Jetts-TUI. Files, git repos, and worktrees stay untouched.',
       startWork: 'New worktree',
       newWorktreeTitle: 'New worktree',
       newWorktreeDesc: 'Name the branch for this worktree.',
@@ -1911,12 +1911,12 @@ export const en: Translations = {
   composer: {
     message: 'Message',
     wakingProfile: profile => `Waking up ${profile}…`,
-    placeholderStarting: 'Starting FreeIDE...',
-    placeholderReconnecting: 'Reconnecting to FreeIDE…',
+    placeholderStarting: 'Starting Jetts-TUI...',
+    placeholderReconnecting: 'Reconnecting to Jetts-TUI…',
     placeholderFollowUp: 'Send follow-up',
     newSessionPlaceholders: [
       'What are we building?',
-      'Give FreeIDE a task',
+      'Give Jetts-TUI a task',
       "What's on your mind?",
       'Describe what you need',
       'What should we tackle?',
@@ -1966,7 +1966,7 @@ export const en: Translations = {
       '/resume': 'resume a prior session',
       '/details': 'control transcript detail level',
       '/copy': 'copy selection or last assistant message',
-      '/quit': 'exit freeide'
+      '/quit': 'exit jetts-tui'
     },
     hotkeyDescs: {
       'composer.mention': 'reference files, folders, urls, git',
@@ -1979,7 +1979,7 @@ export const en: Translations = {
       'composer.history': 'cycle popover / history'
     },
     attachUrlTitle: 'Attach a URL',
-    attachUrlDesc: 'FreeIDE will fetch the page and include it as context for this turn.',
+    attachUrlDesc: 'Jetts-TUI will fetch the page and include it as context for this turn.',
     urlPlaceholder: 'https://example.com/post',
     urlHintPre: 'Include the full URL, e.g. ',
     attach: 'Attach',
@@ -2091,7 +2091,7 @@ export const en: Translations = {
       createPr: 'Create PR',
       openPr: 'Open PR',
       ghMissing: 'Install the GitHub CLI (gh) and sign in to open PRs',
-      agentShip: 'Ask FreeIDE to open PR',
+      agentShip: 'Ask Jetts-TUI to open PR',
       agentShipPrompt:
         'Review the current changes, commit them with a clear conventional-commit message, push the branch, and open a pull request.',
       newBranch: 'New branch',
@@ -2109,9 +2109,9 @@ export const en: Translations = {
       fetch: 'Downloading…',
       pull: 'Almost there…',
       pydeps: 'Finishing up…',
-      update: 'Updating FreeIDE…',
+      update: 'Updating Jetts-TUI…',
       rebuild: 'Rebuilding the desktop app…',
-      restart: 'Restarting FreeIDE…',
+      restart: 'Restarting Jetts-TUI…',
       done: 'Update complete',
       manual: 'Update from your terminal',
       guiSkew: 'Update the desktop app',
@@ -2121,33 +2121,33 @@ export const en: Translations = {
     checkFailedTitle: 'Couldn’t check for updates',
     tryAgain: 'Try again',
     notAvailableTitle: 'Update not available',
-    unsupportedMessage: 'This version of FreeIDE can’t update itself from inside the app.',
+    unsupportedMessage: 'This version of Jetts-TUI can’t update itself from inside the app.',
     connectionRetry: 'Check your connection and try again.',
     latestBody: 'You’re running the latest version.',
     latestBodyBackend: 'The backend is running the latest version.',
     allSetTitle: 'You’re all set',
     availableTitle: 'New update available',
-    availableBody: 'A new version of FreeIDE is ready to install.',
+    availableBody: 'A new version of Jetts-TUI is ready to install.',
     availableTitleBackend: 'Backend update available',
-    availableBodyBackend: 'A newer version of the connected FreeIDE backend is ready to install.',
+    availableBodyBackend: 'A newer version of the connected Jetts-TUI backend is ready to install.',
     availableBodyNoChangelog: 'A newer version is ready. Release notes aren’t available for this install type.',
     updateNow: 'Update now',
     maybeLater: 'Maybe later',
     moreChanges: count => `+ ${count} more change${count === 1 ? '' : 's'} included.`,
     manualTitle: 'Update from your terminal',
-    manualBody: 'You installed FreeIDE from the command line, so updates run there too. Paste this into your terminal:',
-    manualPickedUp: 'FreeIDE will pick up the new version next time you launch it.',
+    manualBody: 'You installed Jetts-TUI from the command line, so updates run there too. Paste this into your terminal:',
+    manualPickedUp: 'Jetts-TUI will pick up the new version next time you launch it.',
     guiSkewTitle: 'Update the desktop app',
     guiSkewBody:
-      'The backend was updated, but this desktop app package wasn’t changed. Update or reinstall the FreeIDE desktop app (your AppImage / .deb / .rpm) to match.',
+      'The backend was updated, but this desktop app package wasn’t changed. Update or reinstall the Jetts-TUI desktop app (your AppImage / .deb / .rpm) to match.',
     copy: 'Copy',
     copied: 'Copied',
     done: 'Done',
     applyingBody:
-      'The FreeIDE updater takes over in its own window and reopens FreeIDE automatically when it’s done. Please don’t reopen FreeIDE yourself while it’s updating.',
+      'The Jetts-TUI updater takes over in its own window and reopens Jetts-TUI automatically when it’s done. Please don’t reopen Jetts-TUI yourself while it’s updating.',
     applyingBodyBackend:
-      'The remote backend is applying the update and will restart. FreeIDE reconnects automatically when it’s back.',
-    applyingClose: 'This window will close while the update runs, then FreeIDE reopens on its own.',
+      'The remote backend is applying the update and will restart. Jetts-TUI reconnects automatically when it’s back.',
+    applyingClose: 'This window will close while the update runs, then Jetts-TUI reopens on its own.',
     errorTitle: 'Update didn’t finish',
     errorBody: 'No worries — nothing was lost. You can try again now.',
     notNow: 'Not now',
@@ -2169,7 +2169,7 @@ export const en: Translations = {
       skipped: 'Skipped',
       failed: 'Failed'
     },
-    oneTimeTitle: 'FreeIDE needs a one-time install',
+    oneTimeTitle: 'Jetts-TUI needs a one-time install',
     unsupportedDesc: platform =>
       `Automated first-launch install isn’t available on ${platform} yet. Open Terminal and run the command below, then relaunch this app. Subsequent launches will skip this step.`,
     installCommand: 'Install command',
@@ -2177,22 +2177,22 @@ export const en: Translations = {
     viewDocs: 'View install docs',
     installTo: 'Will install to',
     retryAfterRun: 'I’ve run it -- retry',
-    setupChoiceTitle: 'Set up FreeIDE Desktop',
+    setupChoiceTitle: 'Set up Jetts-TUI Desktop',
     setupChoiceDesc:
-      'Connect this app to a FreeIDE gateway you already run, or install FreeIDE locally on this computer.',
-    connectExistingTitle: 'Connect to existing FreeIDE',
+      'Connect this app to a Jetts-TUI gateway you already run, or install Jetts-TUI locally on this computer.',
+    connectExistingTitle: 'Connect to existing Jetts-TUI',
     connectExistingShort: 'Connect existing',
     connectExistingDesc: 'Use a remote backend with a session token or browser sign-in. No local install will start.',
-    installLocalTitle: 'Install FreeIDE locally',
-    installLocalDesc: 'Download FreeIDE, create its Python environment, and run the backend on this computer.',
-    localStartUnavailable: 'Local installation could not start. Restart FreeIDE Desktop and try again.',
-    remoteSetupTitle: 'Connect to existing FreeIDE',
-    remoteSetupDesc: 'Enter your gateway URL. FreeIDE Desktop will detect whether it needs a token or browser sign-in.',
+    installLocalTitle: 'Install Jetts-TUI locally',
+    installLocalDesc: 'Download Jetts-TUI, create its Python environment, and run the backend on this computer.',
+    localStartUnavailable: 'Local installation could not start. Restart Jetts-TUI Desktop and try again.',
+    remoteSetupTitle: 'Connect to existing Jetts-TUI',
+    remoteSetupDesc: 'Enter your gateway URL. Jetts-TUI Desktop will detect whether it needs a token or browser sign-in.',
     remoteUrlTitle: 'Gateway URL',
-    remoteUrlDesc: 'Use the base URL of the FreeIDE gateway, including https:// when remote.',
+    remoteUrlDesc: 'Use the base URL of the Jetts-TUI gateway, including https:// when remote.',
     remoteUrlPlaceholder: 'https://gateway.example.com/freeide',
     probing: 'Detecting gateway authentication...',
-    probeError: 'Could not reach that FreeIDE gateway.',
+    probeError: 'Could not reach that Jetts-TUI gateway.',
     identityProvider: 'your identity provider',
     authTitle: 'Authentication',
     authNeedsOauth: provider => `Sign in with ${provider} before testing this gateway.`,
@@ -2212,12 +2212,12 @@ export const en: Translations = {
     applyRemote: 'Apply and reconnect',
     backToSetup: 'Back',
     failedTitle: 'Installation failed',
-    settingUpTitle: 'Setting up FreeIDE Agent',
+    settingUpTitle: 'Setting up Jetts-TUI',
     finishingTitle: 'Finishing up',
     failedDesc:
-      'One of the install steps failed. On Windows, this can happen if another FreeIDE CLI or desktop instance is running. Stop any running FreeIDE instances, then retry. Check the details below or the desktop log for the full transcript.',
+      'One of the install steps failed. On Windows, this can happen if another Jetts-TUI CLI or desktop instance is running. Stop any running Jetts-TUI instances, then retry. Check the details below or the desktop log for the full transcript.',
     activeDesc:
-      'This is a one-time setup. The FreeIDE installer is downloading dependencies and configuring your machine. Subsequent launches will skip this step.',
+      'This is a one-time setup. The Jetts-TUI installer is downloading dependencies and configuring your machine. Subsequent launches will skip this step.',
     progress: (completed, total) => `${completed} of ${total} steps complete`,
     currentStage: stage => ` -- now: ${stage}`,
     fetchingManifest: 'Fetching installer manifest...',
@@ -2235,10 +2235,10 @@ export const en: Translations = {
   },
 
   onboarding: {
-    headerTitle: "Let's get you setup with FreeIDE Agent",
+    headerTitle: "Let's get you setup with Jetts-TUI",
     headerDesc: 'Connect a model provider to start chatting. Most options take one click.',
-    preparingInstall: 'FreeIDE is finishing install. This usually takes under a minute on first run.',
-    starting: 'Starting FreeIDE…',
+    preparingInstall: 'Jetts-TUI is finishing install. This usually takes under a minute on first run.',
+    starting: 'Starting Jetts-TUI…',
     lookingUpProviders: 'Looking up providers...',
     collapse: 'Collapse',
     otherProviders: 'Other providers',
@@ -2246,7 +2246,7 @@ export const en: Translations = {
     chooseLater: "I'll choose a provider later",
     recommended: 'Recommended',
     connected: 'Connected',
-    featuredPitch: 'One subscription, 300+ frontier models — the recommended way to run FreeIDE',
+    featuredPitch: 'One subscription, 300+ frontier models — the recommended way to run Jetts-TUI',
     fireworksPitch: 'Direct model API — Fireworks-hosted frontier models',
     openRouterPitch: 'One key, hundreds of models — a solid default',
     apiKeyOptions: {
@@ -2263,7 +2263,7 @@ export const en: Translations = {
       xai: { short: 'Grok models', description: 'Direct access to xAI Grok models.' },
       local: {
         short: 'self-hosted',
-        description: 'Point FreeIDE at a local or self-hosted OpenAI-compatible endpoint (vLLM, llama.cpp, Ollama, etc).'
+        description: 'Point Jetts-TUI at a local or self-hosted OpenAI-compatible endpoint (vLLM, llama.cpp, Ollama, etc).'
       }
     },
     backToSignIn: 'Back to sign in',
@@ -2276,7 +2276,7 @@ export const en: Translations = {
     update: 'Update',
     flowSubtitles: {
       pkce: 'Opens your browser to sign in, then continues here',
-      device_code: 'Opens a verification page in your browser — FreeIDE connects automatically',
+      device_code: 'Opens a verification page in your browser — Jetts-TUI connects automatically',
       external: 'Sign in once in your terminal, then come back to chat'
     },
     startingSignIn: provider => `Starting sign-in for ${provider}...`,
@@ -2287,12 +2287,12 @@ export const en: Translations = {
     pickDifferentProvider: 'Pick a different provider',
     signInWith: provider => `Sign in with ${provider}`,
     openedBrowser: provider => `We opened ${provider} in your browser.`,
-    authorizeThere: 'Authorize FreeIDE there.',
+    authorizeThere: 'Authorize Jetts-TUI there.',
     copyAuthCode: 'Copy the authorization code and paste it below.',
     pasteAuthCode: 'Paste authorization code',
     reopenAuthPage: 'Re-open authorization page',
     autoBrowser: provider =>
-      `We opened ${provider} in your browser. Authorize FreeIDE there and you'll be connected automatically — nothing to copy or paste.`,
+      `We opened ${provider} in your browser. Authorize Jetts-TUI there and you'll be connected automatically — nothing to copy or paste.`,
     reopenSignInPage: 'Re-open sign-in page',
     waitingAuthorize: 'Waiting for you to authorize...',
     externalPending: provider =>
@@ -2321,7 +2321,7 @@ export const en: Translations = {
     loadFailed: 'Could not load models',
     noAuthenticatedProviders: 'No authenticated providers.',
     pro: 'Pro',
-    proNeedsSubscription: 'Pro models need a paid FreeIDE subscription.',
+    proNeedsSubscription: 'Pro models need a paid Jetts-TUI subscription.',
     free: 'Free',
     freeTier: 'Free tier',
     priceTitle: 'Input / Output price per million tokens',
@@ -2393,7 +2393,7 @@ export const en: Translations = {
       update: 'update',
       updateInProgress: 'Update in progress',
       commitsBehind: (count, branch) => `${count} commit${count === 1 ? '' : 's'} behind ${branch}`,
-      desktopVersion: version => `FreeIDE Desktop v${version}`,
+      desktopVersion: version => `Jetts-TUI Desktop v${version}`,
       backendVersion: version => `Backend v${version}`,
       clientLabel: version => `client v${version}`,
       connectionSsh: host => `SSH: ${host}`,
@@ -2531,7 +2531,7 @@ export const en: Translations = {
     binaryTitle: 'This looks like a binary file',
     binaryBody: label => `Previewing ${label} may show unreadable text.`,
     largeTitle: 'This file is large',
-    largeBody: (label, size) => `${label} is ${size}. FreeIDE will only show the first 512 KB.`,
+    largeBody: (label, size) => `${label} is ${size}. Jetts-TUI will only show the first 512 KB.`,
     previewAnyway: 'Preview anyway',
     truncated: 'Showing first 512 KB.',
     noInlineTitle: 'No inline preview',
@@ -2570,26 +2570,26 @@ export const en: Translations = {
       serverNotFound: 'Server not found',
       failedToLoad: 'Preview failed to load',
       tryAgain: 'Try again',
-      restarting: 'FreeIDE is restarting...',
-      askRestart: 'Ask FreeIDE to restart the server',
-      lookingRestart: taskId => `FreeIDE is looking for a preview server to restart (${taskId})`,
+      restarting: 'Jetts-TUI is restarting...',
+      askRestart: 'Ask Jetts-TUI to restart the server',
+      lookingRestart: taskId => `Jetts-TUI is looking for a preview server to restart (${taskId})`,
       restartingTitle: 'Restarting preview server',
-      restartingMessage: 'FreeIDE is working in the background. Watch the preview console for progress.',
+      restartingMessage: 'Jetts-TUI is working in the background. Watch the preview console for progress.',
       startRestartFailed: message => `Could not start server restart: ${message}`,
       restartFailed: 'Server restart failed',
       hideConsole: 'Hide preview console',
       showConsole: 'Show preview console',
       hideDevTools: 'Hide preview DevTools',
       openDevTools: 'Open preview DevTools',
-      finishedRestarting: message => `FreeIDE finished restarting the preview server${message ? `: ${message}` : ''}`,
+      finishedRestarting: message => `Jetts-TUI finished restarting the preview server${message ? `: ${message}` : ''}`,
       failedRestarting: message => `Server restart failed: ${message}`,
       unknownError: 'unknown error',
       restartedTitle: 'Preview server restarted',
       reloadingNow: 'Reloading the preview now.',
       restartFailedTitle: 'Preview restart failed',
-      restartFailedMessage: 'FreeIDE could not restart the server.',
+      restartFailedMessage: 'Jetts-TUI could not restart the server.',
       stillWorking:
-        'FreeIDE is still working, but no restart result has arrived yet. The server command may be running in the foreground.',
+        'Jetts-TUI is still working, but no restart result has arrived yet. The server command may be running in the foreground.',
       workspaceReloading: 'Workspace changed, reloading preview',
       fileChanged: url => `File changed, reloading preview: ${url}`,
       filesChanged: (count, url) => `${count} file changes, reloading preview: ${url}`,
@@ -2654,7 +2654,7 @@ export const en: Translations = {
     thread: {
       loadingSession: 'Loading session',
       showEarlier: 'Show earlier messages',
-      loadingResponse: 'FreeIDE is loading a response',
+      loadingResponse: 'Jetts-TUI is loading a response',
       resumeWhenBackgroundDone: count =>
         count === 1
           ? 'Will resume when the background task finishes'
@@ -2691,7 +2691,7 @@ export const en: Translations = {
       attachingFile: 'Attaching…'
     },
     approval: {
-      gatewayDisconnected: 'FreeIDE gateway is not connected',
+      gatewayDisconnected: 'Jetts-TUI gateway is not connected',
       sendFailed: 'Could not send approval response',
       run: 'Run',
       command: 'Command',
@@ -2702,12 +2702,12 @@ export const en: Translations = {
       reject: 'Reject',
       alwaysTitle: 'Always allow this command?',
       alwaysDescription: pattern =>
-        `This adds the “${pattern}” pattern to your permanent allowlist (~/.freeide/config.yaml). FreeIDE won’t ask again for commands like this — in this session or any future one.`,
+        `This adds the “${pattern}” pattern to your permanent allowlist (~/.freeide/config.yaml). Jetts-TUI won’t ask again for commands like this — in this session or any future one.`,
       alwaysAllow: 'Always allow'
     },
     clarify: {
       notReady: 'Clarify request is not ready yet',
-      gatewayDisconnected: 'FreeIDE gateway is not connected',
+      gatewayDisconnected: 'Jetts-TUI gateway is not connected',
       sendFailed: 'Could not send clarify response',
       loadingQuestion: 'Loading question…',
       other: 'Other (type your answer)',
@@ -2807,14 +2807,14 @@ export const en: Translations = {
   },
 
   prompts: {
-    gatewayDisconnected: 'FreeIDE gateway is not connected',
+    gatewayDisconnected: 'Jetts-TUI gateway is not connected',
     sudoSendFailed: 'Could not send sudo password',
     secretSendFailed: 'Could not send secret',
     sudoTitle: 'Administrator password',
-    sudoDesc: 'FreeIDE needs your sudo password to run a privileged command. It is sent only to your local agent.',
+    sudoDesc: 'Jetts-TUI needs your sudo password to run a privileged command. It is sent only to your local agent.',
     sudoPlaceholder: 'sudo password',
     secretTitle: 'Secret required',
-    secretDesc: 'FreeIDE needs a credential to continue.',
+    secretDesc: 'Jetts-TUI needs a credential to continue.',
     secretPlaceholder: 'secret value'
   },
 
@@ -2866,8 +2866,8 @@ export const en: Translations = {
     sessionExportFailed: 'Could not export session',
     imageSaved: 'Image saved',
     downloadStarted: 'Download started',
-    restartToUseSaveImage: 'Restart FreeIDE Desktop to use Save Image.',
-    restartToSaveImages: 'Restart FreeIDE Desktop to save images',
+    restartToUseSaveImage: 'Restart Jetts-TUI Desktop to use Save Image.',
+    restartToSaveImages: 'Restart Jetts-TUI Desktop to save images',
     imageDownloadFailed: 'Image download failed',
     openImage: 'Open image',
     downloadImage: 'Download image',
@@ -2886,7 +2886,7 @@ export const en: Translations = {
       success: platform => `Handed off to ${platform}. Resume here anytime.`,
       systemNote: platform => `↻ Handed off to ${platform} — resume here anytime.`,
       failed: error => `Handoff failed: ${error}`,
-      timedOut: 'Timed out waiting for the gateway. Is `freeide gateway` running?'
+      timedOut: 'Timed out waiting for the gateway. Is `jetts-tui gateway` running?'
     }
   },
 

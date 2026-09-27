@@ -22,6 +22,7 @@ export const HOTKEYS: [string, string][] = [
   [action + '+L', 'redraw / repaint'],
   [paste + '+V / /paste', 'paste text; /paste attaches clipboard image'],
   ['Tab', 'apply completion'],
+  ['Shift+Tab', 'cycle Default / Accept Edits / Plan'],
   ['↑/↓', 'completions / queue edit / history'],
   ['Ctrl+X', 'open live session switcher (deletes queued message while editing)'],
   [action + '+A/E', 'home / end of line'],

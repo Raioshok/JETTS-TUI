@@ -222,7 +222,10 @@ DEFAULT_OUTPUT_DIR = _get_default_output_dir()
 PROVIDER_MAX_TEXT_LENGTH: Dict[str, int] = {
     "edge": 5000,         # edge-tts practical sync limit
     "openai": 4096,       # https://platform.openai.com/docs/guides/text-to-speech
-    "xai": 15000,         # https://docs.x.ai/developers/model-capabilities/audio/text-to-speech
+    # xAI states "Maximum 60,000 characters" for the TTS `text` parameter
+    # (verified 2026-09-23). The previous 15,000 cap was 4x stricter than the
+    # API allows and rejected text that would have synthesized fine.
+    "xai": 60000,         # https://docs.x.ai/developers/model-capabilities/audio/text-to-speech
     "minimax": 10000,     # https://platform.minimax.io/docs/api-reference/speech-t2a-http (sync)
     "mistral": 4000,      # conservative; no published per-request cap
     "gemini": 32000,      # Gemini TTS has a 32k-token context window; char cap is conservative
@@ -3081,7 +3084,7 @@ TTS_SCHEMA = {
         "properties": {
             "text": {
                 "type": "string",
-                "description": "The text to convert to speech. Provider-specific character caps apply and are enforced automatically (OpenAI 4096, xAI 15000, MiniMax 10000, ElevenLabs 5k-40k depending on model); over-long input is truncated."
+                "description": "The text to convert to speech. Provider-specific character caps apply and are enforced automatically (OpenAI 4096, xAI 60000, MiniMax 10000, ElevenLabs 5k-40k depending on model); over-long input is truncated."
             },
             "output_path": {
                 "type": "string",

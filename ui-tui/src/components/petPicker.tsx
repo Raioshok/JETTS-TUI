@@ -1,4 +1,4 @@
-import { Box, Text, useInput, useStdout } from '@freeide/ink'
+import { Box, Text, useInput, useStdout } from '@jetts-tui/ink'
 import { useEffect, useMemo, useState } from 'react'
 
 import type { GatewayClient } from '../gatewayClient.js'

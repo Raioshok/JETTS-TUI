@@ -1,14 +1,14 @@
 ---
 sidebar_position: 11
 title: Model Catalog
-description: Remotely-hosted manifest driving curated model picker lists for OpenRouter.
+description: Offline fallbacks and silent defaults for provider model discovery.
 ---
 
 # Model Catalog
 
-FreeIDE fetches curated model lists for **OpenRouter** from a JSON manifest hosted alongside the docs site. This lets maintainers update picker lists without shipping a new `freeide-agent` release.
+FreeIDE discovers models from each provider's live API. For **OpenRouter**, `GET /api/v1/models` is authoritative: a successful response is shown in full and is never restricted or reordered by this manifest.
 
-When the manifest is unreachable (offline, network blocked, hosting failure), FreeIDE silently falls back to the in-repo snapshot that ships with the CLI. The manifest never breaks the picker — worst case you see whatever list was bundled with your installed version.
+This manifest supplies offline recovery and the cost-safe silent default. It is consulted for picker rows only when the live provider endpoint is unreachable or unusable; if the manifest is also unavailable, FreeIDE falls back to the in-repo snapshot that ships with the CLI.
 
 ## Live manifest URL
 
@@ -50,7 +50,7 @@ Field notes:
 
 | When | What happens |
 |---|---|
-| `/model` or `freeide model` | Fetches if disk cache is stale, else uses cache |
+| `/model` or `freeide model` | Uses the provider's live/cached endpoint inventory; this manifest is fallback-only |
 | Disk cache fresh (< TTL) | No network hit |
 | Network failure with cache | Silent fallback to cache, one log line |
 | Network failure, no cache | Silent fallback to in-repo snapshot |

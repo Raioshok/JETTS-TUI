@@ -69,7 +69,7 @@ The `default` package adds ~700 MB to the closure. If you only need messaging pl
 <summary><strong>Running from a local clone</strong></summary>
 
 ```bash
-git clone https://github.com/freeide/freeide.git
+git clone https://github.com/Raioshok/JETTS-TUI.git
 cd freeide-agent
 nix develop
 freeide setup

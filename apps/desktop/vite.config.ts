@@ -106,9 +106,9 @@ export default defineConfig(({ command }) => ({
     alias: {
       '@/debug/dev-only': debugEntry(command, process.env as Record<string, string>),
       '@': path.resolve(__dirname, './src'),
-      '@freeide/plugin-sdk': path.resolve(__dirname, './src/sdk/index.ts'),
-      '@freeide/shared/billing': path.resolve(__dirname, '../shared/src/billing-types.ts'),
-      '@freeide/shared': path.resolve(__dirname, '../shared/src'),
+      '@jetts-tui/plugin-sdk': path.resolve(__dirname, './src/sdk/index.ts'),
+      '@jetts-tui/shared/billing': path.resolve(__dirname, '../shared/src/billing-types.ts'),
+      '@jetts-tui/shared': path.resolve(__dirname, '../shared/src'),
       react: path.resolve(__dirname, '../../node_modules/react'),
       'react-dom': path.resolve(__dirname, '../../node_modules/react-dom'),
       'react/jsx-dev-runtime': path.resolve(__dirname, '../../node_modules/react/jsx-dev-runtime.js'),

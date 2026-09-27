@@ -1333,7 +1333,74 @@ _skill_gate_bypass: "_ctxvars.ContextVar[bool]" = _ctxvars.ContextVar(
 )
 
 
-def _apply_skill_write_gate(action, name, **payload_kwargs):
+def _evaluate_autonomous_skill_change(
+    *, action, name, content=None, file_path=None, old_string=None,
+    new_string=None, replace_all=False,
+):
+    """Run the model-free gate for background SKILL.md mutations."""
+    try:
+        from tools.skill_provenance import is_background_review
+        from tools import skill_improvement_eval as quality
+        if not is_background_review() or not quality.enabled():
+            return None
+    except Exception:
+        return None
+
+    if action not in {"create", "edit", "patch"}:
+        return None
+    if action == "patch" and file_path:
+        return None
+
+    before = ""
+    candidate = content or ""
+    if action in {"edit", "patch"}:
+        existing = _find_skill(name)
+        if not existing:
+            return None
+        target = existing["path"] / "SKILL.md"
+        read_guard = _background_review_read_before_write_guard(
+            name, target, action, "SKILL.md"
+        )
+        if read_guard:
+            return {
+                "version": 1, "verdict": "block", "action": action,
+                "skill": name, "reasons": [read_guard["error"]],
+            }
+        try:
+            before = target.read_text(encoding="utf-8")
+        except Exception as exc:
+            return {
+                "version": 1, "verdict": "block", "action": action,
+                "skill": name,
+                "reasons": [f"could not read current SKILL.md: {exc}"],
+            }
+
+    if action == "patch":
+        if not old_string or new_string is None:
+            return None
+        from tools.fuzzy_match import fuzzy_find_and_replace
+        candidate, _count, _strategy, error = fuzzy_find_and_replace(
+            before, old_string, new_string, replace_all
+        )
+        if error:
+            return None
+
+    evaluation = quality.evaluate_candidate(
+        action=action, name=name, before=before, candidate=candidate
+    )
+    try:
+        quality.record_evaluation(evaluation)
+    except Exception as exc:
+        logger.warning("Failed to record autonomous skill evaluation: %s", exc)
+        evaluation = dict(evaluation)
+        evaluation["verdict"] = "block"
+        evaluation.setdefault("reasons", []).append(
+            "quality audit ledger could not be written"
+        )
+    return evaluation
+
+
+def _apply_skill_write_gate(action, name, *, quality_evaluation=None, **payload_kwargs):
     """Evaluate the skill write gate. Returns a JSON tool-result string when the
     write should NOT proceed (blocked or staged), or None to perform the real
     write. Bypassed during approved-pending replay.
@@ -1364,7 +1431,12 @@ def _apply_skill_write_gate(action, name, **payload_kwargs):
         old_string=payload_kwargs.get("old_string") or "",
         new_string=payload_kwargs.get("new_string") or "",
     )
-    record = wa.stage_write(wa.SKILLS, payload, summary=gist, origin=wa.current_origin())
+    metadata = None
+    if quality_evaluation is not None:
+        metadata = {"quality_evaluation": quality_evaluation}
+    record = wa.stage_write(
+        wa.SKILLS, payload, summary=gist, origin=wa.current_origin(), metadata=metadata
+    )
     return json.dumps(
         {"success": True, "staged": True, "pending_id": record["id"],
          "gist": gist, "message": decision.message},
@@ -1415,6 +1487,22 @@ def skill_manage(
     if preflight is not None:
         return json.dumps(preflight, ensure_ascii=False)
 
+    quality_evaluation = _evaluate_autonomous_skill_change(
+        action=action,
+        name=name,
+        content=content,
+        file_path=file_path,
+        old_string=old_string,
+        new_string=new_string,
+        replace_all=replace_all,
+    )
+    if quality_evaluation and quality_evaluation.get("verdict") == "block":
+        reasons = "; ".join(quality_evaluation.get("reasons", []))
+        return tool_error(
+            f"Autonomous skill improvement rejected by the locked evaluator: {reasons}",
+            success=False,
+        )
+
     # Approval gate: when on, stages the write for review (skills are too large
     # to review inline, so they always stage regardless of origin); when off
     # (default) passes straight through. The gate is bypassed when this call is
@@ -1424,6 +1512,7 @@ def skill_manage(
         file_path=file_path, file_content=file_content,
         old_string=old_string, new_string=new_string,
         replace_all=replace_all, absorbed_into=absorbed_into,
+        quality_evaluation=quality_evaluation,
     )
     if gate_result is not None:
         return gate_result

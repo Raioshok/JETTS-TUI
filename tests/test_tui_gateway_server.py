@@ -1149,6 +1149,22 @@ def test_config_set_battery_explicit_off(monkeypatch):
     assert writes == {"display.battery": False}
 
 
+def test_resident_workspace_preference_defaults_and_validates(monkeypatch):
+    # Unset → auto (matches DEFAULT_CONFIG display.resident_workspace).
+    monkeypatch.setattr(server, "_load_cfg", lambda: {})
+    assert server._load_resident_workspace() == "auto"
+
+    # Explicit on/off are honored.
+    monkeypatch.setattr(server, "_load_cfg", lambda: {"display": {"resident_workspace": "off"}})
+    assert server._load_resident_workspace() == "off"
+    monkeypatch.setattr(server, "_load_cfg", lambda: {"display": {"resident_workspace": "on"}})
+    assert server._load_resident_workspace() == "on"
+
+    # Unrecognized value fails safe to auto rather than half-opening a layout.
+    monkeypatch.setattr(server, "_load_cfg", lambda: {"display": {"resident_workspace": "sideways"}})
+    assert server._load_resident_workspace() == "auto"
+
+
 def test_voice_toggle_returns_configured_record_key(monkeypatch):
     monkeypatch.setattr(
         server,
@@ -4826,6 +4842,63 @@ def test_config_set_yolo_toggles_session_scope():
         server._sessions.clear()
 
 
+def test_config_set_work_mode_cycles_session_and_live_agent(monkeypatch):
+    agent = types.SimpleNamespace(_work_mode="default")
+    session = _session(agent=agent, work_mode="default")
+    server._sessions["sid"] = session
+    emitted = []
+    monkeypatch.setattr(
+        server,
+        "_emit",
+        lambda event, sid, payload=None: emitted.append((event, sid, payload)),
+    )
+
+    try:
+        expected = ("accept-edits", "plan", "default")
+        for index, mode in enumerate(expected, start=1):
+            response = server.handle_request(
+                {
+                    "id": str(index),
+                    "method": "config.set",
+                    "params": {
+                        "session_id": "sid",
+                        "key": "work_mode",
+                        "value": "cycle",
+                    },
+                }
+            )
+            assert response["result"]["value"] == mode
+            assert response["result"]["deferred"] is False
+            assert session["work_mode"] == mode
+            assert agent._work_mode == mode
+            assert emitted[-1][0:2] == ("session.info", "sid")
+            assert emitted[-1][2]["work_mode"] == mode
+    finally:
+        server._sessions.clear()
+
+
+def test_config_set_work_mode_marks_mid_turn_switch_deferred(monkeypatch):
+    session = _session(work_mode="default", running=True)
+    server._sessions["sid"] = session
+    monkeypatch.setattr(server, "_emit", lambda *args, **kwargs: None)
+
+    try:
+        response = server.handle_request(
+            {
+                "id": "1",
+                "method": "config.set",
+                "params": {"session_id": "sid", "key": "mode", "value": "plan"},
+            }
+        )
+        assert response["result"] == {
+            "key": "work_mode",
+            "value": "plan",
+            "deferred": True,
+        }
+    finally:
+        server._sessions.clear()
+
+
 def test_config_set_yolo_global_scope_writes_approvals_mode(tmp_path, monkeypatch):
     """Shift+click the desktop zap -> scope="global" flips persistent approvals.mode."""
     import yaml
@@ -5552,12 +5625,12 @@ def test_complete_slash_includes_tui_details_command():
     assert any(item["text"] == "/details" for item in resp["result"]["items"])
 
 
-def test_complete_slash_includes_tui_mouse_command():
+def test_complete_slash_hides_tui_mouse_recovery_command():
     resp = server.handle_request(
         {"id": "1", "method": "complete.slash", "params": {"text": "/mou"}}
     )
 
-    assert any(item["text"] == "/mouse" for item in resp["result"]["items"])
+    assert not any(item["text"] == "/mouse" for item in resp["result"]["items"])
 
 
 def test_complete_slash_details_args():
@@ -7281,17 +7354,30 @@ def test_commands_catalog_surfaces_quick_commands(monkeypatch):
     assert resp["result"]["canon"]["/notes"] == "/notes"
 
 
-def test_commands_catalog_includes_tui_mouse_command():
+def test_commands_catalog_keeps_only_purposeful_tui_commands():
     resp = server.handle_request(
         {"id": "1", "method": "commands.catalog", "params": {}}
     )
 
     pairs = dict(resp["result"]["pairs"])
-    tui_cat = next(c for c in resp["result"]["categories"] if c["name"] == "TUI")
-    tui_pairs = dict(tui_cat["pairs"])
+    display_cat = next(c for c in resp["result"]["categories"] if c["name"] == "Display")
+    display_pairs = dict(display_cat["pairs"])
 
-    assert "/mouse" in pairs
-    assert "/mouse" in tui_pairs
+    assert "/details" in pairs
+    assert "/details" in display_pairs
+    assert "/mouse" not in pairs
+    assert "/density" not in pairs
+    assert "/logs" not in pairs
+
+
+def test_commands_catalog_can_show_advanced_commands_on_request():
+    resp = server.handle_request(
+        {"id": "1", "method": "commands.catalog", "params": {"include_advanced": True}}
+    )
+
+    pairs = dict(resp["result"]["pairs"])
+    assert "/snapshot" in pairs
+    assert "/verbose" in pairs
 
 
 def test_commands_catalog_has_no_duplicate_or_alias_colliding_names():
@@ -7435,6 +7521,37 @@ def test_snapshot_restore_is_blocked_from_tui_worker():
     assert (
         "/snapshot restore is blocked in the TUI" in dispatch_resp["result"]["output"]
     )
+
+
+def test_command_dispatch_routes_spec_and_brain_without_a_slash_worker(tmp_path, monkeypatch):
+    session = _session()
+    session["cwd"] = str(tmp_path)
+    server._sessions["sid"] = session
+    monkeypatch.setattr(
+        "freeide_cli.brain.handle_brain_slash",
+        lambda command, cwd: types.SimpleNamespace(text="Brain status", prompt=None),
+    )
+    try:
+        spec = server.handle_request(
+            {
+                "id": "1",
+                "method": "command.dispatch",
+                "params": {"name": "spec", "arg": "new Offline Search", "session_id": "sid"},
+            }
+        )
+        brain = server.handle_request(
+            {
+                "id": "2",
+                "method": "command.dispatch",
+                "params": {"name": "brain", "arg": "status", "session_id": "sid"},
+            }
+        )
+    finally:
+        server._sessions.pop("sid", None)
+
+    assert spec["result"]["type"] == "send"
+    assert "Created spec: offline-search" in spec["result"]["notice"]
+    assert brain["result"] == {"type": "exec", "output": "Brain status"}
 
 
 def test_command_dispatch_exec_nonzero_surfaces_error(monkeypatch):

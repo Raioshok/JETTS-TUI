@@ -1,7 +1,7 @@
 import { writeFileSync } from 'node:fs'
 
-import type { ScrollBoxHandle } from '@freeide/ink'
-import { evictInkCaches } from '@freeide/ink'
+import type { ScrollBoxHandle } from '@jetts-tui/ink'
+import { evictInkCaches } from '@jetts-tui/ink'
 import { type RefObject, useCallback, useEffect, useRef } from 'react'
 
 import { buildSetupRequiredSections, SETUP_REQUIRED_TITLE } from '../content/setup.js'

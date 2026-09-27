@@ -53,7 +53,13 @@ gemini = GeminiProfile(
     display_name="Google Gemini",
     description="Gemini — generous free tier on AI Studio keys",
     signup_url="https://aistudio.google.com/apikey",
+    # Newest first. gemini-3.8-flash (2026-09-02) and gemini-3.7-flash
+    # (2026-08-13) were missing; gemini-2.5-flash is retained because Google's
+    # deprecations table still lists it as "No shutdown date announced".
+    # https://ai.google.dev/gemini-api/docs/deprecations (verified 2026-09-23)
     fallback_models=(
+        "gemini-3.8-flash",
+        "gemini-3.7-flash",
         "gemini-3.6-flash",
         "gemini-3.5-flash",
         "gemini-3.5-flash-lite",

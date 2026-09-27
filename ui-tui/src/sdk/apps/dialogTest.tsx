@@ -1,4 +1,4 @@
-import { Text } from '@freeide/ink'
+import { Text } from '@jetts-tui/ink'
 
 import { Dialog, Overlay, type OverlayZone } from '../../components/overlay.js'
 import { defineWidgetApp } from '../registry.js'

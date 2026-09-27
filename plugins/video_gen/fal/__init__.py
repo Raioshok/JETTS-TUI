@@ -68,7 +68,7 @@ FAL_FAMILIES: Dict[str, Dict[str, Any]] = {
     "ltx-2.3": {
         "display": "LTX 2.3 (22B)",
         "speed": "~30-60s",
-        "price": "cheap",
+        "price": "$0.001605/MP (fal, verified 2026-09-23)",
         "strengths": "22B model with native audio generation. Affordable.",
         "tier": "cheap",
         "text_endpoint": "fal-ai/ltx-2.3-22b/text-to-video",
@@ -84,7 +84,7 @@ FAL_FAMILIES: Dict[str, Dict[str, Any]] = {
     "pixverse-v6": {
         "display": "Pixverse v6",
         "speed": "~30-90s",
-        "price": "cheap",
+        "price": "$0.025-$0.060/sec by resolution+duration (fal, verified 2026-09-23)",
         "strengths": "Affordable. Negative prompts. 1-15s durations.",
         "tier": "cheap",
         "text_endpoint": "fal-ai/pixverse/v6/text-to-video",
@@ -99,7 +99,7 @@ FAL_FAMILIES: Dict[str, Dict[str, Any]] = {
     "veo3.1": {
         "display": "Veo 3.1",
         "speed": "~60-120s",
-        "price": "premium",
+        "price": "from $0.10/sec, up to $0.40/sec by mode (fal, verified 2026-09-23)",
         "strengths": "Google DeepMind. Cinematic, native audio, strong prompt adherence.",
         "tier": "premium",
         "text_endpoint": "fal-ai/veo3.1",
@@ -114,7 +114,7 @@ FAL_FAMILIES: Dict[str, Dict[str, Any]] = {
     "seedance-2.0": {
         "display": "Seedance 2.0",
         "speed": "~60-120s",
-        "price": "premium",
+        "price": "premium - figure not machine-readable on fal's page (checked 2026-09-23); see https://fal.ai/models/bytedance/seedance-2.0/text-to-video",
         "strengths": "ByteDance. Cinematic, synchronized audio + lip-sync, 4-15s.",
         "tier": "premium",
         "text_endpoint": "bytedance/seedance-2.0/text-to-video",
@@ -130,7 +130,7 @@ FAL_FAMILIES: Dict[str, Dict[str, Any]] = {
     "kling-v3-4k": {
         "display": "Kling v3 4K",
         "speed": "~120-300s",
-        "price": "premium",
+        "price": "premium - figure not machine-readable on fal's page (checked 2026-09-23); see https://fal.ai/models/fal-ai/kling-video/v3/4k/text-to-video",
         "strengths": "4K output, native audio (Chinese/English), 3-15s.",
         "tier": "premium",
         "text_endpoint": "fal-ai/kling-video/v3/4k/text-to-video",
@@ -147,7 +147,7 @@ FAL_FAMILIES: Dict[str, Dict[str, Any]] = {
     "happy-horse": {
         "display": "Happy Horse 1.0",
         "speed": "~60-120s",
-        "price": "premium",
+        "price": "premium - vendor publishes no figure (sparse docs); see https://fal.ai/models/alibaba/happy-horse/text-to-video",
         "strengths": "Alibaba. New model, sparse public docs — conservative defaults.",
         "tier": "premium",
         "text_endpoint": "alibaba/happy-horse/text-to-video",

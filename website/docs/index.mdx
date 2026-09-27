@@ -1,17 +1,17 @@
 ---
 slug: /
 sidebar_position: 0
-title: "FreeIDE Agent Documentation"
-description: "The self-improving AI agent built by FreeIDE. A built-in learning loop that creates skills from experience, improves them during use, and remembers across sessions."
+title: "Jetts-TUI Documentation"
+description: "The terminal-first AI workspace with agents, memory, tools, and messaging integrations."
 hide_table_of_contents: true
 displayed_sidebar: docs
 ---
 
 import Link from "@docusaurus/Link";
 
-# FreeIDE Agent
+# Jetts-TUI
 
-The self-improving AI agent built by [FreeIDE](https://freeide.dev). The only agent with a built-in learning loop — it creates skills from experience, improves them during use, nudges itself to persist knowledge, and builds a deepening model of who you are across sessions.
+Jetts-TUI combines a responsive terminal UI with an agent runtime, persistent memory, subagents, and messaging integrations. Start from this repository and choose a supported model provider or your own endpoint.
 
 <div
   style={{
@@ -35,63 +35,33 @@ The self-improving AI agent built by [FreeIDE](https://freeide.dev). The only ag
   >
     Get Started →
   </Link>
-  <a
-    href="https://freeide-agent.freeide.dev/"
-    style={{
-      display: "inline-block",
-      padding: "0.6rem 1.2rem",
-      border: "1px solid rgba(255,215,0,0.2)",
-      borderRadius: "8px",
-      textDecoration: "none",
-    }}
-  >
-    Download Desktop
-  </a>
-  <a
-    href="https://github.com/freeide/freeide"
-    style={{
-      display: "inline-block",
-      padding: "0.6rem 1.2rem",
-      border: "1px solid rgba(255,215,0,0.2)",
-      borderRadius: "8px",
-      textDecoration: "none",
-    }}
-  >
-    View on GitHub
-  </a>
 </div>
 
 ## Install
 
-### Windows or macOS
+From a local checkout, use the platform setup script. These scripts configure the Python runtime and TUI dependencies without relying on a separate project's hosted installer.
 
-To easily install the command-line and desktop applications, [download the FreeIDE Desktop installer](https://freeide-agent.freeide.dev/) from our website and run it.
-
-### Without FreeIDE Desktop:
-
-For a command-line only install without FreeIDE Desktop, run:
-
-#### Linux / macOS / WSL2 / Android (Termux)
+### Linux / macOS / WSL2 / Android (Termux)
 
 ```bash
-curl -fsSL https://freeide-agent.freeide.dev/install.sh | bash
+bash setup-jetts-tui.sh
 ```
 
-#### Windows (native)
+### Windows (native)
 
 Run in powershell:
 
 ```powershell
-iex (irm https://freeide-agent.freeide.dev/install.ps1)
+.\setup-jetts-tui.ps1
 ```
 
 See the full **[Installation Guide](/getting-started/installation)** for what the installer does, the per-user vs root layout, and Windows-specific notes. For the complete platform support matrix, see **[Platform Support](/getting-started/platform-support)**.
 
 :::tip Fastest path to a working agent
-After installing, run `freeide setup` and pick a provider — FreeIDE is bring-your-own-key, so choose a free or paid provider and paste an API key (or use a provider's own OAuth). See [AI Providers](/integrations/providers).
+After installing, run `jetts-tui setup` and pick a provider. See [AI Providers](/integrations/providers).
 :::
 
-## What is FreeIDE Agent?
+## What is Jetts-TUI?
 
 It's not a coding copilot tethered to an IDE or a chatbot wrapper around a single API. It's an **autonomous agent** that gets more capable the longer it runs. It lives wherever you put it — a $5 VPS, a GPU cluster, or serverless infrastructure (Daytona, Modal) that costs nearly nothing when idle. Talk to it from Telegram while it works on a cloud VM you never SSH into yourself. It's not tied to your laptop.
 
@@ -104,17 +74,17 @@ It's not a coding copilot tethered to an IDE or a chatbot wrapper around a singl
 | 🗺️ **[Learning Path](/getting-started/learning-path)**                  | Find the right docs for your experience level                         |
 | ⚙️ **[Configuration](/user-guide/configuration)**                       | Config file, providers, models, and options                           |
 | 💬 **[Messaging Gateway](/user-guide/messaging)**                       | Set up Telegram, Discord, Slack, WhatsApp, Teams, or more             |
-| 🔧 **[Tools & Toolsets](/user-guide/features/tools)**                   | 60+ built-in tools and how to configure them                          |
+| 🔧 **[Tools & Toolsets](/user-guide/features/tools)**                   | 80+ registered tools and how to configure them                        |
 | 🧠 **[Memory System](/user-guide/features/memory)**                     | Persistent memory that grows across sessions                          |
 | 📚 **[Skills System](/user-guide/features/skills)**                     | Procedural memory the agent creates and reuses                        |
-| 🔌 **[MCP Integration](/user-guide/features/mcp)**                      | Connect to MCP servers, filter their tools, and extend FreeIDE safely  |
-| 🧭 **[Use MCP with FreeIDE](/guides/use-mcp-with-freeide)**               | Practical MCP setup patterns, examples, and tutorials                 |
+| 🔌 **[MCP Integration](/user-guide/features/mcp)**                      | Connect to MCP servers, filter their tools, and extend Jetts-TUI safely  |
+| 🧭 **[Use MCP with Jetts-TUI](/guides/use-mcp-with-freeide)**            | Practical MCP setup patterns, examples, and tutorials                 |
 | 🎙️ **[Voice Mode](/user-guide/features/voice-mode)**                    | Real-time voice interaction in CLI, Telegram, Discord, and Discord VC |
-| 🗣️ **[Use Voice Mode with FreeIDE](/guides/use-voice-mode-with-freeide)** | Hands-on setup and usage patterns for FreeIDE voice workflows          |
-| 🎭 **[Personality & SOUL.md](/user-guide/features/personality)**        | Define FreeIDE' default voice with a global SOUL.md                    |
+| 🗣️ **[Use Voice Mode with Jetts-TUI](/guides/use-voice-mode-with-freeide)** | Hands-on setup and usage patterns for Jetts-TUI voice workflows       |
+| 🎭 **[Personality & SOUL.md](/user-guide/features/personality)**        | Define Jetts-TUI's default voice with a global SOUL.md                 |
 | 📄 **[Context Files](/user-guide/features/context-files)**              | Project context files that shape every conversation                   |
 | 🔒 **[Security](/user-guide/security)**                                 | Command approval, authorization, container isolation                  |
-| 💡 **[Tips & Best Practices](/guides/tips)**                            | Quick wins to get the most out of FreeIDE                              |
+| 💡 **[Tips & Best Practices](/guides/tips)**                            | Quick wins to get the most out of Jetts-TUI                            |
 | 🏗️ **[Architecture](/developer-guide/architecture)**                    | How it works under the hood                                           |
 | ❓ **[FAQ & Troubleshooting](/reference/faq)**                          | Common questions and solutions                                        |
 
@@ -123,13 +93,13 @@ It's not a coding copilot tethered to an IDE or a chatbot wrapper around a singl
 - **A closed learning loop** — Agent-curated memory with periodic nudges, autonomous skill creation, skill self-improvement during use, FTS5 cross-session recall with LLM summarization, and [Honcho](https://github.com/plastic-labs/honcho) dialectic user modeling
 - **Runs anywhere, not just your laptop** — 6 terminal backends: local, Docker, SSH, Daytona, Singularity, Modal. Daytona and Modal offer serverless persistence — your environment hibernates when idle, costing nearly nothing
 - **Lives where you do** — CLI, Telegram, Discord, Slack, WhatsApp, Signal, Matrix, Mattermost, Email, SMS, DingTalk, Feishu, WeCom, Weixin, QQ Bot, Yuanbao, BlueBubbles, Home Assistant, Microsoft Teams, Google Chat, and more — 20+ platforms from one gateway
-- **Built by model trainers** — Created by [FreeIDE](https://freeide.dev), the lab behind FreeIDE, Nomos, and Psyche. Works with [OpenRouter](https://openrouter.ai), OpenAI, or any endpoint
+- **Model choice** — Works with [OpenRouter](https://openrouter.ai), OpenAI, and other supported endpoints
 - **Scheduled automations** — Built-in cron with delivery to any platform
 - **Delegates & parallelizes** — Spawn isolated subagents for parallel workstreams. Programmatic Tool Calling via `execute_code` collapses multi-step pipelines into single inference calls
 - **Open standard skills** — Compatible with [agentskills.io](https://agentskills.io). Skills are portable, shareable, and community-contributed via the Skills Hub
 - **Full web control** — Search, extract, browse, vision, image generation, TTS — each configured per-backend with your own keys
 - **MCP support** — Connect to any MCP server for extended tool capabilities
-- **Research-ready** — Batch processing, trajectory export, RL training with Atropos. Built by [FreeIDE](https://freeide.dev) — the lab behind FreeIDE, Nomos, and Psyche models
+- **Research-ready** — Batch processing, trajectory export, and training workflows
 
 ## For LLMs and coding agents
 

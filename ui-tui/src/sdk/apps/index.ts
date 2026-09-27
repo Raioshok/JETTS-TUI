@@ -1,13 +1,7 @@
-/** Reference apps. Importing this module registers them (defineWidgetApp
- *  runs at module load) — appLayout imports it once at startup. User widgets
- *  from $FREEIDE_HOME/tui-widgets ride the same import (async, non-fatal). */
+/** Load user-owned widgets only. Demo/reference widgets remain source examples
+ *  and visual-test fixtures; registering them in production polluted `/`
+ *  completion with commands that do not advance normal work. */
 import { loadUserWidgets, watchUserWidgets } from '../userWidgets.js'
 
 void loadUserWidgets()
 watchUserWidgets()
-
-export { dialogTestApp } from './dialogTest.js'
-export { gridTestApp } from './gridTest.js'
-export { GRID_STREAM_COUNT, type GridTestState } from './gridTestState.js'
-export { tickerApp, type TickerState } from './ticker.js'
-export { weatherApp, type WeatherState } from './weather.js'

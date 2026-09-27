@@ -37,7 +37,7 @@ Full human reference (every export, area payloads, backend, security):
 
 ## Quick Reference
 
-The ONLY import surface is `@freeide/plugin-sdk` (plus `react` /
+The ONLY import surface is `@jetts-tui/plugin-sdk` (plus `react` /
 `react/jsx-runtime`, which resolve to the app's own React — write UI with
 `jsx()` calls, not JSX syntax; the file is not compiled).
 
@@ -137,7 +137,7 @@ The ONLY import surface is `@freeide/plugin-sdk` (plus `react` /
   blank space or blurry scaling.
 - JSX syntax will not parse — the file loads uncompiled. Use
   `jsx('div', { children: ... })` from `react/jsx-runtime`.
-- Do not import anything except `@freeide/plugin-sdk`, `react`, and
+- Do not import anything except `@jetts-tui/plugin-sdk`, `react`, and
   `react/jsx-runtime`; other specifiers fail to resolve.
 - Handlers must read state imperatively (`$atom.get()`), never from render
   closures — rapid events will otherwise see stale values.

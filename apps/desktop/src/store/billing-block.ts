@@ -1,4 +1,4 @@
-import type { BillingBlock } from '@freeide/shared'
+import type { BillingBlock } from '@jetts-tui/shared'
 import { atom } from 'nanostores'
 
 import { openExternalLink } from '@/lib/external-link'

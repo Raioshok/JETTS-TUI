@@ -15,14 +15,21 @@ import { PassThrough } from 'stream'
 
 import { visualOutDir } from './paths.mjs'
 
-import { Box, renderSync, Text } from '@freeide/ink'
+import { Box, renderSync, Text } from '@jetts-tui/ink'
 import React, { type ReactElement } from 'react'
 
 import { GatewayProvider } from '../../src/app/gatewayContext.js'
 import { patchOverlayState, resetOverlayState } from '../../src/app/overlayStore.js'
 import { patchUiState, resetUiState } from '../../src/app/uiStore.js'
 import { FloatingOverlays } from '../../src/components/appOverlays.js'
-import { Banner, SessionPanel } from '../../src/components/branding.js'
+import { SessionPanel } from '../../src/components/branding.js'
+import {
+  ResidentInputTarget,
+  ResidentSessionPreview,
+  ResidentWorkspaceSidebar
+} from '../../src/components/residentWorkspace.js'
+import { ComposerToolbar, WorkspaceHeader } from '../../src/components/workspaceChrome.js'
+import type { SessionActiveItem } from '../../src/gatewayTypes.js'
 import { fromSkin, type Theme } from '../../src/theme.js'
 import type { SessionInfo } from '../../src/types.js'
 
@@ -54,7 +61,7 @@ const SLATE = {
 // darker calm dims).
 
 const info: SessionInfo = {
-  cwd: '/Users/brooklyn/www/freeide-agent',
+  cwd: '/Users/brooklyn/www/jetts-tui',
   mcp_servers: [{ connected: true, name: 'figma', tools: 12, transport: 'sse' }],
   model: 'claude-opus-4.8-fast',
   skills: {
@@ -82,6 +89,36 @@ const completions = [
   { display: '/history', meta: 'Show conversation history', text: '/history' }
 ]
 
+const residentSessions: SessionActiveItem[] = [
+  {
+    current: false,
+    id: 'agent-1',
+    message_count: 8,
+    model: 'openai/gpt-5.6-luna',
+    preview: 'Mapped the provider discovery paths and pricing metadata.',
+    status: 'working',
+    title: 'Research'
+  },
+  {
+    current: true,
+    id: 'agent-2',
+    message_count: 14,
+    model: 'anthropic/claude-sonnet',
+    preview: 'Building the responsive resident workspace.',
+    status: 'idle',
+    title: 'Implementation'
+  },
+  {
+    current: false,
+    id: 'agent-3',
+    message_count: 3,
+    model: 'google/gemini-flash',
+    preview: 'Waiting for the implementation pass before validation.',
+    status: 'waiting',
+    title: 'Verification'
+  }
+]
+
 function renderAnsi(node: ReactElement, columns: number): string {
   const stdout = new PassThrough()
   const stdin = new PassThrough()
@@ -107,7 +144,9 @@ function renderAnsi(node: ReactElement, columns: number): string {
 
   const instance = renderSync(
     <GatewayProvider value={fakeGateway}>
-      <Box flexDirection="column" width={columns}>{node}</Box>
+      <Box flexDirection="column" width={columns}>
+        {node}
+      </Box>
     </GatewayProvider>,
     {
       exitOnCtrlC: false,
@@ -188,16 +227,26 @@ function ansiToHtml(raw: string, defaultFg: string, defaultBg: string): string {
         fg = defaultFg
         bg = defaultBg
         bold = dim = italic = inverse = false
-      } else if (c === 1) {bold = true}
-      else if (c === 2) {dim = true}
-      else if (c === 3) {italic = true}
-      else if (c === 7) {inverse = true}
-      else if (c === 22) { bold = false; dim = false }
-      else if (c === 23) {italic = false}
-      else if (c === 27) {inverse = false}
-      else if (c === 39) {fg = defaultFg}
-      else if (c === 49) {bg = defaultBg}
-      else if (c === 38 && codes[i + 1] === 2) {
+      } else if (c === 1) {
+        bold = true
+      } else if (c === 2) {
+        dim = true
+      } else if (c === 3) {
+        italic = true
+      } else if (c === 7) {
+        inverse = true
+      } else if (c === 22) {
+        bold = false
+        dim = false
+      } else if (c === 23) {
+        italic = false
+      } else if (c === 27) {
+        inverse = false
+      } else if (c === 39) {
+        fg = defaultFg
+      } else if (c === 49) {
+        bg = defaultBg
+      } else if (c === 38 && codes[i + 1] === 2) {
         fg = `rgb(${codes[i + 2]},${codes[i + 3]},${codes[i + 4]})`
         i += 4
       } else if (c === 48 && codes[i + 1] === 2) {
@@ -256,7 +305,16 @@ for (const scene of scenes) {
 
   const intro = renderAnsi(
     <Box flexDirection="column">
-      <Banner maxWidth={86} t={scene.theme} />
+      <WorkspaceHeader
+        brand={scene.theme.brand.name}
+        busy={false}
+        cols={88}
+        cwd="~/code/jetts-tui"
+        mode="accept-edits"
+        model={info.model}
+        project="jetts-tui"
+        t={scene.theme}
+      />
       <SessionPanel info={info} maxWidth={86} sid="d2a6ecf8" t={scene.theme} />
     </Box>,
     88
@@ -285,13 +343,16 @@ for (const scene of scenes) {
 
   const statusLine = renderAnsi(
     <Box flexDirection="column">
+      <ComposerToolbar busy={false} cols={88} mode="accept-edits" queueCount={0} t={scene.theme} />
       <Text>
         <Text color={scene.theme.color.statusGood}>— ready </Text>
         <Text color={scene.theme.color.muted}>| opus 4.8 fast | 4s | voice off</Text>
       </Text>
       <Text>
         <Text color={scene.theme.color.muted}>{scene.theme.brand.prompt} </Text>
-        <Text backgroundColor={scene.theme.color.muted} color={scene.bg}>T</Text>
+        <Text backgroundColor={scene.theme.color.muted} color={scene.bg}>
+          T
+        </Text>
         <Text color={scene.theme.color.muted}>ry &quot;fix the lint errors&quot;</Text>
       </Text>
     </Box>,
@@ -306,6 +367,52 @@ for (const scene of scenes) {
   page += `</div>`
 }
 
+const residentScene = scenes[0]!
+
+setup(residentScene.bg)
+const resident = renderAnsi(
+  <Box flexDirection="column" height={38} width={120}>
+    <Box flexDirection="row" flexGrow={1}>
+      <ResidentWorkspaceSidebar
+        currentSessionId="agent-2"
+        onNew={noop}
+        onOpenAgents={noop}
+        onSelect={noop}
+        sessions={residentSessions}
+        subagents={[]}
+        t={residentScene.theme}
+      />
+      <Box flexDirection="column" flexGrow={1}>
+        <ResidentSessionPreview index={0} onSelect={noop} session={residentSessions[0]!} t={residentScene.theme} />
+        <ResidentSessionPreview index={2} onSelect={noop} session={residentSessions[2]!} t={residentScene.theme} />
+        <WorkspaceHeader
+          brand={residentScene.theme.brand.name}
+          busy={false}
+          cols={90}
+          cwd="~/code/jetts-tui"
+          mode="accept-edits"
+          model={residentSessions[1]!.model ?? ''}
+          project="jetts-tui"
+          t={residentScene.theme}
+        />
+        <Box flexDirection="column" flexGrow={1} paddingX={1}>
+          <Text color={residentScene.theme.color.prompt}>You</Text>
+          <Text color={residentScene.theme.color.text}>Rework the TUI into a resident-agent workspace.</Text>
+          <Text color={residentScene.theme.color.accent}>Jetts-TUI</Text>
+          <Text color={residentScene.theme.color.text}>The layout is responsive and the input target remains explicit.</Text>
+        </Box>
+      </Box>
+    </Box>
+    <ResidentInputTarget currentSessionId="agent-2" sessions={residentSessions} t={residentScene.theme} />
+    <ComposerToolbar busy={false} cols={120} mode="accept-edits" queueCount={0} t={residentScene.theme} />
+  </Box>,
+  120
+)
+
+page += '</div>'
+page += `<div style="margin:0 16px 16px;background:${residentScene.bg};color:${residentScene.fg};padding:14px;border-radius:6px">`
+page += `<div style="font:bold 12px sans-serif;opacity:.6;margin-bottom:8px;color:${residentScene.fg}">resident workspace · 120 × 38</div>`
+page += `<pre style="margin:0;white-space:pre">${ansiToHtml(resident, residentScene.fg, residentScene.bg)}</pre>`
 page += '</div></body>'
 
 const outDir = visualOutDir()

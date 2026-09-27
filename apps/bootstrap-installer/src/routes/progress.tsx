@@ -50,11 +50,11 @@ export default function ProgressScreen({ bootstrap }: ProgressProps) {
   }, [bootstrap.status])
 
   const isUpdate = mode === 'update'
-  const title = bootstrap.status === 'completed' ? 'Done' : isUpdate ? 'Updating FreeIDE' : 'Setting up FreeIDE Agent'
+  const title = bootstrap.status === 'completed' ? 'Done' : isUpdate ? 'Updating Jetts-TUI' : 'Setting up Jetts-TUI'
 
   const description = isUpdate
-    ? 'FreeIDE is updating to the latest version — this only takes a moment.'
-    : 'This is a one-time setup. The FreeIDE installer is downloading dependencies and configuring your machine. Subsequent launches will skip this step.'
+    ? 'Jetts-TUI is updating to the latest version — this only takes a moment.'
+    : 'This is a one-time setup. The Jetts-TUI installer is downloading dependencies and configuring your machine. Subsequent launches will skip this step.'
 
   const pct = Math.round(progress.fraction * 100)
 

@@ -70,21 +70,12 @@ describe('createSlashHandler', () => {
     expect(getOverlayState().sessions).toBe(true)
   })
 
-  it('opens the grid-test overlay locally', () => {
+  it('does not register the grid demo in the production slash surface', () => {
     const ctx = buildCtx()
 
     expect(createSlashHandler(ctx)('/grid-test 6x4')).toBe(true)
-    expect(getOverlayState().widget).toMatchObject({ appId: 'grid-test' })
-    expect(getOverlayState().widget?.state).toMatchObject({ cols: 6, nested: false, rows: 4, streams: false })
-    expect(ctx.gateway.gw.request).not.toHaveBeenCalled()
-  })
-
-  it('opens the grid-test streams demo via /grid-test streams', () => {
-    const ctx = buildCtx()
-
-    expect(createSlashHandler(ctx)('/grid-test streams')).toBe(true)
-    expect(getOverlayState().widget?.state).toMatchObject({ streamFocus: 0, streamMain: 0, streams: true })
-    expect(ctx.gateway.gw.request).not.toHaveBeenCalled()
+    expect(getOverlayState().widget).toBeNull()
+    expect(ctx.gateway.gw.request).toHaveBeenCalled()
   })
 
   it('handles /redraw locally without slash worker fallback', () => {
@@ -845,6 +836,7 @@ describe('createSlashHandler', () => {
     await vi.waitFor(() => {
       expect(ctx.transcript.send).toHaveBeenCalledWith(skillMessage, true, '/freeide-agent-dev')
     })
+
     // The expanded skill body is model-facing: no transcript line may carry it.
     for (const [line] of ctx.transcript.sys.mock.calls) {
       expect(line).not.toContain('Use this skill to do X')
@@ -908,7 +900,7 @@ describe('createSlashHandler', () => {
     expect(title).toBe('History')
     expect(body).toContain('[You #1]')
     expect(body).toContain('hello')
-    expect(body).toContain('[FreeIDE #2]')
+    expect(body).toContain('[Jetts-TUI #2]')
     expect(body).toContain('hi there')
     expect(body).toContain('[You #3]')
     expect(body).not.toContain('ignore me')

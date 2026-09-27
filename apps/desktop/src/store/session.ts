@@ -1,4 +1,4 @@
-import type { ConnectionState } from '@freeide/shared'
+import type { ConnectionState } from '@jetts-tui/shared'
 import { atom, computed } from 'nanostores'
 
 import { lastVisibleMessageIsUser } from '@/app/chat/thread-loading'

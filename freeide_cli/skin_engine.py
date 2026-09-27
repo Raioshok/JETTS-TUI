@@ -1,6 +1,6 @@
-"""FreeIDE skin/theme engine — the theme SDK for every surface.
+"""Jetts-TUI skin/theme engine — the theme SDK for every surface.
 
-A data-driven skin system that lets users (and FreeIDE itself) customize the
+A data-driven skin system that lets users (and Jetts-TUI itself) customize the
 visual appearance across the CLI, the TUI, and the desktop GUI from a single
 file. Skins are defined as YAML files in ~/.freeide/skins/ or as built-in presets.
 No code changes are needed to add a new skin.
@@ -94,10 +94,10 @@ All fields are optional. Missing values inherit from the ``default`` skin.
 
     # Branding: text strings used throughout the CLI
     branding:
-      agent_name: "FreeIDE Agent"          # Banner title, status display
+      agent_name: "Jetts-TUI"          # Banner title, status display
       welcome: "Welcome message"          # Shown at CLI startup
       goodbye: "Goodbye! ◆"              # Shown on exit
-      response_label: " ◆ FreeIDE "       # Response box header label
+      response_label: " ◆ Jetts-TUI "       # Response box header label
       prompt_symbol: "❯"                 # Input prompt symbol (bare token; renderers add trailing space)
       help_header: "(^_^)? Commands"      # /help header text
 
@@ -119,7 +119,7 @@ USAGE
 
     skin = get_active_skin()
     print(skin.colors["banner_title"])    # "#FFD700"
-    print(skin.get_branding("agent_name"))  # "FreeIDE Agent"
+    print(skin.get_branding("agent_name"))  # "Jetts-TUI"
 
     set_active_skin("ares")               # Switch to built-in ares skin
     set_active_skin("mytheme")            # Switch to user skin from ~/.freeide/skins/
@@ -127,7 +127,7 @@ USAGE
 BUILT-IN SKINS
 ==============
 
-- ``default`` — Classic FreeIDE gold/kawaii (the current look)
+- ``default`` — Classic Jetts-TUI gold/kawaii (the current look)
 - ``ares``    — Crimson/bronze war-god theme with custom spinner wings
 - ``mono``    — Clean grayscale monochrome
 - ``slate``   — Cool blue developer-focused theme
@@ -199,9 +199,68 @@ class SkinConfig:
 # =============================================================================
 
 _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
+    "studio": {
+        "name": "studio",
+        "description": "Studio — quiet slate surfaces, clear blue accents, compact workspace",
+        "colors": {
+            "background": "#111827",
+            "banner_border": "#64748b", "banner_title": "#e2e8f0",
+            "banner_accent": "#93c5fd", "banner_dim": "#94a3b8",
+            "banner_text": "#e2e8f0", "ui_accent": "#93c5fd",
+            "ui_label": "#cbd5e1", "ui_ok": "#86efac",
+            "ui_error": "#fda4af", "ui_warn": "#fcd34d",
+            "ui_tool": "#93c5fd", "ui_thinking": "#94a3b8",
+            "prompt": "#93c5fd", "input_rule": "#64748b",
+            "response_border": "#64748b", "session_label": "#cbd5e1",
+            "session_border": "#94a3b8",
+            "status_bar_bg": "#111827", "status_bar_text": "#cbd5e1",
+            "status_bar_strong": "#93c5fd", "status_bar_dim": "#94a3b8",
+            "status_bar_good": "#86efac", "status_bar_warn": "#fcd34d",
+            "status_bar_bad": "#fdba74", "status_bar_critical": "#fda4af",
+            "completion_menu_bg": "#111827", "completion_menu_current_bg": "#334155",
+            "completion_menu_meta_bg": "#111827", "completion_menu_meta_current_bg": "#334155",
+            "selection_bg": "#334155", "voice_status_bg": "#111827",
+            "shell_dollar": "#93c5fd", "syntax_string": "#86efac",
+            "syntax_number": "#fdba74", "syntax_keyword": "#93c5fd",
+            "syntax_comment": "#94a3b8",
+        },
+        "light_colors": {
+            "background": "#f8fafc",
+            "banner_border": "#94a3b8", "banner_title": "#0f172a",
+            "banner_accent": "#1d4ed8", "banner_dim": "#475569",
+            "banner_text": "#0f172a", "ui_accent": "#1d4ed8",
+            "ui_label": "#334155", "ui_ok": "#166534",
+            "ui_error": "#be123c", "ui_warn": "#92400e",
+            "ui_tool": "#1d4ed8", "ui_thinking": "#475569",
+            "prompt": "#1d4ed8", "input_rule": "#94a3b8",
+            "response_border": "#94a3b8", "session_label": "#334155",
+            "session_border": "#475569",
+            "status_bar_bg": "#f1f5f9", "status_bar_text": "#334155",
+            "status_bar_strong": "#1d4ed8", "status_bar_dim": "#475569",
+            "status_bar_good": "#166534", "status_bar_warn": "#92400e",
+            "status_bar_bad": "#9a3412", "status_bar_critical": "#be123c",
+            "completion_menu_bg": "#f8fafc", "completion_menu_current_bg": "#dbeafe",
+            "completion_menu_meta_bg": "#f8fafc", "completion_menu_meta_current_bg": "#dbeafe",
+            "selection_bg": "#dbeafe", "voice_status_bg": "#f1f5f9",
+            "shell_dollar": "#1d4ed8", "syntax_string": "#166534",
+            "syntax_number": "#9a3412", "syntax_keyword": "#1d4ed8",
+            "syntax_comment": "#475569",
+        },
+        "spinner": {
+            "waiting_faces": ["·"], "thinking_faces": ["·"],
+            "thinking_verbs": ["thinking"], "wings": [],
+        },
+        "branding": {
+            "agent_name": "Jetts-TUI", "welcome": "What would you like to build?",
+            "goodbye": "See you next time.",
+            "response_label": " Jetts-TUI ", "prompt_symbol": "❯",
+            "help_header": "Jetts-TUI commands",
+        },
+        "tool_prefix": "│",
+    },
     "default": {
         "name": "default",
-        "description": "FreeIDE — Catppuccin Mocha, bold gradient rice (violet→sky)",
+        "description": "Jetts-TUI — Catppuccin Mocha, bold gradient rice (violet→sky)",
         # Catppuccin Mocha with a mauve/violet accent — the modern riced
         # terminal palette. Roles map onto Catppuccin's named colours so the
         # whole UI reads as one deliberate scheme rather than scattered hexes:
@@ -292,10 +351,10 @@ _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
             ],
         },
         "branding": {
-            "agent_name": "FreeIDE Agent",
-            "welcome": "Welcome to FreeIDE Agent! Type your message or /help for commands.",
+            "agent_name": "Jetts-TUI",
+            "welcome": "Welcome to Jetts-TUI! Type your message or /help for commands.",
             "goodbye": "Goodbye! ◆",
-            "response_label": " ◆ FreeIDE ",
+            "response_label": " ◆ Jetts-TUI ",
             "prompt_symbol": "❯",
             "help_header": "◆ Available Commands",
         },
@@ -413,10 +472,10 @@ _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
         },
         "spinner": {},
         "branding": {
-            "agent_name": "FreeIDE Agent",
-            "welcome": "Welcome to FreeIDE Agent! Type your message or /help for commands.",
+            "agent_name": "Jetts-TUI",
+            "welcome": "Welcome to Jetts-TUI! Type your message or /help for commands.",
             "goodbye": "Goodbye! ◆",
-            "response_label": " ◆ FreeIDE ",
+            "response_label": " ◆ Jetts-TUI ",
             "prompt_symbol": "❯",
             "help_header": "[?] Available Commands",
         },
@@ -457,10 +516,10 @@ _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
         },
         "spinner": {},
         "branding": {
-            "agent_name": "FreeIDE Agent",
-            "welcome": "Welcome to FreeIDE Agent! Type your message or /help for commands.",
+            "agent_name": "Jetts-TUI",
+            "welcome": "Welcome to Jetts-TUI! Type your message or /help for commands.",
             "goodbye": "Goodbye! ◆",
-            "response_label": " ◆ FreeIDE ",
+            "response_label": " ◆ Jetts-TUI ",
             "prompt_symbol": "❯",
             "help_header": "(^_^)? Available Commands",
         },
@@ -503,10 +562,10 @@ _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
         },
         "spinner": {},
         "branding": {
-            "agent_name": "FreeIDE Agent",
-            "welcome": "Welcome to FreeIDE Agent! Type your message or /help for commands.",
+            "agent_name": "Jetts-TUI",
+            "welcome": "Welcome to Jetts-TUI! Type your message or /help for commands.",
             "goodbye": "Goodbye! ◆",
-            "response_label": " ◆ FreeIDE ",
+            "response_label": " ◆ Jetts-TUI ",
             "prompt_symbol": "❯",
             "help_header": "[?] Available Commands",
         },
@@ -549,10 +608,10 @@ _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
         },
         "spinner": {},
         "branding": {
-            "agent_name": "FreeIDE Agent",
-            "welcome": "Welcome to FreeIDE Agent! Type your message or /help for commands.",
+            "agent_name": "Jetts-TUI",
+            "welcome": "Welcome to Jetts-TUI! Type your message or /help for commands.",
             "goodbye": "Goodbye! \u2695",
-            "response_label": " \u2695 FreeIDE ",
+            "response_label": " \u2695 Jetts-TUI ",
             "prompt_symbol": "\u276f",
             "help_header": "(^_^)? Available Commands",
         },

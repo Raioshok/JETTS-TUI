@@ -1,6 +1,6 @@
 import { PassThrough } from 'stream'
 
-import { Box, renderSync, ScrollBox, type ScrollBoxHandle, Text } from '@freeide/ink'
+import { Box, renderSync, ScrollBox, type ScrollBoxHandle, Text } from '@jetts-tui/ink'
 import React, { useLayoutEffect, useRef } from 'react'
 import { describe, expect, it } from 'vitest'
 

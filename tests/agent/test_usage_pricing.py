@@ -283,7 +283,8 @@ def test_deepseek_v4_pro_pricing_entry_exists():
     Before this fix, deepseek-v4-pro sessions showed as unknown cost
     in freeide insights because the _OFFICIAL_DOCS_PRICING table had no
     entry for that model.  See #24218.  Rates track the 2026-07 price cut
-    ($1.74/$3.48 → $0.435/$0.87).
+    ($1.74/$3.48 → $0.435/$0.87). Re-verified 2026-09-23 against the live
+    sheet: the current peak rates are $1.32/$3.96 (off-peak is half that).
     """
     entry = get_pricing_entry(
         "deepseek-v4-pro",
@@ -293,9 +294,9 @@ def test_deepseek_v4_pro_pricing_entry_exists():
     assert entry is not None
     assert entry.input_cost_per_million is not None
     assert entry.output_cost_per_million is not None
-    assert float(entry.input_cost_per_million) == 0.435
-    assert float(entry.output_cost_per_million) == 0.87
-    assert float(entry.cache_read_cost_per_million) == 0.003625
+    assert float(entry.input_cost_per_million) == 1.32
+    assert float(entry.output_cost_per_million) == 3.96
+    assert float(entry.cache_read_cost_per_million) == 0.044
 
 
 def test_deepseek_v4_pro_estimate_usage_cost():
@@ -308,8 +309,8 @@ def test_deepseek_v4_pro_estimate_usage_cost():
 
     assert result.status == "estimated"
     assert result.amount_usd is not None
-    # 1M input × $0.435/M + 500K output × $0.87/M = $0.435 + $0.435 = $0.87
-    assert float(result.amount_usd) == 0.87
+    # 1M input × $1.32/M + 500K output × $3.96/M = $1.32 + $1.98 = $3.30
+    assert float(result.amount_usd) == 3.30
 
 
 def test_deepseek_deprecated_aliases_price_as_v4_flash():
@@ -534,8 +535,8 @@ def test_fireworks_base_url_host_match_alone_routes_to_pricing():
     )
 
     assert entry is not None
-    assert float(entry.input_cost_per_million) == 1.74
-    assert float(entry.output_cost_per_million) == 3.48
+    assert float(entry.input_cost_per_million) == 1.32
+    assert float(entry.output_cost_per_million) == 3.96
 
 
 def test_fireworks_qwen3p7_plus_estimate_usage_cost():
@@ -619,9 +620,10 @@ def test_deepseek_v4_flash_pricing_entry_exists():
     )
 
     assert entry is not None
-    assert float(entry.input_cost_per_million) == 0.14
-    assert float(entry.output_cost_per_million) == 0.28
-    assert float(entry.cache_read_cost_per_million) == 0.0028
+    # Re-verified 2026-09-23 against the live DeepSeek sheet (peak tier).
+    assert float(entry.input_cost_per_million) == 0.30
+    assert float(entry.output_cost_per_million) == 1.20
+    assert float(entry.cache_read_cost_per_million) == 0.006
 
 
 def test_deepseek_v4_flash_estimate_usage_cost():
@@ -634,5 +636,105 @@ def test_deepseek_v4_flash_estimate_usage_cost():
 
     assert result.status == "estimated"
     assert result.amount_usd is not None
-    # 1M input × $0.14/M + 500K output × $0.28/M = $0.14 + $0.14 = $0.28
-    assert float(result.amount_usd) == 0.28
+    # 1M input × $0.30/M + 500K output × $1.20/M = $0.30 + $0.60 = $0.90
+    assert float(result.amount_usd) == 0.90
+
+# ── Anthropic fast mode: billed by the speed the RESPONSE reports ────────
+# Contract: https://platform.claude.com/docs/en/build-with-claude/fast-mode —
+# "Speed mode is priced at a multiplier on standard rates", and a fast request
+# made without research-preview access "does not return an error: it runs at
+# standard speed and is billed at standard rates". So the request flag must
+# never drive pricing; only usage.speed from the response may.
+
+
+def test_normalize_usage_captures_response_speed():
+    """usage.speed survives normalization; junk values are not trusted."""
+    usage = SimpleNamespace(
+        input_tokens=10,
+        output_tokens=5,
+        cache_read_input_tokens=0,
+        cache_creation_input_tokens=0,
+        speed="fast",
+    )
+    normalized = normalize_usage(usage, provider="anthropic", api_mode="anthropic_messages")
+    assert normalized.speed == "fast"
+
+    usage.speed = "standard"
+    assert normalize_usage(usage, provider="anthropic").speed == "standard"
+
+    # An unrecognized value must not be forwarded as if it were meaningful.
+    usage.speed = "turbo"
+    assert normalize_usage(usage, provider="anthropic").speed is None
+
+    # Providers whose usage shape has no speed field at all stay None.
+    openai_shaped = SimpleNamespace(prompt_tokens=10, completion_tokens=5)
+    assert normalize_usage(openai_shaped).speed is None
+
+
+def test_fast_mode_prices_at_the_published_multiplier():
+    tokens = {"input_tokens": 100_000, "output_tokens": 10_000}
+    standard = estimate_usage_cost("claude-opus-5", CanonicalUsage(**tokens), provider="anthropic")
+    fast = estimate_usage_cost(
+        "claude-opus-5", CanonicalUsage(speed="fast", **tokens), provider="anthropic"
+    )
+    # Published fast rates for Opus 5 are exactly 2x standard ($5/$25 -> $10/$50).
+    assert fast.amount_usd == standard.amount_usd * 2
+    assert any("fast-mode rates" in note for note in fast.notes)
+
+
+def test_fast_mode_speed_absent_keeps_standard_rates():
+    """The request flag cannot be evidence — no usage.speed, standard pricing."""
+    tokens = {"input_tokens": 100_000, "output_tokens": 10_000}
+    plain = estimate_usage_cost("claude-opus-5", CanonicalUsage(**tokens), provider="anthropic")
+    assert not any("fast-mode" in note for note in plain.notes)
+
+
+def test_fast_mode_without_a_published_row_falls_back_and_says_so():
+    tokens = {"input_tokens": 100_000, "output_tokens": 10_000}
+    standard = estimate_usage_cost("claude-sonnet-5", CanonicalUsage(**tokens), provider="anthropic")
+    fast = estimate_usage_cost(
+        "claude-sonnet-5", CanonicalUsage(speed="fast", **tokens), provider="anthropic"
+    )
+    assert fast.amount_usd == standard.amount_usd
+    assert any("no fast-mode rate" in note for note in fast.notes)
+
+
+def test_mixed_speed_sum_drops_speed_rather_than_guessing():
+    assert (CanonicalUsage(speed="fast") + CanonicalUsage(speed="standard")).speed is None
+    assert (CanonicalUsage(speed="fast") + CanonicalUsage(speed="fast")).speed == "fast"
+    assert (CanonicalUsage(speed="standard") + CanonicalUsage()).speed is None
+
+
+def test_fast_rows_never_undercut_their_standard_sibling():
+    """Invariant: fast mode is premium pricing, a multiplier on standard."""
+    for model in ("claude-opus-5", "claude-opus-5-5", "claude-opus-4-8"):
+        standard = get_pricing_entry(model, provider="anthropic")
+        fast = get_pricing_entry(f"{model}-fast", provider="anthropic")
+        assert standard is not None and fast is not None, model
+        assert fast.input_cost_per_million >= standard.input_cost_per_million, model
+        assert fast.output_cost_per_million >= standard.output_cost_per_million, model
+
+
+def test_current_generation_anthropic_models_are_priced():
+    """Regression: no current-generation Claude model may report unknown cost.
+
+    These ids all lacked rows at some point during the 2026-09 validation run
+    (Opus 5.5 was missing entirely; Fable 5.1 / Mythos 5.1 were deliberately
+    deferred), which surfaced as `amount_usd is None` in session accounting.
+    """
+    for model in (
+        "claude-fable-5-1",
+        "claude-fable-5.1",
+        "claude-opus-5-5",
+        "claude-opus-5.5",
+        "claude-opus-5",
+        "claude-opus-4-8",
+        "claude-sonnet-5",
+        "claude-haiku-4-5",
+        "claude-mythos-5-1",
+        "claude-mythos-5",
+    ):
+        result = estimate_usage_cost(
+            model, CanonicalUsage(input_tokens=1000, output_tokens=1000), provider="anthropic"
+        )
+        assert result.amount_usd is not None, f"{model} has no price row"

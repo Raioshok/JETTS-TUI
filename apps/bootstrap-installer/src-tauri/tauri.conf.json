@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "FreeIDE",
+  "productName": "Jetts-TUI",
   "version": "0.0.1",
-  "identifier": "com.freeide.freeide.setup",
+  "identifier": "com.jetts.tui.setup",
   "build": {
     "beforeDevCommand": "npm run dev",
     "devUrl": "http://127.0.0.1:5175",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "FreeIDE",
+        "title": "Jetts-TUI",
         "width": 880,
         "height": 620,
         "minWidth": 720,
@@ -34,10 +34,10 @@
   "bundle": {
     "active": true,
     "category": "DeveloperTool",
-    "shortDescription": "FreeIDE",
-    "longDescription": "Installs FreeIDE Agent on your machine. Drives scripts/install.ps1 (Windows) and scripts/install.sh (macOS/Linux).",
-    "publisher": "FreeIDE",
-    "copyright": "Copyright © 2026 FreeIDE",
+    "shortDescription": "Jetts-TUI",
+    "longDescription": "Installs Jetts-TUI on your machine. Drives scripts/install.ps1 (Windows) and scripts/install.sh (macOS/Linux).",
+    "publisher": "Jetts-TUI",
+    "copyright": "Copyright © 2025 Nous Research",
     "targets": [
       "app",
       "dmg",

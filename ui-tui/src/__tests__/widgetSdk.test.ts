@@ -1,7 +1,11 @@
+import '../sdk/apps/ticker.js'
+import '../sdk/apps/weather.js'
+
 import { beforeEach, describe, expect, it } from 'vitest'
 
 import { getOverlayState, resetOverlayState } from '../app/overlayStore.js'
-import { dialogTestApp, gridTestApp } from '../sdk/apps/index.js'
+import { dialogTestApp } from '../sdk/apps/dialogTest.js'
+import { gridTestApp } from '../sdk/apps/gridTest.js'
 import { closeWidget, dispatchWidgetInput, launchWidget, openWidget } from '../sdk/host.js'
 import { getWidgetApp, listWidgetApps } from '../sdk/registry.js'
 import type { WidgetInput } from '../sdk/types.js'
@@ -60,7 +64,7 @@ describe('widget SDK host', () => {
   it('a widget that throws in render shows an error chip, not a dead TUI', async () => {
     const { defineWidgetApp } = await import('../sdk/registry.js')
     const { AmbientDock } = await import('../sdk/host.js')
-    const { renderToScreen } = await import('../../packages/freeide-ink/src/ink/render-to-screen.js')
+    const { renderToScreen } = await import('../../packages/jetts-tui-ink/src/ink/render-to-screen.js')
     const { createElement } = await import('react')
 
     defineWidgetApp({
@@ -99,7 +103,7 @@ describe('widget SDK host', () => {
 
   it('ambient zones route by the app contract (docks + floats)', async () => {
     const { defineWidgetApp } = await import('../sdk/registry.js')
-    const { Text } = await import('@freeide/ink')
+    const { Text } = await import('@jetts-tui/ink')
     const { createElement } = await import('react')
 
     defineWidgetApp({
@@ -126,7 +130,7 @@ describe('widget SDK host', () => {
   it('rails reserve the widest railed app; docks reserve nothing sideways', async () => {
     const { ambientRailWidth } = await import('../sdk/host.js')
     const { defineWidgetApp } = await import('../sdk/registry.js')
-    const { Text } = await import('@freeide/ink')
+    const { Text } = await import('@jetts-tui/ink')
     const { createElement } = await import('react')
 
     defineWidgetApp({

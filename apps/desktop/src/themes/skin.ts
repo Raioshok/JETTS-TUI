@@ -15,7 +15,7 @@
  * still picks `.dark` from the real background luminance.
  */
 
-import type { FreeIDESkin, SkinColors } from '@freeide/shared/skin'
+import type { FreeIDESkin, SkinColors } from '@jetts-tui/shared/skin'
 
 import { ensureContrast, luminance, mix, normalizeHex, readableOn } from './color'
 import type { DesktopTheme, DesktopThemeColors } from './types'

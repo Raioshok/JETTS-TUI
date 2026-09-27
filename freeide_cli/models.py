@@ -42,9 +42,9 @@ OPENROUTER_MODELS: list[tuple[str, str]] = [
     # Anthropic
     ("anthropic/claude-fable-5",               ""),
     ("anthropic/claude-opus-5",                ""),
-    ("anthropic/claude-opus-5-fast",           "2x price, higher output speed"),
+    ("anthropic/claude-opus-5.5",             ""),
     ("anthropic/claude-opus-4.8",              ""),
-    ("anthropic/claude-opus-4.8-fast",         "2x price, higher output speed"),
+    ("anthropic/claude-fable-5.1",            ""),
     ("anthropic/claude-sonnet-5",              ""),
     ("anthropic/claude-haiku-4.5",             ""),
     # OpenAI
@@ -58,9 +58,14 @@ OPENROUTER_MODELS: list[tuple[str, str]] = [
     ("openai/gpt-5.5-pro",                     ""),
     ("openai/gpt-5.4-mini",                    ""),
     # Google
-    ("google/gemini-3-pro-preview",            ""),
+
+    ("google/gemini-3.8-flash",                ""),
+    ("google/gemini-3.6-flash",                ""),
     ("google/gemini-3.1-pro-preview",          ""),
     ("google/gemini-3.5-flash",                ""),
+    # gemini-3-flash-preview is what the docs use as the canonical aux model;
+    # it was missing from this snapshot while living in the OR catalogue.
+    ("google/gemini-3-flash-preview",          ""),
     # xAI
     ("x-ai/grok-4.5",                          ""),
     # DeepSeek
@@ -90,12 +95,10 @@ OPENROUTER_MODELS: list[tuple[str, str]] = [
     # OpenRouter routers
     ("openrouter/pareto-code",                 "auto-routes to cheapest coder meeting openrouter.min_coding_score"),
     # Free tier
-    ("openrouter/elephant-alpha",              "free"),
-    ("poolside/laguna-m.1:free",               "free"),
-    ("tencent/hy3:free",                       "free"),
+    ("poolside/laguna-s-2.1:free",             "free"),
+    ("tencent/hy3",                            ""),
     ("nvidia/nemotron-3-super-120b-a12b:free", "free"),
     ("nvidia/nemotron-3-ultra-550b-a55b:free", "free"),
-    ("inclusionai/ring-2.6-1t:free",           "free"),
 ]
 
 _openrouter_catalog_cache: list[tuple[str, str]] | None = None
@@ -240,16 +243,23 @@ _PROVIDER_MODELS: dict[str, list[str]] = {
         "claude-sonnet-4",
         "claude-sonnet-4.5",
         "claude-haiku-4.5",
+        # gemini-3-pro-preview removed: Google shut it down 2026-03-09
+        # (https://ai.google.dev/gemini-api/docs/deprecations, verified 2026-09-23);
+        # gemini-3.1-pro-preview is its replacement and is listed above.
         "gemini-3.1-pro-preview",
-        "gemini-3-pro-preview",
         "gemini-3-flash-preview",
         "gemini-2.5-pro",
     ],
     "gemini": [
+        # Live ids per Google's deprecations table (verified 2026-09-23):
+        # gemini-3-pro-preview shut down 2026-03-09 (→ gemini-3.1-pro-preview),
+        # gemini-3.1-flash-lite-preview shut down 2026-05-25 (→ gemini-3.1-flash-lite).
+        "gemini-3.8-flash",
+        "gemini-3.7-flash",
+        "gemini-3.6-flash",
         "gemini-3.1-pro-preview",
-        "gemini-3-pro-preview",
         "gemini-3.5-flash",
-        "gemini-3.1-flash-lite-preview",
+        "gemini-3.1-flash-lite",
     ],
     "zai": [
         "glm-5.2",
@@ -327,6 +337,12 @@ _PROVIDER_MODELS: dict[str, list[str]] = {
         "MiniMax-M2",
     ],
     "anthropic": [
+        # Current Anthropic API ids, newest first (verified 2026-09-23 against
+        # https://platform.claude.com/docs/en/about-claude/models/overview).
+        # claude-opus-5-5 / claude-opus-5 / claude-fable-5-1 were missing.
+        "claude-fable-5-1",
+        "claude-opus-5-5",
+        "claude-opus-5",
         "claude-fable-5",
         "claude-sonnet-5",
         "claude-opus-4-8",
@@ -341,7 +357,7 @@ _PROVIDER_MODELS: dict[str, list[str]] = {
     ],
     "deepseek": [
         "deepseek-v4-pro",
-        "deepseek-v4-flash",
+        "deepseek-flash",
     ],
     "xiaomi": [
         "mimo-v2.5-pro",
@@ -446,7 +462,7 @@ _PROVIDER_MODELS: dict[str, list[str]] = {
         "anthropic/claude-opus-4.6",
         "anthropic/claude-sonnet-4.6",
         "openai/gpt-5.4",
-        "google/gemini-3-pro-preview",
+        "google/gemini-3.1-pro-preview",
         "google/gemini-3-flash-preview",
     ],
     # Alibaba DashScope Coding platform (coding-intl) — default endpoint.
@@ -520,7 +536,7 @@ _PROVIDER_MODELS: dict[str, list[str]] = {
     # endpoint expects (see freeide_cli/model_setup_flows.py).
     "vertex": [
         "google/gemini-3.1-pro-preview",
-        "google/gemini-3-pro-preview",
+        "google/gemini-3.1-pro-preview",
         "google/gemini-3.5-flash",
         "google/gemini-3-flash-preview",
         "google/gemini-3.1-flash-lite-preview",
@@ -961,81 +977,92 @@ def _openrouter_model_supports_tools(item: Any) -> bool:
 def fetch_openrouter_models(
     timeout: float = 8.0,
     *,
+    api_key: Optional[str] = None,
     force_refresh: bool = False,
 ) -> list[tuple[str, str]]:
-    """Return the curated OpenRouter picker list, refreshed from the live catalog when possible."""
+    """Return OpenRouter's complete live text-model catalog.
+
+    The provider endpoint is authoritative.  The curated snapshot is used only
+    when the endpoint is unreachable or returns an unusable response; it never
+    restricts or reorders a successful live response.  OpenRouter's ``/models``
+    endpoint defaults to text-output models, which is the surface relevant to
+    the chat-model picker.
+    """
     global _openrouter_catalog_cache
 
     if _openrouter_catalog_cache is not None and not force_refresh:
         return list(_openrouter_catalog_cache)
 
-    # Prefer the remotely-hosted catalog manifest; fall back to the in-repo
-    # snapshot when the manifest is unreachable. Both are curated lists that
-    # drive the picker; the OpenRouter live /v1/models filter (tool support,
-    # free pricing) is applied on top either way.
     try:
-        from freeide_cli.model_catalog import get_curated_openrouter_models
-        remote = get_curated_openrouter_models()
-    except Exception:
-        remote = None
-    fallback = list(remote) if remote else list(OPENROUTER_MODELS)
-    preferred_ids = [mid for mid, _ in fallback]
-
-    try:
+        headers = {
+            "Accept": "application/json",
+            "User-Agent": _FREEIDE_USER_AGENT,
+        }
+        resolved_key = (
+            api_key if api_key is not None else _resolve_openrouter_api_key()
+        )
+        if resolved_key:
+            headers["Authorization"] = f"Bearer {resolved_key}"
         req = urllib.request.Request(
             "https://openrouter.ai/api/v1/models",
-            headers={"Accept": "application/json"},
+            headers=headers,
         )
         with _urlopen_model_catalog_request(req, timeout=timeout) as resp:
             payload = json.loads(resp.read().decode())
     except Exception:
-        return list(_openrouter_catalog_cache or fallback)
+        payload = None
 
-    live_items = payload.get("data", [])
-    if not isinstance(live_items, list):
-        return list(_openrouter_catalog_cache or fallback)
+    live_items = payload.get("data", []) if isinstance(payload, dict) else []
 
-    live_by_id: dict[str, dict[str, Any]] = {}
-    for item in live_items:
-        if not isinstance(item, dict):
-            continue
-        mid = str(item.get("id") or "").strip()
-        if not mid:
-            continue
-        live_by_id[mid] = item
+    if isinstance(live_items, list):
+        discovered: list[tuple[str, str]] = []
+        seen: set[str] = set()
+        silent_default = get_preferred_silent_default_model("openrouter")
+        for item in live_items:
+            if not isinstance(item, dict):
+                continue
+            model_id = str(item.get("id") or "").strip()
+            dedup_key = model_id.lower()
+            if not model_id or dedup_key in seen:
+                continue
+            seen.add(dedup_key)
+            if model_id == silent_default:
+                description = "default"
+            elif _openrouter_model_is_free(item.get("pricing")):
+                description = "free"
+            elif not _openrouter_model_supports_tools(item):
+                description = "no tool calling"
+            else:
+                description = ""
+            discovered.append((model_id, description))
 
-    curated: list[tuple[str, str]] = []
-    silent_default = get_preferred_silent_default_model("openrouter")
-    for preferred_id in preferred_ids:
-        live_item = live_by_id.get(preferred_id)
-        if live_item is None:
-            continue
-        # Hide models that don't advertise tool-calling support — freeide-agent
-        # requires it and surfacing them leads to immediate runtime failures
-        # when the user selects them. Ported from Kilo-Org/kilocode#9068.
-        if not _openrouter_model_supports_tools(live_item):
-            continue
-        if preferred_id == silent_default:
-            # Keep the silent-default badge through the live refresh so the
-            # picker shows which model FreeIDE lands on when none is selected.
-            desc = "default"
-        else:
-            desc = "free" if _openrouter_model_is_free(live_item.get("pricing")) else ""
-        curated.append((preferred_id, desc))
+        if discovered:
+            _openrouter_catalog_cache = discovered
+            return list(discovered)
 
-    if not curated:
-        return list(_openrouter_catalog_cache or fallback)
+    # Network/response failure only: prefer the last successful live catalog,
+    # then the remotely maintained snapshot, then the in-repo snapshot.
+    if _openrouter_catalog_cache:
+        return list(_openrouter_catalog_cache)
+    try:
+        from freeide_cli.model_catalog import get_curated_openrouter_models
 
-    first_id, first_desc = curated[0]
-    if not first_desc:
-        curated[0] = (first_id, "recommended")
-    _openrouter_catalog_cache = curated
-    return list(curated)
+        remote = get_curated_openrouter_models()
+    except Exception:
+        remote = None
+    return list(remote) if remote else list(OPENROUTER_MODELS)
 
 
-def model_ids(*, force_refresh: bool = False) -> list[str]:
+def model_ids(
+    *, api_key: Optional[str] = None, force_refresh: bool = False
+) -> list[str]:
     """Return just the OpenRouter model-id strings."""
-    return [mid for mid, _ in fetch_openrouter_models(force_refresh=force_refresh)]
+    return [
+        mid
+        for mid, _ in fetch_openrouter_models(
+            api_key=api_key, force_refresh=force_refresh
+        )
+    ]
 
 
 # ---------------------------------------------------------------------------
@@ -1535,18 +1562,6 @@ _AGGREGATOR_PROVIDERS = frozenset(
 # away from the model's native vendor). None are currently defined.
 _BORROWED_MODEL_PROVIDERS: frozenset[str] = frozenset()
 
-# Providers whose live /v1/models endpoint is the authoritative catalog, so the
-# curated list is a discovery-only fallback. For these, the picker merges
-# live-first (live entries lead, curated-only entries append). Every OTHER
-# provider keeps curated-first (commit 658ac1d86, #46309) so a deliberately
-# surfaced newest model stays at the top even when the live API lags. OpenCode
-# Zen / Go re-expose dozens of upstream vendors and rotate them frequently, so
-# their stale curated entries must not pollute the top of the picker. (#49129)
-_LIVE_FIRST_PICKER_PROVIDERS: frozenset[str] = frozenset(
-    {"opencode-zen", "opencode-go"}
-)
-
-
 def _resolve_static_model_alias(
     name_lower: str,
     current_keys: set[str],
@@ -1715,6 +1730,13 @@ def detect_provider_for_model(
     if _model_in_provider_catalog(name.lower(), _provider_keys(current_provider)):
         return None
 
+    # A custom endpoint can serve any upstream-compatible model ID.  The
+    # complete OpenRouter catalog now contains many such IDs, so treating a
+    # match there as a provider switch would silently reroute a user's custom
+    # endpoint. Keep the explicit custom provider pinned (#48305).
+    if current_provider == "custom" or current_provider.startswith("custom:"):
+        return None
+
     # --- Step 2: check OpenRouter catalog ---
     # First try exact match (handles provider/model format)
     or_slug = _find_openrouter_slug(name)
@@ -1832,20 +1854,30 @@ def model_supports_fast_mode(model_id: Optional[str]) -> bool:
 def _is_anthropic_fast_model(model_id: Optional[str]) -> bool:
     """Return True if the model accepts the Anthropic Fast Mode ``speed`` param.
 
-    This gates the *speed=fast request parameter*, which Anthropic supports on
-    Opus 4.6 only (Opus 4.7 explicitly 400s). It is deliberately NOT a general
-    "is this a fast model" check: for Opus 4.8 the fast offering is a SEPARATE
-    model id (``…-opus-4.8-fast``) selected via the model field, not the speed
-    parameter — see ``agent.anthropic_adapter._supports_fast_mode`` and its
-    test. Keep this in lock-step with that adapter gate so the UI never shows a
-    Fast toggle that the runtime would silently drop.
+    Re-verified 2026-09-23 against
+    https://platform.claude.com/docs/en/build-with-claude/fast-mode: the
+    parameter is supported on **Claude Opus 5.5, Opus 5 and Opus 4.8** — it is
+    the *only* mechanism (fast mode is a request parameter, not a model id).
+    The earlier note here claimed Opus 4.6 only, and that Opus 4.8's fast
+    offering was a separate ``…-opus-4.8-fast`` model id; neither holds: no
+    catalogue (Anthropic's docs or OpenRouter's 454-id catalogue) lists such an
+    id, and 4.8 is on the supported list for the parameter. Opus 4.6 is kept as
+    a union member so existing 4.6 users do not silently lose the toggle.
+
+    Keep this in lock-step with ``agent.anthropic_adapter._supports_fast_mode``
+    — the adapter gate decides whether the parameter is actually sent, so if
+    they diverge the UI either offers a toggle the runtime drops (harmless) or
+    hides one the runtime supports (the feature looks broken).
     """
     raw = _strip_vendor_prefix(str(model_id or ""))
     base = raw.split(":")[0]
     if not base.startswith("claude-"):
         return False
-    # Only Opus 4.6 supports the speed=fast parameter at present.
-    return "opus-4-6" in base or "opus-4.6" in base
+    return any(
+        token in base
+        for token in ("opus-5-5", "opus-5.5", "opus-5", "opus-4-8", "opus-4.8",
+                      "opus-4-6", "opus-4.6")
+    )
 
 
 def resolve_fast_mode_overrides(model_id: Optional[str]) -> dict[str, Any] | None:
@@ -1924,15 +1956,12 @@ def _resolve_copilot_catalog_api_key() -> str:
     return ""
 
 
-# Providers where models.dev is treated as authoritative: curated static
-# lists are kept only as an offline fallback and to capture custom additions
-# the registry doesn't publish yet. Adding a provider here causes its
-# curated list to be merged with fresh models.dev entries (fresh first, any
-# curated-only names appended) for both the CLI and the gateway /model picker.
+# Providers where models.dev is the registry fallback when a live provider
+# endpoint is unavailable. The merge helper keeps registry entries fresh-first
+# while retaining curated-only offline aliases.
 #
 # DELIBERATELY EXCLUDED:
-#   - "openrouter": curated list is already a hand-picked agentic subset of
-#     OpenRouter's 400+ catalog. Blindly merging would dump everything.
+#   - "openrouter": it has a dedicated complete live-catalog path.
 # Also excluded: providers that already have dedicated live-endpoint
 # branches below (copilot, anthropic, ollama-cloud, custom,
 # stepfun, openai-codex) — those paths handle freshness themselves.
@@ -1961,9 +1990,8 @@ def _model_dedup_key(model_id: str) -> str:
     Some providers serve the same model under both a curated public slug and
     a bare live wire id (Kimi Coding Plan lists its flagship as ``k3`` while
     the curated catalog carries ``kimi-k3``). Folding through the search-alias
-    table keeps the curated-first merge from emitting both as separate rows.
-    The row that survives is the primary list's entry; selection still sends
-    whichever id the surviving row carries.
+    table prevents duplicate rows wherever live and fallback catalogs are
+    combined. Selection still sends whichever ID the surviving row carries.
     """
     key = str(model_id).strip().lower()
     try:
@@ -2196,38 +2224,19 @@ def provider_model_ids(provider: Optional[str], *, force_refresh: bool = False) 
             if api_key:
                 live = _p.fetch_models(api_key=api_key, base_url=base_url or None)
                 if live:
-                    # Merge static curated list with live API results so
-                    # models that the live endpoint omits (stale cache,
-                    # partial rollout) still appear in the picker.
-                    #
-                    # Single providers (kimi, zai) use curated-first
-                    # (commit 658ac1d86) to surface newest models even when live
-                    # API lags (#46309). OpenCode Zen / Go are different: their
-                    # live API is the authoritative catalog, so they merge
-                    # live-first — live entries lead and stale curated entries
-                    # no longer pollute the top of the picker. (#49129)
-                    #
-                    # Plugin providers with no static _PROVIDER_MODELS entry fall
-                    # back to the profile's curated fallback_models so their
-                    # agentic picks lead the picker instead of whatever the live
-                    # catalog happens to return first (e.g. Fireworks lists an
-                    # image model, flux-*, ahead of its chat models).
-                    curated = list(_PROVIDER_MODELS.get(normalized, [])) or list(
-                        _p.fallback_models or ()
-                    )
-                    if curated:
-                        if normalized in _LIVE_FIRST_PICKER_PROVIDERS:
-                            primary, secondary = live, curated
-                        else:
-                            primary, secondary = curated, live
-                        merged = list(primary)
-                        merged_lower = {_model_dedup_key(m) for m in primary}
-                        for m in secondary:
-                            if _model_dedup_key(m) not in merged_lower:
-                                merged.append(m)
-                                merged_lower.add(_model_dedup_key(m))
-                        return merged
-                    return live
+                    # A successful endpoint response is authoritative. Keep its
+                    # order and full inventory instead of mixing in stale
+                    # presets that may no longer exist on the provider.
+                    discovered: list[str] = []
+                    seen: set[str] = set()
+                    for model_id in live:
+                        value = str(model_id or "").strip()
+                        key = _model_dedup_key(value)
+                        if value and key not in seen:
+                            discovered.append(value)
+                            seen.add(key)
+                    if discovered:
+                        return discovered
             # Use profile's fallback_models if defined
             if _p.fallback_models:
                 return list(_p.fallback_models)

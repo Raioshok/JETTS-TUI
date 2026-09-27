@@ -1,4 +1,4 @@
-import { Box, Text } from '@freeide/ink'
+import { Box, Text } from '@jetts-tui/ink'
 import { useEffect, useState } from 'react'
 
 import { mix } from '../lib/color.js'

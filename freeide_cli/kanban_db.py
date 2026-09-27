@@ -8908,12 +8908,9 @@ def _default_spawn(
     # attributed correctly regardless of how the child loads config.
     env["FREEIDE_PROFILE"] = profile_arg
 
-    # A worker must NEVER boot the interactive TUI: an inherited FREEIDE_TUI=1
-    # or a `display.interface: tui` in the profile's config would send the
-    # quiet chat run into the Ink TUI, whose no-TTY bail-out exits 0 without
-    # doing the task → "protocol violation" on every attempt. `--cli` is the
-    # highest-precedence interface override; dropping the env var covers
-    # older freeide builds on PATH that predate the flag's precedence.
+    # A worker must NEVER boot the interactive TUI. Current builds select the
+    # headless runner automatically because worker stdio is redirected; keep
+    # the legacy --cli marker and clear the env for older builds on PATH.
     env.pop("FREEIDE_TUI", None)
 
     cmd = [

@@ -1,4 +1,4 @@
-import { Box, Text } from '@freeide/ink'
+import { Box, Text } from '@jetts-tui/ink'
 
 import { compactPreview } from '../lib/text.js'
 import type { Theme } from '../theme.js'

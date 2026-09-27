@@ -114,7 +114,10 @@ zai = ZaiProfile(
     env_vars=("GLM_API_KEY", "ZAI_API_KEY", "Z_AI_API_KEY"),
     display_name="Z.AI (GLM)",
     description="Z.AI / GLM — Zhipu AI models",
-    signup_url="https://z.ai/",
+    # Was "https://z.ai/", which redirects to chat.z.ai — the consumer chatbot,
+    # where no API key exists (verified 2026-09-23). Same fix as the
+    # GLM/ZAI/Z_AI_API_KEY entries in freeide_cli/config.py.
+    signup_url="https://z.ai/manage-apikey/apikey-list",
     fallback_models=(
         "glm-5.2",
         "glm-5",

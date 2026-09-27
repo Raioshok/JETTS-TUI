@@ -179,6 +179,19 @@ describe('StatusRule background-subagent indicator', () => {
   })
 })
 
+describe('StatusRule work mode', () => {
+  it('pins plan mode in the responsive status bar', () => {
+    const element = StatusRule({ ...baseProps, cols: 44, workMode: 'plan' })
+
+    expect(textContent(element)).toContain('◇ plan')
+  })
+
+  it('shows accept-edits and keeps default visually quiet', () => {
+    expect(textContent(StatusRule({ ...baseProps, workMode: 'accept-edits' }))).toContain('✎ edits')
+    expect(textContent(StatusRule({ ...baseProps, workMode: 'default' }))).not.toContain('✎ edits')
+  })
+})
+
 describe('StatusRule session count click target', () => {
   it('makes the live session count itself clickable', () => {
     const openSwitcher = vi.fn()

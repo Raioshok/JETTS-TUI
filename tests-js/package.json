@@ -1,5 +1,5 @@
 {
-  "name": "@freeide/root-tests",
+  "name": "@jetts-tui/root-tests",
   "private": true,
   "type": "module",
   "scripts": {

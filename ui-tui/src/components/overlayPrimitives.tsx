@@ -1,5 +1,5 @@
-import type { Key } from '@freeide/ink'
-import { Text, useInput } from '@freeide/ink'
+import type { Key } from '@jetts-tui/ink'
+import { Text, useInput } from '@jetts-tui/ink'
 import { type ReactNode, useState } from 'react'
 
 import type { UsageModelData } from '../gatewayTypes.js'

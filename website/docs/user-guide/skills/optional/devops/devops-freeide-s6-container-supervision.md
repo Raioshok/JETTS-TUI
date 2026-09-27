@@ -1,12 +1,12 @@
 ---
-title: "FreeIDE S6 Container Supervision — Modify or debug s6 services in the FreeIDE Docker image"
-sidebar_label: "FreeIDE S6 Container Supervision"
+title: "Freeide S6 Container Supervision — Modify or debug s6 services in the FreeIDE Docker image"
+sidebar_label: "Freeide S6 Container Supervision"
 description: "Modify or debug s6 services in the FreeIDE Docker image"
 ---
 
 {/* This page is auto-generated from the skill's SKILL.md by website/scripts/generate-skill-docs.py. Edit the source SKILL.md, not this page. */}
 
-# FreeIDE S6 Container Supervision
+# Freeide S6 Container Supervision
 
 Modify or debug s6 services in the FreeIDE Docker image.
 

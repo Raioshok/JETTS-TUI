@@ -1,7 +1,7 @@
 // Importing the apps barrel registers the reference apps before launch.
 import '../../../sdk/apps/index.js'
 
-import { terminalBackgroundHex } from '@freeide/ink'
+import { terminalBackgroundHex } from '@jetts-tui/ink'
 
 import { formatBytes, performHeapDump } from '../../../lib/memory.js'
 import { launchWidget } from '../../../sdk/host.js'

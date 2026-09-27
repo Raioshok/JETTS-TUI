@@ -2,7 +2,7 @@
 setup.py — wheel/sdist build guard.
 
 pip/PyPI and Homebrew are no longer supported distribution methods for
-FreeIDE Agent (see website/docs/getting-started/platform-support.md). The
+Jetts-TUI (see website/docs/getting-started/platform-support.md). The
 wheel would ship without bundled assets (locales, skills, optional-mcps,
 web_dist, tui_dist, plugin manifests) since those are resolved at runtime
 via env-var overrides set by the nix wrapper or the source-checkout layout.
@@ -17,7 +17,7 @@ fires for ``uv build``, ``pip wheel``, ``python -m build``, and direct
 The one legitimate consumer of ``build_wheel`` is uv2nix, which calls
 ``setuptools.build_meta.build_wheel`` (→ ``bdist_wheel``) inside a Nix
 build sandbox. ``nix/python.nix`` sets ``FREEIDE_NIX_BUILD=1`` on the
-FreeIDE package derivation, so only that build may create an artifact.
+Jetts-TUI package derivation, so only that build may create an artifact.
 
 Editable installs (``uv sync``, ``pip install -e .``, ``nix develop``)
 use ``build_editable``, which does NOT call ``bdist_wheel`` — it calls
@@ -32,15 +32,15 @@ from setuptools.command.sdist import sdist
 _IN_NIX_BUILD = os.environ.get("FREEIDE_NIX_BUILD") == "1"
 
 _BLOCK_MESSAGE = (
-    "Building wheels or sdists for freeide-agent is not supported.\n"
-    "FreeIDE is distributed via the shell installer, Docker image, or Nix.\n"
-    "See: https://freeide-agent.freeide.dev/docs/getting-started/installation\n"
+    "Building wheels or sdists for jetts-tui is not supported.\n"
+    "Jetts-TUI is distributed via the shell installer, Docker image, or Nix.\n"
+    "See: https://github.com/Raioshok/JETTS-TUI#installation\n"
     "\n"
     "If you are developing, use an editable install instead:\n"
     "  uv sync          # or: uv pip install -e .\n"
     "\n"
     "If you are building with Nix (uv2nix), this error should not fire —\n"
-    "the FreeIDE Nix derivation sets FREEIDE_NIX_BUILD=1. If it does, file a bug."
+    "the Jetts-TUI Nix derivation sets FREEIDE_NIX_BUILD=1. If it does, file a bug."
 )
 
 

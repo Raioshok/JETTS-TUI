@@ -1,5 +1,5 @@
-import type { InputEvent, Key } from '@freeide/ink'
-import * as Ink from '@freeide/ink'
+import type { InputEvent, Key } from '@jetts-tui/ink'
+import * as Ink from '@jetts-tui/ink'
 import { type MutableRefObject, useEffect, useMemo, useRef, useState } from 'react'
 
 import { setInputSelection } from '../app/inputSelectionStore.js'

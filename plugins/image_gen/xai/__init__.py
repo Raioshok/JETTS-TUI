@@ -49,16 +49,32 @@ logger = logging.getLogger(__name__)
 # Model catalog
 # ---------------------------------------------------------------------------
 
+# Prices verified 2026-09-23 against xAI's own table
+# (https://docs.x.ai/developers/pricing.md — identical rates on
+# docs.x.ai/developers/models.md): image-2.0 $0.04/image, quality $0.05/image,
+# base $0.02/image. Previously unstated.
 _MODELS: Dict[str, Dict[str, Any]] = {
+    # Order is load-bearing: the first entry is the implicit default, and
+    # grok-imagine-image is the established default. image-2.0 is appended
+    # rather than prepended so adding it does not silently switch every
+    # existing caller onto a different model (and a different price).
     "grok-imagine-image": {
         "display": "Grok Imagine Image",
         "speed": "~5-10s",
-        "strengths": "Fast, high-quality",
+        "strengths": "Fast, high-quality (legacy id, still priced).",
+        "price": "$0.02/image",
     },
     "grok-imagine-image-quality": {
         "display": "Grok Imagine Image (Quality)",
         "speed": "~10-20s",
         "strengths": "Higher fidelity / detail; slower than the standard model.",
+        "price": "$0.05/image",
+    },
+    "grok-imagine-image-2.0": {
+        "display": "Grok Imagine Image 2.0",
+        "speed": "~5-10s",
+        "strengths": "Current-generation image model.",
+        "price": "$0.04/image",
     },
 }
 

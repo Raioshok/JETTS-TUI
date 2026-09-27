@@ -1,4 +1,4 @@
-import type { KnownBillingRefusalCode } from '@freeide/shared/billing'
+import type { KnownBillingRefusalCode } from '@jetts-tui/shared/billing'
 import { describe, expect, it } from 'vitest'
 
 import type { BillingRefusal } from './api'

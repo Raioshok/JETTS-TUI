@@ -51,7 +51,7 @@ That does not stop FreeIDE from working well as a phone-native CLI agent — it 
 FreeIDE now ships a Termux-aware installer path:
 
 ```bash
-curl -fsSL https://freeide-agent.freeide.dev/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/Raioshok/JETTS-TUI/main/scripts/install.sh | bash
 ```
 
 On Termux, the installer automatically:
@@ -87,8 +87,8 @@ Why these packages?
 ### 2. Clone FreeIDE
 
 ```bash
-git clone https://github.com/freeide/freeide.git
-cd freeide-agent
+git clone https://github.com/Raioshok/JETTS-TUI.git
+cd JETTS-TUI
 ```
 
 ### 3. Create a virtual environment

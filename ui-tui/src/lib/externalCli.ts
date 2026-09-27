@@ -5,7 +5,7 @@ export interface LaunchResult {
   error?: string
 }
 
-const resolveFreeIDEBin = () => process.env.FREEIDE_BIN?.trim() || 'freeide'
+const resolveFreeIDEBin = () => process.env.FREEIDE_BIN?.trim() || 'jetts-tui'
 
 export const launchFreeIDECommand = (args: string[]): Promise<LaunchResult> =>
   new Promise(resolve => {

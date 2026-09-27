@@ -1,4 +1,4 @@
-import { JsonRpcGatewayClient } from '@freeide/shared'
+import { JsonRpcGatewayClient } from '@jetts-tui/shared'
 
 import type {
   ActionResponse,

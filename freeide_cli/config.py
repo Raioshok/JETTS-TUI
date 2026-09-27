@@ -936,6 +936,12 @@ DEFAULT_CONFIG = {
     "fallback_providers": [],
     "credential_pool_strategies": {},
     "toolsets": ["freeide-cli"],
+    # Obsidian is optional. ``freeide brain init`` persists the chosen vault
+    # here; OBSIDIAN_VAULT_PATH remains a backward-compatible fallback only.
+    "obsidian": {
+        "vault_path": "",
+        "brain": {"enabled": False},
+    },
     # Global active chat session cap across CLI, TUI/dashboard, and messaging.
     # None/0 = unbounded.
     "max_concurrent_sessions": None,
@@ -1015,6 +1021,14 @@ DEFAULT_CONFIG = {
         # compounds over a long conversation.  Costs ~70 tokens in the cached
         # system prompt.  Set False to disable globally.
         "parallel_tool_call_guidance": True,
+        # Optional, cache-stable operating contract for token-conscious work.
+        # This is a planning target, not a hard mid-task cutoff.
+        "efficiency": {
+            "enabled": False,
+            "task_token_budget": 0,
+            "long_task_progress_file": ".freeide-progress.md",
+            "long_task_turn_threshold": 12,
+        },
         # Local-environment toolchain probe — surfaces Python/pip/uv/PEP-668
         # state in the system prompt when something non-default is detected
         # (e.g. python3 has no pip module, pip→python version mismatch, PEP
@@ -1908,12 +1922,9 @@ DEFAULT_CONFIG = {
         # "Steered into current run" confirmation bubble by setting this false.
         # The mid-turn steering itself still happens.
         "busy_steer_ack_enabled": True,
-        # Which interface bare `freeide` (and `freeide chat`) launches by default:
-        #   "cli" — the classic prompt_toolkit REPL (default, preserves prior behavior)
-        #   "tui" — the modern Ink TUI (same as passing `--tui`)
-        # Explicit flags always win over this setting: `--cli` forces the classic
-        # REPL and `--tui` (or FREEIDE_TUI=1) forces the TUI regardless of config.
-        "interface": "cli",
+        # Compatibility key retained for older config files. Ink is the sole
+        # interactive terminal UI; headless jobs use the Python runner.
+        "interface": "tui",
         # When true, `freeide --tui` auto-resumes the most recent human-
         # facing session on launch instead of forging a fresh one.
         # Mirrors `freeide -c` muscle memory.  Default off so existing
@@ -1930,6 +1941,10 @@ DEFAULT_CONFIG = {
         # seconds, and with this off the user stares at a spinner the whole
         # time even though tokens are streaming. Set false for quiet output.
         "show_reasoning": True,
+        # Resident multi-session workspace in the TUI: "auto" (default; only
+        # when the terminal is wide/tall enough), "on" (always, while live
+        # sessions exist), or "off" (never — single-transcript layout).
+        "resident_workspace": "auto",
         # When reasoning display is on, the post-response "Reasoning" recap box
         # collapses long thinking to the first 10 lines. Set true to print the
         # complete thinking text uncollapsed (live streaming is always full).
@@ -2581,6 +2596,10 @@ DEFAULT_CONFIG = {
         #                     never crammed into a chat bubble), apply with
         #                     /skills approve <id> or drop with /skills reject <id>.
         "write_approval": False,
+        # Fixed-code evaluator for autonomous SKILL.md proposals. The model
+        # proposing a change cannot grade it. Pair with write_approval=true so
+        # passing proposals still require human review.
+        "improvement_gate": False,
     },
 
     # Curator — background skill maintenance.
@@ -3912,7 +3931,7 @@ OPTIONAL_ENV_VARS = {
     "GLM_API_KEY": {
         "description": "Z.AI / GLM API key (also recognized as ZAI_API_KEY / Z_AI_API_KEY)",
         "prompt": "Z.AI / GLM API key",
-        "url": "https://z.ai/",
+        "url": "https://z.ai/manage-apikey/apikey-list",
         "password": True,
         "category": "provider",
         "advanced": True,
@@ -3920,7 +3939,7 @@ OPTIONAL_ENV_VARS = {
     "ZAI_API_KEY": {
         "description": "Z.AI API key (alias for GLM_API_KEY)",
         "prompt": "Z.AI API key",
-        "url": "https://z.ai/",
+        "url": "https://z.ai/manage-apikey/apikey-list",
         "password": True,
         "category": "provider",
         "advanced": True,
@@ -3928,7 +3947,7 @@ OPTIONAL_ENV_VARS = {
     "Z_AI_API_KEY": {
         "description": "Z.AI API key (alias for GLM_API_KEY)",
         "prompt": "Z.AI API key",
-        "url": "https://z.ai/",
+        "url": "https://z.ai/manage-apikey/apikey-list",
         "password": True,
         "category": "provider",
         "advanced": True,
@@ -3944,7 +3963,12 @@ OPTIONAL_ENV_VARS = {
     "KIMI_API_KEY": {
         "description": "Kimi / Moonshot API key",
         "prompt": "Kimi API key",
-        "url": "https://platform.moonshot.cn/",
+        # International console. `platform.moonshot.cn` redirects to
+        # `platform.kimi.com` (the Chinese console, titled "Kimi API 开放平台");
+        # the international platform is `platform.moonshot.ai`, which redirects
+        # to `platform.kimi.ai` ("Kimi API Platform"). KIMI_CN_API_KEY below
+        # keeps the .cn console. Verified 2026-09-23.
+        "url": "https://platform.moonshot.ai/",
         "password": True,
         "category": "provider",
         "advanced": True,
@@ -4186,7 +4210,7 @@ OPTIONAL_ENV_VARS = {
     "AWS_REGION": {
         "description": "AWS region for Bedrock API calls (e.g. us-east-1, eu-central-1)",
         "prompt": "AWS Region",
-        "url": "https://docs.aws.amazon.com/bedrock/latest/userguide/bedrock-regions.html",
+        "url": "https://docs.aws.amazon.com/general/latest/gr/bedrock.html",
         "password": False,
         "category": "provider",
         "advanced": True,
@@ -4423,7 +4447,7 @@ OPTIONAL_ENV_VARS = {
     "LINEAR_API_KEY": {
         "description": "Linear personal API key (used by the `linear` skill)",
         "prompt": "Linear API key",
-        "url": "https://linear.app/settings/account/security",
+        "url": "https://linear.app/settings/api",
         "password": True,
         "category": "skill",
         "advanced": True,

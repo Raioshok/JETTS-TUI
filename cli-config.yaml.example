@@ -635,6 +635,16 @@ prompt_caching:
 #                           #     enable_thinking: false
 
 # =============================================================================
+# Obsidian Project Brain
+# =============================================================================
+# Optional Obsidian project brain. `freeide brain init` writes these values
+# automatically; use config.yaml rather than .env for this behavioral setting.
+obsidian:
+  vault_path: ""
+  brain:
+    enabled: false
+
+# =============================================================================
 # Persistent Memory
 # =============================================================================
 # Bounded curated memory injected into the system prompt every session.
@@ -765,6 +775,12 @@ skills:
   # Set to 0 to disable.
   creation_nudge_interval: 15
 
+  # Evaluate autonomous SKILL.md proposals with fixed, model-free checks.
+  # Pair with write_approval=true: the evaluator can reject regressions, but a
+  # passing proposal is still staged for human review rather than self-graded.
+  improvement_gate: false
+  write_approval: false
+
   # External skill directories — share skills across tools/agents without
   # copying them into ~/.freeide/skills/.  Each path is expanded (~ and ${VAR})
   # and resolved to an absolute path.  External dirs are read-only: skill
@@ -782,6 +798,14 @@ agent:
   # Higher = more room for complex tasks, but costs more tokens
   # Recommended: 20-30 for focused tasks, 50-100 for open exploration
   max_turns: 500
+
+  # Opt-in stable guidance for token-conscious work. This is a planning target,
+  # not a hard cutoff that can leave a task half-finished.
+  efficiency:
+    enabled: false
+    task_token_budget: 0              # Input + output token target; 0 = minimize without a number
+    long_task_progress_file: ".freeide-progress.md"
+    long_task_turn_threshold: 12
 
   # Inactivity timeout for gateway agent runs (seconds, 0 = unlimited).
   # The agent can run indefinitely when actively calling tools or receiving
@@ -1240,6 +1264,10 @@ delegation:
 # Display
 # =============================================================================
 display:
+  # Studio: compact workspace card, paired light/dark palette, quiet activity animation.
+  # Activate with /skin studio. Set reduce_motion to keep its activity marker static.
+  # skin: studio
+  reduce_motion: false
   # Use compact banner mode (hides the ASCII-art banner, shows a single line).
   #   true:  Compact single-line banner
   #   false: Full ASCII banner with tool/skill summary (default)
@@ -1253,6 +1281,12 @@ display:
   #   log:     Silent in chat; append every tool call to ~/.freeide/logs/tool_calls.log (gateway only)
   # Toggle at runtime with /verbose in the CLI
   tool_progress: all
+
+  # Resident multi-session workspace in the TUI:
+  #   auto: Only when the terminal is wide/tall enough (default)
+  #   on:   Always, while live sessions exist
+  #   off:  Never — keep the single-transcript layout
+  # resident_workspace: auto
 
   # Per-platform defaults can be quieter than the global setting. Telegram
   # tunes for mobile: tool_progress and busy_ack_detail default off (no

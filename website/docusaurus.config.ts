@@ -3,15 +3,15 @@ import type {Config} from '@docusaurus/types';
 import type * as Preset from '@docusaurus/preset-classic';
 
 const config: Config = {
-  title: 'FreeIDE Agent',
-  tagline: 'The self-improving AI agent',
-  favicon: 'img/favicon.ico',
+  title: 'Jetts-TUI',
+  tagline: 'Your terminal-first AI workspace',
+  favicon: 'img/jetts-tui-mark.svg',
 
-  url: 'https://freeide-agent.freeide.dev',
+  url: process.env.JETTS_TUI_SITE_URL || 'http://localhost:3000',
   baseUrl: '/docs/',
 
-  organizationName: 'freeide',
-  projectName: 'freeide-agent',
+  organizationName: 'jetts-tui',
+  projectName: 'jetts-tui',
 
   onBrokenLinks: 'warn',
 
@@ -104,7 +104,6 @@ const config: Config = {
         docs: {
           routeBasePath: '/',  // Docs at the root of /docs/
           sidebarPath: './sidebars.ts',
-          editUrl: 'https://github.com/freeide/freeide/edit/main/website/',
         },
         blog: false,
         theme: {
@@ -115,7 +114,6 @@ const config: Config = {
   ],
 
   themeConfig: {
-    image: 'img/freeide-agent-banner.png',
     colorMode: {
       defaultMode: 'dark',
       respectPrefersColorScheme: true,
@@ -127,10 +125,10 @@ const config: Config = {
       },
     },
     navbar: {
-      title: 'FreeIDE Agent',
+      title: 'Jetts-TUI',
       logo: {
-        alt: 'FreeIDE Agent',
-        src: 'img/logo.png',
+        alt: 'Jetts-TUI',
+        src: 'img/jetts-tui-mark.svg',
       },
       items: [
         {
@@ -145,27 +143,7 @@ const config: Config = {
           position: 'left',
         },
         {
-          href: 'https://freeide-agent.freeide.dev/',
-          label: 'Download',
-          position: 'left',
-        },
-        {
           type: 'localeDropdown',
-          position: 'right',
-        },
-        {
-          href: 'https://freeide-agent.freeide.dev',
-          label: 'Home',
-          position: 'right',
-        },
-        {
-          href: 'https://github.com/freeide/freeide',
-          label: 'GitHub',
-          position: 'right',
-        },
-        {
-          href: 'https://discord.gg/freeide',
-          label: 'Discord',
           position: 'right',
         },
       ],
@@ -183,23 +161,11 @@ const config: Config = {
           ],
         },
         {
-          title: 'Community',
-          items: [
-            { label: 'Discord', href: 'https://discord.gg/freeide' },
-            { label: 'GitHub Issues', href: 'https://github.com/freeide/freeide/issues' },
-            { label: 'Skills Hub', href: 'https://agentskills.io' },
-          ],
-        },
-        {
-          title: 'More',
-          items: [
-            { label: 'Desktop Download', href: 'https://freeide-agent.freeide.dev/' },
-            { label: 'GitHub', href: 'https://github.com/freeide/freeide' },
-            { label: 'FreeIDE', href: 'https://freeide.dev' },
-          ],
+          title: 'Standards',
+          items: [{ label: 'Agent Skills', href: 'https://agentskills.io' }],
         },
       ],
-      copyright: `Built by <a href="https://freeide.dev">FreeIDE</a> · MIT License · ${new Date().getFullYear()}`,
+      copyright: `Jetts-TUI · MIT License · ${new Date().getFullYear()}`,
     },
     prism: {
       theme: prismThemes.github,

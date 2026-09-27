@@ -1,4 +1,4 @@
-import { Box, Text, useInput, useStdout } from '@freeide/ink'
+import { Box, Text, useInput, useStdout } from '@jetts-tui/ink'
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { sessionScopedModelArg } from '../domain/slash.js'
@@ -20,6 +20,12 @@ import { clampOverlayWidth, listRowStyle } from './overlayPrimitives.js'
 import { TextInput } from './textInput.js'
 
 const VISIBLE = 12
+
+// Reserve the title, pinned new row, scroll hints, context/help lines, frame,
+// and a little breathing room above the composer. A fixed 12-row history
+// clipped the lower controls in an 80×24 terminal during live-session switching.
+export const sessionSwitcherVisibleRows = (terminalRows: number) =>
+  Math.max(2, Math.min(VISIBLE, Math.floor(terminalRows) - 16))
 const MIN_WIDTH = 64
 const MAX_WIDTH = 128
 const TITLE_MAX = 64
@@ -327,6 +333,7 @@ export function ActiveSessionSwitcher({
   const preferredWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, (stdout?.columns ?? 80) - 6))
   const width = clampOverlayWidth(preferredWidth, maxWidth)
   const promptColumns = Math.max(20, width - 11)
+  const visibleLimit = sessionSwitcherVisibleRows(stdout?.rows ?? 24)
 
   // Rows are [new][live…][history…]: the "+ new" row is pinned first (index 0,
   // always rendered) and the live+history list is windowed below it. `total`
@@ -677,8 +684,8 @@ export function ActiveSessionSwitcher({
   // The "+ new" row (sel 0) is pinned at the top so it's always visible; the
   // live + history list is windowed beneath it.
   const listSel = sel > 0 ? sel - 1 : 0
-  const offset = windowOffset(listLen, listSel, VISIBLE)
-  const visibleCount = Math.max(0, Math.min(VISIBLE, listLen - offset))
+  const offset = windowOffset(listLen, listSel, visibleLimit)
+  const visibleCount = Math.max(0, Math.min(visibleLimit, listLen - offset))
   const visibleRows = Array.from({ length: visibleCount }, (_, k) => offset + k + 1)
 
   const newSelectedRow = sel === 0
@@ -860,7 +867,7 @@ export function ActiveSessionSwitcher({
         )
       })}
 
-      {offset + VISIBLE < listLen && <Text color={t.color.muted}> ↓ {listLen - offset - VISIBLE} more</Text>}
+      {offset + visibleLimit < listLen && <Text color={t.color.muted}> ↓ {listLen - offset - visibleLimit} more</Text>}
 
       {newSelected ? (
         <>

@@ -1,4 +1,4 @@
-import { resolveGatewayWsUrl } from '@freeide/shared'
+import { resolveGatewayWsUrl } from '@jetts-tui/shared'
 
 import { speakText } from '@/freeide'
 import {
