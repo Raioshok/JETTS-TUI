@@ -12,8 +12,8 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
-import type { FreeIDEGitWorktree } from '@/global'
 import type { SessionInfo } from '@/freeide'
+import type { FreeIDEGitWorktree } from '@/global'
 import { useI18n } from '@/i18n'
 import { $dismissedWorktreeIds, dismissWorktree, setWorkspaceNodeOpen } from '@/store/layout'
 import { notifyError } from '@/store/notifications'

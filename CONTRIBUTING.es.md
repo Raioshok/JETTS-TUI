@@ -1,6 +1,6 @@
-# Contribuir a FreeIDE Agent
+# Contribuir a Jetts-TUI
 
-¡Gracias por contribuir a FreeIDE Agent! Esta guía cubre todo lo que necesitas: configurar tu entorno de desarrollo, entender la arquitectura, decidir qué construir y conseguir que tu PR sea aceptado.
+¡Gracias por contribuir a Jetts-TUI! Esta guía cubre todo lo que necesitas: configurar tu entorno de desarrollo, entender la arquitectura, decidir qué construir y conseguir que tu PR sea aceptado.
 
 ---
 
@@ -9,7 +9,7 @@
 Valoramos las contribuciones en este orden:
 
 1. **Correcciones de errores** — bloqueos, comportamiento incorrecto, pérdida de datos. Siempre la máxima prioridad.
-2. **Compatibilidad entre plataformas** — macOS, diferentes distribuciones de Linux y WSL2 en Windows. Queremos que FreeIDE funcione en todas partes.
+2. **Compatibilidad entre plataformas** — macOS, diferentes distribuciones de Linux y WSL2 en Windows. Queremos que Jetts-TUI funcione en todas partes.
 3. **Fortalecimiento de seguridad** — inyección de shell, inyección de prompts, traversal de rutas, escalada de privilegios. Ver [Consideraciones de Seguridad](#consideraciones-de-seguridad).
 4. **Rendimiento y robustez** — lógica de reintento, manejo de errores, degradación elegante.
 5. **Nuevas habilidades** — pero solo las ampliamente útiles. Ver [¿Debería ser una Habilidad o una Herramienta?](#debería-ser-una-habilidad-o-una-herramienta)
@@ -38,14 +38,14 @@ Esta es la pregunta más común para los nuevos colaboradores. La respuesta casi
 
 ### ¿Debería la Habilidad estar incluida?
 
-Las habilidades incluidas (en `skills/`) se envían con cada instalación de FreeIDE. Deben ser **ampliamente útiles para la mayoría de los usuarios**:
+Las habilidades incluidas (en `skills/`) se envían con cada instalación de Jetts-TUI. Deben ser **ampliamente útiles para la mayoría de los usuarios**:
 
 - Manejo de documentos, investigación web, flujos de trabajo de desarrollo comunes, administración de sistemas
 - Usadas regularmente por una amplia gama de personas
 
 Si tu habilidad es oficial y útil pero no universalmente necesaria (ej., una integración de servicio de pago, una dependencia pesada), ponla en **`optional-skills/`** — se envía con el repositorio pero no está activada por defecto. Los usuarios pueden descubrirla a través de `freeide skills browse` (etiquetada como "oficial") e instalarla con `freeide skills install` (sin advertencia de terceros, confianza integrada).
 
-Si tu habilidad es especializada, contribuida por la comunidad o de nicho, es mejor para un **Skills Hub** — súbela a un registro de habilidades y compártela en el [Discord de FreeIDE](https://discord.gg/freeide). Los usuarios pueden instalarla con `freeide skills install`.
+Si tu habilidad es especializada, contribuida por la comunidad o de nicho, es mejor para un **Skills Hub** — súbela a un registro de habilidades y compártela por sus canales públicos. Los usuarios pueden instalarla con `jetts-tui skills install`.
 
 ---
 
@@ -81,8 +81,8 @@ Esto no es una barra de calidad — es una decisión de acoplamiento y mantenimi
 ### Clonar e instalar
 
 ```bash
-git clone https://github.com/freeide/freeide.git
-cd freeide-agent
+git clone https://github.com/Raioshok/JETTS-TUI.git
+cd JETTS-TUI
 
 # Crear venv con Python 3.11
 uv venv venv --python 3.11
@@ -136,7 +136,7 @@ pytest tests/ -v
 ```
 freeide-agent/
 ├── run_agent.py              # Clase AIAgent — bucle de conversación central, despacho de herramientas, persistencia de sesión
-├── cli.py                    # Clase FreeIDECLI — TUI interactiva, integración prompt_toolkit
+├── cli.py                    # Clase FreeIDECLI (nombre interno de compatibilidad)
 ├── model_tools.py            # Orquestación de herramientas (capa delgada sobre tools/registry.py)
 ├── toolsets.py               # Agrupaciones y presets de herramientas (freeide-cli, freeide-telegram, etc.)
 ├── freeide_state.py           # Base de datos de sesiones SQLite con búsqueda de texto completo FTS5, títulos de sesión
@@ -154,7 +154,7 @@ freeide-agent/
 │   ├── main.py                   # Punto de entrada, análisis de argumentos, despacho de comandos
 │   ├── config.py                 # Gestión de configuración, migración, definiciones de variables de entorno
 │   ├── setup.py                  # Asistente de configuración interactivo
-│   ├── auth.py                   # Resolución de proveedor, OAuth, FreeIDE Portal
+│   ├── auth.py                   # Resolución de proveedor y OAuth
 │   ├── models.py                 # Listas de selección de modelos de OpenRouter
 │   ├── banner.py                 # Banner de bienvenida, arte ASCII
 │   ├── commands.py               # Registro central de comandos de barra (CommandDef), autocompletado, ayudantes del gateway
@@ -194,7 +194,7 @@ freeide-agent/
 ├── skills/                   # Habilidades incluidas (copiadas a ~/.freeide/skills/ en la instalación)
 ├── optional-skills/          # Habilidades opcionales oficiales (descubribles vía hub, no activadas por defecto)
 ├── tests/                    # Suite de tests
-├── website/                  # Sitio de documentación (freeide-agent.freeide.dev)
+├── website/                  # Código fuente del sitio de documentación
 │
 ├── cli-config.yaml.example   # Configuración de ejemplo (copiada a ~/.freeide/config.yaml)
 └── AGENTS.md                 # Guía de desarrollo para asistentes de codificación IA
@@ -206,7 +206,7 @@ freeide-agent/
 |------|-----------|
 | `~/.freeide/config.yaml` | Configuración (modelo, terminal, toolsets, compresión, etc.) |
 | `~/.freeide/.env` | Claves API y secretos |
-| `~/.freeide/auth.json` | Credenciales OAuth (FreeIDE Portal) |
+| `~/.freeide/auth.json` | Credenciales OAuth de servicios compatibles |
 | `~/.freeide/skills/` | Todas las habilidades activas (incluidas + instaladas desde hub + creadas por el agente) |
 | `~/.freeide/memories/` | Memoria persistente (MEMORY.md, USER.md) |
 | `~/.freeide/state.db` | Base de datos de sesiones SQLite |
@@ -390,7 +390,7 @@ Todo skill nuevo o modernizado — incluido, opcional o contribuido — debe cum
 
 1. **`description` ≤ 60 caracteres, una oración, termina con punto.** Las descripciones largas saturan la UI de listado de habilidades. Indica la capacidad, no la implementación. Sin palabras de marketing ("potente", "completo", "fluido", "avanzado").
 
-2. **Las herramientas referenciadas en el cuerpo de SKILL.md deben ser herramientas nativas de FreeIDE o servidores MCP que la habilidad espere explícitamente.** Usa los nombres de herramientas en comillas invertidas: `` `terminal` ``, `` `web_extract` ``, `` `web_search` ``, `` `read_file` ``, `` `write_file` ``, etc.
+2. **Las herramientas referenciadas en el cuerpo de SKILL.md deben ser herramientas nativas de Jetts-TUI o servidores MCP que la habilidad espere explícitamente.** Usa los nombres de herramientas en comillas invertidas: `` `terminal` ``, `` `web_extract` ``, `` `web_search` ``, `` `read_file` ``, `` `write_file` ``, etc.
 
 3. **El campo `platforms:` auditado contra las importaciones reales del script.** Las habilidades que usen primitivos solo de POSIX deben declarar sus plataformas soportadas.
 
@@ -408,7 +408,7 @@ Todo skill nuevo o modernizado — incluido, opcional o contribuido — debe cum
 
 ## Añadir una Skin / Tema
 
-FreeIDE usa un sistema de skins basado en datos — no se necesitan cambios de código para añadir una nueva skin.
+Jetts-TUI usa un sistema de skins basado en datos — no se necesitan cambios de código para añadir una nueva skin.
 
 **Opción A: Skin de usuario (archivo YAML)**
 
@@ -453,7 +453,7 @@ Añade al dict `_BUILTIN_SKINS` en `freeide_cli/skin_engine.py`. Usa el mismo es
 
 ## Compatibilidad Multiplataforma
 
-FreeIDE se ejecuta en Linux, macOS y Windows nativo (además de WSL2). Al escribir código
+Jetts-TUI se ejecuta en Linux, macOS y Windows nativo (además de WSL2). Al escribir código
 que toca el SO, asume que *cualquier* plataforma puede alcanzar tu ruta de código.
 
 > **Antes de hacer PR:** ejecuta `scripts/check-windows-footguns.py` para detectar
@@ -486,7 +486,7 @@ que toca el SO, asume que *cualquier* plataforma puede alcanzar tu ruta de códi
 
 ## Consideraciones de Seguridad
 
-FreeIDE tiene acceso al terminal. La seguridad importa.
+Jetts-TUI tiene acceso al terminal. La seguridad importa.
 
 ### Protecciones existentes
 
@@ -581,8 +581,8 @@ test(tools): añadir tests unitarios para file_operations
 
 ## Reportar Issues
 
-- Usa [GitHub Issues](https://github.com/freeide/freeide/issues)
-- Incluye: SO, versión de Python, versión de FreeIDE (`freeide version`), traza de error completa
+- Usa [GitHub Issues](https://github.com/Raioshok/JETTS-TUI/issues)
+- Incluye: SO, versión de Python, versión de Jetts-TUI (`jetts-tui version`), traza de error completa
 - Incluye pasos para reproducir
 - Verifica los issues existentes antes de crear duplicados
 - Para vulnerabilidades de seguridad, por favor reporta de forma privada

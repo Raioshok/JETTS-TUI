@@ -114,7 +114,9 @@ export function formatMoney(value?: null | number | string): string {
     return EMPTY_BILLING_VALUE
   }
 
-  return new Intl.NumberFormat(undefined, {
+  // Match the backend's USD *_display fields and the account view model.
+  // The host OS locale may otherwise render English UI copy as "US$ 10".
+  return new Intl.NumberFormat('en-US', {
     currency: 'USD',
     maximumFractionDigits: amount % 1 === 0 ? 0 : 2,
     minimumFractionDigits: amount % 1 === 0 ? 0 : 2,

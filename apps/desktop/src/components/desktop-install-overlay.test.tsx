@@ -99,14 +99,14 @@ describe('DesktopInstallOverlay first-run setup', () => {
 
     render(<DesktopInstallOverlay />)
 
-    expect(await screen.findByText('Set up FreeIDE Desktop')).toBeTruthy()
-    expect(screen.getByText('Connect to existing FreeIDE')).toBeTruthy()
-    expect(screen.getByText('Install FreeIDE locally')).toBeTruthy()
+    expect(await screen.findByText('Set up Jetts-TUI Desktop')).toBeTruthy()
+    expect(screen.getByText('Connect to existing Jetts-TUI')).toBeTruthy()
+    expect(screen.getByText('Install Jetts-TUI locally')).toBeTruthy()
     expect(screen.queryByText(/steps complete/i)).toBeNull()
     expect(screen.queryByText(/Fetching installer manifest/i)).toBeNull()
   })
 
-  it('continues local bootstrap only when Install FreeIDE locally is selected', async () => {
+  it('continues local bootstrap only when Install Jetts-TUI locally is selected', async () => {
     const desktop = installDesktopMock(
       bootstrapState({
         setupChoice: { platform: 'win32', activeRoot: 'C:\\Users\\me\\AppData\\Local\\freeide\\freeide-agent' }
@@ -115,16 +115,16 @@ describe('DesktopInstallOverlay first-run setup', () => {
 
     render(<DesktopInstallOverlay />)
 
-    fireEvent.click(await screen.findByText('Install FreeIDE locally'))
+    fireEvent.click(await screen.findByText('Install Jetts-TUI locally'))
 
     expect(desktop.continueBootstrapLocal).toHaveBeenCalledTimes(1)
-    expect(screen.getByText('Set up FreeIDE Desktop')).toBeTruthy()
+    expect(screen.getByText('Set up Jetts-TUI Desktop')).toBeTruthy()
 
     act(() => {
       desktop.emitBootstrapEvent({ type: 'manifest', protocolVersion: 1, stages: [] })
     })
 
-    await waitFor(() => expect(screen.queryByText('Set up FreeIDE Desktop')).toBeNull())
+    await waitFor(() => expect(screen.queryByText('Set up Jetts-TUI Desktop')).toBeNull())
     expect(screen.getByText(/Fetching installer manifest/i)).toBeTruthy()
   })
 
@@ -138,11 +138,11 @@ describe('DesktopInstallOverlay first-run setup', () => {
     desktop.continueBootstrapLocal = undefined as never
     render(<DesktopInstallOverlay />)
 
-    const install = (await screen.findByText('Install FreeIDE locally')).closest('button') as HTMLButtonElement
+    const install = (await screen.findByText('Install Jetts-TUI locally')).closest('button') as HTMLButtonElement
     fireEvent.click(install)
 
     expect(
-      await screen.findByText('Local installation could not start. Restart FreeIDE Desktop and try again.')
+      await screen.findByText('Local installation could not start. Restart Jetts-TUI Desktop and try again.')
     ).toBeTruthy()
     expect(install.disabled).toBe(false)
   })
@@ -160,14 +160,14 @@ describe('DesktopInstallOverlay first-run setup', () => {
     // Click the instant the choice paints, before React drains the passive
     // effect that reacts to the first snapshot. A loaded runner hits this
     // window by accident; observing the DOM directly hits it every time.
-    const install = (await whenPresent('Install FreeIDE locally')).closest('button') as HTMLButtonElement
+    const install = (await whenPresent('Install Jetts-TUI locally')).closest('button') as HTMLButtonElement
     fireEvent.click(install)
 
     await act(async () => {
       await Promise.resolve()
     })
 
-    expect(screen.queryByText('Local installation could not start. Restart FreeIDE Desktop and try again.')).toBeTruthy()
+    expect(screen.queryByText('Local installation could not start. Restart Jetts-TUI Desktop and try again.')).toBeTruthy()
   })
 
   it('clears a stale local-start error when a repair presents a different root', async () => {
@@ -180,9 +180,9 @@ describe('DesktopInstallOverlay first-run setup', () => {
     desktop.continueBootstrapLocal = undefined as never
     render(<DesktopInstallOverlay />)
 
-    fireEvent.click((await screen.findByText('Install FreeIDE locally')).closest('button') as HTMLButtonElement)
+    fireEvent.click((await screen.findByText('Install Jetts-TUI locally')).closest('button') as HTMLButtonElement)
     expect(
-      await screen.findByText('Local installation could not start. Restart FreeIDE Desktop and try again.')
+      await screen.findByText('Local installation could not start. Restart Jetts-TUI Desktop and try again.')
     ).toBeTruthy()
 
     act(() => {
@@ -194,7 +194,7 @@ describe('DesktopInstallOverlay first-run setup', () => {
       })
     })
 
-    expect(screen.queryByText('Local installation could not start. Restart FreeIDE Desktop and try again.')).toBeNull()
+    expect(screen.queryByText('Local installation could not start. Restart Jetts-TUI Desktop and try again.')).toBeNull()
   })
 
   it('opens the remote connection form from the first-run choice', async () => {
@@ -206,7 +206,7 @@ describe('DesktopInstallOverlay first-run setup', () => {
 
     render(<DesktopInstallOverlay />)
 
-    fireEvent.click(await screen.findByText('Connect to existing FreeIDE'))
+    fireEvent.click(await screen.findByText('Connect to existing Jetts-TUI'))
 
     expect(await screen.findByText('Gateway URL')).toBeTruthy()
     expect(screen.getByText('Test connection')).toBeTruthy()
@@ -222,13 +222,13 @@ describe('DesktopInstallOverlay first-run setup', () => {
 
     render(<DesktopInstallOverlay />)
 
-    fireEvent.click(await screen.findByText('Connect to existing FreeIDE'))
+    fireEvent.click(await screen.findByText('Connect to existing Jetts-TUI'))
     expect(await screen.findByText('Gateway URL')).toBeTruthy()
 
     fireEvent.click(screen.getByText('Back'))
 
-    expect(await screen.findByText('Set up FreeIDE Desktop')).toBeTruthy()
-    expect(screen.getByText('Install FreeIDE locally')).toBeTruthy()
+    expect(await screen.findByText('Set up Jetts-TUI Desktop')).toBeTruthy()
+    expect(screen.getByText('Install Jetts-TUI locally')).toBeTruthy()
   })
 
   it('requires a successful token connection test before applying remote config', async () => {
@@ -259,7 +259,7 @@ describe('DesktopInstallOverlay first-run setup', () => {
 
     render(<DesktopInstallOverlay />)
 
-    fireEvent.click(await screen.findByText('Connect to existing FreeIDE'))
+    fireEvent.click(await screen.findByText('Connect to existing Jetts-TUI'))
     fireEvent.change(await screen.findByPlaceholderText('https://gateway.example.com/freeide'), {
       target: { value: 'https://gateway.example.com/freeide' }
     })
@@ -318,7 +318,7 @@ describe('DesktopInstallOverlay first-run setup', () => {
 
     render(<DesktopInstallOverlay />)
 
-    fireEvent.click(await screen.findByText('Connect to existing FreeIDE'))
+    fireEvent.click(await screen.findByText('Connect to existing Jetts-TUI'))
     const urlInput = await screen.findByPlaceholderText('https://gateway.example.com/freeide')
     fireEvent.change(urlInput, { target: { value: 'https://gateway.example.com/freeide' } })
 
@@ -371,7 +371,7 @@ describe('DesktopInstallOverlay first-run setup', () => {
 
     render(<DesktopInstallOverlay />)
 
-    fireEvent.click(await screen.findByText('Connect to existing FreeIDE'))
+    fireEvent.click(await screen.findByText('Connect to existing Jetts-TUI'))
     fireEvent.change(await screen.findByPlaceholderText('https://gateway.example.com/freeide'), {
       target: { value: 'https://gateway.example.com/freeide' }
     })
@@ -422,7 +422,7 @@ describe('DesktopInstallOverlay first-run setup', () => {
 
     render(<DesktopInstallOverlay />)
 
-    fireEvent.click(await screen.findByText('Connect to existing FreeIDE'))
+    fireEvent.click(await screen.findByText('Connect to existing Jetts-TUI'))
     fireEvent.change(await screen.findByPlaceholderText('https://gateway.example.com/freeide'), {
       target: { value: 'https://gateway.example.com/freeide' }
     })
@@ -474,7 +474,7 @@ describe('DesktopInstallOverlay first-run setup', () => {
 
     render(<DesktopInstallOverlay />)
 
-    fireEvent.click(await screen.findByText('Connect to existing FreeIDE'))
+    fireEvent.click(await screen.findByText('Connect to existing Jetts-TUI'))
     fireEvent.change(await screen.findByPlaceholderText('https://gateway.example.com/freeide'), {
       target: { value: 'https://gateway.example.com/freeide' }
     })
@@ -530,7 +530,7 @@ describe('DesktopInstallOverlay first-run setup', () => {
 
     render(<DesktopInstallOverlay />)
 
-    expect(await screen.findByText('FreeIDE needs a one-time install')).toBeTruthy()
+    expect(await screen.findByText('Jetts-TUI needs a one-time install')).toBeTruthy()
 
     fireEvent.click(screen.getByText('Connect existing'))
 
@@ -571,6 +571,6 @@ describe('DesktopInstallOverlay first-run setup', () => {
     fireEvent.click(screen.getByText('Apply and reconnect'))
 
     await waitFor(() => expect(screen.queryByText('Gateway URL')).toBeNull())
-    expect(screen.queryByText('FreeIDE needs a one-time install')).toBeNull()
+    expect(screen.queryByText('Jetts-TUI needs a one-time install')).toBeNull()
   })
 })

@@ -5,6 +5,7 @@
 
 import { atom } from 'nanostores'
 
+import { checkFreeIDEUpdate, getActionStatus, updateFreeIDE } from '@/freeide'
 import type {
   DesktopUpdateApplyOptions,
   DesktopUpdateApplyResult,
@@ -13,7 +14,6 @@ import type {
   DesktopUpdateStatus,
   DesktopVersionInfo
 } from '@/global'
-import { checkFreeIDEUpdate, getActionStatus, updateFreeIDE } from '@/freeide'
 import { translateNow } from '@/i18n'
 import { persistString, storedString } from '@/lib/storage'
 import { dismissNotification, notify } from '@/store/notifications'

@@ -1,5 +1,5 @@
-import type { FreeIDEGitWorktree } from '@/global'
 import type { ProjectInfo, SessionInfo } from '@/freeide'
+import type { FreeIDEGitWorktree } from '@/global'
 import { normalize } from '@/lib/text'
 
 // Session grouping is now computed authoritatively on the backend

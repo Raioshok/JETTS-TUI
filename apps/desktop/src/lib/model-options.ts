@@ -1,4 +1,4 @@
-import { getGlobalModelOptions, type FreeIDEGateway, type ModelOptionsResponse } from '@/freeide'
+import { type FreeIDEGateway, getGlobalModelOptions, type ModelOptionsResponse } from '@/freeide'
 import type { ModelOptionProvider } from '@/types/freeide'
 
 /**

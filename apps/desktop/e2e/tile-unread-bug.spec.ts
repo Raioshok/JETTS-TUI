@@ -57,10 +57,19 @@ async function startTurnAndSwitchAway(page: import('@playwright/test').Page) {
     { timeout: 15_000 },
   )
 
-  // Wait for the background dot — confirms the turn is running.
+  // Approve the held shell command when the fresh profile requests it.
+  // The dot cannot appear until that approval completes.
+  let approvedBackgroundCommand = false
   await expect
     .poll(
-      () => page.locator(`[aria-label="${BG_DOT_LABEL}"]`).count(),
+      async () => {
+        const approve = page.getByRole('button', { name: /^Run Ctrl/ }).first()
+        if (!approvedBackgroundCommand && await approve.isVisible()) {
+          await approve.click()
+          approvedBackgroundCommand = true
+        }
+        return page.locator(`[aria-label="${BG_DOT_LABEL}"]`).count()
+      },
       { timeout: 30_000, message: 'background dot should appear' },
     )
     .toBeGreaterThan(0)

@@ -12,11 +12,11 @@ import { Button } from '@/components/ui/button'
 import { CountSkeleton } from '@/components/ui/skeleton'
 import {
   editLearningNode,
+  type FreeIDEGateway,
   getLearningNode,
   getSkills,
   getToolsets,
   getUsageAnalytics,
-  type FreeIDEGateway,
   toggleSkill,
   toggleToolset
 } from '@/freeide'

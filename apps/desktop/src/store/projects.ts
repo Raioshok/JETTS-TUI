@@ -5,8 +5,8 @@ import {
   NO_PROJECT_ID,
   type SidebarProjectTree
 } from '@/app/chat/sidebar/projects/workspace-groups'
+import { type FreeIDEGateway, getFreeIDEConfig } from '@/freeide'
 import type { FreeIDEGitBaseBranch, FreeIDEGitBranch } from '@/global'
-import { getFreeIDEConfig, type FreeIDEGateway } from '@/freeide'
 import { translateNow } from '@/i18n'
 import { desktopDefaultCwd, isDesktopFsRemoteMode, selectDesktopPaths, writeDesktopFileText } from '@/lib/desktop-fs'
 import { desktopGit } from '@/lib/desktop-git'

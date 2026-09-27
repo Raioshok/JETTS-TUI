@@ -2559,8 +2559,10 @@ function resolveUpdaterBinary() {
 
   for (const name of names) {
     const candidate = path.join(FREEIDE_HOME, name)
-    if (fileExists(candidate)) return candidate
+
+    if (fileExists(candidate)) {return candidate}
   }
+
   return null
 }
 
@@ -9277,6 +9279,7 @@ ipcMain.handle('freeide:window:openInstance', async () => {
 // shortcuts and the View menu. Reads and writes target the asking window.
 ipcMain.handle('freeide:zoom:get', event => {
   const window = BrowserWindow.fromWebContents(event.sender)
+
   const level =
     window && !window.isDestroyed() ? window.webContents.getZoomLevel() : DEFAULT_ZOOM_LEVEL
 

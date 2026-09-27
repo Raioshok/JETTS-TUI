@@ -211,10 +211,19 @@ test.describe('sidebar states — cross-session dot transition', () => {
     await composer.type('E2E_SIDEBAR_CROSS', { delay: 20 })
     await page.keyboard.press('Enter')
 
-    // Wait for the background dot to appear.
+    // The sentinel loop is an executable shell command and correctly asks
+    // for approval in a fresh profile. Accept it before expecting activity.
+    let approvedBackgroundCommand = false
     await expect
       .poll(
-        () => page.locator(`[aria-label="${BG_DOT_LABEL}"]`).count(),
+        async () => {
+          const approve = page.getByRole('button', { name: /^Run Ctrl/ }).first()
+          if (!approvedBackgroundCommand && await approve.isVisible()) {
+            await approve.click()
+            approvedBackgroundCommand = true
+          }
+          return page.locator(`[aria-label="${BG_DOT_LABEL}"]`).count()
+        },
         { timeout: 30_000, message: 'background dot should appear' },
       )
       .toBeGreaterThan(0)

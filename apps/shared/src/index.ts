@@ -56,11 +56,11 @@ export {
 } from './skin'
 export {
   buildFreeIDEWebSocketUrl,
+  type FreeIDEWebSocketUrlOptions,
   type GatewayAuthMode,
   GatewayReauthRequiredError,
   type GatewayWsConnection,
   type GatewayWsUrlResult,
-  type FreeIDEWebSocketUrlOptions,
   isGatewayReauthRequired,
   resolveGatewayWsUrl,
   type ResolveGatewayWsUrlDeps,

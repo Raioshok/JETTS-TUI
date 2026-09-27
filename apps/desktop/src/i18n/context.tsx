@@ -1,6 +1,6 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
-import { getFreeIDEConfigRecord, type FreeIDEConfigRecord, saveFreeIDEConfig } from '@/freeide'
+import { type FreeIDEConfigRecord, getFreeIDEConfigRecord, saveFreeIDEConfig } from '@/freeide'
 
 import { TRANSLATIONS } from './catalog'
 import { DEFAULT_LOCALE, localeConfigValue, normalizeLocale } from './languages'

@@ -108,9 +108,11 @@ export function ModelVisibilityDialog({
               }
 
               const allFamilies = collapseModelFamilies(provider.models ?? [])
+
               const onCount = allFamilies.filter(family =>
                 visible.has(modelVisibilityKey(provider.slug, family.id))
               ).length
+
               const checkState = onCount === 0 ? false : onCount === allFamilies.length ? true : 'indeterminate'
 
               const collapsed = collapsedProviders.includes(provider.slug) && !q

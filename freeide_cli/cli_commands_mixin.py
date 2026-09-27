@@ -2916,8 +2916,12 @@ class CLICommandsMixin:
             return
 
         try:
-            stat = subprocess.run(commands[0], cwd=cwd, capture_output=True, text=True, timeout=20)
-            names = subprocess.run(commands[1], cwd=cwd, capture_output=True, text=True, timeout=20)
+            stat = subprocess.run(
+                commands[0], cwd=cwd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=20
+            )
+            names = subprocess.run(
+                commands[1], cwd=cwd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=20
+            )
         except Exception as exc:
             self._console_print(f"Review unavailable: {exc}")
             return

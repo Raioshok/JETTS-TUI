@@ -32,9 +32,9 @@ test.afterAll(async () => {
 })
 
 test.describe('dev-mode boot with mock backend', () => {
-  test('window opens with FreeIDE title', async () => {
+  test('window opens with Jetts-TUI title', async () => {
     const title = await fixture!.page.title()
-    expect(title).toContain('FreeIDE')
+    expect(title).toContain('Jetts-TUI')
   })
 
   test('renderer mounts and shows DOM content', async () => {

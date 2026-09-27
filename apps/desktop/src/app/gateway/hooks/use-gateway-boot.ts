@@ -1,8 +1,8 @@
 import { isGatewayReauthRequired, resolveGatewayWsUrl } from '@jetts-tui/shared'
 import { useEffect, useRef } from 'react'
 
-import type { FreeIDEConnection } from '@/global'
 import { FreeIDEGateway } from '@/freeide'
+import type { FreeIDEConnection } from '@/global'
 import { translateNow } from '@/i18n'
 import { desktopDefaultCwd } from '@/lib/desktop-fs'
 import {
