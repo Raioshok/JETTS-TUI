@@ -12,8 +12,8 @@
  * through the plugin host loader (next phase); this is that seam.
  */
 
-import { pluginRest, type PluginRestOptions, pluginSocket } from '@/jettstui'
 import { createPluginI18n, type PluginI18n } from '@/i18n'
+import { pluginRest, type PluginRestOptions, pluginSocket } from '@/jettstui'
 import { readKey, writeKey } from '@/lib/storage'
 
 import { registry } from './registry'

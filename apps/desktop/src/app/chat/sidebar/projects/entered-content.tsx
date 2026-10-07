@@ -12,9 +12,9 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
-import type { SessionInfo } from '@/jettstui'
 import type { JettsTUIGitWorktree } from '@/global'
 import { useI18n } from '@/i18n'
+import type { SessionInfo } from '@/jettstui'
 import { $dismissedWorktreeIds, dismissWorktree, setWorkspaceNodeOpen } from '@/store/layout'
 import { notifyError } from '@/store/notifications'
 import { removeWorktreePath } from '@/store/projects'

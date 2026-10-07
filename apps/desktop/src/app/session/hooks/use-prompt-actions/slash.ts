@@ -1,8 +1,8 @@
 import { skillInvocationText } from '@jetts-tui/shared'
 import { type MutableRefObject, useCallback, useRef } from 'react'
 
-import { getProfiles } from '@/jettstui'
 import type { Translations } from '@/i18n'
+import { getProfiles } from '@/jettstui'
 import { type ChatMessage, toChatMessages } from '@/lib/chat-messages'
 import { parseCommandDispatch, parseSlashCommand, sessionTitle } from '@/lib/chat-runtime'
 import {
@@ -686,6 +686,7 @@ export function useSlashCommand(deps: SlashCommandDeps) {
               const result = await requestGateway<SessionTitleResponse>('session.title', {
                 session_id: resolved.sessionId
               })
+
               const current = (result?.title || '').trim()
               resolved.render(current ? `Title: ${current}` : 'No title set.')
             } catch (err) {

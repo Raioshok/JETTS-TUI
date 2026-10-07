@@ -1,9 +1,9 @@
 import { isGatewayReauthRequired, resolveGatewayWsUrl } from '@jetts-tui/shared'
 import { useEffect, useRef } from 'react'
 
-import { JettsTUIGateway } from '@/jettstui'
 import type { JettsTUIConnection } from '@/global'
 import { translateNow } from '@/i18n'
+import { JettsTUIGateway } from '@/jettstui'
 import { desktopDefaultCwd } from '@/lib/desktop-fs'
 import {
   $desktopBoot,

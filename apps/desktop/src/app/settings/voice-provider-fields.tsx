@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query'
 import { useEffect, useMemo, useRef, useState } from 'react'
 
-import { getElevenLabsVoices, getJettsTUIConfigSchema, saveJettsTUIConfig } from '@/jettstui'
 import { useI18n } from '@/i18n'
+import { getElevenLabsVoices, getJettsTUIConfigSchema, saveJettsTUIConfig } from '@/jettstui'
 import { notifyError } from '@/store/notifications'
 import type { JettsTUIConfigRecord } from '@/types/jettstui'
 

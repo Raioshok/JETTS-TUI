@@ -17,6 +17,7 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
+import { useI18n } from '@/i18n'
 import {
   getSkillHubSources,
   previewSkillHub,
@@ -25,7 +26,6 @@ import {
   type SkillHubResult,
   type SkillHubScanResult
 } from '@/jettstui'
-import { useI18n } from '@/i18n'
 import { stripAnsi } from '@/lib/ansi'
 import { Loader2 } from '@/lib/icons'
 import { cn } from '@/lib/utils'

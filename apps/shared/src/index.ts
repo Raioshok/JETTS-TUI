@@ -56,12 +56,12 @@ export {
 } from './skin'
 export {
   buildJettsTUIWebSocketUrl,
-  type JettsTUIWebSocketUrlOptions,
   type GatewayAuthMode,
   GatewayReauthRequiredError,
   type GatewayWsConnection,
   type GatewayWsUrlResult,
   isGatewayReauthRequired,
+  type JettsTUIWebSocketUrlOptions,
   resolveGatewayWsUrl,
   type ResolveGatewayWsUrlDeps,
   type WebSocketAuthParam

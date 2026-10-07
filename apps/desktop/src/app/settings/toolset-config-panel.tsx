@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { SETTINGS_ROUTE } from '@/app/routes'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { useI18n } from '@/i18n'
 import {
   deleteEnvVar,
   getActionStatus,
@@ -15,7 +16,6 @@ import {
   selectToolsetProvider,
   setEnvVar
 } from '@/jettstui'
-import { useI18n } from '@/i18n'
 import { Check, Loader2, Save, Terminal } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { upsertDesktopActionTask } from '@/store/activity'
@@ -496,6 +496,7 @@ export function ToolsetConfigPanel({ toolset, onConfiguredChange }: ToolsetConfi
   // Default-provider selection and a user click race just after config arrives:
   // a stale initialization effect must never replace an explicit choice.
   const providerChoiceClaimedRef = useRef(false)
+
   const refresh = useCallback(async () => {
     setLoading(true)
 
@@ -559,12 +560,14 @@ export function ToolsetConfigPanel({ toolset, onConfiguredChange }: ToolsetConfi
 
     try {
       const result = await selectToolsetProvider(toolset, provider.name)
+
       if (result.needs_nous_auth) {
         notify({
           kind: 'warning',
           title: copy.failedSelect(provider.name),
           message: copy.legacyHostedUnavailable
         })
+
         return
       }
 

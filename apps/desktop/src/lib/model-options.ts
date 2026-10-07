@@ -1,4 +1,4 @@
-import { type JettsTUIGateway, getGlobalModelOptions, type ModelOptionsResponse } from '@/jettstui'
+import { getGlobalModelOptions, type JettsTUIGateway, type ModelOptionsResponse } from '@/jettstui'
 import type { ModelOptionProvider } from '@/types/jettstui'
 
 /**

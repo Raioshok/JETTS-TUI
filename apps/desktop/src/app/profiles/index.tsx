@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog'
 import { SanitizedInput } from '@/components/ui/sanitized-input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { useI18n } from '@/i18n'
 import {
   createProfile,
   deleteProfile,
@@ -24,7 +25,6 @@ import {
   renameProfile,
   updateProfileSoul
 } from '@/jettstui'
-import { useI18n } from '@/i18n'
 import { AlertTriangle, Save } from '@/lib/icons'
 import { profileColorSoft, resolveProfileColor } from '@/lib/profile-color'
 import { slug } from '@/lib/sanitize'

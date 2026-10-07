@@ -25,20 +25,20 @@ import { Input } from '@/components/ui/input'
 import { Switch } from '@/components/ui/switch'
 import { TextTab } from '@/components/ui/text-tab'
 import { Tip } from '@/components/ui/tooltip'
+import { type Translations, useI18n } from '@/i18n'
 import {
   authMcpServer,
-  type JettsTUIGateway,
   getActionStatus,
   getLogs,
   getMcpCatalog,
   getMcpOAuthFlow,
   installMcpCatalogEntry,
+  type JettsTUIGateway,
   type McpCatalogEntry,
   type McpTestResult,
   saveMcpServers,
   testMcpServer
 } from '@/jettstui'
-import { type Translations, useI18n } from '@/i18n'
 import { completeMcpDesktopOAuth } from '@/lib/mcp-dashboard-oauth'
 import { countEnabledTools, isToolEnabled, toggleToolInServer } from '@/lib/mcp-tool-filter'
 import { cn } from '@/lib/utils'

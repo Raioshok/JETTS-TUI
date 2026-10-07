@@ -5,9 +5,9 @@ import {
   NO_PROJECT_ID,
   type SidebarProjectTree
 } from '@/app/chat/sidebar/projects/workspace-groups'
-import { type JettsTUIGateway, getJettsTUIConfig } from '@/jettstui'
 import type { JettsTUIGitBaseBranch, JettsTUIGitBranch } from '@/global'
 import { translateNow } from '@/i18n'
+import { getJettsTUIConfig, type JettsTUIGateway } from '@/jettstui'
 import { desktopDefaultCwd, isDesktopFsRemoteMode, selectDesktopPaths, writeDesktopFileText } from '@/lib/desktop-fs'
 import { desktopGit } from '@/lib/desktop-git'
 import { isMissingRpcMethod } from '@/lib/gateway-rpc'

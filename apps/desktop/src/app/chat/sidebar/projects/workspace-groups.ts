@@ -1,5 +1,5 @@
-import type { ProjectInfo, SessionInfo } from '@/jettstui'
 import type { JettsTUIGitWorktree } from '@/global'
+import type { ProjectInfo, SessionInfo } from '@/jettstui'
 import { normalize } from '@/lib/text'
 
 // Session grouping is now computed authoritatively on the backend

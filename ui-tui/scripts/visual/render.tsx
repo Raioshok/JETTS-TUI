@@ -13,8 +13,6 @@ import { mkdirSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { PassThrough } from 'stream'
 
-import { visualOutDir } from './paths.mjs'
-
 import { Box, renderSync, Text } from '@jetts-tui/ink'
 import React, { type ReactElement } from 'react'
 
@@ -32,6 +30,8 @@ import { ComposerToolbar, WorkspaceHeader } from '../../src/components/workspace
 import type { SessionActiveItem } from '../../src/gatewayTypes.js'
 import { fromSkin, type Theme } from '../../src/theme.js'
 import type { SessionInfo } from '../../src/types.js'
+
+import { visualOutDir } from './paths.mjs'
 
 const noop = () => {}
 const pending = () => new Promise<never>(() => {})
@@ -370,6 +370,7 @@ for (const scene of scenes) {
 const residentScene = scenes[0]!
 
 setup(residentScene.bg)
+
 const resident = renderAnsi(
   <Box flexDirection="column" height={38} width={120}>
     <Box flexDirection="row" flexGrow={1}>

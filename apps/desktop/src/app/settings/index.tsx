@@ -3,8 +3,8 @@ import { useLocation, useNavigate } from 'react-router-dom'
 
 import { codiconIcon } from '@/components/ui/codicon'
 import { Tip } from '@/components/ui/tooltip'
-import { getJettsTUIConfigDefaults, getJettsTUIConfigRecord, saveJettsTUIConfig } from '@/jettstui'
 import { useI18n } from '@/i18n'
+import { getJettsTUIConfigDefaults, getJettsTUIConfigRecord, saveJettsTUIConfig } from '@/jettstui'
 import { triggerHaptic } from '@/lib/haptics'
 import {
   Archive,

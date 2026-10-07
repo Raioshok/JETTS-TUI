@@ -1,6 +1,6 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
-import { type JettsTUIConfigRecord, getJettsTUIConfigRecord, saveJettsTUIConfig } from '@/jettstui'
+import { getJettsTUIConfigRecord, type JettsTUIConfigRecord, saveJettsTUIConfig } from '@/jettstui'
 
 import { TRANSLATIONS } from './catalog'
 import { DEFAULT_LOCALE, localeConfigValue, normalizeLocale } from './languages'
