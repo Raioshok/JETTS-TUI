@@ -1184,13 +1184,13 @@ class TestFreeIDEHomeIsolation:
 
     def test_get_freeide_home_fallback(self):
         """Without FREEIDE_HOME set, falls back to the active OS home."""
+        from freeide_constants import get_process_freeide_home
         from tools.tirith_security import _get_freeide_home
-        with patch.dict(os.environ, {}, clear=True):
-            # Remove FREEIDE_HOME entirely. With HOME also absent, expanduser
-            # falls back to the account database; compute expected under the
-            # same environment instead of after patch.dict restores HOME.
+        with patch.dict(os.environ, {"FREEIDE_HOME": ""}):
+            # Preserve OS home variables; Windows cannot resolve Path.home()
+            # if USERPROFILE is cleared with the rest of the environment.
             os.environ.pop("FREEIDE_HOME", None)
-            expected = os.path.join(os.path.expanduser("~"), ".freeide")
+            expected = str(get_process_freeide_home())
             result = _get_freeide_home()
         assert result == expected
 

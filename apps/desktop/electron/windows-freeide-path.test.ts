@@ -148,7 +148,7 @@ test('resolveVenvFreeIDECommand: is case-insensitive on freeide.exe and the Scri
 // ── getVenvSitePackagesEntries ─────────────────────────────────────────────
 
 test('getVenvSitePackagesEntries: returns Lib/site-packages on Windows when it exists', () => {
-  const expected = path.join('C:\\venv', 'Lib', 'site-packages')
+  const expected = path.win32.join('C:\\venv', 'Lib', 'site-packages')
 
   const result = getVenvSitePackagesEntries('C:\\venv', {
     isWindows: true,

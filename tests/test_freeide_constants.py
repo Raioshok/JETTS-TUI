@@ -34,11 +34,12 @@ class TestGetDefaultFreeIDERoot:
     """Tests for get_default_freeide_root() — Docker/custom deployment awareness."""
 
     def test_no_freeide_home_returns_native(self, tmp_path, monkeypatch):
-        """When FREEIDE_HOME is not set, returns ~/.freeide."""
+        """On POSIX, an unset FREEIDE_HOME returns ~/.jettstui."""
         monkeypatch.delenv("FREEIDE_HOME", raising=False)
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
+        monkeypatch.setattr(freeide_constants.sys, "platform", "linux")
 
-        assert get_default_freeide_root() == tmp_path / ".freeide"
+        assert get_default_freeide_root() == tmp_path / ".jettstui"
 
     def test_freeide_home_is_native(self, tmp_path, monkeypatch):
         """When FREEIDE_HOME = ~/.freeide, returns ~/.freeide."""
@@ -84,31 +85,31 @@ class TestGetDefaultFreeIDERoot:
         assert get_default_freeide_root() == docker_root
 
     def test_no_freeide_home_returns_localappdata_root_on_windows(self, tmp_path, monkeypatch):
-        """Native Windows falls back to %LOCALAPPDATA%\\freeide, not ~/.freeide."""
+        """Native Windows falls back to %LOCALAPPDATA%\\jettstui."""
         local_appdata = tmp_path / "LocalAppData"
         monkeypatch.delenv("FREEIDE_HOME", raising=False)
         monkeypatch.setenv("LOCALAPPDATA", str(local_appdata))
         monkeypatch.setattr(Path, "home", lambda: tmp_path / "Home")
         monkeypatch.setattr(freeide_constants.sys, "platform", "win32")
 
-        assert get_default_freeide_root() == local_appdata / "freeide"
+        assert get_default_freeide_root() == local_appdata / "jettstui"
 
     def test_no_freeide_home_uses_windows_path_when_localappdata_missing(self, tmp_path, monkeypatch):
-        """Windows fallback still uses AppData/Local/freeide without LOCALAPPDATA."""
+        """Windows fallback still uses AppData/Local/jettstui without LOCALAPPDATA."""
         home = tmp_path / "Home"
         monkeypatch.delenv("FREEIDE_HOME", raising=False)
         monkeypatch.delenv("LOCALAPPDATA", raising=False)
         monkeypatch.setattr(Path, "home", lambda: home)
         monkeypatch.setattr(freeide_constants.sys, "platform", "win32")
 
-        assert get_default_freeide_root() == home / "AppData" / "Local" / "freeide"
+        assert get_default_freeide_root() == home / "AppData" / "Local" / "jettstui"
 
 
 class TestGetFreeIDEHome:
     """Tests for get_freeide_home() platform-aware fallback."""
 
     def test_windows_fallback_uses_localappdata(self, tmp_path, monkeypatch):
-        """When FREEIDE_HOME is unset on Windows, use %LOCALAPPDATA%\\freeide."""
+        """When FREEIDE_HOME is unset on Windows, use %LOCALAPPDATA%\\jettstui."""
         local_appdata = tmp_path / "LocalAppData"
         monkeypatch.delenv("FREEIDE_HOME", raising=False)
         monkeypatch.setenv("LOCALAPPDATA", str(local_appdata))
@@ -116,7 +117,7 @@ class TestGetFreeIDEHome:
         monkeypatch.setattr(freeide_constants.sys, "platform", "win32")
         monkeypatch.setattr(freeide_constants, "_profile_fallback_warned", False)
 
-        assert get_freeide_home() == local_appdata / "freeide"
+        assert get_freeide_home() == local_appdata / "jettstui"
 
 
 class TestGetProcessFreeIDEHome:
@@ -135,7 +136,8 @@ class TestGetProcessFreeIDEHome:
     def test_env_unset_returns_platform_default(self, tmp_path, monkeypatch):
         monkeypatch.delenv("FREEIDE_HOME", raising=False)
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
-        assert get_process_freeide_home() == tmp_path / ".freeide"
+        monkeypatch.setattr(freeide_constants.sys, "platform", "linux")
+        assert get_process_freeide_home() == tmp_path / ".jettstui"
 
     def test_ignores_context_local_override(self, tmp_path, monkeypatch):
         launch_home = tmp_path / "launch-home"

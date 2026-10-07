@@ -1,4 +1,4 @@
-"""Attribution default_headers applied per provider via base-URL detection."""
+"""Provider and user-configured headers applied per base URL."""
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
@@ -6,7 +6,7 @@ from run_agent import AIAgent
 
 
 @patch("run_agent.OpenAI")
-def test_openrouter_base_url_applies_or_headers(mock_openai):
+def test_openrouter_base_url_does_not_add_attribution_headers(mock_openai):
     mock_openai.return_value = MagicMock()
     agent = AIAgent(
         api_key="test-key",
@@ -20,8 +20,8 @@ def test_openrouter_base_url_applies_or_headers(mock_openai):
     agent._apply_client_headers_for_base_url("https://openrouter.ai/api/v1")
 
     headers = agent._client_kwargs["default_headers"]
-    assert headers["HTTP-Referer"] == "https://freeide-agent.freeide.dev"
-    assert headers["X-Title"] == "FreeIDE Agent"
+    assert "HTTP-Referer" not in headers
+    assert "X-Title" not in headers
 
 
 @patch("run_agent.OpenAI")
@@ -236,7 +236,7 @@ def test_openrouter_headers_include_response_cache_when_enabled(mock_openai):
         agent._apply_client_headers_for_base_url("https://openrouter.ai/api/v1")
 
     headers = agent._client_kwargs["default_headers"]
-    assert headers["HTTP-Referer"] == "https://freeide-agent.freeide.dev"
+    assert "HTTP-Referer" not in headers
     assert headers["X-OpenRouter-Cache"] == "true"
     assert headers["X-OpenRouter-Cache-TTL"] == "600"
 
@@ -291,7 +291,7 @@ def test_user_default_headers_win_over_provider_defaults(mock_openai):
 
     headers = agent._client_kwargs["default_headers"]
     assert headers["X-Title"] == "MyApp"  # user override wins
-    assert headers["HTTP-Referer"] == "https://freeide-agent.freeide.dev"  # default preserved
+    assert "HTTP-Referer" not in headers  # no implicit attribution
 
 
 @patch("run_agent.OpenAI")
@@ -310,7 +310,7 @@ def test_no_user_default_headers_leaves_provider_defaults_untouched(mock_openai)
         agent._apply_client_headers_for_base_url("https://openrouter.ai/api/v1")
 
     headers = agent._client_kwargs["default_headers"]
-    assert headers["HTTP-Referer"] == "https://freeide-agent.freeide.dev"
+    assert "HTTP-Referer" not in headers
     assert "User-Agent" not in headers  # nothing injected when unconfigured
 
 
@@ -357,7 +357,7 @@ def test_openrouter_headers_no_cache_when_disabled(mock_openai):
         agent._apply_client_headers_for_base_url("https://openrouter.ai/api/v1")
 
     headers = agent._client_kwargs["default_headers"]
-    assert headers["HTTP-Referer"] == "https://freeide-agent.freeide.dev"
+    assert "HTTP-Referer" not in headers
     assert "X-OpenRouter-Cache" not in headers
     assert "X-OpenRouter-Cache-TTL" not in headers
 
