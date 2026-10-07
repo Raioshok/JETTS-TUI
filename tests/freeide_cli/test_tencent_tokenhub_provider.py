@@ -186,28 +186,18 @@ class TestTencentTokenhubCanonicalProvider:
 
 
 # =============================================================================
-# OpenRouter / FreeIDE Portal curated lists
+# OpenRouter curated fallback
 # =============================================================================
 
 
-class TestTencentInOpenRouterAndNous:
-    """tencent/hy3:free and tencent/hy3 should appear in OpenRouter and Nous curated lists."""
-
-    def test_in_openrouter_fallback(self):
-        from freeide_cli.models import OPENROUTER_MODELS
-        ids = [mid for mid, _ in OPENROUTER_MODELS]
-        assert "tencent/hy3:free" in ids
+class TestTencentInOpenRouterFallback:
+    """The paid Tencent model remains discoverable in the offline fallback."""
 
     def test_paid_in_openrouter_fallback(self):
         """tencent/hy3 (paid, no :free suffix) should also be in OpenRouter list."""
         from freeide_cli.models import OPENROUTER_MODELS
         ids = [mid for mid, _ in OPENROUTER_MODELS]
         assert "tencent/hy3" in ids
-
-    def test_in_nous_provider_models(self):
-        from freeide_cli.models import _PROVIDER_MODELS
-        assert "tencent/hy3" in _PROVIDER_MODELS["nous"]
-
 
 # =============================================================================
 # Model normalization

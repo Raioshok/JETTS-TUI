@@ -589,9 +589,9 @@ class TestFreeIDEBinDirOnPath:
         from tools.environments import local as local_mod
         self._reset_cache()
         monkeypatch.setattr(local_mod.shutil, "which",
-                            lambda name: "/opt/freeide/bin/freeide" if name == "freeide" else None)
-        monkeypatch.setattr(local_mod.os.path, "isdir", lambda p: p == "/opt/freeide/bin")
-        assert local_mod._resolve_freeide_bin_dir() == "/opt/freeide/bin"
+                            lambda name: "/opt/jettstui/bin/freeide" if name == "freeide" else None)
+        monkeypatch.setattr(local_mod.os.path, "isdir", lambda p: p == "/opt/jettstui/bin")
+        assert local_mod._resolve_freeide_bin_dir() == "/opt/jettstui/bin"
 
     def test_resolves_via_sys_executable_dir(self, monkeypatch, tmp_path):
         from tools.environments import local as local_mod
@@ -616,19 +616,19 @@ class TestFreeIDEBinDirOnPath:
     def test_prepend_adds_missing_dir_at_front(self, monkeypatch):
         from tools.environments import local as local_mod
         self._reset_cache()
-        local_mod._FREEIDE_BIN_DIR = "/opt/freeide/bin"
+        local_mod._FREEIDE_BIN_DIR = "/opt/jettstui/bin"
         out = local_mod._prepend_freeide_bin_dir("/usr/bin:/bin")
-        assert out.split(os.pathsep)[0] == "/opt/freeide/bin"
+        assert out.split(os.pathsep)[0] == "/opt/jettstui/bin"
         assert "/usr/bin" in out.split(os.pathsep)
 
     def test_prepend_is_idempotent(self, monkeypatch):
         from tools.environments import local as local_mod
         self._reset_cache()
-        local_mod._FREEIDE_BIN_DIR = "/opt/freeide/bin"
+        local_mod._FREEIDE_BIN_DIR = "/opt/jettstui/bin"
         once = local_mod._prepend_freeide_bin_dir("/usr/bin:/bin")
         twice = local_mod._prepend_freeide_bin_dir(once)
         assert twice == once
-        assert once.split(os.pathsep).count("/opt/freeide/bin") == 1
+        assert once.split(os.pathsep).count("/opt/jettstui/bin") == 1
 
     def test_prepend_noop_when_unresolved(self, monkeypatch):
         from tools.environments import local as local_mod
@@ -641,12 +641,12 @@ class TestFreeIDEBinDirOnPath:
         from tools.environments import local as local_mod
         from tools.environments.local import _make_run_env
         self._reset_cache()
-        local_mod._FREEIDE_BIN_DIR = "/opt/freeide/bin"
+        local_mod._FREEIDE_BIN_DIR = "/opt/jettstui/bin"
         monkeypatch.setattr(local_mod, "_IS_WINDOWS", False)
         with patch.dict(os.environ, {"PATH": "/usr/bin:/bin"}, clear=True):
             result = _make_run_env({})
         entries = result["PATH"].split(os.pathsep)
-        assert entries[0] == "/opt/freeide/bin"
+        assert entries[0] == "/opt/jettstui/bin"
         assert "/usr/bin" in entries
 
 

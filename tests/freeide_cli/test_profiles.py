@@ -185,7 +185,8 @@ class TestCreateProfile:
             for line in content.splitlines()
         )
         mode = stat.S_IMODE(env_path.stat().st_mode)
-        assert mode == 0o600
+        if os.name == "posix":
+            assert mode == 0o600
 
     def test_seeded_env_does_not_clobber_cloned_env(self, profile_env):
         tmp_path = profile_env
@@ -525,7 +526,8 @@ class TestBackfillProfileEnvs:
         assert sorted(backfilled) == ["old1", "old2"]
         for p in (p1, p2):
             assert (p / ".env").read_text() == "OPENROUTER_API_KEY=root-key\n"
-            assert stat.S_IMODE((p / ".env").stat().st_mode) == 0o600
+            if os.name == "posix":
+                assert stat.S_IMODE((p / ".env").stat().st_mode) == 0o600
 
     def test_never_overwrites_existing_profile_env(self, profile_env):
         tmp_path = profile_env
@@ -874,14 +876,14 @@ class TestWrapperScript:
 
     def test_creates_sh_on_posix(self, profile_env, monkeypatch):
         monkeypatch.setattr("sys.platform", "darwin")
-        monkeypatch.setattr("freeide_cli.profiles.shutil.which", lambda name: "/opt/freeide/bin/freeide")
+        monkeypatch.setattr("freeide_cli.profiles.shutil.which", lambda name: "/opt/jettstui/bin/freeide")
         from freeide_cli.profiles import create_wrapper_script
         wrapper = create_wrapper_script("mybot")
         assert wrapper is not None
         assert wrapper.name == "mybot"
         content = wrapper.read_text()
         assert content.startswith("#!/bin/sh")
-        assert "exec /opt/freeide/bin/freeide -p mybot" in content
+        assert "exec /opt/jettstui/bin/freeide -p mybot" in content
 
     def test_creates_bat_on_windows(self, profile_env, monkeypatch):
         monkeypatch.setattr("sys.platform", "win32")
@@ -891,7 +893,7 @@ class TestWrapperScript:
         assert wrapper.name == "mybot.bat"
         content = wrapper.read_text()
         assert "@echo off" in content
-        assert "freeide -p mybot" in content
+        assert "jetts-tui -p mybot" in content
         assert "%*" in content
 
     def test_remove_finds_bat_on_windows(self, profile_env, monkeypatch):
@@ -928,7 +930,7 @@ class TestWrapperScript:
         assert wrapper.name == "rq"
         content = wrapper.read_text()
         assert content.startswith("#!/bin/sh")
-        assert "freeide -p redqueen" in content
+        assert "jetts-tui -p redqueen" in content
 
     def test_custom_alias_target_on_windows(self, profile_env, monkeypatch):
         # Regression: custom-name aliases must still produce an executable
@@ -940,7 +942,7 @@ class TestWrapperScript:
         assert wrapper.name == "rq.bat"
         content = wrapper.read_text()
         assert "@echo off" in content
-        assert "freeide -p redqueen" in content
+        assert "jetts-tui -p redqueen" in content
         assert "%*" in content
         assert "#!/bin/sh" not in content
 
@@ -989,7 +991,7 @@ class TestWrapperScriptSecurity:
         wrapper = create_wrapper_script("mybot", target="coder")
         assert wrapper is not None
         assert wrapper.resolve().is_relative_to(_get_wrapper_dir().resolve())
-        assert 'freeide -p coder "$@"' in wrapper.read_text()
+        assert 'jetts-tui -p coder "$@"' in wrapper.read_text()
 
 
 # ===================================================================
@@ -1420,6 +1422,7 @@ class TestExportImport:
         assert not any("x11-dev" in n for n in names)
         assert not any("libXi.so" in n for n in names)
 
+    @pytest.mark.skipif(os.name == "nt", reason="Windows test account cannot create symlinks")
     def test_export_default_handles_broken_symlinks(self, profile_env, tmp_path):
         """Broken symlinks inside allowed artifacts are preserved, not crashed (#58394).
 

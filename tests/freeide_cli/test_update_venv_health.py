@@ -59,7 +59,9 @@ def test_venv_health_missing_venv_unhealthy_with_interrupted_marker(tmp_path):
     assert "venv python missing" in detail
 
 
-def _fake_venv_python(tmp_path, *, windows: bool = False):
+def _fake_venv_python(tmp_path, *, windows: bool | None = None):
+    if windows is None:
+        windows = cli_main._is_windows()
     bin_dir = tmp_path / "venv" / ("Scripts" if windows else "bin")
     bin_dir.mkdir(parents=True)
     py = bin_dir / ("python.exe" if windows else "python")

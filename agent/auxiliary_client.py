@@ -605,15 +605,6 @@ _PROVIDERS_WITHOUT_VISION: frozenset = frozenset({
     "kimi-coding-cn",
 })
 
-# OpenRouter app attribution headers (base — always sent).
-# `X-Title` is the canonical attribution header OpenRouter's dashboard
-# reads; the previous `X-OpenRouter-Title` label was not recognized there.
-_OR_HEADERS_BASE = {
-    "HTTP-Referer": "https://freeide-agent.freeide.dev",
-    "X-Title": "FreeIDE Agent",
-    "X-OpenRouter-Categories": "productivity,cli-agent",
-}
-
 # Truthy values for boolean env-var parsing.
 _TRUTHY_ENV_VALUES = frozenset({"1", "true", "yes", "on"})
 
@@ -674,7 +665,9 @@ def build_or_headers(or_config: dict | None = None) -> dict:
     *or_config* is the ``openrouter`` section from config.yaml.  When *None*,
     falls back to reading config from disk via ``load_config()``.
     """
-    headers = dict(_OR_HEADERS_BASE)
+    # Do not identify this app to third parties unless the user explicitly
+    # supplies attribution headers through model.default_headers/extra_headers.
+    headers: dict[str, str] = {}
 
     # Resolve config from disk if not provided.
     if or_config is None:

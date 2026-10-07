@@ -9,6 +9,7 @@ covered in ``test_shell_hooks_consent.py``.
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -257,6 +258,7 @@ class TestMatcher:
 # ── End-to-end subprocess behaviour ───────────────────────────────────────
 
 
+@pytest.mark.skipif(shell_hooks.IS_WINDOWS, reason="POSIX .sh hooks require an explicit Bash interpreter on Windows")
 class TestCallbackSubprocess:
     def test_timeout_returns_none(self, tmp_path):
         # Script that sleeps forever; we set a 1s timeout.
@@ -453,6 +455,23 @@ class TestCallbackSubprocess:
 
 
 # ── config parsing ────────────────────────────────────────────────────────
+
+
+@pytest.mark.skipif(not shell_hooks.IS_WINDOWS, reason="Windows subprocess smoke")
+def test_windows_python_hook_runs_with_explicit_interpreter(tmp_path):
+    script = tmp_path / "hook with spaces.py"
+    script.write_text(
+        "import json, sys\n"
+        "payload = json.load(sys.stdin)\n"
+        "print(json.dumps({'decision': 'block', 'reason': payload['tool_name']}))\n",
+        encoding="utf-8",
+    )
+    spec = shell_hooks.ShellHookSpec(
+        event="pre_tool_call", command=f'"{sys.executable}" "{script}"',
+    )
+    assert shell_hooks._make_callback(spec)(tool_name="terminal") == {
+        "action": "block", "message": "terminal",
+    }
 
 
 class TestParseHooksBlock:
@@ -695,7 +714,7 @@ class TestAllowlistConcurrency:
 
         # Flip +x; bare invocation is now runnable too.
         script.chmod(0o755)
-        assert shell_hooks.script_is_executable(str(script))
+        assert shell_hooks.script_is_executable(str(script)) is (not shell_hooks.IS_WINDOWS)
 
     def test_command_script_path_resolution(self):
         """Regression: ``_command_script_path`` used to return the first

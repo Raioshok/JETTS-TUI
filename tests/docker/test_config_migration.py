@@ -1,7 +1,7 @@
 """Runtime smoke test for Docker config-schema migration on boot.
 
 Build the real image and verify: a config.yaml present in $FREEIDE_HOME
-is migrated by docker_config_migrate.py on boot, running as the freeide
+is migrated by docker_config_migrate.py on boot, running as the jettstui
 user.
 """
 from __future__ import annotations
@@ -13,7 +13,7 @@ def test_config_migration_runs_on_boot(
     built_image: str, container_name: str,
 ) -> None:
     """A config.yaml in $FREEIDE_HOME must be migrated on boot by
-    docker_config_migrate.py, running as the freeide user."""
+    docker_config_migrate.py, running as the jettstui user."""
     # Start container
     start_container(built_image, container_name)
 
@@ -30,7 +30,7 @@ def test_config_migration_runs_on_boot(
     # Verify the migration script exists in the image
     r = docker_exec_sh(
         container_name,
-        "test -f /opt/freeide/scripts/docker_config_migrate.py && "
+        "test -f /opt/jettstui/scripts/docker_config_migrate.py && "
         "echo SCRIPT_EXISTS || echo SCRIPT_MISSING",
         timeout=10,
     )
@@ -38,14 +38,14 @@ def test_config_migration_runs_on_boot(
         f"docker_config_migrate.py not found in image: {r.stdout}"
     )
 
-    # Verify config.yaml is owned by freeide (migration ran as freeide)
+    # Verify config.yaml is owned by jettstui (migration ran as jettstui)
     r = docker_exec_sh(
         container_name,
         'stat -c "%U" /opt/data/config.yaml',
         timeout=10,
     )
-    assert r.stdout.strip() == "freeide", (
-        f"config.yaml not owned by freeide (migration may have run as root): "
+    assert r.stdout.strip() == "jettstui", (
+        f"config.yaml not owned by jettstui (migration may have run as root): "
         f"{r.stdout.strip()}"
     )
 

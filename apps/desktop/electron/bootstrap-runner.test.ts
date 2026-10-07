@@ -12,6 +12,7 @@ import {
   hasExistingGitCheckout,
   installedAgentInstallScript,
   installRefForStamp,
+  installScriptUrl,
   isPinnedCommit,
   resolveInstallScript,
   resolveMarkerPinnedCommit,
@@ -55,16 +56,35 @@ test('installedAgentInstallScript resolves the installer in the agent checkout',
   try {
     assert.equal(installedAgentInstallScript(home), null, 'absent before the checkout exists')
 
-    const scriptsDir = path.join(home, 'freeide-agent', 'scripts')
+    const scriptsDir = path.join(home, 'jettstui', 'scripts')
     fs.mkdirSync(scriptsDir, { recursive: true })
     const scriptPath = path.join(scriptsDir, SCRIPT_NAME)
     fs.writeFileSync(scriptPath, '#!/bin/sh\necho hi\n')
 
     assert.equal(installedAgentInstallScript(home), scriptPath)
+    const legacyDir = path.join(home, 'freeide-agent', 'scripts')
+    fs.mkdirSync(legacyDir, { recursive: true })
+    const legacyScript = path.join(legacyDir, SCRIPT_NAME)
+    fs.writeFileSync(legacyScript, '#!/bin/sh\necho legacy\n')
+    assert.equal(installedAgentInstallScript(home), scriptPath, 'prefer the branded checkout')
+    fs.rmSync(scriptPath)
+    assert.equal(installedAgentInstallScript(home), legacyScript, 'retain legacy checkout support')
     assert.equal(installedAgentInstallScript(null), null, 'null home -> null')
   } finally {
     fs.rmSync(home, { recursive: true, force: true })
   }
+})
+
+test('packaged bootstrap fetches the installer from the Jetts-TUI repository', () => {
+  const commit = 'a'.repeat(40)
+  assert.equal(
+    installScriptUrl(commit),
+    `https://raw.githubusercontent.com/Raioshok/JETTS-TUI/${commit}/scripts/${SCRIPT_NAME}`
+  )
+  assert.equal(
+    installScriptUrl('release/next'),
+    `https://raw.githubusercontent.com/Raioshok/JETTS-TUI/release%2Fnext/scripts/${SCRIPT_NAME}`
+  )
 })
 
 test('existing checkout detection requires git metadata', () => {

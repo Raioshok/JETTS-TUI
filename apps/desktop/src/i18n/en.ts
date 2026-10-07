@@ -602,37 +602,6 @@ export const en: Translations = {
       remoteTitle: 'Remote gateway',
       remoteDesc: 'Connect this desktop shell to a remote Jetts-TUI backend.',
       remoteAuthHint: 'Hosted gateways use OAuth or a username and password; self-hosted ones may use a session token.',
-      cloudTitle: 'FreeIDE Cloud',
-      cloudDesc: 'Sign in once to FreeIDE Cloud and pick from the agents on your account — no URL to paste.',
-      cloudSignInTitle: 'FreeIDE Cloud',
-      cloudSignIn: 'Sign in to FreeIDE Cloud',
-      cloudSignedIn: 'Signed in to FreeIDE Cloud',
-      cloudNeedsSignIn: 'Sign in to FreeIDE Cloud to discover the agents on your account.',
-      cloudSignedInDesc: 'You are signed in. Pick an agent below; the session refreshes automatically.',
-      cloudAgentsTitle: 'Your agents',
-      cloudOrgPickerTitle: 'Choose an organization',
-      cloudOrgSelect: 'Select',
-      cloudOrgChange: 'Change org',
-      cloudOrgRole: role => `Role: ${role}`,
-      cloudLoadingAgents: 'Loading your agents…',
-      cloudNoAgents: {
-        before: 'No agents found on this account. Create one in the ',
-        linkText: 'Jetts-TUI portal',
-        after: ', then refresh.'
-      },
-      cloudRefresh: 'Refresh',
-      cloudConnect: 'Connect',
-      cloudConnecting: 'Connecting…',
-      cloudDiscoverFailed: 'Could not load your FreeIDE Cloud agents',
-      cloudConnectFailed: 'Could not connect to that agent',
-      cloudSignInFailed: 'FreeIDE Cloud sign-in failed',
-      cloudSignedOutTitle: 'Signed out of FreeIDE Cloud',
-      cloudSignedOutMessage: 'Cleared the FreeIDE Cloud session.',
-      cloudConnectedTitle: 'Connected',
-      cloudConnectedPill: 'Connected',
-      cloudConnectedTo: name => `Connected to ${name}.`,
-      cloudAgentProvisioning: 'Provisioning…',
-      cloudStatusLabel: status => `Status: ${status}`,
       remoteUrlTitle: 'Remote URL',
       remoteUrlDesc: 'Base URL for the remote dashboard backend. Path prefixes are supported, for example /freeide.',
       probing: 'Checking how this gateway authenticates…',
@@ -709,7 +678,7 @@ export const en: Translations = {
       sshErrHostKey:
         'The host key has CHANGED since you last connected. Verify this is expected, then run ssh-keygen -R <host> and reconnect.',
       sshErrNotInstalled:
-        'Jetts-TUI is not installed on the remote host. Install it there (curl -fsSL https://freeide-agent.freeide.dev/install.sh | sh) or set the Jetts-TUI path.',
+        'Jetts-TUI is not installed on the remote host. Install it there (curl -fsSL https://raw.githubusercontent.com/Raioshok/JETTS-TUI/main/scripts/install.sh | bash) or set the Jetts-TUI path.',
       sshErrPlatform:
         'Unsupported remote platform. Jetts-TUI Desktop SSH mode supports Linux, macOS, and Windows remote hosts.',
       sshErrTimeout: 'SSH connection timed out. The host may be unreachable or asleep.',
@@ -901,14 +870,8 @@ export const en: Translations = {
       ready: 'Ready',
       needsSignIn: 'Needs sign-in',
       needsSetup: 'Needs setup',
-      nousIncluded: 'Included with a Jetts-TUI subscription — sign in to FreeIDE Portal to activate.',
-      nousAuthNeededTitle: 'Sign in to FreeIDE Portal',
-      nousAuthNeededMessage: provider => `${provider} is saved but won't activate until you sign in to FreeIDE Portal.`,
-      nousAuthSignIn: 'Sign in',
-      nousAuthDoneTitle: 'FreeIDE Portal connected',
-      nousAuthDoneMessage: 'Your subscription backends are now active.',
-      nousAuthFailed: 'FreeIDE Portal sign-in did not complete',
       noApiKeyRequired: 'No API key required.',
+      legacyHostedUnavailable: 'This hosted provider is no longer available. Choose a provider with your own API key.',
       postSetupHint: step =>
         `This backend needs a one-time install (${step}). Runs on this machine — may take a few minutes.`,
       postSetupInstalledHint: 'Installed. Re-run setup only if something is broken.',
@@ -2135,7 +2098,8 @@ export const en: Translations = {
     maybeLater: 'Maybe later',
     moreChanges: count => `+ ${count} more change${count === 1 ? '' : 's'} included.`,
     manualTitle: 'Update from your terminal',
-    manualBody: 'You installed Jetts-TUI from the command line, so updates run there too. Paste this into your terminal:',
+    manualBody:
+      'You installed Jetts-TUI from the command line, so updates run there too. Paste this into your terminal:',
     manualPickedUp: 'Jetts-TUI will pick up the new version next time you launch it.',
     guiSkewTitle: 'Update the desktop app',
     guiSkewBody:
@@ -2187,7 +2151,8 @@ export const en: Translations = {
     installLocalDesc: 'Download Jetts-TUI, create its Python environment, and run the backend on this computer.',
     localStartUnavailable: 'Local installation could not start. Restart Jetts-TUI Desktop and try again.',
     remoteSetupTitle: 'Connect to existing Jetts-TUI',
-    remoteSetupDesc: 'Enter your gateway URL. Jetts-TUI Desktop will detect whether it needs a token or browser sign-in.',
+    remoteSetupDesc:
+      'Enter your gateway URL. Jetts-TUI Desktop will detect whether it needs a token or browser sign-in.',
     remoteUrlTitle: 'Gateway URL',
     remoteUrlDesc: 'Use the base URL of the Jetts-TUI gateway, including https:// when remote.',
     remoteUrlPlaceholder: 'https://gateway.example.com/freeide',
@@ -2246,7 +2211,6 @@ export const en: Translations = {
     chooseLater: "I'll choose a provider later",
     recommended: 'Recommended',
     connected: 'Connected',
-    featuredPitch: 'One subscription, 300+ frontier models — the recommended way to run Jetts-TUI',
     fireworksPitch: 'Direct model API — Fireworks-hosted frontier models',
     openRouterPitch: 'One key, hundreds of models — a solid default',
     apiKeyOptions: {
@@ -2263,7 +2227,8 @@ export const en: Translations = {
       xai: { short: 'Grok models', description: 'Direct access to xAI Grok models.' },
       local: {
         short: 'self-hosted',
-        description: 'Point Jetts-TUI at a local or self-hosted OpenAI-compatible endpoint (vLLM, llama.cpp, Ollama, etc).'
+        description:
+          'Point Jetts-TUI at a local or self-hosted OpenAI-compatible endpoint (vLLM, llama.cpp, Ollama, etc).'
       }
     },
     backToSignIn: 'Back to sign in',
@@ -2398,8 +2363,6 @@ export const en: Translations = {
       clientLabel: version => `client v${version}`,
       connectionSsh: host => `SSH: ${host}`,
       connectionRemote: host => `Remote: ${host}`,
-      connectionCloud: host => `Cloud: ${host}`,
-      connectionCloudTooltip: host => `FreeIDE Cloud · ${host}`,
       connectionSshTooltip: host => `SSH · ${host}`,
       connectionRemoteTooltip: host => `Remote · ${host}`,
       backendLabel: version => `backend v${version}`,

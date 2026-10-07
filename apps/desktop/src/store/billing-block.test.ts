@@ -81,6 +81,6 @@ test('requestBillingSettings increments the intent counter', () => {
 
 test('billingCtaLabel picks the right verb per route', () => {
   const copy = { addCredits: 'Add credits', openBilling: 'Open billing' }
-  expect(billingCtaLabel(makeBlock({ is_nous: true }), copy)).toBe('Open billing')
+  expect(billingCtaLabel(makeBlock({ is_nous: true }), copy)).toBe('Choose provider')
   expect(billingCtaLabel(makeBlock({ is_nous: false }), copy)).toBe('Add credits')
 })

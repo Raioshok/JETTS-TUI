@@ -95,12 +95,12 @@ def test_validate_critical_files_syntax_ok_when_all_files_parse(tmp_path):
 
 def test_validate_critical_files_syntax_detects_conflict_markers(tmp_path):
     """The exact PR #28452 failure mode: orphan ``<<<<<<<`` in config.py."""
-    _populate_critical_tree(tmp_path, broken_file="freeide_cli/config.py")
+    _populate_critical_tree(tmp_path, broken_file="jettstui/config.py")
 
     ok, failing_path, error = freeide_main._validate_critical_files_syntax(tmp_path)
 
     assert ok is False
-    assert failing_path is not None and failing_path.endswith("freeide_cli/config.py")
+    assert failing_path is not None and Path(failing_path).parts[-2:] == ("jettstui", "config.py")
     assert error is not None
     # The error mentions either the syntax error itself or the file path —
     # either is enough proof we caught the bad commit.
@@ -108,21 +108,21 @@ def test_validate_critical_files_syntax_detects_conflict_markers(tmp_path):
 
 
 def test_validate_critical_files_syntax_detects_break_in_main_py(tmp_path):
-    _populate_critical_tree(tmp_path, broken_file="freeide_cli/main.py")
+    _populate_critical_tree(tmp_path, broken_file="jettstui/main.py")
 
     ok, failing_path, _ = freeide_main._validate_critical_files_syntax(tmp_path)
 
     assert ok is False
-    assert failing_path is not None and failing_path.endswith("freeide_cli/main.py")
+    assert failing_path is not None and Path(failing_path).parts[-2:] == ("jettstui", "main.py")
 
 
 def test_validate_critical_files_syntax_detects_break_in_web_server(tmp_path):
-    _populate_critical_tree(tmp_path, broken_file="freeide_cli/web_server.py")
+    _populate_critical_tree(tmp_path, broken_file="jettstui/web_server.py")
 
     ok, failing_path, _ = freeide_main._validate_critical_files_syntax(tmp_path)
 
     assert ok is False
-    assert failing_path is not None and failing_path.endswith("freeide_cli/web_server.py")
+    assert failing_path is not None and Path(failing_path).parts[-2:] == ("jettstui", "web_server.py")
 
 
 def test_validate_critical_files_syntax_tolerates_missing_files(tmp_path):

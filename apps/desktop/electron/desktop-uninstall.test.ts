@@ -102,7 +102,7 @@ test('resolveRemovableAppPath uses APPIMAGE on Linux when set', () => {
 })
 
 test('resolveRemovableAppPath finds the unpacked dir on Linux', () => {
-  assert.equal(resolveRemovableAppPath('/opt/freeide/linux-unpacked/freeide', 'linux', {}), '/opt/freeide/linux-unpacked')
+  assert.equal(resolveRemovableAppPath('/opt/jettstui/linux-unpacked/freeide', 'linux', {}), '/opt/jettstui/linux-unpacked')
   // A system-package install (/usr/bin) → null, left to apt/dnf.
   assert.equal(resolveRemovableAppPath('/usr/bin/freeide', 'linux', {}), null)
 })
@@ -130,7 +130,7 @@ test('buildPosixCleanupScript waits for the PID, runs the uninstall module, remo
     pythonPath: null,
     agentRoot: '/home/x/.freeide/freeide-agent',
     uninstallArgs: ['-m', 'freeide_cli.uninstall', '--mode', 'gui'],
-    appPath: '/opt/freeide/linux-unpacked',
+    appPath: '/opt/jettstui/linux-unpacked',
     freeideHome: '/home/x/.freeide'
   })
 
@@ -140,7 +140,7 @@ test('buildPosixCleanupScript waits for the PID, runs the uninstall module, remo
   // bounded wait (~30s), not unbounded
   assert.match(script, /seq 1 60/)
   assert.match(script, /'-m' 'freeide_cli\.uninstall' '--mode' 'gui'/)
-  assert.match(script, /rm -rf '\/opt\/freeide\/linux-unpacked'/)
+  assert.match(script, /rm -rf '\/opt\/jettstui\/linux-unpacked'/)
   assert.match(script, /export FREEIDE_HOME='\/home\/x\/\.freeide'/)
 })
 

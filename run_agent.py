@@ -6397,7 +6397,7 @@ class AIAgent:
         # build a throwaway agent), and partial head compression — call this
         # forwarder directly, outside ``run_conversation``'s ambient scope.
         # With nothing ambient the summarizer's auxiliary call carries no
-        # conversation tag and no sticky routing key, so it routes independently
+        # sticky routing key, so it routes independently
         # of the conversation it belongs to. Publish the root here as a
         # fallback; in-turn callers already have it set to the same value, so
         # this is a no-op for them.
@@ -6652,11 +6652,9 @@ class AIAgent:
         )
         from agent.subagent_lifecycle import bind_subagent_parent
 
-        # Publish the conversation id for ambient conversation tagging. Every
-        # LLM call made inside this turn — main loop, compression, vision,
-        # web_extract, session_search, MoA slots, background-review forks
-        # (which copy this Context into their thread) — inherits the
-        # ``conversation=<root>`` tag with zero per-call-site plumbing.
+        # Publish the root conversation ID for provider cache-affinity. Calls
+        # made in this turn and copied worker contexts use the same routing key
+        # without adding product-attribution tags to outbound requests.
         token = set_conversation_context(self._conversation_root_id())
         # Publish the session accounting handles the same way so auxiliary
         # calls record their token usage into session_model_usage (task

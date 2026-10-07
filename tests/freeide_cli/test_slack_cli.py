@@ -345,7 +345,7 @@ class TestSlackFullManifest:
         )
 
         assert manifest["features"]["agent_view"] == {
-            "agent_description": "Chat with FreeIDE in Slack Messages.",
+            "agent_description": "Chat with Jetts-TUI in Slack Messages.",
         }
         assert "assistant_view" not in manifest["features"]
         assert "assistant:write" in manifest["oauth_config"]["scopes"]["bot"]

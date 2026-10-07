@@ -464,7 +464,7 @@ class WhatsAppBehaviorMixin:
 def resolve_whatsapp_bridge_dir() -> Path:
     """Resolve the WhatsApp bridge directory, mirroring to FREEIDE_HOME if needed.
 
-    When the install tree is read-only (e.g., Docker /opt/freeide), this function
+    When the install tree is read-only (e.g., Docker /opt/jettstui), this function
     mirrors the bridge source to a writable FREEIDE_HOME location and returns that
     path. This ensures npm install works in Docker environments.
 

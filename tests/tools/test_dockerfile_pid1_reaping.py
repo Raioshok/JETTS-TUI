@@ -207,7 +207,7 @@ def test_dockerfile_preinstalls_hindsight_memory_dependency(dockerfile_text):
     assert any("--extra hindsight" in step for step in sync_steps), (
         "Published Docker images must preload the [hindsight] extra so the "
         "native Hindsight memory provider's client (hindsight-client) is baked "
-        "into /opt/freeide/.venv. It lazy-installs into the image layer (not the "
+        "into /opt/jettstui/.venv. It lazy-installs into the image layer (not the "
         "mounted /opt/data volume), so without baking it in recall/retain fails "
         "with `ModuleNotFoundError: No module named 'hindsight_client'` after "
         "every container recreate / image update (#38128)."

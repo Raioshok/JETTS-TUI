@@ -2938,7 +2938,7 @@ class Migrator:
         if has_cron_config_archive:
             notes.append("- Run `freeide cron` to recreate scheduled tasks (see archive/cron-config.json)")
         elif has_cron_store_archive:
-            notes.append("- Run `freeide cron` to recreate scheduled tasks (see archived cron-store)")
+            notes.append("- Run `jetts-tui cron` to recreate scheduled tasks (see archived cron-store)")
 
         # Check if skills were imported
         has_skills = any(i.kind == "skills" and i.status == "migrated" for i in self.items)
@@ -2980,10 +2980,30 @@ class Migrator:
             )
 
 
+def _default_target_home() -> str:
+    """Use the runtime's migrated home when this helper runs standalone."""
+    configured = os.environ.get("FREEIDE_HOME", "").strip()
+    if configured:
+        return configured
+    try:
+        from freeide_constants import get_freeide_home
+
+        return str(get_freeide_home())
+    except ImportError:
+        # The skill can be copied without the Python runtime. Avoid creating
+        # a new empty home beside existing data in that standalone case.
+        if os.name == "nt":
+            base = Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local")
+            new, old = base / "jettstui", base / "freeide"
+        else:
+            new, old = Path.home() / ".jettstui", Path.home() / ".freeide"
+        return str(new if new.exists() or not old.exists() else old)
+
+
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description="Migrate OpenClaw user state into FreeIDE Agent.")
     parser.add_argument("--source", default=str(Path.home() / ".openclaw"), help="OpenClaw home directory")
-    parser.add_argument("--target", default=os.environ.get("FREEIDE_HOME") or str(Path.home() / ".freeide"), help="FreeIDE home directory")
+    parser.add_argument("--target", default=_default_target_home(), help="Jetts-TUI home directory")
     parser.add_argument(
         "--workspace-target",
         help="Optional workspace root where the workspace instructions file should be copied",

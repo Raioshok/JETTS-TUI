@@ -56,31 +56,24 @@ afterEach(() => {
 })
 
 describe('onboarding Picker', () => {
-  it('features FreeIDE Portal and hides other providers behind a disclosure', () => {
+  it('omits retired Portal sign-in and shows real providers directly', () => {
     setProviders([provider('anthropic', 'Anthropic Claude'), provider('nous', 'FreeIDE Portal')])
     render(<Picker ctx={ctx} />)
 
-    expect(screen.getByText('FreeIDE Portal')).toBeTruthy()
-    expect(screen.getByText('Recommended')).toBeTruthy()
-    // Fireworks is the always-visible #2 slot (after FreeIDE), even while OAuth
-    // alternatives stay collapsed behind the disclosure.
+    expect(screen.queryByText('FreeIDE Portal')).toBeNull()
+    expect(screen.queryByText('Recommended')).toBeNull()
     expect(screen.getByText('Fireworks AI')).toBeTruthy()
-    expect(screen.queryByText('Anthropic API Key')).toBeNull()
-
-    fireEvent.click(screen.getByRole('button', { name: 'Other providers' }))
-
+    expect(screen.getByText('OpenRouter')).toBeTruthy()
     expect(screen.getByText('Anthropic API Key')).toBeTruthy()
-    expect(screen.getByRole('button', { name: 'Collapse' })).toBeTruthy()
   })
 
-  it('shows Fireworks in slot #2 ahead of other OAuth providers', () => {
+  it('shows key providers before the remaining sorted OAuth providers', () => {
     setProviders([
       provider('openai-codex', 'OpenAI Codex / ChatGPT'),
       provider('minimax-oauth', 'MiniMax'),
       provider('nous', 'FreeIDE Portal')
     ])
     render(<Picker ctx={ctx} />)
-    fireEvent.click(screen.getByRole('button', { name: 'Other providers' }))
 
     const labels = screen
       .getAllByRole('button')
@@ -88,9 +81,10 @@ describe('onboarding Picker', () => {
       .filter(text => /FreeIDE Portal|Fireworks AI|OpenAI OAuth|MiniMax|OpenRouter/.test(text))
 
     const indexOf = (needle: string) => labels.findIndex(text => text.includes(needle))
-    expect(indexOf('FreeIDE Portal')).toBeGreaterThanOrEqual(0)
-    expect(indexOf('Fireworks AI')).toBeGreaterThan(indexOf('FreeIDE Portal'))
-    expect(indexOf('OpenAI OAuth')).toBeGreaterThan(indexOf('Fireworks AI'))
+    expect(indexOf('FreeIDE Portal')).toBe(-1)
+    expect(indexOf('Fireworks AI')).toBeGreaterThanOrEqual(0)
+    expect(indexOf('OpenRouter')).toBeGreaterThan(indexOf('Fireworks AI'))
+    expect(indexOf('OpenAI OAuth')).toBeGreaterThan(indexOf('OpenRouter'))
     expect(indexOf('MiniMax')).toBeGreaterThan(indexOf('OpenAI OAuth'))
   })
 

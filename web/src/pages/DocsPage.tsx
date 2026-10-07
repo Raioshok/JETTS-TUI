@@ -1,11 +1,21 @@
 import { useLayoutEffect } from "react";
-import { ExternalLink } from "lucide-react";
+import { ArrowUpRight, BookOpen, ExternalLink } from "lucide-react";
 import { useI18n } from "@/i18n";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { cn } from "@/lib/utils";
 import { PluginSlot } from "@/plugins";
 
-export const FREEIDE_DOCS_URL = "https://freeide-agent.freeide.dev/docs/";
+export const JETTS_TUI_DOCS_URL =
+  "https://github.com/Raioshok/JETTS-TUI/tree/main/docs";
+
+export const DOCS_LINKS = [
+  { label: "Installation", path: "getting-started/installation.md" },
+  { label: "Quickstart", path: "getting-started/quickstart.md" },
+  { label: "Terminal UI", path: "user-guide/tui.md" },
+  { label: "Configuration", path: "user-guide/configuration.md" },
+  { label: "Messaging", path: "user-guide/messaging/index.md" },
+  { label: "Integrations", path: "integrations/index.md" },
+] as const;
 
 const DS_BUTTON_OUTLINED_LINK_CN = cn(
   "group relative inline-grid grid-cols-[auto_1fr_auto] items-center",
@@ -22,7 +32,7 @@ export default function DocsPage() {
   useLayoutEffect(() => {
     setEnd(
       <a
-        href={FREEIDE_DOCS_URL}
+        href={JETTS_TUI_DOCS_URL}
         target="_blank"
         rel="noopener noreferrer"
         className={DS_BUTTON_OUTLINED_LINK_CN}
@@ -31,38 +41,35 @@ export default function DocsPage() {
         {t.app.openDocumentation}
       </a>,
     );
-    return () => {
-      setEnd(null);
-    };
+    return () => setEnd(null);
   }, [setEnd, t]);
 
   return (
-    <div
-      className={cn(
-        "flex min-h-0 w-full min-w-0 flex-1 flex-col",
-        "pt-1 sm:pt-2",
-      )}
-    >
+    <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-y-auto px-4 py-6 sm:px-8">
       <PluginSlot name="docs:top" />
-      <iframe
-        title={t.app.nav.documentation}
-        src={FREEIDE_DOCS_URL}
-        className={cn(
-          "min-h-0 w-full min-w-0 flex-1",
-          "rounded-sm border border-current/20",
-          // Docusaurus paints over a transparent <html> / <body> and
-          // relies on the browser's canvas color (light by default) to
-          // fill the viewport. Inheriting the dashboard's dark color
-          // scheme makes that canvas dark, so the docs body text — which
-          // is tuned for a light canvas — becomes near-invisible. Force a
-          // light color scheme + white background on the iframe element so
-          // the docs render cleanly regardless of the active dashboard
-          // theme or the user's prefers-color-scheme.
-          "[color-scheme:light] bg-white",
-        )}
-        sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-        referrerPolicy="no-referrer-when-downgrade"
-      />
+      <div className="mx-auto w-full max-w-3xl space-y-6">
+        <div className="flex items-start gap-4 rounded-sm border border-current/20 p-5">
+          <BookOpen className="mt-0.5 size-6 shrink-0" aria-hidden="true" />
+          <h1 className="min-w-0 text-lg font-semibold">{t.app.nav.documentation}</h1>
+        </div>
+        <div className="grid gap-3 sm:grid-cols-2">
+          {DOCS_LINKS.map(({ label, path }) => (
+            <a
+              key={path}
+              href={`https://github.com/Raioshok/JETTS-TUI/blob/main/docs/${path}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="group flex min-h-14 items-center justify-between gap-3 rounded-sm border border-current/20 px-4 py-3 transition-colors hover:bg-current/5 focus-visible:outline-2 focus-visible:outline-offset-2"
+            >
+              <span className="font-medium">{label}</span>
+              <ArrowUpRight
+                className="size-4 shrink-0 text-midground transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
+                aria-hidden="true"
+              />
+            </a>
+          ))}
+        </div>
+      </div>
       <PluginSlot name="docs:bottom" />
     </div>
   );

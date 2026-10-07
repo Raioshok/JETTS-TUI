@@ -29,15 +29,17 @@ def server():
     }):
         import importlib
         mod = importlib.import_module("tui_gateway.server")
+        methods_before = mod._methods.copy()
         yield mod
         # Reset module-level session state without re-importing. importlib.reload
         # would re-register the module's atexit hooks (ThreadPoolExecutor
         # shutdown, _shutdown_sessions); the duplicates race the stderr
         # buffer at interpreter shutdown and surface as Fatal Python error:
         # _enter_buffered_busy. Clearing the per-session dicts gives the
-        # next test a clean slate; _methods is NOT cleared because it's
-        # populated at module import time and re-registration only happens
-        # via reload (which we don't do).
+        # next test a clean slate. Restore any test-specific handler overrides
+        # while retaining the import-time method registration.
+        mod._methods.clear()
+        mod._methods.update(methods_before)
         mod._sessions.clear()
         mod._pending.clear()
         mod._answers.clear()
@@ -1520,6 +1522,56 @@ def test_cli_exec_allowed(server, argv):
 
 
 # ── slash.exec skill command interception ────────────────────────────
+
+
+@pytest.mark.parametrize(
+    ("command", "expected_params", "title_result", "expected_output"),
+    [
+        ("title", {"session_id": "title01"}, {"title": "Current", "session_key": "stored01"}, "Session ID: stored01\nTitle: Current"),
+        ("title New name", {"session_id": "title01", "title": "New name"}, {"title": "New name", "pending": False}, "Session title set: New name"),
+        ("title Draft", {"session_id": "title01", "title": "Draft"}, {"title": "Draft", "pending": True}, "Session title set: Draft (queued while session initializes)"),
+    ],
+)
+def test_slash_title_uses_live_session_rpc_without_worker(
+    server, monkeypatch, command, expected_params, title_result, expected_output
+):
+    sid = "title01"
+    server._sessions[sid] = {"session_key": "stored01", "agent": None, "slash_worker": None}
+    calls = []
+
+    def title_rpc(rid, params):
+        calls.append((rid, params))
+        return server._ok(rid, title_result)
+
+    monkeypatch.setitem(server._methods, "session.title", title_rpc)
+    monkeypatch.setattr(server, "_SlashWorker", lambda *_args, **_kwargs: pytest.fail("slash worker started"))
+
+    response = server.handle_request(
+        {"id": "rename", "method": "slash.exec", "params": {"session_id": sid, "command": command}}
+    )
+
+    assert response["result"]["output"] == expected_output
+    assert calls == [("rename", expected_params)]
+
+
+@pytest.mark.parametrize("command", ["model openai/test", "personality concise"])
+def test_busy_slash_mutation_rejected_before_worker(server, monkeypatch, command):
+    sid = "busy01"
+    server._sessions[sid] = {
+        "session_key": sid,
+        "agent": types.SimpleNamespace(model="old/model"),
+        "running": True,
+        "slash_worker": None,
+    }
+    monkeypatch.setattr(server, "_SlashWorker", lambda *_args, **_kwargs: pytest.fail("slash worker started"))
+    monkeypatch.setattr(server, "_session_uses_compute_host", lambda _session: False)
+
+    response = server.handle_request(
+        {"id": "busy", "method": "slash.exec", "params": {"session_id": sid, "command": command}}
+    )
+
+    assert response["error"]["code"] == 4009
+    assert "session busy" in response["error"]["message"]
 
 
 def test_slash_exec_rejects_skill_commands(server):

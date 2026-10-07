@@ -9,7 +9,7 @@ through to ``_tui_need_npm_install`` (which returns True forever) and tries a
 runtime ``npm install`` that can never converge and races itself across
 concurrent /api/pty connections → ENOTEMPTY.
 
-The fix is ``ENV FREEIDE_TUI_DIR=/opt/freeide/ui-tui`` in the Dockerfile, which
+The fix is ``ENV FREEIDE_TUI_DIR=/opt/jettstui/ui-tui`` in the Dockerfile, which
 makes the launcher take the prebuilt-bundle fast path (``node --expose-gc
 .../dist/entry.js``) and skip the install check entirely. These tests assert
 that invariant holds in the built image.
@@ -22,19 +22,19 @@ import subprocess
 
 
 def _exec_py(image: str, py: str) -> str:
-    """Run a Python snippet inside the image as the freeide user, return stdout."""
+    """Run a Python snippet inside the image as the jettstui user, return stdout."""
     inner = (
-        "source /opt/freeide/.venv/bin/activate && "
-        "cd /opt/freeide && "
+        "source /opt/jettstui/.venv/bin/activate && "
+        "cd /opt/jettstui && "
         f"python3 -c {shlex.quote(py)}"
     )
-    # Drop to the freeide user (UID 10000) so we exercise the same path the
+    # Drop to the jettstui user (UID 10000) so we exercise the same path the
     # dashboard PTY child runs as — not root.
     cmd = [
         "docker", "run", "--rm", "--entrypoint", "su", image,
-        "freeide", "-s", "/bin/bash", "-c", inner,
+        "jettstui", "-s", "/bin/bash", "-c", inner,
     ]
-    r = subprocess.run(cmd, capture_output=True, text=True, timeout=120)
+    r = subprocess.run(cmd, capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120)
     assert r.returncode == 0, f"in-container python failed:\n{r.stderr[-2000:]}"
     return r.stdout.strip()
 
@@ -44,11 +44,11 @@ def test_freeide_tui_dir_env_is_set(built_image: str) -> None:
     r = subprocess.run(
         ["docker", "run", "--rm", "--entrypoint", "sh", built_image,
          "-c", 'printf "%s" "$FREEIDE_TUI_DIR"'],
-        capture_output=True, text=True, timeout=60,
+        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60,
     )
     assert r.returncode == 0, r.stderr[-2000:]
-    assert r.stdout.strip() == "/opt/freeide/ui-tui", (
-        f"FREEIDE_TUI_DIR={r.stdout.strip()!r} (expected /opt/freeide/ui-tui)"
+    assert r.stdout.strip() == "/opt/jettstui/ui-tui", (
+        f"FREEIDE_TUI_DIR={r.stdout.strip()!r} (expected /opt/jettstui/ui-tui)"
     )
 
 
@@ -59,7 +59,7 @@ def test_prebuilt_bundle_present_and_no_runtime_install(built_image: str) -> Non
         "import json\n"
         "from pathlib import Path\n"
         "from freeide_cli.main import _tui_need_npm_install, _find_bundled_tui, _make_tui_argv\n"
-        "ui = Path('/opt/freeide/ui-tui')\n"
+        "ui = Path('/opt/jettstui/ui-tui')\n"
         "argv, cwd = _make_tui_argv(ui, tui_dev=False)\n"
         "out = {\n"
         "  'dist_entry_exists': (ui / 'dist' / 'entry.js').is_file(),\n"

@@ -79,6 +79,7 @@ SKIP_DIRS = {
     "skills/",
     "optional-skills/",
     "freeide_cli/",
+    "jettstui/",
     "gateway/",
     "cron/",
 }

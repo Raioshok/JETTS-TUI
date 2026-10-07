@@ -6,7 +6,7 @@ it is restarted under supervision. The restart-after-crash test lives in
 Phase 2 Task 2.5; this file only locks the opt-in surface (which must
 not change between tini and s6).
 
-Every ``docker exec`` here runs as the unprivileged ``freeide`` user
+Every ``docker exec`` here runs as the unprivileged ``jettstui`` user
 (via :func:`docker_exec`/:func:`docker_exec_sh` in conftest), matching
 the realistic runtime context. See the conftest module docstring.
 """
@@ -23,7 +23,7 @@ def test_dashboard_not_running_by_default(
 ) -> None:
     """Without FREEIDE_DASHBOARD, no dashboard process should be running."""
     start_container(built_image, container_name, cmd="sleep 60")
-    r = docker_exec(container_name, "pgrep", "-f", "freeide dashboard")
+    r = docker_exec(container_name, "pgrep", "-f", "jetts-tui dashboard")
     # pgrep exits non-zero when no match found
     assert r.returncode != 0, (
         "Dashboard should not be running without FREEIDE_DASHBOARD"
@@ -35,7 +35,7 @@ def test_dashboard_slot_reports_down_when_disabled(
 ) -> None:
     """Without FREEIDE_DASHBOARD, s6-svstat should report the dashboard
     slot as DOWN (not up-with-sleep-infinity, which would
-    false-positive `freeide doctor` and any other health check).
+    false-positive `jetts-tui doctor` and any other health check).
 
     Locks the PR #30136 review item I3 fix: cont-init.d/03-dashboard-toggle
     writes a `down` marker file in the live service-dir when
@@ -94,7 +94,7 @@ def test_dashboard_opt_in_starts(
     # backgrounds it and bootstrap (skills sync etc.) can take a few
     # seconds before the python process actually launches.
     ok, _ = poll_container(
-        container_name, "pgrep -f 'freeide dashboard'", deadline_s=30.0,
+        container_name, "pgrep -f 'jetts-tui dashboard'", deadline_s=30.0,
     )
     assert ok, "Dashboard should be running with FREEIDE_DASHBOARD=1"
 
@@ -151,7 +151,7 @@ def test_dashboard_restarts_after_crash(
     )
     # Wait for the first dashboard to come up.
     ok, _ = poll_container(
-        container_name, "pgrep -f 'freeide dashboard'", deadline_s=30.0,
+        container_name, "pgrep -f 'jetts-tui dashboard'", deadline_s=30.0,
     )
     assert ok, "Dashboard never started initially"
 
@@ -161,7 +161,7 @@ def test_dashboard_restarts_after_crash(
     first_pid: str | None = None
     for _attempt in range(10):
         first_pid_result = docker_exec(
-            container_name, "pgrep", "-f", "freeide dashboard",
+            container_name, "pgrep", "-f", "jetts-tui dashboard",
         )
         first_pids = first_pid_result.stdout.strip().split()
         if first_pids:
@@ -170,15 +170,15 @@ def test_dashboard_restarts_after_crash(
         time.sleep(0.5)
     assert first_pid is not None, "Could not capture initial dashboard PID"
 
-    # Kill the dashboard. The dashboard process runs as freeide, so the
-    # freeide user can kill it (same UID).
+    # Kill the dashboard. The dashboard process runs as jettstui, so the
+    # jettstui user can kill it (same UID).
     docker_exec(container_name, "kill", "-9", first_pid)
 
     # s6 backs off ~1s before restart; allow up to 15s for the new
     # process to appear with a different PID.
     deadline = time.monotonic() + 15.0
     while time.monotonic() < deadline:
-        r = docker_exec(container_name, "pgrep", "-f", "freeide dashboard")
+        r = docker_exec(container_name, "pgrep", "-f", "jetts-tui dashboard")
         pids = r.stdout.strip().split() if r.returncode == 0 else []
         if pids and pids[0] != first_pid:
             return  # success
@@ -239,7 +239,7 @@ except urllib.error.HTTPError as h:
     # single bash string stays clean. The 'PY' delimiter is quoted to
     # disable shell expansion inside the heredoc body.
     probe = (
-        "/opt/freeide/.venv/bin/python - <<'PY'\n"
+        "/opt/jettstui/.venv/bin/python - <<'PY'\n"
         f"{py_program}"
         "PY"
     )
@@ -264,42 +264,28 @@ except urllib.error.HTTPError as h:
     )
 
 
-def test_dashboard_oauth_gate_engages_on_non_loopback_bind(
+def test_dashboard_auth_gate_engages_on_non_loopback_bind(
     built_image: str, container_name: str,
 ) -> None:
-    """The s6 dashboard run script must NOT auto-add ``--insecure`` when the
-    dashboard binds to ``0.0.0.0``. The OAuth auth gate engages on its own
-    when a ``DashboardAuthProvider`` is registered (the bundled nous
-    provider activates whenever ``FREEIDE_DASHBOARD_OAUTH_CLIENT_ID`` is
-    set).
+    """A public bind must use the configured dashboard auth provider.
 
-    Regression guard for the wildcard-subdomain rollout where every
-    portal-provisioned agent binds ``0.0.0.0`` and relies on the OAuth
-    gate to authenticate browser callers. Before this fix, the run script
-    flipped ``--insecure`` on for any non-loopback bind, which routed
-    ``start_server`` straight back into the legacy ``allow_public=True``
-    branch and disabled the gate every time.
+    The s6 run script must not add ``--insecure`` on ``0.0.0.0``. Use the
+    bundled local password provider so this image test needs no external
+    identity service while still exercising the real auth middleware.
 
     We verify two independent observable consequences of the gate being
     on:
 
-    1. ``/api/auth/providers`` (publicly reachable through the gate so
-       the login page can bootstrap) returns 200 with ``nous`` in the
-       provider list — proves the bundled provider registered.
-    2. ``/api/sessions`` (a gated route under both the legacy
-       ``_SESSION_TOKEN`` middleware and the OAuth gate) returns 401
-       to an unauthenticated caller — proves the OAuth gate is actively
-       intercepting browser traffic. We deliberately probe a gated route
-       here rather than ``/api/status``: status sits in the shared
-       ``PUBLIC_API_PATHS`` allowlist (portal liveness probe target) and
-       responds 200 without a cookie under both gates, so it cannot
-       distinguish "gate on" from "gate off".
+    1. ``/api/auth/providers`` returns 200 with ``basic`` registered.
+    2. ``/api/sessions`` returns 401 without a login cookie.
+    3. ``/api/status`` remains public but reports auth_required=True.
     """
     start_container(
         built_image, container_name,
         "FREEIDE_DASHBOARD=1",
         "FREEIDE_DASHBOARD_HOST=0.0.0.0",
-        "FREEIDE_DASHBOARD_OAUTH_CLIENT_ID=agent:test-instance",
+        "FREEIDE_DASHBOARD_BASIC_AUTH_USERNAME=admin",
+        "FREEIDE_DASHBOARD_BASIC_AUTH_PASSWORD=test-dashboard-pw",
         cmd="sleep 120",
     )
 
@@ -311,36 +297,32 @@ def test_dashboard_oauth_gate_engages_on_non_loopback_bind(
     )
     payload = json.loads(body)
     provider_names = [p.get("name") for p in payload.get("providers", [])]
-    assert "nous" in provider_names, (
-        "Bundled dashboard_auth/nous provider should register when "
-        f"FREEIDE_DASHBOARD_OAUTH_CLIENT_ID is set. Got: {payload!r}"
+    assert "basic" in provider_names, (
+        "Bundled password provider should register when its credentials "
+        f"are configured. Got: {payload!r}"
     )
 
     # (2) A gated route (``/api/sessions``) returns 401 to an
-    #     unauthenticated caller — the OAuth gate is intercepting.
+    #     unauthenticated caller — the auth gate is intercepting.
     status_code, body = _http_probe(container_name, "/api/sessions")
     assert status_code == 401, (
-        "OAuth gate must intercept gated /api/* routes on 0.0.0.0 bind "
+        "Auth gate must intercept gated /api/* routes on 0.0.0.0 bind "
         "when a provider is registered and FREEIDE_DASHBOARD_INSECURE "
         f"is unset. Got: status={status_code} body={body!r}"
     )
 
     # (3) ``/api/status`` remains 200 under the gate — it's in the shared
-    #     ``PUBLIC_API_PATHS`` allowlist so NAS's wildcard-subdomain
-    #     liveness probe (``fly-provider.ts`` ``getInstanceRuntimeStatus``)
-    #     can reach it without a cookie. Regression guard: this allowlist
-    #     drifted once already and surfaced every healthy agent as
-    #     STARTING/down in the portal UI.
+    #     ``PUBLIC_API_PATHS`` allowlist so health checks can reach it
+    #     without a cookie.
     status_code, body = _http_probe(container_name, "/api/status")
     assert status_code == 200, (
-        "/api/status must remain publicly reachable under the OAuth gate "
-        "— the portal uses it as the wildcard-subdomain liveness probe. "
+        "/api/status must remain publicly reachable under the auth gate. "
         f"Got: status={status_code} body={body!r}"
     )
     status = json.loads(body)
     assert status.get("auth_required") is True, (
-        "/api/status must report auth_required=True when the OAuth gate "
-        f"is engaged so the SPA/portal can distinguish modes. Got: {status!r}"
+        "/api/status must report auth_required=True when the auth gate "
+        f"is engaged so the client can distinguish modes. Got: {status!r}"
     )
 
 

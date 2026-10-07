@@ -25,6 +25,8 @@ def oauth_file(monkeypatch, tmp_path):
 
 
 def test_dashboard_oauth_write_uses_owner_only_permissions(oauth_file):
+    if os.name == "nt":
+        pytest.skip("POSIX mode bits do not express Windows file ACLs")
     old_umask = os.umask(0o022)
     try:
         _save_anthropic_oauth_creds('access-token', 'refresh-token', 123456)

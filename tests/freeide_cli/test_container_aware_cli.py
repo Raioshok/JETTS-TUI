@@ -123,7 +123,7 @@ def test_get_container_exec_info_docker_backend(container_env):
         "backend=docker\n"
         "container_name=freeide-custom\n"
         "exec_user=myuser\n"
-        "freeide_bin=/opt/freeide/bin/freeide\n"
+        "freeide_bin=/opt/jettstui/bin/freeide\n"
     )
 
     with patch("freeide_constants.is_container", return_value=False):
@@ -132,7 +132,7 @@ def test_get_container_exec_info_docker_backend(container_env):
     assert info["backend"] == "docker"
     assert info["container_name"] == "freeide-custom"
     assert info["exec_user"] == "myuser"
-    assert info["freeide_bin"] == "/opt/freeide/bin/freeide"
+    assert info["freeide_bin"] == "/opt/jettstui/bin/freeide"
 
 
 def test_get_container_exec_info_crashes_on_permission_error(container_env):

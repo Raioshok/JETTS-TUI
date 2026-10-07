@@ -5432,7 +5432,14 @@ class TestMultiTargetDeliveryContinuesOnFailure:
             fail_future.result.side_effect = ConnectionError("SMTP connection refused")
             ok_future = MagicMock()
             ok_future.result.return_value = {"success": True}
-            mock_pool.submit.side_effect = [fail_future, ok_future]
+            futures = iter((fail_future, ok_future))
+
+            def fake_submit(_runner, coro):
+                # The fake pool never runs submitted work; consume its coroutine.
+                coro.close()
+                return next(futures)
+
+            mock_pool.submit.side_effect = fake_submit
 
             result = _deliver_result(job, "Report content")
 
@@ -5461,7 +5468,12 @@ class TestMultiTargetDeliveryContinuesOnFailure:
 
             fail_future = MagicMock()
             fail_future.result.side_effect = ConnectionError("connection refused")
-            mock_pool.submit.return_value = fail_future
+
+            def fake_submit(_runner, coro):
+                coro.close()
+                return fail_future
+
+            mock_pool.submit.side_effect = fake_submit
 
             result = _deliver_result(job, "Report content")
 

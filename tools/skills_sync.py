@@ -1389,7 +1389,7 @@ def remove_pristine_bundled_skills(dry_run: bool = False) -> dict:
 
 
 if __name__ == "__main__":
-    print("Syncing bundled skills into ~/.freeide/skills/ ...")
+    print(f"Syncing bundled skills into {SKILLS_DIR} ...")
     result = sync_skills(quiet=False)
     parts = [
         f"{len(result['copied'])} new",

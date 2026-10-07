@@ -314,7 +314,7 @@ class TestMigrate:
                          discover_plugins=False,
                          default_permission_profile=None, expose_freeide_tools=False)
         assert report.written
-        text = (tmp_path / "config.toml").read_text()
+        text = (tmp_path / "config.toml").read_text(encoding="utf-8")
         assert MIGRATION_MARKER in text
         assert "no MCP servers" in text or "no MCP servers, plugins, or permissions" in text
 
@@ -324,7 +324,7 @@ class TestMigrate:
         write attempt. This is the fix for quirk #2."""
         report = migrate({}, codex_home=tmp_path, discover_plugins=False, expose_freeide_tools=False)
         assert report.written
-        text = (tmp_path / "config.toml").read_text()
+        text = (tmp_path / "config.toml").read_text(encoding="utf-8")
         # Codex's schema: top-level `default_permissions` keying a built-in
         # profile name (prefixed with ":"). NOT a [permissions] section
         # (which is for *user-defined* profiles with structured fields).
@@ -336,7 +336,7 @@ class TestMigrate:
                          codex_home=tmp_path,
                          discover_plugins=False,
                          default_permission_profile=None, expose_freeide_tools=False)
-        text = (tmp_path / "config.toml").read_text()
+        text = (tmp_path / "config.toml").read_text(encoding="utf-8")
         assert "default_permissions" not in text
         assert "[permissions]" not in text
         assert report.wrote_permissions_default is None
@@ -356,7 +356,7 @@ class TestMigrate:
         monkeypatch.setattr(crpm, "_query_codex_plugins", fake_query)
 
         report = migrate({}, codex_home=tmp_path, discover_plugins=True)
-        text = (tmp_path / "config.toml").read_text()
+        text = (tmp_path / "config.toml").read_text(encoding="utf-8")
         assert '[plugins."github@openai-curated"]' in text
         assert '[plugins."google-calendar@openai-curated"]' in text
         assert "enabled = true" in text
@@ -470,7 +470,7 @@ class TestMigrate:
                             ))
         migrate({}, codex_home=tmp_path, discover_plugins=True,
                 default_permission_profile=None, expose_freeide_tools=False)
-        first = (tmp_path / "config.toml").read_text()
+        first = (tmp_path / "config.toml").read_text(encoding="utf-8")
         assert "github@openai-curated" in first
 
         # Second run: only canva (github went away)
@@ -481,7 +481,7 @@ class TestMigrate:
                             ))
         migrate({}, codex_home=tmp_path, discover_plugins=True,
                 default_permission_profile=None, expose_freeide_tools=False)
-        second = (tmp_path / "config.toml").read_text()
+        second = (tmp_path / "config.toml").read_text(encoding="utf-8")
         assert "github@openai-curated" not in second
         assert "canva@openai-curated" in second
 
@@ -496,7 +496,7 @@ class TestMigrate:
                          discover_plugins=False,
                          default_permission_profile=None,
                          expose_freeide_tools=True)
-        text = (tmp_path / "config.toml").read_text()
+        text = (tmp_path / "config.toml").read_text(encoding="utf-8")
         assert "[mcp_servers.freeide-tools]" in text
         assert "freeide_tools_mcp_server" in text
         # Must include startup + tool timeouts so codex doesn't give up
@@ -511,7 +511,7 @@ class TestMigrate:
                 discover_plugins=False,
                 default_permission_profile=None,
                 expose_freeide_tools=False)
-        text = (tmp_path / "config.toml").read_text()
+        text = (tmp_path / "config.toml").read_text(encoding="utf-8")
         assert "[mcp_servers.freeide-tools]" not in text
         assert "freeide_tools_mcp_server" not in text
 
@@ -537,7 +537,7 @@ class TestMigrate:
         }
         report = migrate(freeide_cfg, codex_home=tmp_path, expose_freeide_tools=False)
         assert report.written
-        text = (tmp_path / "config.toml").read_text()
+        text = (tmp_path / "config.toml").read_text(encoding="utf-8")
         assert "[mcp_servers.filesystem]" in text
         assert "[mcp_servers.github]" in text
         assert 'command = "npx"' in text
@@ -546,11 +546,11 @@ class TestMigrate:
     def test_idempotent_re_run_replaces_managed_block(self, tmp_path):
         # First migration
         migrate({"mcp_servers": {"a": {"command": "x"}}}, codex_home=tmp_path, expose_freeide_tools=False)
-        first_text = (tmp_path / "config.toml").read_text()
+        first_text = (tmp_path / "config.toml").read_text(encoding="utf-8")
         assert "[mcp_servers.a]" in first_text
         # Second migration with different servers
         migrate({"mcp_servers": {"b": {"command": "y"}}}, codex_home=tmp_path, expose_freeide_tools=False)
-        second_text = (tmp_path / "config.toml").read_text()
+        second_text = (tmp_path / "config.toml").read_text(encoding="utf-8")
         assert "[mcp_servers.a]" not in second_text
         assert "[mcp_servers.b]" in second_text
 
@@ -564,7 +564,7 @@ class TestMigrate:
             'api_key = "sk-test"\n'
         )
         migrate({"mcp_servers": {"a": {"command": "x"}}}, codex_home=tmp_path, expose_freeide_tools=False)
-        new_text = target.read_text()
+        new_text = target.read_text(encoding="utf-8")
         # User's codex config preserved
         assert "[model]" in new_text
         assert 'profile = "default"' in new_text
@@ -588,7 +588,7 @@ class TestMigrate:
             "terminal_resize_reflow = true\n"
         )
         migrate({}, codex_home=tmp_path, discover_plugins=False, expose_freeide_tools=False)
-        new_text = target.read_text()
+        new_text = target.read_text(encoding="utf-8")
         parsed = tomllib.loads(new_text)
         assert parsed["default_permissions"] == ":workspace"
         assert "default_permissions" not in parsed["features"]
@@ -609,19 +609,20 @@ class TestMigrate:
         migrate({"mcp_servers": {"freeide-mcp": {"command": "npx"}}},
                 codex_home=tmp_path, discover_plugins=False,
                 expose_freeide_tools=False)
-        text = target.read_text()
+        text = target.read_text(encoding="utf-8")
         assert "user-above" in text, "user MCP server above managed block got nuked"
         assert 'command = "/usr/bin/above-server"' in text
 
         # Append another user entry below the managed block
         target.write_text(
-            text + "\n[mcp_servers.user-below]\ncommand = \"below-server\"\n"
+            text + "\n[mcp_servers.user-below]\ncommand = \"below-server\"\n",
+            encoding="utf-8",
         )
         # Re-migrate — both should survive
         migrate({"mcp_servers": {"freeide-mcp": {"command": "npx"}}},
                 codex_home=tmp_path, discover_plugins=False,
                 expose_freeide_tools=False)
-        final = target.read_text()
+        final = target.read_text(encoding="utf-8")
         assert "user-above" in final
         assert "user-below" in final
         # And our managed block is still there with the new content
@@ -756,7 +757,7 @@ class TestStripUnmanagedPluginTables:
             fake_query,
         )
         migrate({}, codex_home=tmp_path, discover_plugins=True, expose_freeide_tools=False)
-        new_text = target.read_text()
+        new_text = target.read_text(encoding="utf-8")
         # Only ONE [plugins."tasks@openai-curated"] header should remain — inside
         # the managed block — not the original outside-the-block copy.
         assert new_text.count('[plugins."tasks@openai-curated"]') == 1
@@ -787,7 +788,7 @@ class TestStripUnmanagedPluginTables:
             fake_query,
         )
         migrate({}, codex_home=tmp_path, discover_plugins=True, expose_freeide_tools=False)
-        new_text = target.read_text()
+        new_text = target.read_text(encoding="utf-8")
         # User's plugin table preserved verbatim — we can't re-emit it.
         assert '[plugins."tasks@openai-curated"]' in new_text
 
@@ -818,7 +819,7 @@ class TestFreeIDEHomeLeakGuard:
     def test_tempdir_detector_accepts_real_freeide_home(self):
         assert not _looks_like_test_tempdir("/Users/alice/.freeide")
         assert not _looks_like_test_tempdir("/home/bob/.freeide")
-        assert not _looks_like_test_tempdir("/opt/freeide")
+        assert not _looks_like_test_tempdir("/opt/jettstui")
         assert not _looks_like_test_tempdir("")
 
     def test_pytest_tempdir_not_burned_into_mcp_env(self, monkeypatch):

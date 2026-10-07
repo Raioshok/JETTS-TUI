@@ -19,7 +19,7 @@ metadata:
 Load this skill when you're working on:
 - Adding or removing a static service in the FreeIDE Docker image (something that should be supervised at every container start, like the dashboard)
 - Diagnosing why a per-profile gateway isn't starting, restarting, or surviving `docker restart`
-- Understanding why the container's CMD is `/opt/freeide/docker/main-wrapper.sh` and how leading-dash args reach the user's program
+- Understanding why the container's CMD is `/opt/jettstui/docker/main-wrapper.sh` and how leading-dash args reach the user's program
 - Modifying `cont-init.d` boot scripts (UID remap, volume seeding, profile reconciliation)
 - Changing the rendered run-script for per-profile gateways (Phase 4)
 
@@ -54,7 +54,7 @@ If you're just running the FreeIDE Agent and want to use Docker, see `website/do
 │   │   └── log/run     (s6-log → $FREEIDE_HOME/logs/gateways/coder/current)
 │   └── ...
 │
-└── CMD ("main program")               ← /opt/freeide/docker/main-wrapper.sh
+└── CMD ("main program")               ← /opt/jettstui/docker/main-wrapper.sh
     └── routes user args: bare exec | freeide subcommand | freeide (no args)
         — exec'd by /init with stdin/stdout/stderr inherited (TTY for --tui)
 ```
@@ -63,7 +63,7 @@ If you're just running the FreeIDE Agent and want to use Docker, see `website/do
 
 | Path | Role |
 |---|---|
-| `Dockerfile` | s6-overlay install + cont-init.d wiring + `ENTRYPOINT ["/init", "/opt/freeide/docker/main-wrapper.sh"]` |
+| `Dockerfile` | s6-overlay install + cont-init.d wiring + `ENTRYPOINT ["/init", "/opt/jettstui/docker/main-wrapper.sh"]` |
 | `docker/stage2-hook.sh` | The "old entrypoint logic" — UID remap, chown, seed, skills sync. Runs as cont-init.d/01-freeide-setup. |
 | `docker/cont-init.d/02-reconcile-profiles` | Calls `freeide_cli.container_boot` on every boot to restore profile gateway slots from the persistent volume. |
 | `docker/main-wrapper.sh` | The container's CMD. Routes user args, drops to freeide via `s6-setuidgid`, exec's the chosen program. |
@@ -81,7 +81,7 @@ The original plan (v1–v3) called for main freeide to run as a supervised s6-rc
 1. **cont-init.d scripts receive no CMD args** — so the stage2 hook can't parse `docker run <image> chat -q "hi"` to set `FREEIDE_ARGS` for a service `run` script to consume.
 2. **`/run/s6/basedir/bin/halt` does NOT propagate the exit code** written to `/run/s6-linux-init-container-results/exitcode`. Containers always exit 143 (SIGTERM) regardless. Confirmed by skarnet (s6 author) in [issue #477](https://github.com/just-containers/s6-overlay/issues/477): _"if you want a container shutdown, you need to either have your CMD exit, or, if you have no CMD, write the container exit code you want then call halt"_.
 
-So we use the s6-overlay-native CMD pattern: `ENTRYPOINT ["/init", "/opt/freeide/docker/main-wrapper.sh"]`. /init prepends the wrapper to user args automatically — so `docker run <image> --version` becomes `/init main-wrapper.sh --version`, and `--version` doesn't get intercepted by /init's POSIX shell. The wrapper drops to freeide via `s6-setuidgid`, then exec's the chosen program. The program's exit code becomes the container exit code, exactly matching the pre-s6 tini contract.
+So we use the s6-overlay-native CMD pattern: `ENTRYPOINT ["/init", "/opt/jettstui/docker/main-wrapper.sh"]`. /init prepends the wrapper to user args automatically — so `docker run <image> --version` becomes `/init main-wrapper.sh --version`, and `--version` doesn't get intercepted by /init's POSIX shell. The wrapper drops to freeide via `s6-setuidgid`, then exec's the chosen program. The program's exit code becomes the container exit code, exactly matching the pre-s6 tini contract.
 
 Trade-off: main freeide is unsupervised under s6. That exactly matches its behavior under tini (the pre-s6 image). Dashboard supervision is the only **new** guarantee — and per-profile gateways under `/run/service/` get full supervision.
 
@@ -146,7 +146,7 @@ The harness lives in `tests/docker/` and skips when Docker isn't available. The 
 
 ### "command not found" via `docker exec`
 
-`/command/` (where s6-overlay puts its binaries) is on PATH only for processes spawned by the supervision tree — services, cont-init.d, main-wrapper.sh. `docker exec <c> s6-svstat …` will fail with "command not found"; always use the absolute path `/command/s6-svstat`. The `freeide` binary works because the Dockerfile adds `/opt/freeide/.venv/bin` to the runtime `ENV PATH`.
+`/command/` (where s6-overlay puts its binaries) is on PATH only for processes spawned by the supervision tree — services, cont-init.d, main-wrapper.sh. `docker exec <c> s6-svstat …` will fail with "command not found"; always use the absolute path `/command/s6-svstat`. The `freeide` binary works because the Dockerfile adds `/opt/jettstui/.venv/bin` to the runtime `ENV PATH`.
 
 ### Profile directory ownership
 

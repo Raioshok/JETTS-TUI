@@ -1070,9 +1070,8 @@ export interface SelectToolsetProviderResponse {
   provider: string
   /** Present when the selection was scoped to one web capability. */
   capability?: string
-  /** Present (true) when a managed FreeIDE row was selected but the Portal
-   *  entitlement is missing — the row won't activate until the user signs
-   *  in to FreeIDE Portal. */
+  /** Legacy backend response for a removed managed-provider entitlement.
+   *  The UI reports it as unavailable instead of claiming activation. */
   needs_nous_auth?: boolean
   /** The managed feature key (e.g. "browser") when needs_nous_auth is set. */
   feature?: string

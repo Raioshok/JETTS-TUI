@@ -783,8 +783,8 @@ def _run_references_parallel(
     workers = min(_MAX_REFERENCE_WORKERS, len(reference_models))
     # Reference slots run on bare executor threads, which start with an empty
     # contextvars.Context — propagate the parent turn's context (approval
-    # callbacks + the FreeIDE Portal conversation tag) into each worker so
-    # advisor calls attribute to the same conversation as the acting turn.
+    # callbacks + provider cache-affinity key) into each worker so advisor
+    # calls stay with the same conversation as the acting turn.
     from tools.thread_context import propagate_context_to_thread
 
     total = len(reference_models)

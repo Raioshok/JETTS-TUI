@@ -23,8 +23,8 @@ param(
     # exact ref.  Precedence: Commit > Tag > Branch.
     [string]$Commit = "",
     [string]$Tag = "",
-    [string]$FreeIDEHome = $(if ($env:FREEIDE_HOME) { $env:FREEIDE_HOME } else { "$env:LOCALAPPDATA\freeide" }),
-    [string]$InstallDir = $(if ($env:FREEIDE_HOME) { "$env:FREEIDE_HOME\freeide-agent" } else { "$env:LOCALAPPDATA\freeide\freeide-agent" }),
+    [string]$FreeIDEHome = $(if ($env:FREEIDE_HOME) { $env:FREEIDE_HOME } elseif (Test-Path -LiteralPath "$env:LOCALAPPDATA\jettstui") { "$env:LOCALAPPDATA\jettstui" } elseif (Test-Path -LiteralPath "$env:LOCALAPPDATA\freeide") { "$env:LOCALAPPDATA\freeide" } else { "$env:LOCALAPPDATA\jettstui" }),
+    [string]$InstallDir = "",
 
     # --- Stage protocol (additive; default invocation behaves as before) ----
     # See the "Stage protocol" section near the bottom of the file for the
@@ -60,6 +60,17 @@ param(
 )
 
 $ErrorActionPreference = "Stop"
+
+# Preserve an existing managed checkout until the runtime can move its whole
+# default home and leave a compatibility junction. Fresh installs use jettstui.
+if (-not $PSBoundParameters.ContainsKey('InstallDir')) {
+    $legacyCheckout = Join-Path $FreeIDEHome 'freeide-agent'
+    $InstallDir = if (Test-Path -LiteralPath (Join-Path $legacyCheckout '.git')) {
+        $legacyCheckout
+    } else {
+        Join-Path $FreeIDEHome 'jettstui'
+    }
+}
 
 # Suppress Invoke-WebRequest's per-chunk progress bar.  Windows PowerShell
 # 5.1's progress UI repaints synchronously on every received byte, which
@@ -2085,7 +2096,7 @@ try:
     specs = data['project']['optional-dependencies']['all']
     out = []
     for s in specs:
-        m = re.search(r'freeide-agent\[([\w-]+)\]', s)
+        m = re.search(r'jetts-tui\[([\w-]+)\]', s)
         if m: out.append(m.group(1))
     print(','.join(out))
 except Exception:
@@ -2123,7 +2134,7 @@ except Exception:
         }
     }
     if (-not $installed) {
-        throw "Failed to install freeide-agent package even with no extras. Inspect the uv pip install output above."
+        throw "Failed to install jetts-tui package even with no extras. Inspect the uv pip install output above."
     }
 
     # Baseline-import gate. Even if a tier reported success above, the
@@ -2162,10 +2173,10 @@ except Exception:
     }
 
     if (-not $NoVenv) {
-        # uv on Windows can register freeide.exe in dist-info/RECORD but fail to
+        # uv on Windows can register jetts-tui.exe in dist-info/RECORD but fail to
         # materialise the .exe (file lock during self-update, distlib edge case).
         # Catch it here so a fresh install/update does not finish with a broken
-        # `freeide` command while freeide-agent.exe / freeide-acp.exe exist
+        # `jetts-tui` command while other entry points exist.
         $scriptsDir = Join-Path $InstallDir "venv\Scripts"
         $pythonExe = Join-Path $scriptsDir "python.exe"
         if ((Test-Path $scriptsDir) -and (Test-Path $pythonExe)) {
@@ -2223,7 +2234,7 @@ print(','.join(scripts))
             if ($LASTEXITCODE -eq 0) { $webOk = $true }
         } catch { }
         try {
-            & $pythonExe -m py_compile "$InstallDir\freeide_cli\web_server.py" 2>&1 | Out-Null
+            & $pythonExe -m py_compile "$InstallDir\jettstui\web_server.py" 2>&1 | Out-Null
             if ($LASTEXITCODE -eq 0) { $webServerSyntaxOk = $true }
         } catch { }
         $ErrorActionPreference = $prevEAP
@@ -2238,7 +2249,7 @@ print(','.join(scripts))
             }
         }
         if (-not $webServerSyntaxOk) {
-            throw "dashboard backend source failed syntax check: freeide_cli/web_server.py"
+            throw "dashboard backend source failed syntax check: jettstui/web_server.py"
         }
     }
     
@@ -2248,7 +2259,7 @@ print(','.join(scripts))
 }
 
 function Set-PathVariable {
-    Write-Info "Setting up freeide command..."
+    Write-Info "Setting up jetts-tui command..."
     
     if ($NoVenv) {
         $freeideBin = "$InstallDir"
@@ -2256,8 +2267,8 @@ function Set-PathVariable {
         $freeideBin = "$InstallDir\venv\Scripts"
     }
     
-    # Add the venv Scripts dir to user PATH so freeide is globally available
-    # On Windows, the freeide.exe in venv\Scripts\ has the venv Python baked in
+    # Add the venv Scripts dir to user PATH so jetts-tui is globally available.
+    # The generated jetts-tui.exe in venv\Scripts\ has the venv Python baked in.
     $currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
     
     if ($currentPath -notlike "*$freeideBin*") {
@@ -2284,7 +2295,7 @@ function Set-PathVariable {
     # Update current session
     $env:Path = "$freeideBin;$env:Path"
     
-    Write-Success "freeide command ready"
+    Write-Success "jetts-tui command ready"
 }
 
 function Write-BootstrapMarker {
@@ -3321,9 +3332,12 @@ function Start-GatewayIfConfigured {
 
     if (-not $hasMessaging) { return }
 
-    $freeideCmd = "$InstallDir\venv\Scripts\freeide.exe"
+    $freeideCmd = "$InstallDir\venv\Scripts\jetts-tui.exe"
     if (-not (Test-Path $freeideCmd)) {
-        $freeideCmd = "freeide"
+        $freeideCmd = "$InstallDir\venv\Scripts\freeide.exe"
+    }
+    if (-not (Test-Path $freeideCmd)) {
+        $freeideCmd = "jetts-tui"
     }
 
     # If WhatsApp is enabled but not yet paired, run foreground for QR scan
@@ -3332,7 +3346,7 @@ function Start-GatewayIfConfigured {
     if ($whatsappEnabled -and -not (Test-Path $whatsappSession)) {
         Write-Host ""
         Write-Info "WhatsApp is enabled but not yet paired."
-        Write-Info "Running 'freeide whatsapp' to pair via QR code..."
+        Write-Info "Running 'jetts-tui whatsapp' to pair via QR code..."
         Write-Host ""
         # Non-interactive callers (GUI installer, CI) skip the QR-pair prompt;
         # WhatsApp pairing requires a human looking at a phone camera, so the
@@ -3361,7 +3375,7 @@ function Start-GatewayIfConfigured {
     # services on the build agent, etc.).  Treat it like the user declined.
     if ($NonInteractive) {
         Write-Info "Skipping gateway autostart prompt (non-interactive)."
-        Write-Info "Start the gateway later with: freeide gateway"
+        Write-Info "Start the gateway later with: jetts-tui gateway"
         return
     }
 
@@ -3379,10 +3393,10 @@ function Start-GatewayIfConfigured {
             Write-Info "Logs: $logFile"
             Write-Info "To stop: close the gateway process from Task Manager"
         } catch {
-            Write-Warn "Failed to start gateway. Run manually: freeide gateway"
+            Write-Warn "Failed to start gateway. Run manually: jetts-tui gateway"
         }
     } else {
-        Write-Info "Skipped. Start the gateway later with: freeide gateway"
+        Write-Info "Skipped. Start the gateway later with: jetts-tui gateway"
     }
 }
 
@@ -3403,24 +3417,24 @@ function Write-Completion {
     Write-Host "   Data:      " -NoNewline -ForegroundColor Yellow
     Write-Host "$FreeIDEHome\cron\, sessions\, logs\"
     Write-Host "   Code:      " -NoNewline -ForegroundColor Yellow
-    Write-Host "$FreeIDEHome\freeide-agent\"
+    Write-Host "$InstallDir\"
     Write-Host ""
     
     Write-Host "---------------------------------------------------------" -ForegroundColor Cyan
     Write-Host ""
     Write-Host "* Commands:" -ForegroundColor Cyan
     Write-Host ""
-    Write-Host "   freeide              " -NoNewline -ForegroundColor Green
+    Write-Host "   jetts-tui              " -NoNewline -ForegroundColor Green
     Write-Host "Start chatting"
-    Write-Host "   freeide setup        " -NoNewline -ForegroundColor Green
+    Write-Host "   jetts-tui setup        " -NoNewline -ForegroundColor Green
     Write-Host "Configure API keys & settings"
-    Write-Host "   freeide config       " -NoNewline -ForegroundColor Green
+    Write-Host "   jetts-tui config       " -NoNewline -ForegroundColor Green
     Write-Host "View/edit configuration"
-    Write-Host "   freeide config edit  " -NoNewline -ForegroundColor Green
+    Write-Host "   jetts-tui config edit  " -NoNewline -ForegroundColor Green
     Write-Host "Open config in editor"
-    Write-Host "   freeide gateway      " -NoNewline -ForegroundColor Green
+    Write-Host "   jetts-tui gateway      " -NoNewline -ForegroundColor Green
     Write-Host "Start messaging gateway (Telegram, Discord, etc.)"
-    Write-Host "   freeide update       " -NoNewline -ForegroundColor Green
+    Write-Host "   jetts-tui update       " -NoNewline -ForegroundColor Green
     Write-Host "Update to latest version"
     Write-Host ""
     

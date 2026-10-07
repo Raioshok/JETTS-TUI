@@ -457,14 +457,17 @@ else
 fi
 
 # ============================================================================
-# Seed bundled skills into ~/.freeide/skills/
+# Seed bundled skills into the active Jetts-TUI home.
 # ============================================================================
 
-FREEIDE_SKILLS_DIR="${FREEIDE_HOME:-$HOME/.freeide}/skills"
+# Resolve through Python before creating the directory: that call migrates an
+# existing ~/.freeide home to ~/.jettstui and preserves its compatibility alias.
+# Pre-creating ~/.jettstui here would suppress the migration on first install.
+FREEIDE_SKILLS_DIR="$("$SETUP_PYTHON" -c 'from freeide_constants import get_freeide_home; print(get_freeide_home() / "skills")')"
 mkdir -p "$FREEIDE_SKILLS_DIR"
 
 echo ""
-echo "Syncing bundled skills to ~/.freeide/skills/ ..."
+echo "Syncing bundled skills to $FREEIDE_SKILLS_DIR/ ..."
 if "$SETUP_PYTHON" "$SCRIPT_DIR/tools/skills_sync.py" 2>/dev/null; then
     echo -e "${GREEN}✓${NC} Skills synced"
 else

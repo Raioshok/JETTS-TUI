@@ -1,4 +1,4 @@
-"""Tests for freeide_cli/completion.py — shell completion script generation."""
+"""Tests for shell completion script generation."""
 
 import argparse
 import os
@@ -6,6 +6,7 @@ import re
 import shutil
 import subprocess
 import tempfile
+from pathlib import Path
 
 import pytest
 
@@ -17,8 +18,8 @@ from freeide_cli.completion import _walk, generate_bash, generate_zsh, generate_
 # ---------------------------------------------------------------------------
 
 def _make_parser() -> argparse.ArgumentParser:
-    """Build a minimal parser that mirrors the real freeide structure."""
-    p = argparse.ArgumentParser(prog="freeide")
+    """Build a minimal parser that mirrors the real Jetts-TUI structure."""
+    p = argparse.ArgumentParser(prog="jetts-tui")
     p.add_argument("--version", "-V", action="store_true")
     p.add_argument("-p", "--profile", help="Profile name")
     sub = p.add_subparsers(dest="command")
@@ -94,8 +95,8 @@ class TestWalk:
 class TestGenerateBash:
     def test_contains_completion_function_and_register(self):
         out = generate_bash(_make_parser())
-        assert "_freeide_completion()" in out
-        assert "complete -F _freeide_completion freeide" in out
+        assert "_jettstui_completion()" in out
+        assert "complete -F _jettstui_completion jetts-tui" in out
 
     def test_top_level_commands_present(self):
         out = generate_bash(_make_parser())
@@ -110,14 +111,15 @@ class TestGenerateBash:
     def test_valid_bash_syntax(self):
         """Script must pass `bash -n` syntax check."""
         out = generate_bash(_make_parser())
-        with tempfile.NamedTemporaryFile(mode="w", suffix=".bash", delete=False) as f:
-            f.write(out)
-            path = f.name
-        try:
-            result = subprocess.run(["bash", "-n", path], capture_output=True)
-            assert result.returncode == 0, result.stderr.decode()
-        finally:
-            os.unlink(path)
+        bash = shutil.which("bash")
+        if os.name == "nt":
+            # The PATH bash may be WSL, which cannot read Windows temp paths.
+            git_bash = Path(os.environ.get("ProgramFiles", r"C:\Program Files")) / "Git" / "bin" / "bash.exe"
+            bash = str(git_bash) if git_bash.is_file() else None
+        if not bash:
+            pytest.skip("native bash not installed")
+        result = subprocess.run([bash, "-n"], input=out, capture_output=True, text=True)
+        assert result.returncode == 0, result.stderr
 
 
 # ---------------------------------------------------------------------------
@@ -127,7 +129,7 @@ class TestGenerateBash:
 class TestGenerateZsh:
     def test_contains_compdef_header(self):
         out = generate_zsh(_make_parser())
-        assert "#compdef freeide" in out
+        assert "#compdef jetts-tui" in out
 
     def test_top_level_commands_present(self):
         out = generate_zsh(_make_parser())
@@ -142,14 +144,14 @@ class TestGenerateZsh:
 
     def test_registers_compdef_instead_of_invoking_completion_function(self):
         out = generate_zsh(_make_parser())
-        assert 'compdef _freeide freeide' in out
-        assert '_freeide "$@"' not in out
+        assert 'compdef _jettstui jetts-tui' in out
+        assert '_jettstui "$@"' not in out
 
     def test_preserves_valid_zsh_arguments_alias_syntax(self):
         out = generate_zsh(_make_parser())
         assert "'(-)'{-h,--help}'[Show help and exit]'" in out
         assert "'(-)'{-V,--version}'[Show version and exit]'" in out
-        assert "'(-)'{-p,--profile}'[Profile name]:profile:_freeide_profiles'" in out
+        assert "'(-)'{-p,--profile}'[Profile name]:profile:_jettstui_profiles'" in out
         assert "'(-h --help){-h,--help}[Show help and exit]'" not in out
         assert '"(-h --help)"{-h,--help}"[Show help and exit]"' not in out
 
@@ -178,7 +180,7 @@ class TestGenerateZsh:
                 [
                     "zsh",
                     "-fc",
-                    f"autoload -Uz compinit && compinit -D; source {path}; [[ ${{_comps[freeide]}} == _freeide ]]",
+                    f"autoload -Uz compinit && compinit -D; source {path}; [[ ${{_comps[jetts-tui]}} == _jettstui ]]",
                 ],
                 capture_output=True,
                 text=True,
@@ -196,7 +198,7 @@ class TestGenerateZsh:
 class TestGenerateFish:
     def test_disables_file_completion(self):
         out = generate_fish(_make_parser())
-        assert "complete -c freeide -f" in out
+        assert "complete -c jetts-tui -f" in out
 
     def test_top_level_commands_present(self):
         out = generate_fish(_make_parser())
@@ -258,43 +260,43 @@ class TestProfileCompletion:
 
     def test_bash_has_profiles_helper(self):
         out = generate_bash(_make_parser())
-        assert "_freeide_profiles()" in out
-        assert 'profiles_dir="$HOME/.freeide/profiles"' in out
+        assert "_jettstui_profiles()" in out
+        assert 'profiles_dir="${FREEIDE_HOME:-$HOME/.jettstui}/profiles"' in out
 
     def test_bash_completes_profiles_after_p_flag(self):
         out = generate_bash(_make_parser())
         assert '"-p"' in out or "== \"-p\"" in out
         assert '"--profile"' in out or '== "--profile"' in out
-        assert "_freeide_profiles" in out
+        assert "_jettstui_profiles" in out
 
     def test_bash_profile_subcommand_has_action_completion(self):
         out = generate_bash(_make_parser())
         assert "use|delete|show|alias|rename|export)" in out
 
     def test_bash_profile_actions_complete_profile_names(self):
-        """After 'freeide profile use', complete with profile names."""
+        """After 'jetts-tui profile use', complete with profile names."""
         out = generate_bash(_make_parser())
-        # The profile case should have _freeide_profiles for name-taking actions
+        # The profile case should have _jettstui_profiles for name-taking actions
         lines = out.split("\n")
         in_profile_case = False
         has_profiles_in_action = False
         for line in lines:
             if "profile)" in line:
                 in_profile_case = True
-            if in_profile_case and "_freeide_profiles" in line:
+            if in_profile_case and "_jettstui_profiles" in line:
                 has_profiles_in_action = True
                 break
-        assert has_profiles_in_action, "profile actions should complete with _freeide_profiles"
+        assert has_profiles_in_action, "profile actions should complete with _jettstui_profiles"
 
     def test_zsh_has_profiles_helper(self):
         out = generate_zsh(_make_parser())
-        assert "_freeide_profiles()" in out
-        assert "$HOME/.freeide/profiles" in out
+        assert "_jettstui_profiles()" in out
+        assert "${FREEIDE_HOME:-$HOME/.jettstui}/profiles" in out
 
     def test_zsh_has_profile_flag_completion(self):
         out = generate_zsh(_make_parser())
         assert "--profile" in out
-        assert "_freeide_profiles" in out
+        assert "_jettstui_profiles" in out
 
     def test_zsh_profile_actions_complete_names(self):
         out = generate_zsh(_make_parser())
@@ -302,18 +304,18 @@ class TestProfileCompletion:
 
     def test_fish_has_profiles_helper(self):
         out = generate_fish(_make_parser())
-        assert "__freeide_profiles" in out
-        assert "$HOME/.freeide/profiles" in out
+        assert "__jettstui_profiles" in out
+        assert "$HOME/.jettstui/profiles" in out
 
     def test_fish_has_profile_flag_completion(self):
         out = generate_fish(_make_parser())
         assert "-s p -l profile" in out
-        assert "(__freeide_profiles)" in out
+        assert "(__jettstui_profiles)" in out
 
     def test_fish_profile_actions_complete_names(self):
         out = generate_fish(_make_parser())
         # Should have profile name completion for actions like use, delete, etc.
-        assert "__freeide_profiles" in out
-        count = out.count("(__freeide_profiles)")
+        assert "__jettstui_profiles" in out
+        count = out.count("(__jettstui_profiles)")
         # At least the -p flag + the profile action completions
         assert count >= 2, f"Expected >=2 profile completion entries, got {count}"

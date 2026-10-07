@@ -32,8 +32,12 @@ def test_show_status_termux_gateway_section_skips_systemctl(monkeypatch, capsys,
     monkeypatch.setattr(auth_mod, "get_xai_oauth_auth_status", lambda: {}, raising=False)
     monkeypatch.setattr(gateway_mod, "find_gateway_pids", lambda exclude_pids=None: [], raising=False)
 
+    original_run = status_mod.subprocess.run
+
     def _unexpected_systemctl(*args, **kwargs):
-        raise AssertionError("systemctl should not be called in the Termux status view")
+        if args and isinstance(args[0], (list, tuple)) and args[0] and args[0][0] == "systemctl":
+            raise AssertionError("systemctl should not be called in the Termux status view")
+        return original_run(*args, **kwargs)
 
     monkeypatch.setattr(status_mod.subprocess, "run", _unexpected_systemctl)
 
@@ -41,7 +45,7 @@ def test_show_status_termux_gateway_section_skips_systemctl(monkeypatch, capsys,
 
     output = capsys.readouterr().out
     assert "Manager:      Termux / manual process" in output
-    assert "Start with:   freeide gateway" in output
+    assert "Start with:   jetts-tui gateway" in output
     assert "systemd (user)" not in output
 
 
@@ -178,7 +182,7 @@ class TestShowStatusXaiOAuth:
         status_mod.show_status(SimpleNamespace(all=False, deep=False))
         out = capsys.readouterr().out
 
-        assert "not logged in (run: freeide auth add xai-oauth)" in out
+        assert "not logged in (run: jetts-tui auth add xai-oauth)" in out
 
     def test_not_logged_in_shows_error(self, monkeypatch, capsys, tmp_path):
         import freeide_cli.auth as auth_mod
@@ -258,4 +262,4 @@ class TestShowStatusXaiOAuth:
         out = capsys.readouterr().out
 
         assert "xAI OAuth" in out
-        assert "not logged in (run: freeide auth add xai-oauth)" in out
+        assert "not logged in (run: jetts-tui auth add xai-oauth)" in out

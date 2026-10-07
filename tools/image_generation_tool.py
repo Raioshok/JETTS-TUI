@@ -1320,40 +1320,22 @@ def is_krea_model(model_id: Optional[str]) -> bool:
     return _normalize_krea_model(model_id) is not None
 
 
-def _maybe_route_managed_krea(
+def _maybe_route_native_krea(
     prompt: str,
     aspect_ratio: str,
     image_url: Optional[str] = None,
     reference_image_urls: Optional[list] = None,
 ) -> Optional[str]:
-    """Route a native ``krea-2-*`` model to the managed Krea gateway, in managed mode.
+    """Route a legacy native Krea model through the direct Krea plugin.
 
-    Returns a JSON result string when handled by the Krea managed gateway, or
-    ``None`` to fall through to the normal plugin/FAL pipeline. Fires only when
-    all hold:
-      - the configured image model is a native ``krea-2-*`` id, AND
-      - the user isn't already routed to the Krea plugin via
-        ``image_gen.provider`` (that path dispatches normally), AND
-      - the managed Krea gateway is resolvable (managed mode).
-
-    Direct/BYO users (no managed gateway) fall through untouched.
+    An explicit provider always wins. Without one, a native Krea model must
+    never fall through to FAL, which cannot serve that model ID.
     """
-    # ``provider == "krea"`` is already handled by the standard plugin dispatch.
-    if _read_configured_image_provider() == "krea":
+    if _read_configured_image_provider() is not None:
         return None
 
     normalized = _normalize_krea_model(_read_configured_image_model())
     if normalized is None:
-        return None
-
-    # Only intercept on the managed path; BYO/direct users keep their pipeline.
-    try:
-        from plugins.image_gen.krea import _resolve_managed_krea_gateway
-
-        if _resolve_managed_krea_gateway() is None:
-            return None
-    except Exception as exc:  # noqa: BLE001
-        logger.debug("Managed Krea routing probe failed: %s", exc)
         return None
 
     try:
@@ -1363,10 +1345,15 @@ def _maybe_route_managed_krea(
         _ensure_plugins_discovered()
         provider = get_provider("krea")
     except Exception as exc:  # noqa: BLE001
-        logger.debug("Managed Krea routing: provider unavailable: %s", exc)
-        return None
+        logger.debug("Krea routing: provider unavailable: %s", exc)
+        provider = None
     if provider is None:
-        return None
+        return json.dumps({
+            "success": False,
+            "image": None,
+            "error": "Krea provider is unavailable. Run `jetts-tui tools` to configure image generation.",
+            "error_type": "provider_not_registered",
+        })
 
     kwargs: Dict[str, Any] = {
         "prompt": prompt,
@@ -1385,11 +1372,11 @@ def _maybe_route_managed_krea(
             kwargs["reference_image_urls"] = norm_refs
         result = provider.generate(**kwargs)
     except Exception as exc:  # noqa: BLE001
-        logger.warning("Managed Krea routing failed: %s", exc)
+        logger.warning("Krea routing failed: %s", exc)
         return json.dumps({
             "success": False,
             "image": None,
-            "error": f"Managed Krea generation error: {exc}",
+            "error": f"Krea generation error: {exc}",
             "error_type": "provider_exception",
         })
     if not isinstance(result, dict):
@@ -1422,12 +1409,9 @@ def _handle_image_generate(args, **kw):
     if dispatched is not None:
         return _postprocess_image_generate_result(dispatched, task_id=task_id)
 
-    # Managed-mode Krea routing: when no explicit plugin provider is configured
-    # but the selected model is a native ``krea-2-*`` id, a managed-mode user
-    # routes to the dedicated Krea managed gateway. ``fal-ai/krea/v2/*`` models stay on the
-    # FAL path below. Runs after plugin dispatch (which returns None when no
-    # provider is set) so the BYO/direct FAL path stays untouched.
-    krea_routed = _maybe_route_managed_krea(
+    # Legacy native Krea selection without a provider uses the direct Krea
+    # plugin. FAL-hosted Krea IDs remain on the FAL path below.
+    krea_routed = _maybe_route_native_krea(
         prompt, aspect_ratio,
         image_url=image_url,
         reference_image_urls=reference_image_urls,

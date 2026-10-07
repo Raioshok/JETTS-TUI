@@ -2,6 +2,8 @@
 
 from unittest.mock import patch
 
+import pytest
+
 from agent.skill_utils import (
     extract_skill_config_vars,
     extract_skill_conditions,
@@ -167,9 +169,10 @@ def test_skill_config_raw_cache_invalidates_on_config_edit(tmp_path, monkeypatch
     skill_utils._external_dirs_cache_clear()
     assert get_disabled_skill_names() == {"old-skill"}
 
+    prior_mtime_ns = config_path.stat().st_mtime_ns
     config_path.write_text("skills:\n  disabled: [new-skill]\n", encoding="utf-8")
     import os
-    os.utime(config_path, None)
+    os.utime(config_path, ns=(prior_mtime_ns + 1_000_000_000, prior_mtime_ns + 1_000_000_000))
 
     assert get_disabled_skill_names() == {"new-skill"}
 

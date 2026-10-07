@@ -168,6 +168,7 @@ class TestAtomicJsonWrite:
     def test_concurrent_writes_dont_corrupt(self, tmp_path):
         """Multiple rapid writes should each produce valid JSON."""
         import threading
+        import traceback
 
         target = tmp_path / "concurrent.json"
         errors = []
@@ -175,8 +176,8 @@ class TestAtomicJsonWrite:
         def writer(n):
             try:
                 atomic_json_write(target, {"writer": n, "data": list(range(100))})
-            except Exception as e:
-                errors.append(e)
+            except Exception:
+                errors.append(traceback.format_exc())
 
         threads = [threading.Thread(target=writer, args=(i,)) for i in range(10)]
         for t in threads:
@@ -184,7 +185,7 @@ class TestAtomicJsonWrite:
         for t in threads:
             t.join()
 
-        assert not errors
+        assert not errors, "\n".join(errors)
         # File should contain valid JSON from one of the writers
         result = json.loads(target.read_text())
         assert "writer" in result

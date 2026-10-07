@@ -62,6 +62,7 @@ function Find-Uv {
     $candidates = @(
         (Join-Path $env:USERPROFILE ".local\bin\uv.exe"),
         (Join-Path $env:LOCALAPPDATA "Programs\uv\uv.exe"),
+        (Join-Path $env:LOCALAPPDATA "jettstui\bin\uv.exe"),
         (Join-Path $env:LOCALAPPDATA "freeide\bin\uv.exe")
     )
     foreach ($candidate in $candidates) {

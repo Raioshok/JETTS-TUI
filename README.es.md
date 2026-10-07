@@ -2,7 +2,7 @@
 
 Jetts-TUI es un espacio de trabajo de IA centrado en la terminal: incluye una TUI a pantalla completa, agentes, memoria, subagentes, tareas programadas e integraciones de mensajería. El mismo motor también está disponible en las aplicaciones de escritorio y web de este repositorio.
 
-Esta guía breve cubre la instalación. Para la documentación completa y actualizada, consulta el [README principal](README.md) y los [documentos del repositorio](website/docs).
+Esta guía breve cubre la instalación. Para más detalles, consulta el [README principal](README.md) y la [documentación Markdown](docs/README.md).
 
 ## Instalación
 

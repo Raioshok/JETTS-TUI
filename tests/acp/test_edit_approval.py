@@ -63,6 +63,7 @@ def test_write_file_rejection_does_not_mutate_existing_file(tmp_path):
 def test_write_file_approval_mutates_and_request_includes_diff(tmp_path):
     target = tmp_path / "sample.txt"
     target.write_text("before\n", encoding="utf-8")
+    original_newline = b"\r\n" if b"\r\n" in target.read_bytes() else b"\n"
     proposals = []
 
     def approve(proposal):
@@ -79,7 +80,8 @@ def test_write_file_approval_mutates_and_request_includes_diff(tmp_path):
         )
     )
 
-    assert result.get("bytes_written") == len("after\n")
+    assert result.get("bytes_written") == len(b"after" + original_newline)
+    assert target.read_bytes() == b"after" + original_newline
     assert target.read_text(encoding="utf-8") == "after\n"
     assert len(proposals) == 1
     proposal = proposals[0]

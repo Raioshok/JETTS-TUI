@@ -50,17 +50,17 @@ const APP = (() => {
 })()
 
 // Default FREEIDE_HOME for non-sandboxed runs -- matches main.ts's
-// resolveFreeIDEHome(). On Windows it's %LOCALAPPDATA%\freeide; elsewhere
-// it's ~/.freeide. The fresh-install sandbox launchFresh() sets its own
+// resolveFreeIDEHome(). On Windows it's %LOCALAPPDATA%\jettstui; elsewhere
+// it's ~/.jettstui. The fresh-install sandbox launchFresh() sets its own
 // FREEIDE_HOME and never touches this.
 const DEFAULT_FREEIDE_HOME = (() => {
   if (PLATFORM === 'win32' && process.env.LOCALAPPDATA) {
-    return path.join(process.env.LOCALAPPDATA, 'freeide')
+    return path.join(process.env.LOCALAPPDATA, 'jettstui')
   }
-  return path.join(os.homedir(), '.freeide')
+  return path.join(os.homedir(), '.jettstui')
 })()
-const VENV_ROOT = path.join(DEFAULT_FREEIDE_HOME, 'freeide-agent', 'venv')
-const FRESH_SANDBOX_ROOT = path.join(os.tmpdir(), 'freeide-desktop-fresh-install')
+const VENV_ROOT = path.join(DEFAULT_FREEIDE_HOME, 'jettstui', 'venv')
+const FRESH_SANDBOX_ROOT = path.join(os.tmpdir(), 'jettstui-desktop-fresh-install')
 
 function die(message) {
   console.error(`\n${message}`)
@@ -242,7 +242,7 @@ function launchFresh() {
 
   const sandbox = fs.mkdtempSync(`${FRESH_SANDBOX_ROOT}-`)
   const userDataDir = path.join(sandbox, 'electron-user-data')
-  const freeideHome = path.join(sandbox, 'freeide-home')
+  const freeideHome = path.join(sandbox, 'jettstui-home')
   const cwd = path.join(sandbox, 'workspace')
 
   fs.mkdirSync(userDataDir, { recursive: true })
@@ -278,7 +278,7 @@ function launchFresh() {
   console.log(`  FREEIDE_HOME: ${freeideHome}`)
   console.log(`  cwd: ${cwd}`)
 
-  return { runtimeRoot: path.join(freeideHome, 'freeide-agent', 'venv') }
+  return { runtimeRoot: path.join(freeideHome, 'jettstui', 'venv') }
 }
 
 // Validate the packaged bundle matches the thin-installer architecture:
@@ -293,6 +293,18 @@ function launchFresh() {
 function validateBundle() {
   if (!exists(APP.binary)) {
     die(`Missing packaged app binary: ${APP.binary}`)
+  }
+
+  if (PLATFORM !== 'darwin') {
+    const versionFile = path.join(APP.appPath, 'version')
+    if (!exists(versionFile)) {
+      die(`Missing packaged Electron version marker: ${versionFile}`)
+    }
+    const packagedVersion = fs.readFileSync(versionFile, 'utf8').trim().replace(/^v/, '')
+    const expectedVersion = PACKAGE_JSON.build.electronVersion
+    if (packagedVersion !== expectedVersion) {
+      die(`Packaged Electron ${packagedVersion} does not match configured ${expectedVersion}`)
+    }
   }
 
   // Negative assertion: the OLD fat-installer factory payload must NOT be
@@ -399,7 +411,7 @@ function printArtifacts(options = {}) {
 
 function help() {
   console.log(`Usage:
-  npm run test:desktop:existing  # build packaged app, launch with normal PATH/existing FreeIDE
+  npm run test:desktop:existing  # build packaged app, launch with normal PATH/existing Jetts-TUI
   npm run test:desktop:fresh     # build packaged app, launch with temp userData + FREEIDE_HOME
   npm run test:desktop:dmg       # (macOS only) build DMG and open it
   npm run test:desktop:nsis      # (win32 only) build NSIS installer

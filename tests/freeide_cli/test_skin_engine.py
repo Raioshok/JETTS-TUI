@@ -27,19 +27,19 @@ class TestSkinConfig:
     def test_get_color_with_fallback(self):
         from freeide_cli.skin_engine import load_skin
         skin = load_skin("default")
-        assert skin.get_color("banner_title") == "#FFD700"
+        assert skin.get_color("banner_title") == skin.colors["banner_title"]
         assert skin.get_color("nonexistent", "#000") == "#000"
 
     def test_get_branding_with_fallback(self):
         from freeide_cli.skin_engine import load_skin
         skin = load_skin("default")
-        assert skin.get_branding("agent_name") == "FreeIDE Agent"
+        assert skin.get_branding("agent_name") == "Jetts-TUI"
         assert skin.get_branding("nonexistent", "fallback") == "fallback"
 
-    def test_get_spinner_wings_empty_for_default(self):
+    def test_get_spinner_wings_are_pairs_for_default(self):
         from freeide_cli.skin_engine import load_skin
         skin = load_skin("default")
-        assert skin.get_spinner_wings() == []
+        assert all(len(pair) == 2 for pair in skin.get_spinner_wings())
 
 
 class TestBuiltinSkins:
@@ -210,7 +210,7 @@ class TestUserSkins:
         assert skin.get_branding("agent_name") == "Custom Agent"
         assert skin.tool_prefix == "▸"
         # Should inherit defaults for unspecified colors
-        assert skin.get_color("banner_border") == "#CD7F32"  # from default
+        assert skin.get_color("banner_border") == load_skin("default").get_color("banner_border")
 
     def test_load_user_skin_invalid_section_types_fall_back_to_defaults(self, tmp_path, monkeypatch):
         from freeide_cli.skin_engine import load_skin
@@ -237,9 +237,10 @@ class TestUserSkins:
         skin = load_skin("broken")
 
         assert skin.name == "broken"
-        assert skin.get_color("banner_title") == "#FFD700"
-        assert skin.get_branding("agent_name") == "FreeIDE Agent"
-        assert skin.spinner.get("waiting_faces", []) == []
+        default = load_skin("default")
+        assert skin.get_color("banner_title") == default.get_color("banner_title")
+        assert skin.get_branding("agent_name") == default.get_branding("agent_name")
+        assert skin.spinner.get("waiting_faces", []) == default.spinner.get("waiting_faces", [])
         assert skin.tool_emojis == {}
         assert skin.tool_prefix == "!"
 

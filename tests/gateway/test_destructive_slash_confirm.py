@@ -235,8 +235,8 @@ async def test_resolve_always_persists_opt_out_and_runs_execute(monkeypatch):
         saved[path] = value
         return True
 
-    import cli as cli_mod
-    monkeypatch.setattr(cli_mod, "save_config_value", _fake_save)
+    from jettstui import config_edit
+    monkeypatch.setattr(config_edit, "save_config_value", _fake_save)
 
     execute = AsyncMock(return_value="✨ fresh")
 

@@ -10,9 +10,16 @@ import sys
 from io import StringIO
 from unittest.mock import MagicMock, patch
 
+import pytest
+
 import cli as cli_mod
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
+
+
+@pytest.fixture(autouse=True)
+def _isolated_session_home(tmp_path, monkeypatch):
+    monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / "jettstui-home"))
 
 
 def _make_cli(config_overrides=None, env_overrides=None, **kwargs):
@@ -132,7 +139,7 @@ class TestDisplayResumedHistory:
         output = self._capture_display(cli)
 
         assert "You:" in output
-        assert "FreeIDE:" in output
+        assert "Jetts-TUI:" in output
         assert "What is Python?" in output
         assert "Python is a high-level programming language." in output
         assert "How do I install it?" in output
@@ -348,7 +355,7 @@ class TestDisplayResumedHistory:
 
         # The assistant entry should be skipped, only the user message shown
         assert "You:" in output
-        assert "FreeIDE:" not in output
+        assert "Jetts-TUI:" not in output
 
     def test_only_system_messages_no_output(self):
         cli = _make_cli()

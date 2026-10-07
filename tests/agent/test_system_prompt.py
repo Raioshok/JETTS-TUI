@@ -160,7 +160,7 @@ def test_coding_prompt_preserves_legacy_workspace_order(monkeypatch):
 
     expected_profile = (
         "Active FreeIDE profile: default. Other profiles (if any) live "
-        "under /freeide/profiles/<name>/. Each profile has its own skills/, "
+        f"under {Path('/freeide')}/profiles/<name>/. Each profile has its own skills/, "
         "plugins/, cron/, and memories/ that affect a different session than "
         "this one. Do not modify another profile's skills/plugins/cron/memories "
         "unless the user explicitly directs you to."

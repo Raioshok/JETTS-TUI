@@ -1,10 +1,9 @@
 """The conftest WAL gate must agree with freeide_state, and must not import it.
 
 ``tests/conftest.py::_wal_is_usable`` duplicates the SQLite WAL-reset version
-predicate instead of importing ``freeide_state``. That is deliberate: importing
-``freeide_state`` during collection caches ``DEFAULT_DB_PATH`` from the real
-``~/.freeide`` before the per-test ``FREEIDE_HOME`` redirect, which makes tests
-read the developer's live production database.
+predicate instead of importing ``freeide_state``. That keeps collection free
+of session-store initialization before the per-test ``FREEIDE_HOME`` redirect.
+SessionDB itself now resolves the active home when opened.
 
 Duplication needs a guard, so these tests pin the two implementations in
 agreement across the documented upstream boundaries.
@@ -45,9 +44,7 @@ def test_conftest_gate_agrees_with_freeide_state(version_info, monkeypatch):
 def test_conftest_does_not_import_freeide_state_at_collection():
     """The gate must stay import-free of freeide_state.
 
-    Importing it during collection caches DEFAULT_DB_PATH from the real
-    ~/.freeide, so tests read live production sessions instead of a tempdir.
-    Reading the source is not an option here (banned), so assert on behavior:
+    Collection should remain independent of the runtime store. Assert behavior:
     the gate must work with ``freeide_state`` absent from ``sys.modules`` and
     blocked from being imported.
     """
@@ -61,8 +58,7 @@ def test_conftest_does_not_import_freeide_state_at_collection():
         if name == "freeide_state" or name.startswith("freeide_state."):
             blocked.append(name)
             raise AssertionError(
-                "conftest._wal_is_usable imported freeide_state — this caches "
-                "DEFAULT_DB_PATH from the real ~/.freeide during collection"
+                "conftest._wal_is_usable imported freeide_state during collection"
             )
         return real_import(name, *args, **kwargs)
 

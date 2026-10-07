@@ -1,6 +1,6 @@
 # Jetts-TUI
 
-Jetts-TUI is a terminal-first AI workspace with a full-screen TUI, an agent runtime, memory, subagents, scheduled work, and messaging integrations. The same runtime also powers the desktop and web surfaces in this repository.
+Jetts-TUI is a terminal-first AI workspace with a full-screen TUI, an agent runtime, memory, subagents, scheduled work, and messaging integrations. The same runtime also powers the desktop app.
 
 Choose a supported provider or your own endpoint with `jetts-tui model`. Existing provider and hosted-service integrations remain available; this rebrand does not redirect those connections.
 
@@ -8,7 +8,7 @@ The code is MIT licensed. The copyright notice and third-party attributions rema
 
 <table>
 <tr><td><b>A real terminal interface</b></td><td>Full TUI with multiline editing, slash-command autocomplete, conversation history, interrupt-and-redirect, and streaming tool output.</td></tr>
-<tr><td><b>Lives where you do</b></td><td>Telegram, Discord, Slack, WhatsApp, Signal, and CLI — all from a single gateway process. Voice memo transcription, cross-platform conversation continuity.</td></tr>
+<tr><td><b>Lives where you do</b></td><td>Telegram, Discord, Slack, WhatsApp, Signal, and the TUI — all from a single agent runtime. Voice memo transcription, cross-platform conversation continuity.</td></tr>
 <tr><td><b>A closed learning loop</b></td><td>Agent-curated memory with periodic nudges. Autonomous skill creation after complex tasks. Skills self-improve during use. FTS5 session search with LLM summarization for cross-session recall. <a href="https://github.com/plastic-labs/honcho">Honcho</a> dialectic user modeling. Compatible with the <a href="https://agentskills.io">agentskills.io</a> open standard.</td></tr>
 <tr><td><b>Scheduled automations</b></td><td>Built-in cron scheduler with delivery to any platform. Daily reports, nightly backups, weekly audits — all in natural language, running unattended.</td></tr>
 <tr><td><b>Delegates and parallelizes</b></td><td>Spawn isolated subagents for parallel workstreams. Write Python scripts that call tools via RPC, collapsing multi-step pipelines into zero-context-cost turns.</td></tr>
@@ -60,7 +60,7 @@ jetts-tui              # start chatting!
 
 #### Windows Defender or antivirus flags `uv.exe` as malware
 
-If your antivirus quarantines `uv.exe` from the Jetts-TUI `bin` folder (`%LOCALAPPDATA%\freeide\bin\uv.exe`), do not assume the detection is a false positive. Jetts-TUI uses Astral's `uv` to manage its Python environment; verify the specific binary before restoring or running it.
+If your antivirus quarantines the `uv.exe` used by Jetts-TUI, do not assume the detection is a false positive. Jetts-TUI uses Astral's `uv` to manage its Python environment; verify the specific binary before restoring or running it. The setup script checks the `uv` on PATH first, then common user-install locations, including `%LOCALAPPDATA%\jettstui\bin` and the legacy `%LOCALAPPDATA%\freeide\bin`.
 
 **To verify your copy is authentic:**
 
@@ -72,7 +72,7 @@ winget install --id GitHub.cli
 gh auth login
 
 # Run verification
-$uv = "$env:LOCALAPPDATA\freeide\bin\uv.exe"
+$uv = (Get-Command uv -ErrorAction Stop).Source # use the exact copy used by setup
 $ver = (& $uv --version).Split(' ')[1]
 [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
 $zip = "$env:TEMP\uv.zip"
@@ -93,7 +93,7 @@ For more context, see the upstream Astral reports: [astral-sh/uv#13553](https://
 ## Getting Started
 
 ```bash
-jetts-tui              # Interactive CLI — start a conversation
+jetts-tui              # Full-screen terminal UI — start a conversation
 jetts-tui model        # Choose your LLM provider and model
 jetts-tui tools        # Configure which tools are enabled
 jetts-tui config set   # Set individual config values
@@ -105,21 +105,17 @@ jetts-tui update       # Update to the latest version
 jetts-tui doctor       # Diagnose any issues
 ```
 
-📖 **[Full documentation →](website/docs/)**
-
----
-
 ## Provider availability
 
-Direct provider API keys and compatible custom endpoints are supported. The older fork history removed the managed [Portal service](https://portal.freeide.dev) login and inference adapter; the leftover `setup --portal` flag does not currently perform Portal onboarding. We are tracking restoration separately and do not claim that flow works in this source release. The Portal is externally hosted and is not operated or rebranded by Jetts-TUI.
+Choose a supported provider or compatible custom endpoint with `jetts-tui model`. Available models are discovered from the configured provider when the provider exposes a model-list endpoint.
 
 ---
 
-## CLI vs Messaging Quick Reference
+## TUI vs Messaging Quick Reference
 
 Jetts-TUI has two entry points: start the terminal UI with `jetts-tui`, or run the gateway and talk to it from Telegram, Discord, Slack, WhatsApp, Signal, or Email. Once you're in a conversation, many slash commands are shared across both interfaces.
 
-| Action                         | CLI                                           | Messaging platforms                                                              |
+| Action                         | TUI                                           | Messaging platforms                                                              |
 | ------------------------------ | --------------------------------------------- | -------------------------------------------------------------------------------- |
 | Start chatting                 | `jetts-tui`                                      | Run `jetts-tui gateway setup` + `jetts-tui gateway start`, then send the bot a message |
 | Start fresh conversation       | `/new` or `/reset`                            | `/new` or `/reset`                                                               |
@@ -130,32 +126,6 @@ Jetts-TUI has two entry points: start the terminal UI with `jetts-tui`, or run t
 | Browse skills                  | `/skills` or `/<skill-name>`                  | `/<skill-name>`                                                                  |
 | Interrupt current work         | `Ctrl+C` or send a new message                | `/stop` or send a new message                                                    |
 | Platform-specific status       | `/platforms`                                  | `/status`, `/sethome`                                                            |
-
-For the full command lists, see the [CLI guide](website/docs/user-guide/cli) and the [Messaging Gateway guide](website/docs/user-guide/messaging).
-
----
-
-## Documentation
-
-The documentation source is in **[website/docs](website/docs/)**:
-
-| Section                                                                                             | What's Covered                                             |
-| --------------------------------------------------------------------------------------------------- | ---------------------------------------------------------- |
-| [Quickstart](website/docs/getting-started/quickstart)                 | Install → setup → first conversation in 2 minutes          |
-| [CLI Usage](website/docs/user-guide/cli)                              | Commands, keybindings, personalities, sessions             |
-| [Configuration](website/docs/user-guide/configuration)                | Config file, providers, models, all options                |
-| [Messaging Gateway](website/docs/user-guide/messaging)                | Telegram, Discord, Slack, WhatsApp, Signal, Home Assistant |
-| [Security](website/docs/user-guide/security)                          | Command approval, DM pairing, container isolation          |
-| [Tools & Toolsets](website/docs/user-guide/features/tools)            | 80+ tools, toolset system, terminal backends               |
-| [Skills System](website/docs/user-guide/features/skills)              | Procedural memory, Skills Hub, creating skills             |
-| [Memory](website/docs/user-guide/features/memory)                     | Persistent memory, user profiles, best practices           |
-| [MCP Integration](website/docs/user-guide/features/mcp)               | Connect any MCP server for extended capabilities           |
-| [Cron Scheduling](website/docs/user-guide/features/cron)              | Scheduled tasks with platform delivery                     |
-| [Context Files](website/docs/user-guide/features/context-files)       | Project context that shapes every conversation             |
-| [Architecture](website/docs/developer-guide/architecture)             | Project structure, agent loop, key classes                 |
-| [Contributing](website/docs/developer-guide/contributing)             | Development setup, PR process, code style                  |
-| [CLI Reference](website/docs/reference/cli-commands)                  | All commands and flags                                     |
-| [Environment Variables](website/docs/reference/environment-variables) | Complete env var reference                                 |
 
 ---
 
@@ -178,7 +148,7 @@ What gets imported:
 
 - **SOUL.md** — persona file
 - **Memories** — MEMORY.md and USER.md entries
-- **Skills** — user-created skills → `~/.freeide/skills/openclaw-imports/`
+- **Skills** — user-created skills → `~/.jettstui/skills/openclaw-imports/` (or the configured `FREEIDE_HOME`)
 - **Command allowlist** — approval patterns
 - **Messaging settings** — platform configs, allowed users, working directory
 - **API keys** — allowlisted secrets (Telegram, OpenRouter, OpenAI, Anthropic, ElevenLabs)
@@ -191,7 +161,7 @@ See `jetts-tui claw migrate --help` for all options, or use the `openclaw-migrat
 
 ## Contributing
 
-We welcome contributions! See the [Contributing Guide](website/docs/developer-guide/contributing) for development setup, code style, and PR process.
+We welcome contributions! See the [Contributing Guide](CONTRIBUTING.md) for development setup, code style, and PR process.
 
 Quick start for contributors from a local checkout:
 
@@ -210,8 +180,8 @@ against its own checkout, destroying the running runtime mid-session.
 
 ```bash
 curl -LsSf https://astral.sh/uv/install.sh | sh
-uv venv ~/.freeide/venvs/freeide-dev --python 3.11
-source ~/.freeide/venvs/freeide-dev/bin/activate
+uv venv ~/.jettstui/venvs/jetts-tui-dev --python 3.11
+source ~/.jettstui/venvs/jetts-tui-dev/bin/activate
 uv pip install -e ".[all,dev]"
 scripts/run_tests.sh
 ```

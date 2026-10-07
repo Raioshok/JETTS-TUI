@@ -5,7 +5,7 @@ import re
 import subprocess
 from pathlib import Path
 
-from freeide_cli._subprocess_compat import IS_WINDOWS, windows_hide_flags
+from freeide_cli._subprocess_compat import IS_WINDOWS, resolve_bash_executable, windows_hide_flags
 
 logger = logging.getLogger(__name__)
 
@@ -68,10 +68,13 @@ def run_inline_shell(command: str, cwd: Path | None, timeout: int) -> str:
     Failures return a short ``[inline-shell error: ...]`` marker instead of
     raising, so one bad snippet can't wreck the whole skill message.
     """
+    bash = resolve_bash_executable()
+    if bash is None:
+        return "[inline-shell error: bash not found]"
     _popen_kwargs = {"creationflags": windows_hide_flags()} if IS_WINDOWS else {}
     try:
         completed = subprocess.run(
-            ["bash", "-c", command],
+            [bash, "-c", command],
             cwd=str(cwd) if cwd else None,
             capture_output=True,
             text=True, encoding='utf-8', errors='replace',

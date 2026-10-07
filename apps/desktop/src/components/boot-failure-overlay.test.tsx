@@ -43,8 +43,7 @@ const remoteToken = {
   remoteOauthConnected: false,
   remoteTokenPreview: null,
   remoteTokenSet: true,
-  remoteUrl: 'http://100.116.104.53:9191',
-  cloudOrg: ''
+  remoteUrl: 'http://100.116.104.53:9191'
 }
 
 beforeEach(() => {

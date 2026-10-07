@@ -10,6 +10,19 @@ import pytest
 import tui_gateway.server as server
 
 
+@pytest.fixture(autouse=True)
+def _isolated_project_databases(tmp_path, monkeypatch):
+    """Use explicit test DB paths even when other gateway modules were imported."""
+    from freeide_cli import projects_db
+    from freeide_state import SessionDB
+
+    session_db = SessionDB(db_path=tmp_path / "state.db")
+    monkeypatch.setattr(server, "_get_db", lambda: session_db)
+    monkeypatch.setattr(projects_db, "projects_db_path", lambda: tmp_path / "projects.db")
+    yield
+    session_db.close()
+
+
 def _call(method, params=None):
     handler = server._methods[method]
     resp = handler(1, params or {})

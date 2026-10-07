@@ -509,9 +509,11 @@ class TestBackgroundInCLICommands:
         assert "/background" in COMMANDS
 
     def test_bg_alias_in_commands_dict(self):
-        """The /bg alias is in the COMMANDS dict."""
-        from freeide_cli.commands import COMMANDS
-        assert "/bg" in COMMANDS
+        """The concise menu shows the canonical command, not its alias."""
+        from freeide_cli.commands import COMMANDS, resolve_command
+        assert "/background" in COMMANDS
+        assert "/bg" not in COMMANDS
+        assert resolve_command("bg").name == "background"
 
     def test_background_in_session_category(self):
         """The /background command is in the Session category."""

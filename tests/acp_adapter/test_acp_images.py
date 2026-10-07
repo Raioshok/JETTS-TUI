@@ -1,4 +1,6 @@
 import base64
+import os
+from pathlib import Path
 
 import pytest
 from acp.schema import (
@@ -10,7 +12,27 @@ from acp.schema import (
     TextResourceContents,
 )
 
-from acp_adapter.server import FreeIDEACPAgent, _content_blocks_to_openai_user_content
+from acp_adapter.server import (
+    FreeIDEACPAgent,
+    _content_blocks_to_openai_user_content,
+    _path_from_file_uri,
+)
+
+
+def test_acp_file_uri_uses_native_windows_path(monkeypatch):
+    if os.name != "nt":
+        pytest.skip("Native Windows path contract")
+    monkeypatch.setattr("freeide_constants._wsl_detected", False)
+    expected = Path(r"C:\Users\Test User\notes.md")
+    assert _path_from_file_uri("file:///C:/Users/Test%20User/notes.md") == expected
+    assert _path_from_file_uri(r"C:\Users\Test User\notes.md") == expected
+
+
+def test_acp_file_uri_translates_windows_path_in_wsl(monkeypatch):
+    monkeypatch.setattr("freeide_constants._wsl_detected", True)
+    assert _path_from_file_uri("file:///C:/Users/Test%20User/notes.md") == Path(
+        "/mnt/c/Users/Test User/notes.md"
+    )
 
 
 def test_acp_image_blocks_convert_to_openai_multimodal_content():
@@ -55,7 +77,7 @@ def test_acp_resource_link_file_is_inlined_as_text(tmp_path):
         "Please read this file\n"
         "[Attached file: Project notes (notes.md)]\n"
         f"URI: {attached.as_uri()}\n\n"
-        "# Notes\n\nAttached file body"
+        + attached.read_bytes().decode("utf-8")
     )
 
 

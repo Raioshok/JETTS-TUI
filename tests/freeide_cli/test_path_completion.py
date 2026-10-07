@@ -32,6 +32,10 @@ class TestExtractPathWord:
     def test_home_path(self):
         assert SlashCommandCompleter._extract_path_word("edit ~/docs/") == "~/docs/"
 
+    @pytest.mark.skipif(os.name != "nt", reason="Windows path separators")
+    def test_windows_drive_path(self):
+        assert SlashCommandCompleter._extract_path_word(r"edit C:\work\main.py") == r"C:\work\main.py"
+
     def test_absolute_path(self):
         assert SlashCommandCompleter._extract_path_word("read /etc/hosts") == "/etc/hosts"
 
@@ -127,6 +131,7 @@ class TestPathCompletions:
 
     def test_home_expansion(self, tmp_path, monkeypatch):
         monkeypatch.setenv("HOME", str(tmp_path))
+        monkeypatch.setenv("USERPROFILE", str(tmp_path))
         (tmp_path / "testfile.md").touch()
 
         completions = list(SlashCommandCompleter._path_completions("~/test"))
@@ -198,13 +203,14 @@ class TestIntegration:
         event = MagicMock()
         assert list(completer.get_completions(doc, event)) == []
 
-    def test_absolute_path_triggers_completion(self, completer):
-        doc = Document("check /etc/hos", cursor_position=14)
+    def test_absolute_path_triggers_completion(self, completer, tmp_path):
+        (tmp_path / "hosts.txt").touch()
+        text = f"check {tmp_path / 'hos'}"
+        doc = Document(text, cursor_position=len(text))
         event = MagicMock()
         completions = list(completer.get_completions(doc, event))
         names = _display_names(completions)
-        # /etc/hosts should exist on Linux
-        assert any("host" in n.lower() for n in names)
+        assert "hosts.txt" in names
 
 
 class TestFileSizeLabel:

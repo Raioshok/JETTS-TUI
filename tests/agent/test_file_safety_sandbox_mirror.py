@@ -41,10 +41,10 @@ class TestClassifySandboxMirrorTarget:
         result = classify_sandbox_mirror_target(str(target))
         assert result is not None
         assert result["target_path"] == str(target.resolve())
-        assert result["mirror_root"].endswith(
-            "sandboxes/docker/default/home/.freeide"
+        assert Path(result["mirror_root"]).parts[-5:] == (
+            "sandboxes", "docker", "default", "home", ".freeide"
         )
-        assert result["inner_path"] == "profiles/group1/SOUL.md"
+        assert Path(result["inner_path"]).parts == ("profiles", "group1", "SOUL.md")
 
     @pytest.mark.parametrize(
         "backend,inner",
@@ -68,7 +68,7 @@ class TestClassifySandboxMirrorTarget:
 
         result = classify_sandbox_mirror_target(str(target))
         assert result is not None
-        assert result["inner_path"] == inner
+        assert Path(result["inner_path"]).parts == Path(inner).parts
         assert backend in result["mirror_root"]
 
     def test_path_outside_sandbox_returns_none(self, tmp_path):
@@ -135,7 +135,7 @@ class TestClassifySandboxMirrorTarget:
 
         result = classify_sandbox_mirror_target(str(target))
         assert result is not None
-        assert result["inner_path"] == "profiles/group1/SOUL.md"
+        assert Path(result["inner_path"]).parts == ("profiles", "group1", "SOUL.md")
 
 
 # ---------------------------------------------------------------------------
@@ -168,9 +168,9 @@ class TestGetSandboxMirrorWarning:
         warn = get_sandbox_mirror_warning(str(target))
         assert warn is not None
         # Must name the mirror root so the user can locate the sandbox.
-        assert "sandboxes/docker/default/home/.freeide" in warn
+        assert str(Path("sandboxes/docker/default/home/.freeide")) in warn
         # Must hint at what the agent likely meant.
-        assert "profiles/group1/SOUL.md" in warn
+        assert str(Path("profiles/group1/SOUL.md")) in warn
         # Must name the bypass kwarg shared with the cross-profile guard.
         assert "cross_profile=True" in warn
 

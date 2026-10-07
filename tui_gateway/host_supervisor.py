@@ -47,6 +47,7 @@ MUTATOR_ROUTE_TABLE: dict[str, str] = {
 _REGISTRY_NAME = "dashboard-compute-host.json"
 _RESPAWN_WINDOW_SECS = 300.0
 _SHUTDOWN_TIMEOUT_SECS = 10.0
+_append_log_lock = threading.Lock()
 
 
 def append_log_record(path: str | Path, record: str) -> None:
@@ -55,11 +56,14 @@ def append_log_record(path: str | Path, record: str) -> None:
     p.parent.mkdir(parents=True, exist_ok=True)
     text = record if record.endswith("\n") else f"{record}\n"
     data = text.encode("utf-8", errors="replace")
-    fd = os.open(str(p), os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
-    try:
-        os.write(fd, data)
-    finally:
-        os.close(fd)
+    # Windows O_APPEND does not serialize separate open/write pairs across
+    # threads. Keep each record intact within this supervisor process.
+    with _append_log_lock:
+        fd = os.open(str(p), os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+        try:
+            os.write(fd, data)
+        finally:
+            os.close(fd)
 
 
 def _repo_root() -> Path:
@@ -88,20 +92,24 @@ def _default_registry_path() -> Path:
 def _pid_alive(pid: int) -> bool:
     if pid <= 0:
         return False
-    try:
-        os.kill(pid, 0)
-        return True
-    except ProcessLookupError:
-        return False
-    except PermissionError:
-        return True
-    except Exception:
-        return False
+    # os.kill(pid, 0) sends a console Ctrl+C on Windows. Use the shared
+    # cross-platform probe so reconciling a stale registry cannot interrupt
+    # the dashboard (or another process in its console group).
+    from gateway.status import _pid_exists
+
+    return _pid_exists(pid)
 
 
 def _pid_command(pid: int) -> str:
     if pid <= 0:
         return ""
+    if os.name == "nt":
+        try:
+            import psutil
+
+            return " ".join(psutil.Process(pid).cmdline())
+        except (psutil.Error, OSError):
+            return ""
     # Linux fast path.
     proc_cmdline = Path("/proc") / str(pid) / "cmdline"
     try:
@@ -531,6 +539,25 @@ class HostSupervisor:
         return is_compute_host_identity(pid)
 
     def _terminate_pid(self, pid: int, *, timeout: float = _SHUTDOWN_TIMEOUT_SECS) -> None:
+        if os.name == "nt":
+            # An orphan is not our Popen child, but psutil can still wait for
+            # and terminate it safely after reconcile_startup_orphan verified
+            # its command line. Windows has no SIGKILL signal constant.
+            import psutil
+
+            try:
+                proc = psutil.Process(pid)
+                proc.terminate()
+                try:
+                    proc.wait(timeout=timeout)
+                except psutil.TimeoutExpired:
+                    proc.kill()
+                    proc.wait(timeout=2)
+            except psutil.NoSuchProcess:
+                pass
+            except (psutil.AccessDenied, OSError):
+                logger.debug("failed to terminate compute host pid=%s", pid, exc_info=True)
+            return
         try:
             os.kill(pid, signal.SIGTERM)
         except ProcessLookupError:

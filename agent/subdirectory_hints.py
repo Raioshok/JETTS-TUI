@@ -150,16 +150,18 @@ class SubdirectoryHintTracker:
     def _extract_paths_from_command(self, cmd: str, candidates: Set[Path]):
         """Extract path-like tokens from a shell command string."""
         try:
-            tokens = shlex.split(cmd)
+            tokens = shlex.split(cmd, posix=os.name != "nt")
         except ValueError:
             tokens = cmd.split()
 
         for token in tokens:
+            if os.name == "nt" and len(token) >= 2 and token[0] == token[-1] and token[0] in {'"', "'"}:
+                token = token[1:-1]
             # Skip flags
             if token.startswith("-"):
                 continue
-            # Must look like a path (contains / or .)
-            if "/" not in token and "." not in token:
+            # Must look like a path (including Windows drive/UNC separators).
+            if "/" not in token and "\\" not in token and "." not in token:
                 continue
             # Skip URLs
             if token.startswith(("http://", "https://", "git@")):

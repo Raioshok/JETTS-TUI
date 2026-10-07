@@ -41,13 +41,6 @@ def _valid_manifest() -> dict:
                     {"id": "openrouter/elephant-alpha", "description": "free"},
                 ],
             },
-            "nous": {
-                "metadata": {"display_name": "FreeIDE Portal"},
-                "models": [
-                    {"id": "anthropic/claude-opus-4.7"},
-                    {"id": "moonshotai/kimi-k2.6"},
-                ],
-            },
         },
     }
 
@@ -174,17 +167,12 @@ class TestFetchFailure:
 
 class TestFallbackChain:
     """``_fetch_manifest_with_fallback`` walks ``DEFAULT_CATALOG_FALLBACK_URLS``
-    when the primary URL fails. Regression: the Docusaurus site behind Vercel
-    occasionally returns HTTP 403 + x-vercel-mitigated: challenge for urllib;
-    without a fallback URL the user's disk cache freezes and new model
-    releases (opus 4.8, etc.) never reach the picker.
+    when configured and the primary URL fails. The default repository URL
+    needs no second hosted-service fallback.
     """
 
-    PRIMARY = "https://freeide-agent.freeide.dev/docs/api/model-catalog.json"
-    FALLBACK = (
-        "https://raw.githubusercontent.com/freeide/freeide"
-        "/main/website/static/api/model-catalog.json"
-    )
+    PRIMARY = "https://raw.githubusercontent.com/Raioshok/JETTS-TUI/main/resources/model-catalog.json"
+    FALLBACK = "https://example.invalid/model-catalog-fallback.json"
 
     def test_uses_primary_when_it_succeeds(self, isolated_home):
         from freeide_cli import model_catalog
@@ -194,7 +182,8 @@ class TestFallbackChain:
             calls.append(url)
             return _valid_manifest()
 
-        with patch.object(model_catalog, "_fetch_manifest", side_effect=fake_fetch):
+        with patch.object(model_catalog, "DEFAULT_CATALOG_FALLBACK_URLS", (self.FALLBACK,)), \
+             patch.object(model_catalog, "_fetch_manifest", side_effect=fake_fetch):
             result = model_catalog._fetch_manifest_with_fallback(self.PRIMARY, 5.0)
 
         assert result is not None
@@ -210,7 +199,8 @@ class TestFallbackChain:
                 return None  # simulate Vercel 403
             return _valid_manifest()
 
-        with patch.object(model_catalog, "_fetch_manifest", side_effect=fake_fetch):
+        with patch.object(model_catalog, "DEFAULT_CATALOG_FALLBACK_URLS", (self.FALLBACK,)), \
+             patch.object(model_catalog, "_fetch_manifest", side_effect=fake_fetch):
             result = model_catalog._fetch_manifest_with_fallback(self.PRIMARY, 5.0)
 
         assert result is not None
@@ -219,19 +209,21 @@ class TestFallbackChain:
     def test_returns_none_when_all_urls_fail(self, isolated_home):
         from freeide_cli import model_catalog
 
-        with patch.object(model_catalog, "_fetch_manifest", return_value=None) as fetch:
+        with patch.object(model_catalog, "DEFAULT_CATALOG_FALLBACK_URLS", (self.FALLBACK,)), \
+             patch.object(model_catalog, "_fetch_manifest", return_value=None) as fetch:
             result = model_catalog._fetch_manifest_with_fallback(self.PRIMARY, 5.0)
 
         assert result is None
         # Primary + every fallback URL was attempted exactly once.
-        assert fetch.call_count == 1 + len(model_catalog.DEFAULT_CATALOG_FALLBACK_URLS)
+        assert fetch.call_count == 2  # Primary URL plus the patched fallback.
 
     def test_dedupes_when_primary_equals_fallback(self, isolated_home):
         """Operator who configured ``model_catalog.url`` to the raw GitHub URL
         should not get a duplicate fetch from the fallback list."""
         from freeide_cli import model_catalog
 
-        with patch.object(model_catalog, "_fetch_manifest", return_value=None) as fetch:
+        with patch.object(model_catalog, "DEFAULT_CATALOG_FALLBACK_URLS", (self.FALLBACK,)), \
+             patch.object(model_catalog, "_fetch_manifest", return_value=None) as fetch:
             model_catalog._fetch_manifest_with_fallback(self.FALLBACK, 5.0)
 
         assert fetch.call_count == 1, f"expected 1 call, got {fetch.call_count}"
@@ -249,7 +241,8 @@ class TestFallbackChain:
                 return None
             return manifest
 
-        with patch.object(model_catalog, "_fetch_manifest", side_effect=fake_fetch):
+        with patch.object(model_catalog, "DEFAULT_CATALOG_FALLBACK_URLS", (self.FALLBACK,)), \
+             patch.object(model_catalog, "_fetch_manifest", side_effect=fake_fetch):
             result = model_catalog.get_catalog(force_refresh=True)
 
         assert result == manifest
@@ -321,7 +314,7 @@ class TestDefaultModelFromCache:
 
         repo_root = Path(model_catalog.__file__).resolve().parent.parent
         manifest = json.loads(
-            (repo_root / "website" / "static" / "api" / "model-catalog.json").read_text()
+            (repo_root / "resources" / "model-catalog.json").read_text()
         )
         for provider in ("openrouter",):
             block = manifest["providers"][provider]
@@ -388,14 +381,7 @@ class TestProviderOverride:
 
 
 # -----------------------------------------------------------------------------
-# Drift guard — prevent the in-repo curated lists from going out of sync with
-# the docs-hosted manifest at website/static/api/model-catalog.json.
-#
-# History: qwen/qwen3.6-plus was added to _PROVIDER_MODELS["nous"] in commit
-# 9dd6e5510 but website/static/api/model-catalog.json was not regenerated for
-# weeks, so free-tier users on a new install fetched a stale manifest and the
-# free-tier picker showed "No free models currently available." even though
-# the Portal was serving qwen/qwen3.6-plus as free. CI must catch this.
+# Drift guard — keep the in-repo fallback lists and repository manifest in sync.
 # -----------------------------------------------------------------------------
 
 
@@ -413,11 +399,11 @@ class TestManifestMatchesInRepoLists:
         """``scripts/build_model_catalog.py`` output must match the committed file.
 
         If this fails, run ``python scripts/build_model_catalog.py`` and
-        commit the regenerated ``website/static/api/model-catalog.json``.
+        commit the regenerated ``resources/model-catalog.json``.
         """
         # Resolve the repo root from this test file's location.
         repo_root = Path(__file__).resolve().parents[2]
-        manifest_path = repo_root / "website" / "static" / "api" / "model-catalog.json"
+        manifest_path = repo_root / "resources" / "model-catalog.json"
 
         if not manifest_path.exists():
             pytest.skip(f"manifest missing at {manifest_path}")
@@ -435,8 +421,7 @@ class TestManifestMatchesInRepoLists:
             actual = json.load(fh)
 
         assert self._strip_volatile(actual) == self._strip_volatile(expected), (
-            "website/static/api/model-catalog.json is out of sync with "
-            "_PROVIDER_MODELS['nous'] / OPENROUTER_MODELS. "
+            "resources/model-catalog.json is out of sync with OPENROUTER_MODELS. "
             "Run: python scripts/build_model_catalog.py && "
-            "git add website/static/api/model-catalog.json"
+            "git add resources/model-catalog.json"
         )

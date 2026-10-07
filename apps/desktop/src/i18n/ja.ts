@@ -785,7 +785,7 @@ export const ja = defineLocale({
       sshErrHostKey:
         '前回の接続以降、ホスト鍵が変更されています。想定どおりか確認し、ssh-keygen -R <host> を実行してから再接続してください。',
       sshErrNotInstalled:
-        'リモートホストに Jetts-TUI がインストールされていません。リモートでインストールする（curl -fsSL https://freeide-agent.freeide.dev/install.sh | sh）か、Jetts-TUI パスを設定してください。',
+        'リモートホストに Jetts-TUI がインストールされていません。リモートでインストールする（curl -fsSL https://raw.githubusercontent.com/Raioshok/JETTS-TUI/main/scripts/install.sh | bash）か、Jetts-TUI パスを設定してください。',
       sshErrPlatform:
         'サポートされていないリモートプラットフォームです。Jetts-TUI Desktop の SSH モードは Linux、macOS、Windows のリモートホストに対応しています。',
       sshErrTimeout: 'SSH 接続がタイムアウトしました。ホストが到達不能、またはスリープ中の可能性があります。',
@@ -944,14 +944,6 @@ export const ja = defineLocale({
       ready: '準備完了',
       needsSignIn: 'サインインが必要',
       needsSetup: 'セットアップが必要',
-      nousIncluded: 'Jetts-TUI サブスクリプションに含まれています。有効にするには FreeIDE Portal にサインインしてください。',
-      nousAuthNeededTitle: 'FreeIDE Portal にサインイン',
-      nousAuthNeededMessage: provider =>
-        `${provider} は保存されましたが、FreeIDE Portal にサインインするまで有効になりません。`,
-      nousAuthSignIn: 'サインイン',
-      nousAuthDoneTitle: 'FreeIDE Portal に接続しました',
-      nousAuthDoneMessage: 'サブスクリプションのバックエンドが有効になりました。',
-      nousAuthFailed: 'FreeIDE Portal のサインインが完了しませんでした',
       noApiKeyRequired: 'API キーは不要です。',
       postSetupHint: step =>
         `このバックエンドは一度だけインストールが必要です (${step})。このマシン上で実行され、数分かかる場合があります。`,
@@ -2012,7 +2004,8 @@ export const ja = defineLocale({
     done: '完了',
     applyingBody:
       'Jetts-TUI アップデーターが独自のウィンドウで引き継ぎ、完了後に自動的に Jetts-TUI を再度開きます。更新中はご自分で Jetts-TUI を開き直さないでください。',
-    applyingBodyBackend: 'リモートバックエンドが更新を適用して再起動します。復帰すると Jetts-TUI が自動的に再接続します。',
+    applyingBodyBackend:
+      'リモートバックエンドが更新を適用して再起動します。復帰すると Jetts-TUI が自動的に再接続します。',
     applyingClose: 'このウィンドウは更新中に閉じ、その後 Jetts-TUI が自動的に再度開きます。',
     errorTitle: '更新が完了しませんでした',
     errorBody: 'ご安心ください。何も失われていません。今すぐ再試行できます。',
@@ -2052,7 +2045,8 @@ export const ja = defineLocale({
     connectExistingDesc:
       'セッショントークンまたはブラウザーサインインでリモートバックエンドを使用します。ローカルインストールは開始されません。',
     installLocalTitle: 'Jetts-TUI をローカルにインストール',
-    installLocalDesc: 'Jetts-TUI をダウンロードし、Python 環境を作成して、このコンピューターでバックエンドを実行します。',
+    installLocalDesc:
+      'Jetts-TUI をダウンロードし、Python 環境を作成して、このコンピューターでバックエンドを実行します。',
     localStartUnavailable:
       'ローカルインストールを開始できません。Jetts-TUI Desktop を再起動して、もう一度お試しください。',
     remoteSetupTitle: '既存の Jetts-TUI に接続',
@@ -2116,7 +2110,6 @@ export const ja = defineLocale({
     chooseLater: '後でプロバイダーを選択します',
     recommended: '推奨',
     connected: '接続済み',
-    featuredPitch: '1 つのサブスクリプションで 300 以上の最先端モデル — Jetts-TUI を実行するための推奨方法',
     fireworksPitch: '直接モデル API — Fireworks がホストする最先端モデル',
     openRouterPitch: '1 つのキーで数百のモデル — 堅実なデフォルト',
     apiKeyOptions: {
@@ -2268,8 +2261,6 @@ export const ja = defineLocale({
       clientLabel: version => `クライアント v${version}`,
       connectionSsh: host => `SSH: ${host}`,
       connectionRemote: host => `リモート: ${host}`,
-      connectionCloud: host => `クラウド: ${host}`,
-      connectionCloudTooltip: host => `FreeIDE Cloud · ${host}`,
       connectionSshTooltip: host => `SSH · ${host}`,
       connectionRemoteTooltip: host => `Remote · ${host}`,
       backendLabel: version => `バックエンド v${version}`,

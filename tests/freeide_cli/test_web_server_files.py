@@ -1,5 +1,6 @@
 """Tests for the dashboard-managed file browser API."""
 
+import os
 from types import SimpleNamespace
 
 import pytest
@@ -57,6 +58,7 @@ def local_files_client(monkeypatch, tmp_path):
     monkeypatch.delenv("FREEIDE_DASHBOARD_FILES_ROOT", raising=False)
     monkeypatch.delenv("FREEIDE_HOME", raising=False)
     monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
 
     client, prev_auth_required, prev_bound_host = _client_with_app_state()
     try:
@@ -199,6 +201,7 @@ def test_gated_local_mode_still_defaults_to_home(monkeypatch, tmp_path):
     monkeypatch.delenv("FREEIDE_DASHBOARD_FILES_ROOT", raising=False)
     monkeypatch.delenv("FREEIDE_MANAGED", raising=False)
     monkeypatch.setenv("HOME", str(home))
+    monkeypatch.setenv("USERPROFILE", str(home))
     monkeypatch.setenv("FREEIDE_HOME", str(home / ".freeide"))
 
     prev_auth_required = getattr(web_server.app.state, "auth_required", None)
@@ -315,6 +318,8 @@ def test_query_token_does_not_authenticate_other_endpoints(forced_files_client):
 
 
 def test_hosted_policy_locks_to_opt_data(monkeypatch):
+    if os.name == "nt":
+        pytest.skip("/opt/data is a POSIX hosted path")
     monkeypatch.delenv("FREEIDE_DASHBOARD_FILES_ROOT", raising=False)
     monkeypatch.setenv("FREEIDE_HOME", "/opt/data")
     client, prev_auth_required, prev_bound_host = _client_with_app_state()

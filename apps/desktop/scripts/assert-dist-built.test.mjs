@@ -82,3 +82,36 @@ test('checkDistBuilt fails when assets/ has no JS bundle', () => {
     fs.rmSync(tempRoot, { recursive: true, force: true })
   }
 })
+
+test('checkDistBuilt rejects CSS assets missing from the packaged renderer', () => {
+  const { tempRoot, distDir } = makeDist(d => {
+    fs.writeFileSync(path.join(d, 'index.html'), '<!doctype html>', 'utf8')
+    fs.mkdirSync(path.join(d, 'assets'))
+    fs.writeFileSync(path.join(d, 'assets', 'index.js'), 'console.log(1)', 'utf8')
+    fs.writeFileSync(path.join(d, 'assets', 'index.css'),
+      '@font-face{src:url(../../../node_modules/ui/fonts/display.woff2)}', 'utf8')
+  })
+  try {
+    const result = checkDistBuilt(distDir)
+    assert.equal(result.ok, false)
+    assert.match(result.error, /CSS asset is missing from dist/)
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test('checkDistBuilt accepts CSS assets emitted beside the bundle', () => {
+  const { tempRoot, distDir } = makeDist(d => {
+    fs.writeFileSync(path.join(d, 'index.html'), '<!doctype html>', 'utf8')
+    fs.mkdirSync(path.join(d, 'assets'))
+    fs.writeFileSync(path.join(d, 'assets', 'index.js'), 'console.log(1)', 'utf8')
+    fs.writeFileSync(path.join(d, 'assets', 'display.woff2'), 'font bytes', 'utf8')
+    fs.writeFileSync(path.join(d, 'assets', 'index.css'),
+      '@font-face{src:url(./display.woff2)}', 'utf8')
+  })
+  try {
+    assert.deepEqual(checkDistBuilt(distDir), { ok: true })
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true })
+  }
+})

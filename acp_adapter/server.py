@@ -9,6 +9,7 @@ import contextvars
 import json
 import logging
 import os
+import re
 from collections import defaultdict, deque
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
@@ -270,34 +271,34 @@ def _path_from_file_uri(uri: str) -> Path | None:
     """Convert local file URIs/paths from ACP clients into a readable Path.
 
     Zed may send POSIX file URIs from Linux/WSL workspaces or Windows-ish paths
-    when launched through wsl.exe. Translate the common Windows drive form to
-    /mnt/<drive>/... so FreeIDE running in WSL can read it.
+    when launched through wsl.exe. Translate Windows drive paths only when the
+    backend itself runs in WSL; native Windows must keep its drive path.
     """
     raw = (uri or "").strip()
     if not raw:
         return None
 
-    parsed = urlparse(raw)
-    if parsed.scheme and parsed.scheme != "file":
-        return None
-
-    if parsed.scheme == "file":
-        if parsed.netloc and parsed.netloc not in {"", "localhost"}:
-            return None
-        path_text = unquote(parsed.path or "")
-    else:
+    # urlparse mistakes a bare C:\path for a URL with scheme "c".
+    if re.match(r"^[A-Za-z]:[\\/]", raw):
         path_text = unquote(raw)
+    else:
+        parsed = urlparse(raw)
+        if parsed.scheme and parsed.scheme != "file":
+            return None
+        if parsed.scheme == "file":
+            if parsed.netloc and parsed.netloc not in {"", "localhost"}:
+                return None
+            path_text = unquote(parsed.path or "")
+        else:
+            path_text = unquote(raw)
 
-    # file:///C:/Users/... or C:\Users\...
-    if len(path_text) >= 3 and path_text[0] == "/" and path_text[2] == ":" and path_text[1].isalpha():
-        drive = path_text[1].lower()
-        rest = path_text[3:].lstrip("/\\").replace("\\", "/")
-        return Path("/mnt") / drive / rest
-    if len(path_text) >= 2 and path_text[1] == ":" and path_text[0].isalpha():
-        drive = path_text[0].lower()
-        rest = path_text[2:].lstrip("/\\").replace("\\", "/")
-        return Path("/mnt") / drive / rest
+    # file:///C:/Users/... has a leading slash that Windows Path cannot use.
+    if re.match(r"^/[A-Za-z]:[\\/]", path_text):
+        path_text = path_text[1:]
+    if re.match(r"^[A-Za-z]:[\\/]", path_text):
+        from freeide_constants import translate_cwd_for_wsl_backend
 
+        return Path(translate_cwd_for_wsl_backend(path_text))
     return Path(path_text)
 
 

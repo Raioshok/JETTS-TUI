@@ -241,7 +241,7 @@ class TestEntryPointsImportBootstrap:
     # Entry points that invoke FreeIDE as a process.  Each one must
     # import freeide_bootstrap before doing any file I/O or stdout writes.
     ENTRY_POINTS = [
-        "freeide_cli/main.py",   # freeide CLI (console_script)
+        "jettstui/main.py",      # Jetts-TUI command entry point
         "run_agent.py",          # freeide-agent (console_script)
         "acp_adapter/entry.py",  # freeide-acp (console_script)
         "gateway/run.py",        # gateway
@@ -329,7 +329,7 @@ class TestHardenImportPath:
                 os.environ["FREEIDE_PYTHON_SRC_ROOT"] = env
             elif "FREEIDE_PYTHON_SRC_ROOT" in os.environ:
                 del os.environ["FREEIDE_PYTHON_SRC_ROOT"]
-            hb.harden_import_path(src_root="/opt/freeide")
+            hb.harden_import_path(src_root="/opt/jettstui")
             return sys.path[:]
         finally:
             sys.path[:] = original
@@ -340,30 +340,30 @@ class TestHardenImportPath:
 
     def test_relative_cwd_forms_removed(self):
         hb = _fresh_import()
-        result = self._run(hb, ["", ".", "/opt/freeide", "/usr/lib/python"])
+        result = self._run(hb, ["", ".", "/opt/jettstui", "/usr/lib/python"])
         assert "" not in result
         assert "." not in result
 
     def test_src_root_forced_to_front(self):
         hb = _fresh_import()
-        result = self._run(hb, ["", "/opt/freeide", "/usr/lib/python"])
-        assert result[0] == "/opt/freeide"
+        result = self._run(hb, ["", "/opt/jettstui", "/usr/lib/python"])
+        assert result[0] == "/opt/jettstui"
 
     def test_absolute_cwd_path_loses_to_src_root(self):
         # The real #51286 bug: the launch dir is present as its own absolute
         # path (venv activation / a project on PYTHONPATH), ahead of the
         # FreeIDE root.  The guard must relocate FreeIDE to the front.
         hb = _fresh_import()
-        result = self._run(hb, ["/home/user/tg-ws-proxy", "/opt/freeide"])
-        assert result[0] == "/opt/freeide"
+        result = self._run(hb, ["/home/user/tg-ws-proxy", "/opt/jettstui"])
+        assert result[0] == "/opt/jettstui"
         # The cwd absolute path may still appear (it can hold legit deps),
         # but only AFTER the FreeIDE root.
-        assert result.index("/opt/freeide") < result.index("/home/user/tg-ws-proxy")
+        assert result.index("/opt/jettstui") < result.index("/home/user/tg-ws-proxy")
 
     def test_src_root_not_duplicated(self):
         hb = _fresh_import()
-        result = self._run(hb, ["/opt/freeide", "/opt/freeide", ""])
-        assert result.count("/opt/freeide") == 1
+        result = self._run(hb, ["/opt/jettstui", "/opt/jettstui", ""])
+        assert result.count("/opt/jettstui") == 1
 
     def test_env_var_used_when_no_arg(self):
         hb = _fresh_import()

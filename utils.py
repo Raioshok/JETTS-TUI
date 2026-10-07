@@ -7,6 +7,7 @@ import os
 import shutil
 import stat
 import tempfile
+import time
 from pathlib import Path
 from typing import Any, Union
 from urllib.parse import urlparse
@@ -112,7 +113,17 @@ def atomic_replace(tmp_path: Union[str, Path], target: Union[str, Path]) -> str:
     real_path = os.path.realpath(target_str) if os.path.islink(target_str) else target_str
     tmp_str = str(tmp_path)
     try:
-        os.replace(tmp_str, real_path)
+        # Windows can briefly reject a replace while another writer is
+        # stat-ing or opening the current target. Retrying the atomic rename
+        # preserves the old-or-new guarantee; copying over it would not.
+        for attempt in range(10):
+            try:
+                os.replace(tmp_str, real_path)
+                break
+            except PermissionError as exc:
+                if os.name != "nt" or getattr(exc, "winerror", None) not in (5, 32) or attempt == 9:
+                    raise
+                time.sleep(0.005 * (attempt + 1))
     except OSError as exc:
         if exc.errno not in (errno.EXDEV, errno.EBUSY):
             raise

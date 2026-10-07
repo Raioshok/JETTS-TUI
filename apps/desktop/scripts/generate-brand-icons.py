@@ -1,7 +1,7 @@
 """Render the code-native Jetts-TUI mark for desktop packaging assets.
 
 Run with a Python environment containing Pillow. The geometry mirrors
-website/static/img/jetts-tui-mark.svg and does not depend on upstream art.
+docs/assets/img/jetts-tui-mark.svg and does not depend on upstream art.
 """
 
 from pathlib import Path

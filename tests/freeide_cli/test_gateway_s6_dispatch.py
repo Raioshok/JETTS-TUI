@@ -491,7 +491,7 @@ def test_block_until_terminated_installs_sigterm_handler_and_blocks(
         pause_calls["n"] += 1
         raise KeyboardInterrupt  # break out of the `while True: pause()` loop
 
-    monkeypatch.setattr("freeide_cli.gateway.signal.pause", fake_pause)
+    monkeypatch.setattr("freeide_cli.gateway.signal.pause", fake_pause, raising=False)
 
     with pytest.raises(KeyboardInterrupt):
         gw._block_until_terminated()

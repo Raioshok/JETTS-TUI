@@ -103,6 +103,8 @@ def test_restore_stashed_changes_prompts_before_applying(monkeypatch, tmp_path, 
 
     def fake_run(cmd, **kwargs):
         calls.append((cmd, kwargs))
+        if cmd[1:3] == ["status", "--porcelain"]:
+            return SimpleNamespace(stdout="", stderr="", returncode=0)
         if cmd[1:3] == ["stash", "apply"]:
             return SimpleNamespace(stdout="applied\n", stderr="", returncode=0)
         if cmd[1:3] == ["diff", "--name-only"]:
@@ -119,10 +121,13 @@ def test_restore_stashed_changes_prompts_before_applying(monkeypatch, tmp_path, 
     restored = freeide_main._restore_stashed_changes(["git"], tmp_path, "abc123", prompt_user=True)
 
     assert restored is True
-    assert calls[0][0] == ["git", "stash", "apply", "abc123"]
-    assert calls[1][0] == ["git", "diff", "--name-only", "--diff-filter=U"]
-    assert calls[2][0] == ["git", "stash", "list", "--format=%gd %H"]
-    assert calls[3][0] == ["git", "stash", "drop", "stash@{1}"]
+    assert [c for c, _ in calls] == [
+        ["git", "status", "--porcelain"],
+        ["git", "stash", "apply", "abc123"],
+        ["git", "diff", "--name-only", "--diff-filter=U"],
+        ["git", "stash", "list", "--format=%gd %H"],
+        ["git", "stash", "drop", "stash@{1}"],
+    ]
     out = capsys.readouterr().out
     assert "Restore local changes now? [Y/n]" in out
     assert "restored on top of the updated codebase" in out
@@ -155,6 +160,8 @@ def test_restore_stashed_changes_applies_without_prompt_when_disabled(monkeypatc
 
     def fake_run(cmd, **kwargs):
         calls.append((cmd, kwargs))
+        if cmd[1:3] == ["status", "--porcelain"]:
+            return SimpleNamespace(stdout="", stderr="", returncode=0)
         if cmd[1:3] == ["stash", "apply"]:
             return SimpleNamespace(stdout="applied\n", stderr="", returncode=0)
         if cmd[1:3] == ["diff", "--name-only"]:
@@ -170,10 +177,13 @@ def test_restore_stashed_changes_applies_without_prompt_when_disabled(monkeypatc
     restored = freeide_main._restore_stashed_changes(["git"], tmp_path, "abc123", prompt_user=False)
 
     assert restored is True
-    assert calls[0][0] == ["git", "stash", "apply", "abc123"]
-    assert calls[1][0] == ["git", "diff", "--name-only", "--diff-filter=U"]
-    assert calls[2][0] == ["git", "stash", "list", "--format=%gd %H"]
-    assert calls[3][0] == ["git", "stash", "drop", "stash@{0}"]
+    assert [c for c, _ in calls] == [
+        ["git", "status", "--porcelain"],
+        ["git", "stash", "apply", "abc123"],
+        ["git", "diff", "--name-only", "--diff-filter=U"],
+        ["git", "stash", "list", "--format=%gd %H"],
+        ["git", "stash", "drop", "stash@{0}"],
+    ]
     assert "Restore local changes now?" not in capsys.readouterr().out
 
 
@@ -193,6 +203,8 @@ def test_restore_stashed_changes_keeps_going_when_stash_entry_cannot_be_resolved
 
     def fake_run(cmd, **kwargs):
         calls.append((cmd, kwargs))
+        if cmd[1:3] == ["status", "--porcelain"]:
+            return SimpleNamespace(stdout="", stderr="", returncode=0)
         if cmd[1:3] == ["stash", "apply"]:
             return SimpleNamespace(stdout="applied\n", stderr="", returncode=0)
         if cmd[1:3] == ["diff", "--name-only"]:
@@ -207,9 +219,10 @@ def test_restore_stashed_changes_keeps_going_when_stash_entry_cannot_be_resolved
 
     assert restored is True
     _utf8 = {"encoding": "utf-8", "errors": "replace"}
-    assert calls[0] == (["git", "stash", "apply", "abc123"], {"cwd": tmp_path, "capture_output": True, "text": True, **_utf8})
-    assert calls[1] == (["git", "diff", "--name-only", "--diff-filter=U"], {"cwd": tmp_path, "capture_output": True, "text": True, **_utf8})
-    assert calls[2] == (["git", "stash", "list", "--format=%gd %H"], {"cwd": tmp_path, "capture_output": True, "text": True, **_utf8, "check": True})
+    assert calls[0] == (["git", "status", "--porcelain"], {"cwd": tmp_path, "capture_output": True, "text": True, **_utf8})
+    assert calls[1] == (["git", "stash", "apply", "abc123"], {"cwd": tmp_path, "capture_output": True, "text": True, **_utf8})
+    assert calls[2] == (["git", "diff", "--name-only", "--diff-filter=U"], {"cwd": tmp_path, "capture_output": True, "text": True, **_utf8})
+    assert calls[3] == (["git", "stash", "list", "--format=%gd %H"], {"cwd": tmp_path, "capture_output": True, "text": True, **_utf8, "check": True})
     out = capsys.readouterr().out
     assert "couldn't find the stash entry to drop" in out
     assert "stash was left in place" in out
@@ -224,6 +237,8 @@ def test_restore_stashed_changes_keeps_going_when_drop_fails(monkeypatch, tmp_pa
 
     def fake_run(cmd, **kwargs):
         calls.append((cmd, kwargs))
+        if cmd[1:3] == ["status", "--porcelain"]:
+            return SimpleNamespace(stdout="", stderr="", returncode=0)
         if cmd[1:3] == ["stash", "apply"]:
             return SimpleNamespace(stdout="applied\n", stderr="", returncode=0)
         if cmd[1:3] == ["diff", "--name-only"]:
@@ -239,7 +254,7 @@ def test_restore_stashed_changes_keeps_going_when_drop_fails(monkeypatch, tmp_pa
     restored = freeide_main._restore_stashed_changes(["git"], tmp_path, "abc123", prompt_user=False)
 
     assert restored is True
-    assert calls[3][0] == ["git", "stash", "drop", "stash@{0}"]
+    assert calls[4][0] == ["git", "stash", "drop", "stash@{0}"]
     out = capsys.readouterr().out
     assert "couldn't drop the saved stash entry" in out
     assert "drop failed" in out
@@ -258,6 +273,8 @@ def test_restore_stashed_changes_always_resets_on_conflict(monkeypatch, tmp_path
 
     def fake_run(cmd, **kwargs):
         calls.append((cmd, kwargs))
+        if cmd[1:3] == ["status", "--porcelain"]:
+            return SimpleNamespace(stdout="", stderr="", returncode=0)
         if cmd[1:3] == ["stash", "apply"]:
             return SimpleNamespace(stdout="conflict output\n", stderr="conflict stderr\n", returncode=1)
         if cmd[1:3] == ["diff", "--name-only"]:
@@ -289,6 +306,8 @@ def test_restore_stashed_changes_auto_resets_non_interactive(monkeypatch, tmp_pa
 
     def fake_run(cmd, **kwargs):
         calls.append((cmd, kwargs))
+        if cmd[1:3] == ["status", "--porcelain"]:
+            return SimpleNamespace(stdout="", stderr="", returncode=0)
         if cmd[1:3] == ["stash", "apply"]:
             return SimpleNamespace(stdout="applied\n", stderr="", returncode=0)
         if cmd[1:3] == ["diff", "--name-only"]:
@@ -306,6 +325,60 @@ def test_restore_stashed_changes_auto_resets_non_interactive(monkeypatch, tmp_pa
     assert "Working tree reset to clean state" in out
     reset_calls = [c for c, _ in calls if c[1:3] == ["reset", "--hard"]]
     assert len(reset_calls) == 1
+
+
+@pytest.mark.parametrize("status, returncode", [(" M changed.py\n", 0), ("", 128)])
+def test_restore_stashed_changes_preserves_new_work_before_apply(
+    monkeypatch, tmp_path, capsys, status, returncode
+):
+    calls = []
+
+    def fake_run(cmd, **kwargs):
+        calls.append(cmd)
+        assert cmd == ["git", "status", "--porcelain"]
+        return SimpleNamespace(stdout=status, stderr="status failed", returncode=returncode)
+
+    monkeypatch.setattr(freeide_main.subprocess, "run", fake_run)
+
+    assert freeide_main._restore_stashed_changes(
+        ["git"], tmp_path, "abc123", prompt_user=False
+    ) is False
+    assert calls == [["git", "status", "--porcelain"]]
+    output = capsys.readouterr().out
+    assert "stash restore skipped for safety" in output
+    assert "abc123" in output
+
+
+def test_restore_stashed_changes_does_not_touch_post_stash_edit_real_git(tmp_path):
+    """An actual Git checkout must retain edits made while an update runs."""
+    import shutil
+    import subprocess
+
+    if shutil.which("git") is None:
+        pytest.skip("git not available")
+
+    def git(*args):
+        return subprocess.run(
+            ["git", *args], cwd=tmp_path, capture_output=True, text=True, check=True
+        ).stdout.strip()
+
+    git("init", "-q")
+    git("config", "user.email", "test@example.com")
+    git("config", "user.name", "Test")
+    target = tmp_path / "code.py"
+    target.write_text("base\n", encoding="utf-8")
+    git("add", "code.py")
+    git("commit", "-qm", "base")
+    target.write_text("stashed\n", encoding="utf-8")
+    git("stash", "push", "-m", "update backup")
+    stash_ref = git("rev-parse", "refs/stash")
+    target.write_text("new work\n", encoding="utf-8")
+
+    assert freeide_main._restore_stashed_changes(
+        ["git"], tmp_path, stash_ref, prompt_user=False
+    ) is False
+    assert target.read_text(encoding="utf-8") == "new work\n"
+    assert git("rev-parse", "refs/stash") == stash_ref
 
 
 def test_stash_local_changes_if_needed_raises_when_stash_ref_missing(monkeypatch, tmp_path):
@@ -391,6 +464,7 @@ def _setup_update_mocks(monkeypatch, tmp_path):
     """Common setup for cmd_update tests."""
     (tmp_path / ".git").mkdir()
     monkeypatch.setattr(freeide_main, "PROJECT_ROOT", tmp_path)
+    monkeypatch.setattr(freeide_main, "_pause_windows_gateways_for_update", lambda: [])
     monkeypatch.setattr(freeide_main, "_stash_local_changes_if_needed", lambda *a, **kw: None)
     monkeypatch.setattr(freeide_main, "_restore_stashed_changes", lambda *a, **kw: True)
     monkeypatch.setattr(freeide_config, "get_missing_env_vars", lambda required_only=True: [])
@@ -411,6 +485,8 @@ def test_cmd_update_retries_optional_extras_individually_when_all_fails(monkeypa
     recorded = []
 
     def fake_run(cmd, **kwargs):
+        if cmd[:3] == ["git", "-c", "windows.appendAtomically=false"]:
+            cmd = ["git", *cmd[3:]]
         recorded.append(cmd)
         if cmd == ["git", "fetch", "origin", "main"]:
             return SimpleNamespace(stdout="", stderr="", returncode=0)
@@ -460,6 +536,8 @@ def test_cmd_update_succeeds_with_extras(monkeypatch, tmp_path):
     recorded = []
 
     def fake_run(cmd, **kwargs):
+        if cmd[:3] == ["git", "-c", "windows.appendAtomically=false"]:
+            cmd = ["git", *cmd[3:]]
         recorded.append(cmd)
         if cmd == ["git", "fetch", "origin", "main"]:
             return SimpleNamespace(stdout="", stderr="", returncode=0)
@@ -553,6 +631,8 @@ def test_cmd_update_refreshes_active_memory_provider_dependencies(monkeypatch, t
     )
 
     def fake_run(cmd, **kwargs):
+        if cmd[:3] == ["git", "-c", "windows.appendAtomically=false"]:
+            cmd = ["git", *cmd[3:]]
         if cmd == ["git", "rev-parse", "--abbrev-ref", "HEAD"]:
             return SimpleNamespace(stdout="main\n", stderr="", returncode=0)
         if cmd == ["git", "rev-list", "HEAD..origin/main", "--count"]:
@@ -577,6 +657,8 @@ def test_cmd_update_reloads_runtime_modules_before_lazy_refresh(monkeypatch, tmp
     events = []
 
     def fake_run(cmd, **kwargs):
+        if cmd[:3] == ["git", "-c", "windows.appendAtomically=false"]:
+            cmd = ["git", *cmd[3:]]
         if cmd == ["git", "fetch", "origin", "main"]:
             return SimpleNamespace(stdout="", stderr="", returncode=0)
         if cmd == ["git", "rev-parse", "--abbrev-ref", "HEAD"]:
@@ -687,6 +769,8 @@ def _make_update_side_effect(
     recorded = []
 
     def side_effect(cmd, **kwargs):
+        if cmd[:3] == ["git", "-c", "windows.appendAtomically=false"]:
+            cmd = ["git", *cmd[3:]]
         recorded.append(cmd)
         joined = " ".join(str(c) for c in cmd)
         if "fetch" in joined and "origin" in joined:
@@ -1227,6 +1311,8 @@ def test_restore_treats_existing_untracked_only_failure_as_restored(
 
     def fake_run(cmd, **kwargs):
         calls.append((cmd, kwargs))
+        if cmd[1:3] == ["status", "--porcelain"]:
+            return SimpleNamespace(stdout="", stderr="", returncode=0)
         if cmd[1:3] == ["stash", "apply"]:
             return SimpleNamespace(
                 stdout="",

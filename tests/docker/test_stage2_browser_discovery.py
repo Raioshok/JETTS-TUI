@@ -67,7 +67,7 @@ def test_stage2_browser_path_accessible_to_freeide_user(
     built_image: str, container_name: str,
 ) -> None:
     """The discovered browser binary must be accessible to the
-    unprivileged freeide user (UID 10000), since that's who runs
+    unprivileged jettstui user (UID 10000), since that's who runs
     agent-browser subprocesses."""
     start_container(built_image, container_name)
 
@@ -78,5 +78,5 @@ def test_stage2_browser_path_accessible_to_freeide_user(
         timeout=10,
     )
     assert r.returncode == 0, (
-        f"browser binary not readable+executable by freeide user: {r.stderr}"
+        f"browser binary not readable+executable by jettstui user: {r.stderr}"
     )

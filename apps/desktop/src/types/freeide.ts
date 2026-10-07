@@ -1325,7 +1325,6 @@ export interface ModelAssignmentResponse {
   /** Toolset keys auto-routed through the Nous Tool Gateway as a result of
    *  switching the main provider to Nous. Empty unless provider === 'nous'
    *  and the user is a paid subscriber with unconfigured tools. */
-  gateway_tools?: string[]
   model?: string
   ok: boolean
   provider?: string

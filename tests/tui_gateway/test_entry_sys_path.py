@@ -71,10 +71,10 @@ def test_guard_handles_absolute_cwd_path():
 
     original = sys.path[:]
     try:
-        sys.path[:] = ["/home/user/tg-ws-proxy", "/opt/freeide", "/usr/lib"]
-        freeide_bootstrap.harden_import_path(src_root="/opt/freeide")
-        assert sys.path[0] == "/opt/freeide"
-        assert sys.path.index("/opt/freeide") < sys.path.index(
+        sys.path[:] = ["/home/user/tg-ws-proxy", "/opt/jettstui", "/usr/lib"]
+        freeide_bootstrap.harden_import_path(src_root="/opt/jettstui")
+        assert sys.path[0] == "/opt/jettstui"
+        assert sys.path.index("/opt/jettstui") < sys.path.index(
             "/home/user/tg-ws-proxy"
         )
     finally:

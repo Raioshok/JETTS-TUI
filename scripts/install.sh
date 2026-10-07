@@ -45,7 +45,17 @@ BOLD='\033[1m'
 # Configuration
 REPO_URL_SSH="git@github.com:Raioshok/JETTS-TUI.git"
 REPO_URL_HTTPS="https://github.com/Raioshok/JETTS-TUI.git"
-FREEIDE_HOME="${FREEIDE_HOME:-$HOME/.freeide}"
+if [ -z "${FREEIDE_HOME:-}" ]; then
+    if [ -d "$HOME/.jettstui" ]; then
+        FREEIDE_HOME="$HOME/.jettstui"
+    elif [ -d "$HOME/.freeide" ]; then
+        # Reuse the existing install until the runtime migrates it and leaves
+        # a compatibility symlink for older launchers.
+        FREEIDE_HOME="$HOME/.freeide"
+    else
+        FREEIDE_HOME="$HOME/.jettstui"
+    fi
+fi
 # INSTALL_DIR is resolved AFTER arg parsing and OS detection so we can pick an
 # FHS-style layout for root installs.  Track whether the user gave us an
 # explicit directory — if so we never override it.
@@ -60,8 +70,8 @@ PYTHON_VERSION="3.11"
 NODE_VERSION="22"
 
 # FHS-style root install layout (set by resolve_install_layout when applicable):
-#   code at /usr/local/lib/freeide-agent, command at /usr/local/bin/freeide,
-#   data still at /root/.freeide (FREEIDE_HOME).  Matches Claude Code / Codex CLI
+#   code at /usr/local/lib/jettstui, command at /usr/local/bin/jetts-tui,
+#   data at /root/.jettstui (FREEIDE_HOME).
 #   and keeps Docker bind-mounted /root/ volumes lean.
 ROOT_FHS_LAYOUT=false
 DETECTED_BROWSER_EXECUTABLE=""
@@ -162,7 +172,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --skip-browser Skip Playwright/Chromium install (browser tools won't work)"
             echo "  --no-skills    Start with a blank slate — seed no bundled skills, and"
             echo "                   write \$FREEIDE_HOME/.no-bundled-skills so future"
-            echo "                   'freeide update' runs never inject bundled skills either"
+            echo "                   'jetts-tui update' runs never inject bundled skills either"
             echo "  --branch NAME  Git branch to install (default: main)"
             echo "  --commit SHA   Pin checkout to a specific commit after clone/update"
             echo "  --manifest     Print desktop bootstrap stage manifest as JSON"
@@ -171,17 +181,17 @@ while [[ $# -gt 0 ]]; do
             echo "  --non-interactive  Skip stages that require user input"
             echo "  --include-desktop  Also build the desktop app (apps/desktop -> Jetts-TUI.app)"
             echo "  --dir PATH     Installation directory"
-            echo "                   default (non-root):  ~/.freeide/freeide-agent"
-            echo "                   default (root, Linux): /usr/local/lib/freeide-agent"
-            echo "  --freeide-home PATH  Data directory (default: ~/.freeide, or \$FREEIDE_HOME)"
+            echo "                   default (non-root):  ~/.jettstui/jettstui"
+            echo "                   default (root, Linux): /usr/local/lib/jettstui"
+            echo "  --freeide-home PATH  Data directory (default: ~/.jettstui, or \$FREEIDE_HOME)"
             echo "  -h, --help     Show this help"
             echo ""
             echo "Notes:"
             echo "  When running as root on Linux, Jetts-TUI installs the code under"
-            echo "  /usr/local/lib/freeide-agent and links the command into"
-            echo "  /usr/local/bin/freeide (FHS layout — matches Claude Code / Codex CLI)."
+            echo "  /usr/local/lib/jettstui and links the command into"
+            echo "  /usr/local/bin/jetts-tui (FHS layout)."
             echo "  Data, config, sessions, and logs still live in \$FREEIDE_HOME"
-            echo "  (default /root/.freeide).  This keeps Docker bind-mounted volumes"
+            echo "  (default /root/.jettstui).  This keeps Docker bind-mounted volumes"
             echo "  small and ensures the command is on PATH for all shells."
             echo "  Existing installs at \$FREEIDE_HOME/freeide-agent are preserved in-place."
             echo "  --ensure DEPS  Install only specified deps (comma-separated)"
@@ -405,7 +415,11 @@ resolve_install_layout() {
 
     # Termux: package manager manages /data/data/..., keep code in FREEIDE_HOME.
     if is_termux; then
-        INSTALL_DIR="$FREEIDE_HOME/freeide-agent"
+        if [ -d "$FREEIDE_HOME/freeide-agent/.git" ]; then
+            INSTALL_DIR="$FREEIDE_HOME/freeide-agent"
+        else
+            INSTALL_DIR="$FREEIDE_HOME/jettstui"
+        fi
         return 0
     fi
 
@@ -416,10 +430,10 @@ resolve_install_layout() {
         if [ -d "$FREEIDE_HOME/freeide-agent/.git" ]; then
             INSTALL_DIR="$FREEIDE_HOME/freeide-agent"
             log_info "Existing install detected at $INSTALL_DIR — keeping legacy layout"
-            log_info "  (new root installs use /usr/local/lib/freeide-agent)"
+            log_info "  (new root installs use /usr/local/lib/jettstui)"
             return 0
         fi
-        INSTALL_DIR="/usr/local/lib/freeide-agent"
+        INSTALL_DIR="/usr/local/lib/jettstui"
         ROOT_FHS_LAYOUT=true
         # Place uv-managed Python under /usr/local/share so the venv interpreter
         # is world-readable.  Default uv paths land in /root/.local/share/uv,
@@ -430,14 +444,18 @@ resolve_install_layout() {
         export UV_PYTHON_BIN_DIR="${UV_PYTHON_BIN_DIR:-/usr/local/share/uv/bin}"
         log_info "Root install on Linux — using FHS layout"
         log_info "  Code:    $INSTALL_DIR"
-        log_info "  Command: /usr/local/bin/freeide"
+        log_info "  Command: /usr/local/bin/jetts-tui"
         log_info "  Data:    $FREEIDE_HOME (unchanged)"
         log_info "  uv Python: $UV_PYTHON_INSTALL_DIR (world-readable)"
         return 0
     fi
 
-    # Default: non-root, non-Termux → legacy user-scoped layout.
-    INSTALL_DIR="$FREEIDE_HOME/freeide-agent"
+    # Existing checkouts keep their path; fresh installs use the new brand.
+    if [ -d "$FREEIDE_HOME/freeide-agent/.git" ]; then
+        INSTALL_DIR="$FREEIDE_HOME/freeide-agent"
+    else
+        INSTALL_DIR="$FREEIDE_HOME/jettstui"
+    fi
 }
 
 get_command_link_dir() {
@@ -482,10 +500,12 @@ configure_managed_node_npm_prefix() {
 get_freeide_command_path() {
     local link_dir
     link_dir="$(get_command_link_dir)"
-    if [ -x "$link_dir/freeide" ]; then
+    if [ -x "$link_dir/jetts-tui" ]; then
+        echo "$link_dir/jetts-tui"
+    elif [ -x "$link_dir/freeide" ]; then
         echo "$link_dir/freeide"
     else
-        echo "freeide"
+        echo "jetts-tui"
     fi
 }
 
@@ -895,7 +915,7 @@ install_node() {
         return 0
     fi
 
-    log_info "Extracting to ~/.freeide/node/..."
+    log_info "Extracting to $FREEIDE_HOME/node/..."
     if [[ "$tarball_name" == *.tar.xz ]]; then
         tar xf "$tmp_dir/$tarball_name" -C "$tmp_dir"
     else
@@ -933,7 +953,7 @@ install_node() {
 
     local installed_ver
     installed_ver=$("$FREEIDE_HOME/node/bin/node" --version 2>/dev/null)
-    log_success "Node.js $installed_ver installed to ~/.freeide/node/"
+    log_success "Node.js $installed_ver installed to $FREEIDE_HOME/node/"
     HAS_NODE=true
 }
 
@@ -1544,7 +1564,7 @@ try:
     specs = data["project"]["optional-dependencies"]["all"]
     extras = []
     for s in specs:
-        m = re.search(r"freeide-agent\[([\w-]+)\]", s)
+        m = re.search(r"jetts-tui\[([\w-]+)\]", s)
         if m:
             extras.append(m.group(1))
     print(",".join(extras))
@@ -1617,11 +1637,12 @@ PY
 }
 
 setup_path() {
-    log_info "Setting up freeide command..."
+    log_info "Setting up jetts-tui command..."
 
     if [ "$USE_VENV" = true ]; then
         FREEIDE_BIN="$INSTALL_DIR/venv/bin/python"
         FREEIDE_ENTRYPOINT="$INSTALL_DIR/freeide"
+        JETTS_ENTRYPOINT="$INSTALL_DIR/jetts-tui"
     else
         FREEIDE_BIN="$(which freeide 2>/dev/null || echo "")"
         if [ -z "$FREEIDE_BIN" ]; then
@@ -1631,7 +1652,7 @@ setup_path() {
     fi
 
     # Verify the interpreter and the checked-in entrypoint needed by the launcher.
-    if [ ! -x "$FREEIDE_BIN" ] || { [ "$USE_VENV" = true ] && [ ! -f "$FREEIDE_ENTRYPOINT" ]; }; then
+    if [ ! -x "$FREEIDE_BIN" ] || { [ "$USE_VENV" = true ] && { [ ! -f "$FREEIDE_ENTRYPOINT" ] || [ ! -f "$JETTS_ENTRYPOINT" ]; }; }; then
         log_warn "FreeIDE launcher prerequisites not found"
         log_info "This usually means the Python package install didn't complete successfully."
         if [ "$DISTRO" = "termux" ]; then
@@ -1675,12 +1696,32 @@ exec "$FREEIDE_BIN" "\$@"
 EOF
     fi
     chmod +x "$command_link_dir/freeide"
-    log_success "Installed freeide launcher → $command_link_display_dir/freeide"
+    # Keep the old command as an alias, but make Jetts-TUI the documented
+    # launcher. Remove a previous symlink before writing to avoid overwriting
+    # the pip-generated venv entry point through it.
+    rm -f "$command_link_dir/jetts-tui"
+    if [ "$USE_VENV" = true ]; then
+        cat > "$command_link_dir/jetts-tui" <<EOF
+#!/usr/bin/env bash
+unset PYTHONPATH
+unset PYTHONHOME
+exec "$FREEIDE_BIN" "$JETTS_ENTRYPOINT" "\$@"
+EOF
+    else
+        cat > "$command_link_dir/jetts-tui" <<EOF
+#!/usr/bin/env bash
+unset PYTHONPATH
+unset PYTHONHOME
+exec "$FREEIDE_BIN" "\$@"
+EOF
+    fi
+    chmod +x "$command_link_dir/jetts-tui"
+    log_success "Installed Jetts-TUI launcher → $command_link_display_dir/jetts-tui"
 
     if [ "$DISTRO" = "termux" ]; then
         export PATH="$command_link_dir:$PATH"
         log_info "$command_link_display_dir is the native Termux command path"
-        log_success "freeide command ready"
+        log_success "jetts-tui command ready"
         return 0
     fi
 
@@ -1695,16 +1736,16 @@ EOF
         # Probe a fresh non-login interactive bash the way the user will use it.
         # `bash -i -c` sources ~/.bashrc but NOT ~/.bash_profile or /etc/profile,
         # which is the exact scenario where RHEL root loses /usr/local/bin.
-        if env -i HOME="$HOME" TERM="${TERM:-dumb}" bash -i -c 'command -v freeide' \
+        if env -i HOME="$HOME" TERM="${TERM:-dumb}" bash -i -c 'command -v jetts-tui' \
                 >/dev/null 2>&1; then
             log_info "/usr/local/bin is already on PATH for all shells"
-            log_success "freeide command ready"
+            log_success "jetts-tui command ready"
             return 0
         fi
 
-        log_info "freeide not on PATH in non-login shells (common on RHEL-family)"
+        log_info "jetts-tui not on PATH in non-login shells (common on RHEL-family)"
         PATH_LINE='export PATH="/usr/local/bin:$PATH"'
-        PATH_COMMENT='# FreeIDE Agent — ensure /usr/local/bin is on PATH (RHEL non-login shells)'
+        PATH_COMMENT='# Jetts-TUI — ensure /usr/local/bin is on PATH (RHEL non-login shells)'
         for SHELL_CONFIG in "$HOME/.bashrc" "$HOME/.bash_profile"; do
             [ -f "$SHELL_CONFIG" ] || continue
             if ! grep -v '^[[:space:]]*#' "$SHELL_CONFIG" 2>/dev/null \
@@ -1715,7 +1756,7 @@ EOF
                 log_success "Added /usr/local/bin to PATH in $SHELL_CONFIG"
             fi
         done
-        log_success "freeide command ready"
+        log_success "jetts-tui command ready"
         return 0
     fi
 
@@ -1785,10 +1826,10 @@ EOF
         log_info "~/.local/bin already on PATH"
     fi
 
-    # Export for current session so freeide works immediately
+    # Export for current session so jetts-tui works immediately.
     export PATH="$command_link_dir:$PATH"
 
-    log_success "freeide command ready"
+    log_success "jetts-tui command ready"
 }
 
 copy_config_templates() {
@@ -1801,13 +1842,13 @@ copy_config_templates() {
     if [ ! -f "$FREEIDE_HOME/.env" ]; then
         if [ -f "$INSTALL_DIR/.env.example" ]; then
             cp "$INSTALL_DIR/.env.example" "$FREEIDE_HOME/.env"
-            log_success "Created ~/.freeide/.env from template"
+            log_success "Created $FREEIDE_HOME/.env from template"
         else
             touch "$FREEIDE_HOME/.env"
-            log_success "Created ~/.freeide/.env"
+            log_success "Created $FREEIDE_HOME/.env"
         fi
     else
-        log_info "~/.freeide/.env already exists, keeping it"
+        log_info "$FREEIDE_HOME/.env already exists, keeping it"
     fi
     # Restrict .env permissions — this file holds API keys and tokens.
     # 0600 ensures only the file owner can read/write, matching standard
@@ -1819,10 +1860,10 @@ copy_config_templates() {
     if [ ! -f "$FREEIDE_HOME/config.yaml" ]; then
         if [ -f "$INSTALL_DIR/cli-config.yaml.example" ]; then
             cp "$INSTALL_DIR/cli-config.yaml.example" "$FREEIDE_HOME/config.yaml"
-            log_success "Created ~/.freeide/config.yaml from template"
+            log_success "Created $FREEIDE_HOME/config.yaml from template"
         fi
     else
-        log_info "~/.freeide/config.yaml already exists, keeping it"
+        log_info "$FREEIDE_HOME/config.yaml already exists, keeping it"
     fi
 
     # Create SOUL.md if it doesn't exist (global persona file).
@@ -1834,10 +1875,10 @@ copy_config_templates() {
         cat > "$FREEIDE_HOME/SOUL.md" << 'SOUL_EOF'
 You are Jetts-TUI, an AI assistant running in the Jetts-TUI workspace. You are helpful, knowledgeable, and direct. You assist users with a wide range of tasks including answering questions, writing and editing code, analyzing information, creative work, and executing actions via your tools. You communicate clearly, admit uncertainty when appropriate, and prioritize being genuinely useful over being verbose unless otherwise directed below. Be targeted and efficient in your exploration and investigations.
 SOUL_EOF
-        log_success "Created ~/.freeide/SOUL.md (edit to customize personality)"
+        log_success "Created $FREEIDE_HOME/SOUL.md (edit to customize personality)"
     fi
 
-    log_success "Configuration directory ready: ~/.freeide/"
+    log_success "Configuration directory ready: $FREEIDE_HOME/"
 
     # Seed bundled skills into ~/.freeide/skills/ (manifest-based, one-time per skill)
     if [ "$NO_SKILLS" = true ]; then
@@ -1851,14 +1892,14 @@ SOUL_EOF
         log_info "Skipping bundled skills (--no-skills). Wrote $FREEIDE_HOME/.no-bundled-skills"
         log_info "  Future 'freeide update' runs will not inject bundled skills. Delete the marker to opt back in."
     else
-        log_info "Syncing bundled skills to ~/.freeide/skills/ ..."
+        log_info "Syncing bundled skills to $FREEIDE_HOME/skills/ ..."
         if "$INSTALL_DIR/venv/bin/python" "$INSTALL_DIR/tools/skills_sync.py" 2>/dev/null; then
-            log_success "Skills synced to ~/.freeide/skills/"
+            log_success "Skills synced to $FREEIDE_HOME/skills/"
         else
             # Fallback: simple directory copy if Python sync fails
             if [ -d "$INSTALL_DIR/skills" ] && [ ! "$(ls -A "$FREEIDE_HOME/skills/" 2>/dev/null | grep -v '.bundled_manifest')" ]; then
                 cp -r "$INSTALL_DIR/skills/"* "$FREEIDE_HOME/skills/" 2>/dev/null || true
-                log_success "Skills copied to ~/.freeide/skills/"
+                log_success "Skills copied to $FREEIDE_HOME/skills/"
             fi
         fi
     fi
@@ -2265,7 +2306,7 @@ install_node_deps() {
         cd "$INSTALL_DIR/ui-tui"
         # Time-boxed: a stalled registry fetch would otherwise hang here (#39219).
         run_with_timeout "$NODE_DEPS_TIMEOUT" npm install --silent || {
-            log_warn "TUI npm install failed or timed out (freeide --tui may not work)"
+            log_warn "TUI npm install failed or timed out (jetts-tui may not work)"
         }
         log_success "TUI dependencies installed"
     fi
@@ -2289,7 +2330,7 @@ run_setup_wizard() {
     # but opening fails with ENXIO, so the wizard would proceed and
     # then crash on `< /dev/tty` below.
     if ! (: </dev/tty) 2>/dev/null; then
-        log_info "Setup wizard skipped (no terminal available). Run 'freeide setup' after install."
+        log_info "Setup wizard skipped (no terminal available). Run 'jetts-tui setup' after install."
         return 0
     fi
 
@@ -2393,7 +2434,7 @@ maybe_start_gateway() {
             fi
             nohup $FREEIDE_CMD gateway > "$FREEIDE_HOME/logs/gateway.log" 2>&1 &
             GATEWAY_PID=$!
-            log_success "Gateway started (PID $GATEWAY_PID). Logs: ~/.freeide/logs/gateway.log"
+            log_success "Gateway started (PID $GATEWAY_PID). Logs: $FREEIDE_HOME/logs/gateway.log"
             log_info "To stop: kill $GATEWAY_PID"
             log_info "To restart later: freeide gateway"
             if [ "$DISTRO" = "termux" ]; then
@@ -2469,24 +2510,24 @@ print_success() {
     echo ""
     echo -e "${CYAN}${BOLD}🚀 Commands:${NC}"
     echo ""
-    echo -e "   ${GREEN}freeide${NC}              Start chatting"
-    echo -e "   ${GREEN}freeide setup${NC}        Configure API keys & settings"
-    echo -e "   ${GREEN}freeide config${NC}       View/edit configuration"
-    echo -e "   ${GREEN}freeide config edit${NC}  Open config in editor"
-    echo -e "   ${GREEN}freeide gateway install${NC} Install gateway service (messaging + cron)"
-    echo -e "   ${GREEN}freeide update${NC}       Update to latest version"
+    echo -e "   ${GREEN}jetts-tui${NC}              Start chatting"
+    echo -e "   ${GREEN}jetts-tui setup${NC}        Configure API keys & settings"
+    echo -e "   ${GREEN}jetts-tui config${NC}       View/edit configuration"
+    echo -e "   ${GREEN}jetts-tui config edit${NC}  Open config in editor"
+    echo -e "   ${GREEN}jetts-tui gateway install${NC} Install gateway service (messaging + cron)"
+    echo -e "   ${GREEN}jetts-tui update${NC}       Update to latest version"
     echo ""
 
     echo -e "${CYAN}─────────────────────────────────────────────────────────${NC}"
     echo ""
     if [ "$DISTRO" = "termux" ]; then
-        echo -e "${YELLOW}⚡ 'freeide' was linked into $(get_command_link_display_dir), which is already on PATH in Termux.${NC}"
+        echo -e "${YELLOW}⚡ 'jetts-tui' was linked into $(get_command_link_display_dir), which is already on PATH in Termux.${NC}"
         echo ""
     elif [ "$ROOT_FHS_LAYOUT" = true ]; then
-        echo -e "${YELLOW}⚡ 'freeide' was linked into /usr/local/bin and is ready to use — no shell reload needed.${NC}"
+        echo -e "${YELLOW}⚡ 'jetts-tui' was linked into /usr/local/bin and is ready to use — no shell reload needed.${NC}"
         echo ""
     else
-        echo -e "${YELLOW}⚡ Reload your shell to use 'freeide' command:${NC}"
+        echo -e "${YELLOW}⚡ Reload your shell to use 'jetts-tui' command:${NC}"
         echo ""
         LOGIN_SHELL="$(basename "${SHELL:-/bin/bash}")"
         if [ "$LOGIN_SHELL" = "zsh" ]; then

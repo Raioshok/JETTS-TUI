@@ -1322,12 +1322,13 @@ class TestProfileRestoration:
         assert (freeide_home / "profiles" / "researcher" / "config.yaml").exists()
 
         # Wrapper scripts should be created
-        assert (wrapper_dir / "coder").exists()
-        assert (wrapper_dir / "researcher").exists()
+        suffix = ".bat" if os.name == "nt" else ""
+        assert (wrapper_dir / f"coder{suffix}").exists()
+        assert (wrapper_dir / f"researcher{suffix}").exists()
 
         # Wrappers should contain the right content
-        coder_wrapper = (wrapper_dir / "coder").read_text()
-        assert "freeide -p coder" in coder_wrapper
+        coder_wrapper = (wrapper_dir / f"coder{suffix}").read_text()
+        assert "jetts-tui -p coder" in coder_wrapper
 
     def test_import_skips_profile_dirs_without_config(self, tmp_path, monkeypatch):
         """Import doesn't create wrappers for profile dirs without config."""
@@ -1352,8 +1353,9 @@ class TestProfileRestoration:
         run_import(args)
 
         # Only valid profile should get a wrapper
-        assert (wrapper_dir / "valid").exists()
-        assert not (wrapper_dir / "empty").exists()
+        suffix = ".bat" if os.name == "nt" else ""
+        assert (wrapper_dir / f"valid{suffix}").exists()
+        assert not (wrapper_dir / f"empty{suffix}").exists()
 
     def test_import_without_profiles_module(self, tmp_path, monkeypatch):
         """Import gracefully handles missing profiles module (fresh install)."""
@@ -2065,7 +2067,7 @@ class TestQuickSnapshotProjectsKanban:
         monkeypatch.setattr(bk, "_safe_copy_db", _spy)
         snap_id = create_quick_snapshot(freeide_home=freeide_home)
         # The board db was copied via _safe_copy_db (not raw copy).
-        assert any(s.endswith("boards/work/kanban.db") for s in called["db"]), called["db"]
+        assert any(Path(s).as_posix().endswith("boards/work/kanban.db") for s in called["db"]), called["db"]
         copy = freeide_home / "state-snapshots" / snap_id / "kanban" / "boards" / "work" / "kanban.db"
         rows = sqlite3.connect(str(copy)).execute("SELECT * FROM tasks").fetchall()
         assert rows == [("w1", "ship")]
@@ -2786,7 +2788,8 @@ class TestMemoryProviderExternalPaths:
         assert restored.exists()
         assert restored.read_text() == '{"peer":"bob"}'
         # Credential-shaped file tightened.
-        assert (restored.stat().st_mode & 0o777) == 0o600
+        if os.name == "posix":
+            assert (restored.stat().st_mode & 0o777) == 0o600
         # External state did NOT leak into FREEIDE_HOME.
         assert not (freeide_home / "_external").exists()
 

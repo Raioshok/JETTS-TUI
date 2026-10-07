@@ -192,7 +192,7 @@ function bootstrapCacheDir(freeideHome) {
 }
 
 // The install.sh / install.ps1 that ships inside the already-installed agent
-// checkout under ~/.freeide/freeide-agent. Used as a last-resort fallback when
+// checkout under the configured Jetts-TUI home. Used as a last-resort fallback when
 // the pinned commit can't be fetched from GitHub (e.g. a locally-built desktop
 // app stamped to an unpushed HEAD).
 function installedAgentInstallScript(freeideHome) {
@@ -200,15 +200,19 @@ function installedAgentInstallScript(freeideHome) {
     return null
   }
 
-  const candidate = path.join(freeideHome, 'freeide-agent', 'scripts', installScriptName())
+  for (const checkout of ['jettstui', 'freeide-agent']) {
+    const candidate = path.join(freeideHome, checkout, 'scripts', installScriptName())
 
-  try {
-    fs.accessSync(candidate, fs.constants.R_OK)
+    try {
+      fs.accessSync(candidate, fs.constants.R_OK)
 
-    return candidate
-  } catch {
-    return null
+      return candidate
+    } catch {
+      // Existing installations may retain the legacy checkout name.
+    }
   }
+
+  return null
 }
 
 function hasExistingGitCheckout(activeRoot) {
@@ -227,13 +231,17 @@ function cachedScriptPath(freeideHome, commit) {
   return path.join(bootstrapCacheDir(freeideHome), `install-${commit}.${process.platform === 'win32' ? 'ps1' : 'sh'}`)
 }
 
+function installScriptUrl(ref) {
+  return `https://raw.githubusercontent.com/Raioshok/JETTS-TUI/${encodeURIComponent(ref)}/scripts/${installScriptName()}`
+}
+
 function downloadInstallScript(ref, destPath) {
   // Fetch from GitHub raw at the install ref. Normal production builds pass a
   // pinned SHA (immutable). Non-git fallback builds pass an unpinned branch
   // ref so local builds can still bootstrap without pretending the all-zero
   // placeholder is a real GitHub commit.
   const scriptName = installScriptName()
-  const url = `https://raw.githubusercontent.com/freeide/freeide/${ref}/scripts/${scriptName}`
+  const url = installScriptUrl(ref)
 
   return new Promise((resolve, reject) => {
     fs.mkdirSync(path.dirname(destPath), { recursive: true })
@@ -1026,6 +1034,7 @@ export {
   hasExistingGitCheckout,
   installedAgentInstallScript,
   installRefForStamp,
+  installScriptUrl,
   isPinnedCommit,
   // Exposed for testability
   parseStageResult,

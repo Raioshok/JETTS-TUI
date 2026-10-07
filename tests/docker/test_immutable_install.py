@@ -2,9 +2,9 @@
 
 Build the real image and verify at runtime:
 
-  1. /opt/freeide is not writable by the freeide user (immutable install tree)
+  1. /opt/jettstui is not writable by the jettstui user (immutable install tree)
   2. PYTHONDONTWRITEBYTECODE and FREEIDE_DISABLE_LAZY_INSTALLS are set
-  3. /opt/freeide/.install_method contains "docker" (code-scoped stamp)
+  3. /opt/jettstui/.install_method contains "docker" (code-scoped stamp)
   4. $FREEIDE_HOME/.install_method is NOT stamped as "docker" by stage2
   5. A stale "docker" stamp in $FREEIDE_HOME is healed (removed) on boot
 """
@@ -21,7 +21,7 @@ from tests.docker.conftest import (
 def test_install_tree_not_writable_by_freeide(
     built_image: str, container_name: str,
 ) -> None:
-    """The freeide user must not be able to modify /opt/freeide.
+    """The jettstui user must not be able to modify /opt/jettstui.
 
     The install tree (source, venv, TUI bundle, node_modules) must remain
     root-owned and non-writable so an agent session cannot self-modify
@@ -31,25 +31,25 @@ def test_install_tree_not_writable_by_freeide(
 
     r = docker_exec_sh(
         container_name,
-        # Try to create a file under /opt/freeide as the freeide user
-        "touch /opt/freeide/test_write 2>&1 && "
+        # Try to create a file under /opt/jettstui as the jettstui user
+        "touch /opt/jettstui/test_write 2>&1 && "
         "echo WRITE_SUCCEEDED || echo WRITE_FAILED",
         timeout=10,
     )
     assert "WRITE_FAILED" in r.stdout, (
-        f"freeide user can write to /opt/freeide (install tree not immutable): "
+        f"jettstui user can write to /opt/jettstui (install tree not immutable): "
         f"{r.stdout}"
     )
 
     # Also check a key subdirectory
     r = docker_exec_sh(
         container_name,
-        "touch /opt/freeide/.venv/test_write 2>&1 && "
+        "touch /opt/jettstui/.venv/test_write 2>&1 && "
         "echo WRITE_SUCCEEDED || echo WRITE_FAILED",
         timeout=10,
     )
     assert "WRITE_FAILED" in r.stdout, (
-        f"freeide user can write to /opt/freeide/.venv: {r.stdout}"
+        f"jettstui user can write to /opt/jettstui/.venv: {r.stdout}"
     )
 
 
@@ -78,17 +78,17 @@ def test_install_method_stamp_is_code_scoped(
     built_image: str, container_name: str,
 ) -> None:
     """The 'docker' install-method stamp must be baked at
-    /opt/freeide/.install_method (code-scoped), NOT in $FREEIDE_HOME."""
+    /opt/jettstui/.install_method (code-scoped), NOT in $FREEIDE_HOME."""
     start_container(built_image, container_name)
 
     # Code-scoped stamp must exist and say "docker"
     r = docker_exec_sh(
         container_name,
-        "cat /opt/freeide/.install_method",
+        "cat /opt/jettstui/.install_method",
         timeout=10,
     )
     assert r.returncode == 0, (
-        f"/opt/freeide/.install_method not found: {r.stderr}"
+        f"/opt/jettstui/.install_method not found: {r.stderr}"
     )
     assert r.stdout.strip() == "docker", (
         f"expected 'docker' stamp, got: {r.stdout.strip()!r}"

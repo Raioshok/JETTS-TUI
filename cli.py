@@ -26,6 +26,7 @@ except ModuleNotFoundError:
 import logging
 import copy
 import os
+import posixpath
 import shutil
 import sys
 import json
@@ -39,7 +40,6 @@ import time
 import uuid
 import textwrap
 from collections import deque
-from urllib.parse import unquote, urlparse
 from contextlib import contextmanager
 from pathlib import Path
 from datetime import datetime
@@ -1550,8 +1550,8 @@ def _setup_worktree(repo_root: str = None, sync_base: bool = True) -> Optional[D
         return None
 
     short_id = uuid.uuid4().hex[:8]
-    wt_name = f"freeide-{short_id}"
-    branch_name = f"freeide/{wt_name}"
+    wt_name = f"jettstui-{short_id}"
+    branch_name = f"jettstui/{wt_name}"
 
     worktrees_dir = Path(repo_root) / ".worktrees"
     worktrees_dir.mkdir(parents=True, exist_ok=True)
@@ -1692,7 +1692,7 @@ def _setup_worktree(repo_root: str = None, sync_base: bool = True) -> Optional[D
     # it is actively in use.  Fail-soft: a lock failure never blocks the session.
     try:
         subprocess.run(
-            ["git", "worktree", "lock", "--reason", f"freeide pid={os.getpid()}", str(wt_path)],
+            ["git", "worktree", "lock", "--reason", f"jettstui pid={os.getpid()}", str(wt_path)],
             capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=10, cwd=repo_root,
         )
         logger.debug("Worktree locked: %s (pid=%s)", wt_path, os.getpid())
@@ -1958,7 +1958,7 @@ def _worktree_lock_is_live(repo_root: str, worktree_path: str, timeout: int = 10
             if current != target:
                 continue
             reason = line[len("locked"):].strip()
-            m = re.search(r"freeide pid=(\d+)", reason)
+            m = re.search(r"(?:freeide|jettstui) pid=(\d+)", reason)
             if not m:
                 # Locked by something we don't recognize as a freeide session
                 # (or lock reason unavailable). Treat as dead — a foreign lock
@@ -1980,10 +1980,8 @@ def _worktree_lock_is_live(repo_root: str, worktree_path: str, timeout: int = 10
 def _cleanup_worktree(info: Dict[str, str] = None) -> None:
     """Remove a worktree and its branch on exit.
 
-    Preserves the worktree only if it has unpushed commits (real work
-    that hasn't been pushed to any remote).  Uncommitted changes alone
-    (untracked files, test artifacts) are not enough to keep it — agent
-    work lives in commits/PRs, not the working tree.
+    Preserve uncommitted changes and unpushed commits. A failed state probe
+    also preserves the worktree rather than risking user data.
     """
     global _active_worktree
     info = info or _active_worktree
@@ -2007,8 +2005,13 @@ def _cleanup_worktree(info: Dict[str, str] = None) -> None:
         _active_worktree = None
         return
 
-    # Remove worktree (even if working tree is dirty — uncommitted
-    # changes without unpushed commits are just artifacts)
+    if _worktree_is_dirty(wt_path, timeout=10):
+        print(f"\n\033[33m⚠ Worktree has uncommitted changes, keeping: {wt_path}\033[0m")
+        _active_worktree = None
+        return
+
+    # Remove only an inspected clean worktree. Never delete its branch unless
+    # Git confirms removal succeeded; otherwise the checkout still owns it.
     # Unlock first so `git worktree remove` isn't blocked by the lock we
     # placed at creation time.  Fail-soft — never block cleanup.
     try:
@@ -2020,17 +2023,23 @@ def _cleanup_worktree(info: Dict[str, str] = None) -> None:
         logger.debug("git worktree unlock failed (non-fatal): %s", e)
 
     try:
-        subprocess.run(
-            ["git", "worktree", "remove", wt_path, "--force"],
+        result = subprocess.run(
+            ["git", "worktree", "remove", wt_path],
             capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=15, cwd=repo_root,
         )
+        if result.returncode != 0 or Path(wt_path).exists():
+            logger.warning("Keeping worktree branch %s; removal failed: %s", branch, result.stderr.strip())
+            _active_worktree = None
+            return
     except Exception as e:
         logger.debug("Failed to remove worktree: %s", e)
+        _active_worktree = None
+        return
 
-    # Delete the branch
+    # Safe delete only: if Git considers the branch unmerged, preserve it.
     try:
         subprocess.run(
-            ["git", "branch", "-D", branch],
+            ["git", "branch", "-d", branch],
             capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=10, cwd=repo_root,
         )
     except Exception as e:
@@ -2211,7 +2220,7 @@ def _prune_stale_worktrees(repo_root: str, max_age_hours: int = 24) -> None:
 
         # Scratch trees (freeide-*) age out on the default schedule; named
         # trees (salvage/review lanes someone created deliberately) get 3x.
-        scratch = entry.name.startswith("freeide-")
+        scratch = entry.name.startswith(("freeide-", "jettstui-"))
         tier_hours = max_age_hours if scratch else max_age_hours * 3
         soft_cutoff = now - (tier_hours * 3600)
         hard_cutoff = now - (tier_hours * 3 * 3600)
@@ -2352,7 +2361,7 @@ def _prune_stale_worktrees(repo_root: str, max_age_hours: int = 24) -> None:
 
 
 def _prune_orphaned_branches(repo_root: str) -> None:
-    """Delete local ``freeide/freeide-*`` and ``pr-*`` branches with no worktree.
+    """Prune merged generated branches with no worktree, preserving unique work.
 
     These are auto-generated by ``freeide -w`` sessions and PR review
     workflows respectively.  Once their worktree is gone they serve no
@@ -2400,7 +2409,7 @@ def _prune_orphaned_branches(repo_root: str) -> None:
     orphaned = [
         b for b in all_branches
         if b not in active_branches
-        and (b.startswith("freeide/freeide-") or b.startswith("pr-"))
+        and (b.startswith(("freeide/freeide-", "jettstui/jettstui-", "pr-")))
     ]
 
     if not orphaned:
@@ -2411,7 +2420,7 @@ def _prune_orphaned_branches(repo_root: str) -> None:
         batch = orphaned[i:i + 50]
         try:
             subprocess.run(
-                ["git", "branch", "-D"] + batch,
+                ["git", "branch", "-d"] + batch,
                 capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30, cwd=repo_root,
             )
         except Exception as e:
@@ -3149,12 +3158,12 @@ def _cli_visible_print(text: str = "") -> None:
 # File-drop / local attachment detection — extracted as pure helpers for tests.
 # ---------------------------------------------------------------------------
 
-_IMAGE_EXTENSIONS = frozenset({
-    '.png', '.jpg', '.jpeg', '.gif', '.webp',
-    '.bmp', '.tiff', '.tif', '.svg', '.ico',
-})
-
-
+from freeide_cli.attachments import (
+    _IMAGE_EXTENSIONS,
+    _detect_file_drop,
+    _resolve_attachment_path,
+    _split_path_input,
+)
 from freeide_constants import is_termux as _is_termux_environment
 
 
@@ -3168,187 +3177,10 @@ def _termux_example_image_path(filename: str = "cat.png") -> str:
     ]
     for root in candidates:
         if os.path.isdir(root):
-            return os.path.join(root, "Pictures", filename)
-    return os.path.join("~/storage/shared", "Pictures", filename)
+            return posixpath.join(root, "Pictures", filename)
+    return posixpath.join("~/storage/shared", "Pictures", filename)
 
 
-def _split_path_input(raw: str) -> tuple[str, str]:
-    r"""Split a leading file path token from trailing free-form text.
-
-    Supports quoted paths and backslash-escaped spaces so callers can accept
-    inputs like:
-      /tmp/pic.png describe this
-      ~/storage/shared/My\ Photos/cat.png what is this?
-      "/storage/emulated/0/DCIM/Camera/cat 1.png" summarize
-    """
-    raw = str(raw or "").strip()
-    if not raw:
-        return "", ""
-
-    if raw[0] in {'"', "'"}:
-        quote = raw[0]
-        pos = 1
-        while pos < len(raw):
-            ch = raw[pos]
-            if ch == '\\' and pos + 1 < len(raw):
-                pos += 2
-                continue
-            if ch == quote:
-                token = raw[1:pos]
-                remainder = raw[pos + 1 :].strip()
-                return token, remainder
-            pos += 1
-        return raw[1:], ""
-
-    pos = 0
-    while pos < len(raw):
-        ch = raw[pos]
-        if ch == '\\' and pos + 1 < len(raw) and raw[pos + 1] == ' ':
-            pos += 2
-        elif ch == ' ':
-            break
-        else:
-            pos += 1
-
-    token = raw[:pos].replace('\\ ', ' ')
-    remainder = raw[pos:].strip()
-    return token, remainder
-
-
-def _resolve_attachment_path(raw_path: str) -> Path | None:
-    """Resolve a user-supplied local attachment path.
-
-    Accepts quoted or unquoted paths, expands ``~`` and env vars, and resolves
-    relative paths from ``TERMINAL_CWD`` when set (matching terminal tool cwd).
-    Returns ``None`` when the path does not resolve to an existing file.
-    """
-    token = str(raw_path or "").strip()
-    if not token:
-        return None
-
-    if (token.startswith('"') and token.endswith('"')) or (token.startswith("'") and token.endswith("'")):
-        token = token[1:-1].strip()
-    token = token.replace('\\ ', ' ')
-    if not token:
-        return None
-
-    expanded = token
-    if token.startswith("file://"):
-        try:
-            parsed = urlparse(token)
-            if parsed.scheme == "file":
-                expanded = unquote(parsed.path or "")
-                if parsed.netloc and os.name == "nt":
-                    expanded = f"//{parsed.netloc}{expanded}"
-        except Exception:
-            expanded = token
-    expanded = os.path.expandvars(os.path.expanduser(expanded))
-    if os.name != "nt":
-        normalized = expanded.replace("\\", "/")
-        if len(normalized) >= 3 and normalized[1] == ":" and normalized[2] == "/" and normalized[0].isalpha():
-            expanded = f"/mnt/{normalized[0].lower()}/{normalized[3:]}"
-    path = Path(expanded)
-    if not path.is_absolute():
-        base_dir = Path(os.getenv("TERMINAL_CWD", os.getcwd()))
-        path = base_dir / path
-
-    try:
-        resolved = path.resolve()
-    except Exception:
-        resolved = path
-
-    # Path.exists() / is_file() invoke os.stat(), which raises OSError when
-    # the candidate string is structurally invalid as a path — most commonly
-    # ENAMETOOLONG (errno 63 on macOS, errno 36 on Linux) when the input
-    # exceeds NAME_MAX (typically 255 bytes). This bites pasted slash
-    # commands like `/goal <long prose>` because `_detect_file_drop()`'s
-    # `starts_like_path` prefilter accepts any input starting with `/`,
-    # then this resolver tries to stat it before short-circuiting on the
-    # slash-command path. Without this guard the OSError propagates up to
-    # the process_loop catch-all in _interactive_loop and the user input
-    # is silently lost (the warning ends up in agent.log but the user sees
-    # nothing — the prompt just hangs).
-    try:
-        if not resolved.exists() or not resolved.is_file():
-            return None
-    except OSError:
-        return None
-    return resolved
-
-
-
-
-
-def _detect_file_drop(user_input: str) -> "dict | None":
-    """Detect if *user_input* starts with a real local file path.
-
-    This catches dragged/pasted paths before they are mistaken for slash
-    commands, and also supports Termux-friendly paths like ``~/storage/...``.
-
-    Returns a dict on match::
-
-        {
-            "path": Path,          # resolved file path
-            "is_image": bool,      # True when suffix is a known image type
-            "remainder": str,      # any text after the path
-        }
-
-    Returns ``None`` when the input is not a real file path.
-    """
-    if not isinstance(user_input, str):
-        return None
-
-    stripped = user_input.strip()
-    if not stripped:
-        return None
-
-    starts_like_path = (
-        stripped.startswith("/")
-        or stripped.startswith("~")
-        or stripped.startswith("./")
-        or stripped.startswith("../")
-        or stripped.startswith("file://")
-        or (len(stripped) >= 3 and stripped[1] == ":" and stripped[2] in {"\\", "/"} and stripped[0].isalpha())
-        or stripped.startswith('"/')
-        or stripped.startswith('"~')
-        or stripped.startswith("'/")
-        or stripped.startswith("'~")
-        or stripped.startswith('"./')
-        or stripped.startswith('"../')
-        or stripped.startswith("'./")
-        or stripped.startswith("'../")
-        or (len(stripped) >= 4 and stripped[0] in {"'", '"'} and stripped[2] == ":" and stripped[3] in {"\\", "/"} and stripped[1].isalpha())
-    )
-    if not starts_like_path:
-        return None
-
-    direct_path = _resolve_attachment_path(stripped)
-    if direct_path is not None:
-        return {
-            "path": direct_path,
-            "is_image": direct_path.suffix.lower() in _IMAGE_EXTENSIONS,
-            "remainder": "",
-        }
-
-    first_token, remainder = _split_path_input(stripped)
-    drop_path = _resolve_attachment_path(first_token)
-    if drop_path is None and " " in stripped and stripped[0] not in {"'", '"'}:
-        space_positions = [idx for idx, ch in enumerate(stripped) if ch == " "]
-        for pos in reversed(space_positions):
-            candidate = stripped[:pos].rstrip()
-            resolved = _resolve_attachment_path(candidate)
-            if resolved is not None:
-                drop_path = resolved
-                remainder = stripped[pos + 1 :].strip()
-                break
-    if drop_path is None:
-        return None
-
-    return {
-        "path": drop_path,
-        "is_image": drop_path.suffix.lower() in _IMAGE_EXTENSIONS,
-        "remainder": remainder,
-    }
 
 
 def _format_image_attachment_badges(attached_images: list[Path], image_counter: int, width: int | None = None) -> str:
@@ -4004,44 +3836,10 @@ def _parse_skills_argument(skills: str | list[str] | tuple[str, ...] | None) -> 
 
 
 def save_config_value(key_path: str, value: any) -> bool:
-    """
-    Save a value to the active config file at the specified key path.
-    
-    Respects the same lookup order as load_cli_config():
-    1. ~/.freeide/config.yaml (user config - preferred, used if it exists)
-    2. ./cli-config.yaml (project config - fallback)
-    
-    Args:
-        key_path: Dot-separated path like "agent.system_prompt"
-        value: Value to save
-    
-    Returns:
-        True if successful, False otherwise
-    """
-    # Use the same precedence as load_cli_config: user config first, then project config
-    user_config_path = _freeide_home / 'config.yaml'
-    project_config_path = Path(__file__).parent / 'cli-config.yaml'
-    config_path = user_config_path if user_config_path.exists() else project_config_path
-    
-    try:
-        # Ensure parent directory exists (for ~/.freeide/config.yaml on first use)
-        config_path.parent.mkdir(parents=True, exist_ok=True)
-        
-        # Save back atomically while preserving comments, ordering, quotes, and
-        # readable Unicode in user-edited config.yaml.
-        from utils import atomic_roundtrip_yaml_update
-        atomic_roundtrip_yaml_update(config_path, key_path, value)
-        
-        # Enforce owner-only permissions on config files (contain API keys)
-        try:
-            os.chmod(config_path, 0o600)
-        except (OSError, NotImplementedError):
-            pass
-        
-        return True
-    except Exception as e:
-        logger.error("Failed to save config: %s", e)
-        return False
+    """Compatibility wrapper for console commands during TUI extraction."""
+    from freeide_cli.config_edit import save_config_value as _save
+
+    return _save(key_path, value, home=_freeide_home)
 
 
 
@@ -13582,10 +13380,7 @@ class FreeIDECLI(CLIAgentSetupMixin, CLICommandsMixin):
                     _bb = result.get("billing_block") or {}
                     _prov_label = _bb.get("provider_label") or "your provider"
                     if _bb.get("is_nous"):
-                        _cta_lines = [
-                            "Run [bold]/topup[/] to add credits, or "
-                            "[bold]/subscription[/] to change plan.",
-                        ]
+                        _cta_lines = ["Select a provider with your own API key using [bold]jetts-tui model[/]."]
                     else:
                         _url = _bb.get("billing_url")
                         _cta_lines = [

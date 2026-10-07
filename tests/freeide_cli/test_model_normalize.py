@@ -155,8 +155,8 @@ class TestAggregatorProviders:
         result = normalize_model_for_provider("claude-sonnet-4.6", "openrouter")
         assert result == "anthropic/claude-sonnet-4.6"
 
-    def test_nous_prepends_vendor(self):
-        result = normalize_model_for_provider("gpt-5.4", "nous")
+    def test_kilocode_prepends_vendor(self):
+        result = normalize_model_for_provider("gpt-5.4", "kilocode")
         assert result == "openai/gpt-5.4"
 
     def test_vendor_already_present(self):

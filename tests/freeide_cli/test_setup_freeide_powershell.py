@@ -20,6 +20,7 @@ def test_windows_setup_script_has_expected_safe_rerun_contract():
     assert "powershell.exe -NoProfile -ExecutionPolicy Bypass" in content
     assert '-Ensure "node"' in content
     assert "tools\\skills_sync.py" in content
+    assert 'Join-Path $env:LOCALAPPDATA "jettstui\\bin\\uv.exe"' in content
 
 
 def test_windows_setup_script_parses_when_powershell_is_available():

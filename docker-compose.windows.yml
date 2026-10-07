@@ -4,31 +4,32 @@
 # Differences from docker-compose.yml:
 #   - Removes `network_mode: host` (not supported on Docker Desktop for Windows)
 #   - Uses explicit port mappings instead
-#   - Uses Windows-style volume path for ~/.freeide
+#   - Uses the native Jetts-TUI data directory under LOCALAPPDATA
 #
 # Usage:
 #   docker compose -f docker-compose.windows.yml up -d
 #
 services:
   gateway:
-    image: freeide/freeide:latest
-    container_name: freeide
+    build: .
+    image: jetts-tui:local
+    container_name: jetts-tui
     restart: unless-stopped
     volumes:
-      - ${USERPROFILE}/.freeide:/opt/data
+      - ${LOCALAPPDATA}/jettstui:/opt/data
     environment:
       - FREEIDE_UID=10000
       - FREEIDE_GID=10000
     command: ["gateway", "run"]
 
   dashboard:
-    image: freeide/freeide:latest
-    container_name: freeide-dashboard
+    image: jetts-tui:local
+    container_name: jetts-tui-dashboard
     restart: unless-stopped
     depends_on:
       - gateway
     volumes:
-      - ${USERPROFILE}/.freeide:/opt/data
+      - ${LOCALAPPDATA}/jettstui:/opt/data
     environment:
       - FREEIDE_UID=10000
       - FREEIDE_GID=10000

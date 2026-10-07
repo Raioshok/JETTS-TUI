@@ -2125,22 +2125,19 @@ def get_model_context_length(
     Resolution order:
     0. Explicit config override (model.context_length or custom_providers per-model)
     0c. Endpoint-scoped metadata for models validated on one multiplexed endpoint
-    1. Persistent cache (previously discovered via probing).  FreeIDE URLs,
-       LM Studio, and Codex OAuth bypass the cache here so their provider
-       metadata can be reconciled against the authoritative live source.
+    1. Persistent cache (previously discovered via probing). LM Studio and
+       Codex OAuth bypass the cache here so their provider metadata can be
+       reconciled against the authoritative live source.
     1b. AWS Bedrock static table (must precede custom-endpoint probe)
     2. Active endpoint metadata (/models for explicit custom endpoints)
     3. Local server query (for local endpoints)
     4. Anthropic /v1/models API (API-key users only, not OAuth)
     5. Provider-aware lookups (before generic OpenRouter cache):
        a. Copilot live /models API
-       b. FreeIDE: live /v1/models probe first (authoritative), then OR
-          cache fallback with suffix/version normalisation.  Only
-          portal-derived values are persisted to disk.
-       c. Codex OAuth /models probe
-       d. GMI /models endpoint
-       e. Ollama native /api/show probe (any base_url, provider-agnostic)
-       f. models.dev registry lookup (with :cloud/-cloud suffix fallback)
+       b. Codex OAuth /models probe
+       c. GMI /models endpoint
+       d. Ollama native /api/show probe (any base_url, provider-agnostic)
+       e. models.dev registry lookup (with :cloud/-cloud suffix fallback)
     6. OpenRouter live API metadata (Kimi-family 32k guard)
     7. Local server query (before hardcoded defaults for local endpoints)
     8. Hardcoded defaults (broad family patterns, longest-key-first)

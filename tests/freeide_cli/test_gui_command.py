@@ -13,6 +13,12 @@ import pytest
 from freeide_cli import main as cli_main
 
 
+@pytest.fixture(autouse=True)
+def _stable_npm_resolver(monkeypatch):
+    """Keep desktop launch tests independent of the host's Node install."""
+    monkeypatch.setattr(cli_main, "_resolve_node_runtime_npm", lambda: "/usr/bin/npm")
+
+
 def _ns(**kw):
     defaults = dict(
         skip_build=False,
@@ -159,7 +165,7 @@ def test_gui_exits_when_npm_missing(tmp_path, monkeypatch, capsys):
     root = _make_desktop_tree(tmp_path)
     monkeypatch.setattr(cli_main, "PROJECT_ROOT", root)
 
-    with patch("freeide_cli.main.shutil.which", return_value=None), \
+    with patch("freeide_cli.main._resolve_node_runtime_npm", return_value=None), \
          pytest.raises(SystemExit) as exc:
         cli_main.cmd_gui(_ns())
 
@@ -219,6 +225,7 @@ def test_gui_linux_configures_sandbox_before_launch(tmp_path, monkeypatch):
     assert mock_run.call_args_list[2].args[0] == [str(packaged_exe)]
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Linux symlink/sandbox semantics")
 def test_gui_linux_rejects_symlink_sandbox(tmp_path, monkeypatch):
     root = _make_desktop_tree(tmp_path)
     monkeypatch.setattr(cli_main, "PROJECT_ROOT", root)

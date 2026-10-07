@@ -45,7 +45,11 @@ def test_compute_host_line_json_seed_turn_interrupt():
     try:
         hello = _read_json_line(out)
         assert hello["type"] == "hello"
-        assert hello["host_pid"] == proc.pid
+        # Windows venv launchers may hand off to a second Python process, so
+        # Popen.pid can name the redirector rather than the JSON host itself.
+        assert isinstance(hello["host_pid"], int) and hello["host_pid"] > 0
+        if os.name != "nt":
+            assert hello["host_pid"] == proc.pid
 
         proc.stdin.write(json.dumps({"type": "session.seed", "sid": "s1", "request_id": "seed"}) + "\n")
         proc.stdin.flush()

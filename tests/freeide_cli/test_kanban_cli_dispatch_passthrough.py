@@ -127,9 +127,9 @@ def test_kanban_swarm_uses_existing_humanizer_skill():
 
     swarm_path = (
         pathlib.Path(__file__).resolve().parent.parent.parent
-        / "freeide_cli" / "kanban_swarm.py"
+        / "jettstui" / "kanban_swarm.py"
     )
-    src = swarm_path.read_text()
+    src = swarm_path.read_text(encoding="utf-8")
     assert "avoid-ai-writing" not in src, (
         "kanban_swarm.py must not reference 'avoid-ai-writing' — that "
         "skill doesn't exist in any registry, crashing synthesizers (#29415)"

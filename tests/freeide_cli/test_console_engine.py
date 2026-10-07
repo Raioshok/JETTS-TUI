@@ -20,8 +20,6 @@ EXPECTED_CONSOLE_COMMANDS = {
     ("prompt-size",),
     ("insights",),
     ("security", "audit"),
-    ("portal", "info"),
-    ("portal", "tools"),
     ("backup",),
     ("import",),
     ("send",),
@@ -440,6 +438,41 @@ def test_sessions_list_and_stats_use_isolated_session_store(_isolate_freeide_hom
     assert "tool-session" not in listed.output
     assert "Total sessions: 2" in stats.output
     assert "Listable sessions: 1" in stats.output
+
+
+def test_session_store_default_tracks_active_home_after_import(tmp_path, monkeypatch):
+    """Switching profiles must not reopen the first profile's state database."""
+    from freeide_state import SessionDB, get_default_db_path
+
+    first_home = tmp_path / "first"
+    second_home = tmp_path / "second"
+    for home, session_id in ((first_home, "first-session"), (second_home, "second-session")):
+        home.mkdir()
+        monkeypatch.setenv("FREEIDE_HOME", str(home))
+        assert get_default_db_path() == home / "state.db"
+        db = SessionDB()
+        try:
+            db.create_session(session_id, source="tui", model="test/model")
+            assert db.session_count() == 1
+        finally:
+            db.close()
+
+    assert (first_home / "state.db").is_file()
+    assert (second_home / "state.db").is_file()
+
+
+def test_session_store_explicit_default_override_is_preserved(tmp_path, monkeypatch):
+    import freeide_state
+
+    override = tmp_path / "explicit.db"
+    monkeypatch.setattr(freeide_state, "DEFAULT_DB_PATH", override)
+    assert freeide_state.get_default_db_path() == override
+    db = freeide_state.SessionDB()
+    try:
+        db.create_session("explicit-session", source="tui", model="test/model")
+    finally:
+        db.close()
+    assert override.is_file()
 
 
 def test_cron_pause_resume_and_run_require_confirmation(_isolate_freeide_home):

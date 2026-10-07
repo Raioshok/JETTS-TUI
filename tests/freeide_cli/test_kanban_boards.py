@@ -280,8 +280,12 @@ class TestBoardCRUD:
         # downstream readers hit `no such table: task_events`.
         kb.create_board("recycle")
         # First connect populates _INITIALIZED_PATHS for this DB.
-        with kb.connect(board="recycle") as conn:
-            kb.create_task(conn, title="t1", assignee="dev")
+        conn = kb.connect(board="recycle")
+        try:
+            with conn:
+                kb.create_task(conn, title="t1", assignee="dev")
+        finally:
+            conn.close()
         db_path = kb.board_dir("recycle") / "kanban.db"
         assert str(db_path.resolve()) in kb._INITIALIZED_PATHS
 
@@ -292,13 +296,17 @@ class TestBoardCRUD:
 
         # Simulate the event-stream poll: re-open the same slug. connect()
         # recreates the directory + empty .db; the schema must be re-applied.
-        with kb.connect(board="recycle") as conn:
-            tables = {
-                row[0]
-                for row in conn.execute(
-                    "SELECT name FROM sqlite_master WHERE type='table'"
-                )
-            }
+        conn = kb.connect(board="recycle")
+        try:
+            with conn:
+                tables = {
+                    row[0]
+                    for row in conn.execute(
+                        "SELECT name FROM sqlite_master WHERE type='table'"
+                    )
+                }
+        finally:
+            conn.close()
         assert "task_events" in tables
         assert "tasks" in tables
 

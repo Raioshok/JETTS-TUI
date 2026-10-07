@@ -39,8 +39,9 @@ def test_compact_alias_with_slash():
 
 
 def test_compact_listed_in_flat_commands():
-    assert "/compact" in COMMANDS
-    assert "alias for /compress" in COMMANDS["/compact"]
+    assert "/compress" in COMMANDS
+    assert "/compact" not in COMMANDS
+    assert resolve_command("compact").name == "compress"
 
 
 def test_compress_args_hint_documents_preview():

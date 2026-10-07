@@ -201,6 +201,7 @@ class TestAllowlistOps:
     def test_tilde_path_approval_records_resolvable_mtime(self, tmp_path, monkeypatch):
         """If the command uses ~ the approval must still find the file."""
         monkeypatch.setenv("HOME", str(tmp_path))
+        monkeypatch.setenv("USERPROFILE", str(tmp_path))
         target = tmp_path / "hook.sh"
         target.write_text("#!/usr/bin/env bash\n")
         target.chmod(0o755)
@@ -211,6 +212,17 @@ class TestAllowlistOps:
         )
         assert entry is not None
         # Must not be None — the tilde was expanded before stat().
+        assert entry["script_mtime_at_approval"] is not None
+
+    def test_quoted_script_path_with_spaces_records_mtime(self, tmp_path):
+        script = tmp_path / "hook with spaces.sh"
+        script.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
+        command = f'"{script}"'
+
+        shell_hooks._record_approval("on_session_start", command)
+        entry = shell_hooks.allowlist_entry_for("on_session_start", command)
+
+        assert entry is not None
         assert entry["script_mtime_at_approval"] is not None
 
     def test_duplicate_approval_replaces_mtime(self, tmp_path):

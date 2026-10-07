@@ -86,6 +86,7 @@ def _ps_runner(stdout: str):
     return _side_effect
 
 
+@pytest.mark.skipif(os.name == "nt", reason="ps-based process discovery is POSIX-only")
 class TestFindStaleDashboardPids:
     """Unit tests for the ps/wmic-based detection step."""
 
@@ -609,6 +610,7 @@ class TestWindowsWmicEncoding:
             assert _find_stale_dashboard_pids() == []
 
 
+@pytest.mark.skipif(os.name == "nt", reason="systemd process supervision is POSIX-only")
 class TestSupervisedBackendRestart:
     """After the kill, systemd-supervised PIDs get their owning unit
     restarted (#68934) — SIGTERM reads as a clean stop to systemd, so
@@ -711,6 +713,7 @@ class TestSupervisedBackendRestart:
         assert "Restart the dashboard when you're ready" in out
 
 
+@pytest.mark.skipif(os.name == "nt", reason="POSIX detached respawn uses ps and /proc")
 class TestManualBackendRespawn:
     """Manually-started dashboards/serves have their argv captured before the
     kill and are respawned detached after the update (#40449)."""
@@ -794,6 +797,7 @@ class TestManualBackendRespawn:
         assert "✗ failed to restart" in out
 
 
+@pytest.mark.skipif(os.name == "nt", reason="/proc and ps command-line capture is POSIX-only")
 class TestCmdlineCapture:
     """_dashboard_cmdline_for_pid reads /proc on Linux, ps on macOS."""
 

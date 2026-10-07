@@ -47,6 +47,7 @@ def test_setup_freeide_script_is_safe_to_rerun_and_noninteractive():
     assert "--skip-setup" in content
     assert 'SHELL_CONFIG="$HOME/.profile"' in content
     assert 'VENV_DIR="$SCRIPT_DIR/.venv"' in content
+    assert 'from freeide_constants import get_freeide_home; print(get_freeide_home() / "skills")' in content
 
 
 def test_setup_freeide_help_exits_before_installing():

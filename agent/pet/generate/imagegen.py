@@ -120,8 +120,8 @@ def resolve_provider(*, require_references: bool = True, prefer: str | None = No
 
     raise GenerationError(
         "Pet generation needs an image backend that supports reference images. "
-        "Open `freeide tools` → Image Generation and configure FreeIDE Portal, "
-        "OpenRouter, or OpenAI (gpt-image-2) with an API key."
+        "Open `jetts-tui tools` → Image Generation and configure OpenRouter "
+        "or OpenAI (gpt-image-2) with an API key."
     )
 
 

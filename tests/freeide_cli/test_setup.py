@@ -140,7 +140,7 @@ def test_setup_custom_providers_synced(tmp_path, monkeypatch):
 
 def test_setup_gateway_skips_service_install_when_systemctl_missing(monkeypatch, capsys):
     env = {
-        "TELEGRAM_BOT_TOKEN": "",
+        "TELEGRAM_BOT_TOKEN": "test-token",
         "TELEGRAM_HOME_CHANNEL": "",
         "DISCORD_BOT_TOKEN": "",
         "DISCORD_HOME_CHANNEL": "",
@@ -164,7 +164,10 @@ def test_setup_gateway_skips_service_install_when_systemctl_missing(monkeypatch,
     # Keep the checklist pre-selection (so matrix stays "configured" and the
     # post-config service guidance runs), but stub the migrated plugins'
     # interactive_setup so their wizards don't read real stdin. #41112.
-    monkeypatch.setattr(setup_mod, "prompt_checklist", lambda _q, _items, pre=(), **k: list(pre))
+    monkeypatch.setattr(
+        setup_mod, "prompt_checklist",
+        lambda _q, items, pre=(), **k: [i for i, item in enumerate(items) if "Telegram" in item],
+    )
     import freeide_cli.gateway as _gw_mod
     monkeypatch.setattr(_gw_mod, "_configure_platform", lambda *a, **k: None)
     monkeypatch.setattr("platform.system", lambda: "Linux")
@@ -179,13 +182,13 @@ def test_setup_gateway_skips_service_install_when_systemctl_missing(monkeypatch,
     out = capsys.readouterr().out
     assert "Messaging platforms configured!" in out
     assert "Start the gateway to bring your bots online:" in out
-    assert "freeide gateway" in out
+    assert "jetts-tui gateway" in out
 
 
 def test_setup_gateway_in_container_shows_docker_guidance(monkeypatch, capsys):
     """setup_gateway() in a Docker container shows Docker-specific restart instructions."""
     env = {
-        "TELEGRAM_BOT_TOKEN": "",
+        "TELEGRAM_BOT_TOKEN": "test-token",
         "TELEGRAM_HOME_CHANNEL": "",
         "DISCORD_BOT_TOKEN": "",
         "DISCORD_HOME_CHANNEL": "",
@@ -209,7 +212,10 @@ def test_setup_gateway_in_container_shows_docker_guidance(monkeypatch, capsys):
     # Keep the checklist pre-selection (so matrix stays "configured" and the
     # post-config service guidance runs), but stub the migrated plugins'
     # interactive_setup so their wizards don't read real stdin. #41112.
-    monkeypatch.setattr(setup_mod, "prompt_checklist", lambda _q, _items, pre=(), **k: list(pre))
+    monkeypatch.setattr(
+        setup_mod, "prompt_checklist",
+        lambda _q, items, pre=(), **k: [i for i, item in enumerate(items) if "Telegram" in item],
+    )
     import freeide_cli.gateway as _gw_mod
     monkeypatch.setattr(_gw_mod, "_configure_platform", lambda *a, **k: None)
     monkeypatch.setattr("platform.system", lambda: "Linux")

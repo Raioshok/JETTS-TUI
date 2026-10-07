@@ -81,15 +81,6 @@ contextBridge.exposeInMainWorld('freeideDesktop', {
   probeConnectionConfig: remoteUrl => ipcRenderer.invoke('freeide:connection-config:probe', remoteUrl),
   oauthLoginConnectionConfig: remoteUrl => ipcRenderer.invoke('freeide:connection-config:oauth-login', remoteUrl),
   oauthLogoutConnectionConfig: remoteUrl => ipcRenderer.invoke('freeide:connection-config:oauth-logout', remoteUrl),
-  // FreeIDE Cloud: one portal login powers discovery + silent per-agent sign-in
-  // (cloud-auto-discovery Phase 3).
-  cloud: {
-    status: () => ipcRenderer.invoke('freeide:cloud:status'),
-    login: () => ipcRenderer.invoke('freeide:cloud:login'),
-    logout: () => ipcRenderer.invoke('freeide:cloud:logout'),
-    discover: org => ipcRenderer.invoke('freeide:cloud:discover', org),
-    agentSignIn: dashboardUrl => ipcRenderer.invoke('freeide:cloud:agent-sign-in', dashboardUrl)
-  },
   profile: {
     get: () => ipcRenderer.invoke('freeide:profile:get'),
     set: name => ipcRenderer.invoke('freeide:profile:set', name)

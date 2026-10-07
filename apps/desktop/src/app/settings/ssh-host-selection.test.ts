@@ -8,7 +8,7 @@ const state = {
   sshUser: 'operator',
   sshPort: 2222,
   sshKeyPath: '/keys/linux',
-  sshRemoteFreeIDEPath: '/opt/freeide'
+  sshRemoteFreeIDEPath: '/opt/jettstui'
 }
 
 describe('selectSshHost', () => {

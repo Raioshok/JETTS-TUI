@@ -819,8 +819,9 @@ def register(ctx) -> None:
             "issuer and a client_id — either as env vars "
             "(FREEIDE_DASHBOARD_OIDC_ISSUER + FREEIDE_DASHBOARD_OIDC_CLIENT_ID) "
             "or under dashboard.oauth.self_hosted.{issuer,client_id} in "
-            "config.yaml — or pass --insecure to skip the OAuth gate "
-            "entirely. (issuer set: %s; client_id set: %s)"
+            "config.yaml. A public bind requires an auth provider; "
+            "loopback binding needs no OIDC provider. "
+            "(issuer set: %s; client_id set: %s)"
             % (bool(issuer), bool(client_id))
         )
         logger.debug("dashboard-auth-self-hosted: %s", LAST_SKIP_REASON)

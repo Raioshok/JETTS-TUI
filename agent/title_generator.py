@@ -312,8 +312,8 @@ def _auto_title_session(
 
     # This runs on a bare daemon thread spawned AFTER the turn's ambient
     # conversation context was reset, so publish it here from the session id
-    # we already hold — the title-generation LLM call then carries the same
-    # ``conversation=`` Portal tag as the turn it titles. Root-of-lineage for
+    # we already hold — the title-generation LLM call then uses the same
+    # provider cache-affinity key as the turn it titles. Root-of-lineage for
     # consistency with the agent loop (a no-op on first exchange, where
     # titling happens, but correct if this ever runs on a continuation).
     from agent.aux_accounting import set_accounting_context

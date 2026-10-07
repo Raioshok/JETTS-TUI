@@ -440,7 +440,7 @@ def test_termux_ultrafast_version_runs_before_heavy_startup(
     assert main_mod._try_termux_ultrafast_version() is True
 
     out = capsys.readouterr().out
-    assert "FreeIDE Agent v" in out
+    assert "Jetts-TUI v" in out
     assert "Install directory:" in out
     assert "Python:" in out
     assert "OpenAI SDK:" in out

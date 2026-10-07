@@ -216,21 +216,13 @@ class TestProviderListFlag:
         assert resp.status_code == 302
         assert resp.headers["location"] == "/login?next=%2F"
 
-    def test_oauth_provider_reports_false(self):
+    def test_oauth_provider_reports_false(self, gated_app):
         clear_providers()
         register_provider(StubAuthProvider())
-        prev = getattr(web_server.app.state, "auth_required", None)
-        web_server.app.state.auth_required = True
-        try:
-            client = TestClient(
-                web_server.app, base_url="https://fly-app.fly.dev"
-            )
-            resp = client.get("/api/auth/providers")
-            prov = {p["name"]: p for p in resp.json()["providers"]}
-            assert prov["stub"]["supports_password"] is False
-        finally:
-            clear_providers()
-            web_server.app.state.auth_required = prev
+        resp = gated_app.get("/api/auth/providers")
+        assert resp.status_code == 200, resp.text
+        prov = {p["name"]: p for p in resp.json()["providers"]}
+        assert prov["stub"]["supports_password"] is False
 
 
 # ---------------------------------------------------------------------------
@@ -297,28 +289,18 @@ class TestPasswordLoginRoute:
         )
         assert resp.status_code == 404
 
-    def test_oauth_provider_rejects_password_login_with_404(self):
+    def test_oauth_provider_rejects_password_login_with_404(self, gated_app):
         # An OAuth-only provider (supports_password False) must not be
         # reachable via the password route — same 404 as unknown, so the
         # endpoint isn't a provider-capability oracle.
         clear_providers()
         register_provider(StubAuthProvider())
         _reset_password_rate_limit()
-        prev = getattr(web_server.app.state, "auth_required", None)
-        web_server.app.state.auth_required = True
-        try:
-            client = TestClient(
-                web_server.app, base_url="https://fly-app.fly.dev"
-            )
-            resp = client.post(
-                "/auth/password-login",
-                json={"provider": "stub", "username": "x", "password": "y"},
-            )
-            assert resp.status_code == 404
-        finally:
-            clear_providers()
-            _reset_password_rate_limit()
-            web_server.app.state.auth_required = prev
+        resp = gated_app.post(
+            "/auth/password-login",
+            json={"provider": "stub", "username": "x", "password": "y"},
+        )
+        assert resp.status_code == 404
 
     def test_provider_unreachable_returns_503(self, gated_app, pw_provider):
         pw_provider.unreachable = True
@@ -358,34 +340,21 @@ class TestPasswordLoginRoute:
 
 
 class TestPasswordSessionRefresh:
-    def test_expired_access_token_refreshes_via_rt_cookie(self):
+    def test_expired_access_token_refreshes_via_rt_cookie(self, gated_app, pw_provider):
         # TTL=0 → access token born expired; the RT cookie should drive a
         # transparent refresh on the next request (the same machinery the
         # OAuth provider uses).
-        clear_providers()
-        provider = PasswordProvider(ttl=0)
-        register_provider(provider)
-        _reset_password_rate_limit()
-        prev = getattr(web_server.app.state, "auth_required", None)
-        web_server.app.state.auth_required = True
-        try:
-            client = TestClient(
-                web_server.app, base_url="https://fly-app.fly.dev"
-            )
-            login = client.post(
-                "/auth/password-login",
-                json={"provider": "testpw", "username": "admin", "password": "hunter2"},
-            )
-            assert login.status_code == 200
-            # Give the provider a live TTL so the refreshed token verifies.
-            provider._ttl = 3600
-            me = client.get("/api/auth/me")
-            assert me.status_code == 200
-            assert me.json()["user_id"] == "admin"
-        finally:
-            clear_providers()
-            _reset_password_rate_limit()
-            web_server.app.state.auth_required = prev
+        pw_provider._ttl = 0
+        login = gated_app.post(
+            "/auth/password-login",
+            json={"provider": "testpw", "username": "admin", "password": "hunter2"},
+        )
+        assert login.status_code == 200
+        # Give the provider a live TTL so the refreshed token verifies.
+        pw_provider._ttl = 3600
+        me = gated_app.get("/api/auth/me")
+        assert me.status_code == 200
+        assert me.json()["user_id"] == "admin"
 
 
 # ---------------------------------------------------------------------------

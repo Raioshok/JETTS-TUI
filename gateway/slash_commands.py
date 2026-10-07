@@ -4958,7 +4958,7 @@ class GatewaySlashCommandsMixin:
             if choice == "always":
                 # Persist the opt-out and run the reload.
                 try:
-                    from cli import save_config_value
+                    from jettstui.config_edit import save_config_value
                     save_config_value("approvals.mcp_reload_confirm", False)
                     logger.info(
                         "User opted out of /reload-mcp confirmation (session=%s)",

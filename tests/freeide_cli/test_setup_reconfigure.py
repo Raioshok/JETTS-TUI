@@ -84,6 +84,11 @@ def _enter_fresh_install_patches(stack, **extra):
         ("freeide_cli.auth.get_active_provider", {"return_value": None}),
         ("freeide_cli.setup.get_env_value", {"return_value": None}),
         ("freeide_cli.setup._offer_openclaw_migration", {"return_value": False}),
+        ("freeide_cli.setup.setup_terminal_backend", {}),
+        ("freeide_cli.setup.setup_gateway", {}),
+        ("freeide_cli.setup.setup_tools", {}),
+        ("freeide_cli.setup._apply_default_agent_settings", {}),
+        ("freeide_cli.setup._print_setup_summary", {}),
     ]:
         stack.enter_context(patch(target, **kwargs))
 
@@ -193,7 +198,7 @@ class TestFreshInstall:
             m = _enter_fresh_install_patches(
                 stack,
                 prompt=("freeide_cli.setup.prompt_choice", {"return_value": 0}),
-                first="freeide_cli.setup._run_first_time_quick_setup",
+                first="freeide_cli.setup.setup_model_provider",
             )
             from freeide_cli.setup import run_setup_wizard
             run_setup_wizard(args)
@@ -208,7 +213,7 @@ class TestFreshInstall:
             m = _enter_fresh_install_patches(
                 stack,
                 prompt=("freeide_cli.setup.prompt_choice", {"return_value": 0}),
-                first="freeide_cli.setup._run_first_time_quick_setup",
+                first="freeide_cli.setup.setup_model_provider",
             )
             from freeide_cli.setup import run_setup_wizard
             run_setup_wizard(args)
@@ -223,7 +228,7 @@ class TestFreshInstall:
             m = _enter_fresh_install_patches(
                 stack,
                 prompt=("freeide_cli.setup.prompt_choice", {"return_value": 0}),
-                first="freeide_cli.setup._run_first_time_quick_setup",
+                first="freeide_cli.setup.setup_model_provider",
             )
             from freeide_cli.setup import run_setup_wizard
             run_setup_wizard(args)

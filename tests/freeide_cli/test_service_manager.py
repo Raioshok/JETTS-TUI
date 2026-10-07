@@ -7,6 +7,8 @@ implementation in this same file once that phase ships.
 """
 from __future__ import annotations
 
+import os
+
 import pytest
 
 from freeide_cli.service_manager import (
@@ -118,6 +120,7 @@ def _patch_s6_paths(
     monkeypatch.setattr(_Path, "is_dir", fake_is_dir)
 
 
+@pytest.mark.skipif(os.name == "nt", reason="s6 process inspection requires POSIX /proc")
 def test_s6_running_true_when_comm_and_basedir_match(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -436,6 +439,7 @@ def test_s6_manager_kind_and_supports_registration() -> None:
 # tests/docker/test_s6_profile_gateway_integration.py.
 
 
+@pytest.mark.skipif(os.name == "nt", reason="s6 ownership and FIFOs require POSIX")
 def test_seed_supervise_skeleton_creates_expected_layout(tmp_path) -> None:
     """Verifies the dirs + FIFO + modes the helper lays down."""
     import stat
@@ -473,6 +477,7 @@ def test_seed_supervise_skeleton_creates_expected_layout(tmp_path) -> None:
     assert stat.S_IMODE(control.stat().st_mode) == 0o660
 
 
+@pytest.mark.skipif(os.name == "nt", reason="s6 ownership and FIFOs require POSIX")
 def test_seed_supervise_skeleton_handles_log_subservice(tmp_path) -> None:
     """When a log/ subdir exists, its supervise tree also gets seeded.
 
@@ -503,6 +508,7 @@ def test_seed_supervise_skeleton_handles_log_subservice(tmp_path) -> None:
     assert log_control.exists() and stat.S_ISFIFO(log_control.stat().st_mode)
 
 
+@pytest.mark.skipif(os.name == "nt", reason="s6 ownership and FIFOs require POSIX")
 def test_seed_supervise_skeleton_skips_when_no_log_subservice(tmp_path) -> None:
     """If log/ isn't present, no logger skeleton is created."""
     from freeide_cli.service_manager import _seed_supervise_skeleton
@@ -517,6 +523,7 @@ def test_seed_supervise_skeleton_skips_when_no_log_subservice(tmp_path) -> None:
     )
 
 
+@pytest.mark.skipif(os.name == "nt", reason="s6 ownership and FIFOs require POSIX")
 def test_seed_supervise_skeleton_is_idempotent(tmp_path) -> None:
     """Calling the helper twice on the same dir is a no-op the second time.
 
@@ -533,6 +540,7 @@ def test_seed_supervise_skeleton_is_idempotent(tmp_path) -> None:
     _seed_supervise_skeleton(svc_dir)  # must not raise
 
 
+@pytest.mark.skipif(os.name == "nt", reason="s6 ownership and FIFOs require POSIX")
 def test_s6_register_creates_service_dir_and_triggers_scan(
     s6_scandir, fake_subprocess_run,
 ) -> None:
@@ -586,6 +594,7 @@ def test_s6_register_creates_service_dir_and_triggers_scan(
     ), f"s6-svscanctl -a not invoked; saw: {fake_subprocess_run}"
 
 
+@pytest.mark.skipif(os.name == "nt", reason="s6 ownership and FIFOs require POSIX")
 def test_s6_register_staging_dir_is_dotfile_hidden_from_svscan(
     s6_scandir, fake_subprocess_run, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -632,6 +641,7 @@ def test_s6_register_staging_dir_is_dotfile_hidden_from_svscan(
     assert (s6_scandir / "gateway-coder").is_dir()
 
 
+@pytest.mark.skipif(os.name == "nt", reason="s6 ownership and FIFOs require POSIX")
 def test_s6_register_start_now_false_writes_down_marker(
     s6_scandir, fake_subprocess_run,
 ) -> None:
@@ -647,6 +657,7 @@ def test_s6_register_start_now_false_writes_down_marker(
     )
 
 
+@pytest.mark.skipif(os.name == "nt", reason="s6 ownership and FIFOs require POSIX")
 def test_s6_register_start_now_true_no_down_marker(
     s6_scandir, fake_subprocess_run,
 ) -> None:
@@ -661,6 +672,7 @@ def test_s6_register_start_now_true_no_down_marker(
     )
 
 
+@pytest.mark.skipif(os.name == "nt", reason="s6 ownership and FIFOs require POSIX")
 def test_s6_register_extra_env_is_quoted(s6_scandir, fake_subprocess_run) -> None:
     mgr = S6ServiceManager(scandir=s6_scandir)
     mgr.register_profile_gateway(
@@ -677,7 +689,7 @@ def test_render_run_script_resets_home_before_exec() -> None:
     run_text = S6ServiceManager._render_run_script("coder", {})
 
     assert "export HOME=/opt/data" in run_text
-    assert "exec s6-setuidgid freeide freeide -p coder gateway run --replace" in run_text
+    assert "exec s6-setuidgid jettstui jetts-tui -p coder gateway run --replace" in run_text
 
 
 def test_render_run_script_uses_replace_to_take_over_stale_holder() -> None:
@@ -695,9 +707,9 @@ def test_render_run_script_uses_replace_to_take_over_stale_holder() -> None:
     render paths.
     """
     default_text = S6ServiceManager._render_run_script("default", {})
-    # Root profile: bare `freeide gateway run --replace` (no -p flag).
-    assert "freeide gateway run --replace" in default_text
-    assert "freeide -p default" not in default_text
+    # Root profile: bare `jetts-tui gateway run --replace` (no -p flag).
+    assert "jetts-tui gateway run --replace" in default_text
+    assert "jetts-tui -p default" not in default_text
     # Every exec line that launches the gateway must carry --replace, so
     # neither the non-root nor the privilege-drop branch can spin.
     gateway_execs = [
@@ -729,6 +741,7 @@ def test_render_finish_script_exits_125_on_ex_config() -> None:
     assert "exit 0" in text
 
 
+@pytest.mark.skipif(os.name == "nt", reason="s6 ownership and FIFOs require POSIX")
 def test_s6_register_writes_finish_script(
     s6_scandir, fake_subprocess_run,
 ) -> None:
@@ -756,6 +769,7 @@ def test_s6_register_rejects_duplicate(s6_scandir, fake_subprocess_run) -> None:
         mgr.register_profile_gateway("coder")
 
 
+@pytest.mark.skipif(os.name == "nt", reason="s6 ownership and FIFOs require POSIX")
 def test_s6_register_rolls_back_on_svscanctl_failure(
     s6_scandir, monkeypatch: pytest.MonkeyPatch,
 ) -> None:
@@ -1115,6 +1129,7 @@ def _log_run_setup_fragment(rendered: str) -> str:
     return "#!/bin/sh\n" + "".join(keep)
 
 
+@pytest.mark.skipif(os.name == "nt", reason="s6 ownership and FIFOs require POSIX")
 def test_s6_log_run_creates_leaf_as_freeide_without_chown(
     s6_scandir, fake_subprocess_run,
 ) -> None:

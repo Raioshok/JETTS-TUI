@@ -305,11 +305,10 @@ requires = ["setuptools>=77.0,<83"]
 build-backend = "setuptools.build_meta"
 
 [project.scripts]
-jetts-tui = "freeide_cli.main:main"
+jetts-tui = "freeide_cli.main:main"  # Compatibility namespace until internal imports migrate.
 jetts-tui-agent = "run_agent:main"
 jetts-tui-acp = "acp_adapter.entry:main"
 freeide = "freeide_cli.main:main"  # Compatibility alias for existing installs and integrations.
-freeide-agent = "run_agent:main"
 freeide-acp = "acp_adapter.entry:main"
 
 [project.urls]
@@ -320,10 +319,10 @@ Issues = "https://github.com/Raioshok/JETTS-TUI/issues"
 [tool.setuptools]
 # Top-level single-file modules (not packages). Without this, uv2nix's
 # sealed venv is missing freeide_constants, run_agent, etc.
-py-modules = ["run_agent", "model_tools", "toolsets", "batch_runner", "trajectory_compressor", "toolset_distributions", "cli", "freeide_bootstrap", "freeide_constants", "freeide_state", "freeide_time", "freeide_logging", "utils", "mcp_serve"]
+py-modules = ["run_agent", "model_tools", "toolsets", "batch_runner", "trajectory_compressor", "toolset_distributions", "cli", "freeide_bootstrap", "freeide_constants", "jettstui_home", "freeide_state", "freeide_time", "freeide_logging", "utils", "mcp_serve"]
 
 [tool.setuptools.packages.find]
-include = ["agent", "agent.*", "tools", "tools.*", "freeide_cli", "freeide_cli.*", "gateway", "gateway.*", "tui_gateway", "tui_gateway.*", "cron", "cron.*", "acp_adapter", "plugins", "plugins.*", "providers", "providers.*"]
+include = ["agent", "agent.*", "tools", "tools.*", "jettstui", "jettstui.*", "freeide_cli", "gateway", "gateway.*", "tui_gateway", "tui_gateway.*", "cron", "cron.*", "acp_adapter", "plugins", "plugins.*", "providers", "providers.*"]
 
 [tool.setuptools.package-data]
 # gateway/assets/ ships status_phrases.yaml and the Telegram BotFather

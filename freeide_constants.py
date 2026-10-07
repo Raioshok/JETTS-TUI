@@ -11,6 +11,8 @@ import sys
 from contextvars import ContextVar, Token
 from pathlib import Path
 
+from jettstui_home import default_home_paths, migrate_default_home
+
 
 _profile_fallback_warned: bool = False
 _UNSET = object()
@@ -43,12 +45,20 @@ def get_freeide_home_override() -> str | None:
 
 
 def _get_platform_default_freeide_home() -> Path:
-    """Return the platform-native default FreeIDE home path."""
-    if sys.platform == "win32":
-        local_appdata = os.environ.get("LOCALAPPDATA", "").strip()
-        base = Path(local_appdata) if local_appdata else Path.home() / "AppData" / "Local"
-        return base / "freeide"
-    return Path.home() / ".freeide"
+    """Return the branded default, migrating legacy data without overwrites.
+
+    Keep an alias at the previous location so older launchers and a managed
+    runtime installed beneath that directory continue working after the move.
+    Explicit ``FREEIDE_HOME``/profile overrides never reach this migration.
+    """
+    new, old = default_home_paths(
+        platform=sys.platform,
+        home=Path.home(),
+        local_appdata=os.environ.get("LOCALAPPDATA", ""),
+    )
+    if sys.platform == "win32" and not new.exists() and not old.exists():
+        old = Path.home() / ".freeide"
+    return migrate_default_home(new, old, platform=sys.platform)
 
 
 def _freeide_home_from_env() -> Path:
@@ -62,6 +72,15 @@ def _freeide_home_from_env() -> Path:
     """
     val = os.environ.get("FREEIDE_HOME", "").strip()
     if val:
+        new, old = default_home_paths(
+            platform=sys.platform,
+            home=Path.home(),
+            local_appdata=os.environ.get("LOCALAPPDATA", ""),
+        )
+        # Older Windows installers persisted their *default* as FREEIDE_HOME.
+        # This exact default is not a custom profile; migrate it as well.
+        if os.path.normcase(os.path.abspath(val)) == os.path.normcase(os.path.abspath(old)):
+            return migrate_default_home(new, old, platform=sys.platform)
         return Path(val)
     return _get_platform_default_freeide_home()
 
@@ -167,8 +186,17 @@ def get_default_freeide_root() -> Path:
 
     Import-safe — no dependencies beyond stdlib.
     """
-    native_home = _get_platform_default_freeide_home()
     env_home = os.environ.get("FREEIDE_HOME", "")
+    if env_home:
+        # An explicit profile/home path must not trigger a default-home move.
+        new_default, old_default = default_home_paths(
+            platform=sys.platform,
+            home=Path.home(),
+            local_appdata=os.environ.get("LOCALAPPDATA", ""),
+        )
+        native_home = new_default if new_default.exists() or not old_default.exists() else old_default
+    else:
+        native_home = _get_platform_default_freeide_home()
     if not env_home:
         return native_home
     env_path = Path(env_home)
@@ -648,7 +676,7 @@ def display_freeide_home() -> str:
 
         default:  ``~/.freeide``
         profile:  ``~/.freeide/profiles/coder``
-        custom:   ``/opt/freeide-custom``
+        custom:   ``/opt/jettstui-custom``
 
     Use this in **user-facing** print/log messages instead of hardcoding
     ``~/.freeide``.  For code that needs a real ``Path``, use

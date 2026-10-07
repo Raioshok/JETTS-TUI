@@ -767,133 +767,34 @@ describe('ToolsetConfigPanel', () => {
     })
   })
 
-  describe('managed FreeIDE provider activation', () => {
-    const nousBrowserConfig = () =>
-      config({
-        name: 'browser',
-        active_provider: null,
-        providers: [
-          {
-            name: 'FreeIDE Subscription (Browser Use cloud)',
-            badge: 'subscription',
-            tag: 'Managed Browser Use billed to your subscription',
-            env_vars: [],
-            post_setup: 'agent_browser',
-            requires_nous_auth: true,
-            is_active: false,
-            status: 'needs_auth'
-          }
-        ]
-      })
-
-    it('surfaces a sign-in notice when the PUT reports needs_nous_auth', async () => {
-      // Regression (Windows 11 Capabilities journey): the GUI wrote
-      // browser.cloud_provider but skipped the Portal entitlement handshake,
-      // so the managed row silently never activated. The endpoint now
-      // reports needs_nous_auth and the panel must surface a sign-in action
-      // instead of the misleading "provider selected" success toast.
+  describe('legacy hosted provider response', () => {
+    it('does not claim an unavailable provider is active', async () => {
       const { notify } = await import('@/store/notifications')
-
-      getToolsetConfig.mockResolvedValue(nousBrowserConfig())
-      selectToolsetProvider.mockResolvedValue({
-        ok: true,
-        name: 'browser',
-        provider: 'FreeIDE Subscription (Browser Use cloud)',
-        needs_nous_auth: true,
-        feature: 'browser'
-      })
+      getToolsetConfig.mockResolvedValue(
+        config({
+          active_provider: null,
+          providers: [
+            {
+              name: 'Legacy hosted provider',
+              badge: 'subscription',
+              tag: 'Legacy',
+              env_vars: [],
+              post_setup: null,
+              requires_nous_auth: true,
+              is_active: false,
+              status: 'needs_auth'
+            }
+          ]
+        })
+      )
+      selectToolsetProvider.mockResolvedValue({ ok: true, needs_nous_auth: true })
 
       const { ToolsetConfigPanel } = await import('./toolset-config-panel')
       render(<ToolsetConfigPanel onConfiguredChange={vi.fn()} toolset="browser" />)
+      fireEvent.click(await screen.findByRole('button', { name: /Legacy hosted provider/ }))
 
-      fireEvent.click(await screen.findByRole('button', { name: /FreeIDE Subscription/ }))
-
-      await waitFor(() =>
-        expect(selectToolsetProvider).toHaveBeenCalledWith('browser', 'FreeIDE Subscription (Browser Use cloud)')
-      )
-      await waitFor(() =>
-        expect(notify).toHaveBeenCalledWith(
-          expect.objectContaining({
-            kind: 'warning',
-            action: expect.objectContaining({ label: expect.any(String) })
-          })
-        )
-      )
-      // No success toast — the row is not active yet.
-      expect(notify).not.toHaveBeenCalledWith(expect.objectContaining({ kind: 'success' }))
-    })
-
-    it('drives the existing FreeIDE OAuth device-code flow from the sign-in action and refetches', async () => {
-      const { notify } = await import('@/store/notifications')
-
-      getToolsetConfig.mockResolvedValue(nousBrowserConfig())
-      selectToolsetProvider.mockResolvedValue({
-        ok: true,
-        name: 'browser',
-        provider: 'FreeIDE Subscription (Browser Use cloud)',
-        needs_nous_auth: true,
-        feature: 'browser'
-      })
-      startOAuthLogin.mockResolvedValue({
-        flow: 'device_code',
-        session_id: 'sess-1',
-        user_code: 'NOUS-1234',
-        verification_url: 'https://portal.freeide.dev/device?user_code=NOUS-1234',
-        poll_interval: 5,
-        expires_in: 600
-      })
-      pollOAuthSession.mockResolvedValue({ session_id: 'sess-1', status: 'approved' })
-      const openSpy = vi.spyOn(window, 'open').mockReturnValue(null)
-
-      try {
-        const { ToolsetConfigPanel } = await import('./toolset-config-panel')
-        render(<ToolsetConfigPanel onConfiguredChange={vi.fn()} toolset="browser" />)
-
-        fireEvent.click(await screen.findByRole('button', { name: /FreeIDE Subscription/ }))
-
-        // Grab the sign-in action off the warning notification and invoke it —
-        // this is the affordance the toast renders as a button.
-        await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ kind: 'warning' })))
-
-        const warning = vi
-          .mocked(notify)
-          .mock.calls.map(call => call[0])
-          .find(input => input.kind === 'warning')
-
-        expect(warning?.action).toBeTruthy()
-        getToolsetConfig.mockClear()
-        warning!.action!.onClick()
-
-        await waitFor(() => expect(startOAuthLogin).toHaveBeenCalledWith('nous'))
-        expect(openSpy).toHaveBeenCalledWith(
-          'https://portal.freeide.dev/device?user_code=NOUS-1234',
-          '_blank',
-          'noopener,noreferrer'
-        )
-        // Approved poll → the panel refetches the config so status flips.
-        await waitFor(() => expect(pollOAuthSession).toHaveBeenCalledWith('nous', 'sess-1'), { timeout: 8000 })
-        await waitFor(() => expect(getToolsetConfig).toHaveBeenCalled(), { timeout: 8000 })
-      } finally {
-        openSpy.mockRestore()
-      }
-    }, 20000)
-
-    it('shows the plain success toast when the managed row is already entitled', async () => {
-      const { notify } = await import('@/store/notifications')
-
-      getToolsetConfig.mockResolvedValue(nousBrowserConfig())
-      selectToolsetProvider.mockResolvedValue({
-        ok: true,
-        name: 'browser',
-        provider: 'FreeIDE Subscription (Browser Use cloud)'
-      })
-
-      const { ToolsetConfigPanel } = await import('./toolset-config-panel')
-      render(<ToolsetConfigPanel onConfiguredChange={vi.fn()} toolset="browser" />)
-
-      fireEvent.click(await screen.findByRole('button', { name: /FreeIDE Subscription/ }))
-
-      await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ kind: 'success' })))
+      await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ kind: 'warning' })))
+      expect(screen.queryByText('In use')).toBeNull()
       expect(startOAuthLogin).not.toHaveBeenCalled()
     })
   })

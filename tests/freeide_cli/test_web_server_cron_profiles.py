@@ -70,7 +70,6 @@ def test_fire_cron_job_scopes_store_and_runtime_home_together(
 ):
     """A profile fire must execute and persist under the same profile home."""
     from cron import jobs as cron_jobs
-    from cron import scheduler
     from freeide_cli import web_server
 
     from freeide_constants import (
@@ -80,30 +79,29 @@ def test_fire_cron_job_scopes_store_and_runtime_home_together(
 
     default_home = isolated_profiles["default"]
     worker_home = isolated_profiles["worker_alpha"]
-    monkeypatch.setattr(scheduler, "_freeide_home", None)
     captured = {}
 
-    class RecordingProvider:
-        def fire_due(self, job_id, *, adapters=None, loop=None):
-            captured["job_id"] = job_id
-            captured["runtime_home"] = scheduler._get_freeide_home()
-            captured["jobs_file"] = cron_jobs._current_cron_store().jobs_file
-            return True
+    def recording_trigger(job_id):
+        from freeide_constants import get_freeide_home
 
-    monkeypatch.setattr(
-        "cron.scheduler_provider.resolve_cron_scheduler",
-        lambda: RecordingProvider(),
-    )
+        captured["job_id"] = job_id
+        captured["runtime_home"] = get_freeide_home()
+        captured["jobs_file"] = cron_jobs._current_cron_store().jobs_file
+        return {"id": job_id}
+
+    monkeypatch.setattr(cron_jobs, "trigger_job", recording_trigger)
 
     outer_token = set_freeide_home_override(default_home)
     try:
-        assert web_server._fire_cron_job_for_profile("worker_alpha", "worker-job") is True
+        result = web_server._call_cron_for_profile("worker_alpha", "trigger_job", "worker-job")
+        assert result["id"] == "worker-job"
         assert captured == {
             "job_id": "worker-job",
             "runtime_home": worker_home,
             "jobs_file": worker_home / "cron" / "jobs.json",
         }
-        assert scheduler._get_freeide_home() == default_home
+        from freeide_constants import get_freeide_home
+        assert get_freeide_home() == default_home
     finally:
         reset_freeide_home_override(outer_token)
 

@@ -263,6 +263,9 @@ def _make_cli(**overrides):
         _spinner_token_flow = cli_module.FreeIDECLI._spinner_token_flow
         _render_spinner_text = cli_module.FreeIDECLI._render_spinner_text
 
+        def _studio_activity_enabled(self):
+            return False
+
     stub = _Stub()
     for key, value in overrides.items():
         setattr(stub, key, value)

@@ -151,7 +151,7 @@ class TestCLIStatusBar:
 
         text = cli_obj._build_status_bar_text(width=60)
 
-        assert "⚕" in text
+        assert "claude-sonnet-4-20250514" in text
         assert "$0.06" not in text  # cost hidden by default
         assert "15m" in text
         assert "200K" not in text
@@ -161,7 +161,6 @@ class TestCLIStatusBar:
 
         text = cli_obj._build_status_bar_text(width=100)
 
-        assert "⚕" in text
         assert "claude-sonnet-4-20250514" in text
 
     def test_compression_count_shown_in_wide_status_bar(self):
@@ -406,7 +405,8 @@ class TestCLIStatusBar:
         # time went negative, the (t0 > 0) guard in _render_spinner_text
         # dropped the "(elapsed)" suffix entirely, and the split below hit an
         # IndexError. A fixed clock keeps both elapsed paths deterministic.
-        with patch.object(cli_mod.time, "monotonic", return_value=1000.0):
+        with patch.object(cli_mod.time, "monotonic", return_value=1000.0), \
+             patch.object(FreeIDECLI, "_studio_activity_enabled", return_value=False):
             # <60s path
             cli_obj._tool_start_time = 1000.0 - 9.2
             short = cli_obj._render_spinner_text()

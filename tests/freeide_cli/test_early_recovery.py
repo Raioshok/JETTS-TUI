@@ -118,7 +118,8 @@ def test_early_recovery_module_is_stdlib_only(tmp_path):
             import builtins
             import sys
 
-            STDLIB = set(sys.stdlib_module_names) | {"freeide_cli"}
+            # Both package names are local code; reject third-party imports.
+            STDLIB = set(sys.stdlib_module_names) | {"freeide_cli", "jettstui"}
             real_import = builtins.__import__
 
             def guard(name, *args, **kwargs):

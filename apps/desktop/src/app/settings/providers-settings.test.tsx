@@ -84,10 +84,22 @@ async function renderProvidersSettings() {
 }
 
 describe('ProvidersSettings', () => {
+  it('does not offer sign-in to a disconnected legacy account', async () => {
+    listOAuthProviders.mockResolvedValue({
+      providers: [provider('nous', false), provider('minimax-oauth', false)]
+    })
+    await renderProvidersSettings()
+
+    expect(screen.queryByText('Legacy account (nous)')).toBeNull()
+    expect(screen.getByText('MiniMax')).toBeTruthy()
+    expect(screen.getByText('Fireworks AI')).toBeTruthy()
+    expect(screen.getByText('OpenRouter')).toBeTruthy()
+  })
+
   it('disconnects a connected provider account and refreshes the accounts list', async () => {
     await renderProvidersSettings()
 
-    const remove = await screen.findByRole('button', { name: 'Remove FreeIDE Portal' })
+    const remove = await screen.findByRole('button', { name: 'Remove Legacy account (nous)' })
     await act(async () => {
       fireEvent.click(remove)
     })
@@ -100,7 +112,7 @@ describe('ProvidersSettings', () => {
     await renderProvidersSettings()
 
     await act(async () => {
-      fireEvent.click(await screen.findByText('FreeIDE Portal'))
+      fireEvent.click(await screen.findByText('Legacy account (nous)'))
     })
 
     expect(startManualProviderOAuth).toHaveBeenCalledWith('nous')

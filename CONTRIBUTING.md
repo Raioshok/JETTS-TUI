@@ -93,7 +93,7 @@ The reason is maintenance load, not quality. Every external product absorbed int
 
 Publish these as a **standalone plugin repo** instead:
 
-- Implement the relevant ABC and use the existing plugin discovery path (`~/.freeide/plugins/`, project `.freeide/plugins/`, or a pip entry point) — see [Build a FreeIDE Plugin](https://freeide-agent.freeide.dev/docs/guides/build-a-freeide-plugin)
+- Implement the relevant ABC and use the existing plugin discovery path (`~/.freeide/plugins/`, project `.freeide/plugins/`, or a pip entry point) — see [Build a Plugin](docs/developer-guide/plugins/index.md)
 - Register lifecycle hooks (`pre_tool_call`, `post_tool_call`, `pre_llm_call`, `post_llm_call`, `on_session_start`, `on_session_end`), tools (`ctx.register_tool`), and CLI subcommands (`ctx.register_cli_command`) through the surface we already expose — no core changes needed
 - If your plugin needs a capability the framework doesn't expose, that's a feature request to **widen the generic plugin surface** (a new hook or `ctx` method) — never special-case your plugin in core
 - Promote it in the [FreeIDE Discord](https://discord.gg/freeide) `#plugins-skills-and-skins` channel so users can find and install it
@@ -130,7 +130,7 @@ cd "${FREEIDE_HOME:-$HOME/.freeide}/freeide-agent"
 # Add dev/test extras on top of the standard install.
 uv pip install -e ".[all,dev]"
 
-# Optional: browser tools / docs site dependencies.
+# Optional: JavaScript workspace dependencies.
 npm install
 ```
 
@@ -234,7 +234,7 @@ freeide-agent/
 │   ├── main.py                   # Entry point, argument parsing, command dispatch
 │   ├── config.py                 # Config management, migration, env var definitions
 │   ├── setup.py                  # Interactive setup wizard
-│   ├── auth.py                   # Provider resolution, OAuth, FreeIDE Portal
+│   ├── auth.py                   # Provider resolution and OAuth
 │   ├── models.py                 # OpenRouter model selection lists
 │   ├── banner.py                 # Welcome banner, ASCII art
 │   ├── commands.py               # Central slash command registry (CommandDef), autocomplete, gateway helpers
@@ -274,7 +274,7 @@ freeide-agent/
 ├── skills/                   # Bundled skills (copied to ~/.freeide/skills/ on install)
 ├── optional-skills/          # Official optional skills (discoverable via hub, not activated by default)
 ├── tests/                    # Test suite
-├── website/                  # Documentation site (freeide-agent.freeide.dev)
+├── docs/                     # Repository Markdown documentation
 │
 ├── cli-config.yaml.example   # Example configuration (copied to ~/.freeide/config.yaml)
 └── AGENTS.md                 # Development guide for AI coding assistants
@@ -286,7 +286,7 @@ freeide-agent/
 |------|---------|
 | `~/.freeide/config.yaml` | Settings (model, terminal, toolsets, compression, etc.) |
 | `~/.freeide/.env` | API keys and secrets |
-| `~/.freeide/auth.json` | OAuth credentials (FreeIDE Portal) |
+| `~/.freeide/auth.json` | Legacy OAuth credential state, if present |
 | `~/.freeide/skills/` | All active skills (bundled + hub-installed + agent-created) |
 | `~/.freeide/memories/` | Persistent memory (MEMORY.md, USER.md) |
 | `~/.freeide/state.db` | SQLite session database |
@@ -321,7 +321,7 @@ User message → AIAgent._run_agent_loop()
 - **Toolset grouping**: Tools are grouped into toolsets (`web`, `terminal`, `file`, `browser`, etc.) that can be enabled/disabled per platform.
 - **Session persistence**: All conversations are stored in SQLite (`freeide_state.py`) with full-text search and unique session titles. Per-session JSON snapshots in `~/.freeide/sessions/` were superseded by the SQLite store and are off by default; opt back in with `sessions.write_json_snapshots: true` if you have external tooling that consumes the JSON files directly.
 - **Ephemeral injection**: System prompts and prefill messages are injected at API call time, never persisted to the database or logs.
-- **Provider abstraction**: The agent works with any OpenAI-compatible API. Provider resolution happens at init time (FreeIDE Portal OAuth, OpenRouter API key, or custom endpoint).
+- **Provider abstraction**: The agent works with OpenAI-compatible APIs. Provider resolution happens at init time from a configured API key or custom endpoint.
 - **Provider routing**: When using OpenRouter, `provider_routing` in config.yaml controls provider selection (sort by throughput/latency/price, allow/ignore specific providers, data retention policies). These are injected as `extra_body.provider` in API requests.
 
 ---

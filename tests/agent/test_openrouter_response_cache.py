@@ -13,14 +13,14 @@ import pytest
 class TestBuildOrHeaders:
     """Test the build_or_headers() helper in agent/auxiliary_client.py."""
 
-    def test_base_attribution_always_present(self):
-        """Attribution headers must always be included regardless of cache setting."""
+    def test_no_unconfigured_attribution(self):
+        """Do not send product identity headers without user opt-in."""
         from agent.auxiliary_client import build_or_headers
 
         headers = build_or_headers(or_config={"response_cache": False})
-        assert headers["HTTP-Referer"] == "https://freeide-agent.freeide.dev"
-        assert headers["X-Title"] == "FreeIDE Agent"
-        assert headers["X-OpenRouter-Categories"] == "productivity,cli-agent"
+        assert "HTTP-Referer" not in headers
+        assert "X-Title" not in headers
+        assert "X-OpenRouter-Categories" not in headers
 
     def test_cache_enabled(self):
         """When response_cache is True, X-OpenRouter-Cache header is set."""
@@ -125,14 +125,12 @@ class TestBuildOrHeaders:
         assert headers["X-OpenRouter-Cache-TTL"] == "900"
 
     def test_none_config_load_config_fails_gracefully(self):
-        """When load_config() fails, build_or_headers still returns base headers."""
+        """When load_config() fails, no optional headers are sent."""
         from agent.auxiliary_client import build_or_headers
 
         with patch("freeide_cli.config.load_config", side_effect=RuntimeError("boom")):
             headers = build_or_headers(or_config=None)
-        # Should have base attribution but no cache headers
-        assert "HTTP-Referer" in headers
-        assert "X-OpenRouter-Cache" not in headers
+        assert headers == {}
 
 
 # ---------------------------------------------------------------------------

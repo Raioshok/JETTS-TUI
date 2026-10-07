@@ -8,8 +8,8 @@ These guard the contract:
     picker path (``provider_model_ids``) and the gateway ``/model`` picker
     path (``list_authenticated_providers``) merge fresh models.dev entries
     on top of the curated static list.
-  * OpenRouter and FreeIDE Portal are NEVER merged — they keep their curated
-    (OpenRouter) or live-Portal (Nous) semantics.
+  * OpenRouter is never merged with models.dev; its own endpoint catalog is
+    authoritative when available.
   * If models.dev is unreachable (offline / CI), the curated list is the
     fallback — no crash, no empty list.
 
@@ -105,8 +105,8 @@ class TestProviderModelIdsPreferred:
         assert "kimi-k3" in out
         assert "kimi-k2.7-code" in out
 
-    def test_kimi_coding_live_catalog_does_not_hide_curated_k3(self):
-        """Kimi /models can lag inference; live results must not replace curated."""
+    def test_kimi_coding_live_catalog_is_authoritative(self):
+        """A successful Kimi endpoint response is not mixed with stale presets."""
         with (
             patch(
                 "freeide_cli.auth.resolve_api_key_provider_credentials",
@@ -115,11 +115,10 @@ class TestProviderModelIdsPreferred:
             patch("providers.base.ProviderProfile.fetch_models", return_value=["kimi-k2.6"]),
         ):
             out = provider_model_ids("kimi-coding")
-        # Curated-first order; curated newest (k3) stays ahead of live.
-        assert out[:3] == ["kimi-k3", "kimi-k2.7-code", "kimi-k2.6"]
+        assert out == ["kimi-k2.6"]
 
-    def test_k3_live_discovery_is_scoped_to_kimi_coding_endpoint(self):
-        """Coding keys discover K3; legacy Moonshot keys must not advertise it."""
+    def test_k3_live_discovery_keeps_endpoint_wire_ids(self):
+        """Each configured endpoint's own model IDs are shown verbatim."""
 
         class Response:
             def __init__(self, body: bytes):
@@ -171,14 +170,11 @@ class TestProviderModelIdsPreferred:
             ):
                 custom_models = provider_model_ids("kimi-coding")
 
-        # The live bare wire id ``k3`` folds into the curated public slug
-        # ``kimi-k3`` (picker alias dedup) — one row, curated slug leads.
-        assert coding_models[0] == "kimi-k3"
-        assert all(model.lower() != "k3" for model in coding_models)
-        assert all(model.lower() != "k3" for model in legacy_models)
-        assert all(model.lower() != "k3" for model in custom_models)
-        # Legacy / custom endpoints never advertise the k3 family at all
-        # via live discovery (their curated floor may still carry kimi-k3).
+        assert coding_models == ["k3"]
+        # The Kimi plugin rejects K3 on non-coding hosts because that wire ID
+        # is only confirmed for the canonical Coding Plan endpoint.
+        assert legacy_models == ["kimi-k2.6"]
+        assert custom_models == ["kimi-k2.6"]
 
     def test_kimi_setup_flow_uses_same_coding_plan_catalog(self):
         """The setup wizard must not carry a stale duplicate Kimi model list."""
@@ -202,14 +198,11 @@ class TestProviderModelIdsPreferred:
         assert captured["models"][0] == "kimi-k3"
 
 
-class TestOpenRouterAndNousUnchanged:
-    """Per Teknium: openrouter and nous are NEVER merged with models.dev."""
+class TestOpenRouterCatalogIsolation:
+    """OpenRouter uses its own endpoint catalog, not models.dev merging."""
 
     def test_openrouter_not_in_preferred_set(self):
         assert "openrouter" not in _MODELS_DEV_PREFERRED
-
-    def test_nous_not_in_preferred_set(self):
-        assert "nous" not in _MODELS_DEV_PREFERRED
 
     def test_openrouter_does_not_call_merge(self):
         """openrouter takes its own live path — merge helper must NOT run."""

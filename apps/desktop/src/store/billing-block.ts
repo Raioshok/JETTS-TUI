@@ -21,7 +21,7 @@ export const $billingBlock = atom<ActiveBillingBlock | null>(null)
 /**
  * Navigation intent counter. A toast fired outside React (or any surface
  * without router context) bumps this to ask the shell — which owns
- * `useNavigate` — to open Settings → Billing in-app. See `contrib/wiring.tsx`.
+ * `useNavigate` — to open provider settings in-app. See `contrib/wiring.tsx`.
  */
 export const $billingSettingsRequest = atom(0)
 
@@ -51,9 +51,8 @@ export function requestBillingSettings(): void {
 
 /**
  * The single recovery action for a billing wall, shared by the toast and the
- * in-chat banner so both behave identically: Nous routes to the in-app
- * Settings → Billing surface; a third-party provider deep-links to its own
- * billing page (falling back to the in-app surface only if we have no URL).
+ * in-chat banner so both behave identically: third-party providers link to
+ * their own billing page; otherwise users can select another provider.
  */
 export function runBillingRecovery(block: BillingBlock): void {
   if (block.is_nous) {
@@ -72,5 +71,5 @@ export function runBillingRecovery(block: BillingBlock): void {
 }
 
 export function billingCtaLabel(block: BillingBlock, copy: { addCredits: string; openBilling: string }): string {
-  return block.is_nous ? copy.openBilling : copy.addCredits
+  return block.is_nous ? 'Choose provider' : copy.addCredits
 }

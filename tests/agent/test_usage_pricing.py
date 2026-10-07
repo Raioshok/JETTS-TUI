@@ -251,7 +251,7 @@ def test_custom_endpoint_models_api_pricing_is_supported(monkeypatch):
     assert float(entry.output_cost_per_million) == 2.0
 
 
-def test_nous_portal_pricing_preserves_vendor_prefixed_model_ids(monkeypatch):
+def test_custom_endpoint_pricing_preserves_vendor_prefixed_model_ids(monkeypatch):
     seen = {}
 
     def _fake_fetch_endpoint_model_metadata(base_url, api_key=None):
@@ -270,9 +270,12 @@ def test_nous_portal_pricing_preserves_vendor_prefixed_model_ids(monkeypatch):
         _fake_fetch_endpoint_model_metadata,
     )
 
-    entry = get_pricing_entry("openai/gpt-5.5-pro", provider="nous")
+    endpoint = "https://models.example.test/v1"
+    entry = get_pricing_entry(
+        "openai/gpt-5.5-pro", provider="custom", base_url=endpoint, api_key="test-key"
+    )
 
-    assert seen["base_url"] == "https://inference-api.freeide.dev/v1"
+    assert seen["base_url"] == endpoint
     assert float(entry.input_cost_per_million) == 25.0
     assert float(entry.output_cost_per_million) == 125.0
 

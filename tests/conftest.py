@@ -561,14 +561,12 @@ def _wal_is_usable() -> bool:
     3.50.4 (vulnerable → DELETE) alongside a FreeIDE managed runtime on 3.53.1
     (fixed → WAL). The same test then passes in one and fails in the other.
 
-    IMPORTANT: this must NOT import ``freeide_state``. That module computes
-    ``DEFAULT_DB_PATH`` from ``get_freeide_home()`` at import time, so importing
-    it during collection — before the per-test ``_isolate_freeide_home`` fixture
-    redirects ``FREEIDE_HOME`` — permanently caches the DEVELOPER'S REAL
-    ``~/.freeide/state.db`` for the whole session. Tests then read live
-    production sessions instead of a tempdir. The version predicate is
-    duplicated from ``freeide_state._is_sqlite_wal_reset_vulnerable`` (upstream
-    fixed ranges, stable) rather than imported, and
+    Keep this gate import-free: collection should not initialize the session
+    store or other state before the per-test home fixture runs. SessionDB now
+    resolves the active home on open, but the WAL predicate can remain
+    independent of runtime imports. It is duplicated from
+    ``freeide_state._is_sqlite_wal_reset_vulnerable`` (upstream fixed ranges,
+    stable) rather than imported, and
     ``test_conftest_wal_gate.py`` pins the two implementations in agreement.
     """
     info = sqlite3.sqlite_version_info

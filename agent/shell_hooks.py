@@ -13,7 +13,7 @@ Design notes
   :func:`freeide_cli.plugins.invoke_hook` and its aggregators.  Python
   plugins are registered first (via ``discover_and_load()``) so their
   block decisions win ties over shell-hook blocks.
-* Subprocess execution uses ``shlex.split(os.path.expanduser(command))``
+* Subprocess execution uses platform-aware argument splitting
   with ``shell=False`` — no shell injection footguns.  Users that need
   pipes/redirection wrap their logic in a script.
 * First-use consent is gated by the allowlist under
@@ -449,7 +449,7 @@ def _spawn(spec: ShellHookSpec, stdin_json: str) -> Dict[str, Any]:
         "error": None,
     }
     try:
-        argv = shlex.split(os.path.expanduser(spec.command))
+        argv = [os.path.expanduser(part) for part in _split_hook_command(spec.command)]
     except ValueError as exc:
         result["error"] = f"command {spec.command!r} cannot be parsed: {exc}"
         return result
@@ -805,6 +805,19 @@ _SCRIPT_EXTENSIONS: Tuple[str, ...] = (
 )
 
 
+def _split_hook_command(command: str) -> list[str]:
+    """Split a configured hook without consuming Windows path backslashes."""
+    parts = shlex.split(command, posix=not IS_WINDOWS)
+    if IS_WINDOWS:
+        # Non-POSIX shlex preserves surrounding quotes; subprocess needs the
+        # unquoted argv element, including when a path contains spaces.
+        parts = [
+            part[1:-1] if len(part) >= 2 and part[0] == part[-1] and part[0] in {'"', "'"} else part
+            for part in parts
+        ]
+    return parts
+
+
 def _command_script_path(command: str) -> str:
     """Return the script path from ``command`` for doctor / drift checks.
 
@@ -814,7 +827,7 @@ def _command_script_path(command: str) -> str:
     common bare-path form.
     """
     try:
-        parts = shlex.split(command)
+        parts = _split_hook_command(command)
     except ValueError:
         return command
     if not parts:
@@ -901,10 +914,15 @@ def script_is_executable(command: str) -> bool:
     if not os.path.isfile(expanded):
         return False
     try:
-        argv = shlex.split(command)
+        argv = _split_hook_command(command)
     except ValueError:
         return False
     is_bare_invocation = bool(argv) and argv[0] == path
+    if IS_WINDOWS and is_bare_invocation:
+        # os.access(X_OK) reports ordinary files as executable on Windows,
+        # but CreateProcess cannot launch a bare .py/.sh/.ps1 script. Require
+        # an explicit interpreter for those formats.
+        return Path(expanded).suffix.lower() in {".exe", ".com", ".bat", ".cmd"}
     required = os.X_OK if is_bare_invocation else os.R_OK
     return os.access(expanded, required)
 

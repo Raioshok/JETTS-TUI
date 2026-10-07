@@ -15,7 +15,7 @@ def test_container_sets_hosted_write_policy_env(built_image: str) -> None:
     result = subprocess.run(
         ["docker", "run", "--rm", "--entrypoint", "sh", built_image, "-c", script],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         timeout=60,
     )
     assert result.returncode == 0, result.stderr[-2000:]
@@ -25,10 +25,10 @@ def test_freeide_user_cannot_modify_install_but_can_write_data(built_image: str)
     script = textwrap.dedent(
         r"""
         set -eu
-        /opt/freeide/.venv/bin/python - <<'PY'
+        /opt/jettstui/.venv/bin/python - <<'PY'
         from pathlib import Path
 
-        install_file = Path("/opt/freeide/agent/message_sanitization.py")
+        install_file = Path("/opt/jettstui/agent/message_sanitization.py")
         try:
             with install_file.open("a", encoding="utf-8") as handle:
                 handle.write("\n# unexpected hosted mutation\n")
@@ -54,14 +54,14 @@ def test_freeide_user_cannot_modify_install_but_can_write_data(built_image: str)
             "--entrypoint",
             "su",
             built_image,
-            "freeide",
+            "jettstui",
             "-s",
             "/bin/sh",
             "-c",
             script,
         ],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         timeout=120,
     )
     assert result.returncode == 0, result.stderr[-2000:]

@@ -672,17 +672,14 @@ class TestCuratorEndpoints:
         assert r.status_code == 200 and r.json()["paused"] is False
 
 
-class TestPortalEndpoint:
+class TestRemovedPortalEndpoint:
     @pytest.fixture(autouse=True)
     def _setup(self, _isolate_freeide_home):
         self.client, _ = _client()
 
-    def test_status_shape(self):
+    def test_portal_status_is_not_exposed(self):
         r = self.client.get("/api/portal")
-        assert r.status_code == 200
-        body = r.json()
-        assert {"logged_in", "features", "subscription_url", "provider"} <= set(body)
-        assert isinstance(body["features"], list)
+        assert r.status_code == 404
 
 
 class TestSessionManagementEndpoints:

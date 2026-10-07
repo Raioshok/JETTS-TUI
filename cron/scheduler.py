@@ -2045,7 +2045,14 @@ def _deliver_result(job: dict, content: str, adapters=None, loop=None) -> Option
                 try:
                     pool = concurrent.futures.ThreadPoolExecutor(max_workers=1)
                     try:
-                        future = pool.submit(asyncio.run, _send_to_platform(platform, pconfig, chat_id, cleaned_delivery_content, thread_id=thread_id, media_files=media_files))
+                        fallback_coro = _send_to_platform(platform, pconfig, chat_id, cleaned_delivery_content, thread_id=thread_id, media_files=media_files)
+                        try:
+                            future = pool.submit(asyncio.run, fallback_coro)
+                        except Exception:
+                            # submit can reject work during interpreter teardown;
+                            # its coroutine has not been handed to a worker.
+                            fallback_coro.close()
+                            raise
                         result = future.result(timeout=30)
                     finally:
                         pool.shutdown(wait=False)
@@ -2264,9 +2271,9 @@ def _run_job_script(
         # shutil.which returns None — fall back to a clear error rather
         # than a FileNotFoundError with a confusing "[WinError 2]"
         # traceback.
-        _bash = shutil.which("bash") or (
-            "/bin/bash" if os.path.isfile("/bin/bash") else None
-        )
+        from freeide_cli._subprocess_compat import resolve_bash_executable
+
+        _bash = resolve_bash_executable()
         if _bash is None:
             return False, (
                 f"Cannot run .sh/.bash script {path.name!r}: bash not found on PATH. "

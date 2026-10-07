@@ -16,6 +16,17 @@ import sys
 from pathlib import Path
 from types import SimpleNamespace
 
+import pytest
+
+
+def _default_root(tmp_path: Path) -> Path:
+    return tmp_path / ("freeide" if sys.platform == "win32" else ".freeide")
+
+
+@pytest.fixture(autouse=True)
+def _isolate_windows_default_root(tmp_path, monkeypatch):
+    if sys.platform == "win32":
+        monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
 
 
 def _run_apply_profile_override(
@@ -27,7 +38,7 @@ def _run_apply_profile_override(
     Returns the value of os.environ["FREEIDE_HOME"] after the call,
     or None if unset.
     """
-    freeide_root = tmp_path / ".freeide"
+    freeide_root = _default_root(tmp_path)
     freeide_root.mkdir(parents=True, exist_ok=True)
 
     if active_profile is not None:
@@ -37,6 +48,7 @@ def _run_apply_profile_override(
         (freeide_root / "profiles" / active_profile).mkdir(parents=True, exist_ok=True)
 
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
     if freeide_home is not None:
         monkeypatch.setenv("FREEIDE_HOME", freeide_home)
     else:
@@ -68,7 +80,7 @@ class TestApplyProfileOverrideFreeIDEHomeGuard:
         and the user switches to a profile via `freeide profile use`.
         Before the fix, the guard returned early and active_profile was ignored.
         """
-        freeide_root = tmp_path / ".freeide"
+        freeide_root = _default_root(tmp_path)
         freeide_root.mkdir(parents=True, exist_ok=True)
 
         result = _run_apply_profile_override(
@@ -94,7 +106,7 @@ class TestApplyProfileOverrideFreeIDEHomeGuard:
         with FREEIDE_HOME already set to a specific profile must stay in that
         profile.
         """
-        freeide_root = tmp_path / ".freeide"
+        freeide_root = _default_root(tmp_path)
         profile_dir = freeide_root / "profiles" / "coder"
         profile_dir.mkdir(parents=True, exist_ok=True)
 
@@ -125,6 +137,7 @@ class TestApplyProfileOverrideFreeIDEHomeGuard:
         assert result is not None
         assert "coder" in result
 
+    @pytest.mark.skipif(sys.platform == "win32", reason="sudo and pwd are POSIX-only")
     def test_sudo_explicit_profile_resolves_invoking_users_profile(self, tmp_path, monkeypatch):
         """sudo elias ... should resolve `-p elias` under SUDO_USER, not root."""
         root_home = tmp_path / "root"
@@ -151,7 +164,7 @@ class TestApplyProfileOverrideFreeIDEHomeGuard:
 
     def test_freeide_home_unset_default_profile_no_redirect(self, tmp_path, monkeypatch):
         """active_profile=default must not redirect FREEIDE_HOME."""
-        freeide_root = tmp_path / ".freeide"
+        freeide_root = _default_root(tmp_path)
         freeide_root.mkdir(parents=True, exist_ok=True)
 
         monkeypatch.setattr(Path, "home", lambda: tmp_path)
@@ -172,7 +185,7 @@ class TestApplyProfileOverrideFreeIDEHomeGuard:
         profile pre-parser must not interpret the Docker profile as a FreeIDE
         profile.
         """
-        freeide_root = tmp_path / ".freeide"
+        freeide_root = _default_root(tmp_path)
         freeide_root.mkdir(parents=True, exist_ok=True)
         argv = [
             "freeide",
@@ -265,7 +278,7 @@ class TestSupervisedChildIgnoresStickyProfile:
         ``profiles``), and a sticky ``active_profile`` of another profile.
         The reserved default slot must stay on the root profile.
         """
-        freeide_root = tmp_path / ".freeide"
+        freeide_root = _default_root(tmp_path)
         freeide_root.mkdir(parents=True, exist_ok=True)
         (freeide_root / "active_profile").write_text("briefer")
         (freeide_root / "profiles" / "briefer").mkdir(parents=True, exist_ok=True)
@@ -305,7 +318,7 @@ class TestSupervisedChildIgnoresStickyProfile:
         """A supervised named-profile slot passes ``-p <name>`` explicitly;
         that must still resolve (the sentinel guard only skips the sticky
         active_profile fallback, never an explicit flag)."""
-        freeide_root = tmp_path / ".freeide"
+        freeide_root = _default_root(tmp_path)
         freeide_root.mkdir(parents=True, exist_ok=True)
         (freeide_root / "active_profile").write_text("briefer")
         (freeide_root / "profiles" / "briefer").mkdir(parents=True, exist_ok=True)

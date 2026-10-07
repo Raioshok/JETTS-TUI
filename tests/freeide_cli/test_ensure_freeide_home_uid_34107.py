@@ -20,6 +20,10 @@ from unittest.mock import patch
 
 import pytest
 
+pytestmark = pytest.mark.skipif(
+    sys.platform == "win32", reason="Docker UID/GID ownership applies only to POSIX"
+)
+
 
 # ---------------------------------------------------------------------------
 # _resolve_freeide_uid_gid

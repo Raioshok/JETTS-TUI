@@ -2,7 +2,6 @@
 
 import argparse
 import os
-import pty
 import signal
 import subprocess
 import sys
@@ -12,6 +11,14 @@ from types import ModuleType, SimpleNamespace
 import pytest
 
 import freeide_cli.gateway as gateway
+
+
+@pytest.fixture(autouse=True)
+def _posix_identity_for_mocked_systemd(monkeypatch):
+    """Mocked Linux service tests need POSIX IDs on a Windows test host."""
+    if os.name == "nt":
+        monkeypatch.setattr(gateway.os, "getuid", lambda: 1000, raising=False)
+        monkeypatch.setattr(gateway.os, "geteuid", lambda: 1000, raising=False)
 
 
 def _install_fake_gateway_run(monkeypatch, start_gateway):
@@ -112,6 +119,8 @@ def test_gateway_run_subprocess_preserves_daemon_exit_codes(
     In particular, a non-TTY daemon launch must not blanket-catch SystemExit,
     because doing so would hide genuine startup/configuration failures.
     """
+    import pty
+
     script = textwrap.dedent(
         """
         import os
@@ -180,7 +189,7 @@ def test_run_gateway_refuses_root_in_official_docker(monkeypatch, tmp_path, caps
     (project_root / "docker" / "entrypoint.sh").write_text("#!/bin/sh\n")
 
     monkeypatch.setattr(gateway, "PROJECT_ROOT", project_root)
-    monkeypatch.setattr(gateway.os, "geteuid", lambda: 0)
+    monkeypatch.setattr(gateway.os, "geteuid", lambda: 0, raising=False)
     monkeypatch.delenv("FREEIDE_ALLOW_ROOT_GATEWAY", raising=False)
     monkeypatch.setattr(gateway, "_is_official_docker_checkout", lambda: True)
 
@@ -190,7 +199,7 @@ def test_run_gateway_refuses_root_in_official_docker(monkeypatch, tmp_path, caps
     assert exc_info.value.code == 1
     out = capsys.readouterr().out
     assert "Refusing to run the FreeIDE gateway as root" in out
-    assert "/opt/freeide/docker/entrypoint.sh" in out
+    assert "/opt/jettstui/docker/entrypoint.sh" in out
 
 
 def test_run_gateway_root_guard_has_escape_hatch(monkeypatch):
@@ -202,7 +211,7 @@ def test_run_gateway_root_guard_has_escape_hatch(monkeypatch):
 
     _install_fake_gateway_run(monkeypatch, fake_start_gateway)
     monkeypatch.setattr(gateway.asyncio, "run", lambda coro: True)
-    monkeypatch.setattr(gateway.os, "geteuid", lambda: 0)
+    monkeypatch.setattr(gateway.os, "geteuid", lambda: 0, raising=False)
     monkeypatch.setattr(gateway, "_is_official_docker_checkout", lambda: True)
     monkeypatch.setenv("FREEIDE_ALLOW_ROOT_GATEWAY", "1")
 
@@ -826,7 +835,7 @@ def test_install_linux_gateway_from_setup_non_root_never_offers_system(monkeypat
         captured["options"] = options
         return 0  # pick "user"
 
-    monkeypatch.setattr(gateway.os, "geteuid", lambda: 1000)
+    monkeypatch.setattr(gateway.os, "geteuid", lambda: 1000, raising=False)
     monkeypatch.setattr(gateway, "prompt_choice", fake_prompt_choice)
     monkeypatch.setattr(gateway, "systemd_install", lambda *a, **k: None)
 
@@ -842,7 +851,7 @@ def test_install_linux_gateway_from_setup_system_choice_without_root_no_sudo_rec
     # Defensive guard: if "system" is forced non-root (not reachable via wizard),
     # we refuse and do NOT print a self-elevation recipe.
     monkeypatch.setattr(gateway, "prompt_linux_gateway_install_scope", lambda: "system")
-    monkeypatch.setattr(gateway.os, "geteuid", lambda: 1000)
+    monkeypatch.setattr(gateway.os, "geteuid", lambda: 1000, raising=False)
     monkeypatch.setattr(gateway, "_default_system_service_user", lambda: "alice")
     monkeypatch.setattr(gateway, "systemd_install", lambda *args, **kwargs: (_ for _ in ()).throw(AssertionError("should not install")))
 
@@ -856,7 +865,7 @@ def test_install_linux_gateway_from_setup_system_choice_without_root_no_sudo_rec
 
 def test_install_linux_gateway_from_setup_system_choice_as_root_installs(monkeypatch):
     monkeypatch.setattr(gateway, "prompt_linux_gateway_install_scope", lambda: "system")
-    monkeypatch.setattr(gateway.os, "geteuid", lambda: 0)
+    monkeypatch.setattr(gateway.os, "geteuid", lambda: 0, raising=False)
     monkeypatch.setattr(gateway, "_default_system_service_user", lambda: "alice")
 
     calls = []
@@ -1107,7 +1116,7 @@ def test_reap_unsupervised_orphans_sigterms_then_sigkills_survivor(monkeypatch):
 
     assert gateway._reap_unsupervised_gateway_orphans() is True
     assert (708, signal.SIGTERM) in sent
-    assert (708, signal.SIGKILL) in sent
+    assert (708, getattr(signal, "SIGKILL", signal.SIGTERM)) in sent
 
 
 def test_reap_unsupervised_orphans_returns_false_when_none_found(monkeypatch):

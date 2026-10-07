@@ -3693,7 +3693,7 @@ def _persist_model_switch(result) -> None:
     # rewriting the whole `model:` block. A full-block rewrite via save_config()
     # destroys sibling keys the user set under `model:` — `model_slots`,
     # `model_fallback`, etc. — when switching models from the TUI (#48305).
-    from cli import save_config_value
+    from freeide_cli.config_edit import save_config_value
 
     save_config_value("model.default", result.new_model)
     save_config_value("model.provider", result.target_provider)
@@ -5172,9 +5172,9 @@ def _render_personality_prompt(value) -> str:
 
 def _available_personalities(cfg: dict | None = None) -> dict:
     try:
-        from cli import load_cli_config
+        from freeide_cli.config import load_config
 
-        return (load_cli_config().get("agent") or {}).get("personalities", {}) or {}
+        return (load_config().get("agent") or {}).get("personalities", {}) or {}
     except Exception:
         try:
             from freeide_cli.config import load_config as _load_full_cfg
@@ -11952,7 +11952,7 @@ def _(rid, params: dict) -> dict:
     if not raw:
         return _err(rid, 4015, "path required")
     try:
-        from cli import (
+        from freeide_cli.attachments import (
             _IMAGE_EXTENSIONS,
             _detect_file_drop,
             _resolve_attachment_path,
@@ -12047,7 +12047,7 @@ def _sniff_image_ext(img_bytes: bytes, filename: str = "") -> str:
 
 def _allowed_image_extensions() -> frozenset[str]:
     try:
-        from cli import _IMAGE_EXTENSIONS
+        from freeide_cli.attachments import _IMAGE_EXTENSIONS
 
         return frozenset(_IMAGE_EXTENSIONS)
     except Exception:
@@ -12182,7 +12182,7 @@ def _(rid, params: dict) -> dict:
             display_name = str(params.get("filename", "") or "uploaded.pdf")
         else:
             try:
-                from cli import _resolve_attachment_path
+                from freeide_cli.attachments import _resolve_attachment_path
 
                 resolved = _resolve_attachment_path(raw_path)
             except Exception:
@@ -12331,7 +12331,7 @@ def _resolve_gateway_attachment_path(raw: str) -> Path | None:
     if not raw:
         return None
     try:
-        from cli import _detect_file_drop, _resolve_attachment_path, _split_path_input
+        from freeide_cli.attachments import _detect_file_drop, _resolve_attachment_path, _split_path_input
     except Exception:
         return None
 
@@ -12479,7 +12479,7 @@ def _(rid, params: dict) -> dict:
     if err:
         return err
     try:
-        from cli import _detect_file_drop
+        from freeide_cli.attachments import _detect_file_drop
 
         raw = str(params.get("text", "") or "")
         dropped = _detect_file_drop(raw)
@@ -14470,7 +14470,7 @@ def _finish_reload(rid, params: dict, *, coalesced: bool) -> dict:
     confirm opt-out) and return the ok payload."""
     if bool(params.get("always", False)):
         try:
-            from cli import save_config_value as _save_cfg
+            from freeide_cli.config_edit import save_config_value as _save_cfg
 
             _save_cfg("approvals.mcp_reload_confirm", False)
         except Exception as _exc:
@@ -16953,6 +16953,31 @@ def _(rid, params: dict) -> dict:
     )
     if live_output is not None:
         return _ok(rid, {"output": live_output or "(no output)"})
+
+    if _cmd_base == "title":
+        title_params = {"session_id": params.get("session_id", "")}
+        if _cmd_arg:
+            title_params["title"] = _cmd_arg
+        title_response = _methods["session.title"](rid, title_params)
+        if title_response.get("error"):
+            return title_response
+        title_result = title_response.get("result") or {}
+        if _cmd_arg:
+            new_title = str(title_result.get("title") or _cmd_arg)
+            suffix = " (queued while session initializes)" if title_result.get("pending") else ""
+            return _ok(rid, {"output": f"Session title set: {new_title}{suffix}"})
+        current_title = str(title_result.get("title") or "")
+        session_key = str(title_result.get("session_key") or session.get("session_key") or "")
+        output = f"Session ID: {session_key}\n" if session_key else ""
+        output += f"Title: {current_title}" if current_title else "No title set. Usage: /title <your session title>"
+        return _ok(rid, {"output": output})
+
+    # The worker would execute these commands before the live-session mirror
+    # checks whether a turn is running. Reject locally before it can persist a
+    # model/personality change that the live agent is too busy to adopt.
+    if _cmd_base in {"model", "personality"} and _cmd_arg and session.get("running"):
+        if not _session_uses_compute_host(session):
+            return _err(rid, 4009, f"session busy — /interrupt the current turn before running /{_cmd_base}")
 
     if _cmd_base in _PENDING_INPUT_COMMANDS:
         # Route directly to command.dispatch instead of returning an error

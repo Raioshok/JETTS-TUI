@@ -267,9 +267,9 @@ describe('usePromptActions /title', () => {
     expect($sessions.get()[0]?.title).toBe('Fresh chat')
   })
 
-  it('falls through to the slash worker for a bare /title (show current title)', async () => {
+  it('reads a bare /title through session.title without starting the slash worker', async () => {
     const refreshSessions = vi.fn(async () => undefined)
-    const requestGateway = vi.fn(async () => ({ output: 'Title: Old title' }) as never)
+    const requestGateway = vi.fn(async () => ({ title: 'Old title' }) as never)
 
     let handle: HarnessHandle | null = null
     await actRender(
@@ -278,8 +278,8 @@ describe('usePromptActions /title', () => {
 
     await handle!.submitText('/title')
 
-    expect(requestGateway).not.toHaveBeenCalledWith('session.title', expect.anything())
-    expect(requestGateway).toHaveBeenCalledWith('slash.exec', expect.objectContaining({ command: 'title' }))
+    expect(requestGateway).toHaveBeenCalledWith('session.title', { session_id: RUNTIME_SESSION_ID })
+    expect(requestGateway).not.toHaveBeenCalledWith('slash.exec', expect.anything())
   })
 
   it('surfaces a rename error without touching the sidebar store', async () => {

@@ -52,9 +52,10 @@ class TestConfigureWindowsStdio:
         yield
         sys.modules.pop("freeide_cli.stdio", None)
 
-    def test_no_op_on_posix(self):
+    def test_no_op_on_posix(self, monkeypatch):
         from freeide_cli import stdio
 
+        monkeypatch.setattr(stdio, "is_windows", lambda: False)
         assert stdio.is_windows() is False
         result = stdio.configure_windows_stdio()
         assert result is False
@@ -288,14 +289,15 @@ class TestSigkillFallback:
         assert result == 15
 
     def test_getattr_fallback_prefers_sigkill_when_present(self):
-        """On POSIX the fallback is a no-op: real SIGKILL wins."""
-        result = getattr(signal, "SIGKILL", signal.SIGTERM)
-        assert result == signal.SIGKILL
+        """When SIGKILL exists, the fallback prefers it on any test host."""
+        fake_signal = MagicMock(SIGKILL=9, SIGTERM=15)
+        result = getattr(fake_signal, "SIGKILL", fake_signal.SIGTERM)
+        assert result == 9
 
     @pytest.mark.parametrize(
         "module_path, line_pattern",
         [
-            ("freeide_cli.kanban_db", 'getattr(signal, "SIGKILL", signal.SIGTERM)'),
+            ("jettstui.kanban_db", 'getattr(signal, "SIGKILL", signal.SIGTERM)'),
         ],
     )
     def test_module_uses_getattr_fallback(self, module_path, line_pattern):
@@ -458,8 +460,8 @@ class TestReadmeNoLongerSaysWindowsUnsupported:
     def test_readme_mentions_powershell_installer(self):
         root = Path(__file__).resolve().parents[2]
         source = (root / "README.md").read_text(encoding="utf-8")
-        assert "install.ps1" in source, (
-            "README.md must point at scripts/install.ps1 for Windows users"
+        assert "setup-jetts-tui.ps1" in source, (
+            "README.md must point at setup-jetts-tui.ps1 for Windows users"
         )
 
 
@@ -473,7 +475,7 @@ class TestWebServerPtyBridgeGuard:
 
     def test_import_guard_present_in_source(self):
         root = Path(__file__).resolve().parents[2]
-        source = (root / "freeide_cli" / "web_server.py").read_text(encoding="utf-8")
+        source = (root / "jettstui" / "web_server.py").read_text(encoding="utf-8")
         assert "_PTY_BRIDGE_AVAILABLE" in source
         assert "except ImportError" in source, (
             "web_server.py must wrap the pty_bridge import in try/except ImportError"
@@ -482,7 +484,7 @@ class TestWebServerPtyBridgeGuard:
     def test_pty_handler_checks_availability_flag(self):
         """The /api/pty handler must short-circuit when the bridge is unavailable."""
         root = Path(__file__).resolve().parents[2]
-        source = (root / "freeide_cli" / "web_server.py").read_text(encoding="utf-8")
+        source = (root / "jettstui" / "web_server.py").read_text(encoding="utf-8")
         assert "if not _PTY_BRIDGE_AVAILABLE" in source, (
             "/api/pty handler must return a friendly error when PTY is unavailable"
         )
@@ -494,11 +496,11 @@ class TestWebServerPtyBridgeGuard:
 
 
 class TestEntryPointsConfigureStdio:
-    """cli.py, freeide_cli/main.py, gateway/run.py must call configure_windows_stdio."""
+    """Runtime entry points must call configure_windows_stdio."""
 
     @pytest.mark.parametrize(
         "relpath",
-        ["cli.py", "freeide_cli/main.py", "gateway/run.py"],
+        ["jettstui/main.py", "gateway/run.py"],
     )
     def test_entry_point_calls_configure_stdio(self, relpath):
         root = Path(__file__).resolve().parents[2]
@@ -702,7 +704,7 @@ class TestKanbanWaitpidWindowsGuard:
 
     def test_source_gates_waitpid_loop(self):
         root = Path(__file__).resolve().parents[2]
-        source = (root / "freeide_cli" / "kanban_db.py").read_text(encoding="utf-8")
+        source = (root / "jettstui" / "kanban_db.py").read_text(encoding="utf-8")
         # Find the waitpid call and confirm it's inside a POSIX gate.
         idx = source.find("os.waitpid(-1, os.WNOHANG)")
         assert idx > 0, "waitpid call must exist"
@@ -796,8 +798,8 @@ class TestNpmBareSpawnsResolved:
     @pytest.mark.parametrize(
         "relpath",
         [
-            "freeide_cli/tools_config.py",
-            "freeide_cli/doctor.py",
+            "jettstui/tools_config.py",
+            "jettstui/doctor.py",
             "plugins/platforms/whatsapp/adapter.py",
             "tools/browser_tool.py",
         ],
@@ -949,7 +951,7 @@ class TestGatewayDetachedWatcherWindowsFlags:
 
     def test_freeide_cli_gateway_uses_compat_kwargs(self):
         root = Path(__file__).resolve().parents[2]
-        source = (root / "freeide_cli" / "gateway.py").read_text(encoding="utf-8")
+        source = (root / "jettstui" / "gateway.py").read_text(encoding="utf-8")
         assert "windows_detach_popen_kwargs" in source, (
             "freeide_cli/gateway.py must use the platform-aware detach helper"
         )
@@ -980,7 +982,7 @@ class TestGatewayDetachedWatcherWindowsFlags:
         ensures a future refactor of the dedent block doesn't silently drop it.
         """
         root = Path(__file__).resolve().parents[2]
-        text = (root / "freeide_cli" / "gateway.py").read_text(encoding="utf-8")
+        text = (root / "jettstui" / "gateway.py").read_text(encoding="utf-8")
         marker = "watcher = textwrap.dedent("
         idx = text.find(marker)
         assert idx != -1, "watcher block not found in gateway.py"
@@ -1021,7 +1023,7 @@ class TestGatewayDetachedWatcherWindowsFlags:
         is the regression guard.
         """
         root = Path(__file__).resolve().parents[2]
-        text = (root / "freeide_cli" / "gateway.py").read_text(encoding="utf-8")
+        text = (root / "jettstui" / "gateway.py").read_text(encoding="utf-8")
         assert "windows_detach_flags_without_breakaway" in text, (
             "launch_detached_profile_gateway_restart must import "
             "windows_detach_flags_without_breakaway so it can retry a "
@@ -1057,7 +1059,7 @@ class TestGatewayDetachedWatcherWindowsFlags:
         the inlined respawn ``Popen``.
         """
         root = Path(__file__).resolve().parents[2]
-        text = (root / "freeide_cli" / "gateway.py").read_text(encoding="utf-8")
+        text = (root / "jettstui" / "gateway.py").read_text(encoding="utf-8")
         assert "windowless_gateway_restart_spec" in text, (
             "_spawn_gateway_restart_watcher must build the respawn via "
             "gateway_windows.windowless_gateway_restart_spec so the gateway "

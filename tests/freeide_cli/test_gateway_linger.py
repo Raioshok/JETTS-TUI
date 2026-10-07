@@ -1,6 +1,9 @@
 """Tests for gateway linger auto-enable behavior on headless Linux installs."""
 
+import os
 from types import SimpleNamespace
+
+import pytest
 
 import freeide_cli.gateway as gateway
 
@@ -98,6 +101,7 @@ class TestEnsureLingerEnabled:
         assert "Permission denied" in out
 
 
+@pytest.mark.skipif(os.name == "nt", reason="systemd user service requires POSIX uid")
 def test_systemd_install_calls_linger_helper(monkeypatch, tmp_path, capsys):
     unit_path = tmp_path / "systemd" / "user" / "freeide-gateway.service"
 

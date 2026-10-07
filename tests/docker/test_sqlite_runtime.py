@@ -10,14 +10,14 @@ _SQLITE_PROBE = r"""
 import json
 import sqlite3
 
-from freeide_cli.sqlite_runtime import is_sqlite_wal_reset_vulnerable
+from jettstui.sqlite_runtime import is_sqlite_wal_reset_vulnerable
 
 db = sqlite3.connect(":memory:")
 try:
     db.execute("CREATE VIRTUAL TABLE docs USING fts5(content, tokenize='trigram')")
-    db.execute("INSERT INTO docs VALUES ('freeide')")
+    db.execute("INSERT INTO docs VALUES ('jettstui')")
     matches = db.execute(
-        "SELECT count(*) FROM docs WHERE docs MATCH 'erm'"
+        "SELECT count(*) FROM docs WHERE docs MATCH 'jet'"
     ).fetchone()[0]
 finally:
     db.close()
@@ -39,15 +39,15 @@ def test_image_links_fixed_sqlite_with_fts5_trigram(built_image: str) -> None:
             "run",
             "--rm",
             "--user",
-            "freeide",
+            "jettstui",
             "--entrypoint",
-            "/opt/freeide/.venv/bin/python",
+            "/opt/jettstui/.venv/bin/python",
             built_image,
             "-c",
             _SQLITE_PROBE,
         ],
         capture_output=True,
-        text=True,
+        text=True, encoding="utf-8", errors="replace",
         timeout=60,
     )
 

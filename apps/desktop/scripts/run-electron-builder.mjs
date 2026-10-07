@@ -4,12 +4,15 @@
 // wherever it landed. Dist present → -c.electronDist=<abs>/dist; absent → let
 // electron-builder fetch via @electron/get (electronVersion + ELECTRON_MIRROR).
 
-import fs from "node:fs"
 import path from "node:path"
 import { spawnSync } from "node:child_process"
 import { createRequire } from "node:module"
 
+import { electronDistVersion, matchesElectronDist } from "./electron-dist-match.mjs"
+
 const require = createRequire(import.meta.url)
+const desktopPackage = require("../package.json")
+const expectedElectronVersion = desktopPackage.build.electronVersion
 
 function electronDistDir() {
   try {
@@ -38,11 +41,13 @@ function electronBuilderCli() {
 
 const dist = electronDistDir()
 const args = []
-if (dist && fs.existsSync(distBinary(dist))) {
+const distVersion = electronDistVersion(dist)
+if (matchesElectronDist(dist, dist && distBinary(dist), expectedElectronVersion)) {
   args.push(`-c.electronDist=${dist}`)
 } else {
   console.warn(
-    "[run-electron-builder] no local electron dist; electron-builder will fetch " +
+    `[run-electron-builder] local Electron dist is missing or version ${distVersion ?? "unknown"} ` +
+      `does not match ${expectedElectronVersion}; electron-builder will fetch ` +
       "via @electron/get (electronVersion + ELECTRON_MIRROR)."
   )
 }

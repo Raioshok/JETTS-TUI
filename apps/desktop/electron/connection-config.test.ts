@@ -21,7 +21,6 @@ import {
   buildGatewayWsUrlWithTicket,
   connectionScopeKey,
   cookiesHaveLiveSession,
-  cookiesHavePrivySession,
   cookiesHaveSession,
   gatewayTicketFailure,
   gatewayWsUrlIpcResult,
@@ -29,6 +28,7 @@ import {
   localProfileEntry,
   modeIsRemoteLike,
   normalizeRemoteBaseUrl,
+  normalizeSavedConnectionMode,
   normalizeSshConfig,
   normAuthMode,
   pathWithGlobalRemoteProfile,
@@ -70,6 +70,13 @@ test('modeIsRemoteLike is true for remote and cloud, false otherwise', () => {
   assert.equal(modeIsRemoteLike(undefined), false)
   assert.equal(modeIsRemoteLike(null), false)
   assert.equal(modeIsRemoteLike('weird'), false)
+})
+
+test('legacy cloud mode migrates to remote without changing other modes', () => {
+  assert.equal(normalizeSavedConnectionMode('cloud'), 'remote')
+  assert.equal(normalizeSavedConnectionMode('remote'), 'remote')
+  assert.equal(normalizeSavedConnectionMode('ssh'), 'ssh')
+  assert.equal(normalizeSavedConnectionMode('local'), 'local')
 })
 
 // --- profileRemoteOverride ---
@@ -445,11 +452,19 @@ test('cookiesHaveSession handles non-arrays', () => {
 })
 
 test('AT_COOKIE_VARIANTS covers all three deploy shapes', () => {
-  assert.deepEqual(AT_COOKIE_VARIANTS, ['__Host-freeide_session_at', '__Secure-freeide_session_at', 'freeide_session_at'])
+  assert.deepEqual(AT_COOKIE_VARIANTS, [
+    '__Host-freeide_session_at',
+    '__Secure-freeide_session_at',
+    'freeide_session_at'
+  ])
 })
 
 test('RT_COOKIE_VARIANTS covers all three deploy shapes', () => {
-  assert.deepEqual(RT_COOKIE_VARIANTS, ['__Host-freeide_session_rt', '__Secure-freeide_session_rt', 'freeide_session_rt'])
+  assert.deepEqual(RT_COOKIE_VARIANTS, [
+    '__Host-freeide_session_rt',
+    '__Secure-freeide_session_rt',
+    'freeide_session_rt'
+  ])
 })
 
 // --- cookiesHaveLiveSession (AT or RT — the connectivity check) ---
@@ -496,35 +511,6 @@ test('cookiesHaveLiveSession is false for unrelated cookies and non-arrays', () 
   assert.equal(cookiesHaveLiveSession(null), false)
   assert.equal(cookiesHaveLiveSession(undefined), false)
   assert.equal(cookiesHaveLiveSession([]), false)
-})
-
-// --- cookiesHavePrivySession (FreeIDE portal / Privy auth, NOT gateway cookies) ---
-
-test('cookiesHavePrivySession detects the privy-token access cookie', () => {
-  assert.equal(cookiesHavePrivySession([{ name: 'privy-token', value: 'jwt' }]), true)
-})
-
-test('cookiesHavePrivySession detects __Host-/__Secure- prefixes and the legacy privy-session name', () => {
-  assert.equal(cookiesHavePrivySession([{ name: '__Host-privy-token', value: 'x' }]), true)
-  assert.equal(cookiesHavePrivySession([{ name: '__Secure-privy-token', value: 'x' }]), true)
-  assert.equal(cookiesHavePrivySession([{ name: 'privy-session', value: 'x' }]), true)
-})
-
-test('cookiesHavePrivySession is false for an empty value', () => {
-  assert.equal(cookiesHavePrivySession([{ name: 'privy-token', value: '' }]), false)
-})
-
-test('cookiesHavePrivySession does NOT treat freeide gateway cookies as a portal session', () => {
-  // The whole point of Q7: a gateway session cookie is NOT a portal sign-in.
-  assert.equal(cookiesHavePrivySession([{ name: 'freeide_session_at', value: 'x' }]), false)
-  assert.equal(cookiesHavePrivySession([{ name: '__Host-freeide_session_rt', value: 'x' }]), false)
-})
-
-test('cookiesHavePrivySession is false for unrelated cookies and non-arrays', () => {
-  assert.equal(cookiesHavePrivySession([{ name: 'other', value: 'x' }]), false)
-  assert.equal(cookiesHavePrivySession(null), false)
-  assert.equal(cookiesHavePrivySession(undefined), false)
-  assert.equal(cookiesHavePrivySession([]), false)
 })
 
 // --- tokenPreview ---

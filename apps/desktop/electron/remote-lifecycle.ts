@@ -1,12 +1,12 @@
 /**
  * remote-lifecycle.ts
  *
- * Pure, electron-free remote FreeIDE dashboard lifecycle over SSH for Desktop
+ * Pure, electron-free remote Jetts-TUI backend lifecycle over SSH for Desktop
  * SSH remote mode. Composes an SshConnection (injected) with HTTP probes
  * through the established tunnel (injected fetch) and the served-token adoption
  * step (injected). Knows how to:
  *
- *   - locate the FreeIDE install on the remote (login-shell probe),
+ *   - locate the Jetts-TUI install on the remote (login-shell probe),
  *   - gate the remote platform to Linux/macOS via `uname`,
  *   - reuse an existing desktop-dedicated dashboard via a lockfile + an
  *     AUTHENTICATED /api/status probe (pid liveness alone is insufficient),
@@ -33,7 +33,7 @@ const LOCKFILE_SCHEMA_VERSION = 2
 // args, served-token reconciliation). A mismatch forces a clean respawn.
 const PROTOCOL_VERSION = 1
 const READY_RE = /^FREEIDE_(?:BACKEND|DASHBOARD)_READY port=(\d+)/m
-const REMOTE_LOCK_DIR = '~/.freeide/desktop-ssh'
+const REMOTE_LOCK_DIR = '~/.jettstui/desktop-ssh'
 const SUPPORTED_REMOTE_OS = new Set(['Linux', 'Darwin'])
 const DEFAULT_READY_TIMEOUT_MS = 45_000
 const READY_POLL_INTERVAL_MS = 750
@@ -122,7 +122,7 @@ function expandRemotePath(p) {
   return shq(p)
 }
 
-// Resolve the remote freeide executable. An EXPLICIT path is honored strictly
+// Resolve the remote Jetts-TUI executable. An EXPLICIT path is honored strictly
 // (throws a path-naming error if not executable — never silently falls back to a
 // different install). A BLANK path auto-detects: login-shell `command -v` (a
 // non-login `ssh host cmd` PATH misses user installs), then known install paths.
@@ -165,9 +165,9 @@ async function locateFreeIDE(ssh, remoteFreeIDEPath) {
     }
 
     const err: any = new Error(
-      `The FreeIDE path you set is not an executable on the remote host: "${remoteFreeIDEPath}". ` +
-        'Check the path (it must be the full path to the `freeide` binary on the remote, e.g. ' +
-        '~/freeide-agent/.venv/bin/freeide), or clear it to auto-detect.'
+      `The Jetts-TUI path you set is not an executable on the remote host: "${remoteFreeIDEPath}". ` +
+        'Check the path (it must be the full path to the `jetts-tui` binary on the remote, e.g. ' +
+        '~/.local/bin/jetts-tui), or clear it to auto-detect.'
     )
 
     err.kind = 'freeide-not-found'
@@ -176,18 +176,23 @@ async function locateFreeIDE(ssh, remoteFreeIDEPath) {
 
   const candidates: string[] = []
 
-  try {
-    const found = (await ssh.exec(`bash -lc ${shq('command -v freeide')}`)).trim()
+  for (const binary of ['jetts-tui', 'freeide']) {
+    try {
+      const found = (await ssh.exec(`bash -lc ${shq(`command -v ${binary}`)}`)).trim()
 
-    if (found) {
-      candidates.push(found.split('\n').pop().trim())
+      if (found) {
+        candidates.push(found.split('\n').pop().trim())
+      }
+    } catch {
+      // A missing login-shell candidate must not hide the next rung.
     }
-  } catch {
-    // ignore
   }
 
   // Fallback candidates when the login-shell probe misses: the installer's
   // command locations (scripts/install.sh) — per-user, root/FHS, legacy venv.
+  candidates.push('~/.local/bin/jetts-tui')
+  candidates.push('/usr/local/bin/jetts-tui')
+  candidates.push('~/.jettstui/jettstui/venv/bin/jetts-tui')
   candidates.push('~/.local/bin/freeide')
   candidates.push('/usr/local/bin/freeide')
   candidates.push('~/.freeide/freeide-agent/venv/bin/freeide')
@@ -203,17 +208,17 @@ async function locateFreeIDE(ssh, remoteFreeIDEPath) {
   }
 
   const err: any = new Error(
-    'FreeIDE is not installed on the remote host (could not find a `freeide` executable). ' +
+    'Jetts-TUI is not installed on the remote host (could not find a `jetts-tui` executable). ' +
       'Install it on the remote with:  curl -fsSL https://raw.githubusercontent.com/Raioshok/JETTS-TUI/main/scripts/install.sh | sh  ' +
-      '— or set the FreeIDE path explicitly in the SSH connection settings.'
+      '— or set the Jetts-TUI path explicitly in the SSH connection settings.'
   )
 
   err.kind = 'freeide-not-found'
   throw err
 }
 
-// Probe the resolved binary's version string (first line of `<freeide> --version`,
-// e.g. "FreeIDE Agent v0.18.2 ..."), or '' on failure. Surfaces WHICH freeide a
+// Probe the resolved binary's version string (first line of `<jetts-tui> --version`,
+// e.g. "Jetts-TUI v0.18.2 ..."), or '' on failure. Surfaces WHICH install a
 // connection uses, so a stale/unexpected install is visible.
 async function probeFreeIDEVersion(ssh, freeidePath) {
   try {
@@ -232,7 +237,7 @@ async function probeRemotePlatform(ssh) {
 
   if (!SUPPORTED_REMOTE_OS.has(osName)) {
     const err: any = new Error(
-      `Unsupported remote platform "${osName || 'unknown'}". FreeIDE Desktop SSH mode supports Linux, macOS, and Windows remote hosts.`
+      `Unsupported remote platform "${osName || 'unknown'}". Jetts-TUI Desktop SSH mode supports Linux, macOS, and Windows remote hosts.`
     )
 
     err.kind = 'unsupported-platform'
@@ -243,15 +248,15 @@ async function probeRemotePlatform(ssh) {
 }
 
 // The FREEIDE_HOME the remote dashboard will use (explicit env wins, else
-// ~/.freeide). Recorded in the lockfile so a future reuse can tell it's the same
+// ~/.jettstui). Recorded in the lockfile so a future reuse can tell it's the same
 // state store; best-effort.
 async function probeRemoteFreeIDEHome(ssh) {
   try {
-    const out = (await ssh.exec('echo "${FREEIDE_HOME:-$HOME/.freeide}"')).trim().split('\n').pop()
+    const out = (await ssh.exec('echo "${FREEIDE_HOME:-$HOME/.jettstui}"')).trim().split('\n').pop()
 
-    return out || '~/.freeide'
+    return out || '~/.jettstui'
   } catch (cause) {
-    const error: any = new Error('Could not resolve the remote FreeIDE home.')
+    const error: any = new Error('Could not resolve the remote Jetts-TUI home.')
     error.kind = 'transient-transport-error'
     error.cause = cause
     throw error
@@ -511,8 +516,8 @@ async function scrapeReadyPort(ssh, logPath, { timeoutMs = DEFAULT_READY_TIMEOUT
 async function spawnRemoteDashboard(ssh, { freeidePath, profile, token, ownershipId }) {
   if (!(await remoteSupportsSshOwnership(ssh, freeidePath))) {
     const err: any = new Error(
-      'The remote FreeIDE install does not support --ssh-session-token-file and --ssh-owner-nonce. ' +
-        'Update FreeIDE on the remote host to continue using Desktop SSH mode.'
+      'The remote Jetts-TUI install does not support --ssh-session-token-file and --ssh-owner-nonce. ' +
+        'Update Jetts-TUI on the remote host to continue using Desktop SSH mode.'
     )
 
     err.kind = 'update-required'
@@ -694,11 +699,11 @@ async function connect(deps) {
   const platform = await probeRemotePlatform(ssh)
   log(`remote platform ${platform.os}/${platform.arch}`)
   const freeidePath = await locateFreeIDE(ssh, remoteFreeIDEPath)
-  log(`located freeide at ${freeidePath}`)
+  log(`located Jetts-TUI at ${freeidePath}`)
   const freeideVersion = await probeFreeIDEVersion(ssh, freeidePath)
 
   if (freeideVersion) {
-    log(`remote freeide version: ${freeideVersion}`)
+    log(`remote Jetts-TUI version: ${freeideVersion}`)
   }
 
   const reuseToken = deps.reuseToken || ''

@@ -37,7 +37,7 @@ class CronScheduler(ABC):
     @property
     @abstractmethod
     def name(self) -> str:
-        """Short identifier, e.g. 'builtin', 'chronos'."""
+        """Short identifier, e.g. 'builtin' or an installed provider name."""
 
     def is_available(self) -> bool:
         """Whether this provider can run in the current environment.

@@ -6,9 +6,11 @@ Covers:
 - Argument parser registration
 """
 
+import os
 import time
 from unittest.mock import MagicMock, patch
 
+import pytest
 
 from freeide_cli.main import _session_browse_picker
 
@@ -242,6 +244,7 @@ class TestSessionBrowsePicker:
 
 # ─── Curses-based picker (mocked curses) ────────────────────────────────────
 
+@pytest.mark.skipif(os.name == "nt", reason="Python curses is unavailable on native Windows")
 class TestCursesBrowse:
     """Tests for the curses-based interactive picker via simulated key sequences."""
 

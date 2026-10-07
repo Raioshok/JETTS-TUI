@@ -308,8 +308,6 @@ def _billing_or_entitlement_message(
         ]
         return "\n".join(lines)
 
-    billing_url = None
-
     lines = [
         (
             f"{provider_label} reported that billing, credits, or account "
@@ -317,8 +315,6 @@ def _billing_or_entitlement_message(
         ),
         "Add credits or update billing with that provider, then retry.",
     ]
-    if billing_url:
-        lines.append(f"{provider_label} billing: {billing_url}")
     lines.append("You can switch providers temporarily with /model <model> --provider <provider>.")
     return "\n".join(lines)
 

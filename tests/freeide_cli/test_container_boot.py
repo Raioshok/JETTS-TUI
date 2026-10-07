@@ -10,9 +10,14 @@ tests/docker/test_container_restart.py.
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 
 import pytest
+
+pytestmark = pytest.mark.skipif(
+    os.name == "nt", reason="s6 container boot requires POSIX ownership and supervision"
+)
 
 from freeide_cli.container_boot import (
     ReconcileAction,
@@ -700,7 +705,7 @@ def test_default_slot_autostarts_when_root_state_running(tmp_path: Path) -> None
     "container_argv",
     [
         ("gateway", "run"),
-        ("/init", "/opt/freeide/docker/main-wrapper.sh", "gateway", "run"),
+        ("/init", "/opt/jettstui/docker/main-wrapper.sh", "gateway", "run"),
     ],
 )
 def test_legacy_gateway_run_cmd_seeds_default_running_state(
@@ -733,7 +738,7 @@ def test_legacy_gateway_run_cmd_seeds_default_running_state(
     "container_argv",
     [
         ("gateway", "run", "--no-supervise"),
-        ("/init", "/opt/freeide/docker/main-wrapper.sh", "gateway", "run", "--no-supervise"),
+        ("/init", "/opt/jettstui/docker/main-wrapper.sh", "gateway", "run", "--no-supervise"),
     ],
 )
 def test_legacy_gateway_run_no_supervise_does_not_seed_s6_state(
@@ -890,17 +895,17 @@ def test_profiles_default_subdir_is_skipped_with_warning(
         ("dashboard",),
         ("dashboard", "--host", "127.0.0.1", "--no-open"),
         # Through s6 /init + the main-wrapper that re-execs `freeide`.
-        ("/init", "/opt/freeide/docker/main-wrapper.sh", "dashboard"),
+        ("/init", "/opt/jettstui/docker/main-wrapper.sh", "dashboard"),
         (
             "/init",
-            "/opt/freeide/docker/main-wrapper.sh",
+            "/opt/jettstui/docker/main-wrapper.sh",
             "dashboard",
             "--host",
             "127.0.0.1",
             "--no-open",
         ),
         # Wrapper that kept the explicit `freeide` argv0.
-        ("/init", "/opt/freeide/docker/main-wrapper.sh", "freeide", "dashboard"),
+        ("/init", "/opt/jettstui/docker/main-wrapper.sh", "freeide", "dashboard"),
         # s6-overlay v3: PID 1 is s6-svscan, so the role is read off the
         # rc.init-launched process whose argv is
         # `/bin/sh -e .../rc.init top .../main-wrapper.sh dashboard ...`.
@@ -910,7 +915,7 @@ def test_profiles_default_subdir_is_skipped_with_warning(
             "-e",
             "/run/s6/basedir/scripts/rc.init",
             "top",
-            "/opt/freeide/docker/main-wrapper.sh",
+            "/opt/jettstui/docker/main-wrapper.sh",
             "dashboard",
             "--host",
             "0.0.0.0",
@@ -935,8 +940,8 @@ def test_is_dashboard_container_true_for_dashboard_argv(
     [
         (),  # empty (/proc/1/cmdline unreadable) — not the dashboard
         ("gateway", "run"),
-        ("/init", "/opt/freeide/docker/main-wrapper.sh", "gateway", "run"),
-        ("/init", "/opt/freeide/docker/main-wrapper.sh", "freeide", "gateway", "run"),
+        ("/init", "/opt/jettstui/docker/main-wrapper.sh", "gateway", "run"),
+        ("/init", "/opt/jettstui/docker/main-wrapper.sh", "freeide", "gateway", "run"),
         ("chat",),
         # A profile literally named "dashboard" must NOT match — the token
         # we key on is the SUBCOMMAND, and `gateway run -p dashboard` is a
@@ -949,7 +954,7 @@ def test_is_dashboard_container_true_for_dashboard_argv(
             "-e",
             "/run/s6/basedir/scripts/rc.init",
             "top",
-            "/opt/freeide/docker/main-wrapper.sh",
+            "/opt/jettstui/docker/main-wrapper.sh",
             "gateway",
             "run",
         ),
@@ -984,7 +989,7 @@ def test_main_skips_reconcile_in_dashboard_container(
     monkeypatch.setattr(
         container_boot,
         "_read_container_argv",
-        lambda: ("/init", "/opt/freeide/docker/main-wrapper.sh", "dashboard"),
+        lambda: ("/init", "/opt/jettstui/docker/main-wrapper.sh", "dashboard"),
     )
 
     rc = container_boot.main()
@@ -1024,7 +1029,7 @@ def test_main_skips_reconcile_in_dashboard_container_s6v3(
             "-e",
             "/run/s6/basedir/scripts/rc.init",
             "top",
-            "/opt/freeide/docker/main-wrapper.sh",
+            "/opt/jettstui/docker/main-wrapper.sh",
             "dashboard",
             "--host",
             "0.0.0.0",
@@ -1058,7 +1063,7 @@ def test_main_reconciles_in_gateway_container(
     monkeypatch.setattr(
         container_boot,
         "_read_container_argv",
-        lambda: ("/init", "/opt/freeide/docker/main-wrapper.sh", "gateway", "run"),
+        lambda: ("/init", "/opt/jettstui/docker/main-wrapper.sh", "gateway", "run"),
     )
 
     rc = container_boot.main()
@@ -1086,7 +1091,7 @@ def test_main_ignores_removed_skip_reconcile_env_var(
     monkeypatch.setattr(
         container_boot,
         "_read_container_argv",
-        lambda: ("/init", "/opt/freeide/docker/main-wrapper.sh", "gateway", "run"),
+        lambda: ("/init", "/opt/jettstui/docker/main-wrapper.sh", "gateway", "run"),
     )
 
     rc = container_boot.main()

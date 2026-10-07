@@ -24,7 +24,7 @@ permissions:
   pull-requests: write # needed by lint (PR comment) + supply-chain review_status
   actions: read # needed by osv-scanner (SARIF upload)
   security-events: write # needed by osv-scanner (SARIF upload)
-  packages: write # needed by docker build
+  packages: read # PR Docker jobs build/test only; publishing runs in docker.yml
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -43,7 +43,6 @@ jobs:
     outputs:
       python: ${{ steps.classify.outputs.python }}
       frontend: ${{ steps.classify.outputs.frontend }}
-      site: ${{ steps.classify.outputs.site }}
       scan: ${{ steps.classify.outputs.scan }}
       deps: ${{ steps.classify.outputs.deps }}
       npm_lock: ${{ steps.classify.outputs.npm_lock }}
@@ -91,12 +90,6 @@ jobs:
     needs: detect
     if: needs.detect.outputs.python == 'true' || needs.detect.outputs.frontend == 'true'
     uses: ./.github/workflows/e2e-desktop.yml
-
-  docs-site:
-    name: Docs Site
-    needs: detect
-    if: needs.detect.outputs.site == 'true'
-    uses: ./.github/workflows/docs-site-checks.yml
 
   history-check:
     name: Deny unrelated histories
@@ -261,18 +254,16 @@ jobs:
       - lint
       - js-tests
       - e2e-desktop
-      - docs-site
       - history-check
       - contributor-check
       - uv-lockfile
       - lockfile-diff
       - docker-lint
+      - docker
       - supply-chain
       - review-labels
       - osv-scanner
       # comment-live is a polling job — it doesn't block the gate.
-      # we don't require docker to pass rn because it's so slow lol
-      # - docker
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -292,7 +283,7 @@ jobs:
           print(f'needs-json={json.dumps(compact)}')
           with open('$GITHUB_OUTPUT', 'a') as f:
               f.write(f'needs-json={json.dumps(compact)}\n')
-          failed = [name for name, info in needs.items() if info['result'] == 'failure']
+          failed = [name for name, info in needs.items() if info['result'] in ('failure', 'cancelled')]
           for name, info in sorted(needs.items()):
               result = info['result']
               icon = '✅' if result in ('success', 'skipped') else '❌'

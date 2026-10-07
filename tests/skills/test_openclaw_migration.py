@@ -37,6 +37,19 @@ def load_skills_guard():
     return module
 
 
+def test_standalone_migration_defaults_to_active_runtime_home(tmp_path, monkeypatch):
+    import freeide_constants
+
+    mod = load_module()
+    monkeypatch.delenv("FREEIDE_HOME", raising=False)
+    monkeypatch.setattr(freeide_constants, "get_freeide_home", lambda: tmp_path / "jettstui")
+    assert mod._default_target_home() == str(tmp_path / "jettstui")
+
+    custom = tmp_path / "custom-profile"
+    monkeypatch.setenv("FREEIDE_HOME", str(custom))
+    assert mod._default_target_home() == str(custom)
+
+
 def test_extract_markdown_entries_promotes_heading_context():
     mod = load_module()
     text = """# MEMORY.md - Long-Term Memory
@@ -443,7 +456,7 @@ def test_migrator_can_rename_conflicting_imported_skill(tmp_path: Path):
     assert renamed_skill.exists()
     assert existing_skill.joinpath("SKILL.md").read_text(encoding="utf-8").endswith("existing\n")
     imported_items = [item for item in report["items"] if item["kind"] == "skill" and item["status"] == "migrated"]
-    assert any(item["details"].get("renamed_from", "").endswith("/demo-skill") for item in imported_items)
+    assert any(Path(item["details"].get("renamed_from", "")).name == "demo-skill" for item in imported_items)
 
 
 def test_migrator_can_overwrite_conflicting_imported_skill_with_backup(tmp_path: Path):
@@ -816,14 +829,14 @@ def test_cron_store_is_archived_without_config_cron_section(tmp_path: Path):
 
     cron_items = [item for item in report["items"] if item["kind"] == "cron-jobs"]
     archived_store = next(
-        (item for item in cron_items if item["destination"] and item["destination"].endswith("archive/cron-store")),
+        (item for item in cron_items if item["destination"] and Path(item["destination"]).parts[-2:] == ("archive", "cron-store")),
         None,
     )
     assert archived_store is not None
     assert Path(archived_store["destination"]).joinpath("jobs.json").exists()
 
     notes_text = (output_dir / "MIGRATION_NOTES.md").read_text(encoding="utf-8")
-    assert "Run `freeide cron` to recreate scheduled tasks" in notes_text
+    assert "Run `jetts-tui cron` to recreate scheduled tasks" in notes_text
     assert "archive/cron-config.json" not in notes_text
 
 

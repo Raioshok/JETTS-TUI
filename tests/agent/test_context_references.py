@@ -333,6 +333,7 @@ async def test_blocks_sensitive_home_and_freeide_paths(tmp_path: Path, monkeypat
     from agent.context_references import preprocess_context_references_async
 
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
     monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / ".freeide"))
 
     freeide_env = tmp_path / ".freeide" / ".env"
@@ -370,6 +371,7 @@ async def test_blocks_canonical_read_denylist_credential_stores(tmp_path: Path, 
     from agent.context_references import preprocess_context_references_async
 
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
     monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / ".freeide"))
 
     freeide_home = tmp_path / ".freeide"
@@ -422,6 +424,7 @@ async def test_canonical_guard_fails_closed_when_lookup_raises(tmp_path: Path, m
     from agent.context_references import preprocess_context_references_async
 
     monkeypatch.setenv("HOME", str(tmp_path))
+    monkeypatch.setenv("USERPROFILE", str(tmp_path))
     monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / ".freeide"))
 
     freeide_home = tmp_path / ".freeide"

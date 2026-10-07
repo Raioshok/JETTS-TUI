@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import io
 import json
+import sys
 from contextlib import redirect_stdout
 from pathlib import Path
 from types import SimpleNamespace
@@ -80,6 +81,7 @@ class TestHooksList:
 
 
 class TestHooksTest:
+    @pytest.mark.skipif(sys.platform == "win32", reason="POSIX bash hook fixture")
     def test_synthetic_payload_matches_production_shape(self, tmp_path):
         """`freeide hooks test` must feed the script stdin in the same
         shape invoke_hook() would at runtime.  Prior to this fix,
@@ -111,6 +113,7 @@ class TestHooksTest:
         assert seen["tool_name"] is None
         assert seen["tool_input"] is None
 
+    @pytest.mark.skipif(sys.platform == "win32", reason="POSIX bash hook fixture")
     def test_fires_real_subprocess_and_parses_block(self, tmp_path):
         block_script = _hook_script(
             tmp_path,
@@ -184,6 +187,7 @@ class TestHooksRevoke:
 # ── doctor ────────────────────────────────────────────────────────────────
 
 
+@pytest.mark.skipif(sys.platform == "win32", reason="Doctor's hook fixtures are POSIX shell scripts")
 class TestHooksDoctor:
     def test_flags_missing_exec_bit(self, tmp_path):
         script = tmp_path / "hook.sh"
@@ -201,6 +205,7 @@ class TestHooksDoctor:
             out = _run(SimpleNamespace(hooks_action="doctor"))
         assert "not allowlisted" in out.lower()
 
+    @pytest.mark.skipif(sys.platform == "win32", reason="POSIX bash hook fixture")
     def test_flags_invalid_json(self, tmp_path):
         script = _hook_script(
             tmp_path,
@@ -235,6 +240,7 @@ class TestHooksDoctor:
             out = _run(SimpleNamespace(hooks_action="doctor"))
         assert "modified since approval" in out
 
+    @pytest.mark.skipif(sys.platform == "win32", reason="POSIX bash hook fixture")
     def test_clean_script_runs(self, tmp_path):
         script = _hook_script(tmp_path, "#!/usr/bin/env bash\nprintf '{}\\n'\n")
         shell_hooks._record_approval("on_session_start", str(script))

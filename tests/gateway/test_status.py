@@ -474,7 +474,7 @@ class TestGatewayRuntimeStatus:
             "start_time": 123,
             "gateway_state": "running",
             "kind": "freeide-gateway",
-            "argv": ["/opt/freeide/.venv/bin/freeide", "gateway", "run", "--replace"],
+            "argv": ["/opt/jettstui/.venv/bin/freeide", "gateway", "run", "--replace"],
         }
 
         monkeypatch.setattr(status, "_pid_exists", lambda pid: True)
@@ -490,7 +490,7 @@ class TestGatewayRuntimeStatus:
             "start_time": 123,
             "gateway_state": "running",
             "kind": "freeide-gateway",
-            "argv": ["/opt/freeide/.venv/bin/freeide", "gateway", "run", "--replace"],
+            "argv": ["/opt/jettstui/.venv/bin/freeide", "gateway", "run", "--replace"],
         }
 
         monkeypatch.setattr(status, "_pid_exists", lambda pid: True)
@@ -546,7 +546,7 @@ class TestGatewayRuntimeStatus:
         monkeypatch.setattr(status, "_get_process_start_time", lambda pid: 1000)
         for cmdline in (
             "freeide -p coder gateway run --replace",
-            "/opt/freeide/.venv/bin/freeide --profile coder gateway run --replace",
+            "/opt/jettstui/.venv/bin/freeide --profile coder gateway run --replace",
             "freeide_home=/opt/data/profiles/coder freeide gateway run --replace",
         ):
             monkeypatch.setattr(status, "_read_process_cmdline", lambda pid, c=cmdline: c)

@@ -329,9 +329,12 @@ def test_kanban_bypasses_active_session_guard():
 
 
 def test_kanban_in_autocomplete_table():
-    from freeide_cli.commands import COMMANDS, SUBCOMMANDS
+    from freeide_cli.commands import COMMANDS, SUBCOMMANDS, resolve_command
 
-    assert "/kanban" in COMMANDS
+    # The reduced top-level menu hides advanced commands without removing
+    # their dispatch and subcommand completion.
+    assert "/kanban" not in COMMANDS
+    assert resolve_command("kanban").name == "kanban"
     subs = SUBCOMMANDS.get("/kanban") or []
     assert "create" in subs
     assert "dispatch" in subs

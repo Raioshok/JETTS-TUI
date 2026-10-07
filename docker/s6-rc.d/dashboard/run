@@ -25,7 +25,7 @@ export HOME=/opt/data
 
 cd /opt/data
 # shellcheck disable=SC1091
-. /opt/freeide/.venv/bin/activate
+. /opt/jettstui/.venv/bin/activate
 
 dash_host="${FREEIDE_DASHBOARD_HOST:-0.0.0.0}"
 dash_port="${FREEIDE_DASHBOARD_PORT:-9119}"
@@ -35,7 +35,7 @@ dash_port="${FREEIDE_DASHBOARD_PORT:-9119}"
 # closed. Two zero-infra ways to satisfy it in a container:
 #   • Password: set FREEIDE_DASHBOARD_BASIC_AUTH_USERNAME + _PASSWORD (bundled
 #     dashboard_auth/basic provider — no external IDP).
-#   • OAuth:    set FREEIDE_DASHBOARD_OAUTH_CLIENT_ID (bundled nous provider).
+#   • OIDC:     set FREEIDE_DASHBOARD_OIDC_ISSUER + _CLIENT_ID (self-hosted provider).
 #
 # FREEIDE_DASHBOARD_INSECURE no longer disables the gate (June 2026 hardening:
 # unauthenticated public dashboards were the entry point for the MCP-config
@@ -46,11 +46,11 @@ case "${FREEIDE_DASHBOARD_INSECURE:-}" in
         echo "[dashboard] FREEIDE_DASHBOARD_INSECURE no longer disables the auth gate." >&2
         echo "[dashboard] A non-loopback dashboard requires an auth provider:" >&2
         echo "[dashboard]   set FREEIDE_DASHBOARD_BASIC_AUTH_USERNAME + _PASSWORD (password)" >&2
-        echo "[dashboard]   or FREEIDE_DASHBOARD_OAUTH_CLIENT_ID (OAuth)." >&2
+        echo "[dashboard]   or FREEIDE_DASHBOARD_OIDC_ISSUER + _CLIENT_ID (OIDC)." >&2
         ;;
 esac
 
 # Skip the drop when already non-root.
-[ "$(id -u)" = 0 ] || exec freeide dashboard --host "$dash_host" --port "$dash_port" --no-open
-exec s6-setuidgid freeide freeide dashboard \
+[ "$(id -u)" = 0 ] || exec jetts-tui dashboard --host "$dash_host" --port "$dash_port" --no-open
+exec s6-setuidgid jettstui jetts-tui dashboard \
     --host "$dash_host" --port "$dash_port" --no-open

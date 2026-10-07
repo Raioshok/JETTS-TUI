@@ -426,7 +426,6 @@ def test_unblock_scheduled_rechecks_parent_gate(kanban_home):
 
 
 def test_stale_claim_reclaimed(kanban_home, monkeypatch):
-    import signal
     import freeide_cli.kanban_db as _kb
 
     with kb.connect() as conn:
@@ -450,7 +449,7 @@ def test_stale_claim_reclaimed(kanban_home, monkeypatch):
         reclaimed = kb.release_stale_claims(conn, signal_fn=_signal)
         assert reclaimed == 1
         assert kb.get_task(conn, t).status == "ready"
-        assert killed == [signal.SIGTERM]
+        assert killed == []  # already-dead PIDs need no signal
 
 
 def test_stale_claim_with_live_pid_extends_instead_of_reclaiming(
@@ -521,6 +520,37 @@ def test_stale_claim_with_live_pid_uses_env_ttl_override(
         assert task is not None
         assert task.claim_expires is not None
         assert task.claim_expires > int(time.time()) + 3000
+
+
+def test_dead_host_local_worker_is_reclaimable_without_signaling(monkeypatch):
+    host = kb._claimer_id().split(":", 1)[0]
+    monkeypatch.setattr(kb, "_pid_alive", lambda _pid: False)
+
+    def unexpected_signal(_pid, _sig):
+        raise AssertionError("dead worker must not be signaled")
+
+    termination = kb._terminate_reclaimed_worker(
+        999998, f"{host}:worker", signal_fn=unexpected_signal
+    )
+    assert termination["terminated"] is True
+    assert termination["termination_attempted"] is False
+    assert not kb._worker_survived_termination(termination)
+
+
+def test_worker_disappearing_during_signal_error_is_reclaimable(monkeypatch):
+    host = kb._claimer_id().split(":", 1)[0]
+    liveness = iter((True, False))
+    monkeypatch.setattr(kb, "_pid_alive", lambda _pid: next(liveness))
+
+    def failed_signal(_pid, _sig):
+        raise OSError("process vanished")
+
+    termination = kb._terminate_reclaimed_worker(
+        999998, f"{host}:worker", signal_fn=failed_signal
+    )
+    assert termination["terminated"] is True
+    assert termination["termination_attempted"] is True
+    assert not kb._worker_survived_termination(termination)
 
 
 def test_stale_claim_deferred_when_live_worker_survives_termination(
@@ -876,7 +906,17 @@ def _exited_status(code: int) -> int:
     return code << 8
 
 
-def test_classify_worker_exit_recognizes_rate_limit_sentinel(kanban_home):
+@pytest.fixture
+def posix_wait_status(monkeypatch):
+    """Decode synthetic POSIX wait statuses on native Windows test hosts."""
+    if os.name == "nt":
+        monkeypatch.setattr(os, "WIFEXITED", lambda s: (s & 0x7f) == 0, raising=False)
+        monkeypatch.setattr(os, "WEXITSTATUS", lambda s: (s >> 8) & 0xff, raising=False)
+        monkeypatch.setattr(os, "WIFSIGNALED", lambda s: (s & 0x7f) not in (0, 0x7f), raising=False)
+        monkeypatch.setattr(os, "WTERMSIG", lambda s: s & 0x7f, raising=False)
+
+
+def test_classify_worker_exit_recognizes_rate_limit_sentinel(kanban_home, posix_wait_status):
     import freeide_cli.kanban_db as _kb
 
     pid = 31337
@@ -891,7 +931,7 @@ def test_classify_worker_exit_recognizes_rate_limit_sentinel(kanban_home):
 
 
 def test_rate_limit_exit_requeues_without_counting_failure(
-    kanban_home, monkeypatch,
+    kanban_home, monkeypatch, posix_wait_status,
 ):
     """A rate-limit sentinel exit releases the task to ``ready`` and leaves
     ``consecutive_failures`` untouched — the breaker must never trip on a
@@ -952,7 +992,7 @@ def test_rate_limit_exit_requeues_without_counting_failure(
         assert "crashed" not in outcomes
 
 
-def test_real_crash_still_counts_and_trips_breaker(kanban_home, monkeypatch):
+def test_real_crash_still_counts_and_trips_breaker(kanban_home, monkeypatch, posix_wait_status):
     """Sanity: a genuine non-zero crash (not the sentinel) still increments
     the failure counter and trips the breaker — the rate-limit carve-out is
     surgical, not a blanket "never count crashes"."""
@@ -2159,7 +2199,7 @@ def test_worktree_workspace_repo_root_anchor_materializes_linked_worktree(kanban
         capture_output=True,
         text=True,
     ).stdout
-    assert f"worktree {expected}" in listed
+    assert f"worktree {expected.as_posix()}" in listed.replace("\\", "/")
     assert f"branch refs/heads/wt/{t}" in listed
 
 
@@ -2243,7 +2283,7 @@ def test_worktree_workspace_explicit_target_materializes_linked_worktree(kanban_
         capture_output=True,
         text=True,
     ).stdout
-    assert f"worktree {target}" in listed
+    assert f"worktree {target.as_posix()}" in listed.replace("\\", "/")
     assert f"branch refs/heads/{branch}" in listed
 
 
@@ -2282,7 +2322,7 @@ def test_dispatch_worktree_task_persists_materialized_workspace_and_branch(kanba
         capture_output=True,
         text=True,
     ).stdout
-    assert f"worktree {expected}" in listed
+    assert f"worktree {expected.as_posix()}" in listed.replace("\\", "/")
     assert f"branch refs/heads/wt/{tid}" in listed
 
 
@@ -2341,8 +2381,9 @@ def test_dispatch_worktree_task_rerun_reuses_existing_linked_worktree_and_branch
         capture_output=True,
         text=True,
     ).stdout
-    assert listed.count(f"worktree {expected}\n") == 1
-    assert f"worktree {expected}/.worktrees/{tid}" not in listed
+    normalized_listed = listed.replace("\\", "/")
+    assert normalized_listed.count(f"worktree {expected.as_posix()}\n") == 1
+    assert f"worktree {expected.as_posix()}/.worktrees/{tid}" not in normalized_listed
     assert f"branch refs/heads/{actual_branch}" in listed
 
 
@@ -2974,8 +3015,8 @@ class TestSharedBoardPaths:
     def test_docker_profile_layout_uses_grandparent(
         self, tmp_path, monkeypatch
     ):
-        # Docker profile shape: FREEIDE_HOME=/opt/freeide/profiles/coder;
-        # `get_default_freeide_root()` walks up to /opt/freeide because
+        # Docker profile shape: FREEIDE_HOME=/opt/jettstui/profiles/coder;
+        # `get_default_freeide_root()` walks up to /opt/jettstui because
         # the immediate parent dir is named "profiles".
         custom_root = tmp_path / "opt" / "freeide"
         profile = custom_root / "profiles" / "coder"
@@ -3465,15 +3506,17 @@ def test_migrate_add_optional_columns_tolerates_concurrent_migration(kanban_home
 # ---------------------------------------------------------------------------
 
 
-def test_resolve_freeide_argv_prefers_path_shim(monkeypatch):
+def test_resolve_freeide_argv_prefers_path_shim(monkeypatch, tmp_path):
     """When `freeide` is on PATH, use the shim — preserves familiar ps output."""
     import shutil
     import freeide_cli.kanban_db as kb
 
     monkeypatch.delenv("FREEIDE_BIN", raising=False)
-    monkeypatch.setattr(shutil, "which", lambda name: "/usr/local/bin/freeide")
+    shim = tmp_path / "freeide"
+    monkeypatch.setattr(kb, "_IS_WINDOWS", False)
+    monkeypatch.setattr(shutil, "which", lambda name: str(shim))
     argv = kb._resolve_freeide_argv()
-    assert argv == ["/usr/local/bin/freeide"]
+    assert argv == [str(shim)]
 
 
 def test_resolve_freeide_argv_absolutizes_relative_exe_shim(monkeypatch, tmp_path):
@@ -3521,6 +3564,9 @@ def test_resolve_freeide_argv_freeide_bin_bare_name_uses_path(monkeypatch, tmp_p
     """Bare FREEIDE_BIN values keep PATH semantics instead of cwd shadowing."""
     import stat
     import freeide_cli.kanban_db as kb
+
+    # This fixture models an extensionless POSIX executable, not a Windows shim.
+    monkeypatch.setattr(kb, "_IS_WINDOWS", False)
 
     cwd_freeide = tmp_path / "freeide"
     cwd_freeide.write_text("wrong\n", encoding="utf-8")
@@ -3591,6 +3637,7 @@ def test_resolve_freeide_argv_falls_back_to_module_form_when_no_path_shim(monkey
 
     monkeypatch.delenv("FREEIDE_BIN", raising=False)
     monkeypatch.setattr(shutil, "which", lambda name: None)
+    monkeypatch.setattr(kb, "_safe_which_no_cwd", lambda name: None)
     argv = kb._resolve_freeide_argv()
     assert argv == [sys.executable, "-m", "freeide_cli.main"]
 
@@ -3611,14 +3658,16 @@ def test_resolve_freeide_argv_module_actually_runs():
 
     with mock.patch.dict(os.environ, {}, clear=False):
         os.environ.pop("FREEIDE_BIN", None)
-        with mock.patch.object(shutil, "which", return_value=None):
+        with mock.patch.object(shutil, "which", return_value=None), mock.patch.object(
+            kb, "_safe_which_no_cwd", return_value=None
+        ):
             argv = kb._resolve_freeide_argv()
     r = subprocess.run(argv + ["--version"], capture_output=True, text=True, timeout=30)
     assert r.returncode == 0, (
         f"`{' '.join(argv)} --version` failed (rc={r.returncode}); "
         f"stderr={r.stderr[:200]!r}"
     )
-    assert "FreeIDE Agent" in r.stdout, f"unexpected output: {r.stdout[:200]!r}"
+    assert "Jetts-TUI" in r.stdout, f"unexpected output: {r.stdout[:200]!r}"
 
 
 # ---------------------------------------------------------------------------
@@ -4789,6 +4838,7 @@ def test_write_txn_check_reads_correct_header_fields(tmp_path):
 # ---------------------------------------------------------------------------
 
 
+@pytest.mark.skipif(os.name == "nt", reason="zombie reaping is POSIX-only")
 def test_reap_worker_zombies_returns_count():
     """reap_worker_zombies() returns the list of reaped PIDs."""
     from unittest.mock import patch
@@ -4820,6 +4870,7 @@ def test_reap_worker_zombies_noop_on_windows(monkeypatch):
     assert result == []
 
 
+@pytest.mark.skipif(os.name == "nt", reason="zombie reaping is POSIX-only")
 def test_reap_worker_zombies_noop_no_children():
     """reap_worker_zombies() returns 0 without error when there are no children."""
     from unittest.mock import patch
@@ -4829,6 +4880,7 @@ def test_reap_worker_zombies_noop_no_children():
     assert result == []
 
 
+@pytest.mark.skipif(os.name == "nt", reason="zombie reaping is POSIX-only")
 def test_reap_worker_zombies_records_exit_status():
     """reap_worker_zombies() calls _record_worker_exit for each reaped pid."""
     from unittest.mock import patch
@@ -4852,6 +4904,7 @@ def test_reap_worker_zombies_records_exit_status():
     assert calls == [(12345, 0)]
 
 
+@pytest.mark.skipif(os.name == "nt", reason="zombie reaping is POSIX-only")
 def test_reap_worker_zombies_handles_waitpid_os_error():
     """reap_worker_zombies() does not propagate generic OSError from os.waitpid."""
     from unittest.mock import patch
@@ -4861,6 +4914,7 @@ def test_reap_worker_zombies_handles_waitpid_os_error():
     assert result == []
 
 
+@pytest.mark.skipif(os.name == "nt", reason="zombie reaping is POSIX-only")
 def test_zombie_reaper_runs_despite_board_connect_failure():
     """reap_worker_zombies runs even when a board tick raises an error."""
     from unittest.mock import patch
@@ -4887,6 +4941,7 @@ def test_zombie_reaper_runs_despite_board_connect_failure():
     assert pids == [12345, 67890]
 
 
+@pytest.mark.skipif(os.name == "nt", reason="zombie reaping is POSIX-only")
 def test_zombie_reaper_survives_all_boards_failing():
     """reap_worker_zombies runs each tick regardless of board tick failures."""
     from unittest.mock import patch
@@ -4918,6 +4973,7 @@ def test_zombie_reaper_survives_all_boards_failing():
     assert total_reaped == 10
 
 
+@pytest.mark.skipif(os.name == "nt", reason="zombie reaping is POSIX-only")
 def test_dispatch_once_still_reaps_via_extracted_fn(kanban_home):
     """The reaper inside dispatch_once still works after refactor to reap_worker_zombies()."""
     from unittest.mock import patch

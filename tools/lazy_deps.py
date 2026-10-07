@@ -28,7 +28,7 @@ Security model:
   active venv. We never touch the system Python.
 * **Durable-target mode (immutable images).** When the deployment seals the
   agent's own venv (the Docker image sets ``FREEIDE_DISABLE_LAZY_INSTALLS=1``
-  and makes ``/opt/freeide`` read-only), setting
+  and makes ``/opt/jettstui`` read-only), setting
   ``FREEIDE_LAZY_INSTALL_TARGET`` redirects lazy installs to a writable
   directory on the durable data volume (e.g. ``/opt/data/lazy-packages``).
   That directory is **appended to the end of ``sys.path``** — never

@@ -37,8 +37,13 @@ import {
   unpackedDirName
 } from './update-relaunch'
 
-const ROOT = '/home/u/.freeide/freeide-agent'
+// resolveUnpackedRelease uses the host path module, so fixtures need a native
+// absolute root even when exercising its Linux release-directory contract.
+const ROOT = path.resolve(os.tmpdir(), 'jetts-tui-update-relaunch-fixture')
 const UNPACKED = path.join(ROOT, 'apps', 'desktop', 'release', 'linux-unpacked')
+const BASH = process.platform === 'win32'
+  ? path.join(process.env.ProgramFiles || 'C:\\Program Files', 'Git', 'bin', 'bash.exe')
+  : 'bash'
 
 // ---------------------------------------------------------------------------
 // 1) The execPath split — the heart of the GUI/backend skew guard.
@@ -190,7 +195,7 @@ test('shellQuote neutralizes single quotes and metacharacters', () => {
   assert.equal(shellQuote('$(rm -rf /)'), `'$(rm -rf /)'`)
 })
 
-test('buildRelaunchScript embeds pid/exec/args/env/cwd and is valid bash', () => {
+test.skipIf(process.platform === 'win32' && !fs.existsSync(BASH))('buildRelaunchScript embeds pid/exec/args/env/cwd and is valid bash', () => {
   const script = buildRelaunchScript({
     pid: 4242,
     execPath: '/home/u/.freeide/freeide-agent/apps/desktop/release/linux-unpacked/FreeIDE',
@@ -210,18 +215,11 @@ test('buildRelaunchScript embeds pid/exec/args/env/cwd and is valid bash', () =>
   assert.match(script, /cd '\/home\/u\/work dir'/)
   assert.match(script, /exec '.*\/linux-unpacked\/FreeIDE' 'freeide:\/\/open\/agent\/42' '--note=it'\\''s fine'/)
 
-  // It must be syntactically valid bash (`bash -n`). Write to a temp file and lint.
-  const tmp = path.join(os.tmpdir(), `freeide-relaunch-test-${Date.now()}.sh`)
-  fs.writeFileSync(tmp, script)
-
-  try {
-    execFileSync('bash', ['-n', tmp], { stdio: 'pipe' })
-  } finally {
-    fs.rmSync(tmp, { force: true })
-  }
+  // Lint via stdin so a native Windows path need not be translated for Bash.
+  execFileSync(BASH, ['-n'], { input: script, stdio: 'pipe' })
 })
 
-test('buildRelaunchScript with no args/env still lints clean', () => {
+test.skipIf(process.platform === 'win32' && !fs.existsSync(BASH))('buildRelaunchScript with no args/env still lints clean', () => {
   const script = buildRelaunchScript({
     pid: 1,
     execPath: '/opt/FreeIDE/FreeIDE',
@@ -230,14 +228,7 @@ test('buildRelaunchScript with no args/env still lints clean', () => {
     cwd: ''
   })
 
-  const tmp = path.join(os.tmpdir(), `freeide-relaunch-test2-${Date.now()}.sh`)
-  fs.writeFileSync(tmp, script)
-
-  try {
-    execFileSync('bash', ['-n', tmp], { stdio: 'pipe' })
-  } finally {
-    fs.rmSync(tmp, { force: true })
-  }
+  execFileSync(BASH, ['-n'], { input: script, stdio: 'pipe' })
 
   // exec line has no trailing args.
   assert.match(script, /exec '\/opt\/FreeIDE\/FreeIDE'\n/)

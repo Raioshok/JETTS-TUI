@@ -77,6 +77,10 @@ environments/benchmarks/evals/
 
 # Web UI build output
 freeide_cli/web_dist/
+jettstui/web_dist/
+# Retired Docusaurus site; tracked source is removed, but old local build
+# caches may remain until the user cleans them outside this checkout task.
+/website/
 # Cross-process web UI build lock (flock target, always empty)
 .web_ui_build.lock
 apps/desktop/build/
@@ -130,6 +134,7 @@ opencode.json
 config/mcporter.json
 
 freeide_cli/tui_dist/*
+jettstui/tui_dist/*
 freeide_cli/scripts/
 docs/superpowers/*
 # Working directory for the FreeIDE Agent's session state (~/.freeide/ at runtime;

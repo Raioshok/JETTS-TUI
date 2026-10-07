@@ -13,6 +13,8 @@ import pytest
 
 import freeide_cli.uninstall as uninstall
 
+pytestmark = pytest.mark.skipif(os.name == "nt", reason="POSIX node symlink layout is unavailable on native Windows")
+
 
 @pytest.fixture
 def fake_home(tmp_path, monkeypatch):

@@ -1207,9 +1207,6 @@ export const api = {
   runCurator: () =>
     fetchJSON<ActionResponse>("/api/curator/run", { method: "POST" }),
 
-  // ── Admin: Portal ───────────────────────────────────────────────────
-  getPortal: () => fetchJSON<PortalStatus>("/api/portal"),
-
   // ── Admin: Diagnostics (backgrounded) ───────────────────────────────
   runPromptSize: () =>
     fetchJSON<ActionResponse>("/api/ops/prompt-size", { method: "POST" }),
@@ -1270,13 +1267,9 @@ export const api = {
     ),
 };
 
-/** Identity payload returned by ``GET /api/auth/me`` (Phase 7).
- *
- * Returned by the dashboard's gated middleware when a valid session cookie
- * is attached. ``email`` and ``display_name`` are empty strings under the
- * FreeIDE Portal contract V1 (the access token has no email/name claims —
- * see Contract Anchor C4 in the plan). The AuthWidget surfaces a
- * truncated ``user_id`` instead.
+/** Identity payload returned by ``GET /api/auth/me`` for gated dashboards.
+ * Providers may omit email or display-name claims; the AuthWidget then
+ * displays a truncated user ID.
  */
 export interface AuthMeResponse {
   user_id: string;
@@ -1742,20 +1735,6 @@ export interface CuratorStatus {
   min_idle_hours: number | null;
   stale_after_days: number | null;
   archive_after_days: number | null;
-}
-
-export interface PortalFeature {
-  label: string;
-  state: string;
-}
-
-export interface PortalStatus {
-  logged_in: boolean;
-  portal_url: string | null;
-  inference_url: string | null;
-  provider: string;
-  subscription_url: string;
-  features: PortalFeature[];
 }
 
 export interface CheckpointSession {

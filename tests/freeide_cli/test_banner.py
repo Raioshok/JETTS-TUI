@@ -2,11 +2,19 @@
 
 from unittest.mock import patch
 
+import pytest
 from rich.console import Console
 
 import freeide_cli.banner as banner
 import model_tools
 import tools.mcp_tool
+
+
+@pytest.fixture(autouse=True)
+def use_standard_banner():
+    """The user's selected skin must not change these banner contracts."""
+    with patch("freeide_cli.skin_engine.get_active_skin", return_value=None):
+        yield
 
 
 def test_display_toolset_name_strips_legacy_suffix():
@@ -62,12 +70,12 @@ def test_build_welcome_banner_uses_normalized_toolset_names():
         )
 
     output = console.export_text()
-    assert "homeassistant:" in output
-    assert "honcho:" in output
-    assert "web:" in output
-    assert "homeassistant_tools:" not in output
-    assert "honcho_tools:" not in output
-    assert "web_tools:" not in output
+    assert "homeassistant" in output
+    assert "honcho" in output
+    assert "web" in output
+    assert "homeassistant_tools" not in output
+    assert "honcho_tools" not in output
+    assert "web_tools" not in output
 
 
 def test_build_welcome_banner_title_is_hyperlinked_to_release():
@@ -79,7 +87,7 @@ def test_build_welcome_banner_title_is_hyperlinked_to_release():
     import tools.mcp_tool as _mcp
 
     _banner._latest_release_cache = None
-    tag_url = ("v2026.4.23", "https://github.com/freeide/freeide/releases/tag/v2026.4.23")
+    tag_url = ("v2026.4.23", "https://github.com/Raioshok/JETTS-TUI/releases/tag/v2026.4.23")
 
     buf = io.StringIO()
     with (
@@ -89,7 +97,7 @@ def test_build_welcome_banner_title_is_hyperlinked_to_release():
         _patch.object(_mcp, "get_mcp_status", return_value=[]),
         _patch.object(_banner, "get_latest_release_tag", return_value=tag_url),
     ):
-        console = Console(file=buf, force_terminal=True, color_system="truecolor", width=160)
+        console = Console(file=buf, force_terminal=True, color_system="truecolor", legacy_windows=False, width=160)
         _banner.build_welcome_banner(
             console=console, model="x", cwd="/tmp",
             session_id="abc123",
@@ -99,7 +107,7 @@ def test_build_welcome_banner_title_is_hyperlinked_to_release():
 
     raw = buf.getvalue()
     # The existing version label must still be present in the title
-    assert "FreeIDE Agent v" in raw, "Version label missing from title"
+    assert "Jetts-TUI v" in raw, "Version label missing from title"
     # OSC-8 hyperlink escape sequence present with the release URL
     assert "\x1b]8;" in raw, "OSC-8 hyperlink not emitted"
     assert "releases/tag/v2026.4.23" in raw, "Release URL missing from banner output"
@@ -122,7 +130,7 @@ def test_build_welcome_banner_title_falls_back_when_no_tag():
         _patch.object(_mcp, "get_mcp_status", return_value=[]),
         _patch.object(_banner, "get_latest_release_tag", return_value=None),
     ):
-        console = Console(file=buf, force_terminal=True, color_system="truecolor", width=160)
+        console = Console(file=buf, force_terminal=True, color_system="truecolor", legacy_windows=False, width=160)
         _banner.build_welcome_banner(
             console=console, model="x", cwd="/tmp",
             session_id="abc123",
@@ -131,12 +139,12 @@ def test_build_welcome_banner_title_falls_back_when_no_tag():
         )
 
     raw = buf.getvalue()
-    assert "FreeIDE Agent v" in raw, "Version label missing from title"
+    assert "Jetts-TUI v" in raw, "Version label missing from title"
     assert "\x1b]8;" not in raw, "OSC-8 hyperlink should not be emitted without a tag"
 
 
-def test_build_welcome_banner_disabled_mcp_shows_disabled_not_failed():
-    """A disabled MCP server renders '— disabled' (dim), not '— failed' (red)."""
+def test_build_welcome_banner_does_not_count_disconnected_mcp():
+    """The compact banner counts connected MCP servers only."""
     with (
         patch.object(model_tools, "check_tool_availability", return_value=(["web"], [])),
         patch.object(banner, "get_available_skills", return_value={}),
@@ -160,16 +168,13 @@ def test_build_welcome_banner_disabled_mcp_shows_disabled_not_failed():
         )
 
     output = console.export_text()
-    # Disabled server is labeled "disabled", not "failed"
-    assert "linear" in output
-    assert "disabled" in output
-    # A genuinely unreachable server still reads "failed"
-    assert "broken" in output
-    assert "failed" in output
+    assert "MCP" not in output
+    assert "linear" not in output
+    assert "broken" not in output
 
 
-def test_build_welcome_banner_configured_mcp_is_not_failed():
-    """A configured MCP server with no connection attempt yet is not a failure."""
+def test_build_welcome_banner_configured_mcp_is_not_counted():
+    """A configured but disconnected MCP server is not advertised as connected."""
     with (
         patch.object(model_tools, "check_tool_availability", return_value=(["web"], [])),
         patch.object(banner, "get_available_skills", return_value={}),
@@ -197,8 +202,8 @@ def test_build_welcome_banner_configured_mcp_is_not_failed():
         )
 
     output = console.export_text()
-    assert "docker-profile" in output
-    assert "configured" in output
+    assert "MCP" not in output
+    assert "docker-profile" not in output
     assert "failed" not in output
 
 
@@ -243,11 +248,10 @@ def test_banner_hides_toolsets_not_enabled_for_platform():
 
 
 def test_banner_skills_section_reflects_disabled_skills_toolset():
-    """When the `skills` toolset is disabled (Blank Slate), the banner must not
-    advertise the on-disk skill catalog — the agent can't load any of them."""
+    """The compact count excludes on-disk skills when that toolset is disabled."""
     fake_skills = {"creative": ["ascii-art", "p5js"], "devops": ["bug-triage-work"]}
 
-    # skills toolset DISABLED -> catalog hidden, "disabled" message shown
+    # Skills toolset disabled: no catalog count is advertised.
     with (
         patch.object(model_tools, "check_tool_availability", return_value=(["file", "terminal"], [])),
         patch.object(banner, "get_available_skills", return_value=fake_skills),
@@ -260,10 +264,10 @@ def test_banner_skills_section_reflects_disabled_skills_toolset():
             enabled_toolsets=["file", "terminal"], get_toolset_for_tool=lambda n: "file",
         )
     out_disabled = console.export_text()
-    assert "Skills toolset disabled" in out_disabled
+    assert "0 skills" in out_disabled
     assert "ascii-art" not in out_disabled
 
-    # skills toolset ENABLED -> catalog listed as before
+    # Skills toolset enabled: count the available catalog without a name wall.
     with (
         patch.object(model_tools, "check_tool_availability", return_value=(["file", "terminal", "skills"], [])),
         patch.object(banner, "get_available_skills", return_value=fake_skills),
@@ -276,8 +280,8 @@ def test_banner_skills_section_reflects_disabled_skills_toolset():
             enabled_toolsets=["file", "terminal", "skills"], get_toolset_for_tool=lambda n: "file",
         )
     out_enabled = console.export_text()
-    assert "Skills toolset disabled" not in out_enabled
-    assert "ascii-art" in out_enabled
+    assert "3 skills" in out_enabled
+    assert "ascii-art" not in out_enabled
 
 
 def test_build_welcome_banner_moa_provider_shows_preset_and_aggregator(tmp_path, monkeypatch):
@@ -324,8 +328,8 @@ def test_build_welcome_banner_moa_provider_shows_preset_and_aggregator(tmp_path,
         )
 
     out = console.export_text()
-    assert "MoA: opus-gpt" in out
-    assert "agg claude-opus-4.8" in out
+    assert "opus-gpt" in out
+    assert "MoA" in out
 
 
 def test_build_welcome_banner_non_moa_unchanged(tmp_path, monkeypatch):

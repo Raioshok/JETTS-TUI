@@ -12,6 +12,8 @@ from tui_gateway.compute_host import ComputeHost, _default_workers
 from tui_gateway.host_supervisor import (
     MUTATOR_ROUTE_TABLE,
     HostSupervisor,
+    _pid_alive,
+    _pid_command,
     append_log_record,
 )
 
@@ -340,6 +342,29 @@ def test_supervisor_startup_reconcile_pid_reuse_guard(tmp_path, monkeypatch):
     assert result == "pid-reuse-ignored"
     assert killed == []
     assert not registry.exists()
+
+
+def test_supervisor_pid_probe_never_signals_target(monkeypatch):
+    from gateway import status
+
+    monkeypatch.setattr(status, "_pid_exists", lambda pid: pid == os.getpid())
+    monkeypatch.setattr(os, "kill", lambda *_args: pytest.fail("PID probe sent a signal"))
+
+    assert _pid_alive(os.getpid()) is True
+    assert _pid_alive(0) is False
+    assert _pid_alive(99999999) is False
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows process command-line lookup")
+def test_supervisor_windows_pid_identity_uses_process_command(monkeypatch):
+    import psutil
+
+    class FakeProcess:
+        def cmdline(self):
+            return [sys.executable, "-m", "tui_gateway.compute_host"]
+
+    monkeypatch.setattr(psutil, "Process", lambda _pid: FakeProcess())
+    assert "tui_gateway.compute_host" in _pid_command(12345)
 
 
 def test_supervisor_crash_emits_turn_error_and_respawns(tmp_path):

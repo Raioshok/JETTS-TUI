@@ -3,11 +3,18 @@ import threading
 import time
 from unittest.mock import patch
 
+import pytest
+
 import cli as cli_module
 import tools.skills_tool as skills_tool_module
 from cli import FreeIDECLI
 from freeide_cli.callbacks import prompt_for_secret
 from tools.skills_tool import set_secret_capture_callback
+
+
+@pytest.fixture(autouse=True)
+def _no_console_output(monkeypatch):
+    monkeypatch.setattr("freeide_cli.callbacks.cprint", lambda *_args, **_kwargs: None)
 
 
 class _FakeBuffer:

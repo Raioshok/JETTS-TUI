@@ -40,8 +40,8 @@ function ownedLock(over: any = {}) {
     pid: 333,
     port: 40000,
     profile: '',
-    freeidePath: '~/.local/bin/freeide',
-    freeideHome: '~/.freeide',
+    freeidePath: '~/.local/bin/jetts-tui',
+    freeideHome: '~/.jettstui',
     logPath: spawnLogPath(OWNERSHIP_ID, SPAWN_NONCE),
     tokenFingerprint: fingerprintToken('stored-token'),
     startedAt: '2026-07-14T00:00:00.000Z',
@@ -79,8 +79,8 @@ function fakeSsh(rules: any[] = []) {
 }
 
 test('locateFreeIDE prefers the explicit profile path when executable', async () => {
-  const ssh = fakeSsh([[/\[ -x .*\/opt\/freeide/, 'OK']])
-  assert.equal(await locateFreeIDE(ssh, '/opt/freeide'), '/opt/freeide')
+  const ssh = fakeSsh([[/\[ -x .*\/opt\/jettstui/, 'OK']])
+  assert.equal(await locateFreeIDE(ssh, '/opt/jettstui'), '/opt/jettstui')
 })
 
 test('locateFreeIDE throws (no silent fallback) when an EXPLICIT path is not executable', async () => {
@@ -109,6 +109,16 @@ test('locateFreeIDE falls back to the login-shell command -v probe', async () =>
   ])
 
   assert.equal(await locateFreeIDE(ssh, ''), '/home/u/.local/bin/freeide')
+})
+
+test('locateFreeIDE prefers jetts-tui over a legacy freeide executable', async () => {
+  const ssh = fakeSsh([
+    [/command -v jetts-tui/, '/home/u/.local/bin/jetts-tui\n'],
+    [/command -v freeide/, '/home/u/.local/bin/freeide\n'],
+    [/\[ -x .*\.local\/bin\/(?:jetts-tui|freeide)/, 'OK']
+  ])
+
+  assert.equal(await locateFreeIDE(ssh, ''), '/home/u/.local/bin/jetts-tui')
 })
 
 test('locateFreeIDE canonicalizes an installer wrapper to its executable target', async () => {
@@ -185,9 +195,9 @@ test('probeRemotePlatform rejects unsupported remote platforms', async () => {
 })
 
 test('ownership paths are isolated by ownership ID and spawn nonce', () => {
-  assert.equal(ownershipDirectory(OWNERSHIP_ID), `~/.freeide/desktop-ssh/${OWNERSHIP_ID}`)
-  assert.equal(lockfilePath(OWNERSHIP_ID), `~/.freeide/desktop-ssh/${OWNERSHIP_ID}/backend.lock.json`)
-  assert.equal(spawnLogPath(OWNERSHIP_ID, SPAWN_NONCE), `~/.freeide/desktop-ssh/${OWNERSHIP_ID}/${SPAWN_NONCE}.log`)
+  assert.equal(ownershipDirectory(OWNERSHIP_ID), `~/.jettstui/desktop-ssh/${OWNERSHIP_ID}`)
+  assert.equal(lockfilePath(OWNERSHIP_ID), `~/.jettstui/desktop-ssh/${OWNERSHIP_ID}/backend.lock.json`)
+  assert.equal(spawnLogPath(OWNERSHIP_ID, SPAWN_NONCE), `~/.jettstui/desktop-ssh/${OWNERSHIP_ID}/${SPAWN_NONCE}.log`)
 })
 
 test('readLockfile returns null for missing, empty, malformed, or wrong-schema', async () => {

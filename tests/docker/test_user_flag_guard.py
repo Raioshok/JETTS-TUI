@@ -4,7 +4,7 @@ Build the real image and verify the actual runtime behavior:
 
   1. docker run --user <arbitrary-uid> is rejected with actionable guidance
   2. Root start (default) works fine
-  3. --user <freeide-uid> (10000) is allowed (supported non-root start)
+  3. --user <jettstui-uid> (10000) is allowed (supported non-root start)
 """
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ def test_arbitrary_user_uid_rejected(
     r = subprocess.run(
         ["docker", "run", "--rm", "--user", "1000:1000",
          built_image, "echo", "should_not_reach"],
-        capture_output=True, text=True, timeout=60,
+        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60,
     )
     assert r.returncode != 0, (
         f"container started with arbitrary --user UID unexpectedly: {r.stdout}"
@@ -42,7 +42,7 @@ def test_root_start_works(
     """Root start (the default) must work without issues."""
     r = subprocess.run(
         ["docker", "run", "--rm", built_image, "sh", "-c", "echo OK"],
-        capture_output=True, text=True, timeout=60,
+        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60,
     )
     assert r.returncode == 0, f"root start failed: {r.stderr[-500:]}"
     assert "OK" in r.stdout
@@ -51,16 +51,16 @@ def test_root_start_works(
 def test_user_pinned_to_freeide_uid_works(
     built_image: str,
 ) -> None:
-    """docker run --user 10000:10000 (the freeide UID) must be allowed.
+    """docker run --user 10000:10000 (the jettstui UID) must be allowed.
 
     This is the supported non-root start from #34648 / #34837.
     """
     r = subprocess.run(
         ["docker", "run", "--rm", "--user", "10000:10000",
          built_image, "sh", "-c", "echo OK"],
-        capture_output=True, text=True, timeout=60,
+        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60,
     )
     assert r.returncode == 0, (
-        f"--user 10000:10000 (freeide UID) was rejected: {r.stderr[-500:]}"
+        f"--user 10000:10000 (jettstui UID) was rejected: {r.stderr[-500:]}"
     )
     assert "OK" in r.stdout

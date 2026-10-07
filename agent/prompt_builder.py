@@ -148,13 +148,12 @@ DEFAULT_AGENT_IDENTITY = (
 
 FREEIDE_AGENT_HELP_GUIDANCE = (
     "You run on Jetts-TUI. When the user needs help with "
-    "FreeIDE itself — configuring, setting up, using, extending, or troubleshooting "
+    "Jetts-TUI itself — configuring, setting up, using, extending, or troubleshooting "
     "it — or when you need to understand your own features, tools, or capabilities, "
-    "the documentation at https://freeide-agent.freeide.dev/docs is your "
-    "authoritative reference and always holds the latest, most up-to-date "
-    "information. Load the `freeide-agent` skill with skill_view(name='freeide-agent') "
-    "for additional guidance and proven workflows, but treat the docs as the source "
-    "of truth when the two differ."
+    "consult the bundled Markdown documentation in the repository's docs/ directory "
+    "(https://github.com/Raioshok/JETTS-TUI/tree/main/docs). Load the bundled "
+    "`freeide-agent` skill with skill_view(name='freeide-agent') for additional "
+    "guidance while the skill directory retains its compatibility name."
 )
 
 MEMORY_GUIDANCE = (

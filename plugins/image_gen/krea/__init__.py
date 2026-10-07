@@ -205,7 +205,7 @@ class KreaImageGenProvider(ImageGenProvider):
 
     def is_available(self) -> bool:
         # Available with a direct Krea key (BYO ``KREA_API_KEY``).
-        return bool(os.environ.get("KREA_API_KEY"))
+        return bool(os.environ.get("KREA_API_KEY", "").strip())
 
     def list_models(self) -> List[Dict[str, Any]]:
         return [
@@ -301,7 +301,7 @@ class KreaImageGenProvider(ImageGenProvider):
 
         # Use the direct Krea API with a BYO ``KREA_API_KEY``.
         base_url = BASE_URL
-        auth_token = os.environ.get("KREA_API_KEY")
+        auth_token = os.environ.get("KREA_API_KEY", "").strip()
         if not auth_token:
             return error_response(
                 error=(

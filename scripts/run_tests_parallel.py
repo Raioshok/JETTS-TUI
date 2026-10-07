@@ -649,6 +649,14 @@ def _slice_files(
 
 
 def main() -> int:
+    # Windows pipes may default to cp1252 even when pytest output contains
+    # Unicode progress markers. A callback print failure must never discard a
+    # completed file's result from the aggregate release gate.
+    if os.name == "nt":
+        for stream in (sys.stdout, sys.stderr):
+            reconfigure = getattr(stream, "reconfigure", None)
+            if reconfigure is not None:
+                reconfigure(encoding="utf-8", errors="replace")
     parser = argparse.ArgumentParser(
         description=__doc__,
         formatter_class=argparse.RawDescriptionHelpFormatter,

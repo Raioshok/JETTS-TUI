@@ -56,14 +56,15 @@ class TestResumeQuietStderr:
         assert "Session not found" not in captured.out
         # the resume status goes to stderr
         assert "Session not found" in captured.err
-        assert "freeide sessions list" in captured.err
+        assert "jetts-tui sessions list" in captured.err
 
     def test_session_not_found_goes_to_stdout_in_full_mode(self, capsys):
         db = MagicMock()
         db.get_session.return_value = None
         cli = _make_cli(quiet=False, db=db)
 
-        with patch("cli._prepare_deferred_agent_startup"):
+        with patch("cli._prepare_deferred_agent_startup"), \
+             patch("cli._cprint", side_effect=lambda text: print(text)):
             result = cli._init_agent()
 
         captured = capsys.readouterr()

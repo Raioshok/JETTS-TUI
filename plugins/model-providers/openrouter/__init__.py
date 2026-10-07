@@ -92,8 +92,7 @@ class OpenRouterProfile(ProviderProfile):
         # calls sent NO sticky key at all and each routed independently of the
         # conversation it belonged to (#70820).
         #
-        # Mirrors the FreeIDE Portal profile, which resolves the same way
-        # (f2f4df064d). The ambient value is the session-lineage ROOT, so it
+        # The ambient value is the session-lineage ROOT, so it
         # also stays stable for installs that opt out of the default
         # ``compression.in_place: true`` and across delegate-subagent trees.
         sticky_key = get_conversation_context() or session_id

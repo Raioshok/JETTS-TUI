@@ -27,8 +27,8 @@ const DEFAULT_SIGN_IN_COPY: SignInCopy = {
   withProvider: provider => `Sign in with ${provider}`
 }
 
-// True when the app is pointed at a remote/cloud backend (either resolves to a
-// remote URL). Any boot failure in this shape is fixable from Settings →
+// True when the app is pointed at a remote backend. Any boot failure in this
+// shape is fixable from Settings →
 // Gateway (edit URL / token / sign in) — the local Retry/Repair buttons target
 // the bundled backend and can't help. Drives the escape-hatch emphasis.
 export function isRemoteConfig(config: DesktopConnectionConfig | null | undefined): boolean {
@@ -39,7 +39,7 @@ export function isRemoteConfig(config: DesktopConnectionConfig | null | undefine
   const ssh = config as DesktopConnectionConfig & { sshHost?: string }
 
   return (
-    ((config.mode === 'remote' || config.mode === 'cloud') && Boolean(config.remoteUrl)) ||
+    (config.mode === 'remote' && Boolean(config.remoteUrl)) ||
     ((config.mode as string) === 'ssh' && Boolean(ssh.sshHost))
   )
 }

@@ -16,8 +16,10 @@ import os
 import subprocess
 import threading
 import time
+from contextlib import ExitStack
 from pathlib import Path
 from types import SimpleNamespace
+from unittest.mock import patch
 
 import pytest
 
@@ -1296,10 +1298,12 @@ def test_migration_renames_legacy_event_kinds(tmp_path, monkeypatch):
 
 def test_list_profiles_on_disk(tmp_path, monkeypatch):
     """list_profiles_on_disk returns the implicit default profile plus
-    named profiles under ~/.freeide/profiles/ that contain a config.yaml."""
+    named profiles under the platform's Jetts-TUI home with a config.yaml."""
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
     monkeypatch.delenv("FREEIDE_HOME", raising=False)
-    profiles = tmp_path / ".freeide" / "profiles"
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
+    root = tmp_path / ("jettstui" if os.name == "nt" else ".jettstui")
+    profiles = root / "profiles"
     profiles.mkdir(parents=True)
     for name in ("researcher", "writer"):
         d = profiles / name
@@ -3832,7 +3836,7 @@ def test_gateway_dispatcher_retries_corrupt_board_after_quarantine(
     def _monotonic_for_gateway_dispatcher():
         caller = inspect.currentframe().f_back  # type: ignore[union-attr]
         code = caller.f_code if caller is not None else None
-        filename = code.co_filename if code is not None else ""
+        filename = code.co_filename.replace("\\", "/") if code is not None else ""
         # The kanban dispatcher/notifier watcher loops were extracted from
         # gateway/run.py into gateway/kanban_watchers.py (god-file Phase 3),
         # so accept either filename for the time-travel mock.
@@ -4441,7 +4445,15 @@ def _drive_worker_exit(conn, tid, fake_pid, raw_status):
     original_alive = _kb._pid_alive
     _kb._pid_alive = lambda p: False
     try:
-        return _kb.detect_crashed_workers(conn)
+        with ExitStack() as wait_status:
+            if os.name == "nt":
+                # These synthetic statuses model POSIX waitpid(), unavailable
+                # on native Windows; keep the classifier contract testable.
+                wait_status.enter_context(patch.object(os, "WIFEXITED", lambda s: (s & 0x7f) == 0, create=True))
+                wait_status.enter_context(patch.object(os, "WEXITSTATUS", lambda s: (s >> 8) & 0xff, create=True))
+                wait_status.enter_context(patch.object(os, "WIFSIGNALED", lambda s: (s & 0x7f) not in (0, 0x7f), create=True))
+                wait_status.enter_context(patch.object(os, "WTERMSIG", lambda s: s & 0x7f, create=True))
+            return _kb.detect_crashed_workers(conn)
     finally:
         _kb._pid_alive = original_alive
 
@@ -4757,7 +4769,8 @@ def test_dispatch_once_integrates_stale_detection(kanban_home, monkeypatch):
         five_hours_ago = int(time.time()) - (5 * 3600)
         with kb.write_txn(conn):
             conn.execute(
-                "UPDATE tasks SET started_at = ? WHERE id = ?", (five_hours_ago, t)
+                "UPDATE tasks SET started_at = ?, last_heartbeat_at = ? WHERE id = ?",
+                (five_hours_ago, five_hours_ago, t),
             )
             conn.execute(
                 "UPDATE task_runs SET started_at = ? "

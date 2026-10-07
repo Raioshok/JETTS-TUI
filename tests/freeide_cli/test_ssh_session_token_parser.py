@@ -14,7 +14,6 @@ def dashboard_parser():
     build_dashboard_parser(
         subparsers,
         cmd_dashboard=lambda _args: None,
-        cmd_dashboard_register=lambda _args: None,
     )
     return parser
 
@@ -46,12 +45,18 @@ def test_token_file_is_read_and_unlinked_through_private_directory(tmp_path, mon
     home = tmp_path / "home"
     freeide_home = home / ".freeide"
     token_dir = freeide_home / "desktop-ssh" / ("a" * 32)
-    token_dir.mkdir(parents=True, mode=0o700)
-    token_path = token_dir / "0123456789abcdef.token"
-    token_path.write_text("b" * 64)
-    token_path.chmod(0o600)
     override = set_freeide_home_override(freeide_home)
     try:
+        if os.name == "nt":
+            from freeide_cli.windows_ssh_runtime import upload_token
+
+            token_path = token_dir / "0123456789abcdef.token"
+            upload_token("a" * 32, "0123456789abcdef", b"b" * 64)
+        else:
+            token_dir.mkdir(parents=True, mode=0o700)
+            token_path = token_dir / "0123456789abcdef.token"
+            token_path.write_text("b" * 64)
+            token_path.chmod(0o600)
         assert _read_ssh_session_token_file(str(token_path)) == "b" * 64
         assert not token_path.exists()
     finally:

@@ -5,8 +5,6 @@ import type { SessionUsageResponse } from '../gatewayTypes.js'
 
 const usageCommand = sessionCommands.find(cmd => cmd.name === 'usage')!
 
-const USAGE_CTA = 'Run /subscription to change plan · /topup to add to your balance'
-
 const guarded =
   <T>(fn: (r: T) => void) =>
   (r: null | T) => {
@@ -46,79 +44,47 @@ const baseUsage = (overrides: Partial<SessionUsageResponse> = {}): SessionUsageR
 
 const printed = (sys: ReturnType<typeof vi.fn>) => sys.mock.calls.map(c => c[0]).join('\n')
 
-const balancePanel = (panel: ReturnType<typeof vi.fn>) => {
-  const sections = panel.mock.calls.find(c => c[0] === 'Balance')?.[1] as { text?: string }[] | undefined
-
-  return (sections ?? []).map(s => s.text ?? '').join('\n')
-}
-
 describe('/usage slash command', () => {
   beforeEach(() => {
     vi.clearAllMocks()
   })
 
-  it('always shows the CTA; "no API calls yet" only when there is no balance', async () => {
+  it('reports an empty session without advertising a removed billing flow', async () => {
     const empty = buildCtx({ 'session.usage': baseUsage({ calls: 0, credits_lines: [] }) })
     await empty.run('')
     expect(printed(empty.sys)).toContain('no API calls yet')
-    expect(printed(empty.sys)).toContain(USAGE_CTA)
-
-    const withBalance = buildCtx({ 'session.usage': baseUsage({ calls: 0, credits_lines: ['$50.00 remaining'] }) })
-    await withBalance.run('')
-    expect(printed(withBalance.sys)).not.toContain('no API calls yet')
-    expect(printed(withBalance.sys)).toContain(USAGE_CTA)
+    expect(printed(empty.sys)).not.toContain('/topup')
+    expect(empty.panel).not.toHaveBeenCalled()
   })
 
-  it('renders the dollar two-bar model (no "credits" wording) when available', async () => {
+  it('shows token and context usage without rendering a Portal balance', async () => {
     const { panel, run } = buildCtx({
       'session.usage': baseUsage({
-        usage: {
-          available: true,
-          status: 'healthy',
-          plan_name: 'Plus',
-          renews_display: 'Jul 1, 2026',
-          total_spendable_display: '$26.00',
-          has_topup: true,
-          plan_bar: {
-            kind: 'plan',
-            remaining_display: '$14.00',
-            total_display: '$20.00',
-            spent_display: '$6.00',
-            pct_used: 30,
-            fill_fraction: 0.7
-          },
-          topup_bar: {
-            kind: 'topup',
-            remaining_display: '$12.00',
-            total_display: '$12.00',
-            spent_display: '$0.00',
-            pct_used: null,
-            fill_fraction: 1
-          }
-        }
+        calls: 2,
+        input: 100,
+        output: 50,
+        total: 150,
+        context_max: 1000,
+        context_used: 200,
+        context_percent: 20,
+        usage: { available: true, status: 'healthy', plan_name: 'Plus' }
       })
     })
 
     await run('')
-
-    const body = balancePanel(panel)
-    expect(body).toContain('Plus')
-    expect(body).toContain('$14.00 left of $20.00')
-    expect(body).toContain('30% used')
-    expect(body).toContain('top-up')
-    expect(body).toContain('$12.00')
-    expect(body.toLowerCase()).not.toContain('credits')
+    expect(panel).toHaveBeenCalledWith('Usage', expect.any(Array))
+    expect(JSON.stringify(panel.mock.calls)).toContain('Input tokens')
+    expect(JSON.stringify(panel.mock.calls)).toContain('Context: 200 / 1,000 (20%)')
+    expect(JSON.stringify(panel.mock.calls)).not.toContain('Plus')
   })
 
-  it('shows the free-models upsell for a free account', async () => {
-    const { panel, run } = buildCtx({
+  it('does not upsell subscriptions from an empty free account', async () => {
+    const { panel, run, sys } = buildCtx({
       'session.usage': baseUsage({ usage: { available: true, status: 'free', plan_name: null } })
     })
 
     await run('')
-
-    const body = balancePanel(panel)
-    expect(body).toContain('free models only')
-    expect(body).toContain('/subscription')
+    expect(panel).not.toHaveBeenCalled()
+    expect(printed(sys)).toBe('no API calls yet')
   })
 })

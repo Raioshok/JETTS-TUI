@@ -6,7 +6,7 @@ from unittest.mock import patch, MagicMock
 from freeide_cli.auth import PROVIDER_REGISTRY, resolve_provider, resolve_api_key_provider_credentials
 from freeide_cli.models import _PROVIDER_MODELS, _PROVIDER_LABELS, _PROVIDER_ALIASES, normalize_provider
 from freeide_cli.model_normalize import normalize_model_for_provider, detect_vendor
-from agent.model_metadata import get_model_context_length
+from agent.model_metadata import DEFAULT_CONTEXT_LENGTHS, get_model_context_length
 from agent.models_dev import PROVIDER_TO_MODELS_DEV, list_agentic_models, _NOISE_PATTERNS
 
 
@@ -165,12 +165,11 @@ class TestGeminiModelNormalization:
 
 class TestGeminiContextLength:
     def test_gemma_4_31b_context(self):
-        # Mock external API lookups to test against hardcoded defaults
-        # (models.dev and OpenRouter may return different values like 262144).
+        # With live metadata unavailable, the most-specific Gemma 4 default wins.
         with patch("agent.models_dev.lookup_models_dev_context", return_value=None), \
              patch("agent.model_metadata.fetch_model_metadata", return_value={}):
             ctx = get_model_context_length("gemma-4-31b-it", provider="gemini")
-        assert ctx == 256000
+        assert ctx == DEFAULT_CONTEXT_LENGTHS["gemma-4-31b"]
 
     def test_gemini_3_context(self):
         ctx = get_model_context_length("gemini-3.1-pro-preview", provider="gemini")

@@ -84,7 +84,7 @@ export default defineConfig({
     ],
   },
   build: {
-    outDir: "../freeide_cli/web_dist",
+    outDir: "../jettstui/web_dist",
     emptyOutDir: true,
     // Shell stays a bit over Vite's 500 kB default after vendor splits;
     // page/xterm chunks load on demand. Keep a modest ceiling so a true

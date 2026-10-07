@@ -537,7 +537,12 @@ class TestWorktreeDirectorySymlink:
         # Manually symlink (mirrors cli.py logic)
         if not dst.exists():
             dst.parent.mkdir(parents=True, exist_ok=True)
-            os.symlink(str(src.resolve()), str(dst))
+            try:
+                os.symlink(str(src.resolve()), str(dst))
+            except OSError as exc:
+                if getattr(exc, "winerror", None) == 1314:
+                    pytest.skip("Windows symlink privilege is unavailable")
+                raise
 
         assert dst.is_symlink()
         assert (dst / "lib" / "marker.txt").read_text() == "venv marker"

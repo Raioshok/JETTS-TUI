@@ -122,6 +122,9 @@ def test_env_dist_tilde_expanded_for_web_server(main_mod, monkeypatch, tmp_path)
     dist.mkdir(parents=True)
     (dist / "index.html").write_text("<html></html>", encoding="utf-8")
     monkeypatch.setenv("HOME", str(home))
+    # Path.expanduser() follows USERPROFILE, not HOME, on native Windows.
+    if sys.platform == "win32":
+        monkeypatch.setenv("USERPROFILE", str(home))
     monkeypatch.setenv("FREEIDE_WEB_DIST", "~/mydist")
 
     monkeypatch.setitem(
@@ -151,7 +154,7 @@ def test_skip_build_missing_dist_attempts_one_recovery_build(
     _wire_common(main_mod, monkeypatch)
     monkeypatch.delenv("FREEIDE_WEB_DIST", raising=False)
     project_root = tmp_path / "proj"
-    dist = project_root / "freeide_cli" / "web_dist"
+    dist = project_root / "jettstui" / "web_dist"
     dist.mkdir(parents=True)
     monkeypatch.setattr(main_mod, "PROJECT_ROOT", project_root)
 
@@ -188,7 +191,7 @@ def test_skip_build_recovery_build_failure_preserves_fatal_exit(
     _wire_common(main_mod, monkeypatch)
     monkeypatch.delenv("FREEIDE_WEB_DIST", raising=False)
     project_root = tmp_path / "proj"
-    (project_root / "freeide_cli" / "web_dist").mkdir(parents=True)
+    (project_root / "jettstui" / "web_dist").mkdir(parents=True)
     monkeypatch.setattr(main_mod, "PROJECT_ROOT", project_root)
 
     started = []

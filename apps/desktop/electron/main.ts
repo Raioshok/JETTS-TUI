@@ -49,7 +49,6 @@ import {
   buildGatewayWsUrlWithTicket,
   connectionScopeKey,
   cookiesHaveLiveSession,
-  cookiesHavePrivySession,
   cookiesHaveSession,
   gatewayTicketFailure,
   gatewayWsUrlIpcResult,
@@ -57,6 +56,7 @@ import {
   localProfileEntry,
   modeIsRemoteLike,
   normalizeRemoteBaseUrl,
+  normalizeSavedConnectionMode,
   normalizeSshConfig,
   normAuthMode,
   pathWithGlobalRemoteProfile,
@@ -123,6 +123,7 @@ import {
   resolveTimeoutMs,
   TEXT_PREVIEW_SOURCE_MAX_BYTES
 } from './hardening'
+import { managedCheckoutRoot, migrateDefaultHome } from './home-migration'
 import { createLinkTitleWindow, guardLinkTitleSession, readLinkTitleWindowTitle } from './link-title-window'
 import { ensureMainWindow } from './main-window-lifecycle'
 import {
@@ -496,24 +497,37 @@ if (INSTALL_STAMP) {
   )
 }
 
-// FREEIDE_HOME — the user-facing root for everything FreeIDE-related. Mirrors
-// scripts/install.ps1's $FreeIDEHome and scripts/install.sh's $FREEIDE_HOME.
+// FREEIDE_HOME remains a compatibility override. The default root mirrors
+// scripts/install.ps1 and scripts/install.sh.
 //
 // Defaults:
-//   Windows: %LOCALAPPDATA%\freeide (matches install.ps1)
-//   macOS / Linux: ~/.freeide (matches install.sh)
+//   Windows: %LOCALAPPDATA%\jettstui
+//   macOS / Linux: ~/.jettstui
 //
-// Special case for Windows: if the user has a legacy ~/.freeide directory
-// (e.g., from a prior pip install or a manual setup) AND no
-// %LOCALAPPDATA%\freeide yet, prefer the legacy path so we don't orphan their
-// existing config / sessions / .env. New installs go to %LOCALAPPDATA%.
+// The default-home migration keeps an alias at the legacy path so older
+// managed launchers continue to see the same config and sessions.
 //
 // FREEIDE_DESKTOP_USER_DATA_DIR (used by test:desktop:fresh) puts the sandbox
 // FREEIDE_HOME beneath the throwaway userData dir so a fresh-install run never
 // touches the user's real ~/.freeide / %LOCALAPPDATA%\freeide.
 function resolveFreeIDEHome() {
+  const defaultBase = IS_WINDOWS
+    ? process.env.LOCALAPPDATA || path.join(app.getPath('home'), 'AppData', 'Local')
+    : app.getPath('home')
+  const brandedDefault = path.join(defaultBase, IS_WINDOWS ? 'jettstui' : '.jettstui')
+  const legacyDefault = path.join(defaultBase, IS_WINDOWS ? 'freeide' : '.freeide')
+  const resolveOverride = (value: string) => {
+    const requested = normalizeFreeIDEHomeRoot(value)
+    // The Windows installer historically persisted the default as an env var.
+    // Treat only that exact path as migratable; custom homes stay untouched.
+    if (path.resolve(requested).toLowerCase() === path.resolve(legacyDefault).toLowerCase()) {
+      return migrateDefaultHome(brandedDefault, legacyDefault)
+    }
+    return requested
+  }
+
   if (process.env.FREEIDE_HOME) {
-    return normalizeFreeIDEHomeRoot(process.env.FREEIDE_HOME)
+    return resolveOverride(process.env.FREEIDE_HOME)
   }
 
   if (USER_DATA_OVERRIDE) {
@@ -530,24 +544,19 @@ function resolveFreeIDEHome() {
     const fromRegistry = readWindowsUserEnvVar('FREEIDE_HOME')
 
     if (fromRegistry) {
-      return normalizeFreeIDEHomeRoot(fromRegistry)
+      return resolveOverride(fromRegistry)
     }
   }
 
-  if (IS_WINDOWS && process.env.LOCALAPPDATA) {
-    const localappdata = path.join(process.env.LOCALAPPDATA, 'freeide')
-    const legacy = path.join(app.getPath('home'), '.freeide')
-
-    // Migrate transparently to LOCALAPPDATA, but honour an existing legacy
-    // ~/.freeide setup (no LOCALAPPDATA install yet) so users don't lose state.
-    if (!directoryExists(localappdata) && directoryExists(legacy)) {
-      return legacy
+  if (IS_WINDOWS) {
+    if (directoryExists(brandedDefault) || directoryExists(legacyDefault)) {
+      return migrateDefaultHome(brandedDefault, legacyDefault)
     }
-
-    return localappdata
+    const olderHome = path.join(app.getPath('home'), '.freeide')
+    return migrateDefaultHome(brandedDefault, olderHome)
   }
 
-  return path.join(app.getPath('home'), '.freeide')
+  return migrateDefaultHome(brandedDefault, legacyDefault)
 }
 
 const FREEIDE_HOME = resolveFreeIDEHome()
@@ -570,7 +579,7 @@ function pathWithFreeIDEManagedNode(...entries) {
 // ACTIVE_FREEIDE_ROOT — the canonical mutable FreeIDE install. Same path
 // install.ps1 / install.sh use, so a desktop-only user and a CLI-only user end
 // up with identical layouts and can share one install.
-const ACTIVE_FREEIDE_ROOT = path.join(FREEIDE_HOME, 'freeide-agent')
+const ACTIVE_FREEIDE_ROOT = managedCheckoutRoot(FREEIDE_HOME)
 // VENV_ROOT — venv lives inside the repo, exactly like install.ps1 does it.
 const VENV_ROOT = path.join(ACTIVE_FREEIDE_ROOT, 'venv')
 // BOOTSTRAP_COMPLETE_MARKER — written by the first-launch bootstrap runner
@@ -1851,11 +1860,14 @@ function backendSupportsServe(backend) {
   let supported = null
 
   if (backend.root) {
-    try {
-      const src = fs.readFileSync(path.join(backend.root, 'freeide_cli', 'subcommands', 'dashboard.py'), 'utf8')
-      supported = sourceDeclaresServe(src)
-    } catch {
-      supported = null // source unreadable — fall through to the probe
+    for (const packageName of ['jettstui', 'freeide_cli']) {
+      try {
+        const src = fs.readFileSync(path.join(backend.root, packageName, 'subcommands', 'dashboard.py'), 'utf8')
+        supported = sourceDeclaresServe(src)
+        break
+      } catch {
+        // Try the legacy package path before probing the command.
+      }
     }
   }
 
@@ -1934,7 +1946,10 @@ function looksLikeDesktopAppBinary(commandPath) {
 }
 
 function isFreeIDESourceRoot(root) {
-  return directoryExists(root) && fileExists(path.join(root, 'freeide_cli', 'main.py'))
+  return directoryExists(root) && (
+    fileExists(path.join(root, 'jettstui', 'main.py')) ||
+    fileExists(path.join(root, 'freeide_cli', 'main.py'))
+  )
 }
 
 function findPythonForRoot(root) {
@@ -2553,14 +2568,14 @@ let quitConfirmedWithActiveWork = false
 // updater isn't staged (e.g. a dev/source run that never went through the
 // installer); callers degrade gracefully.
 function resolveUpdaterBinary() {
-  const names = IS_WINDOWS
-    ? ['jetts-tui-setup.exe', 'freeide-setup.exe']
-    : ['jetts-tui-setup', 'freeide-setup']
+  const names = IS_WINDOWS ? ['jetts-tui-setup.exe', 'freeide-setup.exe'] : ['jetts-tui-setup', 'freeide-setup']
 
   for (const name of names) {
     const candidate = path.join(FREEIDE_HOME, name)
 
-    if (fileExists(candidate)) {return candidate}
+    if (fileExists(candidate)) {
+      return candidate
+    }
   }
 
   return null
@@ -2952,7 +2967,9 @@ async function handOffWindowsBootstrapRecovery(reason) {
   // --repair (full venv recreate) and drove reinstall loops. The venv interpreter
   // and the bootstrap-complete marker are present earlier and are better signals.
   const haveRealInstall =
-    fileExists(venvPython) || fileExists(venvFreeIDE) || fileExists(path.join(updateRoot, '.freeide-bootstrap-complete'))
+    fileExists(venvPython) ||
+    fileExists(venvFreeIDE) ||
+    fileExists(path.join(updateRoot, '.freeide-bootstrap-complete'))
 
   const updaterArgs = chooseUpdaterArgs(haveRealInstall, branch)
 
@@ -3734,7 +3751,8 @@ function createActiveBackend(backendArgs) {
 function resolveFreeIDEBackend(backendArgs) {
   // 1. Explicit override -- FREEIDE_DESKTOP_FREEIDE_ROOT points at a developer
   //    checkout. Honour it as-is (no bootstrap; the user is driving).
-  const overrideRoot = process.env.FREEIDE_DESKTOP_FREEIDE_ROOT && path.resolve(process.env.FREEIDE_DESKTOP_FREEIDE_ROOT)
+  const overrideRoot =
+    process.env.FREEIDE_DESKTOP_FREEIDE_ROOT && path.resolve(process.env.FREEIDE_DESKTOP_FREEIDE_ROOT)
 
   if (overrideRoot && isFreeIDESourceRoot(overrideRoot)) {
     const backend = createPythonBackend(overrideRoot, `FreeIDE source at ${overrideRoot}`, backendArgs)
@@ -5590,16 +5608,10 @@ function installMediaPermissions() {
 //   * WebSocket upgrades require a single-use ``?ticket=`` minted at
 //     ``POST /api/auth/ws-ticket`` (cookie-authed). The legacy ``?token=``
 //     path is unconditionally rejected by gated gateways.
-//   * FreeIDE Portal now issues a 24h ROTATING, reuse-detected refresh token
-//     alongside the ~15-min access token (Portal NAS #293 / freeide #37247).
-//     Both are set as HttpOnly cookies (``freeide_session_at`` ~15 min,
-//     ``freeide_session_rt`` 24h). When the AT cookie lapses but the RT cookie
-//     is still alive, the gateway middleware transparently rotates a fresh AT
-//     on the next authenticated request — so connectivity must NOT be gated on
-//     the AT cookie alone. We probe liveness by actually minting a ws-ticket
-//     (which triggers that server-side refresh) and treat a real 401 as
-//     "needs re-login"; the AT-or-RT cookie presence check is only a cheap
-//     "is the user signed in at all?" gate / display signal.
+//   * Some gateways issue a rotating refresh-token cookie alongside the
+//     access-token cookie. A live refresh cookie can restore an expired access
+//     token, so connectivity is checked by minting a ws-ticket; cookie
+//     presence alone is only a display hint.
 // ---------------------------------------------------------------------------
 
 const OAUTH_SESSION_PARTITION = 'persist:freeide-remote-oauth'
@@ -5773,19 +5785,7 @@ async function clearOauthSession(baseUrl) {
 // /auth/callback, which sets the session cookies on the partition; we poll the
 // cookie jar rather than try to read the HttpOnly value.
 //
-// `silent` selects the URL the window loads, which decides interactive-vs-silent:
-//   - silent=false (default): load ``/login`` — the public interstitial that
-//     renders the "Log in with X" provider chooser. This is the interactive
-//     remote-gateway login the settings UI drives.
-//   - silent=true: load the PROTECTED root ``/`` instead. ``/login`` is a public
-//     route, so loading it NEVER triggers the gate's auto-SSO and always shows
-//     the chooser. Loading a protected page with no session cookie makes the
-//     gate run ``_auto_sso_response``: single registered provider + a live
-//     portal session in this partition → a silent 302 through
-//     ``/auth/login`` → portal ``/oauth/authorize`` (auto-approves org members)
-//     → ``/auth/callback``, which sets the gateway cookie with NO interactive
-//     prompt. This is the per-agent cloud cascade (decisions.md Q5).
-function openOauthLoginWindow(baseUrl, { silent = false } = {}) {
+function openOauthLoginWindow(baseUrl) {
   return new Promise((resolve, reject) => {
     if (!app.isReady()) {
       reject(new Error('Desktop is not ready to start an OAuth login.'))
@@ -5804,7 +5804,6 @@ function openOauthLoginWindow(baseUrl, { silent = false } = {}) {
     let settled = false
     let win = null
     let pollTimer = null
-    let revealTimer = null
 
     const finish = err => {
       if (settled) {
@@ -5815,10 +5814,6 @@ function openOauthLoginWindow(baseUrl, { silent = false } = {}) {
 
       if (pollTimer) {
         clearInterval(pollTimer)
-      }
-
-      if (revealTimer) {
-        clearTimeout(revealTimer)
       }
 
       try {
@@ -5850,14 +5845,8 @@ function openOauthLoginWindow(baseUrl, { silent = false } = {}) {
       win = new BrowserWindow({
         width: 520,
         height: 720,
-        title: silent ? 'Connecting to FreeIDE Cloud agent…' : 'Sign in to FreeIDE gateway',
+        title: 'Sign in to Jetts-TUI gateway',
         autoHideMenuBar: true,
-        // Silent cascade: start HIDDEN. The auto-SSO 302 chain completes in
-        // well under a second, so the window normally never needs to show. We
-        // only reveal it as a fallback if the cascade DOESN'T complete quickly
-        // (e.g. the portal session lapsed and the gate fell through to the
-        // interactive chooser) — see the reveal timer below.
-        show: !silent,
         webPreferences: {
           contextIsolation: true,
           nodeIntegration: false,
@@ -5880,23 +5869,6 @@ function openOauthLoginWindow(baseUrl, { silent = false } = {}) {
     win.webContents.on('did-frame-navigate', () => void checkCookie())
     pollTimer = setInterval(() => void checkCookie(), 750)
 
-    // Silent-mode reveal fallback: if the cascade hasn't settled shortly, the
-    // auto-SSO didn't go through silently (no portal session, multi-provider,
-    // loop-guard tripped, etc.) and the window is now showing an interactive
-    // page. Reveal it so the user can complete sign-in manually rather than
-    // staring at nothing. Cleared on finish().
-    if (silent && win) {
-      revealTimer = setTimeout(() => {
-        try {
-          if (!settled && win && !win.isDestroyed() && !win.isVisible()) {
-            win.show()
-          }
-        } catch {
-          // window torn down
-        }
-      }, 2500)
-    }
-
     win.on('closed', () => {
       if (!settled) {
         finish(new Error('Login window closed before authentication completed.'))
@@ -5907,11 +5879,8 @@ function openOauthLoginWindow(baseUrl, { silent = false } = {}) {
     // login, which is a valid authenticated page that sets the cookies. We
     // only care that the cookie jar is populated.
     //
-    // silent=true loads the protected root so the gate auto-SSOs (no chooser);
-    // silent=false loads the public ``/login`` chooser for interactive sign-in.
     const normalizedBase = normalizeRemoteBaseUrl(baseUrl)
-    const loginUrl = silent ? `${normalizedBase}/` : `${normalizedBase}/login`
-    win.loadURL(loginUrl).catch(error => {
+    win.loadURL(`${normalizedBase}/login`).catch(error => {
       finish(error instanceof Error ? error : new Error(String(error)))
     })
   })
@@ -6253,312 +6222,6 @@ async function freshGatewayWsUrl(profile) {
   return connection.wsUrl
 }
 
-// --- FreeIDE Cloud discovery + silent per-agent sign-in (cloud-auto-discovery
-// Phase 3) ---------------------------------------------------------------
-//
-// The "cloud" connection mode lets a user sign in to the FreeIDE portal ONCE in
-// the OAuth session partition, then (a) discover their hosted agents and (b)
-// connect to any of them with no second interactive sign-in. Both ride the one
-// portal session cookie living in `persist:freeide-remote-oauth`:
-//   - discovery  → GET {portal}/api/agents over the partition-bound net; the
-//     portal session cookie authenticates it (NAS Phase 2.5 accepts the cookie).
-//   - cascade    → opening an agent's own /login in the same partition hits the
-//     portal's silent auto-approve (org member, existing session) and 302s back
-//     with that agent's session cookie — no prompt. Each agent still completes
-//     its own PKCE exchange; SSO removes the human click, not a security check.
-
-// Canonical FreeIDE portal base URL, overridable for staging/dev. Mirrors the CLI
-// convention (freeide_cli/auth.py DEFAULT_NOUS_PORTAL_URL + the same env names)
-// so a single override flips every FreeIDE surface to the same portal.
-const DEFAULT_NOUS_PORTAL_URL = 'https://portal.freeide.dev'
-
-function resolvePortalBaseUrl() {
-  const raw = process.env.FREEIDE_PORTAL_BASE_URL || process.env.NOUS_PORTAL_BASE_URL || DEFAULT_NOUS_PORTAL_URL
-
-  return String(raw).trim().replace(/\/+$/, '')
-}
-
-// Whether the OAuth partition currently holds a live FreeIDE portal session — the
-// credential that powers both discovery and the silent cascade. The portal
-// authenticates via PRIVY, not the FreeIDE gateway session cookies, so this
-// checks for the `privy-token` cookie on the portal host (NOT
-// hasLiveOauthSession, which looks for freeide_session_at/rt that the portal
-// never sets). See connection-config.ts cookiesHavePrivySession.
-async function hasLivePortalSession() {
-  const sess = getOauthSession()
-
-  if (!sess) {
-    return false
-  }
-
-  const portalBaseUrl = resolvePortalBaseUrl()
-  const parsed = new URL(portalBaseUrl)
-
-  try {
-    const cookies = await sess.cookies.get({ url: portalBaseUrl })
-
-    return cookiesHavePrivySession(cookies)
-  } catch {
-    try {
-      const cookies = await sess.cookies.get({ domain: parsed.hostname })
-
-      return cookiesHavePrivySession(cookies)
-    } catch {
-      return false
-    }
-  }
-}
-
-// Drive a one-time interactive portal sign-in in the OAuth partition. Unlike
-// openOauthLoginWindow (which targets a gateway's /login), this lands on the
-// portal itself so the resulting session cookie is portal-scoped — the cookie
-// that authenticates discovery AND is reused for every silent per-agent
-// cascade. Resolves once the portal session cookie appears.
-function openPortalLoginWindow() {
-  const portalBaseUrl = resolvePortalBaseUrl()
-
-  return new Promise((resolve, reject) => {
-    if (!app.isReady()) {
-      reject(new Error('Desktop is not ready to start a FreeIDE Cloud sign-in.'))
-
-      return
-    }
-
-    const sess = getOauthSession()
-
-    if (!sess) {
-      reject(new Error('OAuth session partition is unavailable.'))
-
-      return
-    }
-
-    let settled = false
-    let win = null
-    let pollTimer = null
-
-    const finish = err => {
-      if (settled) {
-        return
-      }
-
-      settled = true
-
-      if (pollTimer) {
-        clearInterval(pollTimer)
-      }
-
-      try {
-        if (win && !win.isDestroyed()) {
-          win.destroy()
-        }
-      } catch {
-        // window already torn down
-      }
-
-      if (err) {
-        reject(err)
-      } else {
-        resolve({ portalBaseUrl, ok: true })
-      }
-    }
-
-    const checkCookie = async () => {
-      if (settled) {
-        return
-      }
-
-      // A live portal (Privy) session cookie means sign-in completed.
-      if (await hasLivePortalSession()) {
-        finish(null)
-      }
-    }
-
-    try {
-      win = new BrowserWindow({
-        width: 520,
-        height: 720,
-        title: 'Sign in to FreeIDE Cloud',
-        autoHideMenuBar: true,
-        webPreferences: {
-          contextIsolation: true,
-          nodeIntegration: false,
-          sandbox: true,
-          session: sess,
-          webSecurity: true
-        }
-      })
-    } catch (error) {
-      finish(error instanceof Error ? error : new Error(String(error)))
-
-      return
-    }
-
-    win.webContents.on('did-navigate', () => void checkCookie())
-    win.webContents.on('did-redirect-navigation', () => void checkCookie())
-    win.webContents.on('did-frame-navigate', () => void checkCookie())
-    pollTimer = setInterval(() => void checkCookie(), 750)
-
-    win.on('closed', () => {
-      if (!settled) {
-        finish(new Error('Sign-in window closed before authentication completed.'))
-      }
-    })
-
-    // Land on the portal root; any authenticated portal page sets the session
-    // cookie. We only care that the partition cookie jar is populated.
-    win.loadURL(portalBaseUrl).catch(error => {
-      finish(error instanceof Error ? error : new Error(String(error)))
-    })
-  })
-}
-
-// Discover the hosted (FreeIDE Cloud) agents the signed-in user can see. Calls
-// the NAS trimmed-summary endpoint over the partition-bound net, so the portal
-// session cookie is attached automatically (no bearer needed — NAS accepts the
-// cookie). Returns { agents } on success, or { needsOrgSelection: true, orgs }
-// when the user belongs to multiple orgs and hasn't picked one yet (NAS 409
-// org_selection_required). Pass `org` (a slug/id from a prior org list) to
-// scope discovery to that org. Throws a needsCloudLogin-tagged error when no
-// portal session is present.
-async function discoverCloudAgents(org?: string) {
-  const portalBaseUrl = resolvePortalBaseUrl()
-
-  if (!(await hasLivePortalSession())) {
-    const err = new Error(
-      'You are not signed in to FreeIDE Cloud. Open Settings → Gateway, choose FreeIDE Cloud, and sign in.'
-    ) as any
-
-    err.needsCloudLogin = true
-    throw err
-  }
-
-  const orgQuery = org ? `?org=${encodeURIComponent(org)}` : ''
-  let body
-
-  try {
-    body = (await fetchJsonViaOauthSession(`${portalBaseUrl}/api/agents${orgQuery}`, {
-      method: 'GET',
-      timeoutMs: 15_000
-    })) as any
-  } catch (error) {
-    // A 401 means the portal session lapsed between the liveness check and the
-    // call — surface it as a re-login, not a generic failure.
-    if (error && error.statusCode === 401) {
-      const err = new Error('Your FreeIDE Cloud session has expired. Open Settings → Gateway and sign in again.') as any
-      err.needsCloudLogin = true
-      err.cause = error
-      throw err
-    }
-
-    // A 409 means we're a multi-org user who hasn't picked an org. The body
-    // carries the user's org list; surface it so the renderer shows a picker
-    // and re-calls discovery with the chosen org. (fetchJsonViaOauthSession
-    // throws on >=400 with err.statusCode + err.message "409: <json body>".)
-    if (error && error.statusCode === 409) {
-      const orgs = parseOrgSelectionError(error)
-
-      if (orgs) {
-        return { needsOrgSelection: true, orgs }
-      }
-    }
-
-    throw error
-  }
-
-  return { agents: trimCloudAgents(body), org: trimCloudOrg(body?.org) }
-}
-
-// Project a NAS response org ({ id, slug, name, isPersonal }) to the trimmed
-// shape the renderer persists, or null when absent/malformed.
-function trimCloudOrg(org) {
-  if (!org || typeof org !== 'object' || typeof org.id !== 'string') {
-    return null
-  }
-
-  return {
-    id: org.id,
-    slug: typeof org.slug === 'string' ? org.slug : null,
-    name: typeof org.name === 'string' ? org.name : org.id,
-    isPersonal: Boolean(org.isPersonal),
-    role: typeof org.role === 'string' ? org.role : 'MEMBER'
-  }
-}
-
-// Extract the org list from a 409 org_selection_required error body. The error
-// message is "409: <raw json>" (see fetchJsonViaOauthSession); parse defensively
-// and return null if it isn't the shape we expect (caller then rethrows).
-function parseOrgSelectionError(error) {
-  const msg = String(error?.message || '')
-  const jsonStart = msg.indexOf('{')
-
-  if (jsonStart < 0) {
-    return null
-  }
-
-  let parsed
-
-  try {
-    parsed = JSON.parse(msg.slice(jsonStart))
-  } catch {
-    return null
-  }
-
-  if (parsed?.error !== 'org_selection_required' || !Array.isArray(parsed.orgs)) {
-    return null
-  }
-
-  return parsed.orgs
-    .filter(o => o && typeof o === 'object' && typeof o.id === 'string')
-    .map(o => ({
-      id: o.id,
-      slug: typeof o.slug === 'string' ? o.slug : null,
-      name: typeof o.name === 'string' ? o.name : o.id,
-      isPersonal: Boolean(o.isPersonal),
-      role: typeof o.role === 'string' ? o.role : 'MEMBER'
-    }))
-}
-
-// Project NAS's agent rows to the trimmed DTO the renderer consumes.
-function trimCloudAgents(body) {
-  const agents = Array.isArray(body?.agents) ? body.agents : []
-
-  return agents
-    .filter(a => a && typeof a === 'object' && typeof a.id === 'string')
-    .map(a => ({
-      id: a.id,
-      name: typeof a.name === 'string' ? a.name : a.id,
-      status: typeof a.status === 'string' ? a.status : 'unknown',
-      dashboardUrl: typeof a.dashboardUrl === 'string' ? a.dashboardUrl : null,
-      dashboardGatewayState: typeof a.dashboardGatewayState === 'string' ? a.dashboardGatewayState : 'unknown'
-    }))
-}
-
-// Silent per-agent sign-in: open the selected agent dashboard's /login in the
-// SAME OAuth partition. Because the user already holds a live portal session
-// there, the agent's /oauth/authorize auto-approves (org member) and 302s back,
-// setting that agent's gateway session cookie WITHOUT a second interactive
-// prompt. Reuses openOauthLoginWindow — the window self-closes the instant the
-// agent's session cookie lands (a silent flow finishes in well under a second;
-// if the portal session were absent it would fall through to an interactive
-// login, which the discovery gate already prevents). Returns once the agent's
-// gateway session cookie is present.
-async function cloudAgentSilentSignIn(dashboardUrl) {
-  const baseUrl = normalizeRemoteBaseUrl(dashboardUrl)
-
-  // Pre-req: a live portal session must exist, or this would surface an
-  // interactive prompt rather than a silent cascade. Discovery already gates on
-  // this, but a selection can arrive after the session lapsed.
-  if (!(await hasLivePortalSession())) {
-    const err = new Error('Your FreeIDE Cloud session has expired. Sign in to FreeIDE Cloud again.') as any
-    err.needsCloudLogin = true
-    throw err
-  }
-
-  await openOauthLoginWindow(baseUrl, { silent: true })
-
-  return { baseUrl, connected: await hasOauthSessionCookie(baseUrl) }
-}
-
 function encryptDesktopSecret(value) {
   return encryptDesktopSecretStrict(value, safeStorage)
 }
@@ -6626,7 +6289,7 @@ function sanitizeConnectionProfiles(raw: Record<string, any>) {
       org?: string
       savedSsh?: object
     } = {
-      mode: modeIsRemoteLike(entry.mode) ? entry.mode : 'local'
+      mode: normalizeSavedConnectionMode(entry.mode) === 'remote' ? 'remote' : 'local'
     }
 
     if (cleaned.mode === 'local') {
@@ -6647,16 +6310,6 @@ function sanitizeConnectionProfiles(raw: Record<string, any>) {
 
     if ((entry as any).token && typeof entry.token === 'object') {
       cleaned.token = entry.token
-    }
-
-    // Preserve the FreeIDE Cloud org tag on cloud-mode entries so Settings can
-    // reopen into the same org for a per-profile cloud connection.
-    if (cleaned.mode === 'cloud') {
-      const org = String(entry.org || '').trim()
-
-      if (org) {
-        cleaned.org = org
-      }
     }
 
     out[name] = cleaned
@@ -6769,7 +6422,7 @@ async function sanitizeDesktopConnectionConfig(config = readDesktopConnectionCon
   const remoteToken = decryptDesktopSecret(block.token)
   const authMode = normAuthMode(block.authMode)
   const remoteUrl = envOverride ? String(process.env.FREEIDE_DESKTOP_REMOTE_URL || '') : String(block.url || '')
-  const mode = envOverride ? 'remote' : savedMode === 'ssh' ? 'ssh' : modeIsRemoteLike(savedMode) ? savedMode : 'local'
+  const mode = envOverride ? 'remote' : normalizeSavedConnectionMode(savedMode)
 
   let remoteOauthConnected = false
 
@@ -6794,9 +6447,6 @@ async function sanitizeDesktopConnectionConfig(config = readDesktopConnectionCon
     remoteAuthMode: authMode,
     remoteOauthConnected,
     remoteUrl,
-    // The persisted FreeIDE Cloud org (slug/id) for a cloud connection, or '' for
-    // remote/local. Lets Settings → Gateway reopen into the same org.
-    cloudOrg: mode === 'cloud' ? String(block.org || '') : '',
     remoteTokenPreview: tokenPreview(remoteToken),
     remoteTokenSet: Boolean(remoteToken),
     sshHost: (ssh || savedSsh)?.host || '',
@@ -6813,24 +6463,15 @@ async function sanitizeDesktopConnectionConfig(config = readDesktopConnectionCon
 // Build + validate a `{ url, authMode, token }` remote block. OAuth gateways
 // authenticate via the login-window session cookie (verified at connect time in
 // resolveRemoteBackend), so only token-auth remotes require a saved token.
-// `org` (optional) is the FreeIDE Cloud org slug/id the instance was discovered
-// under — persisted so Settings can reopen into the same org; omitted from the
-// block when empty so plain remote connections stay unchanged.
-function buildRemoteBlock(remoteUrl, authMode, token, org?: string) {
+function buildRemoteBlock(remoteUrl, authMode, token) {
   if (authMode !== 'oauth' && !decryptDesktopSecret(token)) {
     throw new Error('Remote gateway session token is required.')
   }
 
-  const block: { url: string; authMode: string; token: object; org?: string } = {
+  const block: { url: string; authMode: string; token: object } = {
     url: normalizeRemoteBaseUrl(remoteUrl),
     authMode,
     token
-  }
-
-  const orgValue = typeof org === 'string' ? org.trim() : ''
-
-  if (orgValue) {
-    block.org = orgValue
   }
 
   return block
@@ -6839,31 +6480,20 @@ function buildRemoteBlock(remoteUrl, authMode, token, org?: string) {
 function coerceDesktopConnectionConfig(input: any = {}, existing = readDesktopConnectionConfig(), options: any = {}) {
   const persistToken = options.persistToken !== false
   const key = connectionScopeKey(input.profile)
-  // 'cloud' and 'remote' both persist a remote-shaped block; 'cloud' is
-  // remembered as its own provenance (Q6) and resolves to remote downstream.
-  // Anything else collapses to local.
-  const mode = input.mode === 'ssh' ? 'ssh' : modeIsRemoteLike(input.mode) ? input.mode : 'local'
+  // Legacy cloud entries are remote OAuth connections after Portal removal.
+  const mode = normalizeSavedConnectionMode(input.mode)
   const remoteLike = modeIsRemoteLike(mode)
 
   // The block being edited: a per-profile entry or the global remote block.
   const rawExistingBlock = key ? existing.profiles?.[key] || {} : existing.remote || {}
-  // Leaving a CLOUD connection unselects it: a cloud block's url/org/token
-  // describe a discovered FreeIDE Cloud instance, NOT a user-owned remote gateway,
-  // so switching to local or remote must NOT inherit them (otherwise the stale
-  // cloud URL lingers and re-selecting Cloud looks "already connected"). When the
-  // saved block was cloud and the new mode is not cloud, start from an empty
-  // block. (remote↔local toggles still preserve a real remote URL as before.)
+  // Keep the URL and encrypted credential from a legacy cloud entry when the
+  // user opens it as remote. Clearing the block here would strand that user.
   const existingMode = key ? existing.profiles?.[key]?.mode : existing.mode
-  const leavingCloud = existingMode === 'cloud' && mode !== 'cloud'
   const leavingSsh = rawExistingBlock.mode === 'ssh' && mode !== 'ssh' && mode !== 'local'
-  const existingBlock = leavingCloud || leavingSsh ? {} : rawExistingBlock
+  const existingBlock = leavingSsh ? {} : rawExistingBlock
   const remoteUrl = String(input.remoteUrl ?? existingBlock.url ?? '').trim()
   // authMode: explicit input wins; otherwise inherit the saved value, default 'token'.
   const authMode = resolveAuthMode(input.remoteAuthMode, existingBlock.authMode)
-  // Cloud org: only meaningful for 'cloud' mode. Explicit input wins; otherwise
-  // inherit the saved org. A plain 'remote' connection never carries an org
-  // (switching cloud→remote drops it), so it stays unset unless mode is cloud.
-  const cloudOrg = mode === 'cloud' ? String(input.cloudOrg ?? existingBlock.org ?? '').trim() : ''
   const incomingToken = typeof input.remoteToken === 'string' ? input.remoteToken.trim() : ''
 
   const nextToken = incomingToken
@@ -6879,7 +6509,7 @@ function coerceDesktopConnectionConfig(input: any = {}, existing = readDesktopCo
       const profiles = { ...(existing.profiles || {}), [key]: sshBlock }
 
       return {
-        mode: existing.mode === 'ssh' || modeIsRemoteLike(existing.mode) ? existing.mode : 'local',
+        mode: existing.mode === 'ssh' ? 'ssh' : modeIsRemoteLike(existing.mode) ? 'remote' : 'local',
         remote: existing.remote || {},
         profiles
       }
@@ -6889,13 +6519,11 @@ function coerceDesktopConnectionConfig(input: any = {}, existing = readDesktopCo
   }
 
   if (key) {
-    // Per-profile scope: a remote/cloud entry pins this profile to its own
-    // backend; a local entry clears the override so the profile inherits the
-    // default. The mode tag (remote vs cloud) is preserved on the entry.
+    // Per-profile remote entry pins this profile to its own backend.
     const profiles = { ...(existing.profiles || {}) }
 
     if (remoteLike) {
-      profiles[key] = { mode, ...buildRemoteBlock(remoteUrl, authMode, nextToken, cloudOrg) }
+      profiles[key] = { mode, ...buildRemoteBlock(remoteUrl, authMode, nextToken) }
     } else {
       const localEntry = localProfileEntry(rawExistingBlock)
 
@@ -6907,14 +6535,14 @@ function coerceDesktopConnectionConfig(input: any = {}, existing = readDesktopCo
     }
 
     return {
-      mode: existing.mode === 'ssh' || modeIsRemoteLike(existing.mode) ? existing.mode : 'local',
+      mode: existing.mode === 'ssh' ? 'ssh' : modeIsRemoteLike(existing.mode) ? 'remote' : 'local',
       remote: existing.remote || {},
       profiles
     }
   }
 
   const nextRemote = remoteLike
-    ? buildRemoteBlock(remoteUrl, authMode, nextToken, cloudOrg)
+    ? buildRemoteBlock(remoteUrl, authMode, nextToken)
     : existingMode === 'ssh'
       ? rawExistingBlock
       : { url: remoteUrl ? normalizeRemoteBaseUrl(remoteUrl) : remoteUrl, authMode, token: nextToken }
@@ -6975,11 +6603,8 @@ async function buildRemoteConnection(
   if (authMode === 'oauth') {
     // OAuth gateway: auth comes from EITHER a native bearer token (cookieless
     // RFC 8252 flow) OR the session cookies in the OAuth partition. Liveness is
-    // NOT "is the access-token cookie present?" — Portal issues a 24h rotating
-    // refresh token (freeide #37247), and the gateway middleware transparently
-    // rotates a fresh ~15-min access token from it on the next authenticated
-    // request. So a session with an expired AT cookie but a live RT cookie is
-    // still perfectly connectable. We early-out only when NEITHER a native
+    // NOT "is the access-token cookie present?" — gateways may rotate a fresh
+    // access token from a live refresh cookie. We early-out only when NEITHER a native
     // token NOR any cookie is present, then mint a ws-ticket (which itself
     // prefers the native bearer) as the authoritative liveness check.
     //
@@ -7347,14 +6972,7 @@ async function resolveRemoteBackend(profile) {
   if (override) {
     const token = override.authMode === 'oauth' ? null : decryptDesktopSecret(override.token)
 
-    return buildRemoteConnection(
-      override.url,
-      override.authMode,
-      token,
-      'profile',
-      undefined,
-      config.profiles?.[connectionScopeKey(profile)]?.mode === 'cloud' ? 'cloud' : 'url'
-    )
+    return buildRemoteConnection(override.url, override.authMode, token, 'profile', undefined, 'url')
   }
 
   // 2. Env override (global, token-auth only).
@@ -7385,7 +7003,7 @@ async function resolveRemoteBackend(profile) {
     return bootstrapSshConnection(null, ssh, reuseToken, 'settings')
   }
 
-  // Cloud resolves through the existing URL/OAuth path.
+  // Legacy saved cloud entries resolve through the URL/OAuth path.
   if (!modeIsRemoteLike(config.mode)) {
     return null
   }
@@ -7393,14 +7011,7 @@ async function resolveRemoteBackend(profile) {
   const authMode = normAuthMode(config.remote?.authMode)
   const token = authMode === 'oauth' ? null : decryptDesktopSecret(config.remote?.token)
 
-  return buildRemoteConnection(
-    config.remote?.url,
-    authMode,
-    token,
-    'settings',
-    undefined,
-    config.mode === 'cloud' ? 'cloud' : 'url'
-  )
+  return buildRemoteConnection(config.remote?.url, authMode, token, 'settings', undefined, 'url')
 }
 
 // A remote profile's sessions live on its remote host's state.db, not on a local
@@ -7470,7 +7081,7 @@ async function requestJsonForProfile(profile: string, path: string, method: stri
 async function probeRemoteAuthMode(rawUrl) {
   // Determine how a remote gateway expects callers to authenticate, WITHOUT
   // sending any credentials. ``/api/status`` is public on every FreeIDE
-  // gateway (it backs the portal liveness probe) and reports:
+  // gateway and reports:
   //   auth_required: true  → OAuth gate is engaged (cookie + ws-ticket auth)
   //   auth_required: false → loopback/--insecure: legacy session-token auth
   // ``/api/auth/providers`` (also public, only meaningful when gated) gives
@@ -9280,8 +8891,7 @@ ipcMain.handle('freeide:window:openInstance', async () => {
 ipcMain.handle('freeide:zoom:get', event => {
   const window = BrowserWindow.fromWebContents(event.sender)
 
-  const level =
-    window && !window.isDestroyed() ? window.webContents.getZoomLevel() : DEFAULT_ZOOM_LEVEL
+  const level = window && !window.isDestroyed() ? window.webContents.getZoomLevel() : DEFAULT_ZOOM_LEVEL
 
   return { level, percent: zoomLevelToPercent(level) }
 })
@@ -9604,34 +9214,6 @@ ipcMain.handle('freeide:connection-config:oauth-logout', async (_event, rawUrl) 
   return { ok: true, connected }
 })
 
-// --- FreeIDE Cloud (cloud-auto-discovery Phase 3) ---
-// One portal login in the OAuth partition powers both discovery and the silent
-// per-agent cascade. See the discovery/cascade helpers above.
-ipcMain.handle('freeide:cloud:status', async () => ({
-  portalBaseUrl: resolvePortalBaseUrl(),
-  signedIn: await hasLivePortalSession()
-}))
-ipcMain.handle('freeide:cloud:login', async () => {
-  await openPortalLoginWindow()
-
-  return { ok: true, signedIn: await hasLivePortalSession() }
-})
-ipcMain.handle('freeide:cloud:logout', async () => {
-  await clearOauthSession(resolvePortalBaseUrl())
-
-  return { ok: true, signedIn: await hasLivePortalSession() }
-})
-ipcMain.handle('freeide:cloud:discover', async (_event, org) => {
-  // Returns { agents } or { needsOrgSelection: true, orgs }. `org` (optional)
-  // scopes discovery to a chosen org for multi-org users.
-  return discoverCloudAgents(typeof org === 'string' && org ? org : undefined)
-})
-ipcMain.handle('freeide:cloud:agent-sign-in', async (_event, dashboardUrl) => {
-  // Silent per-agent sign-in via the shared portal session. Returns the agent's
-  // gateway baseUrl + whether its session cookie landed; the renderer then
-  // saves a cloud-mode connection pointed at this dashboardUrl.
-  return cloudAgentSilentSignIn(dashboardUrl)
-})
 ipcMain.handle('freeide:connection-config:save', async (_event, payload) => {
   const config = coerceDesktopConnectionConfig(payload)
   writeDesktopConnectionConfig(config)
@@ -11006,9 +10588,11 @@ ipcMain.handle('freeide:updates:branch:set', async (_event, name) => {
 function resolveFreeIDEVersion() {
   try {
     const root = resolveUpdateRoot()
-    const initPath = path.join(root, 'freeide_cli', '__init__.py')
+    const initPath = ['jettstui', 'freeide_cli']
+      .map(packageName => path.join(root, packageName, '__init__.py'))
+      .find(fileExists)
 
-    if (fileExists(initPath)) {
+    if (initPath) {
       const raw = fs.readFileSync(initPath, 'utf8')
       const match = raw.match(/__version__\s*=\s*["']([^"']+)["']/)
 
@@ -11282,9 +10866,11 @@ function _extractDeepLink(argv) {
     return null
   }
 
-  return argv.find(a => typeof a === 'string' && (
-    a.startsWith(`${FREEIDE_PROTOCOL}://`) || a.startsWith(`${LEGACY_PROTOCOL}://`)
-  )) || null
+  return (
+    argv.find(
+      a => typeof a === 'string' && (a.startsWith(`${FREEIDE_PROTOCOL}://`) || a.startsWith(`${LEGACY_PROTOCOL}://`))
+    ) || null
+  )
 }
 
 function handleDeepLink(url) {

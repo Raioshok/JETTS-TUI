@@ -175,10 +175,10 @@ def _boot_with_bind_mount(
 
 
 def _cleanup_bind_mount(built_image: str, container_name: str, host_dir: Path) -> None:
-    """Remove root/freeide-owned files left in a bind-mounted host dir.
+    """Remove root/jettstui-owned files left in a bind-mounted host dir.
 
     The stage2 hook chowns /opt/data (and its contents) to UID 10000
-    (freeide), which the host test user cannot delete. We run a throwaway
+    (jettstui), which the host test user cannot delete. We run a throwaway
     container as root to chown everything back and rm -rf the contents
     before the temp dir is cleaned up.
     """
@@ -239,7 +239,7 @@ def test_does_not_seed_gateway_state_through_symlink(
         # container-boot.log (which is written by container_boot.py).
         r = subprocess.run(
             ["docker", "logs", container_name],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=10,
         )
         combined = r.stdout + r.stderr
         assert "refusing" in combined and "gateway_state.json" in combined, (
@@ -298,7 +298,7 @@ def test_does_not_seed_auth_json_through_symlink(
         # container-boot.log (which is written by container_boot.py).
         r = subprocess.run(
             ["docker", "logs", container_name],
-            capture_output=True, text=True, timeout=10,
+            capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=10,
         )
         combined = r.stdout + r.stderr
         assert "refusing" in combined and "auth.json" in combined, (

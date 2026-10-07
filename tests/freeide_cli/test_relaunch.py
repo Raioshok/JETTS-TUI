@@ -139,6 +139,7 @@ class TestBuildRelaunchArgv:
 
 
 class TestRelaunch:
+    @pytest.mark.skipif(sys.platform == "win32", reason="POSIX execvp launch path")
     def test_calls_execvp(self, monkeypatch):
         calls = []
 

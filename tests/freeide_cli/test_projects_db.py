@@ -9,6 +9,10 @@ import pytest
 from freeide_cli import projects_db as pdb
 
 
+def _stored(path: str) -> str:
+    return os.path.abspath(path)
+
+
 @pytest.fixture
 def conn(tmp_path):
     c = pdb.connect(db_path=tmp_path / "projects.db")
@@ -23,9 +27,9 @@ def test_record_and_list_discovered_repos(conn):
     assert n == 2
 
     rows = {r["root"]: r["label"] for r in pdb.list_discovered_repos(conn)}
-    assert rows["/www/alpha"] == "alpha"
+    assert rows[_stored("/www/alpha")] == "alpha"
     # Label defaults to the basename when not given.
-    assert rows["/www/beta"] == "beta"
+    assert rows[_stored("/www/beta")] == "beta"
 
 
 def test_record_discovered_repos_upserts(conn):
@@ -42,7 +46,7 @@ def test_record_discovered_repos_replace_drops_stale_rows(conn):
     pdb.record_discovered_repos(conn, [("/www/alpha", "fresh")], replace=True)
 
     rows = {r["root"]: r["label"] for r in pdb.list_discovered_repos(conn)}
-    assert rows == {"/www/alpha": "fresh"}
+    assert rows == {_stored("/www/alpha"): "fresh"}
 
 
 def test_discovery_policy_change_clears_only_discovered_rows(conn):
@@ -67,7 +71,7 @@ def test_default_policy_adopts_unversioned_cache_without_clearing(conn):
         is False
     )
     assert [row["root"] for row in pdb.list_discovered_repos(conn)] == [
-        "/www/scanned"
+        _stored("/www/scanned")
     ]
     assert pdb.get_discovery_policy_key(conn) == "default-policy"
 
@@ -82,28 +86,28 @@ def test_clear_discovered_repos_records_policy_atomically(conn):
 
 
 def test_create_get_list(conn):
-    pid = pdb.create_project(conn, name="FreeIDE Agent", folders=["/tmp/freeide"])
+    pid = pdb.create_project(conn, name="Jetts-TUI", folders=["/tmp/jettstui"])
     proj = pdb.get_project(conn, pid)
 
     assert proj is not None
-    assert proj.slug == "freeide-agent"
-    assert proj.name == "FreeIDE Agent"
+    assert proj.slug == "jetts-tui"
+    assert proj.name == "Jetts-TUI"
     # First folder becomes primary.
-    assert proj.primary_path == "/tmp/freeide"
-    assert [f.path for f in proj.folders] == ["/tmp/freeide"]
+    assert proj.primary_path == _stored("/tmp/jettstui")
+    assert [f.path for f in proj.folders] == [_stored("/tmp/jettstui")]
     assert proj.folders[0].is_primary is True
 
     # Lookup by slug too.
-    assert pdb.get_project(conn, "freeide-agent").id == pid
+    assert pdb.get_project(conn, "jetts-tui").id == pid
     assert len(pdb.list_projects(conn)) == 1
 
 
 def test_slug_collision_disambiguates(conn):
-    pdb.create_project(conn, name="FreeIDE Agent")
-    pdb.create_project(conn, name="FreeIDE Agent")
+    pdb.create_project(conn, name="Jetts-TUI")
+    pdb.create_project(conn, name="Jetts-TUI")
     slugs = sorted(p.slug for p in pdb.list_projects(conn))
 
-    assert slugs == ["freeide-agent", "freeide-agent-2"]
+    assert slugs == ["jetts-tui", "jetts-tui-2"]
 
 
 def test_empty_name_rejected(conn):
@@ -117,13 +121,13 @@ def test_add_remove_folder_and_primary_repoint(conn):
     pdb.add_folder(conn, pid, "/c", is_primary=True)
 
     proj = pdb.get_project(conn, pid)
-    assert proj.primary_path == "/c"
-    assert {f.path for f in proj.folders} == {"/a", "/b", "/c"}
+    assert proj.primary_path == _stored("/c")
+    assert {f.path for f in proj.folders} == {_stored("/a"), _stored("/b"), _stored("/c")}
 
     # Removing the primary repoints to the oldest remaining folder.
     pdb.remove_folder(conn, pid, "/c")
     proj = pdb.get_project(conn, pid)
-    assert proj.primary_path == "/a"
+    assert proj.primary_path == _stored("/a")
 
     # Removing the last folder clears the primary.
     pdb.remove_folder(conn, pid, "/a")
@@ -143,7 +147,7 @@ def test_paths_normalized(conn):
     pid = pdb.create_project(conn, name="P", folders=["/a/b/../c/"])
     proj = pdb.get_project(conn, pid)
     # Trailing slash stripped, .. collapsed.
-    assert proj.primary_path == "/a/c"
+    assert proj.primary_path == _stored("/a/c")
 
 
 def test_project_for_path_longest_prefix(conn):
@@ -201,7 +205,7 @@ def test_per_profile_isolation(tmp_path):
         assert [p.slug for p in pdb.list_projects(a)] == ["only-in-a"]
         assert pdb.list_projects(b) == []
         assert [row["root"] for row in pdb.list_discovered_repos(a)] == [
-            "/a/scanned"
+            _stored("/a/scanned")
         ]
         assert pdb.list_discovered_repos(b) == []
     finally:

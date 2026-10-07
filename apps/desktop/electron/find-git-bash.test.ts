@@ -42,6 +42,18 @@ test('FREEIDE_GIT_BASH_PATH empty string is ignored', () => {
   assert.equal(result, 'C:\\msys64\\usr\\bin\\bash.exe')
 })
 
+test('branded managed Git wins over the legacy fallback', () => {
+  const local = 'C:\\Users\\test\\AppData\\Local'
+  const result = findGitBash({
+    isWindows: true,
+    env: { LOCALAPPDATA: local },
+    fileExists: p => p.endsWith('\\git\\bin\\bash.exe'),
+    findOnPath: () => null
+  })
+
+  assert.equal(result, `${local}\\jettstui\\git\\bin\\bash.exe`)
+})
+
 test('non-Windows uses findOnPath', () => {
   const result = findGitBash({
     isWindows: false,

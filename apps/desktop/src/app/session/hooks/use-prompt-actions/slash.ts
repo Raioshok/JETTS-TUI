@@ -672,11 +672,25 @@ export function useSlashCommand(deps: SlashCommandDeps) {
         },
         // /title <name> renames via the gateway's session.title RPC — the same
         // path the TUI uses, NOT REST renameSession (which 404s on runtime ids)
-        // nor the slash worker (whose DB write can silently fail). Bare /title
-        // shows the current title, which the worker owns, so delegate to exec.
+        // nor the slash worker (whose DB write can silently fail). Both forms
+        // use the same session-scoped RPC, so a read cannot start that worker.
         title: async ctx => {
           if (!ctx.arg) {
-            await runExec(ctx)
+            const resolved = await withSlashOutput(ctx)
+
+            if (!resolved) {
+              return
+            }
+
+            try {
+              const result = await requestGateway<SessionTitleResponse>('session.title', {
+                session_id: resolved.sessionId
+              })
+              const current = (result?.title || '').trim()
+              resolved.render(current ? `Title: ${current}` : 'No title set.')
+            } catch (err) {
+              resolved.render(`error: ${err instanceof Error ? err.message : String(err)}`)
+            }
 
             return
           }

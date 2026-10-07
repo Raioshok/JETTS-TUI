@@ -26,16 +26,20 @@ class TestGatewayLifecyclePattern:
     """Verify the regex catches gateway lifecycle commands."""
 
     @pytest.mark.parametrize("text", [
+        "jetts-tui gateway restart",
+        "jetts-tui gateway stop",
+        "JETTS-TUI GATEWAY RESTART",
         "freeide gateway restart",
         "freeide gateway stop",
         "freeide  gateway  restart",         # double spaces
-        "Hermez Gateway Restart".lower().replace("z", "s"),  # case handled
         "FREEIDE GATEWAY RESTART",           # uppercase
     ])
     def test_freeide_gateway_commands(self, text):
         assert _contains_gateway_lifecycle_command(text), f"Should match: {text!r}"
 
     @pytest.mark.parametrize("text", [
+        "launchctl kickstart gui/501/ai.jettstui.gateway",
+        "systemctl restart jettstui-gateway",
         "launchctl kickstart gui/501/ai.freeide.gateway",
         "launchctl unload ~/Library/LaunchAgents/ai.freeide.gateway.plist",
         "launchctl stop ai.freeide.gateway",
@@ -47,6 +51,7 @@ class TestGatewayLifecyclePattern:
         assert _contains_gateway_lifecycle_command(text), f"Should match: {text!r}"
 
     @pytest.mark.parametrize("text", [
+        "pkill -f jettstui.*gateway",
         "kill freeide gateway process",
         "pkill -f freeide.*gateway",
         "pkill -f gateway.*freeide",          # inverse token order
@@ -68,6 +73,7 @@ class TestGatewayLifecyclePattern:
         # foot-gun (#30719 lists only those).
         "freeide gateway start",
         "freeide gateway start --all",
+        "jetts-tui gateway start",
         # Tightened launchctl/systemctl branches: ops on NON-gateway freeide
         # services must not be falsely blocked (the old `.*freeide` matched any
         # freeide token).

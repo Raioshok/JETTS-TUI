@@ -37,7 +37,7 @@
 set -e
 
 INIT_TARGET="${FREEIDE_TINI_SHIM_TARGET:-/init}"
-WRAPPER="${FREEIDE_TINI_SHIM_WRAPPER:-/opt/freeide/docker/main-wrapper.sh}"
+WRAPPER="${FREEIDE_TINI_SHIM_WRAPPER:-/opt/jettstui/docker/main-wrapper.sh}"
 
 while [ "$#" -gt 0 ]; do
     case "$1" in

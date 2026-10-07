@@ -871,12 +871,22 @@ class _BrokenStdout:
         return None
 
 
-def test_write_json_serializes_concurrent_writes(monkeypatch):
+def test_write_json_serializes_concurrent_writes():
     out = _ChunkyStdout()
-    monkeypatch.setattr(server, "_real_stdout", out)
+    # Give this test its own sink. Other tests may leave gateway discovery
+    # events in flight, and patching the process-wide stdout captures those
+    # unrelated frames mid-write.
+    transport = server.StdioTransport(lambda: out, threading.Lock())
+
+    def emit(seq):
+        token = server.bind_transport(transport)
+        try:
+            server.write_json({"seq": seq, "text": "x" * 24})
+        finally:
+            server.reset_transport(token)
 
     threads = [
-        threading.Thread(target=server.write_json, args=({"seq": i, "text": "x" * 24},))
+        threading.Thread(target=emit, args=(i,))
         for i in range(8)
     ]
 
@@ -886,10 +896,9 @@ def test_write_json_serializes_concurrent_writes(monkeypatch):
     for t in threads:
         t.join()
 
-    lines = "".join(out.parts).splitlines()
-
-    assert len(lines) == 8
-    assert {json.loads(line)["seq"] for line in lines} == set(range(8))
+    payloads = [json.loads(line) for line in "".join(out.parts).splitlines()]
+    assert len(payloads) == 8
+    assert {payload["seq"] for payload in payloads} == set(range(8))
 
 
 def test_write_json_returns_false_on_broken_pipe(monkeypatch):
@@ -5972,7 +5981,7 @@ def test_config_set_model_global_persists(monkeypatch):
     monkeypatch.setattr(server, "_emit", lambda *args, **kwargs: None)
     # _persist_model_switch uses targeted save_config_value writes (#48305) so it
     # preserves sibling model.* keys instead of rewriting the whole block.
-    monkeypatch.setattr("cli.save_config_value", lambda key, value: saved_values.__setitem__(key, value) or True)
+    monkeypatch.setattr("freeide_cli.config_edit.save_config_value", lambda key, value: saved_values.__setitem__(key, value) or True)
 
     resp = server.handle_request(
         {
@@ -7102,18 +7111,16 @@ def test_prompt_submit_expands_context_refs(monkeypatch):
 
 
 def test_image_attach_appends_local_image(monkeypatch):
-    fake_cli = types.ModuleType("cli")
-    fake_cli._IMAGE_EXTENSIONS = {".png"}
-    fake_cli._detect_file_drop = lambda raw: {
+    monkeypatch.setattr("freeide_cli.attachments._IMAGE_EXTENSIONS", {".png"})
+    monkeypatch.setattr("freeide_cli.attachments._detect_file_drop", lambda raw: {
         "path": Path("/tmp/cat.png"),
         "is_image": True,
         "remainder": "",
-    }
-    fake_cli._split_path_input = lambda raw: (raw, "")
-    fake_cli._resolve_attachment_path = lambda raw: Path("/tmp/cat.png")
+    })
+    monkeypatch.setattr("freeide_cli.attachments._split_path_input", lambda raw: (raw, ""))
+    monkeypatch.setattr("freeide_cli.attachments._resolve_attachment_path", lambda raw: Path("/tmp/cat.png"))
 
     server._sessions["sid"] = _session()
-    monkeypatch.setitem(sys.modules, "cli", fake_cli)
 
     resp = server.handle_request(
         {
@@ -7128,23 +7135,11 @@ def test_image_attach_appends_local_image(monkeypatch):
     assert len(server._sessions["sid"]["attached_images"]) == 1
 
 
-def test_image_attach_accepts_unquoted_screenshot_path_with_spaces(monkeypatch):
-    screenshot = Path("/tmp/Screenshot 2026-04-21 at 1.04.43 PM.png")
-    fake_cli = types.ModuleType("cli")
-    fake_cli._IMAGE_EXTENSIONS = {".png"}
-    fake_cli._detect_file_drop = lambda raw: {
-        "path": screenshot,
-        "is_image": True,
-        "remainder": "",
-    }
-    fake_cli._split_path_input = lambda raw: (
-        "/tmp/Screenshot",
-        "2026-04-21 at 1.04.43 PM.png",
-    )
-    fake_cli._resolve_attachment_path = lambda raw: None
+def test_image_attach_accepts_unquoted_screenshot_path_with_spaces(tmp_path):
+    screenshot = tmp_path / "Screenshot 2026-04-21 at 1.04.43 PM.png"
+    screenshot.write_bytes(b"\x89PNG\r\n\x1a\n")
 
     server._sessions["sid"] = _session()
-    monkeypatch.setitem(sys.modules, "cli", fake_cli)
 
     resp = server.handle_request(
         {
@@ -7599,22 +7594,17 @@ def test_complete_slash_surfaces_completer_error(monkeypatch):
     assert "no completer" in resp["error"]["message"]
 
 
-def test_input_detect_drop_attaches_image(monkeypatch):
-    fake_cli = types.ModuleType("cli")
-    fake_cli._detect_file_drop = lambda raw: {
-        "path": Path("/tmp/cat.png"),
-        "is_image": True,
-        "remainder": "",
-    }
+def test_input_detect_drop_attaches_image(tmp_path):
+    image = tmp_path / "cat.png"
+    image.write_bytes(b"\x89PNG\r\n\x1a\n")
 
     server._sessions["sid"] = _session()
-    monkeypatch.setitem(sys.modules, "cli", fake_cli)
 
     resp = server.handle_request(
         {
             "id": "1",
             "method": "input.detect_drop",
-            "params": {"session_id": "sid", "text": "/tmp/cat.png"},
+            "params": {"session_id": "sid", "text": str(image)},
         }
     )
 
@@ -10974,6 +10964,9 @@ def test_session_activate_returns_inflight_stream_before_completion(monkeypatch)
     monkeypatch.setattr(server, "render_message", lambda raw, cols: None)
     monkeypatch.setattr(server, "_get_db", lambda: None)
     monkeypatch.setattr(server, "_session_info", lambda agent: {"model": agent.model})
+    # This fake agent has no switch_model; keep the test focused on in-flight
+    # hydration instead of the machine's current config.yaml model.
+    monkeypatch.setattr(server, "_sync_agent_model_with_config", lambda _sid, _session: None)
 
     def _emit(event, sid, payload=None):
         if event == "message.complete":
@@ -13408,7 +13401,6 @@ def test_persist_model_switch_preserves_sibling_model_keys(tmp_path, monkeypatch
     targeted save_config_value writes instead of rewriting the whole block."""
     import types
     import yaml
-    import cli
 
     cfg_path = tmp_path / "config.yaml"
     cfg_path.write_text(
@@ -13422,10 +13414,8 @@ def test_persist_model_switch_preserves_sibling_model_keys(tmp_path, monkeypatch
         "agent:\n"
         "  system_prompt: keepme\n"
     )
-    # save_config_value() resolves the config path from cli._freeide_home, which
-    # is captured at import time — patch it directly (set_freeide_home_override
-    # does NOT affect this snapshot).
-    monkeypatch.setattr(cli, "_freeide_home", tmp_path)
+    # The gateway resolves its profile home at call time, not from cli.py.
+    monkeypatch.setenv("FREEIDE_HOME", str(tmp_path))
 
     result = types.SimpleNamespace(
         new_model="new-model", target_provider="anthropic", base_url=None
@@ -13448,7 +13438,6 @@ def test_persist_model_switch_clears_stale_base_url(tmp_path, monkeypatch):
     pointing at the old host."""
     import types
     import yaml
-    import cli
 
     cfg_path = tmp_path / "config.yaml"
     cfg_path.write_text(
@@ -13457,7 +13446,7 @@ def test_persist_model_switch_clears_stale_base_url(tmp_path, monkeypatch):
         "  provider: custom:mylocal\n"
         "  base_url: http://localhost:1234/v1\n"
     )
-    monkeypatch.setattr(cli, "_freeide_home", tmp_path)
+    monkeypatch.setenv("FREEIDE_HOME", str(tmp_path))
 
     # Switch to a native provider with no base_url.
     result = types.SimpleNamespace(

@@ -9,6 +9,8 @@ import stat
 import subprocess
 from pathlib import Path
 
+import pytest
+
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
 INSTALL_SH = REPO_ROOT / "scripts" / "install.sh"
@@ -29,6 +31,7 @@ def _setup_path_function() -> str:
     return match.group(0)
 
 
+@pytest.mark.skipif(os.name == "nt", reason="POSIX launcher and symlink test")
 def test_venv_launcher_bypasses_uv_console_script_that_requires_realpath(tmp_path: Path) -> None:
     """Stock macOS must start FreeIDE even when its uv console script needs realpath."""
     install_dir = tmp_path / "install"
@@ -48,6 +51,7 @@ def test_venv_launcher_bypasses_uv_console_script_that_requires_realpath(tmp_pat
         '#!/bin/sh\nprintf "%s\\n" "$@" > "$LAUNCH_RESULT"\n',
     )
     (install_dir / "freeide").write_text("# source entrypoint\n", encoding="utf-8")
+    (install_dir / "jetts-tui").write_text("# branded source entrypoint\n", encoding="utf-8")
     _make_executable(
         venv_bin / "freeide",
         "#!/bin/sh\n"
@@ -85,5 +89,17 @@ def test_venv_launcher_bypasses_uv_console_script_that_requires_realpath(tmp_pat
     assert completed.returncode == 0, completed.stderr
     assert result.read_text(encoding="utf-8").splitlines() == [
         str(install_dir / "freeide"),
+        "--version",
+    ]
+
+    branded = subprocess.run(
+        [command_dir / "jetts-tui", "--version"],
+        env=os.environ | {"LAUNCH_RESULT": str(result)},
+        text=True,
+        capture_output=True,
+    )
+    assert branded.returncode == 0, branded.stderr
+    assert result.read_text(encoding="utf-8").splitlines() == [
+        str(install_dir / "jetts-tui"),
         "--version",
     ]

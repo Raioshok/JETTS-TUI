@@ -9,9 +9,9 @@ body:
         Thanks for reporting a bug! Please fill out the sections below so we can reproduce and fix it quickly.
 
         **Before submitting**, please:
-        - [ ] Search [existing issues](https://github.com/freeide/freeide/issues) to avoid duplicates
-        - [ ] Update to the latest version (`freeide update`) and confirm the bug still exists
-        - [ ] Run `freeide debug share` and paste the links below (see Debug Report section)
+        - [ ] Search [existing issues](https://github.com/Raioshok/JETTS-TUI/issues) to avoid duplicates
+        - [ ] Update to the latest version (`jetts-tui update`) and confirm the bug still exists
+        - [ ] Run `jetts-tui debug share` and paste the links below (see Debug Report section)
 
   - type: textarea
     id: description
@@ -29,7 +29,7 @@ body:
       label: Steps to Reproduce
       description: Minimal steps to trigger the bug. The more specific, the faster we can fix it.
       placeholder: |
-        1. Run `freeide chat`
+        1. Run `jetts-tui`
         2. Send the message "..."
         3. Agent calls tool X
         4. Error appears: ...
@@ -56,16 +56,16 @@ body:
     id: component
     attributes:
       label: Affected Component
-      description: Which part of FreeIDE is affected?
+      description: Which part of Jetts-TUI is affected?
       multiple: true
       options:
-        - CLI (interactive chat)
+        - TUI (interactive chat)
         - Gateway (Telegram/Discord/Slack/WhatsApp)
         - Setup / Installation
         - Tools (terminal, file ops, web, code execution, etc.)
         - Skills (skill loading, skill hub, skill guard)
         - Agent Core (conversation loop, context compression, memory)
-        - Configuration (config.yaml, .env, freeide setup)
+        - Configuration (config.yaml, .env, jetts-tui setup)
         - Other
     validations:
       required: true
@@ -77,7 +77,7 @@ body:
       description: Which platform adapter is affected?
       multiple: true
       options:
-        - N/A (CLI only)
+        - N/A (TUI only)
         - Telegram
         - Discord
         - Slack
@@ -88,12 +88,12 @@ body:
     attributes:
       label: Debug Report
       description: |
-        Run `freeide debug share` from your terminal and paste the links it prints here.
+        Run `jetts-tui debug share` from your terminal and paste the links it prints here.
         This uploads your system info, config, and recent logs to a paste service automatically.
 
         If you're in an interactive chat session, you can also use the `/debug` slash command — it does the same thing.
 
-        If the upload fails, run `freeide debug share --local` and paste the output directly.
+        If the upload fails, run `jetts-tui debug share --local` and paste the output directly.
       placeholder: |
         Report   https://paste.rs/abc123
         agent.log   https://paste.rs/def456
@@ -119,10 +119,10 @@ body:
       placeholder: "3.11.9"
 
   - type: input
-    id: freeide-version
+    id: jetts-version
     attributes:
-      label: FreeIDE Version
-      description: Output of `freeide version`
+      label: Jetts-TUI Version
+      description: Output of `jetts-tui version`
       placeholder: "2.1.0"
 
   - type: textarea
@@ -131,7 +131,7 @@ body:
       label: Additional Logs / Traceback (optional)
       description: |
         The debug report above covers most logs. Use this field for any extra error output, 
-        tracebacks, or screenshots not captured by `freeide debug share`.
+        tracebacks, or screenshots not captured by `jetts-tui debug share`.
       render: shell
 
   - type: textarea

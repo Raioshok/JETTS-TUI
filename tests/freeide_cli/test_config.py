@@ -36,7 +36,11 @@ class TestGetFreeIDEHome:
         with patch.dict(os.environ, {}, clear=False):
             os.environ.pop("FREEIDE_HOME", None)
             home = get_freeide_home()
-            assert home == Path.home() / ".freeide"
+            expected = (
+                Path(os.environ.get("LOCALAPPDATA", Path.home() / "AppData" / "Local")) / "jettstui"
+                if os.name == "nt" else Path.home() / ".jettstui"
+            )
+            assert home == expected
 
     def test_env_override(self):
         with patch.dict(os.environ, {"FREEIDE_HOME": "/custom/path"}):
@@ -631,6 +635,9 @@ class TestSaveEnvValueSecure:
             assert parsed["TERMINAL_SSH_KEY"] == path
             assert load_env()["TERMINAL_SSH_KEY"] == path
 
+            if os.name == "nt":
+                return  # Shell sourcing is a POSIX-only contract.
+
             # Shell source must round-trip (this is what the bug broke).
             r = subprocess.run(
                 [
@@ -665,6 +672,9 @@ class TestSaveEnvValueSecure:
             parsed = dotenv_values(str(env_path))
             assert parsed["TABBY_KEY"] == value
             assert load_env()["TABBY_KEY"] == value
+
+            if os.name == "nt":
+                return  # Shell sourcing is a POSIX-only contract.
 
             r = subprocess.run(
                 [
@@ -971,7 +981,9 @@ class TestSanitizeEnvLines:
     def test_migrate_reports_normalized_line_formatting(self, capsys):
         latest_version = DEFAULT_CONFIG["_config_version"]
         with (
-            patch("freeide_cli.config.sanitize_env_file", return_value=2),
+            # Patch the function's actual global namespace: earlier tests can
+            # import this implementation under either compatibility package.
+            patch.dict(migrate_config.__globals__, {"sanitize_env_file": lambda: 2}),
             patch(
                 "freeide_cli.config.check_config_version",
                 return_value=(latest_version, latest_version),

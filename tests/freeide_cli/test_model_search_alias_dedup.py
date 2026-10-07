@@ -1,9 +1,4 @@
-"""Picker dedup must fold live bare wire-ids into their curated public slug.
-
-Kimi Coding Plan live-discovers its flagship as the bare id ``k3`` while the
-curated catalog carries ``kimi-k3``. The curated-first picker merge must not
-render both as separate rows for the same model.
-"""
+"""Live picker rows retain exact endpoint wire IDs without duplicates."""
 
 from unittest.mock import patch
 
@@ -23,9 +18,8 @@ class TestModelAliasCanonical:
 
 
 class TestPickerMergeAliasDedup:
-    def test_live_bare_k3_not_duplicated_against_curated_kimi_k3(self):
-        """Coding Plan key: live returns bare ``k3``; curated has ``kimi-k3``.
-        Exactly one k3-family row must survive (the curated slug leads)."""
+    def test_live_bare_k3_is_not_replaced_by_curated_alias(self):
+        """The successful endpoint response is authoritative, including ``k3``."""
         with (
             patch(
                 "freeide_cli.auth.resolve_api_key_provider_credentials",
@@ -42,8 +36,7 @@ class TestPickerMergeAliasDedup:
             out = provider_model_ids("kimi-coding")
 
         k3_rows = [m for m in out if model_alias_canonical(m) == "kimi-k3"]
-        assert k3_rows == ["kimi-k3"], out
-        # Live-only entries with no curated twin still surface.
+        assert k3_rows == ["k3"], out
         assert "kimi-for-coding" in out
 
     def test_live_only_models_unaffected(self):

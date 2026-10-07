@@ -16,9 +16,12 @@ in ``command_link_dir`` and the venv entry point is left intact.
 from __future__ import annotations
 
 import re
+import os
 import stat
 import subprocess
 from pathlib import Path
+
+import pytest
 
 
 
@@ -28,7 +31,7 @@ INSTALL_SH = REPO_ROOT / "scripts" / "install.sh"
 
 def _extract_setup_path_shim_block() -> str:
     """Return the install.sh shim-write block used by setup_path()."""
-    text = INSTALL_SH.read_text()
+    text = INSTALL_SH.read_text(encoding="utf-8")
     match = re.search(
         r"(?P<block>mkdir -p \"\$command_link_dir\".*?chmod \+x \"\$command_link_dir/freeide\")",
         text,
@@ -57,6 +60,14 @@ def test_setup_path_shim_block_removes_old_link_before_writing() -> None:
     )
 
 
+def test_branded_launcher_removes_prior_link_before_writing() -> None:
+    text = INSTALL_SH.read_text(encoding="utf-8")
+    rm_idx = text.index('rm -f "$command_link_dir/jetts-tui"')
+    cat_idx = text.index('cat > "$command_link_dir/jetts-tui" <<EOF')
+    assert rm_idx < cat_idx
+
+
+@pytest.mark.skipif(os.name == "nt", reason="requires POSIX symlink privilege and bash")
 def test_re_running_setup_path_block_preserves_pip_entry_point(tmp_path: Path) -> None:
     """Behavioral repro: simulate prior-install symlink + new-install heredoc.
 

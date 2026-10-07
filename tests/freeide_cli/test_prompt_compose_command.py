@@ -8,7 +8,7 @@ stripping, seeding, and the empty-buffer cancel path.
 """
 
 import os
-import stat
+import sys
 import tempfile
 
 import pytest
@@ -23,16 +23,17 @@ class _Stub(CLICommandsMixin):
 
 
 def _fake_editor(body: str, mode: str = "append") -> str:
-    """Write a tiny shell 'editor' that mutates the file it is handed."""
-    f = tempfile.NamedTemporaryFile("w", suffix=".sh", delete=False)
+    """Write a tiny cross-platform Python editor for the compose tests."""
+    f = tempfile.NamedTemporaryFile("w", suffix=".py", delete=False, encoding="utf-8")
     if mode == "append":
-        f.write("#!/usr/bin/env bash\n")
-        f.write(f"cat >> \"$1\" <<'EOF'\n{body}\nEOF\n")
+        f.write("from pathlib import Path\nimport sys\n")
+        f.write("with Path(sys.argv[1]).open('a', encoding='utf-8') as output:\n")
+        f.write(f"    output.write({body + chr(10)!r})\n")
     else:  # clear
-        f.write("#!/usr/bin/env bash\n: > \"$1\"\n")
+        f.write("from pathlib import Path\nimport sys\n")
+        f.write("Path(sys.argv[1]).write_text('', encoding='utf-8')\n")
     f.close()
-    os.chmod(f.name, os.stat(f.name).st_mode | stat.S_IEXEC)
-    return f.name
+    return f'"{sys.executable}" "{f.name}"'
 
 
 @pytest.fixture(autouse=True)

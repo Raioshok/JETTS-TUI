@@ -107,7 +107,8 @@ def test_parse_pe_machine_rejects_bad_pe_signature(tmp_path):
     ],
 )
 def test_expected_machines_per_host(host, loadable, not_loadable):
-    with patch("freeide_cli.main._windows_native_machine", return_value=host):
+    with patch("freeide_cli.main._windows_user_runnable_pe_machines", return_value=None), \
+         patch("freeide_cli.main._windows_native_machine", return_value=host):
         expected = cli_main._expected_windows_pe_machines()
     assert loadable <= expected
     assert not (not_loadable & expected)
@@ -115,7 +116,8 @@ def test_expected_machines_per_host(host, loadable, not_loadable):
 
 def test_expected_machines_unknown_host_is_permissive():
     """The gate must never brick launch on hosts we don't recognize."""
-    with patch("freeide_cli.main._windows_native_machine", return_value="RISCV64"):
+    with patch("freeide_cli.main._windows_user_runnable_pe_machines", return_value=None), \
+         patch("freeide_cli.main._windows_native_machine", return_value="RISCV64"):
         expected = cli_main._expected_windows_pe_machines()
     assert {PE_AMD64, PE_ARM64, PE_I386} <= expected
 

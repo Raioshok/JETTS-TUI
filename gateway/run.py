@@ -16848,7 +16848,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
                 return f"🟡 /{command} cancelled. Conversation unchanged."
             if choice == "always":
                 try:
-                    from cli import save_config_value
+                    from jettstui.config_edit import save_config_value
                     save_config_value("approvals.destructive_slash_confirm", False)
                     logger.info(
                         "User opted out of destructive slash confirm (session=%s)",
@@ -24464,7 +24464,7 @@ async def start_gateway(config: Optional[GatewayConfig] = None, replace: bool = 
 
     # Start the background cron scheduler via the resolved provider so
     # scheduled jobs fire automatically. The built-in provider is the
-    # historical in-process 60s ticker; an external provider (e.g. chronos)
+    # historical in-process 60s ticker; an external provider
     # may arm a schedule and return. Pass the event loop so cron delivery can
     # use live adapters (E2EE support).
     from cron.scheduler_provider import InProcessCronScheduler, resolve_cron_scheduler

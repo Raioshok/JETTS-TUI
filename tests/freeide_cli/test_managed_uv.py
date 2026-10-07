@@ -12,6 +12,13 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def _default_posix_runtime():
+    """Most fixtures create bin/uv; Windows-specific tests override this."""
+    with patch("freeide_cli.managed_uv.platform.system", return_value="Linux"):
+        yield
+
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -92,6 +99,7 @@ class TestResolveUv:
             result = resolve_uv()
             assert result == str(tmp_path / "bin" / "uv")
 
+    @pytest.mark.skipif(os.name == "nt", reason="Windows does not enforce POSIX execute bits")
     def test_non_executable_file_returns_none(self, tmp_path):
         uv = tmp_path / "bin" / "uv"
         uv.parent.mkdir(parents=True)
@@ -117,7 +125,8 @@ class TestEnsureUv:
 
     def test_installs_if_missing(self, tmp_path):
         with patch("freeide_cli.managed_uv.get_freeide_home", return_value=tmp_path), \
-             patch("freeide_cli.managed_uv._install_uv") as mock_install:
+             patch("freeide_cli.managed_uv._install_uv") as mock_install, \
+             patch("freeide_cli.managed_uv.subprocess.run", return_value=MagicMock(stdout="uv 0.1.2")):
             # Simulate the installer creating the binary
             def fake_install(target):
                 _make_executable(target)
@@ -150,6 +159,9 @@ class TestEnsureUv:
         ), patch(
             "freeide_cli.managed_uv._install_uv",
             side_effect=fake_install,
+        ), patch(
+            "freeide_cli.managed_uv.subprocess.run",
+            return_value=MagicMock(stdout="uv 0.1.2"),
         ), patch(
             "freeide_cli.managed_uv.repair_vulnerable_runtime",
             return_value=repair,
@@ -282,8 +294,8 @@ class TestUpdateManagedUv:
             from freeide_cli.managed_uv import update_managed_uv
             result = update_managed_uv()
             assert result == str(tmp_path / "bin" / "uv")
-            # First call is self update, second is --version
-            assert mock_run.call_count == 2
+            # Runtime repair may make additional subprocess calls afterward.
+            assert mock_run.call_count >= 2
             assert mock_run.call_args_list[0][0][0] == [str(tmp_path / "bin" / "uv"), "self", "update"]
 
     def test_self_update_failure_non_fatal(self, tmp_path):

@@ -14,6 +14,7 @@ re-clone fresh.
 from __future__ import annotations
 
 import re
+import os
 import shlex
 import shutil
 import subprocess
@@ -24,9 +25,13 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent
 INSTALL_SH = REPO_ROOT / "scripts" / "install.sh"
 INSTALL_PS1 = REPO_ROOT / "scripts" / "install.ps1"
+BASH = (
+    str(Path(os.environ.get("ProgramFiles", "C:/Program Files")) / "Git" / "bin" / "bash.exe")
+    if os.name == "nt" else shutil.which("bash")
+)
 
 pytestmark = pytest.mark.skipif(
-    shutil.which("git") is None or shutil.which("bash") is None,
+    shutil.which("git") is None or not BASH or not Path(BASH).exists(),
     reason="needs git and bash",
 )
 
@@ -42,7 +47,7 @@ def _git(cwd: Path, *args: str) -> None:
 
 def _extract_no_commit_guard() -> str:
     """Pull the clone_repo() guard that drops a commit-less checkout."""
-    text = INSTALL_SH.read_text()
+    text = INSTALL_SH.read_text(encoding="utf-8")
     m = re.search(
         r'if \[ -d "\$INSTALL_DIR/\.git" \] && ! git -C "\$INSTALL_DIR" '
         r"rev-parse --verify HEAD.*?\n    fi",
@@ -55,12 +60,15 @@ def _extract_no_commit_guard() -> str:
 
 def _run_guard(install_dir: Path) -> None:
     block = _extract_no_commit_guard()
+    bash_dir = install_dir.as_posix()
+    if os.name == "nt":
+        bash_dir = f"/{bash_dir[0].lower()}{bash_dir[2:]}"
     script = (
         "log_warn() { echo \"WARN: $*\"; }\n"
-        f"INSTALL_DIR={shlex.quote(str(install_dir))}\n"
+        f"INSTALL_DIR={shlex.quote(bash_dir)}\n"
         f"{block}\n"
     )
-    res = subprocess.run(["bash", "-c", script], capture_output=True, text=True)
+    res = subprocess.run([BASH, "-c", script], capture_output=True, text=True)
     assert res.returncode == 0, res.stderr
 
 

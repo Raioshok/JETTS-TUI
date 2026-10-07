@@ -884,13 +884,14 @@ class TestInlineShellExpansion:
             skill_dir = _make_skill(
                 tmp_path,
                 "dyn-cwd",
-                body="Here: !`pwd`",
+                body="Here: !`test -f marker.txt && printf CWD_OK`",
             )
+            (skill_dir / "marker.txt").write_text("present", encoding="utf-8")
             scan_skill_commands()
             msg = build_skill_invocation_message("/dyn-cwd")
 
         assert msg is not None
-        assert f"Here: {skill_dir}" in msg
+        assert "Here: CWD_OK" in msg
 
     def test_inline_shell_timeout_does_not_break_message(self, tmp_path):
         with (

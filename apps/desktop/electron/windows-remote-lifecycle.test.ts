@@ -48,6 +48,11 @@ test('platform detection preserves POSIX and falls back to Windows PowerShell', 
 
   assert.equal(result.os, 'Windows')
   assert.match(calls[1], /EncodedCommand/)
+  const probe = Buffer.from(calls[1].split(' ').pop()!, 'base64').toString('utf16le')
+
+  assert.match(probe, /LOCALAPPDATA "jettstui"/)
+  assert.match(probe, /Get-Command jetts-tui\.exe/)
+  assert.match(probe, /freeide-agent\\venv\\Scripts\\freeide\.exe/)
 })
 
 test('platform detection surfaces transport failures as themselves, not unsupported-platform', async () => {

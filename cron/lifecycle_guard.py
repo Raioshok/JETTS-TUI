@@ -47,22 +47,22 @@ class GatewayLifecycleBlocked(ValueError):
 # actual shell-command-shaped strings, not on prose.
 _GATEWAY_LIFECYCLE_PATTERN = re.compile(
     r"(?i)"
-    # Branch A: `freeide gateway restart|stop` — the canonical foot-gun.
+    # Branch A: branded and legacy gateway restart/stop commands.
     # `start` is intentionally excluded: starting a gateway from inside a
     # gateway is benign (a no-op or "already running" error), and a
     # legitimate cron job might start a sibling profile's gateway.
-    r"(?:freeide\s+gateway\s+(?:restart|stop))"
+    r"(?:(?:jetts-tui|freeide)\s+gateway\s+(?:restart|stop))"
     # Branch B: launchctl ops on a freeide-gateway label. macOS launchd
     # labels look like `ai.freeide.gateway` / `freeide-gateway`. Requiring the
     # gateway identifier prevents blocking unrelated freeide services (e.g.
     # `launchctl unload ai.freeide.update-checker.plist`).
-    r"|(?:launchctl\s+(?:kickstart|unload|load|stop|restart)\b[^\n]*\bfreeide[.\-]?gateway)"
+    r"|(?:launchctl\s+(?:kickstart|unload|load|stop|restart)\b[^\n]*\b(?:jettstui|freeide)[.\-]?gateway)"
     # Branch C: systemctl ops on a freeide-gateway unit.
-    r"|(?:systemctl\s+(?:-\S+\s+)*(?:restart|stop|start)\b[^\n]*\bfreeide[.\-]?gateway)"
+    r"|(?:systemctl\s+(?:-\S+\s+)*(?:restart|stop|start)\b[^\n]*\b(?:jettstui|freeide)[.\-]?gateway)"
     # Branch D: pkill / kill targeting the freeide gateway process. Both
     # token orders because real reproductions show both.
-    r"|(?:p?kill\b[^\n]*\bfreeide\b[^\n]*\bgateway)"
-    r"|(?:p?kill\b[^\n]*\bgateway\b[^\n]*\bfreeide)"
+    r"|(?:p?kill\b[^\n]*\b(?:jettstui|freeide)\b[^\n]*\bgateway)"
+    r"|(?:p?kill\b[^\n]*\bgateway\b[^\n]*\b(?:jettstui|freeide))"
 )
 
 
@@ -136,6 +136,6 @@ def check_gateway_lifecycle(
             "Blocked: cron job contains a gateway lifecycle command "
             "(restart/stop/kill). This is blocked to prevent agent-driven "
             "SIGTERM-respawn loops under launchd/systemd supervision "
-            "(#30719). Run `freeide gateway restart` from a shell outside "
+            "(#30719). Run `jetts-tui gateway restart` from a shell outside "
             "the running gateway instead."
         )

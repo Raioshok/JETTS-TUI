@@ -1,9 +1,9 @@
 name: Docker Build, Test, and Publish
 
 on:
-  # Trusted main pushes run this workflow directly so environment-scoped
-  # Docker Hub secrets are resolved by the top-level workflow, never across
-  # a reusable-workflow boundary.
+  # Trusted main pushes run this workflow directly. Publishing uses this
+  # repository's GITHUB_TOKEN with package-write permission only in the
+  # protected publish jobs, never in the untrusted PR build.
   push:
     branches: [main]
   release:
@@ -24,14 +24,13 @@ concurrency:
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 env:
-  IMAGE_NAME: freeide/freeide
+  IMAGE_NAME: ghcr.io/raioshok/jetts-tui
 
 jobs:
   # Build and test the image for each architecture. This job runs PR code,
   # so it must remain secret-free. Publishing happens in the separate,
   # protected publish job after these tests pass.
   build:
-    if: github.repository == 'freeide/freeide'
     strategy:
       fail-fast: false
       matrix:
@@ -115,12 +114,15 @@ jobs:
 
   # ---------------------------------------------------------------------------
   # Rebuild and push each architecture only after the unprivileged build/test
-  # matrix passes. This job is the sole Docker Hub credential boundary.
+  # matrix passes. This job is the sole registry credential boundary.
   # ---------------------------------------------------------------------------
   publish:
-    if: github.repository == 'freeide/freeide' && (github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'release')
+    if: github.repository == 'Raioshok/JETTS-TUI' && (github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'release')
     needs: [build]
     environment: container-publish
+    permissions:
+      contents: read
+      packages: write
     strategy:
       fail-fast: false
       matrix:
@@ -144,11 +146,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
-      - name: Log in to Docker Hub
+      - name: Log in to GitHub Container Registry
         uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       # Push by digest only (no tag). The merge job assembles the tagged
       # manifest list after both architecture publishers complete.
@@ -161,6 +164,7 @@ jobs:
           platforms: ${{ matrix.platform }}
           labels: |
             org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.source=https://github.com/Raioshok/JETTS-TUI
           build-args: |
             FREEIDE_GIT_SHA=${{ github.sha }}
           outputs: type=image,name=${{ env.IMAGE_NAME }},push-by-digest=true,name-canonical=true,push=true
@@ -190,11 +194,14 @@ jobs:
   # On releases: tags :<release_tag_name>.
   # ---------------------------------------------------------------------------
   merge:
-    if: github.repository == 'freeide/freeide' && (github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'release')
+    if: github.repository == 'Raioshok/JETTS-TUI' && (github.event_name == 'push' && github.ref == 'refs/heads/main' || github.event_name == 'release')
     runs-on: ubuntu-latest
     needs: [publish]
     timeout-minutes: 10
     environment: container-publish
+    permissions:
+      contents: read
+      packages: write
     steps:
       - name: Download digests
         uses: actions/download-artifact@d3f86a106a0bac45b974a628896c90dbdf5c8093 # v4
@@ -206,11 +213,12 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f # v3
 
-      - name: Log in to Docker Hub
+      - name: Log in to GitHub Container Registry
         uses: docker/login-action@4907a6ddec9925e35a0a9e82d7399ccc52663121 # v4.1.0
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create manifest list and push
         working-directory: /tmp/digests
@@ -228,7 +236,7 @@ jobs:
           else
             tags=(-t "${IMAGE_NAME}:main" -t "${IMAGE_NAME}:latest")
           fi
-          # Retry: Docker Hub API + just-pushed digest eventual consistency
+          # Retry: registry API + just-pushed digest eventual consistency
           # can transiently fail the create; the operation is idempotent.
           for i in 1 2 3; do
             if docker buildx imagetools create "${tags[@]}" "${args[@]}"; then

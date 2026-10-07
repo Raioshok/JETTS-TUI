@@ -2036,7 +2036,7 @@ class TestSystemUnitFreeIDEHome:
     def test_system_unit_preserves_custom_freeide_home(self, monkeypatch):
         # Custom FREEIDE_HOME not under any user's home — keep as-is
         monkeypatch.setattr(Path, "home", staticmethod(lambda: Path("/root")))
-        monkeypatch.setenv("FREEIDE_HOME", "/opt/freeide-shared")
+        monkeypatch.setenv("FREEIDE_HOME", "/opt/jettstui-shared")
         monkeypatch.setattr(
             gateway_cli, "_system_service_identity",
             lambda run_as_user=None: ("alice", "alice", "/home/alice"),
@@ -2048,7 +2048,7 @@ class TestSystemUnitFreeIDEHome:
 
         unit = gateway_cli.generate_systemd_unit(system=True, run_as_user="alice")
 
-        assert 'FREEIDE_HOME=/opt/freeide-shared' in unit
+        assert 'FREEIDE_HOME=/opt/jettstui-shared' in unit
 
     def test_user_unit_unaffected_by_change(self):
         # User-scope units should still use the calling user's FREEIDE_HOME
@@ -2208,10 +2208,10 @@ class TestFreeIDEHomeForTargetUser:
 
     def test_keeps_custom_path(self, monkeypatch):
         monkeypatch.setattr(Path, "home", staticmethod(lambda: Path("/root")))
-        monkeypatch.setenv("FREEIDE_HOME", "/opt/freeide")
+        monkeypatch.setenv("FREEIDE_HOME", "/opt/jettstui")
 
         result = gateway_cli._freeide_home_for_target_user("/home/alice")
-        assert result == "/opt/freeide"
+        assert result == "/opt/jettstui"
 
     def test_noop_when_same_user(self, monkeypatch):
         monkeypatch.setattr(Path, "home", staticmethod(lambda: Path("/home/alice")))
@@ -2652,8 +2652,8 @@ class TestRemapPathForUser:
     def test_keeps_system_path_unchanged(self, monkeypatch, tmp_path):
         monkeypatch.setattr(Path, "home", lambda: tmp_path / "root")
         (tmp_path / "root").mkdir()
-        result = gateway_cli._remap_path_for_user("/opt/freeide", str(tmp_path / "alice"))
-        assert result == "/opt/freeide"
+        result = gateway_cli._remap_path_for_user("/opt/jettstui", str(tmp_path / "alice"))
+        assert result == "/opt/jettstui"
 
     def test_noop_when_same_user(self, monkeypatch, tmp_path):
         monkeypatch.setattr(Path, "home", lambda: tmp_path / "alice")
@@ -2924,9 +2924,9 @@ class TestLegacyFreeIDEUnitDetection:
         user_dir, _ = self._setup_search_paths(tmp_path, monkeypatch)
         variants = [
             "ExecStart=/venv/bin/python -m freeide_cli.main gateway run --replace",
-            "ExecStart=/venv/bin/python /opt/freeide/freeide_cli/main.py gateway run",
+            "ExecStart=/venv/bin/python /opt/jettstui/freeide_cli/main.py gateway run",
             "ExecStart=/usr/local/bin/freeide gateway run --replace",
-            "ExecStart=/venv/bin/python /opt/freeide/gateway/run.py",
+            "ExecStart=/venv/bin/python /opt/jettstui/gateway/run.py",
         ]
         for i, execstart in enumerate(variants):
             name = "freeide.service" if i == 0 else "freeide.service"  # same name
