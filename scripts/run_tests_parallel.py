@@ -94,6 +94,34 @@ _DEFAULT_FILE_TIMEOUT_SECONDS = 300.0
 # Set to 0 to disable (env: FREEIDE_TEST_FILE_RETRIES).
 _DEFAULT_FILE_RETRIES = 1
 
+
+def _split_path_list(raw: str, *, windows: bool | None = None) -> list[str]:
+    """Split CI's colon list without breaking native Windows drive paths."""
+    if windows is None:
+        windows = os.name == "nt"
+    if not windows:
+        return [part for part in raw.split(":") if part.strip()]
+    if ";" in raw:
+        return [part for part in raw.split(";") if part.strip()]
+
+    parts: list[str] = []
+    start = 0
+    for index, char in enumerate(raw):
+        if char != ":":
+            continue
+        is_drive = (
+            index == start + 1
+            and raw[start].isalpha()
+            and index + 1 < len(raw)
+            and raw[index + 1] in "\\/"
+        )
+        if is_drive:
+            continue
+        parts.append(raw[start:index])
+        start = index + 1
+    parts.append(raw[start:])
+    return [part for part in parts if part.strip()]
+
 # Duration cache: maps relative file paths to last-observed subprocess
 # wall-clock seconds. Used by ``--slice`` to distribute files across
 # CI jobs by estimated total time, so no one job gets all the slow files.
@@ -762,7 +790,7 @@ def main() -> int:
     # it never reaches our positional ``paths``. ``=``-joined forms
     # (``-k=expr``, ``--tb=long``) are self-contained and need no lookahead.
     OUR_FLAGS = {
-        "-j", "--jobs", "--paths", "--include-integration",
+        "-h", "--help", "-j", "--jobs", "--paths", "--include-integration",
         "--file-timeout", "--file-retries", "--slice", "--generate-slices", "--files",
     }
     # pytest short flags that consume the NEXT token as their value.
@@ -867,7 +895,7 @@ def main() -> int:
 
     # --files: explicit file list from the CI generate job — skip discovery.
     if args.files:
-        files = [repo_root / f for f in args.files.split(":") if f.strip()]
+        files = [repo_root / f for f in _split_path_list(args.files)]
         roots = []
     else:
         # Resolve discovery roots: positional path args override --paths if any
@@ -875,7 +903,7 @@ def main() -> int:
         if args.paths_positional:
             roots = [repo_root / p for p in args.paths_positional]
         else:
-            roots = [repo_root / p for p in args.paths.split(":") if p]
+            roots = [repo_root / p for p in _split_path_list(args.paths)]
 
         if args.include_integration:
             # Caller takes responsibility — typically used via explicit -k filter.
