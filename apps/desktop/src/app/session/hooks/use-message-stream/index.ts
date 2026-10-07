@@ -245,7 +245,7 @@ export function useMessageStream({
     // last-block markdown re-parse cost is roughly linear in current block
     // length. With this floor, slower streams still coalesce ~2 tokens per
     // commit and the synthetic harness shows longtask counts drop from ~5/5s
-    // to ~1/5s on big sessions (see scripts/profile-typing-lag.md).
+    // to ~1/5s on big sessions.
     //
     // ADAPTIVE: the floor scales with what the last flush actually cost.
     // With several sessions streaming at once (split tiles), one flush carries

@@ -62,8 +62,7 @@ export function hasSessionInfoStatePatch(patch: SessionRuntimeStatePatch): boole
 // linearly with the growing last-block length. Bumping to 33ms lets ~2 tokens
 // batch into one commit at 60 tok/sec without introducing visible lag on the
 // streaming text (still 30 fps of visible text growth). Big perceived
-// smoothness win on long messages with big trailing paragraphs; see
-// `scripts/profile-typing-lag.md` for the measurement work behind this.
+// smoothness win on long messages with big trailing paragraphs.
 export const STREAM_DELTA_FLUSH_MS = 33
 
 // Ceiling for the ADAPTIVE flush gap (see scheduleDeltaFlush). Under heavy

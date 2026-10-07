@@ -157,7 +157,6 @@ Click a session or resident pane to focus it, use `Alt+1` … `Alt+9` for direct
 
 Subagents spawned inside the focused session appear in **CHILD AGENTS** beneath the session list; active children are shown first, and Comms shows their latest activity. Click that section or use `/agents` to inspect and control them. Children are not independent live sessions, so they do not change the `N live` count or get their own `Alt+N` composer target.
 
-For a repeatable busy-input, child-agent, keyboard, and resize check, follow `TUI-SMOKE.md` in the repository root.
 
 While another session runs in the background, its sidebar row shows a `+N` unread badge (a `•` when a resumed session's count reset), and the Comms panel lists the three most recently active sessions with a relative `3m`/`2h` age. Focusing a session clears its badge. Set `display.resident_workspace` in `config.yaml` to `auto` (default), `on` (always when sessions exist), or `off` (never — keep the single-transcript layout) to override the automatic width/height gate.
 
