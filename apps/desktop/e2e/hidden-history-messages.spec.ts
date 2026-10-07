@@ -36,14 +36,14 @@ const COMPACTION_TRIGGER_PADDING = ' force real context compression'.repeat(600)
 async function setupSeededMockBackend(): Promise<MockBackendFixture> {
   const mock = await startMockServer()
   const sandbox = createSandbox('hidden-history')
-  writeMockProviderConfig(sandbox.freeideHome, mock.url)
+  writeMockProviderConfig(sandbox.jettstuiHome, mock.url)
   fs.appendFileSync(
-    path.join(sandbox.freeideHome, 'config.yaml'),
+    path.join(sandbox.jettstuiHome, 'config.yaml'),
     '\ncompression:\n  threshold_tokens: 1\n',
     'utf8',
   )
-  writeEnvFile(sandbox.freeideHome)
-  const builder = await RealSessionBuilder.start(sandbox.freeideHome)
+  writeEnvFile(sandbox.jettstuiHome)
+  const builder = await RealSessionBuilder.start(sandbox.jettstuiHome)
   try {
     await builder.createSession({
       title: SESSION_TITLE,
@@ -108,9 +108,9 @@ test('live verify-on-stop continuations stay out of the transcript', async ({}, 
   )
 
   const mock = await startMockServer({ verificationWritePath: changedFile })
-  writeMockProviderConfig(sandbox.freeideHome, mock.url)
-  fs.appendFileSync(path.join(sandbox.freeideHome, 'config.yaml'), '\nagent:\n  verify_on_stop: true\n', 'utf8')
-  writeEnvFile(sandbox.freeideHome)
+  writeMockProviderConfig(sandbox.jettstuiHome, mock.url)
+  fs.appendFileSync(path.join(sandbox.jettstuiHome, 'config.yaml'), '\nagent:\n  verify_on_stop: true\n', 'utf8')
+  writeEnvFile(sandbox.jettstuiHome)
   const { app, page } = await launchDesktop(buildAppEnv(sandbox))
   const fixture: MockBackendFixture = {
     app,

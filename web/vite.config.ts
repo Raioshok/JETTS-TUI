@@ -3,25 +3,25 @@ import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 import path from "path";
 
-const BACKEND = process.env.FREEIDE_DASHBOARD_URL ?? "http://127.0.0.1:9119";
+const BACKEND = process.env.JETTSTUI_DASHBOARD_URL ?? "http://127.0.0.1:9119";
 
 /**
- * In production the Python `freeide dashboard` server injects a one-shot
- * session token into `index.html` (see `freeide_cli/web_server.py`). The
+ * In production the Python `jettstui dashboard` server injects a one-shot
+ * session token into `index.html` (see `jettstui/web_server.py`). The
  * Vite dev server serves its own `index.html`, so unless we forward that
  * token, every protected `/api/*` call 401s.
  *
  * This plugin fetches the running dashboard's `index.html` on each dev page
- * load, scrapes the `window.__FREEIDE_SESSION_TOKEN__` assignment, and
+ * load, scrapes the `window.__JETTSTUI_SESSION_TOKEN__` assignment, and
  * re-injects it into the dev HTML. No-op in production builds.
  */
-function freeideDevToken(): Plugin {
-  const TOKEN_RE = /window\.__FREEIDE_SESSION_TOKEN__\s*=\s*"([^"]+)"/;
+function jettstuiDevToken(): Plugin {
+  const TOKEN_RE = /window\.__JETTSTUI_SESSION_TOKEN__\s*=\s*"([^"]+)"/;
   const EMBEDDED_RE =
-    /window\.__FREEIDE_DASHBOARD_EMBEDDED_CHAT__\s*=\s*(true|false)/;
+    /window\.__JETTSTUI_DASHBOARD_EMBEDDED_CHAT__\s*=\s*(true|false)/;
 
   return {
-    name: "freeide:dev-session-token",
+    name: "jettstui:dev-session-token",
     apply: "serve",
     async transformIndexHtml() {
       try {
@@ -30,8 +30,8 @@ function freeideDevToken(): Plugin {
         const match = html.match(TOKEN_RE);
         if (!match) {
           console.warn(
-            `[freeide] Could not find session token in ${BACKEND} — ` +
-              `is \`freeide dashboard\` running? /api calls will 401.`,
+            `[jettstui] Could not find session token in ${BACKEND} — ` +
+              `is \`jettstui dashboard\` running? /api calls will 401.`,
           );
           return;
         }
@@ -42,14 +42,14 @@ function freeideDevToken(): Plugin {
             tag: "script",
             injectTo: "head",
             children:
-              `window.__FREEIDE_SESSION_TOKEN__="${match[1]}";` +
-              `window.__FREEIDE_DASHBOARD_EMBEDDED_CHAT__=${embeddedJs};`,
+              `window.__JETTSTUI_SESSION_TOKEN__="${match[1]}";` +
+              `window.__JETTSTUI_DASHBOARD_EMBEDDED_CHAT__=${embeddedJs};`,
           },
         ];
       } catch (err) {
         console.warn(
-          `[freeide] Dashboard at ${BACKEND} unreachable — ` +
-            `start it with \`freeide dashboard\` or set FREEIDE_DASHBOARD_URL. ` +
+          `[jettstui] Dashboard at ${BACKEND} unreachable — ` +
+            `start it with \`jettstui dashboard\` or set JETTSTUI_DASHBOARD_URL. ` +
             `(${(err as Error).message})`,
         );
       }
@@ -58,7 +58,7 @@ function freeideDevToken(): Plugin {
 }
 
 export default defineConfig({
-  plugins: [react(), tailwindcss(), freeideDevToken()],
+  plugins: [react(), tailwindcss(), jettstuiDevToken()],
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
@@ -138,7 +138,7 @@ export default defineConfig({
         target: BACKEND,
         ws: true,
       },
-      // Same host as `freeide dashboard` must serve these; Vite has no
+      // Same host as `jettstui dashboard` must serve these; Vite has no
       // dashboard-plugins/* files, so without this, plugin scripts 404
       // or receive index.html in dev.
       "/dashboard-plugins": BACKEND,

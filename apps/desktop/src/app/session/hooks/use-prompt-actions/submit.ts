@@ -1,6 +1,6 @@
 import { type MutableRefObject, useCallback } from 'react'
 
-import { PROMPT_SUBMIT_REQUEST_TIMEOUT_MS } from '@/freeide'
+import { PROMPT_SUBMIT_REQUEST_TIMEOUT_MS } from '@/jettstui'
 import type { Translations } from '@/i18n'
 import { type ChatMessage, textPart } from '@/lib/chat-messages'
 import { optimisticAttachmentRef } from '@/lib/chat-runtime'

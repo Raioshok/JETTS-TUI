@@ -26,14 +26,14 @@ Config (``config.yaml``)::
         max_chars: 10000       # default; context above this is spilled
         preview_head: 500      # chars shown at the start of the preview
         preview_tail: 500      # chars shown at the end of the preview
-        directory: null        # default: <FREEIDE_HOME>/hook_outputs
+        directory: null        # default: <JETTSTUI_HOME>/hook_outputs
 
 Design invariants
 -----------------
 * Behaviour-preserving when ``enabled: false`` or when content is under
   the cap — return the input string unchanged.
 * Never raises. Any I/O error (disk full, permission denied, missing
-  FREEIDE_HOME, etc.) falls back to a byte-length truncation with an
+  JETTSTUI_HOME, etc.) falls back to a byte-length truncation with an
   in-prompt notice — the hook context still reaches the model, just
   bounded in size.
 * Spill files are grouped by session so a ``/new`` session doesn't grow
@@ -82,7 +82,7 @@ def get_spill_config() -> Dict[str, Any]:
     """Return resolved hook output-spill config. Never raises."""
     section: Dict[str, Any] = {}
     try:
-        from freeide_cli.config import load_config
+        from jettstui.config import load_config
         cfg = load_config() or {}
         hooks = cfg.get("hooks") if isinstance(cfg, dict) else None
         if isinstance(hooks, dict):
@@ -118,11 +118,11 @@ def _resolve_spill_dir(directory_override: Optional[str], session_id: Optional[s
         base = Path(os.path.expanduser(directory_override))
     else:
         try:
-            from freeide_constants import get_freeide_home
-            base = Path(get_freeide_home()) / "hook_outputs"
+            from jettstui_constants import get_jettstui_home
+            base = Path(get_jettstui_home()) / "hook_outputs"
         except Exception:
-            # Last-resort fallback: FREEIDE_HOME env var, then ~/.freeide
-            home = os.environ.get("FREEIDE_HOME") or os.path.expanduser("~/.freeide")
+            # Last-resort fallback: JETTSTUI_HOME env var, then ~/.jettstui
+            home = os.environ.get("JETTSTUI_HOME") or os.path.expanduser("~/.jettstui")
             base = Path(home) / "hook_outputs"
 
     # Group by session so spills are contained per conversation.

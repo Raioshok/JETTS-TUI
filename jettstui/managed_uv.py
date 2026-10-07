@@ -1,15 +1,15 @@
-"""FreeIDE-managed uv and Python runtime repair.
+"""JettsTUI-managed uv and Python runtime repair.
 
-FreeIDE owns its own uv binary at ``$FREEIDE_HOME/bin/uv`` (or ``uv.exe`` on
+JettsTUI owns its own uv binary at ``$JETTSTUI_HOME/bin/uv`` (or ``uv.exe`` on
 Windows).  Every code path that needs uv resolves it from that single location.
 If the binary is missing, ``ensure_uv()`` bootstraps it via the official
 standalone installer with ``UV_UNMANAGED_INSTALL`` / ``UV_INSTALL_DIR`` pointed
-at ``$FREEIDE_HOME/bin`` so the installer writes directly there — no PATH
+at ``$JETTSTUI_HOME/bin`` so the installer writes directly there — no PATH
 probing, no conda guards, no multi-location resolution chains.
 
-The Python backing the install is different: it is shared by every FreeIDE
+The Python backing the install is different: it is shared by every JettsTUI
 profile because the checkout's ``venv`` is shared.  Runtime repair therefore
-uses an install-scoped store under ``<checkout>/.freeide-runtime/python``. A
+uses an install-scoped store under ``<checkout>/.jettstui-runtime/python``. A
 vulnerable interpreter is never reinstalled in place. We provision a new
 immutable Python generation, build and smoke-test a relocatable sibling venv,
 then cut over with same-filesystem renames. The old venv remains available for
@@ -33,13 +33,13 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Optional
 
-from freeide_constants import get_freeide_home
-from freeide_cli.sqlite_runtime import SQLiteRuntimeInfo, probe_sqlite_runtime
+from jettstui_constants import get_jettstui_home
+from jettstui.sqlite_runtime import SQLiteRuntimeInfo, probe_sqlite_runtime
 
 logger = logging.getLogger(__name__)
 
 _PROJECT_ROOT = Path(__file__).resolve().parents[1]
-_RUNTIME_DIR_NAME = ".freeide-runtime"
+_RUNTIME_DIR_NAME = ".jettstui-runtime"
 _VENV_NAME = "venv"
 _REPAIR_LOCK_NAME = "runtime-repair.lock"
 
@@ -49,13 +49,13 @@ _REPAIR_LOCK_NAME = "runtime-repair.lock"
 
 
 def managed_uv_path() -> Path:
-    """Return the path where FreeIDE keeps *its* uv binary.
+    """Return the path where JettsTUI keeps *its* uv binary.
 
-    ``$FREEIDE_HOME/bin/uv`` on POSIX, ``$FREEIDE_HOME\\bin\\uv.exe`` on
+    ``$JETTSTUI_HOME/bin/uv`` on POSIX, ``$JETTSTUI_HOME\\bin\\uv.exe`` on
     Windows.  The directory may not exist yet — callers should use
     ``ensure_uv()`` to bootstrap it.
     """
-    home = get_freeide_home()
+    home = get_jettstui_home()
     if platform.system() == "Windows":
         return home / "bin" / "uv.exe"
     return home / "bin" / "uv"
@@ -84,7 +84,7 @@ def managed_python_env(
     install_dir: Path | None = None,
     base_env: dict[str, str] | None = None,
 ) -> dict[str, str]:
-    """Return a sanitized environment for FreeIDE-private uv Python commands."""
+    """Return a sanitized environment for JettsTUI-private uv Python commands."""
     target = (
         Path(install_dir)
         if install_dir is not None
@@ -142,8 +142,8 @@ def _report_runtime_repair_failure(repair: RuntimeRepairResult) -> None:
             f"the existing venv is unchanged ({repair.detail})."
         )
         print(
-            "    Sessions stay protected meanwhile: FreeIDE keeps databases "
-            "out of WAL mode on this SQLite build. The next `freeide update` "
+            "    Sessions stay protected meanwhile: JettsTUI keeps databases "
+            "out of WAL mode on this SQLite build. The next `jettstui update` "
             "will retry."
         )
         return
@@ -155,8 +155,8 @@ class _UvResult(str):
     """``ensure_uv()`` return value that survives an update boundary.
 
     ``ensure_uv()``'s arity has flipped between a single path string and a
-    ``(path, fresh_bootstrap)`` tuple across releases. ``freeide update`` runs
-    the call site from the *old*, already-imported ``freeide_cli.main`` against
+    ``(path, fresh_bootstrap)`` tuple across releases. ``jettstui update`` runs
+    the call site from the *old*, already-imported ``jettstui.main`` against
     this *freshly pulled* module, so the two can disagree on how many values
     ``ensure_uv()`` returns. An install parked on a 2-tuple release runs
     ``uv_bin, fresh_bootstrap = ensure_uv()`` against the single-value module
@@ -225,7 +225,7 @@ def _ensure_uv_path(
         # Compatibility boundary: an older, already-imported updater calls the
         # freshly pulled ``ensure_uv()`` after bootstrapping uv.  Repair here so
         # that first update can migrate a vulnerable runtime without requiring
-        # a second ``freeide update``.
+        # a second ``jettstui update``.
         try:
             repair = repair_vulnerable_runtime(result)
             if repair_observer is not None:
@@ -280,7 +280,7 @@ def update_managed_uv(
 ) -> Optional[str]:
     """Run ``uv self update`` on the managed uv binary.
 
-    Call this during ``freeide update`` so the managed copy stays current.
+    Call this during ``jettstui update`` so the managed copy stays current.
     Returns the managed path when uv is available and ``None`` otherwise.
     A self-update failure is non-fatal because the old version still works.
     ``repair_observer``, when provided, receives the runtime repair result.
@@ -508,7 +508,7 @@ def _attempt_install_generation(
     try:
         python.resolve().relative_to(generation.resolve())
     except (OSError, ValueError):
-        logger.warning("uv resolved Python outside the FreeIDE generation: %s", python)
+        logger.warning("uv resolved Python outside the JettsTUI generation: %s", python)
         _remove_tree(generation, boundary=python_root)
         return None
 
@@ -615,7 +615,7 @@ def _smoke_candidate_venv(venv_dir: Path) -> tuple[bool, str, SQLiteRuntimeInfo 
 
     check = (
         "import dotenv, fastapi, openai, prompt_toolkit, pydantic, rich, uvicorn, yaml\n"
-        "import freeide_state\n"
+        "import jettstui_state\n"
     )
     env = dict(os.environ)
     for key in (
@@ -865,7 +865,7 @@ def _release_repair_lock(lock: _RepairLock) -> None:
 def _windows_runtime_holders() -> tuple[bool, str]:
     if platform.system() != "Windows":
         return False, ""
-    main_module = sys.modules.get("freeide_cli.main")
+    main_module = sys.modules.get("jettstui.main")
     detector = getattr(main_module, "_detect_venv_python_processes", None)
     if detector is None:
         return True, "cannot verify Windows venv holders from this update context"
@@ -875,7 +875,7 @@ def _windows_runtime_holders() -> tuple[bool, str]:
         return True, f"could not verify Windows venv holders: {exc}"
     if holders:
         pids = ", ".join(str(item[0]) for item in holders[:6])
-        return True, f"other FreeIDE processes still hold the venv (PID {pids})"
+        return True, f"other JettsTUI processes still hold the venv (PID {pids})"
     return False, ""
 
 
@@ -912,7 +912,7 @@ def _refresh_managed_uv_catalog(uv_bin: str) -> bool:
     newer version number to retry with.
 
     Re-running the official installer is the only supported refresh path for
-    unmanaged installs.  Only the FreeIDE-managed binary is ever refreshed;
+    unmanaged installs.  Only the JettsTUI-managed binary is ever refreshed;
     a caller-supplied foreign uv path is left alone.
 
     Returns ``True`` when the binary's version actually changed — i.e. a
@@ -1003,7 +1003,7 @@ def repair_vulnerable_runtime(
             )
 
         print(
-            "  ⚠ FreeIDE venv links SQLite "
+            "  ⚠ JettsTUI venv links SQLite "
             f"{current.sqlite_version_string}, which has the WAL-reset bug."
         )
         provisioned = _install_safe_python_generation(
@@ -1078,7 +1078,7 @@ def repair_vulnerable_runtime(
         if backup is not None:
             print(
                 f"  ℹ Previous venv parked at {backup.name}; "
-                "keep it until all older FreeIDE processes have exited."
+                "keep it until all older JettsTUI processes have exited."
             )
         return RuntimeRepairResult(
             "repaired",
@@ -1100,7 +1100,7 @@ def _install_uv(target: Path) -> None:
 
     Uses ``UV_UNMANAGED_INSTALL`` (POSIX) or ``UV_INSTALL_DIR`` (Windows)
     so the astral installer writes the binary directly into
-    ``$FREEIDE_HOME/bin/`` instead of ``~/.local/bin/``.
+    ``$JETTSTUI_HOME/bin/`` instead of ``~/.local/bin/``.
     """
     system = platform.system()
     env = {

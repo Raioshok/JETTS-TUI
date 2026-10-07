@@ -1,4 +1,4 @@
-"""nemo_relay — optional FreeIDE plugin for NeMo Relay observability."""
+"""nemo_relay — optional JettsTUI plugin for NeMo Relay observability."""
 
 from __future__ import annotations
 
@@ -55,13 +55,13 @@ class _Settings:
     adaptive_mode: str = "observe_only"
     atof_enabled: bool = False
     atof_output_directory: str = ""
-    atof_filename: str = "freeide-atof.jsonl"
+    atof_filename: str = "jettstui-atof.jsonl"
     atof_mode: str = "append"
     atif_enabled: bool = False
     atif_output_directory: str = ""
-    atif_filename_template: str = "freeide-atif-{session_id}.json"
+    atif_filename_template: str = "jettstui-atif-{session_id}.json"
     atif_subagent_export_mode: str = "embedded"
-    atif_agent_name: str = "FreeIDE Agent"
+    atif_agent_name: str = "JettsTUI"
     atif_agent_version: str = "unknown"
     atif_model_name: str = "unknown"
 
@@ -73,7 +73,7 @@ class _Runtime:
         self.sessions: dict[str, _SessionState] = {}
         self.subagent_parents: dict[str, _SubagentParent] = {}
         self.atof_exporter: Any = None
-        self._atof_subscriber_name = "freeide.nemo_relay.atof"
+        self._atof_subscriber_name = "jettstui.nemo_relay.atof"
         self._plugin_activation: Any = None
         self._shutdown_registered = False
         self._plugin_config_initialized = self._configure_plugins_toml()
@@ -247,9 +247,9 @@ class _Runtime:
                 self.settings.atif_agent_name,
                 self.settings.atif_agent_version,
                 model_name=str(kwargs.get("model") or self.settings.atif_model_name),
-                extra={"source": "freeide-agent", "plugin": "observability/nemo_relay"},
+                extra={"source": "jettstui", "plugin": "observability/nemo_relay"},
             )
-            state.atif_subscriber_name = f"freeide.nemo_relay.atif.{session_id}"
+            state.atif_subscriber_name = f"jettstui.nemo_relay.atif.{session_id}"
             state.atif_exporter.register(state.atif_subscriber_name)
 
         subagent_parent = self.subagent_parents.get(session_id)
@@ -262,7 +262,7 @@ class _Runtime:
             state.parent_session_id = subagent_parent.parent_session_id
 
         state.handle = self.nemo_relay.scope.push(
-            f"freeide-session-{session_id}",
+            f"jettstui-session-{session_id}",
             self.nemo_relay.ScopeType.Agent,
             handle=parent_handle,
             data={"session_id": session_id},
@@ -373,7 +373,7 @@ class _Runtime:
                 metadata=_subagent_child_metadata(kwargs, metadata),
             )
         self.nemo_relay.scope.event(
-            "freeide.subagent.start",
+            "jettstui.subagent.start",
             handle=parent_state.handle,
             data=_jsonable(kwargs),
             metadata=metadata,
@@ -383,7 +383,7 @@ class _Runtime:
         child_session_id = _child_session_id(kwargs)
         if child_session_id:
             self.subagent_parents.pop(child_session_id, None)
-        self.mark("freeide.subagent.stop", kwargs)
+        self.mark("jettstui.subagent.stop", kwargs)
 
     def managed_llm_enabled(self) -> bool:
         return (
@@ -410,7 +410,7 @@ class _Runtime:
         # NeMo Relay's native managed execution may wrap a failing callback as an
         # internal runtime error, hiding the real downstream provider/tool
         # exception. Capture the original here and re-raise it after managed
-        # execution so FreeIDE retry classification still sees it. The LLM and tool
+        # execution so JettsTUI retry classification still sees it. The LLM and tool
         # paths share this scaffolding; they differ only in payload normalization,
         # response shaping, and the Relay call itself.
         raw_response: dict[str, Any] = {"set": False, "value": None, "normalized": None}
@@ -524,7 +524,7 @@ class _Runtime:
 
 
 def register(ctx) -> None:
-    # Activate dynamic plugins before FreeIDE installs the managed execution
+    # Activate dynamic plugins before JettsTUI installs the managed execution
     # boundaries that invoke their interceptors.
     if _load_settings().dynamic_plugins:
         _get_runtime()
@@ -556,7 +556,7 @@ def on_session_start(**kwargs: Any) -> None:
 def on_session_end(**kwargs: Any) -> None:
     runtime = _get_runtime()
     if runtime is not None:
-        _safe(lambda: (runtime.mark("freeide.session.end", kwargs), runtime.export_atif(runtime.ensure_session(kwargs))))
+        _safe(lambda: (runtime.mark("jettstui.session.end", kwargs), runtime.export_atif(runtime.ensure_session(kwargs))))
 
 
 def on_session_finalize(**kwargs: Any) -> None:
@@ -574,13 +574,13 @@ def on_session_reset(**kwargs: Any) -> None:
 def on_pre_llm_call(**kwargs: Any) -> None:
     runtime = _get_runtime()
     if runtime is not None:
-        _safe(lambda: runtime.mark("freeide.turn.start", kwargs))
+        _safe(lambda: runtime.mark("jettstui.turn.start", kwargs))
 
 
 def on_post_llm_call(**kwargs: Any) -> None:
     runtime = _get_runtime()
     if runtime is not None:
-        _safe(lambda: runtime.mark("freeide.turn.end", kwargs))
+        _safe(lambda: runtime.mark("jettstui.turn.end", kwargs))
 
 
 def on_pre_api_request(**kwargs: Any) -> None:
@@ -619,7 +619,7 @@ def on_post_api_request(**kwargs: Any) -> None:
         state = runtime.ensure_session(kwargs)
         span = state.llm_spans.pop(_api_key(kwargs), None)
         if span is None:
-            runtime.mark("freeide.api.response.unmatched", kwargs)
+            runtime.mark("jettstui.api.response.unmatched", kwargs)
             return
         runtime.nemo_relay.llm.call_end(
             span,
@@ -642,7 +642,7 @@ def on_api_request_error(**kwargs: Any) -> None:
         state = runtime.ensure_session(kwargs)
         span = state.llm_spans.pop(_api_key(kwargs), None)
         if span is None:
-            runtime.mark("freeide.api.error", kwargs)
+            runtime.mark("jettstui.api.error", kwargs)
             return
         runtime.nemo_relay.llm.call_end(
             span,
@@ -687,7 +687,7 @@ def on_post_tool_call(**kwargs: Any) -> None:
         state = runtime.ensure_session(kwargs)
         span = state.tool_spans.pop(_tool_key(kwargs), None)
         if span is None:
-            runtime.mark("freeide.tool.response.unmatched", kwargs)
+            runtime.mark("jettstui.tool.response.unmatched", kwargs)
             return
         runtime.nemo_relay.tools.call_end(
             span,
@@ -702,13 +702,13 @@ def on_post_tool_call(**kwargs: Any) -> None:
 def on_pre_approval_request(**kwargs: Any) -> None:
     runtime = _get_runtime()
     if runtime is not None:
-        _safe(lambda: runtime.mark("freeide.approval.request", kwargs))
+        _safe(lambda: runtime.mark("jettstui.approval.request", kwargs))
 
 
 def on_post_approval_response(**kwargs: Any) -> None:
     runtime = _get_runtime()
     if runtime is not None:
-        _safe(lambda: runtime.mark("freeide.approval.response", kwargs))
+        _safe(lambda: runtime.mark("jettstui.approval.response", kwargs))
 
 
 def on_subagent_start(**kwargs: Any) -> None:
@@ -768,7 +768,7 @@ def _get_runtime() -> Optional[_Runtime]:
 
 
 def _load_settings() -> _Settings:
-    plugins_toml_path = _env("FREEIDE_NEMO_RELAY_PLUGINS_TOML")
+    plugins_toml_path = _env("JETTSTUI_NEMO_RELAY_PLUGINS_TOML")
     plugins_config = _load_plugins_config(plugins_toml_path)
     adaptive_config = _enabled_component_config(plugins_config, "adaptive")
     return _Settings(
@@ -777,17 +777,17 @@ def _load_settings() -> _Settings:
         dynamic_plugins=_dynamic_plugin_specs(plugins_config, plugins_toml_path),
         adaptive_enabled=adaptive_config is not None,
         adaptive_mode=_adaptive_mode(adaptive_config),
-        atof_enabled=_env_bool("FREEIDE_NEMO_RELAY_ATOF_ENABLED"),
-        atof_output_directory=_env("FREEIDE_NEMO_RELAY_ATOF_OUTPUT_DIRECTORY"),
-        atof_filename=_env("FREEIDE_NEMO_RELAY_ATOF_FILENAME") or "freeide-atof.jsonl",
-        atof_mode=_env("FREEIDE_NEMO_RELAY_ATOF_MODE") or "append",
-        atif_enabled=_env_bool("FREEIDE_NEMO_RELAY_ATIF_ENABLED"),
-        atif_output_directory=_env("FREEIDE_NEMO_RELAY_ATIF_OUTPUT_DIRECTORY"),
-        atif_filename_template=_env("FREEIDE_NEMO_RELAY_ATIF_FILENAME_TEMPLATE") or "freeide-atif-{session_id}.json",
+        atof_enabled=_env_bool("JETTSTUI_NEMO_RELAY_ATOF_ENABLED"),
+        atof_output_directory=_env("JETTSTUI_NEMO_RELAY_ATOF_OUTPUT_DIRECTORY"),
+        atof_filename=_env("JETTSTUI_NEMO_RELAY_ATOF_FILENAME") or "jettstui-atof.jsonl",
+        atof_mode=_env("JETTSTUI_NEMO_RELAY_ATOF_MODE") or "append",
+        atif_enabled=_env_bool("JETTSTUI_NEMO_RELAY_ATIF_ENABLED"),
+        atif_output_directory=_env("JETTSTUI_NEMO_RELAY_ATIF_OUTPUT_DIRECTORY"),
+        atif_filename_template=_env("JETTSTUI_NEMO_RELAY_ATIF_FILENAME_TEMPLATE") or "jettstui-atif-{session_id}.json",
         atif_subagent_export_mode=_atif_subagent_export_mode(),
-        atif_agent_name=_env("FREEIDE_NEMO_RELAY_ATIF_AGENT_NAME") or "FreeIDE Agent",
-        atif_agent_version=_env("FREEIDE_NEMO_RELAY_ATIF_AGENT_VERSION") or "unknown",
-        atif_model_name=_env("FREEIDE_NEMO_RELAY_ATIF_MODEL_NAME") or "unknown",
+        atif_agent_name=_env("JETTSTUI_NEMO_RELAY_ATIF_AGENT_NAME") or "JettsTUI",
+        atif_agent_version=_env("JETTSTUI_NEMO_RELAY_ATIF_AGENT_VERSION") or "unknown",
+        atif_model_name=_env("JETTSTUI_NEMO_RELAY_ATIF_MODEL_NAME") or "unknown",
     )
 
 
@@ -819,9 +819,9 @@ def _dynamic_plugin_specs(
             return []
         if plugins_section:
             logger.error(
-                "FreeIDE cannot activate Relay gateway [[plugins.dynamic]] records because "
+                "JettsTUI cannot activate Relay gateway [[plugins.dynamic]] records because "
                 "the Python binding does not expose the CLI lifecycle resolver for "
-                "enablement, trust policy, and worker environments. Use FreeIDE-owned "
+                "enablement, trust policy, and worker environments. Use JettsTUI-owned "
                 "[[dynamic_plugins]] activation specs instead; no dynamic plugins will be "
                 "activated. Continuing with static observability only."
             )
@@ -982,7 +982,7 @@ def _env(name: str) -> str:
 
 
 def _atif_subagent_export_mode() -> str:
-    mode = _env("FREEIDE_NEMO_RELAY_ATIF_SUBAGENT_EXPORT_MODE").lower()
+    mode = _env("JETTSTUI_NEMO_RELAY_ATIF_SUBAGENT_EXPORT_MODE").lower()
     return "all" if mode == "all" else "embedded"
 
 
@@ -1116,7 +1116,7 @@ def _value(obj: Any, key: str, default: Any = None) -> Any:
 
 
 def _original_downstream_error(exc: Exception) -> BaseException:
-    # FreeIDE wraps downstream execution failures in a local/private exception
+    # JettsTUI wraps downstream execution failures in a local/private exception
     # class, so detect the wrapper by shape instead of importing it here.
     original = getattr(exc, "original", None)
     if exc.__class__.__name__ == "_DownstreamExecutionError" and isinstance(original, BaseException):
@@ -1130,7 +1130,7 @@ def _is_relay_wrapped_callback_error(exc: Exception, callback_error: Exception |
     # trailing traceback/suffix in a future Relay version doesn't silently defeat
     # the unwrap; the class-name + message prefix still discriminates the real
     # downstream failure from unrelated Relay-internal errors. If Relay drops the
-    # leading ``internal error:`` shape entirely, this returns False and FreeIDE
+    # leading ``internal error:`` shape entirely, this returns False and JettsTUI
     # falls back to surfacing Relay's error (the pre-fix behavior) rather than
     # masking it.
     if callback_error is None or not isinstance(exc, RuntimeError):
@@ -1220,7 +1220,7 @@ def _resolve_awaitable(value: Any) -> Any:
 
     thread = threading.Thread(
         target=_runner,
-        name="freeide-nemo-relay-awaitable",
+        name="jettstui-nemo-relay-awaitable",
         daemon=True,
     )
     thread.start()

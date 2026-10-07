@@ -1,8 +1,8 @@
 """Tests for Automation Blueprints — the parameterized automation blueprint system.
 
 Covers the core catalog/slot schema/renderers/fill (cron/blueprint_catalog.py),
-the shared /blueprint command handler (freeide_cli/blueprint_cmd.py), and
-Uses an isolated FREEIDE_HOME for anything that touches the cron job store.
+the shared /blueprint command handler (jettstui/blueprint_cmd.py), and
+Uses an isolated JETTSTUI_HOME for anything that touches the cron job store.
 """
 
 import importlib
@@ -141,24 +141,24 @@ class TestRenderers:
 
     def test_deeplink_shape(self):
         url = blueprint_deeplink(get_blueprint("morning-brief"), {"time": "07:15"})
-        assert url.startswith("freeide://blueprint/morning-brief?")
+        assert url.startswith("jettstui://blueprint/morning-brief?")
         assert "time=07" in url
 
     def test_catalog_entry_has_all_surfaces(self):
         entry = blueprint_catalog_entry(get_blueprint("morning-brief"))
         assert entry["command"].startswith("/blueprint")
-        assert entry["appUrl"].startswith("freeide://")
+        assert entry["appUrl"].startswith("jettstui://")
         assert entry["scheduleHuman"]
         assert "fields" in entry
 
 
 @pytest.fixture
 def isolated_home(tmp_path, monkeypatch):
-    home = tmp_path / ".freeide"
+    home = tmp_path / ".jettstui"
     home.mkdir()
-    monkeypatch.setenv("FREEIDE_HOME", str(home))
-    import freeide_constants
-    importlib.reload(freeide_constants)
+    monkeypatch.setenv("JETTSTUI_HOME", str(home))
+    import jettstui_constants
+    importlib.reload(jettstui_constants)
     import cron.jobs as jobs
     importlib.reload(jobs)
     return jobs
@@ -166,14 +166,14 @@ def isolated_home(tmp_path, monkeypatch):
 
 class TestCommandHandler:
     def test_bare_lists_catalog(self, isolated_home):
-        from freeide_cli.blueprint_cmd import handle_blueprint_command
+        from jettstui.blueprint_cmd import handle_blueprint_command
 
         res = handle_blueprint_command("")
         assert "morning-brief" in res.text and "Automation Blueprints" in res.text
         assert res.agent_seed is None
 
     def test_name_seeds_agent(self, isolated_home):
-        from freeide_cli.blueprint_cmd import handle_blueprint_command
+        from jettstui.blueprint_cmd import handle_blueprint_command
 
         # `/blueprint <name>` (no inline slots) now seeds the agent to ask
         # the user for each value conversationally instead of dumping fields.
@@ -185,7 +185,7 @@ class TestCommandHandler:
         assert "* * *" in res.agent_seed
 
     def test_name_match_is_forgiving(self, isolated_home):
-        from freeide_cli.blueprint_cmd import handle_blueprint_command, match_blueprint
+        from jettstui.blueprint_cmd import handle_blueprint_command, match_blueprint
 
         # prefix match
         r, cands = match_blueprint("morning")
@@ -198,7 +198,7 @@ class TestCommandHandler:
         assert res.agent_seed is not None
 
     def test_fill_creates_job(self, isolated_home):
-        from freeide_cli.blueprint_cmd import handle_blueprint_command
+        from jettstui.blueprint_cmd import handle_blueprint_command
 
         res = handle_blueprint_command("morning-brief time=07:30 deliver=telegram")
         assert "Scheduled" in res.text
@@ -209,14 +209,14 @@ class TestCommandHandler:
         assert jobs[0].get("deliver") == "telegram"
 
     def test_unknown_blueprint(self, isolated_home):
-        from freeide_cli.blueprint_cmd import handle_blueprint_command
+        from jettstui.blueprint_cmd import handle_blueprint_command
 
         res = handle_blueprint_command("zzz-nope-nothing")
         assert "No automation blueprint" in res.text
         assert res.agent_seed is None
 
     def test_bad_value_names_slot(self, isolated_home):
-        from freeide_cli.blueprint_cmd import handle_blueprint_command
+        from jettstui.blueprint_cmd import handle_blueprint_command
 
         res = handle_blueprint_command("morning-brief time=99:99")
         assert "Can't set up" in res.text and "time" in res.text

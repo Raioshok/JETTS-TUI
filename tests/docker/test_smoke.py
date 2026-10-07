@@ -15,7 +15,7 @@ from __future__ import annotations
 import subprocess
 
 
-def test_freeide_help(built_image: str) -> None:
+def test_jettstui_help(built_image: str) -> None:
     """``docker run --rm <image> --help`` must exit 0.
 
     Uses the image's real ENTRYPOINT (``/init`` + ``main-wrapper.sh``)

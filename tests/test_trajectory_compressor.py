@@ -16,18 +16,18 @@ from trajectory_compressor import (
 )
 
 
-def test_import_loads_env_from_freeide_home(tmp_path, monkeypatch):
-    home = tmp_path / ".freeide"
+def test_import_loads_env_from_jettstui_home(tmp_path, monkeypatch):
+    home = tmp_path / ".jettstui"
     home.mkdir()
-    (home / ".env").write_text("OPENROUTER_API_KEY=from-freeide-home\n", encoding="utf-8")
+    (home / ".env").write_text("OPENROUTER_API_KEY=from-jettstui-home\n", encoding="utf-8")
 
-    monkeypatch.setenv("FREEIDE_HOME", str(home))
+    monkeypatch.setenv("JETTSTUI_HOME", str(home))
     monkeypatch.delenv("OPENROUTER_API_KEY", raising=False)
 
     sys.modules.pop("trajectory_compressor", None)
     importlib.import_module("trajectory_compressor")
 
-    assert os.getenv("OPENROUTER_API_KEY") == "from-freeide-home"
+    assert os.getenv("OPENROUTER_API_KEY") == "from-jettstui-home"
 
 
 def test_generate_summary_kimi_omits_temperature():

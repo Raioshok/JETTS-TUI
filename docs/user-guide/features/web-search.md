@@ -7,12 +7,12 @@ sidebar_position: 6
 
 # Web Search & Extract
 
-FreeIDE Agent includes two model-callable web tools backed by multiple providers:
+JettsTUI includes two model-callable web tools backed by multiple providers:
 
 - **`web_search`** — search the web and return ranked results
 - **`web_extract`** — fetch and extract readable content from one or more URLs
 
-Both are configured through a single backend selection. Providers are chosen via `freeide tools` or set directly in `config.yaml`.
+Both are configured through a single backend selection. Providers are chosen via `jettstui tools` or set directly in `config.yaml`.
 
 ## Backends
 
@@ -25,9 +25,9 @@ Both are configured through a single backend selection. Providers are chosen via
 | **Tavily** | `TAVILY_API_KEY` | ✔ | ✔ | 1 000 searches/mo |
 | **Exa** | `EXA_API_KEY` | ✔ | ✔ | 1 000 searches/mo |
 | **Parallel** | `PARALLEL_API_KEY` | ✔ | ✔ | Paid |
-| **xAI (Grok)** | `XAI_API_KEY` or `freeide auth add xai-oauth` | ✔ | — | Paid (SuperGrok or per-token) |
+| **xAI (Grok)** | `XAI_API_KEY` or `jettstui auth add xai-oauth` | ✔ | — | Paid (SuperGrok or per-token) |
 
-Brave Search, DDGS, and xAI are **search-only** — pair any of them with Firecrawl/Tavily/Exa/Parallel when you also need `web_extract`. DDGS uses the [`ddgs` Python package](https://pypi.org/project/ddgs/) under the hood; if it isn't already installed, run `pip install ddgs` (or let FreeIDE lazy-install it on first use). xAI runs Grok's server-side `web_search` tool on the Responses API — results are LLM-generated rather than index-backed, so titles, descriptions, and URL choice are all model output (see the [trust-model caveat](#xai-grok) below).
+Brave Search, DDGS, and xAI are **search-only** — pair any of them with Firecrawl/Tavily/Exa/Parallel when you also need `web_extract`. DDGS uses the [`ddgs` Python package](https://pypi.org/project/ddgs/) under the hood; if it isn't already installed, run `pip install ddgs` (or let JettsTUI lazy-install it on first use). xAI runs Grok's server-side `web_search` tool on the Responses API — results are LLM-generated rather than index-backed, so titles, descriptions, and URL choice are all model output (see the [trust-model caveat](#xai-grok) below).
 
 **Per-capability split:** you can use different providers for search and extract independently — for example SearXNG (free) for search and Firecrawl for extract. See [Per-capability configuration](#per-capability-configuration) below.
 
@@ -44,16 +44,16 @@ Backends return raw page markdown, which can be huge (forum threads, docs sites,
 | 500 000 – 2 000 000 | Chunked: split into 100 k-char chunks, summarize each in parallel, then synthesize a final summary (~5 000 chars) |
 | Over 2 000 000 | Refused with a hint to use a more focused source URL |
 
-The summary keeps quotes, code blocks, and key facts in their original formatting — it's a content compressor, not a paraphraser. If summarization fails or times out, FreeIDE falls back to the first ~5 000 chars of raw content rather than a useless error.
+The summary keeps quotes, code blocks, and key facts in their original formatting — it's a content compressor, not a paraphraser. If summarization fails or times out, JettsTUI falls back to the first ~5 000 chars of raw content rather than a useless error.
 
 ### Which model does the summarizing?
 
-The `web_extract` auxiliary task. By default (`auxiliary.web_extract.provider: "auto"`), this is your **main chat model** — same provider, same model as `freeide model`. That's fine for most setups, but on expensive reasoning models (Opus, MiniMax M2.7, etc.) every long-page extract adds meaningful cost.
+The `web_extract` auxiliary task. By default (`auxiliary.web_extract.provider: "auto"`), this is your **main chat model** — same provider, same model as `jettstui model`. That's fine for most setups, but on expensive reasoning models (Opus, MiniMax M2.7, etc.) every long-page extract adds meaningful cost.
 
 To route extraction summaries to a cheap, fast model regardless of your main:
 
 ```yaml
-# ~/.freeide/config.yaml
+# ~/.jettstui/config.yaml
 auxiliary:
   web_extract:
     provider: openrouter
@@ -61,7 +61,7 @@ auxiliary:
     timeout: 360       # seconds; raise if you hit summarization timeouts
 ```
 
-Or pick interactively: `freeide model` → **Configure auxiliary models** → `web_extract`.
+Or pick interactively: `jettstui model` → **Configure auxiliary models** → `web_extract`.
 
 See [Auxiliary Models](../configuration.md#auxiliary-models) for the full reference and per-task override patterns.
 
@@ -73,12 +73,12 @@ If you specifically need raw, unsummarized page content — for example, you're 
 
 ## Setup
 
-### Quick setup via `freeide tools`
+### Quick setup via `jettstui tools`
 
-Run `freeide tools`, navigate to **Web Search & Extract**, and pick a provider. The wizard prompts for the required URL or API key and writes it to your config.
+Run `jettstui tools`, navigate to **Web Search & Extract**, and pick a provider. The wizard prompts for the required URL or API key and writes it to your config.
 
 ```bash
-freeide tools
+jettstui tools
 ```
 
 ---
@@ -88,7 +88,7 @@ freeide tools
 Full-featured search and extract. Recommended for most users.
 
 ```bash
-# ~/.freeide/.env
+# ~/.jettstui/.env
 FIRECRAWL_API_KEY=fc-your-key-here
 ```
 
@@ -97,7 +97,7 @@ Get a key at [firecrawl.dev](https://firecrawl.dev). The free tier includes 500 
 **Self-hosted Firecrawl:** Point at your own instance instead of the cloud API:
 
 ```bash
-# ~/.freeide/.env
+# ~/.jettstui/.env
 FIRECRAWL_API_URL=http://localhost:3002
 ```
 
@@ -107,7 +107,7 @@ When `FIRECRAWL_API_URL` is set, the API key is optional (disable server auth wi
 
 ### SearXNG (free, self-hosted)
 
-SearXNG is a privacy-respecting, open-source metasearch engine that aggregates results from 70+ search engines. **No API key required** — just point FreeIDE at a running SearXNG instance.
+SearXNG is a privacy-respecting, open-source metasearch engine that aggregates results from 70+ search engines. **No API key required** — just point JettsTUI at a running SearXNG instance.
 
 SearXNG is **search-only** — `web_extract` requires a separate extract provider.
 
@@ -156,7 +156,7 @@ docker cp searxng:/etc/searxng/settings.yml ~/searxng/searxng/settings.yml
 
 Open `~/searxng/searxng/settings.yml`.
 If `use_default_settings: true` is present, the file only contains your overrides. All other settings are inherited from the built-in defaults.
-To enable JSON responses for FreeIDE, add the following override:
+To enable JSON responses for JettsTUI, add the following override:
 
 ```yaml
 search:
@@ -199,21 +199,21 @@ curl -s "http://localhost:8888/search?q=test&format=json" | python3 -c \
 
 You should see something like `10 results`. If you get a `403 Forbidden`, JSON format is still disabled — recheck step 4.
 
-**7. Configure FreeIDE:**
+**7. Configure JettsTUI:**
 
 ```bash
-# ~/.freeide/.env
+# ~/.jettstui/.env
 SEARXNG_URL=http://localhost:8888
 ```
 
-Then select SearXNG as the search backend in `~/.freeide/config.yaml`:
+Then select SearXNG as the search backend in `~/.jettstui/config.yaml`:
 
 ```yaml
 web:
   search_backend: "searxng"
 ```
 
-Or set via `freeide tools` → Web Search & Extract → SearXNG.
+Or set via `jettstui tools` → Web Search & Extract → SearXNG.
 
 ---
 
@@ -222,7 +222,7 @@ Or set via `freeide tools` → Web Search & Extract → SearXNG.
 Public SearXNG instances are listed at [searx.space](https://searx.space/). Filter by instances that have **JSON format enabled** (shown in the table).
 
 ```bash
-# ~/.freeide/.env
+# ~/.jettstui/.env
 SEARXNG_URL=https://searx.example.com
 ```
 
@@ -237,13 +237,13 @@ Public instances have rate limits, variable uptime, and may disable JSON format 
 SearXNG handles search; you need a separate provider for `web_extract`. Use the per-capability keys:
 
 ```yaml
-# ~/.freeide/config.yaml
+# ~/.jettstui/config.yaml
 web:
   search_backend: "searxng"
   extract_backend: "firecrawl"   # or tavily, exa, parallel
 ```
 
-With this config, FreeIDE uses SearXNG for all search queries and Firecrawl for URL extraction — combining free search with high-quality extraction.
+With this config, JettsTUI uses SearXNG for all search queries and Firecrawl for URL extraction — combining free search with high-quality extraction.
 
 ---
 
@@ -252,7 +252,7 @@ With this config, FreeIDE uses SearXNG for all search queries and Firecrawl for 
 AI-optimised search and extract with a generous free tier.
 
 ```bash
-# ~/.freeide/.env
+# ~/.jettstui/.env
 TAVILY_API_KEY=tvly-your-key-here
 ```
 
@@ -265,7 +265,7 @@ Get a key at [app.tavily.com](https://app.tavily.com/home). The free tier includ
 Neural search with semantic understanding. Good for research and finding conceptually related content.
 
 ```bash
-# ~/.freeide/.env
+# ~/.jettstui/.env
 EXA_API_KEY=your-exa-key-here
 ```
 
@@ -278,7 +278,7 @@ Get a key at [exa.ai](https://exa.ai). The free tier includes 1 000 searches/mon
 AI-native search and extraction with deep research capabilities.
 
 ```bash
-# ~/.freeide/.env
+# ~/.jettstui/.env
 PARALLEL_API_KEY=your-parallel-key-here
 ```
 
@@ -293,20 +293,20 @@ Routes `web_search` through Grok's server-side [web_search tool](https://docs.x.
 Works with either credential path — no new env vars, no new setup wizard:
 
 ```bash
-# ~/.freeide/.env (env-var path)
+# ~/.jettstui/.env (env-var path)
 XAI_API_KEY=sk-xai-your-key-here
 ```
 
 or for SuperGrok subscribers:
 
 ```bash
-freeide auth add xai-oauth
+jettstui auth add xai-oauth
 ```
 
 Then select xAI as the search backend:
 
 ```yaml
-# ~/.freeide/config.yaml
+# ~/.jettstui/config.yaml
 web:
   backend: "xai"
 ```
@@ -340,7 +340,7 @@ Unlike index-backed providers (Brave, Tavily, Exa) which return verbatim search-
 Set one provider for all web capabilities:
 
 ```yaml
-# ~/.freeide/config.yaml
+# ~/.jettstui/config.yaml
 web:
   backend: "searxng"   # firecrawl | searxng | brave-free | ddgs | tavily | exa | parallel | xai
 ```
@@ -350,7 +350,7 @@ web:
 Use different providers for search vs extract. This lets you combine free search (SearXNG) with a paid extract provider, or vice versa:
 
 ```yaml
-# ~/.freeide/config.yaml
+# ~/.jettstui/config.yaml
 web:
   search_backend: "searxng"     # used by web_search
   extract_backend: "firecrawl"  # used by web_extract
@@ -365,7 +365,7 @@ When per-capability keys are empty, both fall through to `web.backend`. When `we
 
 ### Auto-detection
 
-If no backend is explicitly configured, FreeIDE picks the first available one based on which credentials are set:
+If no backend is explicitly configured, JettsTUI picks the first available one based on which credentials are set:
 
 | Credential present | Auto-selected backend |
 |--------------------|-----------------------|
@@ -381,7 +381,7 @@ xAI Web Search is **not** in the auto-detection chain — having `XAI_API_KEY` s
 
 ## Verify your setup
 
-Run `freeide setup` to see which web backend is detected:
+Run `jettstui setup` to see which web backend is detected:
 
 ```
 ✅ Web Search & Extract (searxng)
@@ -391,7 +391,7 @@ Or check via the CLI:
 
 ```bash
 # Activate the venv and run the web tools module directly
-source ~/.freeide/freeide-agent/.venv/bin/activate
+source ~/.jettstui/jettstui/.venv/bin/activate
 python -m tools.web_tools
 ```
 
@@ -448,7 +448,7 @@ The auxiliary model didn't finish summarizing within the configured timeout. Eit
 For agents that need to use SearXNG via `curl` directly (e.g. as a fallback when the web toolset isn't available), install the `searxng-search` optional skill:
 
 ```bash
-freeide skills install official/research/searxng-search
+jettstui skills install official/research/searxng-search
 ```
 
 This adds a skill that teaches the agent how to:

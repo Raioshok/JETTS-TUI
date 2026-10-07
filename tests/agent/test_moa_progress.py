@@ -33,7 +33,7 @@ def _response(content="ok"):
 
 @pytest.fixture
 def moa_config(tmp_path, monkeypatch):
-    home = tmp_path / ".freeide"
+    home = tmp_path / ".jettstui"
     home.mkdir()
     (home / "config.yaml").write_text(
         """
@@ -55,7 +55,7 @@ moa:
 """.strip(),
         encoding="utf-8",
     )
-    monkeypatch.setenv("FREEIDE_HOME", str(home))
+    monkeypatch.setenv("JETTSTUI_HOME", str(home))
     return home
 
 

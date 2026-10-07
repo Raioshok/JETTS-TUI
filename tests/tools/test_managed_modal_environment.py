@@ -32,26 +32,26 @@ def _restore_tool_and_agent_modules():
     original_modules = {
         name: module
         for name, module in sys.modules.items()
-        if name in {"tools", "agent", "freeide_cli"}
+        if name in {"tools", "agent", "jettstui"}
         or name.startswith("tools.")
         or name.startswith("agent.")
-        or name.startswith("freeide_cli.")
+        or name.startswith("jettstui.")
     }
     try:
         yield
     finally:
-        _reset_modules(("tools", "agent", "freeide_cli"))
+        _reset_modules(("tools", "agent", "jettstui"))
         sys.modules.update(original_modules)
 
 
 def _install_fake_tools_package(*, credential_mounts=None):
-    _reset_modules(("tools", "agent", "freeide_cli"))
+    _reset_modules(("tools", "agent", "jettstui"))
 
-    freeide_cli = types.ModuleType("freeide_cli")
-    freeide_cli.__path__ = []  # type: ignore[attr-defined]
-    sys.modules["freeide_cli"] = freeide_cli
-    sys.modules["freeide_cli.config"] = types.SimpleNamespace(
-        get_freeide_home=lambda: Path(tempfile.gettempdir()) / "freeide-home",
+    jettstui = types.ModuleType("jettstui")
+    jettstui.__path__ = []  # type: ignore[attr-defined]
+    sys.modules["jettstui"] = jettstui
+    sys.modules["jettstui.config"] = types.SimpleNamespace(
+        get_jettstui_home=lambda: Path(tempfile.gettempdir()) / "jettstui-home",
     )
 
     tools_package = types.ModuleType("tools")
@@ -280,7 +280,7 @@ def test_managed_modal_rejects_host_credential_passthrough():
     _install_fake_tools_package(
         credential_mounts=[{
             "host_path": "/tmp/token.json",
-            "container_path": "/root/.freeide/token.json",
+            "container_path": "/root/.jettstui/token.json",
         }]
     )
     managed_modal = _load_tool_module("tools.environments.managed_modal", "environments/managed_modal.py")

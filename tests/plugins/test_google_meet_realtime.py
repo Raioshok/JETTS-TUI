@@ -15,10 +15,10 @@ import pytest
 
 @pytest.fixture(autouse=True)
 def _isolate_home(tmp_path, monkeypatch):
-    freeide_home = tmp_path / ".freeide"
-    freeide_home.mkdir()
-    monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
-    yield freeide_home
+    jettstui_home = tmp_path / ".jettstui"
+    jettstui_home.mkdir()
+    monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
+    yield jettstui_home
 
 
 # ---------------------------------------------------------------------------

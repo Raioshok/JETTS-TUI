@@ -1,16 +1,16 @@
 ---
 sidebar_position: 5
 title: "Microsoft Teams"
-description: "Set up FreeIDE Agent as a Microsoft Teams bot"
+description: "Set up JettsTUI as a Microsoft Teams bot"
 ---
 
 # Microsoft Teams Setup
 
-Connect FreeIDE Agent to Microsoft Teams as a bot. Unlike Slack's Socket Mode, Teams delivers messages by calling a **public HTTPS webhook**, so your instance needs a publicly reachable endpoint — either a dev tunnel (local dev) or a real domain (production).
+Connect JettsTUI to Microsoft Teams as a bot. Unlike Slack's Socket Mode, Teams delivers messages by calling a **public HTTPS webhook**, so your instance needs a publicly reachable endpoint — either a dev tunnel (local dev) or a real domain (production).
 
 Need meeting summaries from Microsoft Graph events rather than normal bot conversations? Use the dedicated setup page: [Teams Meetings](./teams-meetings.md).
 
-> Run `freeide gateway setup` and pick **Microsoft Teams** for a guided walk-through.
+> Run `jettstui gateway setup` and pick **Microsoft Teams** for a guided walk-through.
 
 ## How the Bot Responds
 
@@ -20,7 +20,7 @@ Need meeting summaries from Microsoft Graph events rather than normal bot conver
 | **Group chat** | Bot only responds when @mentioned. |
 | **Channel** | Bot only responds when @mentioned. |
 
-Teams delivers @mentions as regular messages with `<at>BotName</at>` tags, which FreeIDE strips automatically before processing.
+Teams delivers @mentions as regular messages with `<at>BotName</at>` tags, which JettsTUI strips automatically before processing.
 
 ---
 
@@ -56,9 +56,9 @@ Teams cannot deliver messages to `localhost`. For local development, use any tun
 
 ```bash
 # devtunnel (Microsoft)
-devtunnel create freeide-bot --allow-anonymous
-devtunnel port create freeide-bot -p 3978 --protocol https  # replace 3978 with TEAMS_PORT if changed
-devtunnel host freeide-bot
+devtunnel create jettstui-bot --allow-anonymous
+devtunnel port create jettstui-bot -p 3978 --protocol https  # replace 3978 with TEAMS_PORT if changed
+devtunnel host jettstui-bot
 
 # ngrok
 ngrok http 3978  # replace 3978 with TEAMS_PORT if changed
@@ -77,7 +77,7 @@ For production, point your bot's endpoint at your server's public domain instead
 
 ```bash
 teams app create \
-  --name "FreeIDE" \
+  --name "JettsTUI" \
   --endpoint "https://<your-tunnel-url>/api/messages"
 ```
 
@@ -87,7 +87,7 @@ The CLI outputs your `CLIENT_ID`, `CLIENT_SECRET`, and `TENANT_ID`, plus an inst
 
 ## Step 4: Configure Environment Variables
 
-Add to `~/.freeide/.env`:
+Add to `~/.jettstui/.env`:
 
 ```bash
 # Required
@@ -105,14 +105,14 @@ TEAMS_ALLOWED_USERS=<your-aad-object-id>
 ## Step 5: Start the Gateway
 
 ```bash
-FREEIDE_UID=$(id -u) FREEIDE_GID=$(id -g) docker compose up -d gateway
+JETTSTUI_UID=$(id -u) JETTSTUI_GID=$(id -g) docker compose up -d gateway
 ```
 
 This starts the gateway. The default webhook port is `3978` (override with `TEAMS_PORT`). Check that it's running:
 
 ```bash
 curl http://localhost:3978/health   # should return: ok
-docker logs -f freeide
+docker logs -f jettstui
 ```
 
 Look for:
@@ -149,7 +149,7 @@ Open the printed link in your browser — it opens directly in the Teams client.
 
 ### config.yaml
 
-Alternatively, configure via `~/.freeide/config.yaml`:
+Alternatively, configure via `~/.jettstui/config.yaml`:
 
 ```yaml
 platforms:
@@ -216,7 +216,7 @@ For a permanent server, skip devtunnel and register your bot with your server's 
 
 ```bash
 teams app create \
-  --name "FreeIDE" \
+  --name "JettsTUI" \
   --endpoint "https://your-domain.com/api/messages"
 ```
 
@@ -237,10 +237,10 @@ Make sure your configured port (`TEAMS_PORT`, default `3978`) is reachable from 
 | `health` endpoint works but bot doesn't respond | Check that your tunnel is still running and the bot's messaging endpoint matches the tunnel URL |
 | `KeyError: 'teams'` in logs | Restart the container — this is fixed in the current version |
 | Bot responds with auth errors | Verify `TEAMS_CLIENT_ID`, `TEAMS_CLIENT_SECRET`, and `TEAMS_TENANT_ID` are all set correctly |
-| `No inference provider configured` | Check that `ANTHROPIC_API_KEY` (or another provider key) is set in `~/.freeide/.env` |
+| `No inference provider configured` | Check that `ANTHROPIC_API_KEY` (or another provider key) is set in `~/.jettstui/.env` |
 | Bot receives messages but ignores them | Your AAD object ID may not be in `TEAMS_ALLOWED_USERS`. Run `teams status --verbose` to find it |
-| Tunnel URL changes on restart | devtunnel URLs are persistent if you use a named tunnel (`devtunnel create freeide-bot`). ngrok and cloudflared generate a new URL each run unless you have a paid plan — update the bot endpoint with `teams app update` when it changes |
-| Teams shows "This bot is not responding" | The webhook returned an error. Check `docker logs freeide` for tracebacks |
+| Tunnel URL changes on restart | devtunnel URLs are persistent if you use a named tunnel (`devtunnel create jettstui-bot`). ngrok and cloudflared generate a new URL each run unless you have a paid plan — update the bot endpoint with `teams app update` when it changes |
+| Teams shows "This bot is not responding" | The webhook returned an error. Check `docker logs jettstui` for tracebacks |
 | `[teams] Failed to connect` in logs | The SDK failed to authenticate. Double-check your credentials and that the tenant ID matches the account you used in `teams login` |
 
 ---
@@ -253,7 +253,7 @@ Make sure your configured port (`TEAMS_PORT`, default `3978`) is reachable from 
 Treat `TEAMS_CLIENT_SECRET` like a password — rotate it periodically via the Azure portal or Teams CLI.
 :::
 
-- Store credentials in `~/.freeide/.env` with permissions `600` (`chmod 600 ~/.freeide/.env`)
+- Store credentials in `~/.jettstui/.env` with permissions `600` (`chmod 600 ~/.jettstui/.env`)
 - The bot only accepts messages from users in `TEAMS_ALLOWED_USERS`; unauthorized messages are silently dropped
 - Your public endpoint (`/api/messages`) is authenticated by the Teams Bot Framework — requests without valid JWTs are rejected
 

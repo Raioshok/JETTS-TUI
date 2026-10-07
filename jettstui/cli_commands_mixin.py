@@ -1,7 +1,7 @@
 """Slash-command handlers for the interactive CLI (god-file decomposition Phase 4).
 
 This module hosts the ``_handle_*_command`` slash-command handlers lifted out of
-``cli.py``'s ``FreeIDECLI`` class. ``FreeIDECLI`` inherits ``CLICommandsMixin`` so
+``cli.py``'s ``JettsTUICLI`` class. ``JettsTUICLI`` inherits ``CLICommandsMixin`` so
 every ``self.<handler>`` call resolves unchanged via the MRO — behavior-neutral.
 
 Import discipline (mirrors gateway/slash_commands.py, PR #41886):
@@ -27,9 +27,9 @@ from rich import box as rich_box
 from rich.markup import escape as _escape
 from rich.panel import Panel
 
-from freeide_constants import display_freeide_home, is_termux as _is_termux_environment
+from jettstui_constants import display_jettstui_home, is_termux as _is_termux_environment
 from agent.turn_context import extract_api_content_sidecar
-from freeide_cli.browser_connect import (
+from jettstui.browser_connect import (
     DEFAULT_BROWSER_CDP_URL,
     discover_local_cdp_url,
     find_free_debug_port,
@@ -45,7 +45,7 @@ class CLICommandsMixin:
 
     All methods use only ``self`` state plus the imports above and per-method
     lazy ``from cli import ...`` lines, so they compose cleanly onto
-    ``FreeIDECLI`` via the MRO.
+    ``JettsTUICLI`` via the MRO.
     """
 
     def _handle_rollback_command(self, command: str):
@@ -66,7 +66,7 @@ class CLICommandsMixin:
         mgr = self.agent._checkpoint_mgr
         if not mgr.enabled:
             print("  Checkpoints are not enabled.")
-            print("  Enable with: freeide --checkpoints")
+            print("  Enable with: jettstui --checkpoints")
             print("  Or in config.yaml: checkpoints: { enabled: true }")
             return
 
@@ -149,7 +149,7 @@ class CLICommandsMixin:
             /diff                  — unstaged changes + untracked files
             /diff staged           — staged changes (git diff --cached)
             /diff all              — staged + unstaged + untracked (vs HEAD)
-            /diff session          — everything FreeIDE changed (checkpoint baseline)
+            /diff session          — everything JettsTUI changed (checkpoint baseline)
             /diff [mode] --stat    — summary only (changed files + counts)
             /diff [mode] <path...> — restrict to specific paths
         """
@@ -229,7 +229,7 @@ class CLICommandsMixin:
         mgr = self.agent._checkpoint_mgr
         if not mgr.enabled:
             print("  Checkpoints are not enabled, so there's no session baseline.")
-            print("  Enable with: freeide --checkpoints")
+            print("  Enable with: jettstui --checkpoints")
             print("  Or in config.yaml: checkpoints: { enabled: true }")
             print("  (Plain /diff still works — it uses git directly.)")
             return
@@ -242,7 +242,7 @@ class CLICommandsMixin:
         stat = result.get("stat", "")
         diff = result.get("diff", "")
         if result.get("empty") or (not stat and not diff):
-            print("  No changes — FreeIDE hasn't edited any files here yet.")
+            print("  No changes — JettsTUI hasn't edited any files here yet.")
             return
 
         if stat:
@@ -277,7 +277,7 @@ class CLICommandsMixin:
         print(text)
 
     def _handle_snapshot_command(self, command: str):
-        """Handle /snapshot — lightweight state snapshots for FreeIDE config/state.
+        """Handle /snapshot — lightweight state snapshots for JettsTUI config/state.
 
         Syntax:
             /snapshot                  — list recent snapshots
@@ -285,11 +285,11 @@ class CLICommandsMixin:
             /snapshot restore <id>     — restore state from snapshot
             /snapshot prune [N]        — prune to N snapshots (default 20)
         """
-        from freeide_cli.backup import (
+        from jettstui.backup import (
             create_quick_snapshot, list_quick_snapshots,
             restore_quick_snapshot, prune_quick_snapshots,
         )
-        from freeide_constants import display_freeide_home
+        from jettstui_constants import display_jettstui_home
 
         parts = command.split()
         subcmd = parts[1].lower() if len(parts) > 1 else "list"
@@ -300,7 +300,7 @@ class CLICommandsMixin:
                 print("  No state snapshots yet.")
                 print("  Create one: /snapshot create [label]")
                 return
-            print(f"  State snapshots ({display_freeide_home()}/state-snapshots/):\n")
+            print(f"  State snapshots ({display_jettstui_home()}/state-snapshots/):\n")
             print(f"  {'#':>3}  {'ID':<35} {'Files':>5} {'Size':>10} {'Label'}")
             print(f"  {'─'*3}  {'─'*35} {'─'*5} {'─'*10} {'─'*20}")
             for i, s in enumerate(snaps, 1):
@@ -463,7 +463,7 @@ class CLICommandsMixin:
         _cprint(f"  Agent: {'running' if agent_running else 'idle'}")
 
     def _handle_journey_command(self, cmd_original: str) -> None:
-        """Handle /journey — the learning timeline (see `freeide journey`).
+        """Handle /journey — the learning timeline (see `jettstui journey`).
 
         The read-only views (default + ``list``) render Rich color, which
         patch_stdout would swallow as raw escapes; capture with forced ANSI and
@@ -476,7 +476,7 @@ class CLICommandsMixin:
         from contextlib import redirect_stdout
 
         from cli import _cprint
-        from freeide_cli.journey import register_cli
+        from jettstui.journey import register_cli
 
         parser = argparse.ArgumentParser(prog="/journey", add_help=False)
         register_cli(parser)
@@ -515,7 +515,7 @@ class CLICommandsMixin:
             )
             return
 
-        from freeide_cli.clipboard import has_clipboard_image
+        from jettstui.clipboard import has_clipboard_image
         if has_clipboard_image():
             if self._try_attach_clipboard_image():
                 n = len(self._attached_images)
@@ -587,7 +587,7 @@ class CLICommandsMixin:
         if _remainder:
             _cprint(f"  {_DIM}Now type your prompt (or use --image in single-query mode): {_remainder}{_RST}")
         elif _is_termux_environment():
-            _cprint(f"  {_DIM}Tip: type your next message, or run freeide chat -q --image {_termux_example_image_path(image_path.name)} \"What do you see?\"{_RST}")
+            _cprint(f"  {_DIM}Tip: type your next message, or run jettstui chat -q --image {_termux_example_image_path(image_path.name)} \"What do you see?\"{_RST}")
 
     def _handle_tools_command(self, cmd: str):
         """Handle /tools [list|disable|enable] slash commands.
@@ -603,7 +603,7 @@ class CLICommandsMixin:
         from argparse import Namespace
         from contextlib import redirect_stdout
         from io import StringIO
-        from freeide_cli.tools_config import tools_disable_enable_command
+        from jettstui.tools_config import tools_disable_enable_command
 
         def _run_capture(ns: Namespace) -> None:
             """Run tools_disable_enable_command, routing its ANSI-colored
@@ -619,7 +619,7 @@ class CLICommandsMixin:
                 tools_disable_enable_command(ns)
                 return
 
-            # Buffer reports isatty()=True so color() in freeide_cli/colors.py
+            # Buffer reports isatty()=True so color() in jettstui/colors.py
             # still emits ANSI escapes. StringIO.isatty() is False, which
             # would otherwise strip all colors before we re-render them.
             class _TTYBuf(StringIO):
@@ -663,18 +663,18 @@ class CLICommandsMixin:
         _run_capture(Namespace(tools_action=subcommand, names=names, platform="cli"))
 
         # Reset session so the new tool config is picked up from a clean state
-        from freeide_cli.tools_config import _get_platform_tools
-        from freeide_cli.config import load_config
+        from jettstui.tools_config import _get_platform_tools
+        from jettstui.config import load_config
         self.enabled_toolsets = _get_platform_tools(load_config(), "cli")
         self.new_session()
         _cprint(f"{_DIM}Session reset. New tool configuration is active.{_RST}")
 
     def _handle_profile_command(self):
         """Display active profile name and home directory."""
-        from freeide_constants import display_freeide_home
-        from freeide_cli.profiles import get_active_profile_name
+        from jettstui_constants import display_jettstui_home
+        from jettstui.profiles import get_active_profile_name
 
-        display = display_freeide_home()
+        display = display_jettstui_home()
         profile_name = get_active_profile_name()
 
         print()
@@ -700,7 +700,7 @@ class CLICommandsMixin:
             False to signal CLI exit, True to keep going.
         """
         from cli import _cprint
-        from freeide_state import format_session_db_unavailable
+        from jettstui_state import format_session_db_unavailable
 
         parts = cmd_original.split(maxsplit=1)
         if len(parts) < 2 or not parts[1].strip():
@@ -768,7 +768,7 @@ class CLICommandsMixin:
         # Make sure we have a SessionDB handle.
         if not self._session_db:
             try:
-                from freeide_state import SessionDB
+                from jettstui_state import SessionDB
                 self._session_db = SessionDB()
             except Exception:
                 pass
@@ -847,7 +847,7 @@ class CLICommandsMixin:
             self._session_db.fail_handoff(self.session_id, "timed out waiting for gateway")
         except Exception:
             pass
-        _cprint("  Timed out waiting for the gateway. Is `freeide gateway` running?")
+        _cprint("  Timed out waiting for the gateway. Is `jettstui gateway` running?")
         _cprint("  Your CLI session is intact.")
         return True
 
@@ -881,7 +881,7 @@ class CLICommandsMixin:
                 # #34584.
                 self._pending_resume_sessions = self._list_recent_sessions(limit=10)
                 return
-            _cprint("  Tip:   Use /history or `freeide sessions list` to find sessions.")
+            _cprint("  Tip:   Use /history or `jettstui sessions list` to find sessions.")
             return
 
         # Any explicit /resume <target> supersedes a previously-armed bare
@@ -889,7 +889,7 @@ class CLICommandsMixin:
         self._pending_resume_sessions = None
 
         if not self._session_db:
-            from freeide_state import format_session_db_unavailable
+            from jettstui_state import format_session_db_unavailable
             _cprint(f"  {format_session_db_unavailable()}")
             return
 
@@ -904,14 +904,14 @@ class CLICommandsMixin:
             selected = sessions[index - 1]
             target_id = selected["id"]
         else:
-            from freeide_cli.main import _resolve_session_by_name_or_id
+            from jettstui.main import _resolve_session_by_name_or_id
             resolved = _resolve_session_by_name_or_id(target)
             target_id = resolved or target
 
         session_meta = self._session_db.get_session(target_id)
         if not session_meta:
             _cprint(f"  Session not found: {target}")
-            _cprint("  Use /history or `freeide sessions list` to see available sessions.")
+            _cprint("  Use /history or `jettstui sessions list` to see available sessions.")
             return
 
         # If the target is the empty head of a compression chain, redirect to
@@ -1027,7 +1027,7 @@ class CLICommandsMixin:
 
         # Retarget the process + tool cwd to where the session was started, so a
         # mid-chat /resume (and /sessions <id>, which delegates here) lands in the
-        # same directory as a startup `freeide -c`/`--resume`. The startup resume
+        # same directory as a startup `jettstui -c`/`--resume`. The startup resume
         # paths already call this; without it, the terminal/code-exec tools and
         # relative-path resolution keep operating in the wrong repo. Idempotent
         # and a no-op when the session recorded no cwd. See #38562.
@@ -1056,7 +1056,7 @@ class CLICommandsMixin:
         # Bare /sessions or /sessions list — show recent sessions inline.
         if not arg or sub in {"list", "ls", "browse"}:
             if not self._session_db:
-                from freeide_state import format_session_db_unavailable
+                from jettstui_state import format_session_db_unavailable
                 _cprint(f"  {format_session_db_unavailable()}")
                 return
             if not self._show_recent_sessions(reason="sessions"):
@@ -1079,7 +1079,7 @@ class CLICommandsMixin:
             return
 
         if not self._session_db:
-            from freeide_state import format_session_db_unavailable
+            from jettstui_state import format_session_db_unavailable
             _cprint(f"  {format_session_db_unavailable()}")
             return
 
@@ -1130,7 +1130,7 @@ class CLICommandsMixin:
         try:
             self._session_db.create_session(
                 session_id=new_session_id,
-                source=os.environ.get("FREEIDE_SESSION_SOURCE", "cli"),
+                source=os.environ.get("JETTSTUI_SESSION_SOURCE", "cli"),
                 model=self.model,
                 model_config={
                     "max_iterations": self.max_turns,
@@ -1277,7 +1277,7 @@ class CLICommandsMixin:
         """
         from agent.pet import store
         from agent.pet.manifest import ManifestError
-        from freeide_cli.pets import _set_active, _set_enabled, print_pet_gallery, set_pet_scale, toggle_pet_display
+        from jettstui.pets import _set_active, _set_enabled, print_pet_gallery, set_pet_scale, toggle_pet_display
 
         parts = cmd.split(maxsplit=1)
         arg = parts[1].strip() if len(parts) > 1 else ""
@@ -1333,7 +1333,7 @@ class CLICommandsMixin:
         from agent.pet import store
         from agent.pet.generate import orchestrate
         from agent.pet.generate.imagegen import GenerationError
-        from freeide_cli.pets import _set_active
+        from jettstui.pets import _set_active
 
         parts = cmd.split(maxsplit=1)
         concept = parts[1].strip() if len(parts) > 1 else ""
@@ -1650,7 +1650,7 @@ class CLICommandsMixin:
             tokens = (cmd or "").split()[1:]
         args = " ".join(tokens)
         try:
-            from freeide_cli.suggestions_cmd import handle_suggestions_command
+            from jettstui.suggestions_cmd import handle_suggestions_command
             output = handle_suggestions_command(args)
         except Exception as e:
             output = f"Suggestions command failed: {e}"
@@ -1674,7 +1674,7 @@ class CLICommandsMixin:
             tokens = (cmd or "").split()[1:]
         args = " ".join(shlex.quote(t) for t in tokens)
         try:
-            from freeide_cli.blueprint_cmd import handle_blueprint_command
+            from jettstui.blueprint_cmd import handle_blueprint_command
             result = handle_blueprint_command(args)
         except Exception as e:
             self._console_print(f"Cron blueprint command failed: {e}")
@@ -1689,7 +1689,7 @@ class CLICommandsMixin:
     def _handle_curator_command(self, cmd: str):
         """Handle /curator slash command.
 
-        Delegates to freeide_cli.curator so the CLI and the `freeide curator`
+        Delegates to jettstui.curator so the CLI and the `jettstui curator`
         subcommand share the same handler set.
         """
         import shlex
@@ -1699,7 +1699,7 @@ class CLICommandsMixin:
             tokens = ["status"]
 
         try:
-            from freeide_cli.curator import cli_main
+            from jettstui.curator import cli_main
             cli_main(tokens)
         except SystemExit:
             # argparse calls sys.exit() on --help or errors; swallow so we
@@ -1715,7 +1715,7 @@ class CLICommandsMixin:
         including the leading slash; we strip it and hand the remainder
         to ``kanban.run_slash`` which returns a single formatted string.
         """
-        from freeide_cli.kanban import run_slash
+        from jettstui.kanban import run_slash
 
         rest = cmd.strip()
         if rest.startswith("/"):
@@ -1730,7 +1730,7 @@ class CLICommandsMixin:
             print(output)
 
     def _handle_skills_command(self, cmd: str):
-        """Handle /skills slash command — delegates to freeide_cli.skills_hub."""
+        """Handle /skills slash command — delegates to jettstui.skills_hub."""
         from cli import ChatConsole
         # Intercept write-approval review subcommands first (pending/approve/
         # reject/diff/mode); everything else goes to the skills hub.
@@ -1738,7 +1738,7 @@ class CLICommandsMixin:
         args = parts[1:] if len(parts) > 1 else []
         if args and args[0].lower() in {"pending", "approve", "apply", "reject",
                                         "deny", "drop", "diff", "approval", "mode"}:
-            from freeide_cli.write_approval_commands import handle_pending_subcommand
+            from jettstui.write_approval_commands import handle_pending_subcommand
             from tools import write_approval as wa
             out = handle_pending_subcommand(
                 wa.SKILLS, args,
@@ -1747,7 +1747,7 @@ class CLICommandsMixin:
             if out is not None:
                 print(out)
                 return
-        from freeide_cli.skills_hub import handle_skills_slash
+        from jettstui.skills_hub import handle_skills_slash
         handle_skills_slash(cmd, ChatConsole())
 
     def _handle_learn_command(self, cmd: str):
@@ -1786,7 +1786,7 @@ class CLICommandsMixin:
         terminal backend, and preserves prompt-cache invariants (no system
         prompt or history mutation).
         """
-        from freeide_cli.init_command import build_init_prompt_for_cwd
+        from jettstui.init_command import build_init_prompt_for_cwd
 
         # Everything after the command word is optional user emphasis.
         parts = cmd.strip().split(None, 1)
@@ -1804,7 +1804,7 @@ class CLICommandsMixin:
 
     def _handle_brain_command(self, cmd: str):
         """Handle /brain without adding a permanent model tool."""
-        from freeide_cli.brain import handle_brain_slash
+        from jettstui.brain import handle_brain_slash
 
         result = handle_brain_slash(
             cmd,
@@ -1820,7 +1820,7 @@ class CLICommandsMixin:
 
     def _handle_memory_command(self, cmd: str):
         """Handle /memory slash command — pending review + approval-gate toggle."""
-        from freeide_cli.write_approval_commands import handle_pending_subcommand
+        from jettstui.write_approval_commands import handle_pending_subcommand
         from tools import write_approval as wa
         parts = cmd.strip().split()
         args = parts[1:] if len(parts) > 1 else []
@@ -1952,13 +1952,13 @@ class CLICommandsMixin:
                 ChatConsole().print(f"[{_accent_hex()}]{'─' * 40}[/]")
                 if response:
                     try:
-                        from freeide_cli.skin_engine import get_active_skin
+                        from jettstui.skin_engine import get_active_skin
                         _skin = get_active_skin()
-                        label = _skin.get_branding("response_label", "◆ FreeIDE")
+                        label = _skin.get_branding("response_label", "◆ JettsTUI")
                         _resp_color = _maybe_remap_for_light_mode(_skin.get_color("response_border", "#CD7F32"))
                         _resp_text = _maybe_remap_for_light_mode(_skin.get_color("banner_text", "#FFF8DC"))
                     except Exception:
-                        label = "◆ FreeIDE"
+                        label = "◆ JettsTUI"
                         _resp_color = "#CD7F32"
                         _resp_text = "#FFF8DC"
 
@@ -2009,7 +2009,7 @@ class CLICommandsMixin:
     def _handle_bundles_command(self, cmd: str) -> None:
         """In-session ``/bundles`` — show installed skill bundles.
 
-        Mirrors ``freeide bundles list`` but renders inside the running
+        Mirrors ``jettstui bundles list`` but renders inside the running
         CLI so users can discover what's available without dropping out
         of their session. Bundles are loaded via ``/<bundle-name>``.
         """
@@ -2024,7 +2024,7 @@ class CLICommandsMixin:
         if not bundles:
             _cprint("  No skill bundles installed.")
             _cprint(
-                f"  {_DIM}Create one with: freeide bundles create "
+                f"  {_DIM}Create one with: jettstui bundles create "
                 f"<name> --skill <s1> --skill <s2>{_RST}"
             )
             _cprint(f"  {_DIM}Directory: {_bundles_dir()}{_RST}")
@@ -2042,7 +2042,7 @@ class CLICommandsMixin:
                 ChatConsole().print(f"        [dim]· {_escape(s)}[/]")
         _cprint(
             f"\n  {_DIM}Invoke a bundle with /<slug>. "
-            f"Manage with `freeide bundles`.{_RST}"
+            f"Manage with `jettstui bundles`.{_RST}"
         )
 
     def _handle_browser_command(self, cmd: str):
@@ -2186,7 +2186,7 @@ class CLICommandsMixin:
                     "Your browser_navigate, browser_snapshot, browser_click, and other browser tools now "
                     "control that CDP browser. The command itself is a signal that using browser tools for "
                     "their current browser-related request is expected; do not wait for separate permission "
-                    "just because CDP is connected. This is typically a FreeIDE-managed isolated debug "
+                    "just because CDP is connected. This is typically a JettsTUI-managed isolated debug "
                     "profile, not the user's main everyday browser. It is still user-visible and may contain "
                     "pages, logged-in sessions, or cookies in that debug profile, so avoid destructive actions, "
                     "closing tabs, or navigating away unless the user's task calls for it.]"
@@ -2376,7 +2376,7 @@ class CLICommandsMixin:
         # lines (verify:, constraints:, boundaries:, stop when:) are parsed
         # into a completion contract; the remaining prose is the headline.
         # A plain free-form goal with no such lines behaves exactly as before.
-        from freeide_cli.goals import parse_contract
+        from jettstui.goals import parse_contract
 
         headline, contract = parse_contract(arg)
         goal_text = headline or arg
@@ -2394,7 +2394,7 @@ class CLICommandsMixin:
         _cprint(
             f"  {_DIM}After each turn, a judge model checks if the goal is done"
             f"{' against the contract above' if state.has_contract() else ''}. "
-            f"FreeIDE keeps working until it is, you pause/clear it, or the budget is "
+            f"JettsTUI keeps working until it is, you pause/clear it, or the budget is "
             f"exhausted. Use /goal status, /goal show, /goal pause, /goal resume, /goal clear.{_RST}"
         )
         # Kick the loop off immediately so the user doesn't have to send a
@@ -2409,7 +2409,7 @@ class CLICommandsMixin:
         set it as the active goal. Falls back to a bare goal if the aux model
         can't produce a contract."""
         from cli import _DIM, _RST, _cprint
-        from freeide_cli.goals import draft_contract
+        from jettstui.goals import draft_contract
 
         mgr = self._get_goal_manager()
         if mgr is None:
@@ -2530,7 +2530,7 @@ class CLICommandsMixin:
         """Handle /skin [name] — show or change the display skin."""
         from cli import _ACCENT, save_config_value
         try:
-            from freeide_cli.skin_engine import list_skins, set_active_skin, get_active_skin_name
+            from jettstui.skin_engine import list_skins, set_active_skin, get_active_skin_name
         except ImportError:
             print("Skin engine not available.")
             return
@@ -2547,7 +2547,7 @@ class CLICommandsMixin:
                 source = f" ({s['source']})" if s["source"] == "user" else ""
                 print(f"   {marker} {s['name']}{source} — {s['description']}")
             print("\n  Usage: /skin <name>")
-            print(f"  Custom skins: drop a YAML file in {display_freeide_home()}/skins/\n")
+            print(f"  Custom skins: drop a YAML file in {display_jettstui_home()}/skins/\n")
             return
 
         new_skin = parts[1].strip().lower()
@@ -2671,8 +2671,8 @@ class CLICommandsMixin:
         request payload — the model sees an identical turn either way.
         """
         from cli import _cprint, save_config_value
-        from freeide_cli.colors import Colors as _Colors
-        from freeide_cli.focus_view import (
+        from jettstui.colors import Colors as _Colors
+        from jettstui.focus_view import (
             FOCUS_CONFIG_KEY,
             FOCUS_TOOL_PROGRESS_MODE,
             format_focus_status,
@@ -2753,7 +2753,7 @@ class CLICommandsMixin:
         agent copy is what ``agent/tool_executor.py`` gates on, and forgetting
         it means the new mode only takes effect after an agent rebuild.
         """
-        from freeide_cli.focus_view import normalize_tool_progress_mode
+        from jettstui.focus_view import normalize_tool_progress_mode
 
         normalized = normalize_tool_progress_mode(mode)
         self.tool_progress_mode = normalized
@@ -2773,7 +2773,7 @@ class CLICommandsMixin:
         """
         if not getattr(self, "_focus_view_enabled", False):
             return
-        from freeide_cli.focus_view import would_display_tool_line
+        from jettstui.focus_view import would_display_tool_line
 
         saved = getattr(self, "_focus_saved_tool_progress", None)
         last = getattr(self, "_focus_last_counted_tool", None)
@@ -2789,7 +2789,7 @@ class CLICommandsMixin:
         self._focus_last_counted_tool = None
         if not getattr(self, "_focus_view_enabled", False):
             return
-        from freeide_cli.focus_view import format_hidden_line
+        from jettstui.focus_view import format_hidden_line
 
         line = format_hidden_line(count)
         if not line:
@@ -2804,7 +2804,7 @@ class CLICommandsMixin:
     def _handle_approvals_command(self, cmd_original: str) -> None:
         """Show or persist the profile-wide dangerous-command approval mode."""
         from cli import _cprint
-        from freeide_cli.approval_mode import run_approval_mode_command
+        from jettstui.approval_mode import run_approval_mode_command
 
         parts = (cmd_original or "").strip().split(None, 1)
         requested = parts[1] if len(parts) > 1 else None
@@ -2842,7 +2842,7 @@ class CLICommandsMixin:
         self._set_work_mode(requested)
         detail = {
             "default": "normal tool behavior",
-            "plan": "read-only except .freeide/plans and .freeide/specs",
+            "plan": "read-only except .jettstui/plans and .jettstui/specs",
             "accept-edits": "workspace edits accepted; dangerous-command approvals remain",
         }[requested]
         _cprint(f"  Work mode: {requested} — {detail}.")
@@ -2881,7 +2881,7 @@ class CLICommandsMixin:
             "  /tools list|enable|disable <name>",
         ]
         if work_mode == "plan":
-            lines.insert(2, "  Plan boundary:   read-only except .freeide/plans and .freeide/specs")
+            lines.insert(2, "  Plan boundary:   read-only except .jettstui/plans and .jettstui/specs")
         return "\n".join(lines)
 
     def _handle_permissions_command(self, _cmd_original: str = "") -> None:
@@ -2972,14 +2972,14 @@ class CLICommandsMixin:
         cfg = getattr(self, "config", {}) if isinstance(getattr(self, "config", {}), dict) else {}
         provider = str(getattr(self, "provider", "") or ((cfg.get("model") or {}).get("provider") if isinstance(cfg.get("model"), dict) else "") or "unknown")
         model = str(getattr(self, "model", "") or ((cfg.get("model") or {}).get("name") if isinstance(cfg.get("model"), dict) else "") or "unknown")
-        from freeide_constants import get_freeide_home
+        from jettstui_constants import get_jettstui_home
 
-        env_path = get_freeide_home() / ".env"
+        env_path = get_jettstui_home() / ".env"
         checks = [
             ("Python", sys.version.split()[0]),
             ("Git", "found" if shutil.which("git") else "missing"),
             ("Node", "found" if shutil.which("node") else "missing"),
-            ("FreeIDE home", display_freeide_home()),
+            ("JettsTUI home", display_jettstui_home()),
             ("Config provider", provider),
             ("Config model", model),
             (".env", "found" if env_path.exists() else "missing"),
@@ -2989,7 +2989,7 @@ class CLICommandsMixin:
             glyph = "✓" if value not in {"missing", "unknown"} else "⚠"
             lines.append(f"  {glyph} {name:<16} {value}")
         if arg == "full":
-            lines.extend(["", "For the full diagnostic suite, run: freeide doctor"])
+            lines.extend(["", "For the full diagnostic suite, run: jettstui doctor"])
         else:
             lines.extend(["", "Use /doctor full for the external full-suite command hint."])
         self._console_print("\n".join(lines))
@@ -2997,7 +2997,7 @@ class CLICommandsMixin:
     def _handle_spec_command(self, cmd_original: str) -> None:
         """Create and advance a three-file, approval-gated feature spec."""
         from pathlib import Path
-        from freeide_cli.specs import run_spec_command
+        from jettstui.specs import run_spec_command
 
         parts = (cmd_original or "").strip().split(None, 1)
         args = parts[1] if len(parts) > 1 else ""
@@ -3023,8 +3023,8 @@ class CLICommandsMixin:
             /footer status    → show current state
         """
         from cli import _cprint, save_config_value
-        from freeide_cli.config import load_config
-        from freeide_cli.colors import Colors as _Colors
+        from jettstui.config import load_config
+        from jettstui.colors import Colors as _Colors
 
         # Parse arg
         arg = ""
@@ -3080,7 +3080,7 @@ class CLICommandsMixin:
             /timestamps status    → show current state
         """
         from cli import _cprint, save_config_value
-        from freeide_cli.colors import Colors as _Colors
+        from jettstui.colors import Colors as _Colors
 
         arg = ""
         try:
@@ -3217,7 +3217,7 @@ class CLICommandsMixin:
             _cprint(f"  {_ACCENT}✓ Reasoning effort set to '{arg}' (this session — use --global to persist){_RST}")
 
     def _handle_busy_command(self, cmd: str):
-        """Handle /busy — control what Enter does while FreeIDE is working.
+        """Handle /busy — control what Enter does while JettsTUI is working.
 
         Usage:
             /busy               Show current busy input mode
@@ -3249,11 +3249,11 @@ class CLICommandsMixin:
         self.busy_input_mode = arg
         if save_config_value("display.busy_input_mode", arg):
             if arg == "queue":
-                behavior = "Enter will queue follow-up input while FreeIDE is busy."
+                behavior = "Enter will queue follow-up input while JettsTUI is busy."
             elif arg == "steer":
                 behavior = "Enter will steer your message into the current run (after the next tool call)."
             else:
-                behavior = "Enter will redirect the current run while FreeIDE is busy; /stop still cancels it."
+                behavior = "Enter will redirect the current run while JettsTUI is busy; /stop still cancels it."
             _cprint(f"  {_ACCENT}✓ Busy input mode set to '{arg}' (saved to config){_RST}")
             _cprint(f"  {_DIM}{behavior}{_RST}")
         else:
@@ -3272,7 +3272,7 @@ class CLICommandsMixin:
 
         # Determine the branding for the current model
         try:
-            from freeide_cli.models import _is_anthropic_fast_model
+            from jettstui.models import _is_anthropic_fast_model
             agent = getattr(self, "agent", None)
             model = getattr(agent, "model", None) or getattr(self, "model", None)
             feature_name = "Anthropic Fast Mode" if _is_anthropic_fast_model(model) else "Priority Processing"
@@ -3322,7 +3322,7 @@ class CLICommandsMixin:
         - ``/debug``        → upload to the public paste service (default)
         - ``/debug local``  → render the report to stdout, no upload
         """
-        from freeide_cli.debug import run_debug_share
+        from jettstui.debug import run_debug_share
         from types import SimpleNamespace
 
         words = {w.lower() for w in cmd_original.split()[1:]}
@@ -3336,10 +3336,10 @@ class CLICommandsMixin:
         run_debug_share(args)
 
     def _handle_update_command(self) -> bool:
-        """Handle /update — update FreeIDE Agent to the latest version.
+        """Handle /update — update JettsTUI to the latest version.
 
         In the classic CLI this exits the session and relaunches as
-        ``freeide update`` so the user sees update output directly and gets
+        ``jettstui update`` so the user sees update output directly and gets
         the new version on next launch.
 
         Returns ``True`` when the update was confirmed (caller should trigger
@@ -3347,10 +3347,10 @@ class CLICommandsMixin:
         prompt_toolkit cleans up terminal modes).  Returns ``False`` / falsy
         when cancelled.
         """
-        from freeide_cli.config import is_managed, format_managed_message
+        from jettstui.config import is_managed, format_managed_message
 
         if is_managed():
-            print(f"  ✗ {format_managed_message('update FreeIDE Agent')}")
+            print(f"  ✗ {format_managed_message('update JettsTUI')}")
             return False
 
         # Use the prompt_toolkit-native modal so the confirmation panel
@@ -3358,12 +3358,12 @@ class CLICommandsMixin:
         # with the prompt_toolkit event loop (same pattern as
         # _confirm_destructive_slash).
         choices = [
-            ("once", "Update Now", "exit the current session and update FreeIDE Agent"),
+            ("once", "Update Now", "exit the current session and update JettsTUI"),
             ("cancel", "Cancel", "keep the current session"),
         ]
         raw = self._prompt_text_input_modal(
-            title="◆  Update FreeIDE Agent",
-            detail="This will exit the current session and run `freeide update`.",
+            title="◆  Update JettsTUI",
+            detail="This will exit the current session and run `jettstui update`.",
             choices=choices,
         )
         if raw is None:

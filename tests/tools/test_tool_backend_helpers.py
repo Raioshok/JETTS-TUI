@@ -162,14 +162,14 @@ class TestPrefersGateway:
 
     def test_returns_false_for_quoted_false(self, monkeypatch):
         monkeypatch.setattr(
-            "freeide_cli.config.load_config",
+            "jettstui.config.load_config",
             lambda: {"web": {"use_gateway": "false"}},
         )
         assert prefers_gateway("web") is False
 
     def test_returns_true_for_quoted_true(self, monkeypatch):
         monkeypatch.setattr(
-            "freeide_cli.config.load_config",
+            "jettstui.config.load_config",
             lambda: {"web": {"use_gateway": "true"}},
         )
         assert prefers_gateway("web") is True

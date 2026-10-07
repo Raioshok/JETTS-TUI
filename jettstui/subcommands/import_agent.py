@@ -1,8 +1,8 @@
-"""``freeide import-agent`` subcommand parser.
+"""``jettstui import-agent`` subcommand parser.
 
-Follows the ``freeide claw`` pattern (see ``freeide_cli/subcommands/claw.py``):
+Follows the ``jettstui claw`` pattern (see ``jettstui/subcommands/claw.py``):
 parser building lives here, the handler is injected to avoid importing
-``main``, and the import logic itself lives in ``freeide_cli/agent_import.py``.
+``main``, and the import logic itself lives in ``jettstui/agent_import.py``.
 """
 
 from __future__ import annotations
@@ -14,13 +14,13 @@ def build_import_agent_parser(subparsers, *, cmd_import_agent: Callable) -> None
     """Attach the ``import-agent`` subcommand to ``subparsers``."""
     parser = subparsers.add_parser(
         "import-agent",
-        help="Import a Claude Code or Codex CLI setup into Jetts-TUI",
+        help="Import a Claude Code or Codex CLI setup into JettsTUI",
         description=(
-            "One-command import of another coding agent's setup into Jetts-TUI. "
+            "One-command import of another coding agent's setup into JettsTUI. "
             "Maps CLAUDE.md/AGENTS.md instructions, permission allowlists, MCP "
-            "servers, skills, and memories into their Jetts-TUI equivalents. "
+            "servers, skills, and memories into their JettsTUI equivalents. "
             "Always shows a preview before making changes. API keys and "
-            "credentials are never imported — run 'freeide setup' for those."
+            "credentials are never imported — run 'jettstui setup' for those."
         ),
     )
     parser.add_argument(
@@ -41,7 +41,7 @@ def build_import_agent_parser(subparsers, *, cmd_import_agent: Callable) -> None
     parser.add_argument(
         "--overwrite",
         action="store_true",
-        help="Overwrite existing Jetts-TUI items on name conflicts (default: skip)",
+        help="Overwrite existing JettsTUI items on name conflicts (default: skip)",
     )
     parser.add_argument(
         "--yes", "-y", action="store_true", help="Skip confirmation prompts"

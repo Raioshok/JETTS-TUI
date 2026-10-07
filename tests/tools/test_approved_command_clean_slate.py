@@ -35,7 +35,7 @@ from tools.interrupt import (
 
 @pytest.fixture(autouse=True)
 def _isolate(tmp_path, monkeypatch):
-    monkeypatch.setenv("FREEIDE_HOME", str(tmp_path))
+    monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path))
     (tmp_path / "logs").mkdir(exist_ok=True)
     # Clean interrupt slate before and after every test so a stale tid left in
     # the module-global set can't leak across tests in the same worker.
@@ -94,7 +94,7 @@ def test_approved_command_genuine_interrupt_after_start_still_kills(tmp_path):
 
     def worker():
         holder["result"] = tt.terminal_tool(
-            command=f"touch {sentinel}; sleep 5; echo DONE", force=True
+            command=f"touch '{sentinel.as_posix()}'; sleep 5; echo DONE", force=True
         )
 
     t = threading.Thread(target=worker, daemon=True)
@@ -125,7 +125,7 @@ def test_approved_note_enriched_not_misleading_on_interrupt(monkeypatch, tmp_pat
     holder = {}
 
     def worker():
-        holder["result"] = tt.terminal_tool(command=f"touch {sentinel}; sleep 5; echo DONE")
+        holder["result"] = tt.terminal_tool(command=f"touch '{sentinel.as_posix()}'; sleep 5; echo DONE")
 
     t = threading.Thread(target=worker, daemon=True)
     t.start()

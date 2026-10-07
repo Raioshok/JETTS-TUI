@@ -1,6 +1,6 @@
 import { Codecs, persistentAtom } from '@/lib/persisted'
 
-const STORAGE_KEY = 'freeide.desktop.collapsed-providers'
+const STORAGE_KEY = 'jettstui.desktop.collapsed-providers'
 
 /** Set of provider slugs whose model groups are currently collapsed in the
  *  model picker dropdown. Persisted to localStorage globally — this is a

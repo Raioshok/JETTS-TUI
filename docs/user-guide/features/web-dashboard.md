@@ -6,7 +6,7 @@ description: "Browser-based administration panel for managing configuration, API
 
 # Web Dashboard
 
-The web dashboard is a browser-based UI for managing your FreeIDE Agent installation. Instead of editing YAML files or running CLI commands, you can configure settings, manage API keys, and monitor sessions from a clean web interface.
+The web dashboard is a browser-based UI for managing your JettsTUI installation. Instead of editing YAML files or running CLI commands, you can configure settings, manage API keys, and monitor sessions from a clean web interface.
 
 :::tip
 Binding the dashboard to a public address engages an auth gate — protect it with the built-in username/password provider or your own OIDC identity provider. See [Authentication](#authentication-gated-mode).
@@ -15,7 +15,7 @@ Binding the dashboard to a public address engages an auth gate — protect it wi
 ## Quick Start
 
 ```bash
-freeide dashboard
+jettstui dashboard
 ```
 
 This starts a local web server and opens `http://127.0.0.1:9119` in your browser. The dashboard runs entirely on your machine — no data leaves localhost.
@@ -32,13 +32,13 @@ This starts a local web server and opens `http://127.0.0.1:9119` in your browser
 
 ```bash
 # Custom port
-freeide dashboard --port 8080
+jettstui dashboard --port 8080
 
 # Bind to all interfaces (use with caution on shared networks)
-freeide dashboard --host 0.0.0.0
+jettstui dashboard --host 0.0.0.0
 
 # Start without opening browser
-freeide dashboard --no-open
+jettstui dashboard --no-open
 ```
 
 ## Managing multiple profiles
@@ -69,28 +69,28 @@ profile (the pre-unification behavior — useful if you deliberately expose
 different profiles' dashboards with different auth).
 
 The **Chat** tab follows the switcher too: a scoped chat spawns its PTY
-child with the selected profile's `FREEIDE_HOME`, so the conversation runs
+child with the selected profile's `JETTSTUI_HOME`, so the conversation runs
 with that profile's model, skills, memory, and session history. Switching
 profiles starts a fresh terminal session.
 
 What stays per-profile and is *not* absorbed by the switcher: gateway
-processes (manage them via `freeide -p <name> gateway …`), each profile's
+processes (manage them via `jettstui -p <name> gateway …`), each profile's
 session database, and cron schedulers (the Cron page already aggregates
 across profiles with its own filter).
 
 ## Prerequisites
 
-The default `freeide-agent` install does not ship the HTTP stack or PTY helper — those are optional extras. The **web dashboard** needs FastAPI and Uvicorn (`web` extra). The **Chat** tab also needs `ptyprocess` to spawn the embedded TUI behind a pseudo-terminal (`pty` extra on POSIX). Install both with:
+The default `jettstui` install does not ship the HTTP stack or PTY helper — those are optional extras. The **web dashboard** needs FastAPI and Uvicorn (`web` extra). The **Chat** tab also needs `ptyprocess` to spawn the embedded TUI behind a pseudo-terminal (`pty` extra on POSIX). Install both with:
 
 ```bash
-cd ~/.freeide/freeide-agent && uv pip install -e ".[web,pty]"
+cd ~/.jettstui/jettstui && uv pip install -e ".[web,pty]"
 ```
 
-The `web` extra pulls in FastAPI/Uvicorn; `pty` pulls in `ptyprocess` (POSIX) or `pywinpty` (native Windows — note that the embedded TUI itself still requires WSL). `cd ~/.freeide/freeide-agent && uv pip install -e ".[all]"` includes both extras and is the easiest path if you also want messaging/voice/etc.
+The `web` extra pulls in FastAPI/Uvicorn; `pty` pulls in `ptyprocess` (POSIX) or `pywinpty` (native Windows — note that the embedded TUI itself still requires WSL). `cd ~/.jettstui/jettstui && uv pip install -e ".[all]"` includes both extras and is the easiest path if you also want messaging/voice/etc.
 
-When you run `freeide dashboard` without the dependencies, it will tell you what to install. If the frontend hasn't been built yet and `npm` is available, it builds automatically on first launch.
+When you run `jettstui dashboard` without the dependencies, it will tell you what to install. If the frontend hasn't been built yet and `npm` is available, it builds automatically on first launch.
 
-The Chat tab is part of every `freeide dashboard` launch — the embedded browser chat pane (running the TUI over PTY/WebSocket) is always available, with no extra flag required.
+The Chat tab is part of every `jettstui dashboard` launch — the embedded browser chat pane (running the TUI over PTY/WebSocket) is always available, with no extra flag required.
 
 ## Pages
 
@@ -107,12 +107,12 @@ The status page auto-refreshes every 5 seconds.
 
 ### Chat
 
-The **Chat** tab embeds the full FreeIDE TUI (the same interface you get from `freeide --tui`) directly in the browser. Everything you can do in the terminal TUI — slash commands, model picker, tool-call cards, markdown streaming, clarify/sudo/approval prompts, skin theming — works identically here, because the dashboard is running the real TUI binary and rendering its ANSI output through [xterm.js](https://xtermjs.org/) with its WebGL renderer for pixel-perfect cell layout.
+The **Chat** tab embeds the full JettsTUI TUI (the same interface you get from `jettstui --tui`) directly in the browser. Everything you can do in the terminal TUI — slash commands, model picker, tool-call cards, markdown streaming, clarify/sudo/approval prompts, skin theming — works identically here, because the dashboard is running the real TUI binary and rendering its ANSI output through [xterm.js](https://xtermjs.org/) with its WebGL renderer for pixel-perfect cell layout.
 
 **How it works:**
 
 - `/api/pty` opens a WebSocket authenticated with the dashboard's session token
-- The server spawns `freeide --tui` behind a POSIX pseudo-terminal
+- The server spawns `jettstui --tui` behind a POSIX pseudo-terminal
 - Keystrokes travel to the PTY; ANSI output streams back to the browser
 - xterm.js's WebGL renderer paints each cell to an integer-pixel grid; mouse tracking (SGR 1006), wide characters (Unicode 11), and box-drawing glyphs all render natively
 - Resizing the browser window resizes the TUI via the `@xterm/addon-fit` addon
@@ -123,20 +123,20 @@ The **Chat** tab embeds the full FreeIDE TUI (the same interface you get from `f
 
 **Prerequisites:**
 
-- Node.js (same requirement as `freeide --tui`; the TUI bundle is built on first launch)
-- `ptyprocess` — installed by the `pty` extra (`cd ~/.freeide/freeide-agent && uv pip install -e ".[web,pty]"`, or `[all]` covers both)
+- Node.js (same requirement as `jettstui --tui`; the TUI bundle is built on first launch)
+- `ptyprocess` — installed by the `pty` extra (`cd ~/.jettstui/jettstui && uv pip install -e ".[web,pty]"`, or `[all]` covers both)
 - POSIX kernel (Linux, macOS, or WSL2).  The `/chat` terminal pane specifically needs a POSIX PTY — native Windows Python has no equivalent, so on a native Windows install the rest of the dashboard (sessions, jobs, metrics, config editor) works but the `/chat` tab will show a banner telling you to use WSL2 for that feature.
 
 Close the browser tab and the PTY is reaped cleanly on the server. Re-opening spawns a fresh session.
 
-To point [FreeIDE Desktop](#connecting-freeide-desktop-to-a-remote-backend) at a dashboard running on another machine instead of its own bundled backend, see the remote-backend section below.
+To point [JettsTUI Desktop](#connecting-jettstui-desktop-to-a-remote-backend) at a dashboard running on another machine instead of its own bundled backend, see the remote-backend section below.
 
-### Connecting FreeIDE Desktop to a remote backend
+### Connecting JettsTUI Desktop to a remote backend
 
-FreeIDE Desktop normally launches its own local backend, but it can also attach to a dashboard running on a remote machine (a VM, a homelab box, etc.) via **Settings → Gateway → Remote gateway**. This is the most common source of "Desktop says the backend is ready but chat never works" reports, because Desktop's readiness check verifies less than the live chat connection actually needs.
+JettsTUI Desktop normally launches its own local backend, but it can also attach to a dashboard running on a remote machine (a VM, a homelab box, etc.) via **Settings → Gateway → Remote gateway**. This is the most common source of "Desktop says the backend is ready but chat never works" reports, because Desktop's readiness check verifies less than the live chat connection actually needs.
 
-:::info Prerequisite: a `freeide dashboard` must be running on the remote host
-The "remote backend" Desktop connects to **is** a `freeide dashboard` process running on the remote machine — the same server this page documents. It has to be up and reachable before any of the steps below matter; Desktop attaches to it, it doesn't start it for you. Keep it running under `systemd`/`tmux`/etc. so it survives logout and reboots. The **gateway** (Telegram/Discord/Slack/etc.) is a *separate* long-running process — start it independently if you rely on messaging channels; it is not the thing the desktop app connects to.
+:::info Prerequisite: a `jettstui dashboard` must be running on the remote host
+The "remote backend" Desktop connects to **is** a `jettstui dashboard` process running on the remote machine — the same server this page documents. It has to be up and reachable before any of the steps below matter; Desktop attaches to it, it doesn't start it for you. Keep it running under `systemd`/`tmux`/etc. so it survives logout and reboots. The **gateway** (Telegram/Discord/Slack/etc.) is a *separate* long-running process — start it independently if you rely on messaging channels; it is not the thing the desktop app connects to.
 :::
 
 Desktop's "remote backend is ready" probe only hits `GET /api/status`, which is a public endpoint — it answers as soon as *any* dashboard is running on the host. The live chat connection is a **separate** WebSocket to `/api/ws` (and `/api/pty`), and that socket is gated by two more checks the status probe never touches:
@@ -150,17 +150,17 @@ Set a username and password, then run the dashboard bound to a reachable address
 
 ```ini
 [Service]
-EnvironmentFile=%h/.freeide/.env
-ExecStart=/path/to/venv/bin/python -m freeide_cli.main dashboard \
+EnvironmentFile=%h/.jettstui/.env
+ExecStart=/path/to/venv/bin/python -m jettstui.main dashboard \
     --host 0.0.0.0 --port 9119 --no-open
 ```
 
-with `~/.freeide/.env` containing:
+with `~/.jettstui/.env` containing:
 
 ```bash
-FREEIDE_DASHBOARD_BASIC_AUTH_USERNAME=admin
-FREEIDE_DASHBOARD_BASIC_AUTH_PASSWORD=choose-a-strong-password
-FREEIDE_DASHBOARD_BASIC_AUTH_SECRET=<32+ random bytes; openssl rand -base64 32>
+JETTSTUI_DASHBOARD_BASIC_AUTH_USERNAME=admin
+JETTSTUI_DASHBOARD_BASIC_AUTH_PASSWORD=choose-a-strong-password
+JETTSTUI_DASHBOARD_BASIC_AUTH_SECRET=<32+ random bytes; openssl rand -base64 32>
 ```
 
 Then in Desktop enter the **Remote URL** (e.g. `http://VM_IP:9119`) and **Sign in** with that username and password. See the [username/password provider](#usernamepassword-provider-no-oauth-idp) section for the full configuration surface.
@@ -207,7 +207,7 @@ Fields with known valid values (terminal backend, skin, approval mode, etc.) ren
 - **Import** — uploads a JSON config file to replace the current values
 
 :::tip
-Config changes take effect on the next agent session or gateway restart. The web dashboard edits the same `config.yaml` file that `freeide config set` and the gateway read from.
+Config changes take effect on the next agent session or gateway restart. The web dashboard edits the same `config.yaml` file that `jettstui config set` and the gateway read from.
 :::
 
 ### API Keys
@@ -276,31 +276,31 @@ Create and manage scheduled cron jobs that run agent prompts on a recurring sche
 
 ### Profiles
 
-Create and manage [profiles](../profiles.md) — isolated FreeIDE instances with their own config, skills, and sessions.
+Create and manage [profiles](../profiles.md) — isolated JettsTUI instances with their own config, skills, and sessions.
 
 - **Profile cards** — each shows its model/provider, skill count, gateway state, description, and badges (active, default, alias)
 - **Create** — name + optional clone-from-default / clone-everything / no-bundled-skills, description, and model; the dedicated Profile Builder page (`/profiles/new`) offers the full flow (model, MCPs, skills)
 - **Manage skills & tools** — jumps to the Skills page scoped to that profile (sets the sidebar profile switcher)
-- **Set as active** — flips the sticky default that **future CLI/gateway runs** pick up (same as `freeide profile use`). This does *not* change what the dashboard manages — that's the profile switcher's job
+- **Set as active** — flips the sticky default that **future CLI/gateway runs** pick up (same as `jettstui profile use`). This does *not* change what the dashboard manages — that's the profile switcher's job
 - **Edit model / description / SOUL** — inline editors writing into that profile
 - **Rename / Delete** — named profiles only
 
 ### Skills
 
-Browse, search, and toggle installed skills and toolsets, and install new ones from the hub. Skills are loaded from `~/.freeide/skills/` and grouped by category.
+Browse, search, and toggle installed skills and toolsets, and install new ones from the hub. Skills are loaded from `~/.jettstui/skills/` and grouped by category.
 
 - **Search** — filter installed skills and toolsets by name, description, or category
 - **Category filter** — click category pills to narrow the list (e.g. MLOps, MCP, Red Teaming, AI)
 - **Toggle** — enable or disable individual skills with a switch. Changes take effect on the next session.
 - **Toolsets** — a separate view shows built-in toolsets (file operations, web browsing, etc.) with their active/inactive status, setup requirements, and list of included tools
-- **Browse hub** — a third view searches the skill hub across all sources (the same as `freeide skills search`), installs any result by identifier with a live install log, and offers an "Update all" button to refresh installed skills.
+- **Browse hub** — a third view searches the skill hub across all sources (the same as `jettstui skills search`), installs any result by identifier with a live install log, and offers an "Update all" button to refresh installed skills.
 
 ![Skills admin page — the Browse hub view: search, install, and update](../../assets/img/dashboard/admin-skills-hub.png)
 
 ### MCP
 
 Manage [MCP](./mcp.md) servers without the CLI. The same `mcp_servers`
-block in `config.yaml` that `freeide mcp` reads from.
+block in `config.yaml` that `jettstui mcp` reads from.
 
 **Your MCP servers:**
 
@@ -310,10 +310,10 @@ block in `config.yaml` that `freeide mcp` reads from.
 - **Remove** — delete a server from the config
 - Secret-shaped env values are redacted in the list view
 
-**Catalog:** browse the FreeIDE-approved MCP servers (the bundled `optional-mcps/`
+**Catalog:** browse the JettsTUI-approved MCP servers (the bundled `optional-mcps/`
 catalog) and install any of them with one click. Entries that need API keys
 prompt for them inline; the values go to `.env`. This is the same catalog
-`freeide mcp catalog` / `freeide mcp install` use.
+`jettstui mcp catalog` / `jettstui mcp install` use.
 
 ![MCP admin page — your servers with enable/disable toggles, plus the install catalog](../../assets/img/dashboard/admin-mcp.png)
 
@@ -334,7 +334,7 @@ hint when it isn't.
 
 Approve and revoke messaging users without the CLI — how a remote admin
 onboards Telegram/Discord/etc. users to a paired gateway. Full parity with
-`freeide pairing`.
+`jettstui pairing`.
 
 - **Pending requests** — each shows platform, code, user, and age, with an Approve button
 - **Approved users** — each shows platform and user, with a Revoke button
@@ -344,8 +344,8 @@ onboards Telegram/Discord/etc. users to a paired gateway. Full parity with
 
 ### Channels
 
-Connect FreeIDE to any messaging platform from the browser — full parity with
-`freeide setup gateway`. The page lists every supported channel (Telegram,
+Connect JettsTUI to any messaging platform from the browser — full parity with
+`jettstui setup gateway`. The page lists every supported channel (Telegram,
 Discord, Slack, Matrix, Mattermost, WhatsApp, Signal, BlueBubbles/iMessage,
 Email, SMS/Twilio, DingTalk, Feishu/Lark, WeCom, WeChat, QQ Bot, Yuanbao, plus
 the API server and webhook endpoints) with its live connection status.
@@ -353,7 +353,7 @@ the API server and webhook endpoints) with its live connection status.
 - **Configure** — open a per-platform form with exactly the fields that channel needs (bot token, app token, server URL, allowlist, etc.). Secrets render as password inputs and are stored redacted; leaving a field blank keeps the existing value. Required fields are marked and validated. A "Setup guide" link points to the platform's credential docs.
 - **Enable / disable** — toggle a channel on or off. The credential stays on disk; only the active state changes.
 - **Test** — check whether the channel is configured, enabled, and reporting a live connection from the gateway.
-- **Restart gateway** — credentials are written to `~/.freeide/.env` and the enabled flag to `config.yaml`; the gateway connects each enabled channel on its next restart, which you can trigger right from the page.
+- **Restart gateway** — credentials are written to `~/.jettstui/.env` and the enabled flag to `config.yaml`; the gateway connects each enabled channel on its next restart, which you can trigger right from the page.
 
 ![Channels admin page — every messaging platform with status, enable toggles, and per-platform setup forms](../../assets/img/dashboard/admin-channels.png)
 
@@ -361,8 +361,8 @@ the API server and webhook endpoints) with its live connection status.
 
 A consolidated administration panel for installation-wide operations:
 
-- **Host** — live system stats: OS / kernel, architecture, hostname, Python and FreeIDE versions, CPU core count + utilization, memory, disk usage of the FreeIDE home, uptime, and load average. (CPU/memory/disk come from `psutil` when installed; identity fields are always shown.) The FreeIDE version shows an **update-status badge** (up to date / N commits behind) and a **Check for updates** button. When an update is available on a git install, an **Update now** button opens a confirmation dialog — showing how many commits you'll pull — before running `freeide update` in the background. On Docker/Nix installs the dashboard can't apply the update in place, so it shows the correct out-of-band command instead.
-- **Skill curator** — the background skill-maintenance status (active / paused, interval, last run) with pause/resume and a run-now button. Mirrors `freeide curator`.
+- **Host** — live system stats: OS / kernel, architecture, hostname, Python and JettsTUI versions, CPU core count + utilization, memory, disk usage of the JettsTUI home, uptime, and load average. (CPU/memory/disk come from `psutil` when installed; identity fields are always shown.) The JettsTUI version shows an **update-status badge** (up to date / N commits behind) and a **Check for updates** button. When an update is available on a git install, an **Update now** button opens a confirmation dialog — showing how many commits you'll pull — before running `jettstui update` in the background. On Docker/Nix installs the dashboard can't apply the update in place, so it shows the correct out-of-band command instead.
+- **Skill curator** — the background skill-maintenance status (active / paused, interval, last run) with pause/resume and a run-now button. Mirrors `jettstui curator`.
 - **Gateway** — start, stop, and restart the messaging gateway, with live status (running/stopped, PID, state)
 - **Memory** — pick the external memory provider (or built-in only), and reset the built-in `MEMORY.md` / `USER.md` stores
 - **Credential pool** — add and remove the rotating API keys the agent round-robins through (per provider). Keys are redacted in the list; the raw value only ever reaches the agent.
@@ -393,7 +393,7 @@ You → /reload
   Reloaded .env (3 var(s) updated)
 ```
 
-This re-reads `~/.freeide/.env` into the running process's environment. Useful when you've added a new provider key via the dashboard and want to use it immediately.
+This re-reads `~/.jettstui/.env` into the running process's environment. Useful when you've added a new provider key via the dashboard and want to use it immediately.
 
 ## REST API
 
@@ -404,7 +404,7 @@ The management endpoint families — `/api/config`, `/api/env`, `/api/skills`,
 `/api/tools/toolsets`, `/api/mcp`, and `/api/model/{info,options,auxiliary,set}` —
 accept an optional `?profile=<name>` query parameter (or `"profile"` in the
 JSON body for writes) that scopes the read/write to that profile's
-`FREEIDE_HOME`. Omitted = the dashboard's own profile. Unknown profile names
+`JETTSTUI_HOME`. Omitted = the dashboard's own profile. Unknown profile names
 return `404`. The `/api/pty` WebSocket accepts the same parameter to spawn
 a chat under the selected profile.
 :::
@@ -517,7 +517,7 @@ same auth gate as the rest of `/api/`.
 | `POST /api/mcp/servers/{name}/test` | Connect, list tools, disconnect |
 | `PUT /api/mcp/servers/{name}/enabled` | Enable / disable a server |
 | `DELETE /api/mcp/servers/{name}` | Remove a server |
-| `GET /api/mcp/catalog` | Browse the FreeIDE-approved MCP catalog |
+| `GET /api/mcp/catalog` | Browse the JettsTUI-approved MCP catalog |
 | `POST /api/mcp/catalog/install` | Install a catalog entry (with required env) |
 | `GET /api/messaging/platforms` | List every messaging channel with status + per-platform setup fields |
 | `PUT /api/messaging/platforms/{id}` | Configure a channel. Body: `{enabled?, env?, clear_env?}` (env writes to `.env`, enabled to `config.yaml`) |
@@ -541,7 +541,7 @@ same auth gate as the rest of `/api/`.
 | `GET /api/ops/checkpoints` · `POST .../prune` | Inspect / prune the `/rollback` store |
 | `POST /api/ops/hooks` · `DELETE /api/ops/hooks` | Create / remove a shell hook (consent-gated) |
 | `GET /api/system/stats` | Host stats — OS, CPU, memory, disk, uptime |
-| `GET /api/freeide/update/check` | Report update availability (commits behind, install method) without applying. For git installs that are behind, also returns a `commits` list (`sha`, `summary`, `author`, `at`) of what's changed. `?force=1` busts the 6h cache |
+| `GET /api/jettstui/update/check` | Report update availability (commits behind, install method) without applying. For git installs that are behind, also returns a `commits` list (`sha`, `summary`, `author`, `at`) of what's changed. `?force=1` busts the 6h cache |
 | `GET /api/curator` · `PUT .../paused` · `POST .../run` | Skill-curator status + pause/resume + run |
 | `POST /api/ops/prompt-size` · `/dump` · `/config-migrate` | Diagnostics (backgrounded) |
 | `PUT /api/webhooks/{name}/enabled` | Enable / disable a webhook route |
@@ -555,10 +555,10 @@ same auth gate as the rest of `/api/`.
 
 ## Authentication (gated mode)
 
-When the dashboard is bound to a public or non-loopback address — anything other than `127.0.0.1` / `localhost` — FreeIDE Agent engages an auth gate. Every request must carry a verified session cookie or it's bounced to the login page. Two providers ship in the box:
+When the dashboard is bound to a public or non-loopback address — anything other than `127.0.0.1` / `localhost` — JettsTUI engages an auth gate. Every request must carry a verified session cookie or it's bounced to the login page. Two providers ship in the box:
 
 - **[Username/password](#usernamepassword-provider-no-oauth-idp)** — the simplest way to put auth on a self-hosted / on-prem / homelab dashboard. No external identity provider. **Use it only on a trusted network or behind a VPN — not for public-internet exposure.**
-- **[Self-hosted OIDC](#self-hosted-oidc-provider)** — for bringing your own identity provider via standard OpenID Connect (Keycloak, Auth0, Okta, Google, GitHub via an OIDC bridge, etc.). Suitable for public-internet exposure when fronted by a conformant OIDC server, and the recommended path for a [remote FreeIDE Desktop connection](#connecting-freeide-desktop-to-a-remote-backend).
+- **[Self-hosted OIDC](#self-hosted-oidc-provider)** — for bringing your own identity provider via standard OpenID Connect (Keycloak, Auth0, Okta, Google, GitHub via an OIDC bridge, etc.). Suitable for public-internet exposure when fronted by a conformant OIDC server, and the recommended path for a [remote JettsTUI Desktop connection](#connecting-jettstui-desktop-to-a-remote-backend).
 
 Operator-owned dashboards bound to loopback are unaffected — no auth, no login page.
 
@@ -566,8 +566,8 @@ Operator-owned dashboards bound to loopback are unaffected — no auth, no login
 
 | Flags | Auth gate | Use case |
 |-------|-----------|----------|
-| `freeide dashboard` (default — binds to `127.0.0.1`) | OFF | Local development |
-| `freeide dashboard --host 0.0.0.0` | **ON** | Remote / production — protect with the username/password provider or self-hosted OIDC |
+| `jettstui dashboard` (default — binds to `127.0.0.1`) | OFF | Local development |
+| `jettstui dashboard --host 0.0.0.0` | **ON** | Remote / production — protect with the username/password provider or self-hosted OIDC |
 
 The gate is on if and only if:
 
@@ -580,9 +580,9 @@ The gate is on if and only if:
 
 ### Fail-closed semantics
 
-If the gate would engage but **no** `DashboardAuthProvider` is registered (nothing configured, no custom plugin), `freeide dashboard` refuses to bind with an explicit error message. There is no "default-deny but accept everything" fallback — a misconfigured gated dashboard never starts.
+If the gate would engage but **no** `DashboardAuthProvider` is registered (nothing configured, no custom plugin), `jettstui dashboard` refuses to bind with an explicit error message. There is no "default-deny but accept everything" fallback — a misconfigured gated dashboard never starts.
 
-When you run `freeide dashboard --host 0.0.0.0` **interactively** (a real terminal) and no provider is configured yet, FreeIDE doesn't just fail — it offers to set up the **username & password** provider on the spot (writes `dashboard.basic_auth` to `config.yaml` and you're running in seconds). For an OIDC-backed gate, configure the [self-hosted OIDC provider](#self-hosted-oidc-provider) instead. Non-interactive callers — Docker/s6, CI, piped runs — skip the prompt and hit the fail-closed error above, so an unattended deploy still never starts without auth.
+When you run `jettstui dashboard --host 0.0.0.0` **interactively** (a real terminal) and no provider is configured yet, JettsTUI doesn't just fail — it offers to set up the **username & password** provider on the spot (writes `dashboard.basic_auth` to `config.yaml` and you're running in seconds). For an OIDC-backed gate, configure the [self-hosted OIDC provider](#self-hosted-oidc-provider) instead. Non-interactive callers — Docker/s6, CI, piped runs — skip the prompt and hit the fail-closed error above, so an unattended deploy still never starts without auth.
 
 ### Username/password provider (no OAuth IDP)
 
@@ -617,11 +617,11 @@ dashboard:
 
 | Env var | Overrides | Notes |
 |---------|-----------|-------|
-| `FREEIDE_DASHBOARD_BASIC_AUTH_USERNAME` | `dashboard.basic_auth.username` | required to activate |
-| `FREEIDE_DASHBOARD_BASIC_AUTH_PASSWORD_HASH` | `dashboard.basic_auth.password_hash` | preferred (no plaintext at rest) |
-| `FREEIDE_DASHBOARD_BASIC_AUTH_PASSWORD` | `dashboard.basic_auth.password` | plaintext; **wins over a config `password_hash`** so you can rotate via env |
-| `FREEIDE_DASHBOARD_BASIC_AUTH_SECRET` | `dashboard.basic_auth.secret` | token-signing key |
-| `FREEIDE_DASHBOARD_BASIC_AUTH_TTL_SECONDS` | `dashboard.basic_auth.session_ttl_seconds` | access-token lifetime |
+| `JETTSTUI_DASHBOARD_BASIC_AUTH_USERNAME` | `dashboard.basic_auth.username` | required to activate |
+| `JETTSTUI_DASHBOARD_BASIC_AUTH_PASSWORD_HASH` | `dashboard.basic_auth.password_hash` | preferred (no plaintext at rest) |
+| `JETTSTUI_DASHBOARD_BASIC_AUTH_PASSWORD` | `dashboard.basic_auth.password` | plaintext; **wins over a config `password_hash`** so you can rotate via env |
+| `JETTSTUI_DASHBOARD_BASIC_AUTH_SECRET` | `dashboard.basic_auth.secret` | token-signing key |
+| `JETTSTUI_DASHBOARD_BASIC_AUTH_TTL_SECONDS` | `dashboard.basic_auth.session_ttl_seconds` | access-token lifetime |
 
 :::caution Set an explicit `secret` for stable sessions
 When `secret` is empty, a random per-process signing key is generated. That's fine for a single process, but it means **every session is invalidated on restart** and sessions **don't span multiple workers**. Set an explicit `secret` for restart-surviving / multi-worker deployments.
@@ -633,24 +633,24 @@ The `/auth/password-login` endpoint is rate-limited per client IP (default 10 at
 
 From nothing to a password-gated dashboard on a trusted network in three steps.
 
-**1. Set credentials in `~/.freeide/.env`.** Hash the password so no plaintext sits at rest, and set a stable signing secret so sessions survive restarts:
+**1. Set credentials in `~/.jettstui/.env`.** Hash the password so no plaintext sits at rest, and set a stable signing secret so sessions survive restarts:
 
 ```bash
 # Compute a scrypt hash of your chosen password:
 HASH=$(python -c "from plugins.dashboard_auth.basic import hash_password; print(hash_password('choose-a-strong-password'))")
 
-cat >> ~/.freeide/.env <<EOF
-FREEIDE_DASHBOARD_BASIC_AUTH_USERNAME=admin
-FREEIDE_DASHBOARD_BASIC_AUTH_PASSWORD_HASH=$HASH
-FREEIDE_DASHBOARD_BASIC_AUTH_SECRET=$(openssl rand -base64 32)
+cat >> ~/.jettstui/.env <<EOF
+JETTSTUI_DASHBOARD_BASIC_AUTH_USERNAME=admin
+JETTSTUI_DASHBOARD_BASIC_AUTH_PASSWORD_HASH=$HASH
+JETTSTUI_DASHBOARD_BASIC_AUTH_SECRET=$(openssl rand -base64 32)
 EOF
-chmod 600 ~/.freeide/.env
+chmod 600 ~/.jettstui/.env
 ```
 
 **2. Run the dashboard on a reachable address.** A non-loopback bind without `--insecure` engages the gate, and the username + hash activate the `basic` provider:
 
 ```bash
-freeide dashboard --host 0.0.0.0 --port 9119 --no-open
+jettstui dashboard --host 0.0.0.0 --port 9119 --no-open
 ```
 
 **3. Log in.** Open `http://<host>:9119/`, you'll be bounced to `/login` — a **credential form** (not a "Sign in with X" button). Enter `admin` / your password → land on the authenticated dashboard. Verify the gate from any machine:
@@ -673,7 +673,7 @@ If you run your own identity provider, the bundled `plugins/dashboard_auth/self_
 
 > **Authentik · Keycloak · Zitadel · Authelia · Auth0 · Okta · Google · …**
 
-Like the FreeIDE provider, it auto-loads and only registers itself once it's configured, so it's a no-op for loopback / `--insecure` dashboards.
+Like the JettsTUI provider, it auto-loads and only registers itself once it's configured, so it's a no-op for loopback / `--insecure` dashboards.
 
 #### Configuration
 
@@ -686,8 +686,8 @@ dashboard:
   oauth:
     provider: self-hosted
     self_hosted:
-      issuer: https://auth.example.com/application/o/freeide/   # required
-      client_id: freeide-dashboard                              # required
+      issuer: https://auth.example.com/application/o/jettstui/   # required
+      client_id: jettstui-dashboard                              # required
       scopes: "openid profile email"                           # optional (this is the default)
 ```
 
@@ -695,9 +695,9 @@ dashboard:
 
 | Env var | Overrides | Notes |
 |---------|-----------|-------|
-| `FREEIDE_DASHBOARD_OIDC_ISSUER` | `dashboard.oauth.self_hosted.issuer` | OIDC issuer URL — required |
-| `FREEIDE_DASHBOARD_OIDC_CLIENT_ID` | `dashboard.oauth.self_hosted.client_id` | Public client id — required |
-| `FREEIDE_DASHBOARD_OIDC_SCOPES` | `dashboard.oauth.self_hosted.scopes` | Defaults to `openid profile email` |
+| `JETTSTUI_DASHBOARD_OIDC_ISSUER` | `dashboard.oauth.self_hosted.issuer` | OIDC issuer URL — required |
+| `JETTSTUI_DASHBOARD_OIDC_CLIENT_ID` | `dashboard.oauth.self_hosted.client_id` | Public client id — required |
+| `JETTSTUI_DASHBOARD_OIDC_SCOPES` | `dashboard.oauth.self_hosted.scopes` | Defaults to `openid profile email` |
 
 In your IDP, register a **public** application/client with the authorization-code + PKCE (S256) grant and add the dashboard's callback as an allowed redirect URI. The callback is `<dashboard public URL>/auth/callback` (see [Public URL override](#public-url-override) for how the dashboard derives its public URL behind a proxy).
 
@@ -720,16 +720,16 @@ The ID token is what establishes identity — the access token is treated as opa
 
 [Keycloak](https://www.keycloak.org/) is one of the easiest self-hosted OIDC servers to stand up for a local test — it runs as a single container in dev mode (in-memory DB) and exposes textbook OIDC discovery. This walkthrough gets you from nothing to a working dashboard login in a few minutes.
 
-**1. Run Keycloak with a pre-configured realm.** Save this realm export as `realm-freeide.json` — it defines a `freeide` realm, a **public PKCE client** (`freeide-dashboard`), and a test user, all imported on boot so there's nothing to click in the admin UI:
+**1. Run Keycloak with a pre-configured realm.** Save this realm export as `realm-jettstui.json` — it defines a `jettstui` realm, a **public PKCE client** (`jettstui-dashboard`), and a test user, all imported on boot so there's nothing to click in the admin UI:
 
 ```json
 {
-  "realm": "freeide",
+  "realm": "jettstui",
   "enabled": true,
   "clients": [
     {
-      "clientId": "freeide-dashboard",
-      "name": "FreeIDE Agent Dashboard",
+      "clientId": "jettstui-dashboard",
+      "name": "JettsTUI Dashboard",
       "enabled": true,
       "publicClient": true,
       "standardFlowEnabled": true,
@@ -761,26 +761,26 @@ Start it (Keycloak 26+), mounting that file into the import directory:
 docker run --rm -p 8080:8080 \
   -e KC_BOOTSTRAP_ADMIN_USERNAME=admin \
   -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin \
-  -v "$PWD/realm-freeide.json:/opt/keycloak/data/import/realm-freeide.json:ro" \
+  -v "$PWD/realm-jettstui.json:/opt/keycloak/data/import/realm-jettstui.json:ro" \
   quay.io/keycloak/keycloak:26.0 \
   start-dev --import-realm
 ```
 
 Once it's up, the realm advertises standard OIDC discovery at
-`http://localhost:8080/realms/freeide/.well-known/openid-configuration` (issuer
-`http://localhost:8080/realms/freeide`). The admin console is at
+`http://localhost:8080/realms/jettstui/.well-known/openid-configuration` (issuer
+`http://localhost:8080/realms/jettstui`). The admin console is at
 `http://localhost:8080/` (`admin` / `admin`).
 
 **2. Point the dashboard at it.** The self-hosted plugin permits a loopback `http://` issuer (HTTPS is required for any non-loopback issuer), so the local Keycloak works as-is:
 
 ```bash
-export FREEIDE_DASHBOARD_OIDC_ISSUER="http://localhost:8080/realms/freeide"
-export FREEIDE_DASHBOARD_OIDC_CLIENT_ID="freeide-dashboard"
-export FREEIDE_DASHBOARD_PUBLIC_URL="http://localhost:9119"
-freeide dashboard --host 0.0.0.0 --port 9119 --no-open
+export JETTSTUI_DASHBOARD_OIDC_ISSUER="http://localhost:8080/realms/jettstui"
+export JETTSTUI_DASHBOARD_OIDC_CLIENT_ID="jettstui-dashboard"
+export JETTSTUI_DASHBOARD_PUBLIC_URL="http://localhost:9119"
+jettstui dashboard --host 0.0.0.0 --port 9119 --no-open
 ```
 
-`FREEIDE_DASHBOARD_PUBLIC_URL` tells the dashboard its OAuth callback is
+`JETTSTUI_DASHBOARD_PUBLIC_URL` tells the dashboard its OAuth callback is
 `http://localhost:9119/auth/callback` — the redirect URI the realm registered
 above. Binding to `0.0.0.0` (a non-loopback bind) without `--insecure` is what
 engages the OAuth gate.
@@ -789,7 +789,7 @@ engages the OAuth gate.
 
 > If you bind or browse on a different host/port, add that origin's
 > `…/auth/callback` to the client's **Valid redirect URIs** in the Keycloak
-> admin console (Clients → freeide-dashboard → Settings). The same pattern works
+> admin console (Clients → jettstui-dashboard → Settings). The same pattern works
 > for Authentik, Zitadel, Authelia, and other OIDC servers — only the issuer
 > URL and client registration UI differ.
 
@@ -797,11 +797,11 @@ engages the OAuth gate.
 
 By default, the dashboard reconstructs the OAuth callback URL from the request — `X-Forwarded-Host` + `X-Forwarded-Proto` + `X-Forwarded-Prefix` (when uvicorn is configured with `proxy_headers=True`, which `start_server` enables under the gate). This works out of the box behind a reverse proxy that sets all three headers correctly.
 
-For deploys behind reverse proxies that don't reliably forward those headers (manual nginx setups, on-prem ingresses, custom-domain deploys with partial proxy chains), set `dashboard.public_url` (or `FREEIDE_DASHBOARD_PUBLIC_URL`) to the **complete public URL** the dashboard is reached at:
+For deploys behind reverse proxies that don't reliably forward those headers (manual nginx setups, on-prem ingresses, custom-domain deploys with partial proxy chains), set `dashboard.public_url` (or `JETTSTUI_DASHBOARD_PUBLIC_URL`) to the **complete public URL** the dashboard is reached at:
 
 ```yaml
 dashboard:
-  public_url: "https://dashboard.example.com/freeide"
+  public_url: "https://dashboard.example.com/jettstui"
 ```
 
 When set, the OAuth callback URL becomes `<public_url>/auth/callback` verbatim — `X-Forwarded-Prefix` is ignored on that code path because the operator has explicitly declared the public URL. This is intentional: stacking the prefix on top would double-prefix the common case where the prefix is already baked into `public_url`.
@@ -810,8 +810,8 @@ Same precedence as the other dashboard settings — env wins over `config.yaml`:
 
 | Surface | Override path | When to use |
 |---------|---------------|-------------|
-| `dashboard.public_url` in `config.yaml` | `FREEIDE_DASHBOARD_PUBLIC_URL` | Local dev / on-prem (canonical) |
-| `FREEIDE_DASHBOARD_PUBLIC_URL` env var | — | Hosting-platform secrets / CI |
+| `dashboard.public_url` in `config.yaml` | `JETTSTUI_DASHBOARD_PUBLIC_URL` | Local dev / on-prem (canonical) |
+| `JETTSTUI_DASHBOARD_PUBLIC_URL` env var | — | Hosting-platform secrets / CI |
 | (unset) | — | Default — reconstruct from `X-Forwarded-*` headers |
 
 Validation rejects values without `http://` / `https://` scheme, without a host, or containing quote / angle / whitespace / control characters. A malformed value silently falls through to header reconstruction so the login flow keeps working rather than dispatching the user to a hostile URL.
@@ -822,9 +822,9 @@ Validation rejects values without `http://` / `https://` scheme, without a host,
 
 | Name | Lifetime | Notes |
 |------|----------|-------|
-| `freeide_session_at` | Token TTL | HttpOnly, SameSite=Lax, Secure-when-HTTPS |
-| `freeide_session_pkce` | 10 min | HttpOnly; holds the PKCE verifier + provider hint during the round trip |
-| `freeide_session_rt` | Refresh-token lifetime | Written only when the provider issues a `refresh_token` |
+| `jettstui_session_at` | Token TTL | HttpOnly, SameSite=Lax, Secure-when-HTTPS |
+| `jettstui_session_pkce` | 10 min | HttpOnly; holds the PKCE verifier + provider hint during the round trip |
+| `jettstui_session_rt` | Refresh-token lifetime | Written only when the provider issues a `refresh_token` |
 
 All three are `Path=/` and `SameSite=Lax`. The `Secure` flag is set when the dashboard is reached over HTTPS (detected via the request URL scheme — honours `X-Forwarded-Proto` from an upstream TLS terminator under `proxy_headers=True`).
 
@@ -834,15 +834,15 @@ The sidebar widget shows `Logged in as <user_id…> via <provider>` with a logou
 
 ### Audit log
 
-Every login start, success, failure, and session-verify failure is written as a JSON line to `$FREEIDE_HOME/logs/dashboard-auth.log`. Sensitive fields (`access_token`, `refresh_token`, `code`, `code_verifier`, `state`, `Authorization` header) are redacted before logging.
+Every login start, success, failure, and session-verify failure is written as a JSON line to `$JETTSTUI_HOME/logs/dashboard-auth.log`. Sensitive fields (`access_token`, `refresh_token`, `code`, `code_verifier`, `state`, `Authorization` header) are redacted before logging.
 
 ### Custom providers
 
-To plug a non-FreeIDE OAuth provider (e.g. Google, GitHub, custom OIDC), create a plugin that registers a `DashboardAuthProvider`:
+To plug a non-JettsTUI OAuth provider (e.g. Google, GitHub, custom OIDC), create a plugin that registers a `DashboardAuthProvider`:
 
 ```python
-# ~/.freeide/plugins/dashboard-auth-myidp/__init__.py
-from freeide_cli.dashboard_auth import DashboardAuthProvider, Session, LoginStart
+# ~/.jettstui/plugins/dashboard-auth-myidp/__init__.py
+from jettstui.dashboard_auth import DashboardAuthProvider, Session, LoginStart
 
 class MyIdPProvider(DashboardAuthProvider):
     name = "myidp"
@@ -864,7 +864,7 @@ The login page lists all registered providers; multiple providers can be stacked
 
 Alongside interactive human login (session cookies + refresh), the `DashboardAuthProvider` ABC supports a **non-interactive, service-to-service** capability via `supports_token = True` + `verify_token(token=...)`. When a provider opts in, an inbound `Authorization: Bearer <token>` is verified and, on success, a `TokenPrincipal` is attached to the request (`request.state.token_principal`) for the endpoints that provider marks token-authable — no cookie, no redirect, no refresh.
 
-The bundled first consumer is the **drain** provider (`plugins/dashboard_auth/drain`): a per-agent secret is supplied via `FREEIDE_DASHBOARD_DRAIN_SECRET`, and the provider verifies inbound bearer tokens against it with a constant-time compare, registering `/api/gateway/drain` as token-authable. It **fails closed** — a weak/short secret (< 256 bits) is rejected at registration and the endpoint stays disabled; it's a no-op when the env var is unset. Behavioural knobs (`scope`, `min_secret_chars`) live under `dashboard.drain_auth` in `config.yaml`.
+The bundled first consumer is the **drain** provider (`plugins/dashboard_auth/drain`): a per-agent secret is supplied via `JETTSTUI_DASHBOARD_DRAIN_SECRET`, and the provider verifies inbound bearer tokens against it with a constant-time compare, registering `/api/gateway/drain` as token-authable. It **fails closed** — a weak/short secret (< 256 bits) is rejected at registration and the endpoint stays disabled; it's a no-op when the env var is unset. Behavioural knobs (`scope`, `min_secret_chars`) live under `dashboard.drain_auth` in `config.yaml`.
 
 Custom providers can implement `supports_token`/`verify_token` the same way to expose their own machine-authable endpoints.
 
@@ -872,9 +872,9 @@ Custom providers can implement `supports_token`/`verify_token` the same way to e
 
 ```bash
 # Quick env-var path (username/password provider).
-FREEIDE_DASHBOARD_BASIC_AUTH_USERNAME=admin \
-FREEIDE_DASHBOARD_BASIC_AUTH_PASSWORD=choose-a-strong-password \
-  freeide dashboard --host 0.0.0.0
+JETTSTUI_DASHBOARD_BASIC_AUTH_USERNAME=admin \
+JETTSTUI_DASHBOARD_BASIC_AUTH_PASSWORD=choose-a-strong-password \
+  jettstui dashboard --host 0.0.0.0
 
 # Or the equivalent via config.yaml (recommended for local dev / on-prem):
 #
@@ -884,7 +884,7 @@ FREEIDE_DASHBOARD_BASIC_AUTH_PASSWORD=choose-a-strong-password \
 #       password_hash: "scrypt$…"
 #
 # then just:
-freeide dashboard --host 0.0.0.0
+jettstui dashboard --host 0.0.0.0
 
 # Hit /api/status to see the gate state:
 curl -s http://127.0.0.1:9119/api/status | jq '.auth_required, .auth_providers'
@@ -894,9 +894,9 @@ curl -s http://127.0.0.1:9119/api/status | jq '.auth_required, .auth_providers'
 
 The dashboard's React StatusPage shows the same fields under "Web server". A sidebar AuthWidget surfaces the current identity once you've signed in.
 
-## Connecting FreeIDE Desktop to a remote backend
+## Connecting JettsTUI Desktop to a remote backend
 
-FreeIDE Desktop can drive a FreeIDE backend running on another machine (a VPS, a home server, a Mini behind Tailscale). In the app this lives under **Settings → Gateway → Remote gateway**, which asks for a **Remote URL** and a way to **Sign in**. (For the desktop app itself — install, settings, chat — see the [FreeIDE Desktop](../desktop.md) page.)
+JettsTUI Desktop can drive a JettsTUI backend running on another machine (a VPS, a home server, a Mini behind Tailscale). In the app this lives under **Settings → Gateway → Remote gateway**, which asks for a **Remote URL** and a way to **Sign in**. (For the desktop app itself — install, settings, chat — see the [JettsTUI Desktop](../desktop.md) page.)
 
 You protect the remote dashboard with one of the bundled auth providers, and the desktop app signs in against whichever one the backend advertises. For a backend reachable beyond your own machine — a VPS, a public host, anything internet-facing — the recommended provider is **[self-hosted OIDC](#self-hosted-oidc-provider)** (point it at your own identity provider and sign in with *Sign in with Self-Hosted OIDC*). The bundled [username/password provider](#usernamepassword-provider-no-oauth-idp) is the quickest option when the backend is on a trusted LAN or reachable only over a VPN, but is **not suitable for direct public-internet exposure**. Binding the dashboard to a non-loopback address engages its auth gate; once signed in, Desktop reuses the session for the chat WebSocket automatically — there is no token to copy or paste.
 
@@ -905,52 +905,52 @@ The recipe below uses the username/password path because it's the quickest to st
 ### On the backend (the remote machine)
 
 ```bash
-# 1. Set the dashboard login credentials in ~/.freeide/.env (secrets file, 0600).
-cat >> ~/.freeide/.env <<'EOF'
-FREEIDE_DASHBOARD_BASIC_AUTH_USERNAME=admin
-FREEIDE_DASHBOARD_BASIC_AUTH_PASSWORD=choose-a-strong-password
+# 1. Set the dashboard login credentials in ~/.jettstui/.env (secrets file, 0600).
+cat >> ~/.jettstui/.env <<'EOF'
+JETTSTUI_DASHBOARD_BASIC_AUTH_USERNAME=admin
+JETTSTUI_DASHBOARD_BASIC_AUTH_PASSWORD=choose-a-strong-password
 # Recommended: a stable signing secret so sessions survive restarts.
-FREEIDE_DASHBOARD_BASIC_AUTH_SECRET=$(openssl rand -base64 32)
+JETTSTUI_DASHBOARD_BASIC_AUTH_SECRET=$(openssl rand -base64 32)
 EOF
-chmod 600 ~/.freeide/.env
+chmod 600 ~/.jettstui/.env
 
 # 2. Run the dashboard bound to a reachable address. The non-loopback bind
 #    engages the auth gate; the username/password provider handles login.
-freeide dashboard --no-open --host 0.0.0.0 --port 9119
+jettstui dashboard --no-open --host 0.0.0.0 --port 9119
 ```
 
-Prefer no plaintext at rest? Use `FREEIDE_DASHBOARD_BASIC_AUTH_PASSWORD_HASH` with a scrypt hash instead — see [Username/password provider](#usernamepassword-provider-no-oauth-idp) for the full surface.
+Prefer no plaintext at rest? Use `JETTSTUI_DASHBOARD_BASIC_AUTH_PASSWORD_HASH` with a scrypt hash instead — see [Username/password provider](#usernamepassword-provider-no-oauth-idp) for the full surface.
 
-If you run the dashboard as a systemd service, `~/.freeide/.env` is picked up automatically when the unit has `EnvironmentFile=%h/.freeide/.env`, so the credentials are in the environment at boot.
+If you run the dashboard as a systemd service, `~/.jettstui/.env` is picked up automatically when the unit has `EnvironmentFile=%h/.jettstui/.env`, so the credentials are in the environment at boot.
 
 :::warning
 The dashboard reads and writes your `.env` (API keys, secrets) and can run agent commands. The **username/password** setup shown here is for a trusted network — never expose a password-protected dashboard directly to the open internet. Put it behind a VPN. [Tailscale](https://tailscale.com/) is the clean option: bind to the machine's tailscale IP (`--host <tailscale-ip>`) and use `http://<tailscale-ip>:9119` as the Remote URL. Only devices on your tailnet can reach it. To reach a backend over the public internet, use the **[self-hosted OIDC](#self-hosted-oidc-provider)** provider instead.
 :::
 
-### In FreeIDE Desktop
+### In JettsTUI Desktop
 
 **Settings → Gateway → Remote gateway:**
 
-- **Remote URL** — `http://<backend-host>:9119` (path prefixes like `/freeide` are supported if you front it with a reverse proxy)
+- **Remote URL** — `http://<backend-host>:9119` (path prefixes like `/jettstui` are supported if you front it with a reverse proxy)
 - **Sign in** — the app detects the username/password gateway and shows a **Sign in** button; click it and enter the credentials from step 1
 - **Save and reconnect** — switches the desktop shell onto the remote backend
 
-The session refreshes automatically and survives restarts when `FREEIDE_DASHBOARD_BASIC_AUTH_SECRET` is set on the backend.
+The session refreshes automatically and survives restarts when `JETTSTUI_DASHBOARD_BASIC_AUTH_SECRET` is set on the backend.
 
 ### Environment-variable override
 
-Instead of the in-app setting, you can point the desktop at a backend with an env var before launching it. When `FREEIDE_DESKTOP_REMOTE_URL` is set, it overrides the saved in-app URL (the Gateway settings panel shows an "env override" badge and disables editing); you still **Sign in** with your username and password from the panel.
+Instead of the in-app setting, you can point the desktop at a backend with an env var before launching it. When `JETTSTUI_DESKTOP_REMOTE_URL` is set, it overrides the saved in-app URL (the Gateway settings panel shows an "env override" badge and disables editing); you still **Sign in** with your username and password from the panel.
 
 | Env var | Value |
 |---------|-------|
-| `FREEIDE_DESKTOP_REMOTE_URL` | `http://<backend-host>:9119` |
+| `JETTSTUI_DESKTOP_REMOTE_URL` | `http://<backend-host>:9119` |
 
 ### Troubleshooting
 
 - **"Remote gateway incomplete"** — you haven't entered a remote URL.
-- **Sign-in fails with 401 / "Invalid credentials"** — the username or password doesn't match the backend's `FREEIDE_DASHBOARD_BASIC_AUTH_USERNAME` / `FREEIDE_DASHBOARD_BASIC_AUTH_PASSWORD`. The backend returns the same generic error for unknown user and wrong password, so check both. Confirm the gate with `curl -s http://<host>:9119/api/status | jq '.auth_required, .auth_providers'` — it should report `true` and include `"basic"`.
+- **Sign-in fails with 401 / "Invalid credentials"** — the username or password doesn't match the backend's `JETTSTUI_DASHBOARD_BASIC_AUTH_USERNAME` / `JETTSTUI_DASHBOARD_BASIC_AUTH_PASSWORD`. The backend returns the same generic error for unknown user and wrong password, so check both. Confirm the gate with `curl -s http://<host>:9119/api/status | jq '.auth_required, .auth_providers'` — it should report `true` and include `"basic"`.
 - **No "Sign in" button — it asks for a session token instead** — the username/password provider isn't active (`/api/status` won't list `"basic"`). Make sure the username and a password (or password hash) are set and the dashboard process loaded them.
-- **Signed out on every restart** — set `FREEIDE_DASHBOARD_BASIC_AUTH_SECRET` to a stable value; otherwise the signing key is regenerated per boot.
+- **Signed out on every restart** — set `JETTSTUI_DASHBOARD_BASIC_AUTH_SECRET` to a stable value; otherwise the signing key is regenerated per boot.
 - **Connection refused / times out** — the backend bound to `127.0.0.1` (the default) instead of a reachable address, or a firewall/VPN is blocking the port. Bind to `0.0.0.0` or the tailscale IP and open the port to your trusted network.
 
 ## CORS
@@ -969,7 +969,7 @@ If you're contributing to the web dashboard frontend:
 
 ```bash
 # Terminal 1: start the backend API
-freeide dashboard --no-open
+jettstui dashboard --no-open
 
 # Terminal 2: start the Vite dev server with HMR
 cd web/
@@ -979,11 +979,11 @@ npm run dev
 
 The Vite dev server at `http://localhost:5173` proxies `/api` requests to the FastAPI backend at `http://127.0.0.1:9119`.
 
-The frontend is built with React 19, TypeScript, Tailwind CSS v4, and shadcn/ui-style components. Production builds output to `freeide_cli/web_dist/` which the FastAPI server serves as a static SPA.
+The frontend is built with React 19, TypeScript, Tailwind CSS v4, and shadcn/ui-style components. Production builds output to `jettstui/web_dist/` which the FastAPI server serves as a static SPA.
 
 ## Automatic Build on Update
 
-When you run `freeide update`, the web frontend is automatically rebuilt if `npm` is available. This keeps the dashboard in sync with code updates. If `npm` isn't installed, the update skips the frontend build and `freeide dashboard` will build it on first launch.
+When you run `jettstui update`, the web frontend is automatically rebuilt if `npm` is available. This keeps the dashboard in sync with code updates. If `npm` isn't installed, the update skips the frontend build and `jettstui dashboard` will build it on first launch.
 
 ## Themes & plugins
 
@@ -997,9 +997,9 @@ Built-in themes:
 
 | Theme | Character |
 |-------|-----------|
-| **FreeIDE Teal** (`default`) | Dark teal + cream, system fonts, comfortable spacing |
-| **FreeIDE Teal (Large)** (`default-large`) | Same as default with 18px text and roomier spacing |
-| **FreeIDE Blue** (`nous-blue`) | FreeIDE-branded blue accents with airy spacing |
+| **JettsTUI Teal** (`default`) | Dark teal + cream, system fonts, comfortable spacing |
+| **JettsTUI Teal (Large)** (`default-large`) | Same as default with 18px text and roomier spacing |
+| **JettsTUI Blue** (`nous-blue`) | JettsTUI-branded blue accents with airy spacing |
 | **Midnight** (`midnight`) | Deep blue-violet, Inter + JetBrains Mono |
 | **Ember** (`ember`) | Warm crimson + bronze, Spectral serif + IBM Plex Mono |
 | **Mono** (`mono`) | Grayscale, IBM Plex, compact |

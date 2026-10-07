@@ -95,7 +95,7 @@ function PreviewLoadError({
             href={error.url}
             onClick={event => {
               event.preventDefault()
-              void window.freeideDesktop?.openExternal(error.url)
+              void window.jettstuiDesktop?.openExternal(error.url)
             }}
           >
             {compactUrl(error.url)}
@@ -249,7 +249,7 @@ export function PreviewPane({
 
     // Auto-open the preview console so the user can see progress events
     // streaming back from the background agent. Without this, clicking
-    // "Ask FreeIDE to restart the server" looked like it did nothing —
+    // "Ask JettsTUI to restart the server" looked like it did nothing —
     // the work was happening, but in a collapsed pane.
     consoleState.setOpen(true)
 
@@ -424,8 +424,8 @@ export function PreviewPane({
     if (
       target.kind !== 'file' ||
       isDesktopFsRemoteMode() ||
-      !window.freeideDesktop?.watchPreviewFile ||
-      !window.freeideDesktop?.onPreviewFileChanged
+      !window.jettstuiDesktop?.watchPreviewFile ||
+      !window.jettstuiDesktop?.onPreviewFileChanged
     ) {
       return
     }
@@ -458,7 +458,7 @@ export function PreviewPane({
       reloadPreview()
     }
 
-    const unsubscribe = window.freeideDesktop.onPreviewFileChanged(payload => {
+    const unsubscribe = window.jettstuiDesktop.onPreviewFileChanged(payload => {
       if (!active || payload.id !== watchId) {
         return
       }
@@ -476,11 +476,11 @@ export function PreviewPane({
       }, FILE_RELOAD_DEBOUNCE_MS)
     })
 
-    void window.freeideDesktop
+    void window.jettstuiDesktop
       .watchPreviewFile(target.url)
       .then(watch => {
         if (!active) {
-          void window.freeideDesktop?.stopPreviewFileWatch?.(watch.id)
+          void window.jettstuiDesktop?.stopPreviewFileWatch?.(watch.id)
 
           return
         }
@@ -503,7 +503,7 @@ export function PreviewPane({
       }
 
       if (watchId) {
-        void window.freeideDesktop?.stopPreviewFileWatch?.(watchId)
+        void window.jettstuiDesktop?.stopPreviewFileWatch?.(watchId)
       }
     }
   }, [appendConsoleEntry, copy, reloadPreview, target.kind, target.url])
@@ -532,7 +532,7 @@ export function PreviewPane({
 
     const webview = document.createElement('webview') as PreviewWebview
     webview.className = 'flex h-full w-full flex-1 bg-transparent'
-    webview.setAttribute('partition', 'persist:freeide-preview')
+    webview.setAttribute('partition', 'persist:jettstui-preview')
     webview.setAttribute('src', target.url)
     webview.setAttribute('webpreferences', 'contextIsolation=yes,nodeIntegration=no,sandbox=yes')
 

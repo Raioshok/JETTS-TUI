@@ -7,8 +7,8 @@ import { type Codec, Codecs, persistentAtom } from '@/lib/persisted'
 // makes the request) so it never touches the gateway/config.yaml.
 export type EmbedMode = 'always' | 'ask' | 'off'
 
-const MODE_KEY = 'freeide.desktop.embed-mode'
-const ALLOWED_KEY = 'freeide.desktop.embed-allowed'
+const MODE_KEY = 'jettstui.desktop.embed-mode'
+const ALLOWED_KEY = 'jettstui.desktop.embed-allowed'
 
 const modeCodec: Codec<EmbedMode> = {
   decode: raw => (raw === 'always' || raw === 'off' ? raw : 'ask'),

@@ -21,7 +21,7 @@ Plan and execute expensive or repeated agent work with explicit budgets, narrow 
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that FreeIDE loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that JettsTUI loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Token-Efficient Work
@@ -42,7 +42,7 @@ or repeated-work overhead, or when planning a large multi-step task.
 5. Keep progress updates to decisions, completed milestones, blockers, or
    changed risk. Keep tool reports short.
 6. For work likely to exceed 12 turns or span a handoff, maintain
-   `.freeide-progress.md` with objective, constraints, completed work, next step,
+   `.jettstui-progress.md` with objective, constraints, completed work, next step,
    and verification. Delete it at completion unless retention is requested.
 7. End with the outcome and evidence. Avoid repeating the transcript.
 
@@ -61,11 +61,11 @@ or repeated-work overhead, or when planning a large multi-step task.
 - Do not claim savings without comparable before/after usage measurements.
 - Do not use a budget as a reason to leave a repository in a broken state.
 
-## Cost levers already wired in FreeIDE
+## Cost levers already wired in JettsTUI
 
 Chinese-forum and research guidance (52pojie, linux.do, 知乎, and the
 prompt-caching/compression literature) converges on a handful of techniques.
-FreeIDE already implements them at the transport layer — know them so you
+JettsTUI already implements them at the transport layer — know them so you
 don't re-implement or accidentally fight them:
 
 - **Prompt caching** — the stable system prefix plus the last messages carry

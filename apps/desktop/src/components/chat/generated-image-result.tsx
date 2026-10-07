@@ -37,15 +37,15 @@ async function resolveImageSrc(path: string): Promise<string> {
     return path
   }
 
-  if (window.freeideDesktop && isRemoteGateway()) {
+  if (window.jettstuiDesktop && isRemoteGateway()) {
     return gatewayMediaDataUrl(path)
   }
 
-  if (!window.freeideDesktop?.readFileDataUrl) {
+  if (!window.jettstuiDesktop?.readFileDataUrl) {
     return mediaExternalUrl(path)
   }
 
-  return window.freeideDesktop.readFileDataUrl(filePathFromMediaPath(path))
+  return window.jettstuiDesktop.readFileDataUrl(filePathFromMediaPath(path))
 }
 
 export const GeneratedImage: FC<{ aspectRatio?: string; result?: unknown }> = ({ aspectRatio, result }) => {
@@ -100,7 +100,7 @@ export const GeneratedImage: FC<{ aspectRatio?: string; result?: unknown }> = ({
         href="#"
         onClick={event => {
           event.preventDefault()
-          void window.freeideDesktop?.openExternal(mediaExternalUrl(image))
+          void window.jettstuiDesktop?.openExternal(mediaExternalUrl(image))
         }}
       >
         {copy.openImage}: {mediaName(image)}

@@ -6,18 +6,18 @@
 { inputs, ... }: {
   perSystem = { pkgs, lib, self', ... }:
     let
-      freeide-agent = self'.packages.default;
-      freeideVenv = freeide-agent.freeideVenv;
+      jettstui = self'.packages.default;
+      jettstuiVenv = jettstui.jettstuiVenv;
 
       configMergeScript = pkgs.callPackage ./configMergeScript.nix { };
 
       # Auto-generated config key reference — always in sync with Python
-      configKeys = pkgs.runCommand "freeide-config-keys" {} ''
+      configKeys = pkgs.runCommand "jettstui-config-keys" {} ''
         set -euo pipefail
         export HOME=$TMPDIR
-        ${freeideVenv}/bin/python3 -c '
+        ${jettstuiVenv}/bin/python3 -c '
 import json, sys
-from freeide_cli.config import DEFAULT_CONFIG
+from jettstui.config import DEFAULT_CONFIG
 
 def leaf_paths(d, prefix=""):
     paths = []
@@ -49,7 +49,7 @@ json.dump(sorted(leaf_paths(DEFAULT_CONFIG)), sys.stdout, indent=2)
           results = map (sys: { inherit sys; result = tryEvalPkg sys; }) targetSystems;
           failures = builtins.filter (r: !r.result.success) results;
           failMsg = lib.concatMapStringsSep "\n" (r: "  - ${r.sys}") failures;
-        in pkgs.runCommand "freeide-cross-eval" { } (
+        in pkgs.runCommand "jettstui-cross-eval" { } (
           if failures != [] then
             throw "Package fails to evaluate on:\n${failMsg}"
           else ''
@@ -62,29 +62,29 @@ json.dump(sorted(leaf_paths(DEFAULT_CONFIG)), sys.stdout, indent=2)
         # Verify the default package builds successfully (cross-platform).
         # On Linux the runtime checks below already depend on the package,
         # but this ensures darwin builders also build it during flake check.
-        build-package = pkgs.runCommand "freeide-build-package" { } ''
-          echo "PASS: package built at ${freeide-agent}"
+        build-package = pkgs.runCommand "jettstui-build-package" { } ''
+          echo "PASS: package built at ${jettstui}"
           mkdir -p $out
           echo "ok" > $out/result
         '';
 
         # Verify the devShell builds successfully (cross-platform).
-        build-devshell = pkgs.runCommand "freeide-build-devshell" { } ''
+        build-devshell = pkgs.runCommand "jettstui-build-devshell" { } ''
           echo "PASS: devShell built at ${self'.devShells.default}"
           mkdir -p $out
           echo "ok" > $out/result
         '';
       } // lib.optionalAttrs pkgs.stdenv.hostPlatform.isLinux {
         # Verify binaries exist and are executable
-        package-contents = pkgs.runCommand "freeide-package-contents" { } ''
+        package-contents = pkgs.runCommand "jettstui-package-contents" { } ''
           set -e
           echo "=== Checking binaries ==="
-          test -x ${freeide-agent}/bin/freeide || (echo "FAIL: freeide binary missing"; exit 1)
-          test -x ${freeide-agent}/bin/freeide-agent || (echo "FAIL: freeide-agent binary missing"; exit 1)
+          test -x ${jettstui}/bin/jettstui || (echo "FAIL: jettstui binary missing"; exit 1)
+          test -x ${jettstui}/bin/jettstui || (echo "FAIL: jettstui binary missing"; exit 1)
           echo "PASS: All binaries present"
 
           echo "=== Checking version ==="
-          ${freeide-agent}/bin/freeide version 2>&1 | grep -qi "freeide" || (echo "FAIL: version check"; exit 1)
+          ${jettstui}/bin/jettstui version 2>&1 | grep -qi "jettstui" || (echo "FAIL: version check"; exit 1)
           echo "PASS: Version check"
 
           echo "=== All checks passed ==="
@@ -93,11 +93,11 @@ json.dump(sorted(leaf_paths(DEFAULT_CONFIG)), sys.stdout, indent=2)
         '';
 
         # Verify every pyproject.toml [project.scripts] entry has a wrapped binary
-        entry-points-sync = pkgs.runCommand "freeide-entry-points-sync" { } ''
+        entry-points-sync = pkgs.runCommand "jettstui-entry-points-sync" { } ''
           set -e
           echo "=== Checking entry points match pyproject.toml [project.scripts] ==="
-          for bin in freeide freeide-agent freeide-acp; do
-            test -x ${freeide-agent}/bin/$bin || (echo "FAIL: $bin binary missing from Nix package"; exit 1)
+          for bin in jettstui jettstui jettstui-acp; do
+            test -x ${jettstui}/bin/$bin || (echo "FAIL: $bin binary missing from Nix package"; exit 1)
             echo "PASS: $bin present"
           done
 
@@ -106,13 +106,13 @@ json.dump(sorted(leaf_paths(DEFAULT_CONFIG)), sys.stdout, indent=2)
         '';
 
         # Verify CLI subcommands are accessible
-        cli-commands = pkgs.runCommand "freeide-cli-commands" { } ''
+        cli-commands = pkgs.runCommand "jettstui-cli-commands" { } ''
           set -e
           export HOME=$(mktemp -d)
 
-          echo "=== Checking freeide --help ==="
-          ${freeide-agent}/bin/freeide --help 2>&1 | grep -q "gateway" || (echo "FAIL: gateway subcommand missing"; exit 1)
-          ${freeide-agent}/bin/freeide --help 2>&1 | grep -q "config" || (echo "FAIL: config subcommand missing"; exit 1)
+          echo "=== Checking jettstui --help ==="
+          ${jettstui}/bin/jettstui --help 2>&1 | grep -q "gateway" || (echo "FAIL: gateway subcommand missing"; exit 1)
+          ${jettstui}/bin/jettstui --help 2>&1 | grep -q "config" || (echo "FAIL: config subcommand missing"; exit 1)
           echo "PASS: All subcommands accessible"
 
           echo "=== All CLI checks passed ==="
@@ -121,30 +121,30 @@ json.dump(sorted(leaf_paths(DEFAULT_CONFIG)), sys.stdout, indent=2)
         '';
 
         # Verify bundled skills are present in the package
-        bundled-skills = pkgs.runCommand "freeide-bundled-skills" { } ''
+        bundled-skills = pkgs.runCommand "jettstui-bundled-skills" { } ''
           set -e
           echo "=== Checking bundled skills ==="
-          test -d ${freeide-agent}/share/freeide-agent/skills || (echo "FAIL: skills directory missing"; exit 1)
+          test -d ${jettstui}/share/jettstui/skills || (echo "FAIL: skills directory missing"; exit 1)
           echo "PASS: skills directory exists"
 
           # -L: skills/ is a symlink to the filtered source store path
-          SKILL_COUNT=$(find -L ${freeide-agent}/share/freeide-agent/skills -name "SKILL.md" | wc -l)
+          SKILL_COUNT=$(find -L ${jettstui}/share/jettstui/skills -name "SKILL.md" | wc -l)
           test "$SKILL_COUNT" -gt 0 || (echo "FAIL: no SKILL.md files found in skills directory"; exit 1)
           echo "PASS: $SKILL_COUNT bundled skills found"
 
-          grep -q "FREEIDE_BUNDLED_SKILLS" ${freeide-agent}/bin/freeide || \
-            (echo "FAIL: FREEIDE_BUNDLED_SKILLS not in wrapper"; exit 1)
-          echo "PASS: FREEIDE_BUNDLED_SKILLS set in wrapper"
+          grep -q "JETTSTUI_BUNDLED_SKILLS" ${jettstui}/bin/jettstui || \
+            (echo "FAIL: JETTSTUI_BUNDLED_SKILLS not in wrapper"; exit 1)
+          echo "PASS: JETTSTUI_BUNDLED_SKILLS set in wrapper"
 
           # Optional skills ship via the wrapper too (pythonSrc excludes
           # them from the wheel, so the env var is the only path in nix).
-          test -d ${freeide-agent}/share/freeide-agent/optional-skills || \
+          test -d ${jettstui}/share/jettstui/optional-skills || \
             (echo "FAIL: optional-skills directory missing"; exit 1)
-          OPT_COUNT=$(find -L ${freeide-agent}/share/freeide-agent/optional-skills -name "SKILL.md" | wc -l)
+          OPT_COUNT=$(find -L ${jettstui}/share/jettstui/optional-skills -name "SKILL.md" | wc -l)
           test "$OPT_COUNT" -gt 0 || (echo "FAIL: no SKILL.md files in optional-skills"; exit 1)
-          grep -q "FREEIDE_OPTIONAL_SKILLS" ${freeide-agent}/bin/freeide || \
-            (echo "FAIL: FREEIDE_OPTIONAL_SKILLS not in wrapper"; exit 1)
-          echo "PASS: $OPT_COUNT optional skills found, FREEIDE_OPTIONAL_SKILLS set in wrapper"
+          grep -q "JETTSTUI_OPTIONAL_SKILLS" ${jettstui}/bin/jettstui || \
+            (echo "FAIL: JETTSTUI_OPTIONAL_SKILLS not in wrapper"; exit 1)
+          echo "PASS: $OPT_COUNT optional skills found, JETTSTUI_OPTIONAL_SKILLS set in wrapper"
 
           echo "=== All bundled skills checks passed ==="
           mkdir -p $out
@@ -152,19 +152,19 @@ json.dump(sorted(leaf_paths(DEFAULT_CONFIG)), sys.stdout, indent=2)
         '';
 
         # Verify bundled plugins (platforms, memory, context_engine) are present
-        bundled-plugins = pkgs.runCommand "freeide-bundled-plugins" { } ''
+        bundled-plugins = pkgs.runCommand "jettstui-bundled-plugins" { } ''
           set -e
           echo "=== Checking bundled plugins ==="
-          test -d ${freeide-agent}/share/freeide-agent/plugins || (echo "FAIL: plugins directory missing"; exit 1)
+          test -d ${jettstui}/share/jettstui/plugins || (echo "FAIL: plugins directory missing"; exit 1)
           echo "PASS: plugins directory exists"
 
-          test -f ${freeide-agent}/share/freeide-agent/plugins/platforms/irc/plugin.yaml || \
+          test -f ${jettstui}/share/jettstui/plugins/platforms/irc/plugin.yaml || \
             (echo "FAIL: irc plugin manifest missing"; exit 1)
           echo "PASS: irc plugin manifest present"
 
-          grep -q "FREEIDE_BUNDLED_PLUGINS" ${freeide-agent}/bin/freeide || \
-            (echo "FAIL: FREEIDE_BUNDLED_PLUGINS not in wrapper"; exit 1)
-          echo "PASS: FREEIDE_BUNDLED_PLUGINS set in wrapper"
+          grep -q "JETTSTUI_BUNDLED_PLUGINS" ${jettstui}/bin/jettstui || \
+            (echo "FAIL: JETTSTUI_BUNDLED_PLUGINS not in wrapper"; exit 1)
+          echo "PASS: JETTSTUI_BUNDLED_PLUGINS set in wrapper"
 
           echo "=== All bundled plugins checks passed ==="
           mkdir -p $out
@@ -174,32 +174,32 @@ json.dump(sorted(leaf_paths(DEFAULT_CONFIG)), sys.stdout, indent=2)
         # Verify bundled i18n locale catalogs are present and resolvable.
         # Regression for #23943 / #27632 / #35374 — sealed Nix venvs dropped
         # locales/, surfacing raw i18n keys like gateway.reset.header_default.
-        bundled-locales = pkgs.runCommand "freeide-bundled-locales" { } ''
+        bundled-locales = pkgs.runCommand "jettstui-bundled-locales" { } ''
           set -e
           echo "=== Checking bundled locales ==="
-          test -d ${freeide-agent}/share/freeide-agent/locales || (echo "FAIL: locales directory missing"; exit 1)
+          test -d ${jettstui}/share/jettstui/locales || (echo "FAIL: locales directory missing"; exit 1)
           echo "PASS: locales directory exists"
 
           # -L: locales/ is a symlink to the source store path
-          LOC_COUNT=$(find -L ${freeide-agent}/share/freeide-agent/locales -name "*.yaml" | wc -l)
+          LOC_COUNT=$(find -L ${jettstui}/share/jettstui/locales -name "*.yaml" | wc -l)
           test "$LOC_COUNT" -ge 16 || (echo "FAIL: expected >=16 catalogs, found $LOC_COUNT"; exit 1)
           echo "PASS: $LOC_COUNT locale catalogs found"
 
-          test -f ${freeide-agent}/share/freeide-agent/locales/en.yaml || (echo "FAIL: en.yaml missing"; exit 1)
+          test -f ${jettstui}/share/jettstui/locales/en.yaml || (echo "FAIL: en.yaml missing"; exit 1)
           echo "PASS: en.yaml present"
 
-          grep -q "FREEIDE_BUNDLED_LOCALES" ${freeide-agent}/bin/freeide || \
-            (echo "FAIL: FREEIDE_BUNDLED_LOCALES not in wrapper"; exit 1)
-          echo "PASS: FREEIDE_BUNDLED_LOCALES set in wrapper"
+          grep -q "JETTSTUI_BUNDLED_LOCALES" ${jettstui}/bin/jettstui || \
+            (echo "FAIL: JETTSTUI_BUNDLED_LOCALES not in wrapper"; exit 1)
+          echo "PASS: JETTSTUI_BUNDLED_LOCALES set in wrapper"
 
           # locales/ is a bare data dir (no __init__.py), shipped via a
-          # symlink + FREEIDE_BUNDLED_LOCALES (not via wheel data-files).
+          # symlink + JETTSTUI_BUNDLED_LOCALES (not via wheel data-files).
           # Verify the wrapper override resolves real strings.
           export HOME=$(mktemp -d)
-          RENDERED=$(cd "$HOME" && FREEIDE_BUNDLED_LOCALES=${freeide-agent}/share/freeide-agent/locales \
-            ${freeideVenv}/bin/python3 -c "from agent import i18n; print(i18n.t('gateway.reset.header_default', lang='en'))")
+          RENDERED=$(cd "$HOME" && JETTSTUI_BUNDLED_LOCALES=${jettstui}/share/jettstui/locales \
+            ${jettstuiVenv}/bin/python3 -c "from agent import i18n; print(i18n.t('gateway.reset.header_default', lang='en'))")
           echo "rendered: $RENDERED"
-          test "$RENDERED" != "gateway.reset.header_default" || (echo "FAIL: i18n returned the raw key with FREEIDE_BUNDLED_LOCALES set"; exit 1)
+          test "$RENDERED" != "gateway.reset.header_default" || (echo "FAIL: i18n returned the raw key with JETTSTUI_BUNDLED_LOCALES set"; exit 1)
           echo "PASS: i18n renders a human string via the wrapper override"
 
           echo "=== All bundled locales checks passed ==="
@@ -209,25 +209,25 @@ json.dump(sorted(leaf_paths(DEFAULT_CONFIG)), sys.stdout, indent=2)
 
         # Verify bundled optional-mcps catalog is present and resolvable.
         # optional-mcps/ is a bare data dir shipped via symlink +
-        # FREEIDE_OPTIONAL_MCPS (not via wheel data-files).
-        bundled-mcps = pkgs.runCommand "freeide-bundled-mcps" { } ''
+        # JETTSTUI_OPTIONAL_MCPS (not via wheel data-files).
+        bundled-mcps = pkgs.runCommand "jettstui-bundled-mcps" { } ''
           set -e
           echo "=== Checking bundled optional-mcps ==="
-          test -d ${freeide-agent}/share/freeide-agent/optional-mcps || (echo "FAIL: optional-mcps directory missing"; exit 1)
+          test -d ${jettstui}/share/jettstui/optional-mcps || (echo "FAIL: optional-mcps directory missing"; exit 1)
           echo "PASS: optional-mcps directory exists"
 
-          MANIFEST_COUNT=$(find -L ${freeide-agent}/share/freeide-agent/optional-mcps -name "manifest.yaml" | wc -l)
+          MANIFEST_COUNT=$(find -L ${jettstui}/share/jettstui/optional-mcps -name "manifest.yaml" | wc -l)
           test "$MANIFEST_COUNT" -gt 0 || (echo "FAIL: no manifest.yaml files found"; exit 1)
           echo "PASS: $MANIFEST_COUNT catalog manifests found"
 
-          grep -q "FREEIDE_OPTIONAL_MCPS" ${freeide-agent}/bin/freeide || \
-            (echo "FAIL: FREEIDE_OPTIONAL_MCPS not in wrapper"; exit 1)
-          echo "PASS: FREEIDE_OPTIONAL_MCPS set in wrapper"
+          grep -q "JETTSTUI_OPTIONAL_MCPS" ${jettstui}/bin/jettstui || \
+            (echo "FAIL: JETTSTUI_OPTIONAL_MCPS not in wrapper"; exit 1)
+          echo "PASS: JETTSTUI_OPTIONAL_MCPS set in wrapper"
 
           export HOME=$(mktemp -d)
-          CATALOG=$(cd "$HOME" && ${freeide-agent}/bin/freeide mcp catalog 2>/dev/null || true)
+          CATALOG=$(cd "$HOME" && ${jettstui}/bin/jettstui mcp catalog 2>/dev/null || true)
           echo "catalog output: $CATALOG"
-          test -n "$CATALOG" || (echo "FAIL: freeide mcp catalog returned empty"; exit 1)
+          test -n "$CATALOG" || (echo "FAIL: jettstui mcp catalog returned empty"; exit 1)
           echo "PASS: mcp catalog resolves entries"
 
           echo "=== All bundled optional-mcps checks passed ==="
@@ -236,65 +236,65 @@ json.dump(sorted(leaf_paths(DEFAULT_CONFIG)), sys.stdout, indent=2)
         '';
 
         # Verify bundled TUI is present and compiled
-        bundled-tui = pkgs.runCommand "freeide-bundled-tui" { } ''
+        bundled-tui = pkgs.runCommand "jettstui-bundled-tui" { } ''
           set -e
           echo "=== Checking bundled TUI ==="
-          test -d ${freeide-agent}/ui-tui || (echo "FAIL: ui-tui directory missing"; exit 1)
+          test -d ${jettstui}/ui-tui || (echo "FAIL: ui-tui directory missing"; exit 1)
           echo "PASS: ui-tui directory exists"
 
-          test -f ${freeide-agent}/ui-tui/dist/entry.js || (echo "FAIL: compiled entry.js missing"; exit 1)
+          test -f ${jettstui}/ui-tui/dist/entry.js || (echo "FAIL: compiled entry.js missing"; exit 1)
           echo "PASS: compiled entry.js present"
 
           # self-contained bundle; no runtime node_modules expected
 
-          grep -q "FREEIDE_TUI_DIR" ${freeide-agent}/bin/freeide || \
-            (echo "FAIL: FREEIDE_TUI_DIR not in wrapper"; exit 1)
-          echo "PASS: FREEIDE_TUI_DIR set in wrapper"
+          grep -q "JETTSTUI_TUI_DIR" ${jettstui}/bin/jettstui || \
+            (echo "FAIL: JETTSTUI_TUI_DIR not in wrapper"; exit 1)
+          echo "PASS: JETTSTUI_TUI_DIR set in wrapper"
 
           echo "=== All bundled TUI checks passed ==="
           mkdir -p $out
           echo "ok" > $out/result
         '';
 
-        # Verify FREEIDE_NODE is set in wrapper and points to Node 20+
+        # Verify JETTSTUI_NODE is set in wrapper and points to Node 20+
         # (string-width uses the /v regex flag which requires Node 20+)
-        freeide-node = pkgs.runCommand "freeide-node-version" { } ''
+        jettstui-node = pkgs.runCommand "jettstui-node-version" { } ''
           set -e
-          echo "=== Checking FREEIDE_NODE in wrapper ==="
-          grep -q "FREEIDE_NODE" ${freeide-agent}/bin/freeide || \
-            (echo "FAIL: FREEIDE_NODE not set in wrapper"; exit 1)
-          echo "PASS: FREEIDE_NODE present in wrapper"
+          echo "=== Checking JETTSTUI_NODE in wrapper ==="
+          grep -q "JETTSTUI_NODE" ${jettstui}/bin/jettstui || \
+            (echo "FAIL: JETTSTUI_NODE not set in wrapper"; exit 1)
+          echo "PASS: JETTSTUI_NODE present in wrapper"
 
-          FREEIDE_NODE=$(sed -n "s/^export FREEIDE_NODE='\(.*\)'/\1/p" ${freeide-agent}/bin/freeide)
-          test -x "$FREEIDE_NODE" || (echo "FAIL: FREEIDE_NODE=$FREEIDE_NODE not executable"; exit 1)
-          echo "PASS: FREEIDE_NODE executable at $FREEIDE_NODE"
+          JETTSTUI_NODE=$(sed -n "s/^export JETTSTUI_NODE='\(.*\)'/\1/p" ${jettstui}/bin/jettstui)
+          test -x "$JETTSTUI_NODE" || (echo "FAIL: JETTSTUI_NODE=$JETTSTUI_NODE not executable"; exit 1)
+          echo "PASS: JETTSTUI_NODE executable at $JETTSTUI_NODE"
 
-          NODE_MAJOR=$("$FREEIDE_NODE" --version | sed 's/^v//' | cut -d. -f1)
+          NODE_MAJOR=$("$JETTSTUI_NODE" --version | sed 's/^v//' | cut -d. -f1)
           test "$NODE_MAJOR" -ge 20 || \
             (echo "FAIL: Node v$NODE_MAJOR < 20, TUI needs /v regex flag support"; exit 1)
           echo "PASS: Node v$NODE_MAJOR >= 20"
 
-          echo "=== All FREEIDE_NODE checks passed ==="
+          echo "=== All JETTSTUI_NODE checks passed ==="
           mkdir -p $out
           echo "ok" > $out/result
         '';
 
-        # Verify FREEIDE_MANAGED guard works on all mutation commands
-        managed-guard = pkgs.runCommand "freeide-managed-guard" { } ''
+        # Verify JETTSTUI_MANAGED guard works on all mutation commands
+        managed-guard = pkgs.runCommand "jettstui-managed-guard" { } ''
           set -e
           export HOME=$(mktemp -d)
 
           check_blocked() {
             local label="$1"
             shift
-            OUTPUT=$(FREEIDE_MANAGED=true "$@" 2>&1 || true)
+            OUTPUT=$(JETTSTUI_MANAGED=true "$@" 2>&1 || true)
             echo "$OUTPUT" | grep -q "managed by NixOS" || (echo "FAIL: $label not guarded"; echo "$OUTPUT"; exit 1)
             echo "PASS: $label blocked in managed mode"
           }
 
-          echo "=== Checking FREEIDE_MANAGED guards ==="
-          check_blocked "config set" ${freeide-agent}/bin/freeide config set model foo
-          check_blocked "config edit" ${freeide-agent}/bin/freeide config edit
+          echo "=== Checking JETTSTUI_MANAGED guards ==="
+          check_blocked "config set" ${jettstui}/bin/jettstui config set model foo
+          check_blocked "config edit" ${jettstui}/bin/jettstui config edit
 
           echo "=== All guard checks passed ==="
           mkdir -p $out
@@ -304,23 +304,23 @@ json.dump(sorted(leaf_paths(DEFAULT_CONFIG)), sys.stdout, indent=2)
         # Verify extraPythonPackages PYTHONPATH injection
         extra-python-packages = let
           testPkg = pkgs.python312Packages.pyfiglet;
-          freeideWithExtra = freeide-agent.override {
+          jettstuiWithExtra = jettstui.override {
             extraPythonPackages = [ testPkg ];
           };
-        in pkgs.runCommand "freeide-extra-python-packages" { } ''
+        in pkgs.runCommand "jettstui-extra-python-packages" { } ''
           set -e
           echo "=== Checking extraPythonPackages PYTHONPATH injection ==="
 
-          grep -q "PYTHONPATH" ${freeideWithExtra}/bin/freeide || \
+          grep -q "PYTHONPATH" ${jettstuiWithExtra}/bin/jettstui || \
             (echo "FAIL: PYTHONPATH not in wrapper"; exit 1)
           echo "PASS: PYTHONPATH present in wrapper"
 
-          grep -q "${testPkg}" ${freeideWithExtra}/bin/freeide || \
+          grep -q "${testPkg}" ${jettstuiWithExtra}/bin/jettstui || \
             (echo "FAIL: test package path not in PYTHONPATH"; exit 1)
           echo "PASS: test package path found in wrapper"
 
           echo "=== Checking base package has no PYTHONPATH ==="
-          if grep -q "PYTHONPATH" ${freeide-agent}/bin/freeide; then
+          if grep -q "PYTHONPATH" ${jettstui}/bin/jettstui; then
             echo "FAIL: base package should not have PYTHONPATH"; exit 1
           fi
           echo "PASS: base package clean"
@@ -332,18 +332,18 @@ json.dump(sorted(leaf_paths(DEFAULT_CONFIG)), sys.stdout, indent=2)
 
         # Verify extraDependencyGroups passes through to python.nix
         extra-dependency-groups = let
-          freeideWithGroups = freeide-agent.override {
+          jettstuiWithGroups = jettstui.override {
             extraDependencyGroups = [ "honcho" ];
           };
-        in pkgs.runCommand "freeide-extra-dependency-groups" { } ''
+        in pkgs.runCommand "jettstui-extra-dependency-groups" { } ''
           set -e
           echo "=== Checking extraDependencyGroups override evaluates ==="
 
           # Eval-only: verify the override produces valid derivation paths
           # without building the full venv (which is expensive and redundant
           # since the mechanism is just list concatenation into python.nix).
-          echo "derivation: ${freeideWithGroups}"
-          echo "venv: ${freeideWithGroups.freeideVenv}"
+          echo "derivation: ${jettstuiWithGroups}"
+          echo "venv: ${jettstuiWithGroups.jettstuiVenv}"
           echo "PASS: extraDependencyGroups override evaluates cleanly"
 
           echo "=== All extraDependencyGroups checks passed ==="
@@ -354,10 +354,10 @@ json.dump(sorted(leaf_paths(DEFAULT_CONFIG)), sys.stdout, indent=2)
         # Regression guard: messaging deps live outside [all], so the
         # #messaging variant must actually ship discord.py — otherwise
         # `nix profile install .#messaging` regresses to the broken default.
-        messaging-variant = pkgs.runCommand "freeide-messaging-variant" { } ''
+        messaging-variant = pkgs.runCommand "jettstui-messaging-variant" { } ''
           set -e
           echo "=== Checking discord.py importable from messaging variant ==="
-          ${self'.packages.messaging.freeideVenv}/bin/python3 -c \
+          ${self'.packages.messaging.jettstuiVenv}/bin/python3 -c \
             "import discord; print(discord.__version__)"
           echo "PASS: discord.py importable from messaging variant venv"
           mkdir -p $out
@@ -424,7 +424,7 @@ json.dump(sorted(leaf_paths(DEFAULT_CONFIG)), sys.stdout, indent=2)
                 - USER_VAR
           '';
 
-        in pkgs.runCommand "freeide-config-roundtrip" {
+        in pkgs.runCommand "jettstui-config-roundtrip" {
           nativeBuildInputs = [ pkgs.jq ];
         } ''
           set -e
@@ -435,12 +435,12 @@ json.dump(sorted(leaf_paths(DEFAULT_CONFIG)), sys.stdout, indent=2)
 
           # Helper: run merge then load with Python, output merged JSON
           merge_and_load() {
-            local freeide_home="$1"
-            export FREEIDE_HOME="$freeide_home"
-            ${configMergeScript} ${nixSettings} "$freeide_home/config.yaml"
-            ${freeideVenv}/bin/python3 -c '
+            local jettstui_home="$1"
+            export JETTSTUI_HOME="$jettstui_home"
+            ${configMergeScript} ${nixSettings} "$jettstui_home/config.yaml"
+            ${jettstuiVenv}/bin/python3 -c '
 import json, sys
-from freeide_cli.config import load_config
+from jettstui.config import load_config
 json.dump(load_config(), sys.stdout, default=str)
 '
           }

@@ -40,8 +40,8 @@ function encryptDesktopSecret(value, safeStorageApi) {
 
   if (!encryptionAvailable) {
     throw new Error(
-      'Secure token storage is unavailable, so FreeIDE Desktop cannot save remote gateway tokens. ' +
-        'Set FREEIDE_DESKTOP_REMOTE_URL and FREEIDE_DESKTOP_REMOTE_TOKEN in your environment, or enable OS keychain access and try again.'
+      'Secure token storage is unavailable, so JettsTUI Desktop cannot save remote gateway tokens. ' +
+        'Set JETTSTUI_DESKTOP_REMOTE_URL and JETTSTUI_DESKTOP_REMOTE_TOKEN in your environment, or enable OS keychain access and try again.'
     )
   }
 
@@ -54,7 +54,7 @@ function encryptDesktopSecret(value, safeStorageApi) {
     const detail = error instanceof Error && error.message ? ` (${error.message})` : ''
     throw new Error(
       `Failed to encrypt the remote gateway token for secure storage${detail}. ` +
-        'Set FREEIDE_DESKTOP_REMOTE_URL and FREEIDE_DESKTOP_REMOTE_TOKEN in your environment as a fallback.'
+        'Set JETTSTUI_DESKTOP_REMOTE_URL and JETTSTUI_DESKTOP_REMOTE_TOKEN in your environment as a fallback.'
     )
   }
 }

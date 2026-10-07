@@ -1,4 +1,4 @@
-"""Bold-gradient-rice primitives — the shared visual layer for FreeIDE's TUI.
+"""Bold-gradient-rice primitives — the shared visual layer for JettsTUI's TUI.
 
 One place for the violet→sky gradient and the powerline segment language so
 every surface (banner, status bar, context meter, input rule, pickers) reads as
@@ -6,7 +6,7 @@ one deliberate, heavily-riced scheme instead of scattered ad-hoc colors.
 
 Everything degrades: `gradient_*` fall back to a flat accent when truecolor is
 unavailable, and the powerline separators are overridable per-skin (and via
-``FREEIDE_POWERLINE=0``) for fonts without the nerd-font glyphs.
+``JETTSTUI_POWERLINE=0``) for fonts without the nerd-font glyphs.
 """
 
 from __future__ import annotations
@@ -48,7 +48,7 @@ _PL_LEFT_FALLBACK = "◀"   # ◀
 
 def powerline_enabled() -> bool:
     """False when the user opts out of nerd-font powerline glyphs."""
-    return os.environ.get("FREEIDE_POWERLINE", "1").strip().lower() not in {"0", "false", "no", "off"}
+    return os.environ.get("JETTSTUI_POWERLINE", "1").strip().lower() not in {"0", "false", "no", "off"}
 
 
 def pl_right() -> str:

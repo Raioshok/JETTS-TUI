@@ -1,9 +1,9 @@
 /**
  * after-pack.mjs — electron-builder afterPack hook.
  *
- * Stamps the FreeIDE icon + identity onto the packed Windows FreeIDE.exe via
+ * Stamps the JettsTUI icon + identity onto the packed Windows JettsTUI.exe via
  * rcedit (delegated to set-exe-identity.mjs). This runs for EVERY packed build
- * — first install, `freeide desktop`, the installer's --update rebuild, and a
+ * — first install, `jettstui desktop`, the installer's --update rebuild, and a
  * dev's manual `npm run pack` — so the branded exe can never silently revert
  * to the stock "Electron" icon/name (the bug when the stamp lived only in
  * install.ps1, which the update path doesn't use).
@@ -16,7 +16,7 @@
  * electron-builder passes a context with:
  *   - electronPlatformName: 'win32' | 'darwin' | 'linux'
  *   - appOutDir:            the unpacked app directory for this target
- *   - packager.appInfo.productFilename: the exe basename (e.g. 'FreeIDE')
+ *   - packager.appInfo.productFilename: the exe basename (e.g. 'JettsTUI')
  */
 
 import path from 'node:path'
@@ -28,7 +28,7 @@ export default async function afterPack(context) {
     return
   }
 
-  const productName = context.packager?.appInfo?.productFilename || 'FreeIDE'
+  const productName = context.packager?.appInfo?.productFilename || 'JettsTUI'
   const exe = path.join(context.appOutDir, `${productName}.exe`)
   const desktopRoot = path.resolve(import.meta.dirname, '..')
 
@@ -36,6 +36,6 @@ export default async function afterPack(context) {
     await stampExeIdentity(exe, desktopRoot)
   } catch (err) {
     // Never fail the build over a cosmetic stamp.
-    console.warn(`[after-pack] exe identity stamp failed (${err.message}); FreeIDE.exe keeps the stock Electron icon`)
+    console.warn(`[after-pack] exe identity stamp failed (${err.message}); JettsTUI.exe keeps the stock Electron icon`)
   }
 }

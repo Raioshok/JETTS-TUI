@@ -1,12 +1,12 @@
 ---
 name: plan
-description: Write a markdown plan to .freeide/plans/; no execution.
+description: Write a markdown plan to .jettstui/plans/; no execution.
 version: 2.0.0
-author: FreeIDE Agent (writing-craft adapted from obra/superpowers)
+author: JettsTUI (writing-craft adapted from obra/superpowers)
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
-  freeide:
+  jettstui:
     tags: [planning, plan-mode, implementation, workflow, design, documentation]
     related_skills: [subagent-driven-development, test-driven-development, requesting-code-review]
 ---
@@ -23,7 +23,7 @@ For this turn, you are planning only.
 - Do not edit project files except the plan markdown file.
 - Do not run mutating terminal commands, commit, push, or perform external actions.
 - You may inspect the repo or other context with read-only commands/tools when needed.
-- Your deliverable is a markdown plan saved inside the active workspace under `.freeide/plans/`.
+- Your deliverable is a markdown plan saved inside the active workspace under `.jettstui/plans/`.
 
 ## Output requirements
 
@@ -43,12 +43,12 @@ If the task is code-related, include exact file paths, likely test targets, and 
 ## Save location
 
 Save the plan with `write_file` under:
-- `.freeide/plans/YYYY-MM-DD_HHMMSS-<slug>.md`
+- `.jettstui/plans/YYYY-MM-DD_HHMMSS-<slug>.md`
 
-Treat that as relative to the active working directory / backend workspace. FreeIDE file tools are backend-aware, so using this relative path keeps the plan with the workspace on local, docker, ssh, modal, and daytona backends.
+Treat that as relative to the active working directory / backend workspace. JettsTUI file tools are backend-aware, so using this relative path keeps the plan with the workspace on local, docker, ssh, modal, and daytona backends.
 
 If the runtime provides a specific target path, use that exact path.
-If not, create a sensible timestamped filename yourself under `.freeide/plans/`.
+If not, create a sensible timestamped filename yourself under `.jettstui/plans/`.
 
 ## Interaction style
 
@@ -121,7 +121,7 @@ Every plan MUST start with:
 ```markdown
 # [Feature Name] Implementation Plan
 
-> **For FreeIDE:** Use subagent-driven-development skill to implement this plan task-by-task.
+> **For JettsTUI:** Use subagent-driven-development skill to implement this plan task-by-task.
 
 **Goal:** [One sentence describing what this builds]
 
@@ -191,7 +191,7 @@ Read and understand:
 
 ### Step 2: Explore the Codebase
 
-Use FreeIDE tools to understand the project:
+Use JettsTUI tools to understand the project:
 
 ```python
 # Understand project structure

@@ -1,6 +1,6 @@
 """Remote model catalog fetcher.
 
-The FreeIDE docs site hosts a JSON manifest of curated models for providers
+The JettsTUI docs site hosts a JSON manifest of curated models for providers
 we want to update without shipping a release (currently OpenRouter). This
 module fetches, validates, and caches that manifest, falling back to the
 in-repo hardcoded lists when the network is unavailable.
@@ -9,7 +9,7 @@ Pipeline
 --------
 1. ``get_catalog()`` — returns a parsed manifest dict.
    - Checks in-process cache (invalidated by TTL).
-   - Reads disk cache at ``~/.freeide/cache/model_catalog.json``.
+   - Reads disk cache at ``~/.jettstui/cache/model_catalog.json``.
    - Fetches the master URL if disk cache is stale or missing.
    - On any fetch failure, keeps using the stale cache (or empty dict).
 
@@ -51,7 +51,7 @@ import urllib.request
 from pathlib import Path
 from typing import Any
 
-from freeide_cli import __version__ as _FREEIDE_VERSION
+from jettstui import __version__ as _JETTSTUI_VERSION
 from utils import atomic_replace
 
 logger = logging.getLogger(__name__)
@@ -68,7 +68,7 @@ DEFAULT_TTL_HOURS = 1
 DEFAULT_FETCH_TIMEOUT = 8.0
 SUPPORTED_SCHEMA_VERSION = 1
 
-_FREEIDE_USER_AGENT = f"freeide-cli/{_FREEIDE_VERSION}"
+_JETTSTUI_USER_AGENT = f"jettstui-cli/{_JETTSTUI_VERSION}"
 
 # In-process cache to avoid repeated disk + parse work across multiple
 # calls within the same session. Invalidated by TTL against the disk file's
@@ -85,7 +85,7 @@ _catalog_cache_source_mtime: float = 0.0
 def _load_catalog_config() -> dict[str, Any]:
     """Load the ``model_catalog`` config block with defaults filled in."""
     try:
-        from freeide_cli.config import load_config
+        from jettstui.config import load_config
         cfg = load_config() or {}
     except Exception:
         cfg = {}
@@ -104,8 +104,8 @@ def _load_catalog_config() -> dict[str, Any]:
 
 def _cache_path() -> Path:
     """Return the disk cache path. Import lazily so tests can monkeypatch home."""
-    from freeide_constants import get_freeide_home
-    return get_freeide_home() / "cache" / "model_catalog.json"
+    from jettstui_constants import get_jettstui_home
+    return get_jettstui_home() / "cache" / "model_catalog.json"
 
 
 # ---------------------------------------------------------------------------
@@ -120,7 +120,7 @@ def _fetch_manifest(url: str, timeout: float) -> dict[str, Any] | None:
             url,
             headers={
                 "Accept": "application/json",
-                "User-Agent": _FREEIDE_USER_AGENT,
+                "User-Agent": _JETTSTUI_USER_AGENT,
             },
         )
         with urllib.request.urlopen(req, timeout=timeout) as resp:
@@ -349,11 +349,11 @@ def get_default_model_from_cache(provider: str) -> str | None:
     """Return the catalog's labeled default model for ``provider`` — cache only.
 
     The manifest marks exactly one model entry per provider with
-    ``"default": true``; that entry is the model FreeIDE silently lands on when
+    ``"default": true``; that entry is the model JettsTUI silently lands on when
     the user never picked one. This accessor reads ONLY the in-process copy or
     the disk cache — it NEVER triggers a network fetch, so it is safe on hot
     resolution paths (agent build, gateway session setup) that must stay
-    network-free. The cache is kept fresh by the picker/`freeide update` paths;
+    network-free. The cache is kept fresh by the picker/`jettstui update` paths;
     when no cached manifest exists (fresh install, offline), returns None and
     the caller falls back to the in-repo constant.
     """
@@ -372,13 +372,13 @@ def get_default_model_from_cache(provider: str) -> str | None:
 def seed_cache_from_checkout(project_root: "Path | str") -> bool:
     """Overwrite the disk cache with the catalog shipped in a local checkout.
 
-    ``freeide update`` pulls the latest repo, so the freshly-pulled
+    ``jettstui update`` pulls the latest repo, so the freshly-pulled
     ``resources/model-catalog.json`` IS the newest catalog — no
     network round-trip needed. Copying it straight over the disk cache keeps
     the model picker current even when the remote manifest fetch is bot-gated.
 
     Reads the shipped manifest, validates it against the schema, and writes it
-    to ``~/.freeide/cache/model_catalog.json`` via the same atomic writer the
+    to ``~/.jettstui/cache/model_catalog.json`` via the same atomic writer the
     network path uses. Returns ``True`` on success, ``False`` if the file is
     missing, malformed, or fails validation (caller should treat a ``False``
     as non-fatal — the network fetch path still applies on the next picker
@@ -400,7 +400,7 @@ def seed_cache_from_checkout(project_root: "Path | str") -> bool:
 
 
 def reset_cache() -> None:
-    """Clear the in-process cache. Used by tests and ``freeide model --refresh``."""
+    """Clear the in-process cache. Used by tests and ``jettstui model --refresh``."""
     global _catalog_cache, _catalog_cache_source_mtime
     _catalog_cache = None
     _catalog_cache_source_mtime = 0.0

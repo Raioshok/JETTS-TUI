@@ -12,6 +12,6 @@ automatically when it approaches expiry.
 Adapters plug in by implementing ``UpstreamAdapter``.
 """
 
-from freeide_cli.proxy.adapters.base import UpstreamAdapter
+from jettstui.proxy.adapters.base import UpstreamAdapter
 
 __all__ = ["UpstreamAdapter"]

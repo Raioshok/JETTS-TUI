@@ -1,6 +1,6 @@
-"""``freeide claw`` subcommand parser.
+"""``jettstui claw`` subcommand parser.
 
-Extracted from ``freeide_cli/main.py:main()`` (god-file Phase 2 follow-up).
+Extracted from ``jettstui/main.py:main()`` (god-file Phase 2 follow-up).
 Handler injected to avoid importing ``main``.
 """
 
@@ -14,14 +14,14 @@ def build_claw_parser(subparsers, *, cmd_claw: Callable) -> None:
     claw_parser = subparsers.add_parser(
         "claw",
         help="OpenClaw migration tools",
-        description="Migrate settings, memories, skills, and API keys from OpenClaw to Jetts-TUI",
+        description="Migrate settings, memories, skills, and API keys from OpenClaw to JettsTUI",
     )
     claw_subparsers = claw_parser.add_subparsers(dest="claw_action")
 
     # claw migrate
     claw_migrate = claw_subparsers.add_parser(
         "migrate",
-        help="Migrate from OpenClaw to Jetts-TUI",
+        help="Migrate from OpenClaw to JettsTUI",
         description="Import settings, memories, skills, and API keys from an OpenClaw installation. "
         "Always shows a preview before making changes.",
     )
@@ -56,7 +56,7 @@ def build_claw_parser(subparsers, *, cmd_claw: Callable) -> None:
         action="store_true",
         help="Skip the pre-migration zip snapshot of ~/.jettstui/ (by default a "
         "single restore-point archive is written to ~/.jettstui/backups/ "
-        "before apply; restorable with 'freeide import').",
+        "before apply; restorable with 'jettstui import').",
     )
     claw_migrate.add_argument(
         "--workspace-target", help="Absolute path to copy workspace instructions into"

@@ -1,22 +1,22 @@
 """
-Profile management for multiple isolated FreeIDE instances.
+Profile management for multiple isolated JettsTUI instances.
 
-Each profile is a fully independent FREEIDE_HOME directory with its own
+Each profile is a fully independent JETTSTUI_HOME directory with its own
 config.yaml, .env, memory, sessions, skills, gateway, cron, and logs.
-Profiles live under ``~/.freeide/profiles/<name>/`` by default.
+Profiles live under ``~/.jettstui/profiles/<name>/`` by default.
 
-The "default" profile is ``~/.freeide`` itself — backward compatible,
+The "default" profile is ``~/.jettstui`` itself — backward compatible,
 zero migration needed.
 
 Usage::
 
-    freeide profile create coder          # fresh profile + bundled skills
-    freeide profile create coder --clone  # also copy config, .env, SOUL.md, skills
-    freeide profile create coder --clone-all  # full copy of source profile
+    jettstui profile create coder          # fresh profile + bundled skills
+    jettstui profile create coder --clone  # also copy config, .env, SOUL.md, skills
+    jettstui profile create coder --clone-all  # full copy of source profile
     coder chat                           # use via wrapper alias
-    freeide -p coder chat                 # or via flag
-    freeide profile use coder             # set as sticky default
-    freeide profile delete coder          # remove profile + alias + service
+    jettstui -p coder chat                 # or via flag
+    jettstui profile use coder             # set as sticky default
+    jettstui profile delete coder          # remove profile + alias + service
 """
 
 import json
@@ -49,7 +49,7 @@ _PROFILE_DIRS = [
     # Back-compat/Docker HOME for tool subprocesses. Host subprocesses keep
     # the user's real HOME by default so normal CLI credentials remain visible;
     # containers still use this directory for persistent HOME state.
-    # See freeide_constants.get_subprocess_home().
+    # See jettstui_constants.get_subprocess_home().
     "home",
 ]
 
@@ -78,12 +78,12 @@ _CLONE_ALL_STRIP: list[str] = [
 ]
 
 # Infrastructure artifacts excluded from --clone-all when the source is the
-# default profile (``~/.freeide``).  Named profiles never contain these
+# default profile (``~/.jettstui``).  Named profiles never contain these
 # directories at root, so the exclusion is gated to avoid silently dropping
 # user data from a named-profile source.
 #
 # Rationale per item:
-#   freeide-agent  — git repo checkout (~84 MB source + ~3 GB venv)
+#   jettstui  — git repo checkout (~84 MB source + ~3 GB venv)
 #   .worktrees    — git worktrees
 #   profiles      — sibling named profiles (recursive copy never intended)
 #   bin           — installed binaries (tirith etc., ~10 MB) shared per-host
@@ -94,7 +94,7 @@ _CLONE_ALL_STRIP: list[str] = [
 # portable snapshot; clone-all keeps those because the cloned profile is
 # meant to keep working immediately).
 _CLONE_ALL_DEFAULT_EXCLUDE_ROOT: frozenset[str] = frozenset({
-    "freeide-agent",
+    "jettstui",
     ".worktrees",
     "profiles",
     "bin",
@@ -112,7 +112,7 @@ _CLONE_ALL_DEFAULT_EXCLUDE_ROOT: frozenset[str] = frozenset({
 # Rationale per item:
 #   state.db (+wal/shm) — SQLite session store (can reach many GB)
 #   sessions            — per-session transcript/data dirs
-#   backups             — `freeide backup` archives
+#   backups             — `jettstui backup` archives
 #   state-snapshots     — quick-backup snapshot trees
 #   checkpoints         — session checkpoint data
 _CLONE_ALL_HISTORY_EXCLUDE_ROOT: frozenset[str] = frozenset({
@@ -125,11 +125,11 @@ _CLONE_ALL_HISTORY_EXCLUDE_ROOT: frozenset[str] = frozenset({
     "checkpoints",
 })
 
-# Marker file written by `freeide profile create --no-skills`.  When present in
-# a profile's root, callers of seed_profile_skills() (fresh-create, `freeide
+# Marker file written by `jettstui profile create --no-skills`.  When present in
+# a profile's root, callers of seed_profile_skills() (fresh-create, `jettstui
 # update`'s all-profile sync, the web dashboard) skip bundled-skill seeding
 # for that profile.  The user can still install skills manually via
-# `freeide skills install` or drop SKILL.md files into the profile's skills/.
+# `jettstui skills install` or drop SKILL.md files into the profile's skills/.
 # Delete the marker file to opt back in.
 NO_BUNDLED_SKILLS_MARKER = ".no-bundled-skills"
 
@@ -150,8 +150,8 @@ def _clone_all_copytree_ignore(source_dir: Path):
          history, backups, and snapshots that belong to the SOURCE profile
          and should never carry into a fresh clone.  Applies to any source.
       2. Root-level entries in ``_CLONE_ALL_DEFAULT_EXCLUDE_ROOT`` — known
-         FreeIDE infrastructure directories that only the default profile
-         (``~/.freeide``) ever contains.  Gated on ``source_dir`` actually
+         JettsTUI infrastructure directories that only the default profile
+         (``~/.jettstui``) ever contains.  Gated on ``source_dir`` actually
          being the default profile so a named-profile source never has its
          own data silently dropped.
       3. Universal exclusions at any depth — Python bytecode caches that
@@ -164,7 +164,7 @@ def _clone_all_copytree_ignore(source_dir: Path):
     clone.
     """
     source_resolved = source_dir.resolve()
-    is_default_source = source_resolved == _get_default_freeide_home().resolve()
+    is_default_source = source_resolved == _get_default_jettstui_home().resolve()
 
     def _ignore(directory: str, names: List[str]) -> List[str]:
         ignored: list[str] = []
@@ -196,27 +196,27 @@ def _clone_all_copytree_ignore(source_dir: Path):
     return _ignore
 
 
-# Directories/files to exclude when exporting the default (~/.freeide) profile.
+# Directories/files to exclude when exporting the default (~/.jettstui) profile.
 # The default profile contains infrastructure (repo checkout, worktrees, DBs,
 # caches, binaries) that named profiles don't have.  We exclude those so the
 # export is a portable, reasonable-size archive of actual profile data.
 _DEFAULT_EXPORT_EXCLUDE_ROOT = frozenset({
     # Infrastructure
-    "freeide-agent",         # repo checkout (multi-GB)
+    "jettstui",         # repo checkout (multi-GB)
     ".worktrees",           # git worktrees
     "profiles",             # other profiles — never recursive-export
     "bin",                  # installed binaries (tirith, etc.)
     "node_modules",         # npm packages
     # Databases & runtime state
     "state.db", "state.db-shm", "state.db-wal",
-    "freeide_state.db",
+    "jettstui_state.db",
     "response_store.db", "response_store.db-shm", "response_store.db-wal",
     "gateway.pid", "gateway_state.json", "processes.json",
     "auth.json",            # API keys, OAuth tokens, credential pools
     ".env",                 # API keys (dotenv)
     "auth.lock", "active_profile", ".update_check",
     "errors.log",
-    ".freeide_history",
+    ".jettstui_history",
     # Caches (regenerated on use)
     "image_cache", "audio_cache", "document_cache",
     "browser_screenshots", "checkpoints",
@@ -224,15 +224,15 @@ _DEFAULT_EXPORT_EXCLUDE_ROOT = frozenset({
     "logs",                 # gateway logs
 })
 
-# Allow-list for ``export_profile("default")``: when FREEIDE_HOME equals the
+# Allow-list for ``export_profile("default")``: when JETTSTUI_HOME equals the
 # cwd (Docker/custom deployments), the default profile home is the working
 # directory and contains arbitrary user files that should NOT be bundled
-# into the export. The set below identifies the *known FreeIDE profile
-# artifacts* at the root of FREEIDE_HOME; everything else is excluded.
+# into the export. The set below identifies the *known JettsTUI profile
+# artifacts* at the root of JETTSTUI_HOME; everything else is excluded.
 # Sensitive runtime infrastructure (``state.db``, ``logs/``, ``auth.*``,
 # other profiles) is intentionally *not* in this list so the export stays
 # a portable, credential-free snapshot of the user-facing surface
-# (#58394). Add new artifacts here when introduced in ``freeide_constants``.
+# (#58394). Add new artifacts here when introduced in ``jettstui_constants``.
 _DEFAULT_EXPORT_INCLUDE_ROOT = frozenset({
     # Configuration / persona
     "config.yaml", "SOUL.md", "MEMORY.md", "USER.md", "todo.json",
@@ -245,11 +245,11 @@ _DEFAULT_EXPORT_INCLUDE_ROOT = frozenset({
 
 # Names that cannot be used as profile aliases
 _RESERVED_NAMES = frozenset({
-    "freeide", "default", "test", "tmp", "root", "sudo",
+    "jettstui", "default", "test", "tmp", "root", "sudo",
 })
 
-# FreeIDE subcommands that cannot be used as profile names/aliases
-_FREEIDE_SUBCOMMANDS = frozenset({
+# JettsTUI subcommands that cannot be used as profile names/aliases
+_JETTSTUI_SUBCOMMANDS = frozenset({
     "chat", "model", "gateway", "setup", "whatsapp", "login", "logout",
     "status", "cron", "doctor", "dump", "config", "pairing", "skills", "tools",
     "mcp", "sessions", "insights", "version", "update", "uninstall",
@@ -264,31 +264,31 @@ _FREEIDE_SUBCOMMANDS = frozenset({
 def _get_profiles_root() -> Path:
     """Return the directory where named profiles are stored.
 
-    Anchored to the freeide root, NOT to the current FREEIDE_HOME
+    Anchored to the jettstui root, NOT to the current JETTSTUI_HOME
     (which may itself be a profile).  This ensures ``coder profile list``
     can see all profiles.
 
-    In Docker/custom deployments where FREEIDE_HOME points outside
-    ``~/.freeide``, profiles live under ``FREEIDE_HOME/profiles/`` so
+    In Docker/custom deployments where JETTSTUI_HOME points outside
+    ``~/.jettstui``, profiles live under ``JETTSTUI_HOME/profiles/`` so
     they persist on the mounted volume.
     """
-    return _get_default_freeide_home() / "profiles"
+    return _get_default_jettstui_home() / "profiles"
 
 
-def _get_default_freeide_home() -> Path:
-    """Return the default (pre-profile) FREEIDE_HOME path.
+def _get_default_jettstui_home() -> Path:
+    """Return the default (pre-profile) JETTSTUI_HOME path.
 
-    In standard deployments this is ``~/.freeide``.
-    In Docker/custom deployments where FREEIDE_HOME is outside ``~/.freeide``
-    (e.g. ``/opt/data``), returns FREEIDE_HOME directly.
+    In standard deployments this is ``~/.jettstui``.
+    In Docker/custom deployments where JETTSTUI_HOME is outside ``~/.jettstui``
+    (e.g. ``/opt/data``), returns JETTSTUI_HOME directly.
     """
-    from freeide_constants import get_default_freeide_root
-    return get_default_freeide_root()
+    from jettstui_constants import get_default_jettstui_root
+    return get_default_jettstui_root()
 
 
 def _get_active_profile_path() -> Path:
     """Return the path to the sticky active_profile file."""
-    return _get_default_freeide_home() / "active_profile"
+    return _get_default_jettstui_home() / "active_profile"
 
 
 def _get_wrapper_dir() -> Path:
@@ -327,14 +327,14 @@ def validate_profile_name(name: str) -> None:
     honest about what the on-disk directory name must look like, while
     ingress-point normalization handles UX flexibility (see #18498).
 
-    Also rejects names in :data:`_RESERVED_NAMES` (``freeide``, ``test``,
+    Also rejects names in :data:`_RESERVED_NAMES` (``jettstui``, ``test``,
     ``tmp``, ``root``, ``sudo``) that would create confusing on-disk
-    collisions (a ``freeide`` profile inside ``~/.freeide/``) or get refused
+    collisions (a ``jettstui`` profile inside ``~/.jettstui/``) or get refused
     at alias-creation time anyway. ``default`` is a special pass-through —
     it's a valid alias for the built-in root profile.
     """
     if name == "default":
-        return  # special alias for ~/.freeide
+        return  # special alias for ~/.jettstui
     if not _PROFILE_ID_RE.match(name):
         raise ValueError(
             f"Invalid profile name {name!r}. Must match "
@@ -343,7 +343,7 @@ def validate_profile_name(name: str) -> None:
     if name in _RESERVED_NAMES:
         raise ValueError(
             f"Profile name {name!r} is reserved — it collides with either "
-            f"the FreeIDE installation itself or a common system binary.  "
+            f"the JettsTUI installation itself or a common system binary.  "
             f"Pick a different name."
         )
 
@@ -365,10 +365,10 @@ def validate_alias_name(name: str) -> None:
 
 
 def get_profile_dir(name: str) -> Path:
-    """Resolve a profile name to its FREEIDE_HOME directory."""
+    """Resolve a profile name to its JETTSTUI_HOME directory."""
     canon = normalize_profile_name(name)
     if canon == "default":
-        return _get_default_freeide_home()
+        return _get_default_jettstui_home()
     return _get_profiles_root() / canon
 
 
@@ -387,7 +387,7 @@ def profile_exists(name: str) -> bool:
 def check_alias_collision(name: str) -> Optional[str]:
     """Return a human-readable collision message, or None if the name is safe.
 
-    Checks: alias-name validity, reserved names, freeide subcommands, existing
+    Checks: alias-name validity, reserved names, jettstui subcommands, existing
     binaries in PATH.
     """
     canon = normalize_profile_name(name)
@@ -397,8 +397,8 @@ def check_alias_collision(name: str) -> Optional[str]:
         return str(exc)
     if canon in _RESERVED_NAMES:
         return f"'{canon}' is a reserved name"
-    if canon in _FREEIDE_SUBCOMMANDS:
-        return f"'{canon}' conflicts with a freeide subcommand"
+    if canon in _JETTSTUI_SUBCOMMANDS:
+        return f"'{canon}' conflicts with a jettstui subcommand"
 
     # Check existing commands in PATH
     wrapper_dir = _get_wrapper_dir()
@@ -415,7 +415,7 @@ def check_alias_collision(name: str) -> Optional[str]:
             if existing_path == str(expected):
                 try:
                     content = expected.read_text(encoding="utf-8")
-                    if "jetts-tui -p" in content or "freeide -p" in content:
+                    if "jetts-tui -p" in content or "jettstui -p" in content:
                         return None  # it's our wrapper, safe to overwrite
                 except Exception:
                     pass
@@ -497,7 +497,7 @@ def remove_wrapper_script(name: str) -> bool:
             try:
                 # Verify it's our wrapper before removing
                 content = wrapper_path.read_text(encoding="utf-8")
-                if "jetts-tui -p" in content or "freeide -p" in content:
+                if "jetts-tui -p" in content or "jettstui -p" in content:
                     wrapper_path.unlink()
                     return True
             except Exception:
@@ -509,7 +509,7 @@ def _migrate_profile_config_if_outdated(profile_dir: Path) -> None:
     """Bring a copied profile config.yaml up to the current schema.
 
     Profile creation can clone a config file that predates schema tracking (no
-    ``_config_version``) or that is simply older than the running FreeIDE. If we
+    ``_config_version``) or that is simply older than the running JettsTUI. If we
     leave it untouched, the first desktop/doctor view of the new profile shows a
     scary ``v0 → latest`` warning even though we just created the profile. Scope
     the normal migration pipeline to the new profile and keep it non-interactive.
@@ -519,19 +519,19 @@ def _migrate_profile_config_if_outdated(profile_dir: Path) -> None:
         return
 
     try:
-        from freeide_constants import reset_freeide_home_override, set_freeide_home_override
-        from freeide_cli.config import check_config_version, migrate_config
+        from jettstui_constants import reset_jettstui_home_override, set_jettstui_home_override
+        from jettstui.config import check_config_version, migrate_config
 
-        token = set_freeide_home_override(str(profile_dir))
+        token = set_jettstui_home_override(str(profile_dir))
         try:
             current_ver, latest_ver = check_config_version()
             if current_ver < latest_ver:
                 migrate_config(interactive=False, quiet=True)
         finally:
-            reset_freeide_home_override(token)
+            reset_jettstui_home_override(token)
     except Exception:
         # Profile creation should not fail because an old copied config could
-        # not be migrated. The next `freeide doctor --fix` can still surface the
+        # not be migrated. The next `jettstui doctor --fix` can still surface the
         # detailed error in the target profile.
         pass
 
@@ -540,8 +540,8 @@ def find_alias_for_profile(profile_name: str) -> Optional[str]:
     """Return the alias name of the wrapper that activates *profile_name*, or None.
 
     A wrapper created by :func:`create_wrapper_script` is a file named after the
-    alias whose body invokes ``freeide -p <profile>``. When the alias name equals
-    the profile name this is trivial, but a custom alias (``freeide profile alias
+    alias whose body invokes ``jettstui -p <profile>``. When the alias name equals
+    the profile name this is trivial, but a custom alias (``jettstui profile alias
     <profile> --name <custom>``) produces a differently-named file — so the
     display side cannot assume ``wrapper == profile`` and must reverse-look-up.
 
@@ -558,7 +558,7 @@ def find_alias_for_profile(profile_name: str) -> Optional[str]:
 
 
 # Cap how much of a wrapper file we read when reverse-looking-up its profile.
-# Real wrappers are a few hundred bytes of shell; the needle (``freeide -p X``)
+# Real wrappers are a few hundred bytes of shell; the needle (``jettstui -p X``)
 # sits near the top. The wrapper dir (e.g. ``~/.local/bin``) commonly also holds
 # large unrelated binaries (ffmpeg, node, …) — reading those whole, N times, was
 # the dominant cost in ``list_profiles`` (~4.5s). Reading a small head slice and
@@ -580,7 +580,7 @@ def build_alias_map() -> dict[str, str]:
     if not wrapper_dir.is_dir():
         return result
     is_windows = sys.platform == "win32"
-    prefixes = ("jetts-tui -p ", "freeide -p ")  # Keep legacy aliases discoverable.
+    prefixes = ("jetts-tui -p ", "jettstui -p ")  # Keep legacy aliases discoverable.
 
     for entry in sorted(wrapper_dir.iterdir()):
         if not entry.is_file():
@@ -658,7 +658,7 @@ def _read_distribution_meta(profile_dir: Path) -> tuple:
     if present; ``(None, None, None)`` otherwise.
 
     Failures (missing file, bad YAML) are swallowed — a bad manifest should
-    never break ``freeide profile list`` for an unrelated profile.
+    never break ``jettstui profile list`` for an unrelated profile.
     """
     mf_path = profile_dir / "distribution.yaml"
     if not mf_path.is_file():
@@ -708,7 +708,7 @@ def _check_gateway_running(profile_dir: Path) -> bool:
     no live PID file.  In those cases fall back to validating the PID recorded
     in the profile's own ``gateway_state.json`` against the live process table,
     mirroring the ``/api/status`` sidebar's liveness logic so the two surfaces
-    agree.  Parameterized by ``profile_dir`` so it never mutates ``FREEIDE_HOME``.
+    agree.  Parameterized by ``profile_dir`` so it never mutates ``JETTSTUI_HOME``.
     """
     try:
         from gateway.status import get_running_pid
@@ -800,7 +800,7 @@ def _count_skills(profile_dir: Path) -> int:
 # ---------------------------------------------------------------------------
 #
 # We keep this file deliberately tiny and separate from the profile's
-# ``config.yaml``. ``config.yaml`` is the user-facing FreeIDE config
+# ``config.yaml``. ``config.yaml`` is the user-facing JettsTUI config
 # (~5000 lines of defaults); ``profile.yaml`` is metadata ABOUT the
 # profile itself (its role, who described it). Mixing them makes both
 # harder to read.
@@ -819,7 +819,7 @@ def read_profile_meta(profile_dir: Path) -> dict:
     Returns ``{"description": "", "description_auto": False}`` when the
     file is missing or unreadable. Never raises — a corrupt
     profile.yaml on an unrelated profile must not break
-    ``freeide profile list``.
+    ``jettstui profile list``.
     """
     path = _profile_yaml_path(profile_dir)
     if not path.is_file():
@@ -881,7 +881,7 @@ def list_profiles() -> List[ProfileInfo]:
     wrapper_dir = _get_wrapper_dir()
 
     # Default profile
-    default_home = _get_default_freeide_home()
+    default_home = _get_default_jettstui_home()
     if default_home.is_dir():
         model, provider = _read_config_model(default_home)
         dist_name, dist_version, dist_source = _read_distribution_meta(default_home)
@@ -948,7 +948,7 @@ def list_profiles() -> List[ProfileInfo]:
 
 
 def profiles_to_serve(multiplex: bool) -> List[Tuple[str, Path]]:
-    """Return the ``(profile_name, freeide_home)`` pairs a gateway should serve.
+    """Return the ``(profile_name, jettstui_home)`` pairs a gateway should serve.
 
     This is the single chokepoint for "which profiles does the inbound gateway
     handle" so later multiplexing phases never re-derive the set.
@@ -958,20 +958,20 @@ def profiles_to_serve(multiplex: bool) -> List[Tuple[str, Path]]:
       always had. The name is ``"default"`` for the default profile or the
       active named profile's id.
     - ``multiplex=True``: returns the default profile plus every valid named
-      profile under ``profiles/``, each paired with its own FREEIDE_HOME.
+      profile under ``profiles/``, each paired with its own JETTSTUI_HOME.
 
     Intentionally lightweight (a directory scan + name validation only): no
     per-profile config reads, gateway-running probes, or skill counts like
     :func:`list_profiles`. It runs on gateway startup and must stay cheap.
 
-    The returned ``freeide_home`` is the path to pass to
-    ``set_freeide_home_override`` when scoping a turn to that profile.
+    The returned ``jettstui_home`` is the path to pass to
+    ``set_jettstui_home_override`` when scoping a turn to that profile.
     """
     active = get_active_profile_name() or "default"
     if not multiplex:
         return [(active, get_profile_dir(active))]
 
-    serve: List[Tuple[str, Path]] = [("default", _get_default_freeide_home())]
+    serve: List[Tuple[str, Path]] = [("default", _get_default_jettstui_home())]
 
     profiles_root = _get_profiles_root()
     if profiles_root.is_dir():
@@ -1015,7 +1015,7 @@ def create_profile(
         If True, skip wrapper script creation.
     no_skills:
         If True, create an empty profile with no bundled skills, and write
-        a marker file so ``freeide update`` skips re-seeding this profile's
+        a marker file so ``jettstui update`` skips re-seeding this profile's
         skills. Mutually exclusive with ``clone_config``/``clone_all`` (those
         explicitly copy skills from the source).
 
@@ -1034,7 +1034,7 @@ def create_profile(
 
     if canon == "default":
         raise ValueError(
-            "Cannot create a profile named 'default' — it is the built-in profile (~/.freeide)."
+            "Cannot create a profile named 'default' — it is the built-in profile (~/.jettstui)."
         )
 
     profile_dir = get_profile_dir(canon)
@@ -1046,8 +1046,8 @@ def create_profile(
     if clone_from is not None or clone_all or clone_config:
         if clone_from is None:
             # Default: clone from active profile
-            from freeide_constants import get_freeide_home
-            source_dir = get_freeide_home()
+            from jettstui_constants import get_jettstui_home
+            source_dir = get_jettstui_home()
         else:
             clone_from = normalize_profile_name(clone_from)
             validate_profile_name(clone_from)
@@ -1058,7 +1058,7 @@ def create_profile(
             )
 
     if clone_all and source_dir:
-        # Full copy of source profile (exclude sibling ~/.freeide/profiles/)
+        # Full copy of source profile (exclude sibling ~/.jettstui/profiles/)
         shutil.copytree(
             source_dir,
             profile_dir,
@@ -1109,7 +1109,7 @@ def create_profile(
 
     # Seed an empty .env so the profile has its own credentials file from
     # day one. Without it, profile-scoped env writes (dashboard Channels /
-    # Keys pages, `freeide -p <name> auth add`) had no file until first
+    # Keys pages, `jettstui -p <name> auth add`) had no file until first
     # write, and the profile silently inherited API keys from the shell
     # environment — users reasonably read that as "the new profile reads
     # the root .env". Skipped when --clone/--clone-all already copied one.
@@ -1117,7 +1117,7 @@ def create_profile(
     if not env_path.exists():
         try:
             env_path.write_text(
-                "# Per-profile secrets for this FreeIDE profile.\n"
+                "# Per-profile secrets for this JettsTUI profile.\n"
                 "# API keys and tokens set here override the shell environment.\n"
                 "# Behavioral settings belong in config.yaml, not here.\n",
                 encoding="utf-8",
@@ -1131,25 +1131,25 @@ def create_profile(
     soul_path = profile_dir / "SOUL.md"
     if not soul_path.exists():
         try:
-            from freeide_cli.default_soul import DEFAULT_SOUL_MD
+            from jettstui.default_soul import DEFAULT_SOUL_MD
             soul_path.write_text(DEFAULT_SOUL_MD, encoding="utf-8")
         except Exception:
             pass  # best-effort — don't fail profile creation over this
 
-    # Write the opt-out marker so seed_profile_skills() and `freeide update`'s
+    # Write the opt-out marker so seed_profile_skills() and `jettstui update`'s
     # all-profile sync loop both skip this profile for bundled-skill seeding.
     if no_skills:
         try:
             (profile_dir / NO_BUNDLED_SKILLS_MARKER).write_text(
                 "This profile opted out of bundled-skill seeding "
-                "(`freeide profile create --no-skills`).\n"
-                "Delete this file to re-enable sync on the next `freeide update`.\n",
+                "(`jettstui profile create --no-skills`).\n"
+                "Delete this file to re-enable sync on the next `jettstui update`.\n",
                 encoding="utf-8",
             )
         except OSError:
             pass  # best-effort — the feature still works via the empty skills/ dir
 
-    # Cloned configs can be older than the running FreeIDE (or predate schema
+    # Cloned configs can be older than the running JettsTUI (or predate schema
     # tracking entirely). Migrate config-only clones immediately so
     # desktop/status surfaces don't warn that a just-created profile is
     # v0/outdated. Leave --clone-all snapshots byte-for-byte apart from the
@@ -1168,11 +1168,11 @@ def create_profile(
                 description_auto=False,
             )
         except Exception:
-            pass  # non-fatal — user can describe later with `freeide profile describe`
+            pass  # non-fatal — user can describe later with `jettstui profile describe`
 
     # Phase 4: when running inside a container under s6, register the
     # new profile's gateway as a runtime s6 service so
-    # `freeide -p <profile> gateway start` can supervise it via
+    # `jettstui -p <profile> gateway start` can supervise it via
     # `s6-svc -u` instead of spawning a bare process. On host (systemd
     # / launchd / windows) this is a no-op — the existing per-profile
     # unit-generation paths handle gateway lifecycle.
@@ -1184,10 +1184,10 @@ def create_profile(
 def seed_profile_skills(profile_dir: Path, quiet: bool = False) -> Optional[dict]:
     """Seed bundled skills into a profile via subprocess.
 
-    Uses subprocess because sync_skills() caches FREEIDE_HOME at module level.
+    Uses subprocess because sync_skills() caches JETTSTUI_HOME at module level.
     Returns the sync result dict, or None on failure.
 
-    Profiles that opted out of bundled skills (via ``freeide profile create
+    Profiles that opted out of bundled skills (via ``jettstui profile create
     --no-skills`` — which writes ``.no-bundled-skills`` to the profile root)
     are skipped and get an empty-result dict so callers can report
     "opted out" instead of "failed".
@@ -1205,7 +1205,7 @@ def seed_profile_skills(profile_dir: Path, quiet: bool = False) -> Optional[dict
             [sys.executable, "-c",
              "import json; from tools.skills_sync import sync_skills; "
              "r = sync_skills(quiet=True); print(json.dumps(r))"],
-            env={**os.environ, "FREEIDE_HOME": str(profile_dir)},
+            env={**os.environ, "JETTSTUI_HOME": str(profile_dir)},
             cwd=str(project_root),
             capture_output=True, text=True, encoding='utf-8', errors='replace', timeout=60,
         )
@@ -1249,7 +1249,7 @@ def backfill_profile_envs(quiet: bool = False) -> List[str]:
     if not profiles_root.is_dir():
         return backfilled
 
-    default_env = _get_default_freeide_home() / ".env"
+    default_env = _get_default_jettstui_home() / ".env"
 
     for entry in sorted(profiles_root.iterdir()):
         if not entry.is_dir() or not _PROFILE_ID_RE.match(entry.name):
@@ -1264,7 +1264,7 @@ def backfill_profile_envs(quiet: bool = False) -> List[str]:
                 shutil.copy2(default_env, env_path)
             else:
                 env_path.write_text(
-                    "# Per-profile secrets for this FreeIDE profile.\n"
+                    "# Per-profile secrets for this JettsTUI profile.\n"
                     "# API keys and tokens set here override the shell environment.\n"
                     "# Behavioral settings belong in config.yaml, not here.\n",
                     encoding="utf-8",
@@ -1279,16 +1279,16 @@ def backfill_profile_envs(quiet: bool = False) -> List[str]:
 
 
 def _profile_bound_backend_pids(canon: str, profile_dir: Path) -> list[int]:
-    """PIDs of running FreeIDE *backends* bound to this profile.
+    """PIDs of running JettsTUI *backends* bound to this profile.
 
     The ``gateway.pid`` file only tracks the messaging gateway.  A Desktop app
     spawns a headless ``serve`` (or legacy ``dashboard --no-open``) backend per
     profile that holds the profile's SQLite connection open and keeps writing
     sessions/WAL/sandbox files — the writer that makes ``rmtree`` hit
     ``ENOTEMPTY`` (and, pre-fix, resurrected the tree).  ``gateway.pid`` never
-    names it, so find it by inspection: a FreeIDE backend subcommand
+    names it, so find it by inspection: a JettsTUI backend subcommand
     (``serve``/``dashboard``/``gateway``) that is bound to *this* profile either
-    by a ``--profile <canon>`` / ``-p <canon>`` selector or by a ``FREEIDE_HOME``
+    by a ``--profile <canon>`` / ``-p <canon>`` selector or by a ``JETTSTUI_HOME``
     that resolves to ``profile_dir``.
 
     Best-effort and tightly scoped: current-user processes only, backend
@@ -1306,7 +1306,7 @@ def _profile_bound_backend_pids(canon: str, profile_dir: Path) -> list[int]:
     except OSError:
         resolved_dir = profile_dir
 
-    # Never terminate ourselves or a parent (e.g. `freeide -p <canon> profile
+    # Never terminate ourselves or a parent (e.g. `jettstui -p <canon> profile
     # delete` runs under the very profile it's deleting).
     skip: set[int] = {os.getpid()}
     try:
@@ -1323,7 +1323,7 @@ def _profile_bound_backend_pids(canon: str, profile_dir: Path) -> list[int]:
         current_user = None
 
     backend_tokens = {"serve", "dashboard", "gateway"}
-    freeide_markers = ("freeide_cli.main", "freeide-gateway", "tui_gateway")
+    jettstui_markers = ("jettstui.main", "jettstui-gateway", "tui_gateway")
     pids: list[int] = []
 
     for proc in psutil.process_iter(["pid", "name", "username", "cmdline"]):
@@ -1339,16 +1339,16 @@ def _profile_bound_backend_pids(canon: str, profile_dir: Path) -> list[int]:
             if not argv:
                 continue
 
-            # Must be a FreeIDE process: either an entrypoint marker in argv, or
-            # a resolved executable named `freeide`.
+            # Must be a JettsTUI process: either an entrypoint marker in argv, or
+            # a resolved executable named `jettstui`.
             joined = " ".join(argv)
             exe_name = os.path.basename(argv[0]).lower()
-            is_freeide = (
-                any(marker in joined for marker in freeide_markers)
-                or exe_name == "freeide"
-                or exe_name.startswith("freeide")
+            is_jettstui = (
+                any(marker in joined for marker in jettstui_markers)
+                or exe_name == "jettstui"
+                or exe_name.startswith("jettstui")
             )
-            if not is_freeide:
+            if not is_jettstui:
                 continue
 
             # Restrict to backend subcommands so we never kill an interactive
@@ -1369,10 +1369,10 @@ def _profile_bound_backend_pids(canon: str, profile_dir: Path) -> list[int]:
                         bound = True
                         break
 
-            # ...or by FREEIDE_HOME env pointing at this profile dir.
+            # ...or by JETTSTUI_HOME env pointing at this profile dir.
             if not bound:
                 try:
-                    env_home = (proc.environ() or {}).get("FREEIDE_HOME", "")
+                    env_home = (proc.environ() or {}).get("JETTSTUI_HOME", "")
                     if env_home and Path(env_home).resolve() == resolved_dir:
                         bound = True
                 except Exception:
@@ -1474,8 +1474,8 @@ def delete_profile(name: str, yes: bool = False) -> Path:
 
     if canon == "default":
         raise ValueError(
-            "Cannot delete the default profile (~/.freeide).\n"
-            "To remove everything, use: freeide uninstall"
+            "Cannot delete the default profile (~/.jettstui).\n"
+            "To remove everything, use: jettstui uninstall"
         )
 
     profile_dir = get_profile_dir(canon)
@@ -1541,7 +1541,7 @@ def delete_profile(name: str, yes: bool = False) -> Path:
     # 2b. Stop any other backends bound to this profile (Desktop-spawned
     # serve/dashboard processes the gateway.pid file never names). They hold
     # the profile's SQLite connection open and keep writing files, which makes
-    # the rmtree below fail with ENOTEMPTY and — before the ensure_freeide_home
+    # the rmtree below fail with ENOTEMPTY and — before the ensure_jettstui_home
     # guard — resurrected the deleted tree.
     _stop_profile_backends(canon, profile_dir)
 
@@ -1626,7 +1626,7 @@ def _maybe_register_gateway_service(profile_name: str) -> None:
     which goes through the same dispatch path.
 
     Port selection: each supervised profile gateway loads its own
-    ``FREEIDE_HOME`` and binds the port resolved by ``gateway/config.py``
+    ``JETTSTUI_HOME`` and binds the port resolved by ``gateway/config.py``
     from that profile's environment — ``API_SERVER_PORT`` (or
     ``platforms.api_server.extra.port`` in the profile's
     ``config.yaml``), defaulting to 8642. There is no ``[gateway] port``
@@ -1647,10 +1647,10 @@ def _maybe_register_gateway_service(profile_name: str) -> None:
     actually the S6 one.
     """
     try:
-        from freeide_cli.service_manager import detect_service_manager
+        from jettstui.service_manager import detect_service_manager
         if detect_service_manager() != "s6":
             return  # host path — silent, no registration needed
-        from freeide_cli.service_manager import get_service_manager
+        from jettstui.service_manager import get_service_manager
         mgr = get_service_manager()
     except RuntimeError:
         return  # no backend on this host — nothing to do
@@ -1682,10 +1682,10 @@ def _maybe_unregister_gateway_service(profile_name: str) -> None:
     — see that docstring.
     """
     try:
-        from freeide_cli.service_manager import detect_service_manager
+        from jettstui.service_manager import detect_service_manager
         if detect_service_manager() != "s6":
             return  # host path — silent
-        from freeide_cli.service_manager import get_service_manager
+        from jettstui.service_manager import get_service_manager
         mgr = get_service_manager()
     except RuntimeError:
         return
@@ -1704,11 +1704,11 @@ def _cleanup_gateway_service(name: str, profile_dir: Path) -> None:
     import platform as _platform
 
     # Derive service name for this profile
-    # Temporarily set FREEIDE_HOME so _profile_suffix resolves correctly
-    old_home = os.environ.get("FREEIDE_HOME")
+    # Temporarily set JETTSTUI_HOME so _profile_suffix resolves correctly
+    old_home = os.environ.get("JETTSTUI_HOME")
     try:
-        os.environ["FREEIDE_HOME"] = str(profile_dir)
-        from freeide_cli.gateway import get_service_name, get_launchd_plist_path
+        os.environ["JETTSTUI_HOME"] = str(profile_dir)
+        from jettstui.gateway import get_service_name, get_launchd_plist_path
 
         if _platform.system() == "Linux":
             svc_name = get_service_name()
@@ -1742,9 +1742,9 @@ def _cleanup_gateway_service(name: str, profile_dir: Path) -> None:
         print(f"⚠ Service cleanup: {e}")
     finally:
         if old_home is not None:
-            os.environ["FREEIDE_HOME"] = old_home
-        elif "FREEIDE_HOME" in os.environ:
-            del os.environ["FREEIDE_HOME"]
+            os.environ["JETTSTUI_HOME"] = old_home
+        elif "JETTSTUI_HOME" in os.environ:
+            del os.environ["JETTSTUI_HOME"]
 
 
 def _stop_gateway_process(profile_dir: Path) -> None:
@@ -1808,14 +1808,14 @@ def get_active_profile() -> str:
 def set_active_profile(name: str) -> None:
     """Set the sticky active profile.
 
-    Writes to ``~/.freeide/active_profile``. Use ``"default"`` to clear.
+    Writes to ``~/.jettstui/active_profile``. Use ``"default"`` to clear.
     """
     canon = normalize_profile_name(name)
     validate_profile_name(canon)
     if canon != "default" and not profile_exists(canon):
         raise FileNotFoundError(
             f"Profile '{canon}' does not exist. "
-            f"Create it with: freeide profile create {canon}"
+            f"Create it with: jettstui profile create {canon}"
         )
 
     path = _get_active_profile_path()
@@ -1831,17 +1831,17 @@ def set_active_profile(name: str) -> None:
 
 
 def get_active_profile_name() -> str:
-    """Infer the current profile name from FREEIDE_HOME.
+    """Infer the current profile name from JETTSTUI_HOME.
 
-    Returns ``"default"`` if FREEIDE_HOME is not set or points to ``~/.freeide``.
-    Returns the profile name if FREEIDE_HOME points into ``~/.freeide/profiles/<name>``.
-    Returns ``"custom"`` if FREEIDE_HOME is set to an unrecognized path.
+    Returns ``"default"`` if JETTSTUI_HOME is not set or points to ``~/.jettstui``.
+    Returns the profile name if JETTSTUI_HOME points into ``~/.jettstui/profiles/<name>``.
+    Returns ``"custom"`` if JETTSTUI_HOME is set to an unrecognized path.
     """
-    from freeide_constants import get_freeide_home
-    freeide_home = get_freeide_home()
-    resolved = freeide_home.resolve()
+    from jettstui_constants import get_jettstui_home
+    jettstui_home = get_jettstui_home()
+    resolved = jettstui_home.resolve()
 
-    default_resolved = _get_default_freeide_home().resolve()
+    default_resolved = _get_default_jettstui_home().resolve()
     if resolved == default_resolved:
         return "default"
 
@@ -1869,9 +1869,9 @@ def _default_export_ignore(root_dir: Path):
     * **Root-level allow-list** — only entries whose name appears in
       ``_DEFAULT_EXPORT_INCLUDE_ROOT`` survive. Everything else (such as
       an unrelated ``x11-dev/`` directory in a Docker deployment where
-      FREEIDE_HOME equals the cwd) is excluded. Blacklisting was tried
-      first and proved unable to anticipate every non-FreeIDE file the
-      user may have lying alongside FREEIDE_HOME (#58394).
+      JETTSTUI_HOME equals the cwd) is excluded. Blacklisting was tried
+      first and proved unable to anticipate every non-JettsTUI file the
+      user may have lying alongside JETTSTUI_HOME (#58394).
     * **Universal exclusions at any depth** — ``__pycache__``, sockets,
       temp files; plus npm lockfiles, which may appear at the root.
 
@@ -1888,7 +1888,7 @@ def _default_export_ignore(root_dir: Path):
             elif entry in {"package.json", "package-lock.json"}:
                 ignored.add(entry)
         # Root-level allow-list: drop everything that isn't a known
-        # FreeIDE profile artifact.
+        # JettsTUI profile artifact.
         if Path(directory) == root_dir:
             ignored.update(
                 entry for entry in contents if entry not in _DEFAULT_EXPORT_INCLUDE_ROOT
@@ -1916,8 +1916,8 @@ def export_profile(name: str, output_path: str) -> Path:
     base = str(output).removesuffix(".tar.gz").removesuffix(".tgz")
 
     if canon == "default":
-        # The default profile IS ~/.freeide itself — its parent is ~/ and its
-        # directory name is ".freeide", not "default".  We stage a clean copy
+        # The default profile IS ~/.jettstui itself — its parent is ~/ and its
+        # directory name is ".jettstui", not "default".  We stage a clean copy
         # under a temp dir so the archive contains ``default/...``.
         with tempfile.TemporaryDirectory() as tmpdir:
             staged = Path(tmpdir) / "default"
@@ -2039,7 +2039,7 @@ def import_profile(archive_path: str, name: Optional[str] = None) -> Path:
     if not inferred_name:
         raise ValueError(
             "Cannot determine profile name from archive. "
-            "Specify it explicitly: freeide profile import <archive> --name <name>"
+            "Specify it explicitly: jettstui profile import <archive> --name <name>"
         )
     if archive_root is None:
         raise ValueError(
@@ -2047,14 +2047,14 @@ def import_profile(archive_path: str, name: Optional[str] = None) -> Path:
         )
 
     # Archives exported from the default profile have "default/" as top-level
-    # dir.  Importing as "default" would target ~/.freeide itself — disallow
+    # dir.  Importing as "default" would target ~/.jettstui itself — disallow
     # that and guide the user toward a named profile.
     canon = normalize_profile_name(inferred_name)
     validate_profile_name(canon)
     if canon == "default":
         raise ValueError(
-            "Cannot import as 'default' — that is the built-in root profile (~/.freeide). "
-            "Specify a different name: freeide profile import <archive> --name <name>"
+            "Cannot import as 'default' — that is the built-in root profile (~/.jettstui). "
+            "Specify a different name: jettstui profile import <archive> --name <name>"
         )
 
     profile_dir = get_profile_dir(canon)
@@ -2064,7 +2064,7 @@ def import_profile(archive_path: str, name: Optional[str] = None) -> Path:
     profiles_root = _get_profiles_root()
     profiles_root.mkdir(parents=True, exist_ok=True)
 
-    with tempfile.TemporaryDirectory(prefix="freeide_profile_import_") as tmpdir:
+    with tempfile.TemporaryDirectory(prefix="jettstui_profile_import_") as tmpdir:
         staging_root = Path(tmpdir)
         _safe_extract_profile_archive(archive, staging_root)
 
@@ -2090,13 +2090,13 @@ def import_profile(archive_path: str, name: Optional[str] = None) -> Path:
 
 def _migrate_honcho_profile_host(old_name: str, new_name: str, new_dir: Path) -> None:
     """Rename Honcho host blocks for a renamed profile without changing peers."""
-    old_host = f"freeide_{old_name}"
-    legacy_old_host = f"freeide.{old_name}"
-    new_host = f"freeide_{new_name}"
+    old_host = f"jettstui_{old_name}"
+    legacy_old_host = f"jettstui.{old_name}"
+    new_host = f"jettstui_{new_name}"
 
     candidates = [
         new_dir / "honcho.json",
-        _get_default_freeide_home() / "honcho.json",
+        _get_default_jettstui_home() / "honcho.json",
         Path.home() / ".honcho" / "config.json",
     ]
 
@@ -2128,7 +2128,7 @@ def _migrate_honcho_profile_host(old_name: str, new_name: str, new_dir: Path) ->
 
         block = hosts[source_host]
         if isinstance(block, dict) and "aiPeer" not in block:
-            if source_host.startswith("freeide_"):
+            if source_host.startswith("jettstui_"):
                 bare = source_host.split("_", 1)[1]
             else:
                 bare = source_host.split(".", 1)[1] if "." in source_host else source_host
@@ -2208,10 +2208,10 @@ def rename_profile(old_name: str, new_name: str) -> Path:
 # ---------------------------------------------------------------------------
 
 def resolve_profile_env(profile_name: str) -> str:
-    """Resolve a profile name to a FREEIDE_HOME path string.
+    """Resolve a profile name to a JETTSTUI_HOME path string.
 
-    Called early in the CLI entry point, before any freeide modules
-    are imported, to set the FREEIDE_HOME environment variable.
+    Called early in the CLI entry point, before any jettstui modules
+    are imported, to set the JETTSTUI_HOME environment variable.
     """
     canon = normalize_profile_name(profile_name)
     validate_profile_name(canon)
@@ -2220,7 +2220,7 @@ def resolve_profile_env(profile_name: str) -> str:
     if canon != "default" and not profile_dir.is_dir():
         raise FileNotFoundError(
             f"Profile '{canon}' does not exist. "
-            f"Create it with: freeide profile create {canon}"
+            f"Create it with: jettstui profile create {canon}"
         )
 
     return str(profile_dir)

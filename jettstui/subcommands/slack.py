@@ -1,6 +1,6 @@
-"""``freeide slack`` subcommand parser.
+"""``jettstui slack`` subcommand parser.
 
-Extracted verbatim from ``freeide_cli/main.py:main()`` (god-file Phase 2).
+Extracted verbatim from ``jettstui/main.py:main()`` (god-file Phase 2).
 Handler injected to avoid importing ``main``.
 """
 
@@ -17,7 +17,7 @@ def build_slack_parser(subparsers, *, cmd_slack: Callable) -> None:
     slack_parser = subparsers.add_parser(
         "slack",
         help="Slack integration helpers (manifest generation, etc.)",
-        description="Slack integration helpers for Jetts-TUI.",
+        description="Slack integration helpers for JettsTUI.",
     )
     slack_sub = slack_parser.add_subparsers(dest="slack_command")
     slack_manifest = slack_sub.add_parser(
@@ -39,12 +39,12 @@ def build_slack_parser(subparsers, *, cmd_slack: Callable) -> None:
         default=None,
         metavar="PATH",
         help="Write manifest to a file instead of stdout. With no PATH "
-        "writes to $FREEIDE_HOME/slack-manifest.json.",
+        "writes to $JETTSTUI_HOME/slack-manifest.json.",
     )
     slack_manifest.add_argument(
         "--name",
         default=None,
-        help='Bot display name (default: "Jetts-TUI")',
+        help='Bot display name (default: "JettsTUI")',
     )
     slack_manifest.add_argument(
         "--description",

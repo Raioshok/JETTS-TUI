@@ -137,14 +137,14 @@ class TestBlueBubblesHelpers:
         adapter = _make_adapter(monkeypatch, server_url="localhost:1234")
         assert adapter.server_url == "http://localhost:1234"
 
-    def test_default_mention_patterns_match_freeide_variants(self, monkeypatch):
+    def test_default_mention_patterns_match_jettstui_variants(self, monkeypatch):
         adapter = _make_adapter(monkeypatch, require_mention=True)
 
         assert adapter.require_mention is True
-        assert adapter._message_matches_mention_patterns("FreeIDE, summarize this")
-        assert adapter._message_matches_mention_patterns("@FreeIDE agent help")
+        assert adapter._message_matches_mention_patterns("JettsTUI, summarize this")
+        assert adapter._message_matches_mention_patterns("@JettsTUI agent help")
         assert not adapter._message_matches_mention_patterns("casual family chatter")
-        assert not adapter._message_matches_mention_patterns("antifreeide should not match")
+        assert not adapter._message_matches_mention_patterns("antijettstui should not match")
 
     def test_custom_mention_patterns_override_defaults(self, monkeypatch):
         adapter = _make_adapter(
@@ -154,14 +154,14 @@ class TestBlueBubblesHelpers:
         )
 
         assert adapter._message_matches_mention_patterns("Amos what is next?")
-        assert not adapter._message_matches_mention_patterns("FreeIDE what is next?")
+        assert not adapter._message_matches_mention_patterns("JettsTUI what is next?")
 
     def test_clean_mention_text_strips_leading_wake_word(self, monkeypatch):
         adapter = _make_adapter(monkeypatch, require_mention=True)
 
-        assert adapter._clean_mention_text("FreeIDE, summarize this") == "summarize this"
-        assert adapter._clean_mention_text("FreeIDE agent: summarize this") == "summarize this"
-        assert adapter._clean_mention_text("please ask FreeIDE about this") == "please ask FreeIDE about this"
+        assert adapter._clean_mention_text("JettsTUI, summarize this") == "summarize this"
+        assert adapter._clean_mention_text("JettsTUI agent: summarize this") == "summarize this"
+        assert adapter._clean_mention_text("please ask JettsTUI about this") == "please ask JettsTUI about this"
 
 
 class _FakeBlueBubblesRequest:
@@ -221,7 +221,7 @@ class TestBlueBubblesMentionGating:
             "type": "new-message",
             "data": {
                 "guid": "msg-2",
-                "text": "FreeIDE, summarize this",
+                "text": "JettsTUI, summarize this",
                 "handle": {"address": "+15555550100"},
                 "isFromMe": False,
                 "isGroup": True,

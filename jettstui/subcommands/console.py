@@ -1,4 +1,4 @@
-"""``freeide console`` subcommand parser."""
+"""``jettstui console`` subcommand parser."""
 
 from __future__ import annotations
 
@@ -6,13 +6,13 @@ from typing import Callable
 
 
 def build_console_parser(subparsers, *, cmd_console: Callable) -> None:
-    """Attach the safe Jetts-TUI Console REPL subcommand."""
+    """Attach the safe JettsTUI Console REPL subcommand."""
     console_parser = subparsers.add_parser(
         "console",
-        help="Open the safe Jetts-TUI command console",
+        help="Open the safe JettsTUI command console",
         description=(
-            "Open a curated Jetts-TUI command REPL. This is not a raw shell and "
-            "does not expose the full Jetts-TUI CLI."
+            "Open a curated JettsTUI command REPL. This is not a raw shell and "
+            "does not expose the full JettsTUI CLI."
         ),
     )
     console_parser.set_defaults(func=cmd_console)

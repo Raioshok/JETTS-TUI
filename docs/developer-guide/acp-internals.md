@@ -6,7 +6,7 @@ description: "How the ACP adapter works: lifecycle, sessions, event bridge, appr
 
 # ACP Internals
 
-The ACP adapter wraps FreeIDE' synchronous `AIAgent` in an async JSON-RPC stdio server.
+The ACP adapter wraps JettsTUI' synchronous `AIAgent` in an async JSON-RPC stdio server.
 
 Key implementation files:
 
@@ -21,12 +21,12 @@ Key implementation files:
 ## Boot flow
 
 ```text
-freeide acp / freeide-acp / python -m acp_adapter
+jettstui acp / jettstui-acp / python -m acp_adapter
   -> acp_adapter.entry.main()
   -> parse --version / --check / --setup before server startup
-  -> load ~/.freeide/.env
+  -> load ~/.jettstui/.env
   -> configure stderr logging
-  -> construct FreeIDEACPAgent
+  -> construct JettsTUIACPAgent
   -> acp.run_agent(agent, use_unstable_protocol=True)
 ```
 
@@ -34,7 +34,7 @@ Stdout is reserved for ACP JSON-RPC transport. Human-readable logs go to stderr.
 
 ## Major components
 
-### `FreeIDEACPAgent`
+### `JettsTUIACPAgent`
 
 `acp_adapter/server.py` implements the ACP agent protocol.
 
@@ -91,15 +91,15 @@ asyncio.run_coroutine_threadsafe(...)
 
 Mapping:
 
-- `allow_once` -> FreeIDE `once`
-- `allow_always` -> FreeIDE `always`
-- reject options -> FreeIDE `deny`
+- `allow_once` -> JettsTUI `once`
+- `allow_always` -> JettsTUI `always`
+- reject options -> JettsTUI `deny`
 
 Timeouts and bridge failures deny by default.
 
 ### Tool rendering helpers
 
-`acp_adapter/tools.py` maps FreeIDE tools to ACP tool kinds and builds editor-facing content.
+`acp_adapter/tools.py` maps JettsTUI tools to ACP tool kinds and builds editor-facing content.
 
 Examples:
 
@@ -113,7 +113,7 @@ Examples:
 ```text
 new_session(cwd)
   -> create SessionState
-  -> create AIAgent(platform="acp", enabled_toolsets=["freeide-acp"])
+  -> create AIAgent(platform="acp", enabled_toolsets=["jettstui-acp"])
   -> bind task_id/session_id to cwd override
 
 prompt(..., session_id)
@@ -141,12 +141,12 @@ prompt(..., session_id)
 
 ACP does not implement its own auth store.
 
-Instead it reuses FreeIDE' runtime resolver:
+Instead it reuses JettsTUI' runtime resolver:
 
 - `acp_adapter/auth.py`
-- `freeide_cli/runtime_provider.py`
+- `jettstui/runtime_provider.py`
 
-So ACP advertises and uses the currently configured FreeIDE provider/credentials. It also always advertises a terminal setup auth method (`freeide-setup`, args `--setup`) so first-run ACP clients can open FreeIDE' interactive model/provider configuration before starting a normal ACP session.
+So ACP advertises and uses the currently configured JettsTUI provider/credentials. It also always advertises a terminal setup auth method (`jettstui-setup`, args `--setup`) so first-run ACP clients can open JettsTUI' interactive model/provider configuration before starting a normal ACP session.
 
 ## Working directory binding
 
@@ -169,13 +169,13 @@ ACP temporarily installs an approval callback on the terminal tool during prompt
 
 ## Current limitations
 
-- ACP sessions are persisted to the shared `~/.freeide/state.db` (SessionDB) and transparently restored across process restarts; they appear in `session_search`
+- ACP sessions are persisted to the shared `~/.jettstui/state.db` (SessionDB) and transparently restored across process restarts; they appear in `session_search`
 - non-text prompt blocks are currently ignored for request text extraction
 - editor-specific UX varies by ACP client implementation
 
 ## Related files
 
 - `tests/acp/` — ACP test suite
-- `toolsets.py` — `freeide-acp` toolset definition
-- `freeide_cli/main.py` — `freeide acp` CLI subcommand
-- `pyproject.toml` — `[acp]` optional dependency + `freeide-acp` script
+- `toolsets.py` — `jettstui-acp` toolset definition
+- `jettstui/main.py` — `jettstui acp` CLI subcommand
+- `pyproject.toml` — `[acp]` optional dependency + `jettstui-acp` script

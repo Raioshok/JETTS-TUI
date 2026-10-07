@@ -53,12 +53,12 @@ export const en: Translations = {
   },
 
   app: {
-    brand: "Jetts-TUI",
+    brand: "JettsTUI",
     brandShort: "HA",
     closeNavigation: "Close navigation",
     closeModelTools: "Close model and tools",
     footer: {
-      org: "Jetts-TUI",
+      org: "JettsTUI",
     },
     activeSessionsLabel: "Active Sessions:",
     gatewayStatusLabel: "Gateway Status:",
@@ -122,7 +122,7 @@ export const en: Translations = {
     recentSessions: "Recent Sessions",
     restartGateway: "Restart Gateway",
     restartGatewayConfirmMessage:
-      "This restarts the Jetts-TUI gateway process. Connected channels and active sessions will reconnect afterward.",
+      "This restarts the JettsTUI gateway process. Connected channels and active sessions will reconnect afterward.",
     restartGatewayConfirmTitle: "Restart gateway?",
     restartingGateway: "Restarting gateway…",
     running: "Running",
@@ -131,12 +131,12 @@ export const en: Translations = {
     starting: "Starting",
     startedInBackground: "Started in background — check logs for progress",
     stopped: "Stopped",
-    updateFreeIDE: "Update Jetts-TUI",
-    updateFreeIDEConfirmMessage:
+    updateJettsTUI: "Update JettsTUI",
+    updateJettsTUIConfirmMessage:
       "This runs jetts-tui update and restarts the gateway when it finishes. Active sessions keep their prompt cache until then.",
-    updateFreeIDEConfirmNow: "Update now",
-    updateFreeIDEConfirmTitle: "Update Jetts-TUI?",
-    updatingFreeIDE: "Updating Jetts-TUI…",
+    updateJettsTUIConfirmNow: "Update now",
+    updateJettsTUIConfirmTitle: "Update JettsTUI?",
+    updatingJettsTUI: "Updating JettsTUI…",
     waitingForOutput: "Waiting for output…",
   },
 
@@ -371,7 +371,7 @@ export const en: Translations = {
     enableRuntime: "Enable",
     forceReinstall: "Force reinstall (delete existing folder first)",
     headline:
-      "Discover, install, enable, and update Jetts-TUI plugins (`jetts-tui plugins` parity).",
+      "Discover, install, enable, and update JettsTUI plugins (`jetts-tui plugins` parity).",
     identifierLabel: "Git URL or owner/repo",
     inactive: "inactive",
     installBtn: "Install",
@@ -388,8 +388,8 @@ export const en: Translations = {
     providersHint:
       "Writes memory.provider (empty = built-in) and context.engine to config.yaml. Takes effect next session.",
     refreshDashboard: "Rescan dashboard extensions",
-    removeConfirm: "Remove this plugin from ~/.freeide/plugins/?",
-    removeHint: "Only user-installed plugins under ~/.freeide/plugins can be removed.",
+    removeConfirm: "Remove this plugin from ~/.jettstui/plugins/?",
+    removeHint: "Only user-installed plugins under ~/.jettstui/plugins can be removed.",
     rescanHeading: "SPA plugin registry",
     rescanHint: "Rescan after adding files on disk so the dashboard sidebar picks up new manifests.",
     runtimeHeading: "Gateway runtime (YAML plugins)",
@@ -411,7 +411,7 @@ export const en: Translations = {
     all: "All",
     categories: "Categories",
     filters: "Filters",
-    noSkills: "No skills found. Skills are loaded from ~/.freeide/skills/",
+    noSkills: "No skills found. Skills are loaded from ~/.jettstui/skills/",
     noSkillsMatch: "No skills match your search or filter.",
     skillCount: "{count} skill{s}",
     resultCount: "{count} result{s}",
@@ -429,7 +429,7 @@ export const en: Translations = {
   },
 
   config: {
-    configPath: "~/.freeide/config.yaml",
+    configPath: "~/.jettstui/config.yaml",
     filters: "Filters",
     sections: "Sections",
     exportConfig: "Export config as JSON",
@@ -489,7 +489,7 @@ export const en: Translations = {
     showValue: "Show real value",
     hideValue: "Hide value",
     customTitle: "Custom Keys",
-    customHint: "Arbitrary environment variables stored in your .env that Jetts-TUI doesn't recognise. Use these to inject env vars for skills, MCP servers, or your own tooling.",
+    customHint: "Arbitrary environment variables stored in your .env that JettsTUI doesn't recognise. Use these to inject env vars for skills, MCP servers, or your own tooling.",
     customConfigured: "{count} custom key{s} set",
     addCustomKey: "Add a custom key",
     customKeyName: "Variable name",
@@ -558,11 +558,11 @@ export const en: Translations = {
   achievements: {
     hero: {
       kicker: "Agentic Gamerscore",
-      title: "Jetts-TUI Achievements",
+      title: "JettsTUI Achievements",
       subtitle:
-        "Collectible Jetts-TUI badges earned from real session history. Known unfinished achievements are shown as Discovered; Secret achievements stay hidden until the first matching behavior appears.",
+        "Collectible JettsTUI badges earned from real session history. Known unfinished achievements are shown as Discovered; Secret achievements stay hidden until the first matching behavior appears.",
       scan_subtitle:
-        "Scanning Jetts-TUI session history. First scan can take 5–10 seconds on large histories.",
+        "Scanning JettsTUI session history. First scan can take 5–10 seconds on large histories.",
     },
     actions: {
       rescan: "Rescan",
@@ -577,7 +577,7 @@ export const en: Translations = {
       highest_tier: "Highest tier",
       highest_tier_hint: "Copper → Silver → Gold → Diamond → Olympian",
       latest: "Latest",
-      latest_hint_empty: "run Jetts-TUI more",
+      latest_hint_empty: "run JettsTUI more",
       none_yet: "None yet",
     },
     state: {
@@ -608,10 +608,10 @@ export const en: Translations = {
       tiers_header: "Tiers",
       secret_header: "Secret achievements",
       secret_body:
-        "Secrets hide their exact trigger. Once Jetts-TUI sees a related signal, the card becomes Discovered and shows its requirement.",
+        "Secrets hide their exact trigger. Once JettsTUI sees a related signal, the card becomes Discovered and shows its requirement.",
       scan_status_header: "Scan status",
       scan_status_body:
-        "Jetts-TUI is scanning local history once, then cards will appear automatically. Nothing is stuck if this takes a few seconds.",
+        "JettsTUI is scanning local history once, then cards will appear automatically. Nothing is stuck if this takes a few seconds.",
       what_scanned_header: "What is scanned",
       what_scanned_body:
         "Sessions, tool calls, model metadata, errors, achievements, and local unlock state.",
@@ -658,7 +658,7 @@ export const en: Translations = {
         "Share on X opens a pre-filled post in a new tab. Click Copy image first if you want the 1200×630 badge attached — X lets you paste it right into the tweet composer. Download PNG saves the file for use anywhere.",
       clipboard_unsupported:
         "Clipboard image copy not supported in this browser — use Download instead.",
-      tweet_text: "Just unlocked {tier_part}\"{name}\" in Jetts-TUI ☤",
+      tweet_text: "Just unlocked {tier_part}\"{name}\" in JettsTUI ☤",
     },
   },
 

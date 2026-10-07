@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom'
 import type * as ReactRouterDom from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { ToolsetConfig } from '@/types/freeide'
+import type { ToolsetConfig } from '@/types/jettstui'
 
 // EnvVarField navigates to Settings → Keys via useNavigate, so every render
 // needs a router context. The navigate spy asserts the deep-link target.
@@ -39,12 +39,12 @@ const runToolsetPostSetup = vi.fn()
 const getActionStatus = vi.fn()
 const startOAuthLogin = vi.fn()
 const pollOAuthSession = vi.fn()
-const getFreeIDEConfigRecord = vi.fn()
-const getFreeIDEConfigSchema = vi.fn()
-const saveFreeIDEConfig = vi.fn()
+const getJettsTUIConfigRecord = vi.fn()
+const getJettsTUIConfigSchema = vi.fn()
+const saveJettsTUIConfig = vi.fn()
 const getElevenLabsVoices = vi.fn()
 
-vi.mock('@/freeide', () => ({
+vi.mock('@/jettstui', () => ({
   getToolsetConfig: (name: string) => getToolsetConfig(name),
   getToolsetModels: (name: string, provider?: string) => getToolsetModels(name, provider),
   selectToolsetModel: (name: string, model: string, provider?: string) => selectToolsetModel(name, model, provider),
@@ -59,9 +59,9 @@ vi.mock('@/freeide', () => ({
   getActionStatus: (name: string, lines?: number) => getActionStatus(name, lines),
   startOAuthLogin: (providerId: string) => startOAuthLogin(providerId),
   pollOAuthSession: (providerId: string, sessionId: string) => pollOAuthSession(providerId, sessionId),
-  getFreeIDEConfigRecord: () => getFreeIDEConfigRecord(),
-  getFreeIDEConfigSchema: () => getFreeIDEConfigSchema(),
-  saveFreeIDEConfig: (config: unknown) => saveFreeIDEConfig(config),
+  getJettsTUIConfigRecord: () => getJettsTUIConfigRecord(),
+  getJettsTUIConfigSchema: () => getJettsTUIConfigSchema(),
+  saveJettsTUIConfig: (config: unknown) => saveJettsTUIConfig(config),
   getElevenLabsVoices: () => getElevenLabsVoices()
 }))
 
@@ -124,7 +124,7 @@ beforeEach(() => {
   selectToolsetProvider.mockResolvedValue({ ok: true, name: 'tts', provider: 'ElevenLabs' })
   setEnvVar.mockResolvedValue({ ok: true })
   deleteEnvVar.mockResolvedValue({ ok: true })
-  getFreeIDEConfigRecord.mockResolvedValue({
+  getJettsTUIConfigRecord.mockResolvedValue({
     tts: {
       provider: 'edge',
       edge: { voice: 'en-US-AriaNeural' },
@@ -132,8 +132,8 @@ beforeEach(() => {
       elevenlabs: { voice_id: 'pNInz6obpgDQGcFmaJgB', model_id: 'eleven_multilingual_v2' }
     }
   })
-  getFreeIDEConfigSchema.mockResolvedValue({ fields: {}, category_order: [] })
-  saveFreeIDEConfig.mockResolvedValue({ ok: true })
+  getJettsTUIConfigSchema.mockResolvedValue({ fields: {}, category_order: [] })
+  saveJettsTUIConfig.mockResolvedValue({ ok: true })
   getElevenLabsVoices.mockResolvedValue({ available: false, voices: [] })
 })
 
@@ -178,8 +178,8 @@ describe('ToolsetConfigPanel', () => {
     // closed Select.
     const voiceInput = screen.getByDisplayValue('alloy')
     fireEvent.change(voiceInput, { target: { value: 'marin' } })
-    await waitFor(() => expect(saveFreeIDEConfig).toHaveBeenCalled(), { timeout: 3000 })
-    const saved = saveFreeIDEConfig.mock.calls.at(-1)?.[0] as Record<string, Record<string, Record<string, string>>>
+    await waitFor(() => expect(saveJettsTUIConfig).toHaveBeenCalled(), { timeout: 3000 })
+    const saved = saveJettsTUIConfig.mock.calls.at(-1)?.[0] as Record<string, Record<string, Record<string, string>>>
     expect(saved.tts.openai.voice).toBe('marin')
   })
 
@@ -519,7 +519,7 @@ describe('ToolsetConfigPanel', () => {
 
   describe('readiness pills', () => {
     it('renders the server status instead of assuming keyless rows are Ready', async () => {
-      // The false-Ready bug: a logged-out FreeIDE Subscription row and a
+      // The false-Ready bug: a logged-out JettsTUI Subscription row and a
       // never-installed local TTS both have zero env vars — the old client
       // heuristic pilled every such row "Ready". The server now sends an
       // honest per-provider status; the pill must follow it.
@@ -537,7 +537,7 @@ describe('ToolsetConfigPanel', () => {
               status: 'ready'
             },
             {
-              name: 'FreeIDE Subscription',
+              name: 'JettsTUI Subscription',
               badge: 'subscription',
               tag: 'Managed OpenAI TTS',
               env_vars: [],

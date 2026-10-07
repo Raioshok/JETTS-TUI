@@ -1,10 +1,10 @@
 import { useEffect, useState } from 'react'
 
-import { deleteEnvVar, getEnvVars, revealEnvVar, setEnvVar } from '@/freeide'
+import { deleteEnvVar, getEnvVars, revealEnvVar, setEnvVar } from '@/jettstui'
 import { useI18n } from '@/i18n'
 import { type IconComponent } from '@/lib/icons'
 import { notify, notifyError } from '@/store/notifications'
-import type { EnvVarInfo } from '@/types/freeide'
+import type { EnvVarInfo } from '@/types/jettstui'
 
 import { asText, includesQuery, redactedValue, withoutKey } from './helpers'
 import { Pill } from './primitives'

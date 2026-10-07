@@ -1,5 +1,5 @@
 name: "🔧 Setup / Installation Help"
-description: Having trouble installing or configuring Jetts-TUI? Ask here.
+description: Having trouble installing or configuring JettsTUI? Ask here.
 title: "[Setup]: "
 labels: ["setup"]
 body:
@@ -69,7 +69,7 @@ body:
   - type: input
     id: jetts-version
     attributes:
-      label: Jetts-TUI Version
+      label: JettsTUI Version
       description: Output of `jetts-tui version` (if install got that far)
       placeholder: "2.1.0"
 
@@ -108,4 +108,4 @@ body:
       placeholder: |
         - Ran `jetts-tui update`
         - Tried reinstalling with `pip install -e ".[all]"`
-        - Checked that OPENROUTER_API_KEY is set in the Jetts-TUI home `.env`
+        - Checked that OPENROUTER_API_KEY is set in the JettsTUI home `.env`

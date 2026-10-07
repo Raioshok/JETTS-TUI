@@ -24,9 +24,9 @@ API_PATH = (
 
 @pytest.fixture
 def bridge_module(monkeypatch, tmp_path):
-    freeide_home = tmp_path / ".freeide"
-    freeide_home.mkdir()
-    monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+    jettstui_home = tmp_path / ".jettstui"
+    jettstui_home.mkdir()
+    monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
     spec = importlib.util.spec_from_file_location("gws_bridge_test", BRIDGE_PATH)
     module = importlib.util.module_from_spec(spec)
@@ -37,9 +37,9 @@ def bridge_module(monkeypatch, tmp_path):
 
 @pytest.fixture
 def api_module(monkeypatch, tmp_path):
-    freeide_home = tmp_path / ".freeide"
-    freeide_home.mkdir()
-    monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+    jettstui_home = tmp_path / ".jettstui"
+    jettstui_home.mkdir()
+    monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
     spec = importlib.util.spec_from_file_location("gws_api_test", API_PATH)
     module = importlib.util.module_from_spec(spec)

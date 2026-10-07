@@ -20,7 +20,7 @@ from gateway.session import SessionSource
 
 @pytest.fixture(autouse=True)
 def _fresh_db(tmp_path, monkeypatch):
-    home = tmp_path / ".freeide"
+    home = tmp_path / ".jettstui"
     home.mkdir()
     monkeypatch.setattr(dl, "_db_path", lambda: home / "state.db")
     yield

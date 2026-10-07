@@ -7,12 +7,12 @@ import agent.file_safety as fs
 from plugins.memory.retaindb import RetainDBMemoryProvider
 
 
-def test_upload_file_rejects_freeide_credential_store(tmp_path, monkeypatch):
-    freeide_home = tmp_path / "freeide_home"
-    freeide_home.mkdir()
-    auth_json = freeide_home / "auth.json"
+def test_upload_file_rejects_jettstui_credential_store(tmp_path, monkeypatch):
+    jettstui_home = tmp_path / "jettstui_home"
+    jettstui_home.mkdir()
+    auth_json = jettstui_home / "auth.json"
     auth_json.write_text('{"OPENAI_API_KEY":"sk-test-secret"}', encoding="utf-8")
-    monkeypatch.setattr(fs, "_freeide_home_path", lambda: freeide_home)
+    monkeypatch.setattr(fs, "_jettstui_home_path", lambda: jettstui_home)
 
     provider = RetainDBMemoryProvider()
     provider._client = MagicMock()

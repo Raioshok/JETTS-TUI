@@ -63,7 +63,7 @@ def adapter():
         tree=FakeTree(),
         get_channel=lambda _id: None,
         fetch_channel=AsyncMock(),
-        user=SimpleNamespace(id=99999, name="FreeIDEBot"),
+        user=SimpleNamespace(id=99999, name="JettsTUIBot"),
     )
     return adapter
 

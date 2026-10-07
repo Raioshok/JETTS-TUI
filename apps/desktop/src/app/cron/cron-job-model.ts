@@ -1,4 +1,4 @@
-import type { CronJob, CronJobUpdates } from '@/types/freeide'
+import type { CronJob, CronJobUpdates } from '@/types/jettstui'
 
 const asText = (value: unknown): string => (typeof value === 'string' ? value : '')
 

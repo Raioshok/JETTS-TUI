@@ -185,7 +185,7 @@ FOOTGUNS: list[Footgun] = [
         ),
         fix=(
             "Use psutil.pid_exists(pid) (psutil is a core dependency). "
-            "Or gateway.status._pid_exists(pid) for the freeide wrapper "
+            "Or gateway.status._pid_exists(pid) for the jettstui wrapper "
             "with a stdlib fallback."
         ),
     ),
@@ -662,7 +662,7 @@ def parse_args(argv: list[str]) -> argparse.Namespace:
     p.add_argument(
         "--all",
         action="store_true",
-        help="Scan the full repository (freeide_cli/, gateway/, tools/, cron/, etc.).",
+        help="Scan the full repository (jettstui/, gateway/, tools/, cron/, etc.).",
     )
     p.add_argument(
         "--diff",
@@ -704,7 +704,7 @@ def main(argv: list[str]) -> int:
     if args.all:
         # Scan main Python packages + scripts
         roots = [
-            REPO_ROOT / "freeide_cli",
+            REPO_ROOT / "jettstui",
             REPO_ROOT / "gateway",
             REPO_ROOT / "tools",
             REPO_ROOT / "cron",

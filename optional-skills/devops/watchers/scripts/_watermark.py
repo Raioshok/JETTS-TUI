@@ -32,9 +32,9 @@ def _state_dir() -> Path:
     override = os.environ.get("WATCHER_STATE_DIR")
     if override:
         return Path(override)
-    # Default: $FREEIDE_HOME/watcher-state/, falling back to ~/.freeide/watcher-state/.
-    freeide_home = os.environ.get("FREEIDE_HOME") or str(Path.home() / ".freeide")
-    return Path(freeide_home) / "watcher-state"
+    # Default: $JETTSTUI_HOME/watcher-state/, falling back to ~/.jettstui/watcher-state/.
+    jettstui_home = os.environ.get("JETTSTUI_HOME") or str(Path.home() / ".jettstui")
+    return Path(jettstui_home) / "watcher-state"
 
 
 class Watermark:

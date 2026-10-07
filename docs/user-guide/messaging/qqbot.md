@@ -1,6 +1,6 @@
 # QQ Bot
 
-Connect FreeIDE to QQ via the **Official QQ Bot API (v2)** — supporting private (C2C), group @-mentions, guild, and direct messages with voice transcription.
+Connect JettsTUI to QQ via the **Official QQ Bot API (v2)** — supporting private (C2C), group @-mentions, guild, and direct messages with voice transcription.
 
 ## Overview
 
@@ -28,14 +28,14 @@ The QQ Bot adapter uses the [Official QQ Bot API](https://bot.q.qq.com/wiki/deve
 ### Interactive setup
 
 ```bash
-freeide gateway setup
+jettstui gateway setup
 ```
 
 Select **QQ Bot** from the platform list and follow the prompts.
 
 ### Manual configuration
 
-Set the required environment variables in `~/.freeide/.env`:
+Set the required environment variables in `~/.jettstui/.env`:
 
 ```bash
 QQ_APP_ID=your-app-id
@@ -60,7 +60,7 @@ QQ_CLIENT_SECRET=your-app-secret
 
 ## Advanced Configuration
 
-For fine-grained control, add platform settings to `~/.freeide/config.yaml`:
+For fine-grained control, add platform settings to `~/.jettstui/config.yaml`:
 
 ```yaml
 platforms:

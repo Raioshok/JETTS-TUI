@@ -1,6 +1,6 @@
-"""``freeide setup`` subcommand parser.
+"""``jettstui setup`` subcommand parser.
 
-Extracted verbatim from ``freeide_cli/main.py:main()`` (god-file Phase 2).
+Extracted verbatim from ``jettstui/main.py:main()`` (god-file Phase 2).
 Handler injected to avoid importing ``main``.
 """
 
@@ -17,7 +17,7 @@ def build_setup_parser(subparsers, *, cmd_setup: Callable) -> None:
     setup_parser = subparsers.add_parser(
         "setup",
         help="Interactive setup wizard",
-        description="Configure Jetts-TUI with an interactive wizard. "
+        description="Configure JettsTUI with an interactive wizard. "
         "Run a specific section: jetts-tui setup model|tts|terminal|gateway|tools|agent",
     )
     setup_parser.add_argument(

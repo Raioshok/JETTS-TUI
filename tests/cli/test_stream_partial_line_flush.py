@@ -21,10 +21,10 @@ def _strip_ansi(s: str) -> str:
 
 @pytest.fixture
 def cli_stub(monkeypatch):
-    from cli import FreeIDECLI
+    from cli import JettsTUICLI
     import cli as climod
 
-    cli = FreeIDECLI.__new__(FreeIDECLI)
+    cli = JettsTUICLI.__new__(JettsTUICLI)
     cli.show_reasoning = False
     cli.final_response_markdown = "raw"
     cli.show_timestamps = False

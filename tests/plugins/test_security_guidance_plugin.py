@@ -26,12 +26,12 @@ import pytest
 
 @pytest.fixture(autouse=True)
 def _isolate_env(tmp_path, monkeypatch):
-    freeide_home = tmp_path / ".freeide"
-    freeide_home.mkdir()
-    monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+    jettstui_home = tmp_path / ".jettstui"
+    jettstui_home.mkdir()
+    monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
     monkeypatch.delenv("SECURITY_GUIDANCE_BLOCK", raising=False)
     monkeypatch.delenv("SECURITY_GUIDANCE_DISABLE", raising=False)
-    yield freeide_home
+    yield jettstui_home
 
 
 # ---------------------------------------------------------------------------
@@ -56,19 +56,19 @@ def _load_patterns():
 def _load_plugin_init():
     """Import the plugin __init__.py with patterns.py as a sibling."""
     plugin_dir = _repo_root() / "plugins" / "security-guidance"
-    if "freeide_plugins" not in sys.modules:
-        ns = types.ModuleType("freeide_plugins")
+    if "jettstui_plugins" not in sys.modules:
+        ns = types.ModuleType("jettstui_plugins")
         ns.__path__ = []
-        sys.modules["freeide_plugins"] = ns
+        sys.modules["jettstui_plugins"] = ns
     spec = importlib.util.spec_from_file_location(
-        "freeide_plugins.security_guidance",
+        "jettstui_plugins.security_guidance",
         plugin_dir / "__init__.py",
         submodule_search_locations=[str(plugin_dir)],
     )
     mod = importlib.util.module_from_spec(spec)
-    mod.__package__ = "freeide_plugins.security_guidance"
+    mod.__package__ = "jettstui_plugins.security_guidance"
     mod.__path__ = [str(plugin_dir)]
-    sys.modules["freeide_plugins.security_guidance"] = mod
+    sys.modules["jettstui_plugins.security_guidance"] = mod
     spec.loader.exec_module(mod)
     return mod
 
@@ -320,10 +320,10 @@ class TestPluginDiscovery:
 
         # Wipe any cached plugin state from earlier tests in this worker.
         for k in list(sys.modules):
-            if k.startswith(("freeide_plugins", "freeide_cli.plugins")):
+            if k.startswith(("jettstui_plugins", "jettstui.plugins")):
                 del sys.modules[k]
 
-        from freeide_cli.plugins import _ensure_plugins_discovered
+        from jettstui.plugins import _ensure_plugins_discovered
 
         mgr = _ensure_plugins_discovered(force=True)
         loaded = set()

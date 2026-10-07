@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Canvas LMS API CLI for FreeIDE Agent.
+"""Canvas LMS API CLI for JettsTUI.
 
 A thin CLI wrapper around the Canvas REST API.
 Authenticates using a personal access token from environment variables.
@@ -28,12 +28,12 @@ def _check_config():
     if not CANVAS_BASE_URL:
         missing.append("CANVAS_BASE_URL")
     if missing:
-        freeide_env = os.path.join(
-            os.environ.get("FREEIDE_HOME", os.path.expanduser("~/.freeide")), ".env"
+        jettstui_env = os.path.join(
+            os.environ.get("JETTSTUI_HOME", os.path.expanduser("~/.jettstui")), ".env"
         )
         print(
             f"Missing required environment variables: {', '.join(missing)}\n"
-            f"Set them in {freeide_env} or export them in your shell.\n"
+            f"Set them in {jettstui_env} or export them in your shell.\n"
             "See the canvas skill SKILL.md for setup instructions.",
             file=sys.stderr,
         )
@@ -127,7 +127,7 @@ def list_assignments(args):
 
 def main():
     parser = argparse.ArgumentParser(
-        description="Canvas LMS API CLI for FreeIDE Agent"
+        description="Canvas LMS API CLI for JettsTUI"
     )
     sub = parser.add_subparsers(dest="command", required=True)
 

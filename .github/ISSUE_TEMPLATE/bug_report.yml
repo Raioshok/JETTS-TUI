@@ -56,7 +56,7 @@ body:
     id: component
     attributes:
       label: Affected Component
-      description: Which part of Jetts-TUI is affected?
+      description: Which part of JettsTUI is affected?
       multiple: true
       options:
         - TUI (interactive chat)
@@ -121,7 +121,7 @@ body:
   - type: input
     id: jetts-version
     attributes:
-      label: Jetts-TUI Version
+      label: JettsTUI Version
       description: Output of `jetts-tui version`
       placeholder: "2.1.0"
 

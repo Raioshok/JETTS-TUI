@@ -1,1 +1,1 @@
-# FreeIDE plugins package
+# JettsTUI plugins package

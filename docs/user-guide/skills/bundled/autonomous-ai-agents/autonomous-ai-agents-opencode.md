@@ -17,21 +17,21 @@ Delegate coding to OpenCode CLI (features, PR review).
 | Source | Bundled (installed by default) |
 | Path | `skills/autonomous-ai-agents/opencode` |
 | Version | `1.2.0` |
-| Author | FreeIDE Agent |
+| Author | JettsTUI |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `Coding-Agent`, `OpenCode`, `Autonomous`, `Refactoring`, `Code-Review` |
-| Related skills | [`claude-code`](./autonomous-ai-agents-claude-code.md), [`codex`](./autonomous-ai-agents-codex.md), [`freeide-agent`](./autonomous-ai-agents-freeide-agent.md) |
+| Related skills | [`claude-code`](./autonomous-ai-agents-claude-code.md), [`codex`](./autonomous-ai-agents-codex.md), [`jettstui`](./autonomous-ai-agents-jettstui.md) |
 
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that FreeIDE loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that JettsTUI loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # OpenCode CLI
 
-Use [OpenCode](https://opencode.ai) as an autonomous coding worker orchestrated by FreeIDE terminal/process tools. OpenCode is a provider-agnostic, open-source AI coding agent with a TUI and CLI.
+Use [OpenCode](https://opencode.ai) as an autonomous coding worker orchestrated by JettsTUI terminal/process tools. OpenCode is a provider-agnostic, open-source AI coding agent with a TUI and CLI.
 
 ## When to Use
 
@@ -50,7 +50,7 @@ Use [OpenCode](https://opencode.ai) as an autonomous coding worker orchestrated 
 
 ## Binary Resolution (Important)
 
-Shell environments may resolve different OpenCode binaries. If behavior differs between your terminal and FreeIDE, check:
+Shell environments may resolve different OpenCode binaries. If behavior differs between your terminal and JettsTUI, check:
 
 ```
 terminal(command="which -a opencode")

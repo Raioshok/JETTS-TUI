@@ -1,9 +1,9 @@
 """
-FreeIDE Agent Uninstaller.
+JettsTUI Uninstaller.
 
 Provides options for:
 - Full uninstall: Remove everything including configs and data
-- Keep data: Remove code but keep ~/.freeide/ (configs, sessions, logs)
+- Keep data: Remove code but keep ~/.jettstui/ (configs, sessions, logs)
 """
 
 import os
@@ -12,9 +12,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-from freeide_constants import get_freeide_home
+from jettstui_constants import get_jettstui_home
 
-from freeide_cli.colors import Colors, color
+from jettstui.colors import Colors, color
 
 def log_info(msg: str):
     print(f"{color('→', Colors.CYAN)} {msg}")
@@ -51,7 +51,7 @@ def find_shell_configs() -> list:
 
 
 def remove_path_from_shell_configs():
-    """Remove FreeIDE PATH entries from shell configuration files."""
+    """Remove JettsTUI PATH entries from shell configuration files."""
     configs = find_shell_configs()
     removed_from = []
     
@@ -60,22 +60,22 @@ def remove_path_from_shell_configs():
             content = config_path.read_text(encoding="utf-8")
             original_content = content
             
-            # Remove lines containing freeide-agent or freeide PATH entries
+            # Remove lines containing jettstui or jettstui PATH entries
             new_lines = []
             skip_next = False
             
             for line in content.split('\n'):
-                # Skip the "# FreeIDE Agent" comment and following line
-                if '# FreeIDE Agent' in line or '# freeide-agent' in line:
+                # Skip the "# JettsTUI" comment and following line
+                if '# JettsTUI' in line or '# jettstui' in line:
                     skip_next = True
                     continue
-                if skip_next and ('freeide' in line.lower() and 'PATH' in line):
+                if skip_next and ('jettstui' in line.lower() and 'PATH' in line):
                     skip_next = False
                     continue
                 skip_next = False
                 
-                # Remove any PATH line containing freeide
-                if 'freeide' in line.lower() and ('PATH=' in line or 'path=' in line.lower()):
+                # Remove any PATH line containing jettstui
+                if 'jettstui' in line.lower() and ('PATH=' in line or 'path=' in line.lower()):
                     continue
                     
                 new_lines.append(line)
@@ -97,19 +97,19 @@ def remove_path_from_shell_configs():
 
 
 def remove_wrapper_script():
-    """Remove the freeide wrapper script if it exists."""
+    """Remove the jettstui wrapper script if it exists."""
     wrapper_paths = [
-        Path.home() / ".local" / "bin" / "freeide",
-        Path("/usr/local/bin/freeide"),
+        Path.home() / ".local" / "bin" / "jettstui",
+        Path("/usr/local/bin/jettstui"),
     ]
     
     removed = []
     for wrapper in wrapper_paths:
         if wrapper.exists():
             try:
-                # Check if it's our wrapper (contains freeide_cli reference)
+                # Check if it's our wrapper (contains jettstui reference)
                 content = wrapper.read_text(encoding="utf-8")
-                if 'freeide_cli' in content or 'freeide-agent' in content:
+                if 'jettstui' in content or 'jettstui' in content:
                     wrapper.unlink()
                     removed.append(wrapper)
             except Exception as e:
@@ -131,11 +131,11 @@ def _node_symlink_candidate_dirs() -> "list[Path]":
     return dirs
 
 
-def remove_node_symlinks(freeide_home: Path) -> list:
+def remove_node_symlinks(jettstui_home: Path) -> list:
     """Remove the node/npm/npx symlinks the installer placed on PATH.
 
     The POSIX installer (``scripts/install.sh`` / ``scripts/lib/node-bootstrap.sh``)
-    symlinks node/npm/npx into the same directory as the ``freeide`` command:
+    symlinks node/npm/npx into the same directory as the ``jettstui`` command:
 
     - ``/usr/local/bin/`` on root FHS installs (Linux, uid 0)
     - ``$PREFIX/bin/`` on Termux
@@ -144,11 +144,11 @@ def remove_node_symlinks(freeide_home: Path) -> list:
     We check all candidate directories so that uninstall works regardless of
     how the install was done (e.g. a root FHS install that placed links in
     ``/usr/local/bin``, or an older install that used ``~/.local/bin`` before
-    the FHS fix).  Only symlinks that resolve into this FreeIDE home's ``node``
+    the FHS fix).  Only symlinks that resolve into this JettsTUI home's ``node``
     directory are removed — links the user has repointed elsewhere (nvm, fnm,
     etc.) are left untouched.
     """
-    node_dir = (freeide_home / "node").resolve()
+    node_dir = (jettstui_home / "node").resolve()
     removed = []
 
     for name in ("node", "npm", "npx"):
@@ -184,7 +184,7 @@ def uninstall_gateway_service():
     - Linux: user + system systemd services (with proper DBUS env setup)
     - macOS: launchd plists
     - Windows: Scheduled Task + Startup-folder fallback, via ``gateway_windows``
-    - All platforms: standalone ``freeide gateway run`` processes
+    - All platforms: standalone ``jettstui gateway run`` processes
     - Termux/Android: skips systemd (no systemd on Android), still kills standalone processes
     """
     import platform
@@ -192,7 +192,7 @@ def uninstall_gateway_service():
 
     # 1. Kill any standalone gateway processes (all platforms, including Termux)
     try:
-        from freeide_cli.gateway import kill_gateway_processes, find_gateway_pids
+        from jettstui.gateway import kill_gateway_processes, find_gateway_pids
         pids = find_gateway_pids()
         if pids:
             killed = kill_gateway_processes()
@@ -213,7 +213,7 @@ def uninstall_gateway_service():
     # 2. Linux: uninstall systemd services (both user and system scopes)
     if system == "Linux":
         try:
-            from freeide_cli.gateway import (
+            from jettstui.gateway import (
                 get_systemd_unit_path,
                 get_service_name,
                 _systemctl_cmd,
@@ -250,7 +250,7 @@ def uninstall_gateway_service():
     # 3. macOS: uninstall launchd plist
     elif system == "Darwin":
         try:
-            from freeide_cli.gateway import get_launchd_plist_path
+            from jettstui.gateway import get_launchd_plist_path
             plist_path = get_launchd_plist_path()
             if plist_path.exists():
                 subprocess.run(["launchctl", "unload", str(plist_path)],
@@ -268,7 +268,7 @@ def uninstall_gateway_service():
     #    uninstall logic stays in exactly one place.
     elif system == "Windows":
         try:
-            from freeide_cli import gateway_windows
+            from jettstui import gateway_windows
             if gateway_windows.is_installed() or gateway_windows.is_task_registered() \
                     or gateway_windows.is_startup_entry_installed():
                 try:
@@ -294,20 +294,20 @@ def uninstall_gateway_service():
 # The installer (``scripts/install.ps1``) does four Windows-only things that
 # ``remove_path_from_shell_configs`` / ``remove_wrapper_script`` don't cover:
 #
-#   1. Sets User-scope env vars ``FREEIDE_HOME`` and ``FREEIDE_GIT_BASH_PATH``
+#   1. Sets User-scope env vars ``JETTSTUI_HOME`` and ``JETTSTUI_GIT_BASH_PATH``
 #      via ``[Environment]::SetEnvironmentVariable(..., "User")``.  These
 #      don't live in ~/.bashrc — they're in the Windows registry at
 #      HKCU\Environment.
 #   2. Prepends to User-scope ``PATH`` (same registry location) entries
-#      like ``%LOCALAPPDATA%\freeide\git\cmd``, ``%LOCALAPPDATA%\freeide\git\bin``,
-#      ``%LOCALAPPDATA%\freeide\git\usr\bin``, ``%LOCALAPPDATA%\freeide\node``.
+#      like ``%LOCALAPPDATA%\jettstui\git\cmd``, ``%LOCALAPPDATA%\jettstui\git\bin``,
+#      ``%LOCALAPPDATA%\jettstui\git\usr\bin``, ``%LOCALAPPDATA%\jettstui\node``.
 #      Again not in any rc file — only accessible via the registry or the
 #      .NET [Environment] API.
-#   3. Downloads PortableGit to ``%LOCALAPPDATA%\freeide\git\`` and Node to
-#      ``%LOCALAPPDATA%\freeide\node\`` as user-scoped, isolated copies.
+#   3. Downloads PortableGit to ``%LOCALAPPDATA%\jettstui\git\`` and Node to
+#      ``%LOCALAPPDATA%\jettstui\node\`` as user-scoped, isolated copies.
 #      These are ~200MB combined and serve no purpose after uninstall.
-#   4. On the ``freeide dashboard`` + gateway paths, drops files into
-#      ``%LOCALAPPDATA%\freeide\gateway-service\`` and sometimes
+#   4. On the ``jettstui dashboard`` + gateway paths, drops files into
+#      ``%LOCALAPPDATA%\jettstui\gateway-service\`` and sometimes
 #      ``%APPDATA%\Microsoft\Windows\Start Menu\Programs\Startup\`` — the
 #      latter is handled by ``gateway_windows.uninstall()`` already.
 #
@@ -319,21 +319,21 @@ def uninstall_gateway_service():
 # or open a new terminal anyway).
 
 
-def _freeide_path_markers(freeide_home: Path) -> list[str]:
-    """Path-entry substrings that identify FreeIDE-owned User-PATH entries."""
-    root = str(freeide_home).rstrip("\\/")
+def _jettstui_path_markers(jettstui_home: Path) -> list[str]:
+    """Path-entry substrings that identify JettsTUI-owned User-PATH entries."""
+    root = str(jettstui_home).rstrip("\\/")
     # Match on prefix so sub-entries (git\cmd, git\bin, git\usr\bin, node, etc.)
-    # all get swept.  Also match the bare freeide-agent install dir.
-    markers = [root + "\\freeide-agent", root + "\\git", root + "\\node", root + "\\venv"]
-    # Also match if FREEIDE_HOME was customised to somewhere else — find-and-nuke
-    # any entry whose path component contains "freeide".  We don't want to catch
-    # unrelated entries like "cfreeide-foo" or "ephermeral", so we look for
-    # backslash-freeide as a word-ish boundary.
+    # all get swept.  Also match the bare jettstui install dir.
+    markers = [root + "\\jettstui", root + "\\git", root + "\\node", root + "\\venv"]
+    # Also match if JETTSTUI_HOME was customised to somewhere else — find-and-nuke
+    # any entry whose path component contains "jettstui".  We don't want to catch
+    # unrelated entries like "cjettstui-foo" or "ephermeral", so we look for
+    # backslash-jettstui as a word-ish boundary.
     return markers
 
 
-def remove_path_from_windows_registry(freeide_home: Path) -> list[str]:
-    """Strip FreeIDE-owned entries from User-scope PATH in the registry.
+def remove_path_from_windows_registry(jettstui_home: Path) -> list[str]:
+    """Strip JettsTUI-owned entries from User-scope PATH in the registry.
 
     Returns the list of removed path entries.  Operates on HKCU\\Environment,
     same key the installer wrote to via ``[Environment]::SetEnvironmentVariable``.
@@ -354,7 +354,7 @@ def remove_path_from_windows_registry(freeide_home: Path) -> list[str]:
                 return []
             # Preserve REG_EXPAND_SZ vs REG_SZ so unexpanded %VARS% survive.
             entries = [e for e in path_value.split(";") if e]
-            markers = _freeide_path_markers(freeide_home)
+            markers = _jettstui_path_markers(jettstui_home)
             kept: list[str] = []
             for entry in entries:
                 entry_norm = entry.rstrip("\\/")
@@ -371,8 +371,8 @@ def remove_path_from_windows_registry(freeide_home: Path) -> list[str]:
     return removed
 
 
-def remove_freeide_env_vars_windows() -> list[str]:
-    """Delete FREEIDE_HOME and FREEIDE_GIT_BASH_PATH from User-scope env vars."""
+def remove_jettstui_env_vars_windows() -> list[str]:
+    """Delete JETTSTUI_HOME and JETTSTUI_GIT_BASH_PATH from User-scope env vars."""
     try:
         import winreg
     except ImportError:
@@ -382,7 +382,7 @@ def remove_freeide_env_vars_windows() -> list[str]:
     try:
         with winreg.OpenKey(winreg.HKEY_CURRENT_USER, "Environment", 0,
                             winreg.KEY_READ | winreg.KEY_WRITE) as key:
-            for name in ("FREEIDE_HOME", "FREEIDE_GIT_BASH_PATH"):
+            for name in ("JETTSTUI_HOME", "JETTSTUI_GIT_BASH_PATH"):
                 try:
                     winreg.QueryValueEx(key, name)
                 except FileNotFoundError:
@@ -397,13 +397,13 @@ def remove_freeide_env_vars_windows() -> list[str]:
     return removed
 
 
-def remove_portable_tooling_windows(freeide_home: Path) -> list[Path]:
+def remove_portable_tooling_windows(jettstui_home: Path) -> list[Path]:
     """Delete PortableGit and Node installs the Windows installer created under
-    ``%LOCALAPPDATA%\\freeide\\``.  Only called on full uninstall; they're
+    ``%LOCALAPPDATA%\\jettstui\\``.  Only called on full uninstall; they're
     isolated from any system Git / Node so they cannot break other tools."""
     removed: list[Path] = []
     for sub in ("git", "node", "gateway-service"):
-        target = freeide_home / sub
+        target = jettstui_home / sub
         if target.exists():
             try:
                 shutil.rmtree(target, ignore_errors=False)
@@ -418,11 +418,11 @@ def _is_windows() -> bool:
     return sys.platform == "win32"
 
 
-def _is_default_freeide_home(freeide_home: Path) -> bool:
-    """Return True when ``freeide_home`` points at the default (non-profile) root."""
+def _is_default_jettstui_home(jettstui_home: Path) -> bool:
+    """Return True when ``jettstui_home`` points at the default (non-profile) root."""
     try:
-        from freeide_constants import get_default_freeide_root
-        return freeide_home.resolve() == get_default_freeide_root().resolve()
+        from jettstui_constants import get_default_jettstui_root
+        return jettstui_home.resolve() == get_default_jettstui_root().resolve()
     except Exception:
         return False
 
@@ -432,7 +432,7 @@ def _discover_named_profiles():
     if profile support is unavailable or nothing is installed beyond the
     default root."""
     try:
-        from freeide_cli.profiles import list_profiles
+        from jettstui.profiles import list_profiles
     except Exception:
         return []
     try:
@@ -444,11 +444,11 @@ def _discover_named_profiles():
 
 def _uninstall_profile(profile) -> None:
     """Fully uninstall a single named profile: stop its gateway service,
-    remove its alias wrapper, and wipe its FREEIDE_HOME directory.
+    remove its alias wrapper, and wipe its JETTSTUI_HOME directory.
 
-    We shell out to ``freeide -p <name> gateway stop|uninstall`` because
+    We shell out to ``jettstui -p <name> gateway stop|uninstall`` because
     service names, unit paths, and plist paths are all derived from the
-    current FREEIDE_HOME and can't be easily switched in-process.
+    current JETTSTUI_HOME and can't be easily switched in-process.
     """
     import sys as _sys
     name = profile.name
@@ -457,13 +457,13 @@ def _uninstall_profile(profile) -> None:
     log_info(f"Uninstalling profile '{name}'...")
 
     # 1. Stop and remove this profile's gateway service.
-    #    Use `python -m freeide_cli.main` so we don't depend on a `freeide`
+    #    Use `python -m jettstui.main` so we don't depend on a `jettstui`
     #    wrapper that may be half-removed mid-uninstall.
-    freeide_invocation = [_sys.executable, "-m", "freeide_cli.main", "--profile", name]
+    jettstui_invocation = [_sys.executable, "-m", "jettstui.main", "--profile", name]
     for subcmd in ("stop", "uninstall"):
         try:
             subprocess.run(
-                freeide_invocation + ["gateway", subcmd],
+                jettstui_invocation + ["gateway", subcmd],
                 capture_output=True,
                 text=True, encoding='utf-8', errors='replace',
                 timeout=60,
@@ -483,7 +483,7 @@ def _uninstall_profile(profile) -> None:
         except Exception as e:
             log_warn(f"  Could not remove alias {alias_path}: {e}")
 
-    # 3. Wipe the profile's FREEIDE_HOME directory.
+    # 3. Wipe the profile's JETTSTUI_HOME directory.
     try:
         if profile_home.exists():
             shutil.rmtree(profile_home)
@@ -495,33 +495,33 @@ def _uninstall_profile(profile) -> None:
 def run_gui_uninstall(args):
     """GUI-only uninstall: remove the Chat GUI, leave the agent + data intact.
 
-    Mirrors ``freeide uninstall --gui``. Removes the desktop app's built
+    Mirrors ``jettstui uninstall --gui``. Removes the desktop app's built
     artifacts, the packaged app bundle (best-effort), and the Electron
-    userData dir — nothing under ``$FREEIDE_HOME`` config/sessions/.env, and
+    userData dir — nothing under ``$JETTSTUI_HOME`` config/sessions/.env, and
     never the Python agent or its venv.
     """
-    from freeide_cli.gui_uninstall import (
+    from jettstui.gui_uninstall import (
         agent_is_installed,
         gui_install_summary,
         uninstall_gui,
     )
 
-    freeide_home = get_freeide_home()
-    summary = gui_install_summary(freeide_home)
+    jettstui_home = get_jettstui_home()
+    summary = gui_install_summary(jettstui_home)
     skip_confirm = bool(getattr(args, "yes", False))
 
     print()
     print(color("┌─────────────────────────────────────────────────────────┐", Colors.MAGENTA, Colors.BOLD))
-    print(color("│         ◆ FreeIDE Chat GUI Uninstaller                  │", Colors.MAGENTA, Colors.BOLD))
+    print(color("│         ◆ JettsTUI Chat GUI Uninstaller                  │", Colors.MAGENTA, Colors.BOLD))
     print(color("└─────────────────────────────────────────────────────────┘", Colors.MAGENTA, Colors.BOLD))
     print()
 
     if not summary["gui_installed"]:
-        print("No FreeIDE Chat GUI installation was found.")
-        print(f"  Checked: {freeide_home}, and the standard app locations for this OS.")
+        print("No JettsTUI Chat GUI installation was found.")
+        print(f"  Checked: {jettstui_home}, and the standard app locations for this OS.")
         return
 
-    print(color("This removes the Chat GUI only. The FreeIDE agent stays installed.", Colors.CYAN))
+    print(color("This removes the Chat GUI only. The JettsTUI agent stays installed.", Colors.CYAN))
     print()
     print(color("Will remove:", Colors.YELLOW, Colors.BOLD))
     for p in summary["source_built_artifacts"]:
@@ -531,10 +531,10 @@ def run_gui_uninstall(args):
     if summary["userdata_exists"]:
         print(f"  • {summary['userdata_dir']}  (desktop app data)")
     print()
-    if agent_is_installed(freeide_home):
+    if agent_is_installed(jettstui_home):
         print(color("Kept intact:", Colors.GREEN, Colors.BOLD))
-        print(f"  • The FreeIDE agent at {freeide_home / 'freeide-agent'}")
-        print(f"  • Your config, sessions, and secrets under {freeide_home}")
+        print(f"  • The JettsTUI agent at {jettstui_home / 'jettstui'}")
+        print(f"  • Your config, sessions, and secrets under {jettstui_home}")
         print()
 
     if not skip_confirm:
@@ -552,15 +552,15 @@ def run_gui_uninstall(args):
     print()
     print(color("Uninstalling Chat GUI...", Colors.CYAN, Colors.BOLD))
     print()
-    uninstall_gui(freeide_home)
+    uninstall_gui(jettstui_home)
 
     print()
     print(color("┌─────────────────────────────────────────────────────────┐", Colors.GREEN, Colors.BOLD))
     print(color("│            ✓ Chat GUI Uninstalled!                      │", Colors.GREEN, Colors.BOLD))
     print(color("└─────────────────────────────────────────────────────────┘", Colors.GREEN, Colors.BOLD))
     print()
-    print("The FreeIDE agent is still installed. Run 'freeide' to use the CLI,")
-    print("or 'freeide uninstall' to remove the agent too.")
+    print("The JettsTUI agent is still installed. Run 'jettstui' to use the CLI,")
+    print("or 'jettstui uninstall' to remove the agent too.")
     print()
 
 
@@ -569,28 +569,28 @@ def run_uninstall(args):
     Run the uninstall process.
     
     Options:
-    - Full uninstall: removes code + ~/.freeide/ (configs, data, logs)
-    - Keep data: removes code but keeps ~/.freeide/ for future reinstall
+    - Full uninstall: removes code + ~/.jettstui/ (configs, data, logs)
+    - Keep data: removes code but keeps ~/.jettstui/ for future reinstall
     """
     project_root = get_project_root()
-    freeide_home = get_freeide_home()
+    jettstui_home = get_jettstui_home()
 
     if bool(getattr(args, "dry_run", False)):
         _print_uninstall_dry_run(
             project_root=project_root,
-            freeide_home=freeide_home,
+            jettstui_home=jettstui_home,
             full_uninstall=bool(getattr(args, "full", False)),
         )
         return
 
     # Detect named profiles when uninstalling from the default root —
-    # offer to clean them up too instead of leaving zombie FREEIDE_HOMEs
+    # offer to clean them up too instead of leaving zombie JETTSTUI_HOMEs
     # and systemd units behind.
-    is_default_profile = _is_default_freeide_home(freeide_home)
+    is_default_profile = _is_default_jettstui_home(jettstui_home)
     named_profiles = _discover_named_profiles() if is_default_profile else []
 
     # Non-interactive fast path (``--yes``): no prompts. ``--full`` selects a
-    # full wipe (code + ~/.freeide data); otherwise keep-data. Named profiles
+    # full wipe (code + ~/.jettstui data); otherwise keep-data. Named profiles
     # are NOT auto-removed here — that's a destructive, surprising default for
     # an unattended run, so it stays opt-in to the interactive flow. This is
     # the path the desktop app's detached cleanup script uses for its
@@ -600,7 +600,7 @@ def run_uninstall(args):
         full_uninstall = bool(getattr(args, "full", False))
         _perform_uninstall(
             project_root=project_root,
-            freeide_home=freeide_home,
+            jettstui_home=jettstui_home,
             full_uninstall=full_uninstall,
             remove_profiles=False,
             named_profiles=named_profiles,
@@ -609,16 +609,16 @@ def run_uninstall(args):
 
     print()
     print(color("┌─────────────────────────────────────────────────────────┐", Colors.MAGENTA, Colors.BOLD))
-    print(color("│            ◆ FreeIDE Agent Uninstaller                  │", Colors.MAGENTA, Colors.BOLD))
+    print(color("│            ◆ JettsTUI Uninstaller                  │", Colors.MAGENTA, Colors.BOLD))
     print(color("└─────────────────────────────────────────────────────────┘", Colors.MAGENTA, Colors.BOLD))
     print()
     
     # Show what will be affected
     print(color("Current Installation:", Colors.CYAN, Colors.BOLD))
     print(f"  Code:    {project_root}")
-    print(f"  Config:  {freeide_home / 'config.yaml'}")
-    print(f"  Secrets: {freeide_home / '.env'}")
-    print(f"  Data:    {freeide_home / 'cron/'}, {freeide_home / 'sessions/'}, {freeide_home / 'logs/'}")
+    print(f"  Config:  {jettstui_home / 'config.yaml'}")
+    print(f"  Secrets: {jettstui_home / '.env'}")
+    print(f"  Data:    {jettstui_home / 'cron/'}, {jettstui_home / 'sessions/'}, {jettstui_home / 'logs/'}")
     print()
 
     if named_profiles:
@@ -656,7 +656,7 @@ def run_uninstall(args):
 
     # When doing a full uninstall from the default profile, also offer to
     # remove any named profiles — stopping their gateway services, unlinking
-    # their alias wrappers, and wiping their FREEIDE_HOME dirs. Otherwise
+    # their alias wrappers, and wiping their JETTSTUI_HOME dirs. Otherwise
     # those leave zombie services and data behind.
     remove_profiles = False
     if full_uninstall and named_profiles:
@@ -679,7 +679,7 @@ def run_uninstall(args):
     # Final confirmation
     print()
     if full_uninstall:
-        print(color("⚠️  WARNING: This will permanently delete ALL FreeIDE data!", Colors.RED, Colors.BOLD))
+        print(color("⚠️  WARNING: This will permanently delete ALL JettsTUI data!", Colors.RED, Colors.BOLD))
         print(color("   Including: configs, API keys, sessions, scheduled jobs, logs", Colors.RED))
         if remove_profiles:
             print(color(
@@ -688,7 +688,7 @@ def run_uninstall(args):
                 Colors.RED
             ))
     else:
-        print("This will remove the FreeIDE code but keep your configuration and data.")
+        print("This will remove the JettsTUI code but keep your configuration and data.")
     
     print()
     try:
@@ -705,41 +705,41 @@ def run_uninstall(args):
 
     _perform_uninstall(
         project_root=project_root,
-        freeide_home=freeide_home,
+        jettstui_home=jettstui_home,
         full_uninstall=full_uninstall,
         remove_profiles=remove_profiles,
         named_profiles=named_profiles,
     )
 
 
-def _print_uninstall_dry_run(*, project_root: Path, freeide_home: Path, full_uninstall: bool) -> None:
+def _print_uninstall_dry_run(*, project_root: Path, jettstui_home: Path, full_uninstall: bool) -> None:
     """Print the uninstall plan without stopping services or deleting files."""
     print()
     print(color("Dry run: no files, services, or environment entries will be changed.", Colors.CYAN, Colors.BOLD))
     print()
     print(color("Would inspect/remove:", Colors.YELLOW, Colors.BOLD))
     print("  • Gateway services and standalone gateway processes")
-    print("  • FreeIDE PATH entries from shell configs / Windows User PATH")
-    print("  • FreeIDE wrapper scripts and FreeIDE-managed node/npm/npx symlinks")
+    print("  • JettsTUI PATH entries from shell configs / Windows User PATH")
+    print("  • JettsTUI wrapper scripts and JettsTUI-managed node/npm/npx symlinks")
     print("  • Desktop Chat GUI artifacts")
     print(f"  • Code checkout: {project_root}")
     if full_uninstall:
-        print(f"  • FreeIDE config/data: {freeide_home}")
-        if _is_default_freeide_home(freeide_home):
+        print(f"  • JettsTUI config/data: {jettstui_home}")
+        if _is_default_jettstui_home(jettstui_home):
             profiles = _discover_named_profiles()
             if profiles:
                 print("  • Named profiles (interactive uninstall asks before removing):")
                 for prof in profiles:
                     print(f"    - {prof.name}: {prof.path}")
     else:
-        print(f"  • Keep FreeIDE config/data: {freeide_home}")
+        print(f"  • Keep JettsTUI config/data: {jettstui_home}")
     print()
 
 
 def _perform_uninstall(
     *,
     project_root: Path,
-    freeide_home: Path,
+    jettstui_home: Path,
     full_uninstall: bool,
     remove_profiles: bool,
     named_profiles: list,
@@ -748,9 +748,9 @@ def _perform_uninstall(
     paths so the destructive sequence lives in exactly one place.
 
     Steps: stop gateway → strip PATH (rc files + Windows registry) → remove the
-    ``freeide`` wrapper + node symlinks → remove the desktop Chat GUI artifacts →
+    ``jettstui`` wrapper + node symlinks → remove the desktop Chat GUI artifacts →
     delete the code checkout → (Windows) remove PortableGit/Node → optionally
-    wipe ``$FREEIDE_HOME`` data and named profiles on full uninstall.
+    wipe ``$JETTSTUI_HOME`` data and named profiles on full uninstall.
     """
     print()
     print(color("Uninstalling...", Colors.CYAN, Colors.BOLD))
@@ -774,26 +774,26 @@ def _perform_uninstall(
 
     if _is_windows():
         log_info("Removing PATH entries from Windows User environment...")
-        # Expand %LOCALAPPDATA% etc. in freeide_home so the marker matching is
+        # Expand %LOCALAPPDATA% etc. in jettstui_home so the marker matching is
         # against fully resolved paths — installer writes literal strings
-        # like C:\Users\<u>\AppData\Local\freeide\git\cmd, not %LOCALAPPDATA%.
-        removed_path_entries = remove_path_from_windows_registry(Path(os.path.expandvars(str(freeide_home))))
+        # like C:\Users\<u>\AppData\Local\jettstui\git\cmd, not %LOCALAPPDATA%.
+        removed_path_entries = remove_path_from_windows_registry(Path(os.path.expandvars(str(jettstui_home))))
         if removed_path_entries:
             for entry in removed_path_entries:
                 log_success(f"Removed from User PATH: {entry}")
         else:
-            log_info("No FreeIDE-owned PATH entries in User environment")
+            log_info("No JettsTUI-owned PATH entries in User environment")
 
-        log_info("Removing FREEIDE_HOME / FREEIDE_GIT_BASH_PATH User env vars...")
-        removed_env = remove_freeide_env_vars_windows()
+        log_info("Removing JETTSTUI_HOME / JETTSTUI_GIT_BASH_PATH User env vars...")
+        removed_env = remove_jettstui_env_vars_windows()
         if removed_env:
             for name in removed_env:
                 log_success(f"Removed User env var: {name}")
         else:
-            log_info("No FreeIDE-set User env vars to remove")
+            log_info("No JettsTUI-set User env vars to remove")
     
     # 3. Remove wrapper script
-    log_info("Removing freeide command...")
+    log_info("Removing jettstui command...")
     removed_wrappers = remove_wrapper_script()
     if removed_wrappers:
         for wrapper in removed_wrappers:
@@ -802,15 +802,15 @@ def _perform_uninstall(
         log_info("No wrapper script found")
 
     # 3b. Remove node/npm/npx symlinks the installer left in ~/.local/bin
-    #     (only when they still point into this FreeIDE home's node dir, so we
+    #     (only when they still point into this JettsTUI home's node dir, so we
     #     never clobber an existing nvm / user-managed Node).
-    log_info("Removing FreeIDE-managed node/npm/npx symlinks...")
-    removed_node_links = remove_node_symlinks(freeide_home)
+    log_info("Removing JettsTUI-managed node/npm/npx symlinks...")
+    removed_node_links = remove_node_symlinks(jettstui_home)
     if removed_node_links:
         for link in removed_node_links:
             log_success(f"Removed {link}")
     else:
-        log_info("No FreeIDE-managed node/npm/npx symlinks found")
+        log_info("No JettsTUI-managed node/npm/npx symlinks found")
 
     # 3c. Remove the desktop Chat GUI's artifacts too (built renderer/release,
     #     node_modules, the packaged app bundle, and the Electron userData
@@ -818,13 +818,13 @@ def _perform_uninstall(
     #     code, so the GUI — which is just another consumer of the same
     #     checkout — should go with it. uninstall_gui() never touches config /
     #     sessions / .env, so it's safe in keep-data mode; on full uninstall the
-    #     step-5 rmtree(freeide_home) would sweep the in-tree artifacts anyway,
-    #     but the packaged app + Electron userData live OUTSIDE FREEIDE_HOME and
+    #     step-5 rmtree(jettstui_home) would sweep the in-tree artifacts anyway,
+    #     but the packaged app + Electron userData live OUTSIDE JETTSTUI_HOME and
     #     must be cleaned explicitly here.
     log_info("Removing desktop Chat GUI artifacts...")
     try:
-        from freeide_cli.gui_uninstall import uninstall_gui
-        gui_removed = uninstall_gui(freeide_home)
+        from jettstui.gui_uninstall import uninstall_gui
+        gui_removed = uninstall_gui(jettstui_home)
         if not gui_removed:
             log_info("No desktop GUI artifacts found")
     except Exception as e:
@@ -837,8 +837,8 @@ def _perform_uninstall(
     # We need to be careful here
     try:
         if project_root.exists():
-            # If the install is inside ~/.freeide/, just remove the freeide-agent subdir
-            if freeide_home in project_root.parents or project_root.parent == freeide_home:
+            # If the install is inside ~/.jettstui/, just remove the jettstui subdir
+            if jettstui_home in project_root.parents or project_root.parent == jettstui_home:
                 shutil.rmtree(project_root)
                 log_success(f"Removed {project_root}")
             else:
@@ -851,23 +851,23 @@ def _perform_uninstall(
 
     # 4b. Remove Windows-only installer artifacts that are NOT user data:
     #     PortableGit, bundled Node, gateway-service dir.  Installer put them
-    #     under FREEIDE_HOME but they're install tooling, not config — safe to
+    #     under JETTSTUI_HOME but they're install tooling, not config — safe to
     #     remove even in "keep data" mode.  If we're doing a full uninstall
-    #     the step-5 rmtree(freeide_home) would sweep them anyway; calling
+    #     the step-5 rmtree(jettstui_home) would sweep them anyway; calling
     #     this helper there is a no-op since they'll already be gone.
     if _is_windows():
         log_info("Removing Windows installer artifacts (PortableGit, Node, gateway-service)...")
-        removed_artifacts = remove_portable_tooling_windows(freeide_home)
+        removed_artifacts = remove_portable_tooling_windows(jettstui_home)
         if removed_artifacts:
             for path in removed_artifacts:
                 log_success(f"Removed {path}")
         else:
             log_info("No Windows installer artifacts to remove")
     
-    # 5. Optionally remove ~/.freeide/ data directory (and named profiles)
+    # 5. Optionally remove ~/.jettstui/ data directory (and named profiles)
     if full_uninstall:
         # 5a. Stop and remove each named profile's gateway service and
-        #     alias wrapper. The profile FREEIDE_HOME dirs live under
+        #     alias wrapper. The profile JETTSTUI_HOME dirs live under
         #     ``<default>/profiles/<name>/`` and will be swept away by the
         #     rmtree below, but services + alias scripts live OUTSIDE the
         #     default root and have to be cleaned up explicitly.
@@ -877,14 +877,14 @@ def _perform_uninstall(
 
         log_info("Removing configuration and data...")
         try:
-            if freeide_home.exists():
-                shutil.rmtree(freeide_home)
-                log_success(f"Removed {freeide_home}")
+            if jettstui_home.exists():
+                shutil.rmtree(jettstui_home)
+                log_success(f"Removed {jettstui_home}")
         except Exception as e:
-            log_warn(f"Could not fully remove {freeide_home}: {e}")
+            log_warn(f"Could not fully remove {jettstui_home}: {e}")
             log_info("You may need to manually remove it")
     else:
-        log_info(f"Keeping configuration and data in {freeide_home}")
+        log_info(f"Keeping configuration and data in {jettstui_home}")
     
     # Done
     print()
@@ -895,7 +895,7 @@ def _perform_uninstall(
     
     if not full_uninstall:
         print(color("Your configuration and data have been preserved:", Colors.CYAN))
-        print(f"  {freeide_home}/")
+        print(f"  {jettstui_home}/")
         print()
         print("To reinstall later with your existing settings:")
         if _is_windows():
@@ -911,7 +911,7 @@ def _perform_uninstall(
         print(color("Reload your shell to complete the process:", Colors.YELLOW))
         print("  source ~/.bashrc  # or ~/.zshrc")
     print()
-    print("Thank you for using FreeIDE Agent! ◆")
+    print("Thank you for using JettsTUI! ◆")
     print()
 
 
@@ -926,22 +926,22 @@ class _UninstallArgs:
 
 
 def main(argv=None) -> int:
-    """Module entrypoint: ``python -m freeide_cli.uninstall --mode <gui|lite|full>``.
+    """Module entrypoint: ``python -m jettstui.uninstall --mode <gui|lite|full>``.
 
     Exists so the desktop app can run the uninstall under a Python interpreter
     OUTSIDE the venv being deleted. On Windows, ``lite``/``full`` rmtree the
     venv that contains the running ``python.exe`` — and a running .exe is
     mandatory-locked, so doing that from the venv's own interpreter half-fails.
     The desktop launches this with the system Python + ``PYTHONPATH=<agentRoot>``
-    so ``import freeide_cli`` resolves from source while the venv is torn down.
+    so ``import jettstui`` resolves from source while the venv is torn down.
 
-    This module imports only stdlib + ``freeide_constants`` + ``freeide_cli.colors``
-    (and lazily ``freeide_cli.gui_uninstall``), so it runs fine under a bare
+    This module imports only stdlib + ``jettstui_constants`` + ``jettstui.colors``
+    (and lazily ``jettstui.gui_uninstall``), so it runs fine under a bare
     system Python with no site-packages from the venv.
     """
     import argparse
 
-    parser = argparse.ArgumentParser(prog="python -m freeide_cli.uninstall")
+    parser = argparse.ArgumentParser(prog="python -m jettstui.uninstall")
     parser.add_argument(
         "--mode",
         choices=["gui", "lite", "full"],

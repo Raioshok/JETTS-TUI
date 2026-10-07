@@ -1,27 +1,27 @@
 import type {
-  FreeIDEGitBaseBranch,
-  FreeIDEGitBranch,
-  FreeIDEGitWorktree,
-  FreeIDERepoStatus,
-  FreeIDEReviewList,
-  FreeIDEReviewShipInfo
+  JettsTUIGitBaseBranch,
+  JettsTUIGitBranch,
+  JettsTUIGitWorktree,
+  JettsTUIRepoStatus,
+  JettsTUIReviewList,
+  JettsTUIReviewShipInfo
 } from '@/global'
 
 import { desktopFsProfile, isDesktopFsRemoteMode } from './desktop-fs'
 
 // Remote-aware git facade. Locally the desktop runs git through Electron
-// (window.freeideDesktop.git); on a remote gateway that's the wrong filesystem,
+// (window.jettstuiDesktop.git); on a remote gateway that's the wrong filesystem,
 // so we mirror the same surface over the dashboard REST API (/api/git/*) — the
 // coding rail, worktree lanes, review pane, and branch ops then act on the
 // BACKEND repo where sessions actually run. Mirrors desktop-fs.ts.
 
-type GitBridge = NonNullable<NonNullable<Window['freeideDesktop']>['git']>
+type GitBridge = NonNullable<NonNullable<Window['jettstuiDesktop']>['git']>
 
 function desktopApi<T>(path: string, body?: Record<string, unknown>): Promise<T> {
-  const desktop = window.freeideDesktop
+  const desktop = window.jettstuiDesktop
 
   if (!desktop) {
-    throw new Error('Jetts-TUI Desktop bridge is unavailable')
+    throw new Error('JettsTUI Desktop bridge is unavailable')
   }
 
   return desktop.api<T>(
@@ -47,7 +47,7 @@ function gitPost<T>(route: string, body: Record<string, unknown>): Promise<T> {
 
 const remoteGit: GitBridge = {
   worktreeList: async repoPath =>
-    (await gitGet<{ worktrees: FreeIDEGitWorktree[] }>('worktrees', { path: repoPath })).worktrees,
+    (await gitGet<{ worktrees: JettsTUIGitWorktree[] }>('worktrees', { path: repoPath })).worktrees,
 
   worktreeAdd: (repoPath, options) => gitPost('worktree/add', { path: repoPath, ...options }),
 
@@ -57,19 +57,19 @@ const remoteGit: GitBridge = {
   branchSwitch: (repoPath, branch) => gitPost('branch/switch', { branch, path: repoPath }),
 
   branchList: async repoPath =>
-    (await gitGet<{ branches: FreeIDEGitBranch[] }>('branches', { path: repoPath })).branches,
+    (await gitGet<{ branches: JettsTUIGitBranch[] }>('branches', { path: repoPath })).branches,
 
   baseBranchList: async repoPath =>
-    (await gitGet<{ branches: FreeIDEGitBaseBranch[] }>('base-branches', { path: repoPath })).branches,
+    (await gitGet<{ branches: JettsTUIGitBaseBranch[] }>('base-branches', { path: repoPath })).branches,
 
-  repoStatus: repoPath => gitGet<FreeIDERepoStatus | null>('status', { path: repoPath }),
+  repoStatus: repoPath => gitGet<JettsTUIRepoStatus | null>('status', { path: repoPath }),
 
   fileDiff: async (repoPath, filePath) =>
     (await gitGet<{ diff: string }>('file-diff', { file: filePath, path: repoPath })).diff,
 
   review: {
     list: (repoPath, scope, baseRef) =>
-      gitGet<FreeIDEReviewList>('review/list', { base: baseRef, path: repoPath, scope }),
+      gitGet<JettsTUIReviewList>('review/list', { base: baseRef, path: repoPath, scope }),
 
     diff: async (repoPath, filePath, scope, baseRef, staged) =>
       (await gitGet<{ diff: string }>('review/diff', { base: baseRef, file: filePath, path: repoPath, scope, staged }))
@@ -90,7 +90,7 @@ const remoteGit: GitBridge = {
 
     push: repoPath => gitPost('review/push', { path: repoPath }),
 
-    shipInfo: repoPath => gitGet<FreeIDEReviewShipInfo>('review/ship-info', { path: repoPath }),
+    shipInfo: repoPath => gitGet<JettsTUIReviewShipInfo>('review/ship-info', { path: repoPath }),
 
     createPr: repoPath => gitPost('review/create-pr', { path: repoPath })
   },
@@ -105,5 +105,5 @@ export function desktopGit(): GitBridge | undefined {
     return undefined
   }
 
-  return isDesktopFsRemoteMode() ? remoteGit : window.freeideDesktop?.git
+  return isDesktopFsRemoteMode() ? remoteGit : window.jettstuiDesktop?.git
 }

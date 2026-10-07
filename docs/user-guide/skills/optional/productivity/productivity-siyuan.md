@@ -14,7 +14,7 @@ Query and edit a SiYuan knowledge base via its API.
 
 | | |
 |---|---|
-| Source | Optional — install with `freeide skills install official/productivity/siyuan` |
+| Source | Optional — install with `jettstui skills install official/productivity/siyuan` |
 | Path | `optional-skills/productivity/siyuan` |
 | Version | `1.0.0` |
 | Author | FEUAZUR |
@@ -26,7 +26,7 @@ Query and edit a SiYuan knowledge base via its API.
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that FreeIDE loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that JettsTUI loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # SiYuan Note API
@@ -37,7 +37,7 @@ Use the [SiYuan](https://github.com/siyuan-note/siyuan) kernel API via curl to s
 
 1. Install and run SiYuan (desktop or Docker)
 2. Get your API token: **Settings > About > API token**
-3. Store it in `${FREEIDE_HOME:-~/.freeide}/.env`:
+3. Store it in `${JETTSTUI_HOME:-~/.jettstui}/.env`:
    ```
    SIYUAN_TOKEN=your_token_here
    SIYUAN_URL=http://127.0.0.1:6806
@@ -294,7 +294,7 @@ Common `type` values in SQL queries:
 If you prefer a native integration instead of curl, install the SiYuan MCP server:
 
 ```yaml
-# In ~/.freeide/config.yaml under mcp_servers:
+# In ~/.jettstui/config.yaml under mcp_servers:
 mcp_servers:
   siyuan:
     command: npx

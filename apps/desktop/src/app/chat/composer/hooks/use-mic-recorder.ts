@@ -175,7 +175,7 @@ export function useMicRecorder(copy: MicRecorderErrorCopy): {
       throw new Error(copy.microphoneUnsupported)
     }
 
-    const permitted = await window.freeideDesktop?.requestMicrophoneAccess?.()
+    const permitted = await window.jettstuiDesktop?.requestMicrophoneAccess?.()
 
     if (permitted === false) {
       throw new Error(copy.microphoneAccessDenied)

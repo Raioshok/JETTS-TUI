@@ -364,7 +364,7 @@ export function ModelPicker({
             setFilter('')
           }
 
-          // Other auth types: no-op (warning shown tells them to run freeide model)
+          // Other auth types: no-op (warning shown tells them to run jettstui model)
           return
         }
 
@@ -474,7 +474,7 @@ export function ModelPicker({
         </Text>
 
         <Text color={t.color.muted} wrap="truncate-end">
-          Paste your API key below (saved to ~/.freeide/.env)
+          Paste your API key below (saved to ~/.jettstui/.env)
         </Text>
 
         <Text color={t.color.muted} wrap="truncate-end">

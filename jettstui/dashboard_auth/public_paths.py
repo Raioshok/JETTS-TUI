@@ -3,9 +3,9 @@
 Two middlewares enforce dashboard auth and previously kept independent
 copies of this list:
 
-* ``freeide_cli.web_server.auth_middleware`` — loopback / ``--insecure``
+* ``jettstui.web_server.auth_middleware`` — loopback / ``--insecure``
   mode, gates on the ephemeral ``_SESSION_TOKEN``.
-* ``freeide_cli.dashboard_auth.middleware.gated_auth_middleware`` —
+* ``jettstui.dashboard_auth.middleware.gated_auth_middleware`` —
   non-loopback mode, gates on the OAuth session cookie.
 
 When the lists drifted, ``/api/status`` ended up public under the legacy

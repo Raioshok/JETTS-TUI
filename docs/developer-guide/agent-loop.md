@@ -40,7 +40,7 @@ result = agent.run_conversation(
 
 ## API Modes
 
-FreeIDE supports three API execution modes, resolved from provider selection, explicit args, and base URL heuristics:
+JettsTUI supports three API execution modes, resolved from provider selection, explicit args, and base URL heuristics:
 
 | API mode | Used for | Client type |
 |----------|----------|-------------|
@@ -214,9 +214,9 @@ The fallback system also covers auxiliary tasks independently — vision, compre
 ### Session Persistence
 
 After each turn:
-- Messages are saved to the session store (SQLite via `freeide_state.py`)
+- Messages are saved to the session store (SQLite via `jettstui_state.py`)
 - Memory changes are flushed to `MEMORY.md` / `USER.md`
-- The session can be resumed later via `/resume` or `freeide chat --resume`
+- The session can be resumed later via `/resume` or `jettstui chat --resume`
 
 ## Key Source Files
 

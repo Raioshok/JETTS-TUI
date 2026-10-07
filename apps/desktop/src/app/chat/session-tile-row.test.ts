@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 
 import { $sessions } from '@/store/session'
-import type { SessionInfo } from '@/types/freeide'
+import type { SessionInfo } from '@/types/jettstui'
 
 import { listTileSessionRow } from './session-tile-actions'
 

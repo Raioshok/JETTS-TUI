@@ -87,7 +87,7 @@ _MODELS: Dict[str, Dict[str, Any]] = {
 
 DEFAULT_MODEL = "krea-2-medium"
 
-# FreeIDE uses 3 abstract aspect ratios. Map to Krea's enum (which is wider).
+# JettsTUI uses 3 abstract aspect ratios. Map to Krea's enum (which is wider).
 # Krea accepts: 1:1, 4:3, 3:2, 16:9, 2.35:1, 4:5, 2:3, 9:16
 _ASPECT_MAP = {
     "landscape": "16:9",
@@ -131,7 +131,7 @@ _TERMINAL_STATES = {"completed", "failed", "cancelled"}
 def _load_krea_config() -> Dict[str, Any]:
     """Read ``image_gen.krea`` (with fallthrough to ``image_gen``) from config.yaml."""
     try:
-        from freeide_cli.config import load_config
+        from jettstui.config import load_config
 
         cfg = load_config()
         section = cfg.get("image_gen") if isinstance(cfg, dict) else None
@@ -305,7 +305,7 @@ class KreaImageGenProvider(ImageGenProvider):
         if not auth_token:
             return error_response(
                 error=(
-                    "KREA_API_KEY not set. Run `freeide tools` → Image "
+                    "KREA_API_KEY not set. Run `jettstui tools` → Image "
                     "Generation → Krea to configure, or get a key at "
                     "https://www.krea.ai/settings/api-tokens."
                 ),
@@ -358,7 +358,7 @@ class KreaImageGenProvider(ImageGenProvider):
         headers = {
             "Authorization": f"Bearer {auth_token}",
             "Content-Type": "application/json",
-            "User-Agent": "FreeIDE-Agent/1.0 (krea-image-gen)",
+            "User-Agent": "JettsTUI-Agent/1.0 (krea-image-gen)",
         }
 
         # 1. Submit job.
@@ -438,7 +438,7 @@ class KreaImageGenProvider(ImageGenProvider):
         job_url = f"{base_url}/jobs/{job_id}"
         poll_headers = {
             "Authorization": f"Bearer {auth_token}",
-            "User-Agent": "FreeIDE-Agent/1.0 (krea-image-gen)",
+            "User-Agent": "JettsTUI-Agent/1.0 (krea-image-gen)",
         }
         interval = _POLL_INITIAL_INTERVAL
         deadline = time.monotonic() + _POLL_TIMEOUT_SECONDS

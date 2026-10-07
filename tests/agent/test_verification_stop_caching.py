@@ -19,16 +19,16 @@ from unittest.mock import MagicMock
 import pytest
 
 
-def _fresh_run_agent(freeide_home):
+def _fresh_run_agent(jettstui_home):
     for mod in list(sys.modules):
-        if mod == "run_agent" or mod.startswith("agent.") or mod.startswith("tools.") or mod.startswith("freeide_"):
+        if mod == "run_agent" or mod.startswith("agent.") or mod.startswith("tools.") or mod.startswith("jettstui_"):
             del sys.modules[mod]
     import run_agent  # noqa: F401
     return sys.modules["run_agent"]
 
 
 def test_verification_flags_registered_as_ephemeral(tmp_path, monkeypatch):
-    monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / ".freeide"))
+    monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / ".jettstui"))
     ra = _fresh_run_agent(tmp_path)
 
     assert "_verification_stop_synthetic" in ra._EPHEMERAL_SCAFFOLDING_FLAGS
@@ -68,7 +68,7 @@ def _make_agent(ra, session_id, tmp_path):
 def test_db_flush_drops_only_nudge_keeps_candidate(tmp_path, monkeypatch):
     """The assistant candidate is NOT flagged synthetic, so it persists.
     Only the nudge (flagged synthetic) is dropped from the DB flush."""
-    monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / ".freeide"))
+    monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / ".jettstui"))
     ra = _fresh_run_agent(tmp_path)
     agent = _make_agent(ra, "sess_db", tmp_path)
 
@@ -98,7 +98,7 @@ def test_db_flush_drops_only_nudge_keeps_candidate(tmp_path, monkeypatch):
 def test_json_log_drops_only_nudge_keeps_candidate(tmp_path, monkeypatch):
     """The assistant candidate is NOT flagged synthetic, so it persists in the
     JSON log. Only the nudge (flagged synthetic) is dropped."""
-    monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / ".freeide"))
+    monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / ".jettstui"))
     ra = _fresh_run_agent(tmp_path)
     agent = _make_agent(ra, "sess_json", tmp_path)
 

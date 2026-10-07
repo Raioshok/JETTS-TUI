@@ -16,16 +16,16 @@ import pytest
 
 @pytest.fixture(autouse=True)
 def _isolate(tmp_path, monkeypatch):
-    """Redirect FREEIDE_HOME so load_config() reads our test config.yaml."""
-    freeide_home = tmp_path / ".freeide"
-    freeide_home.mkdir()
-    monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
-    (freeide_home / "config.yaml").write_text("model:\n  default: test-model\n")
+    """Redirect JETTSTUI_HOME so load_config() reads our test config.yaml."""
+    jettstui_home = tmp_path / ".jettstui"
+    jettstui_home.mkdir()
+    monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
+    (jettstui_home / "config.yaml").write_text("model:\n  default: test-model\n")
 
 
 def _write_config(tmp_path, config_dict):
     import yaml
-    (tmp_path / ".freeide" / "config.yaml").write_text(yaml.dump(config_dict))
+    (tmp_path / ".jettstui" / "config.yaml").write_text(yaml.dump(config_dict))
 
 
 class TestApplyUserDefaultHeadersHelper:

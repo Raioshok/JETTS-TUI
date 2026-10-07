@@ -1,6 +1,6 @@
 /**
  * The plugin authoring contract. A plugin is a file that default-exports a
- * `FreeIDEPlugin`; it never touches the registry directly — it receives a
+ * `JettsTUIPlugin`; it never touches the registry directly — it receives a
  * scoped `PluginContext` whose `register` auto-tags provenance
  * (`source: 'plugin:<id>'`) and namespaces the contribution id
  * (`<id>:<localId>`), so authors write plain contributions and collisions
@@ -12,21 +12,21 @@
  * through the plugin host loader (next phase); this is that seam.
  */
 
-import { pluginRest, type PluginRestOptions, pluginSocket } from '@/freeide'
+import { pluginRest, type PluginRestOptions, pluginSocket } from '@/jettstui'
 import { createPluginI18n, type PluginI18n } from '@/i18n'
 import { readKey, writeKey } from '@/lib/storage'
 
 import { registry } from './registry'
 import type { Contribution } from './types'
 
-export type { PluginRestOptions } from '@/freeide'
+export type { PluginRestOptions } from '@/jettstui'
 
 /** A contribution as a plugin author writes it — provenance + id scoping are
  *  the host's job, so those fields are off-limits here. */
 export type PluginContribution = Omit<Contribution, 'source' | 'id'> & { id: string }
 
 /** Namespaced JSON persistence (the VS Code `globalState` analog). Keys live
- *  under `freeide.plugin.<id>.` — plugins can't read or clobber each other. */
+ *  under `jettstui.plugin.<id>.` — plugins can't read or clobber each other. */
 export interface PluginStorage {
   get<T>(key: string, fallback: T): T
   set(key: string, value: unknown): void
@@ -57,7 +57,7 @@ export interface PluginContext {
   i18n: PluginI18n
 }
 
-export interface FreeIDEPlugin {
+export interface JettsTUIPlugin {
   /** Stable slug — becomes the `plugin:<id>` source and the id namespace. */
   id: string
   /** Human name for settings / about UI. */
@@ -71,7 +71,7 @@ export interface FreeIDEPlugin {
 }
 
 function createPluginStorage(pluginId: string): PluginStorage {
-  const scoped = (key: string) => `freeide.plugin.${pluginId}.${key}`
+  const scoped = (key: string) => `jettstui.plugin.${pluginId}.${key}`
 
   return {
     get(key, fallback) {

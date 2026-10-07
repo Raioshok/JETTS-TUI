@@ -8,7 +8,7 @@ import types
 from pathlib import Path
 from unittest.mock import patch, MagicMock
 
-from freeide_cli.profiles import _get_default_freeide_home
+from jettstui.profiles import _get_default_jettstui_home
 
 import pytest
 
@@ -26,8 +26,8 @@ from plugins.memory.honcho.client import (
 class TestHonchoClientConfigDefaults:
     def test_default_values(self):
         config = HonchoClientConfig()
-        assert config.host == "freeide"
-        assert config.workspace_id == "freeide"
+        assert config.host == "jettstui"
+        assert config.workspace_id == "jettstui"
         assert config.api_key is None
         assert config.environment == "production"
         assert config.timeout is None
@@ -105,7 +105,7 @@ class TestFromGlobalConfig:
             "workspace": "my-workspace",
             "environment": "staging",
             "peerName": "alice",
-            "aiPeer": "freeide-custom",
+            "aiPeer": "jettstui-custom",
             "enabled": True,
             "saveMessages": False,
             "contextTokens": 2000,
@@ -113,14 +113,14 @@ class TestFromGlobalConfig:
             "sessionPeerPrefix": True,
             "sessions": {"/home/user/proj": "my-session"},
             "hosts": {
-                "freeide": {
+                "jettstui": {
                     "workspace": "override-ws",
                     "aiPeer": "override-ai",
                 }
             }
         }))
-        # Isolate from real ~/.freeide/honcho.json
-        monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / "isolated"))
+        # Isolate from real ~/.jettstui/honcho.json
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / "isolated"))
 
         config = HonchoClientConfig.from_global_config(config_path=config_file)
         assert config.api_key == "***"
@@ -141,7 +141,7 @@ class TestFromGlobalConfig:
             "workspace": "root-ws",
             "aiPeer": "root-ai",
             "hosts": {
-                "freeide": {
+                "jettstui": {
                     "workspace": "host-ws",
                     "aiPeer": "host-ai",
                 }
@@ -198,7 +198,7 @@ class TestFromGlobalConfig:
         config_file.write_text(json.dumps({
             "apiKey": "key",
             "contextTokens": 1000,
-            "hosts": {"freeide": {"contextTokens": 2000}},
+            "hosts": {"jettstui": {"contextTokens": 2000}},
         }))
         config = HonchoClientConfig.from_global_config(config_path=config_file)
         assert config.context_tokens == 2000
@@ -209,7 +209,7 @@ class TestFromGlobalConfig:
         config_file.write_text(json.dumps({
             "apiKey": "key",
             "recallMode": "tools",
-            "hosts": {"freeide": {"recallMode": "context"}},
+            "hosts": {"jettstui": {"recallMode": "context"}},
         }))
         config = HonchoClientConfig.from_global_config(config_path=config_file)
         assert config.recall_mode == "context"
@@ -260,7 +260,7 @@ class TestFromGlobalConfig:
         config_file = tmp_path / "config.json"
         config_file.write_text(json.dumps({
             "baseUrl": "http://root:9000",
-            "hosts": {"freeide": {"baseUrl": "http://host-block:9001"}},
+            "hosts": {"jettstui": {"baseUrl": "http://host-block:9001"}},
         }))
 
         config = HonchoClientConfig.from_global_config(config_path=config_file)
@@ -310,10 +310,10 @@ class TestResolveSessionName:
     def test_per_repo_uses_git_root(self):
         config = HonchoClientConfig(session_strategy="per-repo")
         with patch.object(
-            HonchoClientConfig, "_git_repo_name", return_value="freeide-agent"
+            HonchoClientConfig, "_git_repo_name", return_value="jettstui"
         ):
-            result = config.resolve_session_name("/home/user/freeide-agent/subdir")
-        assert result == "freeide-agent"
+            result = config.resolve_session_name("/home/user/jettstui/subdir")
+        assert result == "jettstui"
 
     def test_per_repo_with_peer_prefix(self):
         config = HonchoClientConfig(
@@ -343,63 +343,63 @@ class TestResolveSessionName:
 
 
 class TestResolveConfigPath:
-    def test_prefers_freeide_home_when_exists(self, tmp_path):
-        freeide_home = tmp_path / "freeide"
-        freeide_home.mkdir()
-        local_cfg = freeide_home / "honcho.json"
+    def test_prefers_jettstui_home_when_exists(self, tmp_path):
+        jettstui_home = tmp_path / "jettstui"
+        jettstui_home.mkdir()
+        local_cfg = jettstui_home / "honcho.json"
         local_cfg.write_text('{"apiKey": "local"}')
 
-        with patch.dict(os.environ, {"FREEIDE_HOME": str(freeide_home)}):
+        with patch.dict(os.environ, {"JETTSTUI_HOME": str(jettstui_home)}):
             result = resolve_config_path()
         assert result == local_cfg
 
     def test_falls_back_to_default_profile_when_no_local(self, tmp_path, monkeypatch):
-        # Profile mode: FREEIDE_HOME points at ~/.freeide/profiles/<name>, so
-        # _get_default_freeide_home() must resolve back to ~/.freeide — that's
+        # Profile mode: JETTSTUI_HOME points at ~/.jettstui/profiles/<name>, so
+        # _get_default_jettstui_home() must resolve back to ~/.jettstui — that's
         # the bug the HOME-anchored helper fixes (vs. blindly using Path.home()).
         fake_home = tmp_path / "fakehome"
         fake_home.mkdir()
-        default_home = fake_home / ".freeide"
+        default_home = fake_home / ".jettstui"
         profile_home = default_home / "profiles" / "work"
         profile_home.mkdir(parents=True)
         default_cfg = default_home / "honcho.json"
         default_cfg.write_text('{"apiKey": "default-key"}')
 
         monkeypatch.setattr(Path, "home", lambda: fake_home)
-        monkeypatch.setenv("FREEIDE_HOME", str(profile_home))
+        monkeypatch.setenv("JETTSTUI_HOME", str(profile_home))
 
         result = resolve_config_path()
 
-        assert _get_default_freeide_home() == default_home
+        assert _get_default_jettstui_home() == default_home
         assert result == default_cfg
 
-    def test_falls_back_to_global_without_freeide_home_env(self, tmp_path):
+    def test_falls_back_to_global_without_jettstui_home_env(self, tmp_path):
         fake_home = tmp_path / "fakehome"
         fake_home.mkdir()
 
         with patch.dict(os.environ, {}, clear=False), \
              patch.object(Path, "home", return_value=fake_home):
-            os.environ.pop("FREEIDE_HOME", None)
+            os.environ.pop("JETTSTUI_HOME", None)
             result = resolve_config_path()
         assert result == fake_home / ".honcho" / "config.json"
 
     def test_global_fallback_uses_home_at_call_time(self, tmp_path):
         fake_home = tmp_path / "fakehome"
         fake_home.mkdir()
-        freeide_home = tmp_path / "freeide"
-        freeide_home.mkdir()
+        jettstui_home = tmp_path / "jettstui"
+        jettstui_home.mkdir()
 
-        with patch.dict(os.environ, {"FREEIDE_HOME": str(freeide_home)}), \
+        with patch.dict(os.environ, {"JETTSTUI_HOME": str(jettstui_home)}), \
              patch.object(Path, "home", return_value=fake_home):
             assert resolve_global_config_path() == fake_home / ".honcho" / "config.json"
             assert resolve_config_path() == fake_home / ".honcho" / "config.json"
 
     def test_from_global_config_uses_default_profile_fallback(self, tmp_path, monkeypatch):
         # Profile mode: from_global_config() reads the default-profile honcho.json
-        # via the HOME-anchored helper, not Path.home() / ".freeide".
+        # via the HOME-anchored helper, not Path.home() / ".jettstui".
         fake_home = tmp_path / "fakehome"
         fake_home.mkdir()
-        default_home = fake_home / ".freeide"
+        default_home = fake_home / ".jettstui"
         profile_home = default_home / "profiles" / "work"
         profile_home.mkdir(parents=True)
         default_cfg = default_home / "honcho.json"
@@ -409,7 +409,7 @@ class TestResolveConfigPath:
         }))
 
         monkeypatch.setattr(Path, "home", lambda: fake_home)
-        monkeypatch.setenv("FREEIDE_HOME", str(profile_home))
+        monkeypatch.setenv("JETTSTUI_HOME", str(profile_home))
 
         config = HonchoClientConfig.from_global_config()
 
@@ -417,15 +417,15 @@ class TestResolveConfigPath:
         assert config.workspace_id == "default-ws"
 
     def test_from_global_config_uses_local_path(self, tmp_path):
-        freeide_home = tmp_path / "freeide"
-        freeide_home.mkdir()
-        local_cfg = freeide_home / "honcho.json"
+        jettstui_home = tmp_path / "jettstui"
+        jettstui_home.mkdir()
+        local_cfg = jettstui_home / "honcho.json"
         local_cfg.write_text(json.dumps({
             "apiKey": "***",
             "workspace": "local-ws",
         }))
 
-        with patch.dict(os.environ, {"FREEIDE_HOME": str(freeide_home)}), \
+        with patch.dict(os.environ, {"JETTSTUI_HOME": str(jettstui_home)}), \
              patch.object(Path, "home", return_value=tmp_path):
             config = HonchoClientConfig.from_global_config()
         assert config.api_key == "***"
@@ -434,28 +434,28 @@ class TestResolveConfigPath:
 
 class TestResolveActiveHost:
     def test_profile_host_key_uses_honcho_safe_separator(self):
-        assert profile_host_key("coder") == "freeide_coder"
-        assert profile_host_key("default") == "freeide"
+        assert profile_host_key("coder") == "jettstui_coder"
+        assert profile_host_key("default") == "jettstui"
 
-    def test_default_returns_freeide(self):
+    def test_default_returns_jettstui(self):
         with patch.dict(os.environ, {}, clear=True):
-            os.environ.pop("FREEIDE_HONCHO_HOST", None)
-            os.environ.pop("FREEIDE_HOME", None)
+            os.environ.pop("JETTSTUI_HONCHO_HOST", None)
+            os.environ.pop("JETTSTUI_HOME", None)
             with patch(
                 "plugins.memory.honcho.client.resolve_config_path",
                 return_value=Path("/nonexistent/honcho.json"),
             ):
-                assert resolve_active_host() == "freeide"
+                assert resolve_active_host() == "jettstui"
 
     def test_explicit_env_var_wins(self):
-        with patch.dict(os.environ, {"FREEIDE_HONCHO_HOST": "freeide.coder"}):
-            assert resolve_active_host() == "freeide.coder"
+        with patch.dict(os.environ, {"JETTSTUI_HONCHO_HOST": "jettstui.coder"}):
+            assert resolve_active_host() == "jettstui.coder"
 
     def test_profile_name_derives_host(self):
         with patch.dict(os.environ, {}, clear=False):
-            os.environ.pop("FREEIDE_HONCHO_HOST", None)
-            with patch("freeide_cli.profiles.get_active_profile_name", return_value="coder"):
-                assert resolve_active_host() == "freeide_coder"
+            os.environ.pop("JETTSTUI_HONCHO_HOST", None)
+            with patch("jettstui.profiles.get_active_profile_name", return_value="coder"):
+                assert resolve_active_host() == "jettstui_coder"
 
     def test_default_host_does_not_override_named_profile(self, tmp_path):
         """defaultHost is not applied before active-profile resolution."""
@@ -466,10 +466,10 @@ class TestResolveActiveHost:
         }))
 
         with patch.dict(os.environ, {}, clear=False):
-            os.environ.pop("FREEIDE_HONCHO_HOST", None)
-            with patch("freeide_cli.profiles.get_active_profile_name", return_value="coder"), \
+            os.environ.pop("JETTSTUI_HONCHO_HOST", None)
+            with patch("jettstui.profiles.get_active_profile_name", return_value="coder"), \
                  patch("plugins.memory.honcho.client.resolve_config_path", return_value=config_file):
-                assert resolve_active_host() == "freeide_coder"
+                assert resolve_active_host() == "jettstui_coder"
 
     def test_default_host_applies_to_default_profile_only(self, tmp_path):
         """default profile can use setup-generated defaultHost without leaking to other profiles."""
@@ -480,30 +480,30 @@ class TestResolveActiveHost:
         }))
 
         with patch.dict(os.environ, {}, clear=False):
-            os.environ.pop("FREEIDE_HONCHO_HOST", None)
-            with patch("freeide_cli.profiles.get_active_profile_name", return_value="default"), \
+            os.environ.pop("JETTSTUI_HONCHO_HOST", None)
+            with patch("jettstui.profiles.get_active_profile_name", return_value="default"), \
                  patch("plugins.memory.honcho.client.resolve_config_path", return_value=config_file):
                 assert resolve_active_host() == "local"
 
-    def test_default_profile_returns_freeide(self):
+    def test_default_profile_returns_jettstui(self):
         with patch.dict(os.environ, {}, clear=False):
-            os.environ.pop("FREEIDE_HONCHO_HOST", None)
-            with patch("freeide_cli.profiles.get_active_profile_name", return_value="default"), \
+            os.environ.pop("JETTSTUI_HONCHO_HOST", None)
+            with patch("jettstui.profiles.get_active_profile_name", return_value="default"), \
                  patch(
                      "plugins.memory.honcho.client.resolve_config_path",
                      return_value=Path("/nonexistent/honcho.json"),
                  ):
-                assert resolve_active_host() == "freeide"
+                assert resolve_active_host() == "jettstui"
 
-    def test_custom_profile_returns_freeide(self):
+    def test_custom_profile_returns_jettstui(self):
         with patch.dict(os.environ, {}, clear=False):
-            os.environ.pop("FREEIDE_HONCHO_HOST", None)
-            with patch("freeide_cli.profiles.get_active_profile_name", return_value="custom"), \
+            os.environ.pop("JETTSTUI_HONCHO_HOST", None)
+            with patch("jettstui.profiles.get_active_profile_name", return_value="custom"), \
                  patch(
                      "plugins.memory.honcho.client.resolve_config_path",
                      return_value=Path("/nonexistent/honcho.json"),
                  ):
-                assert resolve_active_host() == "freeide"
+                assert resolve_active_host() == "jettstui"
 
     def test_profiles_import_failure_falls_back(self):
         import sys
@@ -511,52 +511,52 @@ class TestResolveActiveHost:
             "plugins.memory.honcho.client.resolve_config_path",
             return_value=Path("/nonexistent/test-honcho-config.json"),
         ):
-            os.environ.pop("FREEIDE_HONCHO_HOST", None)
-            # Temporarily remove freeide_cli.profiles to simulate import failure
-            saved = sys.modules.get("freeide_cli.profiles")
-            sys.modules["freeide_cli.profiles"] = None  # type: ignore
+            os.environ.pop("JETTSTUI_HONCHO_HOST", None)
+            # Temporarily remove jettstui.profiles to simulate import failure
+            saved = sys.modules.get("jettstui.profiles")
+            sys.modules["jettstui.profiles"] = None  # type: ignore
             try:
-                assert resolve_active_host() == "freeide"
+                assert resolve_active_host() == "jettstui"
             finally:
                 if saved is not None:
-                    sys.modules["freeide_cli.profiles"] = saved
+                    sys.modules["jettstui.profiles"] = saved
                 else:
-                    sys.modules.pop("freeide_cli.profiles", None)
+                    sys.modules.pop("jettstui.profiles", None)
 
 
 class TestProfileScopedConfig:
     def test_from_env_uses_profile_host(self):
         with patch.dict(os.environ, {"HONCHO_API_KEY": "key"}):
-            config = HonchoClientConfig.from_env(host="freeide_coder")
-        assert config.host == "freeide_coder"
-        assert config.workspace_id == "freeide"  # shared workspace
-        assert config.ai_peer == "freeide_coder"
+            config = HonchoClientConfig.from_env(host="jettstui_coder")
+        assert config.host == "jettstui_coder"
+        assert config.workspace_id == "jettstui"  # shared workspace
+        assert config.ai_peer == "jettstui_coder"
 
     def test_from_env_default_workspace_preserved_for_default_host(self):
         with patch.dict(os.environ, {"HONCHO_API_KEY": "key"}):
-            config = HonchoClientConfig.from_env(host="freeide")
-        assert config.host == "freeide"
-        assert config.workspace_id == "freeide"
+            config = HonchoClientConfig.from_env(host="jettstui")
+        assert config.host == "jettstui"
+        assert config.workspace_id == "jettstui"
 
     def test_from_global_config_reads_profile_host_block(self, tmp_path):
         config_file = tmp_path / "config.json"
         config_file.write_text(json.dumps({
             "apiKey": "shared-key",
             "hosts": {
-                "freeide": {"aiPeer": "freeide", "peerName": "alice"},
-                "freeide_coder": {
-                    "aiPeer": "freeide_coder",
+                "jettstui": {"aiPeer": "jettstui", "peerName": "alice"},
+                "jettstui_coder": {
+                    "aiPeer": "jettstui_coder",
                     "peerName": "alice-coder",
                     "workspace": "coder-ws",
                 },
             },
         }))
         config = HonchoClientConfig.from_global_config(
-            host="freeide_coder", config_path=config_file,
+            host="jettstui_coder", config_path=config_file,
         )
-        assert config.host == "freeide_coder"
+        assert config.host == "jettstui_coder"
         assert config.workspace_id == "coder-ws"
-        assert config.ai_peer == "freeide_coder"
+        assert config.ai_peer == "jettstui_coder"
         assert config.peer_name == "alice-coder"
 
     def test_from_global_config_auto_resolves_host(self, tmp_path):
@@ -564,12 +564,12 @@ class TestProfileScopedConfig:
         config_file.write_text(json.dumps({
             "apiKey": "key",
             "hosts": {
-                "freeide_dreamer": {"peerName": "dreamer-user"},
+                "jettstui_dreamer": {"peerName": "dreamer-user"},
             },
         }))
-        with patch("plugins.memory.honcho.client.resolve_active_host", return_value="freeide_dreamer"):
+        with patch("plugins.memory.honcho.client.resolve_active_host", return_value="jettstui_dreamer"):
             config = HonchoClientConfig.from_global_config(config_path=config_file)
-        assert config.host == "freeide_dreamer"
+        assert config.host == "jettstui_dreamer"
         assert config.peer_name == "dreamer-user"
 
     def test_from_global_config_reads_legacy_dot_profile_host_block(self, tmp_path):
@@ -577,16 +577,16 @@ class TestProfileScopedConfig:
         config_file.write_text(json.dumps({
             "apiKey": "key",
             "hosts": {
-                "freeide.dreamer": {"peerName": "dreamer-user"},
+                "jettstui.dreamer": {"peerName": "dreamer-user"},
             },
         }))
         config = HonchoClientConfig.from_global_config(
-            host="freeide_dreamer",
+            host="jettstui_dreamer",
             config_path=config_file,
         )
-        assert config.host == "freeide_dreamer"
+        assert config.host == "jettstui_dreamer"
         assert config.peer_name == "dreamer-user"
-        assert config.workspace_id == "freeide_dreamer"
+        assert config.workspace_id == "jettstui_dreamer"
 
 
 class TestObservationModeMigration:
@@ -597,7 +597,7 @@ class TestObservationModeMigration:
         cfg_file = tmp_path / "config.json"
         cfg_file.write_text(json.dumps({
             "apiKey": "k",
-            "hosts": {"freeide": {"enabled": True, "aiPeer": "freeide"}},
+            "hosts": {"jettstui": {"enabled": True, "aiPeer": "jettstui"}},
         }))
         cfg = HonchoClientConfig.from_global_config(config_path=cfg_file)
         assert cfg.observation_mode == "unified"
@@ -614,7 +614,7 @@ class TestObservationModeMigration:
         cfg_file = tmp_path / "config.json"
         cfg_file.write_text(json.dumps({
             "apiKey": "k",
-            "hosts": {"freeide": {"enabled": True, "observationMode": "directional"}},
+            "hosts": {"jettstui": {"enabled": True, "observationMode": "directional"}},
         }))
         cfg = HonchoClientConfig.from_global_config(config_path=cfg_file)
         assert cfg.observation_mode == "directional"
@@ -625,7 +625,7 @@ class TestObservationModeMigration:
         cfg_file.write_text(json.dumps({
             "apiKey": "k",
             "observationMode": "unified",
-            "hosts": {"freeide": {"enabled": True}},
+            "hosts": {"jettstui": {"enabled": True}},
         }))
         cfg = HonchoClientConfig.from_global_config(config_path=cfg_file)
         assert cfg.observation_mode == "unified"
@@ -635,7 +635,7 @@ class TestObservationModeMigration:
         cfg_file = tmp_path / "config.json"
         cfg_file.write_text(json.dumps({
             "apiKey": "k",
-            "hosts": {"freeide": {
+            "hosts": {"jettstui": {
                 "enabled": True,
                 "observation": {
                     "user": {"observeMe": True, "observeOthers": False},
@@ -665,7 +665,7 @@ class TestGetHonchoClient:
         cfg = HonchoClientConfig(
             api_key="test-key",
             timeout=91.0,
-            workspace_id="freeide",
+            workspace_id="jettstui",
             environment="production",
         )
 
@@ -680,16 +680,16 @@ class TestGetHonchoClient:
         not importlib.util.find_spec("honcho"),
         reason="honcho SDK not installed"
     )
-    def test_freeide_config_timeout_override_used_when_config_timeout_missing(self):
+    def test_jettstui_config_timeout_override_used_when_config_timeout_missing(self):
         fake_honcho = MagicMock(name="Honcho")
         cfg = HonchoClientConfig(
             api_key="test-key",
-            workspace_id="freeide",
+            workspace_id="jettstui",
             environment="production",
         )
 
         with patch("honcho.Honcho", return_value=fake_honcho) as mock_honcho, \
-             patch("freeide_cli.config.load_config", return_value={"honcho": {"timeout": 88}}):
+             patch("jettstui.config.load_config", return_value={"honcho": {"timeout": 88}}):
             client = get_honcho_client(cfg)
 
         assert client is fake_honcho
@@ -706,12 +706,12 @@ class TestGetHonchoClient:
         fake_honcho = MagicMock(name="Honcho")
         cfg = HonchoClientConfig(
             api_key="test-key",
-            workspace_id="freeide",
+            workspace_id="jettstui",
             environment="production",
         )
 
         with patch("honcho.Honcho", return_value=fake_honcho) as mock_honcho, \
-             patch("freeide_cli.config.load_config", return_value={}):
+             patch("jettstui.config.load_config", return_value={}):
             client = get_honcho_client(cfg)
 
         assert client is fake_honcho
@@ -722,16 +722,16 @@ class TestGetHonchoClient:
         not importlib.util.find_spec("honcho"),
         reason="honcho SDK not installed"
     )
-    def test_freeide_request_timeout_alias_used(self):
+    def test_jettstui_request_timeout_alias_used(self):
         fake_honcho = MagicMock(name="Honcho")
         cfg = HonchoClientConfig(
             api_key="test-key",
-            workspace_id="freeide",
+            workspace_id="jettstui",
             environment="production",
         )
 
         with patch("honcho.Honcho", return_value=fake_honcho) as mock_honcho, \
-             patch("freeide_cli.config.load_config", return_value={"honcho": {"request_timeout": "77.5"}}):
+             patch("jettstui.config.load_config", return_value={"honcho": {"request_timeout": "77.5"}}):
             client = get_honcho_client(cfg)
 
         assert client is fake_honcho
@@ -744,16 +744,16 @@ class TestGetHonchoClient:
     )
     def test_timeout_change_triggers_client_rebuild(self):
         """Changing timeout config must rebuild the cached client."""
-        from freeide_constants import get_freeide_home
+        from jettstui_constants import get_jettstui_home
 
-        cfg_yaml = get_freeide_home() / "config.yaml"
+        cfg_yaml = get_jettstui_home() / "config.yaml"
         cfg_yaml.write_text("honcho:\n  timeout: 30\n")
 
         fake_honcho_1 = MagicMock(name="Honcho_v1")
         fake_honcho_2 = MagicMock(name="Honcho_v2")
         cfg = HonchoClientConfig(
             api_key="test-key",
-            workspace_id="freeide",
+            workspace_id="jettstui",
             environment="production",
         )
 
@@ -794,13 +794,13 @@ class TestGetHonchoClient:
         managed_dir.mkdir()
         managed_cfg = managed_dir / "config.yaml"
         managed_cfg.write_text("honcho:\n  timeout: 88\n")
-        monkeypatch.setenv("FREEIDE_MANAGED_DIR", str(managed_dir))
+        monkeypatch.setenv("JETTSTUI_MANAGED_DIR", str(managed_dir))
 
         fake_honcho_1 = MagicMock(name="Honcho_v1")
         fake_honcho_2 = MagicMock(name="Honcho_v2")
         cfg = HonchoClientConfig(
             api_key="test-key",
-            workspace_id="freeide",
+            workspace_id="jettstui",
             environment="production",
         )
 
@@ -837,14 +837,14 @@ class TestGetHonchoClient:
         config_file = tmp_path / "honcho.json"
         config_file.write_text(json.dumps({
             "apiKey": "cloud-key",
-            "hosts": {"freeide": {"workspace": "ws", "requestTimeout": 120}},
+            "hosts": {"jettstui": {"workspace": "ws", "requestTimeout": 120}},
         }))
 
         fake_honcho_1 = MagicMock(name="Honcho_v1")
         fake_honcho_2 = MagicMock(name="Honcho_v2")
 
         with patch("plugins.memory.honcho.client.resolve_config_path", return_value=config_file), \
-             patch("freeide_cli.profiles.get_active_profile_name", return_value="default"):
+             patch("jettstui.profiles.get_active_profile_name", return_value="default"):
             with patch("honcho.Honcho", return_value=fake_honcho_1) as mock_h1:
                 client1 = get_honcho_client()
 
@@ -864,7 +864,7 @@ class TestGetHonchoClient:
             # A real honcho.json timeout change is still detected.
             config_file.write_text(json.dumps({
                 "apiKey": "cloud-key",
-                "hosts": {"freeide": {"workspace": "ws", "requestTimeout": 240}},
+                "hosts": {"jettstui": {"workspace": "ws", "requestTimeout": 240}},
             }))
             st = config_file.stat()
             os.utime(config_file, ns=(st.st_atime_ns, st.st_mtime_ns + 1_000_000))
@@ -1036,7 +1036,7 @@ class TestDialecticDepthParsing:
         config_file.write_text(json.dumps({
             "apiKey": "***",
             "dialecticDepth": 1,
-            "hosts": {"freeide": {"dialecticDepth": 3}},
+            "hosts": {"jettstui": {"dialecticDepth": 3}},
         }))
         config = HonchoClientConfig.from_global_config(config_path=config_file)
         assert config.dialectic_depth == 3
@@ -1121,12 +1121,12 @@ class TestGetHonchoClientBaseUrlDoublePrefixFix:
         cfg = HonchoClientConfig(
             api_key=None,
             base_url="http://localhost:38000/v3",
-            workspace_id="freeide",
+            workspace_id="jettstui",
             environment="production",
         )
 
         with patch("honcho.Honcho", return_value=fake_honcho) as mock_honcho, \
-             patch("freeide_cli.config.load_config", return_value={}):
+             patch("jettstui.config.load_config", return_value={}):
             get_honcho_client(cfg)
 
         mock_honcho.assert_called_once()
@@ -1145,12 +1145,12 @@ class TestGetHonchoClientBaseUrlDoublePrefixFix:
         cfg = HonchoClientConfig(
             api_key=None,
             base_url="http://localhost:38000",
-            workspace_id="freeide",
+            workspace_id="jettstui",
             environment="production",
         )
 
         with patch("honcho.Honcho", return_value=fake_honcho) as mock_honcho, \
-             patch("freeide_cli.config.load_config", return_value={}):
+             patch("jettstui.config.load_config", return_value={}):
             get_honcho_client(cfg)
 
         mock_honcho.assert_called_once()
@@ -1176,7 +1176,7 @@ class TestGetHonchoClientBaseUrlDoublePrefixFix:
         }))
 
         with patch.dict(os.environ, {}, clear=True), \
-             patch("freeide_cli.profiles.get_active_profile_name", return_value="default"), \
+             patch("jettstui.profiles.get_active_profile_name", return_value="default"), \
              patch("plugins.memory.honcho.client.resolve_config_path", return_value=config_file):
             cfg = HonchoClientConfig.from_global_config(config_path=config_file)
 
@@ -1190,7 +1190,7 @@ class TestGetHonchoClientBaseUrlDoublePrefixFix:
         mock_honcho = MagicMock(return_value=fake_honcho)
         fake_honcho_module = types.SimpleNamespace(Honcho=mock_honcho)
         with patch.dict(sys.modules, {"honcho": fake_honcho_module}), \
-             patch("freeide_cli.config.load_config", return_value={}):
+             patch("jettstui.config.load_config", return_value={}):
             get_honcho_client(cfg)
 
         mock_honcho.assert_called_once()
@@ -1213,7 +1213,7 @@ class TestGetHonchoClientBaseUrlDoublePrefixFix:
         }))
 
         with patch.dict(os.environ, {}, clear=True), \
-             patch("freeide_cli.profiles.get_active_profile_name", return_value="default"), \
+             patch("jettstui.profiles.get_active_profile_name", return_value="default"), \
              patch("plugins.memory.honcho.client.resolve_config_path", return_value=config_file):
             cfg = HonchoClientConfig.from_global_config(config_path=config_file)
 
@@ -1221,7 +1221,7 @@ class TestGetHonchoClientBaseUrlDoublePrefixFix:
         mock_honcho = MagicMock(return_value=fake_honcho)
         fake_honcho_module = types.SimpleNamespace(Honcho=mock_honcho)
         with patch.dict(sys.modules, {"honcho": fake_honcho_module}), \
-             patch("freeide_cli.config.load_config", return_value={}):
+             patch("jettstui.config.load_config", return_value={}):
             get_honcho_client(cfg)
 
         mock_honcho.assert_called_once()
@@ -1237,12 +1237,12 @@ class TestGetHonchoClientBaseUrlDoublePrefixFix:
         cfg = HonchoClientConfig(
             api_key="cloud-key",
             base_url="https://api.honcho.dev",
-            workspace_id="freeide",
+            workspace_id="jettstui",
             environment="production",
         )
 
         with patch("honcho.Honcho", return_value=fake_honcho) as mock_honcho, \
-             patch("freeide_cli.config.load_config", return_value={}):
+             patch("jettstui.config.load_config", return_value={}):
             get_honcho_client(cfg)
 
         mock_honcho.assert_called_once()
@@ -1262,12 +1262,12 @@ class TestGetHonchoClientBaseUrlDoublePrefixFix:
         cfg = HonchoClientConfig(
             api_key="cloud-key",
             base_url="https://api.honcho.dev/v3",
-            workspace_id="freeide",
+            workspace_id="jettstui",
             environment="production",
         )
 
         with patch("honcho.Honcho", return_value=fake_honcho) as mock_honcho, \
-             patch("freeide_cli.config.load_config", return_value={}):
+             patch("jettstui.config.load_config", return_value={}):
             get_honcho_client(cfg)
 
         mock_honcho.assert_called_once()
@@ -1305,12 +1305,12 @@ class TestGetHonchoClientBaseUrlDoublePrefixFix:
         cfg = HonchoClientConfig(
             api_key="self-host-key",
             base_url=raw_url,
-            workspace_id="freeide",
+            workspace_id="jettstui",
             environment="production",
         )
 
         with patch("honcho.Honcho", return_value=fake_honcho) as mock_honcho, \
-             patch("freeide_cli.config.load_config", return_value={}):
+             patch("jettstui.config.load_config", return_value={}):
             get_honcho_client(cfg)
 
         mock_honcho.assert_called_once()
@@ -1329,12 +1329,12 @@ class TestGetHonchoClientBaseUrlDoublePrefixFix:
         cfg = HonchoClientConfig(
             api_key=None,
             base_url="http://127.0.0.1:38000/v3/",
-            workspace_id="freeide",
+            workspace_id="jettstui",
             environment="production",
         )
 
         with patch("honcho.Honcho", return_value=fake_honcho) as mock_honcho, \
-             patch("freeide_cli.config.load_config", return_value={}):
+             patch("jettstui.config.load_config", return_value={}):
             get_honcho_client(cfg)
 
         mock_honcho.assert_called_once()

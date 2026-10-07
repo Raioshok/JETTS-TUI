@@ -16,7 +16,7 @@ the RESERVED lock an in-flight ``BEGIN IMMEDIATE`` is holding. Other processes
 are then free to write into a file that a writer still believes it owns, which
 is the documented route to "database disk image is malformed".
 
-FreeIDE is exactly the topology this hits: gateway, dispatcher, dashboard,
+JettsTUI is exactly the topology this hits: gateway, dispatcher, dashboard,
 TUI, CLI, cron and kanban workers all open the same ``state.db`` /
 ``kanban.db``, and several code paths used to byte-probe those files while
 connections were live.
@@ -149,13 +149,13 @@ def has_live_connection(path: Path | str) -> bool:
 class _TrackingMixin:
     """Untrack-on-close behaviour, mixable into any Connection subclass."""
 
-    _freeide_tracked_path: str | None = None
+    _jettstui_tracked_path: str | None = None
 
     def close(self) -> None:  # type: ignore[misc]
         with _live_lock:
-            path = getattr(self, "_freeide_tracked_path", None)
+            path = getattr(self, "_jettstui_tracked_path", None)
             if path is not None:
-                self._freeide_tracked_path = None
+                self._jettstui_tracked_path = None
                 untrack_connection(path)
             super().close()  # type: ignore[misc]
 
@@ -254,7 +254,7 @@ def connect_tracked(
                 # releases the registry entry, rather than handing back a
                 # connection whose database has silently lost probe safety.
                 conn = _retrofit_tracking(conn, resolved)
-            conn._freeide_tracked_path = resolved
+            conn._jettstui_tracked_path = resolved
             _live_connections[resolved] = _live_connections.get(resolved, 0) + 1
             return conn
         except Exception:

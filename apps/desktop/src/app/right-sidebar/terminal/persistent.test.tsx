@@ -48,7 +48,7 @@ function setVisibility(hidden: boolean) {
 
 function installWindowStateBridge() {
   windowStateCallback = null
-  Object.defineProperty(window, 'freeideDesktop', {
+  Object.defineProperty(window, 'jettstuiDesktop', {
     configurable: true,
     value: {
       onWindowStateChanged: vi.fn((callback: typeof windowStateCallback) => {
@@ -165,7 +165,7 @@ describe('PersistentTerminal rect tracking', () => {
     vi.unstubAllGlobals()
     vi.restoreAllMocks()
     setVisibility(false)
-    delete (window as unknown as { freeideDesktop?: unknown }).freeideDesktop
+    delete (window as unknown as { jettstuiDesktop?: unknown }).jettstuiDesktop
   })
 
   it('settles after rect changes instead of polling forever', () => {

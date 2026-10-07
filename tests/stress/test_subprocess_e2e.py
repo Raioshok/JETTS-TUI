@@ -2,11 +2,11 @@
 
 This validates the IPC + lifecycle story that mocks can't:
   - spawn_fn returns a real PID
-  - the child process resolves freeide_cli.kanban_db on its own
+  - the child process resolves jettstui.kanban_db on its own
   - the child writes heartbeats via the CLI (real argparse, real init_db)
   - the child completes via the CLI with --summary + --metadata
   - the dispatcher observes all of this through the DB only
-  - worker logs are captured to FREEIDE_HOME/kanban/logs/<task>.log
+  - worker logs are captured to JETTSTUI_HOME/kanban/logs/<task>.log
   - crash detection works against a real dead PID
 """
 
@@ -30,11 +30,11 @@ def make_spawn_fn(home: str):
         log_path = os.path.join(home, f"worker_{task.id}.log")
         env = {
             **os.environ,
-            "FREEIDE_HOME": home,
+            "JETTSTUI_HOME": home,
             "HOME": home,
             "PYTHONPATH": WT,
-            "FREEIDE_KANBAN_TASK": task.id,
-            "FREEIDE_KANBAN_WORKSPACE": workspace,
+            "JETTSTUI_KANBAN_TASK": task.id,
+            "JETTSTUI_KANBAN_WORKSPACE": workspace,
             "PATH": f"{os.path.dirname(PY)}:{os.environ.get('PATH','')}",
         }
         log_f = open(log_path, "ab")
@@ -52,20 +52,20 @@ def make_spawn_fn(home: str):
 
 
 def main():
-    home = tempfile.mkdtemp(prefix="freeide_e2e_")
-    os.environ["FREEIDE_HOME"] = home
+    home = tempfile.mkdtemp(prefix="jettstui_e2e_")
+    os.environ["JETTSTUI_HOME"] = home
     os.environ["HOME"] = home
     sys.path.insert(0, WT)
-    from freeide_cli import kanban_db as kb
+    from jettstui import kanban_db as kb
 
-    # Point the `freeide` CLI child processes will run at the worktree
-    # freeide_cli.main. We do this by putting a shim on PATH.
+    # Point the `jettstui` CLI child processes will run at the worktree
+    # jettstui.main. We do this by putting a shim on PATH.
     shim_dir = os.path.join(home, "bin")
     os.makedirs(shim_dir, exist_ok=True)
-    shim_path = os.path.join(shim_dir, "freeide")
+    shim_path = os.path.join(shim_dir, "jettstui")
     with open(shim_path, "w") as f:
         f.write(f"""#!/bin/sh
-exec {PY} -m freeide_cli.main "$@"
+exec {PY} -m jettstui.main "$@"
 """)
     os.chmod(shim_path, 0o755)
     os.environ["PATH"] = f"{shim_dir}:{os.environ.get('PATH','')}"
@@ -211,7 +211,7 @@ exec {PY} -m freeide_cli.main "$@"
     print("=" * 60)
     print("C. Worker log captured to disk")
     print("=" * 60)
-    # Scenario A workers wrote to /tmp/freeide_e2e_*/worker_*.log
+    # Scenario A workers wrote to /tmp/jettstui_e2e_*/worker_*.log
     import glob
     logs = glob.glob(os.path.join(home, "worker_*.log"))
     print(f"  {len(logs)} worker log files")

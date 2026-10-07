@@ -1,8 +1,8 @@
-"""Windows ConPTY bridge for the `freeide dashboard` chat tab.
+"""Windows ConPTY bridge for the `jettstui dashboard` chat tab.
 
-Drop-in counterpart to ``freeide_cli.pty_bridge.PtyBridge`` for native
+Drop-in counterpart to ``jettstui.pty_bridge.PtyBridge`` for native
 Windows. Mirrors the exact public surface the ``/api/pty`` WebSocket
-handler in ``freeide_cli.web_server`` consumes: ``spawn``, ``read``,
+handler in ``jettstui.web_server`` consumes: ``spawn``, ``read``,
 ``write``, ``resize``, ``close``, ``is_available``, plus the
 ``PtyUnavailableError`` type.
 

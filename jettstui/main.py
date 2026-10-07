@@ -1,63 +1,63 @@
 #!/usr/bin/env python3
 """
-FreeIDE CLI - Main entry point.
+JettsTUI CLI - Main entry point.
 
 Usage:
-    freeide                     # Interactive chat (default)
-    freeide chat                # Interactive chat
-    freeide gateway             # Run gateway in foreground
-    freeide gateway start       # Start gateway as service
-    freeide gateway stop        # Stop gateway service
-    freeide gateway status      # Show gateway status
-    freeide gateway install     # Install gateway service
-    freeide gateway uninstall   # Uninstall gateway service
-    freeide setup               # Interactive setup wizard
-    freeide logout              # Clear stored authentication
-    freeide status              # Show status of all components
-    freeide cron                # Manage cron jobs
-    freeide cron list           # List cron jobs
-    freeide cron status         # Check if cron scheduler is running
-    freeide doctor              # Check configuration and dependencies
-    freeide honcho setup                    # Configure Honcho AI memory integration
-    freeide honcho status                   # Show Honcho config and connection status
-    freeide honcho sessions                 # List directory → session name mappings
-    freeide honcho map <name>               # Map current directory to a session name
-    freeide honcho peer                     # Show peer names and dialectic settings
-    freeide honcho peer --user NAME         # Set user peer name
-    freeide honcho peer --ai NAME           # Set AI peer name
-    freeide honcho peer --reasoning LEVEL   # Set dialectic reasoning level
-    freeide honcho mode                     # Show current memory mode
-    freeide honcho mode [hybrid|honcho|local]  # Set memory mode
-    freeide honcho tokens                   # Show token budget settings
-    freeide honcho tokens --context N       # Set session.context() token cap
-    freeide honcho tokens --dialectic N     # Set dialectic result char cap
-    freeide honcho identity                 # Show AI peer identity representation
-    freeide honcho identity <file>          # Seed AI peer identity from a file (SOUL.md etc.)
-    freeide honcho migrate                  # Step-by-step migration guide: OpenClaw native → FreeIDE + Honcho
-    freeide version             Show version
-    freeide update              Update to latest version
-    freeide uninstall           Uninstall FreeIDE Agent
-    freeide acp                 Run as an ACP server for editor integration
-    freeide sessions browse     Interactive session picker with search
+    jettstui                     # Interactive chat (default)
+    jettstui chat                # Interactive chat
+    jettstui gateway             # Run gateway in foreground
+    jettstui gateway start       # Start gateway as service
+    jettstui gateway stop        # Stop gateway service
+    jettstui gateway status      # Show gateway status
+    jettstui gateway install     # Install gateway service
+    jettstui gateway uninstall   # Uninstall gateway service
+    jettstui setup               # Interactive setup wizard
+    jettstui logout              # Clear stored authentication
+    jettstui status              # Show status of all components
+    jettstui cron                # Manage cron jobs
+    jettstui cron list           # List cron jobs
+    jettstui cron status         # Check if cron scheduler is running
+    jettstui doctor              # Check configuration and dependencies
+    jettstui honcho setup                    # Configure Honcho AI memory integration
+    jettstui honcho status                   # Show Honcho config and connection status
+    jettstui honcho sessions                 # List directory → session name mappings
+    jettstui honcho map <name>               # Map current directory to a session name
+    jettstui honcho peer                     # Show peer names and dialectic settings
+    jettstui honcho peer --user NAME         # Set user peer name
+    jettstui honcho peer --ai NAME           # Set AI peer name
+    jettstui honcho peer --reasoning LEVEL   # Set dialectic reasoning level
+    jettstui honcho mode                     # Show current memory mode
+    jettstui honcho mode [hybrid|honcho|local]  # Set memory mode
+    jettstui honcho tokens                   # Show token budget settings
+    jettstui honcho tokens --context N       # Set session.context() token cap
+    jettstui honcho tokens --dialectic N     # Set dialectic result char cap
+    jettstui honcho identity                 # Show AI peer identity representation
+    jettstui honcho identity <file>          # Seed AI peer identity from a file (SOUL.md etc.)
+    jettstui honcho migrate                  # Step-by-step migration guide: OpenClaw native → JettsTUI + Honcho
+    jettstui version             Show version
+    jettstui update              Update to latest version
+    jettstui uninstall           Uninstall JettsTUI
+    jettstui acp                 Run as an ACP server for editor integration
+    jettstui sessions browse     Interactive session picker with search
 
-    freeide claw migrate --dry-run  # Preview migration without changes
+    jettstui claw migrate --dry-run  # Preview migration without changes
 """
 
-# IMPORTANT: freeide_bootstrap must be the very first import — it sets up
+# IMPORTANT: jettstui_bootstrap must be the very first import — it sets up
 # UTF-8 stdio on Windows so print()/subprocess children don't hit
 # UnicodeEncodeError with non-ASCII characters.  No-op on POSIX.
 #
-# Guarded against ModuleNotFoundError because ``freeide_bootstrap`` is a
+# Guarded against ModuleNotFoundError because ``jettstui_bootstrap`` is a
 # top-level module registered via pyproject.toml's ``py-modules`` list.
-# When the user upgrades code via ``git pull`` (or ``freeide update``
+# When the user upgrades code via ``git pull`` (or ``jettstui update``
 # crashes between ``git reset --hard`` and ``uv pip install -e .``), the
-# new code references ``freeide_bootstrap`` but the editable install's
+# new code references ``jettstui_bootstrap`` but the editable install's
 # ``.pth`` file still points at the old set of top-level modules.  Without
-# this guard, freeide crashes on import and the user can't run
-# ``freeide update`` to recover.  Missing the bootstrap means UTF-8 stdio
+# this guard, jettstui crashes on import and the user can't run
+# ``jettstui update`` to recover.  Missing the bootstrap means UTF-8 stdio
 # setup is skipped on Windows — degraded, not broken.  POSIX is unaffected.
 try:
-    import freeide_bootstrap  # noqa: F401
+    import jettstui_bootstrap  # noqa: F401
 except ModuleNotFoundError:
     pass
 
@@ -66,7 +66,7 @@ except ModuleNotFoundError:
 # any dependency touching ``platform.uname()`` at import time flashes a
 # visible console when this process is windowless (pythonw gateway + every
 # kanban worker).  No-op on POSIX; never raises.
-from freeide_cli._subprocess_compat import suppress_platform_ver_console
+from jettstui._subprocess_compat import suppress_platform_ver_console
 
 suppress_platform_ver_console()
 
@@ -74,18 +74,18 @@ import os
 import sys
 
 # Early venv self-heal — MUST run before any third-party import below.  When
-# a prior ``freeide update`` left a recovery marker and a core package's import
+# a prior ``jettstui update`` left a recovery marker and a core package's import
 # files were wiped (#57828 — failed lazy backend refresh), the module-level
-# ``from freeide_cli.env_loader import ...`` / ``from freeide_cli.config import
+# ``from jettstui.env_loader import ...`` / ``from jettstui.config import
 # ...`` imports further down would crash before ``main()`` ever reaches
 # ``_recover_from_interrupted_install()``.  ``_early_recovery`` is stdlib-only
 # (safe to import on a corrupted venv), repairs just enough for this module to
 # finish importing, and leaves the marker lifecycle to the full recovery path.
 # The module import itself is unguarded on purpose: it lives in this same
-# package directory, so if IT can't import, nothing else in freeide_cli can
+# package directory, so if IT can't import, nothing else in jettstui can
 # either. It is also the canonical home of the probe/repair tables reused by
 # the full recovery path below.
-from freeide_cli import _early_recovery as _early_recovery_mod
+from jettstui import _early_recovery as _early_recovery_mod
 
 try:
     _early_recovery_mod.recover_if_needed()
@@ -173,7 +173,7 @@ def _run_and_exit_oneshot(
     usage_file: object = None,
 ) -> None:
     try:
-        from freeide_cli.oneshot import run_oneshot
+        from jettstui.oneshot import run_oneshot
 
         rc = run_oneshot(
             prompt,
@@ -213,18 +213,18 @@ def _run_and_exit_oneshot(
 
 
 def _set_process_title() -> None:
-    """Set the process title to 'freeide' so tools like 'ps', 'top', and
+    """Set the process title to 'jettstui' so tools like 'ps', 'top', and
     'htop' show the app name instead of 'python3.xx'.
 
     Purely cosmetic — non-fatal on any platform.
 
     Strategy (try in order):
-      1. ``setproctitle`` (opt-in dep — installed via ``freeide tools`` or
+      1. ``setproctitle`` (opt-in dep — installed via ``jettstui tools`` or
          ``pip install setproctitle``, or bundled in a future release).
       2. ctypes ``prctl(PR_SET_NAME)`` (Linux only, 15-char limit).
       3. ctypes ``pthread_setname_np`` (macOS only, kernel thread name —
          changes lldb/top but not ``ps aux``).
-      4. No-op on Windows (the .exe name is already ``freeide.exe``).
+      4. No-op on Windows (the .exe name is already ``jettstui.exe``).
     """
     # Strategy 1: setproctitle (best — works on macOS, Linux, BSD)
     try:
@@ -247,7 +247,7 @@ def _set_process_title() -> None:
         elif system == "Darwin":
             libc = ctypes.CDLL("libc.dylib", use_errno=True)
             libc.pthread_setname_np(b"jetts-tui")
-        # Windows: the .exe name is already ``freeide.exe`` — nothing to do.
+        # Windows: the .exe name is already ``jettstui.exe`` — nothing to do.
     except Exception:
         pass
 
@@ -266,11 +266,11 @@ def _config_default_interface_early() -> str:
         return _EARLY_INTERFACE_CACHE[0]
     value = "tui"
     try:
-        home = os.environ.get("FREEIDE_HOME")
+        home = os.environ.get("JETTSTUI_HOME")
         if home:
             cfg_path = os.path.join(home, "config.yaml")
         else:
-            cfg_path = os.path.join(os.path.expanduser("~"), ".freeide", "config.yaml")
+            cfg_path = os.path.join(os.path.expanduser("~"), ".jettstui", "config.yaml")
         if os.path.exists(cfg_path):
             import yaml as _yaml_iface
 
@@ -298,7 +298,7 @@ def _wants_tui_early(argv: "list[str] | None" = None) -> bool:
     and still reaches the informative no-TTY error when explicitly requested.
 
     The TTY gate is load-bearing for headless spawners — kanban workers,
-    cron jobs, pipes run ``freeide … chat -q`` with stdio on a pipe. This
+    cron jobs, pipes run ``jettstui … chat -q`` with stdio on a pipe. This
     is the earliest launch decision (it runs before ``cmd_chat`` /
     ``_resolve_use_tui``), so a ``display.interface: tui`` default used to
     boot the TUI here — whose no-TTY bail-out exits 0 without doing the
@@ -307,7 +307,7 @@ def _wants_tui_early(argv: "list[str] | None" = None) -> bool:
     """
     if argv is None:
         argv = sys.argv[1:]
-    if os.environ.get("FREEIDE_TUI") == "1" or "--tui" in argv:
+    if os.environ.get("JETTSTUI_TUI") == "1" or "--tui" in argv:
         return True
     try:
         if not (sys.stdin.isatty() and sys.stdout.isatty()):
@@ -323,15 +323,15 @@ def _wants_tui_early(argv: "list[str] | None" = None) -> bool:
 # before the Node TUI takes stdin into raw mode). During that window any
 # incoming bytes are echoed straight back to the user's shell scrollback as
 # ``^[[<…M`` text. The TUI itself runs `resetTerminalModes()` again in
-# `entry.tsx`; this is just the earlier cousin. ``FREEIDE_TUI_NO_EARLY_DISABLE``
+# `entry.tsx`; this is just the earlier cousin. ``JETTSTUI_TUI_NO_EARLY_DISABLE``
 # escapes the behaviour for diagnostics.
 def _suppress_mouse_residue_early() -> None:
-    if os.environ.get("FREEIDE_TUI_NO_EARLY_DISABLE") == "1":
+    if os.environ.get("JETTSTUI_TUI_NO_EARLY_DISABLE") == "1":
         return
     if not _wants_tui_early():
         return
     try:
-        # Skip when stdout is redirected (`freeide --tui … >log`, CI capture):
+        # Skip when stdout is redirected (`jettstui --tui … >log`, CI capture):
         # the bytes can't reach the terminal anyway and would just pollute
         # the log with raw CSI.
         if not os.isatty(1):
@@ -385,9 +385,9 @@ def _read_openai_version_fast() -> str | None:
 
 
 def _print_fast_version_info() -> None:
-    from freeide_cli import __release_date__, __version__
+    from jettstui import __release_date__, __version__
 
-    print(f"Jetts-TUI v{__version__} ({__release_date__})")
+    print(f"JettsTUI v{__version__} ({__release_date__})")
     print(f"Install directory: {PROJECT_ROOT}")
 
     print(f"Python: {sys.version.split()[0]}")
@@ -397,8 +397,8 @@ def _print_fast_version_info() -> None:
 
 
 def _try_termux_ultrafast_version() -> bool:
-    """Handle ``freeide --version`` before config/logging imports on Termux."""
-    if os.environ.get("FREEIDE_TERMUX_DISABLE_FAST_CLI") == "1":
+    """Handle ``jettstui --version`` before config/logging imports on Termux."""
+    if os.environ.get("JETTSTUI_TERMUX_DISABLE_FAST_CLI") == "1":
         return False
     if not _is_termux_startup_environment_fast():
         return False
@@ -424,60 +424,60 @@ from pathlib import Path
 from typing import Optional
 
 
-from freeide_cli.subcommands._shared import add_accept_hooks_flag as _add_accept_hooks_flag
-from freeide_cli.subcommands.cron import build_cron_parser
-from freeide_cli.subcommands.gateway import build_gateway_parser
-from freeide_cli.subcommands.profile import build_profile_parser
-from freeide_cli.subcommands.model import build_model_parser
-from freeide_cli.subcommands.setup import build_setup_parser
+from jettstui.subcommands._shared import add_accept_hooks_flag as _add_accept_hooks_flag
+from jettstui.subcommands.cron import build_cron_parser
+from jettstui.subcommands.gateway import build_gateway_parser
+from jettstui.subcommands.profile import build_profile_parser
+from jettstui.subcommands.model import build_model_parser
+from jettstui.subcommands.setup import build_setup_parser
 
-from freeide_cli.subcommands.whatsapp import build_whatsapp_parser
-from freeide_cli.subcommands.slack import build_slack_parser
-from freeide_cli.subcommands.login import build_login_parser
-from freeide_cli.subcommands.logout import build_logout_parser
-from freeide_cli.subcommands.auth import build_auth_parser
-from freeide_cli.subcommands.status import build_status_parser
-from freeide_cli.subcommands.webhook import build_webhook_parser
-from freeide_cli.subcommands.hooks import build_hooks_parser
-from freeide_cli.subcommands.doctor import build_doctor_parser
-from freeide_cli.subcommands.security import build_security_parser
-from freeide_cli.subcommands.approvals import build_approvals_parser
-from freeide_cli.subcommands.dump import build_dump_parser
-from freeide_cli.subcommands.debug import build_debug_parser
-from freeide_cli.subcommands.backup import build_backup_parser
-from freeide_cli.subcommands.import_cmd import build_import_cmd_parser
-from freeide_cli.subcommands.config import build_config_parser
-from freeide_cli.subcommands.skin import build_skin_parser
-from freeide_cli.subcommands.brain import build_brain_parser
-from freeide_cli.subcommands.console import build_console_parser
-from freeide_cli.subcommands.version import build_version_parser
-from freeide_cli.subcommands.update import build_update_parser
-from freeide_cli.subcommands.uninstall import build_uninstall_parser
-from freeide_cli.subcommands.dashboard import build_dashboard_parser
-from freeide_cli.subcommands.gui import build_gui_parser
-from freeide_cli.subcommands.logs import build_logs_parser
-from freeide_cli.subcommands.prompt_size import build_prompt_size_parser
-from freeide_cli.subcommands.memory import build_memory_parser
-from freeide_cli.subcommands.acp import build_acp_parser
-from freeide_cli.subcommands.tools import build_tools_parser
-from freeide_cli.subcommands.insights import build_insights_parser
-from freeide_cli.subcommands.skills import build_skills_parser
-from freeide_cli.subcommands.pairing import build_pairing_parser
-from freeide_cli.subcommands.plugins import build_plugins_parser
-from freeide_cli.subcommands.mcp import build_mcp_parser
-from freeide_cli.subcommands.claw import build_claw_parser
+from jettstui.subcommands.whatsapp import build_whatsapp_parser
+from jettstui.subcommands.slack import build_slack_parser
+from jettstui.subcommands.login import build_login_parser
+from jettstui.subcommands.logout import build_logout_parser
+from jettstui.subcommands.auth import build_auth_parser
+from jettstui.subcommands.status import build_status_parser
+from jettstui.subcommands.webhook import build_webhook_parser
+from jettstui.subcommands.hooks import build_hooks_parser
+from jettstui.subcommands.doctor import build_doctor_parser
+from jettstui.subcommands.security import build_security_parser
+from jettstui.subcommands.approvals import build_approvals_parser
+from jettstui.subcommands.dump import build_dump_parser
+from jettstui.subcommands.debug import build_debug_parser
+from jettstui.subcommands.backup import build_backup_parser
+from jettstui.subcommands.import_cmd import build_import_cmd_parser
+from jettstui.subcommands.config import build_config_parser
+from jettstui.subcommands.skin import build_skin_parser
+from jettstui.subcommands.brain import build_brain_parser
+from jettstui.subcommands.console import build_console_parser
+from jettstui.subcommands.version import build_version_parser
+from jettstui.subcommands.update import build_update_parser
+from jettstui.subcommands.uninstall import build_uninstall_parser
+from jettstui.subcommands.dashboard import build_dashboard_parser
+from jettstui.subcommands.gui import build_gui_parser
+from jettstui.subcommands.logs import build_logs_parser
+from jettstui.subcommands.prompt_size import build_prompt_size_parser
+from jettstui.subcommands.memory import build_memory_parser
+from jettstui.subcommands.acp import build_acp_parser
+from jettstui.subcommands.tools import build_tools_parser
+from jettstui.subcommands.insights import build_insights_parser
+from jettstui.subcommands.skills import build_skills_parser
+from jettstui.subcommands.pairing import build_pairing_parser
+from jettstui.subcommands.plugins import build_plugins_parser
+from jettstui.subcommands.mcp import build_mcp_parser
+from jettstui.subcommands.claw import build_claw_parser
 
 
 def _require_tty(command_name: str) -> None:
     """Exit with a clear error if stdin is not a terminal.
 
-    Interactive TUI commands (freeide tools, freeide setup, freeide model) use
+    Interactive TUI commands (jettstui tools, jettstui setup, jettstui model) use
     curses or input() prompts that spin at 100% CPU when stdin is a pipe.
     This guard prevents accidental non-interactive invocation.
     """
     if not sys.stdin.isatty():
         print(
-            f"Error: 'freeide {command_name}' requires an interactive terminal.\n"
+            f"Error: 'jettstui {command_name}' requires an interactive terminal.\n"
             f"It cannot be run through a pipe or non-interactive subprocess.\n"
             f"Run it directly in your terminal instead.",
             file=sys.stderr,
@@ -491,27 +491,27 @@ sys.path.insert(0, str(PROJECT_ROOT))
 
 
 # ---------------------------------------------------------------------------
-# Profile override — MUST happen before any freeide module import.
+# Profile override — MUST happen before any jettstui module import.
 #
-# Many modules cache FREEIDE_HOME at import time (module-level constants).
+# Many modules cache JETTSTUI_HOME at import time (module-level constants).
 # We intercept --profile/-p from sys.argv here and set the env var so that
-# every subsequent ``os.getenv("FREEIDE_HOME", ...)`` resolves correctly.
+# every subsequent ``os.getenv("JETTSTUI_HOME", ...)`` resolves correctly.
 # The flag is stripped from sys.argv so argparse never sees it.
-# Falls back to ~/.freeide/active_profile for sticky default.
+# Falls back to ~/.jettstui/active_profile for sticky default.
 # ---------------------------------------------------------------------------
 def _apply_profile_override() -> None:
-    """Pre-parse --profile/-p and set FREEIDE_HOME before imports."""
+    """Pre-parse --profile/-p and set JETTSTUI_HOME before imports."""
     argv = sys.argv[1:]
     profile_name = None
     consume = 0
     profile_index = None
 
     def _inside_mcp_add_args(index: int) -> bool:
-        """True once argv reaches `freeide mcp add ... --args <command argv>`.
+        """True once argv reaches `jettstui mcp add ... --args <command argv>`.
 
         ``mcp add --args`` is command-argv passthrough. Flags after that point
         belong to the child MCP command (for example Docker MCP Toolkit's
-        ``--profile``), not to FreeIDE' own profile selector.
+        ``--profile``), not to JettsTUI' own profile selector.
         """
         try:
             mcp_index = argv.index("mcp", 0, index)
@@ -521,7 +521,7 @@ def _apply_profile_override() -> None:
         return True
 
     def _resolve_sudo_user_profile_env(name: str) -> str | None:
-        """Resolve `sudo freeide -p <name>` against the invoking user's home.
+        """Resolve `sudo jettstui -p <name>` against the invoking user's home.
 
         `_apply_profile_override()` runs before argparse, so `--run-as-user`
         is not available yet. For sudo invocations, the best available signal
@@ -543,7 +543,7 @@ def _apply_profile_override() -> None:
         except Exception:
             return None
 
-        candidate = home / ".freeide" / "profiles" / name
+        candidate = home / ".jettstui" / "profiles" / name
         try:
             if candidate.is_dir():
                 return str(candidate)
@@ -552,7 +552,7 @@ def _apply_profile_override() -> None:
         return None
 
     # 1. Check for explicit -p / --profile flag. Historically this worked even
-    # after the subcommand (`freeide chat -p coder`), so keep scanning broadly.
+    # after the subcommand (`jettstui chat -p coder`), so keep scanning broadly.
     # The exception is command-argv passthrough regions such as `mcp add --args`.
     value_flags = {
         "-z", "--oneshot",
@@ -595,7 +595,7 @@ def _apply_profile_override() -> None:
 
     # 1b. Reject values that can't be valid profile names (e.g. pytest's
     # "-p no:xdist" would be misread as profile "no:xdist" otherwise).
-    # Mirrors freeide_cli.profiles._PROFILE_ID_RE so we never call
+    # Mirrors jettstui.profiles._PROFILE_ID_RE so we never call
     # resolve_profile_env() with a value it must reject + sys.exit on.
     if profile_name is not None and consume == 2:
         import re as _re
@@ -605,37 +605,37 @@ def _apply_profile_override() -> None:
             consume = 0
             profile_index = None
 
-    # 1.5 If FREEIDE_HOME is already set and no explicit flag was given, trust it
+    # 1.5 If JETTSTUI_HOME is already set and no explicit flag was given, trust it
     # only when it already points to a specific profile directory.  The
     # distinguishing heuristic: a profile path has "profiles" as its immediate
-    # parent directory name (e.g. ~/.freeide/profiles/coder or
-    # /opt/data/profiles/coder).  If FREEIDE_HOME points to the freeide root
-    # instead (e.g. systemd hardcodes FREEIDE_HOME=/root/.freeide), we must
+    # parent directory name (e.g. ~/.jettstui/profiles/coder or
+    # /opt/data/profiles/coder).  If JETTSTUI_HOME points to the jettstui root
+    # instead (e.g. systemd hardcodes JETTSTUI_HOME=/root/.jettstui), we must
     # still read active_profile — the user may have switched profiles via
-    # `freeide profile use` and the gateway should honour that choice.
+    # `jettstui profile use` and the gateway should honour that choice.
     # See issue #22502.
-    freeide_home_env = os.environ.get("FREEIDE_HOME", "")
-    if profile_name is None and freeide_home_env:
-        if Path(freeide_home_env).parent.name == "profiles":
+    jettstui_home_env = os.environ.get("JETTSTUI_HOME", "")
+    if profile_name is None and jettstui_home_env:
+        if Path(jettstui_home_env).parent.name == "profiles":
             return
 
-    # 2. If no flag, check active_profile in the freeide root.
+    # 2. If no flag, check active_profile in the jettstui root.
     #
     # EXCEPTION: a supervised s6 gateway child (exported by the container
-    # run-script as FREEIDE_S6_SUPERVISED_CHILD=1) must NOT follow the sticky
+    # run-script as JETTSTUI_S6_SUPERVISED_CHILD=1) must NOT follow the sticky
     # active_profile. Each supervised slot has a fixed profile identity: named
     # slots pass ``-p <name>`` explicitly (handled in step 1 above), and the
-    # reserved ``gateway-default`` slot runs bare ``freeide gateway run`` to mean
-    # "the root FREEIDE_HOME profile". If the reserved default child read
+    # reserved ``gateway-default`` slot runs bare ``jettstui gateway run`` to mean
+    # "the root JETTSTUI_HOME profile". If the reserved default child read
     # active_profile here, switching the active profile (e.g. via the dashboard)
     # would silently redirect the default gateway into that profile — yielding a
     # duplicate gateway for the active profile and no real default gateway. See
     # the "Docker & Profiles & Dashboard" report.
-    if profile_name is None and not os.environ.get("FREEIDE_S6_SUPERVISED_CHILD"):
+    if profile_name is None and not os.environ.get("JETTSTUI_S6_SUPERVISED_CHILD"):
         try:
-            from freeide_constants import get_default_freeide_root
+            from jettstui_constants import get_default_jettstui_root
 
-            active_path = get_default_freeide_root() / "active_profile"
+            active_path = get_default_jettstui_root() / "active_profile"
             if active_path.exists():
                 name = active_path.read_text(encoding="utf-8").strip()
                 if name and name != "default":
@@ -644,28 +644,28 @@ def _apply_profile_override() -> None:
         except (UnicodeDecodeError, OSError):
             pass  # corrupted file, skip
 
-    # 3. If we found a profile, resolve and set FREEIDE_HOME
+    # 3. If we found a profile, resolve and set JETTSTUI_HOME
     if profile_name is not None:
         try:
-            from freeide_cli.profiles import resolve_profile_env
+            from jettstui.profiles import resolve_profile_env
 
-            freeide_home = resolve_profile_env(profile_name)
+            jettstui_home = resolve_profile_env(profile_name)
         except FileNotFoundError as exc:
-            freeide_home = _resolve_sudo_user_profile_env(profile_name)
-            if not freeide_home:
+            jettstui_home = _resolve_sudo_user_profile_env(profile_name)
+            if not jettstui_home:
                 print(f"Error: {exc}", file=sys.stderr)
                 sys.exit(1)
         except ValueError as exc:
             print(f"Error: {exc}", file=sys.stderr)
             sys.exit(1)
         except Exception as exc:
-            # A bug in profiles.py must NEVER prevent freeide from starting
+            # A bug in profiles.py must NEVER prevent jettstui from starting
             print(
                 f"Warning: profile override failed ({exc}), using default",
                 file=sys.stderr,
             )
             return
-        os.environ["FREEIDE_HOME"] = freeide_home
+        os.environ["JETTSTUI_HOME"] = jettstui_home
         # Strip the flag from argv so argparse doesn't choke
         if consume > 0 and profile_index is not None:
             start = profile_index + 1  # +1 because argv is sys.argv[1:]
@@ -674,15 +674,15 @@ def _apply_profile_override() -> None:
 
 _apply_profile_override()
 
-# Load .env from ~/.freeide/.env first, then project root as dev fallback.
+# Load .env from ~/.jettstui/.env first, then project root as dev fallback.
 # User-managed env files should override stale shell exports on restart.
-from freeide_cli.config import get_freeide_home
-from freeide_cli.env_loader import load_freeide_dotenv
+from jettstui.config import get_jettstui_home
+from jettstui.env_loader import load_jettstui_dotenv
 
-load_freeide_dotenv(project_env=PROJECT_ROOT / ".env")
+load_jettstui_dotenv(project_env=PROJECT_ROOT / ".env")
 
-# Bridge security.redact_secrets from config.yaml → FREEIDE_REDACT_SECRETS env
-# var BEFORE freeide_logging imports agent.redact (which snapshots the flag at
+# Bridge security.redact_secrets from config.yaml → JETTSTUI_REDACT_SECRETS env
+# var BEFORE jettstui_logging imports agent.redact (which snapshots the flag at
 # module-import time). Without this, config.yaml's toggle is ignored because
 # the setup_logging() call below imports agent.redact, which reads the env var
 # exactly once. Env var in .env still wins — this is config.yaml fallback only.
@@ -694,7 +694,7 @@ _FORCE_IPV4_EARLY = False
 try:
     import yaml as _yaml_early
 
-    _cfg_path = get_freeide_home() / "config.yaml"
+    _cfg_path = get_jettstui_home() / "config.yaml"
     if _cfg_path.exists():
         with open(_cfg_path, encoding="utf-8") as _f:
             _early_cfg_raw = _yaml_early.load(
@@ -706,16 +706,16 @@ try:
         # without the overlay a managed redact_secrets toggle would be ignored.
         # Fail-open via the shared helper.
         try:
-            from freeide_cli import managed_scope
+            from jettstui import managed_scope
             _early_cfg_raw = managed_scope.apply_managed_overlay(_early_cfg_raw)
         except Exception:
             pass
-        if "FREEIDE_REDACT_SECRETS" not in os.environ:
+        if "JETTSTUI_REDACT_SECRETS" not in os.environ:
             _early_sec_cfg = _early_cfg_raw.get("security", {})
             if isinstance(_early_sec_cfg, dict):
                 _early_redact = _early_sec_cfg.get("redact_secrets")
                 if _early_redact is not None:
-                    os.environ["FREEIDE_REDACT_SECRETS"] = str(_early_redact).lower()
+                    os.environ["JETTSTUI_REDACT_SECRETS"] = str(_early_redact).lower()
         _early_net_cfg = _early_cfg_raw.get("network", {})
         if isinstance(_early_net_cfg, dict) and _early_net_cfg.get("force_ipv4"):
             _FORCE_IPV4_EARLY = True
@@ -724,12 +724,12 @@ try:
 except Exception:
     pass  # best-effort — redaction stays at default (enabled) on config errors
 
-# Initialize centralized file logging early — all `freeide` subcommands
+# Initialize centralized file logging early — all `jettstui` subcommands
 # (chat, setup, gateway, config, etc.) write to agent.log + errors.log.
 # Dashboard entrypoints bootstrap with GUI mode so gui.log is always present
 # during GUI testing, including pre-dispatch startup failures.
 try:
-    from freeide_logging import setup_logging as _setup_logging
+    from jettstui_logging import setup_logging as _setup_logging
 
     _setup_logging(
         mode=(
@@ -747,23 +747,23 @@ except Exception:
 # this just calls the toggle without a redundant load_config() round trip.
 if _FORCE_IPV4_EARLY:
     try:
-        from freeide_constants import apply_ipv4_preference as _apply_ipv4
+        from jettstui_constants import apply_ipv4_preference as _apply_ipv4
 
         _apply_ipv4(force=True)
     except Exception:
-        pass  # best-effort — don't crash if freeide_constants not importable yet
+        pass  # best-effort — don't crash if jettstui_constants not importable yet
 
 import logging
 import threading
 import time as _time
 from datetime import datetime
 
-from freeide_cli import __version__, __release_date__
+from jettstui import __version__, __release_date__
 
-# Provider model-selection wizard flows extracted to freeide_cli/model_setup_flows.py
+# Provider model-selection wizard flows extracted to jettstui/model_setup_flows.py
 # (god-file decomposition Phase 2). Re-imported here so select_provider_and_model and
-# existing test monkeypatches (freeide_cli.main._model_flow_*) keep resolving unchanged.
-from freeide_cli.model_setup_flows import (
+# existing test monkeypatches (jettstui.main._model_flow_*) keep resolving unchanged.
+from jettstui.model_setup_flows import (
     _prompt_auth_credentials_choice,
     _model_flow_openrouter,
     _model_flow_openai_codex,
@@ -855,7 +855,7 @@ def _read_git_revision_fingerprint(repo_root: Path) -> str | None:
                 return f"git:{ref}:{packed_sha}"
             # Ref name is known but unresolved — still stable across launches,
             # and the version/release fallback in the caller will invalidate
-            # after `freeide update`.
+            # after `jettstui update`.
             return f"git:{ref}:unresolved"
         return f"git:HEAD:{head}"
     except OSError:
@@ -876,13 +876,13 @@ def _termux_bundled_skills_fingerprint() -> str:
 
 
 def _termux_bundled_skills_stamp_path() -> Path:
-    return get_freeide_home() / "skills" / ".termux_bundled_sync_stamp"
+    return get_jettstui_home() / "skills" / ".termux_bundled_sync_stamp"
 
 
 def _termux_bundled_skills_sync_needed() -> bool:
     if not _is_termux_startup_environment():
         return True
-    if os.environ.get("FREEIDE_TERMUX_FORCE_SKILLS_SYNC") == "1":
+    if os.environ.get("JETTSTUI_TERMUX_FORCE_SKILLS_SYNC") == "1":
         return True
     try:
         stamp = _termux_bundled_skills_stamp_path()
@@ -922,7 +922,7 @@ def _sync_bundled_skills_for_startup() -> bool:
 def _termux_should_prefetch_update_check() -> bool:
     if not _is_termux_startup_environment():
         return True
-    return os.environ.get("FREEIDE_TERMUX_PREFETCH_UPDATES") == "1"
+    return os.environ.get("JETTSTUI_TERMUX_PREFETCH_UPDATES") == "1"
 
 
 def _relative_time(ts) -> str:
@@ -945,14 +945,14 @@ def _relative_time(ts) -> str:
 
 def _has_any_provider_configured() -> bool:
     """Check if at least one inference provider is usable."""
-    from freeide_cli.config import get_env_path, get_freeide_home, load_config
-    from freeide_cli.auth import get_auth_status
+    from jettstui.config import get_env_path, get_jettstui_home, load_config
+    from jettstui.auth import get_auth_status
 
-    # Determine whether FreeIDE itself has been explicitly configured (model
+    # Determine whether JettsTUI itself has been explicitly configured (model
     # in config that isn't the hardcoded default). Used below to gate external
     # tool credentials (Claude Code, Codex CLI) that shouldn't silently skip
     # the setup wizard on a fresh install.
-    from freeide_cli.config import DEFAULT_CONFIG
+    from jettstui.config import DEFAULT_CONFIG
 
     _DEFAULT_MODEL = DEFAULT_CONFIG.get("model", "")
     cfg = load_config()
@@ -963,12 +963,12 @@ def _has_any_provider_configured() -> bool:
         _model_name = model_cfg.strip()
     else:
         _model_name = ""
-    _has_freeide_config = _model_name and _model_name != _DEFAULT_MODEL
+    _has_jettstui_config = _model_name and _model_name != _DEFAULT_MODEL
 
     # Check env vars (may be set by .env or shell).
     # OPENAI_BASE_URL alone counts — local models (vLLM, llama.cpp, etc.)
     # often don't require an API key.
-    from freeide_cli.auth import PROVIDER_REGISTRY
+    from jettstui.auth import PROVIDER_REGISTRY
 
     # Collect all provider env vars
     provider_env_vars = {
@@ -1013,7 +1013,7 @@ def _has_any_provider_configured() -> bool:
         pass
 
     # Check for stored OAuth credentials
-    auth_file = get_freeide_home() / "auth.json"
+    auth_file = get_jettstui_home() / "auth.json"
     if auth_file.exists():
         try:
             import json
@@ -1039,9 +1039,9 @@ def _has_any_provider_configured() -> bool:
             return True
 
     # Check for Claude Code OAuth credentials (~/.claude/.credentials.json)
-    # Only count these if FreeIDE has been explicitly configured — Claude Code
-    # being installed doesn't mean the user wants FreeIDE to use their tokens.
-    if _has_freeide_config:
+    # Only count these if JettsTUI has been explicitly configured — Claude Code
+    # being installed doesn't mean the user wants JettsTUI to use their tokens.
+    if _has_jettstui_config:
         try:
             from agent.anthropic_adapter import (
                 read_claude_code_credentials,
@@ -1328,13 +1328,13 @@ def _resolve_last_session(source: str = "cli") -> Optional[str]:
     """Look up the most recently-used session ID for a source.
 
     Scoped to the current workspace first (git repo root, else cwd) so
-    ``freeide -c`` from repo A continues repo A's last session rather than the
+    ``jettstui -c`` from repo A continues repo A's last session rather than the
     global MRU. Falls back to the unscoped MRU when no session matches the
     current workspace, preserving the old behaviour for fresh directories.
     """
     db = None
     try:
-        from freeide_state import SessionDB
+        from jettstui_state import SessionDB
 
         db = SessionDB()
         ws_key = _resolve_workspace_key()
@@ -1383,14 +1383,14 @@ def _exec_in_container(container_info: dict, cli_args: list):
     On failure, OSError propagates naturally.
 
     Args:
-        container_info: dict with backend, container_name, exec_user, freeide_bin
-        cli_args: the original CLI arguments (everything after 'freeide')
+        container_info: dict with backend, container_name, exec_user, jettstui_bin
+        cli_args: the original CLI arguments (everything after 'jettstui')
     """
 
     backend = container_info["backend"]
     container_name = container_info["container_name"]
     exec_user = container_info["exec_user"]
-    freeide_bin = container_info["freeide_bin"]
+    jettstui_bin = container_info["jettstui_bin"]
 
     runtime = shutil.which(backend)
     if not runtime:
@@ -1432,14 +1432,14 @@ def _exec_in_container(container_info: dict, cli_args: list):
                     f'    commands = [{{ command = "{runtime}"; options = [ "NOPASSWD" ]; }}];\n'
                     f"  }}];\n"
                     f"\n"
-                    f"Or run: sudo freeide {' '.join(cli_args)}",
+                    f"Or run: sudo jettstui {' '.join(cli_args)}",
                     file=sys.stderr,
                 )
                 sys.exit(1)
         else:
             print(
                 f"Error: container '{container_name}' not found via {backend}.\n"
-                f"The container may be running under root. Try: sudo freeide {' '.join(cli_args)}",
+                f"The container may be running under root. Try: sudo jettstui {' '.join(cli_args)}",
                 file=sys.stderr,
             )
             sys.exit(1)
@@ -1460,7 +1460,7 @@ def _exec_in_container(container_info: dict, cli_args: list):
         + tty_flags
         + ["-u", exec_user]
         + env_flags
-        + [container_name, freeide_bin]
+        + [container_name, jettstui_bin]
         + cli_args
     )
 
@@ -1479,7 +1479,7 @@ def _resolve_session_by_name_or_id(name_or_id: str) -> Optional[str]:
       resumed at the live tip instead of a stale parent with no messages.
     """
     try:
-        from freeide_state import SessionDB
+        from jettstui_state import SessionDB
 
         db = SessionDB()
 
@@ -1532,7 +1532,7 @@ def _print_tui_exit_summary(
 
     db = None
     try:
-        from freeide_state import SessionDB
+        from jettstui_state import SessionDB
 
         db = SessionDB()
         session = db.get_session(target)
@@ -1563,9 +1563,9 @@ def _print_tui_exit_summary(
 
     print()
     print("Resume this session with:")
-    print(f"  freeide --tui --resume {target}")
+    print(f"  jettstui --tui --resume {target}")
     if title:
-        print(f'  freeide --tui -c "{title}"')
+        print(f'  jettstui --tui -c "{title}"')
     print()
     print(f"Session:        {target}")
     if title:
@@ -1793,9 +1793,9 @@ def _tui_need_rebuild(root: Path) -> bool:
     The TUI bundle is self-contained. Rebuilding it on every launch adds a
     visible cold-start tax on slow Termux CPUs, while a simple mtime freshness
     check still rebuilds immediately after source updates, dependency updates,
-    or local edits. Set ``FREEIDE_TUI_FORCE_BUILD=1`` to force the old behaviour.
+    or local edits. Set ``JETTSTUI_TUI_FORCE_BUILD=1`` to force the old behaviour.
     """
-    force = (os.environ.get("FREEIDE_TUI_FORCE_BUILD") or "").strip().lower()
+    force = (os.environ.get("JETTSTUI_TUI_FORCE_BUILD") or "").strip().lower()
     if force in {"1", "true", "yes", "on"}:
         return True
 
@@ -1825,18 +1825,18 @@ def _ensure_tui_node() -> None:
     was used (nvm, fnm, proto, brew, or the bundled fallback).
 
     Idempotent no-op when node+npm are already discoverable. Set
-    ``FREEIDE_SKIP_NODE_BOOTSTRAP=1`` to disable auto-install.
+    ``JETTSTUI_SKIP_NODE_BOOTSTRAP=1`` to disable auto-install.
     """
     if shutil.which("node") and shutil.which("npm"):
         return
-    if os.environ.get("FREEIDE_SKIP_NODE_BOOTSTRAP"):
+    if os.environ.get("JETTSTUI_SKIP_NODE_BOOTSTRAP"):
         return
 
     helper = PROJECT_ROOT / "scripts" / "lib" / "node-bootstrap.sh"
     if not helper.is_file():
         return
 
-    freeide_home = os.environ.get("FREEIDE_HOME") or str(Path.home() / ".freeide")
+    jettstui_home = os.environ.get("JETTSTUI_HOME") or str(Path.home() / ".jettstui")
     try:
         # Helper writes logs to stderr; we ask bash to print `command -v node`
         # on stdout once ensure_node succeeds. Subshell PATH edits don't leak
@@ -1847,7 +1847,7 @@ def _ensure_tui_node() -> None:
                 "-c",
                 f'source "{helper}" >&2 && ensure_node >&2 && command -v node',
             ],
-            env={**os.environ, "FREEIDE_HOME": freeide_home},
+            env={**os.environ, "JETTSTUI_HOME": jettstui_home},
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -1864,7 +1864,7 @@ def _ensure_tui_node() -> None:
     if resolved:
         extras.append(Path(resolved).resolve().parent)
 
-    extras.extend([Path(freeide_home) / "node" / "bin", Path.home() / ".local" / "bin"])
+    extras.extend([Path(jettstui_home) / "node" / "bin", Path.home() / ".local" / "bin"])
 
     for extra in extras:
         s = str(extra)
@@ -1873,11 +1873,11 @@ def _ensure_tui_node() -> None:
     os.environ["PATH"] = os.pathsep.join(parts)
 
 
-def _find_bundled_tui(freeide_cli_dir: Path | None = None) -> Path | None:
+def _find_bundled_tui(jettstui_dir: Path | None = None) -> Path | None:
     """Find a pre-built TUI entry.js bundled in the wheel."""
-    if freeide_cli_dir is None:
-        freeide_cli_dir = Path(__file__).parent
-    bundled = freeide_cli_dir / "tui_dist" / "entry.js"
+    if jettstui_dir is None:
+        jettstui_dir = Path(__file__).parent
+    bundled = jettstui_dir / "tui_dist" / "entry.js"
     return bundled if bundled.is_file() else None
 
 
@@ -1885,7 +1885,7 @@ def _restore_tui_workspace(tui_dir: Path) -> bool:
     """Try to restore a missing ``ui-tui/`` from git, returning True on success.
 
     On Windows an antivirus / NTFS filter driver can leave tracked ``ui-tui/``
-    files deleted in the working tree after ``freeide update`` (HEAD stays
+    files deleted in the working tree after ``jettstui update`` (HEAD stays
     intact; the files just vanish — see issue #49145). Those files are tracked,
     so ``git restore`` puts them back deterministically. Best-effort: returns
     False (rather than raising) when git is unavailable, this isn't a checkout,
@@ -1921,37 +1921,37 @@ def _ensure_tui_workspace(tui_dir: Path) -> None:
         return
 
     if _restore_tui_workspace(tui_dir):
-        if not os.environ.get("FREEIDE_QUIET"):
+        if not os.environ.get("JETTSTUI_QUIET"):
             print(f"Restored missing TUI workspace: {tui_dir}")
         return
 
     print(
-        "Error: the TUI workspace is missing from this Jetts-TUI checkout.\n"
+        "Error: the TUI workspace is missing from this JettsTUI checkout.\n"
         f"Expected directory: {tui_dir}\n"
-        "This usually means `freeide update` left tracked ui-tui files deleted.\n"
+        "This usually means `jettstui update` left tracked ui-tui files deleted.\n"
         "Recovery:\n"
-        "  1. From the Jetts-TUI checkout, run `git restore -- ui-tui`\n"
+        "  1. From the JettsTUI checkout, run `git restore -- ui-tui`\n"
         "  2. Run `npm install --silent --no-fund --no-audit --progress=false`\n"
-        "  3. Retry `freeide --tui`\n"
-        "If the checkout is still inconsistent, run `freeide update --force`.",
+        "  3. Retry `jettstui --tui`\n"
+        "If the checkout is still inconsistent, run `jettstui update --force`.",
         file=sys.stderr,
     )
     sys.exit(1)
 
 
 def _make_tui_argv(tui_dir: Path, tui_dev: bool) -> tuple[list[str], Path]:
-    """TUI: --dev → tsx src; else node dist (FREEIDE_TUI_DIR prebuilt or esbuild)."""
+    """TUI: --dev → tsx src; else node dist (JETTSTUI_TUI_DIR prebuilt or esbuild)."""
     _ensure_tui_node()
 
     def _node_bin(bin: str) -> str:
         if bin == "node":
-            env_node = os.environ.get("FREEIDE_NODE")
+            env_node = os.environ.get("JETTSTUI_NODE")
             if env_node and os.path.isfile(env_node) and os.access(env_node, os.X_OK):
                 return env_node
         path = shutil.which(bin)
         if not path and bin == "node":
             try:
-                from freeide_cli.dep_ensure import ensure_dependency
+                from jettstui.dep_ensure import ensure_dependency
                 if ensure_dependency("node"):
                     path = shutil.which("node")
             except Exception:
@@ -1962,12 +1962,12 @@ def _make_tui_argv(tui_dir: Path, tui_dev: bool) -> tuple[list[str], Path]:
         return path
 
     # Footgun: --dev against a prebuilt bundle that has no source/node_modules.
-    ext_dir = os.environ.get("FREEIDE_TUI_DIR")
+    ext_dir = os.environ.get("JETTSTUI_TUI_DIR")
     if tui_dev and ext_dir:
         print(
-            f"Error: --dev is incompatible with FREEIDE_TUI_DIR={ext_dir}\n"
+            f"Error: --dev is incompatible with JETTSTUI_TUI_DIR={ext_dir}\n"
             f"The prebuilt TUI has no source code to hot-reload.\n"
-            f"Unset FREEIDE_TUI_DIR (e.g. `unset FREEIDE_TUI_DIR`) to use --dev from a checkout.",
+            f"Unset JETTSTUI_TUI_DIR (e.g. `unset JETTSTUI_TUI_DIR`) to use --dev from a checkout.",
             file=sys.stderr,
         )
         sys.exit(1)
@@ -1976,7 +1976,7 @@ def _make_tui_argv(tui_dir: Path, tui_dev: bool) -> tuple[list[str], Path]:
     #
     # This must run BEFORE _ensure_tui_workspace() below. A prebuilt install
     # (Docker image, Nix build, or prior `npm run build`) ships
-    # freeide_cli/tui_dist/entry.js but never ships ui-tui/ at all (that
+    # jettstui/tui_dist/entry.js but never ships ui-tui/ at all (that
     # directory only exists in a git checkout) — so requiring the workspace
     # to exist first made every prebuilt dashboard Chat tab connection
     # hard-exit before it ever got a chance to try the bundled entry.js it
@@ -2018,7 +2018,7 @@ def _make_tui_argv(tui_dir: Path, tui_dev: bool) -> tuple[list[str], Path]:
         and _tui_need_npm_install(tui_dir)
     ):
         npm = _node_bin("npm")
-        if not os.environ.get("FREEIDE_QUIET"):
+        if not os.environ.get("JETTSTUI_QUIET"):
             print("Installing TUI dependencies…")
         npm_cwd = _workspace_root(tui_dir)
         # --workspace ui-tui avoids resolving apps/desktop (Electron + node-pty).
@@ -2127,7 +2127,7 @@ def _make_tui_argv(tui_dir: Path, tui_dev: bool) -> tuple[list[str], Path]:
 def _normalize_tui_toolsets(toolsets: object) -> list[str]:
     """Normalize argparse/Fire-style toolset input for the TUI subprocess."""
     try:
-        from freeide_cli.oneshot import _normalize_toolsets
+        from jettstui.oneshot import _normalize_toolsets
 
         return _normalize_toolsets(toolsets) or []
     except (AttributeError, ImportError):
@@ -2232,24 +2232,24 @@ def _safe_tui_cwd(env: Optional[dict] = None) -> str:
 
 def _apply_tui_python_env(env: dict) -> None:
     """Seed/repair Python-related env vars shared by CLI and dashboard TUI launches."""
-    src_root = str(env.get("FREEIDE_PYTHON_SRC_ROOT") or "").strip()
+    src_root = str(env.get("JETTSTUI_PYTHON_SRC_ROOT") or "").strip()
     if not src_root or not Path(src_root).is_dir():
-        env["FREEIDE_PYTHON_SRC_ROOT"] = str(PROJECT_ROOT)
+        env["JETTSTUI_PYTHON_SRC_ROOT"] = str(PROJECT_ROOT)
 
-    cwd = str(env.get("FREEIDE_CWD") or "").strip()
+    cwd = str(env.get("JETTSTUI_CWD") or "").strip()
     if not cwd or not Path(cwd).is_dir():
-        env["FREEIDE_CWD"] = _safe_tui_cwd(env)
+        env["JETTSTUI_CWD"] = _safe_tui_cwd(env)
 
-    python = str(env.get("FREEIDE_PYTHON") or "").strip()
+    python = str(env.get("JETTSTUI_PYTHON") or "").strip()
     if os.path.dirname(python):
         python_path = Path(python)
         if not python_path.is_absolute():
-            python_path = Path(env["FREEIDE_CWD"]) / python_path
+            python_path = Path(env["JETTSTUI_CWD"]) / python_path
         python_is_executable = python_path.is_file() and os.access(python_path, os.X_OK)
     else:
         python_is_executable = bool(shutil.which(python, path=env.get("PATH")))
     if not python_is_executable:
-        env["FREEIDE_PYTHON"] = sys.executable
+        env["JETTSTUI_PYTHON"] = sys.executable
 
 
 def _launch_tui(
@@ -2276,15 +2276,15 @@ def _launch_tui(
 
     env = os.environ.copy()
     try:
-        from freeide_cli.config import apply_terminal_config_to_env
+        from jettstui.config import apply_terminal_config_to_env
         apply_terminal_config_to_env(env=env)
     except Exception:
         logger.debug("Failed to apply terminal config bridge for TUI launch", exc_info=True)
     active_session_fd, active_session_file = tempfile.mkstemp(
-        prefix="freeide-tui-active-session-", suffix=".json"
+        prefix="jettstui-tui-active-session-", suffix=".json"
     )
     os.close(active_session_fd)
-    env["FREEIDE_TUI_ACTIVE_SESSION_FILE"] = active_session_file
+    env["JETTSTUI_TUI_ACTIVE_SESSION_FILE"] = active_session_file
     env.setdefault("NODE_ENV", "development" if tui_dev else "production")
 
     wt_info = None
@@ -2306,20 +2306,20 @@ def _launch_tui(
             wt_info = None
         if not wt_info:
             sys.exit(1)
-        env["FREEIDE_CWD"] = wt_info["path"]
+        env["JETTSTUI_CWD"] = wt_info["path"]
         env["TERMINAL_CWD"] = wt_info["path"]
 
     _apply_tui_python_env(env)
 
     if model:
-        env["FREEIDE_MODEL"] = model
-        env["FREEIDE_INFERENCE_MODEL"] = model
+        env["JETTSTUI_MODEL"] = model
+        env["JETTSTUI_INFERENCE_MODEL"] = model
     if provider:
-        env["FREEIDE_TUI_PROVIDER"] = provider
-        env["FREEIDE_INFERENCE_PROVIDER"] = provider
+        env["JETTSTUI_TUI_PROVIDER"] = provider
+        env["JETTSTUI_INFERENCE_PROVIDER"] = provider
     tui_toolsets = _normalize_tui_toolsets(toolsets)
     if tui_toolsets:
-        env["FREEIDE_TUI_TOOLSETS"] = ",".join(tui_toolsets)
+        env["JETTSTUI_TUI_TOOLSETS"] = ",".join(tui_toolsets)
     if skills:
         if isinstance(skills, (list, tuple)):
             flattened = []
@@ -2328,27 +2328,27 @@ def _launch_tui(
                     part.strip() for part in str(item).split(",") if part.strip()
                 )
             if flattened:
-                env["FREEIDE_TUI_SKILLS"] = ",".join(flattened)
+                env["JETTSTUI_TUI_SKILLS"] = ",".join(flattened)
         else:
             value = str(skills).strip()
             if value:
-                env["FREEIDE_TUI_SKILLS"] = value
+                env["JETTSTUI_TUI_SKILLS"] = value
     if query:
-        env["FREEIDE_TUI_QUERY"] = query
+        env["JETTSTUI_TUI_QUERY"] = query
     if image:
-        env["FREEIDE_TUI_IMAGE"] = image
+        env["JETTSTUI_TUI_IMAGE"] = image
     if checkpoints:
-        env["FREEIDE_TUI_CHECKPOINTS"] = "1"
+        env["JETTSTUI_TUI_CHECKPOINTS"] = "1"
     if pass_session_id:
-        env["FREEIDE_TUI_PASS_SESSION_ID"] = "1"
+        env["JETTSTUI_TUI_PASS_SESSION_ID"] = "1"
     if max_turns is not None:
-        env["FREEIDE_TUI_MAX_TURNS"] = str(max_turns)
+        env["JETTSTUI_TUI_MAX_TURNS"] = str(max_turns)
     if verbose:
-        env["FREEIDE_TUI_TOOL_PROGRESS"] = "verbose"
+        env["JETTSTUI_TUI_TOOL_PROGRESS"] = "verbose"
     elif quiet:
-        env["FREEIDE_TUI_TOOL_PROGRESS"] = "off"
+        env["JETTSTUI_TUI_TOOL_PROGRESS"] = "off"
     if accept_hooks:
-        env["FREEIDE_ACCEPT_HOOKS"] = "1"
+        env["JETTSTUI_ACCEPT_HOOKS"] = "1"
     # Guarantee a generous V8 heap for the TUI. Default node cap is ~1.5–4GB
     # depending on version and can fatal-OOM on long sessions with large
     # transcripts / reasoning blobs. We target 8GB on an unconstrained host,
@@ -2367,16 +2367,16 @@ def _launch_tui(
     if not any(t.startswith("--max-old-space-size=") for t in _tokens):
         _tokens.append(f"--max-old-space-size={_resolve_tui_heap_mb()}")
     env["NODE_OPTIONS"] = " ".join(_tokens)
-    # FREEIDE_TUI_RESUME is an internal hand-off from the Python wrapper to the
+    # JETTSTUI_TUI_RESUME is an internal hand-off from the Python wrapper to the
     # Ink app.  Because we start from os.environ.copy(), an exported/stale value
-    # in the user's shell would otherwise make a plain `freeide --tui` try to
+    # in the user's shell would otherwise make a plain `jettstui --tui` try to
     # resume a non-existent session and leave the UI at "error: session not
     # found" with no live session.  Only forward a resume id that argparse
     # resolved for this invocation; direct `node ui-tui/dist/entry.js` users can
-    # still set FREEIDE_TUI_RESUME themselves.
-    env.pop("FREEIDE_TUI_RESUME", None)
+    # still set JETTSTUI_TUI_RESUME themselves.
+    env.pop("JETTSTUI_TUI_RESUME", None)
     if resume_session_id:
-        env["FREEIDE_TUI_RESUME"] = resume_session_id
+        env["JETTSTUI_TUI_RESUME"] = resume_session_id
 
     argv, cwd = _make_tui_argv(tui_dir, tui_dev)
     code: Optional[int] = None
@@ -2399,12 +2399,12 @@ def _launch_tui(
             except Exception:
                 pass
 
-    # Exit code 42 = TUI requested an update. Relaunch as `freeide update` so
+    # Exit code 42 = TUI requested an update. Relaunch as `jettstui update` so
     # the user sees update output directly and gets the new version.
     # preserve_inherited=False ensures --tui and other flags are NOT carried
     # into the update subcommand.
     if code == 42:
-        from freeide_cli.relaunch import relaunch
+        from jettstui.relaunch import relaunch
 
         print()
         print("◆ Launching update...")
@@ -2415,36 +2415,36 @@ def _launch_tui(
 
 
 def _pin_kanban_board_env() -> None:
-    """Pin the active kanban board into ``FREEIDE_KANBAN_BOARD`` for the chat session.
+    """Pin the active kanban board into ``JETTSTUI_KANBAN_BOARD`` for the chat session.
 
     Without this, in-process tools (``kanban_*``) and shelled-out CLI calls
-    (``freeide kanban …``) resolve the board on different paths: the env-pin if
+    (``jettstui kanban …``) resolve the board on different paths: the env-pin if
     set, otherwise the global ``<root>/kanban/current`` file. A concurrent
-    ``freeide kanban boards switch`` from another session can flip the file
+    ``jettstui kanban boards switch`` from another session can flip the file
     mid-turn, so the same chat sees its tool calls hit board A while its shell
     calls hit board B (#20074). Pinning at chat boot mirrors what the
     dispatcher already does for spawned workers.
     """
-    if os.environ.get("FREEIDE_KANBAN_BOARD"):
+    if os.environ.get("JETTSTUI_KANBAN_BOARD"):
         return
     try:
-        from freeide_cli.kanban_db import get_current_board
+        from jettstui.kanban_db import get_current_board
 
-        os.environ["FREEIDE_KANBAN_BOARD"] = get_current_board()
+        os.environ["JETTSTUI_KANBAN_BOARD"] = get_current_board()
     except Exception:
         pass
 
 
 def _sync_bundled_skills_quietly() -> None:
-    """Seed ``~/.freeide/skills/`` with the bundled skill library on first launch.
+    """Seed ``~/.jettstui/skills/`` with the bundled skill library on first launch.
 
     Called from any CLI entrypoint that the user might use as their first
-    interaction with FreeIDE — chat, dashboard (the desktop GUI's backend),
+    interaction with JettsTUI — chat, dashboard (the desktop GUI's backend),
     and gateway. The skills_sync module is manifest-based and idempotent:
     skipped skills cost ~milliseconds, so calling this repeatedly is fine.
 
     Failures are swallowed because skills are an enhancement, not a hard
-    dependency. FreeIDE still functions without them; the user just sees an
+    dependency. JettsTUI still functions without them; the user just sees an
     empty skills library.
     """
     try:
@@ -2466,7 +2466,7 @@ def _resolve_use_tui(args) -> bool:
 
     The TTY gate (3) is load-bearing: ambient TUI preferences (env var or
     config default) must never hijack a NON-interactive invocation. Kanban
-    workers, cron jobs, and pipelines run ``freeide … chat -q`` with stdout
+    workers, cron jobs, and pipelines run ``jettstui … chat -q`` with stdout
     on a pipe; booting the Ink TUI there hits its no-TTY bail-out, which
     prints a resume hint and exits 0 — a kanban worker then dies with
     "exited cleanly without calling kanban_complete — protocol violation"
@@ -2499,7 +2499,7 @@ def cmd_chat(args):
                 args.resume = resolved
             else:
                 print(f"No session found matching '{continue_val}'.")
-                print("Use 'freeide sessions list' to see available sessions.")
+                print("Use 'jettstui sessions list' to see available sessions.")
                 sys.exit(1)
         else:
             # -c with no argument — continue the most recent session
@@ -2533,7 +2533,7 @@ def cmd_chat(args):
         and not getattr(args, "worktree", False)
     ):
         try:
-            from freeide_state import SessionDB
+            from jettstui_state import SessionDB
 
             _saved_cwd = ((SessionDB().get_session(args.resume) or {}).get("cwd") or "").strip()
             if _saved_cwd and not os.path.isdir(_saved_cwd):
@@ -2546,13 +2546,13 @@ def cmd_chat(args):
 
     # xAI retirement warning — one-shot, non-blocking, never fails startup
     try:
-        from freeide_cli.xai_retirement import (
+        from jettstui.xai_retirement import (
             MIGRATION_GUIDE_URL,
             RETIREMENT_DATE,
             find_retired_xai_refs,
             format_issue,
         )
-        from freeide_cli.config import load_config as _load_config_for_xai_check
+        from jettstui.config import load_config as _load_config_for_xai_check
 
         _retired_xai_refs = find_retired_xai_refs(_load_config_for_xai_check())
         if _retired_xai_refs:
@@ -2563,7 +2563,7 @@ def cmd_chat(args):
             for _ref in _retired_xai_refs:
                 sys.stderr.write(f"  \033[33m⚠\033[0m {format_issue(_ref)}\n")
             sys.stderr.write(f"  \033[2mMigration guide: {MIGRATION_GUIDE_URL}\033[0m\n")
-            sys.stderr.write("  \033[2mRun 'freeide doctor' for details.\033[0m\n\n")
+            sys.stderr.write("  \033[2mRun 'jettstui doctor' for details.\033[0m\n\n")
     except Exception:
         pass
 
@@ -2571,13 +2571,13 @@ def cmd_chat(args):
     if not _has_any_provider_configured():
         print()
         print(
-            "It looks like Jetts-TUI isn't configured yet -- no API keys or providers found."
+            "It looks like JettsTUI isn't configured yet -- no API keys or providers found."
         )
         print()
         print("  Run:  jetts-tui setup")
         print()
 
-        from freeide_cli.setup import (
+        from jettstui.setup import (
             is_interactive_stdin,
             print_noninteractive_setup_guidance,
         )
@@ -2604,7 +2604,7 @@ def cmd_chat(args):
     # competes for CPU on single-core devices, so keep it opt-in there.
     if _termux_should_prefetch_update_check():
         try:
-            from freeide_cli.banner import prefetch_update_check
+            from jettstui.banner import prefetch_update_check
 
             prefetch_update_check()
         except Exception:
@@ -2622,25 +2622,25 @@ def cmd_chat(args):
     # _YOLO_MODE_FROZEN.  This redundant set is a safety net for callers
     # that invoke cmd_chat directly (e.g. subcommand dispatch).
     if getattr(args, "yolo", False):
-        os.environ["FREEIDE_YOLO_MODE"] = "1"
+        os.environ["JETTSTUI_YOLO_MODE"] = "1"
 
     # --ignore-user-config: make load_cli_config() / load_config() skip the
-    # user's ~/.freeide/config.yaml and return built-in defaults. Set BEFORE
+    # user's ~/.jettstui/config.yaml and return built-in defaults. Set BEFORE
     # importing cli (which runs `CLI_CONFIG = load_cli_config()` at module
     # import time). Credentials in .env are still loaded — this flag only
     # ignores behavioral/config settings.
     if getattr(args, "ignore_user_config", False):
-        os.environ["FREEIDE_IGNORE_USER_CONFIG"] = "1"
+        os.environ["JETTSTUI_IGNORE_USER_CONFIG"] = "1"
 
     # --ignore-rules: skip auto-injection of AGENTS.md/SOUL.md/.cursorrules
     # (rules), memory entries, and any preloaded skills coming from user config.
     # Maps to AIAgent(skip_context_files=True, skip_memory=True).
     if getattr(args, "ignore_rules", False):
-        os.environ["FREEIDE_IGNORE_RULES"] = "1"
+        os.environ["JETTSTUI_IGNORE_RULES"] = "1"
 
     # --source: tag session source for filtering (e.g. 'tool' for third-party integrations)
     if getattr(args, "source", None):
-        os.environ["FREEIDE_SESSION_SOURCE"] = args.source
+        os.environ["JETTSTUI_SESSION_SOURCE"] = args.source
 
     _pin_kanban_board_env()
 
@@ -2699,7 +2699,7 @@ def cmd_gateway(args):
     """Gateway management commands."""
     _sync_bundled_skills_quietly()
 
-    from freeide_cli.gateway import gateway_command
+    from jettstui.gateway import gateway_command
 
     gateway_command(args)
 
@@ -2708,7 +2708,7 @@ def cmd_proxy(args):
     """Local OpenAI-compatible proxy to OAuth providers."""
     # Lazy import — pulls in aiohttp, which is gated behind an extras install
     # for users who don't run the proxy or the messaging gateway.
-    from freeide_cli.proxy.cli import cmd_proxy as _cmd_proxy
+    from jettstui.proxy.cli import cmd_proxy as _cmd_proxy
 
     rc = _cmd_proxy(args)
     if isinstance(rc, int) and rc != 0:
@@ -2718,8 +2718,8 @@ def cmd_proxy(args):
 def cmd_whatsapp(args):
     """Set up WhatsApp: choose mode, configure, install bridge, pair via QR."""
     _require_tty("whatsapp")
-    from freeide_cli.config import get_env_value, save_env_value
-    from freeide_constants import find_node_executable, with_freeide_node_path
+    from jettstui.config import get_env_value, save_env_value
+    from jettstui_constants import find_node_executable, with_jettstui_node_path
 
     print()
     print("◆ WhatsApp Setup")
@@ -2729,7 +2729,7 @@ def cmd_whatsapp(args):
     current_mode = get_env_value("WHATSAPP_MODE") or ""
     if not current_mode:
         print()
-        print("How will you use WhatsApp with Jetts-TUI?")
+        print("How will you use WhatsApp with JettsTUI?")
         print()
         print("  1. Separate bot number (recommended)")
         print("     People message the bot's number directly — cleanest experience.")
@@ -2779,7 +2779,7 @@ def cmd_whatsapp(args):
     # We intentionally don't write WHATSAPP_ENABLED=true here.  If the user
     # aborts the wizard later (Ctrl+C, failed npm install, missed QR scan),
     # we'd otherwise leave .env claiming WhatsApp is ready when the bridge
-    # has no creds.json.  Every subsequent `freeide gateway` then paid a 30s
+    # has no creds.json.  Every subsequent `jettstui gateway` then paid a 30s
     # bridge-bootstrap timeout and queued WhatsApp for indefinite retries.
     # Now: aborted setup leaves WHATSAPP_ENABLED unset → gateway skips it.
     # Re-runs that already have WHATSAPP_ENABLED=true (from a prior
@@ -2847,7 +2847,7 @@ def cmd_whatsapp(args):
                 text=True,
                 encoding="utf-8",
                 errors="replace",
-                env=with_freeide_node_path(),
+                env=with_jettstui_node_path(),
             )
         except KeyboardInterrupt:
             print("\n  ✗ Install cancelled")
@@ -2863,7 +2863,7 @@ def cmd_whatsapp(args):
         print("✓ Bridge dependencies already installed")
 
     # ── Step 5: Check for existing session ───────────────────────────────
-    session_dir = get_freeide_home() / "whatsapp" / "session"
+    session_dir = get_jettstui_home() / "whatsapp" / "session"
     session_dir.mkdir(parents=True, exist_ok=True)
 
     if (session_dir / "creds.json").exists():
@@ -2886,7 +2886,7 @@ def cmd_whatsapp(args):
             if (get_env_value("WHATSAPP_ENABLED") or "").lower() != "true":
                 save_env_value("WHATSAPP_ENABLED", "true")
             print("\n✓ WhatsApp is configured and paired!")
-            print("  Start the gateway with: freeide gateway")
+            print("  Start the gateway with: jettstui gateway")
             return
 
     # ── Step 6: QR code pairing ──────────────────────────────────────────
@@ -2912,7 +2912,7 @@ def cmd_whatsapp(args):
                 str(session_dir),
             ],
             cwd=str(bridge_dir),
-            env=with_freeide_node_path(),
+            env=with_jettstui_node_path(),
         )
     except KeyboardInterrupt:
         pass
@@ -2922,30 +2922,30 @@ def cmd_whatsapp(args):
     if (session_dir / "creds.json").exists():
         # Only enable WhatsApp now that pairing actually succeeded.  If the
         # user Ctrl+C'd at any earlier step, WHATSAPP_ENABLED stays unset
-        # and `freeide gateway` skips it cleanly instead of paying a 30s
+        # and `jettstui gateway` skips it cleanly instead of paying a 30s
         # bridge timeout + queueing the platform for indefinite retries.
         save_env_value("WHATSAPP_ENABLED", "true")
         print("✓ WhatsApp paired successfully!")
         print()
         if wa_mode == "bot":
             print("  Next steps:")
-            print("    1. Start the gateway:  freeide gateway")
+            print("    1. Start the gateway:  jettstui gateway")
             print("    2. Send a message to the bot's WhatsApp number")
             print("    3. The agent will reply automatically")
             print()
-            print("  Tip: Agent responses are prefixed with '◆ Jetts-TUI'")
+            print("  Tip: Agent responses are prefixed with '◆ JettsTUI'")
         else:
             print("  Next steps:")
-            print("    1. Start the gateway:  freeide gateway")
+            print("    1. Start the gateway:  jettstui gateway")
             print("    2. Open WhatsApp → Message Yourself")
             print("    3. Type a message — the agent will reply")
             print()
-            print("  Tip: Agent responses are prefixed with '◆ Jetts-TUI'")
+            print("  Tip: Agent responses are prefixed with '◆ JettsTUI'")
             print("  so you can tell them apart from your own messages.")
         print()
-        print("  Or install as a service: freeide gateway install")
+        print("  Or install as a service: jettstui gateway install")
     else:
-        print("⚠ Pairing may not have completed. Run 'freeide whatsapp' to try again.")
+        print("⚠ Pairing may not have completed. Run 'jettstui whatsapp' to try again.")
 
 
 def cmd_whatsapp_cloud(args):
@@ -2957,19 +2957,19 @@ def cmd_whatsapp_cloud(args):
     common setup mistakes (e.g. pasting a phone number into the Phone
     Number ID field).
 
-    Distinct from ``freeide whatsapp`` (the Baileys bridge wizard) — the
+    Distinct from ``jettstui whatsapp`` (the Baileys bridge wizard) — the
     two adapters are complementary, not alternatives. See
-    ``freeide_cli/setup_whatsapp_cloud.py``.
+    ``jettstui/setup_whatsapp_cloud.py``.
     """
     _require_tty("whatsapp-cloud")
-    from freeide_cli.setup_whatsapp_cloud import run_whatsapp_cloud_setup
+    from jettstui.setup_whatsapp_cloud import run_whatsapp_cloud_setup
 
     return run_whatsapp_cloud_setup()
 
 
 def cmd_setup(args):
     """Interactive setup wizard."""
-    from freeide_cli.setup import run_setup_wizard
+    from jettstui.setup import run_setup_wizard
 
     run_setup_wizard(args)
 
@@ -2979,7 +2979,7 @@ def cmd_model(args):
     _require_tty("model")
     if getattr(args, "refresh", False):
         try:
-            from freeide_cli.models import clear_provider_models_cache
+            from jettstui.models import clear_provider_models_cache
             clear_provider_models_cache()
             print("  Cleared model picker cache.")
         except Exception:
@@ -3005,22 +3005,22 @@ def _is_profile_api_key_provider(provider_id: str) -> bool:
 def select_provider_and_model(args=None):
     """Core provider selection + model picking logic.
 
-    Shared by ``cmd_model`` (``freeide model``) and the setup wizard
+    Shared by ``cmd_model`` (``jettstui model``) and the setup wizard
     (``setup_model_provider`` in setup.py).  Handles the full flow:
     provider picker, credential prompting, model selection, and config
     persistence.
     """
-    from freeide_cli.auth import (
+    from jettstui.auth import (
         resolve_provider,
         AuthError,
         format_auth_error,
     )
-    from freeide_cli.config import (
+    from jettstui.config import (
         get_compatible_custom_providers,
         load_config,
         get_env_value,
     )
-    from freeide_cli.providers import resolve_provider_full
+    from jettstui.providers import resolve_provider_full
 
     config = load_config()
     current_model = config.get("model")
@@ -3036,11 +3036,11 @@ def select_provider_and_model(args=None):
         config_provider = model_cfg.get("provider")
 
     effective_provider = (
-        config_provider or os.getenv("FREEIDE_INFERENCE_PROVIDER") or "auto"
+        config_provider or os.getenv("JETTSTUI_INFERENCE_PROVIDER") or "auto"
     )
     compatible_custom_providers = get_compatible_custom_providers(config)
     def _named_custom_provider_map(cfg) -> dict[str, dict[str, str]]:
-        from freeide_cli.config import read_raw_config
+        from jettstui.config import read_raw_config
 
         # Build lookups of raw (un-expanded) templates keyed by a
         # stable identity. We intentionally bypass
@@ -3198,8 +3198,8 @@ def select_provider_and_model(args=None):
             active = active_def.id
         else:
             warning = (
-                f"Unknown provider '{effective_provider}'. Check 'freeide model' for "
-                "available providers, or run 'freeide doctor' to diagnose config "
+                f"Unknown provider '{effective_provider}'. Check 'jettstui model' for "
+                "available providers, or run 'jettstui doctor' to diagnose config "
                 "issues."
             )
             print(f"Warning: {warning} Falling back to auto provider detection.")
@@ -3216,7 +3216,7 @@ def select_provider_and_model(args=None):
     if active == "openrouter" and get_env_value("OPENAI_BASE_URL"):
         active = "custom"
 
-    from freeide_cli.models import (
+    from jettstui.models import (
         CANONICAL_PROVIDERS,
         _PROVIDER_LABELS,
         _PROVIDER_ALIASES,
@@ -3238,16 +3238,16 @@ def select_provider_and_model(args=None):
     # Step 1: Provider selection.
     #
     # Canonical providers are folded into top-level groups (display only — see
-    # PROVIDER_GROUPS in freeide_cli/models.py). A multi-member group shows one
+    # PROVIDER_GROUPS in jettstui/models.py). A multi-member group shows one
     # row ("Kimi / Moonshot ▸"); picking it opens a member sub-picker that
     # resolves back to a concrete slug, so the dispatch chain below is
     # unchanged. Custom providers and the trailing actions stay flat.
     canonical_descs = {p.slug: p.tui_desc for p in CANONICAL_PROVIDERS}
-    # Honor ``model_catalog.excluded_providers`` so the CLI ``freeide model``
+    # Honor ``model_catalog.excluded_providers`` so the CLI ``jettstui model``
     # picker hides the same providers the gateway/TUI pickers do. A canonical
     # provider is hidden if its slug OR any of its aliases appears in the
     # exclusion list (case-insensitive), matching list_authenticated_providers'
-    # matching against freeide_id / alias / canonical slug.
+    # matching against jettstui_id / alias / canonical slug.
     _cli_excluded = {
         str(p).strip().lower()
         for p in (config.get("model_catalog", {}) or {}).get("excluded_providers") or []
@@ -3323,7 +3323,7 @@ def select_provider_and_model(args=None):
     # long enough that a flat run of 18 names tells you nothing about what each
     # one costs, which is the first thing you actually want to know.
     try:
-        from freeide_cli.curses_ui import separator as _fi_sep
+        from jettstui.curses_ui import separator as _fi_sep
         from providers.curated import CURATED_TIERS as _FI_TIERS, show_all as _fi_show_all
 
         if not _fi_show_all():
@@ -3475,7 +3475,7 @@ def select_provider_and_model(args=None):
 
     # ── Post-switch cleanup: clear stale OPENAI_BASE_URL ──────────────
     # When the user switches to a named provider (anything except "custom"),
-    # a leftover OPENAI_BASE_URL in ~/.freeide/.env can poison auxiliary
+    # a leftover OPENAI_BASE_URL in ~/.jettstui/.env can poison auxiliary
     # clients that use provider:auto. Clear it proactively.  (#5161)
     if selected_provider not in {
         "custom",
@@ -3486,14 +3486,14 @@ def select_provider_and_model(args=None):
 
 
 def _clear_stale_openai_base_url():
-    """Remove OPENAI_BASE_URL from ~/.freeide/.env if the active provider is not 'custom'.
+    """Remove OPENAI_BASE_URL from ~/.jettstui/.env if the active provider is not 'custom'.
 
     After a provider switch, a leftover OPENAI_BASE_URL causes auxiliary
     clients (compression, vision, delegation) with provider:auto to route
     requests to the old custom endpoint instead of the newly selected
     provider.  See issue #5161.
     """
-    from freeide_cli.config import get_env_value, save_env_value, load_config
+    from jettstui.config import get_env_value, save_env_value, load_config
 
     cfg = load_config()
     model_cfg = cfg.get("model", {})
@@ -3518,14 +3518,14 @@ def _clear_stale_openai_base_url():
 # ─────────────────────────────────────────────────────────────────────────────
 # Auxiliary model configuration
 #
-# FreeIDE uses lightweight "auxiliary" models for side tasks (vision analysis,
+# JettsTUI uses lightweight "auxiliary" models for side tasks (vision analysis,
 # context compression, web extraction, session search, etc.). Each task has
 # its own provider+model pair in config.yaml under `auxiliary.<task>`.
 #
 # The UI lives behind "Configure auxiliary models..." at the bottom of the
-# `freeide model` provider picker. It does NOT re-run credential setup — it
+# `jettstui model` provider picker. It does NOT re-run credential setup — it
 # only routes already-authenticated providers to specific aux tasks. Users
-# configure new providers through the normal `freeide model` flow first.
+# configure new providers through the normal `jettstui model` flow first.
 # ─────────────────────────────────────────────────────────────────────────────
 
 # (task_key, display_name, short_description)
@@ -3552,12 +3552,12 @@ def _all_aux_tasks() -> list[tuple[str, str, str]]:
     Built-in tasks come first (preserving order), followed by plugin tasks
     sorted by key. Used by ``_aux_config_menu``, ``_reset_aux_to_auto``, and
     display-name lookups so plugin-registered tasks (registered via
-    :meth:`freeide_cli.plugins.PluginContext.register_auxiliary_task`) appear
+    :meth:`jettstui.plugins.PluginContext.register_auxiliary_task`) appear
     in the same surfaces as built-in ones without core knowing about them.
     """
     tasks = list(_AUX_TASKS)
     try:
-        from freeide_cli.plugins import get_plugin_auxiliary_tasks
+        from jettstui.plugins import get_plugin_auxiliary_tasks
         for entry in get_plugin_auxiliary_tasks():
             tasks.append((entry["key"], entry["display_name"], entry["description"]))
     except Exception:
@@ -3598,7 +3598,7 @@ def _save_aux_choice(
     other task-specific settings are preserved untouched. The main model
     config (``model.default``/``model.provider``) is never modified.
     """
-    from freeide_cli.config import load_config, save_config
+    from jettstui.config import load_config, save_config
 
     cfg = load_config()
     aux = cfg.setdefault("auxiliary", {})
@@ -3622,7 +3622,7 @@ def _reset_aux_to_auto() -> int:
     Includes plugin-registered tasks (via ``_all_aux_tasks``) so a plugin
     that contributed an auxiliary task gets reset alongside built-ins.
     """
-    from freeide_cli.config import load_config, save_config
+    from jettstui.config import load_config, save_config
 
     cfg = load_config()
     aux = cfg.setdefault("auxiliary", {})
@@ -3656,7 +3656,7 @@ def _aux_config_menu() -> None:
     Loops until the user picks "Back" so multiple tasks can be configured
     without returning to the main provider menu.
     """
-    from freeide_cli.config import load_config
+    from jettstui.config import load_config
 
     while True:
         cfg = load_config()
@@ -3667,7 +3667,7 @@ def _aux_config_menu() -> None:
         print()
         print("  Side tasks (vision, compression, web extraction, etc.) default")
         print('  to your main chat model.  "auto" means "use my main model" —')
-        print("  Jetts-TUI only falls back to a lightweight backend (OpenRouter)")
+        print("  JettsTUI only falls back to a lightweight backend (OpenRouter)")
         print("  if the main model is unavailable.  Override a")
         print("  task below if you want it pinned to a specific provider/model.")
         print()
@@ -3718,11 +3718,11 @@ def _aux_select_for_task(task: str) -> None:
     shows: authenticated built-ins, the user's own ``providers:`` /
     ``custom_providers:`` endpoints, and providers whose credential pool is
     temporarily exhausted. Only already-configured providers appear; users set
-    up new ones through the normal ``freeide model`` flow, then route aux tasks
+    up new ones through the normal ``jettstui model`` flow, then route aux tasks
     to them here.
     """
-    from freeide_cli.config import load_config
-    from freeide_cli.inventory import build_aux_picker_rows, format_aux_picker_entries
+    from jettstui.config import load_config
+    from jettstui.inventory import build_aux_picker_rows, format_aux_picker_entries
 
     cfg = load_config()
     aux = cfg.get("auxiliary", {}) if isinstance(cfg.get("auxiliary"), dict) else {}
@@ -3796,8 +3796,8 @@ def _aux_flow_provider_model(
     current_model: str = "",
 ) -> None:
     """Prompt for a model under an already-authenticated provider, save to aux."""
-    from freeide_cli.auth import _prompt_model_selection
-    from freeide_cli.models import get_pricing_for_provider
+    from jettstui.auth import _prompt_model_selection
+    from jettstui.models import get_pricing_for_provider
 
     display_name = next((name for key, name, _ in _all_aux_tasks() if key == task), task)
 
@@ -3844,7 +3844,7 @@ def _aux_flow_provider_model(
 
 def _aux_flow_custom_endpoint(task: str, task_cfg: dict) -> None:
     """Prompt for a direct OpenAI-compatible base_url + optional api_key/model."""
-    from freeide_cli.secret_prompt import masked_secret_prompt
+    from jettstui.secret_prompt import masked_secret_prompt
 
     display_name = next((name for key, name, _ in _all_aux_tasks() if key == task), task)
     current_base_url = str(task_cfg.get("base_url") or "").strip()
@@ -3904,7 +3904,7 @@ def _prompt_provider_choice(choices, *, default=0, title="Select provider:"):
     if the user cancels.
     """
     try:
-        from freeide_cli.setup import _curses_prompt_choice
+        from jettstui.setup import _curses_prompt_choice
 
         idx = _curses_prompt_choice(title, choices, default)
         if idx >= 0:
@@ -3954,7 +3954,7 @@ def _prompt_custom_api_mode_selection(base_url: str, current_api_mode: str = "")
 
     Returns an explicit mode string, or None to keep auto-detect behavior.
     """
-    from freeide_cli.runtime_provider import _detect_api_mode_for_url
+    from jettstui.runtime_provider import _detect_api_mode_for_url
 
     detected_mode = _detect_api_mode_for_url(base_url)
     normalized_current = str(current_api_mode or "").strip().lower()
@@ -3964,7 +3964,7 @@ def _prompt_custom_api_mode_selection(base_url: str, current_api_mode: str = "")
         (
             "",
             "Auto-detect",
-            "Use Jetts-TUI URL heuristics; best for standard OpenAI-compatible endpoints.",
+            "Use JettsTUI URL heuristics; best for standard OpenAI-compatible endpoints.",
         ),
         (
             "chat_completions",
@@ -4074,7 +4074,7 @@ def _save_custom_provider(
     When *key_env* is set the caller has already written the key to ``.env``,
     so the entry references it instead of inlining the secret (#69449).
     """
-    from freeide_cli.config import load_config, save_config
+    from jettstui.config import load_config, save_config
 
     cfg = load_config()
     providers = cfg.get("custom_providers") or []
@@ -4139,7 +4139,7 @@ def _save_custom_provider(
 
 def _remove_custom_provider(config):
     """Let the user remove a saved custom provider from config.yaml."""
-    from freeide_cli.config import load_config, save_config
+    from jettstui.config import load_config, save_config
 
     cfg = load_config()
     providers = cfg.get("custom_providers") or []
@@ -4161,7 +4161,7 @@ def _remove_custom_provider(config):
     choices.append("Cancel")
 
     try:
-        from freeide_cli.curses_ui import curses_radiolist
+        from jettstui.curses_ui import curses_radiolist
 
         idx = curses_radiolist(
             "Select provider to remove:",
@@ -4198,10 +4198,10 @@ def _remove_custom_provider(config):
 
 
 # Lazy-export the model catalog at module level. Tests and a handful of
-# downstream call sites read `freeide_cli.main._PROVIDER_MODELS` directly,
+# downstream call sites read `jettstui.main._PROVIDER_MODELS` directly,
 # so the symbol needs to be reachable as a module attribute. But importing
-# the catalog eagerly costs ~55ms on every `freeide` invocation — including
-# fast paths like `freeide --version` and slash-command dispatch that never
+# the catalog eagerly costs ~55ms on every `jettstui` invocation — including
+# fast paths like `jettstui --version` and slash-command dispatch that never
 # touch the catalog. PEP 562 module-level __getattr__ defers the import
 # until first attribute access, so the cost is only paid by callers that
 # actually look up the catalog. Termux already defers via the same
@@ -4213,7 +4213,7 @@ _LAZY_MODEL_EXPORTS = ("_PROVIDER_MODELS",)
 def __getattr__(name):
     """Defer the model-catalog import until something actually reads it."""
     if name in _LAZY_MODEL_EXPORTS:
-        from freeide_cli.models import _PROVIDER_MODELS
+        from jettstui.models import _PROVIDER_MODELS
         # Cache on the module so subsequent accesses skip the import machinery.
         globals()[name] = _PROVIDER_MODELS
         return _PROVIDER_MODELS
@@ -4266,7 +4266,7 @@ def _prompt_reasoning_effort_selection(efforts, current_effort=""):
         default_idx = 0
 
     try:
-        from freeide_cli.curses_ui import curses_radiolist
+        from jettstui.curses_ui import curses_radiolist
 
         choices = [_label(effort) for effort in ordered]
         choices.append(disable_label)
@@ -4320,19 +4320,19 @@ def _prompt_reasoning_effort_selection(efforts, current_effort=""):
 
 
 def _prompt_api_key(pconfig, existing_key: str, provider_id: str = "") -> tuple:
-    """Shared API-key entry point for ``freeide setup`` / ``freeide model``.
+    """Shared API-key entry point for ``jettstui setup`` / ``jettstui model``.
 
     Handles both first-time entry and the already-configured case.  When a key
     is already present, offers [K]eep / [R]eplace / [C]lear so the user can
-    recover from a malformed paste without editing ``~/.freeide/.env`` by hand.
+    recover from a malformed paste without editing ``~/.jettstui/.env`` by hand.
 
     Returns ``(resolved_key, abort)``.  ``abort=True`` means the caller should
     ``return`` immediately — the user cancelled entry, declined to replace, or
     cleared the key and is now unconfigured.
     """
-    from freeide_cli.auth import LMSTUDIO_NOAUTH_PLACEHOLDER
-    from freeide_cli.config import save_env_value
-    from freeide_cli.secret_prompt import masked_secret_prompt
+    from jettstui.auth import LMSTUDIO_NOAUTH_PLACEHOLDER
+    from jettstui.config import save_env_value
+    from jettstui.secret_prompt import masked_secret_prompt
 
     key_env = pconfig.api_key_env_vars[0] if pconfig.api_key_env_vars else ""
 
@@ -4365,7 +4365,7 @@ def _prompt_api_key(pconfig, existing_key: str, provider_id: str = "") -> tuple:
         return new_key, False
 
     # Already configured — offer K / R / C ────────────────────────────────
-    from freeide_cli.env_loader import format_secret_source_suffix
+    from jettstui.env_loader import format_secret_source_suffix
 
     source_suffix = format_secret_source_suffix(key_env) if key_env else ""
     print(f"  {pconfig.name} API key: {existing_key[:8]}... ✓{source_suffix}")
@@ -4393,7 +4393,7 @@ def _prompt_api_key(pconfig, existing_key: str, provider_id: str = "") -> tuple:
     if choice.startswith("c"):
         save_env_value(key_env, "")
         print(
-            f"  API key cleared.  Re-run `freeide setup` to configure {pconfig.name} again."
+            f"  API key cleared.  Re-run `jettstui setup` to configure {pconfig.name} again."
         )
         return "", True
 
@@ -4413,7 +4413,7 @@ def _infer_stepfun_region(base_url: str) -> str:
 
 
 def _stepfun_base_url_for_region(region: str) -> str:
-    from freeide_cli.auth import (
+    from jettstui.auth import (
         STEPFUN_STEP_PLAN_CN_BASE_URL,
         STEPFUN_STEP_PLAN_INTL_BASE_URL,
     )
@@ -4440,7 +4440,7 @@ def _run_anthropic_oauth_flow(save_env_value):
         read_claude_code_credentials,
         is_claude_code_token_valid,
     )
-    from freeide_cli.config import (
+    from jettstui.config import (
         save_anthropic_oauth_token,
         use_anthropic_claude_code_credentials,
     )
@@ -4455,10 +4455,10 @@ def _run_anthropic_oauth_flow(save_env_value):
         ):
             use_anthropic_claude_code_credentials(save_fn=save_env_value)
             print("  ✓ Claude Code credentials linked.")
-            from freeide_constants import display_freeide_home as _dhh_fn
+            from jettstui_constants import display_jettstui_home as _dhh_fn
 
             print(
-                f"    Jetts-TUI will use Claude's credential store directly instead of copying a setup-token into {_dhh_fn()}/.env."
+                f"    JettsTUI will use Claude's credential store directly instead of copying a setup-token into {_dhh_fn()}/.env."
             )
             return True
         return False
@@ -4480,7 +4480,7 @@ def _run_anthropic_oauth_flow(save_env_value):
         print()
         print("  If the setup-token was displayed above, paste it here:")
         print()
-        from freeide_cli.secret_prompt import masked_secret_prompt
+        from jettstui.secret_prompt import masked_secret_prompt
 
         try:
             manual_token = masked_secret_prompt(
@@ -4507,11 +4507,11 @@ def _run_anthropic_oauth_flow(save_env_value):
         print("    1. Install Claude Code:  npm install -g @anthropic-ai/claude-code")
         print("    2. Run:                  claude setup-token")
         print("    3. Follow the browser prompts to authorize")
-        print("    4. Re-run:               freeide model")
+        print("    4. Re-run:               jettstui model")
         print()
         print("  Or paste an existing setup-token now (sk-ant-oat-...):")
         print()
-        from freeide_cli.secret_prompt import masked_secret_prompt
+        from jettstui.secret_prompt import masked_secret_prompt
 
         try:
             token = masked_secret_prompt("  Setup-token (or Enter to cancel): ").strip()
@@ -4529,43 +4529,43 @@ def _run_anthropic_oauth_flow(save_env_value):
 
 
 def cmd_login(args):
-    """Authenticate FreeIDE CLI with a provider."""
-    from freeide_cli.auth import login_command
+    """Authenticate JettsTUI CLI with a provider."""
+    from jettstui.auth import login_command
 
     login_command(args)
 
 
 def cmd_logout(args):
     """Clear provider authentication."""
-    from freeide_cli.auth import logout_command
+    from jettstui.auth import logout_command
 
     logout_command(args)
 
 
 def cmd_auth(args):
     """Manage pooled credentials."""
-    from freeide_cli.auth_commands import auth_command
+    from jettstui.auth_commands import auth_command
 
     auth_command(args)
 
 
 def cmd_status(args):
     """Show status of all components."""
-    from freeide_cli.status import show_status
+    from jettstui.status import show_status
 
     show_status(args)
 
 
 def cmd_cron(args):
     """Cron job management."""
-    from freeide_cli.cron import cron_command
+    from jettstui.cron import cron_command
 
     cron_command(args)
 
 
 def cmd_webhook(args):
     """Webhook subscription management."""
-    from freeide_cli.webhook import webhook_command
+    from jettstui.webhook import webhook_command
 
     webhook_command(args)
 
@@ -4593,7 +4593,7 @@ def cmd_slack(args):
         return 1
 
     if sub == "manifest":
-        from freeide_cli.slack_cli import slack_manifest_command
+        from jettstui.slack_cli import slack_manifest_command
 
         status = slack_manifest_command(args)
         if status:
@@ -4606,37 +4606,37 @@ def cmd_slack(args):
 
 def cmd_kanban(args):
     """Multi-profile collaboration board."""
-    from freeide_cli.kanban import kanban_command
+    from jettstui.kanban import kanban_command
 
     return kanban_command(args)
 
 
 def cmd_project(args):
     """Manage projects (named, multi-folder workspaces)."""
-    from freeide_cli.projects_cmd import projects_command
+    from jettstui.projects_cmd import projects_command
 
     return projects_command(args)
 
 
 def cmd_hooks(args):
     """Shell-hook inspection and management."""
-    from freeide_cli.hooks import hooks_command
+    from jettstui.hooks import hooks_command
 
     hooks_command(args)
 
 
 def cmd_doctor(args):
     """Check configuration and dependencies."""
-    from freeide_cli.doctor import run_doctor
+    from jettstui.doctor import run_doctor
 
     run_doctor(args)
 
 
 def cmd_security(args):
-    """Dispatch `freeide security <subcmd>`."""
+    """Dispatch `jettstui security <subcmd>`."""
     sub = getattr(args, "security_command", None)
     if sub in ("audit", None):
-        from freeide_cli.security_audit import cmd_security_audit
+        from jettstui.security_audit import cmd_security_audit
 
         # Default subcommand is `audit` when no subcmd is given.
         code = cmd_security_audit(args)
@@ -4646,8 +4646,8 @@ def cmd_security(args):
 
 
 def cmd_approvals(args):
-    """Dispatch `freeide approvals <subcmd>`."""
-    from freeide_cli.approvals_suggest import approvals_command
+    """Dispatch `jettstui approvals <subcmd>`."""
+    from jettstui.approvals_suggest import approvals_command
 
     status = approvals_command(args)
     if status:
@@ -4657,61 +4657,61 @@ def cmd_approvals(args):
 
 def cmd_dump(args):
     """Dump setup summary for support/debugging."""
-    from freeide_cli.dump import run_dump
+    from jettstui.dump import run_dump
 
     run_dump(args)
 
 
 def cmd_debug(args):
     """Debug tools (share report, etc.)."""
-    from freeide_cli.debug import run_debug
+    from jettstui.debug import run_debug
 
     run_debug(args)
 
 
 def cmd_config(args):
     """Configuration management."""
-    from freeide_cli.config import config_command
+    from jettstui.config import config_command
 
     config_command(args)
 
 
 def cmd_skin(args):
     """Skin management (list / use / set)."""
-    from freeide_cli.skin_cmd import skin_command
+    from jettstui.skin_cmd import skin_command
 
     skin_command(args)
 
 
 def cmd_brain(args):
     """Create, inspect, and maintain an Obsidian project brain."""
-    from freeide_cli.brain import brain_command
+    from jettstui.brain import brain_command
 
     return brain_command(args)
 
 
 def cmd_backup(args):
-    """Back up the Jetts-TUI home directory to a zip file."""
+    """Back up the JettsTUI home directory to a zip file."""
     if getattr(args, "quick", False):
-        from freeide_cli.backup import run_quick_backup
+        from jettstui.backup import run_quick_backup
 
         run_quick_backup(args)
     else:
-        from freeide_cli.backup import run_backup
+        from jettstui.backup import run_backup
 
         run_backup(args)
 
 
 def cmd_import(args):
-    """Restore a Jetts-TUI backup from a zip file."""
-    from freeide_cli.backup import run_import
+    """Restore a JettsTUI backup from a zip file."""
+    from jettstui.backup import run_import
 
     run_import(args)
 
 
 def _print_version_info(*, check_updates: bool = True) -> None:
-    from freeide_cli.config import detect_install_method
-    from freeide_cli.banner import format_banner_version_label
+    from jettstui.config import detect_install_method
+    from jettstui.banner import format_banner_version_label
 
     print(format_banner_version_label())
     print(f"Install directory: {PROJECT_ROOT}")
@@ -4738,8 +4738,8 @@ def _print_version_info(*, check_updates: bool = True) -> None:
 
     # Show update status (synchronous — acceptable since user asked for version info)
     try:
-        from freeide_cli.banner import check_for_updates
-        from freeide_cli.config import recommended_update_command
+        from jettstui.banner import check_for_updates
+        from jettstui.config import recommended_update_command
 
         behind = check_for_updates()
         if behind and behind > 0:
@@ -4760,11 +4760,11 @@ def cmd_version(args):
 
 
 def cmd_uninstall(args):
-    """Uninstall Jetts-TUI (or just the desktop app with --gui)."""
+    """Uninstall JettsTUI (or just the desktop app with --gui)."""
     # Machine-readable install snapshot for the desktop app's uninstall UI.
     # Must run before any TTY gate — it's called from a non-interactive child.
     if getattr(args, "gui_summary", False):
-        from freeide_cli.gui_uninstall import gui_install_summary
+        from jettstui.gui_uninstall import gui_install_summary
 
         print(json.dumps(gui_install_summary()))
         return
@@ -4774,7 +4774,7 @@ def cmd_uninstall(args):
     if getattr(args, "gui", False):
         if not getattr(args, "yes", False):
             _require_tty("uninstall --gui")
-        from freeide_cli.uninstall import run_gui_uninstall
+        from jettstui.uninstall import run_gui_uninstall
 
         run_gui_uninstall(args)
         return
@@ -4784,7 +4784,7 @@ def cmd_uninstall(args):
     # gate on a TTY when we actually need to prompt for the option + confirm.
     if not getattr(args, "yes", False):
         _require_tty("uninstall")
-    from freeide_cli.uninstall import run_uninstall
+    from jettstui.uninstall import run_uninstall
 
     run_uninstall(args)
 
@@ -4818,7 +4818,7 @@ def _clear_bytecode_cache(root: Path) -> int:
 
 
 _UPDATE_RUNTIME_RELOAD_MODULES = (
-    "freeide_constants",
+    "jettstui_constants",
     "tools.environments.local",
     "tools.lazy_deps",
 )
@@ -4827,7 +4827,7 @@ _UPDATE_RUNTIME_RELOAD_MODULES = (
 def _reload_updated_runtime_modules() -> None:
     """Reload update-sensitive modules after the checkout changes in-place.
 
-    ``freeide update`` keeps running in the pre-pull Python process. After a
+    ``jettstui update`` keeps running in the pre-pull Python process. After a
     large update, modules already present in ``sys.modules`` can still expose
     old symbols even though their source files on disk are new. Refresh the
     small module set used by lazy-backend refresh before that step imports
@@ -4850,7 +4850,7 @@ def _reload_updated_runtime_modules() -> None:
 
 
 # Stamp file recording the checkout fingerprint the bytecode cache was last
-# validated against. Lives next to the checkout (NOT in FREEIDE_HOME) because
+# validated against. Lives next to the checkout (NOT in JETTSTUI_HOME) because
 # __pycache__ is per-checkout state shared by every profile.
 _BYTECODE_FINGERPRINT_FILE = ".bytecode-fingerprint"
 
@@ -4879,16 +4879,16 @@ def _sweep_stale_bytecode_if_checkout_changed() -> None:
     The stale-bytecode bug class (issues #6207, #60242; Dhruv's WhatsApp
     ``cannot import name 'parse_model_flags_detailed'`` report) has one
     shared shape: the checkout's ``.py`` files change (git pull inside
-    ``freeide update``, a manual ``git pull``, a ZIP update, a file-sync
+    ``jettstui update``, a manual ``git pull``, a ZIP update, a file-sync
     restore) while ``__pycache__`` retains bytecode from the previous
     revision, and a later process trusts the stale ``.pyc`` instead of the
     fresh source.
 
-    Update-time clears alone can never close this class: ``freeide update``
+    Update-time clears alone can never close this class: ``jettstui update``
     always executes the PRE-pull updater code, so any hardening added to it
     only takes effect one update late, and manual ``git pull`` never runs
     the updater at all. This launch-time guard closes the loop: every
-    ``freeide`` entry point compares the checkout fingerprint (cheap file
+    ``jettstui`` entry point compares the checkout fingerprint (cheap file
     reads, no git subprocess) against the last-validated stamp and sweeps
     the bytecode cache once when they diverge.
 
@@ -4919,7 +4919,7 @@ def _sweep_stale_bytecode_if_checkout_changed() -> None:
         logger.debug("Stale-bytecode launch sweep failed: %s", exc)
 
 
-# Critical files that FreeIDE must be able to import immediately after an
+# Critical files that JettsTUI must be able to import immediately after an
 # update/install. Most are imported on every CLI startup; ``web_server.py``
 # is the desktop/dashboard backend path that a fresh Windows install launches
 # right away. If any of these fail to parse after a pull, the user can be
@@ -4934,7 +4934,7 @@ _UPDATE_CRITICAL_FILES = (
     "run_agent.py",
     "model_tools.py",
     "toolsets.py",
-    "freeide_constants.py",
+    "jettstui_constants.py",
 )
 
 
@@ -4956,7 +4956,7 @@ def _capture_head_sha(git_cmd, cwd) -> str | None:
 def _validate_critical_files_syntax(root) -> tuple[bool, str | None, str | None]:
     """Compile each file in ``_UPDATE_CRITICAL_FILES`` to catch SyntaxErrors.
 
-    These are the files imported on every ``freeide`` startup; if any of them
+    These are the files imported on every ``jettstui`` startup; if any of them
     has a syntax error (orphan merge-conflict markers, bad ref to a name
     that no longer exists, etc.) the CLI can't bootstrap at all. We validate
     them after a successful ``git pull`` so we can auto-roll-back instead of
@@ -4976,7 +4976,7 @@ def _validate_critical_files_syntax(root) -> tuple[bool, str | None, str | None]
     import tempfile
 
     root = Path(root)
-    with tempfile.TemporaryDirectory(prefix="freeide-syntax-check-") as tmpdir:
+    with tempfile.TemporaryDirectory(prefix="jettstui-syntax-check-") as tmpdir:
         for relpath in _UPDATE_CRITICAL_FILES:
             path = root / relpath
             if not path.exists():
@@ -5001,15 +5001,15 @@ def _gateway_prompt(prompt_text: str, default: str = "", timeout: float = 300.0)
     Writes a prompt marker file so the gateway can forward the question to the
     user, then polls for a response file.  Falls back to *default* on timeout.
 
-    Used by ``freeide update --gateway`` so interactive prompts (stash restore,
+    Used by ``jettstui update --gateway`` so interactive prompts (stash restore,
     config migration) are forwarded to the messenger instead of being silently
     skipped.
     """
     import json as _json
     import uuid as _uuid
-    from freeide_constants import get_freeide_home
+    from jettstui_constants import get_jettstui_home
 
-    home = get_freeide_home()
+    home = get_jettstui_home()
     prompt_path = home / ".update_prompt.json"
     response_path = home / ".update_response"
 
@@ -5050,14 +5050,14 @@ def _web_ui_build_needed(web_dir: Path) -> bool:
 
     Uses a SHA-256 content hash of the web source tree (the same approach
     ``_desktop_build_needed()`` already uses for the Electron build), NOT
-    mtime comparison. ``git checkout`` / ``git pull`` / ``freeide update``
+    mtime comparison. ``git checkout`` / ``git pull`` / ``jettstui update``
     rewrite source mtimes without changing content, which made the old
     mtime check unreliable in both directions: it could skip a rebuild when
     source had genuinely changed (serving a stale dashboard) and force a
     rebuild when nothing had. A content hash is stable across mtime churn.
 
     The dashboard source lives under ``web/`` but Vite outputs to
-    ``freeide_cli/web_dist/`` (per vite.config.ts outDir), NOT ``web/dist/``,
+    ``jettstui/web_dist/`` (per vite.config.ts outDir), NOT ``web/dist/``,
     so the dist directory is never part of the hashed source tree.
     """
     project_root = web_dir.parent.parent if web_dir.parent.name == "apps" else web_dir.parent
@@ -5140,9 +5140,9 @@ def _compute_web_ui_content_hash(project_root: Path, web_dir: Path) -> str:
 
 
 def _web_ui_stamp_path() -> Path:
-    """Return the path to the web UI build stamp file under $FREEIDE_HOME."""
-    from freeide_constants import get_freeide_home
-    return get_freeide_home() / "web-ui-build-stamp.json"
+    """Return the path to the web UI build stamp file under $JETTSTUI_HOME."""
+    from jettstui_constants import get_jettstui_home
+    return get_jettstui_home() / "web-ui-build-stamp.json"
 
 
 def _write_web_ui_build_stamp(project_root: Path, web_dir: Path) -> None:
@@ -5176,7 +5176,7 @@ def _run_with_idle_timeout(
     WSL2 with the default 4 GB cap) the build can stall or sit silent for
     minutes; users see a frozen terminal, assume the update is hung, and
     reboot — leaving the editable install in a half-state with the
-    ``freeide`` launcher present but ``freeide_cli`` not importable.
+    ``jettstui`` launcher present but ``jettstui`` not importable.
 
     This helper fixes both halves: stdout is streamed (so the user sees
     progress), and if no bytes have appeared on stdout/stderr for
@@ -5271,7 +5271,7 @@ def _nixos_build_env() -> dict[str, str] | None:
     does a bare ``PATH`` lookup — which fails on NixOS.
 
     Two-tier resolution:
-    1. Fast path — the freeide venv's python3 (present in managed installs)
+    1. Fast path — the jettstui venv's python3 (present in managed installs)
     2. Fallback — resolves the absolute python3 path via ``nix-shell``
 
     Returns an env dict suitable for ``subprocess.run(env=...)`` or
@@ -5290,7 +5290,7 @@ def _nixos_build_env() -> dict[str, str] | None:
     if shutil.which("python3"):
         return None
 
-    # Tier 1: fast path — freeide venv python3, no nix-shell overhead
+    # Tier 1: fast path — jettstui venv python3, no nix-shell overhead
     for venv_name in ("venv", ".venv"):
         venv_python = PROJECT_ROOT / venv_name / "bin" / "python3"
         if venv_python.exists():
@@ -5298,7 +5298,7 @@ def _nixos_build_env() -> dict[str, str] | None:
 
     # Tier 2: nix-shell fallback — resolves the absolute python3 path once.
     # Slower (~2–5 s for the nix-shell eval) but always works, even without
-    # a freeide venv (pip / non-managed / bare-git installs).  The resolved
+    # a jettstui venv (pip / non-managed / bare-git installs).  The resolved
     # path is a self-contained Nix store binary (all deps via RPATH) so it
     # stays valid even after the nix-shell exits.
     try:
@@ -5328,7 +5328,7 @@ def _run_npm_install_deterministic(
     falls back to ``npm install`` only if ``npm ci`` fails (e.g. lockfile out of
     sync on a WIP checkout).  Without this, ``npm install`` on npm ≥ 10 silently
     rewrites committed lockfiles (stripping ``"peer": true`` etc.), which leaves
-    the working tree dirty and causes the next ``freeide update`` to stash the
+    the working tree dirty and causes the next ``jettstui update`` to stash the
     lockfile — repeatedly.
 
     ``--include=dev`` is forced on every invocation: the callers are frontend
@@ -5490,7 +5490,7 @@ def _do_build_web_ui(web_dir: Path, *, fatal: bool = False) -> bool:
     Args:
         web_dir: Path to the dashboard frontend source directory.
         fatal: If True, print error guidance and return False on failure
-               instead of a soft warning (used by ``freeide web``).
+               instead of a soft warning (used by ``jettstui web``).
 
     Returns True if the build succeeded or was skipped (no package.json).
     """
@@ -5504,7 +5504,7 @@ def _do_build_web_ui(web_dir: Path, *, fatal: bool = False) -> bool:
     # (or similar) and will raise UnicodeEncodeError on arrow / check
     # glyphs unless PYTHONIOENCODING=utf-8 is set. Routing every print
     # in this function through _say() with errors="replace" keeps the
-    # build path usable on a stock `py -m freeide_cli.main web` invocation.
+    # build path usable on a stock `py -m jettstui.main web` invocation.
     def _say(text: str) -> None:
         try:
             print(text)
@@ -5512,7 +5512,7 @@ def _do_build_web_ui(web_dir: Path, *, fatal: bool = False) -> bool:
             encoding = getattr(sys.stdout, "encoding", None) or "ascii"
             print(text.encode(encoding, errors="replace").decode(encoding, errors="replace"))
 
-    from freeide_constants import with_freeide_node_path
+    from jettstui_constants import with_jettstui_node_path
 
     npm = _resolve_node_runtime_npm()
     if not npm:
@@ -5520,7 +5520,7 @@ def _do_build_web_ui(web_dir: Path, *, fatal: bool = False) -> bool:
             _say("Web UI frontend not built and npm is not available.")
             _say("Install Node.js, then run:  cd web && npm install && npm run build")
         return not fatal
-    build_env = with_freeide_node_path()
+    build_env = with_jettstui_node_path()
     _say("→ Building web UI...")
 
     def _relay(result: "subprocess.CompletedProcess") -> None:
@@ -5561,7 +5561,7 @@ def _do_build_web_ui(web_dir: Path, *, fatal: bool = False) -> bool:
     if r1.returncode != 0:
         _say(
             f"  {'✗' if fatal else '⚠'} Web UI npm install failed"
-            + ("" if fatal else " (freeide web will not be available)")
+            + ("" if fatal else " (jettstui web will not be available)")
         )
         _relay(r1)
         if fatal:
@@ -5614,7 +5614,7 @@ def _do_build_web_ui(web_dir: Path, *, fatal: bool = False) -> bool:
 
         _say(
             f"  {'✗' if fatal else '⚠'} Web UI build failed"
-            + ("" if fatal else " (freeide web will not be available)")
+            + ("" if fatal else " (jettstui web will not be available)")
         )
         _relay(r2)
         if fatal:
@@ -5639,12 +5639,12 @@ def _desktop_dist_exists(desktop_dir: Path) -> bool:
 # SHA-256 content hash of the source tree so that:
 #   - ``git checkout`` / ``git pull`` that touch mtimes but not content
 #     don't trigger a rebuild
-#   - ``freeide update`` can unconditionally call ``freeide desktop --build-only``
+#   - ``jettstui update`` can unconditionally call ``jettstui desktop --build-only``
 #     and it will skip if nothing actually changed
-#   - ``freeide desktop`` (interactive launch) skips the build when the
+#   - ``jettstui desktop`` (interactive launch) skips the build when the
 #     stamp matches, making repeated launches fast
 #
-# Stamp file: $FREEIDE_HOME/desktop-build-stamp.json
+# Stamp file: $JETTSTUI_HOME/desktop-build-stamp.json
 # Schema:
 #   {
 #     "contentHash": "<sha256 hex of source files>",
@@ -5713,9 +5713,9 @@ def _compute_desktop_content_hash(project_root: Path) -> str:
 
 
 def _desktop_stamp_path() -> Path:
-    """Return the path to the desktop build stamp file under $FREEIDE_HOME."""
-    from freeide_constants import get_freeide_home
-    return get_freeide_home() / "desktop-build-stamp.json"
+    """Return the path to the desktop build stamp file under $JETTSTUI_HOME."""
+    from jettstui_constants import get_jettstui_home
+    return get_jettstui_home() / "desktop-build-stamp.json"
 
 
 def _desktop_build_needed(desktop_dir: Path, project_root: Path, *, source_mode: bool) -> bool:
@@ -5723,7 +5723,7 @@ def _desktop_build_needed(desktop_dir: Path, project_root: Path, *, source_mode:
 
     Compares the current content hash against the saved stamp. Also returns
     True if the expected build artifact doesn't exist (e.g. first run after
-    ``freeide update`` that pulled new source but hasn't built yet).
+    ``jettstui update`` that pulled new source but hasn't built yet).
     """
     # If there's no build output at all, we definitely need to build
     if source_mode:
@@ -5776,25 +5776,25 @@ def _desktop_packaged_executable(desktop_dir: Path) -> Optional[Path]:
     """Return the current platform's unpacked Electron app executable."""
     release_dir = desktop_dir / "release"
     if sys.platform == "darwin":
-        candidates = list(release_dir.glob("mac*/Jetts-TUI.app/Contents/MacOS/Jetts-TUI"))
-        candidates += list(release_dir.glob("mac*/FreeIDE.app/Contents/MacOS/FreeIDE"))
+        candidates = list(release_dir.glob("mac*/JettsTUI.app/Contents/MacOS/JettsTUI"))
+        candidates += list(release_dir.glob("mac*/JettsTUI.app/Contents/MacOS/JettsTUI"))
     elif sys.platform == "win32":
         candidates = [
-            release_dir / "win-unpacked" / "Jetts-TUI.exe",
-            release_dir / "win-ia32-unpacked" / "Jetts-TUI.exe",
-            release_dir / "win-arm64-unpacked" / "Jetts-TUI.exe",
-            release_dir / "win-unpacked" / "FreeIDE.exe",
-            release_dir / "win-ia32-unpacked" / "FreeIDE.exe",
-            release_dir / "win-arm64-unpacked" / "FreeIDE.exe",
+            release_dir / "win-unpacked" / "JettsTUI.exe",
+            release_dir / "win-ia32-unpacked" / "JettsTUI.exe",
+            release_dir / "win-arm64-unpacked" / "JettsTUI.exe",
+            release_dir / "win-unpacked" / "JettsTUI.exe",
+            release_dir / "win-ia32-unpacked" / "JettsTUI.exe",
+            release_dir / "win-arm64-unpacked" / "JettsTUI.exe",
         ]
     else:
         candidates = [
-            release_dir / "linux-unpacked" / "Jetts-TUI",
-            release_dir / "linux-arm64-unpacked" / "Jetts-TUI",
-            release_dir / "linux-unpacked" / "freeide",
-            release_dir / "linux-unpacked" / "FreeIDE",
-            release_dir / "linux-arm64-unpacked" / "freeide",
-            release_dir / "linux-arm64-unpacked" / "FreeIDE",
+            release_dir / "linux-unpacked" / "JettsTUI",
+            release_dir / "linux-arm64-unpacked" / "JettsTUI",
+            release_dir / "linux-unpacked" / "jettstui",
+            release_dir / "linux-unpacked" / "JettsTUI",
+            release_dir / "linux-arm64-unpacked" / "jettstui",
+            release_dir / "linux-arm64-unpacked" / "JettsTUI",
         ]
 
     existing = [p for p in candidates if p.exists()]
@@ -5803,7 +5803,7 @@ def _desktop_packaged_executable(desktop_dir: Path) -> Optional[Path]:
     if sys.platform == "win32" and len(existing) > 1:
         # Multiple unpacked trees can coexist (e.g. a stale win-arm64-unpacked
         # left behind by a cross-arch experiment next to the real win-unpacked).
-        # Picking purely by mtime can then hand a wrong-architecture FreeIDE.exe
+        # Picking purely by mtime can then hand a wrong-architecture JettsTUI.exe
         # to the launcher, which Windows rejects with "This app can't run on
         # your computer" (#69179). Prefer candidates whose PE machine field
         # matches the host; fall back to mtime when none can be parsed.
@@ -5811,23 +5811,23 @@ def _desktop_packaged_executable(desktop_dir: Path) -> Optional[Path]:
         matching = [p for p in existing if _pe_machine_or_none(p) in expected]
         if matching:
             existing = matching
-    # A legacy unpacked build can remain beside a fresh Jetts-TUI build.
+    # A legacy unpacked build can remain beside a fresh JettsTUI build.
     # Once architecture is safe, the current product must win over stale files.
-    return max(existing, key=lambda p: (p.name.startswith("Jetts-TUI"), p.stat().st_mtime))
+    return max(existing, key=lambda p: (p.name.startswith("JettsTUI"), p.stat().st_mtime))
 
 
 # ─── Desktop exe integrity gate (#69179) ────────────────────────────────────
 #
-# The desktop self-update chain (Desktop → freeide-setup --update →
-# `freeide update` → `freeide desktop --build-only` → relaunch) rebuilds
-# FreeIDE.exe on the end user's machine and used to verify only that the file
+# The desktop self-update chain (Desktop → jettstui-setup --update →
+# `jettstui update` → `jettstui desktop --build-only` → relaunch) rebuilds
+# JettsTUI.exe on the end user's machine and used to verify only that the file
 # EXISTS before declaring success. A corrupt cached Electron zip whose
 # extraction produced a truncated electron.exe, an interrupted rcedit resource
 # rewrite, a disk-full pack, or a wrong-arch unpacked tree therefore shipped a
 # broken binary that Windows refuses to load ("This app can't run on your
 # computer" / 此应用无法在你的电脑上运行). These helpers parse the PE header —
 # no signature infrastructure required — so a structurally broken or
-# wrong-architecture FreeIDE.exe is caught BEFORE the updater replaces the
+# wrong-architecture JettsTUI.exe is caught BEFORE the updater replaces the
 # working app, and the previous build can be restored from the .bak tree that
 # apps/desktop/scripts/before-pack.mjs now preserves.
 
@@ -5861,7 +5861,7 @@ def _windows_native_machine_from_iswow64() -> Optional[str]:
     that makes ``IsWow64Process2`` fail with ``ERROR_INVALID_HANDLE`` (6),
     which is exactly the residual Windows-on-ARM failure after #71218: the
     gate fell through to ``PROCESSOR_ARCHITECTURE=AMD64`` (the emulated
-    process arch) and rejected a correctly-built ARM64 ``FreeIDE.exe``.
+    process arch) and rejected a correctly-built ARM64 ``JettsTUI.exe``.
     Binding ``restype``/``argtypes`` to ``wintypes.HANDLE`` keeps the full
     ``0xFFFFFFFFFFFFFFFF`` pseudo-handle.
     """
@@ -5926,7 +5926,7 @@ def _windows_native_machine() -> str:
     """The Windows host OS's NATIVE machine architecture, normalized upper.
 
     ``platform.machine()`` reports the PROCESS architecture, which lies under
-    emulation: the desktop update chain runs an x64 freeide-setup.exe (and thus
+    emulation: the desktop update chain runs an x64 jettstui-setup.exe (and thus
     x64 Python) on Windows-on-ARM devices, where ``platform.machine()``
     returns ``AMD64`` even though the OS is ARM64. The #71119 integrity gate
     then rejected the CORRECT ARM64 rebuild as an "architecture mismatch"
@@ -6127,7 +6127,7 @@ def _ensure_desktop_exe_launchable(
     if error is None:
         return packaged_executable, False
 
-    print(f"✗ The built FreeIDE.exe failed its integrity check: {error}")
+    print(f"✗ The built JettsTUI.exe failed its integrity check: {error}")
     print(f"    at: {packaged_executable}")
 
     # Self-heal setup for the retry: drop the (likely corrupt) cached Electron
@@ -6141,13 +6141,13 @@ def _ensure_desktop_exe_launchable(
 
     restored = _rollback_desktop_from_backup(packaged_executable)
     if restored is not None:
-        print("  ↩ Update aborted — restored the previous working FreeIDE.exe from backup.")
-        print("    Your existing version was kept and still works. Run `freeide desktop`")
+        print("  ↩ Update aborted — restored the previous working JettsTUI.exe from backup.")
+        print("    Your existing version was kept and still works. Run `jettstui desktop`")
         print("    (or the in-app update) again to retry with a fresh Electron download.")
         return restored, True
 
     print("  ✗ No usable backup was found to restore.")
-    print("    Run `freeide desktop --force-build` to rebuild, or re-run the FreeIDE")
+    print("    Run `jettstui desktop --force-build` to rebuild, or re-run the JettsTUI")
     print("    installer to repair the install.")
     return None, False
 
@@ -6194,7 +6194,7 @@ def _purge_electron_build_cache(desktop_dir: Path) -> list[Path]:
     next ``pack`` re-downloads and re-stages from scratch.
 
     Root cause of the ``ENOENT … rename '…/linux-unpacked/electron' ->
-    '…/linux-unpacked/FreeIDE'`` desktop build failure: a corrupt zip in the
+    '…/linux-unpacked/JettsTUI'`` desktop build failure: a corrupt zip in the
     per-user Electron download cache (a partial download resumed into the same
     file leaves prepended/concatenated junk, or an interrupted write truncates
     it). electron-builder's ``app-builder unpack-electron`` extracts the
@@ -6325,7 +6325,7 @@ def _redownload_electron_dist(
     installer = electron_dir / "install.js"
     if not installer.is_file():
         return False
-    from freeide_constants import find_node_executable, with_freeide_node_path
+    from jettstui_constants import find_node_executable, with_jettstui_node_path
 
     node = find_node_executable("node")
     if not node:
@@ -6338,7 +6338,7 @@ def _redownload_electron_dist(
     except OSError:
         pass
 
-    dl_env = with_freeide_node_path(env)
+    dl_env = with_jettstui_node_path(env)
     if mirror:
         dl_env["ELECTRON_MIRROR"] = mirror
     try:
@@ -6361,9 +6361,9 @@ def _stop_desktop_processes_locking_build(desktop_dir: Path) -> list[int]:
     """Terminate any running desktop app executing from this build's ``release``
     dir so a rebuild can replace its (otherwise locked) executable.
 
-    On Windows a running ``FreeIDE.exe`` keeps an exclusive lock on
-    ``release/win-unpacked/FreeIDE.exe``. electron-builder's pack then can't
-    delete the stale binary and dies with ``remove …\\FreeIDE.exe: Access is
+    On Windows a running ``JettsTUI.exe`` keeps an exclusive lock on
+    ``release/win-unpacked/JettsTUI.exe``. electron-builder's pack then can't
+    delete the stale binary and dies with ``remove …\\JettsTUI.exe: Access is
     denied`` / ``ERR_ELECTRON_BUILDER_CANNOT_EXECUTE`` (before-pack hits the same
     EPERM cleaning the dir). The retry path repeats the failure because the lock
     is still held. POSIX lets you unlink a running binary, so this is a no-op
@@ -6371,7 +6371,7 @@ def _stop_desktop_processes_locking_build(desktop_dir: Path) -> list[int]:
 
     Scope is deliberately narrow: only processes whose executable lives *inside*
     this desktop's ``release`` tree are stopped — a packaged install elsewhere or
-    an unrelated "FreeIDE" process is never touched. Best-effort: never raises.
+    an unrelated "JettsTUI" process is never touched. Best-effort: never raises.
     Returns the PIDs we asked to stop.
     """
     if sys.platform != "win32":
@@ -6436,7 +6436,7 @@ def _desktop_macos_relaunchable_fixup(desktop_dir: Path) -> None:
     An ad-hoc-signed .app has no stable Designated Requirement (no Team ID), so
     when the self-updater rebuilds the bundle in place with a fresh build (a new,
     different cdhash) Gatekeeper/LaunchServices treats the changed code as
-    tampering and macOS reports "FreeIDE is damaged and can't be opened." The
+    tampering and macOS reports "JettsTUI is damaged and can't be opened." The
     bundle also inherits the com.apple.quarantine flag from the downloaded
     installer process chain. Both make the relaunch fail.
 
@@ -6453,7 +6453,7 @@ def _desktop_macos_relaunchable_fixup(desktop_dir: Path) -> None:
     exe = _desktop_packaged_executable(desktop_dir)
     if exe is None:
         return
-    # exe = .../FreeIDE.app/Contents/MacOS/FreeIDE  ->  app bundle = .../FreeIDE.app
+    # exe = .../JettsTUI.app/Contents/MacOS/JettsTUI  ->  app bundle = .../JettsTUI.app
     app = exe.parents[2]
     if not str(app).endswith(".app") or not app.is_dir():
         return
@@ -6471,7 +6471,7 @@ def _force_adhoc_macos_signing(env: dict, *, source_mode: bool) -> bool:
     """Stop electron-builder grabbing a random keychain identity on self-update.
 
     The desktop self-updater rebuilds *and re-signs the .app on the end user's
-    machine* (``freeide desktop --build-only`` → electron-builder ``--dir``).
+    machine* (``jettstui desktop --build-only`` → electron-builder ``--dir``).
     With ``CSC_IDENTITY_AUTO_DISCOVERY`` on (its default), electron-builder
     signs the ``type=distribution``, hardened-runtime bundle with whatever it
     finds in that user's keychain — typically a personal "Apple Development"
@@ -6542,7 +6542,7 @@ def _desktop_linux_sandbox_fixup(packaged_executable: Path) -> bool:
 
     sandbox = packaged_executable.parent / "chrome-sandbox"
     if not sandbox.exists():
-        print(f"✗ FreeIDE Desktop is missing Electron's Linux sandbox helper: {sandbox}")
+        print(f"✗ JettsTUI Desktop is missing Electron's Linux sandbox helper: {sandbox}")
         return False
 
     # Reject symlinks — chown/chmod must not follow an attacker-controlled
@@ -6562,7 +6562,7 @@ def _desktop_linux_sandbox_fixup(packaged_executable: Path) -> bool:
 
     sudo = shutil.which("sudo")
     if not sudo:
-        print("✗ FreeIDE Desktop requires sudo to configure Electron's Linux sandbox helper.")
+        print("✗ JettsTUI Desktop requires sudo to configure Electron's Linux sandbox helper.")
         return False
 
     print("→ Configuring Electron Linux sandbox helper (sudo required)...")
@@ -6578,14 +6578,14 @@ def _desktop_launch_options() -> tuple[list[str], str]:
 
     Returns ``(electron_flags, disable_gpu)`` where ``electron_flags`` is a list
     of extra Electron CLI flags and ``disable_gpu`` is one of "auto"/"1"/"0"
-    (normalized for the FREEIDE_DESKTOP_DISABLE_GPU env var the Electron app
+    (normalized for the JETTSTUI_DESKTOP_DISABLE_GPU env var the Electron app
     reads). Best-effort: any config error yields the safe defaults
     ``([], "auto")`` so a malformed config never blocks the launch.
     """
     flags: list[str] = []
     disable_gpu = "auto"
     try:
-        from freeide_cli.config import load_config
+        from jettstui.config import load_config
 
         desktop_cfg = (load_config() or {}).get("desktop") or {}
     except Exception:
@@ -6619,33 +6619,33 @@ def cmd_gui(args: argparse.Namespace):
         sys.exit(1)
 
     try:
-        from freeide_logging import setup_logging as _setup_logging_gui
+        from jettstui_logging import setup_logging as _setup_logging_gui
         _setup_logging_gui(mode="gui")
     except Exception:
         pass
 
-    from freeide_constants import with_freeide_node_path
+    from jettstui_constants import with_jettstui_node_path
 
-    # with_freeide_node_path() copies os.environ when called with no arg.
-    env = with_freeide_node_path()
+    # with_jettstui_node_path() copies os.environ when called with no arg.
+    env = with_jettstui_node_path()
     if getattr(args, "fake_boot", False):
-        env["FREEIDE_DESKTOP_BOOT_FAKE"] = "1"
+        env["JETTSTUI_DESKTOP_BOOT_FAKE"] = "1"
     if getattr(args, "ignore_existing", False):
-        env["FREEIDE_DESKTOP_IGNORE_EXISTING"] = "1"
-    if getattr(args, "freeide_root", None):
-        env["FREEIDE_DESKTOP_FREEIDE_ROOT"] = str(Path(args.freeide_root).expanduser().resolve())
+        env["JETTSTUI_DESKTOP_IGNORE_EXISTING"] = "1"
+    if getattr(args, "jettstui_root", None):
+        env["JETTSTUI_DESKTOP_JETTSTUI_ROOT"] = str(Path(args.jettstui_root).expanduser().resolve())
     if getattr(args, "cwd", None):
-        env["FREEIDE_DESKTOP_CWD"] = str(Path(args.cwd).expanduser().resolve())
+        env["JETTSTUI_DESKTOP_CWD"] = str(Path(args.cwd).expanduser().resolve())
     else:
-        env["FREEIDE_DESKTOP_CWD"] = os.getcwd()
+        env["JETTSTUI_DESKTOP_CWD"] = os.getcwd()
 
     # Desktop launch options from config.yaml (`desktop.electron_flags`,
     # `desktop.disable_gpu`). The GPU policy is bridged to the env var the
     # Electron app already reads; an explicit env var still wins over config so
-    # `FREEIDE_DESKTOP_DISABLE_GPU=... freeide desktop` keeps working.
+    # `JETTSTUI_DESKTOP_DISABLE_GPU=... jettstui desktop` keeps working.
     config_electron_flags, config_disable_gpu = _desktop_launch_options()
-    if config_disable_gpu != "auto" and "FREEIDE_DESKTOP_DISABLE_GPU" not in os.environ:
-        env["FREEIDE_DESKTOP_DISABLE_GPU"] = config_disable_gpu
+    if config_disable_gpu != "auto" and "JETTSTUI_DESKTOP_DISABLE_GPU" not in os.environ:
+        env["JETTSTUI_DESKTOP_DISABLE_GPU"] = config_disable_gpu
 
     source_mode = getattr(args, "source", False)
     skip_build = getattr(args, "skip_build", False)
@@ -6657,7 +6657,7 @@ def cmd_gui(args: argparse.Namespace):
         npm = _resolve_node_runtime_npm()
         if not npm:
             print("Desktop GUI requires Node.js/npm, but npm was not found on PATH.")
-            print("Install Node.js, then run:  freeide gui")
+            print("Install Node.js, then run:  jettstui gui")
             sys.exit(1)
     else:
         npm = None
@@ -6695,14 +6695,14 @@ def cmd_gui(args: argparse.Namespace):
             print(f"✓ Desktop {build_label} is up to date (content stamp matches)")
         else:
             print("→ Installing desktop workspace dependencies...")
-            # Put the FreeIDE-managed Node on PATH so npm's child scripts (which
+            # Put the JettsTUI-managed Node on PATH so npm's child scripts (which
             # shell out to bare `node`, e.g. electron-winstaller's
             # select-7z-arch.js) resolve it even when the parent PATH is
-            # stripped — the desktop updater chain (Desktop → freeide-setup →
-            # freeide update) loses shell PATH customizations. Wrapping the
+            # stripped — the desktop updater chain (Desktop → jettstui-setup →
+            # jettstui update) loses shell PATH customizations. Wrapping the
             # NixOS build env keeps its PYTHON hint while restoring managed Node
-            # ahead of a bare PATH (same idiom as the `freeide update` path).
-            nixos_env = with_freeide_node_path(_nixos_build_env())
+            # ahead of a bare PATH (same idiom as the `jettstui update` path).
+            nixos_env = with_jettstui_node_path(_nixos_build_env())
             install_result = _run_npm_install_deterministic(npm, PROJECT_ROOT, capture_output=False, env=nixos_env)
             if install_result.returncode != 0:
                 if not _electron_pkg_staged_missing_dist(PROJECT_ROOT):
@@ -6726,7 +6726,7 @@ def cmd_gui(args: argparse.Namespace):
                       "(CSC_IDENTITY_AUTO_DISCOVERY=false)")
             if not source_mode:
                 # A running desktop instance launched from release/win-unpacked
-                # holds FreeIDE.exe locked on Windows, so the pack can't replace
+                # holds JettsTUI.exe locked on Windows, so the pack can't replace
                 # it ("Access is denied" / ERR_ELECTRON_BUILDER_CANNOT_EXECUTE).
                 # Stop it first so the rebuild — including the installer's
                 # headless --update rebuild — succeeds instead of failing cryptically.
@@ -6757,7 +6757,7 @@ def cmd_gui(args: argparse.Namespace):
                     print("  ⚠ Desktop build failed; refreshed the Electron download and retrying once...")
                     for p in purged:
                         print(f"    - {p}")
-                    # The purge can't remove a win-unpacked tree whose FreeIDE.exe
+                    # The purge can't remove a win-unpacked tree whose JettsTUI.exe
                     # is still locked by a running instance; stop it before retry.
                     _stop_desktop_processes_locking_build(desktop_dir)
                     build_result = subprocess.run([npm, "run", build_script], cwd=desktop_dir, env=env, check=False)
@@ -6781,20 +6781,20 @@ def cmd_gui(args: argparse.Namespace):
                 print("✗ Desktop GUI build failed")
                 print(f"  Run manually:  cd apps/desktop && npm run {build_script}")
                 if sys.platform == "win32":
-                    print("  If this says \"Access is denied\" on FreeIDE.exe, close any")
-                    print("  running FreeIDE desktop window and retry.")
+                    print("  If this says \"Access is denied\" on JettsTUI.exe, close any")
+                    print("  running JettsTUI desktop window and retry.")
                 print("  If the log shows Electron download retries, rebuild via a mirror:")
-                print("    ELECTRON_MIRROR=<mirror-base-url> freeide desktop --force-build")
+                print("    ELECTRON_MIRROR=<mirror-base-url> jettstui desktop --force-build")
                 sys.exit(build_result.returncode or 1)
             packaged_executable = _desktop_packaged_executable(desktop_dir)
             if not source_mode:
                 # Locally-built apps are ad-hoc signed; make them relaunchable after
-                # an in-place self-update (otherwise macOS reports "FreeIDE is
+                # an in-place self-update (otherwise macOS reports "JettsTUI is
                 # damaged"). No-op on non-macOS and on real-identity builds.
                 _desktop_macos_relaunchable_fixup(desktop_dir)
 
                 # Windows integrity gate (#69179): never declare the rebuild a
-                # success on a FreeIDE.exe Windows cannot load (truncated PE from
+                # success on a JettsTUI.exe Windows cannot load (truncated PE from
                 # a corrupt cached Electron zip, wrong-arch tree, interrupted
                 # rcedit rewrite). Roll back to the .bak tree preserved by
                 # before-pack.mjs when possible, then fail loudly so the
@@ -6833,7 +6833,7 @@ def cmd_gui(args: argparse.Namespace):
         return
 
     if source_mode:
-        print("→ Launching Jetts-TUI Desktop from source build...")
+        print("→ Launching JettsTUI Desktop from source build...")
         launch_result = subprocess.run([npm, "exec", "--", "electron", "."], cwd=desktop_dir, env=env, check=False)
         sys.exit(launch_result.returncode)
 
@@ -6851,7 +6851,7 @@ def cmd_gui(args: argparse.Namespace):
             sys.exit(1)
 
     launch_command.extend(config_electron_flags)
-    print(f"→ Launching packaged Jetts-TUI Desktop: {' '.join(launch_command)}")
+    print(f"→ Launching packaged JettsTUI Desktop: {' '.join(launch_command)}")
     launch_result = subprocess.run(launch_command, cwd=desktop_dir, env=env, check=False)
     sys.exit(launch_result.returncode)
 
@@ -6862,38 +6862,38 @@ def _scan_dashboard_processes(
 ) -> list[tuple[int, str]]:
     """Return matching ``dashboard``/``serve`` processes with their cmdlines.
 
-    ``freeide dashboard`` is a long-lived server process commonly started and
-    forgotten.  When ``freeide update`` replaces files on disk, the running
+    ``jettstui dashboard`` is a long-lived server process commonly started and
+    forgotten.  When ``jettstui update`` replaces files on disk, the running
     process keeps the old Python backend in memory while the JS bundle on
     disk is updated, causing a silent frontend/backend mismatch (e.g. new
     auth headers the old backend doesn't recognise → every API call 401s).
 
     The dashboard may be manually started or managed by the optional
-    ``freeide-dashboard.service`` systemd unit.  Managed units are restarted
+    ``jettstui-dashboard.service`` systemd unit.  Managed units are restarted
     through their owning systemd scope; only manually-started processes use
     the kill path because we can't know their original launch args.
 
     *exclude_pids* is an optional set of PIDs that must never be returned.
-    This is used by the FreeIDE Desktop Electron app to protect its own
-    backend child process: when the desktop spawns ``freeide serve`` as
+    This is used by the JettsTUI Desktop Electron app to protect its own
+    backend child process: when the desktop spawns ``jettstui serve`` as
     a backend and triggers an auto-update, the update must not kill the
     backend that the desktop itself manages.  The desktop sets the
-    environment variable ``FREEIDE_DESKTOP_CHILD_PID`` on the spawned
+    environment variable ``JETTSTUI_DESKTOP_CHILD_PID`` on the spawned
     backend process; ``_kill_stale_dashboard_processes`` reads it and
     passes it here.  (#37532)
 
     Returns an empty list on any scan error (missing ps/wmic, timeout, etc.).
     """
     patterns = [
-        "freeide dashboard",
-        "freeide_cli.main dashboard",
-        "freeide_cli/main.py dashboard",
-        # The headless backend (`freeide serve`) is the same long-lived server
+        "jettstui dashboard",
+        "jettstui.main dashboard",
+        "jettstui/main.py dashboard",
+        # The headless backend (`jettstui serve`) is the same long-lived server
         # under a different command name — the desktop app spawns it. Reap it
         # on update for the same frontend/backend-mismatch reason.
-        "freeide serve",
-        "freeide_cli.main serve",
-        "freeide_cli/main.py serve",
+        "jettstui serve",
+        "jettstui.main serve",
+        "jettstui/main.py serve",
     ]
     self_pid = os.getpid()
     dashboard_processes: list[tuple[int, str]] = []
@@ -6910,7 +6910,7 @@ def _scan_dashboard_processes(
             # CREATE_NO_WINDOW hides the conhost flash: this scan can run from
             # the windowless pythonw.exe desktop/gateway backend during an
             # update, where a bare wmic spawn would pop a console window.
-            from freeide_cli._subprocess_compat import windows_hide_flags
+            from jettstui._subprocess_compat import windows_hide_flags
 
             result = subprocess.run(
                 ["wmic", "process", "get", "ProcessId,CommandLine", "/FORMAT:LIST"],
@@ -6941,8 +6941,8 @@ def _scan_dashboard_processes(
         else:
             # Linux / macOS: scan the process table via ps and match against
             # the same explicit patterns list used on Windows.  Using ps
-            # (rather than `pgrep -f "freeide.*dashboard"`) keeps us consistent
-            # with `freeide_cli.gateway._scan_gateway_pids` and avoids the
+            # (rather than `pgrep -f "jettstui.*dashboard"`) keeps us consistent
+            # with `jettstui.gateway._scan_gateway_pids` and avoids the
             # greedy regex matching unrelated cmdlines that merely contain
             # both words (e.g. a chat session discussing "dashboard").
             result = subprocess.run(
@@ -6990,18 +6990,18 @@ def _parse_dashboard_runtime(command: str) -> tuple[str, str, int] | None:
     if any(
         pattern in command
         for pattern in (
-            "freeide dashboard",
-            "freeide_cli.main dashboard",
-            "freeide_cli/main.py dashboard",
+            "jettstui dashboard",
+            "jettstui.main dashboard",
+            "jettstui/main.py dashboard",
         )
     ):
         mode = "dashboard"
     elif any(
         pattern in command
         for pattern in (
-            "freeide serve",
-            "freeide_cli.main serve",
-            "freeide_cli/main.py serve",
+            "jettstui serve",
+            "jettstui.main serve",
+            "jettstui/main.py serve",
         )
     ):
         mode = "serve"
@@ -7034,7 +7034,7 @@ def _dashboard_probe_host(host: str | None) -> str:
 
 
 def _print_curator_first_run_notice() -> None:
-    """Print a short heads-up about the skill curator after `freeide update`.
+    """Print a short heads-up about the skill curator after `jettstui update`.
 
     Only fires when the curator is enabled AND has no recorded run yet, which
     is exactly the window where the gateway ticker used to fire Curator
@@ -7075,7 +7075,7 @@ def _print_curator_first_run_notice() -> None:
 
 
 def _print_fts_optimize_available_notice() -> None:
-    """Advertise the opt-in v23 search-index optimization after `freeide update`.
+    """Advertise the opt-in v23 search-index optimization after `jettstui update`.
 
     Only fires when the current profile's state.db is still on the legacy
     (pre-v23) inline FTS layout. Leads with the reclaimable-space figure and
@@ -7086,7 +7086,7 @@ def _print_fts_optimize_available_notice() -> None:
     """
     mode = "advise"
     try:
-        from freeide_cli.config import load_config
+        from jettstui.config import load_config
 
         mode = str(
             ((load_config() or {}).get("sessions") or {}).get(
@@ -7099,11 +7099,11 @@ def _print_fts_optimize_available_notice() -> None:
         return
 
     try:
-        from freeide_constants import get_freeide_home
-        from freeide_state import SessionDB
+        from jettstui_constants import get_jettstui_home
+        from jettstui_state import SessionDB
     except Exception:
         return
-    db_path = get_freeide_home() / "state.db"
+    db_path = get_jettstui_home() / "state.db"
     if not db_path.exists():
         return
     try:
@@ -7156,11 +7156,11 @@ def _print_fts_optimize_available_notice() -> None:
         print()
         print("◆ Session database optimization incomplete")
         print(
-            "  A previous `freeide sessions optimize-storage` run was "
+            "  A previous `jettstui sessions optimize-storage` run was "
             "interrupted. Search still works; re-run the command to resume "
             "and finish reclaiming disk:"
         )
-        print("    freeide sessions optimize-storage")
+        print("    jettstui sessions optimize-storage")
         return
 
     # Concrete size framing — lead with the savings the user cares about.
@@ -7181,7 +7181,7 @@ def _print_fts_optimize_available_notice() -> None:
             f"typically frees ~60% of state.db — about {est_reclaim:.1f} GB "
             f"of your current {size_gb:.1f} GB."
         )
-    print("  Run when convenient:  freeide sessions optimize-storage")
+    print("  Run when convenient:  jettstui sessions optimize-storage")
     print(
         "  It runs in the foreground with a progress bar, is safe to "
         "interrupt/re-run, and never changes your conversations."
@@ -7193,11 +7193,11 @@ def _print_curator_recent_run_notice() -> None:
 
     The curator runs in the background (gateway tick + CLI session start),
     so users learn about skill consolidations only by stumbling into a
-    rename. ``freeide update`` is a high-attention surface — surface the
+    rename. ``jettstui update`` is a high-attention surface — surface the
     most recent run's rename map here, once.
 
     Show-once: state stamps ``last_run_summary_shown_at`` after printing.
-    Subsequent ``freeide update`` invocations skip the block until a newer
+    Subsequent ``jettstui update`` invocations skip the block until a newer
     curator run lands. Silent when the curator has never run, when the
     most recent summary has already been shown, or when the summary has
     no rename information to display (no archives).
@@ -7274,7 +7274,7 @@ def _format_time_ago(iso_ts: str) -> str:
         return "recently"
 
 
-_DASHBOARD_SYSTEMD_UNIT = "freeide-dashboard.service"
+_DASHBOARD_SYSTEMD_UNIT = "jettstui-dashboard.service"
 
 
 def _restart_managed_dashboard_service(
@@ -7300,7 +7300,7 @@ def _restart_managed_dashboard_service(
             timeout=timeout,
         )
 
-    # Probe the user manager first: FreeIDE installs Linux services in the
+    # Probe the user manager first: JettsTUI installs Linux services in the
     # user's systemd scope by default.  Only fall back to the system manager
     # when the unit is not present there, preserving root/system deployments.
     # Crucially, keep the selected scope for *all* probes and the restart — a
@@ -7389,7 +7389,7 @@ def _get_systemd_service_for_pid(pid: int) -> str | None:
     """If *pid* belongs to a systemd service unit, return the unit name.
 
     Reads ``/proc/<pid>/cgroup`` and extracts the service name (e.g.
-    ``freeide-serve.service``).  Returns ``None`` when the PID is not
+    ``jettstui-serve.service``).  Returns ``None`` when the PID is not
     part of a systemd service, when the file is unreadable, or on
     non-Linux platforms.
     """
@@ -7400,7 +7400,7 @@ def _get_systemd_service_for_pid(pid: int) -> str | None:
         text = cgroup_path.read_text(encoding="utf-8", errors="replace")
         for line in text.splitlines():
             line = line.strip()
-            # Format: 0::/system.slice/freeide-serve.service
+            # Format: 0::/system.slice/jettstui-serve.service
             #         0::/user.slice/user-1000.slice/session-42.scope
             parts = line.split("::", 1)
             if len(parts) != 2:
@@ -7497,7 +7497,7 @@ def _dashboard_cmdline_for_pid(pid: int) -> list[str] | None:
 
     Linux: reads ``/proc/<pid>/cmdline`` (NUL-separated, lossless).
     macOS: falls back to ``ps -o command=`` + shlex (best effort — quoting
-    is reconstructed, but freeide launch commands don't embed exotic args).
+    is reconstructed, but jettstui launch commands don't embed exotic args).
     Windows: returns ``None``; taskkill /F gives no graceful window and the
     desktop app manages its own backend there.
     """
@@ -7536,17 +7536,17 @@ def _dashboard_cmdline_for_pid(pid: int) -> list[str] | None:
 
 
 def _respawn_dashboard_processes(commands: list[list[str]]) -> list[list[str]]:
-    """Best-effort respawn of manually-started dashboards after ``freeide update``.
+    """Best-effort respawn of manually-started dashboards after ``jettstui update``.
 
     Spawns each recovered argv detached (new session, output to the profile's
     ``logs/dashboard-restart.log``).  Returns the commands that failed to
     spawn; the caller prints the manual hint for those.
     """
-    from freeide_constants import get_freeide_home
+    from jettstui_constants import get_jettstui_home
 
     respawned: list[list[str]] = []
     failed: list[tuple[list[str], str]] = []
-    log_path = get_freeide_home() / "logs" / "dashboard-restart.log"
+    log_path = get_jettstui_home() / "logs" / "dashboard-restart.log"
     try:
         log_path.parent.mkdir(parents=True, exist_ok=True)
     except OSError:
@@ -7583,10 +7583,10 @@ def _kill_stale_dashboard_processes(
     *,
     restart_managed: bool = False,
 ) -> dict[str, list]:
-    """Kill running ``freeide dashboard`` / ``freeide serve`` processes.
+    """Kill running ``jettstui dashboard`` / ``jettstui serve`` processes.
 
-    Called at the end of ``freeide update`` (default ``reason``) and also
-    from ``freeide dashboard --stop`` (which overrides ``reason``).  The
+    Called at the end of ``jettstui update`` (default ``reason``) and also
+    from ``jettstui dashboard --stop`` (which overrides ``reason``).  The
     dashboard has no service manager, so after a code update the running
     process is guaranteed to be serving stale Python against a
     freshly-updated JS bundle.  Leaving it alive produces silent
@@ -7599,21 +7599,21 @@ def _kill_stale_dashboard_processes(
 
     Manually-started dashboards are not auto-restarted because we don't know
     the original launch args (--host, --port, --insecure, --tui, --no-open).
-    When ``restart_managed`` is true (the ``freeide update`` path), a detected
-    ``freeide-dashboard.service`` is restarted through systemd; any OTHER
+    When ``restart_managed`` is true (the ``jettstui update`` path), a detected
+    ``jettstui-dashboard.service`` is restarted through systemd; any OTHER
     killed PID that was supervised by a systemd unit (custom unit names —
-    e.g. a remote backend's ``freeide-serve.service``) has its owning unit
+    e.g. a remote backend's ``jettstui-serve.service``) has its owning unit
     restarted after the kill, because systemd treats our SIGTERM as a clean
     stop and ``Restart=on-failure`` would never fire (#68934).
     """
     if restart_managed and _restart_managed_dashboard_service(reason):
         return {"matched": [], "killed": [], "failed": []}
 
-    # When the FreeIDE Desktop Electron app spawns this dashboard as a
-    # backend child, it sets FREEIDE_DESKTOP_CHILD_PID so that the update
+    # When the JettsTUI Desktop Electron app spawns this dashboard as a
+    # backend child, it sets JETTSTUI_DESKTOP_CHILD_PID so that the update
     # path can skip killing the desktop-managed process.  (#37532)
     exclude: set[int] | None = None
-    raw_pid = os.environ.get("FREEIDE_DESKTOP_CHILD_PID")
+    raw_pid = os.environ.get("JETTSTUI_DESKTOP_CHILD_PID")
     if raw_pid:
         # The desktop may manage several backends (one per active profile) and
         # passes them comma-separated; a lone int still parses for back-compat.
@@ -7639,7 +7639,7 @@ def _kill_stale_dashboard_processes(
     # Before killing, snapshot systemd cgroup info for each PID so we can
     # restart supervised services after the kill (the cgroup disappears
     # along with the process).  Only meaningful on Linux, and only when the
-    # caller asked for restarts (the `freeide update` path) — `--stop` must
+    # caller asked for restarts (the `jettstui update` path) — `--stop` must
     # stay a stop, not a restart.
     pid_cgroup: dict[int, str | None] = {}
     pid_service: dict[int, str | None] = {}
@@ -7724,7 +7724,7 @@ def _kill_stale_dashboard_processes(
 
     # Restart what we just killed (update path only).  Two categories:
     #  - systemd-supervised PIDs: restart the owning unit.  Without this, a
-    #    remote backend (freeide serve) under Restart=on-failure never comes
+    #    remote backend (jettstui serve) under Restart=on-failure never comes
     #    back after our clean SIGTERM, and the Desktop can't reconnect (#68934).
     #  - manually-started PIDs: respawn the argv captured before the kill
     #    (#40449) — detached, headless, logged to logs/dashboard-restart.log.
@@ -7762,11 +7762,11 @@ def _kill_stale_dashboard_processes(
 
         if failed_restarts or unrecovered:
             print("  Restart anything not auto-restarted when you're ready:")
-            print("    freeide dashboard --port <port>")
+            print("    jettstui dashboard --port <port>")
     elif killed:
         unrecovered = list(killed)
         print("  Restart the dashboard when you're ready:")
-        print("    freeide dashboard --port <port>")
+        print("    jettstui dashboard --port <port>")
 
     return {
         "matched": list(pids),
@@ -7794,7 +7794,7 @@ def _finish_dashboard_update_cleanup(node_failures: list[str]) -> None:
         "not be auto-restarted."
     )
     print("  Re-launch it when you want the web UI back:")
-    print("    freeide dashboard --port <port>")
+    print("    jettstui dashboard --port <port>")
 
 
 # Back-compat alias: some tests and any external callers may import the old
@@ -7815,8 +7815,8 @@ def _atomic_replace_dir(src: str, dst: str) -> None:
     fully succeeds do we swap it in. A failure during staging raises with the
     original *dst* still intact.
     """
-    staging = f"{dst}.freeide-update-staging"
-    backup = f"{dst}.freeide-update-old"
+    staging = f"{dst}.jettstui-update-staging"
+    backup = f"{dst}.jettstui-update-old"
     # Clear any leftovers from a previously-interrupted update.
     for leftover in (staging, backup):
         if os.path.exists(leftover):
@@ -7840,7 +7840,7 @@ def _atomic_replace_dir(src: str, dst: str) -> None:
 
 
 def _update_via_zip(args):
-    """Update Jetts-TUI by downloading a ZIP archive.
+    """Update JettsTUI by downloading a ZIP archive.
 
     Used on Windows when git file I/O is broken (antivirus, NTFS filter
     drivers causing 'Invalid argument' errors on file creation).
@@ -7864,8 +7864,8 @@ def _update_via_zip(args):
         print(
             "  This path runs when git file I/O is broken on the system. "
             "Either resolve the git-side breakage (typically an antivirus "
-            "or NTFS filter holding files open) and rerun `freeide update "
-            f"--branch {branch}`, or update against main with `freeide update`."
+            "or NTFS filter holding files open) and rerun `jettstui update "
+            f"--branch {branch}`, or update against main with `jettstui update`."
         )
         sys.exit(1)
     zip_url = f"https://github.com/Raioshok/JETTS-TUI/archive/refs/heads/{branch}.zip"
@@ -7880,7 +7880,7 @@ def _update_via_zip(args):
         import stat as _stat
         with zipfile.ZipFile(zip_path, "r") as zf:
             # Validate paths to prevent zip-slip (path traversal) AND reject
-            # symlink members. A GitHub source ZIP for Jetts-TUI itself
+            # symlink members. A GitHub source ZIP for JettsTUI itself
             # should never contain symlinks — they'd point outside the
             # extracted tree and let an attacker who can compromise the
             # update mirror plant arbitrary files via the update path.
@@ -7950,7 +7950,7 @@ def _update_via_zip(args):
     # individually so update does not silently strip working capabilities.
     print("→ Updating Python dependencies...")
 
-    from freeide_cli.managed_uv import ensure_uv, update_managed_uv
+    from jettstui.managed_uv import ensure_uv, update_managed_uv
 
     # Keep managed uv current — runs `uv self update` if we already have one.
     update_managed_uv()
@@ -8009,7 +8009,7 @@ def _update_via_zip(args):
         if result.get("user_modified"):
             print(f"  ~ {len(result['user_modified'])} user-modified (kept)")
             print(
-                "    → see them: freeide skills list-modified  "
+                "    → see them: jettstui skills list-modified  "
                 "(diff/reset to resume updates)"
             )
         if result.get("cleaned"):
@@ -8027,7 +8027,7 @@ def _update_via_zip(args):
     # Seed the model-catalog disk cache from the freshly-unpacked checkout
     # (same rationale as the git-pull path in _cmd_update_impl). Non-fatal.
     try:
-        from freeide_cli.model_catalog import seed_cache_from_checkout
+        from jettstui.model_catalog import seed_cache_from_checkout
 
         if seed_cache_from_checkout(PROJECT_ROOT):
             print("  ✓ Model catalog cache refreshed from checkout")
@@ -8038,9 +8038,9 @@ def _update_via_zip(args):
     # Same as the git-pull path: verify state.db survived the ZIP update
     # and auto-restore from the most recent pre-update snapshot if needed.
     try:
-        from freeide_cli.backup import _quick_snapshot_root, verify_sqlite_integrity
+        from jettstui.backup import _quick_snapshot_root, verify_sqlite_integrity
 
-        _state_path = get_freeide_home() / "state.db"
+        _state_path = get_jettstui_home() / "state.db"
         if _state_path.exists():
             _state_ok = verify_sqlite_integrity(
                 _state_path, check_header=True, run_pragma=True
@@ -8051,7 +8051,7 @@ def _update_via_zip(args):
                     "⚠ state.db is corrupted after update: "
                     + _state_ok.get("message", "unknown error")
                 )
-                _snap_root = _quick_snapshot_root(get_freeide_home())
+                _snap_root = _quick_snapshot_root(get_jettstui_home())
                 if _snap_root.exists():
                     _snap_dirs = sorted(
                         (d for d in _snap_root.iterdir() if d.is_dir()),
@@ -8145,7 +8145,7 @@ def _stash_local_changes_if_needed(git_cmd: list[str], cwd: Path) -> Optional[st
     from datetime import datetime, timezone
 
     stash_name = datetime.now(timezone.utc).strftime(
-        "freeide-update-autostash-%Y%m%d-%H%M%S"
+        "jettstui-update-autostash-%Y%m%d-%H%M%S"
     )
     print("→ Local changes detected — stashing before update...")
     prev_stash = subprocess.run(
@@ -8208,7 +8208,7 @@ def _stash_local_changes_if_needed(git_cmd: list[str], cwd: Path) -> Optional[st
                 print(f"  {push.stderr.strip().splitlines()[0]}")
             print(
                 "  Commit, stash, or clean up your local changes manually, "
-                "then re-run `freeide update`."
+                "then re-run `jettstui update`."
             )
             raise subprocess.CalledProcessError(
                 push.returncode, push.args, output=push.stdout, stderr=push.stderr
@@ -8292,7 +8292,7 @@ def _restore_stashed_changes(
         print(
             "  Restoring them may reapply local customizations onto the updated codebase."
         )
-        print("  Review the result afterward if FreeIDE behaves unexpectedly.")
+        print("  Review the result afterward if JettsTUI behaves unexpectedly.")
         print("Restore local changes now? [Y/n]")
         if input_fn is not None:
             response = input_fn("Restore local changes now? [Y/n]", "y")
@@ -8366,7 +8366,7 @@ def _restore_stashed_changes(
         print(f"  Stash ref: {stash_ref}")
 
         # Always reset to clean state — leaving conflict markers in source
-        # files makes freeide completely unrunnable (SyntaxError on import).
+        # files makes jettstui completely unrunnable (SyntaxError on import).
         # The user's changes are safe in the stash for manual recovery.
         subprocess.run(
             git_cmd + ["reset", "--hard", "HEAD"],
@@ -8383,7 +8383,7 @@ def _restore_stashed_changes(
     stash_selector = _resolve_stash_selector(git_cmd, cwd, stash_ref)
     if stash_selector is None:
         print(
-            "⚠ Local changes were restored, but FreeIDE couldn't find the stash entry to drop."
+            "⚠ Local changes were restored, but JettsTUI couldn't find the stash entry to drop."
         )
         print(
             "  The stash was left in place. You can remove it manually after checking the result."
@@ -8398,7 +8398,7 @@ def _restore_stashed_changes(
         )
         if drop.returncode != 0:
             print(
-                "⚠ Local changes were restored, but FreeIDE couldn't drop the saved stash entry."
+                "⚠ Local changes were restored, but JettsTUI couldn't drop the saved stash entry."
             )
             if drop.stdout.strip():
                 print(drop.stdout.strip())
@@ -8410,7 +8410,7 @@ def _restore_stashed_changes(
             _print_stash_cleanup_guidance(stash_ref, stash_selector)
 
     print("⚠ Local changes were restored on top of the updated codebase.")
-    print("  Review `git diff` / `git status` if FreeIDE behaves unexpectedly.")
+    print("  Review `git diff` / `git status` if JettsTUI behaves unexpectedly.")
     return True
 
 
@@ -8437,7 +8437,7 @@ def _discard_stashed_changes(
     if stash_selector is None:
         print(
             "⚠ Configured to discard local changes on non-interactive update, "
-            "but FreeIDE couldn't find the stash entry to drop."
+            "but JettsTUI couldn't find the stash entry to drop."
         )
         _print_stash_cleanup_guidance(stash_ref)
         return False
@@ -8450,7 +8450,7 @@ def _discard_stashed_changes(
     )
     if drop.returncode != 0:
         print(
-            "⚠ Configured to discard local changes, but FreeIDE couldn't drop "
+            "⚠ Configured to discard local changes, but JettsTUI couldn't drop "
             "the saved stash entry."
         )
         if drop.stderr.strip():
@@ -8463,7 +8463,7 @@ def _discard_stashed_changes(
 
 
 # =========================================================================
-# Fork detection and upstream management for `freeide update`
+# Fork detection and upstream management for `jettstui update`
 # =========================================================================
 
 OFFICIAL_REPO_URLS = {
@@ -8555,17 +8555,17 @@ def _count_commits_between(git_cmd: list[str], cwd: Path, base: str, head: str) 
 
 def _should_skip_upstream_prompt() -> bool:
     """Check if user previously declined to add upstream."""
-    from freeide_constants import get_freeide_home
+    from jettstui_constants import get_jettstui_home
 
-    return (get_freeide_home() / SKIP_UPSTREAM_PROMPT_FILE).exists()
+    return (get_jettstui_home() / SKIP_UPSTREAM_PROMPT_FILE).exists()
 
 
 def _mark_skip_upstream_prompt():
     """Create marker file to skip future upstream prompts."""
     try:
-        from freeide_constants import get_freeide_home
+        from jettstui_constants import get_jettstui_home
 
-        (get_freeide_home() / SKIP_UPSTREAM_PROMPT_FILE).touch()
+        (get_jettstui_home() / SKIP_UPSTREAM_PROMPT_FILE).touch()
     except Exception:
         pass
 
@@ -8605,7 +8605,7 @@ def _sync_with_upstream_if_needed(git_cmd: list[str], cwd: Path) -> None:
 
         # Ask user if they want to add upstream
         print()
-        print("ℹ Your fork is not tracking the official Jetts-TUI repository.")
+        print("ℹ Your fork is not tracking the official JettsTUI repository.")
         print("  This means you may miss updates from Raioshok/JETTS-TUI.")
         print()
         try:
@@ -8708,13 +8708,13 @@ def _invalidate_update_cache():
     reports a stale "commits behind" count after a successful update.
 
     The git repo is shared across profiles — when one profile runs
-    ``freeide update``, every profile is now current.
+    ``jettstui update``, every profile is now current.
     """
     homes = []
     # Default profile home (Docker-aware — uses /opt/data in Docker)
-    from freeide_constants import get_default_freeide_root
+    from jettstui_constants import get_default_jettstui_root
 
-    default_home = get_default_freeide_root()
+    default_home = get_default_jettstui_root()
     homes.append(default_home)
     # Named profiles under <root>/profiles/
     profiles_root = default_home / "profiles"
@@ -8760,7 +8760,7 @@ def _load_installable_optional_extras(group: str = "all") -> list[str]:
     return referenced
 
 
-# Install-scoped breadcrumbs live next to the venv (not under $FREEIDE_HOME)
+# Install-scoped breadcrumbs live next to the venv (not under $JETTSTUI_HOME)
 # because the venv is shared across profiles.
 #
 # ``.update-incomplete`` — generic core ``.[all]`` install was interrupted.
@@ -8819,7 +8819,7 @@ def _clear_lazy_refresh_incomplete_marker() -> None:
 
 
 def _recover_from_interrupted_install() -> None:
-    """Finish update work left half-done by a prior ``freeide update``.
+    """Finish update work left half-done by a prior ``jettstui update``.
 
     Handles two independent breadcrumbs:
 
@@ -8841,7 +8841,7 @@ def _recover_from_interrupted_install() -> None:
 
     Output: everything — our status lines AND the streamed pip/uv install
     (which inherits fd 1) — is routed to stderr.  Launches whose stdout is a
-    protocol stream (``freeide acp`` speaks JSON-RPC on stdout) must never get
+    protocol stream (``jettstui acp`` speaks JSON-RPC on stdout) must never get
     install noise on stdout.
     """
     core_marker = _update_marker_path().exists()
@@ -8950,26 +8950,26 @@ def _recover_core_update_marker_locked() -> None:
     would otherwise look healthy and clear the breadcrumb too early.
     """
     print(
-        "⚠ A previous `freeide update` was interrupted mid-install — "
+        "⚠ A previous `jettstui update` was interrupted mid-install — "
         "finishing dependency installation now..."
     )
 
-    # Windows: a normal ``freeide.exe`` launch always has the launcher as an
+    # Windows: a normal ``jettstui.exe`` launch always has the launcher as an
     # ancestor. Full editable reinstall uses quarantine so the live shim can
     # still be replaced. Package-only import repair may help as first aid but
     # must NEVER clear this core marker on its own (#58004 review).
-    self_locked = _windows_running_freeide_launcher_locked()
+    self_locked = _windows_running_jettstui_launcher_locked()
     if self_locked:
         install_prefix, install_env = _default_venv_install_target()
         print(
-            "  → Running from freeide.exe; applying package-only first aid, "
+            "  → Running from jettstui.exe; applying package-only first aid, "
             "then quarantined full reinstall (core marker stays until that "
             "succeeds)..."
         )
         _repair_venv_via_import_probes(install_prefix, env=install_env)
 
     try:
-        from freeide_cli.managed_uv import ensure_uv
+        from jettstui.managed_uv import ensure_uv
 
         # Always bootstrap pip first: a killed install can leave the venv with
         # no pip module at all, and uv may also be gone. ensurepip restores a
@@ -9009,8 +9009,8 @@ def _recover_core_update_marker_locked() -> None:
         print("✗ Could not auto-recover the interrupted install.")
         if self_locked:
             print(
-                "  FreeIDE is still running from the launcher that needs "
-                "replacing. Close other FreeIDE windows, restart from a "
+                "  JettsTUI is still running from the launcher that needs "
+                "replacing. Close other JettsTUI windows, restart from a "
                 "different terminal, then run:"
             )
             print(f'    cd /d "{PROJECT_ROOT}"')
@@ -9024,8 +9024,8 @@ def _recover_core_update_marker_locked() -> None:
             print(f"    {sys.executable} -m pip install -e '.[all]'")
 
 
-def _windows_running_freeide_launcher_locked() -> bool:
-    """True when a venv ``freeide*.exe`` shim is this process or an ancestor.
+def _windows_running_jettstui_launcher_locked() -> bool:
+    """True when a venv ``jettstui*.exe`` shim is this process or an ancestor.
 
     Best-effort: returns False when psutil is unavailable or inspection fails.
     """
@@ -9034,7 +9034,7 @@ def _windows_running_freeide_launcher_locked() -> bool:
     scripts_dir = _venv_scripts_dir()
     if scripts_dir is None:
         return False
-    shims = _freeide_exe_shims(scripts_dir)
+    shims = _jettstui_exe_shims(scripts_dir)
     if not shims:
         return False
     shim_set: set[str] = set()
@@ -9062,7 +9062,7 @@ def _windows_running_freeide_launcher_locked() -> bool:
 def _default_venv_install_target() -> tuple[list[str], dict[str, str] | None]:
     """Return ``(install_cmd_prefix, env)`` for the project venv when possible."""
     try:
-        from freeide_cli.managed_uv import ensure_uv
+        from jettstui.managed_uv import ensure_uv
 
         uv_bin = ensure_uv()
     except Exception:
@@ -9086,7 +9086,7 @@ def _run_install_with_heartbeat(
 
     Some resolvers/build backends (especially when compiling Rust/C extensions)
     can stay quiet for minutes. Emit a simple elapsed-time heartbeat so users
-    know ``freeide update`` is still progressing even if pip/uv itself is silent.
+    know ``jettstui update`` is still progressing even if pip/uv itself is silent.
     """
     done = threading.Event()
     start = _time.time()
@@ -9128,7 +9128,7 @@ def _venv_scripts_dir() -> Path | None:
     return scripts if scripts.is_dir() else None
 
 
-def _freeide_exe_shims(scripts_dir: Path) -> list[Path]:
+def _jettstui_exe_shims(scripts_dir: Path) -> list[Path]:
     """Entry-point shims that uv may try to rewrite during ``pip install -e .``.
 
     On Windows these are .exe launchers generated by setuptools/uv. On POSIX
@@ -9138,31 +9138,31 @@ def _freeide_exe_shims(scripts_dir: Path) -> list[Path]:
     if not _is_windows():
         return []
 
-    names = set(_load_console_script_names()) or {"freeide", "freeide-agent", "freeide-acp"}
+    names = set(_load_console_script_names()) or {"jettstui", "jettstui", "jettstui-acp"}
     # The gateway shim is not a [project.scripts] entry point, but older
     # update/install paths still rewrite and quarantine it.
-    names.add("freeide-gateway")
+    names.add("jettstui-gateway")
     return [scripts_dir / f"{name}.exe" for name in sorted(names)]
 
 
-def _detect_concurrent_freeide_instances(
+def _detect_concurrent_jettstui_instances(
     scripts_dir: Path, *, exclude_pid: int | None = None
 ) -> list[tuple[int, str]]:
     """Find other live processes whose .exe is one of our entry-point shims.
 
     Windows blocks DELETE/REPLACE on a running .exe — and even RENAME on the
     same .exe when another process opened it without ``FILE_SHARE_DELETE``.
-    The FreeIDE Desktop Electron app spawns ``freeide.EXE`` as a backend child,
-    so during ``freeide update`` the user-invoked process and the desktop's
+    The JettsTUI Desktop Electron app spawns ``jettstui.EXE`` as a backend child,
+    so during ``jettstui update`` the user-invoked process and the desktop's
     child both hold the same file. The quarantine rename then fails with
     ``[WinError 32]`` and uv inherits the lock.
 
     This helper enumerates processes whose ``exe`` matches one of the venv's
-    shims (``freeide.exe`` / ``freeide-gateway.exe``) and returns ``(pid,
+    shims (``jettstui.exe`` / ``jettstui-gateway.exe``) and returns ``(pid,
     process_name)`` pairs. The caller's own PID and its entire ancestor
-    chain are excluded so the running ``freeide update`` invocation never
+    chain are excluded so the running ``jettstui update`` invocation never
     reports itself — this matters on Windows where the setuptools .exe
-    launcher (``freeide.exe``) is a separate process from the Python
+    launcher (``jettstui.exe``) is a separate process from the Python
     interpreter it loads (``python.exe``).
 
     Returns an empty list off-Windows, on missing psutil, or when no other
@@ -9178,7 +9178,7 @@ def _detect_concurrent_freeide_instances(
 
     # Resolve every shim path to its canonical form once for cheap comparison.
     shim_paths: set[str] = set()
-    for shim in _freeide_exe_shims(scripts_dir):
+    for shim in _jettstui_exe_shims(scripts_dir):
         try:
             shim_paths.add(str(shim.resolve()).lower())
         except OSError:
@@ -9188,10 +9188,10 @@ def _detect_concurrent_freeide_instances(
 
     # Build a set of PIDs to exclude: the Python process itself plus every
     # ancestor whose executable is one of our shims. On Windows the
-    # setuptools-generated freeide.exe launcher is a separate native process
+    # setuptools-generated jettstui.exe launcher is a separate native process
     # that spawns python.exe (the interpreter that runs our code).
     # os.getpid() returns the Python PID, but the launcher (which holds the
-    # file lock) is the parent. Without excluding it, every ``freeide update``
+    # file lock) is the parent. Without excluding it, every ``jettstui update``
     # reports its own launcher as a concurrent instance — a false positive
     # (issues #29341, #34795).
     #
@@ -9202,7 +9202,7 @@ def _detect_concurrent_freeide_instances(
     #      across session/elevation boundaries), leaving the launcher shim in
     #      the candidate set and re-triggering the false positive.
     #   2. Only exclude ancestors whose exe is itself a shim. A genuine second
-    #      freeide.exe sitting *under* a non-FreeIDE parent (e.g. a FreeIDE
+    #      jettstui.exe sitting *under* a non-JettsTUI parent (e.g. a JettsTUI
     #      Desktop backend child) must still be flagged, so we don't blanket-
     #      exclude unrelated ancestors like the shell or terminal.
     # Broad ``except Exception`` guards against partially-stubbed psutil in
@@ -9266,16 +9266,16 @@ def _format_concurrent_instances_message(
     matches: list[tuple[int, str]], scripts_dir: Path
 ) -> str:
     """Build a human-readable explanation + remediation hint for the user."""
-    shim = scripts_dir / "freeide.exe"
-    lines = ["✗ Another freeide.exe is running:"]
+    shim = scripts_dir / "jettstui.exe"
+    lines = ["✗ Another jettstui.exe is running:"]
     for pid, name in matches:
         lines.append(f"    PID {pid}  {name}")
     lines.append("")
     lines.append(f"  Updating now would fail to overwrite {shim} because")
     lines.append("  Windows blocks REPLACE on a running executable.")
     lines.append("")
-    lines.append("  Close FreeIDE Desktop, exit any open `freeide` REPLs, and")
-    lines.append("  stop the gateway (`freeide gateway stop`) before retrying.")
+    lines.append("  Close JettsTUI Desktop, exit any open `jettstui` REPLs, and")
+    lines.append("  stop the gateway (`jettstui gateway stop`) before retrying.")
     lines.append("")
     if matches:
         pid_args = " ".join(f"/PID {pid}" for pid, _ in matches)
@@ -9283,29 +9283,29 @@ def _format_concurrent_instances_message(
         lines.append("  stale, terminate them directly, then retry the update:")
         lines.append(f"      taskkill {pid_args} /F")
         lines.append("")
-    lines.append("  Override with `freeide update --force` if you've already")
+    lines.append("  Override with `jettstui update --force` if you've already")
     lines.append("  confirmed those processes will not write to the venv.")
     return "\n".join(lines)
 
 
-def _quarantine_running_freeide_exe(
+def _quarantine_running_jettstui_exe(
     scripts_dir: Path, *, max_attempts: int = 4
 ) -> list[tuple[Path, Path]]:
-    """Pre-empt Windows file lock on the running ``freeide.exe``.
+    """Pre-empt Windows file lock on the running ``jettstui.exe``.
 
     Windows allows RENAMING a mapped/running executable (the kernel tracks the
     file by handle, not path), but blocks DELETE/REPLACE while it's loaded. uv
     needs to overwrite the entry-point shims during ``pip install -e .``;
-    when ``freeide update`` runs, ``freeide.exe`` IS the live process, and uv
+    when ``jettstui update`` runs, ``jettstui.exe`` IS the live process, and uv
     fails with ``Access is denied. (os error 5)``.
 
-    We rename live shims to ``freeide.exe.old.<unix-ms>`` first. uv then writes
+    We rename live shims to ``jettstui.exe.old.<unix-ms>`` first. uv then writes
     fresh shims at the original paths. The ``.old`` files are cleaned up on
-    the next freeide invocation by ``_cleanup_quarantined_exes``.
+    the next jettstui invocation by ``_cleanup_quarantined_exes``.
 
     Rename can still fail when *another* process has opened the .exe without
     ``FILE_SHARE_DELETE`` — typically AV real-time scanners with transient
-    handles (recovers in <1s), or the FreeIDE Desktop backend child process
+    handles (recovers in <1s), or the JettsTUI Desktop backend child process
     (won't recover until the user closes it). We mitigate:
 
     1. Retry up to ``max_attempts`` times with exponential backoff
@@ -9317,7 +9317,7 @@ def _quarantine_running_freeide_exe(
        update can complete; the user just needs to reboot to fully unload
        the stale image.
     3. Print a clear warning naming the most likely culprit (running
-       FreeIDE Desktop / gateway / REPL) and pointing to ``--force``.
+       JettsTUI Desktop / gateway / REPL) and pointing to ``--force``.
 
     Returns the list of (original, quarantined) pairs so the caller can roll
     back if the install itself fails before uv writes a replacement. Pairs
@@ -9336,7 +9336,7 @@ def _quarantine_running_freeide_exe(
     backoff_ms = [0, 100, 250, 500, 1000]
     attempts = max(1, min(max_attempts, len(backoff_ms)))
 
-    for shim in _freeide_exe_shims(scripts_dir):
+    for shim in _jettstui_exe_shims(scripts_dir):
         if not shim.exists():
             continue
         target = shim.with_suffix(shim.suffix + f".old.{stamp}")
@@ -9384,8 +9384,8 @@ def _quarantine_running_freeide_exe(
             f"another process is holding it open)."
         )
         print(
-            "    Close FreeIDE Desktop, exit other `freeide` REPLs, stop the "
-            "gateway, or pause AV scanning, then re-run `freeide update`."
+            "    Close JettsTUI Desktop, exit other `jettstui` REPLs, stop the "
+            "gateway, or pause AV scanning, then re-run `jettstui update`."
         )
 
     return moved
@@ -9427,7 +9427,7 @@ def _schedule_replace_on_reboot(shim: Path, quarantine_target: Path) -> bool:
 
 
 def _restore_quarantined_exes(moved: list[tuple[Path, Path]]) -> None:
-    """Roll back ``_quarantine_running_freeide_exe`` if uv didn't write replacements."""
+    """Roll back ``_quarantine_running_jettstui_exe`` if uv didn't write replacements."""
     for original, quarantined in moved:
         try:
             if not original.exists() and quarantined.exists():
@@ -9442,12 +9442,12 @@ def _run_quarantined_install(
     env: dict[str, str] | None = None,
     scripts_dir: Path | None = None,
 ) -> None:
-    """Run an editable install, quarantining the running ``freeide.exe`` first.
+    """Run an editable install, quarantining the running ``jettstui.exe`` first.
 
     Any ``pip install -e .`` (or ``--reinstall``) rewrites the entry-point
-    shims, and on Windows the live ``freeide.exe`` is the running process —
+    shims, and on Windows the live ``jettstui.exe`` is the running process —
     pip can neither delete nor overwrite it, so without quarantine the shim
-    is left missing and ``freeide`` drops off PATH. This wraps
+    is left missing and ``jettstui`` drops off PATH. This wraps
     :func:`_run_install_with_heartbeat` with the same rename-out-of-the-way /
     restore-on-failure dance that the primary install path uses, so EVERY
     install that touches the shims is protected — including the
@@ -9459,7 +9459,7 @@ def _run_quarantined_install(
     """
     moved: list[tuple[Path, Path]] = []
     if scripts_dir is not None:
-        moved = _quarantine_running_freeide_exe(scripts_dir)
+        moved = _quarantine_running_jettstui_exe(scripts_dir)
     try:
         _run_install_with_heartbeat(cmd, env=env)
     except BaseException:
@@ -9471,9 +9471,9 @@ def _run_quarantined_install(
 
 
 def _cleanup_quarantined_exes(scripts_dir: Path | None = None) -> None:
-    """Sweep ``freeide.exe.old.*`` left by prior updates.
+    """Sweep ``jettstui.exe.old.*`` left by prior updates.
 
-    Called early on every freeide invocation. The .old files are unlocked once
+    Called early on every jettstui invocation. The .old files are unlocked once
     their owning process exited, so deletion succeeds the next run. Silent
     no-op when nothing's there or on file-locked / permission errors.
     """
@@ -9515,7 +9515,7 @@ def _run_package_only_install(
     """Run a package-only pip/uv install without quarantining entry-point shims.
 
     ``pip install --upgrade pip`` and ``--force-reinstall <pkg>`` do not
-    rewrite ``freeide.exe``. The editable-install quarantine path would rename
+    rewrite ``jettstui.exe``. The editable-install quarantine path would rename
     shims without uv recreating them on Windows (#57828).
     """
     _run_install_with_heartbeat(cmd, env=env)
@@ -9694,7 +9694,7 @@ def _repair_venv_via_import_probes(
 
     Uses real ``import`` checks (not distribution metadata) so a venv where
     METADATA remains but ``.py`` files were wiped mid-install is still
-    detected (#57828). Package-only reinstall — never rewrites ``freeide.exe``.
+    detected (#57828). Package-only reinstall — never rewrites ``jettstui.exe``.
 
     Never raises. Returns one of:
       - ``"healthy"`` — probes ran and found nothing broken
@@ -9722,7 +9722,7 @@ def _repair_venv_via_import_probes(
     manual = " ".join(
         shlex.quote(s) for s in _lazy_refresh_repair_specs(broken)
     )
-    print("  ⚠ Venv repair incomplete. Run manually, then `freeide update`:")
+    print("  ⚠ Venv repair incomplete. Run manually, then `jettstui update`:")
     print(
         f"    {' '.join(install_cmd_prefix)} install --force-reinstall {manual}"
     )
@@ -9738,7 +9738,7 @@ def _refresh_active_lazy_features(
 
     When pyproject.toml's ``[all]`` extra was slimmed down (May 2026), most
     optional backends moved to ``tools/lazy_deps.py`` and only install on
-    first use. ``freeide update`` runs ``uv pip install -e .[all]`` which
+    first use. ``jettstui update`` runs ``uv pip install -e .[all]`` which
     leaves those packages untouched — so if we bump a pin in
     :data:`LAZY_DEPS` (CVE response, transitive bug fix), users who already
     activated the backend keep the stale version forever.
@@ -9809,7 +9809,7 @@ def _refresh_active_lazy_features(
         print(f"  ⚠ {feature} failed to refresh: {reason}")
 
     if install_cmd_prefix is None:
-        print("  ⚠ Lazy refresh failed; rerun `freeide update` once resolved.")
+        print("  ⚠ Lazy refresh failed; rerun `jettstui update` once resolved.")
         return False
 
     # Immediate import-based recovery — metadata-only verifiers miss the case
@@ -9825,7 +9825,7 @@ def _refresh_active_lazy_features(
         print(
             "  Lazy backend(s) keep their previous version; probed packages look intact."
         )
-        print("  Rerun `freeide update` once the upstream issue is resolved.")
+        print("  Rerun `jettstui update` once the upstream issue is resolved.")
         return True
     if status == "indeterminate":
         print(
@@ -9839,7 +9839,7 @@ def _refresh_active_memory_provider_dependencies() -> None:
 
     Memory-provider bridge packages are declared in each provider's
     ``plugin.yaml`` (plus mode-dependent extras like Hindsight's
-    ``hindsight-all``), NOT in FreeIDE' editable-install extras or
+    ``hindsight-all``), NOT in JettsTUI' editable-install extras or
     ``LAZY_DEPS`` alone — so the core dependency reinstall above can strip
     or downgrade them (#53272 mem0ai, #70636 hindsight-embed). Re-run the
     provider's declared install for the ACTIVE provider only, after the
@@ -9849,7 +9849,7 @@ def _refresh_active_memory_provider_dependencies() -> None:
     Never raises. A failure here must not block the rest of the update.
     """
     try:
-        from freeide_cli.config import load_config
+        from jettstui.config import load_config
 
         cfg = load_config()
     except Exception as exc:
@@ -9869,7 +9869,7 @@ def _refresh_active_memory_provider_dependencies() -> None:
         return
 
     try:
-        from freeide_cli.memory_setup import _install_dependencies
+        from jettstui.memory_setup import _install_dependencies
     except Exception as exc:
         logger.debug("Memory provider refresh skipped (import failed): %s", exc)
         return
@@ -9894,10 +9894,10 @@ def _install_python_dependencies_with_optional_fallback(
     By default this targets ``.[all]``; Termux callers can pass
     ``group='termux-all'`` to use the curated Android-compatible profile.
 
-    On Windows, pre-renames live ``freeide.exe`` / ``freeide-gateway.exe`` shims
+    On Windows, pre-renames live ``jettstui.exe`` / ``jettstui-gateway.exe`` shims
     in the venv Scripts dir before each install attempt so uv can write fresh
     copies (Windows blocks REPLACE on a running .exe but allows RENAME). See
-    ``_quarantine_running_freeide_exe`` for the rationale.
+    ``_quarantine_running_jettstui_exe`` for the rationale.
     """
     scripts_dir = _venv_scripts_dir() if _is_windows() else None
 
@@ -9941,7 +9941,7 @@ def _install_python_dependencies_with_optional_fallback(
     # partial installs where a newly added base dep (e.g. ``pathspec``)
     # silently fails to land on top of a half-stale venv, and the only
     # symptom is a downstream subprocess crashing with ModuleNotFoundError
-    # hours later inside ``freeide update``'s desktop-rebuild or skill-sync
+    # hours later inside ``jettstui update``'s desktop-rebuild or skill-sync
     # stage. Reinstall with --reinstall to force resolution if anything is
     # missing, then re-verify so the failure surfaces here instead of
     # downstream.
@@ -9977,11 +9977,11 @@ def _verify_console_scripts_installed(
 ) -> None:
     """Ensure every declared console_script shim exists on disk after install.
 
-    On Windows, ``uv pip install -e .`` can register ``freeide.exe`` in the
+    On Windows, ``uv pip install -e .`` can register ``jettstui.exe`` in the
     wheel RECORD while the file never lands on disk — typically when the live
-    ``freeide.exe`` shim is locked during ``freeide update``, or when uv/distlib
-    skips a launcher write. The symptom is ``freeide-agent.exe`` and
-    ``freeide-acp.exe`` present but ``freeide.exe`` missing, so ``freeide`` drops
+    ``jettstui.exe`` shim is locked during ``jettstui update``, or when uv/distlib
+    skips a launcher write. The symptom is ``jettstui.exe`` and
+    ``jettstui-acp.exe`` present but ``jettstui.exe`` missing, so ``jettstui`` drops
     off PATH even though the install reported success (issue #52931).
 
     If any shim is missing we reinstall with ``--reinstall -e .`` under the
@@ -10024,8 +10024,8 @@ def _verify_console_scripts_installed(
     except subprocess.CalledProcessError as e:
         logger.warning("console script verification: repair install failed: %s", e)
         print(
-            "  ⚠ Entry point repair failed; try `freeide update --force` after "
-            "closing other freeide processes."
+            "  ⚠ Entry point repair failed; try `jettstui update --force` after "
+            "closing other jettstui processes."
         )
         return
 
@@ -10033,7 +10033,7 @@ def _verify_console_scripts_installed(
     if still_missing:
         print(
             f"  ⚠ Still missing after repair: {', '.join(still_missing)}. "
-            "Workaround: python -m freeide_cli.main <command>"
+            "Workaround: python -m jettstui.main <command>"
         )
     else:
         print("  ✓ All console entry points restored")
@@ -10117,7 +10117,7 @@ def _verify_core_dependencies_installed(
         return
 
     # Run the check inside the venv Python — sys.executable here may be the
-    # outer Python that drove ``freeide update``, not the venv we just wrote
+    # outer Python that drove ``jettstui update``, not the venv we just wrote
     # to. The uv install_cmd_prefix encodes which environment we targeted
     # (either ``[uv, pip]`` with VIRTUAL_ENV in env, or
     # ``[sys.executable, -m, pip]`` for the in-process Python); resolve the
@@ -10164,9 +10164,9 @@ def _verify_core_dependencies_installed(
     # extras install can cost minutes and trips on whatever optional extra
     # was already broken upstream. Base is fast and is what's actually wrong.
     #
-    # Quarantine the running ``freeide.exe`` first: ``--reinstall -e .``
+    # Quarantine the running ``jettstui.exe`` first: ``--reinstall -e .``
     # rewrites the entry-point shims, and on Windows pip can't overwrite the
-    # live launcher, which would leave ``freeide`` off PATH.
+    # live launcher, which would leave ``jettstui`` off PATH.
     scripts_dir = _venv_scripts_dir() if _is_windows() else None
     repair_args = ["install", "--reinstall", "-e", "."]
     try:
@@ -10175,7 +10175,7 @@ def _verify_core_dependencies_installed(
         )
     except subprocess.CalledProcessError as e:
         logger.warning("dep verification: repair install failed: %s", e)
-        print("  ⚠ Repair install failed; check `freeide update` output above.")
+        print("  ⚠ Repair install failed; check `jettstui update` output above.")
         return
 
     still_missing = _missing_deps()
@@ -10208,7 +10208,7 @@ def _verify_core_dependencies_installed(
         logger.warning("dep verification: per-package repair failed: %s", e)
         print(
             f"  ⚠ Could not install: {', '.join(still_missing)}. "
-            "Run `freeide update --force` after closing other freeide processes."
+            "Run `jettstui update --force` after closing other jettstui processes."
         )
         return
 
@@ -10216,7 +10216,7 @@ def _verify_core_dependencies_installed(
     if final_missing:
         print(
             f"  ⚠ Still missing after repair: {', '.join(final_missing)}. "
-            "Run `freeide update --force` after closing other freeide processes."
+            "Run `jettstui update --force` after closing other jettstui processes."
         )
     else:
         print("  ✓ All declared core dependencies now installed")
@@ -10280,7 +10280,7 @@ def _install_psutil_android_compat(
     """
     import tempfile
     import urllib.request
-    from freeide_cli.psutil_android import PSUTIL_URL, prepare_patched_psutil_sdist
+    from jettstui.psutil_android import PSUTIL_URL, prepare_patched_psutil_sdist
 
     with tempfile.TemporaryDirectory() as tmp:
         tmp_path = Path(tmp)
@@ -10298,12 +10298,12 @@ def _ensure_uv_for_termux(pip_cmd: list[str]) -> str | None:
     """Best-effort uv bootstrap on Termux for faster update installs.
 
     The normal path (``ensure_uv()`` in managed_uv) installs the managed
-    standalone uv into ``$FREEIDE_HOME/bin/uv``, but on Termux the official
+    standalone uv into ``$JETTSTUI_HOME/bin/uv``, but on Termux the official
     installer may not work (glibc vs bionic).  Prefer a uv already on PATH
     (e.g. ``pkg install uv``); only if there is none do we fall back to a
     wheel-only ``pip install uv`` so we never source-build the Rust crate.
     """
-    from freeide_cli.managed_uv import resolve_uv
+    from jettstui.managed_uv import resolve_uv
 
     existing = resolve_uv()
     if existing:
@@ -10336,7 +10336,7 @@ def _npm_manifest_paths() -> tuple[Path, ...]:
 
     The lockfile alone is NOT a sufficient key: on a local checkout a dev
     can edit package.json (root or a workspace) without running npm — the
-    lockfile is then unchanged but `freeide update` is exactly the step
+    lockfile is then unchanged but `jettstui update` is exactly the step
     expected to sync node_modules (via the `npm install` fallback in
     _run_npm_install_deterministic).
 
@@ -10384,7 +10384,7 @@ def _npm_manifests_digest() -> str | None:
     return h.hexdigest()
 
 
-def _npm_lockfile_changed(freeide_root: Path) -> bool:
+def _npm_lockfile_changed(jettstui_root: Path) -> bool:
     current = _npm_manifests_digest()
     if current is None:
         return True
@@ -10393,7 +10393,7 @@ def _npm_lockfile_changed(freeide_root: Path) -> bool:
     if not (PROJECT_ROOT / "node_modules").is_dir():
         return True
     # A matching lockfile hash over a tree whose web build toolchain never
-    # landed must NOT skip the reinstall — otherwise every later `freeide
+    # landed must NOT skip the reinstall — otherwise every later `jettstui
     # update` keeps rebuilding against a half-installed tree and serving a
     # stale dist.
     web_dir = PROJECT_ROOT / "web"
@@ -10404,7 +10404,7 @@ def _npm_lockfile_changed(freeide_root: Path) -> bool:
     try:
         # Key the cache by PROJECT_ROOT so parallel worktrees don't collide.
         cache_key = hashlib.sha256(str(PROJECT_ROOT).encode()).hexdigest()[:12]
-        cache_file = freeide_root / f".npm_lock_hash_{cache_key}"
+        cache_file = jettstui_root / f".npm_lock_hash_{cache_key}"
         if not cache_file.exists():
             return True
         return cache_file.read_text(encoding="utf-8").strip() != current
@@ -10412,13 +10412,13 @@ def _npm_lockfile_changed(freeide_root: Path) -> bool:
         return True
 
 
-def _record_npm_lockfile_hash(freeide_root: Path) -> None:
+def _record_npm_lockfile_hash(jettstui_root: Path) -> None:
     digest = _npm_manifests_digest()
     if digest is None:
         return
     try:
         cache_key = hashlib.sha256(str(PROJECT_ROOT).encode()).hexdigest()[:12]
-        cache_file = freeide_root / f".npm_lock_hash_{cache_key}"
+        cache_file = jettstui_root / f".npm_lock_hash_{cache_key}"
         cache_file.write_text(digest, encoding="utf-8")
     except OSError:
         logger.debug("Could not write npm lockfile hash cache")
@@ -10454,7 +10454,7 @@ def _resolve_node_runtime_npm() -> str | None:
     entries) for a Linux-native npm. Returns the npm path, or ``None`` when
     no suitable npm is reachable.
     """
-    from freeide_constants import find_node_executable
+    from jettstui_constants import find_node_executable
 
     npm = find_node_executable("npm")
 
@@ -10498,14 +10498,14 @@ def _update_node_dependencies() -> list[str]:
         # If the only npm reachable inside this WSL shell is the Windows one,
         # flag it loudly: silently skipping leaves ui-tui deps stale while the
         # rest of the update proceeds, and running it would corrupt the tree.
-        from freeide_constants import is_wsl
+        from jettstui_constants import is_wsl
 
         path_npm = shutil.which("npm")
         if is_wsl() and path_npm and _is_windows_npm_path(path_npm):
             print("→ Updating Node.js dependencies...")
             print("  ⚠ Skipped: only a Windows npm is reachable from this WSL shell.")
             print("    Install Node.js inside the WSL distro (nvm, or your distro's")
-            print("    package manager), then re-run `freeide update`.")
+            print("    package manager), then re-run `jettstui update`.")
             failed = ["repo root"]
             if any(
                 (PROJECT_ROOT / workspace / "package.json").exists()
@@ -10515,20 +10515,20 @@ def _update_node_dependencies() -> list[str]:
             return failed
         return []
 
-    from freeide_constants import get_default_freeide_root
+    from jettstui_constants import get_default_jettstui_root
 
     # This cache describes PROJECT_ROOT/node_modules, which is shared by every
-    # FreeIDE profile using this checkout. Keep one per-checkout cache under the
-    # shared FreeIDE root rather than rerunning npm once per named profile.
-    shared_freeide_root = get_default_freeide_root()
-    if not _npm_lockfile_changed(shared_freeide_root):
+    # JettsTUI profile using this checkout. Keep one per-checkout cache under the
+    # shared JettsTUI root rather than rerunning npm once per named profile.
+    shared_jettstui_root = get_default_jettstui_root()
+    if not _npm_lockfile_changed(shared_jettstui_root):
         logger.info("npm lockfile unchanged, skipping npm install")
         return []
 
     # With a single workspace lockfile the root install would cover ALL
     # workspaces — but apps/desktop pulls in Electron as a devDependency,
     # and its postinstall downloads a ~200MB binary.  Most users don't
-    # need desktop during `freeide update`, so we install root-only first
+    # need desktop during `jettstui update`, so we install root-only first
     # then add just the workspaces the CLI/TUI/web build actually requires.
     # Desktop deps are installed on demand by the desktop launcher
     # (see _desktop_build_needed).
@@ -10538,20 +10538,20 @@ def _update_node_dependencies() -> list[str]:
         print()
         print("  ⚠ Node.js dependency refresh did not complete cleanly; the")
         print("    installation may be in a mixed state (updated code, stale Node")
-        print("    deps). Fix npm and re-run `freeide update`.")
+        print("    deps). Fix npm and re-run `jettstui update`.")
         return list(labels)
 
     extra_args = ["--no-fund", "--no-audit", "--progress=false"]
 
-    from freeide_constants import with_freeide_node_path
+    from jettstui_constants import with_jettstui_node_path
 
-    nixos_env = with_freeide_node_path(_nixos_build_env())
+    nixos_env = with_jettstui_node_path(_nixos_build_env())
 
     # Step 1: root install (no workspace recursion).
     # NOTE: capture_output=False here is deliberate (#18840) — optional
     # postinstall scripts (e.g. @askjo/camofox-browser's browser-binary fetch)
     # print download progress, and capturing it makes a long download look
-    # hung. The chatty npm-deprecation noise during `freeide update` comes from
+    # hung. The chatty npm-deprecation noise during `jettstui update` comes from
     # the *desktop* build, not this step; that one is captured to update.log.
     root_args = [*extra_args, "--workspaces=false"]
     root_result = _run_npm_install_deterministic(
@@ -10579,7 +10579,7 @@ def _update_node_dependencies() -> list[str]:
         env=nixos_env,
     )
     if ws_result.returncode == 0:
-        _record_npm_lockfile_hash(shared_freeide_root)
+        _record_npm_lockfile_hash(shared_jettstui_root)
         print("  ✓ repo root + ui-tui, web workspaces (desktop skipped)")
         return []
 
@@ -10591,12 +10591,12 @@ def _update_node_dependencies() -> list[str]:
 
 
 class _UpdateOutputStream:
-    """Stream wrapper used during ``freeide update`` to survive terminal loss.
+    """Stream wrapper used during ``jettstui update`` to survive terminal loss.
 
     Wraps the process's original stdout/stderr so that:
 
     * Every write is also mirrored to an append-only log file
-      (``~/.freeide/logs/update.log``) that users can inspect after the
+      (``~/.jettstui/logs/update.log``) that users can inspect after the
       terminal disconnects.
     * Writes to the original stream that fail with ``BrokenPipeError`` /
       ``OSError`` / ``ValueError`` (closed file) no longer cascade into
@@ -10604,7 +10604,7 @@ class _UpdateOutputStream:
       stops.
 
     Combined with ``SIGHUP -> SIG_IGN`` installed by
-    ``_install_hangup_protection``, this makes ``freeide update`` safe to
+    ``_install_hangup_protection``, this makes ``jettstui update`` safe to
     run in a plain SSH session that might disconnect mid-install.
     """
 
@@ -10666,7 +10666,7 @@ class _UpdateOutputStream:
 def _install_hangup_protection(gateway_mode: bool = False):
     """Protect ``cmd_update`` from SIGHUP and broken terminal pipes.
 
-    Users commonly run ``freeide update`` in an SSH session or a terminal
+    Users commonly run ``jettstui update`` in an SSH session or a terminal
     that may close mid-install.  Without protection, ``SIGHUP`` from the
     terminal kills the Python process during ``pip install`` and leaves
     the venv half-installed; the documented workaround ("use screen /
@@ -10678,14 +10678,14 @@ def _install_hangup_protection(gateway_mode: bool = False):
        across ``exec()``, so pip and git subprocesses also stop dying on
        hangup.
     2. ``sys.stdout`` / ``sys.stderr`` are wrapped to mirror output to
-       ``~/.freeide/logs/update.log`` and to silently absorb
+       ``~/.jettstui/logs/update.log`` and to silently absorb
        ``BrokenPipeError`` when the terminal vanishes.
 
     ``SIGINT`` (Ctrl-C) and ``SIGTERM`` (systemd shutdown) are
     **intentionally left alone** — those are legitimate cancellation
     signals the user or OS sent on purpose.
 
-    In gateway mode (``freeide update --gateway``) the update is already
+    In gateway mode (``jettstui update --gateway``) the update is already
     spawned detached from a terminal, so this function is a no-op.
 
     Returns a dict that ``cmd_update`` can pass to
@@ -10717,10 +10717,10 @@ def _install_hangup_protection(gateway_mode: bool = False):
     # tolerance.  Any failure here is non-fatal; we just skip the wrap.
     try:
         # Late-bound import so tests can monkeypatch
-        # freeide_cli.config.get_freeide_home to simulate setup failure.
-        from freeide_cli.config import get_freeide_home as _get_freeide_home
+        # jettstui.config.get_jettstui_home to simulate setup failure.
+        from jettstui.config import get_jettstui_home as _get_jettstui_home
 
-        logs_dir = _get_freeide_home() / "logs"
+        logs_dir = _get_jettstui_home() / "logs"
         logs_dir.mkdir(parents=True, exist_ok=True)
         log_path = logs_dir / "update.log"
         log_file = open(log_path, "a", buffering=1, encoding="utf-8")
@@ -10728,7 +10728,7 @@ def _install_hangup_protection(gateway_mode: bool = False):
         import datetime as _dt
 
         log_file.write(
-            f"\n=== freeide update started "
+            f"\n=== jettstui update started "
             f"{_dt.datetime.now().isoformat(timespec='seconds')} ===\n"
         )
 
@@ -10745,9 +10745,9 @@ def _install_hangup_protection(gateway_mode: bool = False):
 
 
 def _log_only_write(text: str) -> None:
-    """Write ``text`` to ``~/.freeide/logs/update.log`` only, never the terminal.
+    """Write ``text`` to ``~/.jettstui/logs/update.log`` only, never the terminal.
 
-    During ``freeide update`` ``sys.stdout`` is an ``_UpdateOutputStream`` that
+    During ``jettstui update`` ``sys.stdout`` is an ``_UpdateOutputStream`` that
     mirrors to both the terminal and ``update.log``. Loud, low-signal
     subprocess output (npm installs, the Electron/vite build, the cua-driver
     installer's "Next steps" wall) should be captured and tucked into the log
@@ -10822,7 +10822,7 @@ def _resolve_update_branch(args) -> str:
 
 
 def _cmd_update_check(branch: str = "main", *, branch_explicit: bool = False):
-    """Implement ``freeide update --check``: fetch and report without installing.
+    """Implement ``jettstui update --check``: fetch and report without installing.
 
     ``branch`` selects which branch the check compares against. Default is
     "main"; callers can pass another branch to ask "are there new commits
@@ -10832,14 +10832,14 @@ def _cmd_update_check(branch: str = "main", *, branch_explicit: bool = False):
     Installs that can't honor non-default branches (e.g. Docker) surface a
     one-line notice instead of silently dropping the flag.
     """
-    from freeide_cli.config import detect_install_method, recommended_update_command_for_method
+    from jettstui.config import detect_install_method, recommended_update_command_for_method
     method = detect_install_method(PROJECT_ROOT)
     if method == "docker":
         # Docker can't ``git fetch`` from within the container.  Surface the
-        # same long-form ``docker pull`` guidance ``freeide update`` (apply
+        # same long-form ``docker pull`` guidance ``jettstui update`` (apply
         # path) uses — telling the user to "reinstall via curl" or that
         # ".git is missing" would point them at the wrong remediation.
-        from freeide_cli.config import format_docker_update_message
+        from jettstui.config import format_docker_update_message
         print(format_docker_update_message())
         sys.exit(1)
 
@@ -10953,7 +10953,7 @@ def _cmd_update_check(branch: str = "main", *, branch_explicit: bool = False):
             print("✓ Already up to date.")
         else:
             print(f"◆ Update available (behind {compare_branch}).")
-            from freeide_cli.config import recommended_update_command
+            from jettstui.config import recommended_update_command
 
             print(f"  Run '{recommended_update_command()}' to install.")
         return
@@ -10972,7 +10972,7 @@ def _cmd_update_check(branch: str = "main", *, branch_explicit: bool = False):
     else:
         commits_word = "commit" if behind == 1 else "commits"
         print(f"◆ Update available: {behind} {commits_word} behind {compare_branch}.")
-        from freeide_cli.config import recommended_update_command
+        from jettstui.config import recommended_update_command
 
         print(f"  Run '{recommended_update_command()}' to install.")
 
@@ -10982,16 +10982,16 @@ def _ensure_fhs_path_guard() -> None:
 
     Mirrors the post-symlink probe added to ``scripts/install.sh`` so that
     existing FHS-layout root installs on RHEL/CentOS/Rocky/Alma 8+ get
-    repaired on ``freeide update`` without requiring a reinstall.  The
+    repaired on ``jettstui update`` without requiring a reinstall.  The
     installer's assumption that ``/usr/local/bin`` is on PATH for every
     standard shell breaks on those distros in non-login interactive shells
     (su, sudo -s, tmux panes, some web terminals): /etc/bashrc doesn't
     add /usr/local/bin and /root/.bash_profile doesn't either.  Symptom:
-    ``freeide`` prints ``command not found`` even though the symlink lives
-    at /usr/local/bin/freeide.
+    ``jettstui`` prints ``command not found`` even though the symlink lives
+    at /usr/local/bin/jettstui.
 
     Silent no-op on: non-Linux, non-root, non-FHS installs, and any system
-    where ``bash -i -c 'command -v freeide'`` already resolves.  Idempotent.
+    where ``bash -i -c 'command -v jettstui'`` already resolves.  Idempotent.
     """
     if sys.platform != "linux":
         return
@@ -11001,8 +11001,8 @@ def _ensure_fhs_path_guard() -> None:
     except AttributeError:
         return
     # Only act when this is actually an FHS-layout install (command link at
-    # /usr/local/bin/freeide, code at /usr/local/lib/freeide-agent).
-    fhs_link = Path("/usr/local/bin/freeide")
+    # /usr/local/bin/jettstui, code at /usr/local/lib/jettstui).
+    fhs_link = Path("/usr/local/bin/jettstui")
     if not fhs_link.is_symlink() and not fhs_link.exists():
         return
 
@@ -11020,7 +11020,7 @@ def _ensure_fhs_path_guard() -> None:
                 "bash",
                 "-i",
                 "-c",
-                "command -v freeide",
+                "command -v jettstui",
             ],
             capture_output=True,
             text=True, encoding="utf-8", errors="replace",
@@ -11033,7 +11033,7 @@ def _ensure_fhs_path_guard() -> None:
 
     path_line = 'export PATH="/usr/local/bin:$PATH"'
     path_comment = (
-        "# FreeIDE Agent — ensure /usr/local/bin is on PATH " "(RHEL non-login shells)"
+        "# JettsTUI — ensure /usr/local/bin is on PATH " "(RHEL non-login shells)"
     )
     wrote_any = False
     for candidate in (".bashrc", ".bash_profile"):
@@ -11105,7 +11105,7 @@ def _resolve_pre_update_backup_mode(args) -> str:
         return "full"
 
     try:
-        from freeide_cli.config import load_config
+        from jettstui.config import load_config
 
         cfg = load_config()
     except Exception as exc:
@@ -11145,8 +11145,8 @@ def _run_pre_update_backup(args) -> Optional[str]:
       under ``state-snapshots/``. Files over 1 GiB are skipped with a
       warning so a bloated state.db can never stall the update
       (issues #15733, #34600 are the reason this safety net exists).
-    - ``full``  — the quick snapshot PLUS a full zip of FREEIDE_HOME under
-      ``backups/`` (restorable via ``freeide import``; the #48200 wrong-path
+    - ``full``  — the quick snapshot PLUS a full zip of JETTSTUI_HOME under
+      ``backups/`` (restorable via ``jettstui import``; the #48200 wrong-path
       wipe is the reason this level exists).
 
     ``--backup`` forces ``full`` for one run; ``--no-backup`` forces ``off``.
@@ -11168,16 +11168,16 @@ def _run_pre_update_backup(args) -> Optional[str]:
 
     snapshot_id = None
     try:
-        from freeide_cli.backup import (
+        from jettstui.backup import (
             _quick_snapshot_root,
             create_quick_snapshot,
             verify_sqlite_integrity,
         )
 
-        # NOTE: this function later does `from freeide_constants import
-        # get_freeide_home`, which makes the name function-local — the
+        # NOTE: this function later does `from jettstui_constants import
+        # get_jettstui_home`, which makes the name function-local — the
         # module-level import is shadowed and unbound here. Alias explicitly.
-        from freeide_cli.config import get_freeide_home as _get_home
+        from jettstui.config import get_jettstui_home as _get_home
 
         snapshot_id = create_quick_snapshot(
             label="pre-update",
@@ -11241,7 +11241,7 @@ def _run_pre_update_backup(args) -> Optional[str]:
         return snapshot_id
 
     try:
-        from freeide_cli.backup import create_pre_update_backup
+        from jettstui.backup import create_pre_update_backup
     except Exception as exc:
         print(
             f"⚠ Pre-update backup: could not load backup module ({exc}); continuing update."
@@ -11250,7 +11250,7 @@ def _run_pre_update_backup(args) -> Optional[str]:
         return snapshot_id
 
     try:
-        from freeide_cli.config import load_config
+        from jettstui.config import load_config
 
         _keep = (load_config() or {}).get("updates", {}).get("backup_keep", 5)
     except Exception:
@@ -11286,20 +11286,20 @@ def _run_pre_update_backup(args) -> Optional[str]:
         size_bytes /= 1024
         size_str = f"{size_bytes:.1f} {unit}"
 
-    # Render path using display_freeide_home so the user sees ~/.freeide/...
+    # Render path using display_jettstui_home so the user sees ~/.jettstui/...
     try:
-        from freeide_constants import get_freeide_home, display_freeide_home
+        from jettstui_constants import get_jettstui_home, display_jettstui_home
 
-        home = get_freeide_home()
+        home = get_jettstui_home()
         try:
-            display_path = f"{display_freeide_home()}/{out_path.relative_to(home)}"
+            display_path = f"{display_jettstui_home()}/{out_path.relative_to(home)}"
         except ValueError:
             display_path = str(out_path)
     except Exception:
         display_path = str(out_path)
 
     print(f"  Saved:    {display_path} ({size_str}, {elapsed:.1f}s)")
-    print(f"  Restore:  freeide import {out_path}")
+    print(f"  Restore:  jettstui import {out_path}")
     print("  Disable:  set updates.pre_update_backup: quick (or off) in config.yaml")
     print()
     return snapshot_id
@@ -11365,11 +11365,11 @@ def _venv_core_imports_healthy() -> tuple[bool, str]:
     """Probe the project venv for the core imports the backend needs to boot.
 
     Runs a tiny import check inside the venv interpreter (NOT this process —
-    ``freeide update`` may be driven by a different Python). Catches the
+    ``jettstui update`` may be driven by a different Python). Catches the
     half-updated-venv state: git checkout current but a dependency sync that
     failed or was killed partway (e.g. Windows access-denied on a loaded
     .pyd), leaving imports like ``fastapi``'s new transitive deps missing.
-    Without this probe, ``freeide update`` on a current checkout prints
+    Without this probe, ``jettstui update`` on a current checkout prints
     "Already up to date!" and returns without ever re-syncing dependencies —
     the user's install stays broken no matter how many times they update
     (ryanc's incident, July 2026).
@@ -11383,15 +11383,15 @@ def _venv_core_imports_healthy() -> tuple[bool, str]:
     venv_python = venv_dir / bin_dir / python_name
     if not venv_python.exists():
         # No venv interpreter at all. In a dev checkout that's normal (the
-        # dev may run freeide from any interpreter), so report healthy to
+        # dev may run jettstui from any interpreter), so report healthy to
         # avoid forcing reinstalls. But on a MANAGED install (the Windows
-        # installer / desktop bootstrap stamps `.freeide-bootstrap-complete`,
+        # installer / desktop bootstrap stamps `.jettstui-bootstrap-complete`,
         # and an interrupted update leaves `.update-incomplete`), the venv
         # IS the install — its absence means a repair got interrupted after
         # the old venv was moved aside, and "Already up to date!" would
         # gaslight the user while nothing can run.
         managed_markers = (
-            PROJECT_ROOT / ".freeide-bootstrap-complete",
+            PROJECT_ROOT / ".jettstui-bootstrap-complete",
             _update_marker_path(),
         )
         if any(m.exists() for m in managed_markers):
@@ -11437,8 +11437,8 @@ def _detect_venv_python_processes(
 ) -> list[tuple[int, str, str]]:
     """Find live processes running from the project venv's interpreter.
 
-    The freeide.exe shim guard misses the biggest lock-holder class on
-    Windows: the Desktop app's backend (``python.exe -m freeide_cli.main
+    The jettstui.exe shim guard misses the biggest lock-holder class on
+    Windows: the Desktop app's backend (``python.exe -m jettstui.main
     serve``) and anything else running straight off ``venv\\Scripts\\python
     (w).exe``. Those processes keep native ``.pyd`` extensions mapped, so a
     dependency sync mid-update dies with access-denied and strands the venv
@@ -11448,7 +11448,7 @@ def _detect_venv_python_processes(
     backend and respawns it within seconds — so the caller should refuse and
     tell the user to close the app instead. Returns ``(pid, name, cmdline)``
     tuples; empty off-Windows / without psutil / when nothing matches. The
-    calling process and its ancestors are always excluded (a CLI ``freeide
+    calling process and its ancestors are always excluded (a CLI ``jettstui
     update`` itself runs from the venv python). Never raises.
     """
     if not _is_windows():
@@ -11504,11 +11504,11 @@ def _detect_venv_python_processes(
         # Fallback: uv/base-interpreter trampolines run a python whose exe is
         # OUTSIDE the venv but which still imports from it and holds its .pyd
         # files. Catch those by what they're running: a cmdline that references
-        # this venv's path, or a `-m freeide_cli.main ...` invocation tied to
+        # this venv's path, or a `-m jettstui.main ...` invocation tied to
         # this install (install root in the cmdline or as the working dir).
         if not is_holder and venv_prefix in cmdline_low:
             is_holder = True
-        if not is_holder and "freeide_cli.main" in cmdline_low:
+        if not is_holder and "jettstui.main" in cmdline_low:
             if root_prefix in cmdline_low or cwd_low.startswith(root_prefix):
                 is_holder = True
         if not is_holder:
@@ -11521,13 +11521,13 @@ def _detect_venv_python_processes(
 def _format_venv_python_holders_message(matches: list[tuple[int, str, str]]) -> str:
     """Explain which venv processes block the update and how to clear them."""
     lines = [
-        "✗ Other FreeIDE processes are running from this install's venv:",
+        "✗ Other JettsTUI processes are running from this install's venv:",
     ]
     for pid, name, cmdline in matches[:6]:
         hint = ""
         low = cmdline.lower()
         if "serve" in low or "dashboard" in low:
-            hint = "  ← FreeIDE Desktop backend (close the desktop app)"
+            hint = "  ← JettsTUI Desktop backend (close the desktop app)"
         elif "gateway" in low:
             hint = "  ← gateway"
         lines.append(f"  PID {pid}  {name}  {cmdline}{hint}")
@@ -11541,10 +11541,10 @@ def _format_venv_python_holders_message(matches: list[tuple[int, str, str]]) -> 
         "  dependency update would fail partway and leave a broken install."
     )
     lines.append(
-        "  Close the FreeIDE desktop app / other FreeIDE terminals, then re-run:"
+        "  Close the JettsTUI desktop app / other JettsTUI terminals, then re-run:"
     )
-    lines.append("    freeide update")
-    lines.append("  (or use `freeide update --force-venv` to proceed anyway at your own risk)")
+    lines.append("    jettstui update")
+    lines.append("  (or use `jettstui update --force-venv` to proceed anyway at your own risk)")
     return "\n".join(lines)
 
 
@@ -11552,7 +11552,7 @@ def _pause_windows_gateways_for_update() -> dict | None:
     """Stop running Windows gateways before mutating the checkout or venv.
 
     Windows scheduled/startup gateways run through pythonw.exe, so the generic
-    freeide.exe concurrent-instance guard does not see them. They still import
+    jettstui.exe concurrent-instance guard does not see them. They still import
     from the checkout and can keep files locked while ``git`` or ``uv`` updates
     the install. Stop only PIDs that the gateway discovery code identifies.
     """
@@ -11561,7 +11561,7 @@ def _pause_windows_gateways_for_update() -> dict | None:
 
     try:
         from gateway.status import terminate_pid
-        from freeide_cli.gateway import (
+        from jettstui.gateway import (
             _capture_gateway_argv,
             _get_restart_drain_timeout,
             find_gateway_pids,
@@ -11587,7 +11587,7 @@ def _pause_windows_gateways_for_update() -> dict | None:
         # the update so an installed gateway is actually up post-update. Users
         # who run gateway-less (no autostart entry) get nothing forced on them.
         try:
-            from freeide_cli import gateway_windows
+            from jettstui import gateway_windows
 
             if gateway_windows.is_installed():
                 return {
@@ -11622,7 +11622,7 @@ def _pause_windows_gateways_for_update() -> dict | None:
         mapped_pids.append(int(pid))
         _write_update_planned_stop_marker(Path(proc.path), int(pid))
 
-    print("→ Stopping Windows gateway process(es) before updating FreeIDE...")
+    print("→ Stopping Windows gateway process(es) before updating JettsTUI...")
     try:
         drain_timeout = max(float(_get_restart_drain_timeout()), 1.0)
     except Exception:
@@ -11636,7 +11636,7 @@ def _pause_windows_gateways_for_update() -> dict | None:
     # Snapshot each unmapped gateway's command line *before* we force-kill it,
     # so ``_resume_windows_gateways_after_update`` can respawn it by replaying
     # its own argv. Unmapped gateways are ones with no profile→PID-file mapping
-    # — e.g. a Windows Scheduled Task running ``pythonw.exe -m freeide_cli.main
+    # — e.g. a Windows Scheduled Task running ``pythonw.exe -m jettstui.main
     # gateway run``. Without this snapshot they were force-killed and never
     # restarted (the "Restart manually after update" dead-end from #50090).
     unmapped: list[dict] = []
@@ -11669,7 +11669,7 @@ def _pause_windows_gateways_for_update() -> dict | None:
         if respawnable < len(unmapped_pids):
             # Some had no recoverable command line (psutil missing, access
             # denied, already gone): those still need a manual restart.
-            print("    Restart manually after update: freeide gateway run")
+            print("    Restart manually after update: jettstui gateway run")
 
     return {
         "resume_needed": True,
@@ -11688,7 +11688,7 @@ def _cold_start_windows_gateway_after_update() -> None:
     is installed, signalling the user wants a gateway. Unlike the relaunch
     paths — which watch an old PID and respawn once it exits — this is a direct
     fresh spawn via the same hidden-console + breakaway path that
-    ``freeide gateway start`` uses (``gateway_windows._spawn_detached``).
+    ``jettstui gateway start`` uses (``gateway_windows._spawn_detached``).
 
     Best-effort and idempotent: re-checks that nothing is running first so a
     concurrent start (e.g. the autostart entry firing) can't produce a
@@ -11697,8 +11697,8 @@ def _cold_start_windows_gateway_after_update() -> None:
     if not _is_windows():
         return
     try:
-        from freeide_cli import gateway_windows
-        from freeide_cli.gateway import find_gateway_pids
+        from jettstui import gateway_windows
+        from jettstui.gateway import find_gateway_pids
     except Exception as exc:
         logger.debug("Could not load Windows gateway cold-start helpers: %s", exc)
         return
@@ -11731,7 +11731,7 @@ def _for_each_systemd_gateway_unit(
     process_unit,
     on_unit_timeout,
 ) -> None:
-    """Process each ``freeide-gateway*.service`` from ``systemctl list-units``.
+    """Process each ``jettstui-gateway*.service`` from ``systemctl list-units``.
 
     ``subprocess.TimeoutExpired`` raised by ``process_unit`` is isolated to
     that unit via ``on_unit_timeout`` so one wedged systemctl call cannot
@@ -11746,7 +11746,7 @@ def _for_each_systemd_gateway_unit(
             continue
         # list-units is already pattern-filtered, but keep the name gate so a
         # stray non-gateway line cannot enter the restart path.
-        if not unit.startswith("freeide-gateway"):
+        if not unit.startswith("jettstui-gateway"):
             continue
         svc_name = unit.removesuffix(".service")
         try:
@@ -11773,7 +11773,7 @@ def _warn_incomplete_gateway_fleet_restart(failed_units: list) -> None:
         print(f"    - {name}")
     print("  Skipped units may still be running pre-update code (mixed")
     print("  sys.modules). Restart them manually, then verify:")
-    print("    freeide gateway status")
+    print("    jettstui gateway status")
     print("    systemctl --user restart <unit>   # user-scope")
     print("    sudo systemctl restart <unit>     # system-scope")
 
@@ -11783,7 +11783,7 @@ def _refresh_windows_gateway_launchers() -> None:
 
     The Scheduled Task / Startup-folder launchers (``gateway.cmd`` +
     ``gateway.vbs``) are persistence artifacts written once at install time —
-    ``freeide update`` never touched them, so installs created before the
+    ``jettstui update`` never touched them, so installs created before the
     hidden-console rework (aa2ae36c3f) kept launching the gateway through
     ``pythonw.exe`` forever: every descendant spawn flashed a conhost
     (#54220/#56747) and, since #70344, the console-less gateway died at
@@ -11798,7 +11798,7 @@ def _refresh_windows_gateway_launchers() -> None:
     if not _is_windows():
         return
     try:
-        from freeide_cli import gateway_windows
+        from jettstui import gateway_windows
 
         if not gateway_windows.is_installed():
             return
@@ -11830,7 +11830,7 @@ def _resume_windows_gateways_after_update(token: dict | None) -> None:
         return
 
     try:
-        from freeide_cli.gateway import (
+        from jettstui.gateway import (
             launch_detached_gateway_restart_by_cmdline,
             launch_detached_profile_gateway_restart,
         )
@@ -11884,7 +11884,7 @@ def _discard_lockfile_churn(git_cmd, repo_root):
 
     npm rewrites lockfiles non-deterministically at install/build time. On a
     managed install those diffs are never intentional, so we discard them so
-    ``freeide update`` sees a clean tree instead of autostashing every run.
+    ``jettstui update`` sees a clean tree instead of autostashing every run.
     Best-effort; only ever touches files named ``package-lock.json``.
     """
     try:
@@ -11923,13 +11923,13 @@ def _discard_lockfile_churn(git_cmd, repo_root):
 
 
 def cmd_update(args):
-    """Update Jetts-TUI to the latest version.
+    """Update JettsTUI to the latest version.
 
     Thin wrapper around ``_cmd_update_impl``: installs hangup protection,
     runs the update, then restores stdio on the way out (even on
     ``sys.exit`` or unhandled exceptions).
     """
-    from freeide_cli.config import (
+    from jettstui.config import (
         detect_install_method,
         format_docker_update_message,
         is_managed,
@@ -11938,7 +11938,7 @@ def cmd_update(args):
     )
 
     if is_managed():
-        managed_error("update FreeIDE Agent")
+        managed_error("update JettsTUI")
         return
 
     # Docker users can't ``git pull`` — the image excludes ``.git`` from
@@ -11958,7 +11958,7 @@ def cmd_update(args):
 
     if getattr(args, "check", False):
         # --check honors --branch so the "any new commits?" answer matches
-        # what a subsequent `freeide update --branch=<x>` would actually pull.
+        # what a subsequent `jettstui update --branch=<x>` would actually pull.
         branch = _resolve_update_branch(args)
         _cmd_update_check(
             branch=branch,
@@ -12002,7 +12002,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
     discard_local_changes = False
     if _non_interactive_update:
         try:
-            from freeide_cli.config import load_config
+            from jettstui.config import load_config
 
             _update_cfg = (load_config() or {}).get("updates", {})
             if isinstance(_update_cfg, dict):
@@ -12013,17 +12013,17 @@ def _cmd_update_impl(args, gateway_mode: bool):
             logger.debug("Could not read updates.non_interactive_local_changes: %s", exc)
             discard_local_changes = False
 
-    print("◆ Updating FreeIDE Agent...")
+    print("◆ Updating JettsTUI...")
     print()
 
-    # On Windows, abort early if another freeide.exe is holding the venv shim
+    # On Windows, abort early if another jettstui.exe is holding the venv shim
     # open. Continuing would result in a string of WinError 32 warnings and
     # then either a deferred-rename leftover or a failed git-pull fast path
     # that silently falls back to the slower ZIP route. See issue #26670.
     if _is_windows() and not getattr(args, "force", False):
         scripts_dir = _venv_scripts_dir()
         if scripts_dir is not None:
-            concurrent = _detect_concurrent_freeide_instances(scripts_dir)
+            concurrent = _detect_concurrent_jettstui_instances(scripts_dir)
             if concurrent:
                 print(_format_concurrent_instances_message(concurrent, scripts_dir))
                 sys.exit(2)
@@ -12044,12 +12044,12 @@ def _cmd_update_impl(args, gateway_mode: bool):
         )
 
     # With gateways paused, anything still running from the venv interpreter
-    # (most commonly the Desktop app's `freeide serve` backend) will keep .pyd
+    # (most commonly the Desktop app's `jettstui serve` backend) will keep .pyd
     # files locked and corrupt the dependency sync below. Refuse rather than
     # race: killing the desktop backend is futile (the app supervises and
     # respawns it), so the user must close the app. Deliberately NOT bypassed
     # by plain --force: the desktop bootstrap updater passes --force to skip
-    # the freeide.exe shim guard above, but its lock probe only checks the shim
+    # the jettstui.exe shim guard above, but its lock probe only checks the shim
     # and app.asar — a non-desktop venv python holding a .pyd would sail
     # through and corrupt the sync (the exact failure this guard exists for).
     # --force-venv is the explicit escape hatch.
@@ -12261,7 +12261,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
             # uv can retain the same CPython patch while python-build-standalone
             # refreshes the embedded SQLite underneath it. Keep the existing
             # update-boundary hook active on this retry path too.
-            from freeide_cli.managed_uv import ensure_uv, update_managed_uv
+            from jettstui.managed_uv import ensure_uv, update_managed_uv
 
             runtime_repairs = []
             update_managed_uv(repair_observer=runtime_repairs.append)
@@ -12284,7 +12284,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
                 print(f"  {detail}")
                 print("→ Repairing Python dependencies...")
                 _write_update_incomplete_marker()
-                from freeide_cli.managed_uv import ensure_uv
+                from jettstui.managed_uv import ensure_uv
 
                 repair_uv = ensure_uv()
                 # A managed install whose venv is gone entirely (interrupted
@@ -12318,7 +12318,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
                     print("✓ Dependencies repaired!")
                 else:
                     print(f"⚠ Venv still unhealthy after repair: {detail_after}")
-                    print("  Close all FreeIDE windows/gateways and re-run: freeide update")
+                    print("  Close all JettsTUI windows/gateways and re-run: jettstui update")
             else:
                 print("✓ Already up to date!")
             if runtime_repaired is not None and not _is_windows():
@@ -12327,7 +12327,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
                     "⚠ Restart required to finish the managed Python runtime repair."
                 )
                 print(
-                    "  Any running FreeIDE gateways, Desktop backends, or other "
+                    "  Any running JettsTUI gateways, Desktop backends, or other "
                     "long-lived processes still use the previous runtime."
                 )
                 print(
@@ -12347,8 +12347,8 @@ def _cmd_update_impl(args, gateway_mode: bool):
         update_succeeded = False
         # Capture the pre-pull SHA so we can auto-roll-back if the new code
         # has a syntax error in a critical-path file (PR #28452 incident:
-        # orphan merge-conflict markers in freeide_cli/config.py bricked
-        # every user who ran ``freeide update`` for the 7 minutes between
+        # orphan merge-conflict markers in jettstui/config.py bricked
+        # every user who ran ``jettstui update`` for the 7 minutes between
         # the bad commit and the fix landing).
         pre_pull_sha = _capture_head_sha(git_cmd, PROJECT_ROOT)
         try:
@@ -12384,7 +12384,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
             # parse before declaring the update successful. If a bad commit
             # made it through CI (e.g. admin-merge bypass of a failing
             # ruff check), this catches it on the user side and rolls back
-            # so the CLI stays bootable. The user can then retry ``freeide
+            # so the CLI stays bootable. The user can then retry ``jettstui
             # update`` later once a fix lands upstream.
             syntax_ok, failing_path, syntax_error = _validate_critical_files_syntax(
                 PROJECT_ROOT
@@ -12409,7 +12409,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
                     )
                     if rollback_result.returncode == 0:
                         print("  ✓ Rollback complete — your install is unchanged.")
-                        print("  Try ``freeide update`` again later once a fix lands.")
+                        print("  Try ``jettstui update`` again later once a fix lands.")
                     else:
                         print("  ✗ Rollback failed. Recover manually with:")
                         print(f"    cd {PROJECT_ROOT} && git reset --hard {pre_pull_sha}")
@@ -12453,7 +12453,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
 
         # Clear stale .pyc bytecode cache — prevents ImportError on gateway
         # restart when updated source references names that didn't exist in
-        # the old bytecode (e.g. get_freeide_home added to freeide_constants).
+        # the old bytecode (e.g. get_jettstui_home added to jettstui_constants).
         removed = _clear_bytecode_cache(PROJECT_ROOT)
         if removed:
             print(
@@ -12471,12 +12471,12 @@ def _cmd_update_impl(args, gateway_mode: bool):
         #
         # Drop the core-install breadcrumb BEFORE touching the venv. If the
         # install is killed mid-flight (Ctrl-C, terminal close, WSL OOM), the
-        # marker survives and the next ``freeide`` launch finishes the install
+        # marker survives and the next ``jettstui`` launch finishes the install
         # via ``_recover_from_interrupted_install``. Cleared after the core
         # ``.[all]`` install completes — lazy refresh uses a separate marker.
         _write_update_incomplete_marker()
         print("→ Updating Python dependencies...")
-        from freeide_cli.managed_uv import ensure_uv, update_managed_uv
+        from jettstui.managed_uv import ensure_uv, update_managed_uv
 
         # Keep managed uv current — runs `uv self update` if we already have one.
         update_managed_uv()
@@ -12540,7 +12540,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
         # The update process is still the old Python interpreter process. Run
         # one final cache/module refresh immediately before lazy backend
         # refresh, which imports newly-pulled modules that may depend on fresh
-        # symbols in freeide_constants or lazy_deps. The dependency install
+        # symbols in jettstui_constants or lazy_deps. The dependency install
         # above may also have regenerated bytecode from build-cache copies —
         # this second sweep catches those stragglers (#60242, #65240).
         removed = _clear_bytecode_cache(PROJECT_ROOT)
@@ -12563,7 +12563,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
             _clear_lazy_refresh_incomplete_marker()
         else:
             print(
-                "  ⚠ Lazy-refresh recovery incomplete — run `freeide` again "
+                "  ⚠ Lazy-refresh recovery incomplete — run `jettstui` again "
                 "to finish import-based venv repair."
             )
 
@@ -12576,17 +12576,17 @@ def _cmd_update_impl(args, gateway_mode: bool):
         _build_web_ui(PROJECT_ROOT / "web")
 
         # Rebuild the desktop app if the source tree changed since the last
-        # build.  ``freeide desktop --build-only`` uses the content-hash stamp
+        # build.  ``jettstui desktop --build-only`` uses the content-hash stamp
         # internally, so this is effectively a no-op when nothing changed.
         # Only bother if the user has a desktop app installed (indicated by
         # an existing packaged executable or desktop dist); people who have
-        # never run ``freeide desktop`` shouldn't be forced into a full
-        # Electron build by ``freeide update``.
+        # never run ``jettstui desktop`` shouldn't be forced into a full
+        # Electron build by ``jettstui update``.
         desktop_dir = PROJECT_ROOT / "apps" / "desktop"
         has_desktop_app = _desktop_packaged_executable(desktop_dir) is not None or _desktop_dist_exists(desktop_dir)
         if (desktop_dir / "package.json").exists() and _resolve_node_runtime_npm() and has_desktop_app:
             print("→ Checking if desktop app needs rebuilding...")
-            _desktop_build_cmd = [sys.executable, "-m", "freeide_cli.main", "desktop", "--build-only"]
+            _desktop_build_cmd = [sys.executable, "-m", "jettstui.main", "desktop", "--build-only"]
             # Capture the (very loud) Electron/vite build output into
             # update.log instead of streaming it to the terminal. On the rare
             # nonzero exit, retry once after waiting again for the venv — this
@@ -12594,23 +12594,23 @@ def _cmd_update_impl(args, gateway_mode: bool):
             # catch — then surface the captured tail so the failure is
             # debuggable.
             #
-            # Start the build subprocess with the FreeIDE-managed Node on PATH:
-            # when `freeide update` runs inside the desktop updater chain
-            # (Desktop → freeide-setup → freeide update), the shell PATH
+            # Start the build subprocess with the JettsTUI-managed Node on PATH:
+            # when `jettstui update` runs inside the desktop updater chain
+            # (Desktop → jettstui-setup → jettstui update), the shell PATH
             # customizations are lost, so a bare-PATH child would fail with
             # `node: not found` before cmd_gui can self-heal.
-            from freeide_constants import with_freeide_node_path
+            from jettstui_constants import with_jettstui_node_path
 
-            _build_env = with_freeide_node_path()
+            _build_env = with_jettstui_node_path()
             build_result = _run_logged_subprocess(_desktop_build_cmd, cwd=PROJECT_ROOT, env=_build_env)
             if build_result.returncode != 0:
                 build_result = _run_logged_subprocess(_desktop_build_cmd, cwd=PROJECT_ROOT, env=_build_env)
             if build_result.returncode != 0:
-                print("  ⚠ Desktop build failed (non-fatal; run `freeide desktop` to retry)")
+                print("  ⚠ Desktop build failed (non-fatal; run `jettstui desktop` to retry)")
                 tail = "\n".join((build_result.stdout or "").strip().splitlines()[-15:])
                 if tail:
                     print(tail)
-                from freeide_constants import display_freeide_home as _dhh
+                from jettstui_constants import display_jettstui_home as _dhh
                 print(f"  Full build log: {_dhh()}/logs/update.log")
             else:
                 print("  ✓ Desktop app up to date")
@@ -12624,9 +12624,9 @@ def _cmd_update_impl(args, gateway_mode: bool):
         # automatically restore from the pre-update snapshot rather than
         # letting the user discover silently that their sessions are gone.
         try:
-            from freeide_cli.backup import _quick_snapshot_root, verify_sqlite_integrity
+            from jettstui.backup import _quick_snapshot_root, verify_sqlite_integrity
 
-            _state_path = get_freeide_home() / "state.db"
+            _state_path = get_jettstui_home() / "state.db"
             if _state_path.exists():
                 _state_ok = verify_sqlite_integrity(
                     _state_path,
@@ -12647,7 +12647,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
                     _pre_snap_id = pre_update_snapshot_id
                     if _pre_snap_id:
                         _snap_state = (
-                            _quick_snapshot_root(get_freeide_home())
+                            _quick_snapshot_root(get_jettstui_home())
                             / _pre_snap_id
                             / "state.db"
                         )
@@ -12696,13 +12696,13 @@ def _cmd_update_impl(args, gateway_mode: bool):
         # Seed the model-catalog disk cache from the freshly-pulled checkout.
         # The repo ships the canonical catalog at
         # resources/model-catalog.json, and `git pull` just made it
-        # current — so copy it straight over ~/.freeide/cache/model_catalog.json
+        # current — so copy it straight over ~/.jettstui/cache/model_catalog.json
         # instead of waiting on a network fetch (which can be bot-gated or hit a
         # Portal hiccup). Keeps the model picker's curated/free lists in sync
         # with the version the user just installed. Non-fatal on failure: the
         # normal network refresh still applies on the next picker open.
         try:
-            from freeide_cli.model_catalog import seed_cache_from_checkout
+            from jettstui.model_catalog import seed_cache_from_checkout
 
             if seed_cache_from_checkout(PROJECT_ROOT):
                 print("  ✓ Model catalog cache refreshed from checkout")
@@ -12725,7 +12725,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
             if result.get("user_modified"):
                 print(f"  ~ {len(result['user_modified'])} user-modified (kept)")
                 print(
-                    "    → see them: freeide skills list-modified  "
+                    "    → see them: jettstui skills list-modified  "
                     "(diff/reset to resume updates)"
                 )
             if result.get("cleaned"):
@@ -12741,12 +12741,12 @@ def _cmd_update_impl(args, gateway_mode: bool):
             logger.debug("Skills sync during update failed: %s", e)
 
         # Sync bundled skills to all profiles (including the active one).
-        # seed_profile_skills() uses subprocess with an explicit FREEIDE_HOME so
-        # it is not affected by sync_skills()'s module-level FREEIDE_HOME cache,
+        # seed_profile_skills() uses subprocess with an explicit JETTSTUI_HOME so
+        # it is not affected by sync_skills()'s module-level JETTSTUI_HOME cache,
         # which means the active profile is reliably synced regardless of whether
-        # the caller's FREEIDE_HOME env var points at the default or a named profile.
+        # the caller's JETTSTUI_HOME env var points at the default or a named profile.
         try:
-            from freeide_cli.profiles import (
+            from jettstui.profiles import (
                 list_profiles,
                 seed_profile_skills,
             )
@@ -12784,7 +12784,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
         # .env-seeding fix (#44792). Copies the default install's .env so
         # those profiles keep the credentials they were effectively using.
         try:
-            from freeide_cli.profiles import backfill_profile_envs
+            from jettstui.profiles import backfill_profile_envs
 
             backfilled = backfill_profile_envs(quiet=True)
             if backfilled:
@@ -12810,7 +12810,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
         print()
         print("→ Checking configuration for new options...")
 
-        from freeide_cli.config import (
+        from jettstui.config import (
             get_missing_env_vars,
             get_missing_config_fields,
             check_config_version,
@@ -12842,7 +12842,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
                 print("  ✓ Config format updated (no new settings to configure)")
             except Exception as _mig_err:
                 print(f"  ⚠️  Config format update failed: {_mig_err}")
-                print("     Run 'freeide config migrate' to retry.")
+                print("     Run 'jettstui config migrate' to retry.")
         elif needs_migration:
             print()
             # Show WHAT changed, not just a count, so the user can make an
@@ -12920,10 +12920,10 @@ def _cmd_update_impl(args, gateway_mode: bool):
                     print()
                     print("✓ Configuration updated!")
                 if (gateway_mode or assume_yes or response == "auto") and missing_env:
-                    print("  ℹ API keys require manual entry: freeide config migrate")
+                    print("  ℹ API keys require manual entry: jettstui config migrate")
             else:
                 print()
-                print("Skipped. Run 'freeide config migrate' later to configure.")
+                print("Skipped. Run 'jettstui config migrate' later to configure.")
         else:
             print("  ✓ Configuration is up to date")
 
@@ -12934,7 +12934,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
         # live file now has fewer jobs than the pre-update snapshot, restore
         # it and warn loudly.
         try:
-            from freeide_cli.backup import restore_cron_jobs_if_emptied
+            from jettstui.backup import restore_cron_jobs_if_emptied
 
             cron_restore = restore_cron_jobs_if_emptied(pre_update_snapshot_id)
             if cron_restore:
@@ -12982,7 +12982,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
         # Most-recent curator run notice — show-once per run. Surfaces the
         # rename map (`old-name → umbrella`) on the high-attention update
         # surface so users learn about consolidations without having to
-        # check `freeide curator status`. Self-stamps after printing so it
+        # check `jettstui curator status`. Self-stamps after printing so it
         # never repeats for the same run.
         try:
             _print_curator_recent_run_notice()
@@ -12999,13 +12999,13 @@ def _cmd_update_impl(args, gateway_mode: bool):
         # Refresh the cua-driver binary used by the Computer Use toolset.
         # The upstream installer is gated on supported platforms and on the
         # binary already being on PATH, so this is a no-op for users who
-        # don't have it. Tying the refresh to ``freeide update`` gives users a
+        # don't have it. Tying the refresh to ``jettstui update`` gives users a
         # predictable cadence (matches when they pull new agent code) without
         # adding startup latency or a per-launch GitHub API call.
         try:
             refresh_cua_driver = True
             try:
-                from freeide_cli.config import load_config
+                from jettstui.config import load_config
 
                 _update_cfg = (load_config() or {}).get("updates", {})
                 if isinstance(_update_cfg, dict):
@@ -13020,7 +13020,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
                 and sys.platform in ("darwin", "win32", "linux")
                 and shutil.which("cua-driver")
             ):
-                from freeide_cli.tools_config import install_cua_driver
+                from jettstui.tools_config import install_cua_driver
 
                 print()
                 print("→ Refreshing cua-driver (Computer Use)...")
@@ -13028,15 +13028,15 @@ def _cmd_update_impl(args, gateway_mode: bool):
                 # silent) upstream installer when the driver's native
                 # check-update verb positively reports a newer release.
                 # An indeterminate check (offline, rate-limited, old
-                # driver) keeps the installed version — `freeide update`
-                # must stay fast; `freeide computer-use install --upgrade`
+                # driver) keeps the installed version — `jettstui update`
+                # must stay fast; `jettstui computer-use install --upgrade`
                 # remains the force path.
                 install_cua_driver(upgrade=True, require_confirmed_update=True)
         except Exception as e:
             logger.debug("cua-driver refresh failed: %s", e)
 
         # Write exit code *before* the gateway restart attempt.
-        # When running as ``freeide update --gateway`` (spawned by the gateway's
+        # When running as ``jettstui update --gateway`` (spawned by the gateway's
         # /update command), this process lives inside the gateway's systemd
         # cgroup.  A graceful SIGUSR1 restart keeps the drain loop alive long
         # enough for the exit-code marker to be written below, but the
@@ -13052,7 +13052,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
         # before we attempt the restart — ensures the new gateway sees it
         # regardless of how we die.
         if gateway_mode:
-            _exit_code_path = get_freeide_home() / ".update_exit_code"
+            _exit_code_path = get_jettstui_home() / ".update_exit_code"
             try:
                 _exit_code_path.write_text("0", encoding="utf-8")
             except OSError:
@@ -13064,7 +13064,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
         # The code update (git pull) is shared across all profiles, so every
         # running gateway needs restarting to pick up the new code.
         try:
-            from freeide_cli.gateway import (
+            from jettstui.gateway import (
                 is_macos,
                 supports_systemd_services,
                 _ensure_user_systemd_env,
@@ -13176,7 +13176,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
                 non-interactive sudo (``sudo -n``) — first a blanket probe,
                 then a targeted ``systemctl reset-failed`` probe so a
                 least-privilege sudoers entry scoped to
-                ``systemctl ... freeide-gateway*`` also qualifies
+                ``systemctl ... jettstui-gateway*`` also qualifies
                 (``reset-failed`` is an idempotent no-op we run before every
                 privileged restart anyway).  If neither works, return None —
                 the caller must SKIP the restart (without draining the
@@ -13203,7 +13203,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
                         sudo_ok = _probe.returncode == 0
                         if not sudo_ok:
                             # Blanket sudo refused — a targeted sudoers entry
-                            # (NOPASSWD for systemctl ... freeide-gateway*)
+                            # (NOPASSWD for systemctl ... jettstui-gateway*)
                             # may still allow the exact commands we need.
                             _probe = subprocess.run(
                                 sudo_cmd + ["reset-failed", svc_name_],
@@ -13224,14 +13224,14 @@ def _cmd_update_impl(args, gateway_mode: bool):
             # systemd units without SIGUSR1 wiring this wait just times out
             # and we fall back to ``systemctl restart`` (the old behaviour).
             try:
-                from freeide_constants import (
+                from jettstui_constants import (
                     DEFAULT_GATEWAY_RESTART_DRAIN_TIMEOUT as _DEFAULT_DRAIN,
                 )
             except Exception:
                 _DEFAULT_DRAIN = 60.0
             _cfg_drain = None
             try:
-                from freeide_cli.config import load_config
+                from jettstui.config import load_config
 
                 _cfg_agent = load_config().get("agent") or {}
                 _cfg_drain = _cfg_agent.get("restart_drain_timeout")
@@ -13256,7 +13256,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
             externally_supervised_profiles = []
 
             # --- Systemd services (Linux) ---
-            # Discover all freeide-gateway* units (default + profiles)
+            # Discover all jettstui-gateway* units (default + profiles)
             if supports_systemd_services():
                 try:
                     _ensure_user_systemd_env()
@@ -13272,7 +13272,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
                             scope_cmd
                             + [
                                 "list-units",
-                                "freeide-gateway*",
+                                "jettstui-gateway*",
                                 "--plain",
                                 "--no-legend",
                                 "--no-pager",
@@ -13288,7 +13288,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
                         print(
                             f"  ⚠ systemctl timed out listing {scope}-scope "
                             f"gateway units ({exc.cmd if exc.cmd else 'unknown command'}). "
-                            f"Check the gateway with: freeide gateway status"
+                            f"Check the gateway with: jettstui gateway status"
                         )
                         continue
 
@@ -13449,7 +13449,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
                                 f"  ⚠ {svc_name} is a system service and restarting it needs root.\n"
                                 f"    Restart it manually to load the new version:\n"
                                 f"      sudo systemctl restart {svc_name}\n"
-                                f"    To let `freeide update` restart it automatically, allow\n"
+                                f"    To let `jettstui update` restart it automatically, allow\n"
                                 f"    passwordless sudo for systemctl, or run updates with sudo."
                             )
                             return
@@ -13468,7 +13468,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
                         # the RestartSec backoff and leave the unit
                         # dead.  Clearing the failed state first makes
                         # the restart idempotent.  Mirrors the recovery
-                        # path in `freeide gateway restart`
+                        # path in `jettstui gateway restart`
                         # (`systemd_restart()`) as of PR #20949.
                         subprocess.run(
                             _manage_cmd + ["reset-failed", svc_name],
@@ -13558,7 +13558,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
             # --- Launchd services (macOS) ---
             if is_macos():
                 try:
-                    from freeide_cli.gateway import (
+                    from jettstui.gateway import (
                         launchd_restart,
                         get_launchd_label,
                         get_launchd_plist_path,
@@ -13673,16 +13673,16 @@ def _cmd_update_impl(args, gateway_mode: bool):
                 )
                 if unmapped_count:
                     print(f"  → Stopped {unmapped_count} manual gateway process(es)")
-                    print("    Restart manually: freeide gateway run")
+                    print("    Restart manually: jettstui gateway run")
                     if unmapped_count > 1:
                         print(
-                            "    (or: freeide -p <profile> gateway run  for each profile)"
+                            "    (or: jettstui -p <profile> gateway run  for each profile)"
                         )
 
             if failed_or_stale_units:
                 gateway_fleet_restart_incomplete = True
                 if gateway_mode:
-                    _exit_code_path = get_freeide_home() / ".update_exit_code"
+                    _exit_code_path = get_jettstui_home() / ".update_exit_code"
                     try:
                         _exit_code_path.write_text("1", encoding="utf-8")
                     except OSError:
@@ -13740,30 +13740,30 @@ def _cmd_update_impl(args, gateway_mode: bool):
 
         _resume_windows_gateways_after_update(_windows_gateway_resume)
 
-        # Warn if legacy FreeIDE gateway unit files are still installed.
-        # When both freeide.service (from a pre-rename install) and the
-        # current freeide-gateway.service are enabled, they SIGTERM-fight
+        # Warn if legacy JettsTUI gateway unit files are still installed.
+        # When both jettstui.service (from a pre-rename install) and the
+        # current jettstui-gateway.service are enabled, they SIGTERM-fight
         # for the same bot token (see PR #11909). Flagging here means
-        # every `freeide update` surfaces the issue until the user migrates.
+        # every `jettstui update` surfaces the issue until the user migrates.
         try:
-            from freeide_cli.gateway import (
-                has_legacy_freeide_units,
-                _find_legacy_freeide_units,
+            from jettstui.gateway import (
+                has_legacy_jettstui_units,
+                _find_legacy_jettstui_units,
                 supports_systemd_services,
             )
 
-            if supports_systemd_services() and has_legacy_freeide_units():
+            if supports_systemd_services() and has_legacy_jettstui_units():
                 print()
-                print("⚠ Legacy FreeIDE gateway unit(s) detected:")
-                for name, path, is_sys in _find_legacy_freeide_units():
+                print("⚠ Legacy JettsTUI gateway unit(s) detected:")
+                for name, path, is_sys in _find_legacy_jettstui_units():
                     scope = "system" if is_sys else "user"
                     print(f"    {path}  ({scope} scope)")
                 print()
-                print("  These pre-rename units (freeide.service) fight the current")
-                print("  freeide-gateway.service for the bot token and cause SIGTERM")
+                print("  These pre-rename units (jettstui.service) fight the current")
+                print("  jettstui-gateway.service for the bot token and cause SIGTERM")
                 print("  flap loops. Remove them with:")
                 print()
-                print("    freeide gateway migrate-legacy")
+                print("    jettstui gateway migrate-legacy")
                 print()
                 print("  (add `sudo` if any are in system scope)")
         except Exception as e:
@@ -13800,7 +13800,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
 def _coalesce_session_name_args(argv: list) -> list:
     """Join unquoted multi-word session names after -c/--continue and -r/--resume.
 
-    When a user types ``freeide -c Pokemon Agent Dev`` without quoting the
+    When a user types ``jettstui -c Pokemon Agent Dev`` without quoting the
     session name, argparse sees three separate tokens.  This function merges
     them into a single argument so argparse receives
     ``['-c', 'Pokemon Agent Dev']`` instead.
@@ -13878,7 +13878,7 @@ def _coalesce_session_name_args(argv: list) -> list:
 
 def cmd_profile(args):
     """Profile management — create, delete, list, switch, alias."""
-    from freeide_cli.profiles import (
+    from jettstui.profiles import (
         list_profiles,
         create_profile,
         delete_profile,
@@ -13891,14 +13891,14 @@ def cmd_profile(args):
         _is_wrapper_dir_in_path,
         _get_wrapper_dir,
     )
-    from freeide_constants import display_freeide_home
+    from jettstui_constants import display_jettstui_home
 
     action = getattr(args, "profile_action", None)
 
     if action is None:
-        # Bare `freeide profile` — show current profile status
+        # Bare `jettstui profile` — show current profile status
         profile_name = get_active_profile_name()
-        dhh = display_freeide_home()
+        dhh = display_jettstui_home()
         print(f"\nActive profile: {profile_name}")
         print(f"Path:           {dhh}")
 
@@ -13916,7 +13916,7 @@ def cmd_profile(args):
                 print(f"Skills:         {p.skill_count} installed")
                 if p.alias_path:
                     alias_display = p.alias_name or p.name
-                    print(f"Alias:          {alias_display} → freeide -p {p.name}")
+                    print(f"Alias:          {alias_display} → jettstui -p {p.name}")
                 break
         print()
         return
@@ -13964,7 +13964,7 @@ def cmd_profile(args):
         try:
             set_active_profile(name)
             if name == "default":
-                print("Switched to: default (~/.freeide)")
+                print("Switched to: default (~/.jettstui)")
             else:
                 print(f"Switched to: {name}")
         except (ValueError, FileNotFoundError) as e:
@@ -14043,9 +14043,9 @@ def cmd_profile(args):
                 if collision:
                     print(f"\n⚠ Cannot create alias '{name}' — {collision}")
                     print(
-                        f"  Choose a custom alias:  freeide profile alias {name} --name <custom>"
+                        f"  Choose a custom alias:  jettstui profile alias {name} --name <custom>"
                     )
-                    print(f"  Or access via flag:     freeide -p {name} chat")
+                    print(f"  Or access via flag:     jettstui -p {name} chat")
                 else:
                     wrapper_path = create_wrapper_script(name)
                     if wrapper_path:
@@ -14096,7 +14096,7 @@ def cmd_profile(args):
         # Read or write a profile's description. The description is
         # consumed by the kanban decomposer to route tasks based on
         # role instead of name alone.
-        from freeide_cli import profiles as _profiles_mod
+        from jettstui import profiles as _profiles_mod
 
         all_flag = bool(getattr(args, "all_missing", False))
         auto_flag = bool(getattr(args, "auto", False))
@@ -14127,7 +14127,7 @@ def cmd_profile(args):
         if name and not text_value and not auto_flag:
             try:
                 if _profiles_mod.normalize_profile_name(name) == "default":
-                    from freeide_constants import get_freeide_home as _hh
+                    from jettstui_constants import get_jettstui_home as _hh
                     profile_dir = Path(_hh())
                 else:
                     profile_dir = _profiles_mod.get_profile_dir(name)
@@ -14150,7 +14150,7 @@ def cmd_profile(args):
         if text_value:
             try:
                 if _profiles_mod.normalize_profile_name(name) == "default":
-                    from freeide_constants import get_freeide_home as _hh
+                    from jettstui_constants import get_jettstui_home as _hh
                     profile_dir = Path(_hh())
                 else:
                     profile_dir = _profiles_mod.get_profile_dir(name)
@@ -14166,7 +14166,7 @@ def cmd_profile(args):
             sys.exit(0)
 
         # --auto path: invoke the LLM describer.
-        from freeide_cli import profile_describer as _pd
+        from jettstui import profile_describer as _pd
 
         if all_flag:
             targets = _pd.list_describable_profiles(missing_only=True)
@@ -14195,7 +14195,7 @@ def cmd_profile(args):
 
     elif action == "show":
         name = args.profile_name
-        from freeide_cli.profiles import (
+        from jettstui.profiles import (
             get_profile_dir,
             profile_exists,
             _read_config_model,
@@ -14232,11 +14232,11 @@ def cmd_profile(args):
             print(f"Distribution: {dist_name}@{dist_version or '?'}")
             if dist_source:
                 print(f"Installed from: {dist_source}")
-            print(f"  (run `freeide profile info {name}` for full manifest)")
+            print(f"  (run `jettstui profile info {name}` for full manifest)")
         if alias_name:
             is_windows = sys.platform == "win32"
             wrapper = _get_wrapper_dir() / (f"{alias_name}.bat" if is_windows else alias_name)
-            print(f"Alias:   {alias_name} → freeide -p {name}  ({wrapper})")
+            print(f"Alias:   {alias_name} → jettstui -p {name}  ({wrapper})")
         print()
 
     elif action == "alias":
@@ -14244,7 +14244,7 @@ def cmd_profile(args):
         remove = getattr(args, "remove", False)
         custom_name = getattr(args, "alias_name", None)
 
-        from freeide_cli.profiles import profile_exists, validate_alias_name
+        from jettstui.profiles import profile_exists, validate_alias_name
 
         if not profile_exists(name):
             print(f"Error: Profile '{name}' does not exist.")
@@ -14277,7 +14277,7 @@ def cmd_profile(args):
                     print(f"⚠ {_get_wrapper_dir()} is not in your PATH.")
 
     elif action == "rename":
-        from freeide_cli.profiles import rename_profile
+        from jettstui.profiles import rename_profile
 
         try:
             new_dir = rename_profile(args.old_name, args.new_name)
@@ -14288,7 +14288,7 @@ def cmd_profile(args):
             sys.exit(1)
 
     elif action == "export":
-        from freeide_cli.profiles import export_profile
+        from jettstui.profiles import export_profile
 
         name = args.profile_name
         output = args.output or f"{name}.tar.gz"
@@ -14300,7 +14300,7 @@ def cmd_profile(args):
             sys.exit(1)
 
     elif action == "import":
-        from freeide_cli.profiles import import_profile
+        from jettstui.profiles import import_profile
 
         try:
             profile_dir = import_profile(
@@ -14322,7 +14322,7 @@ def cmd_profile(args):
 
     elif action == "install":
         import tempfile
-        from freeide_cli.profile_distribution import (
+        from jettstui.profile_distribution import (
             plan_install,
             install_distribution,
             DistributionError,
@@ -14332,7 +14332,7 @@ def cmd_profile(args):
             # Preview: stage the distribution into a scratch dir, show the
             # manifest, then do the real install.  The double-stage avoids
             # any side-effects if the user declines.
-            with tempfile.TemporaryDirectory(prefix="freeide_dist_preview_") as tmp:
+            with tempfile.TemporaryDirectory(prefix="jettstui_dist_preview_") as tmp:
                 plan = plan_install(
                     args.source,
                     Path(tmp),
@@ -14365,20 +14365,20 @@ def cmd_profile(args):
             if plan.has_cron:
                 print(
                     "  Cron jobs were included but are NOT scheduled automatically.\n"
-                    f"  Review them with:  freeide -p {plan.manifest.name} cron list"
+                    f"  Review them with:  jettstui -p {plan.manifest.name} cron list"
                 )
-            print(f"\n  Use with:      freeide -p {plan.manifest.name} chat")
+            print(f"\n  Use with:      jettstui -p {plan.manifest.name} chat")
         except (DistributionError, ValueError) as e:
             print(f"Error: {e}")
             sys.exit(1)
 
     elif action == "update":
-        from freeide_cli.profile_distribution import (
+        from jettstui.profile_distribution import (
             update_distribution,
             read_manifest,
             DistributionError,
         )
-        from freeide_cli.profiles import get_profile_dir, normalize_profile_name
+        from jettstui.profiles import get_profile_dir, normalize_profile_name
 
         name = args.profile_name
         try:
@@ -14387,7 +14387,7 @@ def cmd_profile(args):
             if current is None:
                 print(
                     f"Error: Profile '{canon}' is not a distribution (no distribution.yaml). "
-                    "Only profiles installed via `freeide profile install` can be updated."
+                    "Only profiles installed via `jettstui profile install` can be updated."
                 )
                 sys.exit(1)
 
@@ -14413,14 +14413,14 @@ def cmd_profile(args):
             if plan.has_cron:
                 print(
                     "  Cron files were refreshed.  Review with:  "
-                    f"freeide -p {plan.manifest.name} cron list"
+                    f"jettstui -p {plan.manifest.name} cron list"
                 )
         except (DistributionError, ValueError) as e:
             print(f"Error: {e}")
             sys.exit(1)
 
     elif action == "info":
-        from freeide_cli.profile_distribution import describe_distribution, DistributionError
+        from jettstui.profile_distribution import describe_distribution, DistributionError
 
         try:
             data = describe_distribution(args.profile_name)
@@ -14441,8 +14441,8 @@ def cmd_profile(args):
             print(f"Author:       {data['author']}")
         if data.get("license"):
             print(f"License:      {data['license']}")
-        if data.get("freeide_requires"):
-            print(f"Requires:     FreeIDE {data['freeide_requires']}")
+        if data.get("jettstui_requires"):
+            print(f"Requires:     JettsTUI {data['jettstui_requires']}")
         if data.get("source"):
             print(f"Source:       {data['source']}")
         if data.get("installed_at"):
@@ -14463,15 +14463,15 @@ def cmd_profile(args):
 
 def _render_distribution_plan(plan) -> None:
     """Print a human-readable summary of a pending distribution install."""
-    from freeide_cli.profile_distribution import MANIFEST_FILENAME
+    from jettstui.profile_distribution import MANIFEST_FILENAME
     mf = plan.manifest
     print(f"\nDistribution: {mf.name} v{mf.version}")
     if mf.description:
         print(f"  {mf.description}")
     if mf.author:
         print(f"  Author:   {mf.author}")
-    if mf.freeide_requires:
-        print(f"  Requires: FreeIDE {mf.freeide_requires}")
+    if mf.jettstui_requires:
+        print(f"  Requires: JettsTUI {mf.jettstui_requires}")
     print(f"  Source:   {plan.provenance}")
     print(f"  Target:   {plan.target_dir}")
     if plan.existing:
@@ -14549,10 +14549,10 @@ def _report_dashboard_status() -> int:
         live.append((pid, command))
 
     if not live:
-        print("No freeide dashboard processes running.")
+        print("No jettstui dashboard processes running.")
         return 0
 
-    print(f"{len(live)} freeide dashboard process(es) running:")
+    print(f"{len(live)} jettstui dashboard process(es) running:")
     for pid, command in live:
         print(f"    PID {pid}: {command}")
     return len(live)
@@ -14592,14 +14592,14 @@ def _maybe_setup_dashboard_auth_interactively(args) -> None:
     host = getattr(args, "host", "127.0.0.1") or "127.0.0.1"
 
     try:
-        from freeide_cli.web_server import should_require_auth
+        from jettstui.web_server import should_require_auth
         if not should_require_auth(host):
             return  # loopback bind — gate never engages
     except Exception:
         return  # if we can't tell, defer to start_server's own gate
 
     try:
-        from freeide_cli.dashboard_auth import list_providers
+        from jettstui.dashboard_auth import list_providers
         if list_providers():
             return  # a provider is already configured/registered
     except Exception:
@@ -14666,8 +14666,8 @@ def _maybe_setup_dashboard_auth_interactively(args) -> None:
     secret = secrets.token_urlsafe(32)
 
     try:
-        from freeide_cli.config import load_config, save_config
-        from freeide_cli.plugins_cmd import ensure_basic_auth_plugin_enabled_in_config
+        from jettstui.config import load_config, save_config
+        from jettstui.plugins_cmd import ensure_basic_auth_plugin_enabled_in_config
 
         cfg = load_config()
         dash = cfg.setdefault("dashboard", {})
@@ -14696,7 +14696,7 @@ def _maybe_setup_dashboard_auth_interactively(args) -> None:
     # Re-run plugin discovery so the basic provider registers from the
     # just-written config before start_server's gate check runs.
     try:
-        from freeide_cli.plugins import discover_plugins
+        from jettstui.plugins import discover_plugins
 
         discover_plugins(force=True)
     except Exception as exc:
@@ -14713,18 +14713,18 @@ def _maybe_setup_dashboard_auth_interactively(args) -> None:
 def _read_ssh_session_token_file(path: str) -> str:
     """Read and unlink a Desktop SSH token from its private runtime directory."""
     if sys.platform == "win32":
-        from freeide_cli.windows_ssh_runtime import read_token
+        from jettstui.windows_ssh_runtime import read_token
         return read_token(path)
 
     import stat as _stat
     from pathlib import Path as _Path
-    from freeide_constants import get_freeide_home as _get_freeide_home
+    from jettstui_constants import get_jettstui_home as _get_jettstui_home
 
     if not os.path.isabs(path):
         raise SystemExit("--ssh-session-token-file must be absolute")
 
     token_path = _Path(path)
-    token_root = _get_freeide_home() / "desktop-ssh"
+    token_root = _get_jettstui_home() / "desktop-ssh"
     try:
         relative = token_path.relative_to(token_root)
     except ValueError as exc:
@@ -14796,8 +14796,8 @@ def _read_ssh_session_token_file(path: str) -> str:
 def _is_electron_packaged_web_dist(path: str) -> bool:
     """True when *path* looks like an Electron-packaged renderer dist.
 
-    Packaged Desktop sets ``FREEIDE_WEB_DIST`` to ``.../app.asar/dist`` or
-    ``.../app.asar.unpacked/dist``. A standalone ``freeide dashboard`` that
+    Packaged Desktop sets ``JETTSTUI_WEB_DIST`` to ``.../app.asar/dist`` or
+    ``.../app.asar.unpacked/dist``. A standalone ``jettstui dashboard`` that
     inherits that value serves the desktop frontend in the browser
     (issue #52945 — "Desktop IPC bridge is unavailable").
     """
@@ -14825,9 +14825,9 @@ def cmd_dashboard(args):
     if getattr(args, "stop", False):
         pids = _find_stale_dashboard_pids()
         if not pids:
-            print("No freeide dashboard processes running.")
+            print("No jettstui dashboard processes running.")
             sys.exit(0)
-        # Reuse the same SIGTERM-grace-SIGKILL path used after `freeide update`.
+        # Reuse the same SIGTERM-grace-SIGKILL path used after `jettstui update`.
         _kill_stale_dashboard_processes(reason="requested via --stop")
         # _kill_stale_dashboard_processes prints outcomes itself.  Exit 0 if
         # we killed at least one, 1 if they were all unkillable.
@@ -14843,33 +14843,33 @@ def cmd_dashboard(args):
         raise SystemExit("--ssh-owner-nonce must be 16 lowercase hex characters")
     _ssh_session_token = None
     if _token_file and not _headless_backend:
-        raise SystemExit("--ssh-session-token-file is only valid with freeide serve")
+        raise SystemExit("--ssh-session-token-file is only valid with jettstui serve")
 
     # ── Sanitize Desktop-inherited env that hijacks a standalone launch ─
-    # Desktop Electron spawns its backend with FREEIDE_DESKTOP=1 plus
-    # FREEIDE_WEB_DIST=<packaged app.asar[/unpacked]/dist> (and often
-    # FREEIDE_SERVE_HEADLESS=1 on the serve path). A shell that inherits
-    # those vars then runs `freeide dashboard` would otherwise:
+    # Desktop Electron spawns its backend with JETTSTUI_DESKTOP=1 plus
+    # JETTSTUI_WEB_DIST=<packaged app.asar[/unpacked]/dist> (and often
+    # JETTSTUI_SERVE_HEADLESS=1 on the serve path). A shell that inherits
+    # those vars then runs `jettstui dashboard` would otherwise:
     #   - serve the desktop renderer → "Desktop IPC bridge is unavailable"
     #     (issue #52945), or
-    #   - disable the SPA via inherited FREEIDE_SERVE_HEADLESS.
+    #   - disable the SPA via inherited JETTSTUI_SERVE_HEADLESS.
     # Only strip Electron-packaged WEB_DIST contamination — caller-managed
-    # FREEIDE_WEB_DIST overrides (dev / custom builds) must still work.
-    # The desktop-spawned backend itself (FREEIDE_DESKTOP=1) keeps its dist.
-    # Intentionally headless `serve` re-sets FREEIDE_SERVE_HEADLESS below.
-    if os.environ.get("FREEIDE_DESKTOP") != "1":
-        _inherited_web_dist = os.environ.get("FREEIDE_WEB_DIST", "")
+    # JETTSTUI_WEB_DIST overrides (dev / custom builds) must still work.
+    # The desktop-spawned backend itself (JETTSTUI_DESKTOP=1) keeps its dist.
+    # Intentionally headless `serve` re-sets JETTSTUI_SERVE_HEADLESS below.
+    if os.environ.get("JETTSTUI_DESKTOP") != "1":
+        _inherited_web_dist = os.environ.get("JETTSTUI_WEB_DIST", "")
         if _is_electron_packaged_web_dist(_inherited_web_dist):
-            os.environ.pop("FREEIDE_WEB_DIST", None)
+            os.environ.pop("JETTSTUI_WEB_DIST", None)
     if not _headless_backend:
-        os.environ.pop("FREEIDE_SERVE_HEADLESS", None)
+        os.environ.pop("JETTSTUI_SERVE_HEADLESS", None)
 
     # ── Unified profile launch routing ────────────────────────────────
     # The dashboard is a MACHINE management surface: it can read/write any
     # profile via the per-request ?profile= scoping. Running one dashboard
     # per profile just fragments that (port collisions, N processes, and a
     # "which dashboard am I on?" guessing game). So when a NAMED profile
-    # launches the dashboard (`worker dashboard` → FREEIDE_HOME points into
+    # launches the dashboard (`worker dashboard` → JETTSTUI_HOME points into
     # profiles/), default to the machine dashboard:
     #   - already running → open the browser at ?profile=<name> and exit
     #   - not running     → re-exec as the machine dashboard (pinned to the
@@ -14878,7 +14878,7 @@ def cmd_dashboard(args):
     #     preselected in the UI's switcher.
     # `--isolated` opts out and preserves the old per-profile behavior.
     try:
-        from freeide_cli.profiles import get_active_profile_name
+        from jettstui.profiles import get_active_profile_name
         _launch_profile = get_active_profile_name()
     except Exception:
         _launch_profile = "default"
@@ -14888,7 +14888,7 @@ def cmd_dashboard(args):
         and not getattr(args, "isolated", False)
         and not getattr(args, "open_profile", "")
         # Desktop pool backends are intentionally per-profile.
-        and os.environ.get("FREEIDE_DESKTOP") != "1"
+        and os.environ.get("JETTSTUI_DESKTOP") != "1"
     ):
         url = f"http://{args.host or '127.0.0.1'}:{args.port}/?profile={_launch_profile}"
         if _dashboard_listening(args.host, args.port):
@@ -14907,7 +14907,7 @@ def cmd_dashboard(args):
             f"preselected). Use --isolated for a dedicated per-profile server."
         )
         reexec_argv = [
-            sys.executable, "-m", "freeide_cli.main",
+            sys.executable, "-m", "jettstui.main",
             "-p", "default",
             # Preserve the lean serve path across the re-exec so a named-profile
             # `serve` doesn't silently rebuild the UI as `dashboard`.
@@ -14928,23 +14928,23 @@ def cmd_dashboard(args):
             reexec_argv.append("--skip-build")
         env = os.environ.copy()
         # Pin the child to the machine ROOT, not the launching profile's
-        # FREEIDE_HOME.  We must resolve the root explicitly instead of just
-        # dropping FREEIDE_HOME: in the Docker layout the machine root is
-        # /opt/data (set via `ENV FREEIDE_HOME=/opt/data`), so an unset
-        # FREEIDE_HOME falls back to $HOME/.freeide = /opt/data/.freeide — an
+        # JETTSTUI_HOME.  We must resolve the root explicitly instead of just
+        # dropping JETTSTUI_HOME: in the Docker layout the machine root is
+        # /opt/data (set via `ENV JETTSTUI_HOME=/opt/data`), so an unset
+        # JETTSTUI_HOME falls back to $HOME/.jettstui = /opt/data/.jettstui — an
         # empty, auto-seeded home where the dashboard sees only the default
         # profile and the install-method stamp is missing (so the Docker
-        # update-button guard also misfires).  get_default_freeide_root()
-        # returns the root for both layouts: ~/.freeide for a standard install
+        # update-button guard also misfires).  get_default_jettstui_root()
+        # returns the root for both layouts: ~/.jettstui for a standard install
         # and /opt/data for Docker (it strips a trailing profiles/<name>).
         # See the support report for the double-mount workaround this avoids.
         try:
-            from freeide_constants import get_default_freeide_root
-            env["FREEIDE_HOME"] = str(get_default_freeide_root())
+            from jettstui_constants import get_default_jettstui_root
+            env["JETTSTUI_HOME"] = str(get_default_jettstui_root())
         except Exception:
             # Best-effort: if root resolution fails, fall back to the prior
-            # behaviour (drop FREEIDE_HOME) rather than block the reroute.
-            env.pop("FREEIDE_HOME", None)
+            # behaviour (drop JETTSTUI_HOME) rather than block the reroute.
+            env.pop("JETTSTUI_HOME", None)
         # On Windows, os.execvpe() does not truly replace the process — it
         # spawns via CreateProcess then the parent exits.  Under Python 3.14+
         # this can crash with STATUS_ACCESS_VIOLATION (0xC0000005) when
@@ -14960,9 +14960,9 @@ def cmd_dashboard(args):
         _ssh_session_token = _read_ssh_session_token_file(_token_file)
 
     # Attach gui.log early so dashboard startup/build failures are captured in
-    # the same logs directory as every other FreeIDE surface.
+    # the same logs directory as every other JettsTUI surface.
     try:
-        from freeide_logging import setup_logging as _setup_logging_gui
+        from jettstui_logging import setup_logging as _setup_logging_gui
         _setup_logging_gui(mode="gui")
     except Exception:
         pass
@@ -14997,7 +14997,7 @@ def cmd_dashboard(args):
     # (#63141, #54449, #61115, #65696). PTY chat spawns already bridge their
     # child env copy; this covers the in-process consumers.
     try:
-        from freeide_cli.config import apply_terminal_config_to_env
+        from jettstui.config import apply_terminal_config_to_env
 
         apply_terminal_config_to_env()
     except Exception:
@@ -15007,8 +15007,8 @@ def cmd_dashboard(args):
     if _headless_backend:
         # Don't build the SPA, and tell mount_spa() (read at web_server import
         # below) to disable it even if a stray dist exists. Set it first.
-        os.environ["FREEIDE_SERVE_HEADLESS"] = "1"
-    elif "FREEIDE_WEB_DIST" not in os.environ and not getattr(args, "skip_build", False):
+        os.environ["JETTSTUI_SERVE_HEADLESS"] = "1"
+    elif "JETTSTUI_WEB_DIST" not in os.environ and not getattr(args, "skip_build", False):
         if not _build_web_ui(PROJECT_ROOT / "web", fatal=True):
             sys.exit(1)
     elif getattr(args, "skip_build", False):
@@ -15016,8 +15016,8 @@ def cmd_dashboard(args):
         # Verify the dist actually exists; otherwise the server will start
         # and serve 404s with no obvious cause (issue #23817).
         _dist_root = (
-            Path(os.environ["FREEIDE_WEB_DIST"])
-            if "FREEIDE_WEB_DIST" in os.environ
+            Path(os.environ["JETTSTUI_WEB_DIST"])
+            if "JETTSTUI_WEB_DIST" in os.environ
             else PROJECT_ROOT / "jettstui" / "web_dist"
         )
         if not (_dist_root / "index.html").exists():
@@ -15025,9 +15025,9 @@ def cmd_dashboard(args):
             # Instead of hard-failing (issue #59288 — desktop launches with
             # --build-mode skip after a wipe of web_dist), warn and attempt
             # ONE recovery build through the normal build path. Only the
-            # default dist location is recoverable: a custom FREEIDE_WEB_DIST
+            # default dist location is recoverable: a custom JETTSTUI_WEB_DIST
             # points at a caller-managed directory the build cannot populate.
-            _recoverable = "FREEIDE_WEB_DIST" not in os.environ
+            _recoverable = "JETTSTUI_WEB_DIST" not in os.environ
             if _recoverable:
                 print(f"⚠ --skip-build was passed but no web dist found at: {_dist_root}")
                 print("  Attempting one recovery build of the web UI...")
@@ -15042,22 +15042,22 @@ def cmd_dashboard(args):
             print("  ✓ Recovery build produced a web dist")
         print(f"→ Skipping web UI build (--skip-build); using dist at {_dist_root}")
     else:
-        # FREEIDE_WEB_DIST is set without --skip-build: the build is skipped
+        # JETTSTUI_WEB_DIST is set without --skip-build: the build is skipped
         # (the env var points at a caller-managed dist), so validate it the
         # same way the --skip-build branch does — otherwise the server starts
         # and serves 404s with no obvious cause (same failure mode as #23817,
         # via the env-var path).
-        _dist_root = Path(os.environ["FREEIDE_WEB_DIST"]).expanduser()
+        _dist_root = Path(os.environ["JETTSTUI_WEB_DIST"]).expanduser()
         if not (_dist_root / "index.html").exists():
-            print(f"✗ FREEIDE_WEB_DIST is set but no web dist found at: {_dist_root}")
+            print(f"✗ JETTSTUI_WEB_DIST is set but no web dist found at: {_dist_root}")
             print("  Pre-build first:  npm install --workspace web && npm run build -w web")
-            print("  Or unset FREEIDE_WEB_DIST to build and use the default web UI dist.")
+            print("  Or unset JETTSTUI_WEB_DIST to build and use the default web UI dist.")
             sys.exit(1)
-        # Write the expanded path back: web_server reads FREEIDE_WEB_DIST raw
+        # Write the expanded path back: web_server reads JETTSTUI_WEB_DIST raw
         # at import (no expanduser), so a validated "~/dist" would otherwise
         # pass here and still 404 there.
-        os.environ["FREEIDE_WEB_DIST"] = str(_dist_root)
-        print(f"→ Using web dist from FREEIDE_WEB_DIST: {_dist_root}")
+        os.environ["JETTSTUI_WEB_DIST"] = str(_dist_root)
+        print(f"→ Using web dist from JETTSTUI_WEB_DIST: {_dist_root}")
 
     # Discover and load plugins so any DashboardAuthProvider plugin
     # registers BEFORE start_server's
@@ -15067,7 +15067,7 @@ def cmd_dashboard(args):
     # the dashboard's server-side runtime depends on plugin-registered
     # providers (image_gen, web, dashboard_auth, …).
     try:
-        from freeide_cli.plugins import discover_plugins
+        from jettstui.plugins import discover_plugins
         discover_plugins()
     except Exception as exc:
         # Discovery failures must not block dashboard startup outright —
@@ -15083,7 +15083,7 @@ def cmd_dashboard(args):
     # sessions show no MCP tools.  Spawn discovery in the background here so a
     # slow/dead server can't block dashboard startup.
     try:
-        from freeide_cli.mcp_startup import start_background_mcp_discovery
+        from jettstui.mcp_startup import start_background_mcp_discovery
 
         start_background_mcp_discovery(
             logger=logger,
@@ -15095,7 +15095,7 @@ def cmd_dashboard(args):
             exc_info=True,
         )
 
-    from freeide_cli.web_server import start_server
+    from jettstui.web_server import start_server
 
     # Interactive auth setup: if this bind will engage the auth gate but no
     # provider is registered yet, offer to configure one here (TTY only)
@@ -15121,14 +15121,14 @@ def cmd_dashboard(args):
 
 def cmd_gateway_enroll(args):
     """Enroll a self-hosted gateway with a relay connector."""
-    from freeide_cli.gateway_enroll import cmd_gateway_enroll as _impl
+    from jettstui.gateway_enroll import cmd_gateway_enroll as _impl
 
     _impl(args)
 
 
 def cmd_completion(args, parser=None):
     """Print shell completion script."""
-    from freeide_cli.completion import generate_bash, generate_zsh, generate_fish
+    from jettstui.completion import generate_bash, generate_zsh, generate_fish
 
     shell = getattr(args, "shell", "bash")
     if shell == "zsh":
@@ -15141,14 +15141,14 @@ def cmd_completion(args, parser=None):
 
 def cmd_prompt_size(args):
     """Show a byte/char breakdown of the system prompt + tool schemas."""
-    from freeide_cli.prompt_size import cmd_prompt_size as _impl
+    from jettstui.prompt_size import cmd_prompt_size as _impl
 
     _impl(args)
 
 
 def cmd_logs(args):
-    """View and filter Jetts-TUI log files."""
-    from freeide_cli.logs import tail_log, list_logs
+    """View and filter JettsTUI log files."""
+    from jettstui.logs import tail_log, list_logs
 
     log_name = getattr(args, "log_name", "agent") or "agent"
 
@@ -15168,8 +15168,8 @@ def cmd_logs(args):
 
 
 def cmd_console(args):
-    """Open the safe Jetts-TUI command console."""
-    from freeide_cli.console_engine import run_console_repl
+    """Open the safe JettsTUI command console."""
+    from jettstui.console_engine import run_console_repl
 
     return run_console_repl()
 
@@ -15177,7 +15177,7 @@ def cmd_console(args):
 def _build_provider_choices() -> list[str]:
     """Build the --provider choices list from CANONICAL_PROVIDERS + 'auto'."""
     try:
-        from freeide_cli.models import CANONICAL_PROVIDERS as _cp
+        from jettstui.models import CANONICAL_PROVIDERS as _cp
         return ["auto"] + [p.slug for p in _cp]
     except Exception:
         # Fallback: static list guarantees the CLI always works
@@ -15222,9 +15222,9 @@ _BUILTIN_SUBCOMMANDS = frozenset(
 
 
 # Top-level flags that take a value. Needed by ``_first_positional_argv``
-# so that in ``freeide -m gpt5 chat``, ``gpt5`` is correctly skipped as a
+# so that in ``jettstui -m gpt5 chat``, ``gpt5`` is correctly skipped as a
 # flag value rather than misclassified as a subcommand. Kept in sync with
-# the top-level flags declared in ``freeide_cli/_parser.py``.
+# the top-level flags declared in ``jettstui/_parser.py``.
 #
 # Correctness-safe either way: missing an entry here only makes the
 # fast-path bail out too eagerly (we run plugin discovery when we didn't
@@ -15252,7 +15252,7 @@ def _first_positional_argv() -> str | None:
 
     Used by ``main()`` to decide whether plugin discovery has to run at
     argparse-setup time. Handles common invocations like
-    ``freeide -m gpt5 --provider openai chat "msg"`` by skipping the
+    ``jettstui -m gpt5 --provider openai chat "msg"`` by skipping the
     values attached to known top-level flags.
 
     Does NOT fully simulate argparse — unknown ``--foo=bar`` / ``--foo
@@ -15291,7 +15291,7 @@ def _plugin_cli_discovery_needed() -> bool:
     """
     first = _first_positional_argv()
     if first is None:
-        # Bare ``freeide`` or only flags → defaults to ``chat``.
+        # Bare ``jettstui`` or only flags → defaults to ``chat``.
         return False
     if first in _BUILTIN_SUBCOMMANDS:
         return False
@@ -15333,7 +15333,7 @@ def _should_background_mcp_startup(args) -> bool:
 
 def _prepare_agent_startup(args) -> None:
     """Discover plugins/MCP/hooks for commands that can run an agent turn."""
-    # --yolo: chokepoint guarantee that FREEIDE_YOLO_MODE is set before ANY
+    # --yolo: chokepoint guarantee that JETTSTUI_YOLO_MODE is set before ANY
     # plugin/tool discovery below imports tools.approval, which freezes
     # _YOLO_MODE_FROZEN at import time (PR #7994 security design).  main()'s
     # dispatch path also sets this earlier, but _prepare_agent_startup() is
@@ -15341,7 +15341,7 @@ def _prepare_agent_startup(args) -> None:
     # so the guarantee lives here where the import is actually triggered
     # (#60328).
     if getattr(args, "yolo", False):
-        os.environ["FREEIDE_YOLO_MODE"] = "1"
+        os.environ["JETTSTUI_YOLO_MODE"] = "1"
     _apply_safe_mode(args)
 
     _sub_attr, _sub_set = _AGENT_SUBCOMMANDS.get(args.command, (None, None))
@@ -15353,7 +15353,7 @@ def _prepare_agent_startup(args) -> None:
 
     _accept_hooks = bool(getattr(args, "accept_hooks", False))
     try:
-        from freeide_cli.plugins import discover_plugins
+        from jettstui.plugins import discover_plugins
 
         discover_plugins()
     except Exception:
@@ -15373,7 +15373,7 @@ def _prepare_agent_startup(args) -> None:
         _run_inline_mcp_discovery = False
     elif _should_background_mcp_startup(args):
         try:
-            from freeide_cli.mcp_startup import start_background_mcp_discovery
+            from jettstui.mcp_startup import start_background_mcp_discovery
 
             start_background_mcp_discovery(
                 logger=logger,
@@ -15398,7 +15398,7 @@ def _prepare_agent_startup(args) -> None:
                 exc_info=True,
             )
     try:
-        from freeide_cli.config import load_config
+        from jettstui.config import load_config
         from agent.shell_hooks import register_from_config
 
         register_from_config(load_config(), accept_hooks=_accept_hooks)
@@ -15412,9 +15412,9 @@ def _prepare_agent_startup(args) -> None:
 def _apply_safe_mode(args) -> None:
     if not getattr(args, "safe_mode", False):
         return
-    os.environ["FREEIDE_SAFE_MODE"] = "1"
-    os.environ["FREEIDE_IGNORE_USER_CONFIG"] = "1"
-    os.environ["FREEIDE_IGNORE_RULES"] = "1"
+    os.environ["JETTSTUI_SAFE_MODE"] = "1"
+    os.environ["JETTSTUI_IGNORE_USER_CONFIG"] = "1"
+    os.environ["JETTSTUI_IGNORE_RULES"] = "1"
 
 
 def _set_chat_arg_defaults(args) -> None:
@@ -15436,7 +15436,7 @@ def _try_termux_fast_cli_launch() -> bool:
     """Run obvious Termux non-TUI chat/oneshot/version paths on a light parser."""
     if not _is_termux_startup_environment():
         return False
-    if os.environ.get("FREEIDE_TERMUX_DISABLE_FAST_CLI") == "1":
+    if os.environ.get("JETTSTUI_TERMUX_DISABLE_FAST_CLI") == "1":
         return False
 
     argv = sys.argv[1:]
@@ -15459,7 +15459,7 @@ def _try_termux_fast_cli_launch() -> bool:
     if not has_oneshot and first not in {None, "chat"}:
         return False
 
-    from freeide_cli._parser import build_top_level_parser
+    from jettstui._parser import build_top_level_parser
 
     parser, _subparsers, chat_parser = build_top_level_parser()
     chat_parser.set_defaults(func=cmd_chat)
@@ -15489,10 +15489,10 @@ def _try_termux_fast_cli_launch() -> bool:
             # Bare Termux CLI should reach the prompt first and do agent-only
             # discovery on the first submitted turn instead of before input.
             setattr(args, "compact", True)
-            os.environ["FREEIDE_DEFER_AGENT_STARTUP"] = "1"
-            os.environ["FREEIDE_FAST_STARTUP_BANNER"] = "1"
+            os.environ["JETTSTUI_DEFER_AGENT_STARTUP"] = "1"
+            os.environ["JETTSTUI_FAST_STARTUP_BANNER"] = "1"
             if getattr(args, "accept_hooks", False):
-                os.environ["FREEIDE_ACCEPT_HOOKS"] = "1"
+                os.environ["JETTSTUI_ACCEPT_HOOKS"] = "1"
         else:
             _prepare_agent_startup(args)
         cmd_chat(args)
@@ -15504,7 +15504,7 @@ def _try_termux_fast_cli_launch() -> bool:
 def _try_termux_fast_tui_launch() -> bool:
     """Launch obvious Termux TUI invocations before building every subparser.
 
-    `freeide --tui` is the hot path on phones. The full parser setup imports
+    `jettstui --tui` is the hot path on phones. The full parser setup imports
     command modules for model, fallback, migrate, kanban, bundles, plugins,
     etc. even though the TUI immediately execs Node. On Termux only, parse the
     lightweight top-level/chat parser and hand off to ``cmd_chat`` when the
@@ -15524,7 +15524,7 @@ def _try_termux_fast_tui_launch() -> bool:
     if first not in {None, "chat"}:
         return False
 
-    from freeide_cli._parser import build_top_level_parser
+    from jettstui._parser import build_top_level_parser
 
     parser, _subparsers, chat_parser = build_top_level_parser()
     chat_parser.set_defaults(func=cmd_chat)
@@ -15545,7 +15545,7 @@ def _try_termux_fast_tui_launch() -> bool:
 def cmd_memory(args):
     sub = getattr(args, "memory_command", None)
     if sub == "off":
-        from freeide_cli.config import load_config, save_config
+        from jettstui.config import load_config, save_config
 
         config = load_config()
         if not isinstance(config.get("memory"), dict):
@@ -15555,9 +15555,9 @@ def cmd_memory(args):
         print("\n  ✓ Memory provider: built-in only")
         print("  Saved to config.yaml\n")
     elif sub == "reset":
-        from freeide_constants import get_freeide_home, display_freeide_home
+        from jettstui_constants import get_jettstui_home, display_jettstui_home
 
-        mem_dir = get_freeide_home() / "memories"
+        mem_dir = get_jettstui_home() / "memories"
         target = getattr(args, "target", "all")
         files_to_reset = []
         if target in {"all", "memory"}:
@@ -15571,7 +15571,7 @@ def cmd_memory(args):
         ]
         if not existing:
             print(
-                f"\n  Nothing to reset — no memory files found in {display_freeide_home()}/memories/\n"
+                f"\n  Nothing to reset — no memory files found in {display_jettstui_home()}/memories/\n"
             )
             return
 
@@ -15598,15 +15598,15 @@ def cmd_memory(args):
         print(
             "\n  Memory reset complete. New sessions will start with a blank slate."
         )
-        print(f"  Files were in: {display_freeide_home()}/memories/\n")
+        print(f"  Files were in: {display_jettstui_home()}/memories/\n")
     else:
-        from freeide_cli.memory_setup import memory_command
+        from jettstui.memory_setup import memory_command
 
         memory_command(args)
 
 
 def cmd_acp(args):
-    """Launch Jetts-TUI as an ACP server."""
+    """Launch JettsTUI as an ACP server."""
     try:
         from acp_adapter.entry import main as acp_main
 
@@ -15631,23 +15631,23 @@ def cmd_acp(args):
 def cmd_tools(args):
     action = getattr(args, "tools_action", None)
     if action in {"list", "disable", "enable"}:
-        from freeide_cli.tools_config import tools_disable_enable_command
+        from jettstui.tools_config import tools_disable_enable_command
 
         tools_disable_enable_command(args)
     elif action == "post-setup":
-        from freeide_cli.tools_config import run_post_setup_command
+        from jettstui.tools_config import run_post_setup_command
 
         sys.exit(run_post_setup_command(args))
     else:
         _require_tty("tools")
-        from freeide_cli.tools_config import tools_command
+        from jettstui.tools_config import tools_command
 
         tools_command(args)
 
 
 def cmd_insights(args):
     try:
-        from freeide_state import SessionDB
+        from jettstui_state import SessionDB
         from agent.insights import InsightsEngine
 
         db = SessionDB()
@@ -15663,75 +15663,75 @@ def cmd_skills(args):
     # Route 'config' action to skills_config module
     if getattr(args, "skills_action", None) == "config":
         _require_tty("skills config")
-        from freeide_cli.skills_config import skills_command as skills_config_command
+        from jettstui.skills_config import skills_command as skills_config_command
 
         skills_config_command(args)
     else:
-        from freeide_cli.skills_hub import skills_command
+        from jettstui.skills_hub import skills_command
 
         skills_command(args)
 
 
 def cmd_pairing(args):
-    from freeide_cli.pairing import pairing_command
+    from jettstui.pairing import pairing_command
 
     pairing_command(args)
 
 
 def cmd_plugins(args):
-    from freeide_cli.plugins_cmd import plugins_command
+    from jettstui.plugins_cmd import plugins_command
 
     plugins_command(args)
 
 
 def cmd_mcp(args):
-    from freeide_cli.mcp_config import mcp_command
+    from jettstui.mcp_config import mcp_command
 
     mcp_command(args)
 
 
 def cmd_claw(args):
-    from freeide_cli.claw import claw_command
+    from jettstui.claw import claw_command
 
     claw_command(args)
 
 
 def main():
-    """Main entry point for freeide CLI."""
-    # Cosmetic: make the process show up as 'freeide' instead of 'python3.11'
+    """Main entry point for jettstui CLI."""
+    # Cosmetic: make the process show up as 'jettstui' instead of 'python3.11'
     # in ps/top/htop.  Non-fatal — just a nicer UX.
     _set_process_title()
 
     # Force UTF-8 stdio on Windows before anything prints.  No-op elsewhere.
     try:
-        from freeide_cli.stdio import configure_windows_stdio
+        from jettstui.stdio import configure_windows_stdio
         configure_windows_stdio()
     except Exception:
         pass
 
-    # Sweep stale ``freeide.exe.old.*`` quarantine files left by previous
-    # ``freeide update`` runs on Windows. Silent no-op on non-Windows or when
-    # there's nothing to clean. See ``_quarantine_running_freeide_exe``.
+    # Sweep stale ``jettstui.exe.old.*`` quarantine files left by previous
+    # ``jettstui update`` runs on Windows. Silent no-op on non-Windows or when
+    # there's nothing to clean. See ``_quarantine_running_jettstui_exe``.
     try:
         _cleanup_quarantined_exes()
     except Exception:
         pass
 
-    # If the checkout changed since the last launch (freeide update, manual
+    # If the checkout changed since the last launch (jettstui update, manual
     # git pull, old-updater update that predates newer clears), sweep stale
     # __pycache__ once so no process — this one's lazy imports included —
     # resolves fresh source against old bytecode. Never raises.
     _sweep_stale_bytecode_if_checkout_changed()
 
-    # Self-heal a venv left half-built by an interrupted ``freeide update``
+    # Self-heal a venv left half-built by an interrupted ``jettstui update``
     # (Ctrl-C, terminal close, WSL OOM mid-install). Skip when the user is
     # *running* update — that flow writes and clears its own marker, and we
     # don't want a recovery install racing the real one. Never raises.
     #
     # The substring match is deliberately loose: argv isn't parsed yet at this
     # point, and the failure modes are asymmetric. Over-matching (e.g.
-    # ``freeide skills install update``) merely defers recovery one launch;
-    # under-matching (missing ``freeide -p work update``) would race a recovery
+    # ``jettstui skills install update``) merely defers recovery one launch;
+    # under-matching (missing ``jettstui -p work update``) would race a recovery
     # install against the real one. Loose wins.
     try:
         if "update" not in sys.argv[1:]:
@@ -15744,17 +15744,17 @@ def main():
     if _try_termux_fast_cli_launch():
         return
 
-    from freeide_cli._parser import build_top_level_parser
+    from jettstui._parser import build_top_level_parser
 
     parser, subparsers, chat_parser = build_top_level_parser()
     chat_parser.set_defaults(func=cmd_chat)
 
     # =========================================================================
-    # model command  (parser built in freeide_cli/subcommands/model.py)
+    # model command  (parser built in jettstui/subcommands/model.py)
     # =========================================================================
     build_model_parser(subparsers, cmd_model=cmd_model)
 
-    from freeide_cli.moa_cmd import cmd_moa
+    from jettstui.moa_cmd import cmd_moa
 
     moa_parser = subparsers.add_parser(
         "moa",
@@ -15772,7 +15772,7 @@ def main():
     # =========================================================================
     # fallback command — manage the fallback provider chain
     # =========================================================================
-    from freeide_cli.fallback_cmd import cmd_fallback
+    from jettstui.fallback_cmd import cmd_fallback
 
     fallback_parser = subparsers.add_parser(
         "fallback",
@@ -15813,7 +15813,7 @@ def main():
         help="Manage external secret sources (Bitwarden, 1Password)",
         description=(
             "Pull API keys from an external secret manager at process startup "
-            "instead of storing them in the Jetts-TUI home .env.  Supports Bitwarden "
+            "instead of storing them in the JettsTUI home .env.  Supports Bitwarden "
             "Secrets Manager and 1Password.  See: "
             "https://github.com/Raioshok/JETTS-TUI/blob/main/docs/user-guide/secrets/index.md"
         ),
@@ -15833,8 +15833,8 @@ def main():
     )
 
     # Lazy import — only pays for itself when this subcommand is actually used.
-    from freeide_cli import secrets_cli as _secrets_cli
-    from freeide_cli import onepassword_secrets_cli as _op_secrets_cli
+    from jettstui import secrets_cli as _secrets_cli
+    from jettstui import onepassword_secrets_cli as _op_secrets_cli
 
     _secrets_cli.register_cli(secrets_bw)
     _op_secrets_cli.register_cli(secrets_op)
@@ -15856,7 +15856,7 @@ def main():
     # egress command — iron-proxy outbound credential-injection firewall
     # =========================================================================
     # NOTE: this is the OUTBOUND egress firewall (ironsh/iron-proxy).
-    # `freeide proxy` (defined elsewhere in this file) is a separate INBOUND
+    # `jettstui proxy` (defined elsewhere in this file) is a separate INBOUND
     # OAuth-aggregator reverse proxy.  Different direction, different purpose.
     egress_parser = subparsers.add_parser(
         "egress",
@@ -15869,12 +15869,12 @@ def main():
         ),
     )
 
-    from freeide_cli import proxy_cli as _proxy_cli
+    from jettstui import proxy_cli as _proxy_cli
     _proxy_cli.register_cli(egress_parser)
 
     def _dispatch_egress(args):  # noqa: ANN001
         # The egress subparser uses dest='egress_command' to stay disjoint
-        # from the inbound OAuth ``freeide proxy`` subparser (dest='proxy_command').
+        # from the inbound OAuth ``jettstui proxy`` subparser (dest='proxy_command').
         sub = getattr(args, "egress_command", None)
         if sub is not None and hasattr(args, "func") and args.func is not _dispatch_egress:
             return args.func(args)
@@ -15886,7 +15886,7 @@ def main():
     # =========================================================================
     # migrate command
     # =========================================================================
-    from freeide_cli.migrate import cmd_migrate, cmd_migrate_xai
+    from jettstui.migrate import cmd_migrate, cmd_migrate_xai
 
     migrate_parser = subparsers.add_parser(
         "migrate",
@@ -15922,7 +15922,7 @@ def main():
     migrate_parser.set_defaults(func=cmd_migrate)
 
     # =========================================================================
-    # gateway + proxy commands  (parsers built in freeide_cli/subcommands/gateway.py)
+    # gateway + proxy commands  (parsers built in jettstui/subcommands/gateway.py)
     # =========================================================================
     build_gateway_parser(
         subparsers, cmd_gateway=cmd_gateway, cmd_proxy=cmd_proxy, cmd_gateway_enroll=cmd_gateway_enroll
@@ -15940,13 +15940,13 @@ def main():
         logger.debug("LSP CLI registration failed: %s", _lsp_err)
 
     # =========================================================================
-    # setup command  (parser built in freeide_cli/subcommands/setup.py)
+    # setup command  (parser built in jettstui/subcommands/setup.py)
     # =========================================================================
     build_setup_parser(subparsers, cmd_setup=cmd_setup)
 
 
     # =========================================================================
-    # whatsapp command  (parser built in freeide_cli/subcommands/whatsapp.py)
+    # whatsapp command  (parser built in jettstui/subcommands/whatsapp.py)
     # =========================================================================
     build_whatsapp_parser(subparsers, cmd_whatsapp=cmd_whatsapp)
 
@@ -15959,57 +15959,57 @@ def main():
         description=(
             "Configure the official Meta WhatsApp Business Cloud API "
             "adapter (Business account required, public webhook URL "
-            "required). Distinct from `freeide whatsapp` which sets up "
+            "required). Distinct from `jettstui whatsapp` which sets up "
             "the Baileys bridge for personal accounts."
         ),
     )
     whatsapp_cloud_parser.set_defaults(func=cmd_whatsapp_cloud)
 
     # =========================================================================
-    # slack command  (parser built in freeide_cli/subcommands/slack.py)
+    # slack command  (parser built in jettstui/subcommands/slack.py)
     # =========================================================================
     build_slack_parser(subparsers, cmd_slack=cmd_slack)
 
     # =========================================================================
     # send command — pipe shell-script output to any configured platform
     # =========================================================================
-    from freeide_cli.send_cmd import register_send_subparser
+    from jettstui.send_cmd import register_send_subparser
     register_send_subparser(subparsers)
 
     # =========================================================================
-    # login command  (parser built in freeide_cli/subcommands/login.py)
+    # login command  (parser built in jettstui/subcommands/login.py)
     # =========================================================================
     build_login_parser(subparsers, cmd_login=cmd_login)
 
     # =========================================================================
-    # logout command  (parser built in freeide_cli/subcommands/logout.py)
+    # logout command  (parser built in jettstui/subcommands/logout.py)
     # =========================================================================
     build_logout_parser(subparsers, cmd_logout=cmd_logout)
 
     # =========================================================================
-    # auth command  (parser built in freeide_cli/subcommands/auth.py)
+    # auth command  (parser built in jettstui/subcommands/auth.py)
     # =========================================================================
     build_auth_parser(subparsers, cmd_auth=cmd_auth)
 
     # =========================================================================
-    # status command  (parser built in freeide_cli/subcommands/status.py)
+    # status command  (parser built in jettstui/subcommands/status.py)
     # =========================================================================
     build_status_parser(subparsers, cmd_status=cmd_status)
 
     # =========================================================================
-    # cron command  (parser built in freeide_cli/subcommands/cron.py)
+    # cron command  (parser built in jettstui/subcommands/cron.py)
     # =========================================================================
     build_cron_parser(subparsers, cmd_cron=cmd_cron)
 
     # =========================================================================
-    # webhook command  (parser built in freeide_cli/subcommands/webhook.py)
+    # webhook command  (parser built in jettstui/subcommands/webhook.py)
     # =========================================================================
     build_webhook_parser(subparsers, cmd_webhook=cmd_webhook)
 
     # =========================================================================
     # kanban command — multi-profile collaboration board
     # =========================================================================
-    from freeide_cli.kanban import build_parser as _build_kanban_parser
+    from jettstui.kanban import build_parser as _build_kanban_parser
 
     kanban_parser = _build_kanban_parser(subparsers)
     kanban_parser.set_defaults(func=cmd_kanban)
@@ -16017,7 +16017,7 @@ def main():
     # =========================================================================
     # project command — named, multi-folder workspaces
     # =========================================================================
-    from freeide_cli.projects_cmd import build_parser as _build_project_parser
+    from jettstui.projects_cmd import build_parser as _build_project_parser
 
     project_parser = _build_project_parser(subparsers)
     project_parser.set_defaults(func=cmd_project)
@@ -16025,39 +16025,39 @@ def main():
     # =========================================================================
     # hooks command — shell-hook inspection and management
     # =========================================================================
-    # hooks command  (parser built in freeide_cli/subcommands/hooks.py)
+    # hooks command  (parser built in jettstui/subcommands/hooks.py)
     # =========================================================================
     build_hooks_parser(subparsers, cmd_hooks=cmd_hooks)
 
     # =========================================================================
-    # doctor command  (parser built in freeide_cli/subcommands/doctor.py)
+    # doctor command  (parser built in jettstui/subcommands/doctor.py)
     # =========================================================================
     build_doctor_parser(subparsers, cmd_doctor=cmd_doctor)
 
     # =========================================================================
     # security command — on-demand supply-chain audit
     # =========================================================================
-    # security command  (parser built in freeide_cli/subcommands/security.py)
+    # security command  (parser built in jettstui/subcommands/security.py)
     # =========================================================================
     build_security_parser(subparsers, cmd_security=cmd_security)
 
     # =========================================================================
-    # approvals command  (parser built in freeide_cli/subcommands/approvals.py)
+    # approvals command  (parser built in jettstui/subcommands/approvals.py)
     # =========================================================================
     build_approvals_parser(subparsers, cmd_approvals=cmd_approvals)
 
     # =========================================================================
-    # dump command  (parser built in freeide_cli/subcommands/dump.py)
+    # dump command  (parser built in jettstui/subcommands/dump.py)
     # =========================================================================
     build_dump_parser(subparsers, cmd_dump=cmd_dump)
 
     # =========================================================================
-    # debug command  (parser built in freeide_cli/subcommands/debug.py)
+    # debug command  (parser built in jettstui/subcommands/debug.py)
     # =========================================================================
     build_debug_parser(subparsers, cmd_debug=cmd_debug)
 
     # =========================================================================
-    # backup command  (parser built in freeide_cli/subcommands/backup.py)
+    # backup command  (parser built in jettstui/subcommands/backup.py)
     # =========================================================================
     build_backup_parser(subparsers, cmd_backup=cmd_backup)
 
@@ -16068,25 +16068,25 @@ def main():
         "checkpoints",
         help="Inspect / prune / clear ~/.jettstui/checkpoints/",
         description="Manage the filesystem checkpoint store — the shadow git "
-        "repo freeide uses to snapshot working directories before "
+        "repo jettstui uses to snapshot working directories before "
         "write_file/patch/terminal calls. Lets you see how much "
         "space checkpoints occupy, force a prune, or wipe the base.",
     )
-    from freeide_cli.checkpoints import register_cli as _register_checkpoints_cli
+    from jettstui.checkpoints import register_cli as _register_checkpoints_cli
     _register_checkpoints_cli(checkpoints_parser)
 
     # =========================================================================
-    # import command  (parser built in freeide_cli/subcommands/import_cmd.py)
+    # import command  (parser built in jettstui/subcommands/import_cmd.py)
     # =========================================================================
     build_import_cmd_parser(subparsers, cmd_import=cmd_import)
 
     # =========================================================================
-    # config command  (parser built in freeide_cli/subcommands/config.py)
+    # config command  (parser built in jettstui/subcommands/config.py)
     # =========================================================================
     build_config_parser(subparsers, cmd_config=cmd_config)
 
     # =========================================================================
-    # skin command  (parser built in freeide_cli/subcommands/skin.py)
+    # skin command  (parser built in jettstui/subcommands/skin.py)
     # =========================================================================
     build_skin_parser(subparsers, cmd_skin=cmd_skin)
 
@@ -16096,17 +16096,17 @@ def main():
     build_brain_parser(subparsers, cmd_brain=cmd_brain)
 
     # =========================================================================
-    # console command  (parser built in freeide_cli/subcommands/console.py)
+    # console command  (parser built in jettstui/subcommands/console.py)
     # =========================================================================
     build_console_parser(subparsers, cmd_console=cmd_console)
 
     # =========================================================================
-    # pairing command  (parser built in freeide_cli/subcommands/pairing.py)
+    # pairing command  (parser built in jettstui/subcommands/pairing.py)
     # =========================================================================
     build_pairing_parser(subparsers, cmd_pairing=cmd_pairing)
 
     # =========================================================================
-    # skills command  (parser built in freeide_cli/subcommands/skills.py)
+    # skills command  (parser built in jettstui/subcommands/skills.py)
     # =========================================================================
     build_skills_parser(subparsers, cmd_skills=cmd_skills)
 
@@ -16122,12 +16122,12 @@ def main():
             "referenced skill at once."
         ),
     )
-    from freeide_cli.bundles import register_cli as _bundles_register, bundles_command
+    from jettstui.bundles import register_cli as _bundles_register, bundles_command
     _bundles_register(bundles_parser)
     bundles_parser.set_defaults(func=bundles_command)
 
     # =========================================================================
-    # plugins command  (parser built in freeide_cli/subcommands/plugins.py)
+    # plugins command  (parser built in jettstui/subcommands/plugins.py)
     # =========================================================================
     build_plugins_parser(subparsers, cmd_plugins=cmd_plugins)
 
@@ -16137,7 +16137,7 @@ def main():
     # own argparse tree.  No hardcoded plugin commands in main.py.
     #
     # Skipped when the invocation is already targeting a known built-in
-    # subcommand — ``freeide --help``, ``freeide version``, ``freeide logs``,
+    # subcommand — ``jettstui --help``, ``jettstui version``, ``jettstui logs``,
     # etc.  This avoids eagerly importing every bundled plugin module
     # (google.cloud.pubsub_v1, aiohttp, grpc, PIL …) which costs
     # 500-650ms on typical installs.
@@ -16145,7 +16145,7 @@ def main():
     if _plugin_cli_discovery_needed():
         try:
             from plugins.memory import discover_plugin_cli_commands
-            from freeide_cli.plugins import discover_plugins, get_plugin_manager
+            from jettstui.plugins import discover_plugins, get_plugin_manager
 
             seen_plugin_commands = set()
             for cmd_info in discover_plugin_cli_commands():
@@ -16191,7 +16191,7 @@ def main():
         ),
     )
     try:
-        from freeide_cli.curator import register_cli as _register_curator_cli
+        from jettstui.curator import register_cli as _register_curator_cli
 
         _register_curator_cli(curator_parser)
     except Exception as _exc:
@@ -16206,12 +16206,12 @@ def main():
         description=(
             "Petdex (https://github.com/crafter-station/petdex) is a public "
             "gallery of animated sprite pets for coding agents. Install one "
-            "and FreeIDE shows it reacting to agent activity across the CLI, "
+            "and JettsTUI shows it reacting to agent activity across the CLI, "
             "TUI, and desktop app."
         ),
     )
     try:
-        from freeide_cli.pets import register_cli as _register_pets_cli
+        from jettstui.pets import register_cli as _register_pets_cli
 
         _register_pets_cli(pets_parser)
     except Exception as _exc:
@@ -16232,19 +16232,19 @@ def main():
         ),
     )
     try:
-        from freeide_cli.journey import register_cli as _register_journey_cli
+        from jettstui.journey import register_cli as _register_journey_cli
 
         _register_journey_cli(journey_parser)
     except Exception as _exc:
         logging.getLogger(__name__).debug("journey CLI wiring failed: %s", _exc)
 
     # =========================================================================
-    # memory command  (parser built in freeide_cli/subcommands/memory.py)
+    # memory command  (parser built in jettstui/subcommands/memory.py)
     # =========================================================================
     build_memory_parser(subparsers, cmd_memory=cmd_memory)
 
     # =========================================================================
-    # tools command  (parser built in freeide_cli/subcommands/tools.py)
+    # tools command  (parser built in jettstui/subcommands/tools.py)
     # =========================================================================
     build_tools_parser(subparsers, cmd_tools=cmd_tools)
 
@@ -16258,13 +16258,13 @@ def main():
             "Install or check the cua-driver binary used by the\n"
             "`computer_use` toolset. Supported on macOS, Windows, and\n"
             "Linux.\n\n"
-            "Use `freeide computer-use install` to fetch and run the\n"
+            "Use `jettstui computer-use install` to fetch and run the\n"
             "upstream cua-driver installer. This is equivalent to the\n"
-            "post-setup hook that `freeide tools` runs when you first\n"
+            "post-setup hook that `jettstui tools` runs when you first\n"
             "enable the Computer Use toolset, and is a stable target\n"
             "for re-running the install if it didn't fire (e.g. when\n"
             "toggling the toolset on a returning-user setup).\n\n"
-            "Use `freeide computer-use doctor` to run cua-driver's\n"
+            "Use `jettstui computer-use doctor` to run cua-driver's\n"
             "`health_report` MCP tool and surface its check matrix\n"
             "(TCC, bundle identity, version, platform support, ...)\n"
             "in human-readable form."
@@ -16331,7 +16331,7 @@ def main():
         description=(
             "Computer Use drives the Mac through cua-driver, whose TCC grants\n"
             "attach to cua-driver's own identity (com.trycua.driver) — not the\n"
-            "terminal or the FreeIDE app. `status` reports the driver's grant\n"
+            "terminal or the JettsTUI app. `status` reports the driver's grant\n"
             "state; `grant` launches CuaDriver via LaunchServices so the macOS\n"
             "permission dialog is attributed to the process that does the work."
         ),
@@ -16356,7 +16356,7 @@ def main():
     def cmd_computer_use(args):
         action = getattr(args, "computer_use_action", None)
         if action == "install":
-            from freeide_cli.tools_config import install_cua_driver
+            from jettstui.tools_config import install_cua_driver
             install_cua_driver(upgrade=bool(getattr(args, "upgrade", False)))
             return
         if action == "status":
@@ -16371,7 +16371,7 @@ def main():
             if path:
                 version = ""
                 try:
-                    from freeide_cli.tools_config import _cua_driver_env
+                    from jettstui.tools_config import _cua_driver_env
                     version = subprocess.run(
                         [path, "--version"],
                         capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=5,
@@ -16388,17 +16388,17 @@ def main():
                     if st and st.get("update_available"):
                         latest = st.get("latest_version") or "?"
                         print(f"  ⬆ Update available: cua-driver {latest}.")
-                        print("    Run: freeide computer-use install --upgrade")
+                        print("    Run: jettstui computer-use install --upgrade")
                     elif st:
                         print("  ✓ Up to date.")
                     else:
                         # Older driver (no check-update verb) or offline.
-                        print("  Refresh to latest: freeide computer-use install --upgrade")
+                        print("  Refresh to latest: jettstui computer-use install --upgrade")
                 except Exception:
-                    print("  Refresh to latest: freeide computer-use install --upgrade")
+                    print("  Refresh to latest: jettstui computer-use install --upgrade")
                 return
             print("cua-driver: not installed")
-            print("  Run: freeide computer-use install")
+            print("  Run: jettstui computer-use install")
             return
         if action == "doctor":
             from tools.computer_use.doctor import run_doctor
@@ -16424,7 +16424,7 @@ def main():
                     print(f"Computer Use is not supported on {st['platform']}.")
                     sys.exit(1)
                 if not st["installed"]:
-                    print("cua-driver: not installed. Run: freeide computer-use install")
+                    print("cua-driver: not installed. Run: jettstui computer-use install")
                     sys.exit(1)
                 glyph = lambda v: "✅" if v is True else ("❌" if v is False else "•")  # noqa: E731
                 print(f"cua-driver: {st['version'] or 'installed'} ({st['platform']})")
@@ -16432,7 +16432,7 @@ def main():
                     print(f"  {glyph(st['accessibility'])} Accessibility")
                     print(f"  {glyph(st['screen_recording'])} Screen Recording")
                     if not st["ready"]:
-                        print("  Grant: freeide computer-use permissions grant")
+                        print("  Grant: jettstui computer-use permissions grant")
                 else:  # no TCC model — readiness is driver health
                     print(f"  {glyph(st['ready'])} driver health (no permission toggles on {st['platform']})")
                 for c in st["checks"]:
@@ -16448,7 +16448,7 @@ def main():
 
     computer_use_parser.set_defaults(func=cmd_computer_use)
     # =========================================================================
-    # mcp command  (parser built in freeide_cli/subcommands/mcp.py)
+    # mcp command  (parser built in jettstui/subcommands/mcp.py)
     # =========================================================================
     build_mcp_parser(subparsers, cmd_mcp=cmd_mcp)
 
@@ -16519,7 +16519,7 @@ def main():
         p.add_argument(
             "--model",
             help="Only match sessions whose model name contains this substring "
-            "(e.g. 'sonnet', 'gpt-5', 'freeide')",
+            "(e.g. 'sonnet', 'gpt-5', 'jettstui')",
         )
         p.add_argument(
             "--provider",
@@ -16581,7 +16581,7 @@ def main():
         nargs="?",
         help=(
             "Output path. JSONL: file path (use - for stdout, required). "
-            "md/qmd: output directory (default: <freeide home>/session-exports)"
+            "md/qmd: output directory (default: <jettstui home>/session-exports)"
         ),
     )
     sessions_export.add_argument(
@@ -16850,7 +16850,7 @@ def main():
         # Recovery additionally promises never to open the supplied source
         # directly, so it operates through its own disposable source copy.
         if action == "repair":
-            from freeide_state import (
+            from jettstui_state import (
                 get_default_db_path,
                 _db_opens_cleanly,
                 repair_state_db_schema,
@@ -16876,7 +16876,7 @@ def main():
                     print(f"  backup: {report['backup_path']}")
                 print(f"  strategy: {report.get('strategy')}")
                 try:
-                    from freeide_state import SessionDB
+                    from jettstui_state import SessionDB
 
                     n = SessionDB()._conn.execute(
                         "SELECT COUNT(*) FROM sessions"
@@ -16896,18 +16896,18 @@ def main():
                 print("")
                 print("  Next step — offline recovery (never modifies the source):")
                 source_hint = report.get("backup_path") or db_path
-                print(f"    freeide sessions recover --source {source_hint} \\")
+                print(f"    jettstui sessions recover --source {source_hint} \\")
                 print("        --inspect-only")
                 print("  If that reports the data is recoverable, rebuild it into")
                 print("  a NEW database (the active one is left untouched):")
-                print(f"    freeide sessions recover --source {source_hint} \\")
+                print(f"    jettstui sessions recover --source {source_hint} \\")
                 print("        --output recovered-state.db")
             return
 
         if action == "recover":
             import sqlite3 as _sqlite3
 
-            from freeide_cli.session_recovery import (
+            from jettstui.session_recovery import (
                 SessionRecoveryError,
                 inspect_session_database,
                 recover_session_database,
@@ -17010,7 +17010,7 @@ def main():
             return 1
 
         try:
-            from freeide_state import SessionDB
+            from jettstui_state import SessionDB
 
             db = SessionDB()
         except Exception as e:
@@ -17022,7 +17022,7 @@ def main():
         _exclude = None if _source else ["tool"]
 
         if action == "list":
-            from freeide_state import workspace_key as _ws_key
+            from jettstui_state import workspace_key as _ws_key
 
             sessions = db.list_sessions_rich(
                 source=args.source, exclude_sources=_exclude, limit=args.limit
@@ -17096,7 +17096,7 @@ def main():
                     print(f"{preview:<50} {last_active:<13} {s['source']:<6} {sid}")
 
         elif action == "export":
-            from freeide_cli.session_filters import (
+            from jettstui.session_filters import (
                 build_prune_filters,
                 describe_filters,
             )
@@ -17125,7 +17125,7 @@ def main():
             def _redact(data):
                 if not args.redact or data is None:
                     return data
-                from freeide_cli.session_export_md import redact_session_data
+                from jettstui.session_export_md import redact_session_data
 
                 return redact_session_data(data)
 
@@ -17165,12 +17165,12 @@ def main():
 
             # Prompt-only export (--only user-prompts): one prompt record per
             # line (jsonl) or headed sections (md). Delegates rendering to
-            # freeide_cli.session_export.
+            # jettstui.session_export.
             if getattr(args, "only", None):
                 if args.format not in ("jsonl", "md"):
                     print("--only user-prompts supports --format jsonl or md.")
                     return
-                from freeide_cli.session_export import (
+                from jettstui.session_export import (
                     export_record_count,
                     render_sessions_export,
                 )
@@ -17202,7 +17202,7 @@ def main():
                 if not args.output or args.output == "-":
                     print("HTML export requires an output file path.")
                     return
-                from freeide_cli.session_export_html import (
+                from jettstui.session_export_html import (
                     generate_html_export,
                     generate_multi_session_html_export,
                 )
@@ -17320,7 +17320,7 @@ def main():
                         out_dir = (
                             Path(args.output).expanduser()
                             if args.output and args.output != "-"
-                            else get_freeide_home() / "session-exports"
+                            else get_jettstui_home() / "session-exports"
                         )
                         out_dir.mkdir(parents=True, exist_ok=True)
                         exported = 0
@@ -17400,7 +17400,7 @@ def main():
                 return
 
             # Markdown / QMD export
-            from freeide_cli.session_export_md import (
+            from jettstui.session_export_md import (
                 append_manifest_entry,
                 verify_export_file,
                 write_session_markdown,
@@ -17410,7 +17410,7 @@ def main():
                 print("Markdown/QMD export writes files; stdout (-) is only supported with --format jsonl.")
                 db.close()
                 return
-            output_dir = Path(args.output).expanduser() if args.output else get_freeide_home() / "session-exports"
+            output_dir = Path(args.output).expanduser() if args.output else get_jettstui_home() / "session-exports"
 
             def _export_one(session_id: str, *, include_lineage: bool = False):
                 data = (
@@ -17504,7 +17504,7 @@ def main():
                             )
                             db.close()
                             return
-                    sessions_dir = get_freeide_home() / "sessions"
+                    sessions_dir = get_jettstui_home() / "sessions"
                     if db.delete_session(
                         resolved_session_id,
                         sessions_dir=sessions_dir,
@@ -17573,21 +17573,21 @@ def main():
                 ):
                     print("Cancelled.")
                     return
-            sessions_dir = get_freeide_home() / "sessions"
+            sessions_dir = get_jettstui_home() / "sessions"
             if db.delete_session(resolved_session_id, sessions_dir=sessions_dir):
                 print(f"Deleted session '{resolved_session_id}'.")
             else:
                 print(f"Session '{args.session_id}' not found.")
 
         elif action in ("prune", "archive"):
-            from freeide_cli.session_filters import (
+            from jettstui.session_filters import (
                 build_prune_filters,
                 describe_filters,
                 format_epoch,
             )
 
             # Preserve the historical default ONLY for a truly bare
-            # `freeide sessions prune`: no time window and no filters at all
+            # `jettstui sessions prune`: no time window and no filters at all
             # means "older than 90 days". ANY filter — including --source —
             # suppresses the implicit cutoff, so `prune --source cron`
             # matches ALL cron sessions regardless of age. The preview +
@@ -17680,7 +17680,7 @@ def main():
                     return
 
             if action == "prune":
-                sessions_dir = get_freeide_home() / "sessions"
+                sessions_dir = get_jettstui_home() / "sessions"
                 count = db.prune_sessions(sessions_dir=sessions_dir, **filters)
                 print(f"Pruned {count} session(s).")
             else:
@@ -17782,9 +17782,9 @@ def main():
                 print("Cancelled.")
                 return
 
-            # Launch freeide --resume <id> by replacing the current process
+            # Launch jettstui --resume <id> by replacing the current process
             print(f"Resuming session: {selected_id}")
-            from freeide_cli.relaunch import relaunch
+            from jettstui.relaunch import relaunch
 
             relaunch(["--resume", selected_id])
             return  # won't reach here after execvp
@@ -17922,7 +17922,7 @@ def main():
             )
             if result.get("vacuumed") is False:
                 print("  (VACUUM was skipped or failed — run "
-                      "`freeide sessions optimize` later to reclaim freed space.)")
+                      "`jettstui sessions optimize` later to reclaim freed space.)")
 
         elif action == "stats":
             total = db.session_count()
@@ -17946,37 +17946,37 @@ def main():
     sessions_parser.set_defaults(func=cmd_sessions)
 
     # =========================================================================
-    # insights command  (parser built in freeide_cli/subcommands/insights.py)
+    # insights command  (parser built in jettstui/subcommands/insights.py)
     # =========================================================================
     build_insights_parser(subparsers, cmd_insights=cmd_insights)
 
     # =========================================================================
-    # claw command  (parser built in freeide_cli/subcommands/claw.py)
+    # claw command  (parser built in jettstui/subcommands/claw.py)
     # =========================================================================
     build_claw_parser(subparsers, cmd_claw=cmd_claw)
 
     # =========================================================================
-    # version command  (parser built in freeide_cli/subcommands/version.py)
+    # version command  (parser built in jettstui/subcommands/version.py)
     # =========================================================================
     build_version_parser(subparsers, cmd_version=cmd_version)
 
     # =========================================================================
-    # update command  (parser built in freeide_cli/subcommands/update.py)
+    # update command  (parser built in jettstui/subcommands/update.py)
     # =========================================================================
     build_update_parser(subparsers, cmd_update=cmd_update)
 
     # =========================================================================
-    # uninstall command  (parser built in freeide_cli/subcommands/uninstall.py)
+    # uninstall command  (parser built in jettstui/subcommands/uninstall.py)
     # =========================================================================
     build_uninstall_parser(subparsers, cmd_uninstall=cmd_uninstall)
 
     # =========================================================================
-    # acp command  (parser built in freeide_cli/subcommands/acp.py)
+    # acp command  (parser built in jettstui/subcommands/acp.py)
     # =========================================================================
     build_acp_parser(subparsers, cmd_acp=cmd_acp)
 
     # =========================================================================
-    # profile command  (parser built in freeide_cli/subcommands/profile.py)
+    # profile command  (parser built in jettstui/subcommands/profile.py)
     # =========================================================================
     build_profile_parser(subparsers, cmd_profile=cmd_profile)
 
@@ -17997,7 +17997,7 @@ def main():
     completion_parser.set_defaults(func=lambda args: cmd_completion(args, parser))
 
     # =========================================================================
-    # dashboard command  (parser built in freeide_cli/subcommands/dashboard.py)
+    # dashboard command  (parser built in jettstui/subcommands/dashboard.py)
     # =========================================================================
     build_dashboard_parser(subparsers, cmd_dashboard=cmd_dashboard)
 
@@ -18006,22 +18006,22 @@ def main():
     # desktop (a.k.a. gui) command
     #
     # The canonical name is "desktop"; "gui" is kept as a deprecated alias
-    # for one release. The FreeIDE-Setup.exe success screen tells users to
-    # run `freeide desktop` from a terminal, so the canonical name needs
+    # for one release. The JettsTUI-Setup.exe success screen tells users to
+    # run `jettstui desktop` from a terminal, so the canonical name needs
     # to be the one that appears in --help (argparse promotes the primary
     # name; aliases stay hidden).
     # =========================================================================
-    # gui command  (parser built in freeide_cli/subcommands/gui.py)
+    # gui command  (parser built in jettstui/subcommands/gui.py)
     # =========================================================================
     build_gui_parser(subparsers, cmd_gui=cmd_gui)
 
     # =========================================================================
-    # logs command  (parser built in freeide_cli/subcommands/logs.py)
+    # logs command  (parser built in jettstui/subcommands/logs.py)
     # =========================================================================
     build_logs_parser(subparsers, cmd_logs=cmd_logs)
 
     # =========================================================================
-    # prompt-size command  (parser built in freeide_cli/subcommands/prompt_size.py)
+    # prompt-size command  (parser built in jettstui/subcommands/prompt_size.py)
     # =========================================================================
     build_prompt_size_parser(subparsers, cmd_prompt_size=cmd_prompt_size)
 
@@ -18030,13 +18030,13 @@ def main():
     # =========================================================================
     # Pre-process argv so unquoted multi-word session names after -c / -r
     # are merged into a single token before argparse sees them.
-    # e.g. ``freeide -c Pokemon Agent Dev`` → ``freeide -c 'Pokemon Agent Dev'``
+    # e.g. ``jettstui -c Pokemon Agent Dev`` → ``jettstui -c 'Pokemon Agent Dev'``
     # ── Container-aware routing ────────────────────────────────────────
     # When NixOS container mode is active, route ALL subcommands into
     # the managed container.  This MUST run before parse_args() so that
     # --help, unrecognised flags, and every subcommand are forwarded
     # transparently instead of being intercepted by argparse on the host.
-    from freeide_cli.config import get_container_exec_info
+    from jettstui.config import get_container_exec_info
 
     container_info = get_container_exec_info()
     if container_info:
@@ -18055,7 +18055,7 @@ def main():
     #
     # Fix: when argv contains a token matching a known subcommand, set
     # subparsers.required=True to force deterministic routing.  If that
-    # fails (e.g. 'freeide -c model' where 'model' is consumed as the
+    # fails (e.g. 'jettstui -c model' where 'model' is consumed as the
     # session name for --continue), fall back to the default behaviour.
     import io as _io
 
@@ -18093,18 +18093,18 @@ def main():
         cmd_version(args)
         return
 
-    # --yolo: set FREEIDE_YOLO_MODE *before* plugin discovery.  The call to
+    # --yolo: set JETTSTUI_YOLO_MODE *before* plugin discovery.  The call to
     # _prepare_agent_startup() below triggers discover_plugins() → tool
     # imports, and tools.approval freezes _YOLO_MODE_FROZEN at module
     # import time (PR #7994, security hardening against prompt-injection).
     # If the env var is set only later (e.g. inside cmd_chat), the frozen
     # value is already False and --yolo silently does nothing.
     if getattr(args, "yolo", False):
-        os.environ["FREEIDE_YOLO_MODE"] = "1"
+        os.environ["JETTSTUI_YOLO_MODE"] = "1"
 
     # Discover Python plugins and register shell hooks once, before any
     # command that can fire lifecycle hooks.  Both are idempotent; gated
-    # so introspection/management commands (freeide hooks list, cron
+    # so introspection/management commands (jettstui hooks list, cron
     # list, gateway status, mcp add, ...) don't pay discovery cost or
     # trigger consent prompts for hooks the user is still inspecting.
     _prepare_agent_startup(args)
@@ -18155,7 +18155,7 @@ def main():
 
     # Execute the command.  Propagate the handler's return code as the
     # process exit code so subcommands that signal failure (e.g.
-    # ``freeide egress start`` refusing when credential_source=bitwarden
+    # ``jettstui egress start`` refusing when credential_source=bitwarden
     # is misconfigured) actually exit non-zero.  Handlers that return
     # None are treated as success (exit 0).
     if hasattr(args, "func"):

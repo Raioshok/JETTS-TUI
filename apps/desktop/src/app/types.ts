@@ -1,7 +1,7 @@
 import type * as React from 'react'
 
 import type { ChatMessage } from '@/lib/chat-messages'
-import type { SessionMessage, UsageStats } from '@/types/freeide'
+import type { SessionMessage, UsageStats } from '@/types/jettstui'
 
 export interface ContextSuggestion {
   text: string

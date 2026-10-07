@@ -21,7 +21,7 @@ Read, search, create, and edit notes in the Obsidian vault.
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that FreeIDE loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that JettsTUI loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Obsidian Vault
@@ -34,16 +34,16 @@ Use a known or resolved vault path before calling file tools.
 
 Resolve the path in this order: an explicit path from the user, `obsidian.vault_path`
 in `config.yaml`, the legacy `OBSIDIAN_VAULT_PATH` environment variable, then
-`~/Documents/FreeIDE Brain`. Behavioral configuration belongs in `config.yaml`;
+`~/Documents/JettsTUI Brain`. Behavioral configuration belongs in `config.yaml`;
 the environment variable is supported for backward compatibility.
 
 File tools do not expand shell variables. Do not pass paths containing `$OBSIDIAN_VAULT_PATH` to `read_file`, `write_file`, `patch`, or `search_files`; resolve the vault path first and pass a concrete absolute path. Vault paths may contain spaces, which is another reason to prefer file tools over shell commands.
 
 If the vault path is unknown, `terminal` is acceptable for resolving `OBSIDIAN_VAULT_PATH` or checking whether the fallback path exists. Once the path is known, switch back to file tools.
 
-## FreeIDE Brain mode
+## JettsTUI Brain mode
 
-When `.freeide-brain.json` exists at the vault root, this is a managed project
+When `.jettstui-brain.json` exists at the vault root, this is a managed project
 brain. Read `00-System/Agent Protocol.md`, `01-Projects/Project Index.md`, and
 only the selected project's index before retrieving other notes. Follow the
 progressive retrieval path: index, smallest useful summary tier, linked maps,

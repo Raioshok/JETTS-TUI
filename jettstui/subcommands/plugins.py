@@ -1,6 +1,6 @@
-"""``freeide plugins`` subcommand parser.
+"""``jettstui plugins`` subcommand parser.
 
-Extracted from ``freeide_cli/main.py:main()`` (god-file Phase 2 follow-up).
+Extracted from ``jettstui/main.py:main()`` (god-file Phase 2 follow-up).
 Handler injected to avoid importing ``main``.
 """
 
@@ -23,7 +23,7 @@ def build_plugins_parser(subparsers, *, cmd_plugins: Callable) -> None:
     )
     plugins_install.add_argument(
         "identifier",
-        help="Git URL or owner/repo shorthand (e.g. anpicasso/freeide-plugin-chrome-profiles)",
+        help="Git URL or owner/repo shorthand (e.g. anpicasso/jettstui-plugin-chrome-profiles)",
     )
     plugins_install.add_argument(
         "--force",

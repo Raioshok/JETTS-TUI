@@ -50,16 +50,16 @@ export default function ProgressScreen({ bootstrap }: ProgressProps) {
   }, [bootstrap.status])
 
   const isUpdate = mode === 'update'
-  const title = bootstrap.status === 'completed' ? 'Done' : isUpdate ? 'Updating Jetts-TUI' : 'Setting up Jetts-TUI'
+  const title = bootstrap.status === 'completed' ? 'Done' : isUpdate ? 'Updating JettsTUI' : 'Setting up JettsTUI'
 
   const description = isUpdate
-    ? 'Jetts-TUI is updating to the latest version — this only takes a moment.'
-    : 'This is a one-time setup. The Jetts-TUI installer is downloading dependencies and configuring your machine. Subsequent launches will skip this step.'
+    ? 'JettsTUI is updating to the latest version — this only takes a moment.'
+    : 'This is a one-time setup. The JettsTUI installer is downloading dependencies and configuring your machine. Subsequent launches will skip this step.'
 
   const pct = Math.round(progress.fraction * 100)
 
   return (
-    <div className="freeide-fade-in flex h-full flex-col">
+    <div className="jettstui-fade-in flex h-full flex-col">
       {/* Header: brand + title + description, matching the desktop install overlay. */}
       <div className="flex shrink-0 items-start gap-4 px-6 pt-6 pb-4">
         <BrandMark className="size-11" />

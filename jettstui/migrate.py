@@ -1,6 +1,6 @@
-"""CLI handlers for ``freeide migrate ...``.
+"""CLI handlers for ``jettstui migrate ...``.
 
-Currently exposes only ``freeide migrate xai`` — diagnoses and (with --apply)
+Currently exposes only ``jettstui migrate xai`` — diagnoses and (with --apply)
 rewrites references to xAI models retired on May 15, 2026.
 """
 from __future__ import annotations
@@ -9,23 +9,23 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from freeide_cli.colors import Colors, color
-from freeide_cli.config import load_config
+from jettstui.colors import Colors, color
+from jettstui.config import load_config
 
 
 def cmd_migrate(args: Any) -> int:
-    """Dispatcher for ``freeide migrate <subtype>``."""
+    """Dispatcher for ``jettstui migrate <subtype>``."""
     sub = getattr(args, "migrate_type", None)
     if sub == "xai":
         return cmd_migrate_xai(args)
 
-    print("usage: freeide migrate xai [--apply] [--no-backup]", file=sys.stderr)
+    print("usage: jettstui migrate xai [--apply] [--no-backup]", file=sys.stderr)
     return 2
 
 
 def cmd_migrate_xai(args: Any) -> int:
     """Run xAI May-15 model migration in dry-run or apply mode."""
-    from freeide_cli.xai_retirement import (
+    from jettstui.xai_retirement import (
         MIGRATION_GUIDE_URL,
         RETIREMENT_DATE,
         apply_migration,
@@ -63,7 +63,7 @@ def cmd_migrate_xai(args: Any) -> int:
     if not apply:
         print(color("Dry-run mode — no changes written.", Colors.DIM))
         print(color(
-            "Re-run with `freeide migrate xai --apply` to rewrite "
+            "Re-run with `jettstui migrate xai --apply` to rewrite "
             f"{config_path} in-place (backup created automatically).",
             Colors.DIM,
         ))
@@ -102,7 +102,7 @@ def cmd_migrate_xai(args: Any) -> int:
     )
     print()
     print(color(
-        "Run `freeide doctor` to confirm no retired xAI models remain.",
+        "Run `jettstui doctor` to confirm no retired xAI models remain.",
         Colors.DIM,
     ))
     return 0
@@ -110,6 +110,6 @@ def cmd_migrate_xai(args: Any) -> int:
 
 def _resolve_config_path() -> Path:
     """Best-effort: locate the active config.yaml on disk."""
-    from freeide_cli.config import get_freeide_home
+    from jettstui.config import get_jettstui_home
 
-    return get_freeide_home() / "config.yaml"
+    return get_jettstui_home() / "config.yaml"

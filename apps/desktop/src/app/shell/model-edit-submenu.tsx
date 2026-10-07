@@ -29,7 +29,7 @@ import {
 } from '@/store/session'
 import { sessionTileDelegate } from '@/store/session-states'
 
-// FreeIDE' real reasoning levels live in lib/reasoning-effort; `none` is owned
+// JettsTUI' real reasoning levels live in lib/reasoning-effort; `none` is owned
 // by the Thinking toggle, not the radio.
 
 /** How "fast" is achieved for a given model — two different mechanisms:

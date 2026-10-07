@@ -27,34 +27,34 @@ def _stringify_filter_value(value: Any) -> str:
 
 
 def _resolve_profile_path(path_value: Any) -> Optional[Path]:
-    """Resolve a user path, mapping ~/.freeide to the active profile home."""
+    """Resolve a user path, mapping ~/.jettstui to the active profile home."""
     if not isinstance(path_value, str):
         return None
     raw = os.path.expandvars(path_value.strip())
     if not raw:
         return None
-    from freeide_constants import get_freeide_home
+    from jettstui_constants import get_jettstui_home
 
-    freeide_home = get_freeide_home()
-    if raw == "~/.freeide":
-        return freeide_home
-    if raw.startswith("~/.freeide/"):
-        return freeide_home / raw.removeprefix("~/.freeide/")
+    jettstui_home = get_jettstui_home()
+    if raw == "~/.jettstui":
+        return jettstui_home
+    if raw.startswith("~/.jettstui/"):
+        return jettstui_home / raw.removeprefix("~/.jettstui/")
     path = Path(raw).expanduser()
     if path.is_absolute():
         return path
-    return freeide_home / path
+    return jettstui_home / path
 
 
 def _resolve_script_path(script_value: Any) -> tuple[Optional[Path], Optional[str]]:
-    """Resolve a route script under FREEIDE_HOME/scripts."""
+    """Resolve a route script under JETTSTUI_HOME/scripts."""
     if not isinstance(script_value, str) or not script_value.strip():
         return None, "script path is empty"
-    from freeide_constants import get_freeide_home
+    from jettstui_constants import get_jettstui_home
 
-    scripts_root = (get_freeide_home() / "scripts").resolve()
+    scripts_root = (get_jettstui_home() / "scripts").resolve()
     raw_text = os.path.expandvars(script_value.strip())
-    if raw_text == "~/.freeide" or raw_text.startswith("~/.freeide/"):
+    if raw_text == "~/.jettstui" or raw_text.startswith("~/.jettstui/"):
         mapped = _resolve_profile_path(raw_text)
         candidate = mapped.resolve() if mapped is not None else scripts_root
     else:
@@ -296,7 +296,7 @@ class WebhookRouteProcessor:
             return False, None
         if (
             transformed.get("[SILENT]") is True
-            or transformed.get("__freeide_ignore__") is True
+            or transformed.get("__jettstui_ignore__") is True
         ):
             return False, None
         return True, transformed

@@ -2,26 +2,26 @@
 sidebar_position: 3
 sidebar_label: "Git Worktrees"
 title: "Git Worktrees"
-description: "Run multiple FreeIDE agents safely on the same repository using git worktrees and isolated checkouts"
+description: "Run multiple JettsTUI agents safely on the same repository using git worktrees and isolated checkouts"
 ---
 
 # Git Worktrees
 
-FreeIDE Agent is often used on large, long‑lived repositories. When you want to:
+JettsTUI is often used on large, long‑lived repositories. When you want to:
 
 - Run **multiple agents in parallel** on the same project, or
 - Keep experimental refactors isolated from your main branch,
 
 Git **worktrees** are the safest way to give each agent its own checkout without duplicating the entire repository.
 
-This page shows how to combine worktrees with FreeIDE so each session has a clean, isolated working directory.
+This page shows how to combine worktrees with JettsTUI so each session has a clean, isolated working directory.
 
-## Why Use Worktrees with FreeIDE?
+## Why Use Worktrees with JettsTUI?
 
-FreeIDE treats the **current working directory** as the project root:
+JettsTUI treats the **current working directory** as the project root:
 
-- CLI: the directory where you run `freeide` or `freeide chat`
-- Messaging gateways: the directory set by `terminal.cwd` in `~/.freeide/config.yaml`
+- CLI: the directory where you run `jettstui` or `jettstui chat`
+- Messaging gateways: the directory set by `terminal.cwd` in `~/.jettstui/config.yaml`
 
 If you run multiple agents in the **same checkout**, their changes can interfere with each other:
 
@@ -44,24 +44,24 @@ From your main repository (containing `.git/`), create a new worktree for a feat
 cd /path/to/your/repo
 
 # Create a new branch and worktree in ../repo-feature
-git worktree add ../repo-feature feature/freeide-experiment
+git worktree add ../repo-feature feature/jettstui-experiment
 ```
 
 This creates:
 
 - A new directory: `../repo-feature`
-- A new branch: `feature/freeide-experiment` checked out in that directory
+- A new branch: `feature/jettstui-experiment` checked out in that directory
 
-Now you can `cd` into the new worktree and run FreeIDE there:
+Now you can `cd` into the new worktree and run JettsTUI there:
 
 ```bash
 cd ../repo-feature
 
-# Start FreeIDE in the worktree
-freeide
+# Start JettsTUI in the worktree
+jettstui
 ```
 
-FreeIDE will:
+JettsTUI will:
 
 - See `../repo-feature` as the project root.
 - Use that directory for context files, code edits, and tools.
@@ -74,8 +74,8 @@ You can create multiple worktrees, each with its own branch:
 ```bash
 cd /path/to/your/repo
 
-git worktree add ../repo-experiment-a feature/freeide-a
-git worktree add ../repo-experiment-b feature/freeide-b
+git worktree add ../repo-experiment-a feature/jettstui-a
+git worktree add ../repo-experiment-b feature/jettstui-b
 ```
 
 In separate terminals:
@@ -83,16 +83,16 @@ In separate terminals:
 ```bash
 # Terminal 1
 cd ../repo-experiment-a
-freeide
+jettstui
 
 # Terminal 2
 cd ../repo-experiment-b
-freeide
+jettstui
 ```
 
-Each FreeIDE process:
+Each JettsTUI process:
 
-- Works on its own branch (`feature/freeide-a` vs `feature/freeide-b`).
+- Works on its own branch (`feature/jettstui-a` vs `feature/jettstui-b`).
 - Writes checkpoints under a different shadow repo hash (derived from the worktree path).
 - Can use `/rollback` independently without affecting the other.
 
@@ -122,47 +122,47 @@ Notes:
 
 - `git worktree remove` will refuse to remove a worktree with uncommitted changes unless you force it.
 - Removing a worktree does **not** automatically delete the branch; you can delete or keep the branch using normal `git branch` commands.
-- FreeIDE checkpoint data under `~/.freeide/checkpoints/` is not automatically pruned when you remove a worktree, but it is usually very small.
+- JettsTUI checkpoint data under `~/.jettstui/checkpoints/` is not automatically pruned when you remove a worktree, but it is usually very small.
 
 ## Best Practices
 
-- **One worktree per FreeIDE experiment**
+- **One worktree per JettsTUI experiment**
   - Create a dedicated branch/worktree for each substantial change.
   - This keeps diffs focused and PRs small and reviewable.
 - **Name branches after the experiment**
-  - e.g. `feature/freeide-checkpoints-docs`, `feature/freeide-refactor-tests`.
+  - e.g. `feature/jettstui-checkpoints-docs`, `feature/jettstui-refactor-tests`.
 - **Commit frequently**
   - Use git commits for high‑level milestones.
   - Use [checkpoints and /rollback](./checkpoints-and-rollback.md) as a safety net for tool‑driven edits in between.
-- **Avoid running FreeIDE from the bare repo root when using worktrees**
+- **Avoid running JettsTUI from the bare repo root when using worktrees**
   - Prefer the worktree directories instead, so each agent has a clear scope.
 
-## Using `freeide -w` (Automatic Worktree Mode)
+## Using `jettstui -w` (Automatic Worktree Mode)
 
-FreeIDE has a built‑in `-w` flag that **automatically creates a disposable git worktree** with its own branch. You don't need to set up worktrees manually — just `cd` into your repo and run:
+JettsTUI has a built‑in `-w` flag that **automatically creates a disposable git worktree** with its own branch. You don't need to set up worktrees manually — just `cd` into your repo and run:
 
 ```bash
 cd /path/to/your/repo
-freeide -w
+jettstui -w
 ```
 
-FreeIDE will:
+JettsTUI will:
 
 - Create a temporary worktree under `.worktrees/` inside your repo.
-- Check out an isolated branch (e.g. `freeide/freeide-<hash>`).
+- Check out an isolated branch (e.g. `jettstui/jettstui-<hash>`).
 - Run the full CLI session inside that worktree.
 
 This is the easiest way to get worktree isolation. You can also combine it with a single query:
 
 ```bash
-freeide -w -z "Fix issue #123"
+jettstui -w -z "Fix issue #123"
 ```
 
-For parallel agents, open multiple terminals and run `freeide -w` in each — every invocation gets its own worktree and branch automatically.
+For parallel agents, open multiple terminals and run `jettstui -w` in each — every invocation gets its own worktree and branch automatically.
 
 ## Putting It All Together
 
-- Use **git worktrees** to give each FreeIDE session its own clean checkout.
+- Use **git worktrees** to give each JettsTUI session its own clean checkout.
 - Use **branches** to capture the high‑level history of your experiments.
 - Use **checkpoints + `/rollback`** to recover from mistakes inside each worktree.
 

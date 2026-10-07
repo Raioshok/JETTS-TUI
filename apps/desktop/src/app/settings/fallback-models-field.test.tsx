@@ -11,7 +11,7 @@ beforeAll(() => {
 
 const getGlobalModelOptions = vi.fn()
 
-vi.mock('@/freeide', () => ({
+vi.mock('@/jettstui', () => ({
   getGlobalModelOptions: () => getGlobalModelOptions()
 }))
 
@@ -20,7 +20,7 @@ beforeEach(() => {
     providers: [
       { name: 'GitHub Copilot', slug: 'copilot', models: ['gpt-5-mini', 'gpt-5.4-mini'] },
       { name: 'OpenAI Codex', slug: 'openai-codex', models: ['gpt-5.4-mini'] },
-      { name: 'Nous', slug: 'nous', models: ['freeide-4'] }
+      { name: 'Nous', slug: 'nous', models: ['jettstui-4'] }
     ]
   })
 })
@@ -107,7 +107,7 @@ describe('FallbackModelsField', () => {
     const rerender = await renderFieldWithRerender(CHAIN)
     expect(screen.getAllByLabelText('Remove')).toHaveLength(2)
 
-    rerender([{ provider: 'nous', model: 'freeide-4' }])
+    rerender([{ provider: 'nous', model: 'jettstui-4' }])
 
     await waitFor(() => expect(screen.getAllByLabelText('Remove')).toHaveLength(1))
   })

@@ -37,8 +37,8 @@ class TestCliTurnRoutePool:
             service_tier=None,
         )
 
-        from cli import FreeIDECLI
-        bound = FreeIDECLI._resolve_turn_agent_config.__get__(shell)
+        from cli import JettsTUICLI
+        bound = JettsTUICLI._resolve_turn_agent_config.__get__(shell)
         route = bound("test message")
 
         assert route["runtime"]["credential_pool"] is fake_pool
@@ -302,9 +302,9 @@ class TestApiKeyHintRealPool:
     def _seed_pool(self, tmp_path, monkeypatch):
         import json
 
-        freeide_home = tmp_path / "freeide"
-        freeide_home.mkdir(parents=True, exist_ok=True)
-        (freeide_home / "auth.json").write_text(
+        jettstui_home = tmp_path / "jettstui"
+        jettstui_home.mkdir(parents=True, exist_ok=True)
+        (jettstui_home / "auth.json").write_text(
             json.dumps(
                 {
                     "version": 1,
@@ -332,7 +332,7 @@ class TestApiKeyHintRealPool:
                 }
             )
         )
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
         from agent.credential_pool import load_pool
 
         return load_pool("openrouter")
@@ -383,10 +383,10 @@ class TestFailureAttribution:
     """
 
     def _make_pool(self, tmp_path, monkeypatch, entries):
-        monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / "freeide"))
-        freeide_home = tmp_path / "freeide"
-        freeide_home.mkdir(parents=True, exist_ok=True)
-        (freeide_home / "auth.json").write_text(
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / "jettstui"))
+        jettstui_home = tmp_path / "jettstui"
+        jettstui_home.mkdir(parents=True, exist_ok=True)
+        (jettstui_home / "auth.json").write_text(
             json.dumps({"version": 1, "credential_pool": {"anthropic": entries}})
         )
         from agent.credential_pool import load_pool

@@ -40,7 +40,7 @@ class TestLoadGatewayConfigForRunner:
         home.mkdir()
         (home / ".env").write_text("TELEGRAM_BOT_TOKEN=from-default-env\n", encoding="utf-8")
         (home / "config.yaml").write_text("gateway:\n  multiplex_profiles: false\n", encoding="utf-8")
-        monkeypatch.setenv("FREEIDE_HOME", str(home))
+        monkeypatch.setenv("JETTSTUI_HOME", str(home))
         monkeypatch.delenv("TELEGRAM_BOT_TOKEN", raising=False)
 
         # Without multiplex, dotenv is still loaded into os.environ by the
@@ -52,7 +52,7 @@ class TestLoadGatewayConfigForRunner:
     def test_scoped_reload_picks_up_default_profile_token(self, tmp_path, monkeypatch):
         """Token only in default profile .env, not in process os.environ."""
         from gateway import run as run_mod
-        import freeide_constants as hc
+        import jettstui_constants as hc
 
         home = tmp_path / "home"
         home.mkdir()
@@ -62,14 +62,14 @@ class TestLoadGatewayConfigForRunner:
         (home / "config.yaml").write_text(
             "gateway:\n  multiplex_profiles: true\n", encoding="utf-8"
         )
-        monkeypatch.setenv("FREEIDE_HOME", str(home))
+        monkeypatch.setenv("JETTSTUI_HOME", str(home))
         # Simulate a clean process env where the token was NOT exported and
         # was not bulk-loaded into os.environ (multiplex isolation path).
         monkeypatch.delenv("TELEGRAM_BOT_TOKEN", raising=False)
-        # Point both freeide_constants and gateway.run at our temp home.
-        monkeypatch.setattr(hc, "get_freeide_home", lambda: home)
-        monkeypatch.setattr(run_mod, "get_freeide_home", lambda: home)
-        monkeypatch.setattr(run_mod, "_freeide_home", home)
+        # Point both jettstui_constants and gateway.run at our temp home.
+        monkeypatch.setattr(hc, "get_jettstui_home", lambda: home)
+        monkeypatch.setattr(run_mod, "get_jettstui_home", lambda: home)
+        monkeypatch.setattr(run_mod, "_jettstui_home", home)
 
         cfg = run_mod.load_gateway_config_for_runner()
         assert cfg.multiplex_profiles is True

@@ -1,24 +1,24 @@
 #!/usr/bin/env python3
-"""Drive the FreeIDE TUI under FREEIDE_DEV_PERF and summarize the pipeline.
+"""Drive the JettsTUI TUI under JETTSTUI_DEV_PERF and summarize the pipeline.
 
 Usage:
   scripts/profile-tui.py [--session SID] [--hold KEY] [--seconds N] [--rate HZ]
 
 Defaults: picks the session with the most messages, holds PageUp for 8s at
-~30 Hz (matching xterm key-repeat), summarizes ~/.freeide/perf.log on exit.
+~30 Hz (matching xterm key-repeat), summarizes ~/.jettstui/perf.log on exit.
 
 The --tui build must exist (run `npm run build` in ui-tui first). This script
-launches `node dist/entry.js` directly with FREEIDE_TUI_RESUME set so it
-bypasses the freeide_cli wrapper — we want repeatable timing, not the CLI's
+launches `node dist/entry.js` directly with JETTSTUI_TUI_RESUME set so it
+bypasses the jettstui wrapper — we want repeatable timing, not the CLI's
 session-picker flow.
 
 Environment overrides:
-  FREEIDE_PERF_LOG     (default ~/.freeide/perf.log)
-  FREEIDE_PERF_NODE    (default node from $PATH)
-  FREEIDE_TUI_DIR      (default: <repo>/ui-tui relative to this script)
+  JETTSTUI_PERF_LOG     (default ~/.jettstui/perf.log)
+  JETTSTUI_PERF_NODE    (default node from $PATH)
+  JETTSTUI_TUI_DIR      (default: <repo>/ui-tui relative to this script)
 
 Exit code is 0 if the harness ran and parsed results, 2 if the TUI crashed
-or produced no perf data (suggests FREEIDE_DEV_PERF wiring is broken).
+or produced no perf data (suggests JETTSTUI_DEV_PERF wiring is broken).
 """
 
 from __future__ import annotations
@@ -38,18 +38,18 @@ from typing import Any
 _PROJECT_ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(_PROJECT_ROOT))
 try:
-    from freeide_constants import get_freeide_home
+    from jettstui_constants import get_jettstui_home
 except ImportError:
-    def get_freeide_home() -> Path:  # type: ignore[misc]
-        val = (os.environ.get("FREEIDE_HOME") or "").strip()
-        return Path(val) if val else Path.home() / ".freeide"
+    def get_jettstui_home() -> Path:  # type: ignore[misc]
+        val = (os.environ.get("JETTSTUI_HOME") or "").strip()
+        return Path(val) if val else Path.home() / ".jettstui"
 
 DEFAULT_TUI_DIR = Path(
-    os.environ.get("FREEIDE_TUI_DIR")
+    os.environ.get("JETTSTUI_TUI_DIR")
     or str(Path(__file__).resolve().parent.parent / "ui-tui")
 )
-DEFAULT_LOG = Path(os.environ.get("FREEIDE_PERF_LOG", str(get_freeide_home() / "perf.log")))
-DEFAULT_STATE_DB = get_freeide_home() / "state.db"
+DEFAULT_LOG = Path(os.environ.get("JETTSTUI_PERF_LOG", str(get_jettstui_home() / "perf.log")))
+DEFAULT_STATE_DB = get_jettstui_home() / "state.db"
 
 # Keystroke escape sequences.  Matches what xterm/VT220 send when the
 # terminal has bracketed-paste disabled and the key-repeat handler fires.
@@ -151,7 +151,7 @@ def format_report(data: dict[str, Any]) -> str:
 
     out.append("═══ React Profiler ═══")
     if not react:
-        out.append("  (no react events — FREEIDE_DEV_PERF wired? threshold too high?)")
+        out.append("  (no react events — JETTSTUI_DEV_PERF wired? threshold too high?)")
     else:
         by_id: dict[str, list[float]] = {}
         for r in react:
@@ -420,17 +420,17 @@ def run_once(args: argparse.Namespace) -> dict[str, Any]:
     since_ms = int(time.time() * 1000)
 
     env = os.environ.copy()
-    env["FREEIDE_DEV_PERF"] = "1"
-    env["FREEIDE_DEV_PERF_MS"] = str(args.threshold_ms)
-    env["FREEIDE_DEV_PERF_LOG"] = str(log)
-    env["FREEIDE_TUI_RESUME"] = sid
+    env["JETTSTUI_DEV_PERF"] = "1"
+    env["JETTSTUI_DEV_PERF_MS"] = str(args.threshold_ms)
+    env["JETTSTUI_DEV_PERF_LOG"] = str(log)
+    env["JETTSTUI_TUI_RESUME"] = sid
     env["COLUMNS"] = str(args.cols)
     env["LINES"] = str(args.rows)
     env["TERM"] = env.get("TERM", "xterm-256color")
 
     # Pass through extra flags the TUI wrapper recognizes (e.g. --no-fullscreen).
     # Stored on args as `extra_flags` list.
-    node = os.environ.get("FREEIDE_PERF_NODE", "node")
+    node = os.environ.get("JETTSTUI_PERF_NODE", "node")
     node_args = [node, str(entry), *getattr(args, "extra_flags", [])]
 
     pid, fd = pty.fork()
@@ -480,7 +480,7 @@ def main() -> int:
     p.add_argument("--seconds", type=float, default=8.0, help="how long to hold the key")
     p.add_argument("--rate", type=int, default=30, help="keystrokes per second")
     p.add_argument("--warmup", type=float, default=3.0, help="seconds to wait after launch before input")
-    p.add_argument("--threshold-ms", type=float, default=0.0, help="FREEIDE_DEV_PERF_MS (0 = capture all)")
+    p.add_argument("--threshold-ms", type=float, default=0.0, help="JETTSTUI_DEV_PERF_MS (0 = capture all)")
     p.add_argument("--cols", type=int, default=120)
     p.add_argument("--rows", type=int, default=40)
     p.add_argument("--keep-log", action="store_true", help="don't wipe perf.log before run")

@@ -8,15 +8,15 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
-def _isolate_freeide(tmp_path, monkeypatch):
-    monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / ".freeide"))
-    (tmp_path / ".freeide").mkdir(exist_ok=True)
+def _isolate_jettstui(tmp_path, monkeypatch):
+    monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / ".jettstui"))
+    (tmp_path / ".jettstui").mkdir(exist_ok=True)
 
 
 def _make_agent(monkeypatch):
     """Create a minimal AIAgent-like object with just the methods under test."""
     monkeypatch.setenv("OPENROUTER_API_KEY", "")
-    monkeypatch.setenv("FREEIDE_INFERENCE_PROVIDER", "")
+    monkeypatch.setenv("JETTSTUI_INFERENCE_PROVIDER", "")
     # Avoid full AIAgent init — just import the class and build a stub
     import run_agent as _ra
 

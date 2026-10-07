@@ -14,27 +14,27 @@ Operate the Antigravity CLI (agy): plugins, auth, sandbox.
 
 | | |
 |---|---|
-| Source | Optional — install with `freeide skills install official/autonomous-ai-agents/antigravity-cli` |
+| Source | Optional — install with `jettstui skills install official/autonomous-ai-agents/antigravity-cli` |
 | Path | `optional-skills/autonomous-ai-agents/antigravity-cli` |
 | Version | `0.2.0` |
-| Author | Tony Simons (asimons81), FreeIDE Agent |
+| Author | Tony Simons (asimons81), JettsTUI |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `Coding-Agent`, `Antigravity`, `CLI`, `Auth`, `Plugins`, `Sandbox` |
-| Related skills | [`grok`](./autonomous-ai-agents-grok.md), [`codex`](../../bundled/autonomous-ai-agents/autonomous-ai-agents-codex.md), [`claude-code`](../../bundled/autonomous-ai-agents/autonomous-ai-agents-claude-code.md), [`freeide-agent`](../../bundled/autonomous-ai-agents/autonomous-ai-agents-freeide-agent.md) |
+| Related skills | [`grok`](./autonomous-ai-agents-grok.md), [`codex`](../../bundled/autonomous-ai-agents/autonomous-ai-agents-codex.md), [`claude-code`](../../bundled/autonomous-ai-agents/autonomous-ai-agents-claude-code.md), [`jettstui`](../../bundled/autonomous-ai-agents/autonomous-ai-agents-jettstui.md) |
 
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that FreeIDE loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that JettsTUI loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Antigravity CLI (`agy`)
 
 Operator guide for the Antigravity CLI, invoked as `agy`. Run all `agy`
-commands through the FreeIDE `terminal` tool; inspect its config and logs with
+commands through the JettsTUI `terminal` tool; inspect its config and logs with
 `read_file`. This skill is reference + procedure — it does not wrap a network
-API, so there is nothing to authenticate from FreeIDE itself.
+API, so there is nothing to authenticate from JettsTUI itself.
 
 ## When to Use
 

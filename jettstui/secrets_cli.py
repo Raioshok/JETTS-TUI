@@ -1,4 +1,4 @@
-"""CLI handlers for ``freeide secrets bitwarden ...``.
+"""CLI handlers for ``jettstui secrets bitwarden ...``.
 
 Subcommands:
     setup    — interactive wizard: install bws, prompt for token + project, test fetch
@@ -24,25 +24,25 @@ from rich.panel import Panel
 from rich.table import Table
 
 from agent.secret_sources import bitwarden as bw
-from freeide_cli.config import (
+from jettstui.config import (
     get_env_path,
     load_config,
     save_config,
     save_env_value,
 )
-from freeide_cli.secret_prompt import masked_secret_prompt
+from jettstui.secret_prompt import masked_secret_prompt
 
 
 # ---------------------------------------------------------------------------
-# Argparse wiring — called from freeide_cli.main
+# Argparse wiring — called from jettstui.main
 # ---------------------------------------------------------------------------
 
 
 def register_cli(parent_parser: argparse.ArgumentParser) -> None:
     """Attach the ``bitwarden`` subcommand tree to a parent parser.
 
-    Called from ``freeide_cli.main`` as part of building the top-level
-    ``freeide secrets`` parser.
+    Called from ``jettstui.main`` as part of building the top-level
+    ``jettstui secrets`` parser.
     """
     sub = parent_parser.add_subparsers(dest="secrets_bw_command")
 
@@ -165,7 +165,7 @@ def cmd_setup(args: argparse.Namespace) -> int:
                 f"  [red]Non-interactive mode (no TTY) requires all setup flags.[/red]\n"
                 f"  Missing: {', '.join(missing)}\n\n"
                 "  Usage:\n"
-                "    freeide secrets bitwarden setup \\\n"
+                "    jettstui secrets bitwarden setup \\\n"
                 "      --access-token '0.xxx' \\\n"
                 "      --server-url 'https://vault.bitwarden.com' \\\n"
                 "      --project-id 'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'"
@@ -297,12 +297,12 @@ def cmd_setup(args: argparse.Namespace) -> int:
     console.print()
     console.print(
         "[green]✓ Bitwarden Secrets Manager is enabled.[/green]  "
-        "Secrets will be pulled at the start of every FreeIDE process."
+        "Secrets will be pulled at the start of every JettsTUI process."
     )
     console.print(
-        "  Status:  [cyan]freeide secrets bitwarden status[/cyan]\n"
-        "  Refresh: [cyan]freeide secrets bitwarden sync[/cyan]\n"
-        "  Disable: [cyan]freeide secrets bitwarden disable[/cyan]"
+        "  Status:  [cyan]jettstui secrets bitwarden status[/cyan]\n"
+        "  Refresh: [cyan]jettstui secrets bitwarden sync[/cyan]\n"
+        "  Disable: [cyan]jettstui secrets bitwarden disable[/cyan]"
     )
     return 0
 
@@ -352,11 +352,11 @@ def cmd_status(args: argparse.Namespace) -> int:
         console.print(message)
 
     if not enabled:
-        console.print("\n  Run [cyan]freeide secrets bitwarden setup[/cyan] to enable.")
+        console.print("\n  Run [cyan]jettstui secrets bitwarden setup[/cyan] to enable.")
         return 0
     if not token_set:
         console.print(
-            f"\n  [yellow]Enabled but {token_env} is not set — FreeIDE will skip BSM "
+            f"\n  [yellow]Enabled but {token_env} is not set — JettsTUI will skip BSM "
             "and warn on next startup.[/yellow]"
         )
     if not project_id:
@@ -425,7 +425,7 @@ def cmd_token(args: argparse.Namespace) -> int:
             console.print(
                 f"[yellow]Warning: configured project {project_id} is not visible "
                 "to this machine account.  Grant it access in the Bitwarden web "
-                "app or re-run `freeide secrets bitwarden setup` to pick a "
+                "app or re-run `jettstui secrets bitwarden setup` to pick a "
                 "different project.[/yellow]"
             )
 
@@ -436,12 +436,12 @@ def cmd_token(args: argparse.Namespace) -> int:
     bw.clear_caches()
     console.print(
         f"[green]✓[/green] stored in {get_env_path()} as {token_env}.  "
-        "Takes effect on the next FreeIDE invocation."
+        "Takes effect on the next JettsTUI invocation."
     )
     if not bw_cfg.get("enabled"):
         console.print(
             "[yellow]Note: the Bitwarden integration is currently disabled — "
-            "run `freeide secrets bitwarden setup` (or set "
+            "run `jettstui secrets bitwarden setup` (or set "
             "secrets.bitwarden.enabled: true) to turn it on.[/yellow]"
         )
     return 0
@@ -454,7 +454,7 @@ def cmd_sync(args: argparse.Namespace) -> int:
     if not bw_cfg.get("enabled"):
         console.print(
             "[yellow]Bitwarden integration is disabled.  Run "
-            "`freeide secrets bitwarden setup` first.[/yellow]"
+            "`jettstui secrets bitwarden setup` first.[/yellow]"
         )
         return 1
 
@@ -513,7 +513,7 @@ def cmd_sync(args: argparse.Namespace) -> int:
     if not args.apply:
         console.print(
             "\n  This was a dry-run — secrets are picked up automatically on the "
-            "next [cyan]freeide[/cyan] invocation.  Re-run with [cyan]--apply[/cyan] "
+            "next [cyan]jettstui[/cyan] invocation.  Re-run with [cyan]--apply[/cyan] "
             "to export into the current shell instead."
         )
     else:
@@ -530,7 +530,7 @@ def cmd_disable(args: argparse.Namespace) -> int:
     save_config(cfg)
     console.print(
         "[green]Disabled.[/green]  Bitwarden secrets will NOT be pulled on the next "
-        "FreeIDE invocation.\n"
+        "JettsTUI invocation.\n"
         "  Your access token is left in .env — remove it manually if you also want "
         "to revoke the credential."
     )
@@ -633,7 +633,7 @@ def _list_projects(
             console.print(
                 "  [yellow]'invalid_client' from the US identity endpoint usually "
                 "means the token is for a different Bitwarden region.  Re-run "
-                "[cyan]freeide secrets bitwarden setup[/cyan] and pick EU or "
+                "[cyan]jettstui secrets bitwarden setup[/cyan] and pick EU or "
                 "self-hosted at the region prompt, or set [cyan]secrets.bitwarden."
                 "server_url[/cyan] in config.yaml.[/yellow]"
             )

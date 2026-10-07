@@ -1,6 +1,6 @@
-"""``freeide dump`` subcommand parser.
+"""``jettstui dump`` subcommand parser.
 
-Extracted verbatim from ``freeide_cli/main.py:main()`` (god-file Phase 2).
+Extracted verbatim from ``jettstui/main.py:main()`` (god-file Phase 2).
 Handler injected to avoid importing ``main``.
 """
 
@@ -17,7 +17,7 @@ def build_dump_parser(subparsers, *, cmd_dump: Callable) -> None:
     dump_parser = subparsers.add_parser(
         "dump",
         help="Dump setup summary for support/debugging",
-        description="Output a compact, plain-text summary of your Jetts-TUI setup "
+        description="Output a compact, plain-text summary of your JettsTUI setup "
         "that can be copy-pasted into Discord/GitHub for support context",
     )
     dump_parser.add_argument(

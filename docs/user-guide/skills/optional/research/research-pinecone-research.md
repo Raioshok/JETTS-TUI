@@ -14,7 +14,7 @@ Agent RAG and long-term memory with Pinecone.
 
 | | |
 |---|---|
-| Source | Optional — install with `freeide skills install official/research/pinecone-research` |
+| Source | Optional — install with `jettstui skills install official/research/pinecone-research` |
 | Path | `optional-skills/research/pinecone-research` |
 | Version | `1.0.0` |
 | Author | immuhammadfurqan |
@@ -26,7 +26,7 @@ Agent RAG and long-term memory with Pinecone.
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that FreeIDE loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that JettsTUI loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Pinecone Research — Agent RAG & Long-Term Memory

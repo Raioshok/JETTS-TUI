@@ -14,7 +14,7 @@ Article illustrations: type × style × palette consistency.
 
 | | |
 |---|---|
-| Source | Optional — install with `freeide skills install official/creative/baoyu-article-illustrator` |
+| Source | Optional — install with `jettstui skills install official/creative/baoyu-article-illustrator` |
 | Path | `optional-skills/creative/baoyu-article-illustrator` |
 | Version | `1.57.0` |
 | Author | 宝玉 (JimLiu) |
@@ -25,12 +25,12 @@ Article illustrations: type × style × palette consistency.
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that FreeIDE loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that JettsTUI loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Article Illustrator
 
-Adapted from [baoyu-article-illustrator](https://github.com/JimLiu/baoyu-skills) for FreeIDE Agent's tool ecosystem.
+Adapted from [baoyu-article-illustrator](https://github.com/JimLiu/baoyu-skills) for JettsTUI's tool ecosystem.
 
 Analyze articles, identify illustration positions, generate images with **Type × Style × Palette** consistency.
 
@@ -186,7 +186,7 @@ Note: the underlying image-generation backend is user-configured (default: FAL F
 
 ### Step 7: Finalize
 
-Insert `![description](https://github.com/freeide/freeide/blob/main/optional-skills/creative/baoyu-article-illustrator/{relative-path}/NN-{type}-{slug}.png)` after the corresponding paragraph. Alt text: concise description in the article's language.
+Insert `![description](https://github.com/Raioshok/JETTS-TUI/blob/main/optional-skills/creative/baoyu-article-illustrator/{relative-path}/NN-{type}-{slug}.png)` after the corresponding paragraph. Alt text: concise description in the article's language.
 
 Report:
 

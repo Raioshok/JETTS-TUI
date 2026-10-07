@@ -14,7 +14,7 @@ import { BootFailureOverlay } from './boot-failure-overlay'
 
 function failBoot() {
   $desktopBoot.set({
-    error: 'Could not connect to FreeIDE gateway',
+    error: 'Could not connect to JettsTUI gateway',
     fakeMode: false,
     message: 'boot failed',
     phase: 'renderer.error',
@@ -26,13 +26,13 @@ function failBoot() {
 }
 
 function stubDesktop(config: Record<string, unknown>) {
-  const original = window.freeideDesktop
-  Object.defineProperty(window, 'freeideDesktop', {
+  const original = window.jettstuiDesktop
+  Object.defineProperty(window, 'jettstuiDesktop', {
     configurable: true,
     value: { getRecentLogs: async () => ({ lines: [] }), getConnectionConfig: async () => config }
   })
 
-  return () => Object.defineProperty(window, 'freeideDesktop', { configurable: true, value: original })
+  return () => Object.defineProperty(window, 'jettstuiDesktop', { configurable: true, value: original })
 }
 
 const remoteToken = {

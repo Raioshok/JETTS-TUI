@@ -11,7 +11,7 @@
  *
  * Background on the two auth models a remote gateway can use:
  *   - 'token': legacy static dashboard session token. REST uses an
- *     `X-FreeIDE-Session-Token` header; WS uses `?token=`.
+ *     `X-JettsTUI-Session-Token` header; WS uses `?token=`.
  *   - 'oauth': hosted gateways gate behind an OAuth provider. REST is authed
  *     by an HttpOnly session cookie; WS upgrades require a single-use
  *     `?ticket=` minted at POST /api/auth/ws-ticket. The gateway advertises
@@ -21,21 +21,21 @@
 // Bare + prefixed variants of the session cookies the gateway may set,
 // depending on its deploy shape (HTTPS direct → __Host-, behind a path prefix
 // → __Secure-, loopback HTTP → bare). Mirrors
-// freeide_cli/dashboard_auth/cookies.py.
+// jettstui/dashboard_auth/cookies.py.
 //
 // Two cookies are in play (see that module):
-//   - freeide_session_at: the OAuth access token. Short-lived (~15 min); its
+//   - jettstui_session_at: the OAuth access token. Short-lived (~15 min); its
 //     Max-Age tracks the access-token TTL, so the cookie jar drops it the
 //     instant the AT expires.
-//   - freeide_session_rt: the OAuth refresh token. Long-lived (24h rotating,
+//   - jettstui_session_rt: the OAuth refresh token. Long-lived (24h rotating,
 //     reuse-detected). When the AT cookie
 //     has lapsed but the RT cookie is still present, the gateway middleware
 //     transparently rotates a fresh AT on the next authenticated request
 //     (POST /api/auth/ws-ticket), so the session is still LIVE even with no
 //     AT cookie. A liveness check that looked only at the AT cookie would
 //     force a needless full re-login every ~15 min — hence cookiesHaveLiveSession.
-const AT_COOKIE_VARIANTS = ['__Host-freeide_session_at', '__Secure-freeide_session_at', 'freeide_session_at']
-const RT_COOKIE_VARIANTS = ['__Host-freeide_session_rt', '__Secure-freeide_session_rt', 'freeide_session_rt']
+const AT_COOKIE_VARIANTS = ['__Host-jettstui_session_at', '__Secure-jettstui_session_at', 'jettstui_session_at']
+const RT_COOKIE_VARIANTS = ['__Host-jettstui_session_rt', '__Secure-jettstui_session_rt', 'jettstui_session_rt']
 
 function normalizeRemoteBaseUrl(rawUrl) {
   const value = String(rawUrl || '').trim()
@@ -260,10 +260,10 @@ function normalizeSshConfig(entry) {
     out.keyPath = keyPath
   }
 
-  const remoteFreeIDEPath = String(entry.remoteFreeIDEPath || '').trim()
+  const remoteJettsTUIPath = String(entry.remoteJettsTUIPath || '').trim()
 
-  if (remoteFreeIDEPath) {
-    out.remoteFreeIDEPath = remoteFreeIDEPath
+  if (remoteJettsTUIPath) {
+    out.remoteJettsTUIPath = remoteJettsTUIPath
   }
 
   return out
@@ -374,7 +374,7 @@ export interface ProfileBackendRoute {
  *  3. A profile inheriting the app-global remote shares the primary backend —
  *     one host serves every profile — so it is scoped per request instead.
  *  4. Any other local profile gets its own pooled backend, spawned with
- *     `--profile`, so its `FREEIDE_HOME` scopes it.
+ *     `--profile`, so its `JETTSTUI_HOME` scopes it.
  *
  * Routing used to be spread across three overlapping predicates that each
  * re-derived part of this table, which is how case 3 ended up registering
@@ -419,7 +419,7 @@ function pathWithGlobalRemoteProfile(path, profile, opts: ProfileRouteOptions = 
   let parsed
 
   try {
-    parsed = new URL(rawPath, 'http://freeide.local')
+    parsed = new URL(rawPath, 'http://jettstui.local')
   } catch {
     return path
   }
@@ -474,7 +474,7 @@ function resolveAuthMode(inputAuthMode, existingAuthMode) {
 }
 
 /**
- * True if any cookie in `cookies` is a freeide session ACCESS-token cookie
+ * True if any cookie in `cookies` is a jettstui session ACCESS-token cookie
  * with a non-empty value. `cookies` is an array of {name, value} (the shape
  * Electron's session.cookies.get returns).
  *

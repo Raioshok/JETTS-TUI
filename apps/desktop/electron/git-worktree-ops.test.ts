@@ -31,7 +31,7 @@ test('parseWorktrees: main checkout + linked worktree', () => {
     '',
     'worktree /repo/.worktrees/feat',
     'HEAD def456',
-    'branch refs/heads/freeide/feat',
+    'branch refs/heads/jettstui/feat',
     ''
   ].join('\n')
 
@@ -41,7 +41,7 @@ test('parseWorktrees: main checkout + linked worktree', () => {
   assert.equal(trees[0].path, '/repo')
   assert.equal(trees[0].branch, 'main')
   assert.equal(trees[1].path, '/repo/.worktrees/feat')
-  assert.equal(trees[1].branch, 'freeide/feat')
+  assert.equal(trees[1].branch, 'jettstui/feat')
 })
 
 test('parseWorktrees: detached + locked flags', () => {
@@ -59,7 +59,7 @@ test('parseWorktrees: empty input', () => {
 })
 
 test('ensureGitRepo: inits a plain dir with a root commit so worktrees branch', async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'freeide-wt-'))
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jettstui-wt-'))
   const git = (...args) => execFileSync('git', args, { cwd: dir }).toString().trim()
 
   try {
@@ -79,7 +79,7 @@ test('ensureGitRepo: inits a plain dir with a root commit so worktrees branch', 
 })
 
 test('switchBranch: switches a normal checkout branch', async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'freeide-switch-'))
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jettstui-switch-'))
   const git = (...args) => execFileSync('git', args, { cwd: dir }).toString().trim()
 
   try {
@@ -95,7 +95,7 @@ test('switchBranch: switches a normal checkout branch', async () => {
 })
 
 test('listBranches: lists locals and flags the checked-out branch', async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'freeide-branches-'))
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jettstui-branches-'))
 
   try {
     await ensureGitRepo('git', dir)
@@ -119,7 +119,7 @@ test('listBranches: lists locals and flags the checked-out branch', async () => 
 })
 
 test('listBranches: flags a free default branch as default, not checked out', async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'freeide-branches-default-'))
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jettstui-branches-default-'))
   const git = (...args) => execFileSync('git', args, { cwd: dir }).toString().trim()
 
   try {
@@ -139,7 +139,7 @@ test('listBranches: flags a free default branch as default, not checked out', as
 })
 
 test('listBranches: a branch claimed by a worktree is flagged checked out', async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'freeide-branches-wt-'))
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jettstui-branches-wt-'))
 
   try {
     await ensureGitRepo('git', dir)
@@ -159,7 +159,7 @@ test('listBranches: a branch claimed by a worktree is flagged checked out', asyn
 })
 
 test('listBranches: empty on a non-repo path', async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'freeide-nonrepo-'))
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jettstui-nonrepo-'))
 
   try {
     assert.deepEqual(await listBranches(dir, 'git'), [])
@@ -169,7 +169,7 @@ test('listBranches: empty on a non-repo path', async () => {
 })
 
 test('addWorktree: existingBranch checks the branch out without a new branch', async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'freeide-convert-'))
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jettstui-convert-'))
   const git = (...args) => execFileSync('git', args, { cwd: dir }).toString().trim()
 
   try {
@@ -194,7 +194,7 @@ test('addWorktree: existingBranch checks the branch out without a new branch', a
 })
 
 test('addWorktree: existing default branch switches the main checkout, not .worktrees/main', async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'freeide-convert-default-'))
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jettstui-convert-default-'))
   const git = (...args) => execFileSync('git', args, { cwd: dir }).toString().trim()
 
   try {
@@ -214,7 +214,7 @@ test('addWorktree: existing default branch switches the main checkout, not .work
 })
 
 test('listBaseBranches: lists local branches and flags the default', async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'freeide-base-branches-'))
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jettstui-base-branches-'))
   const git = (...args) => execFileSync('git', args, { cwd: dir }).toString().trim()
 
   try {
@@ -240,7 +240,7 @@ test('listBaseBranches: lists local branches and flags the default', async () =>
 })
 
 test('listBaseBranches: empty on a non-repo path', async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'freeide-base-nonrepo-'))
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jettstui-base-nonrepo-'))
 
   try {
     assert.deepEqual(await listBaseBranches(dir, 'git'), [])
@@ -250,7 +250,7 @@ test('listBaseBranches: empty on a non-repo path', async () => {
 })
 
 test('addWorktree: base param branches off a specified local branch', async () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'freeide-base-add-'))
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jettstui-base-add-'))
   const git = (...args) => execFileSync('git', args, { cwd: dir }).toString().trim()
 
   try {
@@ -273,8 +273,8 @@ test('addWorktree: base param branches off a specified local branch', async () =
 test('addWorktree: base origin/main does not set up upstream tracking', async () => {
   // Two repos: a bare "remote" and a clone, so origin/main resolves as a
   // remote-tracking ref — the condition that triggers auto-tracking.
-  const remoteDir = fs.mkdtempSync(path.join(os.tmpdir(), 'freeide-remote-'))
-  const cloneDir = fs.mkdtempSync(path.join(os.tmpdir(), 'freeide-clone-'))
+  const remoteDir = fs.mkdtempSync(path.join(os.tmpdir(), 'jettstui-remote-'))
+  const cloneDir = fs.mkdtempSync(path.join(os.tmpdir(), 'jettstui-clone-'))
   const git = (...args) => execFileSync('git', args, { cwd: cloneDir }).toString().trim()
 
   try {
@@ -285,9 +285,9 @@ test('addWorktree: base origin/main does not set up upstream tracking', async ()
       '-C',
       remoteDir,
       '-c',
-      'user.email=freeide@localhost',
+      'user.email=jettstui@localhost',
       '-c',
-      'user.name=FreeIDE',
+      'user.name=JettsTUI',
       'commit',
       '--allow-empty',
       '-m',

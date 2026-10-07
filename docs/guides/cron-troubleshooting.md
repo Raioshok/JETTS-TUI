@@ -1,7 +1,7 @@
 ---
 sidebar_position: 12
 title: "Cron Troubleshooting"
-description: "Diagnose and fix common FreeIDE cron issues — jobs not firing, delivery failures, skill loading errors, and performance problems"
+description: "Diagnose and fix common JettsTUI cron issues — jobs not firing, delivery failures, skill loading errors, and performance problems"
 ---
 
 # Cron Troubleshooting
@@ -15,7 +15,7 @@ When a cron job isn't behaving as expected, work through these checks in order. 
 ### Check 1: Verify the job exists and is active
 
 ```bash
-freeide cron list
+jettstui cron list
 ```
 
 Look for the job and confirm its state is `[active]` (not `[paused]` or `[completed]`). If it shows `[completed]`, the repeat count may be exhausted — edit the job to reset it.
@@ -38,7 +38,7 @@ If the job fires once and then disappears from the list, it's a one-shot schedul
 
 Cron jobs are fired by the gateway's background ticker thread, which ticks every 60 seconds. A regular CLI chat session does **not** automatically fire cron jobs.
 
-If you're expecting jobs to fire automatically, you need a running gateway (`freeide gateway` for foreground, or `freeide gateway start` for the installed service). For one-off debugging, you can manually trigger a tick with `freeide cron tick`.
+If you're expecting jobs to fire automatically, you need a running gateway (`jettstui gateway` for foreground, or `jettstui gateway start` for the installed service). For one-off debugging, you can manually trigger a tick with `jettstui cron tick`.
 
 ### Check 4: Check the system clock and timezone
 
@@ -46,7 +46,7 @@ Jobs use the local timezone. If your machine's clock is wrong or in a different 
 
 ```bash
 date
-freeide cron list   # Compare next_run times with local time
+jettstui cron list   # Compare next_run times with local time
 ```
 
 ---
@@ -59,20 +59,20 @@ Delivery targets are case-sensitive and require the correct platform to be confi
 
 | Target | Requires |
 |--------|----------|
-| `telegram` | `TELEGRAM_BOT_TOKEN` in `~/.freeide/.env` |
-| `discord` | `DISCORD_BOT_TOKEN` in `~/.freeide/.env` |
-| `slack` | `SLACK_BOT_TOKEN` in `~/.freeide/.env` |
+| `telegram` | `TELEGRAM_BOT_TOKEN` in `~/.jettstui/.env` |
+| `discord` | `DISCORD_BOT_TOKEN` in `~/.jettstui/.env` |
+| `slack` | `SLACK_BOT_TOKEN` in `~/.jettstui/.env` |
 | `whatsapp` | WhatsApp gateway configured |
 | `signal` | Signal gateway configured |
 | `matrix` | Matrix homeserver configured |
 | `email` | SMTP configured in `config.yaml` |
 | `sms` | SMS provider configured |
-| `local` | Write access to `~/.freeide/cron/output/` |
+| `local` | Write access to `~/.jettstui/cron/output/` |
 | `origin` | Delivers to the chat where the job was created |
 
 Other supported platforms include `mattermost`, `homeassistant`, `dingtalk`, `feishu`, `wecom`, `weixin`, `bluebubbles`, `qqbot`, and `webhook`. You can also target a specific chat with `platform:chat_id` syntax (e.g., `telegram:-1001234567890`).
 
-If delivery fails, the job still runs — it just won't send anywhere. Check `freeide cron list` for updated `last_error` field (if available).
+If delivery fails, the job still runs — it just won't send anywhere. Check `jettstui cron list` for updated `last_error` field (if available).
 
 ### Check 2: Check `[SILENT]` usage
 
@@ -104,14 +104,14 @@ cron:
 ### Check 1: Verify skills are installed
 
 ```bash
-freeide skills list
+jettstui skills list
 ```
 
-Skills must be installed before they can be attached to cron jobs. If a skill is missing, install it first with `freeide skills install <skill-name>` or via `/skills` in the CLI.
+Skills must be installed before they can be attached to cron jobs. If a skill is missing, install it first with `jettstui skills install <skill-name>` or via `/skills` in the CLI.
 
 ### Check 2: Check skill name vs. skill folder name
 
-Skill names are case-sensitive and must match the installed skill's folder name. If your job specifies `ai-funding-report` but the skill folder is `ai-funding-daily-report`, confirm the exact name from `freeide skills list`.
+Skill names are case-sensitive and must match the installed skill's folder name. If your job specifies `ai-funding-report` but the skill folder is `ai-funding-daily-report`, confirm the exact name from `jettstui skills list`.
 
 ### Check 3: Skills that require interactive tools
 
@@ -138,26 +138,26 @@ In this example, `context-skill` loads before `target-skill`.
 If a job ran and failed, you may see error context in:
 
 1. The chat where the job delivers (if delivery succeeded)
-2. `~/.freeide/logs/agent.log` for scheduler messages (or `errors.log` for warnings)
-3. The job's `last_run` metadata via `freeide cron list`
+2. `~/.jettstui/logs/agent.log` for scheduler messages (or `errors.log` for warnings)
+3. The job's `last_run` metadata via `jettstui cron list`
 
 ### Check 2: Common error patterns
 
 **"No such file or directory" for scripts**
-The `script` path must be an absolute path (or relative to the FreeIDE config directory). Verify:
+The `script` path must be an absolute path (or relative to the JettsTUI config directory). Verify:
 ```bash
-ls ~/.freeide/scripts/your-script.py   # Must exist
-freeide cron edit <job_id> --script ~/.freeide/scripts/your-script.py
+ls ~/.jettstui/scripts/your-script.py   # Must exist
+jettstui cron edit <job_id> --script ~/.jettstui/scripts/your-script.py
 ```
 
 **"Skill not found" at job execution**
-The skill must be installed on the machine running the scheduler. If you move between machines, skills don't automatically sync — reinstall them with `freeide skills install <skill-name>`.
+The skill must be installed on the machine running the scheduler. If you move between machines, skills don't automatically sync — reinstall them with `jettstui skills install <skill-name>`.
 
 **Job runs but delivers nothing**
 Likely a delivery target issue (see Delivery Failures above), no output, or a response containing the cron quiet marker `[SILENT]`.
 
 **Job hangs or times out**
-The scheduler uses an inactivity-based timeout (default 600s, configurable via `FREEIDE_CRON_TIMEOUT` env var, `0` for unlimited). The agent can run as long as it's actively calling tools — the timer only fires after sustained inactivity. Long-running jobs should use scripts to handle data collection and deliver only the result.
+The scheduler uses an inactivity-based timeout (default 600s, configurable via `JETTSTUI_CRON_TIMEOUT` env var, `0` for unlimited). The agent can run as long as it's actively calling tools — the timer only fires after sustained inactivity. Long-running jobs should use scripts to handle data collection and deliver only the result.
 
 ### Check 3: Lock contention
 
@@ -165,17 +165,17 @@ The scheduler uses file-based locking to prevent overlapping ticks. If two gatew
 
 Kill duplicate gateway processes:
 ```bash
-ps aux | grep freeide
+ps aux | grep jettstui
 # Kill duplicate processes, keep only one
 ```
 
 ### Check 4: Permissions on jobs.json
 
-Jobs are stored in `~/.freeide/cron/jobs.json`. If this file is not readable/writable by your user, the scheduler will fail silently:
+Jobs are stored in `~/.jettstui/cron/jobs.json`. If this file is not readable/writable by your user, the scheduler will fail silently:
 
 ```bash
-ls -la ~/.freeide/cron/jobs.json
-chmod 600 ~/.freeide/cron/jobs.json   # Your user should own it
+ls -la ~/.jettstui/cron/jobs.json
+chmod 600 ~/.jettstui/cron/jobs.json   # Your user should own it
 ```
 
 ---
@@ -199,11 +199,11 @@ Scripts that dump megabytes of output will slow down the agent and may hit token
 ## Diagnostic Commands
 
 ```bash
-freeide cron list                    # Show all jobs, states, next_run times
-freeide cron run <job_id>            # Schedule for next tick (for testing)
-freeide cron edit <job_id>           # Fix configuration issues
-freeide logs                         # View recent FreeIDE logs
-freeide skills list                  # Verify installed skills
+jettstui cron list                    # Show all jobs, states, next_run times
+jettstui cron run <job_id>            # Schedule for next tick (for testing)
+jettstui cron edit <job_id>           # Fix configuration issues
+jettstui logs                         # View recent JettsTUI logs
+jettstui skills list                  # Verify installed skills
 ```
 
 ---
@@ -212,8 +212,8 @@ freeide skills list                  # Verify installed skills
 
 If you've worked through this guide and the issue persists:
 
-1. Run the job with `freeide cron run <job_id>` (fires on next gateway tick) and watch for errors in the chat output
-2. Check `~/.freeide/logs/agent.log` for scheduler messages and `~/.freeide/logs/errors.log` for warnings
+1. Run the job with `jettstui cron run <job_id>` (fires on next gateway tick) and watch for errors in the chat output
+2. Check `~/.jettstui/logs/agent.log` for scheduler messages and `~/.jettstui/logs/errors.log` for warnings
 3. Open an issue at [Raioshok/JETTS-TUI](https://github.com/Raioshok/JETTS-TUI/issues) with:
    - The job ID and schedule
    - The delivery target

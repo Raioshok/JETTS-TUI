@@ -12,13 +12,87 @@ import type { DesktopTheme, DesktopThemeTypography } from './types'
 export const EMOJI_FALLBACK = '"Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol", "Noto Color Emoji", emoji'
 
 const SYSTEM_SANS =
-  '"Segoe WPC", "Segoe UI", -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif, ' +
+  '"Inter Variable", "Segoe WPC", "Segoe UI", -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", system-ui, sans-serif, ' +
   EMOJI_FALLBACK
 
 const SYSTEM_MONO =
   '"Cascadia Code", "JetBrains Mono", "SF Mono", ui-monospace, Menlo, Monaco, Consolas, monospace, ' + EMOJI_FALLBACK
 
 export const DEFAULT_TYPOGRAPHY: DesktopThemeTypography = { fontSans: SYSTEM_SANS, fontMono: SYSTEM_MONO }
+
+const PRISM_VIOLET = '#7357FF'
+const PRISM_VIOLET_DARK = '#9583FF'
+
+const prismTint = (pct: number) => `color-mix(in srgb, ${PRISM_VIOLET} ${pct}%, #FFFFFF)`
+const prismAlpha = (color: string, pct: number) => `color-mix(in srgb, ${color} ${pct}%, transparent)`
+
+/**
+ * Prism — the canonical JettsTUI identity. Ink neutrals carry the work; a
+ * single violet accent marks focus, selection, and the brand moments.
+ */
+export const jettstuiTheme: DesktopTheme = {
+  name: 'jettstui',
+  label: 'Prism',
+  description: 'Ink neutrals with a violet prism accent',
+  colors: {
+    background: '#FAFAFC',
+    foreground: '#15151C',
+    card: '#FFFFFF',
+    cardForeground: '#15151C',
+    muted: prismTint(4),
+    mutedForeground: '#5F5F73',
+    popover: '#FFFFFF',
+    popoverForeground: '#15151C',
+    primary: PRISM_VIOLET,
+    primaryForeground: '#FFFFFF',
+    secondary: prismTint(7),
+    secondaryForeground: '#2A2840',
+    accent: prismTint(10),
+    accentForeground: '#241D5C',
+    border: prismAlpha('#15151C', 10),
+    input: prismAlpha('#15151C', 14),
+    ring: PRISM_VIOLET,
+    midground: PRISM_VIOLET,
+    composerRing: PRISM_VIOLET,
+    destructive: '#D92D4F',
+    destructiveForeground: '#FFFFFF',
+    sidebarBackground: '#F4F3F9',
+    sidebarBorder: prismAlpha('#15151C', 8),
+    userBubble: prismTint(6),
+    userBubbleBorder: prismAlpha(PRISM_VIOLET, 22)
+  },
+  darkColors: {
+    background: '#0B0B11',
+    foreground: '#ECECF3',
+    card: '#12121A',
+    cardForeground: '#ECECF3',
+    muted: '#191922',
+    mutedForeground: '#8F8FA6',
+    popover: '#15151E',
+    popoverForeground: '#ECECF3',
+    primary: PRISM_VIOLET_DARK,
+    primaryForeground: '#0B0B11',
+    secondary: '#1C1B28',
+    secondaryForeground: '#D7D6E6',
+    accent: '#211E35',
+    accentForeground: '#E9E5FF',
+    border: prismAlpha('#FFFFFF', 9),
+    input: prismAlpha('#FFFFFF', 12),
+    ring: PRISM_VIOLET_DARK,
+    midground: PRISM_VIOLET_DARK,
+    composerRing: PRISM_VIOLET_DARK,
+    destructive: '#F0506E',
+    destructiveForeground: '#0B0B11',
+    sidebarBackground: '#08080D',
+    sidebarBorder: prismAlpha('#FFFFFF', 6),
+    userBubble: '#1B1930',
+    userBubbleBorder: prismAlpha(PRISM_VIOLET_DARK, 26)
+  },
+  typography: {
+    fontSans: SYSTEM_SANS,
+    fontMono: `"JetBrains Mono", ${SYSTEM_MONO}`
+  }
+}
 
 const NOUS_BLUE = '#0053FD'
 const PSYCHE_BLUE = '#1540B1'
@@ -28,14 +102,14 @@ const nousTint = (pct: number) => `color-mix(in srgb, ${NOUS_BLUE} ${pct}%, #FFF
 const nousTintTransparent = (pct: number) => `color-mix(in srgb, ${NOUS_BLUE} ${pct}%, transparent)`
 
 /**
- * Nous — canonical FreeIDE desktop identity. The palette keeps the current
+ * Nous — canonical JettsTUI desktop identity. The palette keeps the current
  * glass geometry neutral, then lets the old bb/gui blue and psyche cream
  * return as accent seeds.
  */
 export const nousTheme: DesktopTheme = {
   name: 'nous',
-  label: 'Nous',
-  description: 'Glass neutrals with Nous blue accents',
+  label: 'Cobalt',
+  description: 'Glass neutrals with cobalt blue accents',
   colors: {
     background: '#F8FAFF',
     foreground: '#17171A',
@@ -278,6 +352,7 @@ export const slateTheme: DesktopTheme = {
 }
 
 export const BUILTIN_THEMES: Record<string, DesktopTheme> = {
+  jettstui: jettstuiTheme,
   nous: nousTheme,
   midnight: midnightTheme,
   ember: emberTheme,
@@ -289,4 +364,4 @@ export const BUILTIN_THEMES: Record<string, DesktopTheme> = {
 export const BUILTIN_THEME_LIST = Object.values(BUILTIN_THEMES)
 
 /** Skin used when nothing is persisted or the persisted name is retired. */
-export const DEFAULT_SKIN_NAME = 'nous'
+export const DEFAULT_SKIN_NAME = 'jettstui'

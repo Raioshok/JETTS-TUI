@@ -27,12 +27,12 @@ one-off at the call site.
 1. **Flat, not boxed.** No card-in-card, no divider borders inside a panel.
    Group with whitespace and a single hairline, never nested rounded boxes.
 2. **Borderless elevation for floating panels.** Overlays float on
-   `shadow-nous` + a `--stroke-nous` hairline, not thick framed boxes. In-panel
+   `shadow-float` + a `--stroke-float` hairline, not thick framed boxes. In-panel
    structure may use token hairlines sparingly.
 3. **One primitive per concern.** One `Button`, one set of control variants,
    one `SearchField`, one `Loader`, one `ErrorState`. Migrate onto them; don't
    fork.
-4. **Tokens, not literals.** Reference CSS vars (`--ui-*`, `--shadow-nous`,
+4. **Tokens, not literals.** Reference CSS vars (`--ui-*`, `--shadow-float`,
    `--theme-*`), never raw hex / ad-hoc rgba in components.
 5. **Style lives in the primitive.** Variants and sizes own padding, radius,
    color, chrome. Call sites pass a `variant`/`size`, not `className` overrides
@@ -73,11 +73,15 @@ Floating panels (base `Dialog`, route overlays, boot/install/update surfaces,
 model-picker, onboarding, prompt overlays, notifications) use:
 
 ```
-shadow-nous           /* downward-weighted, layered contact→ambient falloff */
-border-(--stroke-nous) /* currentColor hairline, theme-adaptive */
+shadow-float           /* downward-weighted, layered contact→ambient falloff */
+border-(--stroke-float) /* currentColor hairline, theme-adaptive */
 ```
 
 Both are CSS vars in `src/styles.css` — tune in one place, everything inherits.
+`--shadow-float` and `--shadow-composer` resolve through the mode-aware
+`--elevation-float` / `--elevation-composer` tokens: light mode is a layered
+downward falloff, dark mode adds a faint top highlight because a black shadow
+on a near-black canvas carries no depth on its own.
 Don't add per-overlay `shadow-[…]` or `border-(--ui-stroke-secondary)`
 one-offs; if elevation needs to change, change the token.
 
@@ -92,7 +96,7 @@ for call-site shadow or border inventions.
 | --- | --- |
 | `--ui-stroke-primary…quaternary` | hairlines, in descending strength |
 | `--ui-stroke-tertiary` | the default in-panel divider / list hairline |
-| `--stroke-nous` | the overlay hairline (pairs with `shadow-nous`) |
+| `--stroke-float` | the overlay hairline (pairs with `shadow-float`) |
 | `--ui-text-primary / -secondary / -tertiary` | text hierarchy |
 | `--ui-bg-quaternary` | soft control fill (secondary button) |
 | `--chrome-action-hover` | hover fill for quiet controls |
@@ -145,8 +149,11 @@ context-dependent (e.g. "Show" / "Hide"). Never hardcode combos; always use
 `useKeybindHint` or `TipKeybindLabel`.
 
 Notes:
-- Text buttons are square (no radius) and sized by padding + line-height (no
-  fixed heights). Only icon buttons carry the shared 4px radius.
+- Buttons are sized by padding + line-height (no fixed heights) and share
+  the `rounded-md` radius token. Boxed variants press to `scale(0.96)`;
+  `text`/`textStrong`/`link` and the `inline` size opt out (no box to press).
+- Transitions name their properties (`background-color, color, box-shadow,
+  scale, opacity`) — never `transition-all`.
 - SVGs inherit `size-3.5` (`size-3` at `xs`). Don't re-set icon size.
 - Polymorph with `asChild` when the button must render as a link/Slot.
 
@@ -222,11 +229,23 @@ Notes:
   action. Do not introduce a third icon set or mix styles within one control
   group.
 - **`BrandMark`** (`src/components/brand-mark.tsx`) is the brand glyph — the
-  FreeIDE ◆ prism emblem on a violet tile, softly rounded, identical in light/dark.
-  It replaced scattered Sparkles glyphs in updates / onboarding / about. Use it
-  for hero/brand moments; don't reintroduce decorative star/sparkle icons.
+  JettsTUI four-facet prism (`PrismGlyph`, an inline SVG) on a fixed ink tile,
+  identical in light/dark. Use it for hero/brand moments; don't reintroduce
+  decorative star/sparkle icons.
+- **Default theme** is `jettstui` ("Prism", `src/themes/presets.ts`): ink
+  neutrals with one violet accent. Inter Variable is the bundled UI face
+  (`@fontsource-variable/inter`), JetBrains Mono the code face.
+- **Chat backdrop** (`src/components/Backdrop.tsx`) is CSS-only — an accent
+  glow and a masked dot grid. No images behind the transcript.
 
 ## Motion
+
+- **CSS transitions** for interactive state (hover, press, focus) — they are
+  interruptible. **GSAP** (`gsap` + `@gsap/react`'s `useGSAP` with a `scope`)
+  only for infrequent staged entrances, e.g. the empty-chat intro: chunks
+  stagger ~80ms with opacity/translate/blur, wrapped in
+  `gsap.matchMedia('(prefers-reduced-motion: no-preference)')` and reverted
+  on unmount. Never stagger high-frequency interactions.
 
 - Quick, functional transitions (~100ms on controls). Respect
   `prefers-reduced-motion` for anything beyond a fade.
@@ -307,14 +326,14 @@ The detailed state contract lives in the scoped
 
 - [ ] Reuse a primitive (`Button`, `SearchField`, `SegmentedControl`,
       `ListRow`, `Loader`, `ErrorState`, `LogView`) instead of forking one?
-- [ ] Tokens (`--ui-*`, `shadow-nous`, `--stroke-nous`) — zero raw colors /
+- [ ] Tokens (`--ui-*`, `shadow-float`, `--stroke-float`) — zero raw colors /
       one-off shadows?
 - [ ] No `className` overriding a primitive's padding / size / radius / chrome?
 - [ ] Tips only where hover teaches something new (no kebab / menu-trigger
       tips; unlabeled chrome that needs discovery gets `<Tip>` + `aria-label`)?
 - [ ] No native `title=` on buttons?
 - [ ] Keybind hints on tipped buttons use `useKeybindHint` / `TipKeybindLabel`?
-- [ ] Overlay uses `shadow-nous` + `border-(--stroke-nous)`, no hard border?
+- [ ] Overlay uses `shadow-float` + `border-(--stroke-float)`, no hard border?
 - [ ] Flat — no card-in-card, no gratuitous row dividers?
 - [ ] No automatic navigation, focus steal, or pane opening from background
       events?

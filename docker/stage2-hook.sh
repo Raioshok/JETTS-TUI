@@ -17,7 +17,7 @@
 
 set -eu
 
-FREEIDE_HOME="${FREEIDE_HOME:-/opt/data}"
+JETTSTUI_HOME="${JETTSTUI_HOME:-/opt/data}"
 INSTALL_DIR="/opt/jettstui"
 
 # Drop to jettstui via s6-setuidgid, but skip it when already non-root.
@@ -32,12 +32,12 @@ as_jettstui() { [ "$(id -u)" = 0 ] || { "$@"; return; }; s6-setuidgid jettstui "
 # ownership, config seeding) requires root, and it is skipped when the container
 # starts non-root. The baked install tree under /opt/jettstui is intentionally
 # root-owned and non-writable; mutable runtime state must live under
-# $FREEIDE_HOME. An arbitrary `--user` UID therefore cannot repair or populate
+# $JETTSTUI_HOME. An arbitrary `--user` UID therefore cannot repair or populate
 # the data volume, and startup fails with EACCES. See #34837 for the
 # supervision-tree side of this.
 #
 # The supported way to match host-side ownership is to start as root (the image
-# default) and pass FREEIDE_UID/FREEIDE_GID — or the PUID/PGID aliases — which the
+# default) and pass JETTSTUI_UID/JETTSTUI_GID — or the PUID/PGID aliases — which the
 # remap block below consumes via usermod/groupmod + targeted chown. That gives
 # the exact same outcome (files owned by your host UID) without breaking s6.
 #
@@ -60,7 +60,7 @@ will fail.
 To make container-written files match your HOST user, DON'T use --user.
 Start the container as root (the default) and pass your host UID/GID instead:
 
-    docker run -e FREEIDE_UID=\$(id -u) -e FREEIDE_GID=\$(id -g) ...
+    docker run -e JETTSTUI_UID=\$(id -u) -e JETTSTUI_GID=\$(id -g) ...
 
 NAS users (Synology / unRAID / UGOS) can use the PUID/PGID aliases:
 
@@ -73,17 +73,17 @@ EOF
     exit 1
 fi
 
-# --- Bootstrap FREEIDE_HOME as root ---
+# --- Bootstrap JETTSTUI_HOME as root ---
 # Create the directory (and any missing parents) while we still have root
 # privileges so the chown checks below see real metadata and the later
 # `s6-setuidgid jettstui mkdir -p` block doesn't EACCES on root-owned
-# ancestors. Without this, custom FREEIDE_HOME paths whose parents only
-# root can create (e.g. `FREEIDE_HOME=/home/jettstui/.jettstui` in a Compose
+# ancestors. Without this, custom JETTSTUI_HOME paths whose parents only
+# root can create (e.g. `JETTSTUI_HOME=/home/jettstui/.jettstui` in a Compose
 # file, or any path under a fresh / not pre-populated by the image)
 # fail on first boot with `mkdir: cannot create directory '/...': Permission
 # denied` and the cont-init hook exits non-zero. Idempotent — `mkdir -p`
 # is a no-op if the dir already exists. (#18482, salvages #18488)
-mkdir -p "$FREEIDE_HOME"
+mkdir -p "$JETTSTUI_HOME"
 
 # Numeric UID/GID validation: must be digits only, non-root, 1-65534.
 # NAS hosts such as Unraid commonly use low non-root IDs (99:100).
@@ -95,24 +95,24 @@ validate_uid_gid() {
 }
 
 # --- UID/GID remap ---
-# Accept PUID/PGID as aliases for FREEIDE_UID/FREEIDE_GID.  NAS users (UGOS,
+# Accept PUID/PGID as aliases for JETTSTUI_UID/JETTSTUI_GID.  NAS users (UGOS,
 # Synology, unRAID) expect the LinuxServer.io PUID/PGID convention and
 # bind-mount /opt/data from a host directory owned by their own UID; without
 # this alias those vars are silently ignored and the s6-setuidgid drop to
-# UID 10000 leaves the runtime unable to read the volume.  FREEIDE_UID/
-# FREEIDE_GID still win when both are set.  See #15290, salvages #25872.
-FREEIDE_UID="${FREEIDE_UID:-${PUID:-}}"
-FREEIDE_GID="${FREEIDE_GID:-${PGID:-}}"
+# UID 10000 leaves the runtime unable to read the volume.  JETTSTUI_UID/
+# JETTSTUI_GID still win when both are set.  See #15290, salvages #25872.
+JETTSTUI_UID="${JETTSTUI_UID:-${PUID:-}}"
+JETTSTUI_GID="${JETTSTUI_GID:-${PGID:-}}"
 
-if [ -n "${FREEIDE_UID:-}" ] && validate_uid_gid "$FREEIDE_UID" && [ "$FREEIDE_UID" != "$(id -u jettstui)" ]; then
-    echo "[stage2] Changing jettstui UID to $FREEIDE_UID"
-    usermod -u "$FREEIDE_UID" jettstui
+if [ -n "${JETTSTUI_UID:-}" ] && validate_uid_gid "$JETTSTUI_UID" && [ "$JETTSTUI_UID" != "$(id -u jettstui)" ]; then
+    echo "[stage2] Changing jettstui UID to $JETTSTUI_UID"
+    usermod -u "$JETTSTUI_UID" jettstui
 fi
-if [ -n "${FREEIDE_GID:-}" ] && validate_uid_gid "$FREEIDE_GID" && [ "$FREEIDE_GID" != "$(id -g jettstui)" ]; then
-    echo "[stage2] Changing jettstui GID to $FREEIDE_GID"
+if [ -n "${JETTSTUI_GID:-}" ] && validate_uid_gid "$JETTSTUI_GID" && [ "$JETTSTUI_GID" != "$(id -g jettstui)" ]; then
+    echo "[stage2] Changing jettstui GID to $JETTSTUI_GID"
     # -o allows non-unique GID (e.g. macOS GID 20 "staff" may already
     # exist as "dialout" in the Debian-based container image).
-    groupmod -o -g "$FREEIDE_GID" jettstui 2>/dev/null || true
+    groupmod -o -g "$JETTSTUI_GID" jettstui 2>/dev/null || true
 fi
 
 # --- Docker socket group membership (docker-in-docker / DooD) ---
@@ -172,9 +172,9 @@ for sock in /var/run/docker.sock /run/docker.sock; do
 done
 
 # --- Fix ownership of data volume ---
-# When FREEIDE_UID is remapped or the top-level $FREEIDE_HOME isn't owned by
+# When JETTSTUI_UID is remapped or the top-level $JETTSTUI_HOME isn't owned by
 # the runtime jettstui UID, restore ownership to jettstui — but ONLY for the
-# directories jettstui actually writes to. The full $FREEIDE_HOME may be a
+# directories jettstui actually writes to. The full $JETTSTUI_HOME may be a
 # host-mounted bind containing unrelated user files; `chown -R` would
 # silently destroy host ownership of those (see issue #19788).
 #
@@ -184,7 +184,7 @@ actual_jettstui_uid=$(id -u jettstui)
 
 path_has_symlink_component() {
     path="$1"
-    root="${2:-$FREEIDE_HOME}"
+    root="${2:-$JETTSTUI_HOME}"
     while [ -n "$path" ] && [ "$path" != "/" ]; do
         if [ -L "$path" ]; then
             return 0
@@ -221,30 +221,30 @@ chown_jettstui_tree() {
 }
 
 needs_chown=false
-if [ "$(stat -c %u "$FREEIDE_HOME" 2>/dev/null)" != "$actual_jettstui_uid" ]; then
+if [ "$(stat -c %u "$JETTSTUI_HOME" 2>/dev/null)" != "$actual_jettstui_uid" ]; then
     needs_chown=true
 fi
 if [ "$needs_chown" = true ]; then
-    echo "[stage2] Fixing ownership of $FREEIDE_HOME (targeted) to jettstui ($actual_jettstui_uid)"
+    echo "[stage2] Fixing ownership of $JETTSTUI_HOME (targeted) to jettstui ($actual_jettstui_uid)"
     # In rootless Podman the container's "root" is mapped to an
     # unprivileged host UID — chown will fail. That's fine: the volume
     # is already owned by the mapped user on the host side.
     #
-    # Top-level $FREEIDE_HOME: chown the directory itself (not its contents)
+    # Top-level $JETTSTUI_HOME: chown the directory itself (not its contents)
     # so jettstui can mkdir new subdirs but bind-mounted host files keep
     # their existing ownership.
-    if refuse_symlinked_path "chown" "$FREEIDE_HOME"; then
+    if refuse_symlinked_path "chown" "$JETTSTUI_HOME"; then
         :
     else
-        chown jettstui:jettstui "$FREEIDE_HOME" 2>/dev/null || \
-            echo "[stage2] Warning: chown $FREEIDE_HOME failed (rootless container?) — continuing"
+        chown jettstui:jettstui "$JETTSTUI_HOME" 2>/dev/null || \
+            echo "[stage2] Warning: chown $JETTSTUI_HOME failed (rootless container?) — continuing"
     fi
-    # FreeIDE-owned subdirs: recursive chown is safe here because these are
+    # JettsTUI-owned subdirs: recursive chown is safe here because these are
     # created and managed exclusively by jettstui (see the s6-setuidgid mkdir
     # -p block below for the canonical list).
     for sub in cron sessions logs hooks memories skills skins plans workspace home profiles pairing platforms/pairing lazy-packages; do
-        if [ -e "$FREEIDE_HOME/$sub" ]; then
-            chown_jettstui_tree "$FREEIDE_HOME/$sub"
+        if [ -e "$JETTSTUI_HOME/$sub" ]; then
+            chown_jettstui_tree "$JETTSTUI_HOME/$sub"
         fi
     done
 fi
@@ -252,15 +252,15 @@ fi
 # --- Immutable install tree ---
 # Do not chown runtime code or dependency trees under $INSTALL_DIR back to the
 # jettstui user. Hosted/container instances keep mutable state under
-# $FREEIDE_HOME (/opt/data) and run with PYTHONDONTWRITEBYTECODE plus
-# FREEIDE_DISABLE_LAZY_INSTALLS=1. Keeping /opt/jettstui root-owned and
+# $JETTSTUI_HOME (/opt/data) and run with PYTHONDONTWRITEBYTECODE plus
+# JETTSTUI_DISABLE_LAZY_INSTALLS=1. Keeping /opt/jettstui root-owned and
 # non-writable prevents an agent session from self-modifying the installed
 # source, venv, TUI bundle, or node_modules and bricking the gateway.
 #
 # Lazy-installable optional backends (Firecrawl, Exa, Feishu, etc.) cannot
 # install into the sealed venv, so they are redirected to the writable
-# $FREEIDE_HOME/lazy-packages dir on the data volume (Dockerfile sets
-# FREEIDE_LAZY_INSTALL_TARGET). That dir is appended to the END of sys.path,
+# $JETTSTUI_HOME/lazy-packages dir on the data volume (Dockerfile sets
+# JETTSTUI_LAZY_INSTALL_TARGET). That dir is appended to the END of sys.path,
 # so a package installed there can only ADD modules — it can never shadow or
 # break a core module, which is what keeps the sealed-venv guarantee intact
 # even though installs are re-enabled. The dir is seeded + chowned to jettstui
@@ -268,37 +268,37 @@ fi
 # unprivileged runtime user, and it persists across container recreates /
 # image updates (an ABI stamp wipes it if a rebuild bumps the interpreter).
 
-# Always reset ownership of $FREEIDE_HOME/profiles to jettstui on every
+# Always reset ownership of $JETTSTUI_HOME/profiles to jettstui on every
 # boot. Profile dirs and files can land owned by root when commands
 # are invoked via `docker exec <container> jettstui …` (which defaults
 # to root unless `-u` is passed), and that breaks the cont-init
 # reconciler (02-reconcile-profiles) which runs as jettstui and walks
 # the profiles dir. Idempotent; skipped on rootless containers where
 # chown would fail.
-if [ -d "$FREEIDE_HOME/profiles" ]; then
-    chown_jettstui_tree "$FREEIDE_HOME/profiles"
+if [ -d "$JETTSTUI_HOME/profiles" ]; then
+    chown_jettstui_tree "$JETTSTUI_HOME/profiles"
 fi
 
-# Always reset ownership of $FREEIDE_HOME/cron on every boot for the same
+# Always reset ownership of $JETTSTUI_HOME/cron on every boot for the same
 # docker-exec/root-write reason as profiles/. The cron scheduler state
 # (jobs.json) must stay readable by the unprivileged jettstui runtime even
 # after root-context maintenance commands or scheduler writes.
-if [ -d "$FREEIDE_HOME/cron" ]; then
-    chown_jettstui_tree "$FREEIDE_HOME/cron"
+if [ -d "$JETTSTUI_HOME/cron" ]; then
+    chown_jettstui_tree "$JETTSTUI_HOME/cron"
 fi
 
 # Always ensure logs/gateways is jettstui-owned (#45258). Formerly healed by
 # restartable gateway log/run chown — removed due to symlink TOCTOU
 # (CWE-59/367). The targeted data-volume chown above only runs when the
-# top-level $FREEIDE_HOME is mis-owned, so a warm volume with jettstui-owned
-# FREEIDE_HOME but root-owned logs/gateways would otherwise leave
+# top-level $JETTSTUI_HOME is mis-owned, so a warm volume with jettstui-owned
+# JETTSTUI_HOME but root-owned logs/gateways would otherwise leave
 # s6-setuidgid jettstui mkdir failing with Permission denied. Non-recursive:
 # profile leaf dirs are each created/owned by their own log/run as jettstui.
-if [ -d "$FREEIDE_HOME/logs/gateways" ]; then
-    if refuse_symlinked_path "chown" "$FREEIDE_HOME/logs/gateways"; then
+if [ -d "$JETTSTUI_HOME/logs/gateways" ]; then
+    if refuse_symlinked_path "chown" "$JETTSTUI_HOME/logs/gateways"; then
         :
     else
-        chown jettstui:jettstui "$FREEIDE_HOME/logs/gateways" 2>/dev/null || true
+        chown jettstui:jettstui "$JETTSTUI_HOME/logs/gateways" 2>/dev/null || true
     fi
 fi
 
@@ -307,21 +307,21 @@ fi
 # jettstui pairing approve …` defaults to uid=0 and writes 0600 root-owned
 # approval files that the unprivileged jettstui gateway cannot read,
 # silently leaving the approved user unauthorized (#10270). The targeted
-# data-volume chown above only runs when the top-level $FREEIDE_HOME is
+# data-volume chown above only runs when the top-level $JETTSTUI_HOME is
 # mis-owned, so warm boots skip it — this block makes a container restart
 # self-heal. Tiny directory (a handful of small JSON files), so the cost
 # is negligible.
-if [ -d "$FREEIDE_HOME/platforms/pairing" ]; then
-    chown_jettstui_tree "$FREEIDE_HOME/platforms/pairing"
+if [ -d "$JETTSTUI_HOME/platforms/pairing" ]; then
+    chown_jettstui_tree "$JETTSTUI_HOME/platforms/pairing"
 fi
 # Legacy location (pre-consolidated layout).
-if [ -d "$FREEIDE_HOME/pairing" ]; then
-    chown_jettstui_tree "$FREEIDE_HOME/pairing"
+if [ -d "$JETTSTUI_HOME/pairing" ]; then
+    chown_jettstui_tree "$JETTSTUI_HOME/pairing"
 fi
 
 # Reset ownership of jettstui-owned top-level state files on every boot.
 # The targeted data-volume chown above only covers jettstui-owned
-# *subdirectories*; loose state files living directly under $FREEIDE_HOME
+# *subdirectories*; loose state files living directly under $JETTSTUI_HOME
 # are missed. When those files are created or rewritten by
 # `docker exec <container> jettstui …` (root unless `-u` is passed) they
 # land root-owned, and the unprivileged jettstui runtime then hits
@@ -329,23 +329,23 @@ fi
 # auth.json), producing a gateway restart loop.
 #
 # We use an explicit allowlist rather than a blanket `find -user root`
-# sweep so host-owned files in a bind-mounted $FREEIDE_HOME are never
+# sweep so host-owned files in a bind-mounted $JETTSTUI_HOME are never
 # touched — same targeted-ownership contract as the subdir chown above
 # (issue #19788, PR #19795). The list mirrors the top-level *file*
-# entries of freeide_cli.profile_distribution.USER_OWNED_EXCLUDE plus the
+# entries of jettstui.profile_distribution.USER_OWNED_EXCLUDE plus the
 # runtime lock files; keep them in sync if that set changes.
 for f in \
     auth.json auth.lock .env \
     state.db state.db-shm state.db-wal \
-    freeide_state.db \
+    jettstui_state.db \
     response_store.db response_store.db-shm response_store.db-wal \
     gateway.pid gateway.lock gateway_state.json processes.json \
     active_profile; do
-    if [ -e "$FREEIDE_HOME/$f" ]; then
-        if refuse_symlinked_path "chown" "$FREEIDE_HOME/$f"; then
+    if [ -e "$JETTSTUI_HOME/$f" ]; then
+        if refuse_symlinked_path "chown" "$JETTSTUI_HOME/$f"; then
             :
         else
-            chown jettstui:jettstui "$FREEIDE_HOME/$f" 2>/dev/null || true
+            chown jettstui:jettstui "$JETTSTUI_HOME/$f" 2>/dev/null || true
         fi
     fi
 done
@@ -353,12 +353,12 @@ done
 # --- config.yaml permissions ---
 # Ensure config.yaml is readable by the jettstui runtime user even if it
 # was edited on the host after initial ownership setup.
-if [ -f "$FREEIDE_HOME/config.yaml" ]; then
-    if refuse_symlinked_path "chown/chmod" "$FREEIDE_HOME/config.yaml"; then
+if [ -f "$JETTSTUI_HOME/config.yaml" ]; then
+    if refuse_symlinked_path "chown/chmod" "$JETTSTUI_HOME/config.yaml"; then
         :
     else
-        chown jettstui:jettstui "$FREEIDE_HOME/config.yaml" 2>/dev/null || true
-        chmod 640 "$FREEIDE_HOME/config.yaml" 2>/dev/null || true
+        chown jettstui:jettstui "$JETTSTUI_HOME/config.yaml" 2>/dev/null || true
+        chmod 640 "$JETTSTUI_HOME/config.yaml" 2>/dev/null || true
     fi
 fi
 
@@ -367,42 +367,42 @@ fi
 # under rootless Podman where chown back to root would fail).
 #
 # Use direct `mkdir -p` invocation (no `sh -c "..."` wrapper) so the
-# shell isn't a second interpreter — defends against $FREEIDE_HOME values
+# shell isn't a second interpreter — defends against $JETTSTUI_HOME values
 # containing shell metacharacters. PR #30136 review item O2.
 as_jettstui mkdir -p \
-    "$FREEIDE_HOME/backups" \
-    "$FREEIDE_HOME/cron" \
-    "$FREEIDE_HOME/sessions" \
-    "$FREEIDE_HOME/logs" \
-    "$FREEIDE_HOME/logs/gateways" \
-    "$FREEIDE_HOME/hooks" \
-    "$FREEIDE_HOME/memories" \
-    "$FREEIDE_HOME/skills" \
-    "$FREEIDE_HOME/skins" \
-    "$FREEIDE_HOME/plans" \
-    "$FREEIDE_HOME/workspace" \
-    "$FREEIDE_HOME/home" \
-    "$FREEIDE_HOME/pairing" \
-    "$FREEIDE_HOME/platforms/pairing" \
-    "$FREEIDE_HOME/lazy-packages"
+    "$JETTSTUI_HOME/backups" \
+    "$JETTSTUI_HOME/cron" \
+    "$JETTSTUI_HOME/sessions" \
+    "$JETTSTUI_HOME/logs" \
+    "$JETTSTUI_HOME/logs/gateways" \
+    "$JETTSTUI_HOME/hooks" \
+    "$JETTSTUI_HOME/memories" \
+    "$JETTSTUI_HOME/skills" \
+    "$JETTSTUI_HOME/skins" \
+    "$JETTSTUI_HOME/plans" \
+    "$JETTSTUI_HOME/workspace" \
+    "$JETTSTUI_HOME/home" \
+    "$JETTSTUI_HOME/pairing" \
+    "$JETTSTUI_HOME/platforms/pairing" \
+    "$JETTSTUI_HOME/lazy-packages"
 
 # --- Install-method stamp ---
 # The 'docker' stamp is baked into the immutable install tree at
 # /opt/jettstui/.install_method (see Dockerfile), NOT written here into
-# $FREEIDE_HOME. detect_install_method() reads the code-scoped stamp first.
+# $JETTSTUI_HOME. detect_install_method() reads the code-scoped stamp first.
 #
-# Why we no longer stamp $FREEIDE_HOME: it is a shared DATA volume, commonly
+# Why we no longer stamp $JETTSTUI_HOME: it is a shared DATA volume, commonly
 # bind-mounted from the host (~/.jettstui:/opt/data) and sometimes shared with a
 # host-side Desktop/CLI install. Stamping 'docker' here clobbered that host
 # install's marker, so its in-app updater read 'docker' and refused to run
 # 'jetts-tui update'. To heal homes already poisoned by older images, remove a
-# stale 'docker' stamp from $FREEIDE_HOME if one is present (the host install's
+# stale 'docker' stamp from $JETTSTUI_HOME if one is present (the host install's
 # own installer re-creates its code-scoped stamp; a genuine container relies on
 # the baked /opt/jettstui stamp, so deleting the data-dir copy is safe).
-if [ -f "$FREEIDE_HOME/.install_method" ]; then
-    stamped="$(tr -d '[:space:]' < "$FREEIDE_HOME/.install_method" 2>/dev/null || true)"
+if [ -f "$JETTSTUI_HOME/.install_method" ]; then
+    stamped="$(tr -d '[:space:]' < "$JETTSTUI_HOME/.install_method" 2>/dev/null || true)"
     if [ "$stamped" = "docker" ]; then
-        rm -f "$FREEIDE_HOME/.install_method" 2>/dev/null || true
+        rm -f "$JETTSTUI_HOME/.install_method" 2>/dev/null || true
     fi
 fi
 
@@ -410,11 +410,11 @@ fi
 seed_one() {
     dest=$1
     src=$2
-    if [ ! -f "$FREEIDE_HOME/$dest" ] && [ -f "$INSTALL_DIR/$src" ]; then
-        if refuse_symlinked_path "seed" "$FREEIDE_HOME/$dest"; then
+    if [ ! -f "$JETTSTUI_HOME/$dest" ] && [ -f "$INSTALL_DIR/$src" ]; then
+        if refuse_symlinked_path "seed" "$JETTSTUI_HOME/$dest"; then
             :
         else
-            as_jettstui cp "$INSTALL_DIR/$src" "$FREEIDE_HOME/$dest"
+            as_jettstui cp "$INSTALL_DIR/$src" "$JETTSTUI_HOME/$dest"
         fi
     fi
 }
@@ -425,22 +425,22 @@ seed_one "SOUL.md" "docker/SOUL.md"
 # .env holds API keys and secrets — restrict to owner-only access. Applied
 # unconditionally (not only on first-seed) so a host-mounted .env that was
 # created with a permissive umask gets tightened on every container start.
-if [ -f "$FREEIDE_HOME/.env" ]; then
-    if refuse_symlinked_path "chown/chmod" "$FREEIDE_HOME/.env"; then
+if [ -f "$JETTSTUI_HOME/.env" ]; then
+    if refuse_symlinked_path "chown/chmod" "$JETTSTUI_HOME/.env"; then
         :
     else
-        chown jettstui:jettstui "$FREEIDE_HOME/.env" 2>/dev/null || true
-        chmod 600 "$FREEIDE_HOME/.env" 2>/dev/null || true
+        chown jettstui:jettstui "$JETTSTUI_HOME/.env" 2>/dev/null || true
+        chmod 600 "$JETTSTUI_HOME/.env" 2>/dev/null || true
     fi
 fi
 
 # --- Migrate persisted config schema ---
 # Docker image upgrades replace the code under $INSTALL_DIR but preserve
-# $FREEIDE_HOME on the mounted volume. Run the same safe, non-interactive
+# $JETTSTUI_HOME on the mounted volume. Run the same safe, non-interactive
 # config-schema migrations that `jetts-tui update` runs for non-Docker installs,
 # after first-boot seeding and before supervised gateway services start.
-# Set FREEIDE_SKIP_CONFIG_MIGRATION=1 for controlled/manual migrations.
-if [ -f "$FREEIDE_HOME/config.yaml" ]; then
+# Set JETTSTUI_SKIP_CONFIG_MIGRATION=1 for controlled/manual migrations.
+if [ -f "$JETTSTUI_HOME/config.yaml" ]; then
     s6-setuidgid jettstui "$INSTALL_DIR/.venv/bin/python" "$INSTALL_DIR/scripts/docker_config_migrate.py" \
         || echo "[stage2] Warning: docker_config_migrate.py failed; continuing"
 fi
@@ -448,13 +448,13 @@ fi
 # auth.json: bootstrap from env on first boot only. Same semantics as the
 # pre-s6 entrypoint — the [ ! -f ] guard is critical to avoid clobbering
 # rotated refresh tokens on container restart.
-if [ ! -f "$FREEIDE_HOME/auth.json" ] && [ -n "${FREEIDE_AUTH_JSON_BOOTSTRAP:-}" ]; then
-    if refuse_symlinked_path "seed" "$FREEIDE_HOME/auth.json"; then
+if [ ! -f "$JETTSTUI_HOME/auth.json" ] && [ -n "${JETTSTUI_AUTH_JSON_BOOTSTRAP:-}" ]; then
+    if refuse_symlinked_path "seed" "$JETTSTUI_HOME/auth.json"; then
         :
     else
-        printf '%s' "$FREEIDE_AUTH_JSON_BOOTSTRAP" > "$FREEIDE_HOME/auth.json"
-        chown jettstui:jettstui "$FREEIDE_HOME/auth.json" 2>/dev/null || true
-        chmod 600 "$FREEIDE_HOME/auth.json"
+        printf '%s' "$JETTSTUI_AUTH_JSON_BOOTSTRAP" > "$JETTSTUI_HOME/auth.json"
+        chown jettstui:jettstui "$JETTSTUI_HOME/auth.json" 2>/dev/null || true
+        chmod 600 "$JETTSTUI_HOME/auth.json"
     fi
 fi
 
@@ -465,7 +465,7 @@ fi
 # invalid_grant (tokens cleared, providers.nous.last_auth_error.relogin_required
 # stamped) can NOT recover from a plain restart — it stays unauthenticated until
 # the credential is replaced. An orchestrator that manages the container can
-# supply a freshly-issued session via FREEIDE_AUTH_JSON_REBOOTSTRAP (distinct
+# supply a freshly-issued session via JETTSTUI_AUTH_JSON_REBOOTSTRAP (distinct
 # from the create-only *_BOOTSTRAP var); this helper swaps ONLY the
 # providers.nous entry when the on-disk entry is provably terminal OR the
 # orchestrator seed has a later obtained_at timestamp. The latter covers the
@@ -473,13 +473,13 @@ fi
 # local session. Older/incomparable seeds remain no-ops, so leaving the env set
 # cannot roll a healthy rotated token backward. Runs as its own stdlib-only
 # subprocess (no app imports) and always exits 0.
-if [ -f "$FREEIDE_HOME/auth.json" ] && [ -n "${FREEIDE_AUTH_JSON_REBOOTSTRAP:-}" ]; then
-    if refuse_symlinked_path "reseed" "$FREEIDE_HOME/auth.json"; then
+if [ -f "$JETTSTUI_HOME/auth.json" ] && [ -n "${JETTSTUI_AUTH_JSON_REBOOTSTRAP:-}" ]; then
+    if refuse_symlinked_path "reseed" "$JETTSTUI_HOME/auth.json"; then
         :
     else
         s6-setuidgid jettstui "$INSTALL_DIR/.venv/bin/python" \
             "$INSTALL_DIR/scripts/docker_rebootstrap_nous_session.py" \
-            "$FREEIDE_HOME/auth.json" \
+            "$JETTSTUI_HOME/auth.json" \
             || echo "[stage2] Warning: docker_rebootstrap_nous_session.py failed; continuing"
     fi
 fi
@@ -494,14 +494,14 @@ fi
 # freshly-provisioned container comes up with the gateway down until
 # someone starts it (e.g. from the dashboard). An orchestrator that
 # provisions a fresh volume and wants the gateway running from first boot
-# can set FREEIDE_GATEWAY_BOOTSTRAP_STATE=running; we seed the state file
+# can set JETTSTUI_GATEWAY_BOOTSTRAP_STATE=running; we seed the state file
 # here, BEFORE 02-reconcile-profiles runs (cont-init.d scripts run in
 # lexicographic order), so the reconciler sees prior_state=running and
 # brings the supervised slot up on the very first boot.
 #
 # This is a generic container contract, not specific to any host: it seeds
 # the SAME gateway_state.json the reconciler already consults, exactly as
-# FREEIDE_AUTH_JSON_BOOTSTRAP seeds auth.json. The [ ! -f ] guard is the
+# JETTSTUI_AUTH_JSON_BOOTSTRAP seeds auth.json. The [ ! -f ] guard is the
 # load-bearing part — on every subsequent boot the persisted state wins,
 # so a gateway the operator deliberately stopped stays stopped across
 # restarts and we never clobber real runtime state.
@@ -509,14 +509,14 @@ fi
 # Only a literal "running" is honoured (the sole value in the reconciler's
 # _AUTOSTART_STATES); any other value is ignored so a typo can't write a
 # bogus state the reconciler would treat as "no prior state" anyway.
-if [ ! -f "$FREEIDE_HOME/gateway_state.json" ] && \
-        [ "${FREEIDE_GATEWAY_BOOTSTRAP_STATE:-}" = "running" ]; then
-    if refuse_symlinked_path "seed" "$FREEIDE_HOME/gateway_state.json"; then
+if [ ! -f "$JETTSTUI_HOME/gateway_state.json" ] && \
+        [ "${JETTSTUI_GATEWAY_BOOTSTRAP_STATE:-}" = "running" ]; then
+    if refuse_symlinked_path "seed" "$JETTSTUI_HOME/gateway_state.json"; then
         :
     else
-        printf '{"gateway_state":"running"}\n' > "$FREEIDE_HOME/gateway_state.json"
-        chown jettstui:jettstui "$FREEIDE_HOME/gateway_state.json" 2>/dev/null || true
-        chmod 644 "$FREEIDE_HOME/gateway_state.json"
+        printf '{"gateway_state":"running"}\n' > "$JETTSTUI_HOME/gateway_state.json"
+        chown jettstui:jettstui "$JETTSTUI_HOME/gateway_state.json" 2>/dev/null || true
+        chmod 644 "$JETTSTUI_HOME/gateway_state.json"
     fi
 fi
 
@@ -535,7 +535,7 @@ fi
 # The image's Dockerfile runs `npx playwright install chromium`, which
 # populates ``$PLAYWRIGHT_BROWSERS_PATH`` (=/opt/jettstui/.playwright) with
 # a ``chromium_headless_shell-<build>/chrome-headless-shell-linux64/``
-# directory. agent-browser (the runtime CLI FreeIDE spawns for the
+# directory. agent-browser (the runtime CLI JettsTUI spawns for the
 # browser tool) doesn't recognise this layout in its own cache scan and
 # fails with "Auto-launch failed: Chrome not found" — even though the
 # binary is right there (#15697).

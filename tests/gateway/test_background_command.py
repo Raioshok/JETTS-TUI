@@ -486,12 +486,12 @@ class TestBackgroundInHelp:
 
     def test_background_is_known_command(self):
         """The /background command is in GATEWAY_KNOWN_COMMANDS."""
-        from freeide_cli.commands import GATEWAY_KNOWN_COMMANDS
+        from jettstui.commands import GATEWAY_KNOWN_COMMANDS
         assert "background" in GATEWAY_KNOWN_COMMANDS
 
     def test_bg_alias_is_known_command(self):
         """The /bg alias is in GATEWAY_KNOWN_COMMANDS."""
-        from freeide_cli.commands import GATEWAY_KNOWN_COMMANDS
+        from jettstui.commands import GATEWAY_KNOWN_COMMANDS
         assert "bg" in GATEWAY_KNOWN_COMMANDS
 
 
@@ -505,25 +505,25 @@ class TestBackgroundInCLICommands:
 
     def test_background_in_commands_dict(self):
         """The /background command is in the COMMANDS dict."""
-        from freeide_cli.commands import COMMANDS
+        from jettstui.commands import COMMANDS
         assert "/background" in COMMANDS
 
     def test_bg_alias_in_commands_dict(self):
         """The concise menu shows the canonical command, not its alias."""
-        from freeide_cli.commands import COMMANDS, resolve_command
+        from jettstui.commands import COMMANDS, resolve_command
         assert "/background" in COMMANDS
         assert "/bg" not in COMMANDS
         assert resolve_command("bg").name == "background"
 
     def test_background_in_session_category(self):
         """The /background command is in the Session category."""
-        from freeide_cli.commands import COMMANDS_BY_CATEGORY
+        from jettstui.commands import COMMANDS_BY_CATEGORY
         assert "/background" in COMMANDS_BY_CATEGORY["Session"]
 
     def test_background_autocompletes(self):
         """The /background command appears in autocomplete results."""
         pytest.importorskip("prompt_toolkit")
-        from freeide_cli.commands import SlashCommandCompleter
+        from jettstui.commands import SlashCommandCompleter
         from prompt_toolkit.document import Document
 
         completer = SlashCommandCompleter()

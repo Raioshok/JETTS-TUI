@@ -1,12 +1,12 @@
 ---
 sidebar_position: 2
 title: "Installation"
-description: "Install Jetts-TUI on Linux, macOS, WSL2, native Windows, or Android via Termux"
+description: "Install JettsTUI on Linux, macOS, WSL2, native Windows, or Android via Termux"
 ---
 
 # Installation
 
-Get Jetts-TUI up and running.
+Get JettsTUI up and running.
 
 :::tip Platform Support
 For the full platform support matrix (which OSes, distribution methods, and
@@ -15,7 +15,7 @@ platform-gated features are supported), see **[Platform Support](./platform-supp
 
 ## Quick Install
 ### Desktop app on macOS or Windows
-Build the desktop app from the repository after installing Jetts-TUI. Prebuilt desktop releases will be linked here once published.
+Build the desktop app from the repository after installing JettsTUI. Prebuilt desktop releases will be linked here once published.
 
 ### Terminal install
 For a terminal install, run:
@@ -48,10 +48,10 @@ Where the installer puts things depends on whether you're installing as a normal
 | Installer | Fresh code checkout | `jetts-tui` launcher | Data directory |
 | --- | --- | --- | --- |
 | Per-user | `~/.jettstui/jettstui/` | `~/.local/bin/jetts-tui` | `~/.jettstui/` |
-| Root-mode (Linux) | `/usr/local/lib/jettstui/` | `/usr/local/bin/jetts-tui` | `/root/.jettstui/` (or `$FREEIDE_HOME`) |
+| Root-mode (Linux) | `/usr/local/lib/jettstui/` | `/usr/local/bin/jetts-tui` | `/root/.jettstui/` (or `$JETTSTUI_HOME`) |
 | Native Windows | `%LOCALAPPDATA%\jettstui\jettstui\` | `venv\Scripts\jetts-tui.exe` on user PATH | `%LOCALAPPDATA%\jettstui\` |
 
-The root-mode FHS layout is useful for shared-machine deployments. Per-user config (auth, skills, sessions) lives under each user's `~/.jettstui/` or explicit `FREEIDE_HOME`. Existing `freeide-agent` checkouts are retained at their original paths during migration, and the `freeide` command remains a compatibility alias.
+The root-mode FHS layout is useful for shared-machine deployments. Per-user config (auth, skills, sessions) lives under each user's `~/.jettstui/` or explicit `JETTSTUI_HOME`. Existing `jettstui` checkouts are retained at their original paths during migration, and the `jettstui` command remains a compatibility alias.
 
 ### After Installation
 
@@ -74,7 +74,7 @@ jetts-tui setup          # Or run the full setup wizard to configure everything 
 ```
 
 :::tip Fastest path: pick a provider
-Jetts-TUI is bring-your-own-key. Run the setup wizard, pick a free or paid provider, and paste an API key (or use a provider's own OAuth like openai-codex, xai-oauth, or qwen-oauth):
+JettsTUI is bring-your-own-key. Run the setup wizard, pick a free or paid provider, and paste an API key (or use a provider's own OAuth like openai-codex, xai-oauth, or qwen-oauth):
 
 ```bash
 jetts-tui setup
@@ -131,7 +131,7 @@ environment, and use `--skip-setup` / `-SkipSetup` to postpone provider setup.
 
 ## Non-Sudo / System Service User Installs
 
-Running Jetts-TUI as a dedicated unprivileged service user is supported. The Playwright `--with-deps` step needs root to install Chromium system libraries (`libnss3`, `libxkbcommon`, etc.). Without sudo, the installer installs the browser binary into the service user's cache and prints the separate administrator command.
+Running JettsTUI as a dedicated unprivileged service user is supported. The Playwright `--with-deps` step needs root to install Chromium system libraries (`libnss3`, `libxkbcommon`, etc.). Without sudo, the installer installs the browser binary into the service user's cache and prints the separate administrator command.
 
 **Recommended split (Debian/Ubuntu):**
 
@@ -174,4 +174,4 @@ For more diagnostics, run `jetts-tui doctor` — it will tell you what's missing
 
 ## Install method auto-detection
 
-Jetts-TUI auto-detects git, Docker, or Nix installs, and `jetts-tui update` prints the matching update command. Detection uses the checkout, Docker image stamp, or Nix store path; `jetts-tui doctor` reports the detected method. Legacy checkouts at `~/.freeide/freeide-agent/` remain supported during migration.
+JettsTUI auto-detects git, Docker, or Nix installs, and `jetts-tui update` prints the matching update command. Detection uses the checkout, Docker image stamp, or Nix store path; `jetts-tui doctor` reports the detected method. Legacy checkouts at `~/.jettstui/jettstui/` remain supported during migration.

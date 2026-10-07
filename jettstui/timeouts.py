@@ -19,7 +19,7 @@ def get_provider_request_timeout(
         return None
 
     try:
-        from freeide_cli.config import load_config_readonly
+        from jettstui.config import load_config_readonly
         config = load_config_readonly()
     except Exception:
         return None
@@ -48,7 +48,7 @@ def get_provider_stale_timeout(
         return None
 
     try:
-        from freeide_cli.config import load_config_readonly
+        from jettstui.config import load_config_readonly
         config = load_config_readonly()
     except Exception:
         return None

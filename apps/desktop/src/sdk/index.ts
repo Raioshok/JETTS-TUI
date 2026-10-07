@@ -6,7 +6,7 @@
  * Two delivery modes, one surface:
  *  - bundled (`src/plugins/<name>/`): the import resolves here via alias;
  *  - runtime-fetched (plugin host, next phase): the loader injects this same
- *    object as `window.__FREEIDE_PLUGIN_SDK__` and maps the import to it, so a
+ *    object as `window.__JETTSTUI_PLUGIN_SDK__` and maps the import to it, so a
  *    published plugin builds against the types with the SDK marked external.
  *
  * Capability tiers (WoW-style):
@@ -22,7 +22,7 @@ import { atom, type ReadableAtom } from 'nanostores'
 
 import { $narrowViewport } from '@/components/pane-shell/tree/store'
 import { onGatewayEvent } from '@/contrib/events'
-import { getLogs, getStatus } from '@/freeide'
+import { getLogs, getStatus } from '@/jettstui'
 import { $gateway } from '@/store/gateway'
 import { notify, notifyError } from '@/store/notifications'
 import { $activeGatewayProfile } from '@/store/profile'
@@ -104,7 +104,7 @@ export const host = {
     const gateway = $gateway.get()
 
     if (!gateway) {
-      throw new Error('FreeIDE gateway unavailable')
+      throw new Error('JettsTUI gateway unavailable')
     }
 
     return gateway.request<T>(method, params)
@@ -187,7 +187,7 @@ export type { GatewayEventListener } from '@/contrib/events'
 // -- contracts ----------------------------------------------------------------
 
 export type {
-  FreeIDEPlugin,
+  JettsTUIPlugin,
   PluginContext,
   PluginContribution,
   PluginRestOptions,
@@ -239,7 +239,7 @@ export { evaluateRuntimeReadiness, type RuntimeReadinessResult } from '@/lib/run
 export { coarseElapsed, fmtDateTime, fmtDayTime, relativeTime } from '@/lib/time'
 export { cn } from '@/lib/utils'
 export { THEMES_AREA } from '@/themes/user-themes'
-export type { RpcEvent, StatusResponse } from '@/types/freeide'
+export type { RpcEvent, StatusResponse } from '@/types/jettstui'
 /** Subscribe a component to a `host.state` atom. */
 export { useStore as useValue } from '@nanostores/react'
 /** The app's data-fetching layer. Plugins share the ONE QueryClient mounted at

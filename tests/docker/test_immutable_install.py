@@ -3,10 +3,10 @@
 Build the real image and verify at runtime:
 
   1. /opt/jettstui is not writable by the jettstui user (immutable install tree)
-  2. PYTHONDONTWRITEBYTECODE and FREEIDE_DISABLE_LAZY_INSTALLS are set
+  2. PYTHONDONTWRITEBYTECODE and JETTSTUI_DISABLE_LAZY_INSTALLS are set
   3. /opt/jettstui/.install_method contains "docker" (code-scoped stamp)
-  4. $FREEIDE_HOME/.install_method is NOT stamped as "docker" by stage2
-  5. A stale "docker" stamp in $FREEIDE_HOME is healed (removed) on boot
+  4. $JETTSTUI_HOME/.install_method is NOT stamped as "docker" by stage2
+  5. A stale "docker" stamp in $JETTSTUI_HOME is healed (removed) on boot
 """
 from __future__ import annotations
 
@@ -18,7 +18,7 @@ from tests.docker.conftest import (
 )
 
 
-def test_install_tree_not_writable_by_freeide(
+def test_install_tree_not_writable_by_jettstui(
     built_image: str, container_name: str,
 ) -> None:
     """The jettstui user must not be able to modify /opt/jettstui.
@@ -53,24 +53,24 @@ def test_install_tree_not_writable_by_freeide(
     )
 
 
-def test_freeide_disable_lazy_installs_and_dont_write_bytecode(
+def test_jettstui_disable_lazy_installs_and_dont_write_bytecode(
     built_image: str, container_name: str,
 ) -> None:
     """The container must set PYTHONDONTWRITEBYTECODE and
-    FREEIDE_DISABLE_LAZY_INSTALLS=1 so no .pyc files are written to the
+    JETTSTUI_DISABLE_LAZY_INSTALLS=1 so no .pyc files are written to the
     immutable install tree and no lazy installs attempt to modify it."""
     start_container(built_image, container_name)
 
     r = docker_exec_sh(
         container_name,
         'test "$PYTHONDONTWRITEBYTECODE" = "1" && '
-        'test "$FREEIDE_DISABLE_LAZY_INSTALLS" = "1" && '
+        'test "$JETTSTUI_DISABLE_LAZY_INSTALLS" = "1" && '
         'echo ENV_OK || echo ENV_MISSING',
         timeout=10,
     )
     assert "ENV_OK" in r.stdout, (
         f"expected PYTHONDONTWRITEBYTECODE=1 and "
-        f"FREEIDE_DISABLE_LAZY_INSTALLS=1, got: {r.stdout} stderr={r.stderr}"
+        f"JETTSTUI_DISABLE_LAZY_INSTALLS=1, got: {r.stdout} stderr={r.stderr}"
     )
 
 
@@ -78,7 +78,7 @@ def test_install_method_stamp_is_code_scoped(
     built_image: str, container_name: str,
 ) -> None:
     """The 'docker' install-method stamp must be baked at
-    /opt/jettstui/.install_method (code-scoped), NOT in $FREEIDE_HOME."""
+    /opt/jettstui/.install_method (code-scoped), NOT in $JETTSTUI_HOME."""
     start_container(built_image, container_name)
 
     # Code-scoped stamp must exist and say "docker"
@@ -94,14 +94,14 @@ def test_install_method_stamp_is_code_scoped(
         f"expected 'docker' stamp, got: {r.stdout.strip()!r}"
     )
 
-    # $FREEIDE_HOME must NOT have a 'docker' stamp
+    # $JETTSTUI_HOME must NOT have a 'docker' stamp
     r = docker_exec_sh(
         container_name,
         "cat /opt/data/.install_method 2>/dev/null || echo NONE",
         timeout=10,
     )
     assert r.stdout.strip() != "docker", (
-        "$FREEIDE_HOME/.install_method is stamped 'docker' - stage2 must "
+        "$JETTSTUI_HOME/.install_method is stamped 'docker' - stage2 must "
         "not stamp the data volume (shared with host installs)"
     )
 
@@ -109,7 +109,7 @@ def test_install_method_stamp_is_code_scoped(
 def test_stale_docker_stamp_in_home_is_healed_on_boot(
     built_image: str, container_name: str,
 ) -> None:
-    """A stale 'docker' stamp left in $FREEIDE_HOME by an older image
+    """A stale 'docker' stamp left in $JETTSTUI_HOME by an older image
     must be removed on boot so shared homes self-heal."""
     # Start container, write a stale stamp
     start_container(built_image, container_name)
@@ -135,6 +135,6 @@ def test_stale_docker_stamp_in_home_is_healed_on_boot(
         timeout=10,
     )
     assert "HEALED" in r.stdout or r.stdout.strip() != "docker", (
-        f"stale 'docker' stamp in $FREEIDE_HOME was not healed on boot: "
+        f"stale 'docker' stamp in $JETTSTUI_HOME was not healed on boot: "
         f"{r.stdout}"
     )

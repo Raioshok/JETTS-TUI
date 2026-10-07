@@ -1,37 +1,37 @@
 ---
 sidebar_position: 16
 title: "Google Gemini"
-description: "Use FreeIDE Agent with Google Gemini — native AI Studio API, API-key setup, tool calling, streaming, and quota guidance"
+description: "Use JettsTUI with Google Gemini — native AI Studio API, API-key setup, tool calling, streaming, and quota guidance"
 ---
 
 # Google Gemini
 
-FreeIDE Agent supports Google Gemini as a native provider using the **Google AI Studio / Gemini API** — not the OpenAI-compatible endpoint. This lets FreeIDE translate its internal OpenAI-shaped message and tool loop into Gemini's native `generateContent` API while preserving tool calling, streaming, multimodal inputs, and Gemini-specific response metadata.
+JettsTUI supports Google Gemini as a native provider using the **Google AI Studio / Gemini API** — not the OpenAI-compatible endpoint. This lets JettsTUI translate its internal OpenAI-shaped message and tool loop into Gemini's native `generateContent` API while preserving tool calling, streaming, multimodal inputs, and Gemini-specific response metadata.
 
 ## Prerequisites
 
 - **Google AI Studio API key** — create one at [aistudio.google.com/apikey](https://aistudio.google.com/apikey)
-- **Billing-enabled Google Cloud project** — recommended for agent use. Gemini's free tier is too small for long-running agent sessions because FreeIDE may make several model calls per user turn.
-- **FreeIDE installed** — no extra Python package is required for the native Gemini provider.
+- **Billing-enabled Google Cloud project** — recommended for agent use. Gemini's free tier is too small for long-running agent sessions because JettsTUI may make several model calls per user turn.
+- **JettsTUI installed** — no extra Python package is required for the native Gemini provider.
 
 :::tip API key path
-Set `GOOGLE_API_KEY` or `GEMINI_API_KEY`. FreeIDE checks both names for the `gemini` provider.
+Set `GOOGLE_API_KEY` or `GEMINI_API_KEY`. JettsTUI checks both names for the `gemini` provider.
 :::
 
 ## Quick Start
 
 ```bash
 # Add your Gemini API key
-echo "GOOGLE_API_KEY=..." >> ~/.freeide/.env
+echo "GOOGLE_API_KEY=..." >> ~/.jettstui/.env
 
 # Select Gemini as your provider
-freeide model
+jettstui model
 # → Choose "More providers..." → "Google AI Studio"
-# → FreeIDE checks your key tier and shows Gemini models
+# → JettsTUI checks your key tier and shows Gemini models
 # → Select a model
 
 # Start chatting
-freeide chat
+jettstui chat
 ```
 
 If you prefer direct config editing, use the native Gemini API base URL:
@@ -45,7 +45,7 @@ model:
 
 ## Configuration
 
-After running `freeide model`, your `~/.freeide/config.yaml` will contain:
+After running `jettstui model`, your `~/.jettstui/config.yaml` will contain:
 
 ```yaml
 model:
@@ -54,7 +54,7 @@ model:
   base_url: https://generativelanguage.googleapis.com/v1beta
 ```
 
-And in `~/.freeide/.env`:
+And in `~/.jettstui/.env`:
 
 ```bash
 GOOGLE_API_KEY=...
@@ -68,18 +68,18 @@ The recommended endpoint is:
 https://generativelanguage.googleapis.com/v1beta
 ```
 
-FreeIDE detects this endpoint and creates its native Gemini adapter. Internally, FreeIDE still keeps the agent loop in OpenAI-shaped messages, then translates each request to Gemini's native schema:
+JettsTUI detects this endpoint and creates its native Gemini adapter. Internally, JettsTUI still keeps the agent loop in OpenAI-shaped messages, then translates each request to Gemini's native schema:
 
 - `messages[]` → Gemini `contents[]`
 - system prompts → Gemini `systemInstruction`
 - tool schemas → Gemini `functionDeclarations`
 - tool results → Gemini `functionResponse` parts
-- streaming responses → OpenAI-shaped stream chunks for the FreeIDE loop
+- streaming responses → OpenAI-shaped stream chunks for the JettsTUI loop
 
 :::note Gemini 3 thought signatures
-For Gemini 3 tool use, FreeIDE preserves the `thoughtSignature` values attached to function-call parts and replays them on the next tool turn. That covers the validation-critical path for multi-step agent workflows.
+For Gemini 3 tool use, JettsTUI preserves the `thoughtSignature` values attached to function-call parts and replays them on the next tool turn. That covers the validation-critical path for multi-step agent workflows.
 
-Gemini 3 may also attach thought signatures to other response parts. FreeIDE' native adapter is optimized for agent tool loops today, so it does not yet replay every non-tool-call signature with full part-level fidelity.
+Gemini 3 may also attach thought signatures to other response parts. JettsTUI' native adapter is optimized for agent tool loops today, so it does not yet replay every non-tool-call signature with full part-level fidelity.
 :::
 
 ### Prefer the Native Endpoint
@@ -90,7 +90,7 @@ Google also exposes an OpenAI-compatible endpoint:
 https://generativelanguage.googleapis.com/v1beta/openai/
 ```
 
-For FreeIDE agent sessions, prefer the native Gemini endpoint above. FreeIDE includes a native Gemini adapter so it can map multi-turn tool use, tool-call results, streaming, multimodal inputs, and Gemini response metadata directly onto Gemini's `generateContent` API. The OpenAI-compatible endpoint is still useful when you specifically need OpenAI API compatibility.
+For JettsTUI agent sessions, prefer the native Gemini endpoint above. JettsTUI includes a native Gemini adapter so it can map multi-turn tool use, tool-call results, streaming, multimodal inputs, and Gemini response metadata directly onto Gemini's `generateContent` API. The OpenAI-compatible endpoint is still useful when you specifically need OpenAI API compatibility.
 
 If you previously set `GEMINI_BASE_URL` to the `/openai` URL, remove it or change it:
 
@@ -100,7 +100,7 @@ GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta
 
 ## Available Models
 
-The `freeide model` picker shows Gemini models maintained in FreeIDE' provider registry. Common choices include:
+The `jettstui model` picker shows Gemini models maintained in JettsTUI' provider registry. Common choices include:
 
 | Model | ID | Notes |
 |-------|----|-------|
@@ -115,7 +115,7 @@ Two ids that used to be listed here are **gone**: `gemini-3-pro-preview` (shut d
 (shut down 2026-05-25, replaced by `gemini-3.1-flash-lite`). Verified 2026-09-23 against
 Google's deprecations table: https://ai.google.dev/gemini-api/docs/deprecations
 
-Model availability changes over time. If a model disappears or is not enabled for your key, run `freeide model` again and pick one from the current list.
+Model availability changes over time. If a model disappears or is not enabled for your key, run `jettstui model` again and pick one from the current list.
 
 :::info Model IDs
 Use Gemini's native model IDs such as `gemini-3-flash-preview`, not OpenRouter-style IDs like `google/gemini-3-flash-preview`, when `provider: gemini`.
@@ -123,7 +123,7 @@ Use Gemini's native model IDs such as `gemini-3-flash-preview`, not OpenRouter-s
 
 ### Latest Aliases
 
-Google publishes moving aliases for the Pro and Flash Gemini families. `gemini-pro-latest` and `gemini-flash-latest` are useful when you want Google to advance the model automatically without changing your FreeIDE config.
+Google publishes moving aliases for the Pro and Flash Gemini families. `gemini-pro-latest` and `gemini-flash-latest` are useful when you want Google to advance the model automatically without changing your JettsTUI config.
 
 | Alias | Currently tracks | Notes |
 |-------|------------------|-------|
@@ -141,7 +141,7 @@ If you need strict reproducibility, prefer explicit model IDs such as `gemini-3.
 
 ### Gemma via the Gemini API
 
-Google also exposes Gemma models through the Gemini API. FreeIDE recognizes these as Google models, but hides very low-throughput Gemma entries from the default model picker so new users do not accidentally select an evaluation-tier model for a long-running agent session.
+Google also exposes Gemma models through the Gemini API. JettsTUI recognizes these as Google models, but hides very low-throughput Gemma entries from the default model picker so new users do not accidentally select an evaluation-tier model for a long-running agent session.
 
 Useful evaluation IDs include:
 
@@ -150,7 +150,7 @@ Useful evaluation IDs include:
 | Gemma 4 31B IT | `gemma-4-31b-it` | Larger Gemma model; useful for compatibility and quality evaluation |
 | Gemma 4 26B A4B IT | `gemma-4-26b-a4b-it` | Smaller active-parameter variant when available |
 
-These models are best treated as evaluation options on Gemini API keys. Google's Gemma API pricing is free-tier-only and the usage caps are low compared with production Gemini models, so sustained FreeIDE agent use should normally move to a paid Gemini model, a self-hosted deployment, or another provider with appropriate quota.
+These models are best treated as evaluation options on Gemini API keys. Google's Gemma API pricing is free-tier-only and the usage caps are low compared with production Gemini models, so sustained JettsTUI agent use should normally move to a paid Gemini model, a self-hosted deployment, or another provider with appropriate quota.
 
 To use a Gemma model that is hidden from the picker, set it directly:
 
@@ -174,12 +174,12 @@ Use the `/model` command during a conversation:
 /model gemini-3.1-flash-lite
 ```
 
-If you have not configured Gemini yet, exit the session and run `freeide model` first. `/model` switches among already-configured providers and models; it does not collect new API keys.
+If you have not configured Gemini yet, exit the session and run `jettstui model` first. `/model` switches among already-configured providers and models; it does not collect new API keys.
 
 ## Diagnostics
 
 ```bash
-freeide doctor
+jettstui doctor
 ```
 
 The doctor checks:
@@ -189,11 +189,11 @@ The doctor checks:
 
 ## Gateway (Messaging Platforms)
 
-Gemini works with all FreeIDE gateway platforms (Telegram, Discord, Slack, WhatsApp, LINE, Feishu, etc.). Configure Gemini as your provider, then start the gateway normally:
+Gemini works with all JettsTUI gateway platforms (Telegram, Discord, Slack, WhatsApp, LINE, Feishu, etc.). Configure Gemini as your provider, then start the gateway normally:
 
 ```bash
-freeide gateway setup
-freeide gateway start
+jettstui gateway setup
+jettstui gateway start
 ```
 
 The gateway reads `config.yaml` and uses the same Gemini provider configuration.
@@ -202,7 +202,7 @@ The gateway reads `config.yaml` and uses the same Gemini provider configuration.
 
 ### "Gemini native client requires an API key"
 
-FreeIDE could not find a usable API key. Add one of these to `~/.freeide/.env`:
+JettsTUI could not find a usable API key. Add one of these to `~/.jettstui/.env`:
 
 ```bash
 GOOGLE_API_KEY=...
@@ -210,25 +210,25 @@ GOOGLE_API_KEY=...
 GEMINI_API_KEY=...
 ```
 
-Then run `freeide model` again.
+Then run `jettstui model` again.
 
 ### "This Google API key is on the free tier"
 
-FreeIDE probes Gemini API keys during setup. Free-tier quotas can be exhausted after a handful of agent turns because tool use, retries, compression, and auxiliary tasks may require multiple model calls.
+JettsTUI probes Gemini API keys during setup. Free-tier quotas can be exhausted after a handful of agent turns because tool use, retries, compression, and auxiliary tasks may require multiple model calls.
 
 Enable billing on the Google Cloud project attached to your key, regenerate the key if needed, then run:
 
 ```bash
-freeide model
+jettstui model
 ```
 
 ### "404 model not found"
 
-The selected model is not available for your account, region, or key. Run `freeide model` again and pick another Gemini model from the current list.
+The selected model is not available for your account, region, or key. Run `jettstui model` again and pick another Gemini model from the current list.
 
-### Gemma model is not shown in `freeide model`
+### Gemma model is not shown in `jettstui model`
 
-FreeIDE may hide low-throughput Gemma models from the picker by default. If you intentionally want to evaluate one, set the model ID directly in `~/.freeide/config.yaml`.
+JettsTUI may hide low-throughput Gemma models from the picker by default. If you intentionally want to evaluate one, set the model ID directly in `~/.jettstui/config.yaml`.
 
 ### "429 quota exceeded" on Gemma
 
@@ -236,7 +236,7 @@ Gemma models exposed through the Gemini API are useful for evaluation, but their
 
 ### OpenAI-compatible endpoint is configured
 
-Check `~/.freeide/.env` for:
+Check `~/.jettstui/.env` for:
 
 ```bash
 GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta/openai/
@@ -250,7 +250,7 @@ GEMINI_BASE_URL=https://generativelanguage.googleapis.com/v1beta
 
 ### Tool calling fails with schema errors
 
-Upgrade FreeIDE and rerun `freeide model`. The native Gemini adapter sanitizes tool schemas for Gemini's stricter function-declaration format; older builds or custom endpoints may not.
+Upgrade JettsTUI and rerun `jettstui model`. The native Gemini adapter sanitizes tool schemas for Gemini's stricter function-declaration format; older builds or custom endpoints may not.
 
 ## Related
 

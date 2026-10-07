@@ -68,7 +68,7 @@ function RootErrorFallback({ error, reset }: ErrorBoundaryFallbackProps) {
         <Button onClick={() => window.location.reload()} variant="text">
           {t.errors.reloadWindow}
         </Button>
-        <Button onClick={() => void window.freeideDesktop?.revealLogs()?.catch(() => undefined)} variant="text">
+        <Button onClick={() => void window.jettstuiDesktop?.revealLogs()?.catch(() => undefined)} variant="text">
           {t.errors.openLogs}
         </Button>
       </ErrorState>

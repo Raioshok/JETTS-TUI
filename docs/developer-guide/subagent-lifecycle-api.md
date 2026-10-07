@@ -5,11 +5,11 @@ sidebar_label: Subagent lifecycle API
 
 # Public Subagent Lifecycle API
 
-Plugins can launch and supervise fresh FreeIDE child sessions without importing
+Plugins can launch and supervise fresh JettsTUI child sessions without importing
 `tools.delegate_tool`, gateway internals, TUI state, or `AIAgent` fields.
 The service resolves its parent from the current agent turn, so it works in
 CLI, gateway, non-interactive, and kanban-worker sessions. Launching outside an
-active agent turn fails closed with `No active FreeIDE parent session`.
+active agent turn fails closed with `No active JettsTUI parent session`.
 
 ```python
 from agent.subagent_lifecycle import SubagentLaunchRequest
@@ -56,6 +56,6 @@ exit; callers must treat those handles as interrupted by process exit.
 
 Requests are fail-closed: goal/context/metadata sizes are capped, unknown or
 parent-broadening toolsets are rejected, and per-tool blocks, working-directory
-overrides, and per-launch timeouts are explicitly rejected until FreeIDE can
+overrides, and per-launch timeouts are explicitly rejected until JettsTUI can
 support them without weakening isolation. Use `allowed_toolsets` to narrow a
-child; FreeIDE's existing unsafe-tool block remains enforced.
+child; JettsTUI's existing unsafe-tool block remains enforced.

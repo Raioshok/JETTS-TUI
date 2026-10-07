@@ -54,7 +54,7 @@ def run_approval_mode_command(requested_mode: Optional[str]) -> ApprovalModeResu
     # set_config_value is the canonical managed-scope/write-safety chokepoint.
     # It reports managed policy through stderr + SystemExit, so capture that for
     # slash-command output instead of terminating the interactive worker.
-    from freeide_cli.config import set_config_value
+    from jettstui.config import set_config_value
 
     output = StringIO()
     try:

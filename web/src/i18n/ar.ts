@@ -50,12 +50,12 @@ export const ar = defineLocale({
   },
 
   app: {
-    brand: "Jetts-TUI",
+    brand: "JettsTUI",
     brandShort: "HA",
     closeNavigation: "إغلاق التنقل",
     closeModelTools: "إغلاق النموذج والأدوات",
     footer: {
-      org: "Jetts-TUI",
+      org: "JettsTUI",
     },
     activeSessionsLabel: "الجلسات النشطة:",
     gatewayStatusLabel: "حالة البوابة:",
@@ -120,8 +120,8 @@ export const ar = defineLocale({
     starting: "قيد البدء",
     startedInBackground: "بدء في الخلفية — تحقق من السجلات للتقدم",
     stopped: "متوقف",
-    updateFreeIDE: "تحديث Jetts-TUI",
-    updatingFreeIDE: "جاري تحديث Jetts-TUI…",
+    updateJettsTUI: "تحديث JettsTUI",
+    updatingJettsTUI: "جاري تحديث JettsTUI…",
     waitingForOutput: "في انتظار الناتج…",
   },
 
@@ -265,7 +265,7 @@ export const ar = defineLocale({
     enableRuntime: "تفعيل",
     forceReinstall: "إعادة تثبيت إجباري (حذف المجلد الموجود أولاً)",
     headline:
-      "اكتشف وثبِّت وفعِّل وحدِّث مكوِّنات Jetts-TUI الإضافية (مطابقة `jetts-tui plugins`).",
+      "اكتشف وثبِّت وفعِّل وحدِّث مكوِّنات JettsTUI الإضافية (مطابقة `jetts-tui plugins`).",
     identifierLabel: "رابط Git أو owner/repo",
     inactive: "غير نشط",
     installBtn: "تثبيت من Git",
@@ -282,8 +282,8 @@ export const ar = defineLocale({
     providersHint:
       "يكتب memory.provider (فارغ = مدمج) و context.engine إلى config.yaml. يسري في الجلسة التالية.",
     refreshDashboard: "إعادة فحص امتدادات لوحة التحكم",
-    removeConfirm: "إزالة هذا المكوِّن الإضافي من ~/.freeide/plugins/؟",
-    removeHint: "يمكن إزالة المكوِّنات المثبتة من المستخدم تحت ~/.freeide/plugins فقط.",
+    removeConfirm: "إزالة هذا المكوِّن الإضافي من ~/.jettstui/plugins/؟",
+    removeHint: "يمكن إزالة المكوِّنات المثبتة من المستخدم تحت ~/.jettstui/plugins فقط.",
     rescanHeading: "سجل مكوِّنات SPA",
     rescanHint: "أعد الفحص بعد إضافة ملفات على القرص لتمكن الشريط الجانبي من التقاط المخطوطات الجديدة.",
     runtimeHeading: "وقت تشغيل البوابة (مكوِّنات YAML)",
@@ -305,7 +305,7 @@ export const ar = defineLocale({
     all: "الكل",
     categories: "الفئات",
     filters: "الفلاتر",
-    noSkills: "لم يُعثر على مهارات. يتم تحميل المهارات من ~/.freeide/skills/",
+    noSkills: "لم يُعثر على مهارات. يتم تحميل المهارات من ~/.jettstui/skills/",
     noSkillsMatch: "لا توجد مهارات تطابق بحثك أو الفلاتر.",
     skillCount: "{count} مهارة{s}",
     resultCount: "{count} نتيجة{s}",
@@ -319,7 +319,7 @@ export const ar = defineLocale({
   },
 
   config: {
-    configPath: "~/.freeide/config.yaml",
+    configPath: "~/.jettstui/config.yaml",
     filters: "الفلاتر",
     sections: "الأقسام",
     exportConfig: "تصدير الإعدادات كـ JSON",
@@ -431,11 +431,11 @@ export const ar = defineLocale({
   achievements: {
     hero: {
       kicker: "Agentic Gamerscore",
-      title: "إنجازات Jetts-TUI",
+      title: "إنجازات JettsTUI",
       subtitle:
-        "شارات Jetts-TUI قابلة للجمع مكتسبة من سجل الجلسات الفعلي. الإنجازات غير المكتملة المعروفة تُعرض كـ Discovered؛ تبقى الإنجازات السرية مخفية حتى يظهر السلوك المطابق لأول مرة.",
+        "شارات JettsTUI قابلة للجمع مكتسبة من سجل الجلسات الفعلي. الإنجازات غير المكتملة المعروفة تُعرض كـ Discovered؛ تبقى الإنجازات السرية مخفية حتى يظهر السلوك المطابق لأول مرة.",
       scan_subtitle:
-        "فحص سجل جلسات Jetts-TUI. يمكن أن يستغرق الفحص الأول 5–10 ثوانٍ على السجلات الكبيرة.",
+        "فحص سجل جلسات JettsTUI. يمكن أن يستغرق الفحص الأول 5–10 ثوانٍ على السجلات الكبيرة.",
     },
     actions: {
       rescan: "إعادة الفحص",
@@ -450,7 +450,7 @@ export const ar = defineLocale({
       highest_tier: "أعلى مستوى",
       highest_tier_hint: "نحاس → فضة → ذهب ← ماس → أوليمبي",
       latest: "الأحدث",
-      latest_hint_empty: "شغِّل Jetts-TUI أكثر",
+      latest_hint_empty: "شغِّل JettsTUI أكثر",
       none_yet: "لا توجد بعد",
     },
     state: {
@@ -481,10 +481,10 @@ export const ar = defineLocale({
       tiers_header: "المستويات",
       secret_header: "الإنجازات السرية",
       secret_body:
-        "تخفى الأسرار محددها الدقيق. بمجرد أن ترى Jetts-TUI إشارة ذات صلة، تصبح البطاقة مكتشفة وتعرض متطلباتها.",
+        "تخفى الأسرار محددها الدقيق. بمجرد أن ترى JettsTUI إشارة ذات صلة، تصبح البطاقة مكتشفة وتعرض متطلباتها.",
       scan_status_header: "حالة الفحص",
       scan_status_body:
-        "تُفحص Jetts-TUI السجل المحلي مرة واحدة، ثم تظهر البطاقات تلقائيًا. لا يوجد توقف إذا استغرق هذا بضع ثوانٍ.",
+        "تُفحص JettsTUI السجل المحلي مرة واحدة، ثم تظهر البطاقات تلقائيًا. لا يوجد توقف إذا استغرق هذا بضع ثوانٍ.",
       what_scanned_header: "ما يتم فحصه",
       what_scanned_body:
         "الجلسات، استدعاءات الأدوات، بيانات تعريف النموذج، الأخطاء، الإنجازات، وحالة الفتح المحلية.",
@@ -531,7 +531,7 @@ export const ar = defineLocale({
         "المشاركة على X تفتح منشورًا معدَّلاً مسبقًا في تبويب جديد. انقر نسخ الصورة أولاً إذا أردت شارة الإنجاز 1200×630 مرفقة — يسمح X باللصق مباشرة في مؤلف التغريد. تنزيل PNG يحفظ الملف للاستخدام anywhere.",
       clipboard_unsupported:
         "نسخ صورة الحافظة غير مدعوم في هذا المتصفح — استخدم التنزيل بدلاً من ذلك.",
-      tweet_text: "فتحت للتو {tier_part}\"{name}\" في Jetts-TUI ☤"
+      tweet_text: "فتحت للتو {tier_part}\"{name}\" في JettsTUI ☤"
     },
   },
 

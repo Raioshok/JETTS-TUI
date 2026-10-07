@@ -328,7 +328,7 @@ def test_view_empty_allowlists_allow_with_explicit_allow_all(monkeypatch):
 
 
 # ---------------------------------------------------------------------------
-# Pairing store: users approved via ``freeide pairing approve`` must be
+# Pairing store: users approved via ``jettstui pairing approve`` must be
 # authorized even without DISCORD_ALLOWED_USERS / DISCORD_ALLOWED_ROLES.
 # ---------------------------------------------------------------------------
 

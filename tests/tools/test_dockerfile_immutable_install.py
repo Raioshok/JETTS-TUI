@@ -12,7 +12,7 @@ def _dockerfile_text() -> str:
     return DOCKERFILE.read_text()
 
 
-def test_dockerfile_makes_opt_freeide_readonly_for_freeide_user() -> None:
+def test_dockerfile_makes_opt_jettstui_readonly_for_jettstui_user() -> None:
     text = _dockerfile_text()
 
     # --chmod on the source COPY bakes read-only perms at copy time instead
@@ -27,8 +27,8 @@ def test_dockerfile_makes_opt_freeide_readonly_for_freeide_user() -> None:
 def test_dockerfile_keeps_mutable_state_under_opt_data() -> None:
     text = _dockerfile_text()
 
-    assert "ENV FREEIDE_HOME=/opt/data" in text
-    assert "ENV FREEIDE_WRITE_SAFE_ROOT=/opt/data" in text
+    assert "ENV JETTSTUI_HOME=/opt/data" in text
+    assert "ENV JETTSTUI_WRITE_SAFE_ROOT=/opt/data" in text
     assert 'VOLUME [ "/opt/data" ]' in text
 
 
@@ -36,17 +36,17 @@ def test_dockerfile_disables_runtime_install_mutations() -> None:
     text = _dockerfile_text()
 
     assert "ENV PYTHONDONTWRITEBYTECODE=1" in text
-    assert "ENV FREEIDE_DISABLE_LAZY_INSTALLS=1" in text
-    assert "FREEIDE_TUI_DIR=/opt/jettstui/ui-tui" in text
+    assert "ENV JETTSTUI_DISABLE_LAZY_INSTALLS=1" in text
+    assert "JETTSTUI_TUI_DIR=/opt/jettstui/ui-tui" in text
 
 
-def test_dockerfile_does_not_chown_install_trees_to_freeide() -> None:
+def test_dockerfile_does_not_chown_install_trees_to_jettstui() -> None:
     text = _dockerfile_text()
     forbidden_patterns = (
-        r"chown\s+-R\s+freeide:freeide\s+/opt/jettstui/\.venv",
-        r"chown\s+-R\s+freeide:freeide\s+/opt/jettstui/ui-tui",
-        r"chown\s+-R\s+freeide:freeide\s+/opt/jettstui/gateway",
-        r"chown\s+-R\s+freeide:freeide\s+/opt/jettstui/node_modules",
+        r"chown\s+-R\s+jettstui:jettstui\s+/opt/jettstui/\.venv",
+        r"chown\s+-R\s+jettstui:jettstui\s+/opt/jettstui/ui-tui",
+        r"chown\s+-R\s+jettstui:jettstui\s+/opt/jettstui/gateway",
+        r"chown\s+-R\s+jettstui:jettstui\s+/opt/jettstui/node_modules",
     )
     for pattern in forbidden_patterns:
         assert not re.search(pattern, text), (
@@ -61,8 +61,8 @@ def test_dockerfile_bakes_code_scoped_install_method_stamp() -> None:
     detect_install_method() reads the code-scoped stamp
     (/opt/jettstui/.install_method) first; baking it at build time keeps the
     published image self-identifying as 'docker' WITHOUT writing into the
-    shared $FREEIDE_HOME data volume (which a host install may also use).
-    The stamp is created by root in the shim-wiring RUN block; the freeide
+    shared $JETTSTUI_HOME data volume (which a host install may also use).
+    The stamp is created by root in the shim-wiring RUN block; the jettstui
     user can't modify it (go-w from the --chmod on the source COPY).
     """
     text = _dockerfile_text()
@@ -91,21 +91,21 @@ def test_dockerfile_redirects_lazy_installs_to_durable_target() -> None:
 
     # The redirect target must be set AND must live under the data volume,
     # never under the immutable /opt/jettstui tree.
-    assert f"ENV FREEIDE_LAZY_INSTALL_TARGET={target}" in text
+    assert f"ENV JETTSTUI_LAZY_INSTALL_TARGET={target}" in text
     assert target.startswith("/opt/data/"), "target must be on the durable volume"
-    assert "ENV FREEIDE_LAZY_INSTALL_TARGET=/opt/jettstui" not in text
+    assert "ENV JETTSTUI_LAZY_INSTALL_TARGET=/opt/jettstui" not in text
 
     # The seal flag must still be present — the redirect rides on top of it,
     # it does not replace it.
-    assert "ENV FREEIDE_DISABLE_LAZY_INSTALLS=1" in text
+    assert "ENV JETTSTUI_DISABLE_LAZY_INSTALLS=1" in text
 
     # stage2-hook must seed + chown the target dir so first-use installs
-    # succeed as the unprivileged freeide runtime user.
+    # succeed as the unprivileged jettstui runtime user.
     stage2 = (REPO_ROOT / "docker" / "stage2-hook.sh").read_text()
-    assert '"$FREEIDE_HOME/lazy-packages"' in stage2, (
+    assert '"$JETTSTUI_HOME/lazy-packages"' in stage2, (
         "stage2-hook.sh must create the lazy-packages dir on the data volume"
     )
     assert "lazy-packages" in stage2.split("for sub in", 1)[1].split(";", 1)[0], (
         "lazy-packages must be in the per-boot chown subdir list so it stays "
-        "freeide-owned"
+        "jettstui-owned"
     )

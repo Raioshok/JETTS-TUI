@@ -1,4 +1,4 @@
-"""Shared helpers for attaching FreeIDE to a local Chromium-family CDP port."""
+"""Shared helpers for attaching JettsTUI to a local Chromium-family CDP port."""
 
 from __future__ import annotations
 
@@ -12,7 +12,7 @@ import subprocess
 import time
 from dataclasses import dataclass, field
 
-from freeide_constants import get_freeide_home
+from jettstui_constants import get_jettstui_home
 
 logger = logging.getLogger(__name__)
 
@@ -127,7 +127,7 @@ def get_chrome_debug_candidates(system: str) -> list[str]:
 
 
 def chrome_debug_data_dir() -> str:
-    return str(get_freeide_home() / "chrome-debug")
+    return str(get_jettstui_home() / "chrome-debug")
 
 
 def _chrome_debug_args(port: int) -> list[str]:

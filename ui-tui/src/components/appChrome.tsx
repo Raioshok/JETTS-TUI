@@ -540,7 +540,7 @@ export function StatusRule({
   const sessionCountText = liveSessionCount > 0 ? statusSessionCountLabel(liveSessionCount) : ''
   const compressions = typeof usage.compressions === 'number' ? usage.compressions : 0
 
-  // Dev-only readout (FREEIDE_DEV_CREDITS). The server omits the key entirely unless the
+  // Dev-only readout (JETTSTUI_DEV_CREDITS). The server omits the key entirely unless the
   // flag is on, so this segment self-hides for normal users. micros→cents is allowed money
   // math (display formatting) — never parseFloat a *_usd. Signed: a mid-session top-up that
   // raises remaining nets a negative Δ (honest).
@@ -575,7 +575,7 @@ export function StatusRule({
     subagentCount === 1 ? '↩ resumes when subagent finishes' : `↩ resumes when ${subagentCount} subagents finish`
 
   const showResumeHint = !busy && subagentCount > 0 && fits(SEP + stringWidth(resumeHintText))
-  // Dev-gated readout (FREEIDE_DEV_CREDITS), lowest priority,
+  // Dev-gated readout (JETTSTUI_DEV_CREDITS), lowest priority,
   // so it consumes tail budget LAST and drops first on a narrow terminal.
   const showDevCredits = !!devCreditsText && fits(SEP + stringWidth(devCreditsText))
 

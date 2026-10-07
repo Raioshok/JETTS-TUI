@@ -6,7 +6,7 @@ description: "Text-to-speech and voice message transcription across all platform
 
 # Voice & TTS
 
-FreeIDE Agent supports both text-to-speech output and voice message transcription across all messaging platforms.
+JettsTUI supports both text-to-speech output and voice message transcription across all messaging platforms.
 
 ## Text-to-Speech
 
@@ -32,12 +32,12 @@ Convert text to speech with ten providers:
 | Telegram | Voice bubble (plays inline) | Opus `.ogg` |
 | Discord | Voice bubble (Opus/OGG), falls back to file attachment | Opus/MP3 |
 | WhatsApp | Audio file attachment | MP3 |
-| CLI | Saved to `~/.freeide/audio_cache/` | MP3 |
+| CLI | Saved to `~/.jettstui/audio_cache/` | MP3 |
 
 ### Configuration
 
 ```yaml
-# In ~/.freeide/config.yaml
+# In ~/.jettstui/config.yaml
 tts:
   provider: "edge"              # "edge" | "elevenlabs" | "openai" | "minimax" | "mistral" | "gemini" | "xai" | "neutts" | "kittentts" | "piper"
   speed: 1.0                    # Global speed multiplier (provider-specific settings override this)
@@ -84,7 +84,7 @@ tts:
     clean_text: true                            # Expand numbers, currencies, units
   piper:
     voice: en_US-lessac-medium                  # voice name (auto-downloaded) OR absolute path to .onnx
-    # voices_dir: ''                            # default: ~/.freeide/cache/piper-voices/
+    # voices_dir: ''                            # default: ~/.jettstui/cache/piper-voices/
     # use_cuda: false                           # requires onnxruntime-gpu
     # length_scale: 1.0                         # 2.0 = twice as slow
     # noise_scale: 0.667
@@ -99,19 +99,19 @@ tts:
 
 Gemini TTS can follow natural-language performance direction. Set `tts.gemini.persona_prompt_file` to a local Markdown or text file that describes the voice persona. The file can include Gemini-style sections such as `AUDIO PROFILE`, `SCENE`, `DIRECTOR'S NOTES`, `SAMPLE CONTEXT`, and `TRANSCRIPT`.
 
-If the file contains `{transcript}` or `{{ transcript }}`, FreeIDE replaces that placeholder with the live TTS text. Otherwise, FreeIDE appends a labeled `TRANSCRIPT` section automatically. The persona prompt stays local and is not shown in the chat reply.
+If the file contains `{transcript}` or `{{ transcript }}`, JettsTUI replaces that placeholder with the live TTS text. Otherwise, JettsTUI appends a labeled `TRANSCRIPT` section automatically. The persona prompt stays local and is not shown in the chat reply.
 
 ```yaml
 tts:
   provider: gemini
   gemini:
     voice: Algieba
-    persona_prompt_file: ~/.freeide/tts/butler-voice.md
+    persona_prompt_file: ~/.jettstui/tts/butler-voice.md
 ```
 
 ### Gemini Audio Tags
 
-Gemini 3.1 Flash TTS supports freeform square-bracket audio tags such as `[whispers]`, `[excitedly]`, `[very slow]`, `[laughs]`, and other expressive delivery notes. Enable `tts.gemini.audio_tags` to have FreeIDE run a hidden rewrite pass before Gemini TTS. The rewrite inserts inline tags into the TTS script only; the visible chat reply stays unchanged.
+Gemini 3.1 Flash TTS supports freeform square-bracket audio tags such as `[whispers]`, `[excitedly]`, `[very slow]`, `[laughs]`, and other expressive delivery notes. Enable `tts.gemini.audio_tags` to have JettsTUI run a hidden rewrite pass before Gemini TTS. The rewrite inserts inline tags into the TTS script only; the visible chat reply stays unchanged.
 
 ```yaml
 tts:
@@ -126,7 +126,7 @@ The rewrite uses `auxiliary.tts_audio_tags` and defaults to your main chat model
 
 ### Input length limits
 
-Each provider has a documented per-request input-character cap. FreeIDE truncates text before calling the provider so requests never fail with a length error:
+Each provider has a documented per-request input-character cap. JettsTUI truncates text before calling the provider so requests never fail with a length error:
 
 | Provider | Default cap (chars) |
 |----------|---------------------|
@@ -208,7 +208,7 @@ See the [xAI Custom Voices docs](https://docs.x.ai/developers/model-capabilities
 
 Piper is a fast, local neural TTS engine from the Open Home Foundation (the Home Assistant maintainers). It runs entirely on CPU, supports **44 languages** with pre-trained voices, and needs no API key.
 
-**Install via `freeide tools`** → Voice & TTS → Piper — FreeIDE runs `pip install piper-tts` for you. Or install manually: `pip install piper-tts`.
+**Install via `jettstui tools`** → Voice & TTS → Piper — JettsTUI runs `pip install piper-tts` for you. Or install manually: `pip install piper-tts`.
 
 **Switch to Piper:**
 
@@ -219,7 +219,7 @@ tts:
     voice: en_US-lessac-medium
 ```
 
-On the first TTS call for a voice that isn't cached locally, FreeIDE runs `python -m piper.download_voices <name>` and downloads the model (~20-90MB depending on quality tier) into `~/.freeide/cache/piper-voices/`. Subsequent calls reuse the cached model.
+On the first TTS call for a voice that isn't cached locally, JettsTUI runs `python -m piper.download_voices <name>` and downloads the model (~20-90MB depending on quality tier) into `~/.jettstui/cache/piper-voices/`. Subsequent calls reuse the cached model.
 
 **Picking a voice.** The [full voice catalog](https://github.com/OHF-Voice/piper1-gpl/blob/main/docs/VOICES.md) covers English, Spanish, French, German, Italian, Dutch, Portuguese, Russian, Polish, Turkish, Chinese, Arabic, Hindi, and more — each with `x_low` / `low` / `medium` / `high` quality tiers. Sample voices at [rhasspy.github.io/piper-samples](https://rhasspy.github.io/piper-samples/).
 
@@ -235,7 +235,7 @@ tts:
 
 ### Custom command providers
 
-If a TTS engine you want isn't natively supported (VoxCPM, MLX-Kokoro, XTTS CLI, a voice-cloning script, anything else that exposes a CLI), you can wire it in as a **command-type provider** without writing any Python. FreeIDE writes the input text to a temp UTF-8 file, runs your shell command, and reads the audio file the command produced.
+If a TTS engine you want isn't natively supported (VoxCPM, MLX-Kokoro, XTTS CLI, a voice-cloning script, anything else that exposes a CLI), you can wire it in as a **command-type provider** without writing any Python. JettsTUI writes the input text to a temp UTF-8 file, runs your shell command, and reads the audio file the command produced.
 
 Declare one or more providers under `tts.providers.<name>` and switch between them with `tts.provider: <name>` — the same way you switch between built-ins like `edge` and `openai`.
 
@@ -284,15 +284,15 @@ tts:
       timeout: 30
 ```
 
-Credentials come from your shell environment (`VOLCENGINE_APP_ID` / `VOLCENGINE_ACCESS_TOKEN`) or `~/.doubao-speech/config.yaml`. Pick a voice by adding `--voice zh-female-warm` (or any other alias from `doubao-speech list-voices`) to the command. `doubao-speech` also bundles streaming ASR — see the [STT section below](#example-doubao--volcengine-asr) for FreeIDE integration. Source and full docs: [github.com/Hypnus-Yuan/doubao-speech](https://github.com/Hypnus-Yuan/doubao-speech).
+Credentials come from your shell environment (`VOLCENGINE_APP_ID` / `VOLCENGINE_ACCESS_TOKEN`) or `~/.doubao-speech/config.yaml`. Pick a voice by adding `--voice zh-female-warm` (or any other alias from `doubao-speech list-voices`) to the command. `doubao-speech` also bundles streaming ASR — see the [STT section below](#example-doubao--volcengine-asr) for JettsTUI integration. Source and full docs: [github.com/Hypnus-Yuan/doubao-speech](https://github.com/Hypnus-Yuan/doubao-speech).
 
 #### Placeholders
 
-Your command template can reference these placeholders. FreeIDE substitutes them at render time and shell-quotes each value for the surrounding context (bare / single-quoted / double-quoted), so paths with spaces and other shell-sensitive characters are safe.
+Your command template can reference these placeholders. JettsTUI substitutes them at render time and shell-quotes each value for the surrounding context (bare / single-quoted / double-quoted), so paths with spaces and other shell-sensitive characters are safe.
 
 | Placeholder      | Meaning                                              |
 |------------------|------------------------------------------------------|
-| `{input_path}`   | Path to the temp UTF-8 text file FreeIDE wrote        |
+| `{input_path}`   | Path to the temp UTF-8 text file JettsTUI wrote        |
 | `{text_path}`    | Alias for `{input_path}`                             |
 | `{output_path}`  | Path the command must write audio to                 |
 | `{format}`       | `mp3` / `wav` / `ogg` / `flac`                       |
@@ -307,8 +307,8 @@ Use `{{` and `}}` for literal braces.
 | Key                | Default | Meaning                                                                                                    |
 |--------------------|---------|------------------------------------------------------------------------------------------------------------|
 | `timeout`          | `120`   | Seconds; the process tree is killed on expiry (Unix `killpg`, Windows `taskkill /T`).                       |
-| `output_format`    | `mp3`   | One of `mp3` / `wav` / `ogg` / `flac`. Auto-inferred from the output extension if FreeIDE picks a path.      |
-| `voice_compatible` | `false` | When `true`, FreeIDE converts MP3/WAV output to Opus/OGG via ffmpeg so Telegram renders a voice bubble.      |
+| `output_format`    | `mp3`   | One of `mp3` / `wav` / `ogg` / `flac`. Auto-inferred from the output extension if JettsTUI picks a path.      |
+| `voice_compatible` | `false` | When `true`, JettsTUI converts MP3/WAV output to Opus/OGG via ffmpeg so Telegram renders a voice bubble.      |
 | `max_text_length`  | `5000`  | Input is truncated to this length before rendering the command.                                             |
 | `voice` / `model`  | empty   | Passed to the command as placeholder values only.                                                           |
 
@@ -322,7 +322,7 @@ Use `{{` and `}}` for literal braces.
 
 #### Security
 
-Command-type providers run whatever shell command you configure, with your user's permissions. FreeIDE quotes placeholder values and enforces the configured timeout, but the command template itself is trusted local input — treat it the same way you would a shell script on your PATH.
+Command-type providers run whatever shell command you configure, with your user's permissions. JettsTUI quotes placeholder values and enforces the configured timeout, but the command template itself is trusted local input — treat it the same way you would a shell script on your PATH.
 
 ### Python plugin providers
 
@@ -336,14 +336,14 @@ For TTS engines that can't be expressed as a single shell command — Python SDK
 | Two or three CLIs chained with shell pipes | **Command provider** |
 | A Python SDK only — no CLI | **Plugin** |
 | Streaming bytes you want to deliver chunked (mid-generation voice bubbles) | **Plugin** (override `stream()`) |
-| A voice-listing API used by `freeide setup` | **Plugin** (override `list_voices()`) |
+| A voice-listing API used by `jettstui setup` | **Plugin** (override `list_voices()`) |
 | OAuth refresh flow (not a static bearer token) | **Plugin** |
 
 Built-ins always win, and command providers win over a same-name plugin — so plugins are safe to register against any non-built-in name without worrying about shadowing your existing config.
 
 #### Minimal plugin
 
-Drop this in `~/.freeide/plugins/my-tts/`:
+Drop this in `~/.jettstui/plugins/my-tts/`:
 
 `plugin.yaml`:
 ```yaml
@@ -389,15 +389,15 @@ def register(ctx):
     ctx.register_tts_provider(MyTTSProvider())
 ```
 
-Enable it (`freeide plugins enable my-tts`), point `tts.provider` at it (`tts.provider: my-tts` in `config.yaml`), and the `text_to_speech` tool will route through your plugin.
+Enable it (`jettstui plugins enable my-tts`), point `tts.provider` at it (`tts.provider: my-tts` in `config.yaml`), and the `text_to_speech` tool will route through your plugin.
 
 #### Optional hooks
 
 Override these on your provider class for richer integration:
 
-- `list_voices()` → list of `{id, display, language, gender, preview_url}` dicts shown in `freeide tools`.
+- `list_voices()` → list of `{id, display, language, gender, preview_url}` dicts shown in `jettstui tools`.
 - `list_models()` → list of `{id, display, languages, max_text_length}` dicts.
-- `get_setup_schema()` → return `{name, badge, tag, env_vars: [{key, prompt, url}]}` to power the picker row in `freeide tools` / `freeide setup`. Without this, the plugin still works but its row in the picker is minimal.
+- `get_setup_schema()` → return `{name, badge, tag, env_vars: [{key, prompt, url}]}` to power the picker row in `jettstui tools` / `jettstui setup`. Without this, the plugin still works but its row in the picker is minimal.
 - `stream(text, *, voice, model, format, **extra)` → iterator yielding audio bytes for streaming delivery (default raises `NotImplementedError`).
 - `voice_compatible` property → set `True` if your output is Opus-compatible and the gateway should deliver it as a voice bubble (default `False` = regular audio attachment).
 
@@ -414,27 +414,27 @@ Voice messages sent on Telegram, Discord, WhatsApp, Slack, or Signal are automat
 | **OpenAI Whisper API** | Good–Best | Paid | `VOICE_TOOLS_OPENAI_KEY` or `OPENAI_API_KEY` |
 
 :::info Zero Config
-Local transcription works out of the box when `faster-whisper` is installed. If that's unavailable, FreeIDE can also use a local `whisper` CLI from common install locations (like `/opt/homebrew/bin`) or a custom command via `FREEIDE_LOCAL_STT_COMMAND`.
+Local transcription works out of the box when `faster-whisper` is installed. If that's unavailable, JettsTUI can also use a local `whisper` CLI from common install locations (like `/opt/homebrew/bin`) or a custom command via `JETTSTUI_LOCAL_STT_COMMAND`.
 :::
 
 ### Configuration
 
 ```yaml
-# In ~/.freeide/config.yaml
+# In ~/.jettstui/config.yaml
 stt:
   provider: "local"           # "local" | "groq" | "openai" | "mistral" | "xai"
   local:
     model: "base"             # tiny, base, small, medium, large-v3
-    language: ""              # optional ISO-639-1 hint; blank = use FREEIDE_LOCAL_STT_LANGUAGE if set, else auto-detect
+    language: ""              # optional ISO-639-1 hint; blank = use JETTSTUI_LOCAL_STT_LANGUAGE if set, else auto-detect
   groq:
-    language: ""              # optional ISO-639-1 hint; blank = use FREEIDE_LOCAL_STT_LANGUAGE if set, else auto-detect
+    language: ""              # optional ISO-639-1 hint; blank = use JETTSTUI_LOCAL_STT_LANGUAGE if set, else auto-detect
   openai:
     model: "whisper-1"        # whisper-1, gpt-4o-mini-transcribe, gpt-4o-transcribe
   mistral:
     model: "voxtral-mini-latest"  # voxtral-mini-latest, voxtral-mini-2602
   xai:
     model: "grok-stt"         # xAI Grok STT
-    language: ""              # optional ISO-639-1 hint; blank = use FREEIDE_LOCAL_STT_LANGUAGE if set, else "en"
+    language: ""              # optional ISO-639-1 hint; blank = use JETTSTUI_LOCAL_STT_LANGUAGE if set, else "en"
 ```
 
 ### Provider Details
@@ -449,15 +449,15 @@ stt:
 | `medium` | ~1.5 GB | Slower | Great |
 | `large-v3` | ~3 GB | Slowest | Best |
 
-**Groq API** — Requires `GROQ_API_KEY`. Good cloud fallback when you want a free hosted STT option. Set `stt.groq.language` (or the global `FREEIDE_LOCAL_STT_LANGUAGE` env var) to skip Whisper's auto-detect and reduce latency on known-language audio.
+**Groq API** — Requires `GROQ_API_KEY`. Good cloud fallback when you want a free hosted STT option. Set `stt.groq.language` (or the global `JETTSTUI_LOCAL_STT_LANGUAGE` env var) to skip Whisper's auto-detect and reduce latency on known-language audio.
 
 **OpenAI API** — Accepts `VOICE_TOOLS_OPENAI_KEY` first and falls back to `OPENAI_API_KEY`. Supports `whisper-1`, `gpt-4o-mini-transcribe`, and `gpt-4o-transcribe`.
 
-**Mistral API (Voxtral Transcribe)** — Requires `MISTRAL_API_KEY`. Uses Mistral's [Voxtral Transcribe](https://docs.mistral.ai/capabilities/audio/speech_to_text/) models. Supports 13 languages, speaker diarization, and word-level timestamps. Install with `cd ~/.freeide/freeide-agent && uv pip install -e ".[mistral]"`.
+**Mistral API (Voxtral Transcribe)** — Requires `MISTRAL_API_KEY`. Uses Mistral's [Voxtral Transcribe](https://docs.mistral.ai/capabilities/audio/speech_to_text/) models. Supports 13 languages, speaker diarization, and word-level timestamps. Install with `cd ~/.jettstui/jettstui && uv pip install -e ".[mistral]"`.
 
 **xAI Grok STT** — Requires `XAI_API_KEY`. Posts to `https://api.x.ai/v1/stt` as multipart/form-data. Good choice if you're already using xAI for chat or TTS and want one API key for everything. Auto-detection order puts it after Groq — explicitly set `stt.provider: xai` to force it.
 
-**Custom local CLI fallback** — Set `FREEIDE_LOCAL_STT_COMMAND` if you want FreeIDE to call a local transcription command directly. The command template supports `{input_path}`, `{output_dir}`, `{language}`, and `{model}` placeholders. Your command must write a `.txt` transcript somewhere under `{output_dir}`.
+**Custom local CLI fallback** — Set `JETTSTUI_LOCAL_STT_COMMAND` if you want JettsTUI to call a local transcription command directly. The command template supports `{input_path}`, `{output_dir}`, `{language}`, and `{model}` placeholders. Your command must write a `.txt` transcript somewhere under `{output_dir}`.
 
 #### Example: Doubao / Volcengine ASR
 
@@ -467,7 +467,7 @@ If you use [`doubao-speech`](https://pypi.org/project/doubao-speech/) for Doubao
 pip install doubao-speech
 export VOLCENGINE_APP_ID="your-app-id"
 export VOLCENGINE_ACCESS_TOKEN="your-access-token"
-export FREEIDE_LOCAL_STT_COMMAND='doubao-speech transcribe {input_path} --out {output_dir}/transcript.txt'
+export JETTSTUI_LOCAL_STT_COMMAND='doubao-speech transcribe {input_path} --out {output_dir}/transcript.txt'
 ```
 
 ```yaml
@@ -475,12 +475,12 @@ stt:
   provider: local_command
 ```
 
-FreeIDE writes the incoming voice message to `{input_path}`, runs the command, and reads the `.txt` file produced under `{output_dir}`. Language is auto-detected by the Volcengine bigmodel endpoint.
+JettsTUI writes the incoming voice message to `{input_path}`, runs the command, and reads the `.txt` file produced under `{output_dir}`. Language is auto-detected by the Volcengine bigmodel endpoint.
 
 ### Fallback Behavior
 
-If your configured provider isn't available, FreeIDE automatically falls back:
-- **Local faster-whisper unavailable** → Tries a local `whisper` CLI or `FREEIDE_LOCAL_STT_COMMAND` before cloud providers
+If your configured provider isn't available, JettsTUI automatically falls back:
+- **Local faster-whisper unavailable** → Tries a local `whisper` CLI or `JETTSTUI_LOCAL_STT_COMMAND` before cloud providers
 - **Groq key not set** → Falls back to local transcription, then OpenAI
 - **OpenAI key not set** → Falls back to local transcription, then Groq
 - **Mistral key/SDK not set** → Skipped in auto-detect; falls through to next available provider
@@ -488,7 +488,7 @@ If your configured provider isn't available, FreeIDE automatically falls back:
 
 ### STT custom command providers
 
-If the STT engine you want isn't natively supported (Doubao ASR, NVIDIA Parakeet, a whisper.cpp build, an open-source SenseVoice CLI, anything else that exposes a shell command), wire it in as a **command-type provider** without writing any Python. FreeIDE runs your shell command against the audio file and reads back the transcript.
+If the STT engine you want isn't natively supported (Doubao ASR, NVIDIA Parakeet, a whisper.cpp build, an open-source SenseVoice CLI, anything else that exposes a shell command), wire it in as a **command-type provider** without writing any Python. JettsTUI runs your shell command against the audio file and reads back the transcript.
 
 Declare one or more providers under `stt.providers.<name>` and switch between them with `stt.provider: <name>` — same shape as the TTS [command-provider registry](#custom-command-providers), adapted for the input=audio → output=transcript direction.
 
@@ -514,11 +514,11 @@ stt:
       format: json
 ```
 
-This complements the legacy `FREEIDE_LOCAL_STT_COMMAND` escape hatch — that env var still works untouched via the built-in `local_command` path. Use `stt.providers.<name>` when you want **multiple** shell-driven STT engines, a name you can pick via `stt.provider`, or anything that needs per-provider `language` / `model` / `timeout`.
+This complements the legacy `JETTSTUI_LOCAL_STT_COMMAND` escape hatch — that env var still works untouched via the built-in `local_command` path. Use `stt.providers.<name>` when you want **multiple** shell-driven STT engines, a name you can pick via `stt.provider`, or anything that needs per-provider `language` / `model` / `timeout`.
 
 #### STT placeholders
 
-Your command template can reference these placeholders. FreeIDE substitutes them at render time and shell-quotes each value for the surrounding context (bare / single-quoted / double-quoted), so paths with spaces are safe.
+Your command template can reference these placeholders. JettsTUI substitutes them at render time and shell-quotes each value for the surrounding context (bare / single-quoted / double-quoted), so paths with spaces are safe.
 
 | Placeholder       | Meaning                                                              |
 |-------------------|----------------------------------------------------------------------|
@@ -535,13 +535,13 @@ Use `{{` and `}}` for literal braces (handy when embedding JSON snippets in the 
 
 After your command exits successfully:
 
-1. If `{output_path}` exists and is non-empty → FreeIDE reads it as UTF-8 text.
-2. Otherwise, if the command wrote to stdout → FreeIDE uses that.
+1. If `{output_path}` exists and is non-empty → JettsTUI reads it as UTF-8 text.
+2. Otherwise, if the command wrote to stdout → JettsTUI uses that.
 3. Otherwise → error: "Command STT provider wrote no output file and produced no stdout".
 
 This lets you use the registry for both file-writing CLIs (`whisper-cli`, `parakeet-asr`) and curl-style one-liners that emit transcript to stdout (`curl … | jq -r .text`).
 
-For `format: json` / `srt` / `vtt`, FreeIDE returns the raw file content as the `transcript` field. Extracting `.text` from JSON is out of scope for the runner — either configure `format: txt`, or post-process JSON downstream.
+For `format: json` / `srt` / `vtt`, JettsTUI returns the raw file content as the `transcript` field. Extracting `.text` from JSON is out of scope for the runner — either configure `format: txt`, or post-process JSON downstream.
 
 #### STT command-provider optional keys
 
@@ -560,7 +560,7 @@ For `format: json` / `srt` / `vtt`, FreeIDE returns the raw file content as the 
 
 #### STT command-provider security
 
-The shell command runs under the same user as FreeIDE with full filesystem access — same trust model as `tts.providers.<name>: type: command` and `FREEIDE_LOCAL_STT_COMMAND`. Only declare command providers from sources you trust.
+The shell command runs under the same user as JettsTUI with full filesystem access — same trust model as `tts.providers.<name>: type: command` and `JETTSTUI_LOCAL_STT_COMMAND`. Only declare command providers from sources you trust.
 
 ### Python plugin providers (STT)
 
@@ -571,7 +571,7 @@ For STT engines that aren't built-in AND can't be expressed as a shell command (
 | Backend has…                                                 | Use                                                              |
 |--------------------------------------------------------------|------------------------------------------------------------------|
 | A single shell command that takes an audio file and emits text | `stt.providers.<name>: type: command` (no Python needed)        |
-| Only the legacy single-command escape hatch is wanted        | `FREEIDE_LOCAL_STT_COMMAND` env var (preserved for back-compat)  |
+| Only the legacy single-command escape hatch is wanted        | `JETTSTUI_LOCAL_STT_COMMAND` env var (preserved for back-compat)  |
 | A Python SDK with no CLI                                     | `register_transcription_provider()` plugin                      |
 | OAuth-refreshing auth, streaming chunks, voice-list metadata | `register_transcription_provider()` plugin                      |
 | A built-in already covers it (`local`, `groq`, `openai`, …)  | Set `stt.provider: <name>` — built-ins are inline               |
@@ -603,7 +603,7 @@ The dispatcher forwards `model` and `language` from this section; everything els
 
 #### Minimal plugin
 
-Drop this in `~/.freeide/plugins/my-stt/`:
+Drop this in `~/.jettstui/plugins/my-stt/`:
 
 `plugin.yaml`:
 ```yaml
@@ -659,7 +659,7 @@ def register(ctx):
     ctx.register_transcription_provider(MySTTProvider())
 ```
 
-Enable it (`freeide plugins enable my-stt`), set `stt.provider: my-stt` in `config.yaml`, and voice-message transcription will route through your plugin.
+Enable it (`jettstui plugins enable my-stt`), set `stt.provider: my-stt` in `config.yaml`, and voice-message transcription will route through your plugin.
 
 #### Optional hooks
 
@@ -667,6 +667,6 @@ Override these on your provider class for richer integration:
 
 - `list_models()` → list of `{id, display, languages, max_audio_seconds}` dicts.
 - `default_model()` → string returned when the user doesn't override the model.
-- `get_setup_schema()` → return `{name, badge, tag, env_vars: [{key, prompt, url}]}` to power picker rows in `freeide tools` / `freeide setup` (the picker category for STT is not yet shipped — this metadata is available to plugins for forward compatibility).
+- `get_setup_schema()` → return `{name, badge, tag, env_vars: [{key, prompt, url}]}` to power picker rows in `jettstui tools` / `jettstui setup` (the picker category for STT is not yet shipped — this metadata is available to plugins for forward compatibility).
 
 See `agent/transcription_provider.py` for the full ABC including docstrings.

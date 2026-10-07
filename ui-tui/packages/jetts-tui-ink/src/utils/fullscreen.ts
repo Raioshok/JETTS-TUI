@@ -1,3 +1,3 @@
 export function isMouseClicksDisabled(): boolean {
-  return /^(1|true|yes|on)$/.test((process.env.FREEIDE_TUI_DISABLE_MOUSE_CLICKS ?? '').trim().toLowerCase())
+  return /^(1|true|yes|on)$/.test((process.env.JETTSTUI_TUI_DISABLE_MOUSE_CLICKS ?? '').trim().toLowerCase())
 }

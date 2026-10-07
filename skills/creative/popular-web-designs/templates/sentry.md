@@ -1,7 +1,7 @@
 # Design System: Sentry
 
 
-> **FreeIDE Agent — Implementation Notes**
+> **JettsTUI — Implementation Notes**
 >
 > The original site uses proprietary fonts. For self-contained HTML output, use these CDN substitutes:
 > - **Primary:** `Rubik` | **Mono:** `JetBrains Mono`

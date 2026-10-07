@@ -13,7 +13,7 @@ from acp.schema import (
 )
 
 from acp_adapter.server import (
-    FreeIDEACPAgent,
+    JettsTUIACPAgent,
     _content_blocks_to_openai_user_content,
     _path_from_file_uri,
 )
@@ -22,14 +22,14 @@ from acp_adapter.server import (
 def test_acp_file_uri_uses_native_windows_path(monkeypatch):
     if os.name != "nt":
         pytest.skip("Native Windows path contract")
-    monkeypatch.setattr("freeide_constants._wsl_detected", False)
+    monkeypatch.setattr("jettstui_constants._wsl_detected", False)
     expected = Path(r"C:\Users\Test User\notes.md")
     assert _path_from_file_uri("file:///C:/Users/Test%20User/notes.md") == expected
     assert _path_from_file_uri(r"C:\Users\Test User\notes.md") == expected
 
 
 def test_acp_file_uri_translates_windows_path_in_wsl(monkeypatch):
-    monkeypatch.setattr("freeide_constants._wsl_detected", True)
+    monkeypatch.setattr("jettstui_constants._wsl_detected", True)
     assert _path_from_file_uri("file:///C:/Users/Test%20User/notes.md") == Path(
         "/mnt/c/Users/Test User/notes.md"
     )
@@ -102,7 +102,7 @@ def test_acp_embedded_text_resource_is_inlined_as_text():
 
 @pytest.mark.asyncio
 async def test_initialize_advertises_image_prompt_capability():
-    response = await FreeIDEACPAgent().initialize()
+    response = await JettsTUIACPAgent().initialize()
 
     assert response.agent_capabilities is not None
     assert response.agent_capabilities.prompt_capabilities is not None

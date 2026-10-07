@@ -376,13 +376,13 @@ class TestTeamsPluginRegistration:
 class TestTeamsInteractiveSetup:
     def test_interactive_setup_persists_credentials(self, tmp_path, monkeypatch):
         """Regression for #19173: interactive_setup must import prompt helpers
-        from freeide_cli.cli_output (not freeide_cli.config) and persist
+        from jettstui.cli_output (not jettstui.config) and persist
         credentials to .env without crashing.
         """
-        freeide_home = tmp_path / "freeide"
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        jettstui_home = tmp_path / "jettstui"
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
-        import freeide_cli.cli_output as cli_output_mod
+        import jettstui.cli_output as cli_output_mod
 
         answers = iter(["client-id", "client-secret", "tenant-id", "aad-1, aad-2"])
         monkeypatch.setattr(cli_output_mod, "prompt", lambda *_a, **_kw: next(answers))
@@ -393,7 +393,7 @@ class TestTeamsInteractiveSetup:
 
         _teams_mod.interactive_setup()
 
-        env_text = (freeide_home / ".env").read_text(encoding="utf-8")
+        env_text = (jettstui_home / ".env").read_text(encoding="utf-8")
         assert "TEAMS_CLIENT_ID=client-id" in env_text
         assert "TEAMS_TENANT_ID=tenant-id" in env_text
 
@@ -724,7 +724,7 @@ class TestTeamsMessageHandling:
         adapter.handle_message = AsyncMock()
 
         activity = self._make_activity(
-            text="<at>FreeIDE</at> what is the weather?",
+            text="<at>JettsTUI</at> what is the weather?",
             from_id="user-id",
         )
         await adapter._on_message(self._make_ctx(activity))

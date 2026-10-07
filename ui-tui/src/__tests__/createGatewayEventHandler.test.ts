@@ -107,7 +107,7 @@ describe('createGatewayEventHandler', () => {
           message: 'out of credits',
           model: 'm',
           provider: 'nous',
-          provider_label: 'FreeIDE Portal'
+          provider_label: 'JettsTUI Portal'
         },
         text: 'Billing or credits exhausted: ...'
       },
@@ -242,11 +242,11 @@ describe('createGatewayEventHandler', () => {
     const onEvent = createGatewayEventHandler(ctx)
 
     onEvent({
-      payload: { text: "💾 Self-improvement review: Skill 'freeide-release' patched" },
+      payload: { text: "💾 Self-improvement review: Skill 'jettstui-release' patched" },
       type: 'review.summary'
     } as any)
 
-    expect(ctx.system.sys).toHaveBeenCalledWith("💾 Self-improvement review: Skill 'freeide-release' patched")
+    expect(ctx.system.sys).toHaveBeenCalledWith("💾 Self-improvement review: Skill 'jettstui-release' patched")
   })
 
   it('ignores review.summary events with empty or missing text', () => {
@@ -551,7 +551,7 @@ describe('createGatewayEventHandler', () => {
         cwd: '/repo',
         python: '/opt/venv/bin/python',
         stderr_tail:
-          '[startup] timed out\nModuleNotFoundError: No module named openai\nFileNotFoundError: ~/.freeide/config.yaml'
+          '[startup] timed out\nModuleNotFoundError: No module named openai\nFileNotFoundError: ~/.jettstui/config.yaml'
       },
       type: 'gateway.start_timeout'
     } as any)
@@ -566,10 +566,10 @@ describe('createGatewayEventHandler', () => {
   it('prefers raw text over Rich-rendered ANSI on message.complete (#16391)', () => {
     const appended: Msg[] = []
     const onEvent = createGatewayEventHandler(buildCtx(appended))
-    const raw = 'FreeIDE here.\n\nLine two.'
+    const raw = 'JettsTUI here.\n\nLine two.'
     // Rich-rendered ANSI (`final_response_markdown: render`) used to win,
     // which left visible escape codes in Ink output. Raw text must win.
-    const rendered = '\u001b[33mFreeIDE here.\u001b[0m\n\n\u001b[2mLine two.\u001b[0m'
+    const rendered = '\u001b[33mJettsTUI here.\u001b[0m\n\n\u001b[2mLine two.\u001b[0m'
 
     onEvent({ payload: { rendered, text: raw }, type: 'message.complete' } as any)
 
@@ -755,7 +755,7 @@ describe('createGatewayEventHandler', () => {
     onEvent({
       payload: {
         message:
-          'agent init failed: No LLM provider configured. Run `freeide model` to select a provider, or run `freeide setup` for first-time configuration.'
+          'agent init failed: No LLM provider configured. Run `jettstui model` to select a provider, or run `jettstui setup` for first-time configuration.'
       },
       type: 'error'
     } as any)
@@ -788,12 +788,12 @@ describe('createGatewayEventHandler', () => {
     }
 
     // Dark terminal (clean env): the dark-authored `colors` block wins.
-    vi.stubEnv('FREEIDE_TUI_BACKGROUND', '')
+    vi.stubEnv('JETTSTUI_TUI_BACKGROUND', '')
     createGatewayEventHandler(buildCtx(appended))({ payload: skin, type: 'skin.changed' } as any)
     expect(getUiState().theme.color.primary).toBe('#00FF88')
 
     // Light terminal: the hand-tuned light_colors block wins over adaptation.
-    vi.stubEnv('FREEIDE_TUI_BACKGROUND', '#ffffff')
+    vi.stubEnv('JETTSTUI_TUI_BACKGROUND', '#ffffff')
     createGatewayEventHandler(buildCtx(appended))({ payload: skin, type: 'skin.changed' } as any)
     expect(getUiState().theme.color.primary).toBe('#8B0000')
     vi.unstubAllEnvs()

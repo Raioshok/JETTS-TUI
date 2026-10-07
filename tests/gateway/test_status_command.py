@@ -1,4 +1,4 @@
-from freeide_state import AsyncSessionDB
+from jettstui_state import AsyncSessionDB
 """Tests for gateway /status behavior and token persistence."""
 
 from datetime import datetime
@@ -426,7 +426,7 @@ async def test_first_run_slack_home_channel_onboarding_uses_parent_command(monke
     assert result == "ok"
     runner.adapters[Platform.SLACK].send.assert_awaited_once()
     onboarding = runner.adapters[Platform.SLACK].send.await_args.args[1]
-    assert "/freeide sethome" in onboarding
+    assert "/jettstui sethome" in onboarding
     assert "Type /sethome" not in onboarding
 
 
@@ -605,7 +605,7 @@ async def test_status_command_bypasses_active_session_guard():
 
     async def fake_handler(event):
         handler_called_with.append(event)
-        return "📊 **FreeIDE Gateway Status**\n**Agent Running:** Yes ⚡"
+        return "📊 **JettsTUI Gateway Status**\n**Agent Running:** Yes ⚡"
 
     # Concrete subclass to avoid abstract method errors
     class _ConcreteAdapter(BasePlatformAdapter):
@@ -648,7 +648,7 @@ async def test_status_command_bypasses_active_session_guard():
 
 @pytest.mark.asyncio
 async def test_profile_command_reports_custom_root_profile(monkeypatch, tmp_path):
-    """Gateway /profile detects custom-root profiles (not under ~/.freeide)."""
+    """Gateway /profile detects custom-root profiles (not under ~/.jettstui)."""
     from pathlib import Path
 
     session_entry = SessionEntry(
@@ -662,7 +662,7 @@ async def test_profile_command_reports_custom_root_profile(monkeypatch, tmp_path
     runner = _make_runner(session_entry)
     profile_home = tmp_path / "profiles" / "coder"
 
-    monkeypatch.setenv("FREEIDE_HOME", str(profile_home))
+    monkeypatch.setenv("JETTSTUI_HOME", str(profile_home))
     monkeypatch.setattr(Path, "home", lambda: tmp_path / "unrelated-home")
 
     result = await runner._handle_profile_command(_make_event("/profile"))
@@ -677,8 +677,8 @@ async def test_profile_command_reports_source_stamped_profile(monkeypatch, tmp_p
     source (source.profile — URL prefix / per-credential adapter / room map),
     not the multiplexer's active profile, which is always the default and
     made /profile answer "default" in every persona chat."""
-    freeide_home = tmp_path / ".freeide"
-    profile_home = freeide_home / "profiles" / "milo"
+    jettstui_home = tmp_path / ".jettstui"
+    profile_home = jettstui_home / "profiles" / "milo"
     profile_home.mkdir(parents=True)
 
     session_entry = SessionEntry(
@@ -691,7 +691,7 @@ async def test_profile_command_reports_source_stamped_profile(monkeypatch, tmp_p
     )
     runner = _make_runner(session_entry)
     runner.config.multiplex_profiles = True
-    monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+    monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
     event = _make_event("/profile")
     event.source.profile = "milo"
@@ -708,8 +708,8 @@ async def test_profile_command_ignores_stamp_when_multiplexing_off(monkeypatch, 
     /profile keeps reporting the active profile and the default home,
     mirroring the multiplex gating in ``_run_agent`` and
     ``_reset_notice_session_info``."""
-    freeide_home = tmp_path / ".freeide"
-    profile_home = freeide_home / "profiles" / "milo"
+    jettstui_home = tmp_path / ".jettstui"
+    profile_home = jettstui_home / "profiles" / "milo"
     profile_home.mkdir(parents=True)
 
     session_entry = SessionEntry(
@@ -722,7 +722,7 @@ async def test_profile_command_ignores_stamp_when_multiplexing_off(monkeypatch, 
     )
     runner = _make_runner(session_entry)
     assert runner.config.multiplex_profiles is False
-    monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+    monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
     event = _make_event("/profile")
     event.source.profile = "milo"
@@ -730,15 +730,15 @@ async def test_profile_command_ignores_stamp_when_multiplexing_off(monkeypatch, 
     result = await runner._handle_profile_command(event)
 
     assert "**Profile:** `default`" in result
-    assert f"**Home:** `{freeide_home}`" in result
+    assert f"**Home:** `{jettstui_home}`" in result
 
 
 @pytest.mark.asyncio
 async def test_profile_command_unstamped_source_unchanged(monkeypatch, tmp_path):
     """Single-profile behavior is untouched: an unstamped source reports the
     active profile and the default home."""
-    freeide_home = tmp_path / ".freeide"
-    freeide_home.mkdir()
+    jettstui_home = tmp_path / ".jettstui"
+    jettstui_home.mkdir()
 
     session_entry = SessionEntry(
         session_key=build_session_key(_make_source()),
@@ -749,12 +749,12 @@ async def test_profile_command_unstamped_source_unchanged(monkeypatch, tmp_path)
         chat_type="dm",
     )
     runner = _make_runner(session_entry)
-    monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+    monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
     result = await runner._handle_profile_command(_make_event("/profile"))
 
     assert "**Profile:** `default`" in result
-    assert f"**Home:** `{freeide_home}`" in result
+    assert f"**Home:** `{jettstui_home}`" in result
 
 
 @pytest.mark.asyncio
@@ -762,7 +762,7 @@ async def test_post_delivery_callback_generation_snapshot_happens_after_bind():
     """Regression: the callback_generation snapshot in _process_message_background
     must happen AFTER the handler runs, not before.
 
-    _freeide_run_generation is set on the interrupt event by
+    _jettstui_run_generation is set on the interrupt event by
     GatewayRunner._bind_adapter_run_generation during _handle_message_with_agent.
     The earlier snapshot-at-task-start always captured None, which bypassed the
     generation-ownership check in pop_post_delivery_callback and let stale runs
@@ -790,7 +790,7 @@ async def test_post_delivery_callback_generation_snapshot_happens_after_bind():
     async def fake_handler(event):
         # Simulate what _bind_adapter_run_generation does mid-run.
         interrupt_event = adapter._active_sessions.get(session_key)
-        setattr(interrupt_event, "_freeide_run_generation", 1)
+        setattr(interrupt_event, "_jettstui_run_generation", 1)
         # Stale run registers its callback at generation=1.
         adapter.register_post_delivery_callback(
             session_key,
@@ -1041,7 +1041,7 @@ async def test_context_all_appends_expanded_listings():
     }
     fake_details = {
         "skills": [
-            {"name": "freeide-agent", "index_tokens": 30, "skill_md_tokens": 2_500},
+            {"name": "jettstui", "index_tokens": 30, "skill_md_tokens": 2_500},
         ],
         "toolsets": [
             {"toolset": "terminal", "tool_count": 4, "schema_tokens": 5_100},
@@ -1060,7 +1060,7 @@ async def test_context_all_appends_expanded_listings():
     assert "Toolsets by schema cost" in result
     assert "terminal" in result and "5,100 tokens" in result
     assert "Skills by cost" in result
-    assert "freeide-agent" in result
+    assert "jettstui" in result
     # Expanded view drops the hint
     assert "Use /context all" not in result
 

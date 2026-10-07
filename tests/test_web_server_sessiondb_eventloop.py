@@ -3,7 +3,7 @@ import asyncio
 import threading
 from pathlib import Path
 
-from freeide_cli import web_server
+from jettstui import web_server
 
 
 TARGET_HANDLERS = {

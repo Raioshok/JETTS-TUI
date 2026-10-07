@@ -1,11 +1,11 @@
-"""Agent-construction and session-resume display methods for ``FreeIDECLI``.
+"""Agent-construction and session-resume display methods for ``JettsTUICLI``.
 
 Extracted from ``cli.py`` as part of the god-file decomposition campaign
-(``~/.freeide/plans/god-file-decomposition.md``, Phase 4 step 2). This mixin holds
+(``~/.jettstui/plans/god-file-decomposition.md``, Phase 4 step 2). This mixin holds
 the agent lifecycle/setup cluster: runtime-credential resolution, per-turn agent
 config, first-use agent construction, and resumed-session preload + history recap.
 
-Behavior-neutral: every method is lifted verbatim from ``FreeIDECLI``. ``self.*``
+Behavior-neutral: every method is lifted verbatim from ``JettsTUICLI``. ``self.*``
 calls resolve unchanged via the MRO. Neutral dependencies are imported at module
 top level; ``cli.py``-internal helpers/constants are imported lazily inside each
 method (``from cli import ...`` resolves at call time, when ``cli`` is fully
@@ -20,7 +20,7 @@ from rich.markup import escape as _escape
 
 
 class CLIAgentSetupMixin:
-    """Agent construction + session-resume display methods for ``FreeIDECLI``."""
+    """Agent construction + session-resume display methods for ``JettsTUICLI``."""
 
     def _ensure_runtime_credentials(self) -> bool:
         """
@@ -30,7 +30,7 @@ class CLIAgentSetupMixin:
         Returns True if credentials are ready, False on auth failure.
         """
         from cli import ChatConsole, _cprint, logger
-        from freeide_cli.runtime_provider import (
+        from jettstui.runtime_provider import (
             resolve_runtime_provider,
             format_runtime_provider_error,
         )
@@ -48,7 +48,7 @@ class CLIAgentSetupMixin:
 
         # Primary provider auth failed — try fallback providers before giving up.
         if runtime is None and _primary_exc is not None:
-            from freeide_cli.auth import AuthError
+            from jettstui.auth import AuthError
             if isinstance(_primary_exc, AuthError):
                 _fb_chain = self._fallback_model if isinstance(self._fallback_model, list) else []
                 for _fb in _fb_chain:
@@ -57,7 +57,7 @@ class CLIAgentSetupMixin:
                     if not _fb_provider or not _fb_model:
                         continue
                     try:
-                        from freeide_cli.fallback_config import resolve_entry_api_key
+                        from jettstui.fallback_config import resolve_entry_api_key
 
                         _fb_kwargs = {"requested": _fb_provider}
                         if _fb.get("base_url"):
@@ -112,11 +112,11 @@ class CLIAgentSetupMixin:
                 )
             else:
                 print("\n⚠️  Provider resolver returned an empty API key. "
-                      "Set OPENROUTER_API_KEY or run: freeide setup")
+                      "Set OPENROUTER_API_KEY or run: jettstui setup")
                 return False
         if not isinstance(base_url, str) or not base_url:
             print("\n⚠️  Provider resolver returned an empty base URL. "
-                  "Check your provider config or run: freeide setup")
+                  "Check your provider config or run: jettstui setup")
             return False
 
         credentials_changed = api_key != self.api_key or base_url != self.base_url
@@ -137,7 +137,7 @@ class CLIAgentSetupMixin:
 
         # When a custom_provider entry carries an explicit `model` field,
         # use it as the effective model name.  Without this, running
-        # `freeide chat --model <provider-name>` sends the provider name
+        # `jettstui chat --model <provider-name>` sends the provider name
         # (e.g. "my-provider") as the model string to the API instead of
         # the configured model (e.g. "qwen3.6-plus"), causing 400 errors.
         runtime_model = runtime.get("model")
@@ -151,12 +151,12 @@ class CLIAgentSetupMixin:
             if should_use_runtime_model:
                 self.model = runtime_model
 
-        # If model is still empty (e.g. user ran `freeide auth add openai-codex`
-        # without `freeide model`), fall back to the provider's first catalog
+        # If model is still empty (e.g. user ran `jettstui auth add openai-codex`
+        # without `jettstui model`), fall back to the provider's first catalog
         # model so the API call doesn't fail with "model must be non-empty".
         if not self.model and resolved_provider:
             try:
-                from freeide_cli.models import get_default_model_for_provider
+                from jettstui.models import get_default_model_for_provider
                 _default = get_default_model_for_provider(resolved_provider)
                 if _default:
                     self.model = _default
@@ -187,7 +187,7 @@ class CLIAgentSetupMixin:
         Processing / Anthropic fast mode, attach `request_overrides` so the
         API call is marked accordingly.
         """
-        from freeide_cli.models import resolve_fast_mode_overrides
+        from jettstui.models import resolve_fast_mode_overrides
 
         runtime = {
             "api_key": self.api_key,
@@ -246,14 +246,14 @@ class CLIAgentSetupMixin:
         if not self._ensure_runtime_credentials():
             return False
 
-        from freeide_cli.mcp_startup import wait_for_mcp_discovery
+        from jettstui.mcp_startup import wait_for_mcp_discovery
 
         wait_for_mcp_discovery()
 
         # Initialize SQLite session store for CLI sessions (if not already done in __init__)
         if self._session_db is None:
             try:
-                from freeide_state import SessionDB
+                from jettstui_state import SessionDB
                 self._session_db = SessionDB()
             except Exception as e:
                 logger.warning("SQLite session store not available — session will NOT be indexed: %s", e)
@@ -264,10 +264,10 @@ class CLIAgentSetupMixin:
         # is non-empty and we skip the DB round-trip.
         if self._resumed and self._session_db and not self.conversation_history:
             session_meta = self._session_db.get_session(self.session_id)
-            # In quiet mode (`freeide chat -Q` / --quiet, surfaced via
+            # In quiet mode (`jettstui chat -Q` / --quiet, surfaced via
             # tool_progress_mode == "off"), resume status lines go to stderr
             # so stdout stays machine-readable for automation wrappers that
-            # do `$(freeide chat -Q --resume <id> -q "...")`. Without this,
+            # do `$(jettstui chat -Q --resume <id> -q "...")`. Without this,
             # the resume banner pollutes captured stdout. See #11793.
             _quiet_mode = getattr(self, "tool_progress_mode", "full") == "off"
             if not session_meta:
@@ -474,7 +474,7 @@ class CLIAgentSetupMixin:
             )
             self._console_print(
                 "[dim]Use a session ID from a previous CLI run "
-                "(freeide sessions list).[/]"
+                "(jettstui sessions list).[/]"
             )
             return False
 
@@ -675,7 +675,7 @@ class CLIAgentSetupMixin:
         from rich.text import Text
 
         try:
-            from freeide_cli.skin_engine import get_active_skin
+            from jettstui.skin_engine import get_active_skin
             _skin = get_active_skin()
             _history_text_c = _skin.get_color("banner_text", "#FFF8DC")
             _session_label_c = _skin.get_color("session_label", "#DAA520")
@@ -706,13 +706,13 @@ class CLIAgentSetupMixin:
                     lines.append(f"         {ml}\n", style="dim")
             elif role == "assistant_last":
                 # Last assistant response shown in full, non-dim
-                lines.append("  ◆ Jetts-TUI: ", style=f"bold {_assistant_label_c}")
+                lines.append("  ◆ JettsTUI: ", style=f"bold {_assistant_label_c}")
                 msg_lines = text.splitlines()
                 lines.append(msg_lines[0] + "\n", style="")
                 for ml in msg_lines[1:]:
                     lines.append(f"            {ml}\n", style="")
             else:
-                lines.append("  ◆ Jetts-TUI: ", style=f"dim bold {_assistant_label_c}")
+                lines.append("  ◆ JettsTUI: ", style=f"dim bold {_assistant_label_c}")
                 msg_lines = text.splitlines()
                 lines.append(msg_lines[0] + "\n", style="dim")
                 for ml in msg_lines[1:]:

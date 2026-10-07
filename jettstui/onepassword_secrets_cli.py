@@ -1,4 +1,4 @@
-"""CLI handlers for ``freeide secrets onepassword ...``.
+"""CLI handlers for ``jettstui secrets onepassword ...``.
 
 Subcommands:
     setup    — verify the op CLI, set account / token env var, enable
@@ -9,7 +9,7 @@ Subcommands:
     disable  — flip ``secrets.onepassword.enabled`` to False
 
 Unlike Bitwarden, the ``op`` binary is NOT auto-installed: 1Password publishes
-the CLI through OS package managers and signed installers, so FreeIDE expects
+the CLI through OS package managers and signed installers, so JettsTUI expects
 an already-installed, already-authenticated ``op`` and never downloads one.
 """
 
@@ -27,20 +27,20 @@ from rich.panel import Panel
 from rich.table import Table
 
 from agent.secret_sources import onepassword as op_src
-from freeide_cli.config import (
+from jettstui.config import (
     get_env_path,
     load_config,
     save_config,
     save_env_value,
 )
-from freeide_cli.secret_prompt import masked_secret_prompt
+from jettstui.secret_prompt import masked_secret_prompt
 
 _DEFAULT_TOKEN_ENV = "OP_SERVICE_ACCOUNT_TOKEN"
 _DOCS_URL = "https://developer.1password.com/docs/cli/get-started/"
 
 
 # ---------------------------------------------------------------------------
-# Argparse wiring — called from freeide_cli.main
+# Argparse wiring — called from jettstui.main
 # ---------------------------------------------------------------------------
 
 
@@ -119,7 +119,7 @@ def cmd_setup(args: argparse.Namespace) -> int:
     console.print(
         Panel.fit(
             "[bold]1Password secret source setup[/bold]\n\n"
-            "FreeIDE resolves [cyan]op://vault/item/field[/cyan] references through your\n"
+            "JettsTUI resolves [cyan]op://vault/item/field[/cyan] references through your\n"
             "already-installed, already-authenticated 1Password CLI (`op`).\n\n"
             f"Don't have it yet? Install + sign in: [cyan]{_DOCS_URL}[/cyan]",
             border_style="cyan",
@@ -187,10 +187,10 @@ def cmd_setup(args: argparse.Namespace) -> int:
     console.print()
     console.print("[green]✓ 1Password secret source is enabled.[/green]")
     console.print(
-        "  Map credentials:  [cyan]freeide secrets onepassword set OPENAI_API_KEY "
+        "  Map credentials:  [cyan]jettstui secrets onepassword set OPENAI_API_KEY "
         "\"op://Private/OpenAI/api key\"[/cyan]\n"
-        "  Preview:          [cyan]freeide secrets onepassword sync[/cyan]\n"
-        "  Status:           [cyan]freeide secrets onepassword status[/cyan]"
+        "  Preview:          [cyan]jettstui secrets onepassword sync[/cyan]\n"
+        "  Status:           [cyan]jettstui secrets onepassword status[/cyan]"
     )
     return 0
 
@@ -235,7 +235,7 @@ def cmd_status(args: argparse.Namespace) -> int:
         console.print(ref_table)
 
     if not enabled:
-        console.print("\n  Run [cyan]freeide secrets onepassword setup[/cyan] to enable.")
+        console.print("\n  Run [cyan]jettstui secrets onepassword setup[/cyan] to enable.")
         return 0
     if binary and not token_set:
         who = _op_whoami(binary, account)
@@ -244,12 +244,12 @@ def cmd_status(args: argparse.Namespace) -> int:
         else:
             console.print(
                 f"\n  [yellow]No active op session and {token_env} is unset — "
-                "FreeIDE will warn and skip 1Password on next startup.[/yellow]"
+                "JettsTUI will warn and skip 1Password on next startup.[/yellow]"
             )
     if not references:
         console.print(
             "\n  [yellow]No references mapped yet.[/yellow]  Add one: "
-            "[cyan]freeide secrets onepassword set ENV_VAR \"op://…\"[/cyan]"
+            "[cyan]jettstui secrets onepassword set ENV_VAR \"op://…\"[/cyan]"
         )
     return 0
 
@@ -280,7 +280,7 @@ def cmd_set(args: argparse.Namespace) -> int:
     if not op_cfg.get("enabled"):
         console.print(
             "  [yellow]Note: the integration is disabled — run "
-            "[cyan]freeide secrets onepassword setup[/cyan] to turn it on.[/yellow]"
+            "[cyan]jettstui secrets onepassword setup[/cyan] to turn it on.[/yellow]"
         )
     return 0
 
@@ -351,12 +351,12 @@ def cmd_token(args: argparse.Namespace) -> int:
     op_src.clear_caches()
     console.print(
         f"[green]✓[/green] stored in {get_env_path()} as {token_env}.  "
-        "Takes effect on the next FreeIDE invocation."
+        "Takes effect on the next JettsTUI invocation."
     )
     if not op_cfg.get("enabled"):
         console.print(
             "[yellow]Note: the 1Password integration is currently disabled — "
-            "run `freeide secrets onepassword setup` to turn it on.[/yellow]"
+            "run `jettstui secrets onepassword setup` to turn it on.[/yellow]"
         )
     return 0
 
@@ -368,7 +368,7 @@ def cmd_sync(args: argparse.Namespace) -> int:
     if not op_cfg.get("enabled"):
         console.print(
             "[yellow]1Password integration is disabled.  Run "
-            "`freeide secrets onepassword setup` first.[/yellow]"
+            "`jettstui secrets onepassword setup` first.[/yellow]"
         )
         return 1
 
@@ -376,7 +376,7 @@ def cmd_sync(args: argparse.Namespace) -> int:
     if not references:
         console.print(
             "[yellow]No op:// references configured.  Add one with "
-            "`freeide secrets onepassword set ENV_VAR \"op://…\"`.[/yellow]"
+            "`jettstui secrets onepassword set ENV_VAR \"op://…\"`.[/yellow]"
         )
         return 0
 
@@ -450,7 +450,7 @@ def cmd_sync(args: argparse.Namespace) -> int:
         console.print(f"[yellow]warning:[/yellow] {w}")
     console.print(
         "\n  This was a dry-run — references resolve automatically on the next "
-        "[cyan]freeide[/cyan] invocation.  Re-run with [cyan]--apply[/cyan] to export "
+        "[cyan]jettstui[/cyan] invocation.  Re-run with [cyan]--apply[/cyan] to export "
         "into the current shell instead."
     )
     return 0
@@ -464,9 +464,9 @@ def cmd_disable(args: argparse.Namespace) -> int:
     save_config(cfg)
     console.print(
         "[green]Disabled.[/green]  1Password references will NOT be resolved on the "
-        "next FreeIDE invocation.\n"
+        "next JettsTUI invocation.\n"
         "  Your reference mappings are left in config.yaml — remove them with "
-        "[cyan]freeide secrets onepassword remove ENV_VAR[/cyan] if you no longer "
+        "[cyan]jettstui secrets onepassword remove ENV_VAR[/cyan] if you no longer "
         "need them."
     )
     return 0

@@ -8,7 +8,7 @@ import type { DashboardTheme, ThemeTypography, ThemeLayout } from "./types";
  * corner-radius all shift to match the theme's personality.
  *
  * Theme names must stay in sync with the backend's
- * `_BUILTIN_DASHBOARD_THEMES` list in `freeide_cli/web_server.py`.
+ * `_BUILTIN_DASHBOARD_THEMES` list in `jettstui/web_server.py`.
  */
 
 // ---------------------------------------------------------------------------
@@ -41,7 +41,7 @@ const DEFAULT_LAYOUT: ThemeLayout = {
 export const defaultTheme: DashboardTheme = {
   name: "default",
   label: "Jetts Teal",
-  description: "Classic dark teal Jetts-TUI theme",
+  description: "Classic dark teal JettsTUI theme",
   palette: {
     background: { hex: "#041c1c", alpha: 1 },
     midground: { hex: "#ffe6cb", alpha: 1 },

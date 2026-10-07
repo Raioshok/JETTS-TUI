@@ -14,7 +14,7 @@ import {
   selectToolsetModel,
   selectToolsetProvider,
   setEnvVar
-} from '@/freeide'
+} from '@/jettstui'
 import { useI18n } from '@/i18n'
 import { Check, Loader2, Save, Terminal } from '@/lib/icons'
 import { cn } from '@/lib/utils'
@@ -27,7 +27,7 @@ import type {
   ToolProviderStatus,
   ToolsetConfig,
   ToolsetModelsResponse
-} from '@/types/freeide'
+} from '@/types/jettstui'
 
 import { EnvVarActionsMenu, EnvVarActionsTrigger, EnvVarContextMenu } from './env-var-actions-menu'
 import { Pill } from './primitives'
@@ -54,7 +54,7 @@ function providerConfigured(provider: ToolProvider, envState: Record<string, boo
 
 /**
  * Resolve the readiness pill state for a provider row. Prefers the honest
- * server-computed `status` (keys ∧ FreeIDE entitlement ∧ post-setup install
+ * server-computed `status` (keys ∧ JettsTUI entitlement ∧ post-setup install
  * state). Older backends don't send `status` — fall back to the legacy
  * env-var heuristic, mapped onto the same state space (`ready` /
  * `needs_keys`), so the pill still renders against an outdated runtime.
@@ -229,7 +229,7 @@ interface PostSetupRunnerProps {
 /**
  * Runs a provider's post-setup install hook (npm / pip / binary) via the
  * `/api/tools/toolsets/{name}/post-setup` spawn-action and tails the resulting
- * log inline — the GUI equivalent of the install step `freeide tools` runs
+ * log inline — the GUI equivalent of the install step `jettstui tools` runs
  * after you pick a backend that needs extra dependencies.
  *
  * Idempotent UX: when the backend's readiness status says the install is
@@ -365,7 +365,7 @@ interface ModelCatalogPickerProps {
 }
 
 /**
- * Backend model catalog — the GUI counterpart of the model picker `freeide
+ * Backend model catalog — the GUI counterpart of the model picker `jettstui
  * tools` runs after you choose an image/video generation backend (e.g. FAL's
  * multi-model catalog). Renders speed / strengths / price per model as a
  * radio-card list and persists the choice to `image_gen.model` /

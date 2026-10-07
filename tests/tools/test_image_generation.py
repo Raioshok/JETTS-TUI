@@ -258,7 +258,7 @@ class TestDefaults:
 
 class TestGptQualityPinnedToMedium:
     """GPT-Image quality is baked into the FAL_MODELS defaults at 'medium'
-    and cannot be overridden via config. Pinning keeps FreeIDE Portal billing
+    and cannot be overridden via config. Pinning keeps JettsTUI Portal billing
     predictable across all users."""
 
     def test_gpt_payload_always_has_medium_quality(self, image_tool):
@@ -268,7 +268,7 @@ class TestGptQualityPinnedToMedium:
     def test_config_quality_setting_is_ignored(self, image_tool):
         """Even if a user manually edits config.yaml and adds quality_setting,
         the payload must still use medium. No code path reads that field."""
-        with patch("freeide_cli.config.load_config",
+        with patch("jettstui.config.load_config",
                    return_value={"image_gen": {"quality_setting": "high"}}):
             p = image_tool._build_fal_payload("fal-ai/gpt-image-1.5", "hi", "square")
         assert p["quality"] == "medium"
@@ -307,32 +307,32 @@ class TestGptQualityPinnedToMedium:
 class TestModelResolution:
 
     def test_no_config_falls_back_to_default(self, image_tool):
-        with patch("freeide_cli.config.load_config", return_value={}):
+        with patch("jettstui.config.load_config", return_value={}):
             mid, meta = image_tool._resolve_fal_model()
         assert mid == "fal-ai/flux-2/klein/9b"
 
     def test_valid_config_model_is_used(self, image_tool):
-        with patch("freeide_cli.config.load_config",
+        with patch("jettstui.config.load_config",
                    return_value={"image_gen": {"model": "fal-ai/flux-2-pro"}}):
             mid, meta = image_tool._resolve_fal_model()
         assert mid == "fal-ai/flux-2-pro"
         assert meta["upscale"] is True  # flux-2-pro keeps backward-compat upscaling
 
     def test_unknown_model_falls_back_to_default_with_warning(self, image_tool, caplog):
-        with patch("freeide_cli.config.load_config",
+        with patch("jettstui.config.load_config",
                    return_value={"image_gen": {"model": "fal-ai/nonexistent-9000"}}):
             mid, _ = image_tool._resolve_fal_model()
         assert mid == "fal-ai/flux-2/klein/9b"
 
     def test_env_var_fallback_when_no_config(self, image_tool, monkeypatch):
         monkeypatch.setenv("FAL_IMAGE_MODEL", "fal-ai/z-image/turbo")
-        with patch("freeide_cli.config.load_config", return_value={}):
+        with patch("jettstui.config.load_config", return_value={}):
             mid, _ = image_tool._resolve_fal_model()
         assert mid == "fal-ai/z-image/turbo"
 
     def test_config_wins_over_env_var(self, image_tool, monkeypatch):
         monkeypatch.setenv("FAL_IMAGE_MODEL", "fal-ai/z-image/turbo")
-        with patch("freeide_cli.config.load_config",
+        with patch("jettstui.config.load_config",
                    return_value={"image_gen": {"model": "fal-ai/nano-banana-pro"}}):
             mid, _ = image_tool._resolve_fal_model()
         assert mid == "fal-ai/nano-banana-pro"
@@ -502,7 +502,7 @@ class TestNativeKreaRouting:
             "agent.image_gen_registry.get_provider", lambda name: fake_provider
         )
         monkeypatch.setattr(
-            "freeide_cli.plugins._ensure_plugins_discovered", lambda *a, **k: None
+            "jettstui.plugins._ensure_plugins_discovered", lambda *a, **k: None
         )
 
         out = image_tool._maybe_route_native_krea("a cat", "portrait")
@@ -519,7 +519,7 @@ class TestNativeKreaRouting:
         monkeypatch.setattr(image_tool, "_read_configured_image_provider", lambda: None)
         monkeypatch.setattr(image_tool, "_read_configured_image_model", lambda: "krea-2-medium")
         monkeypatch.setattr("agent.image_gen_registry.get_provider", lambda name: None)
-        monkeypatch.setattr("freeide_cli.plugins._ensure_plugins_discovered", lambda *a, **k: None)
+        monkeypatch.setattr("jettstui.plugins._ensure_plugins_discovered", lambda *a, **k: None)
         result = _json.loads(image_tool._maybe_route_native_krea("a cat", "square"))
         assert result["success"] is False
         assert result["error_type"] == "provider_not_registered"

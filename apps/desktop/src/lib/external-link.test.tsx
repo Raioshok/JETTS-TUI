@@ -12,15 +12,15 @@ import {
   urlSlugTitleLabel
 } from './external-link'
 
-const desktopWindow = window as unknown as { freeideDesktop?: Window['freeideDesktop'] }
-const initialFreeIDEDesktop = desktopWindow.freeideDesktop
+const desktopWindow = window as unknown as { jettstuiDesktop?: Window['jettstuiDesktop'] }
+const initialJettsTUIDesktop = desktopWindow.jettstuiDesktop
 
-function installDesktopBridge(partial: Partial<Window['freeideDesktop']> = {}) {
-  desktopWindow.freeideDesktop = {
+function installDesktopBridge(partial: Partial<Window['jettstuiDesktop']> = {}) {
+  desktopWindow.jettstuiDesktop = {
     fetchLinkTitle: vi.fn().mockResolvedValue(''),
     openExternal: vi.fn().mockResolvedValue(undefined),
     ...partial
-  } as unknown as Window['freeideDesktop']
+  } as unknown as Window['jettstuiDesktop']
 }
 
 const FORGEJO_URL = 'https://forgejo.home.example/homelab/homelab-ops/issues/101'
@@ -28,7 +28,7 @@ const FORGEJO_URL = 'https://forgejo.home.example/homelab/homelab-ops/issues/101
 function installTitleBridge(title: string) {
   const bridge = vi.fn().mockResolvedValue(title)
 
-  installDesktopBridge({ fetchLinkTitle: bridge as unknown as Window['freeideDesktop']['fetchLinkTitle'] })
+  installDesktopBridge({ fetchLinkTitle: bridge as unknown as Window['jettstuiDesktop']['fetchLinkTitle'] })
 
   return bridge
 }
@@ -38,10 +38,10 @@ afterEach(() => {
   vi.restoreAllMocks()
   cleanup()
 
-  if (initialFreeIDEDesktop) {
-    desktopWindow.freeideDesktop = initialFreeIDEDesktop
+  if (initialJettsTUIDesktop) {
+    desktopWindow.jettstuiDesktop = initialJettsTUIDesktop
   } else {
-    delete desktopWindow.freeideDesktop
+    delete desktopWindow.jettstuiDesktop
   }
 })
 
@@ -71,7 +71,7 @@ describe('external link helpers', () => {
 
   it('deduplicates in-flight title fetches and caches results', async () => {
     const bridge = vi.fn().mockResolvedValue('El Yunque Tour Water Slide, Rope Swing & Pickup')
-    installDesktopBridge({ fetchLinkTitle: bridge as unknown as Window['freeideDesktop']['fetchLinkTitle'] })
+    installDesktopBridge({ fetchLinkTitle: bridge as unknown as Window['jettstuiDesktop']['fetchLinkTitle'] })
 
     const url =
       'https://www.expedia.com/things-to-do/puerto-rico-el-yunque-rainforest-adventure-with-transport.a46272756.activity-details'
@@ -90,7 +90,7 @@ describe('external link helpers', () => {
 
   it('shares cache across protocol/www URL variants', async () => {
     const bridge = vi.fn().mockResolvedValue('Shared Canonical Title')
-    installDesktopBridge({ fetchLinkTitle: bridge as unknown as Window['freeideDesktop']['fetchLinkTitle'] })
+    installDesktopBridge({ fetchLinkTitle: bridge as unknown as Window['jettstuiDesktop']['fetchLinkTitle'] })
 
     const first = 'https://www.getyourguide.com/san-juan-puerto-rico-l355/sunset-tours-tc306/'
     const second = 'http://getyourguide.com/san-juan-puerto-rico-l355/sunset-tours-tc306/'
@@ -104,7 +104,7 @@ describe('external link helpers', () => {
 
   it('opens links via the desktop bridge', () => {
     const openExternal = vi.fn().mockResolvedValue(undefined)
-    installDesktopBridge({ openExternal: openExternal as unknown as Window['freeideDesktop']['openExternal'] })
+    installDesktopBridge({ openExternal: openExternal as unknown as Window['jettstuiDesktop']['openExternal'] })
 
     render(<ExternalLink href="https://example.com/path/to/resource">Example link</ExternalLink>)
 
@@ -136,7 +136,7 @@ describe('external link helpers', () => {
 
   it('renders pretty links with fetched titles and no host suffix', async () => {
     const bridge = vi.fn().mockResolvedValue('From Fajardo: Full-Day Culebra Islands Catamaran Tour')
-    installDesktopBridge({ fetchLinkTitle: bridge as unknown as Window['freeideDesktop']['fetchLinkTitle'] })
+    installDesktopBridge({ fetchLinkTitle: bridge as unknown as Window['jettstuiDesktop']['fetchLinkTitle'] })
 
     const url =
       'https://www.getyourguide.com/culebra-island-l145468/from-fajardo-full-day-cordillera-islands-catamaran-tour-t19894/'
@@ -165,7 +165,7 @@ describe('external link helpers', () => {
 
   it('ignores error-like fetched titles and falls back to slug label', async () => {
     const bridge = vi.fn().mockResolvedValue('GetYourGuide – Error')
-    installDesktopBridge({ fetchLinkTitle: bridge as unknown as Window['freeideDesktop']['fetchLinkTitle'] })
+    installDesktopBridge({ fetchLinkTitle: bridge as unknown as Window['jettstuiDesktop']['fetchLinkTitle'] })
 
     const url =
       'https://www.getyourguide.com/culebra-island-l145468/from-fajardo-full-day-cordillera-islands-catamaran-tour-t19894/'
@@ -252,7 +252,7 @@ describe('external link helpers', () => {
   it('prefixes a pretty link to a known host with its brand glyph', () => {
     installDesktopBridge()
 
-    const url = 'https://github.com/freeide/freeide/pull/123'
+    const url = 'https://github.com/Raioshok/JETTS-TUI/pull/123'
 
     render(<PrettyLink fallbackLabel="#123" href={url} />)
 

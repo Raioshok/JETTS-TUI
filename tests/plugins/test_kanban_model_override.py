@@ -17,7 +17,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from freeide_cli import kanban_db as kb
+from jettstui import kanban_db as kb
 
 
 # ---------------------------------------------------------------------------
@@ -27,9 +27,9 @@ from freeide_cli import kanban_db as kb
 
 @pytest.fixture
 def kanban_home(tmp_path, monkeypatch):
-    home = tmp_path / ".freeide"
+    home = tmp_path / ".jettstui"
     home.mkdir()
-    monkeypatch.setenv("FREEIDE_HOME", str(home))
+    monkeypatch.setenv("JETTSTUI_HOME", str(home))
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
     kb.init_db()
     return home
@@ -47,7 +47,7 @@ def _load_plugin_router():
     plugin_file = repo_root / "plugins" / "kanban" / "dashboard" / "plugin_api.py"
     assert plugin_file.exists(), f"plugin file missing: {plugin_file}"
     spec = importlib.util.spec_from_file_location(
-        "freeide_dashboard_plugin_kanban_model_override_test", plugin_file,
+        "jettstui_dashboard_plugin_kanban_model_override_test", plugin_file,
     )
     assert spec is not None and spec.loader is not None
     mod = importlib.util.module_from_spec(spec)
@@ -153,7 +153,7 @@ def test_migration_adds_provider_override_column(conn):
 
 
 def _spawn_and_capture(monkeypatch, tmp_path, task):
-    monkeypatch.setattr(kb, "_resolve_freeide_argv", lambda: ["freeide"])
+    monkeypatch.setattr(kb, "_resolve_jettstui_argv", lambda: ["jettstui"])
     captured = {}
 
     class FakeProc:

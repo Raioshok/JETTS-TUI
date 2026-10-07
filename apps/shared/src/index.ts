@@ -46,7 +46,7 @@ export {
 } from './json-rpc-gateway'
 export { skillInvocationText } from './skill-scaffold'
 export {
-  type FreeIDESkin,
+  type JettsTUISkin,
   SKIN_BRANDING_TOKENS,
   SKIN_COLOR_TOKENS,
   type SkinBranding,
@@ -55,8 +55,8 @@ export {
   type SkinColorToken
 } from './skin'
 export {
-  buildFreeIDEWebSocketUrl,
-  type FreeIDEWebSocketUrlOptions,
+  buildJettsTUIWebSocketUrl,
+  type JettsTUIWebSocketUrlOptions,
   type GatewayAuthMode,
   GatewayReauthRequiredError,
   type GatewayWsConnection,

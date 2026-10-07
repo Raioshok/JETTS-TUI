@@ -3,24 +3,24 @@ label: IRC
 kind: platform
 version: 1.0.0
 description: >
-  IRC gateway adapter for FreeIDE Agent.
+  IRC gateway adapter for JettsTUI.
   Connects to an IRC server and relays messages between an IRC channel
-  (or DMs) and the FreeIDE agent.  No external dependencies — uses
+  (or DMs) and the JettsTUI agent.  No external dependencies — uses
   Python's stdlib asyncio for the IRC protocol.
-author: FreeIDE
-# ``requires_env`` entries are surfaced in ``freeide config`` UI via the
-# platform-plugin env var injector in ``freeide_cli/config.py``.
+author: JettsTUI
+# ``requires_env`` entries are surfaced in ``jettstui config`` UI via the
+# platform-plugin env var injector in ``jettstui/config.py``.
 requires_env:
   - name: IRC_SERVER
     description: "IRC server hostname (e.g. irc.libera.chat)"
     prompt: "IRC server"
     password: false
   - name: IRC_CHANNEL
-    description: "Channel to join (e.g. #freeide — comma-separate for multiple)"
+    description: "Channel to join (e.g. #jettstui — comma-separate for multiple)"
     prompt: "IRC channel"
     password: false
   - name: IRC_NICKNAME
-    description: "Bot nickname on IRC (default: freeide-bot)"
+    description: "Bot nickname on IRC (default: jettstui-bot)"
     prompt: "Bot nickname"
     password: false
 optional_env:

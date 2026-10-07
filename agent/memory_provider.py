@@ -28,7 +28,7 @@ Optional hooks (override to opt in):
   on_pre_compress(messages) -> str       — extract before context compression
   on_memory_write(action, target, content, metadata=None) — mirror built-in memory writes
   on_delegation(task, result, **kwargs)  — parent-side observation of subagent work
-  backup_paths() -> list[str]            — extra on-disk paths to include in `freeide backup`
+  backup_paths() -> list[str]            — extra on-disk paths to include in `jettstui backup`
 """
 
 from __future__ import annotations
@@ -66,8 +66,8 @@ class MemoryProvider(ABC):
         establish connections, start background threads, etc.
 
         kwargs always include:
-          - freeide_home (str): The active FREEIDE_HOME directory path. Use this
-            for profile-scoped storage instead of hardcoding ``~/.freeide``.
+          - jettstui_home (str): The active JETTSTUI_HOME directory path. Use this
+            for profile-scoped storage instead of hardcoding ``~/.jettstui``.
           - platform (str): "cli", "telegram", "discord", "cron", etc.
 
         kwargs may also include:
@@ -76,7 +76,7 @@ class MemoryProvider(ABC):
             prompts would corrupt user representations).
           - agent_identity (str): Profile name (e.g. "coder"). Use for
             per-profile provider identity scoping.
-          - agent_workspace (str): Shared workspace name (e.g. "freeide").
+          - agent_workspace (str): Shared workspace name (e.g. "jettstui").
           - parent_session_id (str): For subagents, the parent's session_id.
           - user_id (str): Platform user identifier (gateway sessions).
           - user_id_alt (str): Optional alternate stable platform user identifier.
@@ -245,7 +245,7 @@ class MemoryProvider(ABC):
     def get_config_schema(self) -> List[Dict[str, Any]]:
         """Return config fields this provider needs for setup.
 
-        Used by 'freeide memory setup' to walk the user through configuration.
+        Used by 'jettstui memory setup' to walk the user through configuration.
         Each field is a dict with:
           key:         config key name (e.g. 'api_key', 'mode')
           description: human-readable description
@@ -260,12 +260,12 @@ class MemoryProvider(ABC):
         """
         return []
 
-    def save_config(self, values: Dict[str, Any], freeide_home: str) -> None:
+    def save_config(self, values: Dict[str, Any], jettstui_home: str) -> None:
         """Write non-secret config to the provider's native location.
 
-        Called by 'freeide memory setup' after collecting user inputs.
+        Called by 'jettstui memory setup' after collecting user inputs.
         ``values`` contains only non-secret fields (secrets go to .env).
-        ``freeide_home`` is the active FREEIDE_HOME directory path.
+        ``jettstui_home`` is the active JETTSTUI_HOME directory path.
 
         Providers with native config files (JSON, YAML) should override
         this to write to their expected location. Providers that use only
@@ -297,16 +297,16 @@ class MemoryProvider(ABC):
         """
 
     def backup_paths(self) -> List[str]:
-        """Return extra on-disk paths this provider stores OUTSIDE FREEIDE_HOME.
+        """Return extra on-disk paths this provider stores OUTSIDE JETTSTUI_HOME.
 
-        ``freeide backup`` only walks FREEIDE_HOME, so any provider state kept
+        ``jettstui backup`` only walks JETTSTUI_HOME, so any provider state kept
         under ``~/.honcho``, ``~/.hindsight``, ``~/.openviking``, etc. is lost
         across a backup/import cycle unless it's declared here.
 
         Return a list of absolute path strings (files or directories). The
         backup command resolves each, captures the ones that exist and live
         under the user's home directory into a reserved ``_external/`` subtree
-        of the archive, and ``freeide import`` restores them to their original
+        of the archive, and ``jettstui import`` restores them to their original
         locations. Paths outside the home directory are skipped for safety.
 
         MUST be callable without ``initialize()`` and without network — resolve

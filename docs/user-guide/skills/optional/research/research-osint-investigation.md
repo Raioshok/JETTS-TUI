@@ -14,10 +14,10 @@ Follow the money via public records and sanctions data.
 
 | | |
 |---|---|
-| Source | Optional — install with `freeide skills install official/research/osint-investigation` |
+| Source | Optional — install with `jettstui skills install official/research/osint-investigation` |
 | Path | `optional-skills/research/osint-investigation` |
 | Version | `0.1.0` |
-| Author | FreeIDE Agent (adapted from ShinMegamiBoson/OpenPlanter, MIT) |
+| Author | JettsTUI (adapted from ShinMegamiBoson/OpenPlanter, MIT) |
 | Platforms | linux, macos, windows |
 | Tags | `osint`, `investigation`, `public-records`, `sec`, `sanctions`, `corporate-registry`, `property`, `courts`, `due-diligence`, `journalism` |
 | Related skills | [`domain-intel`](./research-domain-intel.md), [`arxiv`](../../bundled/research/research-arxiv.md) |
@@ -25,7 +25,7 @@ Follow the money via public records and sanctions data.
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that FreeIDE loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that JettsTUI loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # OSINT Investigation — Public Records Cross-Reference
@@ -132,7 +132,7 @@ python3 SKILL_DIR/scripts/fetch_ofac_sdn.py --out data/ofac_sdn.csv
 
 # ICIJ Offshore Leaks — downloads ~70 MB bulk CSV on first use,
 # then searches it locally. Cached for 30 days under
-# $FREEIDE_OSINT_CACHE/icij/ (default: ~/.cache/freeide-osint/icij/).
+# $JETTSTUI_OSINT_CACHE/icij/ (default: ~/.cache/jettstui-osint/icij/).
 python3 SKILL_DIR/scripts/fetch_icij_offshore.py --entity "EXAMPLE CORP" \
     --out data/icij.csv
 ```
@@ -160,7 +160,7 @@ python3 SKILL_DIR/scripts/fetch_wayback.py --url "example.com" \
     --match host --collapse digest --out data/wayback.csv
 
 # Wikipedia + Wikidata — narrative bio + structured facts
-# Set FREEIDE_OSINT_UA=your-app/1.0 (your@email) to identify yourself
+# Set JETTSTUI_OSINT_UA=your-app/1.0 (your@email) to identify yourself
 python3 SKILL_DIR/scripts/fetch_wikipedia.py --query "Bill Gates" \
     --out data/wp.csv
 

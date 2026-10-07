@@ -1,12 +1,12 @@
 ---
 sidebar_position: 5
 title: "Prompt Assembly"
-description: "How FreeIDE builds the system prompt, preserves cache stability, and injects ephemeral layers"
+description: "How JettsTUI builds the system prompt, preserves cache stability, and injects ephemeral layers"
 ---
 
 # Prompt Assembly
 
-FreeIDE deliberately separates:
+JettsTUI deliberately separates:
 
 - **cached system prompt state**
 - **ephemeral API-call-time additions**
@@ -29,7 +29,7 @@ Primary files:
 The cached system prompt is assembled as three ordered tiers (see `agent/system_prompt.py`):
 
 1. **stable** — identity (`SOUL.md` or fallback), tool/model guidance, skills prompt, environment hints, platform hints
-2. **context** — caller-supplied `system_message` plus project context files (`.freeide.md` / `AGENTS.md` / `CLAUDE.md` / `.cursorrules`)
+2. **context** — caller-supplied `system_message` plus project context files (`.jettstui.md` / `AGENTS.md` / `CLAUDE.md` / `.cursorrules`)
 3. **volatile** — built-in memory snapshot (`MEMORY.md`), user profile snapshot (`USER.md`), external memory-provider block, timestamp/session/model/provider line
 
 The final system prompt is then joined as: `stable` → `context` → `volatile`.
@@ -46,8 +46,8 @@ When `skip_context_files` is set (e.g., subagent delegation), SOUL.md is not loa
 Here is a simplified view of what the final system prompt looks like when all layers are present (comments show the source of each section):
 
 ```
-# Layer 1: Agent Identity (from ~/.freeide/SOUL.md)
-You are FreeIDE, an AI assistant created by FreeIDE.
+# Layer 1: Agent Identity (from ~/.jettstui/SOUL.md)
+You are JettsTUI, an AI assistant created by JettsTUI.
 You are an expert software engineer and researcher.
 You value correctness, clarity, and efficiency.
 ...
@@ -118,7 +118,7 @@ renderable inside a terminal.
 
 ## Customizing platform hints
 
-The platform hint (Layer 10 above) is the per-surface guidance FreeIDE
+The platform hint (Layer 10 above) is the per-surface guidance JettsTUI
 injects for Telegram, WhatsApp, Slack, CLI, and other platforms — for
 example "you are on a terminal, avoid Markdown." The built-in defaults
 live in `PLATFORM_HINTS` (`agent/system_prompt.py`); plugin-provided
@@ -155,12 +155,12 @@ not a live mid-session mutation of a frozen prompt.
 
 ## How SOUL.md appears in the prompt
 
-`SOUL.md` lives at `~/.freeide/SOUL.md` and serves as the agent's identity — the very first section of the system prompt. The loading logic in `prompt_builder.py` works as follows:
+`SOUL.md` lives at `~/.jettstui/SOUL.md` and serves as the agent's identity — the very first section of the system prompt. The loading logic in `prompt_builder.py` works as follows:
 
 ```python
 # From agent/prompt_builder.py (simplified)
 def load_soul_md() -> Optional[str]:
-    soul_path = get_freeide_home() / "SOUL.md"
+    soul_path = get_jettstui_home() / "SOUL.md"
     if not soul_path.exists():
         return None
     content = soul_path.read_text(encoding="utf-8").strip()
@@ -174,7 +174,7 @@ When `load_soul_md()` returns content, it replaces the hardcoded `DEFAULT_AGENT_
 If `SOUL.md` doesn't exist, the system falls back to:
 
 ```
-You are FreeIDE Agent, an intelligent AI assistant created by FreeIDE.
+You are JettsTUI, an intelligent AI assistant created by JettsTUI.
 You are helpful, knowledgeable, and direct. You assist users with a wide
 range of tasks including answering questions, writing and editing code,
 analyzing information, creative work, and executing actions via your tools.
@@ -194,7 +194,7 @@ def build_context_files_prompt(cwd=None, skip_soul=False):
 
     # Priority: first match wins — only ONE project context loaded
     project_context = (
-        _load_freeide_md(cwd_path)       # 1. .freeide.md / FREEIDE.md (walks to git root)
+        _load_jettstui_md(cwd_path)       # 1. .jettstui.md / JETTSTUI.md (walks to git root)
         or _load_agents_md(cwd_path)    # 2. AGENTS.md (cwd only)
         or _load_claude_md(cwd_path)    # 3. CLAUDE.md (cwd only)
         or _load_cursorrules(cwd_path)  # 4. .cursorrules / .cursor/rules/*.mdc
@@ -204,7 +204,7 @@ def build_context_files_prompt(cwd=None, skip_soul=False):
     if project_context:
         sections.append(project_context)
 
-    # SOUL.md from FREEIDE_HOME (independent of project context)
+    # SOUL.md from JETTSTUI_HOME (independent of project context)
     if not skip_soul:
         soul_content = load_soul_md()
         if soul_content:
@@ -225,7 +225,7 @@ def build_context_files_prompt(cwd=None, skip_soul=False):
 
 | Priority | Files | Search scope | Notes |
 |----------|-------|-------------|-------|
-| 1 | `.freeide.md`, `FREEIDE.md` | CWD up to git root | FreeIDE-native project config |
+| 1 | `.jettstui.md`, `JETTSTUI.md` | CWD up to git root | JettsTUI-native project config |
 | 2 | `AGENTS.md` | CWD only | Common agent instruction file |
 | 3 | `CLAUDE.md` | CWD only | Claude Code compatibility |
 | 4 | `.cursorrules`, `.cursor/rules/*.mdc` | CWD only | Cursor compatibility |
@@ -233,7 +233,7 @@ def build_context_files_prompt(cwd=None, skip_soul=False):
 All context files are:
 - **Security scanned** — checked for prompt injection patterns (invisible unicode, "ignore previous instructions", credential exfiltration attempts)
 - **Truncated** — capped at `context_file_max_chars` characters (default 20,000) using 70/20 head/tail ratio with a truncation marker
-- **YAML frontmatter stripped** — `.freeide.md` frontmatter is removed (reserved for future config overrides)
+- **YAML frontmatter stripped** — `.jettstui.md` frontmatter is removed (reserved for future config overrides)
 
 ## API-call-time-only layers
 
@@ -244,7 +244,7 @@ These are intentionally *not* persisted as part of the cached system prompt:
 - gateway-derived session context overlays
 - later-turn Honcho/external recall injected into the current-turn user message
 
-`pre_llm_call` plugin context also lands in this API-call-time path: it is appended to the current turn's **user message**, not written into the cached system prompt. When multiple plugins return context, FreeIDE concatenates those context blocks (see [Hooks → `pre_llm_call`](../user-guide/features/hooks.md#pre_llm_call)).
+`pre_llm_call` plugin context also lands in this API-call-time path: it is appended to the current turn's **user message**, not written into the cached system prompt. When multiple plugins return context, JettsTUI concatenates those context blocks (see [Hooks → `pre_llm_call`](../user-guide/features/hooks.md#pre_llm_call)).
 
 This separation keeps the stable prefix stable for caching.
 
@@ -256,7 +256,7 @@ Local memory and user profile data are captured in the system prompt's **volatil
 
 `agent/prompt_builder.py` scans and sanitizes project context files using a **priority system** — only one type is loaded (first match wins):
 
-1. `.freeide.md` / `FREEIDE.md` (walks to git root)
+1. `.jettstui.md` / `JETTSTUI.md` (walks to git root)
 2. `AGENTS.md` (CWD at startup; subdirectories discovered progressively during the session via `agent/subdirectory_hints.py`)
 3. `CLAUDE.md` (CWD only)
 4. `.cursorrules` / `.cursor/rules/*.mdc` (CWD only)
@@ -271,16 +271,16 @@ The skills system contributes a compact skills index to the prompt when skills t
 
 ## Supported prompt customization surfaces
 
-Most users should treat `agent/prompt_builder.py` as implementation code, not a configuration surface. The supported customization path is to change the prompt inputs FreeIDE already loads, rather than editing Python templates in place.
+Most users should treat `agent/prompt_builder.py` as implementation code, not a configuration surface. The supported customization path is to change the prompt inputs JettsTUI already loads, rather than editing Python templates in place.
 
 ### Use these surfaces first
 
-- `~/.freeide/SOUL.md` — replace the built-in default identity block with your own agent persona and standing behavior.
-- `~/.freeide/MEMORY.md` and `~/.freeide/USER.md` — provide durable cross-session facts and user profile data that should be snapshotted into new sessions.
-- Project context files such as `.freeide.md`, `FREEIDE.md`, `AGENTS.md`, `CLAUDE.md`, or `.cursorrules` — inject repo-specific working rules.
+- `~/.jettstui/SOUL.md` — replace the built-in default identity block with your own agent persona and standing behavior.
+- `~/.jettstui/MEMORY.md` and `~/.jettstui/USER.md` — provide durable cross-session facts and user profile data that should be snapshotted into new sessions.
+- Project context files such as `.jettstui.md`, `JETTSTUI.md`, `AGENTS.md`, `CLAUDE.md`, or `.cursorrules` — inject repo-specific working rules.
 - Skills — package reusable workflows and references without editing core prompt code.
-- Optional system prompt config / API overrides — add deployment-specific instruction text without forking FreeIDE.
-- Ephemeral overlays such as `FREEIDE_EPHEMERAL_SYSTEM_PROMPT` or prefill messages — add turn-scoped guidance that should not become part of the cached prompt prefix.
+- Optional system prompt config / API overrides — add deployment-specific instruction text without forking JettsTUI.
+- Ephemeral overlays such as `JETTSTUI_EPHEMERAL_SYSTEM_PROMPT` or prefill messages — add turn-scoped guidance that should not become part of the cached prompt prefix.
 
 ### When to edit code instead
 
@@ -291,7 +291,7 @@ In other words:
 - if you want a different assistant identity, edit `SOUL.md`
 - if you want different repo rules, edit project context files
 - if you want reusable operating procedures, add or modify skills
-- if you want to change how FreeIDE assembles prompts for everyone, change Python and treat it as a code contribution
+- if you want to change how JettsTUI assembles prompts for everyone, change Python and treat it as a code contribution
 
 ## Why prompt assembly is split this way
 

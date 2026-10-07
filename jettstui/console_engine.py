@@ -1,7 +1,7 @@
-"""Safe FreeIDE Console command engine.
+"""Safe JettsTUI Console command engine.
 
-This module backs ``freeide console`` and is intentionally narrower than the
-full FreeIDE CLI. It exposes a curated set of native adapters that can later be
+This module backs ``jettstui console`` and is intentionally narrower than the
+full JettsTUI CLI. It exposes a curated set of native adapters that can later be
 shared by the dashboard console websocket without becoming a raw shell.
 """
 
@@ -43,7 +43,7 @@ class ConsoleCommand:
     path: tuple[str, ...]
     usage: str
     summary: str
-    handler: Callable[["FreeIDEConsoleEngine", list[str]], str]
+    handler: Callable[["JettsTUIConsoleEngine", list[str]], str]
     mutating: bool = False
     confirmation: str = ""
 
@@ -88,8 +88,8 @@ def _strip_console_status_footer(text: str) -> str:
     last = _strip_ansi(lines[-1]).strip()
     prev = _strip_ansi(lines[-2]).strip()
     if not (
-        prev.startswith("Run 'freeide doctor'")
-        and last.startswith("Run 'freeide setup'")
+        prev.startswith("Run 'jettstui doctor'")
+        and last.startswith("Run 'jettstui setup'")
     ):
         return text.rstrip()
 
@@ -147,7 +147,7 @@ def _format_job(job: dict, action: str) -> str:
 
 
 def _parser_root() -> tuple[_ArgumentParser, argparse._SubParsersAction]:
-    parser = _ArgumentParser(prog="freeide", add_help=False)
+    parser = _ArgumentParser(prog="jettstui", add_help=False)
     subparsers = parser.add_subparsers(dest="_console_command")
     return parser, subparsers
 
@@ -177,7 +177,7 @@ def _clean_summary(text: str | None) -> str:
     summary = " ".join(str(text).split())
     if not summary:
         return ""
-    if summary.startswith("Run `freeide "):
+    if summary.startswith("Run `jettstui "):
         return ""
     return summary
 
@@ -207,7 +207,7 @@ def _noop_console_command(_args: argparse.Namespace) -> None:
 # The CLI surface these helpers reflect is process-static: they import a
 # subcommand module and build a throwaway argparse tree purely to extract help
 # summaries. Nothing about the result changes across engine instances, but the
-# dashboard opens a fresh FreeIDEConsoleEngine per /api/console connection, so
+# dashboard opens a fresh JettsTUIConsoleEngine per /api/console connection, so
 # without memoization every reconnect re-imports + re-parses the whole surface.
 # Cache by args (all hashable strings); callers only read the returned map.
 @functools.lru_cache(maxsize=None)
@@ -293,7 +293,7 @@ def _dispatch_extracted_subcommand(
 ) -> str:
     parser, subparsers = _parser_root()
     module = importlib.import_module(module_name)
-    main_module = importlib.import_module("freeide_cli.main")
+    main_module = importlib.import_module("jettstui.main")
     builder = getattr(module, builder_name)
     main_handler = getattr(main_module, main_handler_name)
     builder(subparsers, **{main_handler_name: main_handler})
@@ -338,7 +338,7 @@ def _dispatch_builder_subcommand(
 ) -> str:
     parser, subparsers = _parser_root()
     module = importlib.import_module(module_name)
-    main_module = importlib.import_module("freeide_cli.main")
+    main_module = importlib.import_module("jettstui.main")
     top_parser = getattr(module, builder_name)(subparsers)
     top_parser.set_defaults(func=getattr(main_module, main_handler_name))
     namespace = parser.parse_args([root, *fixed, *args])
@@ -372,8 +372,8 @@ def _extracted_handler(
     builder_name: str,
     main_handler_name: str,
     namespace_update: Callable[[argparse.Namespace], None] | None = None,
-) -> Callable[["FreeIDEConsoleEngine", list[str]], str]:
-    def handler(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
+) -> Callable[["JettsTUIConsoleEngine", list[str]], str]:
+    def handler(_engine: JettsTUIConsoleEngine, args: list[str]) -> str:
         return _dispatch_extracted_subcommand(
             root=root,
             fixed=fixed,
@@ -394,8 +394,8 @@ def _registered_handler(
     register_name: str,
     handler_name: str | None = None,
     namespace_update: Callable[[argparse.Namespace], None] | None = None,
-) -> Callable[["FreeIDEConsoleEngine", list[str]], str]:
-    def handler(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
+) -> Callable[["JettsTUIConsoleEngine", list[str]], str]:
+    def handler(_engine: JettsTUIConsoleEngine, args: list[str]) -> str:
         return _dispatch_registered_subcommand(
             root=root,
             fixed=fixed,
@@ -416,8 +416,8 @@ def _builder_handler(
     builder_name: str,
     main_handler_name: str,
     namespace_update: Callable[[argparse.Namespace], None] | None = None,
-) -> Callable[["FreeIDEConsoleEngine", list[str]], str]:
-    def handler(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
+) -> Callable[["JettsTUIConsoleEngine", list[str]], str]:
+    def handler(_engine: JettsTUIConsoleEngine, args: list[str]) -> str:
         return _dispatch_builder_subcommand(
             root=root,
             fixed=fixed,
@@ -437,8 +437,8 @@ def _adder_handler(
     module_name: str,
     add_name: str,
     namespace_update: Callable[[argparse.Namespace], None] | None = None,
-) -> Callable[["FreeIDEConsoleEngine", list[str]], str]:
-    def handler(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
+) -> Callable[["JettsTUIConsoleEngine", list[str]], str]:
+    def handler(_engine: JettsTUIConsoleEngine, args: list[str]) -> str:
         return _dispatch_adder_subcommand(
             root=root,
             fixed=fixed,
@@ -452,11 +452,11 @@ def _adder_handler(
 
 
 def _register_command_family(
-    engine: "FreeIDEConsoleEngine",
+    engine: "JettsTUIConsoleEngine",
     *,
     root: str,
     paths: Iterable[Sequence[str]],
-    handler_factory: Callable[[Sequence[str]], Callable[["FreeIDEConsoleEngine", list[str]], str]],
+    handler_factory: Callable[[Sequence[str]], Callable[["JettsTUIConsoleEngine", list[str]], str]],
     mutating: Iterable[Sequence[str]] = (),
     summary: str = "",
     summaries: dict[tuple[str, ...], str] | None = None,
@@ -467,19 +467,19 @@ def _register_command_family(
         child_key = tuple(child_path)
         full_path = (root, *tuple(child_path))
         usage = " ".join(full_path)
-        command_summary = summary or (summaries or {}).get(full_path) or f"Run `freeide {usage}`."
+        command_summary = summary or (summaries or {}).get(full_path) or f"Run `jettstui {usage}`."
         engine.register(
             full_path,
             usage,
             command_summary,
             handler_factory(tuple(child_path)),
             mutating=child_key in mutating_paths,
-            confirmation=confirmation or f"Run `freeide {usage}`?",
+            confirmation=confirmation or f"Run `jettstui {usage}`?",
         )
 
 
-class FreeIDEConsoleEngine:
-    """Curated line-command executor for FreeIDE Console."""
+class JettsTUIConsoleEngine:
+    """Curated line-command executor for JettsTUI Console."""
 
     def __init__(self, *, output_limit: int = 20000):
         self.output_limit = output_limit
@@ -494,15 +494,15 @@ class FreeIDEConsoleEngine:
 
         try:
             tokens = _split_line(raw_line)
-            if tokens and tokens[0] == "freeide":
+            if tokens and tokens[0] == "jettstui":
                 tokens = tokens[1:]
             if not tokens:
                 return self._help_result()
 
             if _contains_shell_syntax(raw_line, tokens):
                 raise ConsoleCommandError(
-                    "FreeIDE Console does not run shell syntax. Use one supported "
-                    "FreeIDE command at a time."
+                    "JettsTUI Console does not run shell syntax. Use one supported "
+                    "JettsTUI command at a time."
                 )
 
             builtin = self._execute_builtin(tokens)
@@ -534,7 +534,7 @@ class FreeIDEConsoleEngine:
             return f"{command.usage}\n{command.summary}"
 
         lines = [
-            "FreeIDE Console",
+            "JettsTUI Console",
             "",
             "Supported commands:",
         ]
@@ -551,9 +551,9 @@ class FreeIDEConsoleEngine:
         return "\n".join(lines)
 
     def _register_defaults(self) -> None:
-        self.register(("status",), "status", "Show FreeIDE component status.", _status)
+        self.register(("status",), "status", "Show JettsTUI component status.", _status)
         self.register(("doctor",), "doctor", "Run diagnostics without auto-fix.", _doctor)
-        self.register(("logs",), "logs [name] [-n N]", "Show recent FreeIDE logs.", _logs)
+        self.register(("logs",), "logs [name] [-n N]", "Show recent JettsTUI logs.", _logs)
         self.register(("sessions", "list"), "sessions list [--limit N]", "List recent sessions.", _sessions_list)
         self.register(("sessions", "stats"), "sessions stats", "Show session store statistics.", _sessions_stats)
         self.register(("config", "show"), "config show", "Show current configuration.", _config_show)
@@ -564,7 +564,7 @@ class FreeIDEConsoleEngine:
             "Set a configuration value.",
             _config_set,
             mutating=True,
-            confirmation="Update FreeIDE configuration?",
+            confirmation="Update JettsTUI configuration?",
         )
         self.register(("cron", "list"), "cron list [--all]", "List scheduled jobs.", _cron_list)
         self.register(("cron", "status"), "cron status", "Show cron scheduler status.", _cron_status)
@@ -595,88 +595,88 @@ class FreeIDEConsoleEngine:
         self._register_broad_cli_surface()
 
     def _register_broad_cli_surface(self) -> None:
-        """Register non-admin CLI commands that are safe for FreeIDE Console."""
+        """Register non-admin CLI commands that are safe for JettsTUI Console."""
 
         extracted = {
             "version": (
-                "freeide_cli.subcommands.version",
+                "jettstui.subcommands.version",
                 "build_version_parser",
                 "cmd_version",
                 [()],
                 set(),
             ),
             "dump": (
-                "freeide_cli.subcommands.dump",
+                "jettstui.subcommands.dump",
                 "build_dump_parser",
                 "cmd_dump",
                 [()],
                 set(),
             ),
             "debug": (
-                "freeide_cli.subcommands.debug",
+                "jettstui.subcommands.debug",
                 "build_debug_parser",
                 "cmd_debug",
                 [("share",), ("delete",)],
                 {("share",), ("delete",)},
             ),
             "prompt-size": (
-                "freeide_cli.subcommands.prompt_size",
+                "jettstui.subcommands.prompt_size",
                 "build_prompt_size_parser",
                 "cmd_prompt_size",
                 [()],
                 set(),
             ),
             "insights": (
-                "freeide_cli.subcommands.insights",
+                "jettstui.subcommands.insights",
                 "build_insights_parser",
                 "cmd_insights",
                 [()],
                 set(),
             ),
             "security": (
-                "freeide_cli.subcommands.security",
+                "jettstui.subcommands.security",
                 "build_security_parser",
                 "cmd_security",
                 [("audit",)],
                 set(),
             ),
             "backup": (
-                "freeide_cli.subcommands.backup",
+                "jettstui.subcommands.backup",
                 "build_backup_parser",
                 "cmd_backup",
                 [()],
                 {()},
             ),
             "import": (
-                "freeide_cli.subcommands.import_cmd",
+                "jettstui.subcommands.import_cmd",
                 "build_import_cmd_parser",
                 "cmd_import",
                 [()],
                 {()},
             ),
             "config": (
-                "freeide_cli.subcommands.config",
+                "jettstui.subcommands.config",
                 "build_config_parser",
                 "cmd_config",
                 [("env-path",), ("check",)],
                 set(),
             ),
             "tools": (
-                "freeide_cli.subcommands.tools",
+                "jettstui.subcommands.tools",
                 "build_tools_parser",
                 "cmd_tools",
                 [("list",), ("enable",), ("disable",), ("post-setup",)],
                 {("enable",), ("disable",), ("post-setup",)},
             ),
             "plugins": (
-                "freeide_cli.subcommands.plugins",
+                "jettstui.subcommands.plugins",
                 "build_plugins_parser",
                 "cmd_plugins",
                 [("list",), ("enable",), ("disable",), ("install",), ("update",), ("remove",)],
                 {("enable",), ("disable",), ("install",), ("update",), ("remove",)},
             ),
             "skills": (
-                "freeide_cli.subcommands.skills",
+                "jettstui.subcommands.skills",
                 "build_skills_parser",
                 "cmd_skills",
                 [
@@ -717,7 +717,7 @@ class FreeIDEConsoleEngine:
                 },
             ),
             "mcp": (
-                "freeide_cli.subcommands.mcp",
+                "jettstui.subcommands.mcp",
                 "build_mcp_parser",
                 "cmd_mcp",
                 [
@@ -743,14 +743,14 @@ class FreeIDEConsoleEngine:
                 },
             ),
             "memory": (
-                "freeide_cli.subcommands.memory",
+                "jettstui.subcommands.memory",
                 "build_memory_parser",
                 "cmd_memory",
                 [("status",), ("off",), ("reset",)],
                 {("off",), ("reset",)},
             ),
             "auth": (
-                "freeide_cli.subcommands.auth",
+                "jettstui.subcommands.auth",
                 "build_auth_parser",
                 "cmd_auth",
                 [
@@ -774,35 +774,35 @@ class FreeIDEConsoleEngine:
                 },
             ),
             "pairing": (
-                "freeide_cli.subcommands.pairing",
+                "jettstui.subcommands.pairing",
                 "build_pairing_parser",
                 "cmd_pairing",
                 [("list",), ("approve",), ("revoke",), ("clear-pending",)],
                 {("approve",), ("revoke",), ("clear-pending",)},
             ),
             "webhook": (
-                "freeide_cli.subcommands.webhook",
+                "jettstui.subcommands.webhook",
                 "build_webhook_parser",
                 "cmd_webhook",
                 [("list",), ("subscribe",), ("remove",), ("test",)],
                 {("subscribe",), ("remove",)},
             ),
             "hooks": (
-                "freeide_cli.subcommands.hooks",
+                "jettstui.subcommands.hooks",
                 "build_hooks_parser",
                 "cmd_hooks",
                 [("list",), ("test",), ("doctor",), ("revoke",)],
                 {("test",), ("doctor",), ("revoke",)},
             ),
             "slack": (
-                "freeide_cli.subcommands.slack",
+                "jettstui.subcommands.slack",
                 "build_slack_parser",
                 "cmd_slack",
                 [("manifest",)],
                 set(),
             ),
             "profile": (
-                "freeide_cli.subcommands.profile",
+                "jettstui.subcommands.profile",
                 "build_profile_parser",
                 "cmd_profile",
                 [
@@ -832,7 +832,7 @@ class FreeIDEConsoleEngine:
                 },
             ),
             "cron": (
-                "freeide_cli.subcommands.cron",
+                "jettstui.subcommands.cron",
                 "build_cron_parser",
                 "cmd_cron",
                 [("create",), ("edit",), ("remove",), ("tick",)],
@@ -864,7 +864,7 @@ class FreeIDEConsoleEngine:
             "Update config with new options.",
             _config_migrate,
             mutating=True,
-            confirmation="Update FreeIDE configuration with missing defaults?",
+            confirmation="Update JettsTUI configuration with missing defaults?",
         )
         self.register(
             ("sessions", "export"),
@@ -909,7 +909,7 @@ class FreeIDEConsoleEngine:
             ("send",),
             "send --to <target> <message>",
             "Send a message to a configured platform.",
-            _adder_handler("send", (), "freeide_cli.send_cmd", "register_send_subparser"),
+            _adder_handler("send", (), "jettstui.send_cmd", "register_send_subparser"),
             mutating=True,
             confirmation="Send this message?",
         )
@@ -930,7 +930,7 @@ class FreeIDEConsoleEngine:
                 ("restore",),
                 ("bind-board",),
             ],
-            summaries=_builder_summaries("freeide_cli.projects_cmd", "build_parser"),
+            summaries=_builder_summaries("jettstui.projects_cmd", "build_parser"),
             mutating=[
                 ("create",),
                 ("add-folder",),
@@ -945,7 +945,7 @@ class FreeIDEConsoleEngine:
             handler_factory=lambda fixed: _builder_handler(
                 "project",
                 fixed,
-                "freeide_cli.projects_cmd",
+                "jettstui.projects_cmd",
                 "build_parser",
                 "cmd_project",
             ),
@@ -987,7 +987,7 @@ class FreeIDEConsoleEngine:
                 ("assignments",),
                 ("context",),
             ],
-            summaries=_builder_summaries("freeide_cli.kanban", "build_parser"),
+            summaries=_builder_summaries("jettstui.kanban", "build_parser"),
             mutating=[
                 ("init",),
                 ("boards", "create"),
@@ -1014,7 +1014,7 @@ class FreeIDEConsoleEngine:
             handler_factory=lambda fixed: _builder_handler(
                 "kanban",
                 fixed,
-                "freeide_cli.kanban",
+                "jettstui.kanban",
                 "build_parser",
                 "cmd_kanban",
             ),
@@ -1022,21 +1022,21 @@ class FreeIDEConsoleEngine:
 
         registered = {
             "bundles": (
-                "freeide_cli.bundles",
+                "jettstui.bundles",
                 "register_cli",
                 "bundles_command",
                 [("list",), ("show",), ("create",), ("delete",), ("reload",)],
                 {("create",), ("delete",), ("reload",)},
             ),
             "checkpoints": (
-                "freeide_cli.checkpoints",
+                "jettstui.checkpoints",
                 "register_cli",
                 None,
                 [("status",), ("list",), ("prune",), ("clear",), ("clear-legacy",)],
                 {("prune",), ("clear",), ("clear-legacy",)},
             ),
             "curator": (
-                "freeide_cli.curator",
+                "jettstui.curator",
                 "register_cli",
                 None,
                 [
@@ -1067,7 +1067,7 @@ class FreeIDEConsoleEngine:
                 },
             ),
             "pets": (
-                "freeide_cli.pets",
+                "jettstui.pets",
                 "register_cli",
                 None,
                 [("list",), ("install",), ("select",), ("show",), ("off",), ("scale",), ("remove",), ("doctor",)],
@@ -1097,7 +1097,7 @@ class FreeIDEConsoleEngine:
         path: Iterable[str],
         usage: str,
         summary: str,
-        handler: Callable[["FreeIDEConsoleEngine", list[str]], str],
+        handler: Callable[["JettsTUIConsoleEngine", list[str]], str],
         *,
         mutating: bool = False,
         confirmation: str = "",
@@ -1145,12 +1145,12 @@ class FreeIDEConsoleEngine:
         probe = " ".join(tokens[:2]) if len(tokens) > 1 else tokens[0]
         suggestions = difflib.get_close_matches(probe, available, n=3, cutoff=0.45)
         suffix = f" Did you mean: {', '.join(suggestions)}?" if suggestions else ""
-        raise ConsoleCommandError(f"Unsupported FreeIDE Console command: {probe}.{suffix}")
+        raise ConsoleCommandError(f"Unsupported JettsTUI Console command: {probe}.{suffix}")
 
     def _rejection_for(self, tokens: Sequence[str]) -> str:
         first = tokens[0]
         if first.startswith("-"):
-            return f"{first} is not available in FreeIDE Console."
+            return f"{first} is not available in JettsTUI Console."
         blocked_top = {
             "acp",
             "chat",
@@ -1176,28 +1176,28 @@ class FreeIDEConsoleEngine:
             "whatsapp-cloud",
         }
         if first in blocked_top:
-            return f"`freeide {first}` is not available in FreeIDE Console."
+            return f"`jettstui {first}` is not available in JettsTUI Console."
         blocked_pairs = {
-            ("config", "edit"): "`config edit` opens an editor and is not available in FreeIDE Console.",
-            ("mcp", "serve"): "`mcp serve` starts a server and is not available in FreeIDE Console.",
-            ("profile", "alias"): "`profile alias` creates shell wrappers and is not available in FreeIDE Console.",
-            ("skills", "config"): "`skills config` is interactive and is not available in FreeIDE Console.",
-            ("skills", "publish"): "`skills publish` is not available in FreeIDE Console.",
-            ("kanban", "tail"): "`kanban tail` streams output and is not available in FreeIDE Console.",
-            ("kanban", "watch"): "`kanban watch` streams output and is not available in FreeIDE Console.",
-            ("kanban", "daemon"): "`kanban daemon` starts a service and is not available in FreeIDE Console.",
-            ("kanban", "dispatcher"): "`kanban dispatcher` starts a worker and is not available in FreeIDE Console.",
-            ("kanban", "swarm"): "`kanban swarm` starts agent work and is not available in FreeIDE Console.",
-            ("kanban", "decompose"): "`kanban decompose` starts agent work and is not available in FreeIDE Console.",
-            ("kanban", "specify"): "`kanban specify` starts agent work and is not available in FreeIDE Console.",
-            ("kanban", "gc"): "`kanban gc` is not available in FreeIDE Console.",
+            ("config", "edit"): "`config edit` opens an editor and is not available in JettsTUI Console.",
+            ("mcp", "serve"): "`mcp serve` starts a server and is not available in JettsTUI Console.",
+            ("profile", "alias"): "`profile alias` creates shell wrappers and is not available in JettsTUI Console.",
+            ("skills", "config"): "`skills config` is interactive and is not available in JettsTUI Console.",
+            ("skills", "publish"): "`skills publish` is not available in JettsTUI Console.",
+            ("kanban", "tail"): "`kanban tail` streams output and is not available in JettsTUI Console.",
+            ("kanban", "watch"): "`kanban watch` streams output and is not available in JettsTUI Console.",
+            ("kanban", "daemon"): "`kanban daemon` starts a service and is not available in JettsTUI Console.",
+            ("kanban", "dispatcher"): "`kanban dispatcher` starts a worker and is not available in JettsTUI Console.",
+            ("kanban", "swarm"): "`kanban swarm` starts agent work and is not available in JettsTUI Console.",
+            ("kanban", "decompose"): "`kanban decompose` starts agent work and is not available in JettsTUI Console.",
+            ("kanban", "specify"): "`kanban specify` starts agent work and is not available in JettsTUI Console.",
+            ("kanban", "gc"): "`kanban gc` is not available in JettsTUI Console.",
         }
         if len(tokens) >= 2:
             pair = (tokens[0], tokens[1])
             if pair in blocked_pairs:
                 return blocked_pairs[pair]
         if tuple(tokens[:2]) in {("sessions", "delete"), ("sessions", "prune")}:
-            return "`sessions delete` and `sessions prune` are not available in FreeIDE Console."
+            return "`sessions delete` and `sessions prune` are not available in JettsTUI Console."
         return ""
 
     def _help_result(self) -> ConsoleResult:
@@ -1231,7 +1231,7 @@ def _apply_confirmed_defaults(args: argparse.Namespace) -> None:
     if getattr(args, "auth_action", None) == "add":
         auth_type = getattr(args, "auth_type", None)
         if auth_type in {"api-key", "api_key"} and not getattr(args, "api_key", None):
-            raise ConsoleCommandError("auth add --type api-key requires --api-key in FreeIDE Console.")
+            raise ConsoleCommandError("auth add --type api-key requires --api-key in JettsTUI Console.")
     if getattr(args, "import_name", None) is not None:
         # profile import has no prompt flag; leave it alone.
         return
@@ -1246,28 +1246,28 @@ def _apply_confirmed_defaults(args: argparse.Namespace) -> None:
         setattr(args, "yes", True)
 
 
-def _status(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
+def _status(_engine: JettsTUIConsoleEngine, args: list[str]) -> str:
     _expect_no_args(args, "status")
     from types import SimpleNamespace
 
-    from freeide_cli.status import show_status
+    from jettstui.status import show_status
 
     output = _capture_output(lambda: show_status(SimpleNamespace(all=False, deep=False)))
     return _strip_console_status_footer(output)
 
 
-def _doctor(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
+def _doctor(_engine: JettsTUIConsoleEngine, args: list[str]) -> str:
     _expect_no_args(args, "doctor")
     from types import SimpleNamespace
 
-    from freeide_cli.doctor import run_doctor
+    from jettstui.doctor import run_doctor
 
     return _capture_output(lambda: run_doctor(SimpleNamespace(fix=False, ack=None)))
 
 
-def _logs(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
+def _logs(_engine: JettsTUIConsoleEngine, args: list[str]) -> str:
     if "-f" in args or "--follow" in args:
-        raise ConsoleCommandError("`logs -f` is not available in FreeIDE Console.")
+        raise ConsoleCommandError("`logs -f` is not available in JettsTUI Console.")
     parser = _ArgumentParser(prog="logs", add_help=False)
     parser.add_argument("log_name", nargs="?", default="agent")
     parser.add_argument("-n", "--lines", type=int, default=50)
@@ -1279,7 +1279,7 @@ def _logs(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
     if ns.lines < 1 or ns.lines > 500:
         raise ConsoleCommandError("logs --lines must be between 1 and 500")
 
-    from freeide_cli.logs import list_logs, tail_log
+    from jettstui.logs import list_logs, tail_log
 
     if ns.log_name == "list":
         return _capture_output(list_logs)
@@ -1296,14 +1296,14 @@ def _logs(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
     )
 
 
-def _sessions_list(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
+def _sessions_list(_engine: JettsTUIConsoleEngine, args: list[str]) -> str:
     parser = _ArgumentParser(prog="sessions list", add_help=False)
     parser.add_argument("--limit", type=int, default=20)
     ns = parser.parse_args(args)
     if ns.limit < 1 or ns.limit > 200:
         raise ConsoleCommandError("sessions list --limit must be between 1 and 200")
 
-    from freeide_state import SessionDB
+    from jettstui_state import SessionDB
 
     db = SessionDB()
     try:
@@ -1317,9 +1317,9 @@ def _sessions_list(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
     return _format_sessions(sessions)
 
 
-def _sessions_stats(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
+def _sessions_stats(_engine: JettsTUIConsoleEngine, args: list[str]) -> str:
     _expect_no_args(args, "sessions stats")
-    from freeide_state import SessionDB
+    from jettstui_state import SessionDB
 
     db = SessionDB()
     try:
@@ -1340,35 +1340,35 @@ def _sessions_stats(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
         db.close()
 
 
-def _config_show(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
+def _config_show(_engine: JettsTUIConsoleEngine, args: list[str]) -> str:
     _expect_no_args(args, "config show")
-    from freeide_cli.config import show_config
+    from jettstui.config import show_config
 
     return _capture_output(show_config)
 
 
-def _config_path(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
+def _config_path(_engine: JettsTUIConsoleEngine, args: list[str]) -> str:
     _expect_no_args(args, "config path")
-    from freeide_cli.config import get_config_path
+    from jettstui.config import get_config_path
 
     return str(get_config_path())
 
 
-def _config_set(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
+def _config_set(_engine: JettsTUIConsoleEngine, args: list[str]) -> str:
     if len(args) < 2:
         raise ConsoleCommandError("Usage: config set <key> <value>")
     key = args[0]
     value = " ".join(args[1:])
-    from freeide_cli.config import set_config_value
+    from jettstui.config import set_config_value
 
     return _capture_output(lambda: set_config_value(key, value))
 
 
-def _config_migrate(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
+def _config_migrate(_engine: JettsTUIConsoleEngine, args: list[str]) -> str:
     _expect_no_args(args, "config migrate")
 
     def _run() -> None:
-        from freeide_cli.config import migrate_config
+        from jettstui.config import migrate_config
 
         results = migrate_config(interactive=False, quiet=False)
         if results.get("env_added") or results.get("config_added"):
@@ -1382,7 +1382,7 @@ def _config_migrate(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
     return _capture_output(_run)
 
 
-def _sessions_export(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
+def _sessions_export(_engine: JettsTUIConsoleEngine, args: list[str]) -> str:
     parser = _ArgumentParser(prog="sessions export", add_help=False)
     parser.add_argument("output")
     parser.add_argument("--source")
@@ -1390,7 +1390,7 @@ def _sessions_export(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
     ns = parser.parse_args(args)
 
     def _run() -> None:
-        from freeide_state import SessionDB
+        from jettstui_state import SessionDB
 
         db = SessionDB()
         try:
@@ -1420,14 +1420,14 @@ def _sessions_export(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
     return _capture_output(_run)
 
 
-def _sessions_rename(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
+def _sessions_rename(_engine: JettsTUIConsoleEngine, args: list[str]) -> str:
     parser = _ArgumentParser(prog="sessions rename", add_help=False)
     parser.add_argument("session_id")
     parser.add_argument("title", nargs="+")
     ns = parser.parse_args(args)
 
     def _run() -> None:
-        from freeide_state import SessionDB
+        from jettstui_state import SessionDB
 
         db = SessionDB()
         try:
@@ -1444,11 +1444,11 @@ def _sessions_rename(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
     return _capture_output(_run)
 
 
-def _sessions_optimize(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
+def _sessions_optimize(_engine: JettsTUIConsoleEngine, args: list[str]) -> str:
     _expect_no_args(args, "sessions optimize")
 
     def _run() -> None:
-        from freeide_state import SessionDB
+        from jettstui_state import SessionDB
 
         db = SessionDB()
         try:
@@ -1460,14 +1460,14 @@ def _sessions_optimize(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
     return _capture_output(_run)
 
 
-def _sessions_repair(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
+def _sessions_repair(_engine: JettsTUIConsoleEngine, args: list[str]) -> str:
     parser = _ArgumentParser(prog="sessions repair", add_help=False)
     parser.add_argument("--check-only", action="store_true")
     parser.add_argument("--no-backup", action="store_true")
     ns = parser.parse_args(args)
 
     def _run() -> None:
-        from freeide_state import get_default_db_path, _db_opens_cleanly, repair_state_db_schema
+        from jettstui_state import get_default_db_path, _db_opens_cleanly, repair_state_db_schema
 
         db_path = get_default_db_path()
         if not db_path.exists():
@@ -1492,41 +1492,41 @@ def _sessions_repair(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
     return _capture_output(_run)
 
 
-def _profile_status(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
+def _profile_status(_engine: JettsTUIConsoleEngine, args: list[str]) -> str:
     _expect_no_args(args, "profile")
     return _dispatch_extracted_subcommand(
         root="profile",
         fixed=(),
         args=(),
-        module_name="freeide_cli.subcommands.profile",
+        module_name="jettstui.subcommands.profile",
         builder_name="build_profile_parser",
         main_handler_name="cmd_profile",
     )
 
 
-def _cron_list(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
+def _cron_list(_engine: JettsTUIConsoleEngine, args: list[str]) -> str:
     parser = _ArgumentParser(prog="cron list", add_help=False)
     parser.add_argument("--all", action="store_true")
     ns = parser.parse_args(args)
-    from freeide_cli.cron import cron_list
+    from jettstui.cron import cron_list
 
     return _capture_output(lambda: cron_list(show_all=ns.all))
 
 
-def _cron_status(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
+def _cron_status(_engine: JettsTUIConsoleEngine, args: list[str]) -> str:
     _expect_no_args(args, "cron status")
-    from freeide_cli.cron import cron_status
+    from jettstui.cron import cron_status
 
     return _capture_output(cron_status)
 
 
-def _cron_pause(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
+def _cron_pause(_engine: JettsTUIConsoleEngine, args: list[str]) -> str:
     if len(args) != 1:
         raise ConsoleCommandError("Usage: cron pause <job>")
     from cron.jobs import AmbiguousJobReference, pause_job
 
     try:
-        job = pause_job(args[0], reason="paused from freeide console")
+        job = pause_job(args[0], reason="paused from jettstui console")
     except AmbiguousJobReference as exc:
         raise ConsoleCommandError(str(exc)) from exc
     if not job:
@@ -1534,7 +1534,7 @@ def _cron_pause(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
     return _format_job(job, "Paused")
 
 
-def _cron_resume(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
+def _cron_resume(_engine: JettsTUIConsoleEngine, args: list[str]) -> str:
     if len(args) != 1:
         raise ConsoleCommandError("Usage: cron resume <job>")
     from cron.jobs import AmbiguousJobReference, resume_job
@@ -1548,7 +1548,7 @@ def _cron_resume(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
     return _format_job(job, "Resumed")
 
 
-def _cron_run(_engine: FreeIDEConsoleEngine, args: list[str]) -> str:
+def _cron_run(_engine: JettsTUIConsoleEngine, args: list[str]) -> str:
     if len(args) != 1:
         raise ConsoleCommandError("Usage: cron run <job>")
     from cron.jobs import AmbiguousJobReference, trigger_job
@@ -1569,7 +1569,7 @@ def run_console_repl(
     stderr=None,
     interactive: bool | None = None,
 ) -> int:
-    """Run the local ``freeide console`` REPL."""
+    """Run the local ``jettstui console`` REPL."""
 
     stdin = stdin or sys.stdin
     stdout = stdout or sys.stdout
@@ -1577,13 +1577,13 @@ def run_console_repl(
     if interactive is None:
         interactive = bool(getattr(stdin, "isatty", lambda: False)())
 
-    engine = FreeIDEConsoleEngine()
+    engine = JettsTUIConsoleEngine()
     if interactive:
-        print("FreeIDE Console. Type `help` for commands, `exit` to quit.", file=stdout)
+        print("JettsTUI Console. Type `help` for commands, `exit` to quit.", file=stdout)
 
     while True:
         if interactive:
-            print("freeide> ", end="", file=stdout, flush=True)
+            print("jettstui> ", end="", file=stdout, flush=True)
         line = stdin.readline()
         if line == "":
             if interactive:

@@ -1,12 +1,12 @@
 """Unit tests for the generic-OIDC / Nous-Portal caller-identity token resolver.
 
 Covers gateway.relay._resolve_relay_identity_token() — the canonical resolver
-shared by the runtime self-provision path and the `freeide gateway enroll` CLI.
+shared by the runtime self-provision path and the `jettstui gateway enroll` CLI.
 
 Two modes:
   1. Generic OAuth2 client_credentials when gateway.idp.token_url (or
      GATEWAY_RELAY_IDP_TOKEN_URL) is configured (air-gapped / self-hosted-IdP).
-  2. FreeIDE Portal (resolve_nous_access_token) otherwise — the default.
+  2. JettsTUI Portal (resolve_nous_access_token) otherwise — the default.
 
 The HTTP POST and the Nous resolver are monkeypatched; these prove the mode
 SELECTION, the client_credentials request shape, and the fail-closed paths.

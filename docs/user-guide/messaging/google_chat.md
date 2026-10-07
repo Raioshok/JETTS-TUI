@@ -1,19 +1,19 @@
 ---
 sidebar_position: 12
 title: "Google Chat"
-description: "Set up FreeIDE Agent as a Google Chat bot using Cloud Pub/Sub"
+description: "Set up JettsTUI as a Google Chat bot using Cloud Pub/Sub"
 ---
 
 # Google Chat Setup
 
-Connect FreeIDE Agent to Google Chat as a bot. The integration uses Cloud Pub/Sub
+Connect JettsTUI to Google Chat as a bot. The integration uses Cloud Pub/Sub
 pull subscriptions for inbound events and the Chat REST API for outbound messages.
-Equivalent ergonomics to Slack Socket Mode or Telegram long-polling: your FreeIDE
+Equivalent ergonomics to Slack Socket Mode or Telegram long-polling: your JettsTUI
 process does not need a public URL, a tunnel, or a TLS certificate. It connects,
 authenticates, and listens on a subscription — the same way a Telegram bot listens
 on a token.
 
-> Run `freeide gateway setup` and pick **Google Chat** for a guided walk-through.
+> Run `jettstui gateway setup` and pick **Google Chat** for a guided walk-through.
 
 :::note Workspace edition
 Google Chat is part of Google Workspace. You can use this integration with a
@@ -60,13 +60,13 @@ Both are free for the volumes a personal bot generates.
 
 **IAM & Admin → Service Accounts → Create Service Account.**
 
-- Name: `freeide-chat-bot`
+- Name: `jettstui-chat-bot`
 - Skip the "Grant this service account access to project" step. IAM on the specific
   subscription is all you need — do **NOT** grant project-level Pub/Sub roles.
 
 After creation, open the SA, go to **Keys → Add Key → Create new key → JSON** and
-download the file. Save it somewhere only FreeIDE can read (e.g.,
-`~/.freeide/google-chat-sa.json`, `chmod 600`).
+download the file. Save it somewhere only JettsTUI can read (e.g.,
+`~/.jettstui/google-chat-sa.json`, `chmod 600`).
 
 :::caution There is NO "Chat Bot Caller" role
 A common mistake is to search for a Chat-specific IAM role and grant it at the
@@ -81,14 +81,14 @@ the subscription you create in the next step.
 
 **Pub/Sub → Topics → Create topic.**
 
-- Topic ID: `freeide-chat-events`
+- Topic ID: `jettstui-chat-events`
 - Leave the defaults for everything else.
 
 After creation, the topic's detail page has a **Subscriptions** tab. Create one:
 
-- Subscription ID: `freeide-chat-events-sub`
+- Subscription ID: `jettstui-chat-events-sub`
 - Delivery type: **Pull**
-- Message retention: **7 days** (so backlog survives a freeide restart)
+- Message retention: **7 days** (so backlog survives a jettstui restart)
 - Leave the rest default.
 
 ---
@@ -109,10 +109,10 @@ never receive anything.
 
 On the **subscription**, add your own Service Account as a principal:
 
-- Principal: `freeide-chat-bot@<your-project>.iam.gserviceaccount.com`
+- Principal: `jettstui-chat-bot@<your-project>.iam.gserviceaccount.com`
 - Role: `Pub/Sub Subscriber`
 
-Also grant `Pub/Sub Viewer` on the same subscription — FreeIDE calls
+Also grant `Pub/Sub Viewer` on the same subscription — JettsTUI calls
 `subscription.get()` at startup as a reachability check.
 
 ---
@@ -121,13 +121,13 @@ Also grant `Pub/Sub Viewer` on the same subscription — FreeIDE calls
 
 Go to **APIs & Services → Google Chat API → Configuration**.
 
-- **App name**: whatever you want users to see ("FreeIDE" is reasonable).
+- **App name**: whatever you want users to see ("JettsTUI" is reasonable).
 - **Avatar URL**: any public PNG (Google has some defaults).
 - **Description**: a short sentence shown in the app directory.
 - **Functionality**: enable **Receive 1:1 messages** and **Join spaces and group
   conversations**.
 - **Connection settings**: select **Cloud Pub/Sub**, enter the topic name
-  `projects/<your-project>/topics/freeide-chat-events`.
+  `projects/<your-project>/topics/jettstui-chat-events`.
 - **Visibility**: restrict to your workspace (or specific users) — do not publish
   to everyone while you're testing.
 
@@ -139,20 +139,20 @@ Save.
 
 Open Google Chat in a browser. Start a DM with your app by searching for its name
 in the **+ New Chat** menu. The first time you message it, Google sends an
-`ADDED_TO_SPACE` event that FreeIDE uses to cache the bot's own `users/{id}` for
+`ADDED_TO_SPACE` event that JettsTUI uses to cache the bot's own `users/{id}` for
 self-message filtering.
 
 ---
 
-## Step 9: Configure FreeIDE
+## Step 9: Configure JettsTUI
 
-Add the Google Chat section to `~/.freeide/.env`:
+Add the Google Chat section to `~/.jettstui/.env`:
 
 ```bash
 # Required
 GOOGLE_CHAT_PROJECT_ID=my-chat-bot-123
-GOOGLE_CHAT_SUBSCRIPTION_NAME=projects/my-chat-bot-123/subscriptions/freeide-chat-events-sub
-GOOGLE_CHAT_SERVICE_ACCOUNT_JSON=/home/you/.freeide/google-chat-sa.json
+GOOGLE_CHAT_SUBSCRIPTION_NAME=projects/my-chat-bot-123/subscriptions/jettstui-chat-events-sub
+GOOGLE_CHAT_SERVICE_ACCOUNT_JSON=/home/you/.jettstui/google-chat-sa.json
 
 # Authorization — paste the emails of people allowed to talk to the bot
 GOOGLE_CHAT_ALLOWED_USERS=you@yourdomain.com,coworker@yourdomain.com
@@ -166,7 +166,7 @@ GOOGLE_CHAT_MAX_BYTES=16777216                  # 16 MiB — cap on in-flight me
 The project ID also falls back to `GOOGLE_CLOUD_PROJECT`, and the SA path falls
 back to `GOOGLE_APPLICATION_CREDENTIALS` — use whichever convention you prefer.
 
-Install the dependencies the Google Chat adapter needs (no FreeIDE extra is currently published — install them directly):
+Install the dependencies the Google Chat adapter needs (no JettsTUI extra is currently published — install them directly):
 
 ```bash
 pip install google-cloud-pubsub google-api-python-client google-auth google-auth-oauthlib
@@ -175,7 +175,7 @@ pip install google-cloud-pubsub google-api-python-client google-auth google-auth
 Start the gateway:
 
 ```bash
-freeide gateway
+jettstui gateway
 ```
 
 You should see a log line like:
@@ -185,19 +185,19 @@ You should see a log line like:
              bot_user_id=users/XXXX, flow_control(msgs=1, bytes=16777216)
 ```
 
-Send "hola" in the test DM. The bot posts a "FreeIDE is thinking…" marker, then
+Send "hola" in the test DM. The bot posts a "JettsTUI is thinking…" marker, then
 edits that same message in place with the real response — no "message deleted"
 tombstones.
 
 ### Customizing the working-state marker
 
 The marker text is configurable via `typing_status_text` in
-`~/.freeide/config.yaml` — e.g. a kitten assistant named Ada:
+`~/.jettstui/config.yaml` — e.g. a kitten assistant named Ada:
 
 ```yaml
 platforms:
   google_chat:
-    # Custom working-state marker text (default: "FreeIDE is thinking…").
+    # Custom working-state marker text (default: "JettsTUI is thinking…").
     typing_status_text: "is pouncing… 🐾"
 ```
 
@@ -224,9 +224,9 @@ limits and avoids formatting that won't render.
 Message size limit: 4000 characters per message. Longer agent responses are
 automatically split across multiple messages.
 
-Thread support: when a user replies inside a thread, FreeIDE detects the
+Thread support: when a user replies inside a thread, JettsTUI detects the
 `thread.name` and posts its reply in the same thread, so each thread gets a
-separate FreeIDE session.
+separate JettsTUI session.
 
 ---
 
@@ -252,8 +252,8 @@ specifically, as the user who asked for the file.
 
 1. Go to **APIs & Services → Credentials** in the same GCP project.
 2. **Create credentials → OAuth client ID → Desktop app**.
-3. Download the JSON. Move it onto the host that runs FreeIDE.
-4. Register the client with FreeIDE (run under the profile you want it scoped to):
+3. Download the JSON. Move it onto the host that runs JettsTUI.
+4. Register the client with JettsTUI (run under the profile you want it scoped to):
 
 ```bash
 # Default profile:
@@ -261,12 +261,12 @@ python -m plugins.platforms.google_chat.oauth \
     --client-secret /path/to/client_secret.json
 
 # A named profile gets its own separate registration:
-freeide -p <profile> python -m plugins.platforms.google_chat.oauth \
+jettstui -p <profile> python -m plugins.platforms.google_chat.oauth \
     --client-secret /path/to/client_secret.json
 ```
 
-That writes the client secret into the active profile's FreeIDE home (e.g.
-`~/.freeide/google_chat_user_client_secret.json` for the default profile). The
+That writes the client secret into the active profile's JettsTUI home (e.g.
+`~/.jettstui/google_chat_user_client_secret.json` for the default profile). The
 client secret is **profile-scoped, not shared across profiles** — each profile
 registers its own. This is deliberate: profiles are isolated auth boundaries, so
 two profiles can point at different Google OAuth apps / accounts. Register it
@@ -286,7 +286,7 @@ Each user runs the flow once, in their own DM with the bot:
    into chat as `/setup-files <PASTED_URL>`. The bot exchanges it for a
    refresh token.
 
-The token lands at `~/.freeide/google_chat_user_tokens/<sanitized_email>.json`.
+The token lands at `~/.jettstui/google_chat_user_tokens/<sanitized_email>.json`.
 Subsequent file requests in that user's DM use *their* token, so the bot
 uploads as them and the message lands in their space.
 
@@ -303,7 +303,7 @@ on purpose.
 ### Multi-user behavior
 
 When the asker has no per-user token yet, the bot falls back to a legacy
-single-user token at `~/.freeide/google_chat_user_token.json` (if present from
+single-user token at `~/.jettstui/google_chat_user_token.json` (if present from
 a pre-multi-user install). When neither is available, the bot posts a clear
 text notice telling the asker to run `/setup-files`.
 
@@ -317,12 +317,12 @@ evicts only that user's cache. Users don't disrupt each other.
 **Bot stays silent after sending "hola."**
 
 1. Check the Pub/Sub subscription has undelivered messages in the console.
-   If it does, FreeIDE isn't authenticated — verify `GOOGLE_CHAT_SERVICE_ACCOUNT_JSON`
+   If it does, JettsTUI isn't authenticated — verify `GOOGLE_CHAT_SERVICE_ACCOUNT_JSON`
    and that the SA is listed as `Pub/Sub Subscriber` on the subscription.
 2. If the subscription has zero messages, Google Chat isn't publishing.
    Double-check the IAM binding on the **topic**:
    `chat-api-push@system.gserviceaccount.com` must have `Pub/Sub Publisher`.
-3. Check `freeide gateway` logs for `[GoogleChat] Connected`. If you see
+3. Check `jettstui gateway` logs for `[GoogleChat] Connected`. If you see
    `[GoogleChat] Config validation failed`, the error message tells you which
    env var to fix.
 
@@ -363,7 +363,7 @@ python -m plugins.platforms.google_chat.oauth \
     --client-secret /path/to/client_secret.json
 
 # Named profile:
-freeide -p <profile> python -m plugins.platforms.google_chat.oauth \
+jettstui -p <profile> python -m plugins.platforms.google_chat.oauth \
     --client-secret /path/to/client_secret.json
 ```
 
@@ -382,7 +382,7 @@ The auth code is single-use and short-lived (typically a few minutes). Send
   IAM should be the actual enforcement — grant your SA the minimum
   (`roles/pubsub.subscriber` + `roles/pubsub.viewer` on the subscription), not
   project-level or org-level Pub/Sub roles.
-- **Attachment download protection**: FreeIDE will only attach the SA bearer
+- **Attachment download protection**: JettsTUI will only attach the SA bearer
   token to URLs whose host matches a short allowlist of Google-owned domains
   (`googleapis.com`, `drive.google.com`, `lh[3-6].googleusercontent.com`, and
   a few others). Any other host is rejected before the HTTP request, to
@@ -398,6 +398,6 @@ The auth code is single-use and short-lived (typically a few minutes). Send
 - **User OAuth scope**: the per-user attachment flow requests *only*
   `chat.messages.create` — the minimum that covers `media.upload` plus the
   follow-up `messages.create`. Tokens are persisted as plain JSON at
-  `~/.freeide/google_chat_user_tokens/<sanitized_email>.json` (filesystem
+  `~/.jettstui/google_chat_user_tokens/<sanitized_email>.json` (filesystem
   permissions are the protection — same model as the SA key file). Each
   token is owned by exactly one user; revoke is scoped to that user.

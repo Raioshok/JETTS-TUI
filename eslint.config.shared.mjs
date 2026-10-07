@@ -1,5 +1,5 @@
 /**
- * Shared ESLint flat config for all FreeIDE TS workspaces.
+ * Shared ESLint flat config for all JettsTUI TS workspaces.
  *
  * Usage in a workspace's eslint.config.mjs:
  *

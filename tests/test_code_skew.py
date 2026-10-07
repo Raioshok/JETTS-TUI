@@ -76,4 +76,4 @@ class TestModelSwitchSkewGuard:
         assert msg is not None
         assert "abc1234567" in msg
         assert "def4567890" in msg
-        assert "freeide gateway restart" in msg
+        assert "jettstui gateway restart" in msg

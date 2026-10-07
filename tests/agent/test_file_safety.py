@@ -79,13 +79,13 @@ class TestEnvFileReadBlocking:
             error = get_read_block_error(path)
             assert error is None, f"{path} should be allowed"
 
-    def test_allowed_freeide_env(self):
-        """FreeIDE' own .env inside FREEIDE_HOME is NOT blocked by this rule
+    def test_allowed_jettstui_env(self):
+        """JettsTUI' own .env inside JETTSTUI_HOME is NOT blocked by this rule
         (it's handled by other mechanisms). Only project-local .env is blocked."""
-        # Note: freeide internal .env is in ~/.freeide/.env which is NOT a project-local
+        # Note: jettstui internal .env is in ~/.jettstui/.env which is NOT a project-local
         # path, but the basename check applies to ANY .env. This is intentional —
-        # even ~/.freeide/.env should not be readable via read_file.
-        error = get_read_block_error(os.path.expanduser("~/.freeide/.env"))
+        # even ~/.jettstui/.env should not be readable via read_file.
+        error = get_read_block_error(os.path.expanduser("~/.jettstui/.env"))
         assert error is not None
 
     def test_blocked_set_is_lowercase(self):
@@ -100,28 +100,28 @@ class TestEnvFileReadBlocking:
 
 
 class TestCacheFileReadBlocking:
-    """Internal FreeIDE cache files must remain blocked."""
+    """Internal JettsTUI cache files must remain blocked."""
 
     def test_hub_index_cache_blocked(self, tmp_path):
         """Hub index-cache reads are blocked."""
-        freeide_home = tmp_path / ".freeide"
-        cache = freeide_home / "skills" / ".hub" / "index-cache" / "data.json"
+        jettstui_home = tmp_path / ".jettstui"
+        cache = jettstui_home / "skills" / ".hub" / "index-cache" / "data.json"
         cache.parent.mkdir(parents=True)
         cache.write_text("{}")
 
-        with patch("agent.file_safety._freeide_home_path", return_value=freeide_home):
+        with patch("agent.file_safety._jettstui_home_path", return_value=jettstui_home):
             error = get_read_block_error(str(cache))
             assert error is not None
-            assert "internal FreeIDE cache" in error
+            assert "internal JettsTUI cache" in error
 
     def test_hub_directory_blocked(self, tmp_path):
         """Hub directory reads are blocked."""
-        freeide_home = tmp_path / ".freeide"
-        hub = freeide_home / "skills" / ".hub" / "metadata.json"
+        jettstui_home = tmp_path / ".jettstui"
+        hub = jettstui_home / "skills" / ".hub" / "metadata.json"
         hub.parent.mkdir(parents=True)
         hub.write_text("{}")
 
-        with patch("agent.file_safety._freeide_home_path", return_value=freeide_home):
+        with patch("agent.file_safety._jettstui_home_path", return_value=jettstui_home):
             error = get_read_block_error(str(hub))
             assert error is not None
 
@@ -134,12 +134,12 @@ class TestCacheFileReadBlocking:
 class TestCombinedGuards:
     """Both guards should work independently without interference."""
 
-    def test_env_guard_works_regardless_of_freeide_home(self, tmp_path):
-        """The env basename guard does not depend on FREEIDE_HOME resolution."""
-        freeide_home = tmp_path / ".freeide"
-        freeide_home.mkdir()
+    def test_env_guard_works_regardless_of_jettstui_home(self, tmp_path):
+        """The env basename guard does not depend on JETTSTUI_HOME resolution."""
+        jettstui_home = tmp_path / ".jettstui"
+        jettstui_home.mkdir()
 
-        with patch("agent.file_safety._freeide_home_path", return_value=freeide_home):
+        with patch("agent.file_safety._jettstui_home_path", return_value=jettstui_home):
             # Regular project .env should still be blocked
             error = get_read_block_error("/workspace/.env")
             assert error is not None
@@ -150,12 +150,12 @@ class TestCombinedGuards:
 
     def test_cache_guard_still_works_with_env_guard(self, tmp_path):
         """Cache file blocking still works when env guard is active."""
-        freeide_home = tmp_path / ".freeide"
-        cache = freeide_home / "skills" / ".hub" / "index-cache" / "x"
+        jettstui_home = tmp_path / ".jettstui"
+        cache = jettstui_home / "skills" / ".hub" / "index-cache" / "x"
         cache.parent.mkdir(parents=True)
         cache.write_text("")
 
-        with patch("agent.file_safety._freeide_home_path", return_value=freeide_home):
+        with patch("agent.file_safety._jettstui_home_path", return_value=jettstui_home):
             error = get_read_block_error(str(cache))
             assert error is not None
-            assert "internal FreeIDE cache" in error
+            assert "internal JettsTUI cache" in error

@@ -1,13 +1,13 @@
 ---
 title: Image Generation
-description: Generate images via FAL.ai — 11 models including FLUX 2, GPT Image (1.5 & 2), Nano Banana Pro, Ideogram, Recraft V4 Pro, Krea 2, and more, selectable via `freeide tools`.
+description: Generate images via FAL.ai — 11 models including FLUX 2, GPT Image (1.5 & 2), Nano Banana Pro, Ideogram, Recraft V4 Pro, Krea 2, and more, selectable via `jettstui tools`.
 sidebar_label: Image Generation
 sidebar_position: 6
 ---
 
 # Image Generation
 
-FreeIDE Agent generates images from text prompts via FAL.ai. Eleven models are supported out of the box, each with different speed, quality, and cost tradeoffs. The active model is user-configurable via `freeide tools` and persists in `config.yaml`.
+JettsTUI generates images from text prompts via FAL.ai. Eleven models are supported out of the box, each with different speed, quality, and cost tradeoffs. The active model is user-configurable via `jettstui tools` and persists in `config.yaml`.
 
 ## Supported Models
 
@@ -29,7 +29,7 @@ Prices are FAL's pricing at time of writing; check [fal.ai](https://fal.ai/) for
 
 ## Setup
 
-Image generation is bring-your-own-key: add your FAL API key and pick a model with `freeide tools`.
+Image generation is bring-your-own-key: add your FAL API key and pick a model with `jettstui tools`.
 
 ### Get a FAL API Key
 
@@ -41,7 +41,7 @@ Image generation is bring-your-own-key: add your FAL API key and pick a model wi
 Run the tools command:
 
 ```bash
-freeide tools
+jettstui tools
 ```
 
 Navigate to **🎨 Image Generation**, then the picker shows all supported models in a column-aligned table — arrow keys to navigate, Enter to select:
@@ -120,7 +120,7 @@ edit-capable model.
 :::note OpenAI (Codex auth) is best-effort
 
 The Codex surface (`chatgpt.com/backend-api/codex`) hosts `image_generation`
-as a tool the chat model may call, and FreeIDE cannot force the call — the
+as a tool the chat model may call, and JettsTUI cannot force the call — the
 backend rejects every `tool_choice` shape for hosted tools, so the request
 relies on instructions to steer the model. When the host model declines to
 invoke the tool, the call fails with `empty_response`. Whether the hosted
@@ -202,5 +202,5 @@ Debug logs go to `./logs/image_tools_debug_<session_id>.json` with per-call deta
 
 - **Requires credentials** for the active backend (FAL `FAL_KEY`, `OPENAI_API_KEY`, xAI OAuth, `KREA_API_KEY`)
 - **Editing is model-dependent** — image-to-image works only on edit-capable models (see the table above); text-to-image-only models reject image inputs with a clear error
-- **Temporary URLs** — backends return hosted URLs that expire after hours/days; FreeIDE materializes them to the local cache so delivery still works after expiry
+- **Temporary URLs** — backends return hosted URLs that expire after hours/days; JettsTUI materializes them to the local cache so delivery still works after expiry
 - **Per-model constraints** — some models don't support `seed`, `num_inference_steps`, etc. The `supports` / `edit_supports` filter silently drops unsupported params; this is expected behavior

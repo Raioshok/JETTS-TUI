@@ -29,14 +29,14 @@ def _response(content: str = "ok"):
 
 
 @pytest.fixture
-def freeide_home(tmp_path, monkeypatch):
-    home = tmp_path / ".freeide"
+def jettstui_home(tmp_path, monkeypatch):
+    home = tmp_path / ".jettstui"
     home.mkdir()
-    monkeypatch.setenv("FREEIDE_HOME", str(home))
+    monkeypatch.setenv("JETTSTUI_HOME", str(home))
     return home
 
 
-def test_aggregator_call_never_receives_reference_max_tokens(freeide_home, monkeypatch):
+def test_aggregator_call_never_receives_reference_max_tokens(jettstui_home, monkeypatch):
     """reference_max_tokens must cap only the reference fan-out — the
     aggregator's own call_llm invocation must not receive max_tokens at all
     (call_llm omits it entirely when None; see its own docstring)."""
@@ -70,7 +70,7 @@ def test_aggregator_call_never_receives_reference_max_tokens(freeide_home, monke
     assert "max_tokens" not in aggregator_calls[0]
 
 
-def test_aggregator_call_uncapped_when_reference_max_tokens_unset(freeide_home, monkeypatch):
+def test_aggregator_call_uncapped_when_reference_max_tokens_unset(jettstui_home, monkeypatch):
     """Sanity check: with no reference_max_tokens configured, the reference
     call still explicitly passes max_tokens=None (call_llm itself decides
     whether to omit it on the wire), while the aggregator call structurally

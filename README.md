@@ -1,193 +1,133 @@
-# Jetts-TUI
+<p align="center">
+  <img src="docs/assets/brand/banner.png" alt="JettsTUI" width="100%">
+</p>
 
-Jetts-TUI is a terminal-first AI workspace with a full-screen TUI, an agent runtime, memory, subagents, scheduled work, and messaging integrations. The same runtime also powers the desktop app.
+<p align="center">
+  <b>A terminal-first AI workspace.</b> One agent runtime behind a full-screen TUI, a native desktop app, and your messaging apps — with tools, memory, skills, subagents, and scheduled jobs.
+</p>
 
-Choose a supported provider or your own endpoint with `jetts-tui model`. Existing provider and hosted-service integrations remain available; this rebrand does not redirect those connections.
-
-The code is MIT licensed. The copyright notice and third-party attributions remain in [LICENSE](LICENSE) and the relevant dependency licenses.
-
-<table>
-<tr><td><b>A real terminal interface</b></td><td>Full TUI with multiline editing, slash-command autocomplete, conversation history, interrupt-and-redirect, and streaming tool output.</td></tr>
-<tr><td><b>Lives where you do</b></td><td>Telegram, Discord, Slack, WhatsApp, Signal, and the TUI — all from a single agent runtime. Voice memo transcription, cross-platform conversation continuity.</td></tr>
-<tr><td><b>A closed learning loop</b></td><td>Agent-curated memory with periodic nudges. Autonomous skill creation after complex tasks. Skills self-improve during use. FTS5 session search with LLM summarization for cross-session recall. <a href="https://github.com/plastic-labs/honcho">Honcho</a> dialectic user modeling. Compatible with the <a href="https://agentskills.io">agentskills.io</a> open standard.</td></tr>
-<tr><td><b>Scheduled automations</b></td><td>Built-in cron scheduler with delivery to any platform. Daily reports, nightly backups, weekly audits — all in natural language, running unattended.</td></tr>
-<tr><td><b>Delegates and parallelizes</b></td><td>Spawn isolated subagents for parallel workstreams. Write Python scripts that call tools via RPC, collapsing multi-step pipelines into zero-context-cost turns.</td></tr>
-<tr><td><b>Runs anywhere, not just your laptop</b></td><td>Six terminal backends — local, Docker, SSH, Singularity, Modal, and Daytona. Daytona and Modal offer serverless persistence — your agent's environment hibernates when idle and wakes on demand, costing nearly nothing between sessions. Run it on a $5 VPS or a GPU cluster.</td></tr>
-<tr><td><b>Research-ready</b></td><td>Batch trajectory generation, trajectory compression for training the next generation of tool-calling models.</td></tr>
-</table>
+<p align="center">
+  <a href="LICENSE"><img alt="MIT License" src="https://img.shields.io/badge/license-MIT-7357FF?style=flat-square"></a>
+  <img alt="Python 3.11–3.13" src="https://img.shields.io/badge/python-3.11%E2%80%933.13-3B82F6?style=flat-square">
+  <img alt="Platforms" src="https://img.shields.io/badge/platforms-Linux%20%C2%B7%20macOS%20%C2%B7%20Windows-5EEAD4?style=flat-square">
+</p>
 
 ---
 
-## Install from this repository
+<p align="center">
+  <img src="docs/assets/screenshots/desktop-chat.png" alt="JettsTUI desktop app" width="100%">
+</p>
 
-Clone or download this repository, then run the local setup script. Do not use installers hosted on a different project's domain for a Jetts-TUI install.
+<p align="center">
+  <img src="docs/assets/screenshots/tui-chat.png" alt="JettsTUI terminal UI" width="100%">
+</p>
 
-### Linux, macOS, or WSL2
+## Why JettsTUI
 
-Use the local-checkout setup script for your platform. It installs dependencies,
-reuses the local virtual environment on later runs, exposes `jetts-tui` on PATH,
-syncs bundled skills, and opens the provider/model wizard.
+| | |
+| --- | --- |
+| **A real terminal interface** | Full-screen TUI with multiline editing, slash-command autocomplete, session history, interrupt-and-redirect, and streaming tool output. |
+| **A native desktop app** | Electron app with a chat transcript, file previews, review pane, integrated terminal, and command palette — on the same runtime as the TUI. |
+| **Bring any model** | Pick a provider or any OpenAI-compatible endpoint with `jettstui model`. Model lists are discovered from the provider. |
+| **Lives where you do** | One gateway for Telegram, Discord, Slack, WhatsApp, Signal, Matrix, email, and more, with conversation continuity across them. |
+| **Learns as it works** | Agent-curated memory, skills it can create and refine, and full-text search over past sessions. |
+| **Delegates and schedules** | Spawn isolated subagents for parallel work, and run natural-language cron jobs that deliver to any connected platform. |
+| **Runs anywhere** | Local, Docker, SSH, Singularity, Modal, and Daytona terminal backends. |
+
+## Install
+
+Clone the repository and run the setup script for your platform. It creates a virtual environment, puts `jettstui` on your `PATH`, syncs the bundled skills, and opens the provider wizard.
+
+**Linux, macOS, or WSL2**
 
 ```bash
+git clone https://github.com/Raioshok/JETTS-TUI.git
+cd JETTS-TUI
 bash setup-jetts-tui.sh
 ```
 
-### Native Windows PowerShell
+**Windows (PowerShell)**
 
 ```powershell
-.\setup-jetts-tui.ps1
-```
-
-If local script execution is restricted, use the policy-scoped form (it changes
-nothing outside this one process):
-
-```powershell
+git clone https://github.com/Raioshok/JETTS-TUI.git
+cd JETTS-TUI
 powershell -NoProfile -ExecutionPolicy Bypass -File .\setup-jetts-tui.ps1
 ```
 
-Pass `--skip-setup` on Linux or `-SkipSetup` on Windows to postpone the wizard.
-Pass `--recreate` or `-Recreate` only when you intentionally want to rebuild
-the checkout's virtual environment.
+Pass `--skip-setup` (`-SkipSetup` on Windows) to postpone the wizard, or `--recreate` (`-Recreate`) to rebuild the virtual environment. More options — Nix, Termux, Docker — are in [docs/getting-started](docs/getting-started/installation.md).
 
-After installation:
+> [!NOTE]
+> JettsTUI manages Python with Astral's [`uv`](https://github.com/astral-sh/uv). If antivirus software quarantines `uv.exe`, verify the binary against its GitHub release attestation (`gh attestation verify <zip> --repo astral-sh/uv`) before restoring it.
 
-```bash
-source ~/.bashrc    # reload shell (or: source ~/.zshrc)
-jetts-tui              # start chatting!
-```
-
-### Troubleshooting
-
-#### Windows Defender or antivirus flags `uv.exe` as malware
-
-If your antivirus quarantines the `uv.exe` used by Jetts-TUI, do not assume the detection is a false positive. Jetts-TUI uses Astral's `uv` to manage its Python environment; verify the specific binary before restoring or running it. The setup script checks the `uv` on PATH first, then common user-install locations, including `%LOCALAPPDATA%\jettstui\bin` and the legacy `%LOCALAPPDATA%\freeide\bin`.
-
-**To verify your copy is authentic:**
-
-```powershell
-# Install GitHub CLI if needed
-winget install --id GitHub.cli
-
-# Login to GitHub
-gh auth login
-
-# Run verification
-$uv = (Get-Command uv -ErrorAction Stop).Source # use the exact copy used by setup
-$ver = (& $uv --version).Split(' ')[1]
-[Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
-$zip = "$env:TEMP\uv.zip"
-Invoke-WebRequest "https://github.com/astral-sh/uv/releases/download/$ver/uv-x86_64-pc-windows-msvc.zip" -OutFile $zip -UseBasicParsing
-gh attestation verify $zip --repo astral-sh/uv
-Expand-Archive $zip "$env:TEMP\uv_x" -Force
-(Get-FileHash "$env:TEMP\uv_x\uv.exe").Hash -eq (Get-FileHash $uv).Hash
-```
-
-If attestation says "Verification succeeded" and the last line prints `True`, you're good.
-
-If verification fails or you cannot verify the binary, leave it quarantined and report the installer source and detection details. Avoid excluding the entire Jetts-TUI directory from antivirus scanning.
-
-For more context, see the upstream Astral reports: [astral-sh/uv#13553](https://github.com/astral-sh/uv/issues/13553), [astral-sh/uv#15011](https://github.com/astral-sh/uv/issues/15011), [astral-sh/uv#10079](https://github.com/astral-sh/uv/issues/10079).
-
----
-
-## Getting Started
+## Quick start
 
 ```bash
-jetts-tui              # Full-screen terminal UI — start a conversation
-jetts-tui model        # Choose your LLM provider and model
-jetts-tui tools        # Configure which tools are enabled
-jetts-tui config set   # Set individual config values
-jetts-tui config get   # Print individual config values
-jetts-tui gateway      # Start the messaging gateway (Telegram, Discord, etc.)
-jetts-tui setup        # Run the full setup wizard (configures everything at once)
-jetts-tui claw migrate # Migrate from OpenClaw (if coming from OpenClaw)
-jetts-tui update       # Update to the latest version
-jetts-tui doctor       # Diagnose any issues
+jettstui              # start the full-screen terminal UI
+jettstui model        # choose a provider and model
+jettstui tools        # enable or disable toolsets
+jettstui setup        # run the complete setup wizard
+jettstui gateway      # start the messaging gateway
+jettstui desktop      # launch the desktop app
+jettstui doctor       # diagnose configuration problems
+jettstui update       # update to the latest version
 ```
 
-## Provider availability
+`jetts-tui` is installed as an alias of `jettstui`.
 
-Choose a supported provider or compatible custom endpoint with `jetts-tui model`. Available models are discovered from the configured provider when the provider exposes a model-list endpoint.
+Configuration lives in `~/.jettstui/config.yaml` (`%LOCALAPPDATA%\jettstui` on Windows); API keys live in the `.env` file beside it. Profiles (`jettstui -p <name>`) give you fully isolated instances with their own config, memory, and sessions.
 
----
+### Common commands inside a conversation
 
-## TUI vs Messaging Quick Reference
+| Action | TUI | Messaging platforms |
+| --- | --- | --- |
+| Start a fresh conversation | `/new` | `/new` |
+| Change model | `/model [provider:model]` | `/model [provider:model]` |
+| Set a personality | `/personality [name]` | `/personality [name]` |
+| Retry or undo the last turn | `/retry`, `/undo` | `/retry`, `/undo` |
+| Compress context / check usage | `/compress`, `/usage` | `/compress`, `/usage` |
+| Run a skill | `/<skill-name>` | `/<skill-name>` |
+| Interrupt current work | `Ctrl+C` or send a new message | `/stop` or send a new message |
 
-Jetts-TUI has two entry points: start the terminal UI with `jetts-tui`, or run the gateway and talk to it from Telegram, Discord, Slack, WhatsApp, Signal, or Email. Once you're in a conversation, many slash commands are shared across both interfaces.
+## Desktop app
 
-| Action                         | TUI                                           | Messaging platforms                                                              |
-| ------------------------------ | --------------------------------------------- | -------------------------------------------------------------------------------- |
-| Start chatting                 | `jetts-tui`                                      | Run `jetts-tui gateway setup` + `jetts-tui gateway start`, then send the bot a message |
-| Start fresh conversation       | `/new` or `/reset`                            | `/new` or `/reset`                                                               |
-| Change model                   | `/model [provider:model]`                     | `/model [provider:model]`                                                        |
-| Set a personality              | `/personality [name]`                         | `/personality [name]`                                                            |
-| Retry or undo the last turn    | `/retry`, `/undo`                             | `/retry`, `/undo`                                                                |
-| Compress context / check usage | `/compress`, `/usage`, `/insights [--days N]` | `/compress`, `/usage`, `/insights [days]`                                        |
-| Browse skills                  | `/skills` or `/<skill-name>`                  | `/<skill-name>`                                                                  |
-| Interrupt current work         | `Ctrl+C` or send a new message                | `/stop` or send a new message                                                    |
-| Platform-specific status       | `/platforms`                                  | `/status`, `/sethome`                                                            |
+The desktop app lives in [`apps/desktop`](apps/desktop). It starts a headless `jettstui serve` backend and talks to it over JSON-RPC, so it shares sessions, skills, and memory with the TUI.
 
----
+```bash
+npm ci                     # from the repository root
+cd apps/desktop
+npm run dev                # Vite renderer + Electron with hot reload
+npm run builder            # package an installer for the current OS
+```
+
+## Docker
+
+```bash
+docker compose up -d       # builds jetts-tui:local and mounts ~/.jettstui
+```
+
+Published images are available at `ghcr.io/raioshok/jetts-tui`. See [docs/user-guide/docker.md](docs/user-guide/docker.md) for volumes, profiles, and the dashboard service.
 
 ## Migrating from OpenClaw
 
-If you're coming from OpenClaw, Jetts-TUI can automatically import your settings, memories, skills, and API keys.
+`jettstui claw migrate` imports your persona, memories, skills, allowlists, messaging settings, and allowlisted API keys. Add `--dry-run` to preview or `--preset user-data` to skip secrets. The setup wizard offers this automatically when it finds `~/.openclaw`.
 
-**During first-time setup:** The setup wizard (`jetts-tui setup`) automatically detects `~/.openclaw` and offers to migrate before configuration begins.
+## Documentation
 
-**Anytime after install:**
-
-```bash
-jetts-tui claw migrate              # Interactive migration (full preset)
-jetts-tui claw migrate --dry-run    # Preview what would be migrated
-jetts-tui claw migrate --preset user-data   # Migrate without secrets
-jetts-tui claw migrate --overwrite  # Overwrite existing conflicts
-```
-
-What gets imported:
-
-- **SOUL.md** — persona file
-- **Memories** — MEMORY.md and USER.md entries
-- **Skills** — user-created skills → `~/.jettstui/skills/openclaw-imports/` (or the configured `FREEIDE_HOME`)
-- **Command allowlist** — approval patterns
-- **Messaging settings** — platform configs, allowed users, working directory
-- **API keys** — allowlisted secrets (Telegram, OpenRouter, OpenAI, Anthropic, ElevenLabs)
-- **TTS assets** — workspace audio files
-- **Workspace instructions** — AGENTS.md (with `--workspace-target`)
-
-See `jetts-tui claw migrate --help` for all options, or use the `openclaw-migration` skill for an interactive agent-guided migration with dry-run previews.
-
----
+- [Getting started](docs/getting-started) — installation, quick start, updating
+- [User guide](docs/user-guide) — features, messaging platforms, skills, security
+- [Developer guide](docs/developer-guide) — architecture, plugins, providers
+- [Reference](docs/reference) — CLI commands, configuration keys, environment variables
 
 ## Contributing
 
-We welcome contributions! See the [Contributing Guide](CONTRIBUTING.md) for development setup, code style, and PR process.
-
-Quick start for contributors from a local checkout:
+Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for the development setup and PR process, and [SECURITY.md](SECURITY.md) to report a vulnerability.
 
 ```bash
 bash setup-jetts-tui.sh --skip-setup
 uv pip install -e ".[all,dev]"
-scripts/run_tests.sh
+scripts/run_tests.sh       # always use the wrapper, never bare pytest
 ```
-
-Manual clone fallback (for throwaway clones/CI where you intentionally do not
-want the managed install layout):
-
-Create the venv outside the cloned source tree — a venv inside the directory
-the agent operates from can be wiped by a relative-path command the agent runs
-against its own checkout, destroying the running runtime mid-session.
-
-```bash
-curl -LsSf https://astral.sh/uv/install.sh | sh
-uv venv ~/.jettstui/venvs/jetts-tui-dev --python 3.11
-source ~/.jettstui/venvs/jetts-tui-dev/bin/activate
-uv pip install -e ".[all,dev]"
-scripts/run_tests.sh
-```
-
----
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT — see [LICENSE](LICENSE) and [NOTICE](NOTICE). JettsTUI is a derivative of an MIT-licensed upstream project whose copyright notice is preserved in `LICENSE`.

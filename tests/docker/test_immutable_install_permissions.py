@@ -7,9 +7,9 @@ import textwrap
 
 def test_container_sets_hosted_write_policy_env(built_image: str) -> None:
     script = (
-        'test "$FREEIDE_HOME" = "/opt/data" && '
-        'test "$FREEIDE_WRITE_SAFE_ROOT" = "/opt/data" && '
-        'test "$FREEIDE_DISABLE_LAZY_INSTALLS" = "1" && '
+        'test "$JETTSTUI_HOME" = "/opt/data" && '
+        'test "$JETTSTUI_WRITE_SAFE_ROOT" = "/opt/data" && '
+        'test "$JETTSTUI_DISABLE_LAZY_INSTALLS" = "1" && '
         'test "$PYTHONDONTWRITEBYTECODE" = "1"'
     )
     result = subprocess.run(
@@ -21,7 +21,7 @@ def test_container_sets_hosted_write_policy_env(built_image: str) -> None:
     assert result.returncode == 0, result.stderr[-2000:]
 
 
-def test_freeide_user_cannot_modify_install_but_can_write_data(built_image: str) -> None:
+def test_jettstui_user_cannot_modify_install_but_can_write_data(built_image: str) -> None:
     script = textwrap.dedent(
         r"""
         set -eu

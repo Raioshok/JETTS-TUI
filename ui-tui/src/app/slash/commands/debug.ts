@@ -30,7 +30,7 @@ export const debugCommands: SlashCommand[] = [
   ...widgetAppCommands,
 
   {
-    help: 'rescan $FREEIDE_HOME/tui-widgets and (re)register user widget apps',
+    help: 'rescan $JETTSTUI_HOME/tui-widgets and (re)register user widget apps',
     name: 'widgets-reload',
     run: (_arg, ctx) => {
       void loadUserWidgets().then(({ errors, loaded }) => {
@@ -45,7 +45,7 @@ export const debugCommands: SlashCommand[] = [
   },
 
   {
-    help: 'write a V8 heap snapshot + memory diagnostics (see FREEIDE_HEAPDUMP_DIR)',
+    help: 'write a V8 heap snapshot + memory diagnostics (see JETTSTUI_HEAPDUMP_DIR)',
     name: 'heapdump',
     run: (_arg, ctx) => {
       const { heapUsed, rss } = process.memoryUsage()
@@ -77,8 +77,8 @@ export const debugCommands: SlashCommand[] = [
         {
           rows: [
             ['OSC-11 background', terminalBackgroundHex() ?? '(no reply)'],
-            ['FREEIDE_TUI_BACKGROUND', process.env.FREEIDE_TUI_BACKGROUND ?? '(unset)'],
-            ['FREEIDE_TUI_THEME', process.env.FREEIDE_TUI_THEME ?? '(unset)'],
+            ['JETTSTUI_TUI_BACKGROUND', process.env.JETTSTUI_TUI_BACKGROUND ?? '(unset)'],
+            ['JETTSTUI_TUI_THEME', process.env.JETTSTUI_TUI_THEME ?? '(unset)'],
             ['COLORFGBG', process.env.COLORFGBG ?? '(unset)'],
             ['TERM_PROGRAM', process.env.TERM_PROGRAM ?? '(unset)'],
             ['detected mode', detectLightMode() ? 'light' : 'dark'],

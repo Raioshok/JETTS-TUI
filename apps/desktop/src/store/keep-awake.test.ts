@@ -4,19 +4,19 @@ import { storedBoolean } from '@/lib/storage'
 
 import { $keepAwake, setKeepAwake } from './keep-awake'
 
-const KEY = 'freeide.desktop.keepAwake.v1'
-const desktopWindow = window as unknown as { freeideDesktop?: Window['freeideDesktop'] }
-const initialFreeIDEDesktop = desktopWindow.freeideDesktop
+const KEY = 'jettstui.desktop.keepAwake.v1'
+const desktopWindow = window as unknown as { jettstuiDesktop?: Window['jettstuiDesktop'] }
+const initialJettsTUIDesktop = desktopWindow.jettstuiDesktop
 const setKeepAwakeBridge = vi.fn()
 
 beforeEach(() => {
-  desktopWindow.freeideDesktop = { setKeepAwake: setKeepAwakeBridge } as unknown as Window['freeideDesktop']
+  desktopWindow.jettstuiDesktop = { setKeepAwake: setKeepAwakeBridge } as unknown as Window['jettstuiDesktop']
   setKeepAwake(false)
   setKeepAwakeBridge.mockClear()
 })
 
 afterEach(() => {
-  desktopWindow.freeideDesktop = initialFreeIDEDesktop
+  desktopWindow.jettstuiDesktop = initialJettsTUIDesktop
 })
 
 describe('keep-awake store', () => {

@@ -3,16 +3,16 @@ label: SimpleX Chat
 kind: platform
 version: 1.1.0
 description: >
-  SimpleX Chat gateway adapter for FreeIDE Agent.
+  SimpleX Chat gateway adapter for JettsTUI.
   Connects to a local simplex-chat daemon via WebSocket and relays
-  messages between SimpleX contacts/groups and the FreeIDE agent.
+  messages between SimpleX contacts/groups and the JettsTUI agent.
   SimpleX is decentralised and assigns no persistent user IDs —
   every contact is an opaque internal ID generated at connection
   time, making it one of the most private messengers available.
 author: Mibayy, jooray
 # ``requires_env`` and ``optional_env`` entries are surfaced in the
-# ``freeide config`` UI via the platform-plugin env var injector in
-# ``freeide_cli/config.py``.
+# ``jettstui config`` UI via the platform-plugin env var injector in
+# ``jettstui/config.py``.
 requires_env:
   - name: SIMPLEX_WS_URL
     description: "WebSocket URL of the simplex-chat daemon (e.g. ws://127.0.0.1:5225)"
@@ -47,7 +47,7 @@ optional_env:
     description: "Human label for the home channel (defaults to the ID)"
     prompt: "Home channel display name (or empty)"
     password: false
-  - name: FREEIDE_SIMPLEX_TEXT_BATCH_DELAY
+  - name: JETTSTUI_SIMPLEX_TEXT_BATCH_DELAY
     description: >-
       Quiet-period seconds (default: 0.8) used to concatenate rapid-fire
       inbound text messages into a single MessageEvent — same pattern as

@@ -12,7 +12,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from freeide_constants import get_freeide_home
+from jettstui_constants import get_jettstui_home
 
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ logger = logging.getLogger(__name__)
 
 def save_config_value(key_path: str, value: Any, *, home: Path | None = None) -> bool:
     """Atomically edit one dotted config key without rewriting sibling keys."""
-    config_path = (home if home is not None else get_freeide_home()) / "config.yaml"
+    config_path = (home if home is not None else get_jettstui_home()) / "config.yaml"
 
     try:
         config_path.parent.mkdir(parents=True, exist_ok=True)

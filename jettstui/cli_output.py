@@ -1,12 +1,12 @@
-"""Shared CLI output helpers for FreeIDE CLI modules.
+"""Shared CLI output helpers for JettsTUI CLI modules.
 
 Extracts the identical ``print_info/success/warning/error`` and ``prompt()``
 functions previously duplicated across setup.py, tools_config.py,
 mcp_config.py, and memory_setup.py.
 """
 
-from freeide_cli.colors import Colors, color
-from freeide_cli.secret_prompt import masked_secret_prompt
+from jettstui.colors import Colors, color
+from jettstui.secret_prompt import masked_secret_prompt
 
 
 # ─── Print Helpers ────────────────────────────────────────────────────────────

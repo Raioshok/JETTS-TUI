@@ -32,26 +32,26 @@ def _clean_state():
 
 class TestRegisterCredentialFiles:
     def test_dict_with_path_key(self, tmp_path):
-        freeide_home = tmp_path / ".freeide"
-        freeide_home.mkdir()
-        (freeide_home / "token.json").write_text("{}")
+        jettstui_home = tmp_path / ".jettstui"
+        jettstui_home.mkdir()
+        (jettstui_home / "token.json").write_text("{}")
 
-        with patch.dict(os.environ, {"FREEIDE_HOME": str(freeide_home)}):
+        with patch.dict(os.environ, {"JETTSTUI_HOME": str(jettstui_home)}):
             missing = register_credential_files([{"path": "token.json"}])
 
         assert missing == []
         mounts = get_credential_file_mounts()
         assert len(mounts) == 1
-        assert mounts[0]["host_path"] == str(freeide_home / "token.json")
-        assert mounts[0]["container_path"] == "/root/.freeide/token.json"
+        assert mounts[0]["host_path"] == str(jettstui_home / "token.json")
+        assert mounts[0]["container_path"] == "/root/.jettstui/token.json"
 
     def test_dict_with_name_key_fallback(self, tmp_path):
         """Skills use 'name' instead of 'path' — both should work."""
-        freeide_home = tmp_path / ".freeide"
-        freeide_home.mkdir()
-        (freeide_home / "google_token.json").write_text("{}")
+        jettstui_home = tmp_path / ".jettstui"
+        jettstui_home.mkdir()
+        (jettstui_home / "google_token.json").write_text("{}")
 
-        with patch.dict(os.environ, {"FREEIDE_HOME": str(freeide_home)}):
+        with patch.dict(os.environ, {"JETTSTUI_HOME": str(jettstui_home)}):
             missing = register_credential_files([
                 {"name": "google_token.json", "description": "OAuth token"},
             ])
@@ -62,11 +62,11 @@ class TestRegisterCredentialFiles:
         assert "google_token.json" in mounts[0]["container_path"]
 
     def test_string_entry(self, tmp_path):
-        freeide_home = tmp_path / ".freeide"
-        freeide_home.mkdir()
-        (freeide_home / "secret.key").write_text("key")
+        jettstui_home = tmp_path / ".jettstui"
+        jettstui_home.mkdir()
+        (jettstui_home / "secret.key").write_text("key")
 
-        with patch.dict(os.environ, {"FREEIDE_HOME": str(freeide_home)}):
+        with patch.dict(os.environ, {"JETTSTUI_HOME": str(jettstui_home)}):
             missing = register_credential_files(["secret.key"])
 
         assert missing == []
@@ -74,10 +74,10 @@ class TestRegisterCredentialFiles:
         assert len(mounts) == 1
 
     def test_missing_file_reported(self, tmp_path):
-        freeide_home = tmp_path / ".freeide"
-        freeide_home.mkdir()
+        jettstui_home = tmp_path / ".jettstui"
+        jettstui_home.mkdir()
 
-        with patch.dict(os.environ, {"FREEIDE_HOME": str(freeide_home)}):
+        with patch.dict(os.environ, {"JETTSTUI_HOME": str(jettstui_home)}):
             missing = register_credential_files([
                 {"name": "does_not_exist.json"},
             ])
@@ -87,11 +87,11 @@ class TestRegisterCredentialFiles:
 
     def test_path_takes_precedence_over_name(self, tmp_path):
         """When both path and name are present, path wins."""
-        freeide_home = tmp_path / ".freeide"
-        freeide_home.mkdir()
-        (freeide_home / "real.json").write_text("{}")
+        jettstui_home = tmp_path / ".jettstui"
+        jettstui_home.mkdir()
+        (jettstui_home / "real.json").write_text("{}")
 
-        with patch.dict(os.environ, {"FREEIDE_HOME": str(freeide_home)}):
+        with patch.dict(os.environ, {"JETTSTUI_HOME": str(jettstui_home)}):
             missing = register_credential_files([
                 {"path": "real.json", "name": "wrong.json"},
             ])
@@ -103,24 +103,24 @@ class TestRegisterCredentialFiles:
 
 class TestSkillsDirectoryMount:
     def test_returns_mount_when_skills_dir_exists(self, tmp_path):
-        freeide_home = tmp_path / ".freeide"
-        skills_dir = freeide_home / "skills"
+        jettstui_home = tmp_path / ".jettstui"
+        skills_dir = jettstui_home / "skills"
         skills_dir.mkdir(parents=True)
         (skills_dir / "test-skill").mkdir()
         (skills_dir / "test-skill" / "SKILL.md").write_text("# test")
 
-        with patch.dict(os.environ, {"FREEIDE_HOME": str(freeide_home)}):
+        with patch.dict(os.environ, {"JETTSTUI_HOME": str(jettstui_home)}):
             mounts = get_skills_directory_mount()
 
         assert len(mounts) >= 1
         assert mounts[0]["host_path"] == str(skills_dir)
-        assert mounts[0]["container_path"] == "/root/.freeide/skills"
+        assert mounts[0]["container_path"] == "/root/.jettstui/skills"
 
     def test_returns_none_when_no_skills_dir(self, tmp_path):
-        freeide_home = tmp_path / ".freeide"
-        freeide_home.mkdir()
+        jettstui_home = tmp_path / ".jettstui"
+        jettstui_home.mkdir()
 
-        with patch.dict(os.environ, {"FREEIDE_HOME": str(freeide_home)}):
+        with patch.dict(os.environ, {"JETTSTUI_HOME": str(jettstui_home)}):
             mounts = get_skills_directory_mount()
 
         # No local skills dir → no local mount (external dirs may still appear)
@@ -128,18 +128,18 @@ class TestSkillsDirectoryMount:
         assert local_mounts == []
 
     def test_custom_container_base(self, tmp_path):
-        freeide_home = tmp_path / ".freeide"
-        (freeide_home / "skills").mkdir(parents=True)
+        jettstui_home = tmp_path / ".jettstui"
+        (jettstui_home / "skills").mkdir(parents=True)
 
-        with patch.dict(os.environ, {"FREEIDE_HOME": str(freeide_home)}):
-            mounts = get_skills_directory_mount(container_base="/home/user/.freeide")
+        with patch.dict(os.environ, {"JETTSTUI_HOME": str(jettstui_home)}):
+            mounts = get_skills_directory_mount(container_base="/home/user/.jettstui")
 
-        assert mounts[0]["container_path"] == "/home/user/.freeide/skills"
+        assert mounts[0]["container_path"] == "/home/user/.jettstui/skills"
 
     def test_symlinks_are_sanitized(self, tmp_path):
         """Symlinks in skills dir should be excluded from the mount."""
-        freeide_home = tmp_path / ".freeide"
-        skills_dir = freeide_home / "skills"
+        jettstui_home = tmp_path / ".jettstui"
+        skills_dir = jettstui_home / "skills"
         skills_dir.mkdir(parents=True)
         (skills_dir / "legit.md").write_text("# real skill")
         # Create a symlink pointing outside the skills tree
@@ -147,7 +147,7 @@ class TestSkillsDirectoryMount:
         secret.write_text("TOP SECRET")
         (skills_dir / "evil_link").symlink_to(secret)
 
-        with patch.dict(os.environ, {"FREEIDE_HOME": str(freeide_home)}):
+        with patch.dict(os.environ, {"JETTSTUI_HOME": str(jettstui_home)}):
             mounts = get_skills_directory_mount()
 
         assert len(mounts) >= 1
@@ -163,12 +163,12 @@ class TestSkillsDirectoryMount:
 
     def test_no_symlinks_returns_original_dir(self, tmp_path):
         """When no symlinks exist, the original dir is returned (no copy)."""
-        freeide_home = tmp_path / ".freeide"
-        skills_dir = freeide_home / "skills"
+        jettstui_home = tmp_path / ".jettstui"
+        skills_dir = jettstui_home / "skills"
         skills_dir.mkdir(parents=True)
         (skills_dir / "skill.md").write_text("ok")
 
-        with patch.dict(os.environ, {"FREEIDE_HOME": str(freeide_home)}):
+        with patch.dict(os.environ, {"JETTSTUI_HOME": str(jettstui_home)}):
             mounts = get_skills_directory_mount()
 
         assert mounts[0]["host_path"] == str(skills_dir)
@@ -176,8 +176,8 @@ class TestSkillsDirectoryMount:
 
 class TestIterSkillsFiles:
     def test_returns_files_skipping_symlinks(self, tmp_path):
-        freeide_home = tmp_path / ".freeide"
-        skills_dir = freeide_home / "skills"
+        jettstui_home = tmp_path / ".jettstui"
+        skills_dir = jettstui_home / "skills"
         (skills_dir / "cat" / "myskill").mkdir(parents=True)
         (skills_dir / "cat" / "myskill" / "SKILL.md").write_text("# skill")
         (skills_dir / "cat" / "myskill" / "scripts").mkdir()
@@ -187,20 +187,20 @@ class TestIterSkillsFiles:
         secret.write_text("nope")
         (skills_dir / "cat" / "myskill" / "evil").symlink_to(secret)
 
-        with patch.dict(os.environ, {"FREEIDE_HOME": str(freeide_home)}):
+        with patch.dict(os.environ, {"JETTSTUI_HOME": str(jettstui_home)}):
             files = iter_skills_files()
 
         paths = {f["container_path"] for f in files}
-        assert "/root/.freeide/skills/cat/myskill/SKILL.md" in paths
-        assert "/root/.freeide/skills/cat/myskill/scripts/run.sh" in paths
+        assert "/root/.jettstui/skills/cat/myskill/SKILL.md" in paths
+        assert "/root/.jettstui/skills/cat/myskill/scripts/run.sh" in paths
         # Symlink should be excluded
         assert not any("evil" in f["container_path"] for f in files)
 
     def test_empty_when_no_skills_dir(self, tmp_path):
-        freeide_home = tmp_path / ".freeide"
-        freeide_home.mkdir()
+        jettstui_home = tmp_path / ".jettstui"
+        jettstui_home.mkdir()
 
-        with patch.dict(os.environ, {"FREEIDE_HOME": str(freeide_home)}):
+        with patch.dict(os.environ, {"JETTSTUI_HOME": str(jettstui_home)}):
             assert iter_skills_files() == []
 
 class TestPathTraversalSecurity:
@@ -216,11 +216,11 @@ class TestPathTraversalSecurity:
     """
 
     def test_dotdot_traversal_rejected(self, tmp_path, monkeypatch):
-        """'../sensitive' must not escape FREEIDE_HOME."""
-        monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / ".freeide"))
-        (tmp_path / ".freeide").mkdir()
+        """'../sensitive' must not escape JETTSTUI_HOME."""
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / ".jettstui"))
+        (tmp_path / ".jettstui").mkdir()
 
-        # Create a sensitive file one level above freeide_home
+        # Create a sensitive file one level above jettstui_home
         sensitive = tmp_path / "sensitive.json"
         sensitive.write_text('{"secret": "value"}')
 
@@ -231,11 +231,11 @@ class TestPathTraversalSecurity:
 
     def test_deep_traversal_rejected(self, tmp_path, monkeypatch):
         """'../../etc/passwd' style traversal must be rejected."""
-        freeide_home = tmp_path / ".freeide"
-        freeide_home.mkdir()
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        jettstui_home = tmp_path / ".jettstui"
+        jettstui_home.mkdir()
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
-        # Create a fake sensitive file outside freeide_home
+        # Create a fake sensitive file outside jettstui_home
         ssh_dir = tmp_path / ".ssh"
         ssh_dir.mkdir()
         (ssh_dir / "id_rsa").write_text("PRIVATE KEY")
@@ -247,9 +247,9 @@ class TestPathTraversalSecurity:
 
     def test_absolute_path_rejected(self, tmp_path, monkeypatch):
         """Absolute paths must be rejected regardless of whether they exist."""
-        freeide_home = tmp_path / ".freeide"
-        freeide_home.mkdir()
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        jettstui_home = tmp_path / ".jettstui"
+        jettstui_home.mkdir()
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
         # Create a file at an absolute path
         sensitive = tmp_path / "absolute.json"
@@ -261,11 +261,11 @@ class TestPathTraversalSecurity:
         assert get_credential_file_mounts() == []
 
     def test_legitimate_file_still_works(self, tmp_path, monkeypatch):
-        """Normal files inside FREEIDE_HOME must still be registered."""
-        freeide_home = tmp_path / ".freeide"
-        freeide_home.mkdir()
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
-        (freeide_home / "token.json").write_text('{"token": "abc"}')
+        """Normal files inside JETTSTUI_HOME must still be registered."""
+        jettstui_home = tmp_path / ".jettstui"
+        jettstui_home.mkdir()
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
+        (jettstui_home / "token.json").write_text('{"token": "abc"}')
 
         result = register_credential_file("token.json")
 
@@ -274,31 +274,31 @@ class TestPathTraversalSecurity:
         assert len(mounts) == 1
         assert "token.json" in mounts[0]["container_path"]
 
-    def test_nested_subdir_inside_freeide_home_allowed(self, tmp_path, monkeypatch):
-        """Files in subdirectories of FREEIDE_HOME must be allowed."""
-        freeide_home = tmp_path / ".freeide"
-        freeide_home.mkdir()
-        subdir = freeide_home / "creds"
+    def test_nested_subdir_inside_jettstui_home_allowed(self, tmp_path, monkeypatch):
+        """Files in subdirectories of JETTSTUI_HOME must be allowed."""
+        jettstui_home = tmp_path / ".jettstui"
+        jettstui_home.mkdir()
+        subdir = jettstui_home / "creds"
         subdir.mkdir()
         (subdir / "oauth.json").write_text("{}")
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
         result = register_credential_file("creds/oauth.json")
 
         assert result is True
 
     def test_symlink_traversal_rejected(self, tmp_path, monkeypatch):
-        """A symlink inside FREEIDE_HOME pointing outside must be rejected."""
-        freeide_home = tmp_path / ".freeide"
-        freeide_home.mkdir()
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        """A symlink inside JETTSTUI_HOME pointing outside must be rejected."""
+        jettstui_home = tmp_path / ".jettstui"
+        jettstui_home.mkdir()
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
-        # Create a sensitive file outside freeide_home
+        # Create a sensitive file outside jettstui_home
         sensitive = tmp_path / "sensitive.json"
         sensitive.write_text('{"secret": "value"}')
 
-        # Create a symlink inside freeide_home pointing outside
-        symlink = freeide_home / "evil_link.json"
+        # Create a symlink inside jettstui_home pointing outside
+        symlink = jettstui_home / "evil_link.json"
         try:
             symlink.symlink_to(sensitive)
         except (OSError, NotImplementedError):
@@ -306,7 +306,7 @@ class TestPathTraversalSecurity:
 
         result = register_credential_file("evil_link.json")
 
-        # The resolved path escapes FREEIDE_HOME — must be rejected
+        # The resolved path escapes JETTSTUI_HOME — must be rejected
         assert result is False
         assert get_credential_file_mounts() == []
 
@@ -318,20 +318,20 @@ class TestPathTraversalSecurity:
 class TestConfigPathTraversal:
     """terminal.credential_files in config.yaml must also reject traversal."""
 
-    def _write_config(self, freeide_home: Path, cred_files: list):
+    def _write_config(self, jettstui_home: Path, cred_files: list):
         import yaml
-        config_path = freeide_home / "config.yaml"
+        config_path = jettstui_home / "config.yaml"
         config_path.write_text(yaml.dump({"terminal": {"credential_files": cred_files}}))
 
     def test_config_traversal_rejected(self, tmp_path, monkeypatch):
-        """'../secret' in config.yaml must not escape FREEIDE_HOME."""
-        freeide_home = tmp_path / ".freeide"
-        freeide_home.mkdir()
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        """'../secret' in config.yaml must not escape JETTSTUI_HOME."""
+        jettstui_home = tmp_path / ".jettstui"
+        jettstui_home.mkdir()
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
         sensitive = tmp_path / "secret.json"
         sensitive.write_text("{}")
-        self._write_config(freeide_home, ["../secret.json"])
+        self._write_config(jettstui_home, ["../secret.json"])
 
         mounts = get_credential_file_mounts()
         host_paths = [m["host_path"] for m in mounts]
@@ -340,25 +340,25 @@ class TestConfigPathTraversal:
 
     def test_config_absolute_path_rejected(self, tmp_path, monkeypatch):
         """Absolute paths in config.yaml must be rejected."""
-        freeide_home = tmp_path / ".freeide"
-        freeide_home.mkdir()
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        jettstui_home = tmp_path / ".jettstui"
+        jettstui_home.mkdir()
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
         sensitive = tmp_path / "abs.json"
         sensitive.write_text("{}")
-        self._write_config(freeide_home, [str(sensitive)])
+        self._write_config(jettstui_home, [str(sensitive)])
 
         mounts = get_credential_file_mounts()
         assert mounts == []
 
     def test_config_legitimate_file_works(self, tmp_path, monkeypatch):
-        """Normal files inside FREEIDE_HOME via config must still mount."""
-        freeide_home = tmp_path / ".freeide"
-        freeide_home.mkdir()
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        """Normal files inside JETTSTUI_HOME via config must still mount."""
+        jettstui_home = tmp_path / ".jettstui"
+        jettstui_home.mkdir()
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
-        (freeide_home / "oauth.json").write_text("{}")
-        self._write_config(freeide_home, ["oauth.json"])
+        (jettstui_home / "oauth.json").write_text("{}")
+        self._write_config(jettstui_home, ["oauth.json"])
 
         mounts = get_credential_file_mounts()
         assert len(mounts) == 1
@@ -374,64 +374,64 @@ class TestCacheDirectoryMounts:
 
     def test_returns_existing_cache_dirs(self, tmp_path, monkeypatch):
         """Existing cache dirs are returned with correct container paths."""
-        freeide_home = tmp_path / ".freeide"
-        freeide_home.mkdir()
-        (freeide_home / "cache" / "documents").mkdir(parents=True)
-        (freeide_home / "cache" / "audio").mkdir(parents=True)
-        (freeide_home / "cache" / "videos").mkdir(parents=True)
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        jettstui_home = tmp_path / ".jettstui"
+        jettstui_home.mkdir()
+        (jettstui_home / "cache" / "documents").mkdir(parents=True)
+        (jettstui_home / "cache" / "audio").mkdir(parents=True)
+        (jettstui_home / "cache" / "videos").mkdir(parents=True)
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
         mounts = get_cache_directory_mounts()
         paths = {m["container_path"] for m in mounts}
-        assert "/root/.freeide/cache/documents" in paths
-        assert "/root/.freeide/cache/audio" in paths
-        assert "/root/.freeide/cache/videos" in paths
+        assert "/root/.jettstui/cache/documents" in paths
+        assert "/root/.jettstui/cache/audio" in paths
+        assert "/root/.jettstui/cache/videos" in paths
 
     def test_skips_nonexistent_dirs(self, tmp_path, monkeypatch):
         """Dirs that don't exist on disk are not returned."""
-        freeide_home = tmp_path / ".freeide"
-        freeide_home.mkdir()
+        jettstui_home = tmp_path / ".jettstui"
+        jettstui_home.mkdir()
         # Create only one cache dir
-        (freeide_home / "cache" / "documents").mkdir(parents=True)
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        (jettstui_home / "cache" / "documents").mkdir(parents=True)
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
         mounts = get_cache_directory_mounts()
         assert len(mounts) == 1
-        assert mounts[0]["container_path"] == "/root/.freeide/cache/documents"
+        assert mounts[0]["container_path"] == "/root/.jettstui/cache/documents"
 
     def test_legacy_dir_names_resolved(self, tmp_path, monkeypatch):
         """Old-style dir names (e.g. document_cache) are resolved correctly.
 
         Populates the legacy dirs with a sentinel file so they count as
-        ``has content`` for ``get_freeide_dir``'s populated-legacy check
+        ``has content`` for ``get_jettstui_dir``'s populated-legacy check
         (see #27602 — empty legacy stubs are no longer honoured).
         """
-        freeide_home = tmp_path / ".freeide"
-        freeide_home.mkdir()
-        # Use legacy dir name with content — get_freeide_dir prefers
+        jettstui_home = tmp_path / ".jettstui"
+        jettstui_home.mkdir()
+        # Use legacy dir name with content — get_jettstui_dir prefers
         # populated old over new.
-        legacy_doc = freeide_home / "document_cache"
-        legacy_img = freeide_home / "image_cache"
+        legacy_doc = jettstui_home / "document_cache"
+        legacy_img = jettstui_home / "image_cache"
         legacy_doc.mkdir()
         legacy_img.mkdir()
         (legacy_doc / "cached.txt").write_bytes(b"x")
         (legacy_img / "cached.png").write_bytes(b"x")
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
         mounts = get_cache_directory_mounts()
         host_paths = {m["host_path"] for m in mounts}
-        assert str(freeide_home / "document_cache") in host_paths
-        assert str(freeide_home / "image_cache") in host_paths
+        assert str(jettstui_home / "document_cache") in host_paths
+        assert str(jettstui_home / "image_cache") in host_paths
         # Container paths always use the new layout
         container_paths = {m["container_path"] for m in mounts}
-        assert "/root/.freeide/cache/documents" in container_paths
-        assert "/root/.freeide/cache/images" in container_paths
+        assert "/root/.jettstui/cache/documents" in container_paths
+        assert "/root/.jettstui/cache/images" in container_paths
 
-    def test_empty_freeide_home(self, tmp_path, monkeypatch):
+    def test_empty_jettstui_home(self, tmp_path, monkeypatch):
         """No cache dirs → empty list."""
-        freeide_home = tmp_path / ".freeide"
-        freeide_home.mkdir()
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        jettstui_home = tmp_path / ".jettstui"
+        jettstui_home.mkdir()
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
         assert get_cache_directory_mounts() == []
 
@@ -440,42 +440,42 @@ class TestMapCachePathToContainer:
     """Tests for map_cache_path_to_container() — the backend-agnostic mapper."""
 
     def test_maps_path_under_cache_dir(self, tmp_path, monkeypatch):
-        freeide_home = tmp_path / ".freeide"
-        img_dir = freeide_home / "cache" / "images"
+        jettstui_home = tmp_path / ".jettstui"
+        img_dir = jettstui_home / "cache" / "images"
         img_dir.mkdir(parents=True)
         host_path = str(img_dir / "generated.png")
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
         assert (
             map_cache_path_to_container(host_path)
-            == "/root/.freeide/cache/images/generated.png"
+            == "/root/.jettstui/cache/images/generated.png"
         )
 
     def test_custom_container_base_for_remote_home(self, tmp_path, monkeypatch):
-        freeide_home = tmp_path / ".freeide"
-        img_dir = freeide_home / "cache" / "images"
+        jettstui_home = tmp_path / ".jettstui"
+        img_dir = jettstui_home / "cache" / "images"
         img_dir.mkdir(parents=True)
         host_path = str(img_dir / "remote.png")
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
         assert (
-            map_cache_path_to_container(host_path, container_base="/home/agent/.freeide")
-            == "/home/agent/.freeide/cache/images/remote.png"
+            map_cache_path_to_container(host_path, container_base="/home/agent/.jettstui")
+            == "/home/agent/.jettstui/cache/images/remote.png"
         )
 
     def test_returns_none_when_outside_cache_dirs(self, tmp_path, monkeypatch):
-        freeide_home = tmp_path / ".freeide"
-        (freeide_home / "cache" / "images").mkdir(parents=True)
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        jettstui_home = tmp_path / ".jettstui"
+        (jettstui_home / "cache" / "images").mkdir(parents=True)
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
         assert map_cache_path_to_container(str(tmp_path / "elsewhere.png")) is None
 
     def test_returns_none_when_no_cache_dirs_exist(self, tmp_path, monkeypatch):
-        freeide_home = tmp_path / ".freeide"
-        freeide_home.mkdir()
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        jettstui_home = tmp_path / ".jettstui"
+        jettstui_home.mkdir()
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
-        assert map_cache_path_to_container(str(freeide_home / "cache" / "images" / "x.png")) is None
+        assert map_cache_path_to_container(str(jettstui_home / "cache" / "images" / "x.png")) is None
 
 
 class TestIterCacheFiles:
@@ -483,12 +483,12 @@ class TestIterCacheFiles:
 
     def test_enumerates_files(self, tmp_path, monkeypatch):
         """Regular files in cache dirs are returned."""
-        freeide_home = tmp_path / ".freeide"
-        doc_dir = freeide_home / "cache" / "documents"
+        jettstui_home = tmp_path / ".jettstui"
+        doc_dir = jettstui_home / "cache" / "documents"
         doc_dir.mkdir(parents=True)
         (doc_dir / "upload.zip").write_bytes(b"PK\x03\x04")
         (doc_dir / "report.pdf").write_bytes(b"%PDF-1.4")
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
         entries = iter_cache_files()
         names = {Path(e["container_path"]).name for e in entries}
@@ -497,13 +497,13 @@ class TestIterCacheFiles:
 
     def test_skips_symlinks(self, tmp_path, monkeypatch):
         """Symlinks inside cache dirs are skipped."""
-        freeide_home = tmp_path / ".freeide"
-        doc_dir = freeide_home / "cache" / "documents"
+        jettstui_home = tmp_path / ".jettstui"
+        doc_dir = jettstui_home / "cache" / "documents"
         doc_dir.mkdir(parents=True)
         real_file = doc_dir / "real.txt"
         real_file.write_text("content")
         (doc_dir / "link.txt").symlink_to(real_file)
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
         entries = iter_cache_files()
         names = [Path(e["container_path"]).name for e in entries]
@@ -512,32 +512,32 @@ class TestIterCacheFiles:
 
     def test_nested_files(self, tmp_path, monkeypatch):
         """Files in subdirectories are included with correct relative paths."""
-        freeide_home = tmp_path / ".freeide"
-        ss_dir = freeide_home / "cache" / "screenshots"
+        jettstui_home = tmp_path / ".jettstui"
+        ss_dir = jettstui_home / "cache" / "screenshots"
         sub = ss_dir / "session_abc"
         sub.mkdir(parents=True)
         (sub / "screen1.png").write_bytes(b"PNG")
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
         entries = iter_cache_files()
         assert len(entries) == 1
-        assert entries[0]["container_path"] == "/root/.freeide/cache/screenshots/session_abc/screen1.png"
+        assert entries[0]["container_path"] == "/root/.jettstui/cache/screenshots/session_abc/screen1.png"
 
     def test_empty_cache(self, tmp_path, monkeypatch):
         """No cache dirs → empty list."""
-        freeide_home = tmp_path / ".freeide"
-        freeide_home.mkdir()
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        jettstui_home = tmp_path / ".jettstui"
+        jettstui_home.mkdir()
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
         assert iter_cache_files() == []
 
 
 class TestMasterCredentialStoresAreNeverMountable:
-    """Containment is not enough — FREEIDE_HOME *is* where the keys live.
+    """Containment is not enough — JETTSTUI_HOME *is* where the keys live.
 
     ``required_credential_files`` is skill-declared frontmatter, and skills are
     installed from the hub. The traversal guard already stops
-    ``../../.ssh/id_rsa`` from escaping FREEIDE_HOME, but every master
+    ``../../.ssh/id_rsa`` from escaping JETTSTUI_HOME, but every master
     credential store sits *inside* it: a one-line declaration would otherwise
     bind-mount ``.env`` (every provider key) or ``auth.json`` (all provider
     tokens and OAuth grants) read-only into the sandbox the skill's own code
@@ -550,7 +550,7 @@ class TestMasterCredentialStoresAreNeverMountable:
 
     @staticmethod
     def _home(tmp_path):
-        home = tmp_path / ".freeide"
+        home = tmp_path / ".jettstui"
         home.mkdir()
         (home / ".env").write_text("OPENAI_API_KEY=sk-proj-REAL\n")
         (home / "auth.json").write_text('{"providers":{}}')
@@ -576,7 +576,7 @@ class TestMasterCredentialStoresAreNeverMountable:
     )
     def test_master_credential_store_is_refused(self, tmp_path, rel_path):
         home = self._home(tmp_path)
-        with patch.dict(os.environ, {"FREEIDE_HOME": str(home)}):
+        with patch.dict(os.environ, {"JETTSTUI_HOME": str(home)}):
             assert register_credential_file(rel_path) is False, (
                 f"{rel_path} would be bind-mounted into the sandbox"
             )
@@ -585,28 +585,28 @@ class TestMasterCredentialStoresAreNeverMountable:
     def test_per_service_token_still_mounts(self, tmp_path):
         """The module's legitimate purpose must keep working."""
         home = self._home(tmp_path)
-        with patch.dict(os.environ, {"FREEIDE_HOME": str(home)}):
+        with patch.dict(os.environ, {"JETTSTUI_HOME": str(home)}):
             assert register_credential_file("google_token.json") is True
             mounts = get_credential_file_mounts()
         assert [m["container_path"] for m in mounts] == [
-            "/root/.freeide/google_token.json"
+            "/root/.jettstui/google_token.json"
         ]
 
     def test_refused_entry_does_not_block_the_rest_of_the_batch(self, tmp_path):
         home = self._home(tmp_path)
-        with patch.dict(os.environ, {"FREEIDE_HOME": str(home)}):
+        with patch.dict(os.environ, {"JETTSTUI_HOME": str(home)}):
             missing = register_credential_files([".env", "google_token.json"])
             mounts = get_credential_file_mounts()
 
         paths = [m["container_path"] for m in mounts]
-        assert "/root/.freeide/google_token.json" in paths
-        assert "/root/.freeide/.env" not in paths
+        assert "/root/.jettstui/google_token.json" in paths
+        assert "/root/.jettstui/.env" not in paths
         assert ".env" in missing, "a refused store is reported back to the skill"
 
     def test_traversal_guard_still_applies(self, tmp_path):
         """The pre-existing containment check is untouched."""
         home = self._home(tmp_path)
-        with patch.dict(os.environ, {"FREEIDE_HOME": str(home)}):
+        with patch.dict(os.environ, {"JETTSTUI_HOME": str(home)}):
             assert register_credential_file("../../.ssh/id_rsa") is False
             assert register_credential_file("/etc/passwd") is False
 
@@ -619,7 +619,7 @@ class TestMasterCredentialStoresAreNeverMountable:
         import tools.credential_files as cf
 
         home = self._home(tmp_path)
-        with patch.dict(os.environ, {"FREEIDE_HOME": str(home)}), \
+        with patch.dict(os.environ, {"JETTSTUI_HOME": str(home)}), \
                 patch.object(cf, "get_read_block_error", None):
             with caplog.at_level("ERROR", logger="tools.credential_files"):
                 assert cf.register_credential_file("google_token.json") is False
@@ -635,7 +635,7 @@ class TestMasterCredentialStoresAreNeverMountable:
         def _boom(path):
             raise RuntimeError("guard exploded")
 
-        with patch.dict(os.environ, {"FREEIDE_HOME": str(home)}), \
+        with patch.dict(os.environ, {"JETTSTUI_HOME": str(home)}), \
                 patch.object(cf, "get_read_block_error", _boom):
             with caplog.at_level("ERROR", logger="tools.credential_files"):
                 assert cf.register_credential_file("google_token.json") is False

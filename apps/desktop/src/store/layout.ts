@@ -19,21 +19,21 @@ export const FILE_BROWSER_MAX_WIDTH = '20rem'
 
 export const SIDEBAR_SESSIONS_PAGE_SIZE = 50
 
-const SIDEBAR_PINNED_STORAGE_KEY = 'freeide.desktop.pinnedSessions'
-const SIDEBAR_AGENTS_GROUPED_STORAGE_KEY = 'freeide.desktop.agentsGroupedByWorkspace'
-const SIDEBAR_CRON_OPEN_STORAGE_KEY = 'freeide.desktop.sidebarCronOpen'
-const SIDEBAR_MESSAGING_OPEN_STORAGE_KEY = 'freeide.desktop.sidebarMessagingOpen'
-const SIDEBAR_SESSION_ORDER_STORAGE_KEY = 'freeide.desktop.sessionOrder'
-const SIDEBAR_SESSION_ORDER_MANUAL_STORAGE_KEY = 'freeide.desktop.sessionOrder.manual'
-const SIDEBAR_WORKSPACE_ORDER_STORAGE_KEY = 'freeide.desktop.workspaceOrder'
-const SIDEBAR_WORKSPACE_PARENT_ORDER_STORAGE_KEY = 'freeide.desktop.workspaceParentOrder'
-const SIDEBAR_PROJECT_ORDER_STORAGE_KEY = 'freeide.desktop.projectOrder'
-const SIDEBAR_WORKSPACE_COLLAPSED_STORAGE_KEY = 'freeide.desktop.workspaceCollapsed'
-const SIDEBAR_WORKSPACE_NODE_OPEN_STORAGE_KEY = 'freeide.desktop.workspaceNodeOpen'
-const SIDEBAR_DISMISSED_AUTO_PROJECTS_STORAGE_KEY = 'freeide.desktop.dismissedAutoProjects'
-const SIDEBAR_DISMISSED_WORKTREES_STORAGE_KEY = 'freeide.desktop.dismissedWorktrees'
-const PANES_FLIPPED_STORAGE_KEY = 'freeide.desktop.panesFlipped'
-const RIGHT_RAIL_ACTIVE_TAB_STORAGE_KEY = 'freeide.desktop.rightRailActiveTab'
+const SIDEBAR_PINNED_STORAGE_KEY = 'jettstui.desktop.pinnedSessions'
+const SIDEBAR_AGENTS_GROUPED_STORAGE_KEY = 'jettstui.desktop.agentsGroupedByWorkspace'
+const SIDEBAR_CRON_OPEN_STORAGE_KEY = 'jettstui.desktop.sidebarCronOpen'
+const SIDEBAR_MESSAGING_OPEN_STORAGE_KEY = 'jettstui.desktop.sidebarMessagingOpen'
+const SIDEBAR_SESSION_ORDER_STORAGE_KEY = 'jettstui.desktop.sessionOrder'
+const SIDEBAR_SESSION_ORDER_MANUAL_STORAGE_KEY = 'jettstui.desktop.sessionOrder.manual'
+const SIDEBAR_WORKSPACE_ORDER_STORAGE_KEY = 'jettstui.desktop.workspaceOrder'
+const SIDEBAR_WORKSPACE_PARENT_ORDER_STORAGE_KEY = 'jettstui.desktop.workspaceParentOrder'
+const SIDEBAR_PROJECT_ORDER_STORAGE_KEY = 'jettstui.desktop.projectOrder'
+const SIDEBAR_WORKSPACE_COLLAPSED_STORAGE_KEY = 'jettstui.desktop.workspaceCollapsed'
+const SIDEBAR_WORKSPACE_NODE_OPEN_STORAGE_KEY = 'jettstui.desktop.workspaceNodeOpen'
+const SIDEBAR_DISMISSED_AUTO_PROJECTS_STORAGE_KEY = 'jettstui.desktop.dismissedAutoProjects'
+const SIDEBAR_DISMISSED_WORKTREES_STORAGE_KEY = 'jettstui.desktop.dismissedWorktrees'
+const PANES_FLIPPED_STORAGE_KEY = 'jettstui.desktop.panesFlipped'
+const RIGHT_RAIL_ACTIVE_TAB_STORAGE_KEY = 'jettstui.desktop.rightRailActiveTab'
 
 export const CHAT_SIDEBAR_PANE_ID = 'chat-sidebar'
 export const FILE_BROWSER_PANE_ID = 'file-browser'
@@ -294,7 +294,7 @@ export function revealFileInTree(path: string): void {
 
 // Hotkey → focus the sessions search field. Opens the sidebar first, then lets
 // the field (which only mounts when the sidebar is open) subscribe + focus.
-export const SESSION_SEARCH_FOCUS_EVENT = 'freeide:focus-session-search'
+export const SESSION_SEARCH_FOCUS_EVENT = 'jettstui:focus-session-search'
 
 export function requestSessionSearchFocus() {
   setSidebarOpen(true)

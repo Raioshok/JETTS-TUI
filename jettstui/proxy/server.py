@@ -25,7 +25,7 @@ except ImportError:
     web = None  # type: ignore[assignment]
     AIOHTTP_AVAILABLE = False
 
-from freeide_cli.proxy.adapters.base import UpstreamAdapter, UpstreamCredential
+from jettstui.proxy.adapters.base import UpstreamAdapter, UpstreamCredential
 
 logger = logging.getLogger(__name__)
 
@@ -89,7 +89,7 @@ def create_app(adapter: UpstreamAdapter) -> "web.Application":
     """Build the aiohttp application bound to a specific upstream adapter."""
     if not AIOHTTP_AVAILABLE:
         raise RuntimeError(
-            "aiohttp is required for `freeide proxy`. Run `freeide setup` to install it."
+            "aiohttp is required for `jettstui proxy`. Run `jettstui setup` to install it."
         )
 
     app = web.Application(client_max_size=MAX_REQUEST_BYTES)
@@ -255,7 +255,7 @@ async def run_server(
     """
     if not AIOHTTP_AVAILABLE:
         raise RuntimeError(
-            "aiohttp is required for `freeide proxy`. Run `freeide setup` to install it."
+            "aiohttp is required for `jettstui proxy`. Run `jettstui setup` to install it."
         )
 
     app = create_app(adapter)

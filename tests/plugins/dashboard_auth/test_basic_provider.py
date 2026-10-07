@@ -14,7 +14,7 @@ from unittest.mock import MagicMock
 import pytest
 
 import plugins.dashboard_auth.basic as basic_plugin
-from freeide_cli.dashboard_auth import (
+from jettstui.dashboard_auth import (
     InvalidCredentialsError,
     RefreshExpiredError,
     assert_protocol_compliance,
@@ -29,11 +29,11 @@ def basic():
 @pytest.fixture(autouse=True)
 def _clear_basic_env(monkeypatch):
     for var in (
-        "FREEIDE_DASHBOARD_BASIC_AUTH_USERNAME",
-        "FREEIDE_DASHBOARD_BASIC_AUTH_PASSWORD",
-        "FREEIDE_DASHBOARD_BASIC_AUTH_PASSWORD_HASH",
-        "FREEIDE_DASHBOARD_BASIC_AUTH_SECRET",
-        "FREEIDE_DASHBOARD_BASIC_AUTH_TTL_SECONDS",
+        "JETTSTUI_DASHBOARD_BASIC_AUTH_USERNAME",
+        "JETTSTUI_DASHBOARD_BASIC_AUTH_PASSWORD",
+        "JETTSTUI_DASHBOARD_BASIC_AUTH_PASSWORD_HASH",
+        "JETTSTUI_DASHBOARD_BASIC_AUTH_SECRET",
+        "JETTSTUI_DASHBOARD_BASIC_AUTH_TTL_SECONDS",
     ):
         monkeypatch.delenv(var, raising=False)
 
@@ -172,7 +172,7 @@ class TestRegister:
         assert "username" in basic.LAST_SKIP_REASON
 
     def test_skips_when_username_but_no_password(self, basic, monkeypatch):
-        monkeypatch.setenv("FREEIDE_DASHBOARD_BASIC_AUTH_USERNAME", "admin")
+        monkeypatch.setenv("JETTSTUI_DASHBOARD_BASIC_AUTH_USERNAME", "admin")
         monkeypatch.setattr(basic, "_load_config_basic_auth_section", lambda: {})
         ctx = MagicMock()
         basic.register(ctx)
@@ -180,8 +180,8 @@ class TestRegister:
         assert "password" in basic.LAST_SKIP_REASON
 
     def test_registers_with_env_plaintext_password(self, basic, monkeypatch):
-        monkeypatch.setenv("FREEIDE_DASHBOARD_BASIC_AUTH_USERNAME", "admin")
-        monkeypatch.setenv("FREEIDE_DASHBOARD_BASIC_AUTH_PASSWORD", "hunter2")
+        monkeypatch.setenv("JETTSTUI_DASHBOARD_BASIC_AUTH_USERNAME", "admin")
+        monkeypatch.setenv("JETTSTUI_DASHBOARD_BASIC_AUTH_PASSWORD", "hunter2")
         monkeypatch.setattr(basic, "_load_config_basic_auth_section", lambda: {})
         ctx = MagicMock()
         basic.register(ctx)
@@ -216,7 +216,7 @@ class TestRegister:
             lambda: {"username": "admin", "password_hash": cfg_hash},
         )
         # Env plaintext should win over the config hash.
-        monkeypatch.setenv("FREEIDE_DASHBOARD_BASIC_AUTH_PASSWORD", "env-pw")
+        monkeypatch.setenv("JETTSTUI_DASHBOARD_BASIC_AUTH_PASSWORD", "env-pw")
         ctx = MagicMock()
         basic.register(ctx)
         provider = ctx.register_dashboard_auth_provider.call_args.args[0]
@@ -233,9 +233,9 @@ class TestRegister:
         # other's tokens (the restart-/multi-worker-survival contract).
         shared = secrets.token_bytes(32).hex()
         monkeypatch.setattr(basic, "_load_config_basic_auth_section", lambda: {})
-        monkeypatch.setenv("FREEIDE_DASHBOARD_BASIC_AUTH_USERNAME", "admin")
-        monkeypatch.setenv("FREEIDE_DASHBOARD_BASIC_AUTH_PASSWORD", "hunter2")
-        monkeypatch.setenv("FREEIDE_DASHBOARD_BASIC_AUTH_SECRET", shared)
+        monkeypatch.setenv("JETTSTUI_DASHBOARD_BASIC_AUTH_USERNAME", "admin")
+        monkeypatch.setenv("JETTSTUI_DASHBOARD_BASIC_AUTH_PASSWORD", "hunter2")
+        monkeypatch.setenv("JETTSTUI_DASHBOARD_BASIC_AUTH_SECRET", shared)
 
         ctx1, ctx2 = MagicMock(), MagicMock()
         basic.register(ctx1)

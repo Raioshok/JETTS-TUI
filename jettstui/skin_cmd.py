@@ -1,4 +1,4 @@
-"""``freeide skin`` — list, switch, and tweak skins from the CLI.
+"""``jettstui skin`` — list, switch, and tweak skins from the CLI.
 
 ``set`` is the load-bearing verb: it changes ONE color of the ACTIVE skin **in
 place**, so tweaking (say) the tool marker never disturbs the rest of the look —
@@ -15,17 +15,17 @@ import re
 import sys
 from pathlib import Path
 
-from freeide_constants import display_freeide_home, get_freeide_home
+from jettstui_constants import display_jettstui_home, get_jettstui_home
 
 _HEX_RE = re.compile(r"^#[0-9a-fA-F]{6}$")
 
 
 def _skins_dir() -> Path:
-    return get_freeide_home() / "skins"
+    return get_jettstui_home() / "skins"
 
 
 def _active_skin() -> str:
-    from freeide_cli.config import load_config
+    from jettstui.config import load_config
 
     display = (load_config() or {}).get("display") or {}
     return str(display.get("skin") or "default")
@@ -33,7 +33,7 @@ def _active_skin() -> str:
 
 def _use(name: str) -> None:
     """Activate a skin (persists display.skin via the shared config writer)."""
-    from freeide_cli.config import config_command
+    from jettstui.config import config_command
 
     config_command(argparse.Namespace(config_command="set", key="display.skin", value=name, force=True))
 
@@ -54,7 +54,7 @@ def _skin_set(key: str, value: str, skin: str | None) -> int:
     else:
         # Built-in (or missing): fork into an editable copy that keeps its full
         # palette, under a fresh name so the built-in stays intact for revert.
-        from freeide_cli.skin_engine import load_skin
+        from jettstui.skin_engine import load_skin
 
         resolved = load_skin(name)
         target = f"{name}-custom"
@@ -78,12 +78,12 @@ def _skin_set(key: str, value: str, skin: str | None) -> int:
     if target != name:
         _use(target)
 
-    print(f"✓ {key} = {value} in {display_freeide_home()}/skins/{target}.yaml (live within ~1s)")
+    print(f"✓ {key} = {value} in {display_jettstui_home()}/skins/{target}.yaml (live within ~1s)")
     return 0
 
 
 def _skin_list() -> int:
-    from freeide_cli.skin_engine import list_skins
+    from jettstui.skin_engine import list_skins
 
     active = _active_skin()
     for s in list_skins():
@@ -93,7 +93,7 @@ def _skin_list() -> int:
 
 
 def skin_command(args) -> None:
-    """Dispatch ``freeide skin <verb>``."""
+    """Dispatch ``jettstui skin <verb>``."""
     verb = getattr(args, "skin_command", None)
 
     if verb == "set":

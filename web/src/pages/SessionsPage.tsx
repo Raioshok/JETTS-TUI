@@ -1194,9 +1194,9 @@ export default function SessionsPage() {
         const res = await fetch(api.exportSessionUrl(id), {
           credentials: "include",
           headers: {
-            "X-FreeIDE-Session-Token":
-              (window as unknown as { __FREEIDE_SESSION_TOKEN__?: string })
-                .__FREEIDE_SESSION_TOKEN__ ?? "",
+            "X-JettsTUI-Session-Token":
+              (window as unknown as { __JETTSTUI_SESSION_TOKEN__?: string })
+                .__JETTSTUI_SESSION_TOKEN__ ?? "",
           },
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -1483,7 +1483,7 @@ export default function SessionsPage() {
               <span className="text-xs font-mondwest tracking-[0.12em] truncate">
                 {activeAction === "restart"
                   ? t.status.restartGateway
-                  : t.status.updateFreeIDE}
+                  : t.status.updateJettsTUI}
               </span>
 
               <Badge

@@ -1,11 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { FreeIDERepoStatus } from '@/global'
+import type { JettsTUIRepoStatus } from '@/global'
 
 import { $repoStatus, $repoStatusLoading, refreshRepoStatus } from './coding-status'
 import { $currentCwd, $selectedStoredSessionId } from './session'
 
-const sampleStatus: FreeIDERepoStatus = {
+const sampleStatus: JettsTUIRepoStatus = {
   branch: 'feature/login',
   defaultBranch: 'main',
   detached: false,
@@ -21,8 +21,8 @@ const sampleStatus: FreeIDERepoStatus = {
   files: []
 }
 
-function stubProbe(impl: (cwd: string) => Promise<FreeIDERepoStatus | null>) {
-  ;(window as unknown as { freeideDesktop?: unknown }).freeideDesktop = { git: { repoStatus: impl } }
+function stubProbe(impl: (cwd: string) => Promise<JettsTUIRepoStatus | null>) {
+  ;(window as unknown as { jettstuiDesktop?: unknown }).jettstuiDesktop = { git: { repoStatus: impl } }
 }
 
 describe('refreshRepoStatus', () => {
@@ -31,13 +31,13 @@ describe('refreshRepoStatus', () => {
     $repoStatus.set(null)
     $currentCwd.set('')
     $selectedStoredSessionId.set(null)
-    delete (window as unknown as { freeideDesktop?: unknown }).freeideDesktop
+    delete (window as unknown as { jettstuiDesktop?: unknown }).jettstuiDesktop
   })
 
   afterEach(() => {
     vi.clearAllTimers()
     vi.useRealTimers()
-    delete (window as unknown as { freeideDesktop?: unknown }).freeideDesktop
+    delete (window as unknown as { jettstuiDesktop?: unknown }).jettstuiDesktop
   })
 
   it('populates $repoStatus from the probe for an explicit cwd', async () => {
@@ -77,7 +77,7 @@ describe('refreshRepoStatus', () => {
   })
 
   it('never publishes an old worktree status after the active cwd moves', async () => {
-    let resolveOld!: (status: FreeIDERepoStatus | null) => void
+    let resolveOld!: (status: JettsTUIRepoStatus | null) => void
     stubProbe(
       () =>
         new Promise(resolve => {
@@ -102,7 +102,7 @@ describe('refreshRepoStatus', () => {
   })
 
   it('runs one probe at a time and coalesces overlap into one trailing refresh', async () => {
-    const resolvers: Array<(status: FreeIDERepoStatus | null) => void> = []
+    const resolvers: Array<(status: JettsTUIRepoStatus | null) => void> = []
     const calls: string[] = []
     let active = 0
     let maxActive = 0

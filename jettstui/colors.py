@@ -1,4 +1,4 @@
-"""Shared ANSI color utilities for FreeIDE CLI modules."""
+"""Shared ANSI color utilities for JettsTUI CLI modules."""
 
 import os
 import sys

@@ -6,10 +6,10 @@ import socket
 
 
 def _reload_constants():
-    """Reload freeide_constants to get a fresh apply_ipv4_preference."""
-    import freeide_constants
-    importlib.reload(freeide_constants)
-    return freeide_constants
+    """Reload jettstui_constants to get a fresh apply_ipv4_preference."""
+    import jettstui_constants
+    importlib.reload(jettstui_constants)
+    return jettstui_constants
 
 
 class TestApplyIPv4Preference:
@@ -25,22 +25,22 @@ class TestApplyIPv4Preference:
 
     def test_noop_when_force_false(self):
         """No patch when force=False."""
-        from freeide_constants import apply_ipv4_preference
+        from jettstui_constants import apply_ipv4_preference
         original = socket.getaddrinfo
         apply_ipv4_preference(force=False)
         assert socket.getaddrinfo is original
 
     def test_patches_getaddrinfo_when_forced(self):
         """Patches socket.getaddrinfo when force=True."""
-        from freeide_constants import apply_ipv4_preference
+        from jettstui_constants import apply_ipv4_preference
         original = socket.getaddrinfo
         apply_ipv4_preference(force=True)
         assert socket.getaddrinfo is not original
-        assert getattr(socket.getaddrinfo, "_freeide_ipv4_patched", False) is True
+        assert getattr(socket.getaddrinfo, "_jettstui_ipv4_patched", False) is True
 
     def test_double_patch_is_safe(self):
         """Calling apply twice doesn't double-wrap."""
-        from freeide_constants import apply_ipv4_preference
+        from jettstui_constants import apply_ipv4_preference
         apply_ipv4_preference(force=True)
         first_patch = socket.getaddrinfo
         apply_ipv4_preference(force=True)
@@ -48,7 +48,7 @@ class TestApplyIPv4Preference:
 
     def test_af_unspec_becomes_af_inet(self):
         """AF_UNSPEC (default) calls get rewritten to AF_INET."""
-        from freeide_constants import apply_ipv4_preference
+        from jettstui_constants import apply_ipv4_preference
 
         calls = []
         original = socket.getaddrinfo
@@ -66,7 +66,7 @@ class TestApplyIPv4Preference:
 
     def test_explicit_family_preserved(self):
         """Explicit AF_INET6 requests are not intercepted."""
-        from freeide_constants import apply_ipv4_preference
+        from jettstui_constants import apply_ipv4_preference
 
         calls = []
         original = socket.getaddrinfo
@@ -83,7 +83,7 @@ class TestApplyIPv4Preference:
 
     def test_fallback_on_gaierror(self):
         """Falls back to AF_UNSPEC if AF_INET resolution fails."""
-        from freeide_constants import apply_ipv4_preference
+        from jettstui_constants import apply_ipv4_preference
 
         call_families = []
 
@@ -107,6 +107,6 @@ class TestConfigDefault:
     """Verify network section exists in DEFAULT_CONFIG."""
 
     def test_network_section_in_default_config(self):
-        from freeide_cli.config import DEFAULT_CONFIG
+        from jettstui.config import DEFAULT_CONFIG
         assert "network" in DEFAULT_CONFIG
         assert DEFAULT_CONFIG["network"]["force_ipv4"] is False

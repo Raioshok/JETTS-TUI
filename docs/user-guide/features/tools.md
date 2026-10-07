@@ -1,7 +1,7 @@
 ---
 sidebar_position: 1
 title: "Tools & Toolsets"
-description: "Overview of FreeIDE Agent's tools — what's available, how toolsets work, and terminal backends"
+description: "Overview of JettsTUI's tools — what's available, how toolsets work, and terminal backends"
 ---
 
 # Tools & Toolsets
@@ -10,7 +10,7 @@ Tools are functions that extend the agent's capabilities. They're organized into
 
 ## Available Tools
 
-FreeIDE ships with a broad built-in tool registry covering web search, browser automation, terminal execution, file editing, memory, delegation, scheduled tasks, Home Assistant, and more.
+JettsTUI ships with a broad built-in tool registry covering web search, browser automation, terminal execution, file editing, memory, delegation, scheduled tasks, Home Assistant, and more.
 
 :::note
 **Honcho cross-session memory** is available as a memory provider plugin (`plugins/memory/honcho/`), not as a built-in toolset. See [Plugins](./plugins.md) for installation.
@@ -21,37 +21,37 @@ High-level categories:
 | Category | Examples | Description |
 |----------|----------|-------------|
 | **Web** | `web_search`, `web_extract` | Search the web and extract page content. |
-| **X Search** | `x_search` | Search X (Twitter) posts and threads via xAI's built-in `x_search` Responses tool — gated on xAI credentials (SuperGrok OAuth or `XAI_API_KEY`); off by default, opt in via `freeide tools` → 🐦 X (Twitter) Search. |
+| **X Search** | `x_search` | Search X (Twitter) posts and threads via xAI's built-in `x_search` Responses tool — gated on xAI credentials (SuperGrok OAuth or `XAI_API_KEY`); off by default, opt in via `jettstui tools` → 🐦 X (Twitter) Search. |
 | **Terminal & Files** | `terminal`, `process`, `read_file`, `patch` | Execute commands and manipulate files. |
 | **Browser** | `browser_navigate`, `browser_snapshot`, `browser_vision` | Interactive browser automation with text and vision support. |
 | **Media** | `vision_analyze`, `image_generate`, `text_to_speech` | Multimodal analysis and generation. |
 | **Agent orchestration** | `todo`, `clarify`, `execute_code`, `delegate_task` | Planning, clarification, code execution, and subagent delegation. |
 | **Memory & recall** | `memory`, `session_search` | Persistent memory and session search. |
-| **Automation** | `cronjob` | Scheduled tasks with create/list/update/pause/resume/run/remove actions. Outbound delivery is handled by cron's own delivery, the `freeide send` CLI, and the gateway notifier — not by an agent-callable tool. |
+| **Automation** | `cronjob` | Scheduled tasks with create/list/update/pause/resume/run/remove actions. Outbound delivery is handled by cron's own delivery, the `jettstui send` CLI, and the gateway notifier — not by an agent-callable tool. |
 | **Integrations** | `ha_*`, MCP server tools | Home Assistant, MCP, and other integrations. |
 
 For the authoritative code-derived registry, see [Built-in Tools Reference](../../reference/tools-reference.md) and [Toolsets Reference](../../reference/toolsets-reference.md).
 
 :::tip Configuring tool credentials
-Tools like web search, image generation, TTS, and browser automation are configured per-backend with your own API keys (Exa/Firecrawl/Tavily for web, FAL for image/video, OpenAI for TTS, Browserbase for browser). Run `freeide model` or `freeide tools` to pick a backend and add its key.
+Tools like web search, image generation, TTS, and browser automation are configured per-backend with your own API keys (Exa/Firecrawl/Tavily for web, FAL for image/video, OpenAI for TTS, Browserbase for browser). Run `jettstui model` or `jettstui tools` to pick a backend and add its key.
 :::
 
 ## Using Toolsets
 
 ```bash
 # Use specific toolsets
-freeide chat --toolsets "web,terminal"
+jettstui chat --toolsets "web,terminal"
 
 # See all available tools
-freeide tools
+jettstui tools
 
 # Configure tools per platform (interactive)
-freeide tools
+jettstui tools
 ```
 
 Common toolsets include `web`, `search`, `terminal`, `file`, `browser`, `vision`, `image_gen`, `skills`, `tts`, `todo`, `memory`, `session_search`, `cronjob`, `code_execution`, `delegation`, `clarify`, `homeassistant`, `messaging`, `spotify`, `discord`, `discord_admin`, `debugging`, and `safe`.
 
-See [Toolsets Reference](../../reference/toolsets-reference.md) for the full set, including platform presets such as `freeide-cli`, `freeide-telegram`, and dynamic MCP toolsets like `mcp-<server>`.
+See [Toolsets Reference](../../reference/toolsets-reference.md) for the full set, including platform presets such as `jettstui-cli`, `jettstui-telegram`, and dynamic MCP toolsets like `mcp-<server>`.
 
 ## Terminal Backends
 
@@ -69,7 +69,7 @@ The terminal tool can execute commands in different environments:
 ### Configuration
 
 ```yaml
-# In ~/.freeide/config.yaml
+# In ~/.jettstui/config.yaml
 terminal:
   backend: local    # or: docker, ssh, singularity, modal, daytona
   cwd: "."          # Working directory
@@ -84,9 +84,9 @@ terminal:
   docker_image: python:3.11-slim
 ```
 
-**One persistent container, shared across the whole process.** FreeIDE starts a single long-lived container on first use (`docker run -d ... sleep 2h`) and routes every terminal, file, and `execute_code` call through `docker exec` into that same container. Working-directory changes, installed packages, environment tweaks, and files written to `/workspace` all carry over from one tool call to the next, across `/new`, `/reset`, and `delegate_task` subagents, for the lifetime of the FreeIDE process. The container is stopped and removed on shutdown.
+**One persistent container, shared across the whole process.** JettsTUI starts a single long-lived container on first use (`docker run -d ... sleep 2h`) and routes every terminal, file, and `execute_code` call through `docker exec` into that same container. Working-directory changes, installed packages, environment tweaks, and files written to `/workspace` all carry over from one tool call to the next, across `/new`, `/reset`, and `delegate_task` subagents, for the lifetime of the JettsTUI process. The container is stopped and removed on shutdown.
 
-This means the Docker backend behaves like a persistent sandbox VM, not a fresh container per command. If you `pip install foo` once, it's there for the rest of the session. If you `cd /workspace/project`, subsequent `ls` calls see that directory. See [Configuration → Docker Backend](../configuration.md#docker-backend) for the full lifecycle details and the `container_persistent` flag that controls whether `/workspace` and `/root` survive across FreeIDE restarts.
+This means the Docker backend behaves like a persistent sandbox VM, not a fresh container per command. If you `pip install foo` once, it's there for the rest of the session. If you `cd /workspace/project`, subsequent `ls` calls see that directory. See [Configuration → Docker Backend](../configuration.md#docker-backend) for the full lifecycle details and the `container_persistent` flag that controls whether `/workspace` and `/root` survive across JettsTUI restarts.
 
 ### SSH Backend
 
@@ -97,7 +97,7 @@ terminal:
   backend: ssh
 ```
 ```bash
-# Set credentials in ~/.freeide/.env
+# Set credentials in ~/.jettstui/.env
 TERMINAL_SSH_HOST=my-server.example.com
 TERMINAL_SSH_USER=myuser
 TERMINAL_SSH_KEY=~/.ssh/id_rsa
@@ -110,8 +110,8 @@ TERMINAL_SSH_KEY=~/.ssh/id_rsa
 apptainer build ~/python.sif docker://python:3.11-slim
 
 # Configure
-freeide config set terminal.backend singularity
-freeide config set terminal.singularity_image ~/python.sif
+jettstui config set terminal.backend singularity
+jettstui config set terminal.singularity_image ~/python.sif
 ```
 
 ### Modal (Serverless Cloud)
@@ -119,7 +119,7 @@ freeide config set terminal.singularity_image ~/python.sif
 ```bash
 uv pip install modal
 modal setup
-freeide config set terminal.backend modal
+jettstui config set terminal.backend modal
 ```
 
 ### Container Resources
@@ -171,8 +171,8 @@ PTY mode (`pty=true`) enables interactive CLI tools like Codex and Claude Code.
 
 ## Sudo Support
 
-If a command needs sudo, you'll be prompted for your password (cached for the session). Or set `SUDO_PASSWORD` in `~/.freeide/.env`.
+If a command needs sudo, you'll be prompted for your password (cached for the session). Or set `SUDO_PASSWORD` in `~/.jettstui/.env`.
 
 :::warning
-On messaging platforms, if sudo fails, the output includes a tip to add `SUDO_PASSWORD` to `~/.freeide/.env`.
+On messaging platforms, if sudo fails, the output includes a tip to add `SUDO_PASSWORD` to `~/.jettstui/.env`.
 :::

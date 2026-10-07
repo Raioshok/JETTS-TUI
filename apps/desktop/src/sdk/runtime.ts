@@ -14,10 +14,10 @@ import * as jsxRuntime from 'react/jsx-runtime'
 import * as sdk from './index'
 
 const GLOBALS = {
-  __FREEIDE_PLUGIN_SDK__: sdk,
-  __FREEIDE_REACT__: React,
-  __FREEIDE_REACT_JSX__: jsxRuntime,
-  __FREEIDE_REACT_JSX_DEV__: jsxDevRuntime
+  __JETTSTUI_PLUGIN_SDK__: sdk,
+  __JETTSTUI_REACT__: React,
+  __JETTSTUI_REACT_JSX__: jsxRuntime,
+  __JETTSTUI_REACT_JSX_DEV__: jsxDevRuntime
 } as const
 
 export function installPluginSdk(): void {
@@ -44,10 +44,10 @@ let cached: Record<string, string> | null = null
 /** Specifier -> shim URL map for the runtime loader (longest keys first). */
 export function sdkImportMap(): Record<string, string> {
   cached ??= {
-    '@jetts-tui/plugin-sdk': shimUrl('__FREEIDE_PLUGIN_SDK__'),
-    'react/jsx-dev-runtime': shimUrl('__FREEIDE_REACT_JSX_DEV__'),
-    'react/jsx-runtime': shimUrl('__FREEIDE_REACT_JSX__'),
-    react: shimUrl('__FREEIDE_REACT__')
+    '@jetts-tui/plugin-sdk': shimUrl('__JETTSTUI_PLUGIN_SDK__'),
+    'react/jsx-dev-runtime': shimUrl('__JETTSTUI_REACT_JSX_DEV__'),
+    'react/jsx-runtime': shimUrl('__JETTSTUI_REACT_JSX__'),
+    react: shimUrl('__JETTSTUI_REACT__')
   }
 
   return cached

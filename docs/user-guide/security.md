@@ -6,7 +6,7 @@ description: "Security model, dangerous command approval, user authorization, co
 
 # Security
 
-FreeIDE Agent is designed with a defense-in-depth security model. This page covers every security boundary — from command approval to container isolation to user authorization on messaging platforms.
+JettsTUI is designed with a defense-in-depth security model. This page covers every security boundary — from command approval to container isolation to user authorization on messaging platforms.
 
 ## Overview
 
@@ -23,11 +23,11 @@ The security model has eight layers:
 
 ## Dangerous Command Approval
 
-Before executing any command, FreeIDE checks it against a curated list of dangerous patterns. If a match is found, the user must explicitly approve it.
+Before executing any command, JettsTUI checks it against a curated list of dangerous patterns. If a match is found, the user must explicitly approve it.
 
 ### Approval Modes
 
-The approval system supports three modes, configured via `approvals.mode` in `~/.freeide/config.yaml`:
+The approval system supports three modes, configured via `approvals.mode` in `~/.jettstui/config.yaml`:
 
 ```yaml
 approvals:
@@ -43,10 +43,10 @@ The full set of keys:
 | Key | Default | What it controls |
 |---|---|---|
 | `mode` | `smart` | Approval policy for dangerous shell commands — see the table below. |
-| `timeout` | `300` | Seconds FreeIDE waits for an approval reply before timing out. |
+| `timeout` | `300` | Seconds JettsTUI waits for an approval reply before timing out. |
 | `cron_mode` | `deny` | How [cron jobs](./features/cron.md) behave headlessly when they trigger a dangerous-command prompt. `deny` blocks the command (the agent must find another path); `approve` auto-approves everything in cron context. |
 | `mcp_reload_confirm` | `true` | When true, `/reload-mcp` asks before rebuilding the MCP tool set. Rebuilding invalidates the provider prompt cache (tool schemas live in the system prompt), so the next message re-sends full input tokens. Users who click **Always Approve** flip this key to `false`. |
-| `destructive_slash_confirm` | `true` | When true, destructive session slash commands (`/clear`, `/new`, `/reset`, `/undo`) prompt before discarding conversation state. Three-option dialog (Approve Once / Always Approve / Cancel) routed through native yes/no buttons on Telegram, Discord, and Slack; text fallback elsewhere. Users who click **Always Approve** flip this key to `false`. TUI uses its own modal overlay (set `FREEIDE_TUI_NO_CONFIRM=1` to opt out there). |
+| `destructive_slash_confirm` | `true` | When true, destructive session slash commands (`/clear`, `/new`, `/reset`, `/undo`) prompt before discarding conversation state. Three-option dialog (Approve Once / Always Approve / Cancel) routed through native yes/no buttons on Telegram, Discord, and Slack; text fallback elsewhere. Users who click **Always Approve** flip this key to `false`. TUI uses its own modal overlay (set `JETTSTUI_TUI_NO_CONFIRM=1` to opt out there). |
 
 | Mode | Behavior |
 |------|----------|
@@ -62,9 +62,9 @@ Setting `approvals.mode: off` disables all safety prompts. Use only in trusted e
 
 YOLO mode bypasses **all** dangerous command approval prompts for the current session. It can be activated three ways:
 
-1. **CLI flag**: Start a session with `freeide --yolo` or `freeide chat --yolo`
+1. **CLI flag**: Start a session with `jettstui --yolo` or `jettstui chat --yolo`
 2. **Slash command**: Type `/yolo` during a session to toggle it on/off
-3. **Environment variable**: Set `FREEIDE_YOLO_MODE=1`
+3. **Environment variable**: Set `JETTSTUI_YOLO_MODE=1`
 
 The `/yolo` command is a **toggle** — each use flips the mode on or off:
 
@@ -76,9 +76,9 @@ The `/yolo` command is a **toggle** — each use flips the mode on or off:
   ⚠ YOLO mode OFF — dangerous commands will require approval.
 ```
 
-YOLO mode is available in both CLI and gateway sessions. Internally, it sets the `FREEIDE_YOLO_MODE` environment variable which is checked before every command execution.
+YOLO mode is available in both CLI and gateway sessions. Internally, it sets the `JETTSTUI_YOLO_MODE` environment variable which is checked before every command execution.
 
-When YOLO is active, FreeIDE shows two persistent visual reminders so it's hard to forget that approval prompts are bypassed:
+When YOLO is active, JettsTUI shows two persistent visual reminders so it's hard to forget that approval prompts are bypassed:
 
 - A red banner line at session start when YOLO is already active: `⚠ YOLO mode — all approval prompts bypassed`. Hidden when YOLO is off so the default banner stays uncluttered.
 - A `⚠ YOLO` fragment in the status bar across all width tiers, updated live as you toggle YOLO on or off (rich-text renderer and plain-text fallback).
@@ -91,7 +91,7 @@ For destructive session slash commands (`/clear`, `/new` / `/reset`, `/undo`, `/
 
 ### Hardline Blocklist (Always-On Floor)
 
-Some commands are so catastrophic — irreversible filesystem wipes, fork bombs, direct block-device writes — that FreeIDE refuses to run them **regardless** of:
+Some commands are so catastrophic — irreversible filesystem wipes, fork bombs, direct block-device writes — that JettsTUI refuses to run them **regardless** of:
 
 - `--yolo` / `/yolo` toggled on
 - `approvals.mode: off`
@@ -141,7 +141,7 @@ Deny rules are a guardrail against an honest-but-wrong agent, the same threat mo
 
 When a dangerous command prompt appears, the user has a configurable amount of time to respond. If no response is given within the timeout, the command is **denied** by default (fail-closed).
 
-Configure the timeout in `~/.freeide/config.yaml`:
+Configure the timeout in `~/.jettstui/config.yaml`:
 
 ```yaml
 approvals:
@@ -174,13 +174,13 @@ The following patterns trigger approval prompts (defined in `tools/approval.py`)
 | `python -e` / `perl -e` / `ruby -e` / `node -c` | Script execution via `-e`/`-c` flag |
 | `curl ... \| sh` / `wget ... \| sh` | Pipe remote content to shell |
 | `bash <(curl ...)` / `sh <(wget ...)` | Execute remote script via process substitution |
-| `tee` to `/etc/`, `~/.ssh/`, `~/.freeide/.env` | Overwrite sensitive file via tee |
-| `>` / `>>` to `/etc/`, `~/.ssh/`, `~/.freeide/.env` | Overwrite sensitive file via redirection |
+| `tee` to `/etc/`, `~/.ssh/`, `~/.jettstui/.env` | Overwrite sensitive file via tee |
+| `>` / `>>` to `/etc/`, `~/.ssh/`, `~/.jettstui/.env` | Overwrite sensitive file via redirection |
 | `xargs rm` | xargs with rm |
 | `find -exec rm` / `find -delete` | Find with destructive actions |
 | `cp`/`mv`/`install` to `/etc/` | Copy/move file into system config |
 | `sed -i` / `sed --in-place` on `/etc/` | In-place edit of system config |
-| `pkill`/`killall` freeide/gateway | Self-termination prevention |
+| `pkill`/`killall` jettstui/gateway | Self-termination prevention |
 | `gateway run` with `&`/`disown`/`nohup`/`setsid` | Prevents starting gateway outside service manager |
 | `docker stop/kill/restart`, `docker compose down/stop/kill/restart` | Container lifecycle (also catches global flags and `docker-compose`) |
 | `docker -H`/`--host`/`--context`, `DOCKER_HOST=`/`DOCKER_CONTEXT=` | Docker daemon redirect — the command targets a different (often remote) daemon |
@@ -218,11 +218,11 @@ On messaging platforms, the agent sends the dangerous command details to the cha
 - Reply **yes**, **y**, **approve**, **ok**, or **go** to approve
 - Reply **no**, **n**, **deny**, or **cancel** to deny
 
-The `FREEIDE_EXEC_ASK=1` environment variable is automatically set when running the gateway.
+The `JETTSTUI_EXEC_ASK=1` environment variable is automatically set when running the gateway.
 
 ### Permanent Allowlist
 
-Commands approved with "always" are saved to `~/.freeide/config.yaml`:
+Commands approved with "always" are saved to `~/.jettstui/config.yaml`:
 
 ```yaml
 # Permanently allowed dangerous command patterns
@@ -234,21 +234,21 @@ command_allowlist:
 These patterns are loaded at startup and silently approved in all future sessions.
 
 :::tip
-Use `freeide config edit` to review or remove patterns from your permanent allowlist.
+Use `jettstui config edit` to review or remove patterns from your permanent allowlist.
 :::
 
-### Mining Approval History (`freeide approvals suggest`)
+### Mining Approval History (`jettstui approvals suggest`)
 
 Instead of answering the same prompt session after session, you can mine your
 past approval decisions into allowlist proposals:
 
 ```bash
-freeide approvals suggest            # dry run — prints a numbered proposal
-freeide approvals suggest --apply 1,3  # merge picks into command_allowlist
-freeide approvals suggest --json     # machine-readable output
+jettstui approvals suggest            # dry run — prints a numbered proposal
+jettstui approvals suggest --apply 1,3  # merge picks into command_allowlist
+jettstui approvals suggest --json     # machine-readable output
 ```
 
-The command scans the session database (`~/.freeide/state.db`) for
+The command scans the session database (`~/.jettstui/state.db`) for
 dangerous-classified commands that actually executed — i.e. commands you
 approved — aggregates them into patterns (`git push *`, or the dangerous-class
 key for compound commands), and ranks them by approval frequency:
@@ -276,41 +276,41 @@ Useful flags: `--days N` (history window, default 90), `--min-count N`
 
 ## File Write Safety {#file-write-safety}
 
-Before `write_file` or `patch` touches disk, FreeIDE checks the target path against a denylist and an optional sandbox. Blocked writes return an error to the agent immediately — **there is no approval prompt** and no way to override from the chat UI. The model may still claim the edit succeeded; when `display.file_mutation_verifier` is on (default), trust the [file-mutation verifier footer](./configuration.md#file-mutation-verifier) over the assistant's closing summary.
+Before `write_file` or `patch` touches disk, JettsTUI checks the target path against a denylist and an optional sandbox. Blocked writes return an error to the agent immediately — **there is no approval prompt** and no way to override from the chat UI. The model may still claim the edit succeeded; when `display.file_mutation_verifier` is on (default), trust the [file-mutation verifier footer](./configuration.md#file-mutation-verifier) over the assistant's closing summary.
 
 ### Protected paths (always blocked)
 
-These categories are always denied, even when `FREEIDE_WRITE_SAFE_ROOT` is unset:
+These categories are always denied, even when `JETTSTUI_WRITE_SAFE_ROOT` is unset:
 
 | Category | Examples |
 |----------|----------|
 | OS credential stores | `~/.ssh/`, `~/.aws/`, `~/.kube/`, `/etc/sudoers`, `~/.netrc` |
-| FreeIDE credential stores | `auth.json`, `.env`, `.anthropic_oauth.json`, `mcp-tokens/`, `pairing/` under FREEIDE_HOME (active profile and global root) |
+| JettsTUI credential stores | `auth.json`, `.env`, `.anthropic_oauth.json`, `mcp-tokens/`, `pairing/` under JETTSTUI_HOME (active profile and global root) |
 | Project secret files | `.env`, `.env.local`, `.env.production`, `.envrc` anywhere on disk |
 
-Sensitive paths inside the safe root are still blocked — pointing `FREEIDE_WRITE_SAFE_ROOT` at `$HOME` does not allow writing `~/.ssh/id_rsa`.
+Sensitive paths inside the safe root are still blocked — pointing `JETTSTUI_WRITE_SAFE_ROOT` at `$HOME` does not allow writing `~/.ssh/id_rsa`.
 
-Safe-root violations return `Write denied: '…' is outside FREEIDE_WRITE_SAFE_ROOT (…)`. Credential-path blocks use `Write denied: '…' is a protected system/credential file.`
+Safe-root violations return `Write denied: '…' is outside JETTSTUI_WRITE_SAFE_ROOT (…)`. Credential-path blocks use `Write denied: '…' is a protected system/credential file.`
 
-### FREEIDE_WRITE_SAFE_ROOT (optional sandbox)
+### JETTSTUI_WRITE_SAFE_ROOT (optional sandbox)
 
 When set, `write_file` and `patch` may only target paths inside the listed directory prefix(es). Anything outside is **hard-blocked** — not routed through dangerous-command approval.
 
-- Set automatically in the [official Docker image](https://github.com/freeide/freeide) (`FREEIDE_WRITE_SAFE_ROOT=/opt/data`)
+- Set automatically in the [official Docker image](https://github.com/Raioshok/JETTS-TUI) (`JETTSTUI_WRITE_SAFE_ROOT=/opt/data`)
 - Supports multiple roots separated by `:` on Unix or `;` on Windows
-- **Do not add to `~/.freeide/.env` casually.** If you set it to a project directory, the agent cannot write to `~/.freeide/cron/jobs.json`, profile skills, or other FreeIDE state outside that prefix
+- **Do not add to `~/.jettstui/.env` casually.** If you set it to a project directory, the agent cannot write to `~/.jettstui/cron/jobs.json`, profile skills, or other JettsTUI state outside that prefix
 
-To allow both a workspace and FreeIDE home:
+To allow both a workspace and JettsTUI home:
 
 ```bash
-export FREEIDE_WRITE_SAFE_ROOT=/path/to/project:/home/you/.freeide
+export JETTSTUI_WRITE_SAFE_ROOT=/path/to/project:/home/you/.jettstui
 ```
 
-Unset the variable to restore unrestricted writes (subject to the protected-path denylist). Full reference: [FREEIDE_WRITE_SAFE_ROOT](../reference/environment-variables.md#freeide_write_safe_root).
+Unset the variable to restore unrestricted writes (subject to the protected-path denylist). Full reference: [JETTSTUI_WRITE_SAFE_ROOT](../reference/environment-variables.md#jettstui_write_safe_root).
 
-### Cron and other FreeIDE state
+### Cron and other JettsTUI state
 
-Do not ask the agent to `patch` `~/.freeide/cron/jobs.json` directly. Use the `cronjob` tool, [`freeide cron`](./features/cron.md), or `/cron` — they update the job store through the supported API. The same applies to other FreeIDE control files when write safety blocks direct edits.
+Do not ask the agent to `patch` `~/.jettstui/cron/jobs.json` directly. Use the `cronjob` tool, [`jettstui cron`](./features/cron.md), or `/cron` — they update the job store through the supported API. The same applies to other JettsTUI control files when write safety blocks direct edits.
 
 :::note Defense-in-depth, not a hard boundary
 Write guards apply to `write_file` and `patch` only. The `terminal` tool runs as the same OS user and can still `cat` or overwrite denied paths via shell commands. The denylist reduces accidental damage and gives models a clear stop signal; it does not sandbox a hostile or compromised agent.
@@ -318,7 +318,7 @@ Write guards apply to `write_file` and `patch` only. The `terminal` tool runs as
 
 ## User Authorization (Gateway)
 
-When running the messaging gateway, FreeIDE controls who can interact with the bot through a layered authorization system.
+When running the messaging gateway, JettsTUI controls who can interact with the bot through a layered authorization system.
 
 ### Authorization Check Order
 
@@ -333,7 +333,7 @@ The `_is_user_authorized()` method checks in this order:
 
 ### Platform Allowlists
 
-Set allowed user IDs as comma-separated values in `~/.freeide/.env`:
+Set allowed user IDs as comma-separated values in `~/.jettstui/.env`:
 
 ```bash
 # Platform-specific allowlists
@@ -357,23 +357,23 @@ If **no allowlists are configured** and `GATEWAY_ALLOW_ALL_USERS` is not set, **
 
 ```
 No user allowlists configured. All unauthorized users will be denied.
-Set GATEWAY_ALLOW_ALL_USERS=true in ~/.freeide/.env to allow open access,
+Set GATEWAY_ALLOW_ALL_USERS=true in ~/.jettstui/.env to allow open access,
 or configure platform allowlists (e.g., TELEGRAM_ALLOWED_USERS=your_id).
 ```
 :::
 
 ### DM Pairing System
 
-For more flexible authorization, FreeIDE includes a code-based pairing system. Instead of requiring user IDs upfront, unknown users receive a one-time pairing code that the bot owner approves via the CLI.
+For more flexible authorization, JettsTUI includes a code-based pairing system. Instead of requiring user IDs upfront, unknown users receive a one-time pairing code that the bot owner approves via the CLI.
 
 **How it works:**
 
 1. An unknown user sends a DM to the bot
 2. The bot replies with an 8-character pairing code
-3. The bot owner runs `freeide pairing approve <platform> <code>` on the CLI
+3. The bot owner runs `jettstui pairing approve <platform> <code>` on the CLI
 4. The user is permanently approved for that platform
 
-Control how unauthorized direct messages are handled in `~/.freeide/config.yaml`:
+Control how unauthorized direct messages are handled in `~/.jettstui/config.yaml`:
 
 ```yaml
 unauthorized_dm_behavior: pair
@@ -404,44 +404,44 @@ whatsapp:
 
 ```bash
 # List pending and approved users
-freeide pairing list
+jettstui pairing list
 
 # Approve a pairing code
-freeide pairing approve telegram ABC12DEF
+jettstui pairing approve telegram ABC12DEF
 
 # Revoke a user's access
-freeide pairing revoke telegram 123456789
+jettstui pairing revoke telegram 123456789
 
 # Clear all pending codes
-freeide pairing clear-pending
+jettstui pairing clear-pending
 ```
 
-:::tip Docker users: run pairing commands as the `freeide` user
-The official Docker image runs the gateway as the unprivileged `freeide` user
+:::tip Docker users: run pairing commands as the `jettstui` user
+The official Docker image runs the gateway as the unprivileged `jettstui` user
 (uid 10000) via `gosu`, but `docker exec` defaults to root. Approval files
 created by root are written with mode `0600 root:root` and the gateway
 cannot read them — the approval is silently ignored ([#10270][i10270]).
 
-Always pass `-u freeide`:
+Always pass `-u jettstui`:
 
 ```bash
-docker exec -u freeide freeide-agent freeide pairing approve telegram ABC12DEF
+docker exec -u jettstui jettstui jettstui pairing approve telegram ABC12DEF
 ```
 
 If you already ran the command as root and the user is still unauthorized,
 restart the container — the entrypoint will fix ownership on the next start.
 
-[i10270]: https://github.com/freeide/freeide/issues/10270
+[i10270]: https://github.com/Raioshok/JETTS-TUI/issues/10270
 :::
 
-**Storage:** Pairing data is stored in `~/.freeide/pairing/` with per-platform JSON files:
+**Storage:** Pairing data is stored in `~/.jettstui/pairing/` with per-platform JSON files:
 - `{platform}-pending.json` — pending pairing requests
 - `{platform}-approved.json` — approved users
 - `_rate_limits.json` — rate limit and lockout tracking
 
 ## Container Isolation
 
-When using the `docker` terminal backend, FreeIDE applies strict security hardening to every container.
+When using the `docker` terminal backend, JettsTUI applies strict security hardening to every container.
 
 ### Docker Security Flags
 
@@ -464,7 +464,7 @@ _BASE_SECURITY_ARGS = [
 
 ### Resource Limits
 
-Container resources are configurable in `~/.freeide/config.yaml`:
+Container resources are configurable in `~/.jettstui/config.yaml`:
 
 ```yaml
 terminal:
@@ -479,7 +479,7 @@ terminal:
 
 ### Filesystem Persistence
 
-- **Persistent mode** (`container_persistent: true`): Bind-mounts `/workspace` and `/root` from `~/.freeide/sandboxes/docker/<task_id>/`
+- **Persistent mode** (`container_persistent: true`): Bind-mounts `/workspace` and `/root` from `~/.jettstui/sandboxes/docker/<task_id>/`
 - **Ephemeral mode** (`container_persistent: false`): Uses tmpfs for workspace — everything is lost on cleanup
 
 :::tip
@@ -540,7 +540,7 @@ terminal:
 
 ### Credential File Passthrough (OAuth tokens, etc.) {#credential-file-passthrough}
 
-Some skills need **files** (not just env vars) in the sandbox — for example, Google Workspace stores OAuth tokens as `google_token.json` under the active profile's `FREEIDE_HOME`. Skills declare these in frontmatter:
+Some skills need **files** (not just env vars) in the sandbox — for example, Google Workspace stores OAuth tokens as `google_token.json` under the active profile's `JETTSTUI_HOME`. Skills declare these in frontmatter:
 
 ```yaml
 required_credential_files:
@@ -550,7 +550,7 @@ required_credential_files:
     description: Google OAuth2 client credentials
 ```
 
-When loaded, FreeIDE checks if these files exist in the active profile's `FREEIDE_HOME` and registers them for mounting:
+When loaded, JettsTUI checks if these files exist in the active profile's `JETTSTUI_HOME` and registers them for mounting:
 
 - **Docker**: Read-only bind mounts (`-v host:container:ro`)
 - **Modal**: Mounted at sandbox creation + synced before each command (handles mid-session OAuth setup)
@@ -565,14 +565,14 @@ terminal:
     - my_custom_oauth_token.json
 ```
 
-Paths are relative to `~/.freeide/`. Files are mounted to `/root/.freeide/` inside the container. This list is read by `tools/credential_files.py` (`terminal.credential_files`) — it lives under the `terminal:` block but is loaded by the credential-files module, not the core terminal backend, so it isn't part of the bundled `DEFAULT_CONFIG` snapshot.
+Paths are relative to `~/.jettstui/`. Files are mounted to `/root/.jettstui/` inside the container. This list is read by `tools/credential_files.py` (`terminal.credential_files`) — it lives under the `terminal:` block but is loaded by the credential-files module, not the core terminal backend, so it isn't part of the bundled `DEFAULT_CONFIG` snapshot.
 
 ### What Each Sandbox Filters
 
 | Sandbox | Default Filter | Passthrough Override |
 |---------|---------------|---------------------|
 | **execute_code** | Blocks vars containing `KEY`, `TOKEN`, `SECRET`, `PASSWORD`, `CREDENTIAL`, `PASSWD`, `AUTH` in name; only allows safe-prefix vars through | ✅ Passthrough vars bypass both checks |
-| **terminal** (local) | Blocks explicit FreeIDE infrastructure vars (provider keys, gateway tokens, tool API keys) | ✅ Passthrough vars bypass the blocklist |
+| **terminal** (local) | Blocks explicit JettsTUI infrastructure vars (provider keys, gateway tokens, tool API keys) | ✅ Passthrough vars bypass the blocklist |
 | **terminal** (Docker) | No host env vars by default | ✅ Passthrough vars + `docker_forward_env` forwarded via `-e` |
 | **terminal** (Modal) | No host env/files by default | ✅ Credential files mounted; env passthrough via sync |
 | **MCP** | Blocks everything except safe system vars + explicitly configured `env` | ❌ Not affected by passthrough (use MCP `env` config instead) |
@@ -583,7 +583,7 @@ Paths are relative to `~/.freeide/`. Files are mounted to `/root/.freeide/` insi
 - Credential files are mounted **read-only** into Docker containers
 - Skills Guard scans skill content for suspicious env access patterns before installation
 - Missing/unset vars are never registered (you can't leak what doesn't exist)
-- FreeIDE infrastructure secrets (provider API keys, gateway tokens) should never be added to `env_passthrough` — they have dedicated mechanisms
+- JettsTUI infrastructure secrets (provider API keys, gateway tokens) should never be added to `env_passthrough` — they have dedicated mechanisms
 
 ## MCP Credential Handling
 
@@ -624,7 +624,7 @@ Error messages from MCP tools are sanitized before being returned to the LLM. Th
 You can restrict which websites the agent can access through its web and browser tools. This is useful for preventing the agent from accessing internal services, admin panels, or other sensitive URLs.
 
 ```yaml
-# In ~/.freeide/config.yaml
+# In ~/.jettstui/config.yaml
 security:
   website_blocklist:
     enabled: true
@@ -632,7 +632,7 @@ security:
       - "*.internal.company.com"
       - "admin.example.com"
     shared_files:
-      - "/etc/freeide/blocked-sites.txt"
+      - "/etc/jettstui/blocked-sites.txt"
 ```
 
 When a blocked URL is requested, the tool returns an error explaining the domain is blocked by policy. The blocklist is enforced across `web_search`, `web_extract`, `browser_navigate`, and all URL-capable tools.
@@ -667,7 +667,7 @@ The host-substring guard (which blocks lookalike Unicode domain tricks even when
 
 ### Tirith Pre-Exec Security Scanning
 
-FreeIDE integrates [tirith](https://github.com/sheeki03/tirith) for content-level command scanning before execution. Tirith detects threats that pattern matching alone misses:
+JettsTUI integrates [tirith](https://github.com/sheeki03/tirith) for content-level command scanning before execution. Tirith detects threats that pattern matching alone misses:
 
 - Homograph URL spoofing (internationalized domain attacks)
 - Pipe-to-interpreter patterns (`curl | bash`, `wget | sh`)
@@ -676,7 +676,7 @@ FreeIDE integrates [tirith](https://github.com/sheeki03/tirith) for content-leve
 Tirith auto-installs from GitHub releases on first use with SHA-256 checksum verification (and cosign provenance verification if cosign is available).
 
 ```yaml
-# In ~/.freeide/config.yaml
+# In ~/.jettstui/config.yaml
 security:
   tirith_enabled: true       # Enable/disable tirith scanning (default: true)
   tirith_path: "tirith"      # Path to tirith binary (default: PATH lookup)
@@ -686,7 +686,7 @@ security:
 
 When `tirith_fail_open` is `true` (default), commands proceed if tirith is not installed or times out. Set to `false` in high-security environments to block commands when tirith is unavailable.
 
-Tirith ships prebuilt binaries for Linux (x86_64 / aarch64) and macOS (x86_64 / arm64). On platforms with no prebuilt binary (Windows, etc.), tirith is silently skipped — pattern-matching guards still run, and the CLI does not surface an "unavailable" banner. To use tirith on Windows, run FreeIDE under WSL.
+Tirith ships prebuilt binaries for Linux (x86_64 / aarch64) and macOS (x86_64 / arm64). On platforms with no prebuilt binary (Windows, etc.), tirith is silently skipped — pattern-matching guards still run, and the CLI does not surface an "unavailable" banner. To use tirith on Windows, run JettsTUI under WSL.
 
 Tirith's verdict integrates with the approval flow: safe commands pass through, while both suspicious and blocked commands trigger user approval with the full tirith findings (severity, title, description, safer alternatives). Users can approve or deny — the default choice is deny to keep unattended scenarios secure.
 
@@ -713,19 +713,19 @@ Blocked files show a warning:
 1. **Set explicit allowlists** — never use `GATEWAY_ALLOW_ALL_USERS=true` in production
 2. **Use container backend** — set `terminal.backend: docker` in config.yaml
 3. **Restrict resource limits** — set appropriate CPU, memory, and disk limits
-4. **Store secrets securely** — keep API keys in `~/.freeide/.env` with proper file permissions
+4. **Store secrets securely** — keep API keys in `~/.jettstui/.env` with proper file permissions
 5. **Enable DM pairing** — use pairing codes instead of hardcoding user IDs when possible
 6. **Review command allowlist** — periodically audit `command_allowlist` in config.yaml
 7. **Set `terminal.cwd`** — don't let the agent operate from sensitive directories
 8. **Run as non-root** — never run the gateway as root
-9. **Monitor logs** — check `~/.freeide/logs/` for unauthorized access attempts
-10. **Keep updated** — run `freeide update` regularly for security patches
+9. **Monitor logs** — check `~/.jettstui/logs/` for unauthorized access attempts
+10. **Keep updated** — run `jettstui update` regularly for security patches
 
 ### Securing API Keys
 
 ```bash
 # Set proper permissions on the .env file
-chmod 600 ~/.freeide/.env
+chmod 600 ~/.jettstui/.env
 
 # Keep separate keys for different services
 # Never commit .env files to version control
@@ -733,37 +733,37 @@ chmod 600 ~/.freeide/.env
 
 ### Network Isolation
 
-For maximum security, run the gateway on a separate machine or VM. Set `terminal.backend: ssh` in `config.yaml`, then provide host details via environment variables in `~/.freeide/.env`:
+For maximum security, run the gateway on a separate machine or VM. Set `terminal.backend: ssh` in `config.yaml`, then provide host details via environment variables in `~/.jettstui/.env`:
 
 ```yaml
-# ~/.freeide/config.yaml
+# ~/.jettstui/config.yaml
 terminal:
   backend: ssh
 ```
 
 ```bash
-# ~/.freeide/.env
+# ~/.jettstui/.env
 TERMINAL_SSH_HOST=agent-worker.local
-TERMINAL_SSH_USER=freeide
-TERMINAL_SSH_KEY=~/.ssh/freeide_agent_key
+TERMINAL_SSH_USER=jettstui
+TERMINAL_SSH_KEY=~/.ssh/jettstui_agent_key
 ```
 
 The SSH connection details live in `.env` (not `config.yaml`) so they aren't checked in or shared along with profile exports. This keeps the gateway's messaging connections separate from the agent's command execution.
 
 ## Supply-chain advisory checking
 
-FreeIDE ships with a built-in advisory scanner that flags Python packages in the active venv that match a curated catalog of known-compromised versions (supply-chain worms like the May 2026 `mistralai 2.4.6` poisoning). Implementation lives in `freeide_cli/security_advisories.py`.
+JettsTUI ships with a built-in advisory scanner that flags Python packages in the active venv that match a curated catalog of known-compromised versions (supply-chain worms like the May 2026 `mistralai 2.4.6` poisoning). Implementation lives in `jettstui/security_advisories.py`.
 
 How it runs:
 
-- **CLI startup banner.** A one-line warning is printed if any advisory matches, with a pointer to `freeide doctor` for the full remediation.
-- **`freeide doctor`.** Surfaces every active advisory with version specifics and 2-4 step remediation instructions.
+- **CLI startup banner.** A one-line warning is printed if any advisory matches, with a pointer to `jettstui doctor` for the full remediation.
+- **`jettstui doctor`.** Surfaces every active advisory with version specifics and 2-4 step remediation instructions.
 - **Gateway startup.** Logged to `gateway.log`; the first interactive message gets a short operator banner.
 
 Each advisory carries a stable id. Once you have read and acted on it you can dismiss it for good:
 
 ```bash
-freeide doctor --ack <advisory-id>
+jettstui doctor --ack <advisory-id>
 ```
 
 The ack is persisted to `config.security.acked_advisories` and survives restart. Old advisories are intentionally **not** removed from the catalog — leaving them in place keeps fresh installs warned about historically poisoned versions that might still be cached in a private mirror.
@@ -772,7 +772,7 @@ The check itself is stdlib-only and runs from one `importlib.metadata.version()`
 
 ### Lazy install of optional dependencies
 
-Many features (Mistral TTS, ElevenLabs, Honcho memory, Bedrock, Slack, Matrix, …) depend on Python packages that not every user needs. FreeIDE installs these **lazily** on first use rather than eagerly under `freeide-agent[all]`. The implementation lives in `tools/lazy_deps.py`.
+Many features (Mistral TTS, ElevenLabs, Honcho memory, Bedrock, Slack, Matrix, …) depend on Python packages that not every user needs. JettsTUI installs these **lazily** on first use rather than eagerly under `jettstui[all]`. The implementation lives in `tools/lazy_deps.py`.
 
 The trade-off this fixes:
 
@@ -783,7 +783,7 @@ How it works:
 
 1. A backend module calls `ensure("feature.name")` at the top of its first-import path.
 2. If the deps are missing, `ensure` checks `security.allow_lazy_installs` in `config.yaml` (default `true`) and runs a venv-scoped `pip install` for the allowlisted specs.
-3. If the install fails or the user has disabled lazy installs, the call raises `FeatureUnavailable` with the actual pip stderr and a pointer at `freeide tools`.
+3. If the install fails or the user has disabled lazy installs, the call raises `FeatureUnavailable` with the actual pip stderr and a pointer at `jettstui tools`.
 
 Security guarantees enforced by `tools/lazy_deps.py`:
 
@@ -798,9 +798,9 @@ Security guarantees enforced by `tools/lazy_deps.py`:
 To disable runtime installs:
 
 ```yaml
-# ~/.freeide/config.yaml
+# ~/.jettstui/config.yaml
 security:
   allow_lazy_installs: false
 ```
 
-When disabled, backends that need optional deps will tell the user to run the install manually (`pip install …`) or pick a different backend via `freeide tools`.
+When disabled, backends that need optional deps will tell the user to run the install manually (`pip install …`) or pick a different backend via `jettstui tools`.

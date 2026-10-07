@@ -1,5 +1,5 @@
 import { asText, normalize } from '@/lib/text'
-import type { ConfigFieldSchema, FreeIDEConfigRecord, ToolsetInfo } from '@/types/freeide'
+import type { ConfigFieldSchema, JettsTUIConfigRecord, ToolsetInfo } from '@/types/jettstui'
 
 import { BUILTIN_PERSONALITIES, ENUM_OPTIONS, PROVIDER_GROUPS, SECTIONS } from './constants'
 
@@ -79,7 +79,7 @@ function safeSet(target: Record<string, unknown>, key: string, value: unknown): 
   })
 }
 
-export function getNested(obj: FreeIDEConfigRecord, path: string): unknown {
+export function getNested(obj: JettsTUIConfigRecord, path: string): unknown {
   let cur: unknown = obj
 
   for (const part of configPathParts(path)) {
@@ -116,7 +116,7 @@ export function inferFieldSchema(value: unknown): ConfigFieldSchema {
 // Backend schema omits some declared keys; config presence is the availability signal.
 export function sectionFieldEntries(
   schema: Record<string, ConfigFieldSchema>,
-  config: FreeIDEConfigRecord
+  config: JettsTUIConfigRecord
 ): Map<string, [string, ConfigFieldSchema][]> {
   return new Map(
     SECTIONS.map(s => [
@@ -131,7 +131,7 @@ export function sectionFieldEntries(
   )
 }
 
-export function setNested(obj: FreeIDEConfigRecord, path: string, value: unknown): FreeIDEConfigRecord {
+export function setNested(obj: JettsTUIConfigRecord, path: string, value: unknown): JettsTUIConfigRecord {
   const clone = structuredClone(obj)
   const parts = configPathParts(path)
   let cur: Record<string, unknown> = clone
@@ -157,7 +157,7 @@ export function setNested(obj: FreeIDEConfigRecord, path: string, value: unknown
   return clone
 }
 
-function personalityOptions(config: FreeIDEConfigRecord): string[] {
+function personalityOptions(config: JettsTUIConfigRecord): string[] {
   const custom = getNested(config, 'agent.personalities')
 
   const customNames =
@@ -238,7 +238,7 @@ function isCommandProvider(value: unknown): boolean {
 // name the runtime would actually resolve as a command provider — built-ins are
 // excluded case-insensitively, matching the runtime's `provider.lower().strip()`
 // guard, so a ``providers.EDGE`` command block is not offered.
-function commandProviderNames(config: FreeIDEConfigRecord, section: 'tts' | 'stt'): string[] {
+function commandProviderNames(config: JettsTUIConfigRecord, section: 'tts' | 'stt'): string[] {
   const builtins = section === 'tts' ? BUILTIN_TTS_PROVIDERS : BUILTIN_STT_PROVIDERS
   const names = new Set<string>()
 
@@ -262,7 +262,7 @@ function commandProviderNames(config: FreeIDEConfigRecord, section: 'tts' | 'stt
 export function enumOptionsFor(
   key: string,
   value: unknown,
-  config: FreeIDEConfigRecord,
+  config: JettsTUIConfigRecord,
   dynamicOptions?: string[]
 ): string[] | undefined {
   let opts = dynamicOptions ?? (key === 'display.personality' ? personalityOptions(config) : ENUM_OPTIONS[key])

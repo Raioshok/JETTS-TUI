@@ -47,7 +47,7 @@ jobs:
           platforms: ${{ matrix.platform }}
           tags: ${{ env.IMAGE_NAME }}:test
           build-args: |
-            FREEIDE_GIT_SHA=${{ github.sha }}
+            JETTSTUI_GIT_SHA=${{ github.sha }}
           cache-from: ${{ matrix.cache-from }}
           cache-to: ${{ (github.event_name != 'pull_request') && matrix.cache-to || '' }}
 
@@ -64,7 +64,7 @@ jobs:
 
       - name: Run docker integration tests
         env:
-          FREEIDE_TEST_IMAGE: ${{ env.IMAGE_NAME }}:test
+          JETTSTUI_TEST_IMAGE: ${{ env.IMAGE_NAME }}:test
           OPENROUTER_API_KEY: ""
           OPENAI_API_KEY: ""
           NOUS_API_KEY: ""

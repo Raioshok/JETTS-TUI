@@ -1,5 +1,5 @@
 /* Visual self-verification tool: `npm run visual` renders real TUI surfaces
- * across theme x background scenes to <tmpdir>/freeide-tui-visual/tui-visual.html,
+ * across theme x background scenes to <tmpdir>/jettstui-tui-visual/tui-visual.html,
  * then shot.mjs screenshots it to tui-visual.png for eyeball + agent review.
  *
  * Original note: : render real TUI surfaces with ANSI colors intact,
@@ -56,7 +56,7 @@ const SLATE = {
   status_bar_text: '#C9D1D9'
 }
 
-// The regenerated slate light_colors block from freeide_cli/skin_engine.py
+// The regenerated slate light_colors block from jettstui/skin_engine.py
 // (relight recipe: vivid hue-preserved accents, airy capped-saturation text,
 // darker calm dims).
 
@@ -277,7 +277,7 @@ interface Scene {
 }
 
 const setup = (bgHex: string) => {
-  process.env.FREEIDE_TUI_BACKGROUND = bgHex
+  process.env.JETTSTUI_TUI_BACKGROUND = bgHex
   resetOverlayState()
   resetUiState()
 }
@@ -398,7 +398,7 @@ const resident = renderAnsi(
         <Box flexDirection="column" flexGrow={1} paddingX={1}>
           <Text color={residentScene.theme.color.prompt}>You</Text>
           <Text color={residentScene.theme.color.text}>Rework the TUI into a resident-agent workspace.</Text>
-          <Text color={residentScene.theme.color.accent}>Jetts-TUI</Text>
+          <Text color={residentScene.theme.color.accent}>JettsTUI</Text>
           <Text color={residentScene.theme.color.text}>The layout is responsive and the input target remains explicit.</Text>
         </Box>
       </Box>

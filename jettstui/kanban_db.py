@@ -1,10 +1,10 @@
 """SQLite-backed Kanban board for multi-profile, multi-project collaboration.
 
 In a fresh install the board lives at ``<root>/kanban.db`` where
-``<root>`` is the **shared FreeIDE root** (the parent of any active
+``<root>`` is the **shared JettsTUI root** (the parent of any active
 profile). Profiles intentionally collapse onto a shared board: it IS
 the cross-profile coordination primitive. A worker spawned with
-``freeide -p <profile>`` joins the same board as the dispatcher that
+``jettstui -p <profile>`` joins the same board as the dispatcher that
 claimed the task. The same applies to ``<root>/kanban/workspaces/`` and
 ``<root>/kanban/logs/``.
 
@@ -12,7 +12,7 @@ claimed the task. The same applies to ``<root>/kanban/workspaces/`` and
 separate unrelated streams of work (e.g. one per project / repo / domain).
 Each board is a directory under ``<root>/kanban/boards/<slug>/`` with
 its own ``kanban.db``, ``workspaces/``, and ``logs/``. All boards share
-the profile's FreeIDE home but are otherwise isolated: a worker spawned
+the profile's JettsTUI home but are otherwise isolated: a worker spawned
 for a task on board ``atm10-server`` sees only that board's tasks,
 cannot enumerate other boards, and its dispatcher ticks don't touch
 other boards' DBs.
@@ -27,27 +27,27 @@ Board resolution order (highest precedence first, all optional):
 * ``board=`` argument passed directly to :func:`connect` / :func:`init_db`
   (explicit — used by the CLI ``--board`` flag and the dashboard
   ``?board=...`` query param).
-* ``FREEIDE_KANBAN_BOARD`` env var (used by the dispatcher to pin workers
+* ``JETTSTUI_KANBAN_BOARD`` env var (used by the dispatcher to pin workers
   to the board their task lives on — workers cannot see other boards).
-* ``FREEIDE_KANBAN_DB`` env var (pins the DB file path directly — legacy
+* ``JETTSTUI_KANBAN_DB`` env var (pins the DB file path directly — legacy
   override still honoured; highest precedence when the file path itself
   is what the caller wants to force).
 * ``<root>/kanban/current`` — a one-line text file holding the slug of
-  the "currently selected" board. Written by ``freeide kanban boards
+  the "currently selected" board. Written by ``jettstui kanban boards
   switch <slug>``. When absent, the active board is ``default``.
 
-In standard installs ``<root>`` is ``~/.freeide``. In Docker / custom
-deployments where ``FREEIDE_HOME`` points outside ``~/.freeide`` (e.g.
-``/opt/jettstui``), ``<root>`` is ``FREEIDE_HOME``. Legacy env-var
+In standard installs ``<root>`` is ``~/.jettstui``. In Docker / custom
+deployments where ``JETTSTUI_HOME`` points outside ``~/.jettstui`` (e.g.
+``/opt/jettstui``), ``<root>`` is ``JETTSTUI_HOME``. Legacy env-var
 overrides still work:
 
-* ``FREEIDE_KANBAN_DB`` — pin the database file path directly.
-* ``FREEIDE_KANBAN_WORKSPACES_ROOT`` — pin the workspaces root directly.
-* ``FREEIDE_KANBAN_HOME`` — pin the umbrella root that anchors kanban
+* ``JETTSTUI_KANBAN_DB`` — pin the database file path directly.
+* ``JETTSTUI_KANBAN_WORKSPACES_ROOT`` — pin the workspaces root directly.
+* ``JETTSTUI_KANBAN_HOME`` — pin the umbrella root that anchors kanban
   paths. Useful for tests and unusual deployments.
 
-The dispatcher injects ``FREEIDE_KANBAN_DB``,
-``FREEIDE_KANBAN_WORKSPACES_ROOT``, and ``FREEIDE_KANBAN_BOARD`` into
+The dispatcher injects ``JETTSTUI_KANBAN_DB``,
+``JETTSTUI_KANBAN_WORKSPACES_ROOT``, and ``JETTSTUI_KANBAN_BOARD`` into
 worker subprocess env so workers converge on the exact DB the
 dispatcher used to claim their task — even under unusual symlink or
 Docker layouts.
@@ -55,7 +55,7 @@ Docker layouts.
 Schema is intentionally small: tasks, task_links, task_comments,
 task_events.  The ``workspace_kind`` field decouples coordination from git
 worktrees so that research / ops / digital-twin workloads work alongside
-coding workloads.  See ``docs/freeide-kanban-v1-spec.pdf`` for the full
+coding workloads.  See ``docs/jettstui-kanban-v1-spec.pdf`` for the full
 design specification.
 
 Concurrency strategy: WAL mode + ``BEGIN IMMEDIATE`` for write
@@ -89,7 +89,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Iterable, Mapping, Optional
 
-from freeide_cli.sqlite_util import add_column_if_missing as _add_column_if_missing
+from jettstui.sqlite_util import add_column_if_missing as _add_column_if_missing
 from toolsets import get_toolset_names
 
 _log = logging.getLogger(__name__)
@@ -154,7 +154,7 @@ def _assert_not_delegated_child_mutation() -> None:
 
         delegated = is_delegated_child_process_context()
     except Exception:
-        delegated = bool(os.environ.get("FREEIDE_DELEGATED_CHILD_CONTEXT"))
+        delegated = bool(os.environ.get("JETTSTUI_DELEGATED_CHILD_CONTEXT"))
     if delegated:
         raise PermissionError(
             "delegate_task child contexts cannot mutate Kanban tasks or boards"
@@ -170,13 +170,13 @@ def _fire_kanban_lifecycle_hook(event: str, task_id: str, **fields: Any) -> None
     a plugin raising, import error) is swallowed — a misbehaving observer must
     never break a board state transition.
 
-    ``profile_name`` is resolved from the active FREEIDE_HOME so dispatcher- and
+    ``profile_name`` is resolved from the active JETTSTUI_HOME so dispatcher- and
     worker-side hooks both carry the right profile without the caller plumbing
     it through.
     """
     try:
-        from freeide_cli.plugins import invoke_hook
-        from freeide_cli.profiles import get_active_profile_name
+        from jettstui.plugins import invoke_hook
+        from jettstui.profiles import get_active_profile_name
         try:
             profile_name = get_active_profile_name()
         except Exception:
@@ -190,7 +190,7 @@ def _fire_kanban_lifecycle_hook(event: str, task_id: str, **fields: Any) -> None
 # next dispatcher tick reclaims it. Workers that outlive this window should
 # call ``heartbeat_claim(task_id)`` periodically. In practice most kanban
 # workloads either finish within 15m, set a longer claim explicitly, or use
-# ``FREEIDE_KANBAN_CLAIM_TTL_SECONDS`` to raise the default claim window for
+# ``JETTSTUI_KANBAN_CLAIM_TTL_SECONDS`` to raise the default claim window for
 # long single-call MCP workflows.
 DEFAULT_CLAIM_TTL_SECONDS = 15 * 60
 
@@ -219,14 +219,14 @@ def _resolve_claim_ttl_seconds(ttl_seconds: Optional[int] = None) -> int:
     """Return the effective claim TTL, honoring the kanban env override.
 
     Explicit call-site values win. Otherwise a positive integer from
-    ``FREEIDE_KANBAN_CLAIM_TTL_SECONDS`` overrides the built-in default.
+    ``JETTSTUI_KANBAN_CLAIM_TTL_SECONDS`` overrides the built-in default.
     Invalid or non-positive env values fall back silently so existing
     installs keep working.
     """
     if ttl_seconds is not None:
         return max(1, int(ttl_seconds))
 
-    raw = os.environ.get("FREEIDE_KANBAN_CLAIM_TTL_SECONDS", "").strip()
+    raw = os.environ.get("JETTSTUI_KANBAN_CLAIM_TTL_SECONDS", "").strip()
     if raw:
         try:
             parsed = int(raw)
@@ -261,12 +261,12 @@ KANBAN_RATE_LIMIT_EXIT_CODE = 75
 def _resolve_crash_grace_seconds() -> int:
     """Return the crash-detection grace period in seconds.
 
-    Reads ``FREEIDE_KANBAN_CRASH_GRACE_SECONDS`` from the environment;
+    Reads ``JETTSTUI_KANBAN_CRASH_GRACE_SECONDS`` from the environment;
     falls back to ``DEFAULT_CRASH_GRACE_SECONDS`` when absent, empty,
     non-integer, or negative. A value of 0 restores immediate-reclaim
     behaviour (useful for tests).
     """
-    raw = os.environ.get("FREEIDE_KANBAN_CRASH_GRACE_SECONDS", "").strip()
+    raw = os.environ.get("JETTSTUI_KANBAN_CRASH_GRACE_SECONDS", "").strip()
     if raw:
         try:
             parsed = int(raw)
@@ -280,14 +280,14 @@ def _resolve_crash_grace_seconds() -> int:
 def _resolve_rate_limit_cooldown_seconds() -> int:
     """Return the rate-limit requeue cooldown in seconds.
 
-    Reads ``FREEIDE_KANBAN_RATE_LIMIT_COOLDOWN_SECONDS`` from the environment;
+    Reads ``JETTSTUI_KANBAN_RATE_LIMIT_COOLDOWN_SECONDS`` from the environment;
     falls back to ``DEFAULT_RATE_LIMIT_COOLDOWN_SECONDS`` when absent, empty,
     non-integer, or negative. A value of 0 disables the cooldown (re-spawn on
     the next tick) — useful for tests that want to assert the task becomes
     spawnable again immediately.
     """
     raw = os.environ.get(
-        "FREEIDE_KANBAN_RATE_LIMIT_COOLDOWN_SECONDS", ""
+        "JETTSTUI_KANBAN_RATE_LIMIT_COOLDOWN_SECONDS", ""
     ).strip()
     if raw:
         try:
@@ -354,7 +354,7 @@ def _relative_age(ts: Optional[int], now: Optional[int] = None) -> str:
 
 DEFAULT_BOARD = "default"
 _CURRENT_BOARD_OVERRIDE: ContextVar[str | None] = ContextVar(
-    "freeide_kanban_current_board_override",
+    "jettstui_kanban_current_board_override",
     default=None,
 )
 
@@ -370,7 +370,7 @@ def scoped_current_board(slug: str):
 
 # Slug validator: lowercase alphanumerics, digits, hyphens; 1–64 chars.
 # Strict enough to stop traversal (`..`) and embedded path separators, loose
-# enough that kebab-case names like ``atm10-server`` or ``freeide-agent``
+# enough that kebab-case names like ``atm10-server`` or ``jettstui``
 # pass without fuss. Board names with display formatting (spaces, emoji)
 # live in ``board.json``; the slug is just the directory name.
 _BOARD_SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9\-_]{0,63}$")
@@ -392,26 +392,26 @@ def _normalize_board_slug(slug: Optional[str]) -> Optional[str]:
 
 
 def kanban_home() -> Path:
-    """Return the shared FreeIDE root that anchors the kanban board.
+    """Return the shared JettsTUI root that anchors the kanban board.
 
     Resolution order:
 
-    1. ``FREEIDE_KANBAN_HOME`` env var when set and non-empty (explicit
+    1. ``JETTSTUI_KANBAN_HOME`` env var when set and non-empty (explicit
        override for tests and unusual deployments).
-    2. ``get_default_freeide_root()``, which already returns ``<root>``
-       when ``FREEIDE_HOME`` is ``<root>/profiles/<name>``, and returns
-       ``FREEIDE_HOME`` directly for Docker / custom deployments.
+    2. ``get_default_jettstui_root()``, which already returns ``<root>``
+       when ``JETTSTUI_HOME`` is ``<root>/profiles/<name>``, and returns
+       ``JETTSTUI_HOME`` directly for Docker / custom deployments.
 
     The kanban board is shared across profiles **by design** (see the
     module docstring). Resolving the kanban paths through the active
-    profile's ``FREEIDE_HOME`` would silently fork the board per profile,
+    profile's ``JETTSTUI_HOME`` would silently fork the board per profile,
     which breaks the dispatcher / worker handoff.
     """
-    override = os.environ.get("FREEIDE_KANBAN_HOME", "").strip()
+    override = os.environ.get("JETTSTUI_KANBAN_HOME", "").strip()
     if override:
         return Path(override).expanduser()
-    from freeide_constants import get_default_freeide_root
-    return get_default_freeide_root()
+    from jettstui_constants import get_default_jettstui_root
+    return get_default_jettstui_root()
 
 
 def boards_root() -> Path:
@@ -428,7 +428,7 @@ def boards_root() -> Path:
 def current_board_path() -> Path:
     """Return the path to ``<root>/kanban/current``.
 
-    One-line text file written by ``freeide kanban boards switch <slug>``
+    One-line text file written by ``jettstui kanban boards switch <slug>``
     to persist the user's board selection across CLI invocations. Absent
     by default (meaning: active board is ``default``).
     """
@@ -440,9 +440,9 @@ def get_current_board() -> str:
 
     Order (highest precedence first):
 
-    1. ``FREEIDE_KANBAN_BOARD`` env var (set by the dispatcher on worker
+    1. ``JETTSTUI_KANBAN_BOARD`` env var (set by the dispatcher on worker
        spawn, or manually for ad-hoc overrides).
-    2. ``<root>/kanban/current`` on disk (set by ``freeide kanban boards
+    2. ``<root>/kanban/current`` on disk (set by ``jettstui kanban boards
        switch``), but only when that board still exists.
     3. ``DEFAULT_BOARD`` (``"default"``).
 
@@ -459,7 +459,7 @@ def get_current_board() -> str:
         except ValueError:
             pass
 
-    env = os.environ.get("FREEIDE_KANBAN_BOARD", "").strip()
+    env = os.environ.get("JETTSTUI_KANBAN_BOARD", "").strip()
     if env:
         try:
             normed = _normalize_board_slug(env)
@@ -488,7 +488,7 @@ def set_current_board(slug: str) -> Path:
 
     Writes ``<root>/kanban/current``. The caller should validate the slug
     exists first (via :func:`board_exists`) — this function does not —
-    so that ``freeide kanban boards switch <typo>`` returns an error
+    so that ``jettstui kanban boards switch <typo>`` returns an error
     instead of silently pointing at nothing.
     """
     _assert_not_delegated_child_mutation()
@@ -543,7 +543,7 @@ def kanban_db_path(board: Optional[str] = None) -> Path:
 
     Resolution (highest precedence first):
 
-    1. ``FREEIDE_KANBAN_DB`` env var — pins the path directly. Honoured for
+    1. ``JETTSTUI_KANBAN_DB`` env var — pins the path directly. Honoured for
        back-compat and for the dispatcher→worker handoff (defense in
        depth: dispatcher injects this into worker env so workers are
        immune to any path-resolution disagreement).
@@ -552,7 +552,7 @@ def kanban_db_path(board: Optional[str] = None) -> Path:
     3. Board ``default`` → ``<root>/kanban.db`` (back-compat path).
        Other boards → ``<root>/kanban/boards/<slug>/kanban.db``.
     """
-    override = os.environ.get("FREEIDE_KANBAN_DB", "").strip()
+    override = os.environ.get("JETTSTUI_KANBAN_DB", "").strip()
     if override:
         return Path(override).expanduser()
     slug = _normalize_board_slug(board)
@@ -567,14 +567,14 @@ def workspaces_root(board: Optional[str] = None) -> Path:
     """Return the directory under which ``scratch`` workspaces are created.
 
     Anchored per-board so workspaces don't leak between projects.
-    ``FREEIDE_KANBAN_WORKSPACES_ROOT`` pins the path directly (highest
+    ``JETTSTUI_KANBAN_WORKSPACES_ROOT`` pins the path directly (highest
     precedence) — the dispatcher injects this into worker env.
 
     ``default`` keeps the legacy path ``<root>/kanban/workspaces/`` so
     that existing scratch workspaces from before the boards feature are
     preserved. Other boards use ``<root>/kanban/boards/<slug>/workspaces/``.
     """
-    override = os.environ.get("FREEIDE_KANBAN_WORKSPACES_ROOT", "").strip()
+    override = os.environ.get("JETTSTUI_KANBAN_WORKSPACES_ROOT", "").strip()
     if override:
         return Path(override).expanduser()
     slug = _normalize_board_slug(board)
@@ -592,7 +592,7 @@ def attachments_root(board: Optional[str] = None) -> Path:
     per-board so attachments don't leak between projects. Each task gets
     its own ``<root>/.../attachments/<task_id>/`` subdirectory.
 
-    ``FREEIDE_KANBAN_ATTACHMENTS_ROOT`` pins the path directly (highest
+    ``JETTSTUI_KANBAN_ATTACHMENTS_ROOT`` pins the path directly (highest
     precedence) for tests and unusual deployments.
 
     ``default`` uses ``<root>/kanban/attachments/``; other boards use
@@ -604,7 +604,7 @@ def attachments_root(board: Optional[str] = None) -> Path:
     directly. Remote backends (Docker/Modal) need this directory mounted;
     see the kanban docs.
     """
-    override = os.environ.get("FREEIDE_KANBAN_ATTACHMENTS_ROOT", "").strip()
+    override = os.environ.get("JETTSTUI_KANBAN_ATTACHMENTS_ROOT", "").strip()
     if override:
         return Path(override).expanduser()
     slug = _normalize_board_slug(board)
@@ -625,7 +625,7 @@ def worker_logs_dir(board: Optional[str] = None) -> Path:
 
     ``default`` keeps the legacy path ``<root>/kanban/logs/``. Other
     boards use ``<root>/kanban/boards/<slug>/logs/``. Logs follow the
-    board — makes ``freeide kanban log`` unambiguous even when multiple
+    board — makes ``jettstui kanban log`` unambiguous even when multiple
     boards have tasks with the same id.
     """
     slug = _normalize_board_slug(board)
@@ -937,7 +937,7 @@ class Task:
     # through to the goals engine default (``goals.DEFAULT_MAX_TURNS``).
     goal_max_turns: Optional[int] = None
     # Originating chat/agent session id, when the task was created from
-    # within an agent loop that propagated ``FREEIDE_SESSION_ID``. NULL for
+    # within an agent loop that propagated ``JETTSTUI_SESSION_ID``. NULL for
     # tasks created from the CLI, the dashboard, or any path that doesn't
     # set the env var. Lets clients render a per-session board without
     # relying on tenant + time-window heuristics.
@@ -1147,7 +1147,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     workspace_kind       TEXT NOT NULL DEFAULT 'scratch',
     workspace_path       TEXT,
     branch_name          TEXT,
-    -- Optional link to a first-class Project (freeide_cli/projects_db). When set,
+    -- Optional link to a first-class Project (jettstui/projects_db). When set,
     -- the task's worktree is anchored under the project's primary repo with a
     -- deterministic branch name instead of a random wt/<task-id> fallback.
     project_id           TEXT,
@@ -1203,7 +1203,7 @@ CREATE TABLE IF NOT EXISTS tasks (
     -- goals-engine default.
     goal_max_turns       INTEGER,
     -- Originating chat/agent session id when the task was created from
-    -- inside an agent loop that propagated ``FREEIDE_SESSION_ID``. NULL
+    -- inside an agent loop that propagated ``JETTSTUI_SESSION_ID``. NULL
     -- for tasks created from the CLI, dashboard, or any path that doesn't
     -- set the env var. Indexed so per-session list queries stay cheap on
     -- larger boards.
@@ -1356,7 +1356,7 @@ def _resolve_busy_timeout_ms() -> int:
     expected.  A long busy timeout lets SQLite serialize writers via WAL rather
     than surfacing transient ``database is locked`` failures during bursts.
     """
-    raw = os.environ.get("FREEIDE_KANBAN_BUSY_TIMEOUT_MS", "").strip()
+    raw = os.environ.get("JETTSTUI_KANBAN_BUSY_TIMEOUT_MS", "").strip()
     if raw:
         try:
             parsed = int(raw)
@@ -1373,10 +1373,10 @@ def _sqlite_connect(path: Path) -> sqlite3.Connection:
     Uses ``connect_tracked`` so the live-connection registry knows this file
     is open: while it is, byte-level probes of the same file are refused,
     because an ``open()``/``close()`` would cancel this process's POSIX
-    advisory locks on the database (see ``freeide_cli.sqlite_safe_read``).
+    advisory locks on the database (see ``jettstui.sqlite_safe_read``).
     The registration is released automatically when the connection closes.
     """
-    from freeide_cli.sqlite_safe_read import connect_tracked
+    from jettstui.sqlite_safe_read import connect_tracked
 
     busy_timeout_ms = _resolve_busy_timeout_ms()
     conn = connect_tracked(
@@ -1484,7 +1484,7 @@ def _dispatch_tick_lock(db_path: Path):
     may proceed with the tick, or ``False`` when another process already
     holds it (the caller should skip the tick this round).
 
-    Motivation (issue #35240): a ``freeide gateway run --replace`` /
+    Motivation (issue #35240): a ``jettstui gateway run --replace`` /
     ``gateway restart`` invoked from a shell on a systemd/launchd host can
     leave an orphan gateway whose dispatcher escapes the service cgroup,
     survives ``systemctl restart``, and becomes a *second* long-lived
@@ -1644,7 +1644,7 @@ def _validate_sqlite_header(path: Path) -> None:
     # exists (connect() calls it under the init lock, ahead of _sqlite_connect).
     # read_header_bytes_preopen refuses once a connection is live, because the
     # close() would cancel this process's POSIX locks on the file.
-    from freeide_cli.sqlite_safe_read import read_header_bytes_preopen
+    from jettstui.sqlite_safe_read import read_header_bytes_preopen
 
     head = read_header_bytes_preopen(path, length=64)
     if head is None:
@@ -1754,14 +1754,14 @@ def _backup_corrupt_db(path: Path) -> Optional[Path]:
     base_name = resolved.name  # basename only
     # This reads the whole DB file to fingerprint it. That is a close()-on-a-
     # database-file hazard (it cancels this process's POSIX advisory locks --
-    # see freeide_cli.sqlite_safe_read), so it must only run once the board has
+    # see jettstui.sqlite_safe_read), so it must only run once the board has
     # been taken out of service. Every caller reaches here on the corrupt/
     # quarantine path after closing its probe connection, but another
     # SessionDB/kanban connection elsewhere in the process would still be at
     # risk -- so REFUSE rather than warn-and-proceed. Losing a forensic copy
     # is strictly better than corrupting the live database we are trying to
     # rescue.
-    from freeide_cli.sqlite_safe_read import has_live_connection
+    from jettstui.sqlite_safe_read import has_live_connection
 
     if has_live_connection(resolved):
         _log.error(
@@ -1921,7 +1921,7 @@ def _guard_existing_db_is_healthy(path: Path) -> None:
     Path-trust note: ``path`` arrives via :func:`connect`, which itself
     resolves it from an explicit ``db_path`` argument, the
     :func:`kanban_db_path` env-var chain, or the kanban-home default —
-    all sources FreeIDE treats as user-controlled-but-trusted on the
+    all sources JettsTUI treats as user-controlled-but-trusted on the
     user's own machine. We additionally resolve the path here and
     confine all filesystem writes to its parent directory so any
     accidental ``..`` segments are collapsed before any I/O happens.
@@ -2023,7 +2023,7 @@ def repair_db(
     the board's cross-process init flock; and anything else stays corrupt
     (fail-closed) for the caller to surface. Unlike the guard this never
     raises :class:`KanbanDbCorruptError` — it returns a structured
-    :class:`RepairResult` so ``freeide kanban repair`` can report and choose
+    :class:`RepairResult` so ``jettstui kanban repair`` can report and choose
     its own exit code.
 
     Transient ``sqlite3.OperationalError`` (locked/busy) still propagates
@@ -2112,7 +2112,7 @@ def connect(
     * ``db_path`` explicit → used as-is (legacy callers, tests).
     * ``board`` explicit → resolves to that board's DB.
     * Neither → :func:`kanban_db_path` resolves via
-      ``FREEIDE_KANBAN_DB`` env → ``FREEIDE_KANBAN_BOARD`` env →
+      ``JETTSTUI_KANBAN_DB`` env → ``JETTSTUI_KANBAN_BOARD`` env →
       ``<root>/kanban/current`` → ``default``.
     """
     if db_path is not None:
@@ -2125,7 +2125,7 @@ def connect(
     # first-open work (header validation, integrity probe, schema + additive
     # migrations) is already done and cached in _INITIALIZED_PATHS. Acquiring
     # the cross-process init lock on every connect is what let a single stalled
-    # holder (e.g. an external `freeide kanban list` mid-integrity-probe) block
+    # holder (e.g. an external `jettstui kanban list` mid-integrity-probe) block
     # the long-lived gateway dispatcher's next-tick connect() forever — an
     # unbounded flock with no timeout, no LOCK_NB, no recovery (#36644). On the
     # steady-state path there is nothing for the cross-process lock to protect
@@ -2137,7 +2137,7 @@ def connect(
         try:
             conn.row_factory = sqlite3.Row
             with _INIT_LOCK:
-                from freeide_state import apply_wal_with_fallback
+                from jettstui_state import apply_wal_with_fallback
                 apply_wal_with_fallback(conn, db_label=f"kanban.db ({path.name})")
                 conn.execute("PRAGMA synchronous=FULL")
                 conn.execute("PRAGMA wal_autocheckpoint=100")
@@ -2154,7 +2154,7 @@ def connect(
         # repair-or-refuse before the header/integrity probes so a stray
         # read-only kanban.db fails with an actionable message instead of
         # "attempt to write a readonly database" mid-init.
-        from freeide_state import preflight_db_writability
+        from jettstui_state import preflight_db_writability
         preflight_db_writability(path, db_label=f"kanban.db ({path.name})")
         # Cheap byte-level check first — catches the #29507 TLS-overwrite shape
         # and other invalid-header cases without opening a sqlite connection.
@@ -2174,8 +2174,8 @@ def connect(
                 # startup threads do not race before _INITIALIZED_PATHS is populated.
                 # WAL doesn't work on network filesystems (NFS/SMB/FUSE). Shared helper
                 # falls back to DELETE with one WARNING so kanban stays usable there.
-                # See freeide_state._WAL_INCOMPAT_MARKERS for detection logic.
-                from freeide_state import apply_wal_with_fallback
+                # See jettstui_state._WAL_INCOMPAT_MARKERS for detection logic.
+                from jettstui_state import apply_wal_with_fallback
                 apply_wal_with_fallback(conn, db_label=f"kanban.db ({path.name})")
                 # FULL (was NORMAL): fsync before each checkpoint to narrow the
                 # crash window that can leave a b-tree page header torn.
@@ -2246,7 +2246,7 @@ def init_db(
 ) -> Path:
     """Create the schema if it doesn't exist; return the path used.
 
-    Kept as a public entry point so CLI ``freeide kanban init`` and the
+    Kept as a public entry point so CLI ``jettstui kanban init`` and the
     daemon have something explicit to call. Unlike :func:`connect`'s
     first-time auto-init (which caches by path), ``init_db`` always
     re-runs the migration pass. Callers that know the on-disk schema
@@ -2391,7 +2391,7 @@ def _migrate_add_optional_columns(conn: sqlite3.Connection) -> None:
     if "session_id" not in cols:
         # Originating agent/chat session id, populated when the task is
         # created from within an agent loop that propagated
-        # ``FREEIDE_SESSION_ID`` (e.g. ACP). NULL on legacy rows and on any
+        # ``JETTSTUI_SESSION_ID`` (e.g. ACP). NULL on legacy rows and on any
         # creation path that doesn't set the env var (CLI, dashboard).
         _add_column_if_missing(
             conn, "tasks", "session_id", "session_id TEXT"
@@ -2682,7 +2682,7 @@ def _check_file_length_invariant(conn: sqlite3.Connection) -> None:
     write into a database a writer still believed it owned. That is the
     documented corruption route in sqlite.org/howtocorrupt.html section 2.2.
     """
-    from freeide_cli.sqlite_safe_read import file_length_matches_header
+    from jettstui.sqlite_safe_read import file_length_matches_header
 
     # In WAL mode a just-committed page can still live in the -wal file, so
     # the main file legitimately lags its page count. Only enforce the
@@ -2812,7 +2812,7 @@ def _canonical_assignee(assignee: Optional[str]) -> Optional[str]:
     """Lowercase-assignee normalization for Kanban rows (dashboard/CLI parity)."""
     if assignee is None:
         return None
-    from freeide_cli.profiles import normalize_profile_name
+    from jettstui.profiles import normalize_profile_name
 
     return normalize_profile_name(assignee)
 
@@ -2864,7 +2864,7 @@ def create_task(
 
     ``skills`` is an optional list of skill names to force-load into
     the worker when dispatched. Stored as JSON; the dispatcher passes
-    each name to ``freeide --skills ...``. Use this to pin a task to a
+    each name to ``jettstui --skills ...``. Use this to pin a task to a
     specialist skill (e.g. ``skills=["translation"]`` so the worker loads the
     translation skill regardless of the profile's default config).
 
@@ -2914,7 +2914,7 @@ def create_task(
     if project_id is not None:
         project_id = str(project_id).strip() or None
     if project_id:
-        from freeide_cli import projects_db as _pdb
+        from jettstui import projects_db as _pdb
 
         try:
             with _pdb.connect_closing() as _pconn:
@@ -2994,7 +2994,7 @@ def create_task(
     # Normalise + validate skills: strip whitespace, drop empties, dedupe
     # (preserving order). Refuse commas inside a single name so we don't
     # invisibly splatter a comma-joined string into one argv slot — the
-    # `freeide --skills X,Y` comma syntax is handled in the dispatcher,
+    # `jettstui --skills X,Y` comma syntax is handled in the dispatcher,
     # not here.
     skills_list: Optional[list[str]] = None
     if skills is not None:
@@ -3257,7 +3257,7 @@ def get_task(conn: sqlite3.Connection, task_id: str) -> Optional[Task]:
     return Task.from_row(row) if row else None
 
 
-# Canonical sort-order mappings for ``freeide kanban list --sort``.
+# Canonical sort-order mappings for ``jettstui kanban list --sort``.
 # Each value is a raw SQL fragment appended after ``ORDER BY``.
 VALID_SORT_ORDERS: dict[str, str] = {
     "created": "created_at ASC, id ASC",
@@ -3475,7 +3475,7 @@ def unlink_tasks(conn: sqlite3.Connection, parent_id: str, child_id: str) -> boo
         # Dependency edge removed — re-evaluate promotion eligibility for the
         # child immediately.  Matches the contract of complete_task and
         # unblock_task; without this the child stays stuck in todo until the
-        # next dispatcher tick or a manual `freeide kanban recompute` (issue #22459).
+        # next dispatcher tick or a manual `jettstui kanban recompute` (issue #22459).
         recompute_ready(conn)
     return removed
 
@@ -3625,7 +3625,7 @@ def store_attachment_bytes(
 
     This is the single write path shared by the dashboard endpoint, the
     agent toolset (``kanban_attach`` / ``kanban_attach_url``), and the CLI
-    (``freeide kanban attach``) so name-sanitisation, the size cap, and the
+    (``jettstui kanban attach``) so name-sanitisation, the size cap, and the
     collision-resolution all behave identically everywhere.
 
     Steps: enforce ``max_bytes``, sanitise ``filename`` to a safe basename,
@@ -3844,7 +3844,7 @@ def _end_run(
     timed_out / spawn_failed / gave_up / reclaimed). ``status`` is the
     run-row status (usually just ``outcome``, but callers can pass it
     explicitly). Returns the closed run_id or ``None`` if no active run
-    existed (e.g. a CLI user calling ``freeide kanban complete`` on a
+    existed (e.g. a CLI user calling ``jettstui kanban complete`` on a
     task that was never claimed).
     """
     now = int(time.time())
@@ -3904,7 +3904,7 @@ def _synthesize_ended_run(
     """Insert a zero-duration, already-closed run row.
 
     Used when a terminal transition happens on a task that was never
-    claimed (CLI user calling ``freeide kanban complete <ready-task>
+    claimed (CLI user calling ``jettstui kanban complete <ready-task>
     --summary X``, or dashboard "mark done" on a ready task). Without
     this, the handoff fields (summary / metadata / error) would be
     silently dropped: ``_end_run`` is a no-op because there's no
@@ -3955,7 +3955,7 @@ def _has_sticky_block(conn: sqlite3.Connection, task_id: str) -> bool:
 
     * **Worker- or operator-initiated** — a worker called
       ``kanban_block(reason="review-required: ...")`` (or somebody ran
-      ``freeide kanban block <id>``).  This is a deliberate handoff that
+      ``jettstui kanban block <id>``).  This is a deliberate handoff that
       should stay blocked until an operator unblocks it.  The block tool
       emits a ``"blocked"`` event row in ``task_events``.
 
@@ -4699,7 +4699,7 @@ def complete_task(
     """Transition ``running|ready -> done`` and record ``result``.
 
     Accepts a task that is merely ``ready`` too, so a manual CLI
-    completion (``freeide kanban complete <id>``) works without requiring
+    completion (``jettstui kanban complete <id>``) works without requiring
     a claim/start/complete sequence.
 
     ``summary`` and ``metadata`` are stored on the closing run (if any)
@@ -5105,7 +5105,7 @@ def _managed_scratch_path_info(p: Path) -> tuple[bool, Optional[str]]:
     except OSError:
         return False, None
     roots: list[tuple[Path, Optional[str]]] = []
-    override = os.environ.get("FREEIDE_KANBAN_WORKSPACES_ROOT", "").strip()
+    override = os.environ.get("JETTSTUI_KANBAN_WORKSPACES_ROOT", "").strip()
     if override:
         try:
             roots.append((Path(override).expanduser().resolve(strict=False), None))
@@ -5157,7 +5157,7 @@ def _is_managed_scratch_path(p: Path) -> bool:
     broader kanban home, a board root, or sibling subtrees like ``logs/`` or
     ``boards/<slug>/`` itself. Allowed roots:
 
-    * ``FREEIDE_KANBAN_WORKSPACES_ROOT`` when set (worker-side override
+    * ``JETTSTUI_KANBAN_WORKSPACES_ROOT`` when set (worker-side override
       injected by the dispatcher).
     * ``<kanban_home>/kanban/workspaces`` — legacy default-board scratch root.
     * ``<kanban_home>/kanban/boards/<slug>/workspaces`` for each board slug
@@ -5168,10 +5168,10 @@ def _is_managed_scratch_path(p: Path) -> bool:
     task's scratch dir at once), and a path that resolves to ``<kanban_home>
     /kanban`` itself, ``<kanban_home>/kanban/logs``, or
     ``<kanban_home>/kanban/boards/<slug>`` is rejected because those
-    subtrees hold FreeIDE' own DB, metadata, and logs, not task workspaces.
+    subtrees hold JettsTUI' own DB, metadata, and logs, not task workspaces.
 
     Used by :func:`_cleanup_workspace` to refuse to ``shutil.rmtree`` paths
-    outside FreeIDE-managed storage. A board ``default_workdir`` pointing at a
+    outside JettsTUI-managed storage. A board ``default_workdir`` pointing at a
     real source tree can otherwise pair with ``workspace_kind='scratch'`` and
     cause task completion to delete user data (#28818).
     """
@@ -5327,7 +5327,7 @@ def _cleanup_worker_tmux(conn: sqlite3.Connection, task_id: str) -> None:
 # we:
 #   1. Log a warning line on the dispatcher logger.
 #   2. Append a ``tip_scratch_workspace`` event on the task so it's visible
-#      via ``freeide kanban show <id>`` and the dashboard.
+#      via ``jettstui kanban show <id>`` and the dashboard.
 #   3. Touch a sentinel file under ``kanban_home() / '.scratch_tip_shown'``
 #      so we don't repeat the tip — once you know, you know.
 #
@@ -6381,7 +6381,7 @@ def _resolve_worktree_workspace(
     worktree task under a meaningful, board-owned repo — ``<repo>/.worktrees/
     <task-id>`` — instead of silently landing under the dispatcher's current
     working directory (which is whatever directory the gateway happened to be
-    launched from, e.g. the FreeIDE checkout). If no anchor is configured
+    launched from, e.g. the JettsTUI checkout). If no anchor is configured
     anywhere, we fail loudly rather than guess.
     """
     branch_name = (task.branch_name or "").strip() or f"wt/{task.id}"
@@ -6474,13 +6474,13 @@ def resolve_workspace(task: Task, *, board: Optional[str] = None) -> Path:
       root.  Users who want a kanban-root-relative workspace should
       compute the absolute path themselves.
     - ``worktree``: a real linked git worktree. If ``workspace_path`` names
-      a repo root, FreeIDE treats it as an anchor and materializes a linked
+      a repo root, JettsTUI treats it as an anchor and materializes a linked
       worktree at ``<repo>/.worktrees/<task-id>``. If ``workspace_path`` names
-      a concrete target path, FreeIDE creates/reuses that linked worktree. With
-      no ``workspace_path``, FreeIDE anchors on the board's ``default_workdir``
+      a concrete target path, JettsTUI creates/reuses that linked worktree. With
+      no ``workspace_path``, JettsTUI anchors on the board's ``default_workdir``
       and materializes ``<repo>/.worktrees/<task-id>`` per task; if no
       ``default_workdir`` is configured it raises rather than guessing from the
-      dispatcher's CWD. When ``branch_name`` is empty, FreeIDE uses
+      dispatcher's CWD. When ``branch_name`` is empty, JettsTUI uses
       ``wt/<task-id>``.
 
     Persist the resolved path back to the task row via ``set_workspace_path``
@@ -6630,7 +6630,7 @@ _RESPAWN_GUARD_SUCCESS_WINDOW = 3600  # 1 hour
 # would be re-spawned on the very next tick and immediately bounce off the
 # same quota wall, burning a worker slot every tick for hours. The cooldown
 # spaces retries out so the board keeps cheaply probing whether quota is back
-# without thrashing. Overridable via ``FREEIDE_KANBAN_RATE_LIMIT_COOLDOWN_SECONDS``
+# without thrashing. Overridable via ``JETTSTUI_KANBAN_RATE_LIMIT_COOLDOWN_SECONDS``
 # for operators who want a tighter/looser probe cadence.
 DEFAULT_RATE_LIMIT_COOLDOWN_SECONDS = 300  # 5 minutes
 
@@ -6663,7 +6663,7 @@ class DispatchResult:
     rather than on explicit per-task assignments."""
     skipped_nonspawnable: list[str] = field(default_factory=list)
     """Ready task ids skipped because their assignee names a control-plane
-    lane (a Claude Code terminal like ``orion-cc``) rather than a FreeIDE
+    lane (a Claude Code terminal like ``orion-cc``) rather than a JettsTUI
     profile. Expected steady-state on multi-lane setups; NOT an
     operator-actionable failure. Tracked separately so health telemetry
     can distinguish "real stuck" (nothing spawned but spawnable work
@@ -6969,7 +6969,7 @@ def _defer_reclaim_for_live_worker(
 
     Extends ``claim_expires`` by ``RECLAIM_DEFER_GRACE_SECONDS`` so the task
     stays ``running`` (no duplicate spawn) and records a ``reclaim_deferred``
-    event so the hold is visible in ``freeide kanban tail``. The next dispatch
+    event so the hold is visible in ``jettstui kanban tail``. The next dispatch
     tick retries the kill; this is self-correcting because not spawning a
     duplicate is what lets the throttled worker finally die.
     """
@@ -7835,7 +7835,7 @@ def _record_spawn_failure(
 def _set_worker_pid(conn: sqlite3.Connection, task_id: str, pid: int) -> None:
     """Record the spawned child's pid + emit a ``spawned`` event.
 
-    The event's payload carries the pid so a human reading ``freeide kanban
+    The event's payload carries the pid so a human reading ``jettstui kanban
     tail`` can correlate log lines with OS-level traces without opening
     the drawer.
     """
@@ -8012,7 +8012,7 @@ def check_respawn_guard(conn: sqlite3.Connection, task_id: str) -> Optional[str]
 
 def has_spawnable_ready(conn: sqlite3.Connection) -> bool:
     """Return True iff there is at least one ready+assigned+unclaimed task
-    whose assignee maps to a real FreeIDE profile.
+    whose assignee maps to a real JettsTUI profile.
 
     Used by the gateway- and CLI-embedded dispatchers' health telemetry to
     decide whether ``0 spawned`` is a "stuck" condition (real spawnable
@@ -8032,7 +8032,7 @@ def has_spawnable_ready(conn: sqlite3.Connection) -> bool:
     if not rows:
         return False
     try:
-        from freeide_cli.profiles import profile_exists  # local import: avoids cycle
+        from jettstui.profiles import profile_exists  # local import: avoids cycle
     except Exception:
         # Can't introspect — assume spawnable, preserve legacy behavior.
         return True
@@ -8044,7 +8044,7 @@ def has_spawnable_ready(conn: sqlite3.Connection) -> bool:
 
 def has_spawnable_review(conn: sqlite3.Connection) -> bool:
     """Return True iff there is at least one review+assigned+unclaimed task
-    whose assignee maps to a real FreeIDE profile.
+    whose assignee maps to a real JettsTUI profile.
 
     Mirror of :func:`has_spawnable_ready` for the review column —
     used by the health telemetry to decide whether the dispatcher
@@ -8058,7 +8058,7 @@ def has_spawnable_review(conn: sqlite3.Connection) -> bool:
     if not rows:
         return False
     try:
-        from freeide_cli.profiles import profile_exists  # local import: avoids cycle
+        from jettstui.profiles import profile_exists  # local import: avoids cycle
     except Exception:
         return True
     for row in rows:
@@ -8270,7 +8270,7 @@ def _dispatch_once_locked(
     _default_assignee_resolved = False
     if _default_assignee:
         try:
-            from freeide_cli.profiles import profile_exists as _pe
+            from jettstui.profiles import profile_exists as _pe
             _default_assignee_resolved = bool(_pe(_default_assignee))
         except Exception:
             # Profiles module not importable (test stubs, exotic envs).
@@ -8326,18 +8326,18 @@ def _dispatch_once_locked(
             else:
                 result.skipped_unassigned.append(row["id"])
                 continue
-        # Skip ready tasks whose assignee is not a real FreeIDE profile.
-        # `_default_spawn` invokes ``freeide -p <assignee>`` which fails
+        # Skip ready tasks whose assignee is not a real JettsTUI profile.
+        # `_default_spawn` invokes ``jettstui -p <assignee>`` which fails
         # with "Profile 'X' does not exist" when the assignee names a
         # control-plane lane (e.g. an interactive Claude Code terminal
-        # like ``orion-cc`` / ``orion-research``) rather than a FreeIDE
+        # like ``orion-cc`` / ``orion-research``) rather than a JettsTUI
         # profile. Those task lanes are pulled by terminals via
         # ``claim_task`` directly and should NEVER auto-spawn — the
         # subprocess would crash on startup, get reaped as a zombie,
         # the task would loop back to ``ready`` on next tick, and we'd
         # burn CPU forever (#kanban-dispatcher-crash-loop 2026-05-05).
         try:
-            from freeide_cli.profiles import profile_exists  # local import: avoids cycle
+            from jettstui.profiles import profile_exists  # local import: avoids cycle
         except Exception:
             profile_exists = None  # type: ignore[assignment]
         if profile_exists is not None and not profile_exists(row_assignee):
@@ -8374,7 +8374,7 @@ def _dispatch_once_locked(
         if guard_reason is not None:
             result.respawn_guarded.append((row["id"], guard_reason))
             # Emit an event so operators can see why the task was
-            # skipped when reading `freeide kanban tail` — without
+            # skipped when reading `jettstui kanban tail` — without
             # this the task appears stuck in ready with no diagnosis.
             if not dry_run:
                 with write_txn(conn):
@@ -8477,7 +8477,7 @@ def _dispatch_once_locked(
             result.skipped_unassigned.append(row["id"])
             continue
         try:
-            from freeide_cli.profiles import profile_exists
+            from jettstui.profiles import profile_exists
         except Exception:
             profile_exists = None  # type: ignore[assignment]
         if profile_exists is not None and not profile_exists(row["assignee"]):
@@ -8556,7 +8556,7 @@ def worker_log_rotation_config(kanban_cfg: Optional[dict] = None) -> tuple[int, 
     """
     if kanban_cfg is None:
         try:
-            from freeide_cli.config import load_config
+            from jettstui.config import load_config
 
             kanban_cfg = (load_config().get("kanban") or {})
         except Exception:
@@ -8621,16 +8621,16 @@ def _rotate_worker_log(
         pass
 
 
-def _module_freeide_argv() -> list[str]:
-    """Return the interpreter-bound FreeIDE CLI invocation."""
-    # ``freeide_cli.main`` is the console-script target declared in
-    # pyproject.toml, NOT a top-level ``freeide`` package — there is no
-    # ``freeide`` package to import.
-    return [sys.executable, "-m", "freeide_cli.main"]
+def _module_jettstui_argv() -> list[str]:
+    """Return the interpreter-bound JettsTUI CLI invocation."""
+    # ``jettstui.main`` is the console-script target declared in
+    # pyproject.toml, NOT a top-level ``jettstui`` package — there is no
+    # ``jettstui`` package to import.
+    return [sys.executable, "-m", "jettstui.main"]
 
 
-def _absolute_freeide_path(path: str) -> str:
-    """Return an absolute filesystem path for a resolved FreeIDE shim."""
+def _absolute_jettstui_path(path: str) -> str:
+    """Return an absolute filesystem path for a resolved JettsTUI shim."""
     expanded = os.path.expanduser(path)
     return expanded if os.path.isabs(expanded) else os.path.abspath(expanded)
 
@@ -8683,8 +8683,8 @@ def _safe_which_no_cwd(command: str) -> Optional[str]:
     return None
 
 
-def _freeide_path_argv(path: str) -> list[str]:
-    """Return argv for a resolved FreeIDE executable path.
+def _jettstui_path_argv(path: str) -> list[str]:
+    """Return argv for a resolved JettsTUI executable path.
 
     Windows batch shims (`.cmd` / `.bat`) are not safe as argv[0] for
     worker launches because the argument vector includes task-derived
@@ -8692,49 +8692,49 @@ def _freeide_path_argv(path: str) -> list[str]:
     executable is only a shell shim.
     """
     if _IS_WINDOWS and _is_windows_batch_shim(path):
-        return _module_freeide_argv()
-    return [_absolute_freeide_path(path)]
+        return _module_jettstui_argv()
+    return [_absolute_jettstui_path(path)]
 
 
-def _resolve_freeide_argv() -> list[str]:
-    """Resolve the ``freeide`` invocation as argv parts for ``Popen``.
+def _resolve_jettstui_argv() -> list[str]:
+    """Resolve the ``jettstui`` invocation as argv parts for ``Popen``.
 
     Tries in order:
 
-    1. ``$FREEIDE_BIN`` — explicit operator override. Path-like values are
+    1. ``$JETTSTUI_BIN`` — explicit operator override. Path-like values are
        normalized to absolute paths; bare command names keep normal PATH
        semantics and never prefer a same-directory file before ``PATH``.
-    2. ``shutil.which("freeide")`` — the console-script shim, normalized to
+    2. ``shutil.which("jettstui")`` — the console-script shim, normalized to
        an absolute path. On Windows, ``which`` can return a relative
-       ``.\\freeide.CMD`` when the current directory is on ``PATH``; directly
+       ``.\\jettstui.CMD`` when the current directory is on ``PATH``; directly
        launching batch shims is also unsafe with task-derived argv. The
        dispatcher therefore falls back to the interpreter-bound module form
        for implicit ``.cmd`` / ``.bat`` shims.
-    3. ``sys.executable -m freeide_cli.main`` — fallback for setups where
-       FreeIDE is launched from a venv and the ``freeide`` shim is not on
+    3. ``sys.executable -m jettstui.main`` — fallback for setups where
+       JettsTUI is launched from a venv and the ``jettstui`` shim is not on
        the dispatcher's ``$PATH`` (cron, systemd ``User=`` services,
        launchd jobs, detached processes, etc.). Goes through the running
        interpreter so the result is independent of ``$PATH``.
 
-    Mirrors ``gateway.run._resolve_freeide_bin`` for the same reason. Kept
-    local (not imported from gateway) because ``freeide_cli`` sits below
+    Mirrors ``gateway.run._resolve_jettstui_bin`` for the same reason. Kept
+    local (not imported from gateway) because ``jettstui`` sits below
     ``gateway`` in the dependency order.
     """
     import shutil
 
-    env_bin = os.environ.get("FREEIDE_BIN", "").strip()
+    env_bin = os.environ.get("JETTSTUI_BIN", "").strip()
     if env_bin:
         if _looks_like_path(env_bin):
-            return _freeide_path_argv(env_bin)
+            return _jettstui_path_argv(env_bin)
         resolved_env_bin = _safe_which_no_cwd(env_bin)
         if resolved_env_bin:
-            return _freeide_path_argv(resolved_env_bin)
-        return _module_freeide_argv()
+            return _jettstui_path_argv(resolved_env_bin)
+        return _module_jettstui_argv()
 
-    freeide_bin = _safe_which_no_cwd("freeide") if _IS_WINDOWS else shutil.which("freeide")
-    if freeide_bin:
-        return _freeide_path_argv(freeide_bin)
-    return _module_freeide_argv()
+    jettstui_bin = _safe_which_no_cwd("jettstui") if _IS_WINDOWS else shutil.which("jettstui")
+    if jettstui_bin:
+        return _jettstui_path_argv(jettstui_bin)
+    return _module_jettstui_argv()
 
 
 def _worker_terminal_timeout_env(
@@ -8767,7 +8767,7 @@ def _worker_terminal_timeout_env(
     return str(desired)
 
 
-def _resolve_worker_cli_toolsets(freeide_home: Optional[str]) -> Optional[list[str]]:
+def _resolve_worker_cli_toolsets(jettstui_home: Optional[str]) -> Optional[list[str]]:
     """Return the assigned profile's effective CLI toolsets for a worker.
 
     Dispatcher-spawned workers are launched from a long-lived gateway process,
@@ -8776,26 +8776,26 @@ def _resolve_worker_cli_toolsets(freeide_home: Optional[str]) -> Optional[list[s
     explicit ``--toolsets`` pin so worker startup cannot fall back to a stale
     root/active-profile config or a profile whose top-level ``toolsets`` entry
     is only the kanban orchestrator surface. ``model_tools`` still appends the
-    task-scoped kanban lifecycle tools when ``FREEIDE_KANBAN_TASK`` is set.
+    task-scoped kanban lifecycle tools when ``JETTSTUI_KANBAN_TASK`` is set.
     """
-    if not freeide_home:
+    if not jettstui_home:
         return None
     try:
-        from freeide_constants import reset_freeide_home_override, set_freeide_home_override
-        from freeide_cli.config import load_config
-        from freeide_cli.tools_config import _get_platform_tools
+        from jettstui_constants import reset_jettstui_home_override, set_jettstui_home_override
+        from jettstui.config import load_config
+        from jettstui.tools_config import _get_platform_tools
 
-        token = set_freeide_home_override(freeide_home)
+        token = set_jettstui_home_override(jettstui_home)
         try:
             cfg = load_config()
             toolsets = sorted(_get_platform_tools(cfg, "cli"))
         finally:
-            reset_freeide_home_override(token)
+            reset_jettstui_home_override(token)
         return toolsets or None
     except Exception as exc:
         _log.debug(
-            "kanban worker: could not resolve CLI toolsets for FREEIDE_HOME=%r (%s)",
-            freeide_home,
+            "kanban worker: could not resolve CLI toolsets for JETTSTUI_HOME=%r (%s)",
+            jettstui_home,
             exc,
         )
         return None
@@ -8807,7 +8807,7 @@ def _default_spawn(
     *,
     board: Optional[str] = None,
 ) -> Optional[int]:
-    """Fire-and-forget ``freeide -p <profile> chat -q ...`` subprocess.
+    """Fire-and-forget ``jettstui -p <profile> chat -q ...`` subprocess.
 
     Returns the spawned child's PID so the dispatcher can detect crashes
     before the claim TTL expires. The child's completion is still observed
@@ -8815,7 +8815,7 @@ def _default_spawn(
     the PID check is a safety net for crashes, OOM kills, and Ctrl+C.
 
     ``board`` pins the child's kanban context to that board: the child's
-    ``FREEIDE_KANBAN_DB`` / ``FREEIDE_KANBAN_BOARD`` / workspaces_root env
+    ``JETTSTUI_KANBAN_DB`` / ``JETTSTUI_KANBAN_BOARD`` / workspaces_root env
     vars all resolve to the same board the dispatcher claimed the task
     from. Workers cannot accidentally see other boards.
     """
@@ -8823,7 +8823,7 @@ def _default_spawn(
     if not task.assignee:
         raise ValueError(f"task {task.id} has no assignee")
 
-    from freeide_cli.profiles import normalize_profile_name
+    from jettstui.profiles import normalize_profile_name
 
     profile_arg = normalize_profile_name(task.assignee)
 
@@ -8836,28 +8836,28 @@ def _default_spawn(
     for key in _VAR_MAP:
         env.pop(key, None)
 
-    # Inject FREEIDE_HOME so the worker reads the profile-scoped config.yaml
+    # Inject JETTSTUI_HOME so the worker reads the profile-scoped config.yaml
     # (fallback_providers, toolsets, agent settings, etc.) instead of the root
     # config.  Without this, `env = dict(os.environ)` copies only the parent's
-    # env, and when the child process starts `freeide -p <name>` the
-    # _apply_profile_override() runs *before* freeide_constants is imported.
-    # If FREEIDE_HOME is absent from the child's env, get_freeide_home() falls
-    # back to Path.home() / ".freeide" (the DEFAULT profile root), ignoring the
+    # env, and when the child process starts `jettstui -p <name>` the
+    # _apply_profile_override() runs *before* jettstui_constants is imported.
+    # If JETTSTUI_HOME is absent from the child's env, get_jettstui_home() falls
+    # back to Path.home() / ".jettstui" (the DEFAULT profile root), ignoring the
     # profile-specific config entirely.  Fixes profile-scoped fallback_providers
     # being invisible to kanban workers.
-    from freeide_cli.profiles import resolve_profile_env
+    from jettstui.profiles import resolve_profile_env
     try:
-        env["FREEIDE_HOME"] = resolve_profile_env(profile_arg)
+        env["JETTSTUI_HOME"] = resolve_profile_env(profile_arg)
     except FileNotFoundError:
         # Profile dir doesn't exist — defer resolution to the CLI's
-        # _apply_profile_override() via FREEIDE_PROFILE (set below).
+        # _apply_profile_override() via JETTSTUI_PROFILE (set below).
         # This only happens in test fixtures where the isolated
-        # FREEIDE_HOME never had profiles created.
+        # JETTSTUI_HOME never had profiles created.
         pass
     if task.tenant:
-        env["FREEIDE_TENANT"] = task.tenant
-    env["FREEIDE_KANBAN_TASK"] = task.id
-    env["FREEIDE_KANBAN_WORKSPACE"] = workspace
+        env["JETTSTUI_TENANT"] = task.tenant
+    env["JETTSTUI_KANBAN_TASK"] = task.id
+    env["JETTSTUI_KANBAN_WORKSPACE"] = workspace
     # Pin TERMINAL_CWD to the task's workspace so the worker's file tools and
     # context-file loader anchor on the workspace, not whatever cwd the
     # dispatching gateway happened to export. The worker subprocess is already
@@ -8873,18 +8873,18 @@ def _default_spawn(
     if workspace and os.path.isabs(workspace) and os.path.isdir(workspace):
         env["TERMINAL_CWD"] = workspace
     if task.branch_name:
-        env["FREEIDE_KANBAN_BRANCH"] = task.branch_name
+        env["JETTSTUI_KANBAN_BRANCH"] = task.branch_name
     if task.current_run_id is not None:
-        env["FREEIDE_KANBAN_RUN_ID"] = str(task.current_run_id)
+        env["JETTSTUI_KANBAN_RUN_ID"] = str(task.current_run_id)
     if task.claim_lock:
-        env["FREEIDE_KANBAN_CLAIM_LOCK"] = task.claim_lock
+        env["JETTSTUI_KANBAN_CLAIM_LOCK"] = task.claim_lock
     # Goal-loop mode: the worker reads these and wraps its run in the
     # Ralph-style /goal judge loop (see cli.py quiet-mode path). Only set
     # when enabled so non-goal tasks keep a clean env.
     if task.goal_mode:
-        env["FREEIDE_KANBAN_GOAL_MODE"] = "1"
+        env["JETTSTUI_KANBAN_GOAL_MODE"] = "1"
         if task.goal_max_turns is not None:
-            env["FREEIDE_KANBAN_GOAL_MAX_TURNS"] = str(int(task.goal_max_turns))
+            env["JETTSTUI_KANBAN_GOAL_MAX_TURNS"] = str(int(task.goal_max_turns))
     terminal_timeout = _worker_terminal_timeout_env(
         task.max_runtime_seconds,
         env.get("TERMINAL_TIMEOUT"),
@@ -8898,34 +8898,34 @@ def _default_spawn(
     if foreground_timeout is not None:
         env["TERMINAL_MAX_FOREGROUND_TIMEOUT"] = foreground_timeout
     # Pin the shared board + workspaces root the dispatcher resolved, so
-    # that even when the worker activates a profile (`freeide -p <name>`
-    # rewrites FREEIDE_HOME), its kanban paths still match the
-    # dispatcher's. Belt-and-braces with the `get_default_freeide_root()`
+    # that even when the worker activates a profile (`jettstui -p <name>`
+    # rewrites JETTSTUI_HOME), its kanban paths still match the
+    # dispatcher's. Belt-and-braces with the `get_default_jettstui_root()`
     # resolution in `kanban_home()` — symmetric resolution is the norm,
     # but unusual symlink / Docker layouts are caught here too.
-    env["FREEIDE_KANBAN_DB"] = str(kanban_db_path(board=board))
-    env["FREEIDE_KANBAN_WORKSPACES_ROOT"] = str(workspaces_root(board=board))
+    env["JETTSTUI_KANBAN_DB"] = str(kanban_db_path(board=board))
+    env["JETTSTUI_KANBAN_WORKSPACES_ROOT"] = str(workspaces_root(board=board))
     # Board slug — the final defense-in-depth pin. If the worker ever
     # resolves kanban paths without the DB / workspaces env vars, the
     # board slug still forces it to the right directory.
     resolved_board = _normalize_board_slug(board) or get_current_board()
-    env["FREEIDE_KANBAN_BOARD"] = resolved_board
-    # FREEIDE_PROFILE is the author the kanban_comment tool defaults to.
-    # `freeide -p <assignee>` activates the profile, but the env var is
+    env["JETTSTUI_KANBAN_BOARD"] = resolved_board
+    # JETTSTUI_PROFILE is the author the kanban_comment tool defaults to.
+    # `jettstui -p <assignee>` activates the profile, but the env var is
     # what the tool reads — set it explicitly here so comments are
     # attributed correctly regardless of how the child loads config.
-    env["FREEIDE_PROFILE"] = profile_arg
+    env["JETTSTUI_PROFILE"] = profile_arg
 
     # A worker must NEVER boot the interactive TUI. Current builds select the
     # headless runner automatically because worker stdio is redirected; keep
     # the legacy --cli marker and clear the env for older builds on PATH.
-    env.pop("FREEIDE_TUI", None)
+    env.pop("JETTSTUI_TUI", None)
 
     cmd = [
-        *_resolve_freeide_argv(),
+        *_resolve_jettstui_argv(),
         "-p", profile_arg,
         "--cli",
-        # Worker subprocesses switch to a profile-scoped FREEIDE_HOME above,
+        # Worker subprocesses switch to a profile-scoped JETTSTUI_HOME above,
         # so they see that profile's shell-hook allowlist instead of the
         # dispatcher's root allowlist. Pass --accept-hooks explicitly so
         # profile-local worker sessions still register configured hooks.
@@ -8948,7 +8948,7 @@ def _default_spawn(
         # the classic mis-set that stalls a board).
         if task.provider_override:
             cmd.extend(["--provider", task.provider_override])
-    worker_toolsets = _resolve_worker_cli_toolsets(env.get("FREEIDE_HOME"))
+    worker_toolsets = _resolve_worker_cli_toolsets(env.get("JETTSTUI_HOME"))
     if worker_toolsets:
         cmd.extend(["--toolsets", ",".join(worker_toolsets)])
     cmd.extend([
@@ -8964,7 +8964,7 @@ def _default_spawn(
         cmd.append("-Q")
     # Redirect output to a per-task log under <board-root>/logs/.
     # Anchored at the board root (not the shared kanban root), so
-    # `freeide kanban log` on a specific board reads its own file and
+    # `jettstui kanban log` on a specific board reads its own file and
     # logs don't collide across boards that happen to share task ids.
     log_dir = worker_logs_dir(board=board)
     log_dir.mkdir(parents=True, exist_ok=True)
@@ -8988,8 +8988,8 @@ def _default_spawn(
     except FileNotFoundError:
         log_f.close()
         raise RuntimeError(
-            "`freeide` executable not found on PATH. "
-            "Install FreeIDE Agent or activate its venv before running the kanban dispatcher."
+            "`jettstui` executable not found on PATH. "
+            "Install JettsTUI or activate its venv before running the kanban dispatcher."
         )
     # NOTE: we intentionally do NOT close log_f here — we want Popen's
     # child process to keep writing after this function returns.  The
@@ -9014,7 +9014,7 @@ def run_daemon(
     """Run the dispatcher in a loop until interrupted.
 
     Calls :func:`dispatch_once` every ``interval`` seconds. Exits cleanly
-    on SIGINT / SIGTERM so ``freeide kanban daemon`` is systemd-friendly.
+    on SIGINT / SIGTERM so ``jettstui kanban daemon`` is systemd-friendly.
     ``stop_event`` (a :class:`threading.Event`) and ``on_tick`` (a
     callable receiving the :class:`DispatchResult`) are test hooks.
     """
@@ -9297,7 +9297,7 @@ def build_worker_context(conn: sqlite3.Connection, task_id: str) -> str:
             age = _relative_age(c.created_at, _now)
             ts_disp = f"{ts}, {age}" if age else ts
             # Render author with explicit "comment from worker" framing so
-            # operator-controlled FREEIDE_PROFILE values like "freeide-system"
+            # operator-controlled JETTSTUI_PROFILE values like "jettstui-system"
             # or "operator" can't be misread by the next worker as a system
             # directive above the (attacker-influenceable) comment body.
             # Defense-in-depth — the LLM-controlled author-forgery surface
@@ -9841,15 +9841,15 @@ def list_profiles_on_disk() -> list[str]:
 
     Includes:
     - named profiles under ``<default-root>/profiles/<name>/config.yaml``
-    - the implicit ``default`` profile when the default FreeIDE root exists
+    - the implicit ``default`` profile when the default JettsTUI root exists
 
     Reads profile paths directly so this module has no import dependency on
-    ``freeide_cli.profiles`` (which pulls in a large chunk of the CLI startup
+    ``jettstui.profiles`` (which pulls in a large chunk of the CLI startup
     path).
     """
     try:
-        from freeide_constants import get_default_freeide_root
-        default_root = get_default_freeide_root()
+        from jettstui_constants import get_default_jettstui_root
+        default_root = get_default_jettstui_root()
         profiles_dir = default_root / "profiles"
     except Exception:
         return []
@@ -9878,7 +9878,7 @@ def known_assignees(conn: sqlite3.Connection) -> list[dict]:
     A name is included when it's a configured profile on disk OR when
     any non-archived task has it as the assignee. Used by:
 
-    - ``freeide kanban assignees`` for the terminal.
+    - ``jettstui kanban assignees`` for the terminal.
     - The dashboard assignee dropdown (so a fresh profile appears in
       the picker even before it's been given any task).
     - Router-profile heuristics ("who's overloaded?") without scanning

@@ -133,11 +133,11 @@ n.cook(force=True)
 actual = str(n.width) + 'x' + str(n.height)
 ```
 
-## 5. FreeIDE Configuration
+## 5. JettsTUI Configuration
 
 ### Config location
 
-`$FREEIDE_HOME/config.yaml` (defaults to `~/.freeide/config.yaml` when `FREEIDE_HOME` is unset)
+`$JETTSTUI_HOME/config.yaml` (defaults to `~/.jettstui/config.yaml` when `JETTSTUI_HOME` is unset)
 
 ### MCP entry format
 
@@ -150,7 +150,7 @@ mcpServers:
 
 ### After config changes
 
-Restart the FreeIDE session for changes to take effect. The MCP connection is
+Restart the JettsTUI session for changes to take effect. The MCP connection is
 established at session startup.
 
 ### Verifying MCP tools are available

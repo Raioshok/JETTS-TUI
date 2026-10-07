@@ -60,7 +60,7 @@ _SCAN_FILES = {"setup.cfg", "pyproject.toml"}
 
 # MCP catalog files that require explicit security review.
 _MCP_CATALOG_PATHS = ("optional-mcps/",)
-_MCP_CATALOG_FILES = {"jettstui/mcp_catalog.py", "freeide_cli/mcp_catalog.py"}
+_MCP_CATALOG_FILES = {"jettstui/mcp_catalog.py", "jettstui/mcp_catalog.py"}
 
 def _is_docs(p: str) -> bool:
     if p.startswith(("skills/", "optional-skills/")):

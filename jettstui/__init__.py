@@ -1,14 +1,14 @@
 """
-FreeIDE CLI - Unified command-line interface for FreeIDE Agent.
+JettsTUI CLI - Unified command-line interface for JettsTUI.
 
 Provides subcommands for:
-- freeide chat          - Interactive chat (same as ./freeide)
-- freeide gateway       - Run gateway in foreground
-- freeide gateway start - Start gateway service
-- freeide gateway stop  - Stop gateway service
-- freeide setup         - Interactive setup wizard
-- freeide status        - Show status of all components
-- freeide cron          - Manage cron jobs
+- jettstui chat          - Interactive chat (same as ./jettstui)
+- jettstui gateway       - Run gateway in foreground
+- jettstui gateway start - Start gateway service
+- jettstui gateway stop  - Stop gateway service
+- jettstui setup         - Interactive setup wizard
+- jettstui status        - Show status of all components
+- jettstui cron          - Manage cron jobs
 """
 
 import os
@@ -31,7 +31,7 @@ def _ensure_utf8():
     The CLI prints box-drawing characters (┌│├└─) and the ◆ glyph in the setup
     wizard, doctor, and status banners. Encoding those under a non-UTF-8 codec
     raises an unhandled UnicodeEncodeError that crashes the command before it
-    can even start — e.g. `freeide setup` on a fresh Pi.
+    can even start — e.g. `jettstui setup` on a fresh Pi.
 
     This runs at import time so it protects every CLI subcommand, on any
     platform. It re-wraps stdout/stderr as UTF-8 when their encoding is not
@@ -44,7 +44,7 @@ def _ensure_utf8():
     stream change and no environment mutation.
 
     Note: this is intentionally the earliest, platform-agnostic guard.
-    freeide_cli/stdio.py::configure_windows_stdio() runs later from the entry
+    jettstui/stdio.py::configure_windows_stdio() runs later from the entry
     points and layers on the Windows-only extras (console code-page flip,
     EDITOR default, PATH augmentation); its stream reconfiguration is a
     harmless idempotent no-op once we have already repaired the streams here.

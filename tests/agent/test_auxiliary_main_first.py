@@ -62,7 +62,7 @@ class TestResolveAutoMainFirst:
         """
         import yaml
 
-        home = tmp_path / ".freeide"
+        home = tmp_path / ".jettstui"
         home.mkdir()
         (home / "config.yaml").write_text(
             yaml.safe_dump(
@@ -80,7 +80,7 @@ class TestResolveAutoMainFirst:
                 }
             )
         )
-        monkeypatch.setenv("FREEIDE_HOME", str(home))
+        monkeypatch.setenv("JETTSTUI_HOME", str(home))
 
         with patch(
             "agent.auxiliary_client.resolve_provider_client"
@@ -112,7 +112,7 @@ class TestResolveAutoMainFirst:
         assert mock_resolve.call_args.kwargs.get("explicit_base_url") in (None, "")
 
     def test_nous_main_uses_main_model_for_aux(self, monkeypatch):
-        """FreeIDE Portal main user → aux uses their picked Nous model, not free-tier MiMo."""
+        """JettsTUI Portal main user → aux uses their picked Nous model, not free-tier MiMo."""
         # No OPENROUTER_API_KEY → ensures if main failed we'd fall to chain
         with patch(
             "agent.auxiliary_client._read_main_provider", return_value="nous",
@@ -446,14 +446,14 @@ class TestResolveVisionMainFirst:
         ), patch(
             "agent.auxiliary_client.OpenAI",
         ) as mock_openai, patch(
-            "freeide_cli.auth.resolve_api_key_provider_credentials",
+            "jettstui.auth.resolve_api_key_provider_credentials",
             return_value={
                 "provider": "copilot",
                 "api_key": "copilot-api-token",
                 "base_url": "https://api.githubcopilot.com",
             },
         ), patch(
-            "freeide_cli.copilot_auth.copilot_request_headers",
+            "jettstui.copilot_auth.copilot_request_headers",
             side_effect=fake_headers,
         ):
             mock_client = MagicMock()
@@ -483,14 +483,14 @@ class TestResolveVisionMainFirst:
         with patch(
             "agent.auxiliary_client.OpenAI",
         ) as mock_openai, patch(
-            "freeide_cli.auth.resolve_api_key_provider_credentials",
+            "jettstui.auth.resolve_api_key_provider_credentials",
             return_value={
                 "provider": "copilot",
                 "api_key": "copilot-api-token",
                 "base_url": "https://api.githubcopilot.com",
             },
         ), patch(
-            "freeide_cli.copilot_auth.copilot_request_headers",
+            "jettstui.copilot_auth.copilot_request_headers",
             side_effect=fake_headers,
         ):
             mock_client = MagicMock()

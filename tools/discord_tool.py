@@ -4,7 +4,7 @@ Provides the agent with the ability to interact with Discord servers
 when running on the Discord gateway. Uses Discord REST API directly
 with the bot token — no dependency on the gateway adapter's client.
 
-Only included in the freeide-discord toolset, so it has zero cost
+Only included in the jettstui-discord toolset, so it has zero cost
 for users on other platforms.
 
 The schema exposed to the model is filtered by two gates:
@@ -100,7 +100,7 @@ def _discord_request(
         headers={
             "Authorization": f"Bot {token}",
             "Content-Type": "application/json",
-            "User-Agent": "FreeIDE-Agent (https://github.com/freeide/freeide)",
+            "User-Agent": "JettsTUI-Agent (https://github.com/Raioshok/JETTS-TUI)",
         },
     )
 
@@ -174,9 +174,9 @@ _capability_bg_lock = threading.Lock()
 def _capability_disk_cache_path() -> "Path":
     from pathlib import Path
 
-    from freeide_constants import get_freeide_home
+    from jettstui_constants import get_jettstui_home
 
-    return get_freeide_home() / "cache" / "discord_capabilities.json"
+    return get_jettstui_home() / "cache" / "discord_capabilities.json"
 
 
 def _token_cache_key(token: str) -> str:
@@ -711,7 +711,7 @@ def _load_allowed_actions_config() -> Optional[List[str]]:
     Unknown action names are dropped with a log warning.
     """
     try:
-        from freeide_cli.config import load_config
+        from jettstui.config import load_config
         cfg = load_config()
     except Exception as exc:
         logger.debug("discord: could not load config (%s); allowing all actions.", exc)

@@ -1,8 +1,8 @@
-"""Dependency-light venv recovery that runs BEFORE freeide_cli.main's imports.
+"""Dependency-light venv recovery that runs BEFORE jettstui.main's imports.
 
-The ``freeide`` console entry point is ``freeide_cli.main:main``.  Importing
-``freeide_cli.main`` pulls in third-party packages at module level (``dotenv``
-via ``freeide_cli.env_loader``, ``yaml`` via ``freeide_cli.config``, ...).  In
+The ``jettstui`` console entry point is ``jettstui.main:main``.  Importing
+``jettstui.main`` pulls in third-party packages at module level (``dotenv``
+via ``jettstui.env_loader``, ``yaml`` via ``jettstui.config``, ...).  In
 the exact failure state the update-recovery markers exist for — a failed lazy
 backend refresh or interrupted core install that wiped a core package's
 import files (#57828) — a normal launch crashes *while importing main.py*,
@@ -10,11 +10,11 @@ before ``_recover_from_interrupted_install()`` can run.  The marker system is
 unreachable precisely when it is needed most.
 
 This module is deliberately **stdlib-only** so importing it can never fail on
-a corrupted venv.  ``freeide_cli.main`` imports and calls
+a corrupted venv.  ``jettstui.main`` imports and calls
 :func:`recover_if_needed` at the very top of its module body, before any
 third-party import.
 
-Scope: this early pass only repairs enough for ``freeide_cli.main`` to become
+Scope: this early pass only repairs enough for ``jettstui.main`` to become
 importable again (force-reinstall of the known-fragile core packages, using
 the pins from pyproject.toml).  It NEVER clears the recovery markers — the
 full, confirmed marker lifecycle stays with ``_recover_from_interrupted_install()``
@@ -142,7 +142,7 @@ def _probe_broken_packages() -> list[str]:
 def _run_repair_install(specs: list[str], project_root: Path) -> bool:
     """ensurepip + ``pip install --force-reinstall`` the given specs.
 
-    Streams nothing to stdout (``freeide acp`` speaks JSON-RPC on stdout);
+    Streams nothing to stdout (``jettstui acp`` speaks JSON-RPC on stdout);
     output is captured and replayed to stderr only on failure.  Never raises.
     """
     try:
@@ -175,10 +175,10 @@ def recover_if_needed(
     project_root: Path | None = None,
     argv: list[str] | None = None,
 ) -> None:
-    """Repair wiped core packages so ``freeide_cli.main`` can import at all.
+    """Repair wiped core packages so ``jettstui.main`` can import at all.
 
     Fast path (no marker present) is two ``lstat`` calls.  Only acts when a
-    recovery marker from a prior ``freeide update`` exists AND an import probe
+    recovery marker from a prior ``jettstui update`` exists AND an import probe
     confirms a core package is actually broken.  Markers are intentionally
     NOT cleared here — ``_recover_from_interrupted_install()`` in main.py owns
     the confirmed marker lifecycle and runs immediately after import succeeds.

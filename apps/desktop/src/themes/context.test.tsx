@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { __resetBackendSkinSync, ingestBackendSkin } from './backend-sync'
 import { ThemeProvider } from './context'
 
-// The live-authoring loop: FreeIDE writes/edits one skin file and every surface
+// The live-authoring loop: JettsTUI writes/edits one skin file and every surface
 // repaints. An in-place edit keeps the NAME — only the palette moves.
 const bloomberg = (foreground: string) => ({
   name: 'bloomberg',

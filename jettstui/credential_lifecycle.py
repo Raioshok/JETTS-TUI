@@ -1,12 +1,12 @@
-"""Unified provider-credential lifecycle across every store FreeIDE reads.
+"""Unified provider-credential lifecycle across every store JettsTUI reads.
 
 A provider API key can live in up to THREE stores at once:
 
-    1. ``~/.freeide/.env``                     — the canonical secret store
-    2. ``~/.freeide/auth.json`` →
+    1. ``~/.jettstui/.env``                     — the canonical secret store
+    2. ``~/.jettstui/auth.json`` →
        ``credential_pool.<provider>[*]``      — env-seeded pool entries
        (``source == "env:<VAR>"``) persisted by the pool loader
-    3. ``~/.freeide/config.yaml``              — inline mirrors written by the
+    3. ``~/.jettstui/config.yaml``              — inline mirrors written by the
        custom-endpoint flows (``model.api_key``, ``auxiliary.<task>.api_key``,
        ``custom_providers[*].api_key``)
 
@@ -51,7 +51,7 @@ __all__ = [
 def _providers_for_env_var(env_var: str) -> List[str]:
     """Provider ids whose registered api_key_env_vars include ``env_var``."""
     try:
-        from freeide_cli.auth import PROVIDER_REGISTRY
+        from jettstui.auth import PROVIDER_REGISTRY
     except Exception:
         return []
     hits: List[str] = []
@@ -75,7 +75,7 @@ def _prune_env_pool_entries(env_var: str) -> List[str]:
 
     Returns the list of provider ids that had entries pruned.
     """
-    from freeide_cli.auth import _auth_store_lock, _load_auth_store, _save_auth_store
+    from jettstui.auth import _auth_store_lock, _load_auth_store, _save_auth_store
 
     source = f"env:{env_var}"
     pruned: List[str] = []
@@ -123,7 +123,7 @@ def _scrub_config_yaml_mirrors(old_value: str, new_value: str | None) -> List[st
         return []
     from utils import atomic_yaml_write, fast_safe_load
 
-    from freeide_cli.config import (
+    from jettstui.config import (
         get_config_path,
         require_readable_config_before_write,
     )
@@ -186,12 +186,12 @@ def purge_env_credential_references(
     """
     pruned = _prune_env_pool_entries(env_var)
     providers = sorted(set(pruned) | set(_providers_for_env_var(env_var)))
-    # Make the removal sticky the same way `freeide auth remove` does: a
+    # Make the removal sticky the same way `jettstui auth remove` does: a
     # lingering shell export (or another live process's os.environ) would
     # otherwise re-seed the pool entry on the next load_pool(). The matching
     # save path lifts the suppression on an explicit re-add.
     try:
-        from freeide_cli.auth import suppress_credential_source
+        from jettstui.auth import suppress_credential_source
 
         for provider in providers:
             suppress_credential_source(provider, f"env:{env_var}")
@@ -199,7 +199,7 @@ def purge_env_credential_references(
         pass
     if clear_models_cache and providers:
         try:
-            from freeide_cli.models import clear_provider_models_cache
+            from jettstui.models import clear_provider_models_cache
 
             for provider in providers:
                 clear_provider_models_cache(provider)
@@ -217,9 +217,9 @@ def save_provider_env_credential(env_var: str, value: str) -> Dict[str, Any]:
     value of this var (``model.api_key`` etc.) is updated to the new value so
     a stale higher-precedence copy cannot shadow the rotation (#62269).
     Suppressed ``env:<VAR>`` pool sources are re-enabled so a deliberate
-    re-add through the UI behaves like ``freeide auth add``.
+    re-add through the UI behaves like ``jettstui auth add``.
     """
-    from freeide_cli.config import load_env, save_env_value
+    from jettstui.config import load_env, save_env_value
 
     old_value = load_env().get(env_var)
     save_env_value(env_var, value)
@@ -232,7 +232,7 @@ def save_provider_env_credential(env_var: str, value: str) -> Dict[str, Any]:
     # save is an explicit re-add, so lift the suppression for every provider
     # that reads this var.
     try:
-        from freeide_cli.auth import unsuppress_credential_source
+        from jettstui.auth import unsuppress_credential_source
 
         for provider in _providers_for_env_var(env_var):
             unsuppress_credential_source(provider, f"env:{env_var}")
@@ -254,7 +254,7 @@ def remove_provider_env_credential(env_var: str) -> Dict[str, Any]:
     previously 404'd on ".env miss" should key off this instead so a stale
     pool-only entry can still be cleaned up through the same button.
     """
-    from freeide_cli.config import load_env, remove_env_value
+    from jettstui.config import load_env, remove_env_value
 
     old_value = load_env().get(env_var)
     removed_from_env = remove_env_value(env_var)

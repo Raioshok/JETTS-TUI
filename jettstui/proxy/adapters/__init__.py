@@ -7,11 +7,11 @@ token. See :class:`UpstreamAdapter` for the contract.
 
 from typing import Dict, Type
 
-from freeide_cli.proxy.adapters.base import UpstreamAdapter
-from freeide_cli.proxy.adapters.xai import XAIGrokAdapter
+from jettstui.proxy.adapters.base import UpstreamAdapter
+from jettstui.proxy.adapters.xai import XAIGrokAdapter
 
 # Registry of available adapter classes keyed by provider name as used on
-# the ``freeide proxy start --provider <name>`` CLI flag.
+# the ``jettstui proxy start --provider <name>`` CLI flag.
 ADAPTERS: Dict[str, Type[UpstreamAdapter]] = {
     "xai": XAIGrokAdapter,
 }

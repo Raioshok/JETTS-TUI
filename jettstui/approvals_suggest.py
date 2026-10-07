@@ -1,9 +1,9 @@
-"""``freeide approvals suggest`` — mine approval history into allowlist proposals.
+"""``jettstui approvals suggest`` — mine approval history into allowlist proposals.
 
-FreeIDE has no dedicated approval-decision ledger: ``always`` answers land in
+JettsTUI has no dedicated approval-decision ledger: ``always`` answers land in
 ``command_allowlist`` (config.yaml) via :func:`tools.approval.save_permanent_allowlist`,
 while ``once``/``session`` approvals are in-memory only.  What *does* persist
-is the session DB (``~/.freeide/state.db``): every assistant ``terminal`` tool
+is the session DB (``~/.jettstui/state.db``): every assistant ``terminal`` tool
 call is stored with its arguments, and the paired ``role='tool'`` result
 records whether the command was blocked/denied ("BLOCKED: User denied …",
 "Asking the user for approval") or actually executed.
@@ -27,7 +27,7 @@ Safety posture:
   proposed**, no matter how often they were approved.  ``rm -rf build/``
   approved 100 times still never yields an ``rm`` allowlist entry.  Only
   benign, recoverable classes (container lifecycle, git force push, service
-  restarts, freeide self-management, …) are eligible.
+  restarts, jettstui self-management, …) are eligible.
 * **Dangerous root binaries never become globs** (``rm *``, ``sudo *`` …).
 """
 
@@ -143,9 +143,9 @@ class Proposal:
 # ---------------------------------------------------------------------------
 
 def default_db_path() -> Path:
-    from freeide_constants import get_freeide_home
+    from jettstui_constants import get_jettstui_home
 
-    return get_freeide_home() / "state.db"
+    return get_jettstui_home() / "state.db"
 
 
 def _connect_readonly(db_path: Path) -> sqlite3.Connection:
@@ -251,17 +251,17 @@ def scan_approval_history(
 # ---------------------------------------------------------------------------
 
 def normalize_command(command: str) -> str:
-    """Fold user/freeide home prefixes and collapse whitespace.
+    """Fold user/jettstui home prefixes and collapse whitespace.
 
     Reuses tools.approval's home-folding machinery so proposals are portable
     across machines/users (``/home/alice/x`` -> ``~/x``).
     """
     from tools.approval import (
-        _rewrite_resolved_freeide_home,
+        _rewrite_resolved_jettstui_home,
         _rewrite_resolved_user_home,
     )
 
-    folded = _rewrite_resolved_user_home(_rewrite_resolved_freeide_home(command))
+    folded = _rewrite_resolved_user_home(_rewrite_resolved_jettstui_home(command))
     return " ".join(folded.split())
 
 
@@ -399,13 +399,13 @@ def _render_text(proposals: list[Proposal], days: int) -> None:
             print(f"       e.g. {ex}")
     print(
         "\nNothing has been changed. Apply selected entries with:\n"
-        "  freeide approvals suggest --apply 1,3\n"
-        "Entries are merged into command_allowlist in ~/.freeide/config.yaml."
+        "  jettstui approvals suggest --apply 1,3\n"
+        "Entries are merged into command_allowlist in ~/.jettstui/config.yaml."
     )
 
 
 def suggest_command(args) -> int:
-    """Entry point for ``freeide approvals suggest``."""
+    """Entry point for ``jettstui approvals suggest``."""
     db_path = Path(args.db) if getattr(args, "db", None) else default_db_path()
     days = getattr(args, "days", 90)
     if not db_path.exists():
@@ -439,7 +439,7 @@ def suggest_command(args) -> int:
             for pattern in applied:
                 print(f"  + {pattern}")
             print(f"\ncommand_allowlist now has {len(merged)} entries "
-                  "(~/.freeide/config.yaml).")
+                  "(~/.jettstui/config.yaml).")
         return 0
 
     if getattr(args, "json", False):
@@ -466,17 +466,17 @@ def suggest_command(args) -> int:
 
 
 def approvals_command(args) -> int:
-    """Dispatch ``freeide approvals <subcommand>``."""
+    """Dispatch ``jettstui approvals <subcommand>``."""
     sub = getattr(args, "approvals_command", None)
     if sub == "suggest":
         return suggest_command(args)
     print(
-        "usage: freeide approvals <subcommand>\n"
+        "usage: jettstui approvals <subcommand>\n"
         "\n"
         "subcommands:\n"
         "  suggest    Mine past approval decisions into a proposed\n"
         "             command_allowlist (dry by default; --apply N,M to merge)\n"
         "\n"
-        "Run `freeide approvals suggest -h` for details."
+        "Run `jettstui approvals suggest -h` for details."
     )
     return 1

@@ -26,8 +26,8 @@ import uuid
 from types import SimpleNamespace
 from typing import Any, Dict, Optional
 
-from freeide_cli.timeouts import get_provider_request_timeout, get_provider_stale_timeout
-from freeide_constants import PARTIAL_STREAM_STUB_ID, FINISH_REASON_LENGTH
+from jettstui.timeouts import get_provider_request_timeout, get_provider_stale_timeout
+from jettstui_constants import PARTIAL_STREAM_STUB_ID, FINISH_REASON_LENGTH
 from agent.error_classifier import FailoverReason
 from agent.errors import EmptyStreamError
 from agent.turn_context import substitute_api_content
@@ -255,7 +255,7 @@ def _reset_stale_streak(agent) -> None:
 def _check_stale_giveup(agent) -> None:
     """Raise immediately when the consecutive-stale streak is past the
     give-up threshold — no network attempt, no stale-timeout wait."""
-    _giveup = env_int("FREEIDE_STREAM_STALE_GIVEUP", 5)
+    _giveup = env_int("JETTSTUI_STREAM_STALE_GIVEUP", 5)
     _streak = _stale_streak(agent)
     if _giveup > 0 and _streak >= _giveup:
         raise RuntimeError(
@@ -280,7 +280,7 @@ def _derive_stream_stale_timeout(agent, api_kwargs: dict) -> float:
     if _cfg_stale is not None:
         _base = _cfg_stale
     else:
-        _base = env_float("FREEIDE_STREAM_STALE_TIMEOUT", 180.0)
+        _base = env_float("JETTSTUI_STREAM_STALE_TIMEOUT", 180.0)
     _est_tokens = estimate_request_context_tokens(api_kwargs)
     if _est_tokens > 100_000:
         _timeout = max(_base, 300.0)
@@ -484,7 +484,7 @@ def direct_api_call(agent, api_kwargs: dict):
     interactive-interrupt responsiveness, which these contexts do not have)
     so the nested-pool deadlock (#62151, #60203) cannot occur. Because the
     request runs in-flight normally, the per-request OpenAI client's own httpx
-    timeout (provider ``request_timeout_seconds`` / ``FREEIDE_API_TIMEOUT``) bounds
+    timeout (provider ``request_timeout_seconds`` / ``JETTSTUI_API_TIMEOUT``) bounds
     a genuinely hung provider — the same bound interactive calls already rely on.
     """
     _check_stale_giveup(agent)
@@ -682,8 +682,8 @@ def interruptible_api_call(agent, api_kwargs: dict):
     # failure mode emits an opening SSE frame and then stalls forever in SSL
     # read; for that we watch the gap since the last Codex stream event. This
     # matches Codex CLI's stream_idle_timeout model: any valid SSE event is
-    # activity. Operators can tune via FREEIDE_CODEX_TTFB_TIMEOUT_SECONDS and
-    # FREEIDE_CODEX_EVENT_STALE_TIMEOUT_SECONDS (0 disables each).
+    # activity. Operators can tune via JETTSTUI_CODEX_TTFB_TIMEOUT_SECONDS and
+    # JETTSTUI_CODEX_EVENT_STALE_TIMEOUT_SECONDS (0 disables each).
     _codex_watchdog_enabled = agent.api_mode == "codex_responses"
     _openai_codex_backend = _is_openai_codex_backend(agent)
     _est_tokens_for_codex_watchdog = estimate_request_context_tokens(api_kwargs)
@@ -705,9 +705,9 @@ def interruptible_api_call(agent, api_kwargs: dict):
     # indefinitely. The default sits ABOVE the maximum stale floor (1200s) so
     # it never clamps an intentionally-raised timeout for healthy large
     # requests — it is a backstop against unbounded growth, not a tighter
-    # limit. Tunable via FREEIDE_CODEX_HARD_TIMEOUT_SECONDS (set to 0 to
+    # limit. Tunable via JETTSTUI_CODEX_HARD_TIMEOUT_SECONDS (set to 0 to
     # disable the ceiling entirely; that restores the pre-fix behavior).
-    _codex_hard_timeout = _env_float("FREEIDE_CODEX_HARD_TIMEOUT_SECONDS", 1500.0)
+    _codex_hard_timeout = _env_float("JETTSTUI_CODEX_HARD_TIMEOUT_SECONDS", 1500.0)
     if (
         _codex_watchdog_enabled
         and _openai_codex_backend
@@ -730,14 +730,14 @@ def interruptible_api_call(agent, api_kwargs: dict):
     # had a chance to emit its first SSE event. Default to 120s — long enough to
     # clear normal backend admission / prompt prefill, short enough to still
     # reconnect promptly when the socket is genuinely wedged. Set
-    # FREEIDE_CODEX_TTFB_TIMEOUT_SECONDS=0 to disable this watchdog entirely.
+    # JETTSTUI_CODEX_TTFB_TIMEOUT_SECONDS=0 to disable this watchdog entirely.
     _ttfb_enabled = _codex_watchdog_enabled
-    _ttfb_timeout = _env_float("FREEIDE_CODEX_TTFB_TIMEOUT_SECONDS", 120.0)
+    _ttfb_timeout = _env_float("JETTSTUI_CODEX_TTFB_TIMEOUT_SECONDS", 120.0)
     if _ttfb_timeout <= 0:
         _ttfb_enabled = False
     elif _openai_codex_backend:
-        _ttfb_disable_above = _env_float("FREEIDE_CODEX_TTFB_DISABLE_ABOVE_TOKENS", 10_000.0)
-        _ttfb_strict = os.environ.get("FREEIDE_CODEX_TTFB_STRICT", "").strip().lower() in {
+        _ttfb_disable_above = _env_float("JETTSTUI_CODEX_TTFB_DISABLE_ABOVE_TOKENS", 10_000.0)
+        _ttfb_strict = os.environ.get("JETTSTUI_CODEX_TTFB_STRICT", "").strip().lower() in {
             "1", "true", "yes", "on"
         }
         if (
@@ -750,18 +750,18 @@ def interruptible_api_call(agent, api_kwargs: dict):
                 logger.info(
                     "Scaling openai-codex no-byte TTFB watchdog from %.0fs to %.0fs "
                     "for large request (context=~%s tokens >= %.0f). "
-                    "Set FREEIDE_CODEX_TTFB_STRICT=1 to keep the smaller cutoff.",
+                    "Set JETTSTUI_CODEX_TTFB_STRICT=1 to keep the smaller cutoff.",
                     _ttfb_timeout,
                     _large_request_ttfb_timeout,
                     f"{_est_tokens_for_codex_watchdog:,}",
                     _ttfb_disable_above,
                 )
                 _ttfb_timeout = _large_request_ttfb_timeout
-        _ttfb_cap = _env_float("FREEIDE_CODEX_TTFB_MAX_SECONDS", 120.0)
+        _ttfb_cap = _env_float("JETTSTUI_CODEX_TTFB_MAX_SECONDS", 120.0)
         if _ttfb_cap > 0 and _ttfb_timeout > _ttfb_cap:
             logger.info(
                 "Capping openai-codex no-byte TTFB timeout from %.0fs to %.0fs "
-                "(context=~%s tokens). Set FREEIDE_CODEX_TTFB_MAX_SECONDS to tune.",
+                "(context=~%s tokens). Set JETTSTUI_CODEX_TTFB_MAX_SECONDS to tune.",
                 _ttfb_timeout,
                 _ttfb_cap,
                 f"{_est_tokens_for_codex_watchdog:,}",
@@ -770,7 +770,7 @@ def interruptible_api_call(agent, api_kwargs: dict):
 
     _codex_idle_enabled = _codex_watchdog_enabled
     _codex_idle_timeout = _env_float(
-        "FREEIDE_CODEX_EVENT_STALE_TIMEOUT_SECONDS",
+        "JETTSTUI_CODEX_EVENT_STALE_TIMEOUT_SECONDS",
         _codex_idle_timeout_default,
     )
     if _codex_idle_timeout <= 0:
@@ -1178,7 +1178,7 @@ def build_api_kwargs(agent, api_messages: list) -> dict:
     _qwen_meta = None
     if _is_qwen:
         _qwen_meta = {
-            "sessionId": agent.session_id or "freeide",
+            "sessionId": agent.session_id or "jettstui",
             "promptId": str(uuid.uuid4()),
         }
 
@@ -1335,7 +1335,7 @@ def build_assistant_message(agent, assistant_message, finish_reason: str) -> dic
     # If the model accidentally inlines a secret in its natural-language
     # response, catch it here at the persistence boundary so it never
     # reaches state.db, session_*.json, gateway delivery, or compression.
-    # Respects FREEIDE_REDACT_SECRETS via redact_sensitive_text — no-op
+    # Respects JETTSTUI_REDACT_SECRETS via redact_sensitive_text — no-op
     # when disabled. (#19798)
     if isinstance(_san_content, str) and _san_content:
         from agent.redact import redact_sensitive_text
@@ -1644,7 +1644,7 @@ def try_activate_fallback(agent, reason: "FailoverReason | None" = None) -> bool
         fb_api_key_hint = (fb.get("api_key") or "").strip() or None
         if not fb_api_key_hint:
             # key_env and api_key_env are both documented aliases (see
-            # _normalize_custom_provider_entry in freeide_cli/config.py).
+            # _normalize_custom_provider_entry in jettstui/config.py).
             fb_key_env = (fb.get("key_env") or fb.get("api_key_env") or "").strip()
             if fb_key_env:
                 fb_api_key_hint = os.getenv(fb_key_env, "").strip() or None
@@ -1664,7 +1664,7 @@ def try_activate_fallback(agent, reason: "FailoverReason | None" = None) -> bool
             unavailable.add(fb_key)
             return agent._try_activate_fallback(reason)  # try next in chain
         try:
-            from freeide_cli.model_normalize import normalize_model_for_provider
+            from jettstui.model_normalize import normalize_model_for_provider
 
             fb_model = normalize_model_for_provider(fb_model, fb_provider)
         except Exception as _norm_err:
@@ -1860,8 +1860,8 @@ def try_activate_fallback(agent, reason: "FailoverReason | None" = None) -> bool
         # (YAML boolean False = disabled). Wrapped in try/except because a
         # config load failure must not kill the swap.
         try:
-            from freeide_cli.config import load_config
-            from freeide_constants import resolve_reasoning_config
+            from jettstui.config import load_config
+            from jettstui_constants import resolve_reasoning_config
 
             agent.reasoning_config = resolve_reasoning_config(
                 load_config() or {}, agent.model
@@ -1941,12 +1941,12 @@ def handle_max_iterations(agent, messages: list, api_call_count: int) -> str:
             # tool_name (SQLite FTS bookkeeping), the codex_* reasoning carriers,
             # timestamp (preserved on gateway user replay entries for the
             # stale-confirmation expiry check — #47868 rejection class),
-            # and every FreeIDE-internal underscore-prefixed scaffolding key.
+            # and every JettsTUI-internal underscore-prefixed scaffolding key.
             for schema_foreign in ("tool_name", "codex_reasoning_items", "codex_message_items", "timestamp"):
                 api_msg.pop(schema_foreign, None)
             # api_content (the persist-what-you-send sidecar) carries the
             # exact bytes every main-loop call sent for this message —
-            # substitute it before dropping the key (FreeIDE bookkeeping,
+            # substitute it before dropping the key (JettsTUI bookkeeping,
             # never a provider field), mirroring the loop's api_messages
             # build. Popping without substituting would send CLEAN content
             # here, diverging the summary request's prefix at the EARLIEST
@@ -2439,7 +2439,7 @@ def interruptible_streaming_api_call(agent, api_kwargs: dict, *, on_first_delta=
                 # survive) waits a fresh interval rather than re-firing instantly.
                 _bedrock_last_event["t"] = time.time()
                 # Escalate across turns: raises RuntimeError once the streak
-                # crosses FREEIDE_STREAM_STALE_GIVEUP, so a persistently wedged
+                # crosses JETTSTUI_STREAM_STALE_GIVEUP, so a persistently wedged
                 # Bedrock provider aborts fast instead of re-waiting the timeout.
                 _check_stale_giveup(agent)
                 # Streak still under the give-up threshold: end THIS call with a
@@ -2668,23 +2668,23 @@ def interruptible_streaming_api_call(agent, api_kwargs: dict, *, on_first_delta=
         """Stream a chat completions response."""
         import httpx as _httpx
         # Per-provider / per-model request_timeout_seconds (from config.yaml)
-        # wins over the FREEIDE_API_TIMEOUT env default if the user set it.
+        # wins over the JETTSTUI_API_TIMEOUT env default if the user set it.
         _provider_timeout_cfg = get_provider_request_timeout(agent.provider, agent.model)
         _base_timeout = (
             _provider_timeout_cfg
             if _provider_timeout_cfg is not None
-            else env_float("FREEIDE_API_TIMEOUT", 1800.0)
+            else env_float("JETTSTUI_API_TIMEOUT", 1800.0)
         )
         # Read timeout: config wins here too.  Otherwise use
-        # FREEIDE_STREAM_READ_TIMEOUT (default 120s) for cloud providers.
+        # JETTSTUI_STREAM_READ_TIMEOUT (default 120s) for cloud providers.
         if _provider_timeout_cfg is not None:
             _stream_read_timeout = _provider_timeout_cfg
         else:
-            _stream_read_timeout = env_float("FREEIDE_STREAM_READ_TIMEOUT", 120.0)
+            _stream_read_timeout = env_float("JETTSTUI_STREAM_READ_TIMEOUT", 120.0)
             # Local providers (Ollama, llama.cpp, vLLM) can take minutes for
             # prefill on large contexts before producing the first token.
             # Auto-increase the httpx read timeout unless the user explicitly
-            # overrode FREEIDE_STREAM_READ_TIMEOUT.
+            # overrode JETTSTUI_STREAM_READ_TIMEOUT.
             if _stream_read_timeout == 120.0 and agent.base_url and is_local_endpoint(agent.base_url):
                 _stream_read_timeout = _base_timeout
                 logger.debug(
@@ -3062,7 +3062,7 @@ def interruptible_streaming_api_call(agent, api_kwargs: dict, *, on_first_delta=
         #      upstream dropped/stalled the connection mid tool-call.  This
         #      is NOT an output cap — the model never reported hitting one.
         #      Some dedicated endpoints (e.g. NVIDIA Nemotron Ultra on the
-        #      FreeIDE dedicated endpoint) stall for minutes during large
+        #      JettsTUI dedicated endpoint) stall for minutes during large
         #      tool-arg generation, then close the stream cleanly without a
         #      finish_reason.  Stamping "length" here sends it down the
         #      max_tokens-boost truncation path, which retries 3× to no
@@ -3296,7 +3296,7 @@ def interruptible_streaming_api_call(agent, api_kwargs: dict, *, on_first_delta=
     def _call():
         import httpx as _httpx
 
-        _max_stream_retries = env_int("FREEIDE_STREAM_RETRIES", 2)
+        _max_stream_retries = env_int("JETTSTUI_STREAM_RETRIES", 2)
 
         try:
             for _stream_attempt in range(_max_stream_retries + 1):
@@ -3621,22 +3621,22 @@ def interruptible_streaming_api_call(agent, api_kwargs: dict, *, on_first_delta=
     if _cfg_stale is not None:
         _stream_stale_timeout_base = _cfg_stale
     else:
-        _stream_stale_timeout_base = env_float("FREEIDE_STREAM_STALE_TIMEOUT", 180.0)
+        _stream_stale_timeout_base = env_float("JETTSTUI_STREAM_STALE_TIMEOUT", 180.0)
     # Local providers (Ollama, oMLX, llama-cpp) can take 300+ seconds
     # for prefill on large contexts, so tolerate far longer silence than
     # the cloud default — but a wedged local server must EVENTUALLY trip the
     # detector rather than hang forever (an infinite timeout meant a crashed
     # or deadlocked local endpoint stalled the session indefinitely).  900s
     # tolerates slow prefill while still bounding a hung endpoint.  Applies
-    # unless the user explicitly set FREEIDE_STREAM_STALE_TIMEOUT; override the
-    # local ceiling with FREEIDE_LOCAL_STREAM_STALE_TIMEOUT (documented in
+    # unless the user explicitly set JETTSTUI_STREAM_STALE_TIMEOUT; override the
+    # local ceiling with JETTSTUI_LOCAL_STREAM_STALE_TIMEOUT (documented in
     # website/docs/reference/environment-variables.md).
     if _stream_stale_timeout_base == 180.0 and agent.base_url and is_local_endpoint(agent.base_url):
         # Read config.yaml ``agent.local_stream_stale_timeout`` (default 900),
-        # env var ``FREEIDE_LOCAL_STREAM_STALE_TIMEOUT`` overrides for escape-hatch.
+        # env var ``JETTSTUI_LOCAL_STREAM_STALE_TIMEOUT`` overrides for escape-hatch.
         _local_default = 900.0
         try:
-            from freeide_cli.config import load_config
+            from jettstui.config import load_config
 
             _cfg = load_config()
             _agent_cfg = _cfg.get("agent") if isinstance(_cfg, dict) else None
@@ -3646,7 +3646,7 @@ def interruptible_streaming_api_call(agent, api_kwargs: dict, *, on_first_delta=
                     _local_default = float(_v)
         except Exception:
             pass
-        _stream_stale_timeout = env_float("FREEIDE_LOCAL_STREAM_STALE_TIMEOUT", _local_default)
+        _stream_stale_timeout = env_float("JETTSTUI_LOCAL_STREAM_STALE_TIMEOUT", _local_default)
         logger.debug(
             "Local provider detected (%s) — stale stream timeout set to %.0fs",
             agent.base_url, _stream_stale_timeout,

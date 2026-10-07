@@ -1,19 +1,19 @@
 import { renderHook } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type * as FreeIDEModule from '@/freeide'
+import type * as JettsTUIModule from '@/jettstui'
 import { setSessions } from '@/store/session'
 import { sessionTileDelegate } from '@/store/session-states'
-import type { SessionInfo } from '@/types/freeide'
+import type { SessionInfo } from '@/types/jettstui'
 
 import { useSessionTileDelegate } from './use-session-tile-delegate'
 
-vi.mock('@/freeide', async importActual => ({
-  ...(await importActual<typeof FreeIDEModule>()),
+vi.mock('@/jettstui', async importActual => ({
+  ...(await importActual<typeof JettsTUIModule>()),
   getSessionMessages: vi.fn(async () => ({ messages: [], session_id: '' }))
 }))
 
-const { getSessionMessages } = await import('@/freeide')
+const { getSessionMessages } = await import('@/jettstui')
 
 const row = (over: Partial<SessionInfo>): SessionInfo =>
   ({

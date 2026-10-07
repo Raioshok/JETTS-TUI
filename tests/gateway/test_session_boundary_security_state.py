@@ -1,4 +1,4 @@
-from freeide_state import AsyncSessionDB
+from jettstui_state import AsyncSessionDB
 """Regression tests for approval-state cleanup on session boundaries."""
 
 from datetime import datetime

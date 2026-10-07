@@ -1,9 +1,9 @@
 import { atom } from 'nanostores'
 
-import { getActionStatus, restartGateway } from '@/freeide'
+import { getActionStatus, restartGateway } from '@/jettstui'
 import { translateNow } from '@/i18n'
 import { notifyError } from '@/store/notifications'
-import type { ActionResponse } from '@/types/freeide'
+import type { ActionResponse } from '@/types/jettstui'
 
 const POLL_ATTEMPTS = 18
 const POLL_INTERVAL_MS = 1200

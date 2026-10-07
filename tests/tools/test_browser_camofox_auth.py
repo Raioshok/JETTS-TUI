@@ -1,6 +1,6 @@
 """Tests that Camofox browser sends Authorization header when CAMOFOX_API_KEY is set.
 
-Regression test for https://github.com/freeide/freeide/issues/20476
+Regression test for https://github.com/Raioshok/JETTS-TUI/issues/20476
 """
 
 import json

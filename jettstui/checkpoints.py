@@ -1,20 +1,20 @@
-"""`freeide checkpoints` CLI subcommand.
+"""`jettstui checkpoints` CLI subcommand.
 
 Gives users direct visibility and control over the filesystem checkpoint
-store at ``~/.freeide/checkpoints/``.  Actions:
+store at ``~/.jettstui/checkpoints/``.  Actions:
 
-    freeide checkpoints               # same as `status`
-    freeide checkpoints status        # total size, project count, breakdown
-    freeide checkpoints list          # per-project checkpoint counts + workdir
-    freeide checkpoints prune [opts]  # force a sweep (ignores the 24h marker)
-    freeide checkpoints clear [-f]    # nuke the entire base (asks first)
-    freeide checkpoints clear-legacy  # delete just the legacy-* archives
+    jettstui checkpoints               # same as `status`
+    jettstui checkpoints status        # total size, project count, breakdown
+    jettstui checkpoints list          # per-project checkpoint counts + workdir
+    jettstui checkpoints prune [opts]  # force a sweep (ignores the 24h marker)
+    jettstui checkpoints clear [-f]    # nuke the entire base (asks first)
+    jettstui checkpoints clear-legacy  # delete just the legacy-* archives
 
 Examples::
 
-    freeide checkpoints
-    freeide checkpoints prune --retention-days 3 --max-size-mb 200
-    freeide checkpoints clear -f
+    jettstui checkpoints
+    jettstui checkpoints prune --retention-days 3 --max-size-mb 200
+    jettstui checkpoints clear -f
 
 None of these require the agent to be running.  Safe to call any time.
 """
@@ -99,7 +99,7 @@ def cmd_status(args: argparse.Namespace) -> int:
         for arch in sorted(legacy, key=lambda a: a.get("mtime", 0), reverse=True):
             print(f"  {arch['name']:<40}  {_fmt_bytes(arch['size_bytes']):>10}")
         print()
-        print("Clear with: freeide checkpoints clear-legacy")
+        print("Clear with: jettstui checkpoints clear-legacy")
     return 0
 
 
@@ -240,8 +240,8 @@ def cmd_clear_legacy(args: argparse.Namespace) -> int:
 
 
 def register_cli(parser: argparse.ArgumentParser) -> None:
-    """Wire subcommands onto the ``freeide checkpoints`` parser."""
-    parser.set_defaults(func=cmd_status)  # bare `freeide checkpoints` → status
+    """Wire subcommands onto the ``jettstui checkpoints`` parser."""
+    parser.set_defaults(func=cmd_status)  # bare `jettstui checkpoints` → status
     subs = parser.add_subparsers(dest="checkpoints_command", metavar="COMMAND")
 
     p_status = subs.add_parser(

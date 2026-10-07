@@ -1,7 +1,7 @@
 /**
  * bootstrap-runner.ts
  *
- * Drives apps/desktop's first-launch install of FreeIDE Agent by spawning
+ * Drives apps/desktop's first-launch install of JettsTUI by spawning
  * scripts/install.ps1 stage-by-stage and streaming progress events back to
  * the renderer.
  *
@@ -9,10 +9,10 @@
  *   import { runBootstrap }from './bootstrap-runner'
  *   const result = await runBootstrap({
  *     installStamp,        // INSTALL_STAMP from main.ts (may be null in dev)
- *     activeRoot,          // ACTIVE_FREEIDE_ROOT
+ *     activeRoot,          // ACTIVE_JETTSTUI_ROOT
  *     sourceRepoRoot,      // SOURCE_REPO_ROOT (for dev install.ps1 lookup)
- *     freeideHome,          // FREEIDE_HOME
- *     logRoot,             // FREEIDE_HOME/logs
+ *     jettstuiHome,          // JETTSTUI_HOME
+ *     logRoot,             // JETTSTUI_HOME/logs
  *     emit: ev => {...}    // event sink (sender.send or similar)
  *   })
  *
@@ -90,7 +90,7 @@ function readExistingPinnedCommit(activeRoot: string | null | undefined): string
   }
 
   try {
-    const raw = fs.readFileSync(path.join(activeRoot, '.freeide-bootstrap-complete'), 'utf8')
+    const raw = fs.readFileSync(path.join(activeRoot, '.jettstui-bootstrap-complete'), 'utf8')
     const parsed = JSON.parse(raw)
 
     return parsed && isPinnedCommit(parsed.pinnedCommit) ? parsed.pinnedCommit : null
@@ -187,21 +187,21 @@ function resolveLocalInstallScript(sourceRepoRoot) {
   }
 }
 
-function bootstrapCacheDir(freeideHome) {
-  return path.join(freeideHome, 'bootstrap-cache')
+function bootstrapCacheDir(jettstuiHome) {
+  return path.join(jettstuiHome, 'bootstrap-cache')
 }
 
 // The install.sh / install.ps1 that ships inside the already-installed agent
-// checkout under the configured Jetts-TUI home. Used as a last-resort fallback when
+// checkout under the configured JettsTUI home. Used as a last-resort fallback when
 // the pinned commit can't be fetched from GitHub (e.g. a locally-built desktop
 // app stamped to an unpushed HEAD).
-function installedAgentInstallScript(freeideHome) {
-  if (!freeideHome) {
+function installedAgentInstallScript(jettstuiHome) {
+  if (!jettstuiHome) {
     return null
   }
 
   for (const checkout of ['jettstui', 'freeide-agent']) {
-    const candidate = path.join(freeideHome, checkout, 'scripts', installScriptName())
+    const candidate = path.join(jettstuiHome, checkout, 'scripts', installScriptName())
 
     try {
       fs.accessSync(candidate, fs.constants.R_OK)
@@ -227,8 +227,8 @@ function hasExistingGitCheckout(activeRoot) {
   }
 }
 
-function cachedScriptPath(freeideHome, commit) {
-  return path.join(bootstrapCacheDir(freeideHome), `install-${commit}.${process.platform === 'win32' ? 'ps1' : 'sh'}`)
+function cachedScriptPath(jettstuiHome, commit) {
+  return path.join(bootstrapCacheDir(jettstuiHome), `install-${commit}.${process.platform === 'win32' ? 'ps1' : 'sh'}`)
 }
 
 function installScriptUrl(ref) {
@@ -325,7 +325,7 @@ function downloadInstallScript(ref, destPath) {
 async function resolveInstallScript({
   installStamp,
   sourceRepoRoot,
-  freeideHome,
+  jettstuiHome,
   emit,
   _download = downloadInstallScript
 }) {
@@ -352,7 +352,7 @@ async function resolveInstallScript({
     )
   }
 
-  const cached = cachedScriptPath(freeideHome, installRef.cacheKey)
+  const cached = cachedScriptPath(jettstuiHome, installRef.cacheKey)
   const resolvedCommit = installRef.pinned ? installRef.ref : null
 
   try {
@@ -385,7 +385,7 @@ async function resolveInstallScript({
     // write-build-stamp.mjs fromLocalGit). Fall back to the installer that
     // ships inside the already-installed agent checkout so dev/self-builds can
     // still bootstrap instead of dying with a fatal 404.
-    const installed = installedAgentInstallScript(freeideHome)
+    const installed = installedAgentInstallScript(jettstuiHome)
 
     if (installed) {
       emit({
@@ -464,7 +464,7 @@ function resolveWindowsPowerShell() {
   return 'powershell.exe'
 }
 
-function spawnPowerShell(scriptPath, args, { emit, stageName, abortSignal, freeideHome }: any = {}) {
+function spawnPowerShell(scriptPath, args, { emit, stageName, abortSignal, jettstuiHome }: any = {}) {
   return new Promise<any>((resolve, reject) => {
     const ps = process.platform === 'win32' ? resolveWindowsPowerShell() : 'pwsh'
     const fullArgs = ['-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', scriptPath, ...args]
@@ -476,9 +476,9 @@ function spawnPowerShell(scriptPath, args, { emit, stageName, abortSignal, freei
         stdio: ['ignore', 'pipe', 'pipe'],
         env: {
           ...process.env,
-          // Pass FREEIDE_HOME through so install.ps1 respects the caller's
+          // Pass JETTSTUI_HOME through so install.ps1 respects the caller's
           // choice rather than re-computing the default.
-          FREEIDE_HOME: freeideHome || process.env.FREEIDE_HOME || ''
+          JETTSTUI_HOME: jettstuiHome || process.env.JETTSTUI_HOME || ''
         }
       })
     )
@@ -568,13 +568,13 @@ function spawnPowerShell(scriptPath, args, { emit, stageName, abortSignal, freei
   })
 }
 
-function spawnBash(scriptPath, args, { emit, stageName, abortSignal, freeideHome }: any = {}) {
+function spawnBash(scriptPath, args, { emit, stageName, abortSignal, jettstuiHome }: any = {}) {
   return new Promise<any>((resolve, reject) => {
     const child = spawn('bash', [scriptPath, ...args], {
       stdio: ['ignore', 'pipe', 'pipe'],
       env: {
         ...process.env,
-        FREEIDE_HOME: freeideHome || process.env.FREEIDE_HOME || ''
+        JETTSTUI_HOME: jettstuiHome || process.env.JETTSTUI_HOME || ''
       }
     })
 
@@ -684,8 +684,8 @@ function buildPinArgs(installStamp, { pinCommit = true } = {}) {
   return args
 }
 
-function buildPosixPinArgs({ installStamp, activeRoot, freeideHome, pinCommit = true }) {
-  const args = ['--dir', activeRoot, '--freeide-home', freeideHome]
+function buildPosixPinArgs({ installStamp, activeRoot, jettstuiHome, pinCommit = true }) {
+  const args = ['--dir', activeRoot, '--jettstui-home', jettstuiHome]
 
   if (installStamp && installStamp.branch) {
     args.push('--branch', installStamp.branch)
@@ -698,17 +698,17 @@ function buildPosixPinArgs({ installStamp, activeRoot, freeideHome, pinCommit = 
   return args
 }
 
-async function fetchManifest({ scriptPath, installerKind, emit, freeideHome, activeRoot, installStamp, pinCommit }) {
+async function fetchManifest({ scriptPath, installerKind, emit, jettstuiHome, activeRoot, installStamp, pinCommit }) {
   const isPosix = installerKind === 'posix'
 
   const args = isPosix
-    ? ['--manifest', ...buildPosixPinArgs({ installStamp, activeRoot, freeideHome, pinCommit })]
+    ? ['--manifest', ...buildPosixPinArgs({ installStamp, activeRoot, jettstuiHome, pinCommit })]
     : ['-Manifest', ...buildPinArgs(installStamp, { pinCommit })]
 
   const result = await (isPosix ? spawnBash : spawnPowerShell)(scriptPath, args, {
     emit,
     stageName: '__manifest__',
-    freeideHome
+    jettstuiHome
   })
 
   if (result.code !== 0) {
@@ -765,7 +765,7 @@ async function runStage({
   installerKind,
   stage,
   emit,
-  freeideHome,
+  jettstuiHome,
   activeRoot,
   abortSignal,
   installStamp,
@@ -782,7 +782,7 @@ async function runStage({
         stage.name,
         '--non-interactive',
         '--json',
-        ...buildPosixPinArgs({ installStamp, activeRoot, freeideHome, pinCommit })
+        ...buildPosixPinArgs({ installStamp, activeRoot, jettstuiHome, pinCommit })
       ]
     : ['-Stage', stage.name, '-NonInteractive', '-Json', ...buildPinArgs(installStamp, { pinCommit })]
 
@@ -790,7 +790,7 @@ async function runStage({
     emit,
     stageName: stage.name,
     abortSignal,
-    freeideHome
+    jettstuiHome
   })
 
   const durationMs = Date.now() - startedAt
@@ -869,7 +869,7 @@ async function runBootstrap(opts) {
     installStamp,
     activeRoot,
     sourceRepoRoot,
-    freeideHome,
+    jettstuiHome,
     logRoot,
     onEvent,
     abortSignal,
@@ -891,7 +891,7 @@ async function runBootstrap(opts) {
     return { ok: false, cancelled: true }
   }
 
-  const runLog = openRunLog(logRoot || path.join(freeideHome, 'logs'))
+  const runLog = openRunLog(logRoot || path.join(jettstuiHome, 'logs'))
 
   // Tee every event to the runLog AND the caller's onEvent. This gives us a
   // forensic trail per bootstrap run AND lets the renderer subscribe live.
@@ -935,7 +935,7 @@ async function runBootstrap(opts) {
     }
 
     // 1. Resolve the platform installer.
-    const scriptInfo = await resolveInstallScript({ installStamp, sourceRepoRoot, freeideHome, emit })
+    const scriptInfo = await resolveInstallScript({ installStamp, sourceRepoRoot, jettstuiHome, emit })
     const installerKind = scriptInfo.kind || 'powershell'
 
     // 2. Fetch manifest
@@ -943,7 +943,7 @@ async function runBootstrap(opts) {
       scriptPath: scriptInfo.path,
       installerKind,
       emit,
-      freeideHome,
+      jettstuiHome,
       activeRoot,
       installStamp,
       pinCommit
@@ -971,7 +971,7 @@ async function runBootstrap(opts) {
         installerKind,
         stage,
         emit,
-        freeideHome,
+        jettstuiHome,
         activeRoot,
         abortSignal,
         installStamp,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 
-import type { FreeIDEGitWorktree } from '@/global'
-import type { ProjectInfo, SessionInfo } from '@/types/freeide'
+import type { JettsTUIGitWorktree } from '@/global'
+import type { ProjectInfo, SessionInfo } from '@/types/jettstui'
 
 import {
   baseName,
@@ -53,7 +53,7 @@ const lane = (over: Partial<SidebarSessionGroup> & Pick<SidebarSessionGroup, 'id
 
 describe('baseName', () => {
   it('returns the final path segment, ignoring trailing slashes and separators', () => {
-    expect(baseName('/www/freeide-agent/')).toBe('freeide-agent')
+    expect(baseName('/www/jettstui/')).toBe('jettstui')
     expect(baseName('C:\\repos\\app')).toBe('app')
     expect(baseName('')).toBeUndefined()
   })
@@ -114,7 +114,7 @@ describe('mergeRepoWorktreeGroups (visual enhancer)', () => {
       groups: [lane({ id: '/repo::branch::main', label: 'main', isMain: true, path: '/repo' })]
     }
 
-    const discovered: FreeIDEGitWorktree[] = [
+    const discovered: JettsTUIGitWorktree[] = [
       { branch: 'feature', detached: false, isMain: false, locked: false, path: '/repo-wt-feature' }
     ]
 
@@ -132,7 +132,7 @@ describe('mergeRepoWorktreeGroups (visual enhancer)', () => {
       groups: [lane({ id: '/repo::branch::main', label: 'main', isMain: true, path: '/repo' })]
     }
 
-    const discovered: FreeIDEGitWorktree[] = [
+    const discovered: JettsTUIGitWorktree[] = [
       { branch: 'wt/t_aaaaaaaa', detached: false, isMain: false, locked: false, path: '/repo/.worktrees/t_aaaaaaaa' },
       { branch: 'wt/t_bbbbbbbb', detached: false, isMain: false, locked: false, path: '/repo/.worktrees/t_bbbbbbbb' }
     ]
@@ -155,7 +155,7 @@ describe('mergeRepoWorktreeGroups (visual enhancer)', () => {
       ]
     }
 
-    const discovered: FreeIDEGitWorktree[] = [
+    const discovered: JettsTUIGitWorktree[] = [
       { branch: 'main', detached: false, isMain: true, locked: false, path: '/repo' }
     ]
 
@@ -179,7 +179,7 @@ describe('mergeRepoWorktreeGroups (visual enhancer)', () => {
       lane({ id: '/repo::branch::main', label: 'main', isMain: true, path: '/repo', sessions: [makeSession('/repo')] })
     ]
 
-    const discovered: FreeIDEGitWorktree[] = [
+    const discovered: JettsTUIGitWorktree[] = [
       { branch: 'main', detached: false, isMain: false, locked: false, path: '/repo/.worktrees/main-mirror' }
     ]
 
@@ -189,9 +189,9 @@ describe('mergeRepoWorktreeGroups (visual enhancer)', () => {
   })
 
   it('surfaces a user-named "New worktree" under .worktrees/ as its own lane', () => {
-    const discovered: FreeIDEGitWorktree[] = [
+    const discovered: JettsTUIGitWorktree[] = [
       {
-        branch: 'freeide/test-gui-stuff',
+        branch: 'jettstui/test-gui-stuff',
         detached: false,
         isMain: false,
         locked: false,
@@ -201,11 +201,11 @@ describe('mergeRepoWorktreeGroups (visual enhancer)', () => {
 
     const merged = mergeRepoWorktreeGroups({ id: '/repo', path: '/repo', groups: [] }, discovered)
 
-    expect(merged.map(g => g.label)).toContain('freeide/test-gui-stuff')
+    expect(merged.map(g => g.label)).toContain('jettstui/test-gui-stuff')
   })
 
   it('relabels a dir-named linked worktree lane to its live checked-out branch', () => {
-    // Backend labels the lane by the worktree dir (`freeide-agent-ci`); the live
+    // Backend labels the lane by the worktree dir (`jettstui-ci`); the live
     // `git worktree list` says HEAD there is `bb/ci-affected-only` → branch wins.
     const repo = {
       id: '/repo',
@@ -220,7 +220,7 @@ describe('mergeRepoWorktreeGroups (visual enhancer)', () => {
         }),
         lane({
           id: '/repo-ci',
-          label: 'freeide-agent-ci',
+          label: 'jettstui-ci',
           isMain: false,
           path: '/repo-ci',
           sessions: [makeSession('/repo-ci')]
@@ -228,7 +228,7 @@ describe('mergeRepoWorktreeGroups (visual enhancer)', () => {
       ]
     }
 
-    const discovered: FreeIDEGitWorktree[] = [
+    const discovered: JettsTUIGitWorktree[] = [
       { branch: 'main', detached: false, isMain: true, locked: false, path: '/repo' },
       { branch: 'bb/ci-affected-only', detached: false, isMain: false, locked: false, path: '/repo-ci' }
     ]
@@ -262,7 +262,7 @@ describe('mergeRepoWorktreeGroups (visual enhancer)', () => {
     }
 
     // git now has `bb/attempts` at a sibling dir, not the stale `.worktrees` one.
-    const discovered: FreeIDEGitWorktree[] = [
+    const discovered: JettsTUIGitWorktree[] = [
       { branch: 'bb/attempts', detached: false, isMain: false, locked: false, path: '/repo-pr-attempts' }
     ]
 
@@ -296,7 +296,7 @@ describe('mergeRepoWorktreeGroups (visual enhancer)', () => {
       ]
     }
 
-    const discovered: FreeIDEGitWorktree[] = [
+    const discovered: JettsTUIGitWorktree[] = [
       { branch: 'bb/feature', detached: false, isMain: false, locked: false, path: '/repo-feature' }
     ]
 
@@ -317,7 +317,7 @@ describe('mergeRepoWorktreeGroups (visual enhancer)', () => {
       ]
     }
 
-    const discovered: FreeIDEGitWorktree[] = [
+    const discovered: JettsTUIGitWorktree[] = [
       { branch: null, detached: true, isMain: false, locked: false, path: '/repo-ci' }
     ]
 
@@ -342,7 +342,7 @@ describe('mergeRepoWorktreeGroups (visual enhancer)', () => {
     // The repo root is switched to a feature branch. The historical "main"
     // sessions fold into ONE home lane labeled by the live branch — no stale
     // "main" lane lingering beside it.
-    const discovered: FreeIDEGitWorktree[] = [
+    const discovered: JettsTUIGitWorktree[] = [
       { branch: 'some-feature', detached: false, isMain: true, locked: false, path: '/repo' }
     ]
 
@@ -371,7 +371,7 @@ describe('mergeRepoWorktreeGroups (visual enhancer)', () => {
       ]
     }
 
-    const discovered: FreeIDEGitWorktree[] = [
+    const discovered: JettsTUIGitWorktree[] = [
       { branch: 'main', detached: false, isMain: true, locked: false, path: '/repo' }
     ]
 
@@ -403,7 +403,7 @@ describe('mergeRepoWorktreeGroups (visual enhancer)', () => {
       ]
     }
 
-    const discovered: FreeIDEGitWorktree[] = [
+    const discovered: JettsTUIGitWorktree[] = [
       { branch: 'bb/live', detached: false, isMain: true, locked: false, path: '/repo' }
     ]
 
@@ -733,7 +733,7 @@ describe('overlayLiveLanes', () => {
   })
 
   it('places a session into an out-of-tree (sibling) worktree lane by its path', () => {
-    // `freeide-agent-ci` is a linked worktree living BESIDE the repo, not under
+    // `jettstui-ci` is a linked worktree living BESIDE the repo, not under
     // it — repo-root nesting fails, but the existing lane carries its real path.
     const existing = makeSession('/www/app-ci', { id: 'old' })
 

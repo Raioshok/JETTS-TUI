@@ -1,0 +1,220 @@
+"""Tests for the models.dev-preferred merge behavior in provider_model_ids
+and list_authenticated_providers.
+
+These guard the contract:
+
+  * For providers in ``_MODELS_DEV_PREFERRED`` (opencode-go, opencode-zen,
+    xiaomi, deepseek, smaller inference providers), both the CLI model
+    picker path (``provider_model_ids``) and the gateway ``/model`` picker
+    path (``list_authenticated_providers``) merge fresh models.dev entries
+    on top of the curated static list.
+  * OpenRouter is never merged with models.dev; its own endpoint catalog is
+    authoritative when available.
+  * If models.dev is unreachable (offline / CI), the curated list is the
+    fallback — no crash, no empty list.
+
+Merging is what lets new models (e.g. ``mimo-v2.5-pro`` on opencode-go)
+appear in ``/model`` without a JettsTUI release.
+"""
+
+from unittest.mock import patch
+
+
+from jettstui.models import (
+    _MODELS_DEV_PREFERRED,
+    _PROVIDER_MODELS,
+    _merge_with_models_dev,
+    provider_model_ids,
+)
+
+
+class TestMergeHelper:
+    def test_merge_empty_mdev_returns_curated(self):
+        """When models.dev returns nothing, curated list is preserved verbatim."""
+        with patch("agent.models_dev.list_agentic_models", return_value=[]):
+            out = _merge_with_models_dev("opencode-go", ["mimo-v2-pro", "kimi-k2.6"])
+        assert out == ["mimo-v2-pro", "kimi-k2.6"]
+
+    def test_merge_mdev_raises_returns_curated(self):
+        """Offline / broken models.dev must not break the catalog path."""
+        def boom(_provider):
+            raise RuntimeError("network down")
+
+        with patch("agent.models_dev.list_agentic_models", side_effect=boom):
+            out = _merge_with_models_dev("opencode-go", ["mimo-v2-pro"])
+        assert out == ["mimo-v2-pro"]
+
+    def test_merge_mdev_first_then_curated_extras(self):
+        """models.dev entries come first; curated-only entries are appended."""
+        mdev = ["mimo-v2.5-pro", "mimo-v2-pro", "kimi-k2.6"]
+        curated = ["kimi-k2.6", "kimi-k2.5", "mimo-v2-pro"]  # kimi-k2.5 is curated-only
+        with patch("agent.models_dev.list_agentic_models", return_value=mdev):
+            out = _merge_with_models_dev("opencode-go", curated)
+        # models.dev entries first (in order), then curated-only entries
+        assert out == ["mimo-v2.5-pro", "mimo-v2-pro", "kimi-k2.6", "kimi-k2.5"]
+
+    def test_merge_case_insensitive_dedup(self):
+        """Dedup is case-insensitive but preserves the first occurrence's casing."""
+        mdev = ["MiniMax-M2.7"]
+        curated = ["minimax-m2.7", "minimax-m2.5"]
+        with patch("agent.models_dev.list_agentic_models", return_value=mdev):
+            out = _merge_with_models_dev("minimax", curated)
+        # models.dev casing wins since it came first
+        assert out == ["MiniMax-M2.7", "minimax-m2.5"]
+
+
+class TestProviderModelIdsPreferred:
+    def test_opencode_go_is_preferred(self):
+        assert "opencode-go" in _MODELS_DEV_PREFERRED
+
+    def test_opencode_go_includes_fresh_models_dev_entries(self):
+        """provider_model_ids('opencode-go') adds models.dev entries on top."""
+        mdev = ["mimo-v2.5-pro", "mimo-v2.5", "mimo-v2-pro", "kimi-k2.6"]
+        with patch("agent.models_dev.list_agentic_models", return_value=mdev):
+            out = provider_model_ids("opencode-go")
+        # Fresh models must surface (this is exactly the reported bug fix:
+        # mimo-v2.5-pro should be pickable on opencode-go).
+        assert "mimo-v2.5-pro" in out
+        assert "mimo-v2.5" in out
+        # Curated entries are still present.
+        assert "mimo-v2-pro" in out
+        assert "kimi-k2.6" in out
+
+    def test_opencode_go_offline_falls_back_to_curated(self):
+        """Offline models.dev → curated-only list, no crash."""
+        with patch("agent.models_dev.list_agentic_models", return_value=[]):
+            out = provider_model_ids("opencode-go")
+        # Curated floor (see jettstui/models.py _PROVIDER_MODELS["opencode-go"])
+        assert "mimo-v2-pro" in out
+        assert "kimi-k2.6" in out
+
+    def test_opencode_zen_includes_fresh_models(self):
+        """opencode-zen follows the same pattern as opencode-go."""
+        assert "opencode-zen" in _MODELS_DEV_PREFERRED
+        mdev = ["claude-opus-4-7", "kimi-k2.6", "glm-5.1"]
+        with patch("agent.models_dev.list_agentic_models", return_value=mdev):
+            out = provider_model_ids("opencode-zen")
+        assert "claude-opus-4-7" in out
+        assert "kimi-k2.6" in out
+
+    def test_kimi_coding_offline_catalog_includes_k3(self):
+        """Native Kimi users must see the newest models without live catalog help."""
+        assert "kimi-coding" not in _MODELS_DEV_PREFERRED
+        with patch("agent.models_dev.list_agentic_models", return_value=[]):
+            out = provider_model_ids("kimi-coding")
+        assert "kimi-k3" in out
+        assert "kimi-k2.7-code" in out
+
+    def test_kimi_coding_live_catalog_is_authoritative(self):
+        """A successful Kimi endpoint response is not mixed with stale presets."""
+        with (
+            patch(
+                "jettstui.auth.resolve_api_key_provider_credentials",
+                return_value={"api_key": "sk-test", "base_url": "https://api.moonshot.ai/v1"},
+            ),
+            patch("providers.base.ProviderProfile.fetch_models", return_value=["kimi-k2.6"]),
+        ):
+            out = provider_model_ids("kimi-coding")
+        assert out == ["kimi-k2.6"]
+
+    def test_k3_live_discovery_keeps_endpoint_wire_ids(self):
+        """Each configured endpoint's own model IDs are shown verbatim."""
+
+        class Response:
+            def __init__(self, body: bytes):
+                self._body = body
+
+            def read(self):
+                return self._body
+
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *_args):
+                return False
+
+        def fake_open(req, **_kwargs):
+            if req.full_url == "https://api.kimi.com/coding/v1/models":
+                return Response(b'{"data":[{"id":"k3"}]}')
+            if req.full_url == "https://api.moonshot.ai/v1/models":
+                return Response(b'{"data":[{"id":"K3"},{"id":"kimi-k2.6"}]}')
+            if req.full_url == "https://example.invalid/v1/models":
+                return Response(b'{"data":[{"id":"k3"},{"id":"kimi-k2.6"}]}')
+            raise AssertionError(f"unexpected Kimi models URL: {req.full_url}")
+
+        with patch("jettstui.urllib_security.open_credentialed_url", side_effect=fake_open):
+            with patch(
+                "jettstui.auth.resolve_api_key_provider_credentials",
+                return_value={
+                    "api_key": "sk-kimi-test",
+                    "base_url": "https://api.kimi.com/coding",
+                },
+            ):
+                coding_models = provider_model_ids("kimi-coding")
+
+            with patch(
+                "jettstui.auth.resolve_api_key_provider_credentials",
+                return_value={
+                    "api_key": "legacy-test",
+                    "base_url": "https://api.moonshot.ai/v1",
+                },
+            ):
+                legacy_models = provider_model_ids("kimi-coding")
+
+            with patch(
+                "jettstui.auth.resolve_api_key_provider_credentials",
+                return_value={
+                    "api_key": "custom-test",
+                    "base_url": "https://example.invalid/v1",
+                },
+            ):
+                custom_models = provider_model_ids("kimi-coding")
+
+        assert coding_models == ["k3"]
+        # The Kimi plugin rejects K3 on non-coding hosts because that wire ID
+        # is only confirmed for the canonical Coding Plan endpoint.
+        assert legacy_models == ["kimi-k2.6"]
+        assert custom_models == ["kimi-k2.6"]
+
+    def test_kimi_setup_flow_uses_same_coding_plan_catalog(self):
+        """The setup wizard must not carry a stale duplicate Kimi model list."""
+        from jettstui.model_setup_flows import _model_flow_kimi
+
+        captured = {}
+
+        def fake_select(model_list, **_kwargs):
+            captured["models"] = model_list
+            return None
+
+        with (
+            patch("jettstui.main._prompt_api_key", return_value=("sk-kimi-test", False)),
+            patch("jettstui.auth._prompt_model_selection", side_effect=fake_select),
+            patch("jettstui.config.get_env_value", return_value=""),
+            patch("jettstui.config.save_env_value"),
+        ):
+            _model_flow_kimi({}, current_model="")
+
+        assert captured["models"] == _PROVIDER_MODELS["kimi-coding"]
+        assert captured["models"][0] == "kimi-k3"
+
+
+class TestOpenRouterCatalogIsolation:
+    """OpenRouter uses its own endpoint catalog, not models.dev merging."""
+
+    def test_openrouter_not_in_preferred_set(self):
+        assert "openrouter" not in _MODELS_DEV_PREFERRED
+
+    def test_openrouter_does_not_call_merge(self):
+        """openrouter takes its own live path — merge helper must NOT run."""
+        with patch(
+            "jettstui.models._merge_with_models_dev",
+            side_effect=AssertionError("merge should not be called for openrouter"),
+        ):
+            # Even if model_ids() fails for some other reason, we just care
+            # that the merge path isn't invoked.
+            try:
+                provider_model_ids("openrouter")
+            except AssertionError:
+                raise
+            except Exception:
+                pass  # model_ids() may fail in the hermetic test env — that's fine.

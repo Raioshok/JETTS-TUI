@@ -22,7 +22,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any, Optional
 
-from freeide_constants import get_freeide_home
+from jettstui_constants import get_jettstui_home
 
 
 @dataclass
@@ -48,16 +48,16 @@ def _frontmatter(text: str) -> dict[str, Any]:
         return {}
 
 
-def _freeide_meta(fm: dict[str, Any]) -> dict[str, Any]:
-    """``metadata.freeide`` as a dict, tolerant of the string-valued frontmatter
+def _jettstui_meta(fm: dict[str, Any]) -> dict[str, Any]:
+    """``metadata.jettstui`` as a dict, tolerant of the string-valued frontmatter
     that ``parse_frontmatter``'s malformed-YAML fallback produces."""
     meta = fm.get("metadata")
-    freeide = meta.get("freeide") if isinstance(meta, dict) else None
-    return freeide if isinstance(freeide, dict) else {}
+    jettstui = meta.get("jettstui") if isinstance(meta, dict) else None
+    return jettstui if isinstance(jettstui, dict) else {}
 
 
 def _related(fm: dict[str, Any]) -> list[str]:
-    raw = fm.get("related_skills") or _freeide_meta(fm).get("related_skills")
+    raw = fm.get("related_skills") or _jettstui_meta(fm).get("related_skills")
     if isinstance(raw, list):
         return [str(r).strip() for r in raw if str(r).strip()]
     if isinstance(raw, str):
@@ -66,7 +66,7 @@ def _related(fm: dict[str, Any]) -> list[str]:
 
 
 def _category(fm: dict[str, Any], skill_md: Path) -> str:
-    cat = fm.get("category") or _freeide_meta(fm).get("category")
+    cat = fm.get("category") or _jettstui_meta(fm).get("category")
     if cat:
         return str(cat)
     # …/skills/<category>/<skill>/SKILL.md
@@ -87,7 +87,7 @@ def _load_usage() -> dict[str, dict[str, Any]]:
 
         return load_usage()
     except Exception:
-        path = get_freeide_home() / "skills" / ".usage.json"
+        path = get_jettstui_home() / "skills" / ".usage.json"
         try:
             return json.loads(path.read_text(encoding="utf-8"))
         except Exception:
@@ -196,7 +196,7 @@ def _memory_cards() -> list[dict[str, Any]]:
     ``MEMORY.md`` / ``USER.md`` are prose split on bare ``§`` separators; each
     chunk becomes one card. Every chunk is surfaced — the graph shows everything.
     """
-    base = get_freeide_home() / "memories"
+    base = get_jettstui_home() / "memories"
     cards: list[dict[str, Any]] = []
     for fname, source in (("MEMORY.md", "memory"), ("USER.md", "profile")):
         path = base / fname
@@ -247,7 +247,7 @@ def _memory_skill_edges(memory_cards: list[dict[str, Any]], skills: list[SkillNo
 
 def _skill_roots() -> list[tuple[str, Path]]:
     repo = Path(__file__).resolve().parent.parent
-    home_skills = get_freeide_home() / "skills"
+    home_skills = get_jettstui_home() / "skills"
     return [("base", repo / "skills"), ("profile", home_skills)]
 
 

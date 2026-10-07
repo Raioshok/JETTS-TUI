@@ -292,8 +292,8 @@ class TestRunJobTerminalCwd:
         fake_mod.AIAgent = FakeAgent
         monkeypatch.setitem(sys.modules, "run_agent", fake_mod)
 
-        # Bypass the real provider resolver — it reads ~/.freeide and credentials.
-        from freeide_cli import runtime_provider as _rtp
+        # Bypass the real provider resolver — it reads ~/.jettstui and credentials.
+        from jettstui import runtime_provider as _rtp
         monkeypatch.setattr(
             _rtp,
             "resolve_runtime_provider",
@@ -311,9 +311,9 @@ class TestRunJobTerminalCwd:
         monkeypatch.setattr(sched, "_resolve_delivery_target", lambda job: None)
         monkeypatch.setattr(sched, "_resolve_cron_enabled_toolsets", lambda job, cfg: None)
         # Unlimited inactivity so the poll loop returns immediately.
-        monkeypatch.setenv("FREEIDE_CRON_TIMEOUT", "0")
+        monkeypatch.setenv("JETTSTUI_CRON_TIMEOUT", "0")
 
-        # run_job calls load_dotenv(~/.freeide/.env, override=True), which will
+        # run_job calls load_dotenv(~/.jettstui/.env, override=True), which will
         # happily clobber TERMINAL_CWD out from under us if the real user .env
         # has TERMINAL_CWD set (common on dev boxes).  Stub it out.
         import dotenv

@@ -1,11 +1,11 @@
 """Audit log for dashboard-auth events.
 
-Profile-aware location: ``$FREEIDE_HOME/logs/dashboard-auth.log``.
+Profile-aware location: ``$JETTSTUI_HOME/logs/dashboard-auth.log``.
 Format: one JSON object per line. Token-like fields are stripped before
 serialisation to avoid leaking refresh tokens or JWTs to disk.
 
 This module deliberately keeps a minimal dependency surface — no imports
-from ``freeide_constants`` or other freeide_cli modules — so it can be
+from ``jettstui_constants`` or other jettstui modules — so it can be
 imported safely from middleware code that loads early in the startup
 sequence.
 """
@@ -57,13 +57,13 @@ class AuditEvent(enum.Enum):
 
 
 def _resolve_log_path() -> Path:
-    """``$FREEIDE_HOME/logs/dashboard-auth.log`` with the standard fallback.
+    """``$JETTSTUI_HOME/logs/dashboard-auth.log`` with the standard fallback.
 
-    Mirrors ``freeide_constants.get_freeide_home`` semantics: env var wins,
-    else ``~/.freeide``. A local copy avoids an import cycle with the
-    middleware which lives below ``freeide_cli``.
+    Mirrors ``jettstui_constants.get_jettstui_home`` semantics: env var wins,
+    else ``~/.jettstui``. A local copy avoids an import cycle with the
+    middleware which lives below ``jettstui``.
     """
-    home = os.environ.get("FREEIDE_HOME") or str(Path.home() / ".freeide")
+    home = os.environ.get("JETTSTUI_HOME") or str(Path.home() / ".jettstui")
     return Path(home) / "logs" / "dashboard-auth.log"
 
 

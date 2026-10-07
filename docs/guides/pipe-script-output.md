@@ -1,13 +1,13 @@
 ---
 sidebar_position: 12
 title: "Pipe Script Output to Messaging Platforms"
-description: "Send text from any shell script, cron job, CI hook, or monitoring daemon to Telegram, Discord, Slack, Signal, and other platforms using `freeide send`."
+description: "Send text from any shell script, cron job, CI hook, or monitoring daemon to Telegram, Discord, Slack, Signal, and other platforms using `jettstui send`."
 ---
 
 # Pipe Script Output to Messaging Platforms
 
-`freeide send` is a small, scriptable CLI that pushes a message to any
-messaging platform FreeIDE is already configured for. Think of it as a
+`jettstui send` is a small, scriptable CLI that pushes a message to any
+messaging platform JettsTUI is already configured for. Think of it as a
 cross-platform `curl` for notifications — you don't need a running
 gateway, you don't need an LLM, and you don't need to re-paste bot tokens
 into each of your scripts.
@@ -18,9 +18,9 @@ Use it for:
 - CI/CD notifications (deploy done, test failure)
 - Cron scripts that need to ping you with results
 - Quick one-shot messages from a terminal
-- Piping any tool's output anywhere (`make | freeide send --to slack:#builds`)
+- Piping any tool's output anywhere (`make | jettstui send --to slack:#builds`)
 
-The command reuses the same credentials and platform adapters that `freeide
+The command reuses the same credentials and platform adapters that `jettstui
 gateway` already uses, so there's no second configuration surface to
 maintain.
 
@@ -30,25 +30,25 @@ maintain.
 
 ```bash
 # Plain text to the home channel for a platform
-freeide send --to telegram "deploy finished"
+jettstui send --to telegram "deploy finished"
 
 # Pipe in stdout from anything
-echo "RAM 92%" | freeide send --to telegram:-1001234567890
+echo "RAM 92%" | jettstui send --to telegram:-1001234567890
 
 # Send a file
-freeide send --to discord:#ops --file /tmp/report.md
+jettstui send --to discord:#ops --file /tmp/report.md
 
 # Attach a subject/header line
-freeide send --to slack:#eng --subject "[CI] build.log" --file build.log
+jettstui send --to slack:#eng --subject "[CI] build.log" --file build.log
 
 # Thread target (Telegram topic, Discord thread)
-freeide send --to telegram:-1001234567890:17585 "threaded reply"
+jettstui send --to telegram:-1001234567890:17585 "threaded reply"
 
 # List every configured target
-freeide send --list
+jettstui send --list
 
 # Filter by platform
-freeide send --list telegram
+jettstui send --list telegram
 ```
 
 ---
@@ -76,7 +76,7 @@ freeide send --list telegram
 | `platform:#channel` | `discord:#ops` | Human-friendly channel name (resolved against the channel directory) |
 | `platform:+E164` | `signal:+15551234567` | Phone-addressed platforms: Signal, SMS, WhatsApp |
 
-Any platform FreeIDE ships adapters for works as a target:
+Any platform JettsTUI ships adapters for works as a target:
 `telegram`, `discord`, `slack`, `signal`, `sms`, `whatsapp`, `matrix`,
 `mattermost`, `feishu`, `dingtalk`, `wecom`, `weixin`, `email`, and
 others.
@@ -96,13 +96,13 @@ branch on them the same way they would on `curl` or `grep`.
 
 ## Message Body Resolution
 
-`freeide send` resolves the message body in this order:
+`jettstui send` resolves the message body in this order:
 
-1. **Positional argument** — `freeide send --to telegram "hi"`
-2. **`--file PATH`** — `freeide send --to telegram --file msg.txt`
-3. **Piped stdin** — `echo hi | freeide send --to telegram`
+1. **Positional argument** — `jettstui send --to telegram "hi"`
+2. **`--file PATH`** — `jettstui send --to telegram --file msg.txt`
+3. **Piped stdin** — `echo hi | jettstui send --to telegram`
 
-When stdin is a TTY (no pipe), FreeIDE does **not** wait for input — you'll
+When stdin is a TTY (no pipe), JettsTUI does **not** wait for input — you'll
 get a clear usage error instead. This keeps scripts from hanging if they
 accidentally omit the body.
 
@@ -119,19 +119,19 @@ with a single portable line:
 #!/usr/bin/env bash
 ram_pct=$(free | awk '/^Mem:/ {printf "%d", $3 * 100 / $2}')
 if [ "$ram_pct" -ge 85 ]; then
-  freeide send --to telegram --subject "⚠ MEMORY WARNING" \
+  jettstui send --to telegram --subject "⚠ MEMORY WARNING" \
     "RAM ${ram_pct}% on $(hostname)"
 fi
 ```
 
-Because `freeide send` reuses your FreeIDE config, the same script works on
-any host where FreeIDE is installed — no need to export bot tokens into
+Because `jettstui send` reuses your JettsTUI config, the same script works on
+any host where JettsTUI is installed — no need to export bot tokens into
 each machine's environment manually.
 
 :::tip Don't alert the gateway about itself
 For watchdogs that might fire when the gateway itself is struggling (OOM
 alerts, disk-full alerts), keep using a minimal `curl` call instead of
-`freeide send`. If the Python interpreter can't load because the box is
+`jettstui send`. If the Python interpreter can't load because the box is
 thrashing, you still want that alert to go out.
 :::
 
@@ -140,9 +140,9 @@ thrashing, you still want that alert to go out.
 ```bash
 # In .github/workflows/deploy.yml or any CI script
 if ./scripts/deploy.sh; then
-  freeide send --to slack:#deploys "✅ ${CI_COMMIT_SHA:0:7} deployed"
+  jettstui send --to slack:#deploys "✅ ${CI_COMMIT_SHA:0:7} deployed"
 else
-  tail -n 100 deploy.log | freeide send \
+  tail -n 100 deploy.log | jettstui send \
     --to slack:#deploys --subject "❌ deploy failed"
   exit 1
 fi
@@ -153,7 +153,7 @@ fi
 ```bash
 # Crontab entry
 0 9 * * * /usr/local/bin/generate-metrics.sh \
-  | /home/me/.freeide/bin/freeide send \
+  | /home/me/.jettstui/bin/jettstui send \
       --to telegram --subject "Daily metrics $(date +%Y-%m-%d)"
 ```
 
@@ -161,38 +161,38 @@ fi
 
 ```bash
 ./train.py --epochs 200 && \
-  freeide send --to telegram "training done" || \
-  freeide send --to telegram "training failed (exit $?)"
+  jettstui send --to telegram "training done" || \
+  jettstui send --to telegram "training failed (exit $?)"
 ```
 
 ### Scripting with `--json` and `--quiet`
 
 ```bash
 # Hard-fail a script if delivery fails; don't clutter logs on success
-freeide send --to telegram --quiet "keepalive" || {
+jettstui send --to telegram --quiet "keepalive" || {
   echo "Telegram delivery failed" >&2
   exit 1
 }
 
 # Capture the message ID for later editing / threading
-msg_id=$(freeide send --to discord:#ops --json "build started" \
+msg_id=$(jettstui send --to discord:#ops --json "build started" \
   | jq -r .message_id)
 ```
 
 ---
 
-## Does `freeide send` Need the Gateway Running?
+## Does `jettstui send` Need the Gateway Running?
 
 **Usually no.** For any bot-token platform — Telegram, Discord, Slack,
-Signal, SMS, WhatsApp Cloud API, and most others — `freeide send` calls
+Signal, SMS, WhatsApp Cloud API, and most others — `jettstui send` calls
 the platform's REST endpoint directly using credentials from
-`~/.freeide/.env` and `~/.freeide/config.yaml`. It's a standalone subprocess
+`~/.jettstui/.env` and `~/.jettstui/config.yaml`. It's a standalone subprocess
 that exits as soon as the message is delivered.
 
 A live gateway is only required for **plugin platforms** that rely on a
 persistent adapter connection (for example, a custom plugin that keeps
 a long-lived WebSocket open). In that case you'll get a clear error
-pointing at the gateway; start it with `freeide gateway start` and retry.
+pointing at the gateway; start it with `jettstui gateway start` and retry.
 
 ---
 
@@ -202,18 +202,18 @@ Before sending to a specific channel, you can inspect what's available:
 
 ```bash
 # Every target across every configured platform
-freeide send --list
+jettstui send --list
 
 # Just Telegram targets
-freeide send --list telegram
+jettstui send --list telegram
 
 # Machine-readable
-freeide send --list --json
+jettstui send --list --json
 ```
 
-The listing is built from `~/.freeide/channel_directory.json`, which the
+The listing is built from `~/.jettstui/channel_directory.json`, which the
 gateway refreshes every few minutes while it's running. If you see
-"no channels discovered yet", start the gateway once (`freeide gateway
+"no channels discovered yet", start the gateway once (`jettstui gateway
 start`) so it can populate the cache.
 
 Human-friendly names (`discord:#ops`, `slack:#engineering`) are resolved
@@ -224,18 +224,18 @@ IDs.
 
 ## Comparison with Other Approaches
 
-| Approach | Multi-platform | Reuses FreeIDE creds | Needs gateway | Best for |
+| Approach | Multi-platform | Reuses JettsTUI creds | Needs gateway | Best for |
 |----------|----------------|---------------------|---------------|----------|
-| `freeide send` | ✅ | ✅ | No (bot-token) | Everything below |
+| `jettstui send` | ✅ | ✅ | No (bot-token) | Everything below |
 | Raw `curl` to each platform | Each scripted separately | Manual | No | Critical watchdogs |
 | `cron` job with `--deliver` | ✅ | ✅ | No | Scheduled agent tasks |
 
-`freeide send` is intentionally the simplest possible surface. If you need
+`jettstui send` is intentionally the simplest possible surface. If you need
 an agent to decide what to say, schedule a cron job — the agent's final
 response is auto-delivered to the configured `deliver:` target (the agent
 no longer fires messages itself). If you need a scheduled run with LLM-generated content,
 use `cronjob(action='create', prompt=...)` with `deliver='telegram:...'`.
-If you just need to pipe a raw string, reach for `freeide send`.
+If you just need to pipe a raw string, reach for `jettstui send`.
 
 ---
 
@@ -244,6 +244,6 @@ If you just need to pipe a raw string, reach for `freeide send`.
 - [Automate Anything with Cron](./automate-with-cron.md) —
   scheduled jobs whose output auto-delivers to any platform.
 - [Gateway Internals](../developer-guide/gateway-internals.md) —
-  the delivery router that `freeide send` shares with cron delivery.
+  the delivery router that `jettstui send` shares with cron delivery.
 - [Messaging Platform Setup](../user-guide/messaging/index.md) —
   one-time configuration for each platform.

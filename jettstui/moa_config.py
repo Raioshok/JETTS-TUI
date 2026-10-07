@@ -8,7 +8,7 @@ import math
 from copy import deepcopy
 from typing import Any
 
-MOA_MARKER_PREFIX = "__FREEIDE_MOA_TURN_V1__"
+MOA_MARKER_PREFIX = "__JETTSTUI_MOA_TURN_V1__"
 DEFAULT_MOA_PRESET_NAME = "default"
 
 DEFAULT_MOA_REFERENCE_MODELS: list[dict[str, str]] = [
@@ -33,7 +33,7 @@ def _coerce_float_or_none(value: Any) -> float | None:
 
     Used for optional sampling params (reference_temperature /
     aggregator_temperature) where None means 'don't send the parameter —
-    provider default applies', matching how a single-model FreeIDE agent
+    provider default applies', matching how a single-model JettsTUI agent
     never sends temperature unless explicitly configured.
     """
     if value is None or value == "":
@@ -164,7 +164,7 @@ def coerce_privacy_filter(value: Any) -> str:
 
 def _clean_reasoning_effort(value: Any) -> str | None:
     """Return a canonical per-slot reasoning effort, or None when unset/invalid."""
-    from freeide_constants import parse_reasoning_effort
+    from jettstui_constants import parse_reasoning_effort
 
     if value is None or value is True:
         return None
@@ -438,7 +438,7 @@ def resolve_moa_preset(config: Any, name: str | None = None) -> dict[str, Any]:
         available = ", ".join(cfg["presets"]) or "(none)"
         raise MoAPresetNotFoundError(
             f"MoA preset '{preset_name}' was not found. Available presets: "
-            f"{available}. Run `freeide moa list`."
+            f"{available}. Run `jettstui moa list`."
         )
     return deepcopy(preset)
 
@@ -447,7 +447,7 @@ def exact_moa_preset_name(config: Any, text: str) -> str | None:
     """Return the preset name iff ``text`` exactly matches an *enabled* preset.
 
     Used by the no-explicit-provider switch path (PATH B in
-    ``freeide_cli/model_switch.py``) to recognize a bare ``/model <preset>``
+    ``jettstui/model_switch.py``) to recognize a bare ``/model <preset>``
     that the user typed without the ``moa:`` prefix. This is an *implicit*
     match, so it must honor the per-preset ``enabled`` opt-out: a user who set
     ``enabled: false`` to disable a preset must not have a plain model switch

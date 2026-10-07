@@ -4,10 +4,10 @@ from unittest.mock import patch
 
 
 class TestGetDefaultModelForProvider:
-    """Unit tests for freeide_cli.models.get_default_model_for_provider."""
+    """Unit tests for jettstui.models.get_default_model_for_provider."""
 
     def test_known_provider_returns_first_model(self):
-        from freeide_cli.models import get_default_model_for_provider
+        from jettstui.models import get_default_model_for_provider
         result = get_default_model_for_provider("openai-codex")
         # Should return first model from _PROVIDER_MODELS["openai-codex"]
         assert result
@@ -17,7 +17,7 @@ class TestGetDefaultModelForProvider:
         """OpenRouter has no static catalog (live fetch), but the silent
         default must still resolve — to the cost-safe preferred model, never
         the curated list's Anthropic flagship (claude-fable-5)."""
-        from freeide_cli.models import (
+        from jettstui.models import (
             PREFERRED_SILENT_DEFAULT_MODEL,
             get_default_model_for_provider,
         )
@@ -26,23 +26,23 @@ class TestGetDefaultModelForProvider:
         assert "claude" not in result.lower()
 
     def test_unknown_provider_returns_empty(self):
-        from freeide_cli.models import get_default_model_for_provider
+        from jettstui.models import get_default_model_for_provider
         assert get_default_model_for_provider("nonexistent-provider") == ""
 
     def test_custom_provider_returns_empty(self):
         """Custom provider has no model catalog — should return empty."""
-        from freeide_cli.models import get_default_model_for_provider
+        from jettstui.models import get_default_model_for_provider
         # Custom providers don't have entries in _PROVIDER_MODELS
         assert get_default_model_for_provider("some-random-custom") == ""
 
     def test_nous_silent_default_is_not_the_expensive_flagship(self):
-        """FreeIDE Portal is a metered aggregator whose curated list is ordered
+        """JettsTUI Portal is a metered aggregator whose curated list is ordered
         most-capable-first, so entry [0] is the priciest flagship
         (anthropic/claude-fable-5). The silent fallback (provider set, no model)
         must NOT escalate to it — otherwise an unconfigured profile silently
         bills the most expensive model. Regression for the billing footgun.
         """
-        from freeide_cli.models import (
+        from jettstui.models import (
             _PROVIDER_MODELS,
             get_default_model_for_provider,
             get_preferred_silent_default_model,
@@ -70,10 +70,10 @@ class TestGetDefaultModelForProvider:
         without shipping a release."""
         from unittest.mock import patch
 
-        from freeide_cli import models as models_mod
+        from jettstui import models as models_mod
 
         with patch(
-            "freeide_cli.model_catalog.get_default_model_from_cache",
+            "jettstui.model_catalog.get_default_model_from_cache",
             return_value="qwen/qwen3.7-plus",
         ):
             assert (
@@ -91,10 +91,10 @@ class TestGetDefaultModelForProvider:
         constant is the silent default."""
         from unittest.mock import patch
 
-        from freeide_cli import models as models_mod
+        from jettstui import models as models_mod
 
         with patch(
-            "freeide_cli.model_catalog.get_default_model_from_cache",
+            "jettstui.model_catalog.get_default_model_from_cache",
             return_value=None,
         ):
             assert (
@@ -107,10 +107,10 @@ class TestGetDefaultModelForProvider:
         catalog, fall back to entry [0] rather than returning an absent id."""
         from unittest.mock import patch
 
-        from freeide_cli import models as models_mod
+        from jettstui import models as models_mod
 
         with patch(
-            "freeide_cli.model_catalog.get_default_model_from_cache",
+            "jettstui.model_catalog.get_default_model_from_cache",
             return_value="does-not-exist-model",
         ):
             result = models_mod.get_default_model_for_provider("nous")
@@ -123,7 +123,7 @@ class TestDetectStaticProviderCostSafeDefault:
     model (e.g. ``/model nous``)."""
 
     def test_bare_nous_does_not_escalate_to_flagship(self):
-        from freeide_cli.models import (
+        from jettstui.models import (
             _PROVIDER_MODELS,
             get_default_model_for_provider,
             detect_static_provider_for_model,
@@ -143,7 +143,7 @@ class TestDetectStaticProviderCostSafeDefault:
 
     def test_provider_without_override_still_uses_first_model(self):
         """Providers outside _SILENT_DEFAULT_PROVIDERS are unchanged."""
-        from freeide_cli.models import (
+        from jettstui.models import (
             _PROVIDER_MODELS,
             _SILENT_DEFAULT_PROVIDERS,
             detect_static_provider_for_model,

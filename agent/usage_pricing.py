@@ -1028,7 +1028,7 @@ _OFFICIAL_DOCS_PRICING: Dict[tuple[str, str], PricingEntry] = {
         source_url="https://platform.minimax.io/docs/guides/pricing-paygo",
         pricing_version="minimax-pricing-2026-09",
     ),
-    # Fireworks AI — serverless pricing for the models freeide typically routes
+    # Fireworks AI — serverless pricing for the models jettstui typically routes
     # through when configured with provider="fireworks". Fireworks publishes a
     # cached_input rate per model alongside input/output, which maps to
     # cache_read_cost_per_million. No separately published cache_write rate.

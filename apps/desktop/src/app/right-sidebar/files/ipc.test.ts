@@ -4,15 +4,15 @@ import { Buffer } from 'node:buffer'
 
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { FreeIDEReadDirEntry, FreeIDEReadDirResult } from '@/global'
+import type { JettsTUIReadDirEntry, JettsTUIReadDirResult } from '@/global'
 
 import { clearProjectDirCache, readProjectDir } from './ipc'
 
-const readDir = vi.fn<(path: string) => Promise<FreeIDEReadDirResult>>()
+const readDir = vi.fn<(path: string) => Promise<JettsTUIReadDirResult>>()
 const readFileDataUrl = vi.fn<(path: string) => Promise<string>>()
 const gitRoot = vi.fn<(path: string) => Promise<string | null>>()
 
-function ok(entries: FreeIDEReadDirEntry[]): FreeIDEReadDirResult {
+function ok(entries: JettsTUIReadDirEntry[]): JettsTUIReadDirResult {
   return { entries }
 }
 
@@ -23,13 +23,13 @@ function dataUrl(text: string) {
 function installBridge() {
   ;(
     window as unknown as {
-      freeideDesktop: {
+      jettstuiDesktop: {
         gitRoot: typeof gitRoot
         readDir: typeof readDir
         readFileDataUrl: typeof readFileDataUrl
       }
     }
-  ).freeideDesktop = { gitRoot, readDir, readFileDataUrl }
+  ).jettstuiDesktop = { gitRoot, readDir, readFileDataUrl }
 }
 
 describe('readProjectDir', () => {
@@ -43,11 +43,11 @@ describe('readProjectDir', () => {
 
   afterEach(() => {
     clearProjectDirCache()
-    delete (window as unknown as { freeideDesktop?: unknown }).freeideDesktop
+    delete (window as unknown as { jettstuiDesktop?: unknown }).jettstuiDesktop
   })
 
   it('returns no-bridge when the desktop bridge is unavailable', async () => {
-    delete (window as unknown as { freeideDesktop?: unknown }).freeideDesktop
+    delete (window as unknown as { jettstuiDesktop?: unknown }).jettstuiDesktop
 
     await expect(readProjectDir('/repo')).resolves.toEqual({ entries: [], error: 'no-bridge' })
   })

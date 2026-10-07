@@ -1,5 +1,5 @@
-# Jetts-TUI configuration example
-# Copy this file to the active Jetts-TUI home as config.yaml and customize it.
+# JettsTUI configuration example
+# Copy this file to the active JettsTUI home as config.yaml and customize it.
 # Keep credentials in .env; behavioral settings belong in config.yaml.
 
 # =============================================================================
@@ -14,7 +14,7 @@ model:
   #   "auto"         - Auto-detect from credentials (default)
   #   "openrouter"   - OpenRouter (requires: OPENROUTER_API_KEY or OPENAI_API_KEY)
   #   "anthropic"    - Direct Anthropic API (requires: ANTHROPIC_API_KEY)
-  #   "openai-codex" - OpenAI Codex (requires: freeide auth)
+  #   "openai-codex" - OpenAI Codex (requires: jettstui auth)
   #   "copilot"      - GitHub Copilot / GitHub Models (requires: GITHUB_TOKEN)
   #   "gemini"      - Use Google AI Studio direct (requires: GOOGLE_API_KEY or GEMINI_API_KEY)
   #   "zai"         - Use z.ai / ZhipuAI GLM models (requires: GLM_API_KEY)
@@ -55,8 +55,8 @@ model:
   # ── Token limits — two settings, easy to confuse ──────────────────────────
   #
   # context_length: TOTAL context window (input + output tokens combined).
-  #   Controls when FreeIDE compresses history and validates requests.
-  #   Leave unset — FreeIDE auto-detects the correct value from the provider.
+  #   Controls when JettsTUI compresses history and validates requests.
+  #   Leave unset — JettsTUI auto-detects the correct value from the provider.
   #   Set manually only when auto-detection is wrong (e.g. a local server with
   #   a custom num_ctx, or a proxy that doesn't expose /v1/models).
   #
@@ -102,7 +102,7 @@ model:
   #     extra_headers:
   #       CF-Access-Client-Id: "xxxx.access"
   #       CF-Access-Client-Secret: "${CF_ACCESS_SECRET}"
-  #       X-Client-Name: "freeide-agent"
+  #       X-Client-Name: "jettstui"
 
 # Named provider overrides (optional)
 # Use this for per-provider request timeouts, non-stream stale timeouts,
@@ -112,11 +112,11 @@ model:
 # client rebuilds during credential rotation.  For OpenAI-wire chat
 # completions (streaming and non-streaming) the configured value is also
 # used as the per-request ``timeout=`` kwarg so it wins over the legacy
-# FREEIDE_API_TIMEOUT env var (which still applies when no config is set).
+# JETTSTUI_API_TIMEOUT env var (which still applies when no config is set).
 # ``stale_timeout_seconds`` controls the non-streaming stale-call detector and
-# wins over the legacy FREEIDE_API_CALL_STALE_TIMEOUT env var. Leaving these
-# unset keeps the legacy defaults (FREEIDE_API_TIMEOUT=1800s,
-# FREEIDE_API_CALL_STALE_TIMEOUT=90s, native Anthropic 900s). The
+# wins over the legacy JETTSTUI_API_CALL_STALE_TIMEOUT env var. Leaving these
+# unset keeps the legacy defaults (JETTSTUI_API_TIMEOUT=1800s,
+# JETTSTUI_API_CALL_STALE_TIMEOUT=90s, native Anthropic 900s). The
 # implicit non-stream stale detector is auto-disabled for local endpoints
 # and can scale upward for very large contexts.
 #
@@ -206,16 +206,16 @@ model:
 # Commands run directly on your machine in the current directory
 # -----------------------------------------------------------------------------
 # Working directory behavior:
-#   - CLI (`freeide` command): Uses "." (current directory where you run freeide)
+#   - CLI (`jettstui` command): Uses "." (current directory where you run jettstui)
 #   - Gateway/messaging/cron: Uses terminal.cwd here; legacy .env cwd values are deprecated
 terminal:
   backend: "local"
   cwd: "."  # For local backend: "." = current directory. Ignored for remote backends unless a backend documents otherwise.
   timeout: 180
   # HOME policy for tool subprocesses:
-  #   auto    - default: host uses your real HOME; containers use FREEIDE_HOME/home
+  #   auto    - default: host uses your real HOME; containers use JETTSTUI_HOME/home
   #   real    - force your real OS-user HOME
-  #   profile - force FREEIDE_HOME/home for strict per-profile CLI config isolation
+  #   profile - force JETTSTUI_HOME/home for strict per-profile CLI config isolation
   home_mode: "auto"
   docker_mount_cwd_to_workspace: false  # SECURITY: off by default. Opt in to mount the launch cwd into Docker /workspace.
   lifetime_seconds: 300
@@ -255,7 +255,7 @@ terminal:
 #   # chosen docker_image expects to start as root.
 #   docker_run_as_host_user: true
 #   # Optional: explicitly forward selected env vars into Docker.
-#   # These values come from your current shell first, then ~/.freeide/.env.
+#   # These values come from your current shell first, then ~/.jettstui/.env.
 #   # Warning: anything forwarded here is visible to commands run in the container.
 #   docker_forward_env:
 #     - "GITHUB_TOKEN"
@@ -330,7 +330,7 @@ terminal:
 # - Password is cached for the session
 #
 # EMPTY PASSWORDS: Setting sudo_password to an explicit empty string is different
-# from leaving it unset. FreeIDE will try an empty password via `sudo -S` and
+# from leaving it unset. JettsTUI will try an empty password via `sudo -S` and
 # will not open the interactive prompt. This is useful for passwordless sudo,
 # Touch ID sudo setups, and environments where prompting is just noise.
 #
@@ -443,7 +443,7 @@ compression:
   # Survives model switches and fallback activations.
   # threshold_tokens: 200000
 
-  # Existing Codex gpt-5.5 behavior: raise FreeIDE' compaction trigger to 85%
+  # Existing Codex gpt-5.5 behavior: raise JettsTUI' compaction trigger to 85%
   # for the ChatGPT Codex OAuth route. Set false to opt back down to threshold.
   codex_gpt55_autoraise: true
 
@@ -474,11 +474,11 @@ compression:
   max_attempts: 3
 
   # Codex app-server (codex CLI runtime) thread-compaction mode. The codex
-  # agent owns the real thread context on this runtime, so FreeIDE' summarizer
+  # agent owns the real thread context on this runtime, so JettsTUI' summarizer
   # cannot shrink it — compaction goes through the app server instead.
   #   native = let Codex decide when to compact its own thread (default)
-  #   freeide = let FreeIDE threshold trigger Codex thread/compact/start
-  #   off    = FreeIDE will not auto-trigger compaction; Codex may still compact natively
+  #   jettstui = let JettsTUI threshold trigger Codex thread/compact/start
+  #   off    = JettsTUI will not auto-trigger compaction; Codex may still compact natively
   codex_app_server_auto: native
 
   # Number of non-system messages to protect at the head of the transcript, in
@@ -547,7 +547,7 @@ prompt_caching:
 # =============================================================================
 # Auxiliary Models (Advanced — Experimental)
 # =============================================================================
-# Jetts-TUI uses lightweight "auxiliary" models for side tasks: image analysis,
+# JettsTUI uses lightweight "auxiliary" models for side tasks: image analysis,
 # browser screenshot analysis, web page summarization, TTS audio-tag insertion,
 # and context compression.
 #
@@ -569,14 +569,14 @@ prompt_caching:
 #   "openrouter" - Force OpenRouter (requires OPENROUTER_API_KEY)
 #   "gemini"      - Force Google AI Studio direct (requires: GOOGLE_API_KEY or GEMINI_API_KEY)
 #   "ollama-cloud" - Ollama Cloud (requires: OLLAMA_API_KEY)
-#   "codex"       - Force Codex OAuth (requires: freeide model → Codex).
+#   "codex"       - Force Codex OAuth (requires: jettstui model → Codex).
 #                  Uses gpt-5.3-codex which supports vision.
 #   "main"       - Use your custom endpoint (OPENAI_BASE_URL + OPENAI_API_KEY).
 #                  Works with OpenAI API, local models, or any OpenAI-compatible
 #                  endpoint.  Also falls back to Codex OAuth and API-key providers.
 #
 # Model: leave empty to use the provider's default.  When empty, OpenRouter
-# uses "google/gemini-3-flash-preview" and FreeIDE uses "gemini-3-flash".
+# uses "google/gemini-3-flash-preview" and JettsTUI uses "gemini-3-flash".
 # Other providers pick a sensible default automatically.
 #
 # auxiliary:
@@ -634,7 +634,7 @@ prompt_caching:
 # =============================================================================
 # Obsidian Project Brain
 # =============================================================================
-# Optional Obsidian project brain. `freeide brain init` writes these values
+# Optional Obsidian project brain. `jettstui brain init` writes these values
 # automatically; use config.yaml rather than .env for this behavioral setting.
 obsidian:
   vault_path: ""
@@ -701,7 +701,7 @@ session_reset:
 # unlimited concurrent sessions. When the limit is reached, new sessions get a
 # clean error while existing active sessions keep their normal behavior. This
 # top-level key takes precedence over gateway.max_concurrent_sessions. The cap
-# is a best-effort single-host/profile runtime guard; FreeIDE fails open if the
+# is a best-effort single-host/profile runtime guard; JettsTUI fails open if the
 # local runtime lease registry cannot be read or locked.
 max_concurrent_sessions: null
 
@@ -715,7 +715,7 @@ group_sessions_per_user: true
 # API Server — per-client model routing
 # ─────────────────────────────────────────────────────────────────────────────
 # Route different API clients to different models/providers on a single
-# FreeIDE deployment.  Clients choose a backend by sending a specific string
+# JettsTUI deployment.  Clients choose a backend by sending a specific string
 # as the OpenAI ``model`` field.  Unmapped model values fall back to the
 # global model configured in the ``model:`` section above, and an explicit
 # session /model override always wins over a route.
@@ -779,9 +779,9 @@ skills:
   write_approval: false
 
   # External skill directories — share skills across tools/agents without
-  # copying them into ~/.freeide/skills/.  Each path is expanded (~ and ${VAR})
+  # copying them into ~/.jettstui/skills/.  Each path is expanded (~ and ${VAR})
   # and resolved to an absolute path.  External dirs are read-only: skill
-  # creation always writes to ~/.freeide/skills/.  Local skills take precedence
+  # creation always writes to ~/.jettstui/skills/.  Local skills take precedence
   # when names collide.
   # external_dirs:
   #   - ~/.agents/skills
@@ -801,7 +801,7 @@ agent:
   efficiency:
     enabled: false
     task_token_budget: 0              # Input + output token target; 0 = minimize without a number
-    long_task_progress_file: ".freeide-progress.md"
+    long_task_progress_file: ".jettstui-progress.md"
     long_task_turn_threshold: 12
 
   # Inactivity timeout for gateway agent runs (seconds, 0 = unlimited).
@@ -832,7 +832,7 @@ agent:
   # timeouts, 5xx, etc.) before the agent surfaces the failure. Lower this
   # to 1 if you use fallback providers and want fast failover on flaky
   # primaries (default 3). The OpenAI SDK does its own low-level retries
-  # underneath this wrapper — this is the FreeIDE-level loop.
+  # underneath this wrapper — this is the JettsTUI-level loop.
   # api_max_retries: 3
 
   # After the agent edits code without fresh passing verification, nudge it to
@@ -840,10 +840,10 @@ agent:
   # coding surfaces (CLI, TUI, desktop) and programmatic callers, and disables
   # it on conversational messaging surfaces (Telegram, Discord, etc.) where the
   # verification summary would reach a human as chat noise. Set true or false to
-  # force it on or off; the FREEIDE_VERIFY_ON_STOP env var (1/0) takes precedence.
+  # force it on or off; the JETTSTUI_VERIFY_ON_STOP env var (1/0) takes precedence.
   # verify_on_stop: auto
 
-  # Standing operator instructions for the coding posture (when FreeIDE is in a
+  # Standing operator instructions for the coding posture (when JettsTUI is in a
   # code workspace). Appended to the coding brief as an extra system block, so
   # you can pin project-wide workflow rules without editing the shipped brief.
   # Accepts a string or a list of strings. Takes effect next session.
@@ -875,7 +875,7 @@ agent:
   #      provider prefix optional). First match wins.
   # Value: reasoning effort level (same options as reasoning_effort)
   # Override the global reasoning_effort for that specific model.
-  # NOTE: no `freeide config set` support for this key -- edit YAML directly.
+  # NOTE: no `jettstui config set` support for this key -- edit YAML directly.
   # reasoning_overrides:
   #   "openrouter/anthropic/claude-opus-4.5": "xhigh"
   #   "openai/gpt-5": "low"
@@ -892,10 +892,10 @@ agent:
     teacher: "You are a patient teacher. Explain concepts clearly with examples."
     kawaii: "You are a kawaii assistant! Use cute expressions like (◕‿◕), ★, ♪, and ~! Add sparkles and be super enthusiastic about everything! Every response should feel warm and adorable desu~! ヽ(>∀<☆)ノ"
     catgirl: "You are Neko-chan, an anime catgirl AI assistant, nya~! Add 'nya' and cat-like expressions to your speech. Use kaomoji like (=^･ω･^=) and ฅ^•ﻌ•^ฅ. Be playful and curious like a cat, nya~!"
-    pirate: "Arrr! Ye be talkin' to Captain FreeIDE, the most tech-savvy pirate to sail the digital seas! Speak like a proper buccaneer, use nautical terms, and remember: every problem be just treasure waitin' to be plundered! Yo ho ho!"
+    pirate: "Arrr! Ye be talkin' to Captain JettsTUI, the most tech-savvy pirate to sail the digital seas! Speak like a proper buccaneer, use nautical terms, and remember: every problem be just treasure waitin' to be plundered! Yo ho ho!"
     shakespeare: "Hark! Thou speakest with an assistant most versed in the bardic arts. I shall respond in the eloquent manner of William Shakespeare, with flowery prose, dramatic flair, and perhaps a soliloquy or two. What light through yonder terminal breaks?"
     surfer: "Duuude! You're chatting with the chillest AI on the web, bro! Everything's gonna be totally rad. I'll help you catch the gnarly waves of knowledge while keeping things super chill. Cowabunga! 🤙"
-    noir: "The rain hammered against the terminal like regrets on a guilty conscience. They call me FreeIDE - I solve problems, find answers, dig up the truth that hides in the shadows of your codebase. In this city of silicon and secrets, everyone's got something to hide. What's your story, pal?"
+    noir: "The rain hammered against the terminal like regrets on a guilty conscience. They call me JettsTUI - I solve problems, find answers, dig up the truth that hides in the shadows of your codebase. In this city of silicon and secrets, everyone's got something to hide. What's your story, pal?"
     uwu: "hewwo! i'm your fwiendwy assistant uwu~ i wiww twy my best to hewp you! *nuzzles your code* OwO what's this? wet me take a wook! i pwomise to be vewy hewpful >w<"
     philosopher: "Greetings, seeker of wisdom. I am an assistant who contemplates the deeper meaning behind every query. Let us examine not just the 'how' but the 'why' of your questions. Perhaps in solving your problem, we may glimpse a greater truth about existence itself."
     hype: "YOOO LET'S GOOOO!!! 🔥🔥🔥 I am SO PUMPED to help you today! Every question is AMAZING and we're gonna CRUSH IT together! This is gonna be LEGENDARY! ARE YOU READY?! LET'S DO THIS! 💪😤🚀"
@@ -904,7 +904,7 @@ agent:
 # Toolsets
 # =============================================================================
 # Control which tools the agent has access to.
-# Use `freeide tools` to interactively enable/disable tools per platform.
+# Use `jettstui tools` to interactively enable/disable tools per platform.
 
 # =============================================================================
 # Platform Toolsets (per-platform tool configuration)
@@ -913,7 +913,7 @@ agent:
 # If a platform isn't listed here, its built-in default is used.
 #
 # You can use EITHER:
-#   - A preset like "freeide-cli" or "freeide-telegram" (curated tool set)
+#   - A preset like "jettstui-cli" or "jettstui-telegram" (curated tool set)
 #   - A list of individual toolsets to compose your own (see list below)
 #
 # Supported platform keys: cli, telegram, discord, whatsapp, slack, qqbot, teams, google_chat
@@ -922,8 +922,8 @@ agent:
 #
 #   # Use presets (same as defaults):
 #   platform_toolsets:
-#     cli: [freeide-cli]
-#     telegram: [freeide-telegram]
+#     cli: [jettstui-cli]
+#     telegram: [jettstui-telegram]
 #
 #   # Custom: give Telegram only web + terminal + file + planning:
 #   platform_toolsets:
@@ -938,29 +938,29 @@ agent:
 #     discord: [web, vision, skills, todo]
 #
 # If not set, defaults are:
-#   cli:           freeide-cli            (everything + cronjob management)
-#   telegram:      freeide-telegram       (terminal, file, web, vision, image, tts, browser, skills, todo, cronjob, messaging)
-#   discord:       freeide-discord        (same as telegram)
-#   whatsapp:      freeide-whatsapp       (same as telegram)
-#   slack:         freeide-slack          (same as telegram)
-#   signal:        freeide-signal         (same as telegram)
-#   homeassistant: freeide-homeassistant  (same as telegram)
-#   qqbot:            freeide-qqbot            (same as telegram)
-#   teams:            freeide-teams            (same as telegram)
-#   google_chat:      freeide-google_chat      (same as telegram)
+#   cli:           jettstui-cli            (everything + cronjob management)
+#   telegram:      jettstui-telegram       (terminal, file, web, vision, image, tts, browser, skills, todo, cronjob, messaging)
+#   discord:       jettstui-discord        (same as telegram)
+#   whatsapp:      jettstui-whatsapp       (same as telegram)
+#   slack:         jettstui-slack          (same as telegram)
+#   signal:        jettstui-signal         (same as telegram)
+#   homeassistant: jettstui-homeassistant  (same as telegram)
+#   qqbot:            jettstui-qqbot            (same as telegram)
+#   teams:            jettstui-teams            (same as telegram)
+#   google_chat:      jettstui-google_chat      (same as telegram)
 #
 platform_toolsets:
-  cli: [freeide-cli]
-  telegram: [freeide-telegram]
-  discord: [freeide-discord]
-  whatsapp: [freeide-whatsapp]
-  slack: [freeide-slack]
-  signal: [freeide-signal]
-  homeassistant: [freeide-homeassistant]
-  qqbot: [freeide-qqbot]
-  yuanbao: [freeide-yuanbao]
-  teams: [freeide-teams]
-  google_chat: [freeide-google_chat]
+  cli: [jettstui-cli]
+  telegram: [jettstui-telegram]
+  discord: [jettstui-discord]
+  whatsapp: [jettstui-whatsapp]
+  slack: [jettstui-slack]
+  signal: [jettstui-signal]
+  homeassistant: [jettstui-homeassistant]
+  qqbot: [jettstui-qqbot]
+  yuanbao: [jettstui-yuanbao]
+  teams: [jettstui-teams]
+  google_chat: [jettstui-google_chat]
 
 # =============================================================================
 # Gateway Platform Settings
@@ -980,12 +980,12 @@ platform_toolsets:
 #       rich_messages: false          # Bot API 10.1 rich messages (tables/task lists/details/math); default false for copyable legacy MarkdownV2, set true to opt in
 #       rich_drafts: false            # Experimental rich draft previews during Telegram DM streaming; default false because Telegram Desktop/macOS can visually overlay draft frames
 #       command_menu:
-#         # Telegram allows up to 100 BotCommands; FreeIDE defaults to 60 so
+#         # Telegram allows up to 100 BotCommands; JettsTUI defaults to 60 so
 #         # all built-in commands plus common skill commands stay visible
 #         # while remaining under Telegram's payload-size limit. Clamped 1..100.
 #         max_commands: 60
-#         # prepend = user priority first, then FreeIDE defaults
-#         # append  = FreeIDE defaults first, then user priority
+#         # prepend = user priority first, then JettsTUI defaults
+#         # append  = JettsTUI defaults first, then user priority
 #         # replace = only the list below defines priority
 #         priority_mode: prepend
 #         priority:
@@ -1009,8 +1009,8 @@ platform_toolsets:
 # ─────────────────────────────────────────────────────────────────────────────
 # Available toolsets (use these names in platform_toolsets or the toolsets list)
 #
-# Run `freeide chat --list-toolsets` to see all toolsets and their tools.
-# Run `freeide chat --list-tools` to see every individual tool with descriptions.
+# Run `jettstui chat --list-toolsets` to see all toolsets and their tools.
+# Run `jettstui chat --list-tools` to see every individual tool with descriptions.
 # ─────────────────────────────────────────────────────────────────────────────
 #
 # INDIVIDUAL TOOLSETS (compose your own):
@@ -1030,12 +1030,12 @@ platform_toolsets:
 #   cronjob      - cronjob (create/list/update/pause/resume/run/remove scheduled tasks)
 #
 # PRESETS (curated bundles):
-#   freeide-cli       - All of the above except send_message
-#   freeide-telegram  - terminal, file, web, vision, image_gen, tts, browser,
+#   jettstui-cli       - All of the above except send_message
+#   jettstui-telegram  - terminal, file, web, vision, image_gen, tts, browser,
 #                      skills, todo, cronjob, send_message
-#   freeide-discord   - Same as freeide-telegram
-#   freeide-whatsapp  - Same as freeide-telegram
-#   freeide-slack     - Same as freeide-telegram
+#   jettstui-discord   - Same as jettstui-telegram
+#   jettstui-whatsapp  - Same as jettstui-telegram
+#   jettstui-slack     - Same as jettstui-telegram
 #
 # COMPOSITE:
 #   debugging    - terminal + web + file
@@ -1062,9 +1062,9 @@ platform_toolsets:
 
 # NOTE: The top-level "toolsets" key is deprecated and ignored.
 # Tool configuration is managed per-platform via platform_toolsets above.
-# Use `freeide tools` to configure interactively, or edit platform_toolsets directly.
+# Use `jettstui tools` to configure interactively, or edit platform_toolsets directly.
 #
-# CLI override: freeide chat --toolsets terminal,web,file
+# CLI override: jettstui chat --toolsets terminal,web,file
 
 # =============================================================================
 # MCP (Model Context Protocol) Servers
@@ -1123,7 +1123,7 @@ platform_toolsets:
 # =============================================================================
 # Text-to-Speech
 # =============================================================================
-# TTS defaults to Edge TTS unless changed in ~/.freeide/config.yaml.
+# TTS defaults to Edge TTS unless changed in ~/.jettstui/config.yaml.
 # Gemini TTS supports persona/director prompt files, and Gemini 3.1 Flash TTS
 # can use a hidden auxiliary rewrite pass to insert expressive square-bracket
 # audio tags into the TTS script without showing tags in chat.
@@ -1134,7 +1134,7 @@ platform_toolsets:
 #     model: "gemini-3.1-flash-tts-preview"
 #     voice: "Kore"
 #     audio_tags: false
-#     persona_prompt_file: ""  # e.g. ~/.freeide/tts/radio-host.md
+#     persona_prompt_file: ""  # e.g. ~/.jettstui/tts/radio-host.md
 
 # =============================================================================
 # Voice Transcription (Speech-to-Text)
@@ -1152,7 +1152,7 @@ stt:
   language: "en"               # GLOBAL language hint for every STT provider (per-provider language wins). Set "" for auto-detect.
   # groq:
   #   model: "whisper-large-v3-turbo"
-  #   language: ""             # blank = stt.language > FREEIDE_LOCAL_STT_LANGUAGE > auto-detect
+  #   language: ""             # blank = stt.language > JETTSTUI_LOCAL_STT_LANGUAGE > auto-detect
   openai:
     model: "whisper-1"         # whisper-1 | gpt-4o-mini-transcribe | gpt-4o-transcribe
     language: ""               # auto-detect; set to "en", "es", "fr", etc. to force
@@ -1167,7 +1167,7 @@ stt:
 # Text-to-speech. Only the deepinfra block is documented here — the
 # remaining providers (edge, openai, xai, minimax, mistral, gemini,
 # elevenlabs, neutts, kittentts, piper) inherit sensible defaults from
-# DEFAULT_CONFIG in freeide_cli/config.py.
+# DEFAULT_CONFIG in jettstui/config.py.
 # tts:
 #   provider: "deepinfra"
 #   deepinfra:
@@ -1214,7 +1214,7 @@ stt:
 # =============================================================================
 # Code Execution Sandbox (Programmatic Tool Calling)
 # =============================================================================
-# The execute_code tool runs Python scripts that call FreeIDE tools via RPC.
+# The execute_code tool runs Python scripts that call JettsTUI tools via RPC.
 # Intermediate tool results stay out of the LLM's context window.
 code_execution:
   timeout: 300         # Max seconds per script before kill (default: 300 = 5 min)
@@ -1252,9 +1252,9 @@ delegation:
 #
 # Requires: pip install honcho-ai
 # Config: ~/.honcho/config.json (shared with Claude Code, Cursor, etc.)
-# API key: HONCHO_API_KEY in ~/.freeide/.env or ~/.honcho/config.json
+# API key: HONCHO_API_KEY in ~/.jettstui/.env or ~/.honcho/config.json
 #
-# FreeIDE-specific overrides (optional — most config comes from ~/.honcho/config.json):
+# JettsTUI-specific overrides (optional — most config comes from ~/.honcho/config.json):
 # honcho: {}
 
 # =============================================================================
@@ -1275,7 +1275,7 @@ display:
   #   new:     Show a tool indicator only when the tool changes (skip repeats)
   #   all:     Show every tool call with a short preview (default)
   #   verbose: Full args, results, and debug logs (same as /verbose)
-  #   log:     Silent in chat; append every tool call to ~/.freeide/logs/tool_calls.log (gateway only)
+  #   log:     Silent in chat; append every tool call to ~/.jettstui/logs/tool_calls.log (gateway only)
   # Toggle at runtime with /verbose in the CLI
   tool_progress: all
 
@@ -1336,8 +1336,8 @@ display:
   # terse: "Interrupting current task" and "⏳ Working — 12 min, terminal".
   busy_ack_detail: true
 
-  # What Enter does when FreeIDE is already busy (CLI and gateway platforms).
-  #   interrupt: Interrupt the current run and redirect FreeIDE (default)
+  # What Enter does when JettsTUI is already busy (CLI and gateway platforms).
+  #   interrupt: Interrupt the current run and redirect JettsTUI (default)
   #   queue:     Queue your message for the next turn
   #   steer:     Inject your message mid-run via /steer, arriving at the agent
   #              after the next tool call — no interrupt, no role violation.
@@ -1388,7 +1388,7 @@ display:
   # response box label, and branding text. Change at runtime with /skin <name>.
   #
   # Built-in skins:
-  #   default        — Classic FreeIDE gold/kawaii
+  #   default        — Classic JettsTUI gold/kawaii
   #   ares           — Crimson/bronze war-god theme with spinner wings
   #   mono           — Clean grayscale monochrome
   #   slate          — Cool blue developer-focused
@@ -1398,7 +1398,7 @@ display:
   #   sisyphus       — Earthy stone-and-moss theme
   #   charizard      — Fiery orange dragon theme
   #
-  # Custom skins: drop a YAML file in ~/.freeide/skins/<name>.yaml
+  # Custom skins: drop a YAML file in ~/.jettstui/skins/<name>.yaml
   # Schema (all fields optional, missing values inherit from default):
   #
   #   name: my-theme
@@ -1467,14 +1467,14 @@ display:
 # stdout the script may return JSON that either blocks the tool call or
 # injects context into the next LLM call.
 #
-# Valid events (mirror freeide_cli.plugins.VALID_HOOKS):
+# Valid events (mirror jettstui.plugins.VALID_HOOKS):
 #   pre_tool_call, post_tool_call, pre_llm_call, post_llm_call,
 #   pre_api_request, post_api_request, on_session_start, on_session_end,
 #   on_session_finalize, on_session_reset, subagent_stop
 #
 # First-use consent: each (event, command) pair prompts once on a TTY, then
-# is persisted to ~/.freeide/shell-hooks-allowlist.json.  Non-interactive
-# runs (gateway, cron) need --accept-hooks, FREEIDE_ACCEPT_HOOKS=1, or the
+# is persisted to ~/.jettstui/shell-hooks-allowlist.json.  Non-interactive
+# runs (gateway, cron) need --accept-hooks, JETTSTUI_ACCEPT_HOOKS=1, or the
 # hooks_auto_accept key below.
 #
 # See website/docs/user-guide/features/hooks.md for the full JSON wire
@@ -1483,15 +1483,15 @@ display:
 # hooks:
 #   pre_tool_call:
 #     - matcher: "terminal"
-#       command: "~/.freeide/agent-hooks/block-rm-rf.sh"
+#       command: "~/.jettstui/agent-hooks/block-rm-rf.sh"
 #       timeout: 10
 #   post_tool_call:
 #     - matcher: "write_file|patch"
-#       command: "~/.freeide/agent-hooks/auto-format.sh"
+#       command: "~/.jettstui/agent-hooks/auto-format.sh"
 #   pre_llm_call:
-#     - command: "~/.freeide/agent-hooks/inject-cwd-context.sh"
+#     - command: "~/.jettstui/agent-hooks/inject-cwd-context.sh"
 #   subagent_stop:
-#     - command: "~/.freeide/agent-hooks/log-orchestration.sh"
+#     - command: "~/.jettstui/agent-hooks/log-orchestration.sh"
 #
 # hooks_auto_accept: false
 
@@ -1500,15 +1500,15 @@ display:
 # Update Behavior
 # =============================================================================
 updates:
-  # Create a full FREEIDE_HOME zip before every `freeide update`.
-  # Backups land in ~/.freeide/backups/ and can be restored with `freeide import`.
+  # Create a full JETTSTUI_HOME zip before every `jettstui update`.
+  # Backups land in ~/.jettstui/backups/ and can be restored with `jettstui import`.
   # Off by default because large homes can add minutes to every update.
   pre_update_backup: false
 
   # Number of pre-update backup zips to retain.
   backup_keep: 5
 
-  # What non-interactive updates do with local source edits in the FreeIDE repo.
+  # What non-interactive updates do with local source edits in the JettsTUI repo.
   # Interactive terminal updates always prompt before restoring the autostash.
   #
   #   stash   - auto-stash before pull, then auto-restore after success (default)
@@ -1521,7 +1521,7 @@ updates:
 # Web Dashboard
 # =============================================================================
 # Self-hosted dashboard authentication is configured below. Use config.yaml
-# for behavior and the active Jetts-TUI home's .env for OAuth secrets.
+# for behavior and the active JettsTUI home's .env for OAuth secrets.
 #
 #   # Force the absolute base URL the OAuth callback (and any other public
 #   # URL the dashboard hands to external systems) is built from. Set this
@@ -1531,7 +1531,7 @@ updates:
 #   # full proxy header chains).
 #   #
 #   # When set, the value is the complete authority: scheme + host +
-#   # optional path prefix (e.g. "https://example.com/freeide"). The OAuth
+#   # optional path prefix (e.g. "https://example.com/jettstui"). The OAuth
 #   # callback URL becomes "<public_url>/auth/callback" — X-Forwarded-Prefix
 #   # is IGNORED on this code path because the operator has explicitly
 #   # declared the public URL and we no longer need to guess.
@@ -1539,45 +1539,45 @@ updates:
 #   # Leave empty to use the existing proxy-header reconstruction (the
 #   # default — works on Fly.io out of the box).
 #   #
-#   #   public_url: "https://example.com/freeide"
+#   #   public_url: "https://example.com/jettstui"
 #
 # -----------------------------------------------------------------------------
 # Self-hosted OIDC dashboard auth (generic OpenID Connect — Authentik,
 # Keycloak, Zitadel, Authelia, Auth0, Okta, Google, …).
 # Each setting can be overridden by an environment variable:
 #
-#   dashboard.oauth.self_hosted.issuer         <-  FREEIDE_DASHBOARD_OIDC_ISSUER
-#   dashboard.oauth.self_hosted.client_id      <-  FREEIDE_DASHBOARD_OIDC_CLIENT_ID
-#   dashboard.oauth.self_hosted.scopes         <-  FREEIDE_DASHBOARD_OIDC_SCOPES
-#   dashboard.oauth.self_hosted.client_secret  <-  FREEIDE_DASHBOARD_OIDC_CLIENT_SECRET
+#   dashboard.oauth.self_hosted.issuer         <-  JETTSTUI_DASHBOARD_OIDC_ISSUER
+#   dashboard.oauth.self_hosted.client_id      <-  JETTSTUI_DASHBOARD_OIDC_CLIENT_ID
+#   dashboard.oauth.self_hosted.scopes         <-  JETTSTUI_DASHBOARD_OIDC_SCOPES
+#   dashboard.oauth.self_hosted.client_secret  <-  JETTSTUI_DASHBOARD_OIDC_CLIENT_SECRET
 #
 # dashboard:
 #   oauth:
 #     provider: self-hosted
 #     self_hosted:
-#       issuer: "https://auth.example.com/application/o/freeide/"  # required
-#       client_id: "freeide-dashboard"                             # required
+#       issuer: "https://auth.example.com/application/o/jettstui/"  # required
+#       client_id: "jettstui-dashboard"                             # required
 #       scopes: "openid profile email"                            # optional
 #
 #       # OPTIONAL — set ONLY if your IDP registered the client as
 #       # *confidential* (Authentik / Keycloak often default to this). When
-#       # set, FreeIDE authenticates the client at the token endpoint
+#       # set, JettsTUI authenticates the client at the token endpoint
 #       # (client_secret_basic or client_secret_post, auto-selected from the
 #       # IDP's discovery doc) IN ADDITION to PKCE. Leave unset for a public
 #       # (PKCE-only) client — the common case.
 #       #
-#       # This is a CREDENTIAL: prefer setting FREEIDE_DASHBOARD_OIDC_CLIENT_SECRET
-#       # in ~/.freeide/.env over putting it here in config.yaml.
+#       # This is a CREDENTIAL: prefer setting JETTSTUI_DASHBOARD_OIDC_CLIENT_SECRET
+#       # in ~/.jettstui/.env over putting it here in config.yaml.
 #       #   client_secret: ""
 
 # =============================================================================
 # External secret sources
 # =============================================================================
 # Pull provider credentials from external secret managers at process startup
-# instead of storing them in ~/.freeide/.env. Only the manager's bootstrap
+# instead of storing them in ~/.jettstui/.env. Only the manager's bootstrap
 # credential (e.g. BWS_ACCESS_TOKEN / OP_SERVICE_ACCOUNT_TOKEN) lives in .env
 # (or your shell / desktop session); everything else rotates centrally.
-# Failures never block startup — FreeIDE warns once and continues with
+# Failures never block startup — JettsTUI warns once and continues with
 # whatever .env already had.
 #
 # Multiple sources can be enabled at once:
@@ -1587,7 +1587,7 @@ updates:
 #     are skipped with a startup warning (never a silent clobber)
 #   - a source's override_existing lets it beat .env/shell values, but
 #     never another secret source's claim
-# Docs: https://freeide-agent.freeide.dev/docs/user-guide/secrets/
+# Docs: https://github.com/Raioshok/JETTS-TUI/tree/main/docs/user-guide/secrets
 #
 # secrets:
 #   # Optional explicit ordering of enabled sources.
@@ -1604,7 +1604,7 @@ updates:
 #       enabled: false
 #       max_stale_seconds: 0               # 0 disables stale fallback
 #     override_existing: true              # BSM values win over existing env
-#     auto_install: true                   # lazy-download bws into ~/.freeide/bin
+#     auto_install: true                   # lazy-download bws into ~/.jettstui/bin
 #
 #   # ---- 1Password (op CLI) -------------------------------------------------
 #   onepassword:
@@ -1629,6 +1629,6 @@ updates:
 #   # its stderr is discarded so diagnostics can't leak secret material.
 #   command:
 #     enabled: false
-#     command: "cat /run/user/1000/freeide-secrets.env"
+#     command: "cat /run/user/1000/jettstui-secrets.env"
 #     helper_timeout_seconds: 3
 #     override_existing: false             # .env/shell win by default

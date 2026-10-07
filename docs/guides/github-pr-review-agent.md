@@ -15,7 +15,7 @@ description: "Build an automated AI code reviewer that monitors your repos, revi
 ```
 ┌───────────────────────────────────────────────────────────────────┐
 │                                                                   │
-│   Cron Timer  ──▶  FreeIDE Agent  ──▶  GitHub API  ──▶  Review     │
+│   Cron Timer  ──▶  JettsTUI  ──▶  GitHub API  ──▶  Review     │
 │   (every 2h)       + gh CLI           (PR diffs)       delivery   │
 │                    + skill                             (Telegram, │
 │                    + memory                            Discord,   │
@@ -27,19 +27,19 @@ description: "Build an automated AI code reviewer that monitors your repos, revi
 This guide uses **cron jobs** to poll for PRs on a schedule — no server or public endpoint needed. Works behind NAT and firewalls.
 
 :::tip Want real-time reviews instead?
-If you have a public endpoint available, check out [Automated GitHub PR Comments with Webhooks](./webhook-github-pr-review.md) — GitHub pushes events to FreeIDE instantly when PRs are opened or updated.
+If you have a public endpoint available, check out [Automated GitHub PR Comments with Webhooks](./webhook-github-pr-review.md) — GitHub pushes events to JettsTUI instantly when PRs are opened or updated.
 :::
 
 ---
 
 ## Prerequisites
 
-- **FreeIDE Agent installed** — see the [Installation guide](../getting-started/installation.md)
+- **JettsTUI installed** — see the [Installation guide](../getting-started/installation.md)
 - **Gateway running** for cron jobs:
   ```bash
-  freeide gateway install   # Install as a service
+  jettstui gateway install   # Install as a service
   # or
-  freeide gateway           # Run in foreground
+  jettstui gateway           # Run in foreground
   ```
 - **GitHub CLI (`gh`) installed and authenticated**:
   ```bash
@@ -53,23 +53,23 @@ If you have a public endpoint available, check out [Automated GitHub PR Comments
 - **Messaging configured** (optional) — [Telegram](../user-guide/messaging/telegram.md) or [Discord](../user-guide/messaging/discord.md)
 
 :::tip No messaging? No problem
-Use `deliver: "local"` to save reviews to `~/.freeide/cron/output/`. Great for testing before wiring up notifications.
+Use `deliver: "local"` to save reviews to `~/.jettstui/cron/output/`. Great for testing before wiring up notifications.
 :::
 
 ---
 
 ## Step 1: Verify the Setup
 
-Make sure FreeIDE can access GitHub. Start a chat:
+Make sure JettsTUI can access GitHub. Start a chat:
 
 ```bash
-freeide
+jettstui
 ```
 
 Test with a simple command:
 
 ```
-Run: gh pr list --repo freeide/freeide --state open --limit 3
+Run: gh pr list --repo jettstui/jettstui --state open --limit 3
 ```
 
 You should see a list of open PRs. If this works, you're ready.
@@ -78,16 +78,16 @@ You should see a list of open PRs. If this works, you're ready.
 
 ## Step 2: Try a Manual Review
 
-Still in the chat, ask FreeIDE to review a real PR:
+Still in the chat, ask JettsTUI to review a real PR:
 
 ```
 Review this pull request. Read the diff, check for bugs, security issues,
 and code quality. Be specific about line numbers and quote problematic code.
 
-Run: gh pr diff 3888 --repo freeide/freeide
+Run: gh pr diff 3888 --repo jettstui/jettstui
 ```
 
-FreeIDE will:
+JettsTUI will:
 1. Execute `gh pr diff` to fetch the code changes
 2. Read through the entire diff
 3. Produce a structured review with specific findings
@@ -98,13 +98,13 @@ If you're happy with the quality, time to automate it.
 
 ## Step 3: Create a Review Skill
 
-A skill gives FreeIDE consistent review guidelines that persist across sessions and cron runs. Without one, review quality varies.
+A skill gives JettsTUI consistent review guidelines that persist across sessions and cron runs. Without one, review quality varies.
 
 ```bash
-mkdir -p ~/.freeide/skills/code-review
+mkdir -p ~/.jettstui/skills/code-review
 ```
 
-Create `~/.freeide/skills/code-review/SKILL.md`:
+Create `~/.jettstui/skills/code-review/SKILL.md`:
 
 ```markdown
 ---
@@ -137,13 +137,13 @@ For each finding:
 - End with: APPROVE / REQUEST_CHANGES / COMMENT
 ```
 
-Verify it loaded — start `freeide` and you should see `code-review` in the skills list at startup.
+Verify it loaded — start `jettstui` and you should see `code-review` in the skills list at startup.
 
 ---
 
 ## Step 4: Teach It Your Conventions
 
-This is what makes the reviewer actually useful. Start a session and teach FreeIDE your team's standards:
+This is what makes the reviewer actually useful. Start a session and teach JettsTUI your team's standards:
 
 ```
 Remember: In our backend repo, we use Python with FastAPI.
@@ -167,7 +167,7 @@ These memories persist forever — the reviewer will enforce your conventions wi
 Now wire it all together. Create a cron job that runs every 2 hours:
 
 ```bash
-freeide cron create "0 */2 * * *" \
+jettstui cron create "0 */2 * * *" \
   "Check for new open PRs and review them.
 
 Repos to monitor:
@@ -196,7 +196,7 @@ If no new PRs found, say: No new PRs to review." \
 Verify it's scheduled:
 
 ```bash
-freeide cron list
+jettstui cron list
 ```
 
 ### Other useful schedules
@@ -215,7 +215,7 @@ freeide cron list
 Don't want to wait for the schedule? Trigger it manually:
 
 ```bash
-freeide cron run pr-review
+jettstui cron run pr-review
 ```
 
 Or from within a chat session:
@@ -250,7 +250,7 @@ Make sure `gh` has a token with `repo` scope. Reviews are posted as whoever `gh`
 Create a Monday morning overview of all your repos:
 
 ```bash
-freeide cron create "0 9 * * 1" \
+jettstui cron create "0 9 * * 1" \
   "Generate a weekly PR dashboard:
 - myorg/backend-api
 - myorg/frontend-app
@@ -280,13 +280,13 @@ The gateway runs in a minimal environment. Ensure `gh` is in the system PATH and
 
 ### Reviews are too generic
 1. Add the `code-review` skill (Step 3)
-2. Teach FreeIDE your conventions via memory (Step 4)
+2. Teach JettsTUI your conventions via memory (Step 4)
 3. The more context it has about your stack, the better the reviews
 
 ### Cron job doesn't run
 ```bash
-freeide gateway status    # Is the gateway running?
-freeide cron list         # Is the job enabled?
+jettstui gateway status    # Is the gateway running?
+jettstui cron list         # Is the job enabled?
 ```
 
 ### Rate limits

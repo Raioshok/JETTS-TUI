@@ -1,18 +1,18 @@
 """Contract test: install.sh stamps the install method next to the code tree
-($INSTALL_DIR), not into the shared $FREEIDE_HOME.
+($INSTALL_DIR), not into the shared $JETTSTUI_HOME.
 
-Background (shared-$FREEIDE_HOME bug)
+Background (shared-$JETTSTUI_HOME bug)
 ------------------------------------
-$FREEIDE_HOME is a data directory users frequently bind-mount into a Docker
-gateway as well (``~/.freeide:/opt/data``). The published image stamps 'docker'
+$JETTSTUI_HOME is a data directory users frequently bind-mount into a Docker
+gateway as well (``~/.jettstui:/opt/data``). The published image stamps 'docker'
 there on boot, so if install.sh had written its 'git' marker into the same
-$FREEIDE_HOME the two installs would fight over one slot — and the container,
+$JETTSTUI_HOME the two installs would fight over one slot — and the container,
 booting last, would win and wrongly make the host install look like 'docker'
-(blocking ``freeide update``).
+(blocking ``jettstui update``).
 
 The fix: detect_install_method() reads a CODE-scoped stamp first, and the
 installer writes ``git`` into $INSTALL_DIR (the git checkout, e.g.
-``~/.freeide/freeide-agent``), which is unique to this install and immune to the
+``~/.jettstui/jettstui``), which is unique to this install and immune to the
 shared data dir.
 """
 from __future__ import annotations
@@ -33,8 +33,8 @@ def test_install_sh_stamps_code_tree_not_home() -> None:
     )
 
     # Never stamps the shared data dir.
-    assert not re.search(r'>\s*"\$FREEIDE_HOME/\.install_method"', text), (
-        "install.sh must not stamp $FREEIDE_HOME/.install_method — that data "
+    assert not re.search(r'>\s*"\$JETTSTUI_HOME/\.install_method"', text), (
+        "install.sh must not stamp $JETTSTUI_HOME/.install_method — that data "
         "dir may be shared with a Docker gateway whose 'docker' stamp would "
-        "clobber it and block host-side `freeide update`"
+        "clobber it and block host-side `jettstui update`"
     )

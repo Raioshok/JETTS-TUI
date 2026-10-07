@@ -1,8 +1,8 @@
 """Shared parser helpers used across multiple CLI subcommand builders.
 
-These were module-level helpers in ``freeide_cli/main.py``. They are pulled
+These were module-level helpers in ``jettstui/main.py``. They are pulled
 into a neutral module so both ``main.py`` and every
-``freeide_cli/subcommands/<group>.py`` builder can import them without an
+``jettstui/subcommands/<group>.py`` builder can import them without an
 import cycle. ``main.py`` re-exports them for backwards compatibility, so
 existing references keep working.
 """
@@ -24,6 +24,6 @@ def add_accept_hooks_flag(parser: argparse.ArgumentParser) -> None:
         default=argparse.SUPPRESS,
         help=(
             "Auto-approve unseen shell hooks without a TTY prompt "
-            "(equivalent to FREEIDE_ACCEPT_HOOKS=1 / hooks_auto_accept: true)."
+            "(equivalent to JETTSTUI_ACCEPT_HOOKS=1 / hooks_auto_accept: true)."
         ),
     )

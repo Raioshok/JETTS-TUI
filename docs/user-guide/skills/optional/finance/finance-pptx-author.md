@@ -14,10 +14,10 @@ Build PowerPoint decks headless with python-pptx.
 
 | | |
 |---|---|
-| Source | Optional — install with `freeide skills install official/finance/pptx-author` |
+| Source | Optional — install with `jettstui skills install official/finance/pptx-author` |
 | Path | `optional-skills/finance/pptx-author` |
 | Version | `1.0.0` |
-| Author | Anthropic (adapted by FreeIDE) |
+| Author | Anthropic (adapted by JettsTUI) |
 | License | Apache-2.0 |
 | Platforms | linux, macos, windows |
 | Tags | `powerpoint`, `pptx`, `python-pptx`, `presentation`, `finance` |
@@ -26,7 +26,7 @@ Build PowerPoint decks headless with python-pptx.
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that FreeIDE loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that JettsTUI loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # pptx-author

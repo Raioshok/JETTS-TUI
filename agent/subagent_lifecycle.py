@@ -1,4 +1,4 @@
-"""Public, plugin-safe lifecycle API for delegated FreeIDE subagents.
+"""Public, plugin-safe lifecycle API for delegated JettsTUI subagents.
 
 This module deliberately exposes immutable contracts, not ``AIAgent`` objects.
 It is the supported boundary for plugins that need to supervise fresh child
@@ -161,10 +161,10 @@ _REGISTRY = _Registry()
 # executor and the async-delegation registry pool).
 from tools.daemon_pool import DaemonThreadPoolExecutor as _DaemonExecutor
 
-_EXECUTOR = _DaemonExecutor(max_workers=8, thread_name_prefix="freeide-lifecycle")
+_EXECUTOR = _DaemonExecutor(max_workers=8, thread_name_prefix="jettstui-lifecycle")
 _SECRET = secrets.token_bytes(32)
 _ACTIVE_PARENT_AGENT: contextvars.ContextVar[Any] = contextvars.ContextVar(
-    "freeide_subagent_lifecycle_parent", default=None
+    "jettstui_subagent_lifecycle_parent", default=None
 )
 
 
@@ -198,7 +198,7 @@ class SubagentLifecycleService:
         parent = self._parent_agent_resolver()
         if parent is None:
             raise SubagentLifecycleError(
-                "No active FreeIDE parent session is available."
+                "No active JettsTUI parent session is available."
             )
         self._validate_request(request, parent)
         parent_session_id = str(getattr(parent, "session_id", "") or "") or None
@@ -236,7 +236,7 @@ class SubagentLifecycleService:
         )
         subagent_id = str(getattr(child, "_subagent_id", "") or "")
         if not subagent_id:
-            raise SubagentLifecycleError("FreeIDE failed to assign a child identity.")
+            raise SubagentLifecycleError("JettsTUI failed to assign a child identity.")
         created = time.time()
         handle = SubagentHandle(
             PUBLIC_CONTRACT_VERSION,
@@ -502,11 +502,11 @@ class SubagentLifecycleService:
             )
         if request.working_directory is not None:
             raise SubagentLifecycleError(
-                "working_directory is not supported because FreeIDE delegates use isolated task environments."
+                "working_directory is not supported because JettsTUI delegates use isolated task environments."
             )
         if request.blocked_tools:
             raise SubagentLifecycleError(
-                "Per-tool blocking is not supported; use allowed_toolsets. FreeIDE always blocks unsafe child tools."
+                "Per-tool blocking is not supported; use allowed_toolsets. JettsTUI always blocks unsafe child tools."
             )
         try:
             metadata_bytes = len(

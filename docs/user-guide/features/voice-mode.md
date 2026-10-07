@@ -1,25 +1,25 @@
 ---
 sidebar_position: 10
 title: "Voice Mode"
-description: "Real-time voice conversations with FreeIDE Agent — CLI, Telegram, Discord (DMs, text channels, and voice channels)"
+description: "Real-time voice conversations with JettsTUI — CLI, Telegram, Discord (DMs, text channels, and voice channels)"
 ---
 
 # Voice Mode
 
-FreeIDE Agent supports full voice interaction across CLI and messaging platforms. Talk to the agent using your microphone, hear spoken replies, and have live voice conversations in Discord voice channels.
+JettsTUI supports full voice interaction across CLI and messaging platforms. Talk to the agent using your microphone, hear spoken replies, and have live voice conversations in Discord voice channels.
 
-If you want a practical setup walkthrough with recommended configurations and real usage patterns, see [Use Voice Mode with FreeIDE](../../guides/use-voice-mode-with-freeide.md).
+If you want a practical setup walkthrough with recommended configurations and real usage patterns, see [Use Voice Mode with JettsTUI](../../guides/use-voice-mode-with-jettstui.md).
 
 ## Prerequisites
 
 Before using voice features, make sure you have:
 
-1. **FreeIDE Agent installed** — via the install script (see [Installation](../../getting-started/installation.md))
-2. **An LLM provider configured** — run `freeide model` or set your preferred provider credentials in `~/.freeide/.env`
-3. **A working base setup** — run `freeide` to verify the agent responds to text before enabling voice
+1. **JettsTUI installed** — via the install script (see [Installation](../../getting-started/installation.md))
+2. **An LLM provider configured** — run `jettstui model` or set your preferred provider credentials in `~/.jettstui/.env`
+3. **A working base setup** — run `jettstui` to verify the agent responds to text before enabling voice
 
 :::tip
-The `~/.freeide/` directory and default `config.yaml` are created automatically the first time you run `freeide`. You only need to create `~/.freeide/.env` manually for API keys.
+The `~/.jettstui/` directory and default `config.yaml` are created automatically the first time you run `jettstui`. You only need to create `~/.jettstui/.env` manually for API keys.
 :::
 
 ## Overview
@@ -36,19 +36,19 @@ The `~/.freeide/` directory and default `config.yaml` are created automatically 
 
 ```bash
 # CLI voice mode (microphone + audio playback)
-cd ~/.freeide/freeide-agent && uv pip install -e ".[voice]"
+cd ~/.jettstui/jettstui && uv pip install -e ".[voice]"
 
 # Discord + Telegram messaging (includes discord.py[voice] for VC support)
-cd ~/.freeide/freeide-agent && uv pip install -e ".[messaging]"
+cd ~/.jettstui/jettstui && uv pip install -e ".[messaging]"
 
 # Premium TTS (ElevenLabs)
-cd ~/.freeide/freeide-agent && uv pip install -e ".[tts-premium]"
+cd ~/.jettstui/jettstui && uv pip install -e ".[tts-premium]"
 
 # Local TTS (NeuTTS, optional)
 python -m pip install -U neutts[all]
 
 # Everything at once
-cd ~/.freeide/freeide-agent && uv pip install -e ".[all]"
+cd ~/.jettstui/jettstui && uv pip install -e ".[all]"
 ```
 
 | Extra | Packages | Required For |
@@ -84,7 +84,7 @@ sudo apt install espeak-ng   # for NeuTTS
 
 ### API Keys
 
-Add to `~/.freeide/.env`:
+Add to `~/.jettstui/.env`:
 
 ```bash
 # Speech-to-Text — local provider needs NO key at all
@@ -105,14 +105,14 @@ If `faster-whisper` is installed, voice mode works with **zero API keys** for ST
 
 ## CLI Voice Mode
 
-Voice mode is available in both the **classic CLI** (`freeide chat`) and the **TUI** (`freeide --tui`). Behavior is identical across both — same slash commands, same VAD silence detection, same streaming TTS, same hallucination filter. The TUI additionally forwards crash-forensic logs to `~/.freeide/logs/` so push-to-talk failures on exotic audio backends can be reported with a full stack trace rather than disappearing silently.
+Voice mode is available in both the **classic CLI** (`jettstui chat`) and the **TUI** (`jettstui --tui`). Behavior is identical across both — same slash commands, same VAD silence detection, same streaming TTS, same hallucination filter. The TUI additionally forwards crash-forensic logs to `~/.jettstui/logs/` so push-to-talk failures on exotic audio backends can be reported with a full stack trace rather than disappearing silently.
 
 ### Quick Start
 
 Start the CLI and enable voice mode:
 
 ```bash
-freeide                # Start the interactive CLI
+jettstui                # Start the interactive CLI
 ```
 
 Then use these commands inside the CLI:
@@ -127,7 +127,7 @@ Then use these commands inside the CLI:
 
 ### How It Works
 
-1. Start the CLI with `freeide` and enable voice mode with `/voice on`
+1. Start the CLI with `jettstui` and enable voice mode with `/voice on`
 2. **Press Ctrl+B** — a beep plays (880Hz), recording starts
 3. **Speak** — a live audio level bar shows your input: `● [▁▂▃▅▇▇▅▂] ❯`
 4. **Stop speaking** — after 3 seconds of silence, recording auto-stops
@@ -139,7 +139,7 @@ Then use these commands inside the CLI:
 This loop continues until you press **Ctrl+B** during recording (exits continuous mode) or 3 consecutive recordings detect no speech.
 
 :::tip
-The record key is configurable via `voice.record_key` in `~/.freeide/config.yaml` (default: `ctrl+b`).
+The record key is configurable via `voice.record_key` in `~/.jettstui/config.yaml` (default: `ctrl+b`).
 :::
 
 ### Silence Detection
@@ -155,7 +155,7 @@ Both `silence_threshold` and `silence_duration` are configurable in `config.yaml
 
 ### Ending a voice chat by voice
 
-Say **"stop"** — and nothing else — to end the voice conversation hands-free. The match is deliberately strict: the whole utterance (case-insensitive, surrounding punctuation ignored) must equal a configured phrase, so "stop doing that and try X instead" still reaches the agent normally. Customize the phrase list with `voice.stop_phrases` in `config.yaml` (e.g. `["stop", "goodbye freeide"]`), or set it to `[]` to disable. A voice chat also ends on its own after three consecutive silent cycles (no speech detected).
+Say **"stop"** — and nothing else — to end the voice conversation hands-free. The match is deliberately strict: the whole utterance (case-insensitive, surrounding punctuation ignored) must equal a configured phrase, so "stop doing that and try X instead" still reaches the agent normally. Customize the phrase list with `voice.stop_phrases` in `config.yaml` (e.g. `["stop", "goodbye jettstui"]`), or set it to `[]` to disable. A voice chat also ends on its own after three consecutive silent cycles (no speech detected).
 
 ### Streaming TTS
 
@@ -191,8 +191,8 @@ If you haven't set up your messaging bots yet, see the platform-specific guides:
 Start the gateway to connect to your messaging platforms:
 
 ```bash
-freeide gateway        # Start the gateway (connects to configured platforms)
-freeide gateway setup  # Interactive setup wizard for first-time configuration
+jettstui gateway        # Start the gateway (connects to configured platforms)
+jettstui gateway setup  # Interactive setup wizard for first-time configuration
 ```
 
 ### Discord: Channels vs DMs
@@ -206,10 +206,10 @@ The bot supports two interaction modes on Discord:
 
 **DM (recommended for personal use):** Just open a DM with the bot and type — no @mention needed. Voice replies and all commands work the same as in channels.
 
-**Server channels:** The bot only responds when you @mention it (e.g. `@freeidebyt4 hello`). Make sure you select the **bot user** from the mention popup, not the role with the same name.
+**Server channels:** The bot only responds when you @mention it (e.g. `@jettstuibyt4 hello`). Make sure you select the **bot user** from the mention popup, not the role with the same name.
 
 :::tip
-To disable the mention requirement in server channels, add to `~/.freeide/.env`:
+To disable the mention requirement in server channels, add to `~/.jettstui/.env`:
 ```bash
 DISCORD_REQUIRE_MENTION=false
 ```
@@ -320,7 +320,7 @@ The bot auto-loads the codec from:
 #### 4. Environment Variables
 
 ```bash
-# ~/.freeide/.env
+# ~/.jettstui/.env
 
 # Discord bot (already configured for text)
 DISCORD_BOT_TOKEN=your-bot-token
@@ -337,7 +337,7 @@ DISCORD_ALLOWED_USERS=your-user-id
 ### Start the Gateway
 
 ```bash
-freeide gateway        # Start with existing configuration
+jettstui gateway        # Start with existing configuration
 ```
 
 The bot should come online in Discord within a few seconds.
@@ -384,7 +384,7 @@ The bot automatically pauses its audio listener while playing TTS replies, preve
 Only users listed in `DISCORD_ALLOWED_USERS` can interact via voice. Other users' audio is silently ignored.
 
 ```bash
-# ~/.freeide/.env
+# ~/.jettstui/.env
 DISCORD_ALLOWED_USERS=284102345871466496
 ```
 
@@ -415,9 +415,9 @@ stt:
   provider: "local"                  # "local" (free) | "groq" | "openai" | "mistral" | "xai"
   local:
     model: "base"                    # tiny, base, small, medium, large-v3
-    language: ""                     # optional ISO-639-1 hint; blank = use FREEIDE_LOCAL_STT_LANGUAGE if set, else auto-detect
+    language: ""                     # optional ISO-639-1 hint; blank = use JETTSTUI_LOCAL_STT_LANGUAGE if set, else auto-detect
   groq:
-    language: ""                     # optional ISO-639-1 hint; blank = use FREEIDE_LOCAL_STT_LANGUAGE if set, else auto-detect
+    language: ""                     # optional ISO-639-1 hint; blank = use JETTSTUI_LOCAL_STT_LANGUAGE if set, else auto-detect
   # model: "whisper-1"              # Legacy: used when provider is not set
 
 # Text-to-Speech
@@ -502,7 +502,7 @@ brew install portaudio    # macOS
 sudo apt install portaudio19-dev  # Ubuntu
 ```
 
-If you are running FreeIDE inside Docker on a Linux desktop, the container also needs access to your host audio socket. See the [Docker audio bridge](../docker.md#optional-linux-desktop-audio-bridge) notes for a PulseAudio/PipeWire-compatible setup.
+If you are running JettsTUI inside Docker on a Linux desktop, the container also needs access to your host audio socket. See the [Docker audio bridge](../docker.md#optional-linux-desktop-audio-bridge) notes for a PulseAudio/PipeWire-compatible setup.
 
 ### Bot doesn't respond in Discord server channels
 
@@ -510,7 +510,7 @@ The bot requires an @mention by default in server channels. Make sure you:
 
 1. Type `@` and select the **bot user** (with the #discriminator), not the **role** with the same name
 2. Or use DMs instead — no mention needed
-3. Or set `DISCORD_REQUIRE_MENTION=false` in `~/.freeide/.env`
+3. Or set `DISCORD_REQUIRE_MENTION=false` in `~/.jettstui/.env`
 
 ### Bot joins VC but doesn't hear me
 
@@ -522,7 +522,7 @@ The bot requires an @mention by default in server channels. Make sure you:
 
 - Verify STT is available: install `faster-whisper` (no key needed) or set `GROQ_API_KEY` / `VOICE_TOOLS_OPENAI_KEY`
 - Check the LLM model is configured and accessible
-- Review gateway logs: `tail -f ~/.freeide/logs/gateway.log`
+- Review gateway logs: `tail -f ~/.jettstui/logs/gateway.log`
 
 ### Bot responds in text but not in voice channel
 

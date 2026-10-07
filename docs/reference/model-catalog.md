@@ -6,9 +6,9 @@ description: Offline fallbacks and silent defaults for provider model discovery.
 
 # Model Catalog
 
-Jetts-TUI discovers models from each provider's live API. For **OpenRouter**, `GET /api/v1/models` is authoritative: a successful response is shown in full and is never restricted or reordered by this manifest.
+JettsTUI discovers models from each provider's live API. For **OpenRouter**, `GET /api/v1/models` is authoritative: a successful response is shown in full and is never restricted or reordered by this manifest.
 
-This manifest supplies offline recovery and the cost-safe silent default. It is consulted for picker rows only when the live provider endpoint is unreachable or unusable; if the manifest is also unavailable, FreeIDE falls back to the in-repo snapshot that ships with the CLI.
+This manifest supplies offline recovery and the cost-safe silent default. It is consulted for picker rows only when the live provider endpoint is unreachable or unusable; if the manifest is also unavailable, JettsTUI falls back to the in-repo snapshot that ships with the CLI.
 
 ## Live manifest URL
 
@@ -40,23 +40,23 @@ The source of truth is [`resources/model-catalog.json`](../../resources/model-ca
 
 Field notes:
 
-- **`version`** — integer schema version. Future schemas bump this; FreeIDE refuses manifests with versions it doesn't understand and falls back to the hardcoded snapshot.
-- **`metadata`** — free-form dict at the manifest, provider, and model level. Any keys. FreeIDE ignores unknown fields, so you can annotate entries (`"tier": "paid"`, `"tags": [...]`, etc.) without coordinating a schema change.
+- **`version`** — integer schema version. Future schemas bump this; JettsTUI refuses manifests with versions it doesn't understand and falls back to the hardcoded snapshot.
+- **`metadata`** — free-form dict at the manifest, provider, and model level. Any keys. JettsTUI ignores unknown fields, so you can annotate entries (`"tier": "paid"`, `"tags": [...]`, etc.) without coordinating a schema change.
 - **`description`** — OpenRouter-only. Drives picker badge text (`"recommended"`, `"free"`, `"default"`, or empty).
-- **`default`** — exactly one entry per provider may carry `"default": true`. That model is the **silent default**: what FreeIDE lands on when the user never selected a model (GUI onboarding confirm card, `provider` configured with no `model`, empty `model.default`). Read cache-only at runtime (`get_default_model_from_cache`) so hot resolution paths never hit the network; when no cached manifest exists, FreeIDE falls back to the in-repo `PREFERRED_SILENT_DEFAULT_MODEL` constant, which must match the labeled entry. This lets maintainers rotate the silent default without shipping a release. It is deliberately a capable low-cost model, never the priciest flagship.
+- **`default`** — exactly one entry per provider may carry `"default": true`. That model is the **silent default**: what JettsTUI lands on when the user never selected a model (GUI onboarding confirm card, `provider` configured with no `model`, empty `model.default`). Read cache-only at runtime (`get_default_model_from_cache`) so hot resolution paths never hit the network; when no cached manifest exists, JettsTUI falls back to the in-repo `PREFERRED_SILENT_DEFAULT_MODEL` constant, which must match the labeled entry. This lets maintainers rotate the silent default without shipping a release. It is deliberately a capable low-cost model, never the priciest flagship.
 - **Pricing and context length** are NOT in the manifest. Those come from live provider APIs (`/v1/models` endpoints, models.dev) at fetch time.
 
 ## Fetch behavior
 
 | When | What happens |
 |---|---|
-| `/model` or `freeide model` | Uses the provider's live/cached endpoint inventory; this manifest is fallback-only |
+| `/model` or `jettstui model` | Uses the provider's live/cached endpoint inventory; this manifest is fallback-only |
 | Disk cache fresh (< TTL) | No network hit |
 | Network failure with cache | Silent fallback to cache, one log line |
 | Network failure, no cache | Silent fallback to in-repo snapshot |
 | Manifest fails schema validation | Treated as unreachable |
 
-Cache location: `~/.freeide/cache/model_catalog.json`.
+Cache location: `~/.jettstui/cache/model_catalog.json`.
 
 ## Config
 
@@ -95,7 +95,7 @@ model_catalog:
     - openai
 ```
 
-The exclusion is matched case-insensitively against every key a provider can surface under — the FreeIDE id and models.dev id (built-in mapped providers), the overlay pid and resolved FreeIDE slug (overlay providers), and the canonical slug (canonical providers) — so a single entry like `copilot` hides the provider regardless of which section emits it. It is honored by every `/model` picker surface: the gateway interactive/text pickers, the TUI picker, and the interactive `freeide model` CLI picker. An empty list (or omitting the key) has no effect.
+The exclusion is matched case-insensitively against every key a provider can surface under — the JettsTUI id and models.dev id (built-in mapped providers), the overlay pid and resolved JettsTUI slug (overlay providers), and the canonical slug (canonical providers) — so a single entry like `copilot` hides the provider regardless of which section emits it. It is honored by every `/model` picker surface: the gateway interactive/text pickers, the TUI picker, and the interactive `jettstui model` CLI picker. An empty list (or omitting the key) has no effect.
 
 ## Updating the manifest
 
@@ -103,7 +103,7 @@ Maintainers:
 
 ```bash
 # Re-generate from the in-repo hardcoded lists (keeps manifest in sync after
-# editing OPENROUTER_MODELS in freeide_cli/models.py).
+# editing OPENROUTER_MODELS in jettstui/models.py).
 python scripts/build_model_catalog.py
 ```
 

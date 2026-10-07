@@ -1,14 +1,14 @@
 ---
 sidebar_position: 2
 title: "TUI"
-description: "Launch the modern terminal UI for Jetts-TUI — mouse-friendly, rich overlays, and non-blocking input."
+description: "Launch the modern terminal UI for JettsTUI — mouse-friendly, rich overlays, and non-blocking input."
 ---
 
 # TUI
 
-The TUI is Jetts-TUI's interactive terminal experience, backed by the Python agent runtime. It combines the agent, sessions, and slash commands in one clean, responsive surface.
+The TUI is JettsTUI's interactive terminal experience, backed by the Python agent runtime. It combines the agent, sessions, and slash commands in one clean, responsive surface.
 
-It's the recommended way to run Jetts-TUI interactively.
+It's the recommended way to run JettsTUI interactively.
 
 ## Launch
 
@@ -31,7 +31,7 @@ jetts-tui --dev
 The legacy environment switch remains accepted:
 
 ```bash
-export FREEIDE_TUI=1
+export JETTSTUI_TUI=1
 jetts-tui          # TUI (already the default)
 jetts-tui chat     # same
 ```
@@ -49,7 +49,7 @@ The [CLI command guide](cli.md) documents slash commands, quick commands, skill 
 
 ## Why the TUI
 
-- **Instant first frame** — the banner paints before the app finishes loading, so the terminal never feels frozen while Jetts-TUI is starting.
+- **Instant first frame** — the banner paints before the app finishes loading, so the terminal never feels frozen while JettsTUI is starting.
 - **Non-blocking input** — type and queue messages before the session is ready. Your first prompt sends the moment the agent comes online.
 - **Rich overlays** — model picker, session picker, approval and clarification prompts all render as modal panels rather than inline flows.
 - **Live session panel** — tools and skills fill in progressively as they initialize.
@@ -77,7 +77,7 @@ Click anywhere on a section header (or its chevron) to toggle it. The Tools list
 - **Node.js** ≥ 20 — the TUI runs as a subprocess launched from the Python CLI. `jetts-tui doctor` verifies this.
 - **TTY** — interactive sessions require a terminal. Piped and automated invocations use the headless runner.
 
-On first launch Jetts-TUI installs the TUI's Node dependencies into `ui-tui/node_modules` (one-time, a few seconds). Subsequent launches are fast. If you pull a new Jetts-TUI version, the TUI bundle is rebuilt automatically when sources are newer than the dist.
+On first launch JettsTUI installs the TUI's Node dependencies into `ui-tui/node_modules` (one-time, a few seconds). Subsequent launches are fast. If you pull a new JettsTUI version, the TUI bundle is rebuilt automatically when sources are newer than the dist.
 
 :::tip Working across git worktrees?
 Contributors who run `jetts-tui --tui --dev` from many worktrees can share one `node_modules` instead of installing per checkout — see [TUI & Desktop from Worktrees](../developer-guide/worktree-ui-dev.md).
@@ -85,10 +85,10 @@ Contributors who run `jetts-tui --tui --dev` from many worktrees can share one `
 
 ### External prebuild
 
-Distributions that ship a prebuilt bundle (Nix, system packages) can point Jetts-TUI at it:
+Distributions that ship a prebuilt bundle (Nix, system packages) can point JettsTUI at it:
 
 ```bash
-export FREEIDE_TUI_DIR=/path/to/prebuilt/ui-tui
+export JETTSTUI_TUI_DIR=/path/to/prebuilt/ui-tui
 jetts-tui
 ```
 
@@ -119,7 +119,7 @@ All slash commands work unchanged. A few are TUI-owned — they produce richer o
 | `/details` | Toggle verbose tool-call details (global or per-section) |
 | `/usage` | Rich token / cost / context panel |
 | `/agents` (alias `/tasks`) | Observability overlay — live subagent tree with kill/pause controls, per-branch cost / token / file rollups, turn-by-turn history |
-| `/reload` | Re-reads `~/.freeide/.env` into the running TUI process so newly added API keys take effect without a restart |
+| `/reload` | Re-reads `~/.jettstui/.env` into the running TUI process so newly added API keys take effect without a restart |
 | `/mouse [on\|off\|toggle\|wheel\|buttons\|all]` | Pick a mouse tracking preset at runtime (also persists to `display.mouse_tracking` in `config.yaml`). `wheel` (1000+1006) keeps scroll-wheel scrolling without the hover events that make tmux spam "No image in clipboard" over the prompt row; `buttons` adds drag-to-select; `all` is the default with hover-driven UI. |
 
 Every other slash command, including installed skills, quick commands, and personality toggles, is available through the shared command registry. See [Slash Commands Reference](../reference/slash-commands.md).
@@ -135,7 +135,7 @@ Open it with any of these:
 - `/sessions new` to create a fresh live session immediately.
 - Click the `N live sessions` count in the status line.
 
-![Jetts-TUI Session Orchestrator with one live session and a +new row](../assets/img/docs/tui-session-orchestrator/session-orchestrator.png)
+![JettsTUI Session Orchestrator with one live session and a +new row](../assets/img/docs/tui-session-orchestrator/session-orchestrator.png)
 
 [Session Orchestrator demo video](../assets/img/docs/tui-session-orchestrator/session-orchestrator-demo.mp4)
 
@@ -170,19 +170,19 @@ This is always on; unsupported syntax remains copyable as literal TeX.
 
 The TUI auto-detects light terminals and swaps to the light theme accordingly. Detection works in three layers:
 
-1. `FREEIDE_TUI_THEME` env var — highest priority. Values: `light`, `dark`, or a raw 6-char background hex (e.g. `ffffff`, `1a1a2e`).
+1. `JETTSTUI_TUI_THEME` env var — highest priority. Values: `light`, `dark`, or a raw 6-char background hex (e.g. `ffffff`, `1a1a2e`).
 2. `COLORFGBG` env var — the classic "what's my background color?" hint used by xterm-derived terminals.
 3. Terminal background probe via OSC 11 — works on modern terminals (Ghostty, Warp, iTerm2, WezTerm, Kitty) that don't set `COLORFGBG`.
 
 If you want the light theme permanently regardless of terminal:
 
 ```bash
-export FREEIDE_TUI_THEME=light
+export JETTSTUI_TUI_THEME=light
 ```
 
 ## Busy indicator styles
 
-The status-bar busy indicator is pluggable — the default rotates Jetts-TUI' kawaii face palette every 2.5 seconds during agent work. Pick a different style via config or the `/indicator` slash command:
+The status-bar busy indicator is pluggable — the default rotates JettsTUI' kawaii face palette every 2.5 seconds during agent work. Pick a different style via config or the `/indicator` slash command:
 
 ```yaml
 display:
@@ -196,9 +196,9 @@ Or in-session: `/indicator emoji` (etc.). Styles ship with matched glyph widths 
 By default, `jetts-tui --tui` starts a fresh session each launch. To re-attach to the most recent TUI session automatically (useful when your terminal or SSH connection drops unexpectedly), opt in:
 
 ```bash
-export FREEIDE_TUI_RESUME=1          # most-recent TUI session
+export JETTSTUI_TUI_RESUME=1          # most-recent TUI session
 # or:
-export FREEIDE_TUI_RESUME=<session-id>   # specific session
+export JETTSTUI_TUI_RESUME=<session-id>   # specific session
 ```
 
 Unset the variable or pass `--resume <id>` explicitly to override on a per-launch basis.
@@ -219,15 +219,15 @@ Status-bar colors and thresholds come from the shared skin system — see [Skins
 
 The status line also shows:
 
-- **Working directory with git branch** — `~/projects/freeide-agent (docs/two-week-gap-sweep)`. The branch suffix updates when you `git checkout` in a side terminal (mtime-cached) so the TUI reflects your actual active branch, not whatever it was at launch.
+- **Working directory with git branch** — `~/projects/jettstui (docs/two-week-gap-sweep)`. The branch suffix updates when you `git checkout` in a side terminal (mtime-cached) so the TUI reflects your actual active branch, not whatever it was at launch.
 - **Per-prompt elapsed time** — `⏱ 12s/3m 45s` while the turn is running (live), frozen to `⏲ 32s / 3m 45s` after the turn completes. First number is time since last user message; second is total session duration. Resets on every new prompt.
 - **`🗜️ N`** — number of times the running session has been auto-compressed. Appears once the first compression fires.
 - **`▶ N`** — number of `/background` tasks currently running in this session. Appears whenever at least one task is in flight.
-- **`⚠ YOLO`** — visible warning whenever YOLO mode is on (`jetts-tui --yolo`, `/yolo`, or `FREEIDE_YOLO_MODE=1`). The same badge also appears in the startup banner so you cannot launch an auto-approving session without noticing.
+- **`⚠ YOLO`** — visible warning whenever YOLO mode is on (`jetts-tui --yolo`, `/yolo`, or `JETTSTUI_YOLO_MODE=1`). The same badge also appears in the startup banner so you cannot launch an auto-approving session without noticing.
 
 ## Configuration
 
-The TUI respects all standard Jetts-TUI config: `~/.freeide/config.yaml`, profiles, personalities, skins, quick commands, credential pools, memory providers, tool/skill enablement. No TUI-specific config file exists.
+The TUI respects all standard JettsTUI config: `~/.jettstui/config.yaml`, profiles, personalities, skins, quick commands, credential pools, memory providers, tool/skill enablement. No TUI-specific config file exists.
 
 A handful of keys tune the TUI surface specifically:
 
@@ -283,7 +283,7 @@ existing configs keep working unchanged.
 
 ## Sessions
 
-Sessions are stored in `~/.freeide/state.db`, so terminal, desktop, dashboard, and messaging surfaces can resume the same conversation history. Older sessions may retain a legacy source tag.
+Sessions are stored in `~/.jettstui/state.db`, so terminal, desktop, dashboard, and messaging surfaces can resume the same conversation history. Older sessions may retain a legacy source tag.
 
 See [Sessions](sessions.md) for lifecycle, search, compression, and export.
 
@@ -291,17 +291,17 @@ See [Sessions](sessions.md) for lifecycle, search, compression, and export.
 
 By default the TUI spawns its own in-process gateway, so each TUI instance is self-contained — there's nothing to configure.
 
-You may see a `FREEIDE_TUI_GATEWAY_URL` env var referenced in the codebase or logs. This is an **internal wiring detail of the web dashboard**, not a user-facing remote-attach knob. When you open the dashboard's "Chat" tab (`jetts-tui dashboard` → `/chat`), the dashboard's web server spawns an embedded TUI child process and injects `FREEIDE_TUI_GATEWAY_URL` so that child attaches to the dashboard's own in-process `tui_gateway` over a loopback WebSocket (`/api/ws`). The `/api/ws` endpoint exists only inside the dashboard server (`freeide_cli/web_server.py`) and is bound to that process's lifetime and auth.
+You may see a `JETTSTUI_TUI_GATEWAY_URL` env var referenced in the codebase or logs. This is an **internal wiring detail of the web dashboard**, not a user-facing remote-attach knob. When you open the dashboard's "Chat" tab (`jetts-tui dashboard` → `/chat`), the dashboard's web server spawns an embedded TUI child process and injects `JETTSTUI_TUI_GATEWAY_URL` so that child attaches to the dashboard's own in-process `tui_gateway` over a loopback WebSocket (`/api/ws`). The `/api/ws` endpoint exists only inside the dashboard server (`jettstui/web_server.py`) and is bound to that process's lifetime and auth.
 
-There is no general "point any TUI at any standalone gateway port" mode. In particular, the OpenAI-compatible API server (`jetts-tui gateway` / the `api_server` platform) does **not** serve `/api/ws` — it's the model-backend surface (`/v1/chat/completions`, `/v1/models`, …) and deliberately does not expose the TUI's JSON-RPC control channel. Setting `FREEIDE_TUI_GATEWAY_URL` to that port will 404.
+There is no general "point any TUI at any standalone gateway port" mode. In particular, the OpenAI-compatible API server (`jetts-tui gateway` / the `api_server` platform) does **not** serve `/api/ws` — it's the model-backend surface (`/v1/chat/completions`, `/v1/models`, …) and deliberately does not expose the TUI's JSON-RPC control channel. Setting `JETTSTUI_TUI_GATEWAY_URL` to that port will 404.
 
-If you want multiple surfaces to share one set of sessions, use the shared `~/.freeide/state.db` (see [Sessions](sessions.md)) or the web dashboard's embedded chat (see [Web Dashboard](features/web-dashboard.md#chat)) — not a hand-set gateway URL.
+If you want multiple surfaces to share one set of sessions, use the shared `~/.jettstui/state.db` (see [Sessions](sessions.md)) or the web dashboard's embedded chat (see [Web Dashboard](features/web-dashboard.md#chat)) — not a hand-set gateway URL.
 
 ## Compatibility
 
-Launching `jetts-tui` starts the TUI. The `--tui` flag and `FREEIDE_TUI=1` remain supported for older scripts, but are no longer necessary.
+Launching `jetts-tui` starts the TUI. The `--tui` flag and `JETTSTUI_TUI=1` remain supported for older scripts, but are no longer necessary.
 
-If the TUI cannot launch because Node or its bundle is unavailable, Jetts-TUI prints an actionable diagnostic. Run `jetts-tui doctor` to repair the local runtime.
+If the TUI cannot launch because Node or its bundle is unavailable, JettsTUI prints an actionable diagnostic. Run `jetts-tui doctor` to repair the local runtime.
 
 ## See also
 

@@ -1,12 +1,12 @@
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { SessionInfo } from '@/types/freeide'
+import type { SessionInfo } from '@/types/jettstui'
 
 const patch = vi.fn<(id: string, pinned: boolean, profile?: null | string) => Promise<{ ok: boolean }>>(() =>
   Promise.resolve({ ok: true })
 )
 
-vi.mock('@/freeide', () => ({
+vi.mock('@/jettstui', () => ({
   setSessionPinnedRemote: (id: string, pinned: boolean, profile?: null | string) => patch(id, pinned, profile)
 }))
 
@@ -22,7 +22,7 @@ const flush = () => Promise.resolve()
 
 beforeAll(() => {
   ;(globalThis as { window?: unknown }).window ??= {}
-  ;(window as unknown as { freeideDesktop: unknown }).freeideDesktop = {}
+  ;(window as unknown as { jettstuiDesktop: unknown }).jettstuiDesktop = {}
   // Attach the listeners once — module state is process-global.
   watchSessionPins()
 })

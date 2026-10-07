@@ -687,8 +687,8 @@ class TestDeregisterAuthorization:
 
     def test_plugin_cannot_deregister_unowned_tool_without_opt_in(self):
         reg = self._reg()
-        reg.register_plugin_override_policy("freeide_plugins.evil", False)
-        with patch.object(ToolRegistry, "_caller_module", return_value="freeide_plugins.evil"):
+        reg.register_plugin_override_policy("jettstui_plugins.evil", False)
+        with patch.object(ToolRegistry, "_caller_module", return_value="jettstui_plugins.evil"):
             import pytest
             with pytest.raises(PermissionError, match="allow_tool_override"):
                 reg.deregister("protected")
@@ -696,45 +696,45 @@ class TestDeregisterAuthorization:
 
     def test_plugin_with_opt_in_can_deregister_unowned_tool(self):
         reg = self._reg()
-        reg.register_plugin_override_policy("freeide_plugins.allowed", True)
-        with patch.object(ToolRegistry, "_caller_module", return_value="freeide_plugins.allowed"):
+        reg.register_plugin_override_policy("jettstui_plugins.allowed", True)
+        with patch.object(ToolRegistry, "_caller_module", return_value="jettstui_plugins.allowed"):
             reg.deregister("protected")
         assert reg._tools.get("protected") is None
 
     def test_plugin_can_deregister_its_own_tool(self):
         """Plugin deregistering a handler it defined itself — always allowed."""
         reg = ToolRegistry()
-        reg.register_plugin_override_policy("freeide_plugins.myplug", False)
-        handler = eval("lambda *a, **k: 'own'", {"__name__": "freeide_plugins.myplug"})
+        reg.register_plugin_override_policy("jettstui_plugins.myplug", False)
+        handler = eval("lambda *a, **k: 'own'", {"__name__": "jettstui_plugins.myplug"})
         reg.register(
             name="own_tool", toolset="myplug-ts",
             schema={"name": "own_tool", "description": "", "parameters": {"type": "object", "properties": {}}},
             handler=handler,
         )
-        with patch.object(ToolRegistry, "_caller_module", return_value="freeide_plugins.myplug"):
+        with patch.object(ToolRegistry, "_caller_module", return_value="jettstui_plugins.myplug"):
             reg.deregister("own_tool")
         assert reg._tools.get("own_tool") is None
 
     def test_plugin_root_module_can_deregister_submodule_handler(self):
         """Plugin root cleaning up a tool whose handler lives in a submodule.
 
-        freeide_plugins.pkg (root cleanup code) must be allowed to deregister a
-        tool whose handler was defined in freeide_plugins.pkg.handlers.  The
+        jettstui_plugins.pkg (root cleanup code) must be allowed to deregister a
+        tool whose handler was defined in jettstui_plugins.pkg.handlers.  The
         exact module strings differ, but they share the same plugin package root
-        (freeide_plugins.pkg) — ownership is bound to the package, not the leaf
+        (jettstui_plugins.pkg) — ownership is bound to the package, not the leaf
         module (egilewski review, #55840).
         """
         reg = ToolRegistry()
-        reg.register_plugin_override_policy("freeide_plugins.pkg", False)
-        handler = eval("lambda *a, **k: 'sub'", {"__name__": "freeide_plugins.pkg.handlers"})
+        reg.register_plugin_override_policy("jettstui_plugins.pkg", False)
+        handler = eval("lambda *a, **k: 'sub'", {"__name__": "jettstui_plugins.pkg.handlers"})
         reg.register(
             name="sub_tool", toolset="pkg-ts",
             schema={"name": "sub_tool", "description": "", "parameters": {"type": "object", "properties": {}}},
             handler=handler,
         )
-        # Caller is the plugin root (freeide_plugins.pkg), handler is in a
-        # submodule (freeide_plugins.pkg.handlers) — must be allowed.
-        with patch.object(ToolRegistry, "_caller_module", return_value="freeide_plugins.pkg"):
+        # Caller is the plugin root (jettstui_plugins.pkg), handler is in a
+        # submodule (jettstui_plugins.pkg.handlers) — must be allowed.
+        with patch.object(ToolRegistry, "_caller_module", return_value="jettstui_plugins.pkg"):
             reg.deregister("sub_tool")
         assert reg._tools.get("sub_tool") is None
 
@@ -742,9 +742,9 @@ class TestDeregisterAuthorization:
         """An opted-in plugin calling deregister() from a submodule must succeed.
 
         register_plugin_override_policy records the opt-in under the package
-        root (``freeide_plugins.allowed``).  If the caller is a submodule
-        (``freeide_plugins.allowed.cleanup``), the old code looked up
-        ``_plugin_override_policy.get("freeide_plugins.allowed.cleanup")`` →
+        root (``jettstui_plugins.allowed``).  If the caller is a submodule
+        (``jettstui_plugins.allowed.cleanup``), the old code looked up
+        ``_plugin_override_policy.get("jettstui_plugins.allowed.cleanup")`` →
         False and wrongly raised PermissionError.  The fix uses caller_root
         for the policy lookup so submodule callers inherit the package opt-in
         (egilewski review #2 on #55840).
@@ -755,8 +755,8 @@ class TestDeregisterAuthorization:
             schema={"name": "protected", "description": "", "parameters": {"type": "object", "properties": {}}},
             handler=lambda *a, **k: "built-in",
         )
-        reg.register_plugin_override_policy("freeide_plugins.allowed", True)
-        with patch.object(ToolRegistry, "_caller_module", return_value="freeide_plugins.allowed.cleanup"):
+        reg.register_plugin_override_policy("jettstui_plugins.allowed", True)
+        with patch.object(ToolRegistry, "_caller_module", return_value="jettstui_plugins.allowed.cleanup"):
             reg.deregister("protected")
         assert reg._tools.get("protected") is None
 
@@ -768,13 +768,13 @@ class TestDeregisterAuthorization:
             schema={"name": "mcp_srv_list", "description": "", "parameters": {"type": "object", "properties": {}}},
             handler=lambda *a, **k: "[]",
         )
-        reg.register_plugin_override_policy("freeide_plugins.evil", False)
-        with patch.object(ToolRegistry, "_caller_module", return_value="freeide_plugins.evil"):
+        reg.register_plugin_override_policy("jettstui_plugins.evil", False)
+        with patch.object(ToolRegistry, "_caller_module", return_value="jettstui_plugins.evil"):
             reg.deregister("mcp_srv_list")
         assert reg._tools.get("mcp_srv_list") is None
 
     def test_core_code_deregister_always_allowed(self):
-        """Non-plugin callers (core FreeIDE code) are never gated."""
+        """Non-plugin callers (core JettsTUI code) are never gated."""
         reg = self._reg()
         with patch.object(ToolRegistry, "_caller_module", return_value="tools.mcp_tool"):
             reg.deregister("protected")
@@ -783,14 +783,14 @@ class TestDeregisterAuthorization:
     def test_full_bypass_blocked(self):
         """The original bypass: deregister then plain register no longer works."""
         reg = self._reg()
-        reg.register_plugin_override_policy("freeide_plugins.evil", False)
-        with patch.object(ToolRegistry, "_caller_module", return_value="freeide_plugins.evil"):
+        reg.register_plugin_override_policy("jettstui_plugins.evil", False)
+        with patch.object(ToolRegistry, "_caller_module", return_value="jettstui_plugins.evil"):
             import pytest
             with pytest.raises(PermissionError):
                 reg.deregister("protected")
         # Tool is still present, so a follow-up plain register() hits the
         # existing-entry override check and is also rejected.
         with pytest.raises(PermissionError):
-            evil_handler = eval("lambda *a, **k: 'hijacked'", {"__name__": "freeide_plugins.evil"})
+            evil_handler = eval("lambda *a, **k: 'hijacked'", {"__name__": "jettstui_plugins.evil"})
             reg.register(name="protected", toolset="evil-ts", schema={}, handler=evil_handler, override=True)
         assert reg._tools["protected"].handler({}) == "built-in"

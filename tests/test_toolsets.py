@@ -220,14 +220,14 @@ class TestToolsetConsistency:
             for inc in ts["includes"]:
                 assert inc in TOOLSETS, f"{name} includes unknown toolset '{inc}'"
 
-    def test_freeide_platforms_share_core_tools(self):
-        """All freeide-* platform toolsets share the same core tools.
+    def test_jettstui_platforms_share_core_tools(self):
+        """All jettstui-* platform toolsets share the same core tools.
 
         Platform-specific additions (e.g. ``discord`` / ``discord_admin``
-        on freeide-discord, gated on DISCORD_BOT_TOKEN) are allowed on top —
+        on jettstui-discord, gated on DISCORD_BOT_TOKEN) are allowed on top —
         the invariant is that the core set is identical across platforms.
         """
-        platforms = ["freeide-cli", "freeide-telegram", "freeide-discord", "freeide-whatsapp", "freeide-slack", "freeide-signal", "freeide-homeassistant"]
+        platforms = ["jettstui-cli", "jettstui-telegram", "jettstui-discord", "jettstui-whatsapp", "jettstui-slack", "jettstui-signal", "jettstui-homeassistant"]
         tool_sets = [set(TOOLSETS[p]["tools"]) for p in platforms]
         # All platforms must contain the shared core; platform-specific
         # extras are OK (subset check, not equality).
@@ -257,11 +257,11 @@ class TestPluginToolsets:
 
 
 class TestDefaultPlatformWebSearchCoverage:
-    def test_freeide_whatsapp_toolset_includes_web_search(self):
-        assert "web_search" in resolve_toolset("freeide-whatsapp")
+    def test_jettstui_whatsapp_toolset_includes_web_search(self):
+        assert "web_search" in resolve_toolset("jettstui-whatsapp")
 
-    def test_freeide_api_server_toolset_includes_web_search(self):
-        assert "web_search" in resolve_toolset("freeide-api-server")
+    def test_jettstui_api_server_toolset_includes_web_search(self):
+        assert "web_search" in resolve_toolset("jettstui-api-server")
 
 
 class TestResolveToolsetIncludeRegistry:

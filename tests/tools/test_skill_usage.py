@@ -8,8 +8,8 @@ from pathlib import Path
 import pytest
 
 
-def _bump_view_many(freeide_home: str, skill_name: str, iterations: int) -> None:
-    os.environ["FREEIDE_HOME"] = freeide_home
+def _bump_view_many(jettstui_home: str, skill_name: str, iterations: int) -> None:
+    os.environ["JETTSTUI_HOME"] = jettstui_home
     from tools.skill_usage import bump_view
 
     for _ in range(iterations):
@@ -18,18 +18,18 @@ def _bump_view_many(freeide_home: str, skill_name: str, iterations: int) -> None
 
 @pytest.fixture
 def skills_home(tmp_path, monkeypatch):
-    """Isolated FREEIDE_HOME with a clean skills/ dir for each test.
+    """Isolated JETTSTUI_HOME with a clean skills/ dir for each test.
 
     Pins ``curator.prune_builtins`` OFF so the bundled/hub-protection tests in
     this module exercise the off-path semantics regardless of the shipped
     default. Tests that want built-ins to be curation-eligible flip it back on
     explicitly via ``monkeypatch.setattr(mod, "_prune_builtins_enabled", ...)``.
     """
-    home = tmp_path / ".freeide"
+    home = tmp_path / ".jettstui"
     home.mkdir()
     (home / "skills").mkdir()
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
-    monkeypatch.setenv("FREEIDE_HOME", str(home))
+    monkeypatch.setenv("JETTSTUI_HOME", str(home))
     # Force skill_usage module to re-resolve paths per test
     import importlib
     import tools.skill_usage as mod

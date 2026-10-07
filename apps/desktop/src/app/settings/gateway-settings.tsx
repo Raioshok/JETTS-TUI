@@ -33,7 +33,7 @@ interface GatewaySettingsState {
   sshUser: string
   sshPort: number | null
   sshKeyPath: string
-  sshRemoteFreeIDEPath: string
+  sshRemoteJettsTUIPath: string
 }
 
 const SSH_HOST_CUSTOM = '__custom__'
@@ -50,7 +50,7 @@ const EMPTY_STATE: GatewaySettingsState = {
   sshUser: '',
   sshPort: null,
   sshKeyPath: '',
-  sshRemoteFreeIDEPath: ''
+  sshRemoteJettsTUIPath: ''
 }
 
 export function normalizeSavedGatewayMode(mode: Mode | 'cloud'): Mode {
@@ -170,7 +170,7 @@ export function GatewaySettings({ embedded = false }: { embedded?: boolean } = {
 
   useEffect(() => {
     let cancelled = false
-    const desktop = window.freeideDesktop
+    const desktop = window.jettstuiDesktop
 
     if (!desktop?.getConnectionConfig) {
       setLoading(false)
@@ -218,7 +218,7 @@ export function GatewaySettings({ embedded = false }: { embedded?: boolean } = {
       return
     }
 
-    const desktop = window.freeideDesktop
+    const desktop = window.jettstuiDesktop
 
     if (!desktop?.probeConnectionConfig) {
       return
@@ -325,12 +325,12 @@ export function GatewaySettings({ embedded = false }: { embedded?: boolean } = {
   }, [state.sshHost, sshHostSuggestions])
 
   useEffect(() => {
-    if (state.mode !== 'ssh' || !window.freeideDesktop?.sshConfigHosts) {
+    if (state.mode !== 'ssh' || !window.jettstuiDesktop?.sshConfigHosts) {
       return
     }
 
     let cancelled = false
-    void window.freeideDesktop
+    void window.jettstuiDesktop
       .sshConfigHosts()
       .then(result => {
         if (!cancelled) {
@@ -353,7 +353,7 @@ export function GatewaySettings({ embedded = false }: { embedded?: boolean } = {
     saveSeq.current += 1
     signingSeq.current += 1
     setLastTest(null)
-  }, [scope, state.mode, state.sshHost, state.sshUser, state.sshPort, state.sshKeyPath, state.sshRemoteFreeIDEPath])
+  }, [scope, state.mode, state.sshHost, state.sshUser, state.sshPort, state.sshKeyPath, state.sshRemoteJettsTUIPath])
 
   const oauthConnected = state.remoteOauthConnected
 
@@ -379,7 +379,7 @@ export function GatewaySettings({ embedded = false }: { embedded?: boolean } = {
     sshUser: state.sshUser.trim() || undefined,
     sshPort: state.sshPort,
     sshKeyPath: state.sshKeyPath.trim() || undefined,
-    sshRemoteFreeIDEPath: state.sshRemoteFreeIDEPath.trim()
+    sshRemoteJettsTUIPath: state.sshRemoteJettsTUIPath.trim()
   })
 
   const save = async (apply: boolean) => {
@@ -399,8 +399,8 @@ export function GatewaySettings({ embedded = false }: { embedded?: boolean } = {
 
     try {
       const next = apply
-        ? await window.freeideDesktop.applyConnectionConfig(payload())
-        : await window.freeideDesktop.saveConnectionConfig(payload())
+        ? await window.jettstuiDesktop.applyConnectionConfig(payload())
+        : await window.jettstuiDesktop.saveConnectionConfig(payload())
 
       if (seq !== saveSeq.current) {
         return
@@ -422,7 +422,7 @@ export function GatewaySettings({ embedded = false }: { embedded?: boolean } = {
 
       const errors = {
         'auth-failed': g.sshErrAuth,
-        'freeide-not-found': g.sshErrNotInstalled,
+        'jettstui-not-found': g.sshErrNotInstalled,
         'host-key-changed': g.sshErrHostKey,
         timeout: g.sshErrTimeout,
         unreachable: g.sshErrUnreachable,
@@ -463,7 +463,7 @@ export function GatewaySettings({ embedded = false }: { embedded?: boolean } = {
     try {
       // Save (don't apply/restart) so the login window has a URL to use and the
       // oauth mode is persisted, without yet flipping the live connection.
-      const saved = await window.freeideDesktop.saveConnectionConfig({
+      const saved = await window.jettstuiDesktop.saveConnectionConfig({
         mode: state.mode,
         profile: scope ?? undefined,
         remoteAuthMode: 'oauth',
@@ -476,14 +476,14 @@ export function GatewaySettings({ embedded = false }: { embedded?: boolean } = {
 
       acceptSavedConfig(saved)
 
-      const result = await window.freeideDesktop.oauthLoginConnectionConfig(trimmedUrl)
+      const result = await window.jettstuiDesktop.oauthLoginConnectionConfig(trimmedUrl)
 
       if (seq !== signingSeq.current) {
         return
       }
 
       if (result.connected) {
-        const refreshed = await window.freeideDesktop.getConnectionConfig(scope)
+        const refreshed = await window.jettstuiDesktop.getConnectionConfig(scope)
         acceptSavedConfig(refreshed)
         notify({ kind: 'success', title: g.signedIn, message: g.connectedTo(providerLabel) })
       } else {
@@ -509,8 +509,8 @@ export function GatewaySettings({ embedded = false }: { embedded?: boolean } = {
     setSigningIn(true)
 
     try {
-      await window.freeideDesktop.oauthLogoutConnectionConfig(trimmedUrl || undefined)
-      const refreshed = await window.freeideDesktop.getConnectionConfig(scope)
+      await window.jettstuiDesktop.oauthLogoutConnectionConfig(trimmedUrl || undefined)
+      const refreshed = await window.jettstuiDesktop.getConnectionConfig(scope)
 
       if (seq !== signingSeq.current) {
         return
@@ -530,14 +530,14 @@ export function GatewaySettings({ embedded = false }: { embedded?: boolean } = {
   }
 
   const resolveSshHost = async (host: string) => {
-    if (!host || !window.freeideDesktop?.sshResolveHost) {
+    if (!host || !window.jettstuiDesktop?.sshResolveHost) {
       return
     }
 
     const seq = ++sshResolveSeq.current
 
     try {
-      const resolved = await window.freeideDesktop.sshResolveHost(host)
+      const resolved = await window.jettstuiDesktop.sshResolveHost(host)
 
       if (seq !== sshResolveSeq.current) {
         return
@@ -575,7 +575,7 @@ export function GatewaySettings({ embedded = false }: { embedded?: boolean } = {
     setLastTest(null)
 
     try {
-      const result = await window.freeideDesktop.testConnectionConfig(payload())
+      const result = await window.jettstuiDesktop.testConnectionConfig(payload())
 
       if (seq !== sshTestSeq.current) {
         return
@@ -584,7 +584,7 @@ export function GatewaySettings({ embedded = false }: { embedded?: boolean } = {
       if (!result.reachable) {
         const errors = {
           'auth-failed': g.sshErrAuth,
-          'freeide-not-found': g.sshErrNotInstalled,
+          'jettstui-not-found': g.sshErrNotInstalled,
           'host-key-changed': g.sshErrHostKey,
           timeout: g.sshErrTimeout,
           unreachable: g.sshErrUnreachable,
@@ -627,7 +627,7 @@ export function GatewaySettings({ embedded = false }: { embedded?: boolean } = {
     setLastTest(null)
 
     try {
-      const result = await window.freeideDesktop.testConnectionConfig({
+      const result = await window.jettstuiDesktop.testConnectionConfig({
         mode: 'remote',
         profile: scope ?? undefined,
         remoteAuthMode: authMode,
@@ -664,7 +664,7 @@ export function GatewaySettings({ embedded = false }: { embedded?: boolean } = {
     )
   }
 
-  if (!window.freeideDesktop?.getConnectionConfig) {
+  if (!window.jettstuiDesktop?.getConnectionConfig) {
     return <EmptyState description={g.unavailableDesc} title={g.unavailableTitle} />
   }
 
@@ -757,7 +757,7 @@ export function GatewaySettings({ embedded = false }: { embedded?: boolean } = {
                 className={cn('h-8', CONTROL_TEXT)}
                 disabled={state.envOverride}
                 onChange={event => setState(current => ({ ...current, remoteUrl: event.target.value }))}
-                placeholder="https://gateway.example.com/freeide"
+                placeholder="https://gateway.example.com/jettstui"
                 value={state.remoteUrl}
               />
             }
@@ -930,13 +930,13 @@ export function GatewaySettings({ embedded = false }: { embedded?: boolean } = {
             action={
               <Input
                 className={cn('h-8 font-mono', CONTROL_TEXT)}
-                onChange={event => setState(current => ({ ...current, sshRemoteFreeIDEPath: event.target.value }))}
-                placeholder={g.sshFreeIDEPathPlaceholder}
-                value={state.sshRemoteFreeIDEPath}
+                onChange={event => setState(current => ({ ...current, sshRemoteJettsTUIPath: event.target.value }))}
+                placeholder={g.sshJettsTUIPathPlaceholder}
+                value={state.sshRemoteJettsTUIPath}
               />
             }
-            description={g.sshFreeIDEPathDesc}
-            title={g.sshFreeIDEPathTitle}
+            description={g.sshJettsTUIPathDesc}
+            title={g.sshJettsTUIPathTitle}
           />
         </div>
       ) : null}
@@ -987,7 +987,7 @@ export function GatewaySettings({ embedded = false }: { embedded?: boolean } = {
         <div className="mt-6 grid gap-1">
           <ListRow
             action={
-              <Button onClick={() => void window.freeideDesktop?.revealLogs()} size="sm" variant="textStrong">
+              <Button onClick={() => void window.jettstuiDesktop?.revealLogs()} size="sm" variant="textStrong">
                 <FileText />
                 {g.openLogs}
               </Button>

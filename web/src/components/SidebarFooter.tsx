@@ -21,7 +21,7 @@ export function SidebarFooter({ status }: SidebarFooterProps) {
       </Typography>
 
       <a
-        href="https://freeide.dev"
+        href="https://github.com/Raioshok/JETTS-TUI"
         target="_blank"
         rel="noopener noreferrer"
         className={cn(

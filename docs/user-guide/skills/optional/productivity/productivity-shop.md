@@ -14,10 +14,10 @@ Shop catalog search, checkout, order tracking, returns.
 
 | | |
 |---|---|
-| Source | Optional — install with `freeide skills install official/productivity/shop` |
+| Source | Optional — install with `jettstui skills install official/productivity/shop` |
 | Path | `optional-skills/productivity/shop` |
 | Version | `1.0.1` |
-| Author | Joe Rinaldi Johnson (joerj123), FreeIDE Agent |
+| Author | Joe Rinaldi Johnson (joerj123), JettsTUI |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `Shopping`, `E-commerce`, `Shop`, `Products`, `Orders`, `Returns`, `Checkout`, `Reorder` |
@@ -26,7 +26,7 @@ Shop catalog search, checkout, order tracking, returns.
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that FreeIDE loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that JettsTUI loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Shop CLI Skill
@@ -172,7 +172,7 @@ Options: available in 4 colors.
 | WhatsApp | Image as a media message, then an interactive message with the product info. No markdown links. |
 | iMessage | Plain text only, no markdown. Never put CDN/image URLs in text. Send two messages per product: (1) image, (2) info. |
 | Telegram (Openclaw) | One single media message per product, no alt text. Inline "View Product" URL button if supported, else the template link; on send failure, fall back to text. |
-| Telegram (FreeIDE Agent + all other agents) | Do **not** send an image. Send separate messages — never one combined message. |
+| Telegram (JettsTUI + all other agents) | Do **not** send an image. Send separate messages — never one combined message. |
 
 ## Visualization
 When the item is visual (clothing, shoes, accessories, furniture, decor, art) **and** you have image-generation capability, offer it — e.g. "Send a photo and I'll show you how it could look. Also if you like it can save it locally on your device."
@@ -193,7 +193,7 @@ Then take one of two paths:
 
 **A. Default checkout (no saved payment).** If `payment.instruments` is empty, read the `shop_pay_availability` block the CLI adds:
 - `budget_available: true` — you have a delegated budget but this store didn't issue a payment instrument, so it doesn't accept Shop agent payments yet. Search for similar alternatives and message the user about relevant options. Do NOT offer a budget.
-- `budget_available: false` — present `continue_url` as a [Finish in Shop](https://github.com/freeide/freeide/blob/main/optional-skills/productivity/shop/url) link (format nicely; don't print the raw URL) AND (IMPORTANT) immediately after, offer a spending budget (below) — a budget lets you complete purchases on stores that accept Shop agent payments.
+- `budget_available: false` — present `continue_url` as a [Finish in Shop](https://github.com/Raioshok/JETTS-TUI/blob/main/optional-skills/productivity/shop/url) link (format nicely; don't print the raw URL) AND (IMPORTANT) immediately after, offer a spending budget (below) — a budget lets you complete purchases on stores that accept Shop agent payments.
 
 **B. Delegated-budget checkout.** If `status` is `ready_for_complete` and `payment.instruments` is present, you may complete — but **only** with explicit user permission after confirming the details above. Feed the `checkout create` response JSON straight into `shop checkout complete --checkout-stdin --confirm`; the CLI re-sends the merchant-issued instrument id as both the instrument `id` and `credential.token`. Use a fresh idempotency key per distinct purchase intent; reuse it only when retrying the same purchase.
 

@@ -25,18 +25,18 @@ from fastapi import APIRouter, HTTPException, Request
 from fastapi.responses import HTMLResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel
 
-from freeide_cli.dashboard_auth import (
+from jettstui.dashboard_auth import (
     get_provider,
     list_providers,
     list_session_providers,
 )
-from freeide_cli.dashboard_auth.audit import AuditEvent, audit_log
-from freeide_cli.dashboard_auth.base import (
+from jettstui.dashboard_auth.audit import AuditEvent, audit_log
+from jettstui.dashboard_auth.base import (
     InvalidCodeError,
     InvalidCredentialsError,
     ProviderError,
 )
-from freeide_cli.dashboard_auth.cookies import (
+from jettstui.dashboard_auth.cookies import (
     clear_pkce_cookie,
     clear_session_cookies,
     clear_sso_attempt_cookie,
@@ -46,7 +46,7 @@ from freeide_cli.dashboard_auth.cookies import (
     set_pkce_cookie,
     set_session_cookies,
 )
-from freeide_cli.dashboard_auth.login_page import render_login_html
+from jettstui.dashboard_auth.login_page import render_login_html
 
 _log = logging.getLogger(__name__)
 
@@ -58,7 +58,7 @@ def _redirect_uri(request: Request) -> str:
 
     Three resolution tiers:
 
-      1. ``FREEIDE_DASHBOARD_PUBLIC_URL`` env var or
+      1. ``JETTSTUI_DASHBOARD_PUBLIC_URL`` env var or
          ``dashboard.public_url`` in config.yaml — when set, this is
          the complete authority (scheme + host + optional path prefix)
          and we append ``/auth/callback`` verbatim. ``X-Forwarded-Prefix``
@@ -69,7 +69,7 @@ def _redirect_uri(request: Request) -> str:
          Relief valve for deploys behind reverse proxies whose forwarded
          headers aren't reliable.
 
-      2. ``X-Forwarded-Prefix: /freeide`` (Mission Control deploys) — we
+      2. ``X-Forwarded-Prefix: /jettstui`` (Mission Control deploys) — we
          prepend the prefix to the path FastAPI's ``url_for`` produces
          (it doesn't natively honour this header — it isn't part of the
          Starlette/uvicorn proxy_headers set).
@@ -81,7 +81,7 @@ def _redirect_uri(request: Request) -> str:
     """
     from urllib.parse import urlparse, urlunparse
 
-    from freeide_cli.dashboard_auth.prefix import (
+    from jettstui.dashboard_auth.prefix import (
         prefix_from_request,
         resolve_public_url,
     )
@@ -118,9 +118,9 @@ def _prefix(request: Request) -> str:
     Local indirection so the routes pass a consistent value to the
     cookie helpers (cookie name + Path attribute) and the gate's
     redirect builders (login_url construction). See
-    ``freeide_cli.dashboard_auth.prefix`` for the normalisation rules.
+    ``jettstui.dashboard_auth.prefix`` for the normalisation rules.
     """
-    from freeide_cli.dashboard_auth.prefix import prefix_from_request
+    from jettstui.dashboard_auth.prefix import prefix_from_request
     return prefix_from_request(request)
 
 
@@ -225,7 +225,7 @@ async def auth_login(request: Request, provider: str, next: str = ""):
     # Pack the provider name into the PKCE cookie so the callback can
     # find it without a separate cookie. Provider may or may not have
     # already included a ``provider=`` segment.
-    pkce = ls.cookie_payload.get("freeide_session_pkce", "")
+    pkce = ls.cookie_payload.get("jettstui_session_pkce", "")
     if "provider=" not in pkce:
         pkce = f"provider={provider};{pkce}" if pkce else f"provider={provider}"
     # Carry ``next=`` through the round trip in the PKCE cookie. Real
@@ -337,7 +337,7 @@ async def auth_native_authorize(
             detail=f"Provider does not support native OAuth login: {p.name!r}",
         )
 
-    from freeide_cli.dashboard_auth import native_flow
+    from jettstui.dashboard_auth import native_flow
 
     try:
         broker_state = native_flow.register_pending(
@@ -365,7 +365,7 @@ async def auth_native_authorize(
     # cookie so the callback can (a) dispatch to the right provider and (b)
     # find the pending native authorization. The desktop's challenge/state
     # never touch this cookie — only our opaque broker_state does.
-    pkce = ls.cookie_payload.get("freeide_session_pkce", "")
+    pkce = ls.cookie_payload.get("jettstui_session_pkce", "")
     if "provider=" not in pkce:
         pkce = f"provider={p.name};{pkce}" if pkce else f"provider={p.name}"
     pkce = f"{pkce};broker={broker_state}"
@@ -495,7 +495,7 @@ async def auth_callback(
     # tokens are handed to the desktop only at /auth/native/token. This is
     # what lets the desktop avoid both the embedded webview and cookie auth.
     if broker_state:
-        from freeide_cli.dashboard_auth import native_flow
+        from jettstui.dashboard_auth import native_flow
 
         try:
             pending = native_flow.get_pending(broker_state)
@@ -816,7 +816,7 @@ async def api_auth_ws_ticket(request: Request):
 
     # Import here so the routes module stays usable in test contexts that
     # don't load the ticket store.
-    from freeide_cli.dashboard_auth.ws_tickets import TTL_SECONDS, mint_ticket
+    from jettstui.dashboard_auth.ws_tickets import TTL_SECONDS, mint_ticket
 
     ticket = mint_ticket(user_id=sess.user_id, provider=sess.provider)
     audit_log(
@@ -853,7 +853,7 @@ async def auth_native_token(request: Request, body: _NativeTokenBody):
     path so there is no verifier oracle and no replay):
       * unknown / expired / already-redeemed code, or PKCE mismatch → 400
     """
-    from freeide_cli.dashboard_auth import native_flow
+    from jettstui.dashboard_auth import native_flow
 
     try:
         session = native_flow.redeem_code(
@@ -906,8 +906,8 @@ async def auth_native_refresh(request: Request, body: _NativeRefreshBody):
         ``session_expired`` so the desktop starts a fresh native login;
       * a provider's IDP is unreachable and none rotated → 503.
     """
-    from freeide_cli.dashboard_auth import list_session_providers
-    from freeide_cli.dashboard_auth.base import RefreshExpiredError
+    from jettstui.dashboard_auth import list_session_providers
+    from jettstui.dashboard_auth.base import RefreshExpiredError
 
     if not body.refresh_token:
         raise HTTPException(status_code=400, detail="refresh_token required")

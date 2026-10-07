@@ -1,4 +1,4 @@
-"""CLI handlers for ``freeide egress ...``.
+"""CLI handlers for ``jettstui egress ...``.
 
 Subcommands:
     install  — download the pinned iron-proxy binary
@@ -9,9 +9,9 @@ Subcommands:
     disable  — flip ``proxy.enabled`` to False (does not stop a running proxy)
     config   — print the generated proxy.yaml path (for debugging / external review)
 
-The top-level command is ``freeide egress``.  Note that the inbound OAuth
-reverse-proxy command (``freeide proxy``) lives elsewhere in
-``freeide_cli/main.py`` — different direction, different purpose.
+The top-level command is ``jettstui egress``.  Note that the inbound OAuth
+reverse-proxy command (``jettstui proxy``) lives elsewhere in
+``jettstui/main.py`` — different direction, different purpose.
 """
 
 from __future__ import annotations
@@ -26,23 +26,23 @@ from rich.panel import Panel
 from rich.table import Table
 
 from agent.proxy_sources import iron_proxy as ip
-from freeide_cli.config import load_config, save_config
+from jettstui.config import load_config, save_config
 
 
 # ---------------------------------------------------------------------------
-# Argparse wiring — called from freeide_cli.main
+# Argparse wiring — called from jettstui.main
 # ---------------------------------------------------------------------------
 
 
 def register_cli(parent_parser: argparse.ArgumentParser) -> None:
     """Attach the egress subcommand tree to a parent parser.
 
-    Called from ``freeide_cli.main`` as part of building the top-level
-    ``freeide egress`` parser.
+    Called from ``jettstui.main`` as part of building the top-level
+    ``jettstui egress`` parser.
     """
 
     # dest='egress_command' — keeps this subparser tree disjoint from the
-    # inbound OAuth ``freeide proxy`` subparser (which uses dest='proxy_command').
+    # inbound OAuth ``jettstui proxy`` subparser (which uses dest='proxy_command').
     # No runtime collision today since they live in separate parser trees,
     # but a future grep-and-refactor on ``proxy_command`` would otherwise
     # hit both handlers.
@@ -92,7 +92,7 @@ def register_cli(parent_parser: argparse.ArgumentParser) -> None:
     setup.add_argument(
         "--no-restart", dest="restart", action="store_false",
         help="Do not restart a running daemon after setup; you'll need to run "
-             "`freeide egress restart` yourself for changes to take effect.",
+             "`jettstui egress restart` yourself for changes to take effect.",
     )
     setup.set_defaults(func=cmd_setup)
 
@@ -198,7 +198,7 @@ def cmd_setup(args: argparse.Namespace) -> int:
                 "secrets.bitwarden.enabled is false.[/red]"
             )
             console.print(
-                "  Run `freeide secrets bitwarden setup` first, or omit "
+                "  Run `jettstui secrets bitwarden setup` first, or omit "
                 "--from-bitwarden."
             )
             return 1
@@ -243,16 +243,16 @@ def cmd_setup(args: argparse.Namespace) -> int:
             return 1
     else:
         # Env-based discovery reads os.environ.  Operators commonly keep their
-        # provider keys only in ~/.freeide/.env (loaded automatically when the
+        # provider keys only in ~/.jettstui/.env (loaded automatically when the
         # agent runs, but NOT exported into an interactive shell).  Fall back
-        # to loading that file so `freeide egress setup` finds the same keys the
+        # to loading that file so `jettstui egress setup` finds the same keys the
         # agent would — otherwise a user with keys solely in .env sees a
         # confusing "no provider keys found" when the keys clearly "exist".
         loaded = _load_env_file_into_environ()
         if loaded:
             console.print(
                 f"  [dim]Loaded {loaded} provider key name(s) from "
-                f"~/.freeide/.env for discovery.[/dim]"
+                f"~/.jettstui/.env for discovery.[/dim]"
             )
 
     discovered = ip.discover_provider_mappings(
@@ -260,7 +260,7 @@ def cmd_setup(args: argparse.Namespace) -> int:
     )
 
     # Preserve tokens for providers we already had unless the operator
-    # explicitly requested rotation.  This prevents re-running `freeide
+    # explicitly requested rotation.  This prevents re-running `jettstui
     # egress setup` from invalidating tokens baked into already-running
     # sandboxes.
     existing = ip.load_mappings()
@@ -278,7 +278,7 @@ def cmd_setup(args: argparse.Namespace) -> int:
         if _sys.stdin.isatty():
             console.print(
                 "[yellow]⚠[/yellow]  --rotate-tokens will invalidate proxy "
-                "tokens in every running FreeIDE sandbox.  They will start "
+                "tokens in every running JettsTUI sandbox.  They will start "
                 "401-ing against upstreams until restarted."
             )
             try:
@@ -422,7 +422,7 @@ def cmd_setup(args: argparse.Namespace) -> int:
     mappings_path = ip.write_mappings(mappings)
     # Mint (or keep) the management-API bearer key.  The generated config
     # enables a loopback management listener whose /v1/reload lets
-    # `freeide egress reload` apply future ruleset changes without a
+    # `jettstui egress reload` apply future ruleset changes without a
     # restart; the daemon requires the key env var to be non-empty at
     # startup, so make sure the token exists before first start.
     ip.ensure_management_token()
@@ -441,7 +441,7 @@ def cmd_setup(args: argparse.Namespace) -> int:
     proxy_cfg.setdefault("enforce_on_docker", True)
     # CRITICAL: do NOT silently downgrade credential_source on re-run.
     # If the operator previously configured `bitwarden` mode (e.g. for
-    # rotation), running `freeide egress setup` again WITHOUT
+    # rotation), running `jettstui egress setup` again WITHOUT
     # --from-bitwarden must not rewrite credential_source to "env" —
     # that silently breaks the Bitwarden rotation guarantee the docs
     # make.  Require an explicit --no-bitwarden to switch back.
@@ -510,7 +510,7 @@ def cmd_setup(args: argparse.Namespace) -> int:
                 f"config: {exc}[/yellow]"
             )
             console.print(
-                "  Run [cyan]freeide egress start[/cyan] manually before "
+                "  Run [cyan]jettstui egress start[/cyan] manually before "
                 "launching new Docker sandboxes."
             )
         else:
@@ -523,7 +523,7 @@ def cmd_setup(args: argparse.Namespace) -> int:
     elif was_running:
         console.print(
             "  [yellow]⚠ stopped the running iron-proxy; config or tokens "
-            "changed.  Run [cyan]freeide egress restart[/cyan] (or "
+            "changed.  Run [cyan]jettstui egress restart[/cyan] (or "
             "[cyan]start[/cyan]) before launching new Docker sandboxes.[/yellow]"
         )
 
@@ -533,13 +533,13 @@ def cmd_setup(args: argparse.Namespace) -> int:
         "Sandboxes will route outbound traffic through it."
     )
     console.print(
-        "  Start:   [cyan]freeide egress start[/cyan]\n"
-        "  Restart: [cyan]freeide egress restart[/cyan]  (after any re-setup)\n"
-        "  Reload:  [cyan]freeide egress reload[/cyan]   (apply ruleset edits "
+        "  Start:   [cyan]jettstui egress start[/cyan]\n"
+        "  Restart: [cyan]jettstui egress restart[/cyan]  (after any re-setup)\n"
+        "  Reload:  [cyan]jettstui egress reload[/cyan]   (apply ruleset edits "
         "in-place, no restart)\n"
-        "  Status:  [cyan]freeide egress status[/cyan]\n"
-        "  Stop:    [cyan]freeide egress stop[/cyan]\n"
-        "  Disable: [cyan]freeide egress disable[/cyan]"
+        "  Status:  [cyan]jettstui egress status[/cyan]\n"
+        "  Stop:    [cyan]jettstui egress stop[/cyan]\n"
+        "  Disable: [cyan]jettstui egress disable[/cyan]"
     )
     return 0
 
@@ -550,7 +550,7 @@ def cmd_start(args: argparse.Namespace) -> int:
     proxy_cfg = cfg.get("proxy") or {}
     if not proxy_cfg.get("enabled"):
         console.print(
-            "[yellow]proxy.enabled is false — run `freeide egress setup` "
+            "[yellow]proxy.enabled is false — run `jettstui egress setup` "
             "first.[/yellow]"
         )
         return 1
@@ -588,7 +588,7 @@ def cmd_start(args: argparse.Namespace) -> int:
             )
             console.print(
                 "  Re-enable it (`secrets.bitwarden.enabled: true`), switch "
-                "back to env credentials with `freeide egress setup "
+                "back to env credentials with `jettstui egress setup "
                 "--no-bitwarden`, or set `proxy.allow_env_fallback: true` "
                 "to opt into the host-env fallback."
             )
@@ -623,7 +623,7 @@ def cmd_start(args: argparse.Namespace) -> int:
             )
             console.print(
                 "  Either export the access token, or run "
-                "`freeide egress setup --no-bitwarden` to switch back to "
+                "`jettstui egress setup --no-bitwarden` to switch back to "
                 "env-based credentials."
             )
             return 1
@@ -633,8 +633,8 @@ def cmd_start(args: argparse.Namespace) -> int:
                 "secrets.bitwarden.project_id is empty.[/red]"
             )
             console.print(
-                "  Run `freeide secrets bitwarden setup` to configure the "
-                "project, or switch back via `freeide egress setup "
+                "  Run `jettstui secrets bitwarden setup` to configure the "
+                "project, or switch back via `jettstui egress setup "
                 "--no-bitwarden`."
             )
             return 1
@@ -695,7 +695,7 @@ def cmd_reload(args: argparse.Namespace) -> int:
     proxy.yaml WITHOUT restarting the daemon — no dropped connections, no
     restart window.  When the change involves new upstream SECRETS (a
     Bitwarden rotation, a newly added provider key), use
-    ``freeide egress restart`` instead: the daemon reads real credentials
+    ``jettstui egress restart`` instead: the daemon reads real credentials
     from its own environment at spawn time, and a reload does not
     re-populate that env.
     """
@@ -711,7 +711,7 @@ def cmd_reload(args: argparse.Namespace) -> int:
     )
     console.print(
         "[dim]Note: new upstream secrets (rotated keys, new providers) "
-        "still need `freeide egress restart` — the daemon reads real "
+        "still need `jettstui egress restart` — the daemon reads real "
         "credentials from its environment at spawn time.[/dim]"
     )
     return 0
@@ -759,9 +759,9 @@ def format_status_text(*, show_tokens: bool = False) -> str:
             lines.append(f"  - {name}")
 
     if bool(proxy_cfg.get("enabled")) and not status.configured:
-        lines.extend(["", "Next: run `freeide egress setup` to mint tokens and write proxy.yaml."])
+        lines.extend(["", "Next: run `jettstui egress setup` to mint tokens and write proxy.yaml."])
     elif bool(proxy_cfg.get("enabled")) and not (status.pid and status.listening):
-        lines.extend(["", "Next: run `freeide egress start` before launching Docker sandboxes."])
+        lines.extend(["", "Next: run `jettstui egress start` before launching Docker sandboxes."])
 
     return "\n".join(lines)
 
@@ -839,7 +839,7 @@ def cmd_disable(args: argparse.Namespace) -> int:
     if ip.get_status().pid is not None:
         console.print(
             "  iron-proxy is still running — stop it with "
-            "[cyan]freeide egress stop[/cyan] if you want it down too."
+            "[cyan]jettstui egress stop[/cyan] if you want it down too."
         )
     return 0
 
@@ -849,7 +849,7 @@ def cmd_config(args: argparse.Namespace) -> int:
     status = ip.get_status()
     if status.config_path is None:
         console.print(
-            "[yellow](no config generated — run `freeide egress setup`)[/yellow]"
+            "[yellow](no config generated — run `jettstui egress setup`)[/yellow]"
         )
         return 1
     console.print(str(status.config_path))
@@ -862,10 +862,10 @@ def cmd_config(args: argparse.Namespace) -> int:
 
 
 def _load_env_file_into_environ() -> int:
-    """Backfill provider keys from ``~/.freeide/.env`` into ``os.environ``.
+    """Backfill provider keys from ``~/.jettstui/.env`` into ``os.environ``.
 
-    ``freeide egress setup`` discovers providers by reading ``os.environ``, but
-    many operators keep their keys ONLY in ``~/.freeide/.env`` (which the agent
+    ``jettstui egress setup`` discovers providers by reading ``os.environ``, but
+    many operators keep their keys ONLY in ``~/.jettstui/.env`` (which the agent
     loads at runtime but which is NOT exported into an interactive shell).
     Without this, ``setup`` reports "no provider keys found" even though the
     keys plainly exist — a confusing first-run papercut.
@@ -875,7 +875,7 @@ def _load_env_file_into_environ() -> int:
     slurp unrelated secrets into the process. Returns the count of names added.
     """
     try:
-        from freeide_cli.config import load_env
+        from jettstui.config import load_env
     except ImportError:
         return 0
     try:

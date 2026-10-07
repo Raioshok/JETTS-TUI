@@ -1,11 +1,11 @@
 """
-Unified tool configuration for FreeIDE Agent.
+Unified tool configuration for JettsTUI.
 
-`freeide tools` and `freeide setup tools` both enter this module.
+`jettstui tools` and `jettstui setup tools` both enter this module.
 Select a platform → toggle toolsets on/off → for newly enabled tools
 that need API keys, run through provider-aware configuration.
 
-Saves per-platform tool configuration to ~/.freeide/config.yaml under
+Saves per-platform tool configuration to ~/.jettstui/config.yaml under
 the `platform_toolsets` key.
 """
 
@@ -19,12 +19,12 @@ from pathlib import Path
 from typing import Dict, List, Optional, Set
 
 
-from freeide_cli.config import (
+from jettstui.config import (
     cfg_get,
     load_config, save_config, get_env_value, save_env_value,
 )
-from freeide_cli.colors import Colors, color
-from freeide_cli.tool_features import (
+from jettstui.colors import Colors, color
+from jettstui.tool_features import (
     apply_managed_defaults,
     ensure_tool_backend_access,
     get_tool_features,
@@ -39,11 +39,11 @@ def _post_setup_no_window_flags(*, streams_to_console: bool = False) -> int:
     """Win32 creationflags that stop post-setup children flashing a console.
 
     The dashboard/GUI runs post-setup hooks through a detached, console-less
-    ``freeide tools post-setup <key>`` child. On Windows, every console child
+    ``jettstui tools post-setup <key>`` child. On Windows, every console child
     (npm.cmd, npx, pip, powershell, curl) spawned from that console-less
     parent materializes a brand-new console window — the "terminal flash"
     users see when clicking "Run setup". ``CREATE_NO_WINDOW`` (via
-    :func:`freeide_cli._subprocess_compat.windows_hide_flags`) suppresses it
+    :func:`jettstui._subprocess_compat.windows_hide_flags`) suppresses it
     without breaking ``capture_output`` — unlike ``DETACHED_PROCESS``, stdio
     handles stay inheritable. Returns 0 on POSIX, so passing the result
     unconditionally is safe.
@@ -55,7 +55,7 @@ def _post_setup_no_window_flags(*, streams_to_console: bool = False) -> int:
     the current process has no usable console of its own (stdout is a
     pipe/log file — exactly the GUI-spawn case that flashes).
     """
-    from freeide_cli._subprocess_compat import windows_hide_flags
+    from jettstui._subprocess_compat import windows_hide_flags
 
     flags = windows_hide_flags()
     if not flags:
@@ -78,7 +78,7 @@ PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 
 # ─── UI Helpers (shared with setup.py) ────────────────────────────────────────
 
-from freeide_cli.cli_output import (  # noqa: E402 — late import block
+from jettstui.cli_output import (  # noqa: E402 — late import block
     print_error as _print_error,
     print_info as _print_info,
     print_success as _print_success,
@@ -136,17 +136,17 @@ def gui_toolset_label(label: str) -> str:
 
 
 # Toolsets that are OFF by default for new installs.
-# They're still in _FREEIDE_CORE_TOOLS (available at runtime if enabled),
+# They're still in _JETTSTUI_CORE_TOOLS (available at runtime if enabled),
 # but the setup checklist won't pre-select them for first-time users.
 #
 # Video gen is off by default — it's a niche, paid, slow feature. Users
-# who want it opt in via `freeide tools` → Video Generation, which walks
+# who want it opt in via `jettstui tools` → Video Generation, which walks
 # them through provider + model selection.
 #
 # X search is off by default for users without xAI credentials, but
 # auto-enables when SuperGrok OAuth tokens are stored OR XAI_API_KEY is
 # set — mirroring the HASS_TOKEN → homeassistant auto-enable below. The
-# `freeide tools` → X (Twitter) Search setup walks users through credential
+# `jettstui tools` → X (Twitter) Search setup walks users through credential
 # setup. The tool's check_fn means the schema still won't appear to the
 # model if the credential later goes missing or expires.
 _DEFAULT_OFF_TOOLSETS = {"homeassistant", "spotify", "discord", "discord_admin", "video", "video_gen", "x_search"}
@@ -164,7 +164,7 @@ def _xai_credentials_present() -> bool:
     "xai_grok"`` picker rows (xAI TTS, Grok OAuth x_search).
     """
     try:
-        from freeide_cli.auth import _read_xai_oauth_tokens
+        from jettstui.auth import _read_xai_oauth_tokens
 
         _read_xai_oauth_tokens()
         return True
@@ -179,7 +179,7 @@ def _xai_credentials_present() -> bool:
         pass
     return bool(str(os.environ.get("XAI_API_KEY") or "").strip())
 
-# Platform-scoped toolsets: only appear in the `freeide tools` checklist for
+# Platform-scoped toolsets: only appear in the `jettstui tools` checklist for
 # these platforms, and only resolve/save for these platforms.  A toolset
 # absent from this map is available on every platform (current behaviour).
 #
@@ -223,13 +223,13 @@ def _get_effective_configurable_toolsets():
     already appears in ``CONFIGURABLE_TOOLSETS`` is skipped — bundled
     plugins (e.g. ``plugins/spotify``) share their toolset key with the
     built-in entry, and we want the built-in label/description to win.
-    Without the dedupe, ``freeide tools`` → "reconfigure existing" would
+    Without the dedupe, ``jettstui tools`` → "reconfigure existing" would
     list the same toolset twice.
     """
     result = list(CONFIGURABLE_TOOLSETS)
     seen = {ts_key for ts_key, _, _ in result}
     try:
-        from freeide_cli.plugins import discover_plugins, get_plugin_toolsets
+        from jettstui.plugins import discover_plugins, get_plugin_toolsets
         discover_plugins()  # idempotent — ensures plugins are loaded
         for entry in get_plugin_toolsets():
             if entry[0] in seen:
@@ -244,7 +244,7 @@ def _get_effective_configurable_toolsets():
 def _get_plugin_toolset_keys() -> set:
     """Return the set of toolset keys provided by plugins."""
     try:
-        from freeide_cli.plugins import discover_plugins, get_plugin_toolsets
+        from jettstui.plugins import discover_plugins, get_plugin_toolsets
         discover_plugins()  # idempotent — ensures plugins are loaded
         return {ts_key for ts_key, _, _ in get_plugin_toolsets()}
     except Exception:
@@ -252,7 +252,7 @@ def _get_plugin_toolset_keys() -> set:
 
 
 def _checklist_toolset_keys(platform: str) -> Set[str]:
-    """Return the toolset keys the ``freeide tools`` checklist actually offers
+    """Return the toolset keys the ``jettstui tools`` checklist actually offers
     for ``platform``.
 
     This mirrors exactly what ``_prompt_toolset_checklist`` renders:
@@ -264,7 +264,7 @@ def _checklist_toolset_keys(platform: str) -> Set[str]:
     time — ``kanban`` and other check_fn-gated toolsets, recovered platform
     composites, MCP server names — are NOT in this set because the checklist
     never shows them. Use this to scope the added/removed diff the UI prints,
-    so ``freeide tools`` never claims to add or remove a toolset the user was
+    so ``jettstui tools`` never claims to add or remove a toolset the user was
     never given a checkbox for. The underlying config is unaffected — those
     entries are preserved by ``_save_platform_tools`` regardless.
     """
@@ -277,7 +277,7 @@ def _checklist_toolset_keys(platform: str) -> Set[str]:
 # Platform display config — derived from the canonical registry so every
 # module shares the same data.  Kept as dict-of-dicts for backward
 # compatibility with existing ``PLATFORMS[key]["label"]`` access patterns.
-from freeide_cli.platforms import PLATFORMS as _PLATFORMS_REGISTRY
+from jettstui.platforms import PLATFORMS as _PLATFORMS_REGISTRY
 
 PLATFORMS = {
     k: {"label": info.label, "default_toolset": info.default_toolset}
@@ -420,7 +420,7 @@ TOOL_CATEGORIES = {
         "name": "X (Twitter) Search",
         "setup_title": "Select xAI Credential Source",
         "setup_note": (
-            "FreeIDE routes X searches through xAI's built-in x_search "
+            "JettsTUI routes X searches through xAI's built-in x_search "
             "Responses tool for read-only public X discovery. Use the xurl "
             "skill for authenticated X API reads and account actions. Both "
             "credential sources hit the same "
@@ -528,7 +528,7 @@ TOOL_CATEGORIES = {
                 ),
                 "env_vars": [
                     # cua-driver reads HOME/TMPDIR from the process env, no
-                    # extra keys required. Set FREEIDE_CUA_DRIVER_CMD to use a
+                    # extra keys required. Set JETTSTUI_CUA_DRIVER_CMD to use a
                     # specific binary (e.g. a local build); there is no
                     # version-pin env var.
                 ],
@@ -544,8 +544,8 @@ TOOL_CATEGORIES = {
                 "name": "Langfuse Cloud",
                 "tag": "Hosted Langfuse (cloud.langfuse.com)",
                 "env_vars": [
-                    {"key": "FREEIDE_LANGFUSE_PUBLIC_KEY", "prompt": "Langfuse public key (pk-lf-...)", "url": "https://cloud.langfuse.com"},
-                    {"key": "FREEIDE_LANGFUSE_SECRET_KEY", "prompt": "Langfuse secret key (sk-lf-...)", "url": "https://cloud.langfuse.com"},
+                    {"key": "JETTSTUI_LANGFUSE_PUBLIC_KEY", "prompt": "Langfuse public key (pk-lf-...)", "url": "https://cloud.langfuse.com"},
+                    {"key": "JETTSTUI_LANGFUSE_SECRET_KEY", "prompt": "Langfuse secret key (sk-lf-...)", "url": "https://cloud.langfuse.com"},
                 ],
                 "post_setup": "langfuse",
             },
@@ -553,9 +553,9 @@ TOOL_CATEGORIES = {
                 "name": "Langfuse Self-Hosted",
                 "tag": "Self-hosted Langfuse instance",
                 "env_vars": [
-                    {"key": "FREEIDE_LANGFUSE_PUBLIC_KEY", "prompt": "Langfuse public key (pk-lf-...)"},
-                    {"key": "FREEIDE_LANGFUSE_SECRET_KEY", "prompt": "Langfuse secret key (sk-lf-...)"},
-                    {"key": "FREEIDE_LANGFUSE_BASE_URL", "prompt": "Langfuse server URL (e.g. http://localhost:3000)", "default": "http://localhost:3000"},
+                    {"key": "JETTSTUI_LANGFUSE_PUBLIC_KEY", "prompt": "Langfuse public key (pk-lf-...)"},
+                    {"key": "JETTSTUI_LANGFUSE_SECRET_KEY", "prompt": "Langfuse secret key (sk-lf-...)"},
+                    {"key": "JETTSTUI_LANGFUSE_BASE_URL", "prompt": "Langfuse server URL (e.g. http://localhost:3000)", "default": "http://localhost:3000"},
                 ],
                 "post_setup": "langfuse",
             },
@@ -569,7 +569,7 @@ TOOL_CATEGORIES = {
 # `vision` is listed here only so it registers as a *configurable* toolset
 # (the value gates the reconfigure menu + the "[no API key]" suffix). Its
 # actual setup runs through `_configure_vision_backend()` — a full
-# provider+model picker like `freeide model` — NOT this single-key prompt, so
+# provider+model picker like `jettstui model` — NOT this single-key prompt, so
 # users are never forced onto OpenRouter. `_toolset_has_keys("vision")`
 # resolves via `resolve_vision_provider_client()`, so the tuple below is never
 # prompted or read for vision; it's purely a presence marker.
@@ -583,7 +583,7 @@ TOOLSET_ENV_REQUIREMENTS = {
 
 def _cua_driver_cmd() -> str:
     """Return the configured cua-driver override, or the bare default name."""
-    return os.environ.get("FREEIDE_CUA_DRIVER_CMD", "").strip() or "cua-driver"
+    return os.environ.get("JETTSTUI_CUA_DRIVER_CMD", "").strip() or "cua-driver"
 
 
 def _resolved_cua_driver_cmd() -> Optional[str]:
@@ -594,7 +594,7 @@ def _resolved_cua_driver_cmd() -> Optional[str]:
 
 
 def _cua_driver_env() -> dict:
-    """cua-driver child env with the FreeIDE telemetry policy applied.
+    """cua-driver child env with the JettsTUI telemetry policy applied.
 
     Delegates to ``cua_backend.cua_driver_child_env`` (telemetry disabled by
     default; user opt-in via ``computer_use.cua_telemetry``). Falls back to the
@@ -736,19 +736,19 @@ def install_cua_driver(upgrade: bool = False, require_confirmed_update: bool = F
       installed, install otherwise. Used by the toolset enable flow where
       we don't want to surprise the user with a network fetch.
     * ``upgrade=True`` — always re-run the installer (or call ``cua-driver
-      update`` if the binary supports it). Used by ``freeide update`` and
-      by ``freeide computer-use install --upgrade``.
+      update`` if the binary supports it). Used by ``jettstui update`` and
+      by ``jettstui computer-use install --upgrade``.
 
     ``require_confirmed_update`` (only meaningful with ``upgrade=True`` and
     an installed binary): when the driver's native ``check-update`` verb
     can't positively confirm that a newer release exists — the driver is
     too old for the verb, the GitHub check failed, we're offline, or the
     probe timed out — keep the installed version and return instead of
-    falling through to the full upstream installer. ``freeide update`` sets
+    falling through to the full upstream installer. ``jettstui update`` sets
     this so a broken update check costs seconds, not a multi-minute silent
     reinstall on every update (the upstream installer runs up to
     ``_CUA_INSTALLER_TIMEOUT`` and install.ps1's concurrency lock can add
-    a further ~600s wait on Windows). ``freeide computer-use install
+    a further ~600s wait on Windows). ``jettstui computer-use install
     --upgrade`` leaves it False — an explicit upgrade request should still
     reinstall when the check is indeterminate.
 
@@ -763,7 +763,7 @@ def install_cua_driver(upgrade: bool = False, require_confirmed_update: bool = F
     system = _plat.system()
     if system not in ("Darwin", "Windows", "Linux"):
         if upgrade:
-            # Silent on unsupported platforms — `freeide update` calls this
+            # Silent on unsupported platforms — `jettstui update` calls this
             # for every user; only macOS/Windows/Linux users care.
             return False
         _print_warning("    Computer Use (cua-driver) is unsupported on this platform; skipping.")
@@ -826,7 +826,7 @@ def install_cua_driver(upgrade: bool = False, require_confirmed_update: bool = F
             "    /Applications is not writable; skipping cua-driver refresh."
         )
         _print_info(
-            "    Run `freeide computer-use install --upgrade` from an admin account to update it."
+            "    Run `jettstui computer-use install --upgrade` from an admin account to update it."
         )
         return bool(binary)
 
@@ -842,10 +842,10 @@ def install_cua_driver(upgrade: bool = False, require_confirmed_update: bool = F
     # Skip the (network) re-install when the driver itself reports it's already
     # on the latest release. Best-effort: an older driver (no check-update
     # verb) or an offline check returns None. What happens then depends on the
-    # caller: `freeide update` (require_confirmed_update=True) keeps the
+    # caller: `jettstui update` (require_confirmed_update=True) keeps the
     # installed version — an indeterminate check must never cost the user a
     # multi-minute silent reinstall on every update. An explicit
-    # `freeide computer-use install --upgrade` falls through and re-runs the
+    # `jettstui computer-use install --upgrade` falls through and re-runs the
     # installer as before.
     if binary:
         _state = None
@@ -867,7 +867,7 @@ def install_cua_driver(upgrade: bool = False, require_confirmed_update: bool = F
                 "keeping the installed version."
             )
             _print_info(
-                "    Force a refresh with: freeide computer-use install --upgrade"
+                "    Force a refresh with: jettstui computer-use install --upgrade"
             )
             return True
 
@@ -1216,7 +1216,7 @@ def _run_cua_driver_installer(label: str = "Installing", verbose: bool = True) -
             proc.kill()
 
     try:
-        # When not verbose (e.g. `freeide update`'s refresh), capture the
+        # When not verbose (e.g. `jettstui update`'s refresh), capture the
         # installer's chatty "Next steps" wall instead of dumping it to the
         # terminal. The combined output is logged so a failure stays
         # debuggable. Verbose installs (interactive `computer-use install`)
@@ -1253,9 +1253,9 @@ def _run_cua_driver_installer(label: str = "Installing", verbose: bool = True) -
             result = subprocess.CompletedProcess(
                 install_cmd, proc.returncode, stdout=out, stderr=None
             )
-            # Preserve the full installer output. During `freeide update`,
+            # Preserve the full installer output. During `jettstui update`,
             # sys.stdout is the mirroring _UpdateOutputStream whose `_log`
-            # handle is ~/.freeide/logs/update.log — write straight to it so
+            # handle is ~/.jettstui/logs/update.log — write straight to it so
             # the captured "Next steps" wall is kept in full (success AND
             # failure), without echoing it to the terminal.
             if result.stdout:
@@ -1284,7 +1284,7 @@ def _run_cua_driver_installer(label: str = "Installing", verbose: bool = True) -
                     _print_info("    IMPORTANT — grant macOS permissions now:")
                     _print_info("      System Settings > Privacy & Security > Accessibility")
                     _print_info("      System Settings > Privacy & Security > Screen Recording")
-                    _print_info("    Both must allow the terminal / FreeIDE process.")
+                    _print_info("    Both must allow the terminal / JettsTUI process.")
             return True
         _print_warning(f"    cua-driver {label.lower()} did not complete. Re-run manually:")
         _print_info(f"      {manual_hint}")
@@ -1338,8 +1338,8 @@ def _run_post_setup(post_setup_key: str):
             if result.returncode == 0:
                 _print_success("    Node.js dependencies installed")
             else:
-                from freeide_constants import display_freeide_home
-                _print_warning(f"    npm install failed - run manually: cd {display_freeide_home()}/freeide-agent && npm install --workspaces=false")
+                from jettstui_constants import display_jettstui_home
+                _print_warning(f"    npm install failed - run manually: cd {display_jettstui_home()}/jettstui && npm install --workspaces=false")
                 if result.stderr:
                     _print_info(f"      {result.stderr.strip()[:200]}")
         elif node_modules.exists():
@@ -1347,7 +1347,7 @@ def _run_post_setup(post_setup_key: str):
             # the truth ("nothing to do") instead of implying a fresh install.
             _print_success("    agent-browser already installed, nothing to do")
         else:
-            _print_warning("    Node.js not found - browser tools require: npm install (in freeide-agent directory)")
+            _print_warning("    Node.js not found - browser tools require: npm install (in jettstui directory)")
             return
 
         # Step 2: only the local browser provider actually needs Chromium on
@@ -1512,7 +1512,7 @@ def _run_post_setup(post_setup_key: str):
                 return
         _print_info("    Default voice: en_US-lessac-medium (downloaded on first TTS call)")
         _print_info("    Full voice list: https://github.com/OHF-Voice/piper1-gpl/blob/main/docs/VOICES.md")
-        _print_info("    Switch voices by setting tts.piper.voice in ~/.freeide/config.yaml")
+        _print_info("    Switch voices by setting tts.piper.voice in ~/.jettstui/config.yaml")
 
     elif post_setup_key == "ddgs":
         try:
@@ -1537,17 +1537,17 @@ def _run_post_setup(post_setup_key: str):
         _print_info("    Pair with an extract provider if you also need web_extract.")
 
     elif post_setup_key == "spotify":
-        # Run the full `freeide auth spotify` flow — if the user has no
+        # Run the full `jettstui auth spotify` flow — if the user has no
         # client_id yet, this drops them into the interactive wizard
         # (opens the Spotify dashboard, prompts for client_id, persists
-        # to ~/.freeide/.env), then continues straight into PKCE. If they
+        # to ~/.jettstui/.env), then continues straight into PKCE. If they
         # already have an app, it skips the wizard and just does OAuth.
         from types import SimpleNamespace
         try:
-            from freeide_cli.auth import login_spotify_command
+            from jettstui.auth import login_spotify_command
         except Exception as exc:
             _print_warning(f"    Could not load Spotify auth: {exc}")
-            _print_info("    Run manually: freeide auth spotify")
+            _print_info("    Run manually: jettstui auth spotify")
             return
         _print_info("    Starting Spotify login...")
         try:
@@ -1558,12 +1558,12 @@ def _run_post_setup(post_setup_key: str):
             _print_success("    Spotify authenticated")
         except SystemExit as exc:
             # User aborted the wizard, or OAuth failed — don't fail the
-            # toolset enable; they can retry with `freeide auth spotify`.
+            # toolset enable; they can retry with `jettstui auth spotify`.
             _print_warning(f"    Spotify login did not complete: {exc}")
-            _print_info("    Run later: freeide auth spotify")
+            _print_info("    Run later: jettstui auth spotify")
         except Exception as exc:
             _print_warning(f"    Spotify login failed: {exc}")
-            _print_info("    Run manually: freeide auth spotify")
+            _print_info("    Run manually: jettstui auth spotify")
 
     elif post_setup_key == "langfuse":
         # Install the langfuse SDK.
@@ -1581,7 +1581,7 @@ def _run_post_setup(post_setup_key: str):
         # The plugin ships in the repo but doesn't load until the user enables
         # it (standalone plugins are opt-in).
         try:
-            from freeide_cli.plugins_cmd import _get_enabled_set, _save_enabled_set
+            from jettstui.plugins_cmd import _get_enabled_set, _save_enabled_set
             enabled = _get_enabled_set()
             if "observability/langfuse" in enabled or "langfuse" in enabled:
                 _print_success("    Plugin observability/langfuse already enabled")
@@ -1591,9 +1591,9 @@ def _run_post_setup(post_setup_key: str):
                 _print_success("    Plugin observability/langfuse enabled")
         except Exception as exc:
             _print_warning(f"    Could not enable plugin automatically: {exc}")
-            _print_info("    Run manually: freeide plugins enable observability/langfuse")
-        _print_info("    Restart FreeIDE for tracing to take effect.")
-        _print_info("    Verify: freeide plugins list")
+            _print_info("    Run manually: jettstui plugins enable observability/langfuse")
+        _print_info("    Restart JettsTUI for tracing to take effect.")
+        _print_info("    Verify: jettstui plugins list")
 
     elif post_setup_key == "xai_grok":
         # Shared credential bootstrap for any picker entry that talks to xAI
@@ -1603,7 +1603,7 @@ def _run_post_setup(post_setup_key: str):
         # console.x.ai. The picker entries declare empty env_vars so we
         # drive the full auth UX here.
         try:
-            from freeide_cli.auth import get_xai_oauth_auth_status
+            from jettstui.auth import get_xai_oauth_auth_status
             oauth_logged_in = bool(get_xai_oauth_auth_status().get("logged_in"))
         except Exception:
             oauth_logged_in = False
@@ -1620,15 +1620,15 @@ def _run_post_setup(post_setup_key: str):
 
         _print_info("    xAI needs credentials. Choose one:")
         try:
-            from freeide_cli.setup import (
+            from jettstui.setup import (
                 _run_xai_oauth_login_from_setup,
                 prompt_choice,
                 prompt as _setup_prompt,
             )
-            from freeide_cli.config import save_env_value
+            from jettstui.config import save_env_value
         except Exception as exc:
             _print_warning(f"    Could not load setup helpers: {exc}")
-            _print_info("    Run later: freeide auth add xai-oauth   (or set XAI_API_KEY)")
+            _print_info("    Run later: jettstui auth add xai-oauth   (or set XAI_API_KEY)")
             return
 
         idx = prompt_choice(
@@ -1636,7 +1636,7 @@ def _run_post_setup(post_setup_key: str):
             choices=[
                 "Sign in with xAI Grok OAuth (SuperGrok / Premium+) — browser login",
                 "Paste an xAI API key (console.x.ai)",
-                "Skip — configure later via `freeide auth add xai-oauth`",
+                "Skip — configure later via `jettstui auth add xai-oauth`",
             ],
             default=0,
         )
@@ -1648,7 +1648,7 @@ def _run_post_setup(post_setup_key: str):
             else:
                 _print_warning(
                     "    xAI Grok OAuth login did not complete. "
-                    "Run later: freeide auth add xai-oauth"
+                    "Run later: jettstui auth add xai-oauth"
                 )
         elif idx == 1:
             api_key = _setup_prompt("    xAI API key", password=True)
@@ -1657,7 +1657,7 @@ def _run_post_setup(post_setup_key: str):
                 _print_success("    XAI_API_KEY saved")
             else:
                 _print_warning(
-                    "    No API key provided. Run later: freeide auth add xai-oauth"
+                    "    No API key provided. Run later: jettstui auth add xai-oauth"
                 )
         else:
             _print_info("    xAI will remain inactive until credentials are configured.")
@@ -1668,7 +1668,7 @@ def valid_post_setup_keys() -> Set[str]:
 
     Collected from ``TOOL_CATEGORIES`` plus the plugin-registered web /
     image-gen / video-gen / browser providers (which can also carry a
-    ``post_setup``). This is the allowlist the ``freeide tools post-setup``
+    ``post_setup``). This is the allowlist the ``jettstui tools post-setup``
     command and the dashboard post-setup endpoint validate against, so a
     caller can't drive ``_run_post_setup`` with an arbitrary key.
     """
@@ -1696,7 +1696,7 @@ def valid_post_setup_keys() -> Set[str]:
 
 
 def run_post_setup_command(args) -> int:
-    """``freeide tools post-setup <key>`` — non-interactive post-setup runner.
+    """``jettstui tools post-setup <key>`` — non-interactive post-setup runner.
 
     Runs the install/bootstrap hook a provider declares (npm install for
     browser/Camofox, pip install for kittentts/piper/ddgs, cua-driver fetch,
@@ -1706,7 +1706,7 @@ def run_post_setup_command(args) -> int:
     """
     key = getattr(args, "post_setup_key", None)
     if not key:
-        _print_error("Usage: freeide tools post-setup <key>")
+        _print_error("Usage: jettstui tools post-setup <key>")
         return 2
     valid = valid_post_setup_keys()
     if key not in valid:
@@ -1804,7 +1804,7 @@ def _exempt_explicit_platform_native(
     ``discord``/``discord_admin`` on the discord platform) are the platform's
     own native tools. They are kept off for *unconfigured* platforms (security
     opt-in), but once a user explicitly saves a toolset list for the platform
-    the composite they chose (e.g. ``freeide-discord``, which contains those
+    the composite they chose (e.g. ``jettstui-discord``, which contains those
     tools) is an opt-in — stripping them silently defeats the explicit
     configuration (#35527). Mutates ``default_off`` in place.
     """
@@ -1829,7 +1829,7 @@ def _get_platform_tools(
     toolset_names = platform_toolsets.get(platform)
     # Track whether the user explicitly saved a toolset list for this platform
     # (vs. falling back to the platform default). An explicit composite (e.g.
-    # ``freeide-discord``) is an opt-in to the platform's native default-off
+    # ``jettstui-discord``) is an opt-in to the platform's native default-off
     # toolsets — see _exempt_explicit_platform_native (#35527).
     explicitly_configured = isinstance(toolset_names, list)
 
@@ -1839,7 +1839,7 @@ def _get_platform_tools(
             default_ts = plat_info["default_toolset"]
         else:
             # Plugin platform — derive toolset name from platform key
-            default_ts = f"freeide-{platform}"
+            default_ts = f"jettstui-{platform}"
         toolset_names = [default_ts]
 
     # YAML may parse bare numeric names (e.g. ``12306:``) as int.
@@ -1853,7 +1853,7 @@ def _get_platform_tools(
     # If the saved list contains any configurable keys directly, the user
     # has explicitly configured this platform — use direct membership.
     # This avoids the subset-inference bug where composite toolsets like
-    # "freeide-cli" (which include all _FREEIDE_CORE_TOOLS) cause disabled
+    # "jettstui-cli" (which include all _JETTSTUI_CORE_TOOLS) cause disabled
     # toolsets to re-appear as enabled.
     has_explicit_config = any(ts in configurable_keys for ts in toolset_names)
 
@@ -1863,7 +1863,7 @@ def _get_platform_tools(
             if ts in configurable_keys and _toolset_allowed_for_platform(ts, platform)
         }
         # Mixed config: composite toolset alongside configurables (e.g.
-        # ``[freeide-cli, spotify]`` after enabling Spotify via ``freeide
+        # ``[jettstui-cli, spotify]`` after enabling Spotify via ``jettstui
         # tools``). Without expansion the composite name is silently dropped,
         # leaving sessions with only the configurable opt-ins and no native
         # tools. Mirror the else-branch's subset inference, but apply
@@ -1903,7 +1903,7 @@ def _get_platform_tools(
             enabled_toolsets |= expanded
     else:
         # No explicit config — fall back to resolving composite toolset names
-        # (e.g. "freeide-cli") to individual tool names and reverse-mapping.
+        # (e.g. "jettstui-cli") to individual tool names and reverse-mapping.
         all_tool_names = set()
         for ts_name in toolset_names:
             all_tool_names.update(resolve_toolset(ts_name))
@@ -1928,7 +1928,7 @@ def _get_platform_tools(
         # NOT include, so the subset loop never picks it up. Inject it
         # directly here, mirroring the HASS_TOKEN → ``homeassistant`` rule
         # below: once you have working creds, you don't have to also click
-        # through ``freeide tools`` to flip the toolset on. Only fires when
+        # through ``jettstui tools`` to flip the toolset on. Only fires when
         # the user has not yet saved an explicit toolset list — once they
         # do, the saved list is authoritative.
         x_search_auto_enabled = (
@@ -1969,10 +1969,10 @@ def _get_platform_tools(
     # feishu_drive).  These are part of the platform's default composite but
     # absent from CONFIGURABLE_TOOLSETS, so they can't appear in the TUI
     # checklist or in a user-saved config.  Must run in BOTH branches —
-    # otherwise saving via `freeide tools` (which flips has_explicit_config
+    # otherwise saving via `jettstui tools` (which flips has_explicit_config
     # to True) silently drops them.
     _plat_info = PLATFORMS.get(platform)
-    _default_ts = _plat_info["default_toolset"] if _plat_info else f"freeide-{platform}"
+    _default_ts = _plat_info["default_toolset"] if _plat_info else f"jettstui-{platform}"
     platform_tool_universe = set(resolve_toolset(_default_ts))
     configurable_tool_universe = set()
     for ck in configurable_keys:
@@ -1981,7 +1981,7 @@ def _get_platform_tools(
     for ts_key in enabled_toolsets:
         claimed.update(resolve_toolset(ts_key))
     skip = configurable_keys | plugin_ts_keys | platform_default_keys
-    skip |= {k for k in TOOLSETS if k.startswith("freeide-")}
+    skip |= {k for k in TOOLSETS if k.startswith("jettstui-")}
     skip |= set(_DEFAULT_OFF_TOOLSETS) - {platform}
     for ts_key, ts_def in TOOLSETS.items():
         if ts_key in skip:
@@ -2006,9 +2006,9 @@ def _get_platform_tools(
 
     # Plugin toolsets: enabled by default unless explicitly disabled, or
     # unless the toolset is in _DEFAULT_OFF_TOOLSETS (e.g. spotify —
-    # shipped as a bundled plugin but user must opt in via `freeide tools`
+    # shipped as a bundled plugin but user must opt in via `jettstui tools`
     # so we don't ship 7 Spotify tool schemas to users who don't use it).
-    # A plugin toolset is "known" for a platform once `freeide tools`
+    # A plugin toolset is "known" for a platform once `jettstui tools`
     # has been saved for that platform (tracked via known_plugin_toolsets).
     # Unknown plugins default to enabled; known-but-absent = disabled.
     if plugin_ts_keys:
@@ -2022,7 +2022,7 @@ def _get_platform_tools(
                 # Opt-in plugin toolset — stay off until user picks it
                 continue
             elif pts not in known_for_platform:
-                # New plugin not yet seen by freeide tools — default enabled
+                # New plugin not yet seen by jettstui tools — default enabled
                 enabled_toolsets.add(pts)
             # else: known but not in config = user disabled it
 
@@ -2085,11 +2085,11 @@ def _get_platform_tools(
         enabled_toolsets -= disabled_set
 
     # #38798: if this platform was explicitly configured but every toolset name
-    # is invalid (e.g. a migration or hand-edit left `freeide` instead of
-    # `freeide-cli`), resolve_toolset() returns [] for each and the platform ends
+    # is invalid (e.g. a migration or hand-edit left `jettstui` instead of
+    # `jettstui-cli`), resolve_toolset() returns [] for each and the platform ends
     # up with no native tools — silently, with no error. Surface it at the point
     # tools are resolved for a session so an already-corrupted config is caught
-    # at runtime, not only during the next `freeide update`/`freeide doctor`.
+    # at runtime, not only during the next `jettstui update`/`jettstui doctor`.
     _explicit = platform_toolsets.get(platform)
     if isinstance(_explicit, list) and _explicit:
         from toolsets import validate_toolset
@@ -2103,7 +2103,7 @@ def _get_platform_tools(
             _warned_invalid_platform_toolsets.add(platform)
             logger.warning(
                 "platform '%s' has no valid toolsets configured (unknown "
-                "name(s): %s) - tools will be unavailable. Run `freeide tools` "
+                "name(s): %s) - tools will be unavailable. Run `jettstui tools` "
                 "to reconfigure. See issue #38798.",
                 platform,
                 ", ".join(_named),
@@ -2133,7 +2133,7 @@ def _save_platform_tools(config: dict, platform: str, enabled_toolset_keys: Set[
     plugin_keys = _get_plugin_toolset_keys()
     configurable_keys |= plugin_keys
 
-    # Also exclude platform default toolsets (freeide-cli, freeide-telegram, etc.)
+    # Also exclude platform default toolsets (jettstui-cli, jettstui-telegram, etc.)
     # These are "super" toolsets that resolve to ALL tools, so preserving them
     # would silently override the user's unchecked selections on the next read.
     platform_default_keys = {p["default_toolset"] for p in PLATFORMS.values()}
@@ -2150,7 +2150,7 @@ def _save_platform_tools(config: dict, platform: str, enabled_toolset_keys: Set[
         entry for entry in existing_toolsets
         if entry not in configurable_keys and entry not in platform_default_keys
     }
-    # Opening `freeide tools` is the user's opt-in to reconfigure tools, so treat
+    # Opening `jettstui tools` is the user's opt-in to reconfigure tools, so treat
     # saving from the picker as consent to clear the "no_mcp" sentinel. The
     # picker has no checkbox for no_mcp, so without this users who once set it
     # by hand could never re-enable MCP servers through the UI.
@@ -2244,7 +2244,7 @@ def _toolset_has_keys(
 
 def _prompt_choice(question: str, choices: list, default: int = 0) -> int:
     """Single-select menu (arrow keys). Delegates to curses_radiolist."""
-    from freeide_cli.curses_ui import curses_radiolist
+    from jettstui.curses_ui import curses_radiolist
     return curses_radiolist(question, choices, selected=default, cancel_returns=default)
 
 
@@ -2304,7 +2304,7 @@ def _prompt_toolset_checklist(
     force_fresh: bool = True,
 ) -> Set[str]:
     """Multi-select checklist of toolsets. Returns set of selected toolset keys."""
-    from freeide_cli.curses_ui import curses_checklist
+    from jettstui.curses_ui import curses_checklist
     from toolsets import resolve_toolset
 
     # Pre-compute per-tool token counts (cached after first call).
@@ -2391,7 +2391,7 @@ def _plugin_image_gen_providers() -> list[dict]:
     """
     try:
         from agent.image_gen_registry import list_providers
-        from freeide_cli.plugins import _ensure_plugins_discovered
+        from jettstui.plugins import _ensure_plugins_discovered
 
         _ensure_plugins_discovered()
         providers = list_providers()
@@ -2429,7 +2429,7 @@ def _plugin_video_gen_providers() -> list[dict]:
     """
     try:
         from agent.video_gen_registry import list_providers
-        from freeide_cli.plugins import _ensure_plugins_discovered
+        from jettstui.plugins import _ensure_plugins_discovered
 
         _ensure_plugins_discovered()
         providers = list_providers()
@@ -2464,7 +2464,7 @@ def _plugin_video_gen_providers() -> list[dict]:
 # PR #25182 — this helper is the sole source of truth for the category's
 # provider rows. The hardcoded entries that used to drive the category
 # were deleted in the same PR; only the two non-provider UX rows
-# ("FreeIDE Subscription" managed-gateway entry, "Firecrawl Self-Hosted")
+# ("JettsTUI Subscription" managed-gateway entry, "Firecrawl Self-Hosted")
 # remain in TOOL_CATEGORIES because they describe alternative *setup
 # flows* for the firecrawl backend rather than distinct providers.
 def _plugin_web_search_providers() -> list[dict]:
@@ -2482,7 +2482,7 @@ def _plugin_web_search_providers() -> list[dict]:
     """
     try:
         from agent.web_search_registry import list_providers as _list_web_providers
-        from freeide_cli.plugins import _ensure_plugins_discovered
+        from jettstui.plugins import _ensure_plugins_discovered
 
         _ensure_plugins_discovered()
         providers = _list_web_providers()
@@ -2548,7 +2548,7 @@ def web_provider_capabilities(backend: str) -> list:
 # for those three in the "Browser Automation" picker. The hardcoded
 # ``TOOL_CATEGORIES["browser"]`` entries that drove the category before
 # were deleted in the same PR; only non-provider UX setup-flow rows remain
-# ("FreeIDE Subscription", "Local Browser", "Camofox") — see the comment block
+# ("JettsTUI Subscription", "Local Browser", "Camofox") — see the comment block
 # in ``TOOL_CATEGORIES["browser"]`` for why each one stays hardcoded.
 def _plugin_browser_providers() -> list[dict]:
     """Build picker-row dicts from plugin-registered cloud browser providers.
@@ -2564,7 +2564,7 @@ def _plugin_browser_providers() -> list[dict]:
     """
     try:
         from agent.browser_registry import list_providers as _list_browser_providers
-        from freeide_cli.plugins import _ensure_plugins_discovered
+        from jettstui.plugins import _ensure_plugins_discovered
 
         _ensure_plugins_discovered()
         providers = _list_browser_providers()
@@ -2615,7 +2615,7 @@ def _plugin_tts_providers() -> list[dict]:
     """
     try:
         from agent.tts_registry import _BUILTIN_NAMES, list_providers
-        from freeide_cli.plugins import _ensure_plugins_discovered
+        from jettstui.plugins import _ensure_plugins_discovered
 
         _ensure_plugins_discovered()
         providers = list_providers()
@@ -2665,7 +2665,7 @@ def _visible_providers(
         visible.append(provider)
 
     # Inject plugin-registered image_gen backends (OpenAI today, more
-    # later) so the picker lists them alongside FAL / FreeIDE Subscription.
+    # later) so the picker lists them alongside FAL / JettsTUI Subscription.
     if cat.get("name") == "Image Generation":
         visible.extend(_plugin_image_gen_providers())
 
@@ -2677,14 +2677,14 @@ def _visible_providers(
     # Inject plugin-registered web search backends. After PR #25182, this
     # is the SOLE source of provider rows for the Web Search & Extract
     # category — the per-provider hardcoded entries were deleted. The two
-    # remaining hardcoded rows ("FreeIDE Subscription", "Firecrawl
+    # remaining hardcoded rows ("JettsTUI Subscription", "Firecrawl
     # Self-Hosted") are non-provider UX setup-flow rows for firecrawl.
     if cat.get("name") == "Web Search & Extract":
         visible.extend(_plugin_web_search_providers())
 
     # Inject plugin-registered cloud browser backends. After PR #25214,
     # Browserbase / Browser Use / Firecrawl are the plugin-supplied rows;
-    # the hardcoded "FreeIDE Subscription" / "Local Browser" / "Camofox" rows
+    # the hardcoded "JettsTUI Subscription" / "Local Browser" / "Camofox" rows
     # stay because they're non-provider UX setup flows (subscription auth,
     # local fallback, and the REST-API anti-detection backend respectively).
     if cat.get("name") == "Browser Automation":
@@ -2706,10 +2706,10 @@ def _hidden_gateway_message(
     *,
     force_fresh: bool = False,
 ) -> str:
-    """Deprecated: FreeIDE Tool Gateway rows are no longer hidden.
+    """Deprecated: JettsTUI Tool Gateway rows are no longer hidden.
 
     Previously this returned a "log in / upgrade" banner shown above a
-    category when its FreeIDE-managed rows were filtered out for unentitled
+    category when its JettsTUI-managed rows were filtered out for unentitled
     users. Those rows are now always listed (see ``_visible_providers``), and
     the login + entitlement guidance happens inline when the user selects one
     (``ensure_tool_backend_access``). Kept as a no-op so call sites stay simple;
@@ -2723,7 +2723,7 @@ _POST_SETUP_INSTALLED: dict = {
     # is already satisfied. Used by `_toolset_needs_configuration_prompt`
     # to force the provider-setup flow when a no-key provider still needs
     # a binary/dependency install (otherwise an already-configured user
-    # who toggles the toolset on via `freeide tools` gets a silent no-op
+    # who toggles the toolset on via `jettstui tools` gets a silent no-op
     # because the gate sees "no env vars to ask about" and skips the
     # provider-setup flow that would have run the post_setup hook).
     #
@@ -2765,7 +2765,7 @@ def _agent_browser_installed() -> bool:
     Lightpanda engine, which needs no Chromium). Mirrors the hook so "Run
     setup" flips to an installed state only when re-running it would be a
     no-op."""
-    from freeide_cli.tool_features import _local_browser_runnable
+    from jettstui.tool_features import _local_browser_runnable
 
     return _local_browser_runnable()
 
@@ -2799,7 +2799,7 @@ def _cloud_agent_browser_installed() -> bool:
 
     Cloud providers host their own Chromium, so their hook only installs the
     agent-browser npm package — presence of the CLI is the whole contract."""
-    from freeide_cli.tool_features import _has_agent_browser
+    from jettstui.tool_features import _has_agent_browser
 
     return _has_agent_browser()
 
@@ -2892,7 +2892,7 @@ def _toolset_needs_configuration_prompt(
             return False
         try:
             from agent.image_gen_registry import list_providers
-            from freeide_cli.plugins import _ensure_plugins_discovered
+            from jettstui.plugins import _ensure_plugins_discovered
 
             _ensure_plugins_discovered()
             for provider in list_providers():
@@ -2909,7 +2909,7 @@ def _toolset_needs_configuration_prompt(
         # available — no in-tree fallback (every backend is a plugin).
         try:
             from agent.video_gen_registry import list_providers
-            from freeide_cli.plugins import _ensure_plugins_discovered
+            from jettstui.plugins import _ensure_plugins_discovered
 
             _ensure_plugins_discovered()
             for provider in list_providers():
@@ -2939,7 +2939,7 @@ def _configure_tool_category(
     hidden_gateway_message = _hidden_gateway_message(
         cat,
         config,
-        f"the FreeIDE Subscription provider for {name}",
+        f"the JettsTUI Subscription provider for {name}",
         force_fresh=force_fresh,
     )
 
@@ -3217,7 +3217,7 @@ def _plugin_image_gen_catalog(plugin_name: str):
     """
     try:
         from agent.image_gen_registry import get_provider
-        from freeide_cli.plugins import _ensure_plugins_discovered
+        from jettstui.plugins import _ensure_plugins_discovered
 
         _ensure_plugins_discovered()
         provider = get_provider(plugin_name)
@@ -3357,7 +3357,7 @@ def _plugin_video_gen_catalog(plugin_name: str):
     """
     try:
         from agent.video_gen_registry import get_provider
-        from freeide_cli.plugins import _ensure_plugins_discovered
+        from jettstui.plugins import _ensure_plugins_discovered
 
         _ensure_plugins_discovered()
         provider = get_provider(plugin_name)
@@ -3454,7 +3454,7 @@ def _write_provider_config(provider: dict, config: dict, *, managed_feature) -> 
     This is the pure, non-interactive core of :func:`_configure_provider` —
     it writes ``tts.provider`` / ``browser.cloud_provider`` / ``web.backend``
     and the ``use_gateway`` flags based on the provider's markers, but does
-    NOT prompt for env vars, run post-setup hooks, gate on FreeIDE auth, or run
+    NOT prompt for env vars, run post-setup hooks, gate on JettsTUI auth, or run
     interactive model pickers. Both the CLI configurator and the desktop GUI
     ``PUT .../provider`` endpoint call through here so there is one code path.
     """
@@ -3584,7 +3584,7 @@ def _configure_provider(
             _run_post_setup(provider["post_setup"])
         _print_success(f"  {provider['name']} - no configuration needed!")
         if managed_feature:
-            _print_info("  Requests for this tool will be billed to your FreeIDE subscription.")
+            _print_info("  Requests for this tool will be billed to your JettsTUI subscription.")
         # Plugin-registered image_gen provider: write image_gen.provider
         # and route model selection to the plugin's own catalog.
         plugin_name = provider.get("image_gen_plugin_name")
@@ -3665,7 +3665,7 @@ def _configure_vision_backend() -> None:
     ``auxiliary.vision.{provider,model,base_url}`` in config.yaml (see
     ``agent/auxiliary_client.resolve_vision_provider_client``). Rather than
     forcing the user onto OpenRouter, let them pick any authenticated
-    provider + model — the same surface as ``freeide model`` — or point at a
+    provider + model — the same surface as ``jettstui model`` — or point at a
     custom OpenAI-compatible endpoint. "Auto" leaves the config keys empty so
     the resolver uses the main model / aggregator fallback chain.
     """
@@ -3742,14 +3742,14 @@ def _configure_vision_provider_model(config: dict, vision_cfg: dict) -> None:
     """Provider + model picker for vision, mirroring the ``/model`` surface.
 
     Provider rows come from ``build_aux_picker_rows()`` — the shared aux-picker
-    substrate — so this picker lists exactly what the ``freeide model`` aux-task
+    substrate — so this picker lists exactly what the ``jettstui model`` aux-task
     picker lists, including the user's own ``providers:`` / ``custom_providers:``
     endpoints. Lets the user pick a provider and then a model from its curated
     list (or type a custom id), and persists ``auxiliary.vision.provider`` +
     ``.model``.
     """
     try:
-        from freeide_cli.inventory import (
+        from jettstui.inventory import (
             build_aux_picker_rows,
             format_aux_picker_entries,
         )
@@ -3775,7 +3775,7 @@ def _configure_vision_provider_model(config: dict, vision_cfg: dict) -> None:
     if not providers:
         _print_warning(
             "  No authenticated providers found. Configure a provider first "
-            "with `freeide model`, then re-run this."
+            "with `jettstui model`, then re-run this."
         )
         return
 
@@ -3934,7 +3934,7 @@ def _configure_tool_category_for_reconfig(
     hidden_gateway_message = _hidden_gateway_message(
         cat,
         config,
-        f"the FreeIDE Subscription provider for {name}",
+        f"the JettsTUI Subscription provider for {name}",
         force_fresh=force_fresh,
     )
 
@@ -4036,7 +4036,7 @@ def _reconfigure_provider(
             _run_post_setup(provider["post_setup"])
         _print_success(f"  {provider['name']} - no configuration needed!")
         if managed_feature:
-            _print_info("  Requests for this tool will be billed to your FreeIDE subscription.")
+            _print_info("  Requests for this tool will be billed to your JettsTUI subscription.")
         plugin_name = provider.get("image_gen_plugin_name")
         if plugin_name:
             _select_plugin_image_gen_provider(plugin_name, config)
@@ -4101,7 +4101,7 @@ def _reconfigure_simple_requirements(ts_key: str):
     """Reconfigure simple env var requirements."""
     if ts_key == "vision":
         # Vision has its own provider/model picker (any provider, like
-        # `freeide model`). Run it directly so reconfigure doesn't fall back to
+        # `jettstui model`). Run it directly so reconfigure doesn't fall back to
         # the generic single-key prompt (which would re-ask for OPENROUTER_API_KEY).
         _configure_vision_backend()
         return
@@ -4131,7 +4131,7 @@ def _reconfigure_simple_requirements(ts_key: str):
 # ─── Main Entry Point ─────────────────────────────────────────────────────────
 
 def tools_command(args=None, first_install: bool = False, config: dict = None):
-    """Entry point for `freeide tools` and `freeide setup tools`.
+    """Entry point for `jettstui tools` and `jettstui setup tools`.
 
     Args:
         first_install: When True (set by the setup wizard on fresh installs),
@@ -4166,7 +4166,7 @@ def tools_command(args=None, first_install: bool = False, config: dict = None):
                 print(color("    (none enabled)", Colors.DIM))
         print()
         return
-    print(color("◆ FreeIDE Tool Configuration", Colors.CYAN, Colors.BOLD))
+    print(color("◆ JettsTUI Tool Configuration", Colors.CYAN, Colors.BOLD))
     print(color("  Enable or disable tools per platform.", Colors.DIM))
     print(color("  Tools that need API keys will be configured when enabled.", Colors.DIM))
     print(color("  Guide: https://github.com/Raioshok/JETTS-TUI/blob/main/docs/user-guide/features/tools.md", Colors.DIM))
@@ -4209,7 +4209,7 @@ def tools_command(args=None, first_install: bool = False, config: dict = None):
             )
             for ts_key in sorted(auto_configured):
                 label = next((l for k, l, _ in CONFIGURABLE_TOOLSETS if k == ts_key), ts_key)
-                print(color(f"  ✓ {label}: using your FreeIDE subscription defaults", Colors.GREEN))
+                print(color(f"  ✓ {label}: using your JettsTUI subscription defaults", Colors.GREEN))
 
             # Walk through ALL selected tools that have provider options or
             # need API keys.  This ensures browser (Local vs Browserbase),
@@ -4448,9 +4448,9 @@ def tools_command(args=None, first_install: bool = False, config: dict = None):
         platform_choices[idx] = f"Configure {pinfo['label']}  ({new_count}/{total} enabled)"
 
     print()
-    from freeide_constants import display_freeide_home
-    print(color(f"  Tool configuration saved to {display_freeide_home()}/config.yaml", Colors.DIM))
-    print(color("  Changes take effect on next 'freeide' or gateway restart.", Colors.DIM))
+    from jettstui_constants import display_jettstui_home
+    print(color(f"  Tool configuration saved to {display_jettstui_home()}/config.yaml", Colors.DIM))
+    print(color("  Changes take effect on next 'jettstui' or gateway restart.", Colors.DIM))
     print()
 
 
@@ -4464,7 +4464,7 @@ def _configure_mcp_tools_interactive(config: dict):
     a per-server curses checklist.  Writes changes back as ``tools.exclude``
     entries in config.yaml.
     """
-    from freeide_cli.curses_ui import curses_checklist
+    from jettstui.curses_ui import curses_checklist
 
     mcp_servers = config.get("mcp_servers") or {}
     if not mcp_servers:
@@ -4555,7 +4555,7 @@ def _configure_mcp_tools_interactive(config: dict):
             continue
 
         # Compute new include list (the chosen tools). We standardize on
-        # tools.include across the codebase (catalog installs, freeide mcp
+        # tools.include across the codebase (catalog installs, jettstui mcp
         # configure, and this UI) so a server\'s on-disk config shape doesn\'t
         # depend on which UI the user touched last.
         chosen_names = [tool_names[i] for i in sorted(chosen)]

@@ -1,5 +1,5 @@
 """
-Interactive setup wizard for Jetts-TUI.
+Interactive setup wizard for JettsTUI.
 
 Modular wizard with independently-runnable sections:
   1. Model & Provider — choose your AI provider and model
@@ -8,7 +8,7 @@ Modular wizard with independently-runnable sections:
   4. Messaging Platforms — connect Telegram, Discord, etc.
   5. Tools — configure TTS, web search, image generation, etc.
 
-Config files are stored in ~/.freeide/ for easy access.
+Config files are stored in ~/.jettstui/ for easy access.
 """
 
 import importlib.util
@@ -21,9 +21,9 @@ import copy
 from pathlib import Path
 from typing import Optional, Dict, Any
 
-from freeide_cli.tool_features import get_tool_features
+from jettstui.tool_features import get_tool_features
 from utils import base_url_hostname
-from freeide_constants import get_optional_skills_dir
+from jettstui_constants import get_optional_skills_dir
 
 logger = logging.getLogger(__name__)
 
@@ -59,7 +59,7 @@ def _supports_same_provider_pool_setup(provider: str) -> bool:
         return False
     if provider == "openrouter":
         return True
-    from freeide_cli.auth import PROVIDER_REGISTRY
+    from jettstui.auth import PROVIDER_REGISTRY
 
     pconfig = PROVIDER_REGISTRY.get(provider)
     if not pconfig:
@@ -134,10 +134,10 @@ def _set_reasoning_effort(config: Dict[str, Any], effort: str) -> None:
 
 
 # Import config helpers
-from freeide_cli.config import (
+from jettstui.config import (
     cfg_get,
     DEFAULT_CONFIG,
-    get_freeide_home,
+    get_jettstui_home,
     get_config_path,
     get_env_path,
     load_config,
@@ -145,11 +145,11 @@ from freeide_cli.config import (
     save_env_value,
     remove_env_value,
     get_env_value,
-    ensure_freeide_home,
+    ensure_jettstui_home,
 )
-# display_freeide_home imported lazily at call sites (stale-module safety during freeide update)
+# display_jettstui_home imported lazily at call sites (stale-module safety during jettstui update)
 
-from freeide_cli.colors import Colors, color
+from jettstui.colors import Colors, color
 
 
 def print_header(title: str):
@@ -158,13 +158,13 @@ def print_header(title: str):
     print(color(f"◆ {title}", Colors.CYAN, Colors.BOLD))
 
 
-from freeide_cli.cli_output import (  # noqa: E402
+from jettstui.cli_output import (  # noqa: E402
     print_error,
     print_info,
     print_success,
     print_warning,
 )
-from freeide_cli.secret_prompt import masked_secret_prompt  # noqa: E402
+from jettstui.secret_prompt import masked_secret_prompt  # noqa: E402
 
 
 def is_interactive_stdin() -> bool:
@@ -181,13 +181,13 @@ def is_interactive_stdin() -> bool:
 def print_noninteractive_setup_guidance(reason: str | None = None) -> None:
     """Print guidance for headless/non-interactive setup flows."""
     print()
-    print(color("◆ Jetts-TUI Setup — Non-interactive mode", Colors.CYAN, Colors.BOLD))
+    print(color("◆ JettsTUI Setup — Non-interactive mode", Colors.CYAN, Colors.BOLD))
     print()
     if reason:
         print_info(reason)
     print_info("The interactive wizard cannot be used here.")
     print()
-    print_info("Configure Jetts-TUI using environment variables or config commands:")
+    print_info("Configure JettsTUI using environment variables or config commands:")
     print_info("  jetts-tui config set model.provider custom")
     print_info("  jetts-tui config set model.base_url http://localhost:8080/v1")
     print_info("  jetts-tui config set model.default your-model-name")
@@ -229,7 +229,7 @@ def _sanitize_pasted_input(value: str) -> str:
 
 def _curses_prompt_choice(question: str, choices: list, default: int = 0, description: str | None = None) -> int:
     """Single-select menu using curses. Delegates to curses_radiolist."""
-    from freeide_cli.curses_ui import curses_radiolist
+    from jettstui.curses_ui import curses_radiolist
     return curses_radiolist(question, choices, selected=default, cancel_returns=-1, description=description)
 
 
@@ -281,14 +281,14 @@ def is_noninteractive() -> bool:
     """True when no human is available to answer a prompt.
 
     The dashboard/desktop spawn CLI actions with ``stdin=DEVNULL`` and
-    ``FREEIDE_NONINTERACTIVE=1`` (see ``freeide_cli/web_server.py``). In that
+    ``JETTSTUI_NONINTERACTIVE=1`` (see ``jettstui/web_server.py``). In that
     context an ``input()`` raises ``EOFError`` immediately, so a prompt that
     aborts on EOF kills the spawned action — this is what made the desktop
     "restart gateway" fail when the Windows gateway service was not yet
     installed (the start path asks "Install it now?" with no one to answer).
     Honour the explicit env flag here so callers fall back to their default.
     """
-    return os.environ.get("FREEIDE_NONINTERACTIVE", "").strip().lower() in {
+    return os.environ.get("JETTSTUI_NONINTERACTIVE", "").strip().lower() in {
         "1",
         "true",
         "yes",
@@ -299,7 +299,7 @@ def is_noninteractive() -> bool:
 def prompt_yes_no(question: str, default: bool = True) -> bool:
     """Prompt for yes/no. Ctrl+C exits, empty input returns default.
 
-    Non-interactive callers (``FREEIDE_NONINTERACTIVE=1`` or a closed/redirected
+    Non-interactive callers (``JETTSTUI_NONINTERACTIVE=1`` or a closed/redirected
     stdin) have no one to answer, so fall back to ``default`` instead of
     aborting the whole process.
     """
@@ -352,7 +352,7 @@ def prompt_checklist(title: str, items: list, pre_selected: list = None) -> list
     if pre_selected is None:
         pre_selected = []
 
-    from freeide_cli.curses_ui import curses_checklist
+    from jettstui.curses_ui import curses_checklist
 
     chosen = curses_checklist(
         title,
@@ -391,7 +391,7 @@ def _prompt_api_key(var: dict):
         print_warning("  Skipped (configure later with 'jetts-tui setup')")
 
 
-def _print_setup_summary(config: dict, freeide_home):
+def _print_setup_summary(config: dict, jettstui_home):
     """Print the setup completion summary."""
     # Tool availability summary
     print()
@@ -451,7 +451,7 @@ def _print_setup_summary(config: dict, freeide_home):
             ("Browser Automation", False, missing_browser_hint)
         )
 
-    # Image generation — FAL (direct or via FreeIDE), or any plugin-registered
+    # Image generation — FAL (direct or via JettsTUI), or any plugin-registered
     # provider (OpenAI, etc.)
     if subscription_features.image_gen.available:
         tool_status.append(("Image Generation", True, None))
@@ -461,7 +461,7 @@ def _print_setup_summary(config: dict, freeide_home):
         _img_backend = None
         try:
             from agent.image_gen_registry import list_providers
-            from freeide_cli.plugins import _ensure_plugins_discovered
+            from jettstui.plugins import _ensure_plugins_discovered
 
             _ensure_plugins_discovered()
             for _p in list_providers():
@@ -480,12 +480,12 @@ def _print_setup_summary(config: dict, freeide_home):
         else:
             tool_status.append(("Image Generation", False, "FAL_KEY or OPENAI_API_KEY"))
 
-    # Video generation — opt-in via `freeide tools` → Video Generation.
+    # Video generation — opt-in via `jettstui tools` → Video Generation.
     # Only show the row when a plugin reports available so we don't badger
     # users who don't care about video gen with a "missing" status line.
     try:
         from agent.video_gen_registry import list_providers as _list_video_providers
-        from freeide_cli.plugins import _ensure_plugins_discovered as _ensure_plugins
+        from jettstui.plugins import _ensure_plugins_discovered as _ensure_plugins
         _ensure_plugins()
         _video_backend = None
         for _vp in _list_video_providers():
@@ -545,9 +545,9 @@ def _print_setup_summary(config: dict, freeide_home):
     if get_env_value("HASS_TOKEN"):
         tool_status.append(("Smart Home (Home Assistant)", True, None))
 
-    # Spotify (OAuth via freeide auth spotify — check auth.json, not env vars)
+    # Spotify (OAuth via jettstui auth spotify — check auth.json, not env vars)
     try:
-        from freeide_cli.auth import get_provider_auth_state
+        from jettstui.auth import get_provider_auth_state
         _spotify_state = get_provider_auth_state("spotify") or {}
         if _spotify_state.get("access_token") or _spotify_state.get("refresh_token"):
             tool_status.append(("Spotify (PKCE OAuth)", True, None))
@@ -591,7 +591,7 @@ def _print_setup_summary(config: dict, freeide_home):
         print_warning(
             "Some tools are disabled. Run 'jetts-tui setup tools' to configure them,"
         )
-        from freeide_constants import display_freeide_home as _dhh
+        from jettstui_constants import display_jettstui_home as _dhh
         print_warning(f"or edit {_dhh()}/.env directly to add the missing API keys.")
         print()
 
@@ -615,13 +615,13 @@ def _print_setup_summary(config: dict, freeide_home):
     print()
 
     # Show file locations prominently
-    from freeide_constants import display_freeide_home as _dhh
+    from jettstui_constants import display_jettstui_home as _dhh
     print(color(f"📁 All your files are in {_dhh()}/:", Colors.CYAN, Colors.BOLD))
     print()
     print(f"   {color('Settings:', Colors.YELLOW)}  {get_config_path()}")
     print(f"   {color('API Keys:', Colors.YELLOW)}  {get_env_path()}")
     print(
-        f"   {color('Data:', Colors.YELLOW)}      {freeide_home}/cron/, sessions/, logs/"
+        f"   {color('Data:', Colors.YELLOW)}      {jettstui_home}/cron/, sessions/, logs/"
     )
     print()
 
@@ -700,7 +700,7 @@ def _prompt_container_resources(config: dict):
 
 
 # Tool categories and provider config are now in tools_config.py (shared
-# between `freeide tools` and `freeide setup tools`).
+# between `jettstui tools` and `jettstui setup tools`).
 
 
 # =============================================================================
@@ -712,24 +712,24 @@ def _prompt_container_resources(config: dict):
 def setup_model_provider(config: dict, *, quick: bool = False):
     """Configure the inference provider and default model.
 
-    Delegates to ``cmd_model()`` (the same flow used by ``freeide model``)
+    Delegates to ``cmd_model()`` (the same flow used by ``jettstui model``)
     for provider selection, credential prompting, and model picking.
     This ensures a single code path for all provider setup — any new
-    provider added to ``freeide model`` is automatically available here.
+    provider added to ``jettstui model`` is automatically available here.
 
     When *quick* is True, skips credential rotation, vision, and TTS
     configuration — used by the streamlined first-time quick setup.
     """
-    from freeide_cli.config import load_config, save_config
+    from jettstui.config import load_config, save_config
 
     print_header("Inference Provider")
     print_info("Choose how to connect to your main chat model.")
     print_info(f"   Guide: {_DOCS_BASE}/integrations/providers.md")
     print()
 
-    # Delegate to the shared freeide model flow — handles provider picker,
+    # Delegate to the shared jettstui model flow — handles provider picker,
     # credential prompting, model selection, and config persistence.
-    from freeide_cli.main import select_provider_and_model
+    from jettstui.main import select_provider_and_model
     try:
         select_provider_and_model()
     except (SystemExit, KeyboardInterrupt):
@@ -759,8 +759,8 @@ def setup_model_provider(config: dict, *, quick: bool = False):
     # Credential rotation, vision-backend selection, and TTS provider are no
     # longer prompted here. They have safe defaults (rotation off, vision
     # auto-detected from the main provider, TTS = Edge) and are configurable
-    # on demand via `freeide auth add`, `freeide setup` vision, and
-    # `freeide setup tts`. This keeps both quick and full setup thin.
+    # on demand via `jettstui auth add`, `jettstui setup` vision, and
+    # `jettstui setup tts`. This keeps both quick and full setup thin.
 
     save_config(config)
 
@@ -815,7 +815,7 @@ def _install_neutts_deps() -> bool:
 
     # Route through the canonical uv → pip → ensurepip ladder so pip-less
     # venvs (Ubuntu 25.10 `python -m venv`, `uv venv`) work out of the box.
-    from freeide_cli.tools_config import _pip_install
+    from jettstui.tools_config import _pip_install
 
     try:
         result = _pip_install(["-U", "neutts[all]", "--quiet"], timeout=300)
@@ -845,7 +845,7 @@ def _install_kittentts_deps() -> bool:
     print_info("Installing kittentts Python package (~25-80MB model downloaded on first use)...")
     print()
 
-    from freeide_cli.tools_config import _pip_install
+    from jettstui.tools_config import _pip_install
 
     try:
         result = _pip_install(["-U", wheel_url, "soundfile", "--quiet"], timeout=300)
@@ -866,10 +866,10 @@ def _xai_oauth_logged_in_for_setup() -> bool:
     """True iff xAI Grok OAuth credentials are already stored locally.
 
     Lets TTS / STT setup skip the API-key prompt for users who logged in
-    through ``freeide model`` -> xAI Grok OAuth (SuperGrok / Premium+).
+    through ``jettstui model`` -> xAI Grok OAuth (SuperGrok / Premium+).
     """
     try:
-        from freeide_cli.auth import get_xai_oauth_auth_status
+        from jettstui.auth import get_xai_oauth_auth_status
 
         return bool(get_xai_oauth_auth_status().get("logged_in"))
     except Exception:
@@ -883,7 +883,7 @@ def _run_xai_oauth_login_from_setup() -> bool:
     to whatever the user picked next, e.g. Edge TTS).
     """
     try:
-        from freeide_cli.auth import (
+        from jettstui.auth import (
             DEFAULT_XAI_OAUTH_BASE_URL,
             _is_remote_session,
             _save_xai_oauth_tokens,
@@ -1011,7 +1011,7 @@ def _setup_tts_provider(config: dict):
 
     elif selected == "xai":
         # Resolution order: existing OAuth tokens (free for SuperGrok subscribers
-        # via the FreeIDE auth store) > existing XAI_API_KEY > prompt the user.
+        # via the JettsTUI auth store) > existing XAI_API_KEY > prompt the user.
         # When neither is configured, offer both options instead of forcing the
         # API-key path — xAI TTS works fine with OAuth bearer tokens too.
         oauth_logged_in = _xai_oauth_logged_in_for_setup()
@@ -1052,7 +1052,7 @@ def _setup_tts_provider(config: dict):
                     save_env_value("XAI_API_KEY", api_key)
                     print_success("xAI TTS API key saved")
                 else:
-                    from freeide_constants import display_freeide_home as _dhh
+                    from jettstui_constants import display_jettstui_home as _dhh
                     print_warning(
                         "No xAI API key provided for TTS. Configure XAI_API_KEY "
                         f"via jetts-tui setup model or {_dhh()}/.env to use xAI TTS. "
@@ -1139,7 +1139,7 @@ def _setup_tts_provider(config: dict):
 
 
 def setup_tts(config: dict):
-    """Standalone TTS setup (for 'freeide setup tts')."""
+    """Standalone TTS setup (for 'jettstui setup tts')."""
     _setup_tts_provider(config)
 
 
@@ -1152,7 +1152,7 @@ def setup_terminal_backend(config: dict):
     """Configure the terminal execution backend."""
     import platform as _platform
     print_header("Terminal Backend")
-    print_info("Choose where Jetts-TUI runs shell commands and code.")
+    print_info("Choose where JettsTUI runs shell commands and code.")
     print_info("This affects tool execution, file access, and isolation.")
     print_info(f"   Guide: {_DOCS_BASE}/user-guide/configuration.md#terminal-backend-configuration")
     print()
@@ -1199,7 +1199,7 @@ def setup_terminal_backend(config: dict):
         print_success("Terminal backend: Local")
         print_info("Commands run directly on this machine.")
         # Gateway working directory defaults to home; sudo stays off. Both are
-        # configurable later via `freeide setup terminal` / config.yaml.
+        # configurable later via `jettstui setup terminal` / config.yaml.
         config["terminal"].setdefault("cwd", str(Path.home()))
 
     elif selected_backend == "docker":
@@ -1213,7 +1213,7 @@ def setup_terminal_backend(config: dict):
         else:
             print_info(f"Docker found: {docker_bin}")
 
-        # Image and resource limits use defaults; tune via `freeide setup terminal`.
+        # Image and resource limits use defaults; tune via `jettstui setup terminal`.
         config["terminal"].setdefault(
             "docker_image", "nikolaik/python-nodejs:python3.11-nodejs20"
         )
@@ -1232,12 +1232,12 @@ def setup_terminal_backend(config: dict):
             proxy_cfg.setdefault("enforce_on_docker", True)
             print_success("Egress firewall enabled in config")
             print_info(
-                "Run `freeide egress setup` then `freeide egress start` to mint "
+                "Run `jettstui egress setup` then `jettstui egress start` to mint "
                 "tokens and launch the proxy."
             )
         else:
             print_info(
-                "Skipping egress firewall. You can enable it later with `freeide egress setup`."
+                "Skipping egress firewall. You can enable it later with `jettstui egress setup`."
             )
 
     elif selected_backend == "singularity":
@@ -1253,7 +1253,7 @@ def setup_terminal_backend(config: dict):
         else:
             print_info(f"Found: {sing_bin}")
 
-        # Image and resource limits use defaults; tune via `freeide setup terminal`.
+        # Image and resource limits use defaults; tune via `jettstui setup terminal`.
         config["terminal"].setdefault(
             "singularity_image",
             "docker://nikolaik/python-nodejs:python3.11-nodejs20",
@@ -1270,7 +1270,7 @@ def setup_terminal_backend(config: dict):
             __import__("modal")
         except ImportError:
             print_info("Installing modal SDK...")
-            from freeide_cli.tools_config import _pip_install
+            from jettstui.tools_config import _pip_install
 
             result = _pip_install(["modal"])
             if result.returncode == 0:
@@ -1311,7 +1311,7 @@ def setup_terminal_backend(config: dict):
             __import__("daytona")
         except ImportError:
             print_info("Installing daytona SDK...")
-            from freeide_cli.tools_config import _pip_install
+            from jettstui.tools_config import _pip_install
 
             result = _pip_install(["daytona"])
             if result.returncode == 0:
@@ -1337,7 +1337,7 @@ def setup_terminal_backend(config: dict):
                 save_env_value("DAYTONA_API_KEY", api_key)
                 print_success("    Configured")
 
-        # Image and resource limits use defaults; tune via `freeide setup terminal`.
+        # Image and resource limits use defaults; tune via `jettstui setup terminal`.
         config["terminal"].setdefault(
             "daytona_image", "nikolaik/python-nodejs:python3.11-nodejs20"
         )
@@ -1409,10 +1409,10 @@ def _apply_default_agent_settings(config: dict):
     """Apply recommended defaults for all agent settings without prompting."""
     config.setdefault("agent", {})["max_turns"] = 150
     # config.yaml is the authoritative source for max_turns; the gateway
-    # bridges it into FREEIDE_MAX_ITERATIONS at startup. We no longer write
+    # bridges it into JETTSTUI_MAX_ITERATIONS at startup. We no longer write
     # to .env to avoid the dual-source inconsistency that caused the
     # 60-vs-500 bug (stale .env entry silently shadowing config.yaml).
-    remove_env_value("FREEIDE_MAX_ITERATIONS")
+    remove_env_value("JETTSTUI_MAX_ITERATIONS")
 
     config.setdefault("display", {})["tool_progress"] = "all"
 
@@ -1458,10 +1458,10 @@ def setup_agent_settings(config: dict):
             # Write to config.yaml (authoritative) only. Also clean up any
             # stale .env entry from earlier setup runs — the gateway's
             # bridge in gateway/run.py now unconditionally derives
-            # FREEIDE_MAX_ITERATIONS from agent.max_turns at startup.
+            # JETTSTUI_MAX_ITERATIONS from agent.max_turns at startup.
             config.setdefault("agent", {})["max_turns"] = max_iter
             config.pop("max_turns", None)
-            remove_env_value("FREEIDE_MAX_ITERATIONS")
+            remove_env_value("JETTSTUI_MAX_ITERATIONS")
             print_success(f"Max iterations set to {max_iter}")
     except ValueError:
         print_warning("Invalid number, keeping current value")
@@ -1474,7 +1474,7 @@ def setup_agent_settings(config: dict):
     print_info("  new     — Show tool name only when it changes (less noise)")
     print_info("  all     — Show every tool call with a short preview")
     print_info("  verbose — Full args, results, and debug logs")
-    print_info("  log     — Silent in chat; write every tool call to ~/.freeide/logs/tool_calls.log (gateway only)")
+    print_info("  log     — Silent in chat; write every tool call to ~/.jettstui/logs/tool_calls.log (gateway only)")
 
     current_mode = cfg_get(config, "display", "tool_progress", default="all")
     mode = prompt("Tool progress mode", current_mode)
@@ -1621,23 +1621,23 @@ def _is_valid_telegram_bot_token(token: str) -> bool:
 def _setup_telegram_auto_result():
     """Attempt automatic Telegram bot creation via managed QR onboarding."""
     try:
-        from freeide_cli.telegram_managed_bot import auto_setup_telegram_bot_result
+        from jettstui.telegram_managed_bot import auto_setup_telegram_bot_result
     except ImportError:
         return None
 
     profile_name: str | None = None
     try:
-        profile_name = _profile_name_from_freeide_home(Path(get_freeide_home()))
+        profile_name = _profile_name_from_jettstui_home(Path(get_jettstui_home()))
     except Exception:
         pass
 
     return auto_setup_telegram_bot_result(profile_name=profile_name)
 
 
-def _profile_name_from_freeide_home(freeide_home) -> str | None:
-    """Return the active profile name when FREEIDE_HOME is a profile dir."""
-    if freeide_home.parent.name == "profiles":
-        return freeide_home.name
+def _profile_name_from_jettstui_home(jettstui_home) -> str | None:
+    """Return the active profile name when JETTSTUI_HOME is a profile dir."""
+    if jettstui_home.parent.name == "profiles":
+        return jettstui_home.name
     return None
 
 
@@ -1752,7 +1752,7 @@ def _setup_telegram():
         print_info("⚠️  No allowlist set - anyone who finds your bot can use it!")
 
     print()
-    print_info("📬 Home Channel: where Jetts-TUI delivers cron job results,")
+    print_info("📬 Home Channel: where JettsTUI delivers cron job results,")
     print_info("   cross-platform messages, and notifications.")
     print_info("   For Telegram DMs, this is your user ID (same as above).")
 
@@ -1790,7 +1790,7 @@ def _setup_bluebubbles():
         if not prompt_yes_no("Reconfigure BlueBubbles?", False):
             return
 
-    print_info("Connects Jetts-TUI to iMessage via BlueBubbles — a free, open-source")
+    print_info("Connects JettsTUI to iMessage via BlueBubbles — a free, open-source")
     print_info("macOS server that bridges iMessage to any device.")
     print_info("   Requires a Mac running BlueBubbles Server v1.0.0+")
     print_info("   Download: https://bluebubbles.app/")
@@ -1848,7 +1848,7 @@ def _setup_bluebubbles():
 
 def _setup_qqbot():
     """Configure QQ Bot (Official API v2) via gateway setup."""
-    from freeide_cli.gateway import _setup_qqbot as _gateway_setup_qqbot
+    from jettstui.gateway import _setup_qqbot as _gateway_setup_qqbot
     _gateway_setup_qqbot()
 
 
@@ -1887,7 +1887,7 @@ def _setup_webhooks():
     save_env_value("WEBHOOK_ENABLED", "true")
     print()
     print_success("Webhooks enabled! Next steps:")
-    from freeide_constants import display_freeide_home as _dhh
+    from jettstui_constants import display_jettstui_home as _dhh
     print_info(f"   1. Define webhook routes in {_dhh()}/config.yaml")
     print_info("   2. Point your service (GitHub, GitLab, etc.) at:")
     print_info("      http://your-server:8644/webhooks/<route-name>")
@@ -1901,10 +1901,10 @@ def _setup_webhooks():
 
 def setup_gateway(config: dict):
     """Configure messaging platform integrations."""
-    from freeide_cli.gateway import _all_platforms, _platform_status, _configure_platform
+    from jettstui.gateway import _all_platforms, _platform_status, _configure_platform
 
     print_header("Messaging Platforms")
-    print_info("Connect to messaging platforms to chat with Jetts-TUI from anywhere.")
+    print_info("Connect to messaging platforms to chat with JettsTUI from anywhere.")
     print_info("Toggle with Space, confirm with Enter.")
     print()
 
@@ -1985,12 +1985,12 @@ def setup_gateway(config: dict):
         _is_macos = _platform.system() == "Darwin"
         _is_windows = _platform.system() == "Windows"
 
-        from freeide_cli.gateway import (
+        from jettstui.gateway import (
             _is_service_installed,
             _is_service_running,
             supports_systemd_services,
             has_conflicting_systemd_units,
-            has_legacy_freeide_units,
+            has_legacy_jettstui_units,
             install_linux_gateway_from_setup,
             print_systemd_scope_conflict_warning,
             print_legacy_unit_warning,
@@ -2015,7 +2015,7 @@ def setup_gateway(config: dict):
             print_systemd_scope_conflict_warning()
             print()
 
-        if supports_systemd and has_legacy_freeide_units():
+        if supports_systemd and has_legacy_jettstui_units():
             print_legacy_unit_warning()
             print()
 
@@ -2029,7 +2029,7 @@ def setup_gateway(config: dict):
                     elif _is_macos:
                         launchd_restart()
                     elif _is_windows:
-                        from freeide_cli import gateway_windows
+                        from jettstui import gateway_windows
                         gateway_windows.restart()
                 except UserSystemdUnavailableError as e:
                     print_error("  Restart failed — user systemd not reachable:")
@@ -2054,7 +2054,7 @@ def setup_gateway(config: dict):
                     elif _is_macos:
                         launchd_start()
                     elif _is_windows:
-                        from freeide_cli import gateway_windows
+                        from jettstui import gateway_windows
                         gateway_windows.start()
                 except UserSystemdUnavailableError as e:
                     print_error("  Start failed — user systemd not reachable:")
@@ -2090,7 +2090,7 @@ def setup_gateway(config: dict):
                         # Task AND starts it immediately (via schtasks /Run
                         # or a direct spawn fallback), so no separate start
                         # prompt is needed here.
-                        from freeide_cli import gateway_windows
+                        from jettstui import gateway_windows
                         gateway_windows.install(force=False)
                         did_install = True
                         started_inline = True
@@ -2119,7 +2119,7 @@ def setup_gateway(config: dict):
                     print_info("  Or as a boot-time service: jetts-tui gateway install --system")
                 print_info("  Or run in foreground:  jetts-tui gateway")
         else:
-            from freeide_constants import is_container
+            from jettstui_constants import is_container
             if is_container():
                 print_info("Start the gateway to bring your bots online:")
                 print_info("   jetts-tui gateway run          # Run as container main process")
@@ -2142,14 +2142,14 @@ def setup_gateway(config: dict):
 def setup_tools(config: dict, first_install: bool = False):
     """Configure tools — delegates to the unified tools_command() in tools_config.py.
 
-    Both `freeide setup tools` and `freeide tools` use the same flow:
+    Both `jettstui setup tools` and `jettstui tools` use the same flow:
     platform selection → toolset toggles → provider/API key configuration.
 
     Args:
         first_install: When True, uses the simplified first-install flow
             (no platform menu, prompts for all unconfigured API keys).
     """
-    from freeide_cli.tools_config import tools_command
+    from jettstui.tools_config import tools_command
 
     tools_command(first_install=first_install, config=config)
 
@@ -2163,22 +2163,22 @@ def _model_section_has_credentials(config: dict) -> bool:
     """Return True when any known inference provider has usable credentials.
 
     Sources of truth:
-      * ``PROVIDER_REGISTRY`` in ``freeide_cli.auth`` — lists every supported
+      * ``PROVIDER_REGISTRY`` in ``jettstui.auth`` — lists every supported
         provider along with its ``api_key_env_vars``.
       * ``active_provider`` in the auth store — covers OAuth device-code /
-        external-OAuth providers (FreeIDE, Codex, Qwen, Gemini CLI, ...).
+        external-OAuth providers (JettsTUI, Codex, Qwen, Gemini CLI, ...).
       * The legacy OpenRouter aggregator env vars, which route generic
         ``OPENAI_API_KEY`` / ``OPENROUTER_API_KEY`` values through OpenRouter.
     """
     try:
-        from freeide_cli.auth import get_active_provider
+        from jettstui.auth import get_active_provider
         if get_active_provider():
             return True
     except Exception:
         pass
 
     try:
-        from freeide_cli.auth import PROVIDER_REGISTRY
+        from jettstui.auth import PROVIDER_REGISTRY
     except Exception:
         PROVIDER_REGISTRY = {}  # type: ignore[assignment]
 
@@ -2231,7 +2231,7 @@ def _get_section_config_summary(config: dict, section_key: str) -> Optional[str]
     """Return a short summary if a setup section is already configured, else None.
 
     Used after OpenClaw migration to detect which sections can be skipped.
-    ``get_env_value`` is the module-level import from freeide_cli.config
+    ``get_env_value`` is the module-level import from jettstui.config
     so that test patches on ``setup_mod.get_env_value`` take effect.
     """
     if section_key == "model":
@@ -2253,7 +2253,7 @@ def _get_section_config_summary(config: dict, section_key: str) -> Optional[str]
         return f"max turns: {max_turns}"
 
     elif section_key == "gateway":
-        from freeide_cli.gateway import _all_platforms, _platform_status
+        from jettstui.gateway import _all_platforms, _platform_status
         # Count any non-empty status other than the "not configured" sentinel —
         # platforms like WhatsApp ("enabled, not paired"), Matrix ("configured
         # + E2EE"), and Signal ("partially configured") all indicate the user
@@ -2307,12 +2307,12 @@ _OPENCLAW_SCRIPT = (
     / "migration"
     / "openclaw-migration"
     / "scripts"
-    / "openclaw_to_freeide.py"
+    / "openclaw_to_jettstui.py"
 )
 
 
 def _load_openclaw_migration_module():
-    """Load the openclaw_to_freeide migration script as a module.
+    """Load the openclaw_to_jettstui migration script as a module.
 
     Returns the loaded module, or None if the script can't be loaded.
     """
@@ -2320,7 +2320,7 @@ def _load_openclaw_migration_module():
         return None
 
     spec = importlib.util.spec_from_file_location(
-        "openclaw_to_freeide", _OPENCLAW_SCRIPT
+        "openclaw_to_jettstui", _OPENCLAW_SCRIPT
     )
     if spec is None or spec.loader is None:
         return None
@@ -2340,15 +2340,15 @@ def _load_openclaw_migration_module():
 
 # Item kinds that represent high-impact changes warranting explicit warnings.
 # Gateway tokens/channels can hijack messaging platforms from the old agent.
-# Config values may have different semantics between OpenClaw and FreeIDE.
+# Config values may have different semantics between OpenClaw and JettsTUI.
 # Instruction/context files (.md) can contain incompatible setup procedures.
 _HIGH_IMPACT_KIND_KEYWORDS = {
-    "gateway": "⚠ Gateway/messaging — this will configure Jetts-TUI to use your OpenClaw messaging channels",
-    "telegram": "⚠ Telegram — this will point Jetts-TUI at your OpenClaw Telegram bot",
-    "slack": "⚠ Slack — this will point Jetts-TUI at your OpenClaw Slack workspace",
-    "discord": "⚠ Discord — this will point Jetts-TUI at your OpenClaw Discord bot",
-    "whatsapp": "⚠ WhatsApp — this will point Jetts-TUI at your OpenClaw WhatsApp connection",
-    "config": "⚠ Config values — OpenClaw settings may not map 1:1 to Jetts-TUI equivalents",
+    "gateway": "⚠ Gateway/messaging — this will configure JettsTUI to use your OpenClaw messaging channels",
+    "telegram": "⚠ Telegram — this will point JettsTUI at your OpenClaw Telegram bot",
+    "slack": "⚠ Slack — this will point JettsTUI at your OpenClaw Slack workspace",
+    "discord": "⚠ Discord — this will point JettsTUI at your OpenClaw Discord bot",
+    "whatsapp": "⚠ WhatsApp — this will point JettsTUI at your OpenClaw WhatsApp connection",
+    "config": "⚠ Config values — OpenClaw settings may not map 1:1 to JettsTUI equivalents",
     "soul": "⚠ Instruction file — may contain OpenClaw-specific setup/restart procedures",
     "memory": "⚠ Memory/context file — may reference OpenClaw-specific infrastructure",
     "context": "⚠ Context file — may contain OpenClaw-specific instructions",
@@ -2392,7 +2392,7 @@ def _print_migration_preview(report: dict):
         print()
 
     if conflict_items:
-        print(color("  Would overwrite (conflicts with existing Jetts-TUI config):", Colors.YELLOW))
+        print(color("  Would overwrite (conflicts with existing JettsTUI config):", Colors.YELLOW))
         for item in conflict_items:
             kind = item.get("kind", "unknown")
             reason = item.get("reason", "already exists")
@@ -2413,13 +2413,13 @@ def _print_migration_preview(report: dict):
         for warning in sorted(warnings_shown):
             print(color(f"    {warning}", Colors.YELLOW))
         print()
-        print(color("  Note: OpenClaw config values may have different semantics in Jetts-TUI.", Colors.YELLOW))
-        print(color("  For example, OpenClaw's tool_call_execution: \"auto\" ≠ Jetts-TUI's yolo mode.", Colors.YELLOW))
+        print(color("  Note: OpenClaw config values may have different semantics in JettsTUI.", Colors.YELLOW))
+        print(color("  For example, OpenClaw's tool_call_execution: \"auto\" ≠ JettsTUI's yolo mode.", Colors.YELLOW))
         print(color("  Instruction files (.md) from OpenClaw may contain incompatible procedures.", Colors.YELLOW))
         print()
 
 
-def _offer_openclaw_migration(freeide_home: Path) -> bool:
+def _offer_openclaw_migration(jettstui_home: Path) -> bool:
     """Detect ~/.openclaw and offer to migrate during first-time setup.
 
     Runs a dry-run first to show the user exactly what would be imported,
@@ -2437,12 +2437,12 @@ def _offer_openclaw_migration(freeide_home: Path) -> bool:
     print()
     print_header("OpenClaw Installation Detected")
     print_info(f"Found OpenClaw data at {openclaw_dir}")
-    print_info("Jetts-TUI can preview what would be imported before making any changes.")
+    print_info("JettsTUI can preview what would be imported before making any changes.")
     print()
 
     if not prompt_yes_no("Would you like to see what can be imported?", default=True):
         print_info(
-            "Skipping migration. You can run it later with: freeide claw migrate --dry-run"
+            "Skipping migration. You can run it later with: jettstui claw migrate --dry-run"
         )
         return False
 
@@ -2467,7 +2467,7 @@ def _offer_openclaw_migration(freeide_home: Path) -> bool:
         selected = mod.resolve_selected_options(None, None, preset="full")
         dry_migrator = mod.Migrator(
             source_root=openclaw_dir.resolve(),
-            target_root=freeide_home.resolve(),
+            target_root=jettstui_home.resolve(),
             execute=False,  # dry-run — no files modified
             workspace_target=None,
             overwrite=True,  # show everything including conflicts
@@ -2500,22 +2500,22 @@ def _offer_openclaw_migration(freeide_home: Path) -> bool:
     # ── Phase 2: Confirm and execute ──
     if not prompt_yes_no("Proceed with migration?", default=False):
         print_info(
-            "Migration cancelled. You can run it later with: freeide claw migrate"
+            "Migration cancelled. You can run it later with: jettstui claw migrate"
         )
         print_info(
             "Use --dry-run to preview again, or --preset minimal for a lighter import."
         )
         return False
 
-    # Execute the migration — overwrite=False so existing FreeIDE configs are
+    # Execute the migration — overwrite=False so existing JettsTUI configs are
     # preserved. The user saw the preview; conflicts are skipped by default.
     try:
         migrator = mod.Migrator(
             source_root=openclaw_dir.resolve(),
-            target_root=freeide_home.resolve(),
+            target_root=jettstui_home.resolve(),
             execute=True,
             workspace_target=None,
-            overwrite=False,  # preserve existing FreeIDE config
+            overwrite=False,  # preserve existing JettsTUI config
             migrate_secrets=True,
             output_dir=None,
             selected_options=selected,
@@ -2538,7 +2538,7 @@ def _offer_openclaw_migration(freeide_home: Path) -> bool:
     if migrated:
         print_success(f"Imported {migrated} item(s) from OpenClaw.")
     if conflicts:
-        print_info(f"Skipped {conflicts} item(s) that already exist in Jetts-TUI (use jetts-tui claw migrate --overwrite to force).")
+        print_info(f"Skipped {conflicts} item(s) that already exist in JettsTUI (use jetts-tui claw migrate --overwrite to force).")
     if skipped:
         print_info(f"Skipped {skipped} item(s) (not found or unchanged).")
     if errors:
@@ -2572,19 +2572,19 @@ def run_setup_wizard(args):
     """Run the interactive setup wizard.
 
     Supports full, quick, and section-specific setup:
-      freeide setup           — full or quick (auto-detected)
-      freeide setup model     — just model/provider
-      freeide setup tts       — just text-to-speech
-      freeide setup terminal  — just terminal backend
-      freeide setup gateway   — just messaging platforms
-      freeide setup tools     — just tool configuration
-      freeide setup agent     — just agent settings
+      jettstui setup           — full or quick (auto-detected)
+      jettstui setup model     — just model/provider
+      jettstui setup tts       — just text-to-speech
+      jettstui setup terminal  — just terminal backend
+      jettstui setup gateway   — just messaging platforms
+      jettstui setup tools     — just tool configuration
+      jettstui setup agent     — just agent settings
     """
-    from freeide_cli.config import is_managed, managed_error
+    from jettstui.config import is_managed, managed_error
     if is_managed():
         managed_error("run setup wizard")
         return
-    ensure_freeide_home()
+    ensure_jettstui_home()
 
     reset_requested = bool(getattr(args, "reset", False))
     if reset_requested:
@@ -2595,7 +2595,7 @@ def run_setup_wizard(args):
     quick_requested = bool(getattr(args, "quick", False))
 
     config = load_config()
-    freeide_home = get_freeide_home()
+    jettstui_home = get_jettstui_home()
 
     # Back up existing config before setup modifies it (#3522)
     config_path = get_config_path()
@@ -2635,7 +2635,7 @@ def run_setup_wizard(args):
                         Colors.MAGENTA,
                     )
                 )
-                print(color(f"│     ◆ Jetts-TUI Setup — {label:<34s} │", Colors.MAGENTA))
+                print(color(f"│     ◆ JettsTUI Setup — {label:<34s} │", Colors.MAGENTA))
                 print(
                     color(
                         "└─────────────────────────────────────────────────────────┘",
@@ -2653,7 +2653,7 @@ def run_setup_wizard(args):
         return
 
     # Check if this is an existing installation with a provider configured
-    from freeide_cli.auth import get_active_provider
+    from jettstui.auth import get_active_provider
 
     active_provider = get_active_provider()
     is_existing = (
@@ -2691,12 +2691,12 @@ def run_setup_wizard(args):
         # missing items" flow (useful after a partial OpenClaw migration
         # or when a required API key got cleared).
         if quick_requested:
-            _run_quick_setup(config, freeide_home)
+            _run_quick_setup(config, jettstui_home)
             return
 
         print()
         print_header("Reconfigure")
-        print_success("You already have Jetts-TUI configured.")
+        print_success("You already have JettsTUI configured.")
         print_info("Running the full wizard — each prompt shows your current value.")
         print_info("Press Enter to keep it, or type a new value to change it.")
         print_info("")
@@ -2716,7 +2716,7 @@ def run_setup_wizard(args):
             print()
 
         # Offer OpenClaw migration before configuration begins
-        migration_ran = _offer_openclaw_migration(freeide_home)
+        migration_ran = _offer_openclaw_migration(jettstui_home)
         if migration_ran:
             config = load_config()
 
@@ -2730,7 +2730,7 @@ def run_setup_wizard(args):
         )
 
         if setup_mode == 1:
-            _run_blank_slate_setup(config, freeide_home, is_existing)
+            _run_blank_slate_setup(config, jettstui_home, is_existing)
             return
         # setup_mode == 0 falls through to Full Setup, whose first step is the
         # bring-your-own-key provider picker (free and paid providers alike).
@@ -2739,7 +2739,7 @@ def run_setup_wizard(args):
     print_header("Configuration Location")
     print_info(f"Config file:  {get_config_path()}")
     print_info(f"Secrets file: {get_env_path()}")
-    print_info(f"Data folder:  {freeide_home}")
+    print_info(f"Data folder:  {jettstui_home}")
     print_info(f"Install dir:  {PROJECT_ROOT}")
     print()
     print_info("You can edit these files directly or use 'jetts-tui config edit'")
@@ -2760,7 +2760,7 @@ def run_setup_wizard(args):
 
     # Section 3: Agent Settings — no longer prompted. First installs get the
     # recommended defaults silently; existing installs keep whatever they have.
-    # Tune later with `freeide setup agent`.
+    # Tune later with `jettstui setup agent`.
     if not is_existing:
         _apply_default_agent_settings(config)
 
@@ -2778,7 +2778,7 @@ def run_setup_wizard(args):
         print_info(f"Previous config backed up to: {_backup_path}")
         print_info("If setup changed a value you customized, restore it with:")
         print_info(f"  cp {_backup_path} {config_path}")
-    _print_setup_summary(config, freeide_home)
+    _print_setup_summary(config, jettstui_home)
 
 
 
@@ -2796,7 +2796,7 @@ def _blank_slate_minimal_toolsets(config: dict):
        non-configurable platform-toolset recovery that would otherwise re-add
        toolsets like ``kanban``). We list every known toolset except the two we
        keep, guaranteeing a true blank slate regardless of platform/recovery
-       quirks. The user re-enables any of them later via ``freeide tools`` (which
+       quirks. The user re-enables any of them later via ``jettstui tools`` (which
        rewrites ``platform_toolsets``) or by editing ``agent.disabled_toolsets``.
     """
     keep = {"file", "terminal"}
@@ -2804,7 +2804,7 @@ def _blank_slate_minimal_toolsets(config: dict):
 
     try:
         from toolsets import TOOLSETS
-        from freeide_cli.tools_config import CONFIGURABLE_TOOLSETS, _get_plugin_toolset_keys
+        from jettstui.tools_config import CONFIGURABLE_TOOLSETS, _get_plugin_toolset_keys
 
         all_keys = set()
         all_keys.update(k for k, _, _ in CONFIGURABLE_TOOLSETS)
@@ -2812,7 +2812,7 @@ def _blank_slate_minimal_toolsets(config: dict):
         # Plain (non-composite) TOOLSETS entries — catches recovered toolsets
         # like ``kanban`` that aren't in CONFIGURABLE_TOOLSETS but get re-added.
         for k, tdef in TOOLSETS.items():
-            if k.startswith("freeide-"):
+            if k.startswith("jettstui-"):
                 continue  # platform composites — not user-facing toolsets
             if isinstance(tdef, dict) and tdef.get("includes"):
                 continue  # composite groupings, not leaf toolsets
@@ -2834,8 +2834,8 @@ def _blank_slate_minimal_toolsets(config: dict):
 def _blank_slate_minimize_config(config: dict):
     """Turn OFF the optional config features for a Blank Slate install.
 
-    Everything here is opt-in afterwards via ``freeide setup agent`` /
-    ``freeide config set``. We keep only what's needed to run.
+    Everything here is opt-in afterwards via ``jettstui setup agent`` /
+    ``jettstui config set``. We keep only what's needed to run.
     """
     config.setdefault("agent", {})["max_turns"] = 90
 
@@ -2856,7 +2856,7 @@ def _blank_slate_minimize_config(config: dict):
     config.setdefault("display", {})["tool_progress"] = "all"
 
 
-def _run_blank_slate_setup(config: dict, freeide_home, is_existing: bool):
+def _run_blank_slate_setup(config: dict, jettstui_home, is_existing: bool):
     """Blank Slate setup — start with everything off except the bare minimum.
 
     Forces only the essentials to run an agent (provider + model, the file and
@@ -2869,7 +2869,7 @@ def _run_blank_slate_setup(config: dict, freeide_home, is_existing: bool):
 
     Either way nothing is enabled that the user did not explicitly choose.
     """
-    from freeide_cli.config import load_config
+    from jettstui.config import load_config
 
     print()
     print_header("Blank Slate Setup")
@@ -2915,7 +2915,7 @@ def _run_blank_slate_setup(config: dict, freeide_home, is_existing: bool):
     if path == 0:
         save_config(config)
         # Blank Slate means no bundled skills; record the opt-out so future
-        # `freeide update` runs don't re-inject them.
+        # `jettstui update` runs don't re-inject them.
         try:
             from tools.skills_sync import set_bundled_skills_opt_out
             set_bundled_skills_opt_out(True)
@@ -2930,16 +2930,16 @@ def _run_blank_slate_setup(config: dict, freeide_home, is_existing: bool):
         print_info("  Enable plugins:      jetts-tui plugins")
         print_info("  Tune agent settings: jetts-tui setup agent")
         print()
-        _print_setup_summary(config, freeide_home)
+        _print_setup_summary(config, jettstui_home)
         return
 
     # ── Walkthrough path — opt in to each capability ──
-    _blank_slate_walkthrough(config, freeide_home)
+    _blank_slate_walkthrough(config, jettstui_home)
 
 
-def _blank_slate_walkthrough(config: dict, freeide_home):
+def _blank_slate_walkthrough(config: dict, jettstui_home):
     """Opt-in walkthrough for Blank Slate: skills, tools, plugins, MCP, gateway."""
-    from freeide_cli.config import load_config
+    from jettstui.config import load_config
 
     # ── Bundled skills — default to NONE, offer to seed all ──
     print()
@@ -2974,7 +2974,7 @@ def _blank_slate_walkthrough(config: dict, freeide_home):
     print_info(" the most minimal agent.)")
     if prompt_yes_no("Open the tool selector to enable more tools?", default=False):
         try:
-            from freeide_cli.tools_config import tools_command
+            from jettstui.tools_config import tools_command
             tools_command(first_install=False, config=config)
             # tools_command saves via its own load/save cycle — re-sync.
             _refreshed = load_config()
@@ -3017,12 +3017,12 @@ def _blank_slate_walkthrough(config: dict, freeide_home):
     print_info("  Tune agent settings: jetts-tui setup agent")
     print()
 
-    _print_setup_summary(config, freeide_home)
+    _print_setup_summary(config, jettstui_home)
 
 
-def _run_quick_setup(config: dict, freeide_home):
+def _run_quick_setup(config: dict, jettstui_home):
     """Quick setup — only configure items that are missing."""
-    from freeide_cli.config import (
+    from jettstui.config import (
         get_missing_env_vars,
         get_missing_config_fields,
         check_config_version,
@@ -3113,7 +3113,7 @@ def _run_quick_setup(config: dict, freeide_home):
     if missing_messaging:
         print()
         print_header("Messaging Platforms")
-        print_info("Connect Jetts-TUI to messaging apps to chat from anywhere.")
+        print_info("Connect JettsTUI to messaging apps to chat from anywhere.")
         print_info("You can configure these later with 'jetts-tui setup gateway'.")
 
         # Group by platform (preserving order)
@@ -3183,4 +3183,4 @@ def _run_quick_setup(config: dict, freeide_home):
         save_config(config)
 
     # Jump to summary
-    _print_setup_summary(config, freeide_home)
+    _print_setup_summary(config, jettstui_home)

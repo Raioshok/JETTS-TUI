@@ -1,10 +1,10 @@
-"""On-demand supply-chain audit for FreeIDE Agent installs.
+"""On-demand supply-chain audit for JettsTUI installs.
 
-Scans three surfaces a FreeIDE user actually controls and we can map to
+Scans three surfaces a JettsTUI user actually controls and we can map to
 upstream advisories without auth or extra binaries:
 
-1. The FreeIDE venv (every PyPI dist via ``importlib.metadata``).
-2. Python deps declared by user-installed plugins under ``~/.freeide/plugins``
+1. The JettsTUI venv (every PyPI dist via ``importlib.metadata``).
+2. Python deps declared by user-installed plugins under ``~/.jettstui/plugins``
    (``requirements.txt`` + ``pyproject.toml`` best-effort pin extraction).
 3. MCP servers wired in ``config.yaml`` whose ``command/args`` look like
    ``npx -y <pkg>@<ver>`` or ``uvx <pkg>==<ver>``.
@@ -30,7 +30,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable, Optional
 
-from freeide_constants import get_freeide_home
+from jettstui_constants import get_jettstui_home
 
 OSV_BATCH_URL = "https://api.osv.dev/v1/querybatch"
 OSV_VULN_URL = "https://api.osv.dev/v1/vulns/{vid}"
@@ -164,14 +164,14 @@ def _parse_pyproject_pins(text: str) -> list[tuple[str, str]]:
     return pins
 
 
-def _discover_plugins(freeide_home: Path) -> list[Component]:
-    """Python deps declared by plugins under ``~/.freeide/plugins``.
+def _discover_plugins(jettstui_home: Path) -> list[Component]:
+    """Python deps declared by plugins under ``~/.jettstui/plugins``.
 
     Plugins typically don't install into the venv (they're directory-based
     with relative imports), so their stated requirements are useful audit
     surface even when the venv scan misses them.
     """
-    plugins_dir = freeide_home / "plugins"
+    plugins_dir = jettstui_home / "plugins"
     if not plugins_dir.is_dir():
         return []
 
@@ -258,7 +258,7 @@ def _extract_mcp_component(server_name: str, command: str, args: list[str]) -> O
 def _discover_mcp() -> list[Component]:
     """Pinned MCP server packages from ``config.yaml``."""
     try:
-        from freeide_cli.mcp_config import _get_mcp_servers
+        from jettstui.mcp_config import _get_mcp_servers
     except Exception:
         return []
 
@@ -416,10 +416,10 @@ def run_audit(
     skip_venv: bool = False,
     skip_plugins: bool = False,
     skip_mcp: bool = False,
-    freeide_home: Optional[Path] = None,
+    jettstui_home: Optional[Path] = None,
 ) -> list[Finding]:
     """Discover components, query OSV, return findings sorted by severity desc."""
-    home = freeide_home or Path(get_freeide_home())
+    home = jettstui_home or Path(get_jettstui_home())
     components: list[Component] = []
     if not skip_venv:
         components.extend(_discover_venv())
@@ -510,13 +510,13 @@ def _render_json(findings: list[Finding], total_components: int) -> str:
 
 
 def _count_components(
-    *, skip_venv: bool, skip_plugins: bool, skip_mcp: bool, freeide_home: Path
+    *, skip_venv: bool, skip_plugins: bool, skip_mcp: bool, jettstui_home: Path
 ) -> int:
     total = 0
     if not skip_venv:
         total += len(_discover_venv())
     if not skip_plugins:
-        total += len(_discover_plugins(freeide_home))
+        total += len(_discover_plugins(jettstui_home))
     if not skip_mcp:
         total += len(_discover_mcp())
     return total
@@ -526,8 +526,8 @@ def _count_components(
 
 
 def cmd_security_audit(args: argparse.Namespace) -> int:
-    """Implementation of `freeide security audit`."""
-    home = Path(get_freeide_home())
+    """Implementation of `jettstui security audit`."""
+    home = Path(get_jettstui_home())
     skip_venv = bool(getattr(args, "skip_venv", False))
     skip_plugins = bool(getattr(args, "skip_plugins", False))
     skip_mcp = bool(getattr(args, "skip_mcp", False))
@@ -542,7 +542,7 @@ def cmd_security_audit(args: argparse.Namespace) -> int:
         return 2
 
     total = _count_components(
-        skip_venv=skip_venv, skip_plugins=skip_plugins, skip_mcp=skip_mcp, freeide_home=home
+        skip_venv=skip_venv, skip_plugins=skip_plugins, skip_mcp=skip_mcp, jettstui_home=home
     )
     if total == 0:
         msg = "No components discovered (everything skipped, or empty environment)."
@@ -557,7 +557,7 @@ def cmd_security_audit(args: argparse.Namespace) -> int:
             skip_venv=skip_venv,
             skip_plugins=skip_plugins,
             skip_mcp=skip_mcp,
-            freeide_home=home,
+            jettstui_home=home,
         )
     except RuntimeError as exc:
         print(f"audit failed: {exc}", file=sys.stderr)

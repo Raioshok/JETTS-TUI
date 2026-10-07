@@ -31,7 +31,7 @@ import pytest
 
 from agent.memory_manager import build_memory_context_block
 from agent.turn_context import build_turn_context, compose_user_api_content
-from freeide_state import SessionDB
+from jettstui_state import SessionDB
 
 
 # ---------------------------------------------------------------------------
@@ -283,7 +283,7 @@ class TestPrologueStamping:
     def test_stamps_api_content_from_plugin_context(self):
         agent = _FakeAgent()
         with patch(
-            "freeide_cli.plugins.invoke_hook",
+            "jettstui.plugins.invoke_hook",
             return_value=[{"context": "PLUGIN-CTX"}],
         ):
             ctx = _build(agent)
@@ -298,7 +298,7 @@ class TestPrologueStamping:
 
     def test_no_stamp_without_injections(self):
         agent = _FakeAgent()
-        with patch("freeide_cli.plugins.invoke_hook", return_value=[]):
+        with patch("jettstui.plugins.invoke_hook", return_value=[]):
             ctx = _build(agent)
         assert "api_content" not in ctx.messages[ctx.current_turn_user_idx]
         assert agent.api_content_at_persist is None
@@ -309,7 +309,7 @@ class TestPrologueStamping:
         agent = _FakeAgent()
         agent.api_mode = "codex_app_server"
         with patch(
-            "freeide_cli.plugins.invoke_hook",
+            "jettstui.plugins.invoke_hook",
             return_value=[{"context": "PLUGIN-CTX"}],
         ):
             ctx = _build(agent)
@@ -455,7 +455,7 @@ def _text_resp(text: str) -> dict:
 
 @pytest.fixture()
 def wire_env():
-    """Mock provider + isolated FREEIDE_HOME + a shared SessionDB.
+    """Mock provider + isolated JETTSTUI_HOME + a shared SessionDB.
 
     Yields (make_agent, handler, db, sid): ``make_agent()`` builds a fresh
     AIAgent bound to the shared DB/session, so a second call models a
@@ -468,10 +468,10 @@ def wire_env():
     t = threading.Thread(target=srv.serve_forever, daemon=True)
     t.start()
 
-    test_home = tempfile.mkdtemp(prefix="freeide_api_content_")
-    os.makedirs(os.path.join(test_home, ".freeide"))
-    prev_home = os.environ.get("FREEIDE_HOME")
-    os.environ["FREEIDE_HOME"] = os.path.join(test_home, ".freeide")
+    test_home = tempfile.mkdtemp(prefix="jettstui_api_content_")
+    os.makedirs(os.path.join(test_home, ".jettstui"))
+    prev_home = os.environ.get("JETTSTUI_HOME")
+    os.environ["JETTSTUI_HOME"] = os.path.join(test_home, ".jettstui")
 
     from run_agent import AIAgent
 
@@ -494,7 +494,7 @@ def wire_env():
 
     try:
         with patch(
-            "freeide_cli.plugins.invoke_hook",
+            "jettstui.plugins.invoke_hook",
             side_effect=lambda hook, **kw: (
                 [{"context": "PLUGIN-CTX"}] if hook == "pre_llm_call" else []
             ),
@@ -505,9 +505,9 @@ def wire_env():
         db.close()
         shutil.rmtree(test_home, ignore_errors=True)
         if prev_home is None:
-            os.environ.pop("FREEIDE_HOME", None)
+            os.environ.pop("JETTSTUI_HOME", None)
         else:
-            os.environ["FREEIDE_HOME"] = prev_home
+            os.environ["JETTSTUI_HOME"] = prev_home
 
 
 def _chat_requests(handler) -> list:
@@ -634,7 +634,7 @@ class TestPrologueMoaAndInPlaceBackfill:
         the wire."""
         agent = _FakeAgent()
         with patch(
-            "freeide_cli.plugins.invoke_hook",
+            "jettstui.plugins.invoke_hook",
             return_value=[{"context": "PLUGIN-CTX"}],
         ):
             ctx = _build(agent, moa_active=True)
@@ -687,7 +687,7 @@ class TestPrologueMoaAndInPlaceBackfill:
             {"role": "assistant", "content": big},
         ]
         with patch(
-            "freeide_cli.plugins.invoke_hook",
+            "jettstui.plugins.invoke_hook",
             return_value=[{"context": "PLUGIN-CTX"}],
         ):
             ctx = _build(agent, conversation_history=history)
@@ -1033,7 +1033,7 @@ class TestSessionRowExistsBeforePreflightCompaction:
         sid = "sess-fresh-inplace"
         try:
             agent, seen = self._make_agent(db, sid, in_place=True)
-            with patch("freeide_cli.plugins.invoke_hook", return_value=[]):
+            with patch("jettstui.plugins.invoke_hook", return_value=[]):
                 ctx = _build(agent, conversation_history=self._oversized_history())
 
             # The row was created before compression started — without it the
@@ -1054,7 +1054,7 @@ class TestSessionRowExistsBeforePreflightCompaction:
         sid = "sess-fresh-rot"
         try:
             agent, seen = self._make_agent(db, sid, in_place=False)
-            with patch("freeide_cli.plugins.invoke_hook", return_value=[]):
+            with patch("jettstui.plugins.invoke_hook", return_value=[]):
                 _build(agent, conversation_history=self._oversized_history())
 
             # The parent row existed before compression started — the child

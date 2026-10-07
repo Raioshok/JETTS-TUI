@@ -1,12 +1,12 @@
 ---
 sidebar_position: 2
 title: "Environment Variables"
-description: "Complete reference of all environment variables used by FreeIDE Agent"
+description: "Complete reference of all environment variables used by JettsTUI"
 ---
 
 # Environment Variables Reference
 
-FreeIDE reads environment variables from the process environment and, for user-managed secrets, from `~/.freeide/.env`. Keep API keys, bot tokens, OAuth secrets, and other credentials in `.env`; prefer `config.yaml` for non-secret behaviour settings when a config key exists. Some variables below are process-only overrides or internal bridge variables and should not be committed to `.env` just because they are documented here.
+JettsTUI reads environment variables from the process environment and, for user-managed secrets, from `~/.jettstui/.env`. Keep API keys, bot tokens, OAuth secrets, and other credentials in `.env`; prefer `config.yaml` for non-secret behaviour settings when a config key exists. Some variables below are process-only overrides or internal bridge variables and should not be committed to `.env` just because they are documented here.
 
 ## LLM Providers
 
@@ -15,8 +15,8 @@ FreeIDE reads environment variables from the process environment and, for user-m
 | `OPENROUTER_API_KEY` | OpenRouter API key (recommended for flexibility) |
 | `OPENROUTER_BASE_URL` | Override the OpenRouter-compatible base URL |
 | `FIREWORKS_API_KEY` | Fireworks AI API key ([app.fireworks.ai](https://app.fireworks.ai/settings/users/api-keys)). Configure endpoint overrides with `model.base_url` in `config.yaml`. |
-| `FREEIDE_OPENROUTER_CACHE` | Enable OpenRouter response caching (`1`/`true`/`yes`/`on`). Overrides `openrouter.response_cache` in config.yaml. See [Response Caching](https://openrouter.ai/docs/guides/features/response-caching). |
-| `FREEIDE_OPENROUTER_CACHE_TTL` | Cache TTL in seconds (1-86400). Overrides `openrouter.response_cache_ttl` in config.yaml. |
+| `JETTSTUI_OPENROUTER_CACHE` | Enable OpenRouter response caching (`1`/`true`/`yes`/`on`). Overrides `openrouter.response_cache` in config.yaml. See [Response Caching](https://openrouter.ai/docs/guides/features/response-caching). |
+| `JETTSTUI_OPENROUTER_CACHE_TTL` | Cache TTL in seconds (1-86400). Overrides `openrouter.response_cache_ttl` in config.yaml. |
 | `OPENAI_API_KEY` | API key for custom OpenAI-compatible endpoints (used with `OPENAI_BASE_URL`) |
 | `OPENAI_BASE_URL` | Base URL for custom endpoint (VLLM, SGLang, etc.) |
 | `LM_API_KEY` | API key for LM Studio (`lmstudio` provider). Often a placeholder for local servers |
@@ -24,9 +24,9 @@ FreeIDE reads environment variables from the process environment and, for user-m
 | `COPILOT_GITHUB_TOKEN` | GitHub token for Copilot API — first priority (OAuth `gho_*` or fine-grained PAT `github_pat_*`; classic PATs `ghp_*` are **not supported**) |
 | `GH_TOKEN` | GitHub token — second priority for Copilot (also used by `gh` CLI) |
 | `GITHUB_TOKEN` | GitHub token — third priority for Copilot |
-| `FREEIDE_COPILOT_ACP_COMMAND` | Override Copilot ACP CLI binary path (default: `copilot`) |
-| `COPILOT_CLI_PATH` | Alias for `FREEIDE_COPILOT_ACP_COMMAND` |
-| `FREEIDE_COPILOT_ACP_ARGS` | Override Copilot ACP arguments (default: `--acp --stdio`) |
+| `JETTSTUI_COPILOT_ACP_COMMAND` | Override Copilot ACP CLI binary path (default: `copilot`) |
+| `COPILOT_CLI_PATH` | Alias for `JETTSTUI_COPILOT_ACP_COMMAND` |
+| `JETTSTUI_COPILOT_ACP_ARGS` | Override Copilot ACP arguments (default: `--acp --stdio`) |
 | `COPILOT_ACP_BASE_URL` | Override Copilot ACP base URL |
 | `COPILOT_API_BASE_URL` | Override the Copilot API base URL (`copilot` provider) |
 | `GLM_API_KEY` | z.ai / ZhipuAI GLM API key ([z.ai](https://z.ai)) |
@@ -42,7 +42,7 @@ FreeIDE reads environment variables from the process environment and, for user-m
 | `GMI_API_KEY` | GMI Cloud API key ([gmicloud.ai](https://www.gmicloud.ai/)) |
 | `GMI_BASE_URL` | Override GMI Cloud base URL (default: `https://api.gmi-serving.com/v1`) |
 | `MINIMAX_API_KEY` | MiniMax API key — global endpoint ([minimax.io](https://www.minimax.io)). **Not used by `minimax-oauth`** (OAuth path uses browser login instead). |
-| `MINIMAX_BASE_URL` | Override MiniMax base URL (default: `https://api.minimax.io/anthropic` — FreeIDE uses MiniMax's Anthropic Messages-compatible endpoint). **Not used by `minimax-oauth`**. |
+| `MINIMAX_BASE_URL` | Override MiniMax base URL (default: `https://api.minimax.io/anthropic` — JettsTUI uses MiniMax's Anthropic Messages-compatible endpoint). **Not used by `minimax-oauth`**. |
 | `MINIMAX_CN_API_KEY` | MiniMax API key — China endpoint ([minimaxi.com](https://www.minimaxi.com)). **Not used by `minimax-oauth`** (OAuth path uses browser login instead). |
 | `MINIMAX_CN_BASE_URL` | Override MiniMax China base URL (default: `https://api.minimaxi.com/anthropic`). **Not used by `minimax-oauth`**. |
 | `KILOCODE_API_KEY` | Kilo Code API key ([kilo.ai](https://kilo.ai)) |
@@ -91,34 +91,34 @@ FreeIDE reads environment variables from the process environment and, for user-m
 | `AWS_REGION` | AWS region for Bedrock inference (e.g. `us-east-1`, `eu-central-1`). Read by boto3. |
 | `AWS_PROFILE` | AWS named profile for Bedrock authentication (reads `~/.aws/credentials`). Leave unset to use default boto3 credential chain. |
 | `BEDROCK_BASE_URL` | Override Bedrock runtime base URL (default: `https://bedrock-runtime.us-east-1.amazonaws.com`; usually leave unset and use `AWS_REGION` instead) |
-| `FREEIDE_QWEN_BASE_URL` | Qwen Portal base URL override (default: `https://portal.qwen.ai/v1`) |
+| `JETTSTUI_QWEN_BASE_URL` | Qwen Portal base URL override (default: `https://portal.qwen.ai/v1`) |
 | `OPENCODE_ZEN_API_KEY` | OpenCode Zen API key — pay-as-you-go access to curated models ([opencode.ai](https://opencode.ai/auth)) |
 | `OPENCODE_ZEN_BASE_URL` | Override OpenCode Zen base URL |
 | `OPENCODE_GO_API_KEY` | OpenCode Go API key — $10/month subscription for open models ([opencode.ai](https://opencode.ai/auth)) |
 | `OPENCODE_GO_BASE_URL` | Override OpenCode Go base URL |
 | `CLAUDE_CODE_OAUTH_TOKEN` | Explicit Claude Code token override if you export one manually |
-| `FREEIDE_MODEL` | Override model name at process level (used by cron scheduler; prefer `config.yaml` for normal use) |
+| `JETTSTUI_MODEL` | Override model name at process level (used by cron scheduler; prefer `config.yaml` for normal use) |
 | `VOICE_TOOLS_OPENAI_KEY` | Preferred OpenAI key for OpenAI speech-to-text and text-to-speech providers |
-| `FREEIDE_LOCAL_STT_COMMAND` | Optional local speech-to-text command template. Supports `{input_path}`, `{output_dir}`, `{language}`, and `{model}` placeholders |
-| `FREEIDE_LOCAL_STT_LANGUAGE` | Default language hint for STT. Used by the `local` (faster-whisper) provider, `FREEIDE_LOCAL_STT_COMMAND`, the local `whisper` CLI fallback (default: `en`), Groq, and xAI when no per-provider `language` is set in `config.yaml` |
-| `FREEIDE_HOME` | Override FreeIDE config directory (default: `~/.freeide`). Also scopes the gateway PID file and systemd service name, so multiple installations can run concurrently |
-| `FREEIDE_GIT_BASH_PATH` | **Windows only.** Override `bash.exe` discovery for the terminal tool. Points at any bash — full Git-for-Windows install, WSL bash via symlink, MSYS2, Cygwin. The installer sets this automatically to the PortableGit it provisioned. See the [Windows (Native) Guide](../user-guide/windows-native.md#how-freeide-runs-shell-commands-on-windows) |
-| `FREEIDE_DISABLE_WINDOWS_UTF8` | **Windows only.** Set to `1` to disable the UTF-8 stdio shim (`configure_windows_stdio()`) and fall back to the console's locale code page. Useful for bisecting encoding bugs; rarely the right setting in normal operation |
-| `FREEIDE_KANBAN_HOME` | Override the shared FreeIDE root that anchors the kanban board (db + workspaces + worker logs). Falls back to `get_default_freeide_root()` (the parent of any active profile). Useful for tests and unusual deployments |
-| `FREEIDE_KANBAN_BOARD` | Pin the active kanban board for this process. Takes precedence over `~/.freeide/kanban/current`; the dispatcher injects this into worker subprocess env so workers physically cannot see tasks on other boards. Defaults to `default`. Slug validation: lowercase alphanumerics + hyphens + underscores, 1-64 chars |
-| `FREEIDE_KANBAN_DB` | Pin the kanban database file path directly (highest precedence; beats `FREEIDE_KANBAN_BOARD` and `FREEIDE_KANBAN_HOME`). The dispatcher injects this into worker subprocess env so profile workers converge on the dispatcher's board |
-| `FREEIDE_KANBAN_WORKSPACES_ROOT` | Pin the kanban workspaces root directly (highest precedence for workspaces; beats `FREEIDE_KANBAN_HOME`). The dispatcher injects this into worker subprocess env |
-| `FREEIDE_KANBAN_DISPATCH_IN_GATEWAY` | Runtime override for `kanban.dispatch_in_gateway`. Set to `0`, `false`, `no`, or `off` to keep the gateway from starting the embedded Kanban dispatcher; any other non-empty value enables it. Useful when a separate dispatcher process owns the board. |
+| `JETTSTUI_LOCAL_STT_COMMAND` | Optional local speech-to-text command template. Supports `{input_path}`, `{output_dir}`, `{language}`, and `{model}` placeholders |
+| `JETTSTUI_LOCAL_STT_LANGUAGE` | Default language hint for STT. Used by the `local` (faster-whisper) provider, `JETTSTUI_LOCAL_STT_COMMAND`, the local `whisper` CLI fallback (default: `en`), Groq, and xAI when no per-provider `language` is set in `config.yaml` |
+| `JETTSTUI_HOME` | Override JettsTUI config directory (default: `~/.jettstui`). Also scopes the gateway PID file and systemd service name, so multiple installations can run concurrently |
+| `JETTSTUI_GIT_BASH_PATH` | **Windows only.** Override `bash.exe` discovery for the terminal tool. Points at any bash — full Git-for-Windows install, WSL bash via symlink, MSYS2, Cygwin. The installer sets this automatically to the PortableGit it provisioned. See the [Windows (Native) Guide](../user-guide/windows-native.md#how-jettstui-runs-shell-commands-on-windows) |
+| `JETTSTUI_DISABLE_WINDOWS_UTF8` | **Windows only.** Set to `1` to disable the UTF-8 stdio shim (`configure_windows_stdio()`) and fall back to the console's locale code page. Useful for bisecting encoding bugs; rarely the right setting in normal operation |
+| `JETTSTUI_KANBAN_HOME` | Override the shared JettsTUI root that anchors the kanban board (db + workspaces + worker logs). Falls back to `get_default_jettstui_root()` (the parent of any active profile). Useful for tests and unusual deployments |
+| `JETTSTUI_KANBAN_BOARD` | Pin the active kanban board for this process. Takes precedence over `~/.jettstui/kanban/current`; the dispatcher injects this into worker subprocess env so workers physically cannot see tasks on other boards. Defaults to `default`. Slug validation: lowercase alphanumerics + hyphens + underscores, 1-64 chars |
+| `JETTSTUI_KANBAN_DB` | Pin the kanban database file path directly (highest precedence; beats `JETTSTUI_KANBAN_BOARD` and `JETTSTUI_KANBAN_HOME`). The dispatcher injects this into worker subprocess env so profile workers converge on the dispatcher's board |
+| `JETTSTUI_KANBAN_WORKSPACES_ROOT` | Pin the kanban workspaces root directly (highest precedence for workspaces; beats `JETTSTUI_KANBAN_HOME`). The dispatcher injects this into worker subprocess env |
+| `JETTSTUI_KANBAN_DISPATCH_IN_GATEWAY` | Runtime override for `kanban.dispatch_in_gateway`. Set to `0`, `false`, `no`, or `off` to keep the gateway from starting the embedded Kanban dispatcher; any other non-empty value enables it. Useful when a separate dispatcher process owns the board. |
 
 ## Provider Auth (OAuth)
 
-For native Anthropic auth, FreeIDE prefers Claude Code's own credential files when they exist because those credentials can refresh automatically. **OAuth against Anthropic requires a Claude Max plan with purchased extra usage credits** — FreeIDE routes as Claude Code, which only draws from the Max plan's extra/overage credits, not the base Max allowance, and does not work on Claude Pro. Without Max + extra credits, use an API key instead. Environment variables such as `ANTHROPIC_TOKEN` remain useful as manual overrides, but they are no longer the preferred path for Claude Max login.
+For native Anthropic auth, JettsTUI prefers Claude Code's own credential files when they exist because those credentials can refresh automatically. **OAuth against Anthropic requires a Claude Max plan with purchased extra usage credits** — JettsTUI routes as Claude Code, which only draws from the Max plan's extra/overage credits, not the base Max allowance, and does not work on Claude Pro. Without Max + extra credits, use an API key instead. Environment variables such as `ANTHROPIC_TOKEN` remain useful as manual overrides, but they are no longer the preferred path for Claude Max login.
 
 | Variable | Description |
 |----------|-------------|
-| `FREEIDE_DUMP_REQUESTS` | Dump API request payloads to log files (`true`/`false`) |
-| `FREEIDE_PREFILL_MESSAGES_FILE` | Path to a JSON file of ephemeral prefill messages injected at API-call time |
-| `FREEIDE_TIMEZONE` | IANA timezone override (for example `America/New_York`) |
+| `JETTSTUI_DUMP_REQUESTS` | Dump API request payloads to log files (`true`/`false`) |
+| `JETTSTUI_PREFILL_MESSAGES_FILE` | Path to a JSON file of ephemeral prefill messages injected at API-call time |
+| `JETTSTUI_TIMEZONE` | IANA timezone override (for example `America/New_York`) |
 
 ## Tool APIs
 
@@ -142,7 +142,7 @@ For native Anthropic auth, FreeIDE prefers Claude Code's own credential files wh
 | `CAMOFOX_SESSION_KEY` | Optional Camofox session key used when creating tabs for `CAMOFOX_USER_ID` |
 | `CAMOFOX_ADOPT_EXISTING_TAB` | Set to `true` to reuse an existing Camofox tab before creating a new one |
 | `BROWSER_INACTIVITY_TIMEOUT` | Browser session inactivity timeout in seconds |
-| `AGENT_BROWSER_ARGS` | Extra Chromium launch flags (comma- or newline-separated). FreeIDE auto-injects `--no-sandbox,--disable-dev-shm-usage` when running as root or on AppArmor-restricted unprivileged user namespaces (Ubuntu 23.10+, DGX Spark, many container images); set this manually only to override or add other flags. |
+| `AGENT_BROWSER_ARGS` | Extra Chromium launch flags (comma- or newline-separated). JettsTUI auto-injects `--no-sandbox,--disable-dev-shm-usage` when running as root or on AppArmor-restricted unprivileged user namespaces (Ubuntu 23.10+, DGX Spark, many container images); set this manually only to override or add other flags. |
 | `AGENT_BROWSER_ENGINE` | Browser engine for local mode: `auto` (default — Chromium-family via CDP), or a specific engine override. |
 | `FAL_KEY` | Image generation ([fal.ai](https://fal.ai/)) |
 | `KREA_API_KEY` | Krea API key for Krea 2 image generation ([krea.ai](https://krea.ai/)) |
@@ -172,26 +172,26 @@ Secrets consumed by specific bundled / optional skills. Each is only needed if y
 
 ### Langfuse Observability
 
-Environment variables for the bundled [`observability/langfuse`](../user-guide/features/built-in-plugins.md#observabilitylangfuse) plugin. Set these in `~/.freeide/.env`. The plugin must also be enabled (`freeide plugins enable observability/langfuse`, or check the box in `freeide plugins`) before any of these take effect.
+Environment variables for the bundled [`observability/langfuse`](../user-guide/features/built-in-plugins.md#observabilitylangfuse) plugin. Set these in `~/.jettstui/.env`. The plugin must also be enabled (`jettstui plugins enable observability/langfuse`, or check the box in `jettstui plugins`) before any of these take effect.
 
 | Variable | Description |
 |----------|-------------|
-| `FREEIDE_LANGFUSE_PUBLIC_KEY` | Langfuse project public key (`pk-lf-...`). Required. |
-| `FREEIDE_LANGFUSE_SECRET_KEY` | Langfuse project secret key (`sk-lf-...`). Required. |
-| `FREEIDE_LANGFUSE_BASE_URL` | Langfuse server URL (default: `https://cloud.langfuse.com`). Set for self-hosted. |
-| `FREEIDE_LANGFUSE_ENV` | Environment tag on traces (`production`, `staging`, …) |
-| `FREEIDE_LANGFUSE_RELEASE` | Release/version tag on traces |
-| `FREEIDE_LANGFUSE_SAMPLE_RATE` | SDK sampling rate 0.0–1.0 (default: `1.0`) |
-| `FREEIDE_LANGFUSE_MAX_CHARS` | Per-field truncation for serialized payloads (default: `12000`) |
-| `FREEIDE_LANGFUSE_DEBUG` | `true` enables verbose plugin logging to `agent.log` |
-| `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` / `LANGFUSE_BASE_URL` | Standard Langfuse SDK names. Accepted as fallbacks when the `FREEIDE_LANGFUSE_*` equivalents are unset. |
+| `JETTSTUI_LANGFUSE_PUBLIC_KEY` | Langfuse project public key (`pk-lf-...`). Required. |
+| `JETTSTUI_LANGFUSE_SECRET_KEY` | Langfuse project secret key (`sk-lf-...`). Required. |
+| `JETTSTUI_LANGFUSE_BASE_URL` | Langfuse server URL (default: `https://cloud.langfuse.com`). Set for self-hosted. |
+| `JETTSTUI_LANGFUSE_ENV` | Environment tag on traces (`production`, `staging`, …) |
+| `JETTSTUI_LANGFUSE_RELEASE` | Release/version tag on traces |
+| `JETTSTUI_LANGFUSE_SAMPLE_RATE` | SDK sampling rate 0.0–1.0 (default: `1.0`) |
+| `JETTSTUI_LANGFUSE_MAX_CHARS` | Per-field truncation for serialized payloads (default: `12000`) |
+| `JETTSTUI_LANGFUSE_DEBUG` | `true` enables verbose plugin logging to `agent.log` |
+| `LANGFUSE_PUBLIC_KEY` / `LANGFUSE_SECRET_KEY` / `LANGFUSE_BASE_URL` | Standard Langfuse SDK names. Accepted as fallbacks when the `JETTSTUI_LANGFUSE_*` equivalents are unset. |
 
 ## Terminal Backend
 
 | Variable | Description |
 |----------|-------------|
 | `TERMINAL_ENV` | Backend: `local`, `docker`, `ssh`, `singularity`, `modal`, `daytona` |
-| `FREEIDE_DOCKER_BINARY` | Override the container binary FreeIDE shells out to (e.g. `podman`, `/usr/local/bin/docker`). When unset, FreeIDE auto-discovers `docker` or `podman` on `PATH`. Needed when both are installed and you want the non-default, or when the binary lives outside `PATH`. |
+| `JETTSTUI_DOCKER_BINARY` | Override the container binary JettsTUI shells out to (e.g. `podman`, `/usr/local/bin/docker`). When unset, JettsTUI auto-discovers `docker` or `podman` on `PATH`. Needed when both are installed and you want the non-default, or when the binary lives outside `PATH`. |
 | `TERMINAL_DOCKER_IMAGE` | Docker image (default: `nikolaik/python-nodejs:python3.11-nodejs20`) |
 | `TERMINAL_DOCKER_FORWARD_ENV` | JSON array of env var names to explicitly forward into Docker terminal sessions. Note: skill-declared `required_environment_variables` are forwarded automatically — you only need this for vars not declared by any skill. |
 | `TERMINAL_DOCKER_VOLUMES` | Additional Docker volume mounts (comma-separated `host:container` pairs) |
@@ -204,7 +204,7 @@ Environment variables for the bundled [`observability/langfuse`](../user-guide/f
 | `TERMINAL_CWD` | Deprecated direct override for gateway/cron terminal sessions. Prefer `terminal.cwd` in `config.yaml`; CLI still uses the launch directory. |
 | `SUDO_PASSWORD` | Enable sudo without interactive prompt |
 
-For cloud sandbox backends, persistence is filesystem-oriented. `TERMINAL_LIFETIME_SECONDS` controls when FreeIDE cleans up an idle terminal session, and later resumes may recreate the sandbox rather than keep the same live processes running.
+For cloud sandbox backends, persistence is filesystem-oriented. `TERMINAL_LIFETIME_SECONDS` controls when JettsTUI cleans up an idle terminal session, and later resumes may recreate the sandbox rather than keep the same live processes running.
 
 ## SSH Backend
 
@@ -224,7 +224,7 @@ For cloud sandbox backends, persistence is filesystem-oriented. `TERMINAL_LIFETI
 | `TERMINAL_CONTAINER_MEMORY` | Memory in MB (default: 5120) |
 | `TERMINAL_CONTAINER_DISK` | Disk in MB (default: 51200) |
 | `TERMINAL_CONTAINER_PERSISTENT` | Persist container filesystem across sessions (default: `true`) |
-| `TERMINAL_SANDBOX_DIR` | Host directory for workspaces and overlays (default: `~/.freeide/sandboxes/`) |
+| `TERMINAL_SANDBOX_DIR` | Host directory for workspaces and overlays (default: `~/.jettstui/sandboxes/`) |
 
 ## Persistent Shell
 
@@ -240,16 +240,16 @@ These env vars are NOT set on the host — they're injected into Docker sandboxe
 
 | Variable | Description |
 |----------|-------------|
-| `FREEIDE_EGRESS_PROXY` | Set to `1` inside a sandbox when the egress proxy is active. Agent code can check this to know it's running behind a TLS-intercepting proxy. |
+| `JETTSTUI_EGRESS_PROXY` | Set to `1` inside a sandbox when the egress proxy is active. Agent code can check this to know it's running behind a TLS-intercepting proxy. |
 | Provider env vars (`OPENROUTER_API_KEY`, `OPENAI_API_KEY`, …) | Set to opaque proxy tokens, not real upstream secrets, so existing SDKs keep reading the standard env names. iron-proxy swaps those tokens for the real upstream secret at the network boundary. |
-| `FREEIDE_PROXY_TOKEN_<ENV_NAME>` | Diagnostic alias for each minted provider mapping. E.g. `FREEIDE_PROXY_TOKEN_OPENROUTER_API_KEY=freeide-proxy-openrouter-…`. Same token value as the standard provider env var. |
+| `JETTSTUI_PROXY_TOKEN_<ENV_NAME>` | Diagnostic alias for each minted provider mapping. E.g. `JETTSTUI_PROXY_TOKEN_OPENROUTER_API_KEY=jettstui-proxy-openrouter-…`. Same token value as the standard provider env var. |
 | `HTTPS_PROXY` / `HTTP_PROXY` | `HTTPS_PROXY` points at `http://host.docker.internal:<tunnel_port>` for CONNECT/MITM. `HTTP_PROXY` points at `<tunnel_port + 1>` for plain-HTTP forwarding. |
 | `NO_PROXY` | `127.0.0.1,localhost,::1` so loopback dev servers inside the sandbox bypass the proxy. |
-| `REQUESTS_CA_BUNDLE` / `SSL_CERT_FILE` / `CURL_CA_BUNDLE` / `NODE_EXTRA_CA_CERTS` | Path to the mounted FreeIDE egress CA cert inside the sandbox (`/etc/ssl/certs/freeide-egress-ca.crt`). Lets the language runtimes trust iron-proxy's MITM-minted leaf certs. |
+| `REQUESTS_CA_BUNDLE` / `SSL_CERT_FILE` / `CURL_CA_BUNDLE` / `NODE_EXTRA_CA_CERTS` | Path to the mounted JettsTUI egress CA cert inside the sandbox (`/etc/ssl/certs/jettstui-egress-ca.crt`). Lets the language runtimes trust iron-proxy's MITM-minted leaf certs. |
 | `NODE_OPTIONS` | Appended with `--use-openssl-ca` (your existing flags are preserved) so Node.js routes through the OpenSSL store the other CA-bundle vars control. Narrows the [Node.js asymmetric CA caveat](../user-guide/egress/iron-proxy.md#nodejs-asymmetric-ca-caveat). |
-| `FREEIDE_IRON_PROXY_NONCE` | Set on the iron-proxy daemon process itself (NOT inside the sandbox). Used by `_pid_alive` to confirm a candidate PID still refers to *our* managed binary across PID recycling. |
+| `JETTSTUI_IRON_PROXY_NONCE` | Set on the iron-proxy daemon process itself (NOT inside the sandbox). Used by `_pid_alive` to confirm a candidate PID still refers to *our* managed binary across PID recycling. |
 
-These are set automatically by the Docker terminal backend when `proxy.enabled: true` AND the daemon is running. You don't set them yourself; the relevant operator-facing knobs are in `~/.freeide/config.yaml` under the `proxy:` section — see [Egress proxy → Configuration](../user-guide/egress/iron-proxy.md#configuration).
+These are set automatically by the Docker terminal backend when `proxy.enabled: true` AND the daemon is running. You don't set them yourself; the relevant operator-facing knobs are in `~/.jettstui/config.yaml` under the `proxy:` section — see [Egress proxy → Configuration](../user-guide/egress/iron-proxy.md#configuration).
 
 ## Messaging
 
@@ -439,7 +439,7 @@ These are set automatically by the Docker terminal backend when `proxy.enabled: 
 | `MATTERMOST_REPLY_MODE` | Reply style: `thread` (threaded replies) or `off` (flat messages, default) |
 | `MATRIX_HOMESERVER` | Matrix homeserver URL (e.g. `https://matrix.org`) |
 | `MATRIX_ACCESS_TOKEN` | Matrix access token for bot authentication |
-| `MATRIX_USER_ID` | Matrix user ID (e.g. `@freeide:matrix.org`) — required for password login, optional with access token |
+| `MATRIX_USER_ID` | Matrix user ID (e.g. `@jettstui:matrix.org`) — required for password login, optional with access token |
 | `MATRIX_PASSWORD` | Matrix password (alternative to access token) |
 | `MATRIX_ALLOWED_USERS` | Comma-separated Matrix user IDs allowed to message the bot (e.g. `@alice:matrix.org`) |
 | `MATRIX_ALLOW_ALL_USERS` | Allow any Matrix user to trigger the bot (dev only). |
@@ -449,7 +449,7 @@ These are set automatically by the Docker terminal backend when `proxy.enabled: 
 | `MATRIX_HOME_ROOM` | Room ID for proactive message delivery (e.g. `!abc123:matrix.org`) |
 | `MATRIX_ENCRYPTION` | Enable end-to-end encryption (`true`/`false`, default: `false`) |
 | `MATRIX_E2EE_MODE` | Matrix E2EE behavior: `off`, `optional`, or `required`. Overrides `MATRIX_ENCRYPTION` when set. |
-| `MATRIX_DEVICE_ID` | Stable Matrix device ID for E2EE persistence across restarts (e.g. `FREEIDE_BOT`). Without this, E2EE keys rotate every startup and historic-room decrypt breaks. |
+| `MATRIX_DEVICE_ID` | Stable Matrix device ID for E2EE persistence across restarts (e.g. `JETTSTUI_BOT`). Without this, E2EE keys rotate every startup and historic-room decrypt breaks. |
 | `MATRIX_REACTIONS` | Enable processing-lifecycle emoji reactions on inbound messages (default: `true`). Set to `false` to disable. |
 | `MATRIX_REQUIRE_MENTION` | Require `@mention` in rooms (default: `true`). Set to `false` to respond to all messages. |
 | `MATRIX_FREE_RESPONSE_ROOMS` | Comma-separated room IDs where bot responds without `@mention` |
@@ -481,38 +481,38 @@ These are set automatically by the Docker terminal backend when `proxy.enabled: 
 | `API_SERVER_CORS_ORIGINS` | Comma-separated browser origins allowed to call the API server directly (for example `http://localhost:3000,http://127.0.0.1:3000`). Default: disabled. |
 | `API_SERVER_PORT` | Port for the API server (default: `8642`) |
 | `API_SERVER_HOST` | Host/bind address for the API server (default: `127.0.0.1`). `API_SERVER_KEY` is still required on loopback; use a narrow `API_SERVER_CORS_ORIGINS` allowlist for browser access. |
-| `API_SERVER_MODEL_NAME` | Model name advertised on `/v1/models`. Defaults to the profile name (or `freeide-agent` for the default profile). Useful for multi-user setups where frontends like Open WebUI need distinct model names per connection. |
-| `GATEWAY_PROXY_URL` | URL of a remote FreeIDE API server to forward messages to ([proxy mode](../user-guide/messaging/matrix.md#proxy-mode-e2ee-on-macos)). When set, the gateway handles platform I/O only — all agent work is delegated to the remote server. Also configurable via `gateway.proxy_url` in `config.yaml`. |
+| `API_SERVER_MODEL_NAME` | Model name advertised on `/v1/models`. Defaults to the profile name (or `jettstui` for the default profile). Useful for multi-user setups where frontends like Open WebUI need distinct model names per connection. |
+| `GATEWAY_PROXY_URL` | URL of a remote JettsTUI API server to forward messages to ([proxy mode](../user-guide/messaging/matrix.md#proxy-mode-e2ee-on-macos)). When set, the gateway handles platform I/O only — all agent work is delegated to the remote server. Also configurable via `gateway.proxy_url` in `config.yaml`. |
 | `GATEWAY_PROXY_KEY` | Bearer token for authenticating with the remote API server in proxy mode. Must match `API_SERVER_KEY` on the remote host. |
 | `MESSAGING_CWD` | Deprecated compatibility fallback for gateway working directory. Prefer `terminal.cwd` in `config.yaml`. |
 | `GATEWAY_ALLOWED_USERS` | Comma-separated user IDs allowed across all platforms |
 | `GATEWAY_ALLOW_ALL_USERS` | Allow all users without allowlists (`true`/`false`, default: `false`) |
 
-### Web Dashboard & FreeIDE Desktop
+### Web Dashboard & JettsTUI Desktop
 
-Auth for the [web dashboard](../user-guide/features/web-dashboard.md) and for connecting [FreeIDE Desktop to a remote backend](../user-guide/features/web-dashboard.md#connecting-freeide-desktop-to-a-remote-backend). Per the secrets-only convention, credentials belong in `~/.freeide/.env`; the OAuth `client_id` is better set under `dashboard.oauth` in `config.yaml` (env wins when set).
+Auth for the [web dashboard](../user-guide/features/web-dashboard.md) and for connecting [JettsTUI Desktop to a remote backend](../user-guide/features/web-dashboard.md#connecting-jettstui-desktop-to-a-remote-backend). Per the secrets-only convention, credentials belong in `~/.jettstui/.env`; the OAuth `client_id` is better set under `dashboard.oauth` in `config.yaml` (env wins when set).
 
-Two dashboard-auth providers ship in the box. The bundled **username/password** provider (`FREEIDE_DASHBOARD_BASIC_AUTH_*`) is the quickest option for a backend on a trusted LAN or behind a VPN, but is not suitable for direct public-internet exposure. For a remote FreeIDE Desktop connection or any internet-facing dashboard, authenticate against your own identity provider with the **self-hosted OIDC** provider (`FREEIDE_DASHBOARD_OIDC_*`). Either way, a non-loopback bind (`freeide dashboard --host 0.0.0.0`) engages the auth gate. See [Web Dashboard → Authentication](../user-guide/features/web-dashboard.md#authentication-gated-mode) for the full picture.
+Two dashboard-auth providers ship in the box. The bundled **username/password** provider (`JETTSTUI_DASHBOARD_BASIC_AUTH_*`) is the quickest option for a backend on a trusted LAN or behind a VPN, but is not suitable for direct public-internet exposure. For a remote JettsTUI Desktop connection or any internet-facing dashboard, authenticate against your own identity provider with the **self-hosted OIDC** provider (`JETTSTUI_DASHBOARD_OIDC_*`). Either way, a non-loopback bind (`jettstui dashboard --host 0.0.0.0`) engages the auth gate. See [Web Dashboard → Authentication](../user-guide/features/web-dashboard.md#authentication-gated-mode) for the full picture.
 
 | Variable | Description |
 |----------|-------------|
-| `FREEIDE_DASHBOARD_BASIC_AUTH_USERNAME` | Username for the bundled username/password dashboard-auth provider (`plugins/dashboard_auth/basic`). Activates the provider when set together with a password. Overrides `dashboard.basic_auth.username`. |
-| `FREEIDE_DASHBOARD_BASIC_AUTH_PASSWORD` | Plaintext password for the basic provider (hashed in-memory at load). Wins over a config `password_hash` so you can rotate via env. Overrides `dashboard.basic_auth.password`. |
-| `FREEIDE_DASHBOARD_BASIC_AUTH_PASSWORD_HASH` | scrypt password hash for the basic provider (preferred — no plaintext at rest). Compute with `python -c "from plugins.dashboard_auth.basic import hash_password; print(hash_password('PW'))"`. Overrides `dashboard.basic_auth.password_hash`. |
-| `FREEIDE_DASHBOARD_BASIC_AUTH_SECRET` | HMAC key (32+ bytes, base64/hex/raw) signing the basic provider's stateless session tokens. Set explicitly so sessions survive restarts / span multiple workers; blank → random per-process (you'll be logged out on every restart). Overrides `dashboard.basic_auth.secret`. |
-| `FREEIDE_DASHBOARD_BASIC_AUTH_TTL_SECONDS` | Access-token lifetime for the basic provider (default 12h). Overrides `dashboard.basic_auth.session_ttl_seconds`. |
-| `FREEIDE_DASHBOARD_PUBLIC_URL` | Complete public URL the dashboard is reached at, for OAuth callback construction behind reverse proxies. Overrides `dashboard.public_url`. |
-| `FREEIDE_DASHBOARD_OIDC_ISSUER` | OIDC issuer URL for the bundled self-hosted OIDC provider (`plugins/dashboard_auth/self_hosted`). Required to activate it. Overrides `dashboard.oauth.self_hosted.issuer`. |
-| `FREEIDE_DASHBOARD_OIDC_CLIENT_ID` | Public OIDC client id (authorization-code + PKCE) for the self-hosted OIDC provider. Required to activate it. Overrides `dashboard.oauth.self_hosted.client_id`. |
-| `FREEIDE_DASHBOARD_OIDC_SCOPES` | Requested OIDC scopes for the self-hosted OIDC provider (default `openid profile email`). Overrides `dashboard.oauth.self_hosted.scopes`. |
-| `FREEIDE_DESKTOP_REMOTE_URL` | (Desktop side) Base URL of the remote backend, e.g. `http://host:9119`. When set, overrides the in-app Gateway URL; you still sign in from the Gateway settings panel (OAuth redirect or username/password, whichever the backend advertises). |
-| `FREEIDE_DESKTOP_FREEIDE` | Desktop backend command override. Used by packagers/Nix or troubleshooting to point Electron at a specific `freeide` executable after backend probing. |
-| `FREEIDE_DESKTOP_FREEIDE_ROOT` | Desktop source-checkout override used by `freeide desktop --freeide-root`; checked before the packaged first-launch install or an existing `freeide` on `PATH`. |
-| `FREEIDE_DESKTOP_IGNORE_EXISTING` | Set to `1` to make Desktop ignore an existing `freeide` on `PATH` during backend resolution. Equivalent to `freeide desktop --ignore-existing`. |
-| `FREEIDE_DESKTOP_CWD` | Initial project directory for Desktop chat sessions. Set by `freeide desktop --cwd`. |
-| `FREEIDE_DESKTOP_PYTHON` | Absolute path to a Python interpreter for the backend, checked before Electron auto-resolves one for the source checkout. Used by worktree dev helpers (see [TUI & Desktop from Worktrees](../developer-guide/worktree-ui-dev.md)) to reuse a shared venv. |
-| `FREEIDE_DESKTOP_DEV_SERVER` | Vite dev-server URL the Electron shell loads instead of the packaged bundle (e.g. `http://127.0.0.1:5174`). Set automatically by `npm run dev`; only relevant when hacking on the app. |
-| `FREEIDE_DESKTOP_CDP_PORT` | Overrides the Chrome DevTools Protocol port the renderer exposes on `127.0.0.1` for DOM/CSS inspection tooling (default `9222`). Dev-server runs (`npm run dev`, `hgui`) open it automatically; a packaged app never does, and no value here changes that. Set to `off` to disable it on a dev run. Anything that can reach the port can execute code in the renderer. |
+| `JETTSTUI_DASHBOARD_BASIC_AUTH_USERNAME` | Username for the bundled username/password dashboard-auth provider (`plugins/dashboard_auth/basic`). Activates the provider when set together with a password. Overrides `dashboard.basic_auth.username`. |
+| `JETTSTUI_DASHBOARD_BASIC_AUTH_PASSWORD` | Plaintext password for the basic provider (hashed in-memory at load). Wins over a config `password_hash` so you can rotate via env. Overrides `dashboard.basic_auth.password`. |
+| `JETTSTUI_DASHBOARD_BASIC_AUTH_PASSWORD_HASH` | scrypt password hash for the basic provider (preferred — no plaintext at rest). Compute with `python -c "from plugins.dashboard_auth.basic import hash_password; print(hash_password('PW'))"`. Overrides `dashboard.basic_auth.password_hash`. |
+| `JETTSTUI_DASHBOARD_BASIC_AUTH_SECRET` | HMAC key (32+ bytes, base64/hex/raw) signing the basic provider's stateless session tokens. Set explicitly so sessions survive restarts / span multiple workers; blank → random per-process (you'll be logged out on every restart). Overrides `dashboard.basic_auth.secret`. |
+| `JETTSTUI_DASHBOARD_BASIC_AUTH_TTL_SECONDS` | Access-token lifetime for the basic provider (default 12h). Overrides `dashboard.basic_auth.session_ttl_seconds`. |
+| `JETTSTUI_DASHBOARD_PUBLIC_URL` | Complete public URL the dashboard is reached at, for OAuth callback construction behind reverse proxies. Overrides `dashboard.public_url`. |
+| `JETTSTUI_DASHBOARD_OIDC_ISSUER` | OIDC issuer URL for the bundled self-hosted OIDC provider (`plugins/dashboard_auth/self_hosted`). Required to activate it. Overrides `dashboard.oauth.self_hosted.issuer`. |
+| `JETTSTUI_DASHBOARD_OIDC_CLIENT_ID` | Public OIDC client id (authorization-code + PKCE) for the self-hosted OIDC provider. Required to activate it. Overrides `dashboard.oauth.self_hosted.client_id`. |
+| `JETTSTUI_DASHBOARD_OIDC_SCOPES` | Requested OIDC scopes for the self-hosted OIDC provider (default `openid profile email`). Overrides `dashboard.oauth.self_hosted.scopes`. |
+| `JETTSTUI_DESKTOP_REMOTE_URL` | (Desktop side) Base URL of the remote backend, e.g. `http://host:9119`. When set, overrides the in-app Gateway URL; you still sign in from the Gateway settings panel (OAuth redirect or username/password, whichever the backend advertises). |
+| `JETTSTUI_DESKTOP_JETTSTUI` | Desktop backend command override. Used by packagers/Nix or troubleshooting to point Electron at a specific `jettstui` executable after backend probing. |
+| `JETTSTUI_DESKTOP_JETTSTUI_ROOT` | Desktop source-checkout override used by `jettstui desktop --jettstui-root`; checked before the packaged first-launch install or an existing `jettstui` on `PATH`. |
+| `JETTSTUI_DESKTOP_IGNORE_EXISTING` | Set to `1` to make Desktop ignore an existing `jettstui` on `PATH` during backend resolution. Equivalent to `jettstui desktop --ignore-existing`. |
+| `JETTSTUI_DESKTOP_CWD` | Initial project directory for Desktop chat sessions. Set by `jettstui desktop --cwd`. |
+| `JETTSTUI_DESKTOP_PYTHON` | Absolute path to a Python interpreter for the backend, checked before Electron auto-resolves one for the source checkout. Used by worktree dev helpers (see [TUI & Desktop from Worktrees](../developer-guide/worktree-ui-dev.md)) to reuse a shared venv. |
+| `JETTSTUI_DESKTOP_DEV_SERVER` | Vite dev-server URL the Electron shell loads instead of the packaged bundle (e.g. `http://127.0.0.1:5174`). Set automatically by `npm run dev`; only relevant when hacking on the app. |
+| `JETTSTUI_DESKTOP_CDP_PORT` | Overrides the Chrome DevTools Protocol port the renderer exposes on `127.0.0.1` for DOM/CSS inspection tooling (default `9222`). Dev-server runs (`npm run dev`, `hgui`) open it automatically; a packaged app never does, and no value here changes that. Set to `off` to disable it on a dev run. Anything that can reach the port can execute code in the renderer. |
 
 ### Microsoft Graph (Teams Meetings)
 
@@ -522,7 +522,7 @@ App-only credentials for the Microsoft Graph REST client used by the upcoming Te
 |----------|-------------|
 | `MSGRAPH_TENANT_ID` | Azure AD tenant ID (directory GUID) for the Graph app registration. |
 | `MSGRAPH_CLIENT_ID` | Application (client) ID of the Azure app registration. |
-| `MSGRAPH_CLIENT_SECRET` | Client secret value for the app registration. Store in `~/.freeide/.env` with `chmod 600`; rotate periodically via the Azure portal. |
+| `MSGRAPH_CLIENT_SECRET` | Client secret value for the app registration. Store in `~/.jettstui/.env` with `chmod 600`; rotate periodically via the Azure portal. |
 | `MSGRAPH_SCOPE` | OAuth2 scope for the client-credentials token request (default: `https://graph.microsoft.com/.default`). |
 | `MSGRAPH_AUTHORITY_URL` | Microsoft identity platform authority (default: `https://login.microsoftonline.com`). Override only for national/sovereign clouds (e.g. `https://login.microsoftonline.us` for GCC High). |
 
@@ -593,13 +593,13 @@ See [the ntfy messaging guide](../user-guide/messaging/ntfy.md) — particularly
 
 ### IRC
 
-Connect FreeIDE to an IRC server. No external dependencies. See [the IRC messaging guide](../user-guide/messaging/irc.md).
+Connect JettsTUI to an IRC server. No external dependencies. See [the IRC messaging guide](../user-guide/messaging/irc.md).
 
 | Variable | Description |
 |----------|-------------|
 | `IRC_SERVER` | IRC server hostname (e.g. `irc.libera.chat`). Required. |
-| `IRC_CHANNEL` | Channel(s) to join (e.g. `#freeide`); comma-separate for multiple. Required. |
-| `IRC_NICKNAME` | Bot nickname (default: `freeide-bot`). Required. |
+| `IRC_CHANNEL` | Channel(s) to join (e.g. `#jettstui`); comma-separate for multiple. Required. |
+| `IRC_NICKNAME` | Bot nickname (default: `jettstui-bot`). Required. |
 | `IRC_PORT` | Server port (default: `6697` with TLS, `6667` without). |
 | `IRC_USE_TLS` | Use TLS (`true`/`false`; default `true` on port 6697). |
 | `IRC_SERVER_PASSWORD` | Server password for the `PASS` command (optional). |
@@ -610,7 +610,7 @@ Connect FreeIDE to an IRC server. No external dependencies. See [the IRC messagi
 
 ### SimpleX
 
-Connect FreeIDE to a [SimpleX Chat](https://simplex.chat/) network via a local `simplex-chat` daemon. See [the SimpleX messaging guide](../user-guide/messaging/simplex.md).
+Connect JettsTUI to a [SimpleX Chat](https://simplex.chat/) network via a local `simplex-chat` daemon. See [the SimpleX messaging guide](../user-guide/messaging/simplex.md).
 
 | Variable | Description |
 |----------|-------------|
@@ -624,21 +624,21 @@ Connect FreeIDE to a [SimpleX Chat](https://simplex.chat/) network via a local `
 
 ### Photon
 
-Connect FreeIDE to [Photon](https://photon.codes/) / Spectrum (iMessage and other Spectrum platforms) via the Node sidecar. See [the Photon messaging guide](../user-guide/messaging/photon.md).
+Connect JettsTUI to [Photon](https://photon.codes/) / Spectrum (iMessage and other Spectrum platforms) via the Node sidecar. See [the Photon messaging guide](../user-guide/messaging/photon.md).
 
 | Variable | Description |
 |----------|-------------|
-| `PHOTON_PROJECT_ID` | Spectrum project id (the project's `spectrumProjectId`; set by `freeide photon setup`). |
-| `PHOTON_PROJECT_SECRET` | Project secret paired with the Spectrum project id (set by `freeide photon setup`). |
+| `PHOTON_PROJECT_ID` | Spectrum project id (the project's `spectrumProjectId`; set by `jettstui photon setup`). |
+| `PHOTON_PROJECT_SECRET` | Project secret paired with the Spectrum project id (set by `jettstui photon setup`). |
 | `PHOTON_ALLOWED_USERS` | Comma-separated E.164 phone numbers allowed to talk to the bot. |
 | `PHOTON_ALLOW_ALL_USERS` | Allow any sender to trigger the bot (dev only — disables allowlist). |
 | `PHOTON_REQUIRE_MENTION` | Ignore group-chat messages unless they match a mention wake word (`true`/`false`, default `false`). |
-| `PHOTON_MENTION_PATTERNS` | Mention wake-word regexes for group chats (JSON list or comma/newline-separated; defaults to FreeIDE wake words). |
+| `PHOTON_MENTION_PATTERNS` | Mention wake-word regexes for group chats (JSON list or comma/newline-separated; defaults to JettsTUI wake words). |
 | `PHOTON_HOME_CHANNEL` | Default Photon target for cron / notification delivery: Spectrum space id, DM GUID, or bare E.164 phone number. |
 | `PHOTON_HOME_CHANNEL_NAME` | Human label for the home channel. |
 | `PHOTON_MARKDOWN` | Send agent replies as markdown — iMessage renders it natively, other Spectrum platforms degrade to plain text (`true`/`false`, default `true`). |
 | `PHOTON_REACTIONS` | Tapback 👀/👍/👎 on messages as processing status and route tapbacks on bot messages to the agent (`true`/`false`, default `false`). |
-| `PHOTON_TELEMETRY` | Enable Spectrum SDK telemetry in the sidecar (`true`/`false`, default `false`; toggle with `freeide photon telemetry on|off`). |
+| `PHOTON_TELEMETRY` | Enable Spectrum SDK telemetry in the sidecar (`true`/`false`, default `false`; toggle with `jettstui photon telemetry on|off`). |
 | `PHOTON_SIDECAR_PORT` | Loopback port for the Node sidecar control + inbound channel (default `8789`). |
 | `PHOTON_SIDECAR_AUTOSTART` | Spawn the Node sidecar on connect (`true`/`false`, default `true`). |
 | `PHOTON_NODE_BIN` | Path to the node binary (default: `shutil.which('node')`). |
@@ -672,113 +672,113 @@ Advanced per-platform knobs for throttling the outbound message batcher. Most us
 
 | Variable | Description |
 |----------|-------------|
-| `FREEIDE_TELEGRAM_TEXT_BATCH_DELAY_SECONDS` | Grace window before flushing a queued Telegram text chunk (default: `0.6`). |
-| `FREEIDE_TELEGRAM_TEXT_BATCH_SPLIT_DELAY_SECONDS` | Delay between split chunks when a single Telegram message exceeds the length limit (default: `2.0`). |
-| `FREEIDE_SIMPLEX_TEXT_BATCH_DELAY` | Quiet-period seconds (default: `0.8`) used to concatenate rapid-fire inbound text messages into a single MessageEvent — same pattern as Telegram's text batching. |
-| `FREEIDE_TELEGRAM_MEDIA_BATCH_DELAY_SECONDS` | Grace window before flushing queued Telegram media (default: `0.6`). |
-| `FREEIDE_TELEGRAM_FOLLOWUP_GRACE_SECONDS` | Delay before sending a follow-up after the agent finishes, to avoid racing the last stream chunk. |
-| `FREEIDE_TELEGRAM_HTTP_CONNECT_TIMEOUT` / `_READ_TIMEOUT` / `_WRITE_TIMEOUT` / `_POOL_TIMEOUT` | Override the underlying `python-telegram-bot` HTTP timeouts (seconds). |
-| `FREEIDE_TELEGRAM_INIT_TIMEOUT` | Per-attempt cap (seconds) on the Telegram `initialize()` connect chain during gateway startup, so an unreachable fallback-IP chain can't block startup indefinitely (default: `30`). |
-| `FREEIDE_TELEGRAM_HTTP_POOL_SIZE` | Max concurrent HTTP connections to the Telegram API. |
-| `FREEIDE_TELEGRAM_DISABLE_FALLBACK_IPS` | Disable the hard-coded Cloudflare fallback IPs used when DNS fails (`true`/`false`). |
-| `FREEIDE_DISCORD_TEXT_BATCH_DELAY_SECONDS` | Grace window before flushing a queued Discord text chunk (default: `0.6`). |
-| `FREEIDE_DISCORD_TEXT_BATCH_SPLIT_DELAY_SECONDS` | Delay between split chunks when a Discord message exceeds the length limit (default: `2.0`). |
-| `FREEIDE_DISCORD_LIVENESS_INTERVAL_SECONDS` | Compatibility/manual override for `discord.websocket_liveness_interval_seconds`. Interval for sampling the active Discord Gateway WebSocket (default: `15`; set to `0` to disable). Prefer the `config.yaml` key. |
-| `FREEIDE_DISCORD_LIVENESS_FAILURE_THRESHOLD` | Compatibility/manual override for `discord.websocket_liveness_failure_threshold`. Consecutive unhealthy WebSocket samples before forcing a reconnect (default: `2`). Prefer the `config.yaml` key. |
-| `FREEIDE_MATRIX_TEXT_BATCH_DELAY_SECONDS` / `_SPLIT_DELAY_SECONDS` | Matrix equivalents of the Telegram batch knobs. |
-| `FREEIDE_FEISHU_TEXT_BATCH_DELAY_SECONDS` / `_SPLIT_DELAY_SECONDS` / `_MAX_CHARS` / `_MAX_MESSAGES` | Feishu batcher tuning — delay, split delay, max chars per message, max messages per batch. |
-| `FREEIDE_FEISHU_MEDIA_BATCH_DELAY_SECONDS` | Feishu media flush delay. |
-| `FREEIDE_FEISHU_DEDUP_CACHE_SIZE` | Size of the Feishu webhook dedup cache (default: `1024`). |
-| `FREEIDE_WECOM_TEXT_BATCH_DELAY_SECONDS` / `_SPLIT_DELAY_SECONDS` | WeCom batcher tuning. |
-| `FREEIDE_VISION_DOWNLOAD_TIMEOUT` | Timeout in seconds for downloading an image before handing it to vision models (default: `30`). |
-| `FREEIDE_VISION_MAX_CONCURRENCY` | Max concurrent image **encode/resize** bursts across the whole process (override for `auxiliary.vision.max_concurrency`; default: host CPU core count, no ceiling). Bounds only the CPU-bound encode step so a video-frame fan-out can't saturate every core and starve the event loop — the LLM calls stay fully concurrent. Values `< 1` are ignored. |
-| `FREEIDE_RESTART_DRAIN_TIMEOUT` | Gateway: seconds to wait for active runs to drain on `/restart` before forcing the restart (default: `900`). |
-| `FREEIDE_GATEWAY_PLATFORM_CONNECT_TIMEOUT` | Per-platform connect timeout during gateway startup and reconnect (seconds; `0`/negative waits indefinitely). Applies to the connect attempt *and* the Discord adapter's ready-wait, so accounts with many slash commands to sync don't get killed mid-startup. Bridged from `gateway.platform_connect_timeout` in `config.yaml` (default `30`); this env var is the manual override and wins if set explicitly. |
-| `FREEIDE_GATEWAY_BUSY_INPUT_MODE` | Default gateway busy-input behavior: `queue`, `steer`, or `interrupt`. Can be overridden per chat with `/busy`. |
-| `FREEIDE_GATEWAY_BUSY_ACK_ENABLED` | Whether the gateway sends an acknowledgment message (⚡/⏳/⏩) when a user sends input while the agent is busy (default: `true`). Set to `false` to suppress these messages entirely — the input is still queued/steered/interrupts as normal, only the chat reply is silenced. Bridged from `display.busy_ack_enabled` in `config.yaml`. |
-| `FREEIDE_GATEWAY_NO_SUPERVISE` | Inside the s6-overlay Docker image, opt out of auto-supervision when running `freeide gateway run` and use pre-s6 foreground semantics (no auto-restart, gateway is the container's main process). Truthy values: `1`, `true`, `yes`. Equivalent to the `--no-supervise` CLI flag. No-op outside the s6 image. |
-| `FREEIDE_GATEWAY_BOOTSTRAP_STATE` | Inside the s6-overlay Docker image, declare the gateway's **initial** supervised state on a fresh volume. On a blank volume there is no persisted `gateway_state.json`, so the boot reconciler registers the `gateway-default` slot but leaves it **down** (it only auto-starts when the last recorded state was `running`). Set this to `running` and the first-boot setup hook seeds `gateway_state.json` *before* the reconciler runs, so the gateway comes up on the very first boot. Only the literal value `running` is honoured. First-boot-only: an existing `gateway_state.json` is never overwritten, so a deliberately-stopped gateway stays stopped across restarts. No-op outside the s6 image. |
+| `JETTSTUI_TELEGRAM_TEXT_BATCH_DELAY_SECONDS` | Grace window before flushing a queued Telegram text chunk (default: `0.6`). |
+| `JETTSTUI_TELEGRAM_TEXT_BATCH_SPLIT_DELAY_SECONDS` | Delay between split chunks when a single Telegram message exceeds the length limit (default: `2.0`). |
+| `JETTSTUI_SIMPLEX_TEXT_BATCH_DELAY` | Quiet-period seconds (default: `0.8`) used to concatenate rapid-fire inbound text messages into a single MessageEvent — same pattern as Telegram's text batching. |
+| `JETTSTUI_TELEGRAM_MEDIA_BATCH_DELAY_SECONDS` | Grace window before flushing queued Telegram media (default: `0.6`). |
+| `JETTSTUI_TELEGRAM_FOLLOWUP_GRACE_SECONDS` | Delay before sending a follow-up after the agent finishes, to avoid racing the last stream chunk. |
+| `JETTSTUI_TELEGRAM_HTTP_CONNECT_TIMEOUT` / `_READ_TIMEOUT` / `_WRITE_TIMEOUT` / `_POOL_TIMEOUT` | Override the underlying `python-telegram-bot` HTTP timeouts (seconds). |
+| `JETTSTUI_TELEGRAM_INIT_TIMEOUT` | Per-attempt cap (seconds) on the Telegram `initialize()` connect chain during gateway startup, so an unreachable fallback-IP chain can't block startup indefinitely (default: `30`). |
+| `JETTSTUI_TELEGRAM_HTTP_POOL_SIZE` | Max concurrent HTTP connections to the Telegram API. |
+| `JETTSTUI_TELEGRAM_DISABLE_FALLBACK_IPS` | Disable the hard-coded Cloudflare fallback IPs used when DNS fails (`true`/`false`). |
+| `JETTSTUI_DISCORD_TEXT_BATCH_DELAY_SECONDS` | Grace window before flushing a queued Discord text chunk (default: `0.6`). |
+| `JETTSTUI_DISCORD_TEXT_BATCH_SPLIT_DELAY_SECONDS` | Delay between split chunks when a Discord message exceeds the length limit (default: `2.0`). |
+| `JETTSTUI_DISCORD_LIVENESS_INTERVAL_SECONDS` | Compatibility/manual override for `discord.websocket_liveness_interval_seconds`. Interval for sampling the active Discord Gateway WebSocket (default: `15`; set to `0` to disable). Prefer the `config.yaml` key. |
+| `JETTSTUI_DISCORD_LIVENESS_FAILURE_THRESHOLD` | Compatibility/manual override for `discord.websocket_liveness_failure_threshold`. Consecutive unhealthy WebSocket samples before forcing a reconnect (default: `2`). Prefer the `config.yaml` key. |
+| `JETTSTUI_MATRIX_TEXT_BATCH_DELAY_SECONDS` / `_SPLIT_DELAY_SECONDS` | Matrix equivalents of the Telegram batch knobs. |
+| `JETTSTUI_FEISHU_TEXT_BATCH_DELAY_SECONDS` / `_SPLIT_DELAY_SECONDS` / `_MAX_CHARS` / `_MAX_MESSAGES` | Feishu batcher tuning — delay, split delay, max chars per message, max messages per batch. |
+| `JETTSTUI_FEISHU_MEDIA_BATCH_DELAY_SECONDS` | Feishu media flush delay. |
+| `JETTSTUI_FEISHU_DEDUP_CACHE_SIZE` | Size of the Feishu webhook dedup cache (default: `1024`). |
+| `JETTSTUI_WECOM_TEXT_BATCH_DELAY_SECONDS` / `_SPLIT_DELAY_SECONDS` | WeCom batcher tuning. |
+| `JETTSTUI_VISION_DOWNLOAD_TIMEOUT` | Timeout in seconds for downloading an image before handing it to vision models (default: `30`). |
+| `JETTSTUI_VISION_MAX_CONCURRENCY` | Max concurrent image **encode/resize** bursts across the whole process (override for `auxiliary.vision.max_concurrency`; default: host CPU core count, no ceiling). Bounds only the CPU-bound encode step so a video-frame fan-out can't saturate every core and starve the event loop — the LLM calls stay fully concurrent. Values `< 1` are ignored. |
+| `JETTSTUI_RESTART_DRAIN_TIMEOUT` | Gateway: seconds to wait for active runs to drain on `/restart` before forcing the restart (default: `900`). |
+| `JETTSTUI_GATEWAY_PLATFORM_CONNECT_TIMEOUT` | Per-platform connect timeout during gateway startup and reconnect (seconds; `0`/negative waits indefinitely). Applies to the connect attempt *and* the Discord adapter's ready-wait, so accounts with many slash commands to sync don't get killed mid-startup. Bridged from `gateway.platform_connect_timeout` in `config.yaml` (default `30`); this env var is the manual override and wins if set explicitly. |
+| `JETTSTUI_GATEWAY_BUSY_INPUT_MODE` | Default gateway busy-input behavior: `queue`, `steer`, or `interrupt`. Can be overridden per chat with `/busy`. |
+| `JETTSTUI_GATEWAY_BUSY_ACK_ENABLED` | Whether the gateway sends an acknowledgment message (⚡/⏳/⏩) when a user sends input while the agent is busy (default: `true`). Set to `false` to suppress these messages entirely — the input is still queued/steered/interrupts as normal, only the chat reply is silenced. Bridged from `display.busy_ack_enabled` in `config.yaml`. |
+| `JETTSTUI_GATEWAY_NO_SUPERVISE` | Inside the s6-overlay Docker image, opt out of auto-supervision when running `jettstui gateway run` and use pre-s6 foreground semantics (no auto-restart, gateway is the container's main process). Truthy values: `1`, `true`, `yes`. Equivalent to the `--no-supervise` CLI flag. No-op outside the s6 image. |
+| `JETTSTUI_GATEWAY_BOOTSTRAP_STATE` | Inside the s6-overlay Docker image, declare the gateway's **initial** supervised state on a fresh volume. On a blank volume there is no persisted `gateway_state.json`, so the boot reconciler registers the `gateway-default` slot but leaves it **down** (it only auto-starts when the last recorded state was `running`). Set this to `running` and the first-boot setup hook seeds `gateway_state.json` *before* the reconciler runs, so the gateway comes up on the very first boot. Only the literal value `running` is honoured. First-boot-only: an existing `gateway_state.json` is never overwritten, so a deliberately-stopped gateway stays stopped across restarts. No-op outside the s6 image. |
 | `GATEWAY_RELAY_URL` | Experimental relay connector WebSocket base URL. When set, the gateway registers the generic `relay` adapter and dials the connector outbound. Mirrors `gateway.relay_url` in `config.yaml`. |
-| `GATEWAY_RELAY_ID` | Relay gateway identifier assigned by `freeide gateway enroll` or managed self-provisioning. Mirrors `gateway.relay_id`. |
+| `GATEWAY_RELAY_ID` | Relay gateway identifier assigned by `jettstui gateway enroll` or managed self-provisioning. Mirrors `gateway.relay_id`. |
 | `GATEWAY_RELAY_SECRET` | Per-gateway relay secret used to authenticate the WebSocket. If this is already configured, managed self-provisioning is skipped. Mirrors `gateway.relay_secret`. |
 | `GATEWAY_RELAY_DELIVERY_KEY` | Connector-issued delivery key retained for relay/passthrough authentication compatibility. Current relay inbound messages arrive on the outbound WebSocket rather than a gateway-side HTTP receiver. |
-| `GATEWAY_RELAY_ENROLL_TOKEN` | Enrollment token consumed by `freeide gateway enroll` when `--token` is not passed explicitly. |
+| `GATEWAY_RELAY_ENROLL_TOKEN` | Enrollment token consumed by `jettstui gateway enroll` when `--token` is not passed explicitly. |
 | `GATEWAY_RELAY_PLATFORM` | Optional platform name advertised in the relay capability descriptor. |
 | `GATEWAY_RELAY_BOT_ID` | Optional bot identifier advertised in the relay capability descriptor. |
 | `GATEWAY_RELAY_ENDPOINT` | Optional gateway endpoint advertised for connector modes that need a callback/passthrough URL; not required for the default WS-only inbound relay path. Mirrors `gateway.relay_endpoint`. |
 | `GATEWAY_RELAY_ROUTE_KEYS` | Comma-separated relay route keys advertised to the connector. Mirrors `gateway.relay_route_keys`. |
-| `FREEIDE_FILE_MUTATION_VERIFIER` | Enable the per-turn file-mutation verifier footer (default: `true`). When enabled, FreeIDE appends an advisory listing any `write_file` / `patch` calls that failed during the turn and were not superseded by a successful write. Set to `0`, `false`, `no`, or `off` to suppress. Mirrors `display.file_mutation_verifier` in `config.yaml`; the env var wins when set. |
-| `FREEIDE_CRON_TIMEOUT` | Inactivity timeout for cron job agent runs in seconds (default: `600`). The agent can run indefinitely while actively calling tools or receiving stream tokens — this only triggers when idle. Set to `0` for unlimited. |
-| `FREEIDE_CRON_SCRIPT_TIMEOUT` | Timeout for pre-run scripts attached to cron jobs in seconds (default: `3600`). Bounds the script only — skill/agent jobs use the separate `FREEIDE_CRON_TIMEOUT` inactivity budget. Also configurable via `cron.script_timeout_seconds` in `config.yaml`. |
-| `FREEIDE_CRON_MAX_PARALLEL` | Max cron jobs run in parallel per tick (default: `4`). |
+| `JETTSTUI_FILE_MUTATION_VERIFIER` | Enable the per-turn file-mutation verifier footer (default: `true`). When enabled, JettsTUI appends an advisory listing any `write_file` / `patch` calls that failed during the turn and were not superseded by a successful write. Set to `0`, `false`, `no`, or `off` to suppress. Mirrors `display.file_mutation_verifier` in `config.yaml`; the env var wins when set. |
+| `JETTSTUI_CRON_TIMEOUT` | Inactivity timeout for cron job agent runs in seconds (default: `600`). The agent can run indefinitely while actively calling tools or receiving stream tokens — this only triggers when idle. Set to `0` for unlimited. |
+| `JETTSTUI_CRON_SCRIPT_TIMEOUT` | Timeout for pre-run scripts attached to cron jobs in seconds (default: `3600`). Bounds the script only — skill/agent jobs use the separate `JETTSTUI_CRON_TIMEOUT` inactivity budget. Also configurable via `cron.script_timeout_seconds` in `config.yaml`. |
+| `JETTSTUI_CRON_MAX_PARALLEL` | Max cron jobs run in parallel per tick (default: `4`). |
 
 ## Agent Behavior
 
 | Variable | Description |
 |----------|-------------|
-| `FREEIDE_MAX_ITERATIONS` | Max tool-calling iterations per conversation (default: 500) |
-| `FREEIDE_INFERENCE_MODEL` | Override model name at process level (takes priority over `config.yaml` for the session). Also settable via `-m`/`--model` flag. |
-| `FREEIDE_YOLO_MODE` | Set to `1` to bypass dangerous-command approval prompts. Equivalent to `--yolo`. |
-| `FREEIDE_ACCEPT_HOOKS` | Auto-approve any unseen shell hooks declared in `config.yaml` without a TTY prompt. Equivalent to `--accept-hooks` or `hooks_auto_accept: true`. |
-| `FREEIDE_IGNORE_USER_CONFIG` | Skip `~/.freeide/config.yaml` and use built-in defaults (credentials in `.env` still load). Equivalent to `--ignore-user-config`. |
-| `FREEIDE_IGNORE_RULES` | Skip auto-injection of `AGENTS.md`, `SOUL.md`, `.cursorrules`, memory, and preloaded skills. Equivalent to `--ignore-rules`. |
-| `FREEIDE_SAFE_MODE` | Troubleshooting mode: disable ALL customizations — skips plugin discovery, MCP server loading, and shell-hook registration. Set automatically by `--safe-mode` (which also sets the two flags above). |
-| `FREEIDE_TOOL_PROGRESS` | Deprecated compatibility variable for tool progress display. Prefer `display.tool_progress` in `config.yaml`. |
-| `FREEIDE_TOOL_PROGRESS_MODE` | Deprecated compatibility variable for tool progress mode. Prefer `display.tool_progress` in `config.yaml`. |
-| `FREEIDE_HUMAN_DELAY_MODE` | Response pacing: `off`/`natural`/`custom` |
-| `FREEIDE_HUMAN_DELAY_MIN_MS` | Custom delay range minimum (ms) |
-| `FREEIDE_HUMAN_DELAY_MAX_MS` | Custom delay range maximum (ms) |
-| `FREEIDE_QUIET` | Suppress non-essential output (`true`/`false`) |
-| `CODEX_HOME` | When [Codex app-server runtime](../user-guide/features/codex-app-server-runtime) is enabled, override the directory Codex CLI reads its config + auth from (default: `~/.codex`). FreeIDE' migration writes the managed block to `<CODEX_HOME>/config.toml`. |
-| `FREEIDE_KANBAN_TASK` | Set by the kanban dispatcher when spawning a worker (task UUID). Workers and the spawned `freeide-tools` MCP subprocess inherit it so kanban tools gate correctly. Don't set manually. |
-| `FREEIDE_ACP_SKIP_CONFIGURED_MCP` | Set by an [ACP host](../user-guide/features/acp#host-integration) on the FreeIDE subprocess it spawns. `1` skips starting the globally configured `config.yaml` MCP servers before the ACP JSON-RPC loop, for hosts that pass the session's MCP servers through `session/new` themselves. Servers supplied by the ACP session are still registered; any other value keeps the default. Don't set manually. |
-| `FREEIDE_API_TIMEOUT` | LLM API call timeout in seconds (default: `1800`) |
-| `FREEIDE_API_CALL_STALE_TIMEOUT` | Non-streaming stale-call timeout in seconds (default: `90`). Auto-disabled for local providers when left unset, and may scale upward for very large contexts. Also configurable via `providers.<id>.stale_timeout_seconds` or `providers.<id>.models.<model>.stale_timeout_seconds` in `config.yaml`. |
-| `FREEIDE_STREAM_READ_TIMEOUT` | Streaming socket read timeout in seconds (default: `120`). Auto-increased to `FREEIDE_API_TIMEOUT` for local providers. Increase if local LLMs time out during long code generation. |
-| `FREEIDE_STREAM_STALE_TIMEOUT` | Stale stream detection timeout in seconds (default: `180`). Auto-disabled for local providers. Triggers connection kill if no chunks arrive within this window. |
-| `FREEIDE_LOCAL_STREAM_STALE_TIMEOUT` | Stale stream ceiling for local providers (Ollama, oMLX, llama-cpp) in seconds (default: `900`). When the base stale timeout is at its default and a local endpoint is detected, this finite ceiling replaces the former infinite disable so a wedged local server eventually trips the detector instead of hanging forever. Also configurable via `agent.local_stream_stale_timeout` in `config.yaml`. |
-| `FREEIDE_STREAM_RETRIES` | Number of mid-stream reconnect attempts on transient network errors (default: `3`). |
-| `FREEIDE_STREAM_STALE_GIVEUP` | Cross-turn circuit breaker: after this many consecutive stale kills (streaming or non-streaming) with no completed response, abort each call immediately with an actionable error instead of re-waiting out the stale timeout (default: `5`, `0` disables). Resets on any completed response, `/model` switch, fallback activation, or turn-start primary restore. |
-| `FREEIDE_AGENT_TIMEOUT` | Gateway inactivity timeout for a running agent in seconds (default: `1800`, 30 minutes). Resets on every tool call and streamed token. Set to `0` to disable. |
-| `FREEIDE_GATEWAY_MAX_STARTS` | Respawn-storm circuit breaker: maximum gateway (re)starts allowed within the window before an exponential backoff is slept to break the storm (default: `5`, `0` disables). Also configurable via `gateway.respawn_storm.max_starts` in `config.yaml`. |
-| `FREEIDE_GATEWAY_START_WINDOW_S` | Respawn-storm breaker window in seconds (default: `120`). Also configurable via `gateway.respawn_storm.window_seconds` in `config.yaml`. |
-| `FREEIDE_AGENT_TIMEOUT_WARNING` | Gateway: send a warning message after this many seconds of inactivity (default: 75% of `FREEIDE_AGENT_TIMEOUT`). |
-| `FREEIDE_AGENT_NOTIFY_INTERVAL` | Gateway: interval in seconds between progress notifications on long-running agent turns. |
-| `FREEIDE_CHECKPOINT_TIMEOUT` | Timeout for filesystem checkpoint creation in seconds (default: `30`). |
-| `FREEIDE_EXEC_ASK` | Enable execution approval prompts in gateway mode (`true`/`false`) |
-| `FREEIDE_ENABLE_PROJECT_PLUGINS` | Enable auto-discovery of repo-local plugins from `./.freeide/plugins/` for both the agent loader and the dashboard web server. Accepts the standard truthy set: `1` / `true` / `yes` / `on` (case-insensitive). Everything else — including `0`, `false`, `no`, `off`, and the empty string — is treated as **disabled** (default). Note: as of GHSA-5qr3-c538-wm9j (#29156) the dashboard web server refuses to auto-import a project plugin's Python `api` file even when this var is enabled — project plugins may extend the UI via static JS/CSS but their backend routes are only loaded when moved under `~/.freeide/plugins/`. |
-| `FREEIDE_PLUGINS_DEBUG` | `1`/`true` to surface verbose plugin-discovery logs on stderr — directories scanned, manifests parsed, skip reasons, and full tracebacks on parse or `register()` failure. Aimed at plugin authors. |
-| `FREEIDE_BACKGROUND_NOTIFICATIONS` | Background process notification mode in gateway: `all` (default), `result`, `error`, `off` |
-| `FREEIDE_EPHEMERAL_SYSTEM_PROMPT` | Ephemeral system prompt injected at API-call time (never persisted to sessions) |
-| `FREEIDE_PREFILL_MESSAGES_FILE` | Path to a JSON file of ephemeral prefill messages injected at API-call time. |
-| `FREEIDE_ALLOW_PRIVATE_URLS` | `true`/`false` — allow tools to fetch localhost/private-network URLs. Off by default in gateway mode. |
-| `FREEIDE_REDACT_SECRETS` | `true`/`false` — control secret redaction in tool output, logs, and chat responses (default: `true`). |
-| `FREEIDE_WRITE_SAFE_ROOT` | Optional directory prefix that **hard-blocks** `write_file`/`patch` writes outside the listed roots (no approval prompt). Supports multiple directories separated by `os.pathsep` (`:` on Unix, `;` on Windows). See [FREEIDE_WRITE_SAFE_ROOT](#freeide_write_safe_root) below. |
-| `FREEIDE_DISABLE_LAZY_INSTALLS` | Internal bridge var set automatically in the official Docker image to prevent runtime dependency installs into the immutable `/opt/jettstui` tree. The user-facing equivalent is `security.allow_lazy_installs: false` in `config.yaml`; do not set this in `.env`. |
-| `FREEIDE_DISABLE_FILE_STATE_GUARD` | Set to `1` to turn off the "file changed since you read it" guard on `patch`/`write_file`. |
-| `FREEIDE_BUNDLED_SKILLS` | Comma-separated override for the list of bundled skills loaded at startup. |
-| `FREEIDE_OPTIONAL_SKILLS` | Comma-separated list of optional-skill names to auto-install on first run. |
-| `FREEIDE_DEBUG_INTERRUPT` | Set to `1` to log detailed interrupt/cancel tracing to `agent.log`. |
-| `FREEIDE_DUMP_REQUESTS` | Dump API request payloads to log files (`true`/`false`) |
-| `FREEIDE_DUMP_REQUEST_STDOUT` | Dump API request payloads to stdout instead of log files. |
-| `FREEIDE_OAUTH_TRACE` | Set to `1` to log OAuth token exchange and refresh attempts. Includes redacted timing info. |
-| `FREEIDE_OAUTH_FILE` | Override the path used for OAuth credential storage (default: `~/.freeide/auth.json`). |
-| `FREEIDE_AGENT_HELP_GUIDANCE` | Append additional guidance text to the system prompt for custom deployments. |
-| `FREEIDE_AGENT_LOGO` | Override the ASCII banner logo at CLI startup. |
+| `JETTSTUI_MAX_ITERATIONS` | Max tool-calling iterations per conversation (default: 500) |
+| `JETTSTUI_INFERENCE_MODEL` | Override model name at process level (takes priority over `config.yaml` for the session). Also settable via `-m`/`--model` flag. |
+| `JETTSTUI_YOLO_MODE` | Set to `1` to bypass dangerous-command approval prompts. Equivalent to `--yolo`. |
+| `JETTSTUI_ACCEPT_HOOKS` | Auto-approve any unseen shell hooks declared in `config.yaml` without a TTY prompt. Equivalent to `--accept-hooks` or `hooks_auto_accept: true`. |
+| `JETTSTUI_IGNORE_USER_CONFIG` | Skip `~/.jettstui/config.yaml` and use built-in defaults (credentials in `.env` still load). Equivalent to `--ignore-user-config`. |
+| `JETTSTUI_IGNORE_RULES` | Skip auto-injection of `AGENTS.md`, `SOUL.md`, `.cursorrules`, memory, and preloaded skills. Equivalent to `--ignore-rules`. |
+| `JETTSTUI_SAFE_MODE` | Troubleshooting mode: disable ALL customizations — skips plugin discovery, MCP server loading, and shell-hook registration. Set automatically by `--safe-mode` (which also sets the two flags above). |
+| `JETTSTUI_TOOL_PROGRESS` | Deprecated compatibility variable for tool progress display. Prefer `display.tool_progress` in `config.yaml`. |
+| `JETTSTUI_TOOL_PROGRESS_MODE` | Deprecated compatibility variable for tool progress mode. Prefer `display.tool_progress` in `config.yaml`. |
+| `JETTSTUI_HUMAN_DELAY_MODE` | Response pacing: `off`/`natural`/`custom` |
+| `JETTSTUI_HUMAN_DELAY_MIN_MS` | Custom delay range minimum (ms) |
+| `JETTSTUI_HUMAN_DELAY_MAX_MS` | Custom delay range maximum (ms) |
+| `JETTSTUI_QUIET` | Suppress non-essential output (`true`/`false`) |
+| `CODEX_HOME` | When [Codex app-server runtime](../user-guide/features/codex-app-server-runtime) is enabled, override the directory Codex CLI reads its config + auth from (default: `~/.codex`). JettsTUI' migration writes the managed block to `<CODEX_HOME>/config.toml`. |
+| `JETTSTUI_KANBAN_TASK` | Set by the kanban dispatcher when spawning a worker (task UUID). Workers and the spawned `jettstui-tools` MCP subprocess inherit it so kanban tools gate correctly. Don't set manually. |
+| `JETTSTUI_ACP_SKIP_CONFIGURED_MCP` | Set by an [ACP host](../user-guide/features/acp#host-integration) on the JettsTUI subprocess it spawns. `1` skips starting the globally configured `config.yaml` MCP servers before the ACP JSON-RPC loop, for hosts that pass the session's MCP servers through `session/new` themselves. Servers supplied by the ACP session are still registered; any other value keeps the default. Don't set manually. |
+| `JETTSTUI_API_TIMEOUT` | LLM API call timeout in seconds (default: `1800`) |
+| `JETTSTUI_API_CALL_STALE_TIMEOUT` | Non-streaming stale-call timeout in seconds (default: `90`). Auto-disabled for local providers when left unset, and may scale upward for very large contexts. Also configurable via `providers.<id>.stale_timeout_seconds` or `providers.<id>.models.<model>.stale_timeout_seconds` in `config.yaml`. |
+| `JETTSTUI_STREAM_READ_TIMEOUT` | Streaming socket read timeout in seconds (default: `120`). Auto-increased to `JETTSTUI_API_TIMEOUT` for local providers. Increase if local LLMs time out during long code generation. |
+| `JETTSTUI_STREAM_STALE_TIMEOUT` | Stale stream detection timeout in seconds (default: `180`). Auto-disabled for local providers. Triggers connection kill if no chunks arrive within this window. |
+| `JETTSTUI_LOCAL_STREAM_STALE_TIMEOUT` | Stale stream ceiling for local providers (Ollama, oMLX, llama-cpp) in seconds (default: `900`). When the base stale timeout is at its default and a local endpoint is detected, this finite ceiling replaces the former infinite disable so a wedged local server eventually trips the detector instead of hanging forever. Also configurable via `agent.local_stream_stale_timeout` in `config.yaml`. |
+| `JETTSTUI_STREAM_RETRIES` | Number of mid-stream reconnect attempts on transient network errors (default: `3`). |
+| `JETTSTUI_STREAM_STALE_GIVEUP` | Cross-turn circuit breaker: after this many consecutive stale kills (streaming or non-streaming) with no completed response, abort each call immediately with an actionable error instead of re-waiting out the stale timeout (default: `5`, `0` disables). Resets on any completed response, `/model` switch, fallback activation, or turn-start primary restore. |
+| `JETTSTUI_AGENT_TIMEOUT` | Gateway inactivity timeout for a running agent in seconds (default: `1800`, 30 minutes). Resets on every tool call and streamed token. Set to `0` to disable. |
+| `JETTSTUI_GATEWAY_MAX_STARTS` | Respawn-storm circuit breaker: maximum gateway (re)starts allowed within the window before an exponential backoff is slept to break the storm (default: `5`, `0` disables). Also configurable via `gateway.respawn_storm.max_starts` in `config.yaml`. |
+| `JETTSTUI_GATEWAY_START_WINDOW_S` | Respawn-storm breaker window in seconds (default: `120`). Also configurable via `gateway.respawn_storm.window_seconds` in `config.yaml`. |
+| `JETTSTUI_AGENT_TIMEOUT_WARNING` | Gateway: send a warning message after this many seconds of inactivity (default: 75% of `JETTSTUI_AGENT_TIMEOUT`). |
+| `JETTSTUI_AGENT_NOTIFY_INTERVAL` | Gateway: interval in seconds between progress notifications on long-running agent turns. |
+| `JETTSTUI_CHECKPOINT_TIMEOUT` | Timeout for filesystem checkpoint creation in seconds (default: `30`). |
+| `JETTSTUI_EXEC_ASK` | Enable execution approval prompts in gateway mode (`true`/`false`) |
+| `JETTSTUI_ENABLE_PROJECT_PLUGINS` | Enable auto-discovery of repo-local plugins from `./.jettstui/plugins/` for both the agent loader and the dashboard web server. Accepts the standard truthy set: `1` / `true` / `yes` / `on` (case-insensitive). Everything else — including `0`, `false`, `no`, `off`, and the empty string — is treated as **disabled** (default). Note: as of GHSA-5qr3-c538-wm9j (#29156) the dashboard web server refuses to auto-import a project plugin's Python `api` file even when this var is enabled — project plugins may extend the UI via static JS/CSS but their backend routes are only loaded when moved under `~/.jettstui/plugins/`. |
+| `JETTSTUI_PLUGINS_DEBUG` | `1`/`true` to surface verbose plugin-discovery logs on stderr — directories scanned, manifests parsed, skip reasons, and full tracebacks on parse or `register()` failure. Aimed at plugin authors. |
+| `JETTSTUI_BACKGROUND_NOTIFICATIONS` | Background process notification mode in gateway: `all` (default), `result`, `error`, `off` |
+| `JETTSTUI_EPHEMERAL_SYSTEM_PROMPT` | Ephemeral system prompt injected at API-call time (never persisted to sessions) |
+| `JETTSTUI_PREFILL_MESSAGES_FILE` | Path to a JSON file of ephemeral prefill messages injected at API-call time. |
+| `JETTSTUI_ALLOW_PRIVATE_URLS` | `true`/`false` — allow tools to fetch localhost/private-network URLs. Off by default in gateway mode. |
+| `JETTSTUI_REDACT_SECRETS` | `true`/`false` — control secret redaction in tool output, logs, and chat responses (default: `true`). |
+| `JETTSTUI_WRITE_SAFE_ROOT` | Optional directory prefix that **hard-blocks** `write_file`/`patch` writes outside the listed roots (no approval prompt). Supports multiple directories separated by `os.pathsep` (`:` on Unix, `;` on Windows). See [JETTSTUI_WRITE_SAFE_ROOT](#jettstui_write_safe_root) below. |
+| `JETTSTUI_DISABLE_LAZY_INSTALLS` | Internal bridge var set automatically in the official Docker image to prevent runtime dependency installs into the immutable `/opt/jettstui` tree. The user-facing equivalent is `security.allow_lazy_installs: false` in `config.yaml`; do not set this in `.env`. |
+| `JETTSTUI_DISABLE_FILE_STATE_GUARD` | Set to `1` to turn off the "file changed since you read it" guard on `patch`/`write_file`. |
+| `JETTSTUI_BUNDLED_SKILLS` | Comma-separated override for the list of bundled skills loaded at startup. |
+| `JETTSTUI_OPTIONAL_SKILLS` | Comma-separated list of optional-skill names to auto-install on first run. |
+| `JETTSTUI_DEBUG_INTERRUPT` | Set to `1` to log detailed interrupt/cancel tracing to `agent.log`. |
+| `JETTSTUI_DUMP_REQUESTS` | Dump API request payloads to log files (`true`/`false`) |
+| `JETTSTUI_DUMP_REQUEST_STDOUT` | Dump API request payloads to stdout instead of log files. |
+| `JETTSTUI_OAUTH_TRACE` | Set to `1` to log OAuth token exchange and refresh attempts. Includes redacted timing info. |
+| `JETTSTUI_OAUTH_FILE` | Override the path used for OAuth credential storage (default: `~/.jettstui/auth.json`). |
+| `JETTSTUI_AGENT_HELP_GUIDANCE` | Append additional guidance text to the system prompt for custom deployments. |
+| `JETTSTUI_AGENT_LOGO` | Override the ASCII banner logo at CLI startup. |
 | `DELEGATION_MAX_CONCURRENT_CHILDREN` | Max parallel subagents per `delegate_task` batch (default: `3`, floor of 1, no ceiling). Also configurable via `delegation.max_concurrent_children` in `config.yaml` — the config value takes priority. |
 
-### FREEIDE_WRITE_SAFE_ROOT {#freeide_write_safe_root}
+### JETTSTUI_WRITE_SAFE_ROOT {#jettstui_write_safe_root}
 
 When this variable is set, `write_file` and `patch` may only target paths inside the listed directory prefix(es). Any path outside those roots is **rejected immediately** — the write does not go through the dangerous-command approval system and there is no prompt to override it.
 
-The official Docker image sets `FREEIDE_WRITE_SAFE_ROOT=/opt/data` alongside `FREEIDE_HOME=/opt/data` so the agent cannot escape the mounted data volume.
+The official Docker image sets `JETTSTUI_WRITE_SAFE_ROOT=/opt/data` alongside `JETTSTUI_HOME=/opt/data` so the agent cannot escape the mounted data volume.
 
-**Do not add this to `~/.freeide/.env` unless you intend to sandbox writes.** A common mistake is pointing it at a project directory while expecting the agent to edit `~/.freeide/cron/jobs.json`, `~/.freeide/skills/`, or scripts under a profile — those paths are outside the sandbox and every `write_file`/`patch` to them fails with an `outside FREEIDE_WRITE_SAFE_ROOT` error.
+**Do not add this to `~/.jettstui/.env` unless you intend to sandbox writes.** A common mistake is pointing it at a project directory while expecting the agent to edit `~/.jettstui/cron/jobs.json`, `~/.jettstui/skills/`, or scripts under a profile — those paths are outside the sandbox and every `write_file`/`patch` to them fails with an `outside JETTSTUI_WRITE_SAFE_ROOT` error.
 
-To allow both a workspace and FreeIDE state, list both prefixes (order does not matter):
+To allow both a workspace and JettsTUI state, list both prefixes (order does not matter):
 
 ```bash
-export FREEIDE_WRITE_SAFE_ROOT=/path/to/project:/home/you/.freeide
+export JETTSTUI_WRITE_SAFE_ROOT=/path/to/project:/home/you/.jettstui
 ```
 
 Unset the variable or remove it from `.env` to restore normal writes (still subject to the credential-path denylist — see [File write safety](../user-guide/security.md#file-write-safety)).
@@ -787,11 +787,11 @@ Unset the variable or remove it from `.env` to restore normal writes (still subj
 
 | Variable | Description |
 |----------|-------------|
-| `FREEIDE_TUI` | Compatibility switch that explicitly launches the [TUI](../user-guide/tui.md), which is already the interactive default. |
-| `FREEIDE_TUI_DIR` | Path to a prebuilt `ui-tui/` directory (must contain `dist/entry.js` and populated `node_modules`). Used by distros and Nix to skip the first-launch `npm install`. |
-| `FREEIDE_TUI_RESUME` | Resume a specific TUI session by ID on launch. When set, `freeide --tui` skips forging a fresh session and picks up the named session instead — useful for re-attaching after a disconnect or terminal crash. |
-| `FREEIDE_TUI_THEME` | Force the TUI color theme: `light`, `dark`, or a raw 6-character background hex (e.g. `ffffff` or `1a1a2e`). When unset, FreeIDE auto-detects using `COLORFGBG` and terminal background queries; this variable overrides detection on terminals (Ghostty, Warp, iTerm2, etc.) that don't set `COLORFGBG`. |
-| `FREEIDE_INFERENCE_MODEL` | Force the model for `freeide -z` / `freeide chat` without mutating `config.yaml`. Pairs with the `--provider` flag. Useful for scripted callers (sweeper, CI, batch runners) that need to override the default model per run. |
+| `JETTSTUI_TUI` | Compatibility switch that explicitly launches the [TUI](../user-guide/tui.md), which is already the interactive default. |
+| `JETTSTUI_TUI_DIR` | Path to a prebuilt `ui-tui/` directory (must contain `dist/entry.js` and populated `node_modules`). Used by distros and Nix to skip the first-launch `npm install`. |
+| `JETTSTUI_TUI_RESUME` | Resume a specific TUI session by ID on launch. When set, `jettstui --tui` skips forging a fresh session and picks up the named session instead — useful for re-attaching after a disconnect or terminal crash. |
+| `JETTSTUI_TUI_THEME` | Force the TUI color theme: `light`, `dark`, or a raw 6-character background hex (e.g. `ffffff` or `1a1a2e`). When unset, JettsTUI auto-detects using `COLORFGBG` and terminal background queries; this variable overrides detection on terminals (Ghostty, Warp, iTerm2, etc.) that don't set `COLORFGBG`. |
+| `JETTSTUI_INFERENCE_MODEL` | Force the model for `jettstui -z` / `jettstui chat` without mutating `config.yaml`. Pairs with the `--provider` flag. Useful for scripted callers (sweeper, CI, batch runners) that need to override the default model per run. |
 
 ## Session Settings
 
@@ -799,7 +799,7 @@ Unset the variable or remove it from `.env` to restore normal writes (still subj
 |----------|-------------|
 | `SESSION_IDLE_MINUTES` | Reset sessions after N minutes of inactivity (default: 1440) |
 | `SESSION_RESET_HOUR` | Daily reset hour in 24h format (default: 4 = 4am) |
-| `FREEIDE_SESSION_ID` | **Exported automatically into every tool subprocess** FreeIDE spawns (`terminal`, `execute_code`, persistent shell, Docker/Singularity backends, delegated subagent runs). Set by the agent to the current session ID; user scripts called from tools can read it to correlate their output, telemetry, or side effects with the originating FreeIDE session. **You should not set this manually** — overriding it from a parent shell only takes effect outside an agent run, and is overwritten the moment the agent starts a session. |
+| `JETTSTUI_SESSION_ID` | **Exported automatically into every tool subprocess** JettsTUI spawns (`terminal`, `execute_code`, persistent shell, Docker/Singularity backends, delegated subagent runs). Set by the agent to the current session ID; user scripts called from tools can read it to correlate their output, telemetry, or side effects with the originating JettsTUI session. **You should not set this manually** — overriding it from a parent shell only takes effect outside an agent run, and is overwritten the moment the agent starts a session. |
 
 ## Context Compression (config.yaml only)
 
@@ -830,11 +830,11 @@ Older configs with `compression.summary_model`, `compression.summary_provider`, 
 | `AUXILIARY_WEB_EXTRACT_BASE_URL` | Direct OpenAI-compatible endpoint for web extraction/summarization |
 | `AUXILIARY_WEB_EXTRACT_API_KEY` | API key paired with `AUXILIARY_WEB_EXTRACT_BASE_URL` |
 
-For task-specific direct endpoints, FreeIDE uses the task's configured API key or `OPENAI_API_KEY`. It does not reuse `OPENROUTER_API_KEY` for those custom endpoints.
+For task-specific direct endpoints, JettsTUI uses the task's configured API key or `OPENAI_API_KEY`. It does not reuse `OPENROUTER_API_KEY` for those custom endpoints.
 
 ## Fallback Providers (config.yaml only)
 
-The primary model fallback chain is configured exclusively through `config.yaml` — there are no environment variables for it. Add a top-level `fallback_providers` list with `provider` and `model` keys to enable automatic failover when your main model encounters errors. Auxiliary tasks whose provider is `auto` also consult this chain before FreeIDE' built-in auxiliary discovery chain.
+The primary model fallback chain is configured exclusively through `config.yaml` — there are no environment variables for it. Add a top-level `fallback_providers` list with `provider` and `model` keys to enable automatic failover when your main model encounters errors. Auxiliary tasks whose provider is `auto` also consult this chain before JettsTUI' built-in auxiliary discovery chain.
 
 ```yaml
 fallback_providers:
@@ -848,7 +848,7 @@ See [Fallback Providers](../user-guide/features/fallback-providers.md) for full 
 
 ## Provider Routing (config.yaml only)
 
-These go in `~/.freeide/config.yaml` under the `provider_routing` section:
+These go in `~/.jettstui/config.yaml` under the `provider_routing` section:
 
 | Key | Description |
 |-----|-------------|
@@ -860,5 +860,5 @@ These go in `~/.freeide/config.yaml` under the `provider_routing` section:
 | `data_collection` | `"allow"` (default) or `"deny"` to exclude data-storing providers |
 
 :::tip
-Use `freeide config set` to set environment variables — it automatically saves them to the right file (`.env` for secrets, `config.yaml` for everything else).
+Use `jettstui config set` to set environment variables — it automatically saves them to the right file (`.env` for secrets, `config.yaml` for everything else).
 :::

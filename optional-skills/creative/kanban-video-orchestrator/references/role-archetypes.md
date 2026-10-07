@@ -170,7 +170,7 @@ audio's energy.
 
 ### voice-talent / narrator
 
-Generates voiceover audio. Calls a TTS API directly; no FreeIDE skill required
+Generates voiceover audio. Calls a TTS API directly; no JettsTUI skill required
 (kanban guidance is auto-injected into every kanban worker). The user can also
 supply pre-recorded VO instead of generation.
 

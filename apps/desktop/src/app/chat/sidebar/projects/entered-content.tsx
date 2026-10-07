@@ -12,8 +12,8 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
-import type { SessionInfo } from '@/freeide'
-import type { FreeIDEGitWorktree } from '@/global'
+import type { SessionInfo } from '@/jettstui'
+import type { JettsTUIGitWorktree } from '@/global'
 import { useI18n } from '@/i18n'
 import { $dismissedWorktreeIds, dismissWorktree, setWorkspaceNodeOpen } from '@/store/layout'
 import { notifyError } from '@/store/notifications'
@@ -47,7 +47,7 @@ export function EnteredProjectContent({
   project: SidebarProjectTree
   renderRows: (sessions: SessionInfo[]) => React.ReactNode
   onNewSession?: (path: null | string) => void
-  repoWorktrees?: Record<string, FreeIDEGitWorktree[]>
+  repoWorktrees?: Record<string, JettsTUIGitWorktree[]>
   liveSessions?: SessionInfo[]
   removedSessionIds?: ReadonlySet<string>
 }) {
@@ -94,7 +94,7 @@ function RepoFlatSection({
   showHeader: boolean
   renderRows: (sessions: SessionInfo[]) => React.ReactNode
   onNewSession?: (path: null | string) => void
-  discoveredWorktrees?: FreeIDEGitWorktree[]
+  discoveredWorktrees?: JettsTUIGitWorktree[]
   liveSessions?: SessionInfo[]
   removedSessionIds?: ReadonlySet<string>
 }) {

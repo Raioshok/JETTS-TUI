@@ -1,6 +1,6 @@
 import type { SimulationLinkDatum, SimulationNodeDatum } from 'd3-force'
 
-import type { StarmapGraph, StarmapNode } from '@/types/freeide'
+import type { StarmapGraph, StarmapNode } from '@/types/jettstui'
 
 export type MemoryCard = StarmapGraph['memory'][number]
 

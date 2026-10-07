@@ -42,7 +42,7 @@ def _make_event(text):
 
 
 def _fake_switch_result():
-    from freeide_cli.model_switch import ModelSwitchResult
+    from jettstui.model_switch import ModelSwitchResult
 
     return ModelSwitchResult(
         success=True,
@@ -60,7 +60,7 @@ def _fake_warning():
     return SimpleNamespace(
         message=(
             "!!! EXPENSIVE MODEL WARNING !!!\n"
-            "openai/gpt-5.5-pro has known pricing above FreeIDE' safety threshold.\n"
+            "openai/gpt-5.5-pro has known pricing above JettsTUI' safety threshold.\n"
             "did you mean to select openai/gpt-5.5?"
         ),
     )
@@ -69,24 +69,24 @@ def _fake_warning():
 def _setup_isolated_home(tmp_path, monkeypatch, *, warn):
     import gateway.run as gateway_run
 
-    freeide_home = tmp_path / ".freeide"
-    freeide_home.mkdir()
-    cfg_path = freeide_home / "config.yaml"
+    jettstui_home = tmp_path / ".jettstui"
+    jettstui_home.mkdir()
+    cfg_path = jettstui_home / "config.yaml"
     cfg_path.write_text(
         yaml.safe_dump({"model": {"default": "old-model", "provider": "openrouter"}, "providers": {}}),
         encoding="utf-8",
     )
 
-    monkeypatch.setattr(gateway_run, "_freeide_home", freeide_home)
+    monkeypatch.setattr(gateway_run, "_jettstui_home", jettstui_home)
     monkeypatch.setattr("agent.models_dev.fetch_models_dev", lambda: {})
     monkeypatch.setattr(
-        "freeide_cli.model_switch.switch_model",
+        "jettstui.model_switch.switch_model",
         lambda **kw: _fake_switch_result(),
     )
-    monkeypatch.setattr("freeide_constants.get_freeide_home", lambda: freeide_home)
-    monkeypatch.setattr("freeide_cli.config.get_freeide_home", lambda: freeide_home)
+    monkeypatch.setattr("jettstui_constants.get_jettstui_home", lambda: jettstui_home)
+    monkeypatch.setattr("jettstui.config.get_jettstui_home", lambda: jettstui_home)
     monkeypatch.setattr(
-        "freeide_cli.model_cost_guard.expensive_model_warning",
+        "jettstui.model_cost_guard.expensive_model_warning",
         (lambda *a, **kw: _fake_warning()) if warn else (lambda *a, **kw: None),
     )
     return cfg_path

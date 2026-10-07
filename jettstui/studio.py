@@ -46,7 +46,7 @@ def welcome_panel(*, skin, width, model, provider, cwd, tools, skills,
     muted = skin.get_color("banner_dim")
     ink = skin.get_color("banner_text")
     compact = width < 54
-    title = Text("Jetts-TUI", style=f"bold {ink}")
+    title = Text("JettsTUI", style=f"bold {ink}")
     title.append("  /  Studio", style=accent)
 
     facts = Table.grid(padding=(0, 2), expand=True)

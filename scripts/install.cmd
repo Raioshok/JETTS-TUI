@@ -1,6 +1,6 @@
 @echo off
 REM ============================================================================
-REM Jetts-TUI Installer for Windows (CMD wrapper)
+REM JettsTUI Installer for Windows (CMD wrapper)
 REM ============================================================================
 REM This batch file launches the PowerShell installer for users running CMD.
 REM
@@ -12,7 +12,7 @@ REM   iex (irm https://raw.githubusercontent.com/Raioshok/JETTS-TUI/main/scripts
 REM ============================================================================
 
 echo.
-echo  Jetts-TUI Installer
+echo  JettsTUI Installer
 echo  Launching PowerShell installer...
 echo.
 

@@ -8,11 +8,11 @@ from those methods, and callers MUST check supports_runtime_registration()
 before invoking them.
 
 Host-side call sites (setup wizard, uninstall, status) continue to use
-the existing module-level functions in freeide_cli.gateway and
-freeide_cli.gateway_windows directly. This protocol is a thin facade
+the existing module-level functions in jettstui.gateway and
+jettstui.gateway_windows directly. This protocol is a thin facade
 used by new code that needs to be backend-agnostic — specifically the
 profile create/delete hooks (Phase 4) and the s6 dispatch path in
-``freeide gateway start/stop/restart`` when running inside a container.
+``jettstui gateway start/stop/restart`` when running inside a container.
 """
 from __future__ import annotations
 
@@ -97,12 +97,12 @@ def detect_service_manager() -> ServiceManagerKind:
     This function does NOT replace ``supports_systemd_services()`` —
     host call sites continue to use that. It exists for new backend-
     agnostic code (profile create/delete hooks, the s6 dispatch path
-    in ``freeide gateway start/stop/restart``).
+    in ``jettstui gateway start/stop/restart``).
     """
     # Imports deferred so importing this module doesn't drag in the
     # whole gateway dependency graph for callers that only need the
     # Protocol type or validate_profile_name().
-    from freeide_cli.gateway import (
+    from jettstui.gateway import (
         is_macos,
         is_windows,
         supports_systemd_services,
@@ -112,7 +112,7 @@ def detect_service_manager() -> ServiceManagerKind:
     # NOT is_container(): the latter only detects Docker/Podman/lxc, so it is
     # False on Fly's Firecracker microVMs even though s6-overlay is PID 1 there.
     # That false negative made the whole s6 dispatch path inert on Fly, so
-    # `freeide gateway start/stop/restart` fell through to host code that spawns
+    # `jettstui gateway start/stop/restart` fell through to host code that spawns
     # a foreground gateway competing with the supervised one. _s6_running() is
     # already an s6-overlay-specific signal, so the container gate was redundant.
     if _s6_running():
@@ -129,13 +129,13 @@ def detect_service_manager() -> ServiceManagerKind:
 def _s6_running() -> bool:
     """True when s6-svscan is running as PID 1 in this container.
 
-    Detection has to work for **both** root and the unprivileged freeide
+    Detection has to work for **both** root and the unprivileged jettstui
     user (UID 10000). The obvious probe — ``Path('/proc/1/exe').resolve()``
     — only works as root: for any other UID, the symlink at
     ``/proc/1/exe`` is unreadable and ``resolve()`` silently returns the
     path unchanged, so the resolved name is the literal ``"exe"`` and
-    detection always fails. Since every FreeIDE runtime call inside the
-    container drops to freeide via ``s6-setuidgid``, that silent failure
+    detection always fails. Since every JettsTUI runtime call inside the
+    container drops to jettstui via ``s6-setuidgid``, that silent failure
     made the entire service-manager runtime-registration path inert in
     production (PR #30136 review).
 
@@ -163,10 +163,10 @@ def _s6_running() -> bool:
 # Backend wrappers
 #
 # These adapters are thin facades over the existing module-level functions
-# in ``freeide_cli.gateway`` (systemd/launchd) and ``freeide_cli.gateway_windows``
+# in ``jettstui.gateway`` (systemd/launchd) and ``jettstui.gateway_windows``
 # (Windows Scheduled Tasks). The protocol's ``name`` parameter is currently
 # unused for host backends — they operate on whichever profile is currently
-# active (set via the ``freeide -p <profile>`` flag before the call). This
+# active (set via the ``jettstui -p <profile>`` flag before the call). This
 # matches existing host-side semantics; the parameter shape is designed
 # for s6 where each profile maps to a distinct service directory.
 # ---------------------------------------------------------------------------
@@ -201,7 +201,7 @@ class _RegistrationUnsupportedMixin:
 
 
 class SystemdServiceManager(_RegistrationUnsupportedMixin):
-    """Thin wrapper around the ``systemd_*`` functions in freeide_cli.gateway.
+    """Thin wrapper around the ``systemd_*`` functions in jettstui.gateway.
 
     Existing host call sites continue to use those functions directly;
     this wrapper exists for new code that needs to be backend-agnostic
@@ -211,47 +211,47 @@ class SystemdServiceManager(_RegistrationUnsupportedMixin):
     kind: ServiceManagerKind = "systemd"
 
     def start(self, name: str) -> None:
-        from freeide_cli.gateway import systemd_start
+        from jettstui.gateway import systemd_start
         systemd_start()
 
     def stop(self, name: str) -> None:
-        from freeide_cli.gateway import systemd_stop
+        from jettstui.gateway import systemd_stop
         systemd_stop()
 
     def restart(self, name: str) -> None:
-        from freeide_cli.gateway import systemd_restart
+        from jettstui.gateway import systemd_restart
         systemd_restart()
 
     def is_running(self, name: str) -> bool:
-        from freeide_cli.gateway import _probe_systemd_service_running
+        from jettstui.gateway import _probe_systemd_service_running
         _, running = _probe_systemd_service_running()
         return running
 
 
 class LaunchdServiceManager(_RegistrationUnsupportedMixin):
-    """Thin wrapper around the ``launchd_*`` functions in freeide_cli.gateway."""
+    """Thin wrapper around the ``launchd_*`` functions in jettstui.gateway."""
 
     kind: ServiceManagerKind = "launchd"
 
     def start(self, name: str) -> None:
-        from freeide_cli.gateway import launchd_start
+        from jettstui.gateway import launchd_start
         launchd_start()
 
     def stop(self, name: str) -> None:
-        from freeide_cli.gateway import launchd_stop
+        from jettstui.gateway import launchd_stop
         launchd_stop()
 
     def restart(self, name: str) -> None:
-        from freeide_cli.gateway import launchd_restart
+        from jettstui.gateway import launchd_restart
         launchd_restart()
 
     def is_running(self, name: str) -> bool:
-        from freeide_cli.gateway import _probe_launchd_service_running
+        from jettstui.gateway import _probe_launchd_service_running
         return _probe_launchd_service_running()
 
 
 class WindowsServiceManager(_RegistrationUnsupportedMixin):
-    """Thin wrapper around ``freeide_cli.gateway_windows`` (Scheduled Task /
+    """Thin wrapper around ``jettstui.gateway_windows`` (Scheduled Task /
     Startup-folder fallback).
 
     The native Windows backend uses a Scheduled Task rather than a true
@@ -272,7 +272,7 @@ class WindowsServiceManager(_RegistrationUnsupportedMixin):
         start_on_login: bool | None = None,
         elevated_handoff: bool = False,
     ) -> None:
-        from freeide_cli import gateway_windows
+        from jettstui import gateway_windows
         gateway_windows.install(
             force=force,
             start_now=start_now,
@@ -281,20 +281,20 @@ class WindowsServiceManager(_RegistrationUnsupportedMixin):
         )
 
     def start(self, name: str) -> None:
-        from freeide_cli import gateway_windows
+        from jettstui import gateway_windows
         gateway_windows.start()
 
     def stop(self, name: str) -> None:
-        from freeide_cli import gateway_windows
+        from jettstui import gateway_windows
         gateway_windows.stop()
 
     def restart(self, name: str) -> None:
-        from freeide_cli import gateway_windows
+        from jettstui import gateway_windows
         gateway_windows.restart()
 
     def is_running(self, name: str) -> bool:
-        from freeide_cli import gateway_windows
-        from freeide_cli.gateway import find_gateway_pids
+        from jettstui import gateway_windows
+        from jettstui.gateway import find_gateway_pids
         if not gateway_windows.is_installed():
             return False
         return bool(find_gateway_pids())
@@ -321,7 +321,7 @@ def get_service_manager() -> ServiceManager:
 # ---------------------------------------------------------------------------
 # S6ServiceManager (container-only)
 #
-# Per-profile gateways are registered dynamically when `freeide profile create`
+# Per-profile gateways are registered dynamically when `jettstui profile create`
 # runs inside the container (Phase 4). Static services (main-jettstui, dashboard)
 # live in /etc/s6-overlay/s6-rc.d/ and are NOT managed by this class — they're
 # part of the image, not runtime-created.
@@ -339,8 +339,8 @@ def _profile_dir_for_gateway_service(name: str) -> Path:
     """Resolve ``gateway-<profile>`` to its persistent profile directory.
 
     s6 lifecycle commands may be invoked from any active profile, including
-    ``gateway stop --all``. Do not write the caller's FREEIDE_HOME blindly;
-    derive the shared profile root from the current FREEIDE_HOME and map the
+    ``gateway stop --all``. Do not write the caller's JETTSTUI_HOME blindly;
+    derive the shared profile root from the current JETTSTUI_HOME and map the
     service suffix to either the root default profile or
     ``<root>/profiles/<profile>``.
     """
@@ -348,11 +348,11 @@ def _profile_dir_for_gateway_service(name: str) -> Path:
 
     profile = name[len(S6_SERVICE_PREFIX):] if name.startswith(S6_SERVICE_PREFIX) else name
     validate_profile_name(profile)
-    freeide_home = Path(os.environ.get("FREEIDE_HOME", "/opt/data"))
-    if freeide_home.parent.name == "profiles":
-        root = freeide_home.parent.parent
+    jettstui_home = Path(os.environ.get("JETTSTUI_HOME", "/opt/data"))
+    if jettstui_home.parent.name == "profiles":
+        root = jettstui_home.parent.parent
     else:
-        root = freeide_home
+        root = jettstui_home
     return root if profile == "default" else root / "profiles" / profile
 
 
@@ -405,17 +405,17 @@ def _write_gateway_desired_state(name: str, desired_state: str) -> None:
 _S6_BIN_DIR = "/command"
 
 
-# UID/GID of the in-image ``freeide`` user. Hardcoded to match what
+# UID/GID of the in-image ``jettstui`` user. Hardcoded to match what
 # ``stage2-hook.sh`` enforces (the runtime invariant — see also
 # tests/docker/test_uid_remap.py). The container starts s6-supervise
 # under root and immediately drops to this UID via ``s6-setuidgid``.
-_FREEIDE_UID = 10000
-_FREEIDE_GID = 10000
+_JETTSTUI_UID = 10000
+_JETTSTUI_GID = 10000
 
 
 def _seed_supervise_skeleton(svc_dir: Path) -> None:
     """Pre-create the ``supervise/`` and top-level ``event/`` skeleton
-    inside a service directory, owned by the freeide user.
+    inside a service directory, owned by the jettstui user.
 
     Why this exists
     ---------------
@@ -424,14 +424,14 @@ def _seed_supervise_skeleton(svc_dir: Path) -> None:
     ``0700``. It also ``mkfifo``s ``<svc>/supervise/control`` with mode
     ``0600``. Because s6-supervise runs as PID 1's effective UID (root)
     these dirs end up root-owned mode 0700, and an unprivileged client
-    (the ``freeide`` user — UID 10000 — running every FreeIDE runtime
+    (the ``jettstui`` user — UID 10000 — running every JettsTUI runtime
     operation via ``s6-setuidgid``) gets ``EACCES`` on any ``s6-svc``,
     ``s6-svstat``, or ``s6-svwait`` invocation against the slot.
 
     The PR #30136 review surfaced this as a real product gap: the
     entire S6ServiceManager lifecycle (``register/start/stop/unregister
     _profile_gateway``) was inert in production because every operation
-    is dispatched as the freeide user.
+    is dispatched as the jettstui user.
 
     Why this works
     --------------
@@ -441,21 +441,21 @@ def _seed_supervise_skeleton(svc_dir: Path) -> None:
     chown/chmod fix-up that would normally make event/ ``03730
     root:root`` is **skipped** entirely — s6-supervise just opens the
     pre-existing FIFOs and proceeds. So if we lay the skeleton down
-    with freeide ownership before triggering ``s6-svscanctl -a``,
+    with jettstui ownership before triggering ``s6-svscanctl -a``,
     s6-supervise inherits our layout and never touches it.
 
     Layout produced
     ---------------
-    ``svc_dir/``                           freeide:freeide, 0755 (parent must already exist)
-    ``svc_dir/event/``                     freeide:freeide, 03730   (setgid + g+rwx + sticky)
-    ``svc_dir/supervise/``                 freeide:freeide, 0755
-    ``svc_dir/supervise/event/``           freeide:freeide, 03730
-    ``svc_dir/supervise/control``          freeide:freeide, 0660    (FIFO)
+    ``svc_dir/``                           jettstui:jettstui, 0755 (parent must already exist)
+    ``svc_dir/event/``                     jettstui:jettstui, 03730   (setgid + g+rwx + sticky)
+    ``svc_dir/supervise/``                 jettstui:jettstui, 0755
+    ``svc_dir/supervise/event/``           jettstui:jettstui, 03730
+    ``svc_dir/supervise/control``          jettstui:jettstui, 0660    (FIFO)
 
     The ``death_tally``, ``lock``, and ``status`` regular files end up
     written by s6-supervise itself (as root), but those land mode 0644 —
     world-readable — and ``s6-svstat`` only needs read access, so the
-    freeide user reads them fine.
+    jettstui user reads them fine.
 
     If ``svc_dir/log/`` is present (the canonical s6 logger pattern —
     one s6-supervise instance per service, plus a second for its
@@ -463,7 +463,7 @@ def _seed_supervise_skeleton(svc_dir: Path) -> None:
     ``log/event/``, ``log/supervise/``, ``log/supervise/event/``,
     ``log/supervise/control``. Without this, unregister teardown
     would EACCES on the logger's supervise dir even after the parent
-    slot's supervise/ was freeide-owned.
+    slot's supervise/ was jettstui-owned.
 
     Idempotency
     -----------
@@ -489,9 +489,9 @@ def _seed_supervise_skeleton(svc_dir: Path) -> None:
         path.mkdir(parents=False, exist_ok=False)
         path.chmod(mode)
         try:
-            os.chown(path, _FREEIDE_UID, _FREEIDE_GID)
+            os.chown(path, _JETTSTUI_UID, _JETTSTUI_GID)
         except PermissionError:
-            # Running as the freeide user already — directory is freeide-
+            # Running as the jettstui user already — directory is jettstui-
             # owned by default. The chown is a no-op in that case, so
             # swallowing this keeps both root and unprivileged callers
             # on one code path.
@@ -519,7 +519,7 @@ def _seed_supervise_skeleton(svc_dir: Path) -> None:
         os.mkfifo(control, 0o660)
         control.chmod(0o660)
         try:
-            os.chown(control, _FREEIDE_UID, _FREEIDE_GID)
+            os.chown(control, _JETTSTUI_UID, _JETTSTUI_GID)
         except PermissionError:
             pass
 
@@ -527,7 +527,7 @@ def _seed_supervise_skeleton(svc_dir: Path) -> None:
     # see servicedir(7)), it gets its own s6-supervise instance and
     # needs the same skeleton. Without this, unregister teardown
     # would EACCES on the logger's root-owned supervise/ dir even
-    # when the parent slot's supervise/ is freeide-owned.
+    # when the parent slot's supervise/ is jettstui-owned.
     log_dir = svc_dir / "log"
     if log_dir.is_dir():
         _mkdir_owned(log_dir / "event", 0o3730)
@@ -539,7 +539,7 @@ def _seed_supervise_skeleton(svc_dir: Path) -> None:
             os.mkfifo(log_control, 0o660)
             log_control.chmod(0o660)
             try:
-                os.chown(log_control, _FREEIDE_UID, _FREEIDE_GID)
+                os.chown(log_control, _JETTSTUI_UID, _JETTSTUI_GID)
             except PermissionError:
                 pass
 
@@ -560,7 +560,7 @@ class S6Error(RuntimeError):
 class GatewayNotRegisteredError(S6Error):
     """Raised when a lifecycle method targets a slot that doesn't exist.
 
-    Most commonly: ``freeide -p typo gateway start`` when no profile
+    Most commonly: ``jettstui -p typo gateway start`` when no profile
     ``typo`` exists. Carries the unprefixed profile name (not the
     full ``gateway-<profile>`` service-dir name) so callers can phrase
     a user-facing message like "no such gateway 'typo'".
@@ -570,7 +570,7 @@ class GatewayNotRegisteredError(S6Error):
         self.profile = profile
         super().__init__(
             f"no such gateway {profile!r}: register it with "
-            f"`freeide profile create {profile}` first, or pass "
+            f"`jettstui profile create {profile}` first, or pass "
             "an existing profile name via `-p <name>`",
             service=f"gateway-{profile}",
         )
@@ -628,26 +628,26 @@ class S6ServiceManager:
         """Generate the run script for a profile-gateway s6 service.
 
         The script:
-          1. Sources FREEIDE_HOME (and any extra env) via with-contenv —
-             so e.g. ``-e FREEIDE_HOME=/data/freeide`` is honored at run
+          1. Sources JETTSTUI_HOME (and any extra env) via with-contenv —
+             so e.g. ``-e JETTSTUI_HOME=/data/jettstui`` is honored at run
              time, not Python-substituted at registration time (OQ8-C).
           2. Resets ``HOME`` to ``/opt/data`` before the privilege drop
              so with-contenv's root HOME does not leak into the
              unprivileged gateway process.
           3. Activates the bundled venv.
-          4. Drops to the freeide user and exec's
-             ``freeide -p <profile> gateway run`` (or just ``freeide
+          4. Drops to the jettstui user and exec's
+             ``jettstui -p <profile> gateway run`` (or just ``jettstui
              gateway run`` for the default profile — see below).
 
-        Special case: ``profile == "default"`` emits ``freeide gateway
+        Special case: ``profile == "default"`` emits ``jettstui gateway
         run`` with **no** ``-p`` flag. This is the sentinel for "the
-        root FREEIDE_HOME profile" (the implicit profile that exists at
-        the top of $FREEIDE_HOME, not under profiles/). It must be
+        root JETTSTUI_HOME profile" (the implicit profile that exists at
+        the top of $JETTSTUI_HOME, not under profiles/). It must be
         spelled this way because ``_profile_suffix()`` returns the
         empty string for the root profile, and the dispatcher in
-        ``freeide_cli.gateway`` maps that empty string to the
+        ``jettstui.gateway`` maps that empty string to the
         ``gateway-default`` service slot. Passing ``-p default`` here
-        would instead look up ``$FREEIDE_HOME/profiles/default/`` — a
+        would instead look up ``$JETTSTUI_HOME/profiles/default/`` — a
         completely different (and almost always nonexistent) profile.
 
         Port selection: the gateway binds the port resolved by
@@ -655,13 +655,13 @@ class S6ServiceManager:
         ``API_SERVER_PORT`` (or ``platforms.api_server.extra.port`` in
         that profile's ``config.yaml``), defaulting to 8642. There is
         no ``[gateway] port`` key and no Python-side allocator: because
-        each supervised profile gateway loads its own ``FREEIDE_HOME``,
+        each supervised profile gateway loads its own ``JETTSTUI_HOME``,
         two profiles that both leave the port unset will both try to
         bind 8642 — give each profile a distinct ``API_SERVER_PORT`` in
         its ``.env``. Previously this method took a ``port`` parameter
         that was passed in but never substituted into the rendered
         script (carried for "API parity" with a deterministic SHA-256
-        allocator in ``freeide_cli.profiles._allocate_gateway_port``).
+        allocator in ``jettstui.profiles._allocate_gateway_port``).
         PR #30136 review item I5 retired both the allocator and the
         parameter because they were dead code through the entire stack.
         """
@@ -683,20 +683,20 @@ class S6ServiceManager:
         # `gateway run --replace` which would re-dispatch `gateway
         # start`, etc. See `_gateway_command_inner` for the matching
         # guard.
-        lines.append("export FREEIDE_S6_SUPERVISED_CHILD=1")
+        lines.append("export JETTSTUI_S6_SUPERVISED_CHILD=1")
         # ``--replace`` makes the supervised gateway authoritative for its
-        # profile's FREEIDE_HOME. Without it, a gateway started OUTSIDE s6
-        # (a stray ``freeide gateway run`` from a shell, an agent action, or
-        # the Open WebUI helper) grabs the per-FREEIDE_HOME PID lock first;
+        # profile's JETTSTUI_HOME. Without it, a gateway started OUTSIDE s6
+        # (a stray ``jettstui gateway run`` from a shell, an agent action, or
+        # the Open WebUI helper) grabs the per-JETTSTUI_HOME PID lock first;
         # the supervised slot then execs a bare ``gateway run``, hits the
         # "Another gateway instance is already running" guard, exits
         # non-zero, and s6 restarts it — a restart loop that floods the
         # log and never binds (NS-505). ``--replace``
         # instead reaps the stale holder (hardened takeover path: marker +
         # SIGTERM→SIGKILL-with-confirmation + scoped-lock cleanup, see
-        # gateway/run.py) so s6 always wins. The FREEIDE_S6_SUPERVISED_CHILD
+        # gateway/run.py) so s6 always wins. The JETTSTUI_S6_SUPERVISED_CHILD
         # sentinel above prevents the run→start→run redirect recursion.
-        # Each profile is scoped to its own FREEIDE_HOME and s6 guarantees a
+        # Each profile is scoped to its own JETTSTUI_HOME and s6 guarantees a
         # single supervised instance per slot, so there is no legitimate
         # supervised sibling for ``--replace`` to clobber.
         if profile == "default":
@@ -737,11 +737,11 @@ class S6ServiceManager:
     def _render_log_run(profile: str) -> str:
         """Generate the log/run script for a profile-gateway service.
 
-        OQ8-C: persist to ``${FREEIDE_HOME}/logs/gateways/<profile>/``.
-        CRITICAL: the FREEIDE_HOME path is sourced from the runtime env
+        OQ8-C: persist to ``${JETTSTUI_HOME}/logs/gateways/<profile>/``.
+        CRITICAL: the JETTSTUI_HOME path is sourced from the runtime env
         via with-contenv — NOT Python-substituted at registration time
-        — so a container started with ``-e FREEIDE_HOME=/data/freeide``
-        gets its logs under /data/freeide/logs/..., not the build-time
+        — so a container started with ``-e JETTSTUI_HOME=/data/jettstui``
+        gets its logs under /data/jettstui/logs/..., not the build-time
         default.
 
         Output routing — the script is two action directives, applied
@@ -760,7 +760,7 @@ class S6ServiceManager:
              banner output and other plain stdout writes.)
           2. ``T <log_dir>`` — also write a timestamped copy to the
              rotated log directory (``current`` + archived ``@*.s``
-             files). This is what ``freeide logs`` reads and what
+             files). This is what ``jettstui logs`` reads and what
              persists across container restarts via the volume mount.
 
         ``T`` is non-sticky: it only prefixes lines for the next
@@ -781,14 +781,14 @@ class S6ServiceManager:
         return (
             f"#!/command/with-contenv sh\n"
             f"# shellcheck shell=sh\n"
-            f': "${{FREEIDE_HOME:=/opt/data}}"\n'
-            f'log_dir="$FREEIDE_HOME/logs/gateways/{prof}"\n'
-            # Create the leaf and clear a stale s6-log lock as freeide when
-            # this script starts as root. Never chown or unlink freeide-writable
+            f': "${{JETTSTUI_HOME:=/opt/data}}"\n'
+            f'log_dir="$JETTSTUI_HOME/logs/gateways/{prof}"\n'
+            # Create the leaf and clear a stale s6-log lock as jettstui when
+            # this script starts as root. Never chown or unlink jettstui-writable
             # volume paths from this restartable root-context script:
-            # log/supervise/control is freeide-owned, so an unprivileged user
+            # log/supervise/control is jettstui-owned, so an unprivileged user
             # can race a pathname op through a symlink swap (CWE-59 /
-            # CWE-367). Parent logs/gateways is seeded freeide-owned at stage2
+            # CWE-367). Parent logs/gateways is seeded jettstui-owned at stage2
             # boot (#45258; tests/docker/test_log_dir_seed.py).
             f'if [ "$(id -u)" = 0 ]; then\n'
             f'  s6-setuidgid jettstui mkdir -p "$log_dir"\n'
@@ -891,7 +891,7 @@ class S6ServiceManager:
         BEFORE sending the down command, so the gateway's shutdown
         handler recognises this SIGTERM as an operator-initiated stop
         and persists ``gateway_state=stopped`` (respecting the explicit
-        intent). Without the marker, an intentional ``freeide gateway
+        intent). Without the marker, an intentional ``jettstui gateway
         stop`` is indistinguishable from the container/s6 SIGTERM sent on
         ``docker restart``; the latter must NOT persist ``stopped`` or
         container_boot refuses to auto-start on the next boot (#42675).
@@ -950,7 +950,7 @@ class S6ServiceManager:
         up immediately.  When *start_now* is ``True`` (the default) the
         service starts immediately; when ``False`` a ``down`` marker file
         is written so s6-supervise leaves the service stopped until the
-        user explicitly runs ``freeide -p <profile> gateway start``.
+        user explicitly runs ``jettstui -p <profile> gateway start``.
 
         Raises:
             ValueError: if the profile name is invalid or the service
@@ -1007,11 +1007,11 @@ class S6ServiceManager:
             log_run.write_text(self._render_log_run(profile), encoding="utf-8")
             log_run.chmod(0o755)
 
-            # Pre-create the supervise/ skeleton with freeide ownership
+            # Pre-create the supervise/ skeleton with jettstui ownership
             # BEFORE we publish the slot. s6-supervise will EEXIST our
             # dirs/FIFOs and inherit the ownership, so the runtime
             # s6-svc / s6-svstat / s6-svwait calls (all dispatched as
-            # the freeide user) won't hit EACCES on root-owned 0700
+            # the jettstui user) won't hit EACCES on root-owned 0700
             # dirs. See ``_seed_supervise_skeleton`` for the full
             # rationale.
             _seed_supervise_skeleton(tmp_dir)
@@ -1100,7 +1100,7 @@ class S6ServiceManager:
         # live s6-supervise, so rmtree can remove them. Files inside
         # supervise/ are root-owned (death_tally, lock, status, written
         # by s6-supervise itself) — but the parent supervise/ directory
-        # is freeide-owned (see ``_seed_supervise_skeleton``), and on
+        # is jettstui-owned (see ``_seed_supervise_skeleton``), and on
         # POSIX you only need write+execute on the parent to remove
         # contained files regardless of file ownership.
         shutil.rmtree(svc_dir, ignore_errors=True)

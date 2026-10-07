@@ -3,13 +3,13 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { MemoryRouter } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { MessagingPlatformInfo } from '@/types/freeide'
+import type { MessagingPlatformInfo } from '@/types/jettstui'
 
 const getMessagingPlatforms = vi.fn()
 const updateMessagingPlatform = vi.fn()
 const openExternalLink = vi.fn()
 
-vi.mock('@/freeide', () => ({
+vi.mock('@/jettstui', () => ({
   getMessagingPlatforms: () => getMessagingPlatforms(),
   updateMessagingPlatform: (id: string, body: unknown) => updateMessagingPlatform(id, body)
 }))
@@ -80,7 +80,7 @@ describe('MessagingView setup-guide link', () => {
   })
 
   it('opens a real docs URL through the validated external opener', async () => {
-    const docsUrl = 'https://freeide-agent.freeide.dev/docs/user-guide/messaging/teams'
+    const docsUrl = 'https://github.com/Raioshok/JETTS-TUI/blob/main/docs/user-guide/messaging/teams.md'
     getMessagingPlatforms.mockResolvedValue({ platforms: [platform({ docs_url: docsUrl })] })
 
     await renderMessaging()

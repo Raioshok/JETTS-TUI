@@ -1,4 +1,4 @@
-"""Prompt-size diagnostic: ``freeide prompt-size``.
+"""Prompt-size diagnostic: ``jettstui prompt-size``.
 
 Reports a byte/char breakdown of the system prompt the agent would build for
 a fresh session — system prompt total, the ``<available_skills>`` index,
@@ -55,8 +55,8 @@ def _build_inspection_agent(platform: str) -> Any:
     platform come from the caller so the breakdown matches a real session.
     """
     from run_agent import AIAgent
-    from freeide_cli.config import load_config
-    from freeide_cli.tools_config import _get_platform_tools
+    from jettstui.config import load_config
+    from jettstui.tools_config import _get_platform_tools
 
     cfg = load_config()
     model_cfg = cfg.get("model", {}) if isinstance(cfg.get("model"), dict) else {}
@@ -360,7 +360,7 @@ def render_breakdown(data: Dict[str, Any]) -> str:
 
 
 def cmd_prompt_size(args: Any) -> None:
-    """Entry point for ``freeide prompt-size``."""
+    """Entry point for ``jettstui prompt-size``."""
     platform = getattr(args, "platform", "cli") or "cli"
     as_json = getattr(args, "json", False)
     try:

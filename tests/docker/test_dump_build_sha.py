@@ -3,8 +3,8 @@
 Background: ``.dockerignore`` excludes ``.git``, so ``git rev-parse HEAD``
 fails inside the published image and ``jetts-tui dump`` used to report
 ``version: ... [(unknown)]``.  The Dockerfile now writes the build-time
-``$FREEIDE_GIT_SHA`` build-arg to ``/opt/jettstui/.freeide_build_sha`` and
-``freeide_cli/build_info.py`` reads it as a fallback.
+``$JETTSTUI_GIT_SHA`` build-arg to ``/opt/jettstui/.jettstui_build_sha`` and
+``jettstui/build_info.py`` reads it as a fallback.
 
 CI (``.github/workflows/docker.yml``) always sets the build-arg
 to ``${{ github.sha }}``.  Local ``docker build`` (the ``built_image``
@@ -13,7 +13,7 @@ is absent and ``jetts-tui dump`` correctly falls back to ``(unknown)``.
 
 This test handles both cases:
 
-* If ``/opt/jettstui/.freeide_build_sha`` exists in the image, assert that
+* If ``/opt/jettstui/.jettstui_build_sha`` exists in the image, assert that
   ``jetts-tui dump`` surfaces its content as the version SHA (not
   ``(unknown)``).
 * If the file is absent, assert the legacy behaviour (``(unknown)``)
@@ -51,11 +51,11 @@ def _run_dump(image: str) -> str:
 
 
 def _read_baked_sha_from_image(image: str) -> str | None:
-    """Return the ``/opt/jettstui/.freeide_build_sha`` content, or None if absent."""
+    """Return the ``/opt/jettstui/.jettstui_build_sha`` content, or None if absent."""
     r = subprocess.run(
         [
             "docker", "run", "--rm", "--entrypoint", "cat", image,
-            "/opt/jettstui/.freeide_build_sha",
+            "/opt/jettstui/.jettstui_build_sha",
         ],
         capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30,
     )
@@ -65,7 +65,7 @@ def _read_baked_sha_from_image(image: str) -> str | None:
 
 
 def test_dump_reports_baked_sha_when_present(built_image: str) -> None:
-    """When the image was built with ``FREEIDE_GIT_SHA``, dump must surface it.
+    """When the image was built with ``JETTSTUI_GIT_SHA``, dump must surface it.
 
     Together with the smoke-test action (which exercises ``--help``), this
     closes the regression loop for the missing-sha bug: any future change

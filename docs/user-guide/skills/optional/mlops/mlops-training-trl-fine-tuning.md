@@ -14,7 +14,7 @@ TRL: SFT, DPO, GRPO, RLOO reward modeling for LLM RLHF.
 
 | | |
 |---|---|
-| Source | Optional — install with `freeide skills install official/mlops/trl-fine-tuning` |
+| Source | Optional — install with `jettstui skills install official/mlops/trl-fine-tuning` |
 | Path | `optional-skills/mlops/training/trl-fine-tuning` |
 | Version | `1.0.1` |
 | Author | Orchestra Research |
@@ -26,7 +26,7 @@ TRL: SFT, DPO, GRPO, RLOO reward modeling for LLM RLHF.
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that FreeIDE loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that JettsTUI loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # TRL - Transformer Reinforcement Learning

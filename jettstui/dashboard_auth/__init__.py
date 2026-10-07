@@ -8,7 +8,7 @@ plugins.
 Providers register themselves via the plugin hook
 ``ctx.register_dashboard_auth_provider``.
 """
-from freeide_cli.dashboard_auth.base import (
+from jettstui.dashboard_auth.base import (
     DashboardAuthProvider,
     Session,
     TokenPrincipal,
@@ -19,7 +19,7 @@ from freeide_cli.dashboard_auth.base import (
     RefreshExpiredError,
     assert_protocol_compliance,
 )
-from freeide_cli.dashboard_auth.registry import (
+from jettstui.dashboard_auth.registry import (
     register_provider,
     get_provider,
     list_providers,

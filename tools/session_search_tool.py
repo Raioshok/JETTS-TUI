@@ -19,7 +19,7 @@ mode parameter):
      previews, timestamps).
 
 All three modes operate on the SQLite session DB via the FTS5 index and
-the get_anchored_view / get_messages_around primitives in freeide_state.
+the get_anchored_view / get_messages_around primitives in jettstui_state.
 No LLM calls anywhere — every shape returns actual messages from the DB.
 
 History: PR #20238 (JabberELF) seeded a fast/summary dual-mode split; the
@@ -34,7 +34,7 @@ import logging
 from typing import Any, Dict, List, Optional, Union
 
 # Sources that are excluded from session browsing/searching by default.
-# Third-party integrations tag their sessions with FREEIDE_SESSION_SOURCE=tool;
+# Third-party integrations tag their sessions with JETTSTUI_SESSION_SOURCE=tool;
 # delegate subagent runs are tagged "subagent" — neither belongs in the
 # user's session history.
 _HIDDEN_SESSION_SOURCES = ("subagent", "tool")
@@ -289,8 +289,8 @@ def _resolve_profile_db(profile: str):
     if profile is None or not str(profile).strip():
         return None
 
-    from freeide_cli import profiles as profiles_mod
-    from freeide_state import SessionDB
+    from jettstui import profiles as profiles_mod
+    from jettstui_state import SessionDB
 
     canon = profiles_mod.normalize_profile_name(profile)
     profiles_mod.validate_profile_name(canon)
@@ -311,7 +311,7 @@ def _session_link(session_id: str, profile: str = None) -> str:
     name = (profile or "").strip()
     if not name:
         try:
-            from freeide_cli.profiles import get_active_profile_name
+            from jettstui.profiles import get_active_profile_name
 
             resolved = get_active_profile_name()
             name = "" if resolved == "custom" else resolved
@@ -334,8 +334,8 @@ def _locate_session_db(session_id: str):
     from pathlib import Path
 
     try:
-        from freeide_cli import profiles as profiles_mod
-        from freeide_state import SessionDB
+        from jettstui import profiles as profiles_mod
+        from jettstui_state import SessionDB
     except Exception:
         return None, None
 
@@ -854,11 +854,11 @@ def session_search(
     """
     if db is None:
         try:
-            from freeide_state import SessionDB
+            from jettstui_state import SessionDB
             db = SessionDB()
         except Exception:
             logging.debug("SessionDB unavailable for session_search", exc_info=True)
-            from freeide_state import format_session_db_unavailable
+            from jettstui_state import format_session_db_unavailable
             return tool_error(format_session_db_unavailable(), success=False)
 
     # Normalise a raw `@session:<profile>/<id>` link value passed as session_id.
@@ -954,7 +954,7 @@ def session_search(
 def check_session_search_requirements() -> bool:
     """Requires the SQLite state database."""
     try:
-        from freeide_state import get_default_db_path
+        from jettstui_state import get_default_db_path
         return get_default_db_path().parent.exists()
     except ImportError:
         return False
@@ -967,7 +967,7 @@ SESSION_SEARCH_SCHEMA = {
         "FTS5-backed retrieval over the SQLite message store. No LLM calls — every "
         "shape returns actual messages from the DB.\n\n"
         "SOURCE-FIRST LIMIT\n\n"
-        "  This tool searches FreeIDE conversation history only. It is not evidence "
+        "  This tool searches JettsTUI conversation history only. It is not evidence "
         "about the current contents of external sources. If the user provided a "
         "direct source such as a URL, phone number/contact, app/thread, file path, "
         "account, website, or live system, inspect that original source before or "
@@ -1017,7 +1017,7 @@ SESSION_SEARCH_SCHEMA = {
         "  When you refer the user to a session, write its `link` value inline in "
         "your reply — every result carries one, e.g. "
         "`@session:default/20260722_204335_d62c16`. Copy it verbatim; do not "
-        "reformat it as a markdown link or wrap it in backticks. FreeIDE renders "
+        "reformat it as a markdown link or wrap it in backticks. JettsTUI renders "
         "it as a link showing the session's title, so the link IS the title: "
         "use it as a noun mid-sentence (\"that's @session:default/... — want me "
         "to pick it up?\"), never alone on its own line, and never alongside the "
@@ -1029,7 +1029,7 @@ SESSION_SEARCH_SCHEMA = {
         "(`\"docker networking\"`), boolean (`python NOT java`), or prefix wildcards "
         "(`deploy*`).\n\n"
         "WHEN TO USE\n\n"
-        "  Reach for this on questions about FreeIDE conversation history itself, such "
+        "  Reach for this on questions about JettsTUI conversation history itself, such "
         "as \"what did we do about X\", \"where did we leave Y\", or \"find the "
         "session where Z\". If the user provided a direct source identifier, inspect "
         "that source first when accessible; session_search can then supply historical "
@@ -1106,7 +1106,7 @@ SESSION_SEARCH_SCHEMA = {
             "profile": {
                 "type": "string",
                 "description": (
-                    "Optional. Read sessions from another FreeIDE profile's database "
+                    "Optional. Read sessions from another JettsTUI profile's database "
                     "(read-only). Use when resolving an `@session:<profile>/<id>` link: "
                     "pass the profile segment here with session_id as the id segment. "
                     "Omit to use the current profile."

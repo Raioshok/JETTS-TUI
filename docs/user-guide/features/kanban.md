@@ -1,21 +1,21 @@
 ---
 sidebar_position: 12
 title: "Kanban (Multi-Agent Board)"
-description: "Durable SQLite-backed task board for coordinating multiple FreeIDE profiles"
+description: "Durable SQLite-backed task board for coordinating multiple JettsTUI profiles"
 ---
 
 # Kanban — Multi-Agent Profile Collaboration
 
 > **Want a walkthrough?** Read the [Kanban tutorial](./kanban-tutorial) — four user stories (solo dev, fleet farming, role pipeline with retry, circuit breaker) with dashboard screenshots of each. This page is the reference; the tutorial is the narrative.
 
-FreeIDE Kanban is a durable task board, shared across all your FreeIDE profiles, that lets multiple named agents collaborate on work without fragile in-process subagent swarms. Every task is a row in `~/.freeide/kanban.db`; every handoff is a row anyone can read and write; every worker is a full OS process with its own identity.
+JettsTUI Kanban is a durable task board, shared across all your JettsTUI profiles, that lets multiple named agents collaborate on work without fragile in-process subagent swarms. Every task is a row in `~/.jettstui/kanban.db`; every handoff is a row anyone can read and write; every worker is a full OS process with its own identity.
 
 ### Two surfaces: the model talks through tools, you talk through the CLI
 
-The board has two front doors, both backed by the same `~/.freeide/kanban.db`:
+The board has two front doors, both backed by the same `~/.jettstui/kanban.db`:
 
-- **Agents drive the board through a dedicated `kanban_*` toolset** — `kanban_show`, `kanban_list`, `kanban_complete`, `kanban_block`, `kanban_heartbeat`, `kanban_comment`, `kanban_create`, `kanban_link`, `kanban_unblock`. The dispatcher spawns each worker with these tools already in its schema; orchestrator profiles can also enable the `kanban` toolset explicitly. The model reads and routes tasks by calling tools directly, *not* by shelling out to `freeide kanban`. See [How workers interact with the board](#how-workers-interact-with-the-board) below.
-- **You (and scripts, and cron) drive the board through `freeide kanban …`** on the CLI, `/kanban …` as a slash command, or the dashboard. These are for humans and automation — the places without a tool-calling model behind them.
+- **Agents drive the board through a dedicated `kanban_*` toolset** — `kanban_show`, `kanban_list`, `kanban_complete`, `kanban_block`, `kanban_heartbeat`, `kanban_comment`, `kanban_create`, `kanban_link`, `kanban_unblock`. The dispatcher spawns each worker with these tools already in its schema; orchestrator profiles can also enable the `kanban` toolset explicitly. The model reads and routes tasks by calling tools directly, *not* by shelling out to `jettstui kanban`. See [How workers interact with the board](#how-workers-interact-with-the-board) below.
+- **You (and scripts, and cron) drive the board through `jettstui kanban …`** on the CLI, `/kanban …` as a slash command, or the dashboard. These are for humans and automation — the places without a tool-calling model behind them.
 
 Both surfaces route through the same `kanban_db` layer, so reads see a consistent view and writes can't drift. The rest of this page shows CLI examples because they're easy to copy-paste, but every CLI verb has a tool-call equivalent the model uses.
 
@@ -27,7 +27,7 @@ This is the shape that covers the workloads `delegate_task` can't:
 - **Engineering pipelines** — decompose → implement in parallel worktrees → review → iterate → PR.
 - **Fleet work** — one specialist managing N subjects (50 social accounts, 12 monitored services).
 
-For the full design rationale, comparative analysis against Cline Kanban / Paperclip / NanoClaw / Google Gemini Enterprise, and the eight canonical collaboration patterns, see `docs/freeide-kanban-v1-spec.pdf` in the repository.
+For the full design rationale, comparative analysis against Cline Kanban / Paperclip / NanoClaw / Google Gemini Enterprise, and the eight canonical collaboration patterns, see `docs/jettstui-kanban-v1-spec.pdf` in the repository.
 
 ## Kanban vs. `delegate_task`
 
@@ -63,26 +63,26 @@ They coexist: a kanban worker may call `delegate_task` internally during its run
 - **Link** — `task_links` row recording a parent → child dependency. The dispatcher promotes `todo → ready` when all parents are `done`.
 - **Comment** — the inter-agent protocol. Agents and humans append comments; when a worker is (re-)spawned it reads the full comment thread as part of its context.
 - **Workspace** — the directory a worker operates in. Three kinds:
-  - `scratch` (default) — fresh tmp dir under `~/.freeide/kanban/workspaces/<id>/` (or `~/.freeide/kanban/boards/<slug>/workspaces/<id>/` on non-default boards). **Deleted when the task completes** — scratch is ephemeral by design. Files explicitly declared through `kanban_complete(artifacts=[...])` are copied into durable per-task attachment storage before cleanup; existing deliverable paths in legacy completion summaries receive the same treatment. Other scratch files are removed. A missing declared scratch artifact keeps the task in-flight so the worker can correct the path and retry. Use `worktree:` or `dir:<path>` when the whole workspace should remain available. The first time a scratch workspace is created on an install, the dispatcher logs a warning and emits a `tip_scratch_workspace` event on the task (visible via `freeide kanban show <id>`).
+  - `scratch` (default) — fresh tmp dir under `~/.jettstui/kanban/workspaces/<id>/` (or `~/.jettstui/kanban/boards/<slug>/workspaces/<id>/` on non-default boards). **Deleted when the task completes** — scratch is ephemeral by design. Files explicitly declared through `kanban_complete(artifacts=[...])` are copied into durable per-task attachment storage before cleanup; existing deliverable paths in legacy completion summaries receive the same treatment. Other scratch files are removed. A missing declared scratch artifact keeps the task in-flight so the worker can correct the path and retry. Use `worktree:` or `dir:<path>` when the whole workspace should remain available. The first time a scratch workspace is created on an install, the dispatcher logs a warning and emits a `tip_scratch_workspace` event on the task (visible via `jettstui kanban show <id>`).
   - `dir:<path>` — an existing shared directory (Obsidian vault, mail ops dir, per-account folder). **Must be an absolute path.** Relative paths like `dir:../tenants/foo/` are rejected at dispatch because they'd resolve against whatever CWD the dispatcher happens to be in, which is ambiguous and a confused-deputy escape vector. The path is otherwise trusted — it's your box, your filesystem, the worker runs with your uid. This is the trusted-local-user threat model; kanban is single-host by design. **Preserved on completion.**
   - `worktree` — a git worktree under `.worktrees/<id>/` for coding tasks. Use `worktree:<path>` to pin the exact target path. Worker-side `git worktree add` creates it, using `--branch` when provided. **Preserved on completion.**
-- **Dispatcher** — a long-lived loop that, every N seconds (default 60): reclaims stale claims, reclaims crashed workers (PID gone but TTL not yet expired), promotes ready tasks, atomically claims, spawns assigned profiles. Runs **inside the gateway** by default (`kanban.dispatch_in_gateway: true`). One dispatcher sweeps all boards per tick; workers are spawned with `FREEIDE_KANBAN_BOARD` pinned so they can't see other boards. After `kanban.failure_limit` consecutive spawn failures on the same task (default: 2) the dispatcher auto-blocks it with the last error as the reason — prevents thrashing on tasks whose profile doesn't exist, workspace can't mount, etc.
+- **Dispatcher** — a long-lived loop that, every N seconds (default 60): reclaims stale claims, reclaims crashed workers (PID gone but TTL not yet expired), promotes ready tasks, atomically claims, spawns assigned profiles. Runs **inside the gateway** by default (`kanban.dispatch_in_gateway: true`). One dispatcher sweeps all boards per tick; workers are spawned with `JETTSTUI_KANBAN_BOARD` pinned so they can't see other boards. After `kanban.failure_limit` consecutive spawn failures on the same task (default: 2) the dispatcher auto-blocks it with the last error as the reason — prevents thrashing on tasks whose profile doesn't exist, workspace can't mount, etc.
 - **Tenant** — optional string namespace *within* a board. One specialist fleet can serve multiple businesses (`--tenant business-a`) with data isolation by workspace path and memory key prefix. Tenants are a soft filter; boards are the hard isolation boundary.
 
 ## Boards (multi-project)
 
 Boards let you separate unrelated streams of work — one per project, repo,
 or domain — into isolated queues. A new install has exactly one board
-called `default` (DB at `~/.freeide/kanban.db` for back-compat). Users who
+called `default` (DB at `~/.jettstui/kanban.db` for back-compat). Users who
 only want one stream of work never need to know about boards; the feature
 is opt-in.
 
 Per-board isolation is absolute:
 
-- Separate SQLite DB per board (`~/.freeide/kanban/boards/<slug>/kanban.db`).
+- Separate SQLite DB per board (`~/.jettstui/kanban/boards/<slug>/kanban.db`).
 - Separate `workspaces/` and `logs/` directories.
 - Workers spawned for a task see **only** their board's tasks — the
-  dispatcher sets `FREEIDE_KANBAN_BOARD` in the child env and every
+  dispatcher sets `JETTSTUI_KANBAN_BOARD` in the child env and every
   `kanban_*` tool the worker has access to reads it.
 - Linking tasks across boards is not allowed (keeps the schema simple; if
   you really need cross-project refs, use free-text mentions and look
@@ -92,40 +92,40 @@ Per-board isolation is absolute:
 
 ```bash
 # See what's on disk. Fresh installs show only "default".
-freeide kanban boards list
+jettstui kanban boards list
 
 # Create a new board.
-freeide kanban boards create atm10-server \
+jettstui kanban boards create atm10-server \
     --name "ATM10 Server" \
     --description "Minecraft modded server ops" \
     --icon 🎮 \
     --switch                   # optional: make it the active board
 
 # Operate on a specific board without switching.
-freeide kanban --board atm10-server list
-freeide kanban --board atm10-server create "Restart ATM server" --assignee ops
+jettstui kanban --board atm10-server list
+jettstui kanban --board atm10-server create "Restart ATM server" --assignee ops
 
 # Change which board is "current" for subsequent calls.
-freeide kanban boards switch atm10-server
-freeide kanban boards show             # who's active right now?
+jettstui kanban boards switch atm10-server
+jettstui kanban boards show             # who's active right now?
 
 # Rename the display name (the slug is immutable — it's the directory name).
-freeide kanban boards rename atm10-server "ATM10 (Prod)"
+jettstui kanban boards rename atm10-server "ATM10 (Prod)"
 
 # Archive (default) — moves the board's dir to boards/_archived/<slug>-<ts>/.
 # Recoverable by moving the dir back.
-freeide kanban boards rm atm10-server
+jettstui kanban boards rm atm10-server
 
 # Hard delete — `rm -rf` the board dir. No recovery.
-freeide kanban boards rm atm10-server --delete
+jettstui kanban boards rm atm10-server --delete
 ```
 
 Board resolution order (highest precedence first):
 
 1. Explicit `--board <slug>` on the CLI call.
-2. `FREEIDE_KANBAN_BOARD` env var (set by the dispatcher when spawning a
+2. `JETTSTUI_KANBAN_BOARD` env var (set by the dispatcher when spawning a
    worker, so workers can't see other boards).
-3. `~/.freeide/kanban/current` — the slug persisted by `freeide kanban
+3. `~/.jettstui/kanban/current` — the slug persisted by `jettstui kanban
    boards switch`.
 4. `default`.
 
@@ -136,7 +136,7 @@ so path-traversal tricks can't name a board.
 
 ### Managing boards from the dashboard
 
-`freeide dashboard` → Kanban tab shows a board switcher at the top as soon
+`jettstui dashboard` → Kanban tab shows a board switcher at the top as soon
 as more than one board exists (or any board has tasks). Single-board users
 see only a small `+ New board` button; the switcher is hidden until it
 matters.
@@ -171,9 +171,9 @@ body and hoping it finds them.
   **Attachments** section's *Upload file* button (multiple files at once
   are fine). Each upload is capped at 25 MB.
 - **Storage** — files land under
-  `<freeide-home>/kanban/attachments/<task_id>/` for the default board, or
-  `<freeide-home>/kanban/boards/<slug>/attachments/<task_id>/` for a named
-  board. Set `FREEIDE_KANBAN_ATTACHMENTS_ROOT` to pin a custom location.
+  `<jettstui-home>/kanban/attachments/<task_id>/` for the default board, or
+  `<jettstui-home>/kanban/boards/<slug>/attachments/<task_id>/` for a named
+  board. Set `JETTSTUI_KANBAN_ATTACHMENTS_ROOT` to pin a custom location.
 - **What the worker sees** — when the dispatcher hands a task to a worker,
   the worker's context includes an **Attachments** section listing each
   file's name and its **absolute path**. The worker has full file/terminal
@@ -197,23 +197,23 @@ The commands below are **you** (the human) setting up the board and creating tas
 
 ```bash
 # 1. Create the board (you)
-freeide kanban init
+jettstui kanban init
 
 # 2. Start the gateway (hosts the embedded dispatcher)
-freeide gateway start
+jettstui gateway start
 
 # 3. Create a task (you — or an orchestrator agent via kanban_create)
-freeide kanban create "research AI funding landscape" --assignee researcher
+jettstui kanban create "research AI funding landscape" --assignee researcher
 
 # 4. Watch activity live (you)
-freeide kanban watch
+jettstui kanban watch
 
 # 5. See the board (you)
-freeide kanban list
-freeide kanban stats
+jettstui kanban list
+jettstui kanban stats
 ```
 
-When the dispatcher picks up `t_abcd` and spawns the `researcher` profile, the very first thing that worker's model does is call `kanban_show()` to read its task. It doesn't run `freeide kanban show t_abcd`.
+When the dispatcher picks up `t_abcd` and spawns the `researcher` profile, the very first thing that worker's model does is call `kanban_show()` to read its task. It doesn't run `jettstui kanban show t_abcd`.
 
 ### Gateway-embedded dispatcher (default)
 
@@ -228,14 +228,14 @@ kanban:
   dispatch_interval_seconds: 60    # default
 ```
 
-Override the config flag at runtime via `FREEIDE_KANBAN_DISPATCH_IN_GATEWAY=0`
-for debugging. Standard gateway supervision applies: run `freeide gateway
+Override the config flag at runtime via `JETTSTUI_KANBAN_DISPATCH_IN_GATEWAY=0`
+for debugging. Standard gateway supervision applies: run `jettstui gateway
 start` directly, or wire the gateway up as a systemd user unit (see the
 gateway docs). Without a running gateway, `ready` tasks stay where they are
-until one comes up — `freeide kanban create` warns about this at creation
+until one comes up — `jettstui kanban create` warns about this at creation
 time.
 
-Running `freeide kanban daemon` as a separate process is **deprecated**;
+Running `jettstui kanban daemon` as a separate process is **deprecated**;
 use the gateway. If you truly cannot run the gateway (headless host
 policy forbids long-lived services, etc.) a `--force` escape hatch keeps
 the old standalone daemon alive for one release cycle, but running both
@@ -247,7 +247,7 @@ a gateway-embedded dispatcher AND a standalone daemon against the same
 ```bash
 # First call creates the task. Any subsequent call with the same key
 # returns the existing task id instead of duplicating.
-freeide kanban create "nightly ops review" \
+jettstui kanban create "nightly ops review" \
     --assignee ops \
     --idempotency-key "nightly-ops-$(date -u +%Y-%m-%d)" \
     --json
@@ -259,10 +259,10 @@ All the lifecycle verbs accept multiple ids so you can clean up a batch
 in one command:
 
 ```bash
-freeide kanban complete t_abc t_def t_hij --result "batch wrap"
-freeide kanban archive  t_abc t_def t_hij
-freeide kanban unblock  t_abc t_def
-freeide kanban block    t_abc "need input" --ids t_def t_hij
+jettstui kanban complete t_abc t_def t_hij --result "batch wrap"
+jettstui kanban archive  t_abc t_def t_hij
+jettstui kanban unblock  t_abc t_def
+jettstui kanban block    t_abc "need input" --ids t_def t_hij
 ```
 
 :::note Where an unblocked task lands
@@ -286,7 +286,7 @@ parent, missing input, unmet capability) before unblocking, or raise
 
 ## How workers interact with the board
 
-**Workers do not shell out to `freeide kanban`.** When the dispatcher spawns a worker it sets `FREEIDE_KANBAN_TASK=t_abcd` in the child's env, and that env var flips on a dedicated **kanban toolset** in the model's schema. The same toolset is also available to orchestrator profiles that enable `kanban` in their toolsets config. These tools read and mutate the board directly via the Python `kanban_db` layer, same as the CLI does. A running worker calls these like any other tool; it never sees or needs the `freeide kanban` CLI.
+**Workers do not shell out to `jettstui kanban`.** When the dispatcher spawns a worker it sets `JETTSTUI_KANBAN_TASK=t_abcd` in the child's env, and that env var flips on a dedicated **kanban toolset** in the model's schema. The same toolset is also available to orchestrator profiles that enable `kanban` in their toolsets config. These tools read and mutate the board directly via the Python `kanban_db` layer, same as the CLI does. A running worker calls these like any other tool; it never sees or needs the `jettstui kanban` CLI.
 
 | Tool | Purpose | Required params |
 |---|---|---|
@@ -304,7 +304,7 @@ A typical worker turn looks like:
 
 ```
 # Model's tool calls, in order:
-kanban_show()                                     # no args — uses FREEIDE_KANBAN_TASK
+kanban_show()                                     # no args — uses JETTSTUI_KANBAN_TASK
 # (model reads the returned worker_context, does the work via terminal/file tools)
 kanban_heartbeat(note="halfway through — 4 of 8 files transformed")
 # (more work)
@@ -337,15 +337,15 @@ kanban_complete(summary="decomposed into 2 research tasks + 1 writer; linked dep
 
 The "(Orchestrators)" tools — `kanban_list`, `kanban_create`, `kanban_link`, `kanban_unblock`, and `kanban_comment` on foreign tasks — are available through the same toolset; the convention (encoded in the auto-injected kanban guidance) is that worker profiles don't fan out or route unrelated work, and orchestrator profiles don't execute implementation work. Dispatcher-spawned workers are still task-scoped for destructive lifecycle operations and cannot mutate unrelated tasks.
 
-### Why tools instead of shelling to `freeide kanban`
+### Why tools instead of shelling to `jettstui kanban`
 
 Three reasons:
 
-1. **Backend portability.** Workers whose terminal tool points at a remote backend (Docker / Modal / Singularity / SSH) would run `freeide kanban complete` *inside* the container, where `freeide` isn't installed and `~/.freeide/kanban.db` isn't mounted. The kanban tools run in the agent's own Python process and always reach `~/.freeide/kanban.db` regardless of terminal backend.
+1. **Backend portability.** Workers whose terminal tool points at a remote backend (Docker / Modal / Singularity / SSH) would run `jettstui kanban complete` *inside* the container, where `jettstui` isn't installed and `~/.jettstui/kanban.db` isn't mounted. The kanban tools run in the agent's own Python process and always reach `~/.jettstui/kanban.db` regardless of terminal backend.
 2. **No shell-quoting fragility.** Passing `--metadata '{"files": [...]}'` through shlex + argparse is a latent footgun. Structured tool args skip it entirely.
 3. **Better errors.** Tool results are structured JSON the model can reason about, not stderr strings it has to parse.
 
-**Zero schema footprint on normal sessions.** A regular `freeide chat` session has zero `kanban_*` tools in its schema unless the active profile explicitly enables the `kanban` toolset for orchestrator work. Dispatcher-spawned task workers get task-scoped tools because `FREEIDE_KANBAN_TASK` is set; orchestrator profiles get the broader routing surface through config. No tool bloat for users who never touch kanban.
+**Zero schema footprint on normal sessions.** A regular `jettstui chat` session has zero `kanban_*` tools in its schema unless the active profile explicitly enables the `kanban` toolset for orchestrator work. Dispatcher-spawned task workers get task-scoped tools because `JETTSTUI_KANBAN_TASK` is set; orchestrator profiles get the broader routing surface through config. No tool bloat for users who never touch kanban.
 
 The auto-injected kanban guidance teaches the model which tool to call when and in what order.
 
@@ -361,7 +361,7 @@ For engineering and review tasks, prefer this optional metadata shape:
 ```json
 {
   "changed_files": ["path/to/file.py"],
-  "verification": ["pytest tests/freeide_cli/test_kanban_db.py -q"],
+  "verification": ["pytest tests/jettstui_cli/test_kanban_db.py -q"],
   "dependencies": ["parent task id or external issue, if any"],
   "blocked_reason": null,
   "retry_notes": "what failed before, if this was a retry",
@@ -388,7 +388,7 @@ does exist, such as source URLs, issue ids, or manual review steps.
 Every profile that works kanban tasks automatically gets the worker lifecycle — it's injected into the worker's system prompt at spawn (the `KANBAN_GUIDANCE` block), so there is **nothing to install or configure**. It teaches the worker the full lifecycle in **tool calls**, not CLI commands:
 
 1. On spawn, call `kanban_show()` to read title + body + parent handoffs + prior attempts + full comment thread.
-2. `cd $FREEIDE_KANBAN_WORKSPACE` (via the terminal tool) and do the work there.
+2. `cd $JETTSTUI_KANBAN_WORKSPACE` (via the terminal tool) and do the work there.
 3. Call `kanban_heartbeat(note="...")` every few minutes during long operations. **If your work may run longer than 1 hour, call `kanban_heartbeat` at least once an hour** — the dispatcher reclaims tasks that have been running past `kanban.dispatch_stale_timeout_seconds` (default 4 h) with no heartbeat in the last hour, on the assumption the worker crashed without cleanup. A reclaim is benign (the task goes back to `ready` for re-dispatch without a failure-counter tick) but you lose your current run's progress.
 4. Complete with `kanban_complete(summary="...", metadata={...})`, or `kanban_block(reason="...")` if stuck.
 
@@ -397,13 +397,13 @@ protocol. If the worker process exits with status 0 while the task is still
 `running`, the dispatcher treats that as a protocol violation and emits a
 `protocol_violation` event.
 
-**Agent-side prevention:** Before the worker exits, FreeIDE injects up to two
+**Agent-side prevention:** Before the worker exits, JettsTUI injects up to two
 synthetic nudges when it detects the model is about to stop without a terminal
 board tool call. This catches the common case where the model narrates the next
 step ("Let me write the report") and stops with `finish_reason=stop`. The nudge
 reminds the model to call `kanban_complete` or `kanban_block` immediately. This
-guard is active only for dispatcher-spawned workers (`FREEIDE_KANBAN_TASK` is
-set) and can be disabled with `FREEIDE_KANBAN_STOP_NUDGE=0`.
+guard is active only for dispatcher-spawned workers (`JETTSTUI_KANBAN_TASK` is
+set) and can be disabled with `JETTSTUI_KANBAN_STOP_NUDGE=0`.
 
 **Dispatcher-side recovery:** If the nudges are exhausted or the worker crashes
 before reaching the nudge, the dispatcher gives the violation a **bounded retry**
@@ -440,11 +440,11 @@ kanban_create(
 **From a human (CLI / slash command)**, repeat `--skill` for each one:
 
 ```bash
-freeide kanban create "translate README to Japanese" \
+jettstui kanban create "translate README to Japanese" \
     --assignee linguist \
     --skill translation
 
-freeide kanban create "audit auth flow" \
+jettstui kanban create "audit auth flow" \
     --assignee reviewer \
     --skill security-pr-audit \
     --skill github-code-review
@@ -452,14 +452,14 @@ freeide kanban create "audit auth flow" \
 
 **From the dashboard**, type the skills comma-separated into the **skills** field of the create-task dialog.
 
-The dispatcher emits one `--skills <name>` flag per skill listed, so the worker spawns with all of them loaded on top of the auto-injected kanban guidance. The skill names must match skills that are actually installed on the assignee's profile (run `freeide skills list` to see what's available); there's no runtime install.
+The dispatcher emits one `--skills <name>` flag per skill listed, so the worker spawns with all of them loaded on top of the auto-injected kanban guidance. The skill names must match skills that are actually installed on the assignee's profile (run `jettstui skills list` to see what's available); there's no runtime install.
 
 ### Goal-mode cards (`--goal`)
 
 By default each worker gets **one shot** at its card — do the work, call `kanban_complete`/`kanban_block`, exit. Pass `--goal` (CLI) or `goal_mode=True` (the `kanban_create` tool / dashboard) to instead run that worker in a **goal loop**, the same Ralph-style engine behind the `/goal` slash command: after every turn an auxiliary judge checks the worker's output against the card's title + body (treated as the acceptance criteria), and if the work isn't done — and the turn budget remains — the worker keeps going **in the same session** until the judge agrees, the worker terminates the task itself, or the budget runs out (which **blocks** the card for human review rather than exiting silently).
 
 ```bash
-freeide kanban create "Translate the docs site to French" \
+jettstui kanban create "Translate the docs site to French" \
     --body "Acceptance: every page translated, no English left, links intact." \
     --assignee linguist \
     --goal \
@@ -497,19 +497,19 @@ For best results, pair it with a profile whose toolsets are restricted to board 
 
 ## Dashboard (GUI)
 
-The `/kanban` CLI and slash command are enough to run the board headlessly, but a visual board is often the right interface for humans-in-the-loop: triage, cross-profile supervision, reading comment threads, and dragging cards between columns. FreeIDE ships this as a **bundled dashboard plugin** at `plugins/kanban/` — not a core feature, not a separate service — following the model laid out in [Extending the Dashboard](./extending-the-dashboard).
+The `/kanban` CLI and slash command are enough to run the board headlessly, but a visual board is often the right interface for humans-in-the-loop: triage, cross-profile supervision, reading comment threads, and dragging cards between columns. JettsTUI ships this as a **bundled dashboard plugin** at `plugins/kanban/` — not a core feature, not a separate service — following the model laid out in [Extending the Dashboard](./extending-the-dashboard).
 
 Open it with:
 
 ```bash
-freeide kanban init      # one-time: create kanban.db if not already present
-freeide dashboard        # "Kanban" tab appears in the nav, after "Skills"
+jettstui kanban init      # one-time: create kanban.db if not already present
+jettstui dashboard        # "Kanban" tab appears in the nav, after "Skills"
 ```
 
 ### What the plugin gives you
 
 - A **Kanban** tab showing one column per status: `triage`, `todo`, `ready`, `running`, `blocked`, `done` (plus `archived` when the toggle is on).
-  - `triage` is the parking column for rough ideas. By default (`kanban.auto_decompose: true`), the dispatcher auto-runs the **decomposer** on tasks that land here. The built-in decomposer uses the `auxiliary.kanban_decomposer` model path, reads your profile roster (with descriptions), and fans the task out into a small graph of child tasks routed to the best-fit specialists. The original task stays alive as the parent of every child so its assignee (`kanban.orchestrator_profile`, or the active default profile when unset) wakes back up to judge completion when everything finishes. Flip the **Orchestration: Auto/Manual** pill at the top of the page (emerald = Auto, muted gray = Manual), or by editing `config.yaml` directly. Both modes coexist with `freeide kanban specify` - that's still available as a single-task spec rewrite when you don't want fan-out.
+  - `triage` is the parking column for rough ideas. By default (`kanban.auto_decompose: true`), the dispatcher auto-runs the **decomposer** on tasks that land here. The built-in decomposer uses the `auxiliary.kanban_decomposer` model path, reads your profile roster (with descriptions), and fans the task out into a small graph of child tasks routed to the best-fit specialists. The original task stays alive as the parent of every child so its assignee (`kanban.orchestrator_profile`, or the active default profile when unset) wakes back up to judge completion when everything finishes. Flip the **Orchestration: Auto/Manual** pill at the top of the page (emerald = Auto, muted gray = Manual), or by editing `config.yaml` directly. Both modes coexist with `jettstui kanban specify` - that's still available as a single-task spec rewrite when you don't want fan-out.
 - Cards show the task id, title, priority badge, tenant tag, assigned profile, comment/link counts, a **progress pill** (`N/M` children done when the task has dependents), and "created N ago". A per-card checkbox enables multi-select.
 - **Per-profile lanes inside Running** — toolbar checkbox toggles sub-grouping of the Running column by assignee.
 - **Live updates via WebSocket** — the plugin tails the append-only `task_events` table on a short poll interval; the board reflects changes the instant any profile (CLI, gateway, or another dashboard tab) acts. Reloads are debounced so a burst of events triggers a single refetch.
@@ -521,7 +521,7 @@ freeide dashboard        # "Kanban" tab appears in the nav, after "Skills"
   - **Editable assignee / priority** — click the meta row to rewrite.
   - **Editable description** — markdown-rendered by default (headings, bold, italic, inline code, fenced code, `http(s)` / `mailto:` links, bullet lists), with an "edit" button that swaps in a textarea. Markdown rendering is a tiny, XSS-safe renderer — every substitution runs on HTML-escaped input, only `http(s)` / `mailto:` links pass through, and `target="_blank"` + `rel="noopener noreferrer"` are always set.
   - **Dependency editor** — chip list of parents and children, each with an `×` to unlink, plus dropdowns over every other task to add a new parent or child. Cycle attempts are rejected server-side with a clear message.
-  - **Status action row** (→ triage / → ready / → running / block / unblock / complete / archive) with confirm prompts for destructive transitions. For cards in the **Triage** column the row also exposes two LLM-driven actions: **⚗ Decompose** fans the task out into a graph of child tasks routed to specialist profiles by description, and **✨ Specify** does a single-task spec rewrite. Decompose falls back to specify-style promotion when the LLM decides the task doesn't benefit from fan-out, so it's a strict superset. Both are reachable from the CLI (`freeide kanban decompose <id>` / `specify <id>` / `--all`), from any gateway platform (`/kanban decompose <id>`), and programmatically via `POST /api/plugins/kanban/tasks/:id/decompose` and `…/specify`. Configure the models under `auxiliary.kanban_decomposer` and `auxiliary.triage_specifier` in `config.yaml`.
+  - **Status action row** (→ triage / → ready / → running / block / unblock / complete / archive) with confirm prompts for destructive transitions. For cards in the **Triage** column the row also exposes two LLM-driven actions: **⚗ Decompose** fans the task out into a graph of child tasks routed to specialist profiles by description, and **✨ Specify** does a single-task spec rewrite. Decompose falls back to specify-style promotion when the LLM decides the task doesn't benefit from fan-out, so it's a strict superset. Both are reachable from the CLI (`jettstui kanban decompose <id>` / `specify <id>` / `--all`), from any gateway platform (`/kanban decompose <id>`), and programmatically via `POST /api/plugins/kanban/tasks/:id/decompose` and `…/specify`. Configure the models under `auxiliary.kanban_decomposer` and `auxiliary.triage_specifier` in `config.yaml`.
   - Result section (also markdown-rendered), comment thread with Enter-to-submit, the last 20 events.
 - **Toolbar filters** — free-text search, tenant dropdown (defaults to `dashboard.kanban.default_tenant` from `config.yaml`), assignee dropdown, "show archived" toggle, "lanes by profile" toggle, and a **Nudge dispatcher** button so you don't have to wait for the next 60 s tick.
 
@@ -533,15 +533,15 @@ The kanban board has two ways to handle a task you drop into the Triage column:
 
 **Auto (default)** — `kanban.auto_decompose: true`. The gateway-embedded dispatcher runs the **decomposer** on each tick, capped by `kanban.auto_decompose_per_tick` (default 3 tasks per tick) so a bulk-load of triage tasks doesn't burst-spend the auxiliary LLM. The decomposer uses the built-in decomposition prompt plus the `auxiliary.kanban_decomposer` model path, reads your installed profiles + their descriptions, and asks the LLM to produce a JSON task graph: which tasks to spawn, who they go to, and which depend on which. The original triage task becomes the parent of every leaf in the graph, so it stays alive until the whole graph completes - and then promotes back to `ready` so its assignee (`kanban.orchestrator_profile`, or the active default profile when unset) can judge completion and add more tasks if the work isn't done. This is the "drop a one-liner, walk away" flow.
 
-**Manual** — `kanban.auto_decompose: false`. Triage tasks stay in triage until you act. Click the **⚗ Decompose** button on a card, run `freeide kanban decompose <id>` (or `--all`), or use `/kanban decompose <id>` from a chat. This matches the pre-decomposer behavior of the board, useful when you want full control over what runs when.
+**Manual** — `kanban.auto_decompose: false`. Triage tasks stay in triage until you act. Click the **⚗ Decompose** button on a card, run `jettstui kanban decompose <id>` (or `--all`), or use `/kanban decompose <id>` from a chat. This matches the pre-decomposer behavior of the board, useful when you want full control over what runs when.
 
-Flip between the two modes from the **Orchestration: Auto/Manual** pill at the top of the kanban page (emerald = Auto, muted gray = Manual), or by editing `config.yaml` directly. Both modes coexist with `freeide kanban specify` — that's still available as a single-task spec rewrite when you don't want fan-out.
+Flip between the two modes from the **Orchestration: Auto/Manual** pill at the top of the kanban page (emerald = Auto, muted gray = Manual), or by editing `config.yaml` directly. Both modes coexist with `jettstui kanban specify` — that's still available as a single-task spec rewrite when you don't want fan-out.
 
-The decomposer's routing decisions depend on profile descriptions, which is a per-profile labeling primitive you set with `freeide profile create --description "..."`, `freeide profile describe <name> --text "..."`, `freeide profile describe <name> --auto` (LLM-generates from the profile's installed skills + model), or the dashboard's per-profile editor in the expanded **Orchestration settings** panel. Profiles without a description still appear in the roster — they're routable by name, just less precisely. The decomposer NEVER lands a child task with `assignee=None`: when the LLM picks an unknown profile, the child gets routed to `kanban.default_assignee` (or the active default profile if that's unset).
+The decomposer's routing decisions depend on profile descriptions, which is a per-profile labeling primitive you set with `jettstui profile create --description "..."`, `jettstui profile describe <name> --text "..."`, `jettstui profile describe <name> --auto` (LLM-generates from the profile's installed skills + model), or the dashboard's per-profile editor in the expanded **Orchestration settings** panel. Profiles without a description still appear in the roster — they're routable by name, just less precisely. The decomposer NEVER lands a child task with `assignee=None`: when the LLM picks an unknown profile, the child gets routed to `kanban.default_assignee` (or the active default profile if that's unset).
 
 `kanban.orchestrator_profile` does not load that profile's prompt, skills, or custom logic into the decomposition call. It controls who owns the root/orchestration task after fan-out. To change the decomposer's model/provider, configure `auxiliary.kanban_decomposer`. To use a profile's custom task-splitting logic instead of the built-in decomposer, switch to Manual mode and have that profile create or decompose tasks explicitly.
 
-Config knobs (all under `kanban:` in `~/.freeide/config.yaml`):
+Config knobs (all under `kanban:` in `~/.jettstui/config.yaml`):
 
 | Key | Default | Purpose |
 |---|---|---|
@@ -556,7 +556,7 @@ And the two auxiliary LLM slots:
 | Key | Purpose |
 |---|---|
 | `auxiliary.kanban_decomposer` | Model that produces the task graph (called by Decompose). Set `provider`/`model` to override the main chat model. |
-| `auxiliary.profile_describer` | Model that auto-generates profile descriptions (called by `freeide profile describe --auto`). |
+| `auxiliary.profile_describer` | Model that auto-generates profile descriptions (called by `jettstui profile describe --auto`). |
 
 ### Architecture
 
@@ -578,7 +578,7 @@ The GUI is strictly a **read-through-the-DB + write-through-kanban_db** layer wi
            │                                                  │
            ▼                                                  │
 ┌────────────────────────┐                                    │
-│  ~/.freeide/kanban.db   │ ───── append task_events ──────────┘
+│  ~/.jettstui/kanban.db   │ ───── append task_events ──────────┘
 │  (WAL, shared)         │
 └────────────────────────┘
 ```
@@ -609,11 +609,11 @@ All routes are mounted under `/api/plugins/kanban/` and protected by the dashboa
 | `GET` | `/config` | Read `dashboard.kanban` preferences from `config.yaml` — `default_tenant`, `lane_by_profile`, `include_archived_by_default`, `render_markdown` |
 | `WS` | `/events?since=<event_id>` | Live stream of `task_events` rows |
 
-Every handler is a thin wrapper — the plugin is ~700 lines of Python (router + WebSocket tail + bulk batcher + config reader) and adds no new business logic. A tiny `_conn()` helper auto-initializes `kanban.db` on every read and write, so a fresh install works whether the user opened the dashboard first, hit the REST API directly, or ran `freeide kanban init`.
+Every handler is a thin wrapper — the plugin is ~700 lines of Python (router + WebSocket tail + bulk batcher + config reader) and adds no new business logic. A tiny `_conn()` helper auto-initializes `kanban.db` on every read and write, so a fresh install works whether the user opened the dashboard first, hit the REST API directly, or ran `jettstui kanban init`.
 
 ### Dashboard config
 
-Any of these keys under `dashboard.kanban` in `~/.freeide/config.yaml` changes the tab's defaults — the plugin reads them at load time via `GET /config`:
+Any of these keys under `dashboard.kanban` in `~/.jettstui/config.yaml` changes the tab's defaults — the plugin reads them at load time via `GET /config`:
 
 ```yaml
 dashboard:
@@ -632,9 +632,9 @@ The dashboard's HTTP auth middleware [explicitly skips `/api/plugins/`](./extend
 
 The WebSocket takes one additional step: it requires the dashboard's ephemeral session token as a `?token=…` query parameter (browsers can't set `Authorization` on an upgrade request), matching the pattern used by the in-browser PTY bridge.
 
-If you run `freeide dashboard --host 0.0.0.0`, every plugin route — kanban included — becomes reachable from the network. **Don't do that on a shared host.** The board contains task bodies, comments, and workspace paths; an attacker reaching these routes gets read access to your entire collaboration surface and can also create / reassign / archive tasks.
+If you run `jettstui dashboard --host 0.0.0.0`, every plugin route — kanban included — becomes reachable from the network. **Don't do that on a shared host.** The board contains task bodies, comments, and workspace paths; an attacker reaching these routes gets read access to your entire collaboration surface and can also create / reassign / archive tasks.
 
-Tasks in `~/.freeide/kanban.db` are profile-agnostic on purpose (that's the coordination primitive). If you open the dashboard with `freeide -p <profile> dashboard`, the board still shows tasks created by any other profile on the host. Same user owns all profiles, but this is worth knowing if multiple personas coexist.
+Tasks in `~/.jettstui/kanban.db` are profile-agnostic on purpose (that's the coordination primitive). If you open the dashboard with `jettstui -p <profile> dashboard`, the board still shows tasks created by any other profile on the host. Same user owns all profiles, but this is worth knowing if multiple personas coexist.
 
 ### Live updates
 
@@ -642,7 +642,7 @@ Tasks in `~/.freeide/kanban.db` are profile-agnostic on purpose (that's the coor
 
 ### Extending it
 
-The plugin uses the standard FreeIDE dashboard plugin contract — see [Extending the Dashboard](./extending-the-dashboard) for the full manifest reference, shell slots, page-scoped slots, and the Plugin SDK. Extra columns, custom card chrome, tenant-filtered layouts, or full `tab.override` replacements are all expressible without forking this plugin.
+The plugin uses the standard JettsTUI dashboard plugin contract — see [Extending the Dashboard](./extending-the-dashboard) for the full manifest reference, shell slots, page-scoped slots, and the Plugin SDK. Extra columns, custom card chrome, tenant-filtered layouts, or full `tab.override` replacements are all expressible without forking this plugin.
 
 To disable without removing: add `dashboard.plugins.kanban.enabled: false` to `config.yaml` (or delete `plugins/kanban/dashboard/manifest.json`).
 
@@ -655,8 +655,8 @@ The GUI is deliberately thin. Everything the plugin does is reachable from the C
 This is the surface **you** (or scripts, cron, the dashboard) use to drive the board. Workers running inside the dispatcher use the `kanban_*` [tool surface](#how-workers-interact-with-the-board) for the same operations — the CLI here and the tools there both route through `kanban_db`, so the two surfaces agree by construction.
 
 ```
-freeide kanban init                                     # create kanban.db + print daemon hint
-freeide kanban create "<title>" [--body ...] [--assignee <profile>]
+jettstui kanban init                                     # create kanban.db + print daemon hint
+jettstui kanban create "<title>" [--body ...] [--assignee <profile>]
                                 [--parent <id>]... [--tenant <name>]
                                 [--workspace scratch|worktree|worktree:<path>|dir:<path>]
                                 [--branch <name>]
@@ -666,50 +666,50 @@ freeide kanban create "<title>" [--body ...] [--assignee <profile>]
                                 [--goal] [--goal-max-turns N]
                                 [--skill <name>]...
                                 [--json]
-freeide kanban list [--mine] [--assignee P] [--status S] [--tenant T] [--archived]
+jettstui kanban list [--mine] [--assignee P] [--status S] [--tenant T] [--archived]
         [--workflow-template-id <id>] [--current-step-key <key>]
         [--sort created|created-desc|priority|priority-desc|status|assignee|title|updated]
         [--json]
-freeide kanban show <id> [--json]
-freeide kanban assign <id> <profile>                    # or 'none' to unassign
-freeide kanban reassign <id>... <profile>               # bulk re-assign tasks to a profile
-freeide kanban edit <id> [--title ...] [--body ...]     # edit task title / body / priority in place
+jettstui kanban show <id> [--json]
+jettstui kanban assign <id> <profile>                    # or 'none' to unassign
+jettstui kanban reassign <id>... <profile>               # bulk re-assign tasks to a profile
+jettstui kanban edit <id> [--title ...] [--body ...]     # edit task title / body / priority in place
         [--priority N]
-freeide kanban promote <id>...                          # move todo/blocked tasks to ready (recovery)
-freeide kanban schedule <id> --at <ISO8601>             # set/clear a task's scheduled_at start time
-freeide kanban diagnostics [--json]                     # board health snapshot (alias: diag)
-freeide kanban link <parent_id> <child_id>
-freeide kanban unlink <parent_id> <child_id>
-freeide kanban claim <id> [--ttl SECONDS]
-freeide kanban comment <id> "<text>" [--author NAME]
+jettstui kanban promote <id>...                          # move todo/blocked tasks to ready (recovery)
+jettstui kanban schedule <id> --at <ISO8601>             # set/clear a task's scheduled_at start time
+jettstui kanban diagnostics [--json]                     # board health snapshot (alias: diag)
+jettstui kanban link <parent_id> <child_id>
+jettstui kanban unlink <parent_id> <child_id>
+jettstui kanban claim <id> [--ttl SECONDS]
+jettstui kanban comment <id> "<text>" [--author NAME]
 
 # Bulk verbs — accept multiple ids:
-freeide kanban complete <id>... [--result "..."]
-freeide kanban block <id> "<reason>" [--ids <id>...]
-freeide kanban unblock <id>...
-freeide kanban archive <id>...
+jettstui kanban complete <id>... [--result "..."]
+jettstui kanban block <id> "<reason>" [--ids <id>...]
+jettstui kanban unblock <id>...
+jettstui kanban archive <id>...
 
-freeide kanban tail <id>                                # follow a single task's event stream
-freeide kanban watch [--assignee P] [--tenant T]        # live stream ALL events to the terminal
+jettstui kanban tail <id>                                # follow a single task's event stream
+jettstui kanban watch [--assignee P] [--tenant T]        # live stream ALL events to the terminal
         [--kinds completed,blocked,…] [--interval SECS]
-freeide kanban heartbeat <id> [--note "..."]            # worker liveness signal for long ops
-freeide kanban runs <id> [--json]                       # attempt history (one row per run)
-freeide kanban assignees [--json]                       # profiles on disk + per-assignee task counts
-freeide kanban dispatch [--dry-run] [--max N]           # one-shot pass
+jettstui kanban heartbeat <id> [--note "..."]            # worker liveness signal for long ops
+jettstui kanban runs <id> [--json]                       # attempt history (one row per run)
+jettstui kanban assignees [--json]                       # profiles on disk + per-assignee task counts
+jettstui kanban dispatch [--dry-run] [--max N]           # one-shot pass
         [--failure-limit N] [--json]
-freeide kanban daemon --force                           # DEPRECATED — standalone dispatcher (use `freeide gateway start` instead)
+jettstui kanban daemon --force                           # DEPRECATED — standalone dispatcher (use `jettstui gateway start` instead)
         [--failure-limit N] [--pidfile PATH] [-v]
-freeide kanban stats [--json]                           # per-status + per-assignee counts
-freeide kanban log <id> [--tail BYTES]                  # worker log from ~/.freeide/kanban/logs/
-freeide kanban notify-subscribe <id>                    # gateway bridge hook (used by /kanban in the gateway)
+jettstui kanban stats [--json]                           # per-status + per-assignee counts
+jettstui kanban log <id> [--tail BYTES]                  # worker log from ~/.jettstui/kanban/logs/
+jettstui kanban notify-subscribe <id>                    # gateway bridge hook (used by /kanban in the gateway)
         --platform <name> --chat-id <id> [--thread-id <id>] [--user-id <id>]
-freeide kanban notify-list [<id>] [--json]
-freeide kanban notify-unsubscribe <id>
+jettstui kanban notify-list [<id>] [--json]
+jettstui kanban notify-unsubscribe <id>
         --platform <name> --chat-id <id> [--thread-id <id>]
-freeide kanban context <id>                             # what a worker sees
-freeide kanban specify [<id> | --all] [--tenant T]      # flesh out a triage-column idea
+jettstui kanban context <id>                             # what a worker sees
+jettstui kanban specify [<id> | --all] [--tenant T]      # flesh out a triage-column idea
         [--author NAME] [--json]                       #   into a full spec and promote to todo
-freeide kanban gc [--event-retention-days N]            # workspaces + old events + old logs
+jettstui kanban gc [--event-retention-days N]            # workspaces + old events + old logs
         [--log-retention-days N]
 ```
 
@@ -738,7 +738,7 @@ kanban:
 Set `scheduled_at` on a task to delay dispatch until a specific time. The dispatcher skips ready tasks whose `scheduled_at` is in the future and picks them up on the first tick after that timestamp.
 
 ```bash
-freeide kanban create "nightly backup audit" \
+jettstui kanban create "nightly backup audit" \
   --assignee ops --scheduled-at "2026-06-01T03:00:00Z"
 ```
 
@@ -765,10 +765,10 @@ All of these are gated by the same dashboard plugin auth as the rest of the kanb
 
 ### Kanban Swarm topology helper
 
-`freeide kanban swarm` creates a durable **Kanban Swarm v1** graph in one shot: a completed root/blackboard card, N parallel worker cards, a verifier card gated on all workers, and a synthesizer card gated on the verifier. Shared swarm context (the "blackboard") is stored as structured JSON comments on the root card so any worker can read it.
+`jettstui kanban swarm` creates a durable **Kanban Swarm v1** graph in one shot: a completed root/blackboard card, N parallel worker cards, a verifier card gated on all workers, and a synthesizer card gated on the verifier. Shared swarm context (the "blackboard") is stored as structured JSON comments on the root card so any worker can read it.
 
 ```bash
-freeide kanban swarm "Design a multi-region failover plan" \
+jettstui kanban swarm "Design a multi-region failover plan" \
   --workers researcher,architect,sre \
   --verifier reviewer --synthesizer writer
 ```
@@ -777,7 +777,7 @@ The resulting graph dispatches normally — workers run in parallel, the verifie
 
 ## `/kanban` slash command {#kanban-slash-command}
 
-Every `freeide kanban <action>` verb is also reachable as `/kanban <action>` — from inside an interactive `freeide chat` session **and** from any gateway platform (Telegram, Discord, Slack, WhatsApp, Signal, Matrix, Mattermost, email, SMS). Both surfaces call the exact same `freeide_cli.kanban.run_slash()` entry point that reuses the `freeide kanban` argparse tree, so the argument surface, flags, and output format are identical across CLI, `/kanban`, and `freeide kanban`. You don't have to leave the chat to drive the board.
+Every `jettstui kanban <action>` verb is also reachable as `/kanban <action>` — from inside an interactive `jettstui chat` session **and** from any gateway platform (Telegram, Discord, Slack, WhatsApp, Signal, Matrix, Mattermost, email, SMS). Both surfaces call the exact same `jettstui.kanban.run_slash()` entry point that reuses the `jettstui kanban` argparse tree, so the argument surface, flags, and output format are identical across CLI, `/kanban`, and `jettstui kanban`. You don't have to leave the chat to drive the board.
 
 ```
 /kanban list
@@ -794,7 +794,7 @@ Quote multi-word arguments the same way you would on a shell — `run_slash` par
 
 ### Mid-run usage: `/kanban` bypasses the running-agent guard
 
-The gateway normally queues slash commands and user messages while an agent is still thinking — that's what stops you from accidentally starting a second turn while the first is in flight. **`/kanban` is explicitly exempted from this guard.** The board lives in `~/.freeide/kanban.db`, not in the running agent's state, so reads (`list`, `show`, `context`, `tail`, `watch`, `stats`, `runs`) and writes (`comment`, `unblock`, `block`, `assign`, `archive`, `create`, `link`, …) all go through immediately, even mid-turn.
+The gateway normally queues slash commands and user messages while an agent is still thinking — that's what stops you from accidentally starting a second turn while the first is in flight. **`/kanban` is explicitly exempted from this guard.** The board lives in `~/.jettstui/kanban.db`, not in the running agent's state, so reads (`list`, `show`, `context`, `tail`, `watch`, `stats`, `runs`) and writes (`comment`, `unblock`, `block`, `assign`, `archive`, `create`, `link`, …) all go through immediately, even mid-turn.
 
 This is the whole point of the separation:
 
@@ -821,7 +821,7 @@ Subscriptions auto-remove themselves once the task reaches `done` or `archived`.
 
 ### Output truncation in messaging
 
-Gateway platforms have practical message-length caps. If `/kanban list`, `/kanban show`, or `/kanban tail` produce more than ~3800 characters of output, the response is truncated with a `… (truncated; use \`freeide kanban …\` in your terminal for full output)` footer. The CLI surface has no such cap.
+Gateway platforms have practical message-length caps. If `/kanban list`, `/kanban show`, or `/kanban tail` produce more than ~3800 characters of output, the response is truncated with a `… (truncated; use \`jettstui kanban …\` in your terminal for full output)` footer. The CLI surface has no such cap.
 
 ### Autocomplete
 
@@ -841,22 +841,22 @@ The board supports these eight patterns without any new primitives:
 | **P6 `@mention`** | inline routing from prose | `@reviewer look at this` |
 | **P7 Thread-scoped workspace** | `/kanban here` in a thread | per-project gateway threads |
 | **P8 Fleet farming** | one profile, N subjects | 50 social accounts |
-| **P9 Triage specifier** | rough idea → `triage` → `freeide kanban specify` expands body → `todo` | "turn this one-liner into a spec'd task" |
+| **P9 Triage specifier** | rough idea → `triage` → `jettstui kanban specify` expands body → `todo` | "turn this one-liner into a spec'd task" |
 
-For worked examples of each, see `docs/freeide-kanban-v1-spec.pdf`.
+For worked examples of each, see `docs/jettstui-kanban-v1-spec.pdf`.
 
 ## Multi-tenant usage
 
 When one specialist fleet serves multiple businesses, tag each task with a tenant:
 
 ```bash
-freeide kanban create "monthly report" \
+jettstui kanban create "monthly report" \
     --assignee researcher \
     --tenant business-a \
     --workspace dir:~/tenants/business-a/data/
 ```
 
-Workers receive `$FREEIDE_TENANT` and namespace their memory writes by prefix. The board, the dispatcher, and the profile definitions are all shared; only the data is scoped.
+Workers receive `$JETTSTUI_TENANT` and namespace their memory writes by prefix. The board, the dispatcher, and the profile definitions are all shared; only the data is scoped.
 
 ## Gateway notifications
 
@@ -865,10 +865,10 @@ When you run `/kanban create …` from the gateway (Telegram, Discord, Slack, et
 You can manage subscriptions explicitly from the CLI — useful when a script / cron job wants to notify a chat it didn't originate from:
 
 ```bash
-freeide kanban notify-subscribe t_abcd \
+jettstui kanban notify-subscribe t_abcd \
     --platform telegram --chat-id 12345678 --thread-id 7
-freeide kanban notify-list
-freeide kanban notify-unsubscribe t_abcd \
+jettstui kanban notify-list
+jettstui kanban notify-unsubscribe t_abcd \
     --platform telegram --chat-id 12345678 --thread-id 7
 ```
 
@@ -900,13 +900,13 @@ kanban_complete(
 The same handoff is reachable from the CLI when you (the human) need to close out a task a worker can't — e.g. a task that was abandoned, or one you marked done manually from the dashboard:
 
 ```bash
-freeide kanban complete t_abcd \
+jettstui kanban complete t_abcd \
     --result "rate limiter shipped" \
     --summary "implemented token bucket, keys on user_id with IP fallback, all tests pass" \
     --metadata '{"changed_files": ["limiter.py", "tests/test_limiter.py"], "tests_run": 14}'
 
 # Review the attempt history on a retried task:
-freeide kanban runs t_abcd
+jettstui kanban runs t_abcd
 #   #  OUTCOME       PROFILE           ELAPSED  STARTED
 #   1  blocked       worker               12s  2026-04-27 14:02
 #        → BLOCKED: need decision on rate-limit key
@@ -916,11 +916,11 @@ freeide kanban runs t_abcd
 
 Runs are exposed on the dashboard (Run History section in the drawer, one coloured row per attempt) and on the REST API (`GET /api/plugins/kanban/tasks/:id` returns a `runs[]` array). `PATCH /api/plugins/kanban/tasks/:id` with `{status: "done", summary, metadata}` forwards both to the kernel, so the dashboard's "mark done" button is CLI-equivalent. `task_events` rows carry the `run_id` they belong to so the UI can group them by attempt, and the `completed` event embeds the first-line summary in its payload (capped at 400 chars) so gateway notifiers can render structured handoffs without a second SQL round-trip.
 
-**Bulk close caveat.** `freeide kanban complete a b c --summary X` is refused — structured handoff is per-run, so copy-pasting the same summary to N tasks is almost always wrong. Bulk close *without* `--summary` / `--metadata` still works for the common "I finished a pile of admin tasks" case.
+**Bulk close caveat.** `jettstui kanban complete a b c --summary X` is refused — structured handoff is per-run, so copy-pasting the same summary to N tasks is almost always wrong. Bulk close *without* `--summary` / `--metadata` still works for the common "I finished a pile of admin tasks" case.
 
 **Reclaimed runs from status changes.** If you drag a running task off `running` in the dashboard (back to `ready`, or straight to `todo`), or archive a task that was still running, the in-flight run closes with `outcome='reclaimed'` rather than being orphaned. The `task_runs` row is always in a terminal state when `tasks.current_run_id` is `NULL`, and vice versa — that invariant holds across CLI, dashboard, dispatcher, and notifier.
 
-**Synthetic runs for never-claimed completions.** Completing or blocking a task that was never claimed (e.g. a human closes a `ready` task from the dashboard with a summary, or a CLI user runs `freeide kanban complete <ready-task> --summary X`) would otherwise drop the handoff. Instead the kernel inserts a zero-duration run row (`started_at == ended_at`) carrying the summary / metadata / reason so attempt history stays complete. The `completed` / `blocked` event's `run_id` points at that row.
+**Synthetic runs for never-claimed completions.** Completing or blocking a task that was never claimed (e.g. a human closes a `ready` task from the dashboard with a summary, or a CLI user runs `jettstui kanban complete <ready-task> --summary X`) would otherwise drop the handoff. Instead the kernel inserts a zero-duration run row (`started_at == ended_at`) carrying the summary / metadata / reason so attempt history stays complete. The `completed` / `blocked` event's `run_id` points at that row.
 
 **Live drawer refresh.** When the dashboard's WebSocket event stream reports new events for the task the user is currently viewing, the drawer reloads itself (via a per-task event counter threaded into its `useEffect` dependency list). Closing and reopening is no longer required to see a run's new row or updated outcome.
 
@@ -930,7 +930,7 @@ Two nullable columns on `tasks` are reserved for v2 workflow routing: `workflow_
 
 ## Event reference
 
-Every transition appends a row to `task_events`. Each row carries an optional `run_id` so UIs can group events by attempt. Kinds group into three clusters so filtering is easy (`freeide kanban watch --kinds completed,gave_up,timed_out`):
+Every transition appends a row to `task_events`. Each row carries an optional `run_id` so UIs can group events by attempt. Kinds group into three clusters so filtering is easy (`jettstui kanban watch --kinds completed,gave_up,timed_out`):
 
 **Lifecycle** (what changed about the task as a logical unit):
 
@@ -960,7 +960,7 @@ Every transition appends a row to `task_events`. Each row carries an optional `r
 | Kind | Payload | When |
 |---|---|---|
 | `spawned` | `{pid}` | Dispatcher successfully started a worker process. |
-| `heartbeat` | `{note?}` | Worker called `freeide kanban heartbeat $TASK` to signal liveness during long operations. |
+| `heartbeat` | `{note?}` | Worker called `jettstui kanban heartbeat $TASK` to signal liveness during long operations. |
 | `reclaimed` | `{stale_lock}` | Claim TTL expired without a completion; task goes back to `ready`. |
 | `crashed` | `{pid, claimer}` | Worker PID no longer alive but TTL hadn't expired yet. |
 | `timed_out` | `{pid, elapsed_seconds, limit_seconds, sigkill}` | `max_runtime_seconds` exceeded; dispatcher SIGTERM'd (then SIGKILL'd after 5 s grace) and re-queued. |
@@ -970,12 +970,12 @@ Every transition appends a row to `task_events`. Each row carries an optional `r
 | `protocol_violation` | `{pid, claimer, exit_code, protocol_violation}` | Worker exited successfully while the task was still `running`, usually because it answered without calling `kanban_complete` or `kanban_block`. Emitted on every violation (the payload's `protocol_violation: true` marker is copied into the run metadata and feeds the violation-only retry budget). Below the budget — up to `_PROTOCOL_VIOLATION_FAILURE_LIMIT` (default 3) *consecutive* violations, per-task `max_retries` overriding — the task simply returns to `ready` for another attempt; when the streak reaches the bound the dispatcher also emits `gave_up` and auto-blocks. |
 | `gave_up` | `{failures, effective_limit, limit_source, error}` | Circuit breaker fired after N consecutive non-successful attempts. Task auto-blocks with the last error. The effective limit resolves as task `max_retries`, then dispatcher `failure_limit` / `kanban.failure_limit`, then the built-in default. |
 
-`freeide kanban tail <id>` shows these for a single task. `freeide kanban watch` streams them board-wide.
+`jettstui kanban tail <id>` shows these for a single task. `jettstui kanban watch` streams them board-wide.
 
 ## Out of scope
 
-Kanban is deliberately single-host. `~/.freeide/kanban.db` is a local SQLite file and the dispatcher spawns workers on the same machine. Running a shared board across two hosts is not supported — there's no coordination primitive for "worker X on host A, worker Y on host B," and the crash-detection path assumes PIDs are host-local. If you need multi-host, run an independent board per host and use `delegate_task` / a message queue to bridge them.
+Kanban is deliberately single-host. `~/.jettstui/kanban.db` is a local SQLite file and the dispatcher spawns workers on the same machine. Running a shared board across two hosts is not supported — there's no coordination primitive for "worker X on host A, worker Y on host B," and the crash-detection path assumes PIDs are host-local. If you need multi-host, run an independent board per host and use `delegate_task` / a message queue to bridge them.
 
 ## Design spec
 
-The complete design — architecture, concurrency correctness, comparison with other systems, implementation plan, risks, open questions — lives in `docs/freeide-kanban-v1-spec.pdf`. Read that before filing any behavior-change PR.
+The complete design — architecture, concurrency correctness, comparison with other systems, implementation plan, risks, open questions — lives in `docs/jettstui-kanban-v1-spec.pdf`. Read that before filing any behavior-change PR.

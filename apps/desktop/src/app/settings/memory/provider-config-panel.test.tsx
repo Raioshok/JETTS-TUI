@@ -1,12 +1,12 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { MemoryProviderConfig } from '@/types/freeide'
+import type { MemoryProviderConfig } from '@/types/jettstui'
 
 const getMemoryProviderConfig = vi.fn()
 const saveMemoryProviderConfig = vi.fn()
 
-vi.mock('@/freeide', () => ({
+vi.mock('@/jettstui', () => ({
   getMemoryProviderConfig: (provider: string) => getMemoryProviderConfig(provider),
   saveMemoryProviderConfig: (provider: string, values: unknown) => saveMemoryProviderConfig(provider, values)
 }))
@@ -26,7 +26,7 @@ function honchoSchema(): MemoryProviderConfig {
   return {
     name: 'honcho',
     label: 'Honcho',
-    docs_url: 'https://docs.honcho.dev/v3/guides/integrations/freeide',
+    docs_url: 'https://docs.honcho.dev/v3/guides/integrations/jettstui',
     fields: [
       {
         key: 'apiKey',
@@ -74,7 +74,7 @@ function honchoSchema(): MemoryProviderConfig {
         kind: 'text',
         value: 'myws',
         description: 'Honcho workspace ID.',
-        placeholder: 'freeide',
+        placeholder: 'jettstui',
         is_set: true,
         inline: true,
         group: 'Connection',
@@ -187,7 +187,7 @@ describe('ProviderConfigPanel', () => {
   })
 
   it('shows an inline error with retry when the load fails, then recovers', async () => {
-    getMemoryProviderConfig.mockRejectedValueOnce(new Error('Timed out connecting to FreeIDE backend'))
+    getMemoryProviderConfig.mockRejectedValueOnce(new Error('Timed out connecting to JettsTUI backend'))
 
     await renderPanel()
 

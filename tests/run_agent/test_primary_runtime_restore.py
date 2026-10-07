@@ -522,7 +522,7 @@ class TestTryRecoverPrimaryTransport:
         """OpenAI-wire Portal traffic still rides aggregator retry infra."""
         agent = _make_agent(
             provider="nous",
-            base_url="https://inference-api.freeide.dev/v1",
+            base_url="https://inference-api.jettstui.dev/v1",
         )
         agent.api_mode = "chat_completions"
         error = _make_transport_error("ReadTimeout")
@@ -536,7 +536,7 @@ class TestTryRecoverPrimaryTransport:
         """Portal Claude holds a local Anthropic SDK client — rebuild it."""
         agent = _make_agent(
             provider="nous",
-            base_url="https://inference-api.freeide.dev/v1",
+            base_url="https://inference-api.jettstui.dev/v1",
         )
         agent.api_mode = "anthropic_messages"
         agent.model = "anthropic/claude-opus-4.8"
@@ -545,7 +545,7 @@ class TestTryRecoverPrimaryTransport:
             "model": "anthropic/claude-opus-4.8",
             "provider": "nous",
             "anthropic_api_key": "portal-jwt",
-            "anthropic_base_url": "https://inference-api.freeide.dev/v1",
+            "anthropic_base_url": "https://inference-api.jettstui.dev/v1",
             "is_anthropic_oauth": False,
         })
         error = _make_transport_error("ReadTimeout")

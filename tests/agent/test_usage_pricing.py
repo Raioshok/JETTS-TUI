@@ -284,7 +284,7 @@ def test_deepseek_v4_pro_pricing_entry_exists():
     """Regression test: deepseek-v4-pro must have a pricing entry.
 
     Before this fix, deepseek-v4-pro sessions showed as unknown cost
-    in freeide insights because the _OFFICIAL_DOCS_PRICING table had no
+    in jettstui insights because the _OFFICIAL_DOCS_PRICING table had no
     entry for that model.  See #24218.  Rates track the 2026-07 price cut
     ($1.74/$3.48 → $0.435/$0.87). Re-verified 2026-09-23 against the live
     sheet: the current peak rates are $1.32/$3.96 (off-peak is half that).
@@ -596,7 +596,7 @@ def test_fireworks_plugin_fallback_models_all_have_pricing():
 
 def test_fireworks_rows_all_carry_cache_read_pricing():
     """Invariant: Fireworks publishes cached-input rates for every serverless
-    model, and FreeIDE prompt caching is active on Fireworks sessions — every
+    model, and JettsTUI prompt caching is active on Fireworks sessions — every
     snapshot row must carry a cache_read rate cheaper than fresh input."""
     from agent.usage_pricing import _OFFICIAL_DOCS_PRICING
 

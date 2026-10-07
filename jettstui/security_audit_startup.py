@@ -13,7 +13,7 @@ and simply yields no finding):
 1. Running as root (POSIX uid 0).
 2. SSH daemon present with password authentication enabled.
 3. Running inside a container with no persistent volume mount over the
-   FREEIDE_HOME data dir (state is ephemeral — lost on container restart).
+   JETTSTUI_HOME data dir (state is ephemeral — lost on container restart).
 4. A network-accessible gateway listener (dashboard / API server) with no
    authentication configured.
 
@@ -28,7 +28,7 @@ import re
 from pathlib import Path
 from typing import Any, Optional
 
-logger = logging.getLogger("freeide.security_audit")
+logger = logging.getLogger("jettstui.security_audit")
 
 # Sentinel so the audit only runs once per process even if both the CLI and
 # gateway startup paths call it.
@@ -52,7 +52,7 @@ def _running_as_root() -> Optional[str]:
     return (
         "Running as ROOT. The agent's terminal/file tools execute with full "
         "root privileges — a single prompt-injection or exposed endpoint is a "
-        "full host compromise. Run FreeIDE as an unprivileged user (or in a "
+        "full host compromise. Run JettsTUI as an unprivileged user (or in a "
         "sandboxed terminal backend / container with a non-root user)."
     )
 
@@ -116,7 +116,7 @@ def _in_container() -> bool:
     """Best-effort container detection (Docker / Podman / generic OCI)."""
     if os.path.exists("/.dockerenv"):
         return True
-    if os.environ.get("FREEIDE_DESKTOP_CHILD_PID"):
+    if os.environ.get("JETTSTUI_DESKTOP_CHILD_PID"):
         return False  # desktop child, not a server container
     try:
         cgroup = Path("/proc/1/cgroup").read_text(encoding="utf-8", errors="replace")
@@ -165,11 +165,11 @@ def _path_is_mounted(path: Path) -> bool:
     return best_fstype not in ("overlay", "tmpfs", "aufs")
 
 
-def _container_no_volume_mount(freeide_home: Optional[Path]) -> Optional[str]:
+def _container_no_volume_mount(jettstui_home: Optional[Path]) -> Optional[str]:
     if not _in_container():
         return None
-    home = freeide_home or Path(
-        os.environ.get("FREEIDE_HOME", os.path.expanduser("~/.freeide"))
+    home = jettstui_home or Path(
+        os.environ.get("JETTSTUI_HOME", os.path.expanduser("~/.jettstui"))
     )
     try:
         if _path_is_mounted(home):
@@ -180,7 +180,7 @@ def _container_no_volume_mount(freeide_home: Optional[Path]) -> Optional[str]:
         f"Running in a container but the data dir ({home}) is NOT on a "
         "persistent volume mount — sessions, memory, skills, and API keys are "
         "ephemeral and lost on container restart. Mount a host volume over the "
-        "FREEIDE_HOME data directory."
+        "JETTSTUI_HOME data directory."
     )
 
 
@@ -221,7 +221,7 @@ def _network_listener_without_auth(config: Optional[dict]) -> list[str]:
 
 
 def run_security_audit(
-    *, freeide_home: Optional[Path] = None, config: Optional[dict] = None
+    *, jettstui_home: Optional[Path] = None, config: Optional[dict] = None
 ) -> list[str]:
     """Run all checks and return a list of human-readable warning strings.
 
@@ -241,7 +241,7 @@ def run_security_audit(
         except Exception:
             continue
     try:
-        r = _container_no_volume_mount(freeide_home)
+        r = _container_no_volume_mount(jettstui_home)
         if r:
             findings.append(r)
     except Exception:
@@ -255,7 +255,7 @@ def run_security_audit(
 
 def log_startup_security_warnings(
     *,
-    freeide_home: Optional[Path] = None,
+    jettstui_home: Optional[Path] = None,
     config: Optional[dict] = None,
     force: bool = False,
 ) -> list[str]:
@@ -269,7 +269,7 @@ def log_startup_security_warnings(
         return []
     _AUDIT_RAN = True
     try:
-        findings = run_security_audit(freeide_home=freeide_home, config=config)
+        findings = run_security_audit(jettstui_home=jettstui_home, config=config)
     except Exception:
         return []
     if findings:

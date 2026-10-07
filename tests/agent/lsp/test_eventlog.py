@@ -23,7 +23,7 @@ def _reset():
 
 @pytest.fixture
 def caplog_lsp(caplog):
-    caplog.set_level(logging.DEBUG, logger="freeide.lint.lsp")
+    caplog.set_level(logging.DEBUG, logger="jettstui.lint.lsp")
     return caplog
 
 

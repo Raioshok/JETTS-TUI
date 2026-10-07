@@ -2,7 +2,7 @@
   "name": "@jetts-tui/bootstrap-installer",
   "private": true,
   "version": "0.0.1",
-  "description": "Jetts-TUI Setup — installer that drives the platform install scripts with a native UI.",
+  "description": "JettsTUI Setup — installer that drives the platform install scripts with a native UI.",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5175",

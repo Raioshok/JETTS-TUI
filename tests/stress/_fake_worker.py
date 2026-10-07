@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Fake worker process that exercises the real subprocess contract.
 
-Reads FREEIDE_KANBAN_TASK from env, heartbeats periodically, does short
+Reads JETTSTUI_KANBAN_TASK from env, heartbeats periodically, does short
 work, completes via the CLI. Designed to be spawned by the dispatcher
-exactly the way `freeide chat -q` would be, minus the LLM cost.
+exactly the way `jettstui chat -q` would be, minus the LLM cost.
 """
 
 import json
@@ -13,12 +13,12 @@ import time
 
 
 def main():
-    tid = os.environ["FREEIDE_KANBAN_TASK"]
-    workspace = os.environ.get("FREEIDE_KANBAN_WORKSPACE", "")
+    tid = os.environ["JETTSTUI_KANBAN_TASK"]
+    workspace = os.environ.get("JETTSTUI_KANBAN_WORKSPACE", "")
 
     # Announce via CLI (goes through real argparse + init_db + etc)
     subprocess.run(
-        ["freeide", "kanban", "heartbeat", tid, "--note", "started"],
+        ["jettstui", "kanban", "heartbeat", tid, "--note", "started"],
         check=True, capture_output=True,
     )
 
@@ -26,14 +26,14 @@ def main():
     for i in range(3):
         time.sleep(0.3)
         subprocess.run(
-            ["freeide", "kanban", "heartbeat", tid, "--note", f"progress {i+1}/3"],
+            ["jettstui", "kanban", "heartbeat", tid, "--note", f"progress {i+1}/3"],
             check=True, capture_output=True,
         )
 
     # Complete with structured handoff
     subprocess.run(
         [
-            "freeide", "kanban", "complete", tid,
+            "jettstui", "kanban", "complete", tid,
             "--summary", f"real-subprocess worker finished {tid}",
             "--metadata", json.dumps({
                 "workspace": workspace,

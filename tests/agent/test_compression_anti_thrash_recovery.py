@@ -28,7 +28,7 @@ The recovery contract pinned here:
 from unittest.mock import patch
 
 from agent.context_compressor import ContextCompressor
-from freeide_state import SessionDB
+from jettstui_state import SessionDB
 
 
 def _compressor(threshold_tokens: int = 10_000) -> ContextCompressor:

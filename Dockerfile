@@ -136,7 +136,7 @@ RUN set -eu; \
 
 # #34192 / #66679: backward-compat shim for orchestration templates that
 # still reference the legacy /usr/bin/tini entrypoint (Hostinger's
-# 'FreeIDE WebUI' catalog, NAS compose projects that preserve an old
+# 'JettsTUI WebUI' catalog, NAS compose projects that preserve an old
 # entrypoint on image update, etc.). A plain symlink to /init made the
 # path exist, but forwarded tini flags like `-g` into s6-overlay's
 # rc.init as the container CMD (`rc.init: 91: -g: not found`) and
@@ -146,7 +146,7 @@ RUN set -eu; \
 # updated.
 COPY --chmod=0755 docker/tini-shim.sh /usr/bin/tini
 
-# Non-root user for runtime; UID can be overridden via FREEIDE_UID at runtime
+# Non-root user for runtime; UID can be overridden via JETTSTUI_UID at runtime
 RUN useradd -u 10000 -m -d /opt/data jettstui
 
 COPY --chmod=0755 --from=uv_source /usr/local/bin/uv /usr/local/bin/uvx /usr/local/bin/
@@ -278,14 +278,14 @@ RUN mkdir -p /opt/jettstui/bin && \
     chmod 0755 /opt/jettstui/bin/jetts-tui && \
     printf 'docker\n' > /opt/jettstui/.install_method
 # The ``.install_method`` stamp is baked next to the running code (the install
-# tree), NOT into $FREEIDE_HOME. $FREEIDE_HOME (/opt/data) is a shared data
+# tree), NOT into $JETTSTUI_HOME. $JETTSTUI_HOME (/opt/data) is a shared data
 # volume that is commonly bind-mounted from the host and even shared with a
 # host-side Desktop/CLI install; stamping it at boot used to clobber that
 # host install's marker and wrongly block its ``jetts-tui update``. A code-scoped
 # stamp is read first by detect_install_method() and is immune to the share.
 # Start as root so the s6-overlay stage2 hook can usermod/groupmod and chown
 # the data volume. Each supervised service then drops to the jettstui user via
-# `s6-setuidgid jettstui` in its run script. If FREEIDE_UID is unset, services
+# `s6-setuidgid jettstui` in its run script. If JETTSTUI_UID is unset, services
 # run as the default jettstui user (UID 10000).
 
 # ---------- Bake build-time git revision ----------
@@ -295,8 +295,8 @@ RUN mkdir -p /opt/jettstui/bin && \
 # That makes support triage from container bug reports impossible:
 # we can't tell which commit the user is actually running.
 #
-# Fix: write the commit SHA passed via the FREEIDE_GIT_SHA build-arg to
-# /opt/jettstui/.freeide_build_sha at build time, and have
+# Fix: write the commit SHA passed via the JETTSTUI_GIT_SHA build-arg to
+# /opt/jettstui/.jettstui_build_sha at build time, and have
 # jettstui/build_info.py read it at runtime.  Both `jetts-tui dump` and
 # banner.get_git_banner_state() try the baked SHA first, then fall back
 # to live `git rev-parse` for source installs (unchanged behaviour).
@@ -305,9 +305,9 @@ RUN mkdir -p /opt/jettstui/bin && \
 # omits the file, and the runtime falls back to live-git lookup.  CI
 # (.github/workflows/docker.yml) passes ${{ github.sha }} so
 # every published image has it.
-ARG FREEIDE_GIT_SHA=
-RUN if [ -n "${FREEIDE_GIT_SHA}" ]; then \
-        printf '%s\n' "${FREEIDE_GIT_SHA}" > /opt/jettstui/.freeide_build_sha; \
+ARG JETTSTUI_GIT_SHA=
+RUN if [ -n "${JETTSTUI_GIT_SHA}" ]; then \
+        printf '%s\n' "${JETTSTUI_GIT_SHA}" > /opt/jettstui/.jettstui_build_sha; \
     fi
 
 # ---------- s6-overlay service wiring ----------
@@ -324,7 +324,7 @@ COPY docker/s6-rc.d/ /etc/s6-overlay/s6-rc.d/
 # runs before user services start.
 #
 # 02-reconcile-profiles re-creates per-profile gateway s6 service
-# slots from $FREEIDE_HOME/profiles/<name>/ after a container restart
+# slots from $JETTSTUI_HOME/profiles/<name>/ after a container restart
 # (the /run/service/ scandir is tmpfs and wiped on restart). Phase 4.
 RUN mkdir -p /etc/cont-init.d && \
     printf '#!/command/with-contenv sh\nexec /opt/jettstui/docker/stage2-hook.sh\n' \
@@ -334,7 +334,7 @@ COPY --chmod=0755 docker/cont-init.d/015-supervise-perms /etc/cont-init.d/015-su
 COPY --chmod=0755 docker/cont-init.d/02-reconcile-profiles /etc/cont-init.d/02-reconcile-profiles
 
 # ---------- Runtime ----------
-ENV FREEIDE_WEB_DIST=/opt/jettstui/jettstui/web_dist
+ENV JETTSTUI_WEB_DIST=/opt/jettstui/jettstui/web_dist
 # Point the TUI launcher at the prebuilt bundle baked at build time (Layer 8:
 # `ui-tui && npm run build`). This makes _make_tui_argv take the prebuilt-bundle
 # fast path (`node --expose-gc /opt/jettstui/ui-tui/dist/entry.js`) and skip the
@@ -351,10 +351,10 @@ ENV FREEIDE_WEB_DIST=/opt/jettstui/jettstui/web_dist
 # embedded-chat (/api/pty) connections → ENOTEMPTY → the chat tab dies with a
 # 502 / "[session ended]". Pointing at the prebuilt bundle sidesteps the whole
 # check. (A separate launcher hardening is tracked independently.)
-ENV FREEIDE_TUI_DIR=/opt/jettstui/ui-tui
-ENV FREEIDE_HOME=/opt/data
-ENV FREEIDE_WRITE_SAFE_ROOT=/opt/data
-ENV FREEIDE_DISABLE_LAZY_INSTALLS=1
+ENV JETTSTUI_TUI_DIR=/opt/jettstui/ui-tui
+ENV JETTSTUI_HOME=/opt/data
+ENV JETTSTUI_WRITE_SAFE_ROOT=/opt/data
+ENV JETTSTUI_DISABLE_LAZY_INSTALLS=1
 # The published image seals /opt/jettstui (root-owned, read-only) so a runtime
 # lazy install can't mutate the agent's own venv and brick it. But opt-in
 # backends (Firecrawl web search, Exa, Feishu, …) keep their SDKs in
@@ -367,11 +367,11 @@ ENV FREEIDE_DISABLE_LAZY_INSTALLS=1
 # is seeded + chowned to the jettstui user by docker/stage2-hook.sh and lives
 # on the /opt/data volume, so it persists across container recreates / image
 # updates (an ABI stamp invalidates it if a rebuild bumps the interpreter).
-ENV FREEIDE_LAZY_INSTALL_TARGET=/opt/data/lazy-packages
+ENV JETTSTUI_LAZY_INSTALL_TARGET=/opt/data/lazy-packages
 
 # `docker exec` privilege-drop shim. When operators run
 # `docker exec <c> jetts-tui ...` they default to root, and any file the
-# command writes under $FREEIDE_HOME (auth.json, .env, config.yaml) ends
+# command writes under $JETTSTUI_HOME (auth.json, .env, config.yaml) ends
 # up root-owned and unreadable to the supervised gateway (UID 10000).
 # The shim lives at /opt/jettstui/bin/jetts-tui, sits earliest on PATH, and
 # transparently re-exec's the real venv binary via `s6-setuidgid jettstui`
@@ -379,7 +379,7 @@ ENV FREEIDE_LAZY_INSTALL_TARGET=/opt/data/lazy-packages
 # `--user jettstui`, etc.) hit the short-circuit path with no overhead.
 # Recursion is impossible because the shim exec's the venv binary by
 # absolute path (/opt/jettstui/.venv/bin/jetts-tui). See the shim source for
-# the opt-out env var (FREEIDE_DOCKER_EXEC_AS_ROOT=1).
+# the opt-out env var (JETTSTUI_DOCKER_EXEC_AS_ROOT=1).
 
 # Pre-s6 entrypoint.sh did `source .venv/bin/activate` which exported
 # the venv bin onto PATH; Architecture B's main-wrapper.sh does the

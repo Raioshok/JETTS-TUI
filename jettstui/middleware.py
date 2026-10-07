@@ -1,4 +1,4 @@
-"""FreeIDE middleware contract helpers.
+"""JettsTUI middleware contract helpers.
 
 Observer hooks report what happened. Middleware can change what happens by
 rewriting a request or wrapping the actual execution callback. Keep the small
@@ -14,8 +14,8 @@ from typing import Any, Callable, Dict, List, Optional
 
 logger = logging.getLogger(__name__)
 
-OBSERVER_SCHEMA_VERSION = "freeide.observer.v1"
-MIDDLEWARE_SCHEMA_VERSION = "freeide.middleware.v1"
+OBSERVER_SCHEMA_VERSION = "jettstui.observer.v1"
+MIDDLEWARE_SCHEMA_VERSION = "jettstui.middleware.v1"
 
 TOOL_REQUEST_MIDDLEWARE = "tool_request"
 TOOL_EXECUTION_MIDDLEWARE = "tool_execution"
@@ -81,7 +81,7 @@ def apply_llm_request_middleware(
     """Apply registered LLM request middleware.
 
     Middleware may return ``{"request": {...}}`` to replace the effective
-    provider kwargs before FreeIDE sends them.
+    provider kwargs before JettsTUI sends them.
     """
     if not _has_middleware(LLM_REQUEST_MIDDLEWARE):
         return RequestMiddlewareResult(
@@ -220,19 +220,19 @@ def run_api_execution_middleware(
 
 
 def _invoke_middleware(kind: str, **kwargs: Any) -> List[Any]:
-    from freeide_cli.plugins import invoke_middleware
+    from jettstui.plugins import invoke_middleware
 
     return invoke_middleware(kind, **middleware_payload(**kwargs))
 
 
 def _has_middleware(kind: str) -> bool:
-    from freeide_cli.plugins import has_middleware
+    from jettstui.plugins import has_middleware
 
     return has_middleware(kind)
 
 
 def _get_middleware_callbacks(kind: str) -> List[Callable]:
-    from freeide_cli.plugins import get_plugin_manager
+    from jettstui.plugins import get_plugin_manager
 
     return list(get_plugin_manager()._middleware.get(kind, []))
 

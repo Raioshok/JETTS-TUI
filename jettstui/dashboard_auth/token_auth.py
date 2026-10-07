@@ -20,7 +20,7 @@ How it fits the existing auth framework:
   * :func:`token_auth_middleware` runs OUTERMOST (installed last in
     ``web_server.py``). For a token route it fully owns the auth decision:
     authenticate via the stacked token providers, attach the verified
-    :class:`~freeide_cli.dashboard_auth.base.TokenPrincipal` to
+    :class:`~jettstui.dashboard_auth.base.TokenPrincipal` to
     ``request.state.token_principal`` + set ``request.state.token_authenticated``,
     and pass through; otherwise reject (401 unauthenticated, or 503 when a
     provider's backing store was unreachable). The downstream cookie/session
@@ -45,9 +45,9 @@ from typing import Awaitable, Callable, Optional, Tuple
 from fastapi import Request
 from fastapi.responses import JSONResponse, Response
 
-from freeide_cli.dashboard_auth import list_token_providers
-from freeide_cli.dashboard_auth.audit import AuditEvent, audit_log
-from freeide_cli.dashboard_auth.base import ProviderError, TokenPrincipal
+from jettstui.dashboard_auth import list_token_providers
+from jettstui.dashboard_auth.audit import AuditEvent, audit_log
+from jettstui.dashboard_auth.base import ProviderError, TokenPrincipal
 
 _log = logging.getLogger(__name__)
 

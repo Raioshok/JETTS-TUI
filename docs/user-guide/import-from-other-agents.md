@@ -1,54 +1,54 @@
 ---
 sidebar_position: 9
 title: "Import from Other Agents"
-description: "One-command import of a Claude Code (~/.claude) or OpenAI Codex CLI (~/.codex) setup into FreeIDE — instructions, allowlists, MCP servers, skills, and memories."
+description: "One-command import of a Claude Code (~/.claude) or OpenAI Codex CLI (~/.codex) setup into JettsTUI — instructions, allowlists, MCP servers, skills, and memories."
 ---
 
 # Import from Other Agents
 
-`freeide import-agent` imports your existing **Claude Code** or **OpenAI Codex CLI** setup into FreeIDE with one command. It follows the same preview-first pattern as [`freeide claw migrate`](../guides/migrate-from-openclaw.md): you always see a per-item plan before anything is written, and `--dry-run` never touches disk.
+`jettstui import-agent` imports your existing **Claude Code** or **OpenAI Codex CLI** setup into JettsTUI with one command. It follows the same preview-first pattern as [`jettstui claw migrate`](../guides/migrate-from-openclaw.md): you always see a per-item plan before anything is written, and `--dry-run` never touches disk.
 
 ```bash
-freeide import-agent                    # auto-detect ~/.claude or ~/.codex
-freeide import-agent claude-code        # import from ~/.claude
-freeide import-agent codex              # import from ~/.codex
-freeide import-agent claude-code --dry-run          # preview only
-freeide import-agent codex --source /path/to/.codex # custom location
-freeide import-agent claude-code --overwrite --yes  # replace conflicts, skip prompts
+jettstui import-agent                    # auto-detect ~/.claude or ~/.codex
+jettstui import-agent claude-code        # import from ~/.claude
+jettstui import-agent codex              # import from ~/.codex
+jettstui import-agent claude-code --dry-run          # preview only
+jettstui import-agent codex --source /path/to/.codex # custom location
+jettstui import-agent claude-code --overwrite --yes  # replace conflicts, skip prompts
 ```
 
 ## What gets imported
 
 ### Claude Code (`~/.claude`)
 
-| Claude Code | FreeIDE |
+| Claude Code | JettsTUI |
 |---|---|
-| `CLAUDE.md` (global instructions) | Memory entries in `~/.freeide/memories/MEMORY.md` |
+| `CLAUDE.md` (global instructions) | Memory entries in `~/.jettstui/memories/MEMORY.md` |
 | `settings.json` → `permissions.allow` (`Bash(...)` rules) | `command_allowlist` in `config.yaml` |
 | `settings.json` → `permissions.deny` (`Bash(...)` rules) | `approvals.deny` in `config.yaml` |
 | `mcpServers` (from `~/.claude.json` and `settings.json`) | `mcp_servers` in `config.yaml` |
-| `skills/<name>/` (dirs with `SKILL.md`) | `~/.freeide/skills/claude-code-imports/<name>/` |
+| `skills/<name>/` (dirs with `SKILL.md`) | `~/.jettstui/skills/claude-code-imports/<name>/` |
 | `commands/*.md` (slash commands) | Skipped with a note — convert them into skills |
 
 Claude's `Bash(npm run test:*)` prefix rules become `npm run test*` globs. Non-`Bash` permission rules (`Read(...)`, `WebFetch`, ...) gate Claude-specific tools and are reported as unmapped rather than imported.
 
 ### Codex CLI (`~/.codex`)
 
-| Codex CLI | FreeIDE |
+| Codex CLI | JettsTUI |
 |---|---|
-| `AGENTS.md` (global instructions) | Memory entries in `~/.freeide/memories/MEMORY.md` |
+| `AGENTS.md` (global instructions) | Memory entries in `~/.jettstui/memories/MEMORY.md` |
 | `config.toml` → `[mcp_servers.*]` | `mcp_servers` in `config.yaml` |
-| `memories/*.md` | Memory entries in `~/.freeide/memories/MEMORY.md` |
-| `skills/<name>/` (dirs with `SKILL.md`) | `~/.freeide/skills/codex-imports/<name>/` |
+| `memories/*.md` | Memory entries in `~/.jettstui/memories/MEMORY.md` |
+| `skills/<name>/` (dirs with `SKILL.md`) | `~/.jettstui/skills/codex-imports/<name>/` |
 
 ## What is never imported
 
-**API keys and credentials.** Credential files (`~/.claude/.credentials.json`, `~/.codex/auth.json`) are never read, and MCP server environment variables or headers with secret-looking names (`*_TOKEN`, `*_API_KEY`, `Authorization`, ...) are stripped and listed in the report so you can re-add them deliberately. Run `freeide setup` to configure providers, or add secrets to `~/.freeide/.env`.
+**API keys and credentials.** Credential files (`~/.claude/.credentials.json`, `~/.codex/auth.json`) are never read, and MCP server environment variables or headers with secret-looking names (`*_TOKEN`, `*_API_KEY`, `Authorization`, ...) are stripped and listed in the report so you can re-add them deliberately. Run `jettstui setup` to configure providers, or add secrets to `~/.jettstui/.env`.
 
 ## Behavior notes
 
 - **Preview first, always.** The command prints the full plan before applying; in non-interactive sessions it stops at the preview unless you pass `--yes`.
 - **Merges, not replaces.** Memory entries are deduplicated against your existing `MEMORY.md`; allowlist/denylist patterns merge with what's already in `config.yaml`.
-- **Conflicts are skipped by default.** An MCP server or skill that already exists in FreeIDE is reported as a conflict; pass `--overwrite` to replace it.
+- **Conflicts are skipped by default.** An MCP server or skill that already exists in JettsTUI is reported as a conflict; pass `--overwrite` to replace it.
 - **Malformed files don't abort the run.** A broken `settings.json` or `config.toml` becomes a per-item error in the report while everything else still imports.
-- Coming from OpenClaw instead? Use [`freeide claw migrate`](../guides/migrate-from-openclaw.md).
+- Coming from OpenClaw instead? Use [`jettstui claw migrate`](../guides/migrate-from-openclaw.md).

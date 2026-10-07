@@ -2,12 +2,12 @@
 
 Mirrors the optional-skills/ pattern: each catalog entry lives under
 ``optional-mcps/<name>/manifest.yaml`` and ships disabled. Users discover
-entries via ``freeide mcp catalog`` or the interactive ``freeide mcp picker``,
-and install them with ``freeide mcp install <name>`` (or by toggling in the
+entries via ``jettstui mcp catalog`` or the interactive ``jettstui mcp picker``,
+and install them with ``jettstui mcp install <name>`` (or by toggling in the
 picker, which flows them through any required env/OAuth setup).
 
 Catalog policy:
-- Entries are added only by merging a PR into freeide-agent. Presence in the
+- Entries are added only by merging a PR into jettstui. Presence in the
   ``optional-mcps/`` directory = catalog approval. No community tier, no trust
   signals beyond "it's in the catalog".
 - Manifests pin transport details (commands, args, refs). Pins follow the
@@ -15,9 +15,9 @@ Catalog policy:
   package launchers (``uvx pkg==X``, ``npx pkg@X``), full commit SHAs for
   git installs, and the pinned release should be at least 2 weeks old at
   pin time. MCPs are never
-  auto-updated; users explicitly re-run ``freeide mcp install <name>`` to
+  auto-updated; users explicitly re-run ``jettstui mcp install <name>`` to
   pull a new manifest version after a repo update.
-- Secrets prompted at install time go to ``~/.freeide/.env`` (the
+- Secrets prompted at install time go to ``~/.jettstui/.env`` (the
   .env-is-for-secrets rule). Non-secret env vars also go to .env to keep
   one credential store.
 
@@ -36,15 +36,15 @@ from typing import Any, Dict, List, Optional
 
 import yaml
 
-from freeide_constants import get_freeide_home, get_optional_mcps_dir
-from freeide_cli.colors import Colors, color
-from freeide_cli.config import (
+from jettstui_constants import get_jettstui_home, get_optional_mcps_dir
+from jettstui.colors import Colors, color
+from jettstui.config import (
     load_config,
     save_config,
     get_env_value,
     save_env_value,
 )
-from freeide_cli.cli_output import prompt as _prompt_input
+from jettstui.cli_output import prompt as _prompt_input
 
 _MANIFEST_VERSION = 1
 
@@ -83,7 +83,7 @@ class TransportSpec:
     version: Optional[str] = None  # informational, pinned
     # Static environment variables for the stdio subprocess (e.g. telemetry
     # opt-outs, mode flags). NOT for secrets — credentials go through
-    # auth.env so they are prompted for and land in ~/.freeide/.env.
+    # auth.env so they are prompted for and land in ~/.jettstui/.env.
     env: Dict[str, str] = field(default_factory=dict)
 
 
@@ -134,7 +134,7 @@ class CatalogError(Exception):
 
 
 def _catalog_root() -> Path:
-    """Return the optional-mcps/ directory shipped with this FreeIDE install."""
+    """Return the optional-mcps/ directory shipped with this JettsTUI install."""
     # Prefer the env-var override / packaged location; fall back to the repo's
     # optional-mcps/ next to the package (source checkout).
     return get_optional_mcps_dir(Path(__file__).parent.parent / "optional-mcps")
@@ -170,7 +170,7 @@ def _parse_manifest(path: Path) -> CatalogEntry:
     if mv != _MANIFEST_VERSION:
         raise CatalogError(
             f"{path}: manifest_version {mv!r} unsupported "
-            f"(this FreeIDE understands version {_MANIFEST_VERSION})"
+            f"(this JettsTUI understands version {_MANIFEST_VERSION})"
         )
 
     name = data.get("name") or ""
@@ -284,7 +284,7 @@ def list_catalog() -> List[CatalogEntry]:
     Invalid manifests are skipped silently (CI tests catch them at PR time).
     Manifests with a future ``manifest_version`` are also skipped, but the
     skip is surfaced via :func:`catalog_diagnostics` so the picker / catalog
-    UIs can tell the user their FreeIDE is out of date.
+    UIs can tell the user their JettsTUI is out of date.
     """
     root = _catalog_root()
     if not root.exists():
@@ -319,8 +319,8 @@ def catalog_diagnostics() -> List[tuple]:
 
     Returns a list of ``(entry_name, kind, message)`` tuples where ``kind``
     is one of:
-      - ``future_manifest`` — manifest_version is newer than this FreeIDE
-        understands. Update FreeIDE to install this entry.
+      - ``future_manifest`` — manifest_version is newer than this JettsTUI
+        understands. Update JettsTUI to install this entry.
       - ``invalid`` — manifest is malformed in some other way (caught by
         CI for shipped manifests; user-modified manifests can hit this).
     """
@@ -367,7 +367,7 @@ def is_enabled(name: str) -> bool:
 
 def _install_root() -> Path:
     """Where git-bootstrapped MCPs are cloned. Per-user, profile-aware."""
-    root = get_freeide_home() / "mcp-installs"
+    root = get_jettstui_home() / "mcp-installs"
     root.mkdir(parents=True, exist_ok=True)
     return root
 
@@ -388,7 +388,7 @@ def _run_bootstrap(cwd: Path, commands: List[str]) -> None:
 
 
 def _do_git_install(entry: CatalogEntry) -> Path:
-    """Clone the entry's repo into ``~/.freeide/mcp-installs/<name>`` and run
+    """Clone the entry's repo into ``~/.jettstui/mcp-installs/<name>`` and run
     bootstrap commands. Returns the install directory."""
     assert entry.install is not None and entry.install.type == "git"
     install = entry.install
@@ -451,7 +451,7 @@ def _expand_install_dir(value: str, install_dir: Optional[Path]) -> str:
 
 def _prompt_env_vars(specs: List[EnvVarSpec]) -> Dict[str, str]:
     """Walk the env spec list, prompting the user for each. Writes secrets and
-    non-secrets alike to ~/.freeide/.env via save_env_value()."""
+    non-secrets alike to ~/.jettstui/.env via save_env_value()."""
     collected: Dict[str, str] = {}
     for spec in specs:
         existing = get_env_value(spec.name)
@@ -477,7 +477,7 @@ def _build_server_config(
     entry: CatalogEntry, install_dir: Optional[Path]
 ) -> dict:
     """Translate a manifest into the ``mcp_servers.<name>`` block format used
-    by freeide_cli/mcp_config.py."""
+    by jettstui/mcp_config.py."""
     cfg: dict = {}
     t = entry.transport
     if t.type == "stdio":
@@ -525,7 +525,7 @@ def _probe_tools(name: str) -> Optional[List[tuple]]:
         return None
     try:
         # Import lazily so the catalog module stays cheap to load.
-        from freeide_cli.mcp_config import _probe_single_server
+        from jettstui.mcp_config import _probe_single_server
 
         tools = _probe_single_server(name, server_cfg)
         return list(tools) if tools is not None else []
@@ -572,7 +572,7 @@ def _apply_tool_selection(
     Probe-fail path:
       - If manifest declares ``tools.default_enabled`` → apply directly.
       - Otherwise → leave config with no filter (all on when reachable).
-      - Either way, point the user at ``freeide mcp configure <name>``.
+      - Either way, point the user at ``jettstui mcp configure <name>``.
     """
     print()
     print(color(f"  Probing '{entry.name}' for available tools...", Colors.CYAN))
@@ -586,7 +586,7 @@ def _apply_tool_selection(
             print(color(
                 f"  Couldn\'t probe server. Applied manifest default "
                 f"({len(manifest_default)} tools). "
-                f"Run `freeide mcp configure {entry.name}` after the server "
+                f"Run `jettstui mcp configure {entry.name}` after the server "
                 "is reachable to refine.",
                 Colors.YELLOW,
             ))
@@ -595,7 +595,7 @@ def _apply_tool_selection(
             print(color(
                 f"  Couldn\'t probe server; installed with no tool filter "
                 "(all tools enabled when reachable). "
-                f"Run `freeide mcp configure {entry.name}` after first "
+                f"Run `jettstui mcp configure {entry.name}` after first "
                 "connect to prune.",
                 Colors.YELLOW,
             ))
@@ -639,7 +639,7 @@ def _apply_tool_selection(
         Colors.GREEN,
     ))
 
-    from freeide_cli.curses_ui import curses_checklist
+    from jettstui.curses_ui import curses_checklist
 
     labels = [
         f"{n}  —  {(d[:60] + '...') if len(d) > 60 else d}"
@@ -656,7 +656,7 @@ def _apply_tool_selection(
         # so the server is installed but contributes nothing until reconfigured.
         _write_tools_include(entry.name, [])
         print(color(
-            f"  No tools selected. Run `freeide mcp configure {entry.name}` "
+            f"  No tools selected. Run `jettstui mcp configure {entry.name}` "
             "to change.",
             Colors.YELLOW,
         ))
@@ -666,7 +666,7 @@ def _apply_tool_selection(
         # Everything selected — clear filter for the cleanest config shape.
         # NOTE: this means any tools the server adds later (e.g. a future MCP
         # version) will also be auto-enabled. To pin to the current set,
-        # the user can re-run `freeide mcp configure <name>` and unselect a
+        # the user can re-run `jettstui mcp configure <name>` and unselect a
         # tool to switch back to include-mode.
         _write_tools_include(entry.name, None)
         print(color(
@@ -721,12 +721,12 @@ def install_entry(entry: CatalogEntry, *, enable: bool = True) -> None:
     elif entry.auth.type == "oauth":
         if entry.auth.provider:
             # Case 2: provider-mediated (Google, GitHub, etc.). We rely on
-            # the existing `freeide auth <provider>` flow. Surface guidance
+            # the existing `jettstui auth <provider>` flow. Surface guidance
             # here rather than auto-running it — keeps the catalog install
             # decoupled from provider-auth lifecycle.
             print(color(
                 f"  This MCP uses {entry.auth.provider} OAuth. Run "
-                f"`freeide auth {entry.auth.provider}` if you have not "
+                f"`jettstui auth {entry.auth.provider}` if you have not "
                 "already authenticated.",
                 Colors.YELLOW,
             ))
@@ -748,7 +748,7 @@ def install_entry(entry: CatalogEntry, *, enable: bool = True) -> None:
     server_cfg = _build_server_config(entry, install_dir)
     server_cfg["enabled"] = enable
 
-    from freeide_cli.mcp_config import _save_mcp_server
+    from jettstui.mcp_config import _save_mcp_server
 
     if not _save_mcp_server(entry.name, server_cfg):
         raise CatalogError(
@@ -762,7 +762,7 @@ def install_entry(entry: CatalogEntry, *, enable: bool = True) -> None:
     print(color(
         f"  ✓ Installed '{entry.name}' "
         f"({'enabled' if enable else 'disabled'}). "
-        f"Start a new FreeIDE session to load its tools.",
+        f"Start a new JettsTUI session to load its tools.",
         Colors.GREEN,
     ))
     if entry.post_install:

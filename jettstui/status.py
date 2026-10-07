@@ -1,7 +1,7 @@
 """
-Status command for freeide CLI.
+Status command for jettstui CLI.
 
-Shows the status of all FreeIDE Agent components.
+Shows the status of all JettsTUI components.
 """
 
 import os
@@ -11,13 +11,13 @@ from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 
-from freeide_cli.auth import AuthError, resolve_provider
-from freeide_cli.colors import Colors, color
-from freeide_cli.config import get_env_path, get_env_value, get_freeide_home, load_config
-from freeide_cli.models import provider_label
-from freeide_cli.runtime_provider import resolve_requested_provider
-from freeide_cli.tool_features import get_tool_features
-from freeide_constants import OPENROUTER_MODELS_URL
+from jettstui.auth import AuthError, resolve_provider
+from jettstui.colors import Colors, color
+from jettstui.config import get_env_path, get_env_value, get_jettstui_home, load_config
+from jettstui.models import provider_label
+from jettstui.runtime_provider import resolve_requested_provider
+from jettstui.tool_features import get_tool_features
+from jettstui_constants import OPENROUTER_MODELS_URL
 
 def check_mark(ok: bool) -> str:
     if ok:
@@ -28,7 +28,7 @@ def redact_key(key: str) -> str:
     """Redact an API key for display.
 
     Thin wrapper over :func:`agent.redact.mask_secret`. Preserves the
-    "(not set)" placeholder in dim color to match ``freeide config``'s
+    "(not set)" placeholder in dim color to match ``jettstui config``'s
     output (previously this variant was missing the DIM color —
     consolidated via PR that also introduced ``mask_secret``).
     """
@@ -94,16 +94,16 @@ def _effective_provider_label() -> str:
     return provider_label(effective)
 
 
-from freeide_constants import is_termux as _is_termux
+from jettstui_constants import is_termux as _is_termux
 
 
 def show_status(args):
-    """Show status of Jetts-TUI components."""
+    """Show status of JettsTUI components."""
     deep = getattr(args, 'deep', False)
 
     print()
     print(color("┌─────────────────────────────────────────────────────────┐", Colors.CYAN))
-    print(color("│" + "◆ Jetts-TUI Status".center(57) + "│", Colors.CYAN))
+    print(color("│" + "◆ JettsTUI Status".center(57) + "│", Colors.CYAN))
     print(color("└─────────────────────────────────────────────────────────┘", Colors.CYAN))
 
     # =========================================================================
@@ -176,7 +176,7 @@ def show_status(args):
         display = redact_key(value)
         print(f"  {name:<12}  {check_mark(has_key)} {display}")
 
-    from freeide_cli.auth import get_anthropic_key
+    from jettstui.auth import get_anthropic_key
     anthropic_value = get_anthropic_key()
     anthropic_display = redact_key(anthropic_value)
     print(f"  {'Anthropic':<12}  {check_mark(bool(anthropic_value))} {anthropic_display}")
@@ -188,7 +188,7 @@ def show_status(args):
     print(color("◆ Auth Providers", Colors.CYAN, Colors.BOLD))
 
     try:
-        from freeide_cli.auth import (
+        from jettstui.auth import (
             get_codex_auth_status,
             get_qwen_auth_status,
             get_minimax_oauth_auth_status,
@@ -247,7 +247,7 @@ def show_status(args):
     # xAI OAuth — separate try/except so an import failure here cannot
     # disrupt the already-printed Codex/Qwen/MiniMax rows above.
     try:
-        from freeide_cli.auth import get_xai_oauth_auth_status
+        from jettstui.auth import get_xai_oauth_auth_status
         xai_oauth_status = get_xai_oauth_auth_status() or {}
     except Exception:
         xai_oauth_status = {}
@@ -309,7 +309,7 @@ def show_status(args):
     # users with foreign configs don't see noise. Auth rejection vs. silent
     # empty list is the most common LM Studio support case.
     if _effective_provider_label() == "LM Studio":
-        from freeide_cli.models import probe_lmstudio_models
+        from jettstui.models import probe_lmstudio_models
         model_cfg = config.get("model")
         base = (model_cfg.get("base_url") if isinstance(model_cfg, dict) else None) or get_env_value("LM_BASE_URL") or "http://127.0.0.1:1234/v1"
         try:
@@ -408,7 +408,7 @@ def show_status(args):
     print(color("◆ Gateway Service", Colors.CYAN, Colors.BOLD))
 
     try:
-        from freeide_cli.gateway import get_gateway_runtime_snapshot, _format_gateway_pids
+        from jettstui.gateway import get_gateway_runtime_snapshot, _format_gateway_pids
 
         snapshot = get_gateway_runtime_snapshot()
         is_running = snapshot.running
@@ -443,7 +443,7 @@ def show_status(args):
     print()
     print(color("◆ Scheduled Jobs", Colors.CYAN, Colors.BOLD))
 
-    jobs_file = get_freeide_home() / "cron" / "jobs.json"
+    jobs_file = get_jettstui_home() / "cron" / "jobs.json"
     if jobs_file.exists():
         import json
         try:
@@ -469,7 +469,7 @@ def show_status(args):
     # fall back to sessions.json for pre-migration installs.
     _session_count = None
     try:
-        from freeide_state import SessionDB
+        from jettstui_state import SessionDB
         _db = SessionDB()
         try:
             _lister = getattr(_db, "list_gateway_sessions", None)
@@ -483,7 +483,7 @@ def show_status(args):
     if _session_count is not None and _session_count > 0:
         print(f"  Active:       {_session_count} session(s)")
     else:
-        sessions_file = get_freeide_home() / "sessions" / "sessions.json"
+        sessions_file = get_jettstui_home() / "sessions" / "sessions.json"
         if sessions_file.exists():
             import json
             try:

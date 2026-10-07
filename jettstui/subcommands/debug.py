@@ -1,6 +1,6 @@
 """``jetts-tui debug`` subcommand parser.
 
-Extracted verbatim from ``freeide_cli/main.py:main()`` (god-file Phase 2).
+Extracted verbatim from ``jettstui/main.py:main()`` (god-file Phase 2).
 Handler injected to avoid importing ``main``.
 """
 
@@ -18,7 +18,7 @@ def build_debug_parser(subparsers, *, cmd_debug: Callable) -> None:
     debug_parser = subparsers.add_parser(
         "debug",
         help="Debug tools — upload logs and system info for support",
-        description="Debug utilities for Jetts-TUI. Use 'jetts-tui debug share' to "
+        description="Debug utilities for JettsTUI. Use 'jetts-tui debug share' to "
         "upload a debug report (system info + recent logs) to a paste "
         "service and get a shareable URL.",
         formatter_class=argparse.RawDescriptionHelpFormatter,

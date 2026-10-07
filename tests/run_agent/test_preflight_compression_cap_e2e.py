@@ -23,7 +23,7 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-from freeide_state import SessionDB
+from jettstui_state import SessionDB
 from run_agent import AIAgent
 
 
@@ -55,7 +55,7 @@ def _stop_response():
 
 
 def _make_agent(monkeypatch, tmp_path: Path, *, max_attempts) -> AIAgent:
-    from freeide_cli import config as config_mod
+    from jettstui import config as config_mod
 
     monkeypatch.setattr(
         config_mod, "load_config", lambda: _config(max_attempts)

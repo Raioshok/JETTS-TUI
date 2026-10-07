@@ -231,7 +231,7 @@ class _EngineCollector:
 
         # Reject conflicts with built-in commands.
         try:
-            from freeide_cli.commands import resolve_command
+            from jettstui.commands import resolve_command
             if resolve_command(clean) is not None:
                 logger.warning(
                     "Context engine '%s' tried to register command '/%s' which conflicts "
@@ -243,7 +243,7 @@ class _EngineCollector:
             pass
 
         try:
-            from freeide_cli.plugins import get_plugin_manager
+            from jettstui.plugins import get_plugin_manager
             manager = get_plugin_manager()
             if clean in manager._plugin_commands:
                 # Don't clobber a regular plugin's command — same conflict

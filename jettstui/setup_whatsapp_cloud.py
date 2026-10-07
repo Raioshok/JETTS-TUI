@@ -1,8 +1,8 @@
 """
 Interactive setup wizard for the WhatsApp Cloud API adapter.
 
-Entry point: ``freeide whatsapp-cloud`` (dispatched from
-``cmd_whatsapp_cloud`` in ``freeide_cli/main.py``).
+Entry point: ``jettstui whatsapp-cloud`` (dispatched from
+``cmd_whatsapp_cloud`` in ``jettstui/main.py``).
 
 Walks the user through the 6 credentials Meta requires + recipient
 allowlist, auto-generates the verify token, and prints exact follow-up
@@ -25,7 +25,7 @@ in Meta's App Dashboard, with a one-line description and the field's
 expected shape ("starts with EAA", "15-17 digits", "32 hex chars", etc.).
 
 The wizard intentionally does NOT smoke-test the webhook itself — the
-FreeIDE gateway and the cloudflared tunnel both run in separate
+JettsTUI gateway and the cloudflared tunnel both run in separate
 processes the user starts AFTER this wizard exits, so any in-wizard
 probe would fail by design. Instead the final SETUP COMPLETE block
 prints the exact curl command the user can run from a third terminal
@@ -235,13 +235,13 @@ def run_whatsapp_cloud_setup() -> int:
     Returns 0 on full success, 1 on user abort, 2 on partial completion
     (some fields written but the user bailed before finishing).
     """
-    from freeide_cli.config import get_env_value, save_env_value
+    from jettstui.config import get_env_value, save_env_value
 
     print()
     print("◆ WhatsApp Business Cloud API Setup")
     print("=" * 50)
     print()
-    print("This wizard configures FreeIDE to talk to WhatsApp via Meta's")
+    print("This wizard configures JettsTUI to talk to WhatsApp via Meta's")
     print("official Cloud API. It's the production-grade path:")
     print()
     print("  • No QR codes, no Node.js bridge subprocess")
@@ -465,7 +465,7 @@ def run_whatsapp_cloud_setup() -> int:
     print("SETUP COMPLETE — Next steps")
     print("─" * 50)
     print()
-    print("  FreeIDE needs a public HTTPS URL to receive WhatsApp messages.")
+    print("  JettsTUI needs a public HTTPS URL to receive WhatsApp messages.")
     print("  The recommended path is Cloudflare Tunnel (free, no port")
     print("  forwarding, no DNS setup).")
     print()
@@ -481,8 +481,8 @@ def run_whatsapp_cloud_setup() -> int:
     print("         cloudflared tunnel --url http://localhost:8090")
     print("       Note the printed https://<random>.trycloudflare.com URL.")
     print()
-    print("    3. Start the FreeIDE gateway in another terminal:")
-    print("         freeide gateway")
+    print("    3. Start the JettsTUI gateway in another terminal:")
+    print("         jettstui gateway")
     print()
     print("    4. Verify your local config is reachable. From a third")
     print("       terminal, with the tunnel URL substituted:")

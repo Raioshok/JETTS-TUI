@@ -9,8 +9,8 @@ from agent.redact import redact_cdp_url, redact_sensitive_text, RedactingFormatt
 
 @pytest.fixture(autouse=True)
 def _ensure_redaction_enabled(monkeypatch):
-    """Ensure FREEIDE_REDACT_SECRETS is not disabled by prior test imports."""
-    monkeypatch.delenv("FREEIDE_REDACT_SECRETS", raising=False)
+    """Ensure JETTSTUI_REDACT_SECRETS is not disabled by prior test imports."""
+    monkeypatch.delenv("JETTSTUI_REDACT_SECRETS", raising=False)
     # Also patch the module-level snapshot so it reflects the cleared env var
     monkeypatch.setattr("agent.redact._REDACT_ENABLED", True)
 

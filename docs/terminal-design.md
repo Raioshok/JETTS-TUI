@@ -1,6 +1,6 @@
 # Studio terminal design
 
-Studio is a built-in skin for the classic `freeide` CLI. Activate it with
+Studio is a built-in skin for the classic `jettstui` CLI. Activate it with
 `/skin studio`, or set `display.skin: studio` in the active profile's config.
 The shared skin engine also supplies its palette to the Ink TUI and desktop;
 the compact launch card and activity row described here belong to the classic CLI.

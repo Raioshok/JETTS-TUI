@@ -70,7 +70,7 @@ def test_render_and_replace_evidence_uses_validated_attachment_urls():
         [_mod.EvidenceFile("shot.png", "new screenshot: shot.png")],
         {"shot.png": "https://github.com/user-attachments/assets/12345678-1234-1234-1234-123456789abc"},
     )
-    body = "before\n<!-- freeide-e2e-evidence:start -->\npending\n<!-- freeide-e2e-evidence:end -->\nafter"
+    body = "before\n<!-- jettstui-e2e-evidence:start -->\npending\n<!-- jettstui-e2e-evidence:end -->\nafter"
 
     result = _mod.replace_evidence_marker(body, evidence)
 
@@ -98,12 +98,12 @@ def test_upload_evidence_accepts_only_attachment_urls(tmp_path, monkeypatch):
     result = _mod.upload_evidence(
         [_mod.EvidenceFile("shot.png", "new screenshot: shot.png")],
         tmp_path,
-        "freeide/freeide",
+        "jettstui/jettstui",
         "bot-session-token",
     )
 
     assert result == {"shot.png": "https://github.com/user-attachments/assets/12345678-1234-1234-1234-123456789abc"}
-    assert calls[0][0] == ["gh", "image", "--repo", "freeide/freeide", str(shot)]
+    assert calls[0][0] == ["gh", "image", "--repo", "jettstui/jettstui", str(shot)]
     assert calls[0][1]["env"]["GH_SESSION_TOKEN"] == "bot-session-token"
 
 
@@ -119,7 +119,7 @@ def test_upload_evidence_rejects_unexpected_gh_image_output(tmp_path, monkeypatc
         _mod.upload_evidence(
             [_mod.EvidenceFile("shot.png", "new screenshot: shot.png")],
             tmp_path,
-            "freeide/freeide",
+            "jettstui/jettstui",
             "bot-session-token",
         )
 
@@ -142,7 +142,7 @@ def test_upload_evidence_reports_gh_image_error(tmp_path, monkeypatch, capsys):
         _mod.upload_evidence(
             [_mod.EvidenceFile("shot.png", "new screenshot: shot.png")],
             tmp_path,
-            "freeide/freeide",
+            "jettstui/jettstui",
             "bot-session-token",
         )
 
@@ -155,7 +155,7 @@ def test_upload_evidence_reports_gh_image_error(tmp_path, monkeypatch, capsys):
 def test_publish_marks_evidence_upload_failure_in_pr_comment(tmp_path, monkeypatch):
     comment = {
         "id": 123,
-        "body": "before\n<!-- freeide-e2e-evidence:start -->\npending\n<!-- freeide-e2e-evidence:end -->\nafter",
+        "body": "before\n<!-- jettstui-e2e-evidence:start -->\npending\n<!-- jettstui-e2e-evidence:end -->\nafter",
     }
     updates = []
 
@@ -189,7 +189,7 @@ def test_publish_marks_evidence_upload_failure_in_pr_comment(tmp_path, monkeypat
     with pytest.raises(RuntimeError, match="Failed to upload shot.png"):
         _mod.publish(
             "github-token",
-            "freeide/freeide",
+            "jettstui/jettstui",
             tmp_path,
             "69868",
             "image-token",
@@ -197,20 +197,20 @@ def test_publish_marks_evidence_upload_failure_in_pr_comment(tmp_path, monkeypat
 
     assert updates == [
         (
-            "https://api.github.com/repos/freeide/freeide/issues/comments/123",
+            "https://api.github.com/repos/jettstui/jettstui/issues/comments/123",
             "github-token",
             "PATCH",
             {
-                "body": "before\n<!-- freeide-e2e-evidence:start -->\n<sub>inline evidence upload failed.</sub>\n\n<pre>Failed to upload shot.png: bad &lt;response&gt;</pre>\n<!-- freeide-e2e-evidence:end -->\nafter"
+                "body": "before\n<!-- jettstui-e2e-evidence:start -->\n<sub>inline evidence upload failed.</sub>\n\n<pre>Failed to upload shot.png: bad &lt;response&gt;</pre>\n<!-- jettstui-e2e-evidence:end -->\nafter"
             },
         )
     ]
 
 
 def test_find_review_comment_requires_the_evidence_marker():
-    pending = "<!-- freeide-ci-review-bot -->\n<!-- freeide-e2e-evidence:start -->\npending\n<!-- freeide-e2e-evidence:end -->"
+    pending = "<!-- jettstui-ci-review-bot -->\n<!-- jettstui-e2e-evidence:start -->\npending\n<!-- jettstui-e2e-evidence:end -->"
 
-    assert _mod._find_review_comment([{"body": "<!-- freeide-ci-review-bot --> no evidence"}]) is None
+    assert _mod._find_review_comment([{"body": "<!-- jettstui-ci-review-bot --> no evidence"}]) is None
     assert _mod._find_review_comment([{"body": pending, "id": 123}]) == {"body": pending, "id": 123}
 
 

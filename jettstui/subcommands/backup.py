@@ -1,6 +1,6 @@
-"""``freeide backup`` subcommand parser.
+"""``jettstui backup`` subcommand parser.
 
-Extracted verbatim from ``freeide_cli/main.py:main()`` (god-file Phase 2).
+Extracted verbatim from ``jettstui/main.py:main()`` (god-file Phase 2).
 Handler injected to avoid importing ``main``.
 """
 
@@ -16,15 +16,15 @@ def build_backup_parser(subparsers, *, cmd_backup: Callable) -> None:
     # =========================================================================
     backup_parser = subparsers.add_parser(
         "backup",
-        help="Back up Jetts-TUI home directory to a zip file",
-        description="Create a zip archive of your entire Jetts-TUI configuration, "
-        "skills, sessions, and data (excludes the freeide-agent codebase). "
+        help="Back up JettsTUI home directory to a zip file",
+        description="Create a zip archive of your entire JettsTUI configuration, "
+        "skills, sessions, and data (excludes the jettstui codebase). "
         "Use --quick for a fast snapshot of just critical state files.",
     )
     backup_parser.add_argument(
         "-o",
         "--output",
-        help="Output path for the zip file (default: ~/freeide-backup-<timestamp>.zip)",
+        help="Output path for the zip file (default: ~/jettstui-backup-<timestamp>.zip)",
     )
     backup_parser.add_argument(
         "-q",

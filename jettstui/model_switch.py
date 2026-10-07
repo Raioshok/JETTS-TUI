@@ -10,8 +10,8 @@ share the same core pipeline:
 This module ties together the foundation layers:
 
 - ``agent.models_dev``            -- models.dev catalog, ModelInfo, ProviderInfo
-- ``freeide_cli.providers``        -- canonical provider identity + overlays
-- ``freeide_cli.model_normalize``  -- per-provider name formatting
+- ``jettstui.providers``        -- canonical provider identity + overlays
+- ``jettstui.model_normalize``  -- per-provider name formatting
 
 Provider switching uses the ``--provider`` flag exclusively.
 No colon-based ``provider:model`` syntax — colons are reserved for
@@ -25,7 +25,7 @@ import re
 from dataclasses import dataclass
 from typing import Any, List, NamedTuple, Optional
 
-from freeide_cli.providers import (
+from jettstui.providers import (
     ProviderDef,
     custom_provider_slug,
     determine_api_mode,
@@ -34,7 +34,7 @@ from freeide_cli.providers import (
     is_aggregator,
     resolve_provider_full,
 )
-from freeide_cli.model_normalize import (
+from jettstui.model_normalize import (
     normalize_model_for_provider,
 )
 from agent.models_dev import (
@@ -117,7 +117,7 @@ def _save_discovered_models_to_config(
     if not api_url or not model_ids:
         return
     try:
-        from freeide_cli.config import load_config, save_config
+        from jettstui.config import load_config, save_config
 
         cfg = load_config()
         providers = cfg.get("custom_providers") or []
@@ -178,24 +178,24 @@ def _bare_custom_provider_def(current_base_url: str) -> Optional[ProviderDef]:
 # Non-agentic model warning
 # ---------------------------------------------------------------------------
 
-_FREEIDE_MODEL_WARNING = (
-    "FreeIDE FreeIDE 3 & 4 models are NOT agentic and are not designed "
-    "for use with FreeIDE Agent. They lack the tool-calling capabilities "
+_JETTSTUI_MODEL_WARNING = (
+    "JettsTUI JettsTUI 3 & 4 models are NOT agentic and are not designed "
+    "for use with JettsTUI. They lack the tool-calling capabilities "
     "required for agent workflows. Consider using an agentic model instead "
     "(Claude, GPT, Gemini, DeepSeek, etc.)."
 )
 
-# Match only the real FreeIDE FreeIDE 3 / FreeIDE 4 chat families.
-# The previous substring check (`"freeide" in name.lower()`) false-positived on
-# unrelated local Modelfiles like ``freeide-brain:qwen3-14b-ctx16k`` that just
-# happen to carry "freeide" in their tag but are fully tool-capable.
+# Match only the real JettsTUI JettsTUI 3 / JettsTUI 4 chat families.
+# The previous substring check (`"jettstui" in name.lower()`) false-positived on
+# unrelated local Modelfiles like ``jettstui-brain:qwen3-14b-ctx16k`` that just
+# happen to carry "jettstui" in their tag but are fully tool-capable.
 #
 # Positive examples the regex must match:
-#   freeide/FreeIDE-3-Llama-3.1-70B, freeide-4-405b, openrouter/freeide3:70b
+#   jettstui/JettsTUI-3-Llama-3.1-70B, jettstui-4-405b, openrouter/jettstui3:70b
 # Negative examples it must NOT match:
-#   freeide-brain:qwen3-14b-ctx16k, qwen3:14b, claude-opus-4-6
-_FREEIDE_NON_AGENTIC_RE = re.compile(
-    r"(?:^|[/:])freeide[-_ ]?[34](?:[-_.:]|$)",
+#   jettstui-brain:qwen3-14b-ctx16k, qwen3:14b, claude-opus-4-6
+_JETTSTUI_NON_AGENTIC_RE = re.compile(
+    r"(?:^|[/:])jettstui[-_ ]?[34](?:[-_.:]|$)",
     re.IGNORECASE,
 )
 
@@ -245,8 +245,8 @@ def format_model_for_display(model_name: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-def is_freeide_non_agentic(model_name: str) -> bool:
-    """Return True if *model_name* is a real FreeIDE 3/4 chat model.
+def is_jettstui_non_agentic(model_name: str) -> bool:
+    """Return True if *model_name* is a real JettsTUI 3/4 chat model.
 
     Used to decide whether to surface the non-agentic warning at startup.
     Callers in :mod:`cli.py` and here should go through this single helper
@@ -254,13 +254,13 @@ def is_freeide_non_agentic(model_name: str) -> bool:
     """
     if not model_name:
         return False
-    return bool(_FREEIDE_NON_AGENTIC_RE.search(model_name))
+    return bool(_JETTSTUI_NON_AGENTIC_RE.search(model_name))
 
 
-def _check_freeide_model_warning(model_name: str) -> str:
-    """Return a warning string if *model_name* is a FreeIDE 3/4 chat model."""
-    if is_freeide_non_agentic(model_name):
-        return _FREEIDE_MODEL_WARNING
+def _check_jettstui_model_warning(model_name: str) -> str:
+    """Return a warning string if *model_name* is a JettsTUI 3/4 chat model."""
+    if is_jettstui_non_agentic(model_name):
+        return _JETTSTUI_MODEL_WARNING
     return ""
 
 
@@ -364,14 +364,14 @@ def _load_direct_aliases() -> dict[str, DirectAlias]:
             provider: custom
             base_url: "https://ollama.com/v1"
 
-    Also reads ``model.aliases`` (set by ``freeide config set model.aliases.xxx``)
+    Also reads ``model.aliases`` (set by ``jettstui config set model.aliases.xxx``)
     and converts simple string entries (``ds-flash: deepseek/deepseek-v4-flash``)
     into DirectAlias objects.  The provider is parsed from the ``provider/``
     prefix in the value; if no slash, the current provider is used.
     """
     merged = dict(_BUILTIN_DIRECT_ALIASES)
     try:
-        from freeide_cli.config import load_config
+        from jettstui.config import load_config
         cfg = load_config()
 
         # --- model_aliases (dict-based format) ---
@@ -420,7 +420,7 @@ def _ensure_direct_aliases() -> None:
     """Lazy-load direct aliases on first use.
 
     Mutates the existing DIRECT_ALIASES dict in place rather than rebinding
-    the module attribute. This keeps `from freeide_cli.model_switch import
+    the module attribute. This keeps `from jettstui.model_switch import
     DIRECT_ALIASES` references valid in callers — rebinding would leave them
     pointing at a stale empty dict.
     """
@@ -588,7 +588,7 @@ def resolve_persist_behavior(
     if explicit_provider:
         return False
     try:
-        from freeide_cli.config import load_config
+        from jettstui.config import load_config
 
         model_cfg = load_config().get("model")
         if isinstance(model_cfg, dict):
@@ -756,7 +756,7 @@ def resolve_alias(
     # yet synced to the registry).
     catalog = list_provider_models(current_provider)
     try:
-        from freeide_cli.models import _PROVIDER_MODELS
+        from jettstui.models import _PROVIDER_MODELS
         static = _PROVIDER_MODELS.get(current_provider, [])
         if static:
             seen = {m.lower() for m in catalog}
@@ -848,7 +848,7 @@ def resolve_display_context_length(
     but provider-enforced limits can be lower (e.g. Codex OAuth caps the
     same slug at 272k). The authoritative source is
     ``agent.model_metadata.get_model_context_length`` which already knows
-    about Codex OAuth, Copilot, FreeIDE, and falls back to models.dev for the
+    about Codex OAuth, Copilot, JettsTUI, and falls back to models.dev for the
     rest.
 
     When ``custom_providers`` is provided, per-model ``context_length``
@@ -863,7 +863,7 @@ def resolve_display_context_length(
         configured_model or configured_provider or configured_base_url
     ):
         try:
-            from freeide_cli.route_identity import should_clear_context_pin
+            from jettstui.route_identity import should_clear_context_pin
 
             if should_clear_context_pin(
                 configured_model,
@@ -1049,13 +1049,13 @@ def switch_model(
     Returns:
         ModelSwitchResult with all information the caller needs.
     """
-    from freeide_cli.models import (
+    from jettstui.models import (
         copilot_model_api_mode,
         detect_provider_for_model,
         validate_requested_model,
         opencode_model_api_mode,
     )
-    from freeide_cli.runtime_provider import resolve_runtime_provider
+    from jettstui.runtime_provider import resolve_runtime_provider
 
     resolved_alias = ""
     new_model = raw_input.strip()
@@ -1077,15 +1077,15 @@ def switch_model(
         if pdef is None:
             _switch_err = (
                 f"Unknown provider '{explicit_provider}'. "
-                f"Check 'freeide model' for available providers, or define it "
+                f"Check 'jettstui model' for available providers, or define it "
                 f"in config.yaml under 'providers:'."
             )
             # Check for common config issues that cause provider resolution failures
             try:
-                from freeide_cli.config import validate_config_structure
+                from jettstui.config import validate_config_structure
                 _cfg_issues = validate_config_structure()
                 if _cfg_issues:
-                    _switch_err += "\n\nRun 'freeide doctor' — config issues detected:"
+                    _switch_err += "\n\nRun 'jettstui doctor' — config issues detected:"
                     for _ci in _cfg_issues[:3]:
                         _switch_err += f"\n  • {_ci.message}"
             except Exception:
@@ -1099,8 +1099,8 @@ def switch_model(
         target_provider = pdef.id
         if target_provider == "moa" and not new_model:
             try:
-                from freeide_cli.config import load_config
-                from freeide_cli.moa_config import normalize_moa_config
+                from jettstui.config import load_config
+                from jettstui.moa_config import normalize_moa_config
 
                 new_model = normalize_moa_config(load_config().get("moa") or {})["default_preset"]
             except Exception:
@@ -1112,8 +1112,8 @@ def switch_model(
         # routes to has no credentials, do NOT silently switch them onto an
         # unauthed endpoint (the classic HTTP 401 "Missing Authentication
         # header"). Point them at the real direct provider instead.
-        from freeide_cli.models import _AGGREGATOR_PROVIDERS as _AGG_PROVIDERS
-        from freeide_cli.providers import ALIASES as _PROVIDER_ALIAS_TABLE
+        from jettstui.models import _AGGREGATOR_PROVIDERS as _AGG_PROVIDERS
+        from jettstui.providers import ALIASES as _PROVIDER_ALIAS_TABLE
         _explicit_norm = explicit_provider.strip().lower()
         _alias_target = _PROVIDER_ALIAS_TABLE.get(_explicit_norm)
         if (
@@ -1151,7 +1151,7 @@ def switch_model(
         # If no model specified, try auto-detect from endpoint
         if not new_model:
             if pdef.base_url:
-                from freeide_cli.runtime_provider import _auto_detect_local_model
+                from jettstui.runtime_provider import _auto_detect_local_model
                 detected = _auto_detect_local_model(pdef.base_url)
                 if detected:
                     new_model = detected
@@ -1188,8 +1188,8 @@ def switch_model(
     # =================================================================
     else:
         try:
-            from freeide_cli.config import load_config
-            from freeide_cli.moa_config import exact_moa_preset_name, normalize_moa_config
+            from jettstui.config import load_config
+            from jettstui.moa_config import exact_moa_preset_name, normalize_moa_config
 
             _moa_cfg = normalize_moa_config(load_config().get("moa") or {})
             _moa_match = exact_moa_preset_name(_moa_cfg, raw_input)
@@ -1385,7 +1385,7 @@ def switch_model(
         # or hop to an aggregator. Use the pdef's endpoint directly instead.
         _user_pdef = None
         if explicit_provider and user_providers:
-            from freeide_cli.providers import resolve_user_provider as _ruser
+            from jettstui.providers import resolve_user_provider as _ruser
             _user_pdef = _ruser(explicit_provider.strip().lower(), user_providers)
             if _user_pdef is None:
                 _user_pdef = _ruser(target_provider, user_providers)
@@ -1506,7 +1506,7 @@ def switch_model(
     if not validation.get("accepted"):
         override = False
         if user_providers:
-            from freeide_cli.config import is_provider_enabled
+            from jettstui.config import is_provider_enabled
             # user_providers is a dict: {provider_slug: config_dict}
             for slug, cfg in user_providers.items():
                 if not is_provider_enabled(cfg):
@@ -1570,7 +1570,7 @@ def switch_model(
     # Anthropic SDK prepends its own /v1/messages to the base_url.  Normalize
     # symmetrically (strip /v1 for anthropic_messages, re-append it for
     # chat_completions / codex_responses).  Mirrors the same logic in
-    # freeide_cli.runtime_provider.resolve_runtime_provider; without the strip,
+    # jettstui.runtime_provider.resolve_runtime_provider; without the strip,
     # /model switches into an anthropic_messages-routed OpenCode model
     # (e.g. `/model minimax-m2.7` on opencode-go, `/model claude-sonnet-4-6`
     # on opencode-zen) hit a double /v1 and returned OpenCode's website 404
@@ -1578,7 +1578,7 @@ def switch_model(
     # model.base_url broke every later chat_completions model (glm, deepseek,
     # kimi) the same way.
     if target_provider in {"opencode-zen", "opencode-go"} and isinstance(base_url, str):
-        from freeide_cli.models import normalize_opencode_base_url
+        from jettstui.models import normalize_opencode_base_url
         base_url = normalize_opencode_base_url(target_provider, api_mode, base_url)
 
     # --- Get capabilities (legacy) ---
@@ -1591,9 +1591,9 @@ def switch_model(
     warnings: list[str] = []
     if validation.get("message"):
         warnings.append(validation["message"])
-    freeide_warn = _check_freeide_model_warning(new_model)
-    if freeide_warn:
-        warnings.append(freeide_warn)
+    jettstui_warn = _check_jettstui_model_warning(new_model)
+    if jettstui_warn:
+        warnings.append(jettstui_warn)
 
     # --- Build result ---
     return ModelSwitchResult(
@@ -1647,7 +1647,7 @@ def _credential_pool_is_usable(provider: str, *, raw_pool_present: bool = False)
 def _extra_headers_from_config(entry: Any) -> dict[str, str]:
     if not isinstance(entry, dict):
         return {}
-    from freeide_cli.config import normalize_extra_headers
+    from jettstui.config import normalize_extra_headers
 
     return normalize_extra_headers(entry.get("extra_headers"))
 
@@ -1677,7 +1677,7 @@ def prewarm_picker_cache_async() -> Optional["_threading.Thread"]:
 
     def _warm() -> None:
         try:
-            from freeide_cli.inventory import load_picker_context
+            from jettstui.inventory import load_picker_context
 
             ctx = load_picker_context()
             # Calling this is what populates cached_provider_model_ids() ->
@@ -1716,7 +1716,7 @@ def list_authenticated_providers(
 ) -> List[dict]:
     """Detect which providers have credentials and list their curated models.
 
-    Uses the curated model lists from freeide_cli/models.py (OPENROUTER_MODELS,
+    Uses the curated model lists from jettstui/models.py (OPENROUTER_MODELS,
     _PROVIDER_MODELS) — NOT the full models.dev catalog.  These are hand-picked
     agentic models that work well as agent backends.
 
@@ -1753,8 +1753,8 @@ def list_authenticated_providers(
         fetch_models_dev,
         get_provider_info as _mdev_pinfo,
     )
-    from freeide_cli.auth import PROVIDER_REGISTRY
-    from freeide_cli.models import (
+    from jettstui.auth import PROVIDER_REGISTRY
+    from jettstui.models import (
         OPENROUTER_MODELS, _PROVIDER_MODELS,
         _MODELS_DEV_PREFERRED, _merge_with_models_dev, cached_provider_model_ids,
         clear_provider_models_cache,
@@ -1781,7 +1781,7 @@ def list_authenticated_providers(
         return bool(probe_custom_providers or (probe_current_custom_provider and row_is_current))
 
     # Normalize the excluded-providers list once for fast membership checks.
-    # Compared against freeide_id / mdev_id (section 1), pid / freeide_slug
+    # Compared against jettstui_id / mdev_id (section 1), pid / jettstui_slug
     # (section 2) and canonical slug (section 2b) so a single entry like
     # ``copilot`` hides the provider regardless of which key it surfaces under.
     _excluded: set = {str(p).strip().lower() for p in (excluded_providers or []) if p}
@@ -1802,7 +1802,7 @@ def list_authenticated_providers(
         static inference_base_url so the dedup matches what a user typing
         that URL into custom_providers would actually hit."""
         try:
-            from freeide_cli.auth import PROVIDER_REGISTRY as _reg
+            from jettstui.auth import PROVIDER_REGISTRY as _reg
         except Exception:
             return
         pcfg = _reg.get(slug)
@@ -1858,12 +1858,12 @@ def list_authenticated_providers(
 
     data = fetch_models_dev()
 
-    # Build curated model lists keyed by freeide provider ID
+    # Build curated model lists keyed by jettstui provider ID
     curated: dict[str, list[str]] = dict(_PROVIDER_MODELS)
     curated["openrouter"] = [mid for mid, _ in OPENROUTER_MODELS]
     # Ollama Cloud uses dynamic discovery (no static curated list)
     if "ollama-cloud" not in curated:
-        from freeide_cli.models import fetch_ollama_cloud_models
+        from jettstui.models import fetch_ollama_cloud_models
         curated["ollama-cloud"] = fetch_ollama_cloud_models()
     # LM Studio has no static catalog — probe its native /api/v1/models
     # endpoint live so the picker reflects whatever the user has loaded.
@@ -1874,8 +1874,8 @@ def list_authenticated_providers(
     if "lmstudio" not in curated and (
         os.environ.get("LM_API_KEY") or os.environ.get("LM_BASE_URL") or current_provider.strip().lower() == "lmstudio"
     ):
-        from freeide_cli.models import fetch_lmstudio_models
-        from freeide_cli.auth import AuthError
+        from jettstui.models import fetch_lmstudio_models
+        from jettstui.auth import AuthError
         is_current_lmstudio = current_provider.strip().lower() == "lmstudio"
         lm_base = (
             os.environ.get("LM_BASE_URL")
@@ -1894,11 +1894,11 @@ def list_authenticated_providers(
             live = [current_model]
         curated["lmstudio"] = live
 
-    # --- 1. Check FreeIDE-mapped providers ---
-    from freeide_cli.models import _AGGREGATOR_PROVIDERS as _AGG_PROVIDERS
-    from freeide_cli.models import _PROVIDER_ALIASES as _CANON_ALIASES
-    from freeide_cli.providers import ALIASES as _PROVIDER_ALIAS_TABLE
-    for freeide_id, mdev_id in PROVIDER_TO_MODELS_DEV.items():
+    # --- 1. Check JettsTUI-mapped providers ---
+    from jettstui.models import _AGGREGATOR_PROVIDERS as _AGG_PROVIDERS
+    from jettstui.models import _PROVIDER_ALIASES as _CANON_ALIASES
+    from jettstui.providers import ALIASES as _PROVIDER_ALIAS_TABLE
+    for jettstui_id, mdev_id in PROVIDER_TO_MODELS_DEV.items():
         # Skip vendor names that are merely aliases routing through an
         # aggregator (e.g. bare "openai" → "openrouter"). These are NOT
         # directly-routable providers: emitting them as their own picker
@@ -1907,39 +1907,39 @@ def list_authenticated_providers(
         # switching a user off their real provider onto an endpoint they
         # may have no key for (HTTP 401). The user's real provider (e.g.
         # openai-api, or a providers.openai config row) covers this vendor.
-        _alias_target = _PROVIDER_ALIAS_TABLE.get(freeide_id)
+        _alias_target = _PROVIDER_ALIAS_TABLE.get(jettstui_id)
         if (
             _alias_target
-            and _alias_target != freeide_id
+            and _alias_target != jettstui_id
             and _alias_target in _AGG_PROVIDERS
         ):
             continue
-        # Resolve the canonical provider profile name.  Skip freeide_ids
+        # Resolve the canonical provider profile name.  Skip jettstui_ids
         # that are mere aliases resolving to a different canonical profile
         # (e.g. "kimi" and "moonshot" both → "kimi-coding").  Only process
-        # entries whose freeide_id matches the canonical profile name so
+        # entries whose jettstui_id matches the canonical profile name so
         # distinct profiles (e.g. kimi-coding, kimi-coding-cn) each get
         # their own picker row.
-        _canonical = freeide_id
+        _canonical = jettstui_id
         try:
             from providers import get_provider_profile as _gpp
-            _prof = _gpp(freeide_id)
+            _prof = _gpp(jettstui_id)
             if _prof is not None:
                 _canonical = _prof.name
         except Exception:
             pass
-        if _canonical != freeide_id:
+        if _canonical != jettstui_id:
             continue
 
         # Skip duplicates: another entry with the same slug was already
         # emitted (e.g. two PROVIDER_TO_MODELS_DEV entries routing to the
-        # same freeide_id).  Distinct canonical profiles that share a
+        # same jettstui_id).  Distinct canonical profiles that share a
         # models.dev ID (e.g. kimi-coding and kimi-coding-cn → kimi-for-coding)
         # are both allowed through since they have different slugs.
-        slug = freeide_id
+        slug = jettstui_id
         if slug.lower() in seen_slugs:
             continue
-        if freeide_id.lower() in _excluded or mdev_id.lower() in _excluded:
+        if jettstui_id.lower() in _excluded or mdev_id.lower() in _excluded:
             continue
         pdata = data.get(mdev_id)
         if not isinstance(pdata, dict):
@@ -1948,16 +1948,16 @@ def list_authenticated_providers(
         # Prefer auth.py PROVIDER_REGISTRY for env var names — it's our
         # source of truth.  models.dev can have wrong mappings (e.g.
         # minimax-cn → MINIMAX_API_KEY instead of MINIMAX_CN_API_KEY).
-        pconfig = PROVIDER_REGISTRY.get(freeide_id)
+        pconfig = PROVIDER_REGISTRY.get(jettstui_id)
         # Skip non-API-key auth providers here — they are handled in
-        # section 2 (FREEIDE_OVERLAYS) with proper auth store checking.
+        # section 2 (JETTSTUI_OVERLAYS) with proper auth store checking.
         if pconfig and pconfig.auth_type != "api_key":
             continue
-        # models.dev catalogs include providers FreeIDE may not route yet.
+        # models.dev catalogs include providers JettsTUI may not route yet.
         # Gate on runtime capability rather than registry membership: special
         # providers and plugin aliases can be routable without a registry row.
-        from freeide_cli.auth import is_runtime_provider_routable
-        if not is_runtime_provider_routable(freeide_id):
+        from jettstui.auth import is_runtime_provider_routable
+        if not is_runtime_provider_routable(jettstui_id):
             continue
         if pconfig and pconfig.api_key_env_vars:
             env_vars = list(pconfig.api_key_env_vars)
@@ -1970,14 +1970,14 @@ def list_authenticated_providers(
         has_creds = any(os.environ.get(ev) for ev in env_vars)
         if not has_creds:
             try:
-                from freeide_cli.auth import _load_auth_store
+                from jettstui.auth import _load_auth_store
                 store = _load_auth_store()
                 raw_pool_present = bool(
-                    store and store.get("credential_pool", {}).get(freeide_id)
+                    store and store.get("credential_pool", {}).get(jettstui_id)
                 )
                 if raw_pool_present:
                     has_creds = _credential_pool_is_usable(
-                        freeide_id, raw_pool_present=True
+                        jettstui_id, raw_pool_present=True
                     )
             except Exception:
                 pass
@@ -1985,25 +1985,25 @@ def list_authenticated_providers(
             continue
 
         # Unified pathway: route through cached_provider_model_ids() so the
-        # /model picker sees the SAME list `freeide model` would build, with
+        # /model picker sees the SAME list `jettstui model` would build, with
         # disk caching to keep the picker open snappy. Falls back to the
         # curated static list when the live fetcher returns nothing.
-        model_ids = cached_provider_model_ids(freeide_id)
+        model_ids = cached_provider_model_ids(jettstui_id)
         if not model_ids:
-            model_ids = curated.get(freeide_id, [])
-            if freeide_id in _MODELS_DEV_PREFERRED:
-                model_ids = _merge_with_models_dev(freeide_id, model_ids)
+            model_ids = curated.get(jettstui_id, [])
+            if jettstui_id in _MODELS_DEV_PREFERRED:
+                model_ids = _merge_with_models_dev(jettstui_id, model_ids)
         # A providers.<built-in>.models block extends the provider's discovered
         # catalog. Section 3 cannot emit it later because this built-in row owns
         # the slug, so merge declarations here before applying max_models.
         configured_models: list[str] = []
         if isinstance(user_providers, dict):
-            configured = user_providers.get(freeide_id)
+            configured = user_providers.get(jettstui_id)
             if isinstance(configured, dict):
                 configured_models = _declared_model_ids(configured.get("models"))
         model_ids = list(dict.fromkeys([*configured_models, *model_ids]))
         total = len(model_ids)
-        if freeide_id in _UNCAPPED_PICKER_PROVIDERS:
+        if jettstui_id in _UNCAPPED_PICKER_PROVIDERS:
             top = model_ids  # Aggregator: show full catalog regardless of max_models
         else:
             top = model_ids[:max_models] if max_models is not None else model_ids
@@ -2016,7 +2016,7 @@ def list_authenticated_providers(
             "name": display_name,
             "is_current": (
                 slug == current_provider
-                or freeide_id == current_provider
+                or jettstui_id == current_provider
                 or mdev_id == current_provider
             ),
             "is_user_defined": False,
@@ -2027,30 +2027,30 @@ def list_authenticated_providers(
         seen_slugs.add(slug.lower())
         _record_builtin_endpoint(slug)
 
-    # --- 2. Check FreeIDE-only providers (openai-codex, copilot, opencode-go) ---
-    from freeide_cli.providers import FREEIDE_OVERLAYS
-    from freeide_cli.auth import PROVIDER_REGISTRY as _auth_registry
+    # --- 2. Check JettsTUI-only providers (openai-codex, copilot, opencode-go) ---
+    from jettstui.providers import JETTSTUI_OVERLAYS
+    from jettstui.auth import PROVIDER_REGISTRY as _auth_registry
 
-    # Build reverse mapping: models.dev ID → FreeIDE provider ID.
-    # FREEIDE_OVERLAYS keys may be models.dev IDs (e.g. "github-copilot")
-    # while _PROVIDER_MODELS and config.yaml use FreeIDE IDs ("copilot").
-    _mdev_to_freeide = {v: k for k, v in PROVIDER_TO_MODELS_DEV.items()}
+    # Build reverse mapping: models.dev ID → JettsTUI provider ID.
+    # JETTSTUI_OVERLAYS keys may be models.dev IDs (e.g. "github-copilot")
+    # while _PROVIDER_MODELS and config.yaml use JettsTUI IDs ("copilot").
+    _mdev_to_jettstui = {v: k for k, v in PROVIDER_TO_MODELS_DEV.items()}
 
-    for pid, overlay in FREEIDE_OVERLAYS.items():
+    for pid, overlay in JETTSTUI_OVERLAYS.items():
         if pid.lower() in seen_slugs:
             continue
 
-        # Resolve FreeIDE slug — e.g. "github-copilot" → "copilot"
-        freeide_slug = _mdev_to_freeide.get(pid, pid)
-        if freeide_slug.lower() in seen_slugs:
+        # Resolve JettsTUI slug — e.g. "github-copilot" → "copilot"
+        jettstui_slug = _mdev_to_jettstui.get(pid, pid)
+        if jettstui_slug.lower() in seen_slugs:
             continue
-        if pid.lower() in _excluded or freeide_slug.lower() in _excluded:
+        if pid.lower() in _excluded or jettstui_slug.lower() in _excluded:
             continue
 
         # Check if credentials exist
         has_creds = False
         if overlay.auth_type == "aws_sdk":
-            has_creds = _has_aws_sdk_creds_for_listing(freeide_slug)
+            has_creds = _has_aws_sdk_creds_for_listing(jettstui_slug)
         elif overlay.auth_type == "vertex":
             # Vertex authenticates via OAuth2 (service-account JSON / ADC),
             # not an API key — mirror the aws_sdk gate above, otherwise the
@@ -2065,7 +2065,7 @@ def list_authenticated_providers(
             has_creds = any(os.environ.get(ev) for ev in overlay.extra_env_vars)
         # Also check api_key_env_vars from PROVIDER_REGISTRY for api_key auth_type
         if not has_creds and overlay.auth_type == "api_key":
-            for _key in (pid, freeide_slug):
+            for _key in (pid, jettstui_slug):
                 pcfg = _auth_registry.get(_key)
                 if pcfg and pcfg.api_key_env_vars:
                     if any(os.environ.get(ev) for ev in pcfg.api_key_env_vars):
@@ -2077,10 +2077,10 @@ def list_authenticated_providers(
         # OAuth via external credential files).
         if not has_creds:
             try:
-                from freeide_cli.auth import _load_auth_store
+                from jettstui.auth import _load_auth_store
                 store = _load_auth_store()
                 providers_store = store.get("providers", {})
-                if store and (pid in providers_store or freeide_slug in providers_store):
+                if store and (pid in providers_store or jettstui_slug in providers_store):
                     has_creds = True
             except Exception as exc:
                 logger.debug("Auth store check failed for %s: %s", pid, exc)
@@ -2090,7 +2090,7 @@ def list_authenticated_providers(
         # imports on demand but aren't in the raw auth.json yet.
         if not has_creds:
             try:
-                if _credential_pool_is_usable(freeide_slug):
+                if _credential_pool_is_usable(jettstui_slug):
                     has_creds = True
                 elif for_picker:
                     # For the interactive /model picker, also show providers
@@ -2101,13 +2101,13 @@ def list_authenticated_providers(
                     # are in cooldown.
                     try:
                         from agent.credential_pool import load_pool
-                        _pool = load_pool(freeide_slug)
+                        _pool = load_pool(jettstui_slug)
                         if _pool.has_credentials():
                             has_creds = True
                     except Exception:
                         pass
             except Exception as exc:
-                logger.debug("Credential pool check failed for %s: %s", freeide_slug, exc)
+                logger.debug("Credential pool check failed for %s: %s", jettstui_slug, exc)
         # Fallback: check external credential files directly.
         # The credential pool gates anthropic behind
         # is_provider_explicitly_configured() to prevent auxiliary tasks
@@ -2115,15 +2115,15 @@ def list_authenticated_providers(
         # But the /model picker is discovery-oriented — we WANT to show
         # providers the user can switch to, even if they aren't currently
         # configured.
-        if not has_creds and freeide_slug == "anthropic":
+        if not has_creds and jettstui_slug == "anthropic":
             try:
                 from agent.anthropic_adapter import (
                     read_claude_code_credentials,
-                    read_freeide_oauth_credentials,
+                    read_jettstui_oauth_credentials,
                 )
-                freeide_creds = read_freeide_oauth_credentials()
+                jettstui_creds = read_jettstui_oauth_credentials()
                 cc_creds = read_claude_code_credentials()
-                if (freeide_creds and freeide_creds.get("accessToken")) or \
+                if (jettstui_creds and jettstui_creds.get("accessToken")) or \
                    (cc_creds and cc_creds.get("accessToken")):
                     has_creds = True
             except Exception as exc:
@@ -2131,7 +2131,7 @@ def list_authenticated_providers(
         if not has_creds:
             continue
 
-        if freeide_slug in {"openai-codex", "copilot", "copilot-acp"}:
+        if jettstui_slug in {"openai-codex", "copilot", "copilot-acp"}:
             # Use live OAuth-backed discovery so the gateway /model picker
             # matches what the user's authenticated Codex/Copilot backend
             # actually serves — including ChatGPT-Pro-only Codex slugs
@@ -2139,49 +2139,49 @@ def list_authenticated_providers(
             # catalog. ``cached_provider_model_ids()`` falls back to the
             # curated list when the live endpoint is unreachable, so this
             # is safe for unauthenticated and offline cases too.
-            model_ids = cached_provider_model_ids(freeide_slug)
+            model_ids = cached_provider_model_ids(jettstui_slug)
         # For aws_sdk providers (bedrock), use live discovery so the list
         # reflects the active region (eu.*, ap.*) not the static us.* list.
         elif overlay.auth_type == "aws_sdk":
             try:
-                _ids = cached_provider_model_ids(freeide_slug)
-                model_ids = _ids if _ids else (curated.get(freeide_slug, []) or curated.get(pid, []))
+                _ids = cached_provider_model_ids(jettstui_slug)
+                model_ids = _ids if _ids else (curated.get(jettstui_slug, []) or curated.get(pid, []))
             except Exception:
-                model_ids = curated.get(freeide_slug, []) or curated.get(pid, [])
+                model_ids = curated.get(jettstui_slug, []) or curated.get(pid, [])
         else:
             # Unified pathway — see Section 1 rationale. Fall back to the
             # curated dict (with models.dev merge for preferred providers)
             # when the live fetcher comes up empty.
-            model_ids = cached_provider_model_ids(freeide_slug)
+            model_ids = cached_provider_model_ids(jettstui_slug)
             if not model_ids:
-                model_ids = curated.get(freeide_slug, []) or curated.get(pid, [])
-                if freeide_slug in _MODELS_DEV_PREFERRED:
-                    model_ids = _merge_with_models_dev(freeide_slug, model_ids)
+                model_ids = curated.get(jettstui_slug, []) or curated.get(pid, [])
+                if jettstui_slug in _MODELS_DEV_PREFERRED:
+                    model_ids = _merge_with_models_dev(jettstui_slug, model_ids)
         total = len(model_ids)
-        if freeide_slug in _UNCAPPED_PICKER_PROVIDERS:
+        if jettstui_slug in _UNCAPPED_PICKER_PROVIDERS:
             top = model_ids  # Aggregator: show full catalog regardless of max_models
         else:
             top = model_ids[:max_models] if max_models is not None else model_ids
 
         results.append({
-            "slug": freeide_slug,
-            "name": get_label(freeide_slug),
-            "is_current": freeide_slug == current_provider or pid == current_provider,
+            "slug": jettstui_slug,
+            "name": get_label(jettstui_slug),
+            "is_current": jettstui_slug == current_provider or pid == current_provider,
             "is_user_defined": False,
             "models": top,
             "total_models": total,
-            "source": "freeide",
+            "source": "jettstui",
         })
         seen_slugs.add(pid.lower())
-        seen_slugs.add(freeide_slug.lower())
-        _record_builtin_endpoint(freeide_slug)
+        seen_slugs.add(jettstui_slug.lower())
+        _record_builtin_endpoint(jettstui_slug)
 
     # --- 2b. Cross-check canonical provider list ---
     # Catches providers that are in CANONICAL_PROVIDERS but weren't found
-    # in PROVIDER_TO_MODELS_DEV or FREEIDE_OVERLAYS (keeps /model in sync
-    # with `freeide model`).
+    # in PROVIDER_TO_MODELS_DEV or JETTSTUI_OVERLAYS (keeps /model in sync
+    # with `jettstui model`).
     try:
-        from freeide_cli.models import CANONICAL_PROVIDERS as _canon_provs
+        from jettstui.models import CANONICAL_PROVIDERS as _canon_provs
     except ImportError:
         _canon_provs = []
 
@@ -2199,7 +2199,7 @@ def list_authenticated_providers(
         # Also check auth store and credential pool
         if not _cp_has_creds:
             try:
-                from freeide_cli.auth import _load_auth_store
+                from jettstui.auth import _load_auth_store
                 _cp_store = _load_auth_store()
                 _cp_providers_store = _cp_store.get("providers", {})
                 if _cp_store and _cp.slug in _cp_providers_store:
@@ -2274,7 +2274,7 @@ def list_authenticated_providers(
         # the wire protocol differs.
         from collections import OrderedDict as _OD3
 
-        from freeide_cli.config import is_provider_enabled
+        from jettstui.config import is_provider_enabled
 
         ep_groups: "_OD3[tuple, dict]" = _OD3()
         for ep_name, ep_cfg in user_providers.items():
@@ -2319,7 +2319,7 @@ def list_authenticated_providers(
             # custom_providers entries use, so accept either.
             default_model = ep_cfg.get("default_model", "") or ep_cfg.get("model", "")
             # Build models list from both default_model and full models array.
-            # FreeIDE writes ``models:`` as a dict keyed by model id, but older
+            # JettsTUI writes ``models:`` as a dict keyed by model id, but older
             # or hand-edited configs may use strings or ``[{id: ...}]`` rows —
             # _declared_model_ids() owns that contract.
             entry_models: list = []
@@ -2333,7 +2333,7 @@ def list_authenticated_providers(
             if group_key not in ep_groups:
                 # Strip per-model suffix so "Palantir Claude 4.7 Opus" becomes
                 # "Palantir Claude". Em dash and " - " are the separators
-                # FreeIDE's own writer uses (mirrors section-4 grouping).
+                # JettsTUI's own writer uses (mirrors section-4 grouping).
                 grp_display = display_name
                 for sep in ("—", " - "):
                     if sep in grp_display:
@@ -2430,7 +2430,7 @@ def list_authenticated_providers(
             )
             if should_probe:
                 try:
-                    from freeide_cli.models import fetch_api_models
+                    from jettstui.models import fetch_api_models
                     live_models = fetch_api_models(
                         api_key,
                         api_url,
@@ -2499,7 +2499,7 @@ def list_authenticated_providers(
         _models = [current_model] if current_model else []
         if refresh or probe_current_custom_provider:
             try:
-                from freeide_cli.models import fetch_api_models
+                from jettstui.models import fetch_api_models
 
                 _live_models = fetch_api_models("", str(current_base_url).strip().rstrip("/"))
                 if _live_models:
@@ -2622,10 +2622,10 @@ def list_authenticated_providers(
                     groups[group_key]["discover_models"] = False
 
             # The singular ``model:`` field only holds the currently
-            # active model. FreeIDE's own writer (main.py::_save_custom_provider)
+            # active model. JettsTUI's own writer (main.py::_save_custom_provider)
             # stores every configured model as a dict under ``models:``;
             # downstream readers (agent/models_dev.py, gateway/run.py,
-            # run_agent.py, freeide_cli/config.py) already consume that dict.
+            # run_agent.py, jettstui/config.py) already consume that dict.
             default_model = (entry.get("model") or "").strip()
             if default_model and default_model not in groups[group_key]["models"]:
                 groups[group_key]["models"].append(default_model)
@@ -2725,7 +2725,7 @@ def list_authenticated_providers(
             )
             if should_probe:
                 try:
-                    from freeide_cli.models import fetch_api_models
+                    from jettstui.models import fetch_api_models
 
                     live_models = fetch_api_models(
                         api_key,
@@ -2762,7 +2762,7 @@ def list_authenticated_providers(
     # ``provider_id`` so PROVIDER_REGISTRY entries that match user-config
     # blocks are filtered consistently.
     try:
-        from freeide_cli.config import is_provider_enabled
+        from jettstui.config import is_provider_enabled
         if isinstance(user_providers, dict):
             _disabled_slugs = {
                 str(name).strip().lower()
@@ -2812,7 +2812,7 @@ def _prepend_moa_picker_provider(providers: List[dict], current_provider: str = 
     builder so the row shape stays defined in one place.
     """
     try:
-        from freeide_cli.inventory import _moa_provider_row
+        from jettstui.inventory import _moa_provider_row
 
         moa_row = _moa_provider_row(current_provider)
         if moa_row is None:
@@ -2839,7 +2839,7 @@ def list_picker_providers(
     current install:
 
     - OpenRouter's model list is replaced with the output of
-      :func:`freeide_cli.models.fetch_openrouter_models`, which filters the
+      :func:`jettstui.models.fetch_openrouter_models`, which filters the
       curated ``OPENROUTER_MODELS`` snapshot against the live OpenRouter
       catalog.  IDs the live catalog no longer carries drop out, so the
       picker never offers a model the user can't call.
@@ -2851,7 +2851,7 @@ def list_picker_providers(
     The typed ``/model <name>`` path is unaffected -- only the interactive
     picker payload is narrowed.
     """
-    from freeide_cli.models import fetch_openrouter_models
+    from jettstui.models import fetch_openrouter_models
 
     providers = list_authenticated_providers(
         current_provider=current_provider,

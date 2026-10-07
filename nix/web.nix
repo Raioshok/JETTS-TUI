@@ -1,9 +1,9 @@
-# nix/web.nix — FreeIDE Web Dashboard (Vite/React) frontend build
-{ pkgs, freeideNpmLib, ... }:
+# nix/web.nix — JettsTUI Web Dashboard (Vite/React) frontend build
+{ pkgs, jettstuiNpmLib, ... }:
 let
   # @jetts-tui/shared ships as a file: workspace dep of web, so its source
   # must be in the filtered src tree too.
-  npm = freeideNpmLib.mkNpmPassthru {
+  npm = jettstuiNpmLib.mkNpmPassthru {
     dirs = [
       "web"
       "apps/shared"
@@ -14,7 +14,7 @@ let
   version = packageJson.version;
 in
 pkgs.buildNpmPackage (npm // {
-  pname = "freeide-web";
+  pname = "jettstui-web";
   inherit version;
 
   doCheck = false;

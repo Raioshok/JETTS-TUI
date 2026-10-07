@@ -1,6 +1,6 @@
 """
 SQLite-backed fact store with entity resolution and trust scoring.
-Single-user FreeIDE memory store plugin.
+Single-user JettsTUI memory store plugin.
 """
 
 import re
@@ -120,8 +120,8 @@ class MemoryStore:
         hrr_dim: int = 1024,
     ) -> None:
         if db_path is None:
-            from freeide_constants import get_freeide_home
-            db_path = str(get_freeide_home() / "memory_store.db")
+            from jettstui_constants import get_jettstui_home
+            db_path = str(get_jettstui_home() / "memory_store.db")
         self.db_path = Path(db_path).expanduser()
         self.db_path.parent.mkdir(parents=True, exist_ok=True)
         self.default_trust = _clamp_trust(default_trust)
@@ -170,9 +170,9 @@ class MemoryStore:
     def _init_db(self) -> None:
         """Create tables, indexes, and triggers if they do not exist. Enable WAL mode."""
         # Use the shared WAL-fallback helper so memory_store.db degrades
-        # gracefully on NFS/SMB/FUSE-mounted FREEIDE_HOME (same issue as
-        # state.db / kanban.db — see freeide_state._WAL_INCOMPAT_MARKERS).
-        from freeide_state import apply_wal_with_fallback
+        # gracefully on NFS/SMB/FUSE-mounted JETTSTUI_HOME (same issue as
+        # state.db / kanban.db — see jettstui_state._WAL_INCOMPAT_MARKERS).
+        from jettstui_state import apply_wal_with_fallback
         apply_wal_with_fallback(self._conn, db_label="memory_store.db (holographic)")
         self._conn.executescript(_SCHEMA)
         # Migrate: add hrr_vector column if missing (safe for existing databases)

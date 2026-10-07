@@ -1,7 +1,7 @@
 """Interactive prompt callbacks for terminal_tool integration.
 
 These bridge terminal_tool's interactive prompts (clarify, sudo, approval)
-into prompt_toolkit's event loop. Each function takes the FreeIDECLI instance
+into prompt_toolkit's event loop. Each function takes the JettsTUICLI instance
 as its first argument and uses its state (queues, app reference) to coordinate
 with the TUI.
 """
@@ -9,10 +9,10 @@ with the TUI.
 import queue
 import time as _time
 
-from freeide_cli.banner import cprint, _DIM, _RST
-from freeide_cli.config import save_env_value_secure
-from freeide_cli.secret_prompt import masked_secret_prompt
-from freeide_constants import display_freeide_home
+from jettstui.banner import cprint, _DIM, _RST
+from jettstui.config import save_env_value_secure
+from jettstui.secret_prompt import masked_secret_prompt
+from jettstui_constants import display_jettstui_home
 
 
 def clarify_callback(cli, question, choices, multi_select=False):
@@ -78,7 +78,7 @@ def prompt_for_secret(cli, var_name: str, prompt: str, metadata=None) -> dict:
     """Prompt for a secret value through the TUI (e.g. API keys for skills).
 
     Returns a dict with keys: success, stored_as, validated, skipped, message.
-    The secret is stored in ~/.freeide/.env and never exposed to the model.
+    The secret is stored in ~/.jettstui/.env and never exposed to the model.
     """
     if not getattr(cli, "_app", None):
         if not hasattr(cli, "_secret_state"):
@@ -102,7 +102,7 @@ def prompt_for_secret(cli, var_name: str, prompt: str, metadata=None) -> dict:
             }
 
         stored = save_env_value_secure(var_name, value)
-        _dhh = display_freeide_home()
+        _dhh = display_jettstui_home()
         cprint(f"\n{_DIM}  ✓ Stored secret in {_dhh}/.env as {var_name}{_RST}")
         return {
             **stored,
@@ -155,7 +155,7 @@ def prompt_for_secret(cli, var_name: str, prompt: str, metadata=None) -> dict:
                 }
 
             stored = save_env_value_secure(var_name, value)
-            _dhh = display_freeide_home()
+            _dhh = display_jettstui_home()
             cprint(f"\n{_DIM}  ✓ Stored secret in {_dhh}/.env as {var_name}{_RST}")
             return {
                 **stored,

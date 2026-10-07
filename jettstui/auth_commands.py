@@ -27,10 +27,10 @@ from agent.credential_pool import (
     list_custom_pool_providers,
     load_pool,
 )
-import freeide_cli.auth as auth_mod
-from freeide_cli.auth import PROVIDER_REGISTRY
-from freeide_constants import OPENROUTER_BASE_URL
-from freeide_cli.secret_prompt import masked_secret_prompt
+import jettstui.auth as auth_mod
+from jettstui.auth import PROVIDER_REGISTRY
+from jettstui_constants import OPENROUTER_BASE_URL
+from jettstui.secret_prompt import masked_secret_prompt
 
 
 # Providers that support OAuth login in addition to API keys.
@@ -40,7 +40,7 @@ _OAUTH_CAPABLE_PROVIDERS = {"anthropic", "openai-codex", "xai-oauth", "qwen-oaut
 def _get_custom_provider_names() -> list:
     """Return list of (display_name, pool_key, provider_key) tuples."""
     try:
-        from freeide_cli.config import get_compatible_custom_providers, load_config
+        from jettstui.config import get_compatible_custom_providers, load_config
 
         config = load_config()
     except Exception:
@@ -184,7 +184,7 @@ def auth_add_command(args) -> None:
     # Matches the Codex device_code re-link pattern that predates this.
     if not provider.startswith(CUSTOM_POOL_PREFIX):
         try:
-            from freeide_cli.auth import (
+            from jettstui.auth import (
                 _load_auth_store,
                 unsuppress_credential_source,
             )
@@ -224,7 +224,7 @@ def auth_add_command(args) -> None:
     if provider == "anthropic":
         from agent import anthropic_adapter as anthropic_mod
 
-        creds = anthropic_mod.run_freeide_oauth_login_pure()
+        creds = anthropic_mod.run_jettstui_oauth_login_pure()
         if not creds:
             raise SystemExit("Anthropic OAuth login did not return credentials.")
         label = (getattr(args, "label", None) or "").strip() or label_from_token(
@@ -237,7 +237,7 @@ def auth_add_command(args) -> None:
             label=label,
             auth_type=AUTH_TYPE_OAUTH,
             priority=0,
-            source=f"{SOURCE_MANUAL}:freeide_pkce",
+            source=f"{SOURCE_MANUAL}:jettstui_pkce",
             access_token=creds["access_token"],
             refresh_token=creds.get("refresh_token"),
             expires_at_ms=creds.get("expires_at_ms"),
@@ -258,7 +258,7 @@ def auth_add_command(args) -> None:
         # xai-oauth path below) instead of routing through the singleton
         # ``_save_codex_tokens`` save path.
         # The singleton round-trip collapsed every added account into the
-        # latest login: a second ``freeide auth add openai-codex`` overwrote
+        # latest login: a second ``jettstui auth add openai-codex`` overwrote
         # the first account's singleton-mirrored ``device_code`` entry rather
         # than creating an independent one (#39236). ``manual:device_code``
         # entries refresh from their own token pair, so they need no singleton
@@ -298,7 +298,7 @@ def auth_add_command(args) -> None:
         # openai-codex / qwen-oauth / minimax-oauth patterns) instead of
         # routing through the singleton ``_save_xai_oauth_tokens`` save path.
         # The singleton round-trip collapsed every added account into the
-        # latest login: a second ``freeide auth add xai-oauth`` overwrote the
+        # latest login: a second ``jettstui auth add xai-oauth`` overwrote the
         # first account's singleton-mirrored ``device_code`` entry rather than
         # creating an independent one. ``manual:device_code`` entries refresh
         # from their own token pair (``_sync_xai_oauth_entry_from_auth_store``
@@ -371,7 +371,7 @@ def auth_add_command(args) -> None:
         print(f'Added {provider} OAuth credential #{len(pool.entries())}: "{entry.label}"')
         return
 
-    raise SystemExit(f"`freeide auth add {provider}` is not implemented for auth type {requested_type} yet.")
+    raise SystemExit(f"`jettstui auth add {provider}` is not implemented for auth type {requested_type} yet.")
 
 
 def auth_list_command(args) -> None:
@@ -415,14 +415,14 @@ def auth_remove_command(args) -> None:
         raise SystemExit(f'No credential matching "{target}" for provider {provider}.')
     print(f"Removed {provider} credential #{index} ({removed.label})")
 
-    # Unified removal dispatch.  Every credential source FreeIDE reads from
+    # Unified removal dispatch.  Every credential source JettsTUI reads from
     # (env vars, external OAuth files, auth.json blocks, custom config)
     # has a RemovalStep registered in agent.credential_sources.  The step
     # handles its source-specific cleanup and we centralise suppression +
     # user-facing output here so every source behaves identically from
     # the user's perspective.
     from agent.credential_sources import find_removal_step
-    from freeide_cli.auth import suppress_credential_source
+    from jettstui.auth import suppress_credential_source
 
     step = find_removal_step(provider, removed.source)
     if step is None:
@@ -449,7 +449,7 @@ def auth_reset_command(args) -> None:
 def auth_status_command(args) -> None:
     provider = _normalize_provider(getattr(args, "provider", "") or "")
     if not provider:
-        raise SystemExit("Provider is required. Example: `freeide auth status spotify`.")
+        raise SystemExit("Provider is required. Example: `jettstui auth status spotify`.")
     status = auth_mod.get_auth_status(provider)
     if not status.get("logged_in"):
         reason = status.get("error")
@@ -485,7 +485,7 @@ def auth_spotify_command(args) -> None:
 
 
 def _interactive_auth() -> None:
-    """Interactive credential pool management when `freeide auth` is called bare."""
+    """Interactive credential pool management when `jettstui auth` is called bare."""
     # Show current pool status first
     print("Credential Pool Status")
     print("=" * 50)
@@ -515,7 +515,7 @@ def _interactive_auth() -> None:
 
     # Show Azure Foundry Entra ID status
     try:
-        from freeide_cli.config import load_config
+        from jettstui.config import load_config
         _cfg = load_config()
         _model_cfg = _cfg.get("model") if isinstance(_cfg, dict) else None
         if isinstance(_model_cfg, dict):
@@ -704,7 +704,7 @@ def _interactive_strategy() -> None:
         print("Invalid choice.")
         return
 
-    from freeide_cli.config import load_config, save_config
+    from jettstui.config import load_config, save_config
     cfg = load_config()
     pool_strategies = cfg.get("credential_pool_strategies") or {}
     if not isinstance(pool_strategies, dict):

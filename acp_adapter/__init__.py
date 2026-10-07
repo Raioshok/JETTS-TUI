@@ -1,1 +1,1 @@
-"""ACP (Agent Communication Protocol) adapter for freeide-agent."""
+"""ACP (Agent Communication Protocol) adapter for jettstui."""

@@ -40,18 +40,18 @@ import pytest
 
 @pytest.fixture
 def isolated_home(monkeypatch):
-    """Temp FREEIDE_HOME with config + clean credential env vars."""
-    test_home = tempfile.mkdtemp(prefix="freeide_test_31179_")
-    freeide_home = os.path.join(test_home, ".freeide")
-    os.makedirs(freeide_home)
-    monkeypatch.setenv("FREEIDE_HOME", freeide_home)
+    """Temp JETTSTUI_HOME with config + clean credential env vars."""
+    test_home = tempfile.mkdtemp(prefix="jettstui_test_31179_")
+    jettstui_home = os.path.join(test_home, ".jettstui")
+    os.makedirs(jettstui_home)
+    monkeypatch.setenv("JETTSTUI_HOME", jettstui_home)
 
     # Strip all credential-shaped env vars so each scenario starts hermetic.
     for k in list(os.environ.keys()):
         if k.endswith("_API_KEY") or k.endswith("_TOKEN"):
             monkeypatch.delenv(k, raising=False)
 
-    yield freeide_home
+    yield jettstui_home
     shutil.rmtree(test_home, ignore_errors=True)
 
 
@@ -61,11 +61,11 @@ def _write_config(home: str, text: str) -> None:
 
 
 def _fresh_modules():
-    """Drop cached freeide modules so each test reloads against current env."""
+    """Drop cached jettstui modules so each test reloads against current env."""
     for mod in list(sys.modules.keys()):
         if mod.startswith(("agent.auxiliary_client", "agent.image_routing",
                            "tools.vision_tools", "tools.browser_tool",
-                           "freeide_cli.config")):
+                           "jettstui.config")):
             del sys.modules[mod]
 
 

@@ -14,7 +14,7 @@ Vector search engine for production RAG systems.
 
 | | |
 |---|---|
-| Source | Optional — install with `freeide skills install official/mlops/qdrant` |
+| Source | Optional — install with `jettstui skills install official/mlops/qdrant` |
 | Path | `optional-skills/mlops/qdrant` |
 | Version | `1.0.1` |
 | Author | Orchestra Research |
@@ -26,7 +26,7 @@ Vector search engine for production RAG systems.
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that FreeIDE loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that JettsTUI loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Qdrant - Vector Similarity Search Engine

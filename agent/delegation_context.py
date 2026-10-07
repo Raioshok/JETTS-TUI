@@ -1,7 +1,7 @@
 """Context-local state for delegate_task child execution.
 
-The parent FreeIDE process may itself be a Kanban dispatcher worker with
-FREEIDE_KANBAN_* variables in process env. delegate_task children run inside the
+The parent JettsTUI process may itself be a Kanban dispatcher worker with
+JETTSTUI_KANBAN_* variables in process env. delegate_task children run inside the
 same Python process, but they are not dispatcher-owned Kanban workers. This
 module lets code paths that resolve tool schemas or spawn subprocesses fail
 closed for delegated children without mutating global os.environ for the parent.
@@ -13,20 +13,20 @@ from contextvars import ContextVar
 from typing import Iterator, Mapping, MutableMapping
 
 _DELEGATED_CHILD_CONTEXT: ContextVar[bool] = ContextVar(
-    "freeide_delegated_child_context",
+    "jettstui_delegated_child_context",
     default=False,
 )
 
-DELEGATED_CHILD_ENV_MARKER = "FREEIDE_DELEGATED_CHILD_CONTEXT"
+DELEGATED_CHILD_ENV_MARKER = "JETTSTUI_DELEGATED_CHILD_CONTEXT"
 
 KANBAN_ENV_KEYS: tuple[str, ...] = (
-    "FREEIDE_KANBAN_TASK",
-    "FREEIDE_KANBAN_RUN_ID",
-    "FREEIDE_KANBAN_WORKSPACE",
-    "FREEIDE_KANBAN_WORKSPACES_ROOT",
-    "FREEIDE_KANBAN_CLAIM_LOCK",
-    "FREEIDE_KANBAN_BOARD",
-    "FREEIDE_KANBAN_DB",
+    "JETTSTUI_KANBAN_TASK",
+    "JETTSTUI_KANBAN_RUN_ID",
+    "JETTSTUI_KANBAN_WORKSPACE",
+    "JETTSTUI_KANBAN_WORKSPACES_ROOT",
+    "JETTSTUI_KANBAN_CLAIM_LOCK",
+    "JETTSTUI_KANBAN_BOARD",
+    "JETTSTUI_KANBAN_DB",
 )
 
 
@@ -70,7 +70,7 @@ def delegated_child_subprocess_env(
 
     Most subprocess call sites historically used ``env=None`` to inherit the
     process environment.  In a ``delegate_task`` child, inheriting as-is leaks
-    parent dispatcher ``FREEIDE_KANBAN_*`` vars while losing the ContextVar in
+    parent dispatcher ``JETTSTUI_KANBAN_*`` vars while losing the ContextVar in
     the new process.  This helper preserves normal ``env=None`` semantics for
     non-delegated calls, and only materializes a scrubbed env when the lineage
     marker must be propagated across a child-process boundary.

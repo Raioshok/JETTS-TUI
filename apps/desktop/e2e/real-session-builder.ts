@@ -51,7 +51,7 @@ export interface RealSession {
 
 /**
  * Creates durable desktop session history through the real TUI gateway and
- * AIAgent loop, using the E2E mock provider configured in `freeideHome`.
+ * AIAgent loop, using the E2E mock provider configured in `jettstuiHome`.
  *
  * This intentionally uses the shipped stdio JSON-RPC transport instead of
  * importing SessionDB or launching Electron. The desktop's WebSocket backend
@@ -70,12 +70,12 @@ export class RealSessionBuilder {
   private readonly stderr: string[] = []
   private closed = false
 
-  private constructor(freeideHome: string) {
+  private constructor(jettstuiHome: string) {
     this.child = spawn('uv', ['run', '--active', '--no-sync', 'python', '-m', 'tui_gateway.entry'], {
       cwd: REPO_ROOT,
       env: {
         ...process.env,
-        FREEIDE_HOME: freeideHome,
+        JETTSTUI_HOME: jettstuiHome,
         PYTHONPATH: REPO_ROOT,
       },
       stdio: 'pipe',
@@ -94,8 +94,8 @@ export class RealSessionBuilder {
     })
   }
 
-  static async start(freeideHome: string): Promise<RealSessionBuilder> {
-    const builder = new RealSessionBuilder(freeideHome)
+  static async start(jettstuiHome: string): Promise<RealSessionBuilder> {
+    const builder = new RealSessionBuilder(jettstuiHome)
     await builder.waitForEvent(frame => frame.params?.type === 'gateway.ready')
     return builder
   }

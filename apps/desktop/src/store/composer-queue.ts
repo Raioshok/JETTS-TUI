@@ -15,7 +15,7 @@ export interface QueuedPromptEntry {
 
 type QueueState = Record<string, QueuedPromptEntry[]>
 
-const STORAGE_KEY = 'freeide.desktop.composerQueue.v1'
+const STORAGE_KEY = 'jettstui.desktop.composerQueue.v1'
 
 const load = (): QueueState => {
   if (typeof window === 'undefined') {

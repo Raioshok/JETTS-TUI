@@ -1,4 +1,4 @@
-"""Slash command definitions and autocomplete for the FreeIDE CLI.
+"""Slash command definitions and autocomplete for the JettsTUI CLI.
 
 Central registry for all slash commands. Every consumer -- CLI help, gateway
 dispatch, Telegram BotCommands, Slack subcommand mapping, autocomplete --
@@ -92,7 +92,7 @@ COMMAND_REGISTRY: list[CommandDef] = [
                aliases=("compact",), args_hint="[here [N] | focus topic | --preview|--dry-run]"),
     CommandDef("rollback", "List or restore filesystem checkpoints", "Session",
                args_hint="[number]"),
-    CommandDef("snapshot", "Create or restore state snapshots of FreeIDE config/state", "Session",
+    CommandDef("snapshot", "Create or restore state snapshots of JettsTUI config/state", "Session",
                cli_only=True, aliases=("snap",), args_hint="[create|restore <id>|prune]"),
     CommandDef("stop", "Kill all running background processes", "Session"),
     CommandDef("approve", "Approve a pending dangerous command", "Session",
@@ -111,7 +111,7 @@ COMMAND_REGISTRY: list[CommandDef] = [
                aliases=("q",), args_hint="<prompt>"),
     CommandDef("steer", "Inject a message after the next tool call without interrupting", "Session",
                args_hint="<prompt>"),
-    CommandDef("goal", "Set a standing goal FreeIDE works on across turns until achieved", "Session",
+    CommandDef("goal", "Set a standing goal JettsTUI works on across turns until achieved", "Session",
                args_hint="[text | draft <text> | show | pause | resume | clear | status | wait <pid> | unwait]"),
     CommandDef("spec", "Create and approve a Kiro-style requirements/design/tasks spec", "Session",
                cli_only=True,
@@ -126,7 +126,7 @@ COMMAND_REGISTRY: list[CommandDef] = [
                aliases=("perms",)),
     CommandDef("review", "Review git changes without editing files", "Session",
                args_hint="[unstaged|staged|all|base <branch>|commit <sha>]"),
-    CommandDef("doctor", "Run a quick FreeIDE setup and runtime health check", "Session",
+    CommandDef("doctor", "Run a quick JettsTUI setup and runtime health check", "Session",
                args_hint="[quick|full]"),
     CommandDef("egress", "Show Docker egress proxy status", "Session",
                args_hint="[status]", subcommands=("status",)),
@@ -195,7 +195,7 @@ COMMAND_REGISTRY: list[CommandDef] = [
                subcommands=("kaomoji", "emoji", "unicode", "ascii")),
     CommandDef("voice", "Toggle voice mode", "Configuration",
                args_hint="[on|off|tts|status]", subcommands=("on", "off", "tts", "status")),
-    CommandDef("busy", "Control what Enter does while FreeIDE is working", "Configuration",
+    CommandDef("busy", "Control what Enter does while JettsTUI is working", "Configuration",
                cli_only=True, args_hint="[queue|steer|interrupt|status]",
                subcommands=("queue", "steer", "interrupt", "status")),
 
@@ -250,7 +250,7 @@ COMMAND_REGISTRY: list[CommandDef] = [
                cli_only=True),
     CommandDef("reload-mcp", "Reload MCP servers from config", "Tools & Skills",
                aliases=("reload_mcp",)),
-    CommandDef("reload-skills", "Re-scan ~/.freeide/skills/ for newly installed or removed skills",
+    CommandDef("reload-skills", "Re-scan ~/.jettstui/skills/ for newly installed or removed skills",
                "Tools & Skills", aliases=("reload_skills",)),
     CommandDef("browser", "Connect browser tools to your live Chromium-family browser via CDP", "Tools & Skills",
                cli_only=True, args_hint="[connect|disconnect|status]",
@@ -278,8 +278,8 @@ COMMAND_REGISTRY: list[CommandDef] = [
                cli_only=True),
     CommandDef("image", "Attach a local image file for your next prompt", "Info",
                cli_only=True, args_hint="<path>"),
-    CommandDef("update", "Update Jetts-TUI to the latest version", "Info"),
-    CommandDef("version", "Show Jetts-TUI version", "Info", aliases=("v",)),
+    CommandDef("update", "Update JettsTUI to the latest version", "Info"),
+    CommandDef("version", "Show JettsTUI version", "Info", aliases=("v",)),
     CommandDef("debug", "Upload debug report (system info + logs) and get shareable links", "Info",
                args_hint="[local]"),
 
@@ -480,7 +480,7 @@ def _resolve_config_gates() -> set[str]:
     if not gated:
         return set()
     try:
-        from freeide_cli.config import read_raw_config
+        from jettstui.config import read_raw_config
         cfg = read_raw_config()
     except Exception:
         return set()
@@ -541,9 +541,9 @@ def _iter_plugin_command_entries() -> list[tuple[str, str, str]]:
     """Yield (name, description, args_hint) tuples for all plugin slash commands.
 
     Plugin commands are registered via
-    :func:`freeide_cli.plugins.PluginContext.register_command`. They behave
+    :func:`jettstui.plugins.PluginContext.register_command`. They behave
     like ``CommandDef`` entries for gateway surfacing: they appear in the
-    Telegram command menu, in Slack's ``/freeide`` subcommand mapping, and
+    Telegram command menu, in Slack's ``/jettstui`` subcommand mapping, and
     (via :func:`plugins.platforms.discord.adapter._register_slash_commands`) in
     Discord's native slash command picker.
 
@@ -552,7 +552,7 @@ def _iter_plugin_command_entries() -> list[tuple[str, str, str]]:
     behavior).
     """
     try:
-        from freeide_cli.plugins import get_plugin_commands
+        from jettstui.plugins import get_plugin_commands
     except Exception:
         return []
     try:
@@ -603,7 +603,7 @@ def telegram_bot_commands() -> list[tuple[str, str]]:
     return result
 
 
-# Telegram allows up to 100 BotCommands. FreeIDE ships ~50 built-in commands;
+# Telegram allows up to 100 BotCommands. JettsTUI ships ~50 built-in commands;
 # a 60-slot default keeps every built-in plus common skill commands visible in
 # the `/` menu while staying comfortably under Telegram's ~4KB payload limit.
 # Users can tune this via platforms.telegram.extra.command_menu.max_commands.
@@ -643,7 +643,7 @@ _TELEGRAM_MENU_PRIORITY = (
 )
 """Built-in commands that should stay visible in Telegram's capped menu.
 
-Telegram only displays a small BotCommand menu in practice.  The full FreeIDE
+Telegram only displays a small BotCommand menu in practice.  The full JettsTUI
 registry is still dispatchable when typed manually, but operational commands
 need to survive the visible menu cap ahead of lower-priority built-ins.
 """
@@ -665,7 +665,7 @@ def _telegram_command_menu_config() -> dict[str, Any]:
     ``platforms.telegram.extra.command_menu``.
     """
     try:
-        from freeide_cli.config import read_raw_config
+        from jettstui.config import read_raw_config
         raw_cfg = read_raw_config() or {}
     except Exception:
         raw_cfg = {}
@@ -867,7 +867,7 @@ def _collect_gateway_skill_entries(
     # --- Tier 1: Plugin slash commands (never trimmed) ---------------------
     plugin_pairs: list[tuple[str, str]] = []
     try:
-        from freeide_cli.plugins import get_plugin_commands
+        from jettstui.plugins import get_plugin_commands
         plugin_cmds = get_plugin_commands()
         for cmd_name in sorted(plugin_cmds):
             name = sanitize_name(cmd_name) if sanitize_name else cmd_name
@@ -905,7 +905,7 @@ def _collect_gateway_skill_entries(
         # user-configured ``skills.external_dirs``. Ensure each prefix ends
         # with ``/`` so ``/my-skills`` does not also match ``/my-skills-extra``.
         # Without this widening, external skills are visible in
-        # ``freeide skills list`` and the agent's ``/skill-name`` dispatch but
+        # ``jettstui skills list`` and the agent's ``/skill-name`` dispatch but
         # silently excluded from gateway slash menus (#8110).
         _allowed_prefixes = [_skills_dir.rstrip("/") + "/"]
         _allowed_prefixes.extend(
@@ -962,7 +962,7 @@ def telegram_menu_commands(max_commands: int = 100) -> tuple[list[tuple[str, str
 
     Skills are the only tier that gets trimmed when the cap is hit.
     User-installed hub skills are excluded — accessible via /skills.
-    Skills disabled for the ``"telegram"`` platform (via ``freeide skills
+    Skills disabled for the ``"telegram"`` platform (via ``jettstui skills
     config``) are excluded from the menu entirely.
 
     Returns:
@@ -1031,7 +1031,7 @@ def discord_skill_commands_by_category(
     Scan roots include the local ``SKILLS_DIR`` **and** any configured
     ``skills.external_dirs`` — matching the widened filter applied to the
     flat ``discord_skill_commands()`` collector in #18741. Without this
-    parity, external-dir skills are visible via ``freeide skills list`` and
+    parity, external-dir skills are visible via ``jettstui skills list`` and
     the agent's ``/skill-name`` dispatch but silently absent from Discord's
     ``/skill`` autocomplete.
 
@@ -1203,43 +1203,43 @@ _SLACK_RESERVED_COMMANDS = frozenset({
 # registry fills up. Without this, adding a new canonical command silently
 # clamps off low-priority aliases (they're added in the second pass), so a
 # long-standing native slash like /btw could disappear just because an
-# unrelated command landed. These claim their slots right after /freeide,
+# unrelated command landed. These claim their slots right after /jettstui,
 # ahead of both canonical names and the rest of the aliases. Anything not
-# listed here still degrades gracefully (reachable via /freeide <command>).
+# listed here still degrades gracefully (reachable via /jettstui <command>).
 # Keep this list TIGHT: every pinned alias takes a slot a canonical command
 # would otherwise get, and the Telegram-parity test fails when a canonical
 # gets clamped ("reset" was unpinned for exactly that — /new keeps its
-# native slot, the alias spelling stays reachable via /freeide reset).
+# native slot, the alias spelling stays reachable via /jettstui reset).
 _SLACK_PRIORITY_ALIASES = ("btw", "bg")
 
 # Canonical commands intentionally NOT given a native Slack slash slot. Slack
 # caps apps at 50 slash commands and the registry is at that ceiling; rather
 # than let the clamp silently drop whichever command sorts last (and break
 # Telegram parity), we explicitly route a few low-frequency commands through
-# ``/freeide <command>`` on Slack only. They remain native on every other
+# ``/jettstui <command>`` on Slack only. They remain native on every other
 # surface (CLI, TUI, Telegram, Discord). Keep this list TIGHT and intentional —
 # the telegram-parity test reads it so an entry here is a deliberate
-# "Slack-via-/freeide" decision, not a silent clamp.
-#   - topup: the billing/balance surface; reached via /freeide topup on Slack.
+# "Slack-via-/jettstui" decision, not a silent clamp.
+#   - topup: the billing/balance surface; reached via /jettstui topup on Slack.
 #     (the rehaul folded the old /credits + /billing surfaces into /topup.)
-#   - moa: high-cost slash mode, available through /freeide moa to avoid
+#   - moa: high-cost slash mode, available through /jettstui moa to avoid
 #     displacing existing native Slack slash commands at the 50-command cap.
-#   - debug: the log/report upload surface; reached via /freeide debug on Slack.
-#   - egress: Docker-only proxy status; reachable as /freeide egress on Slack.
+#   - debug: the log/report upload surface; reached via /jettstui debug on Slack.
+#   - egress: Docker-only proxy status; reachable as /jettstui egress on Slack.
 #   - init: repo-scan AGENTS.md bootstrap — a cwd-centric dev command that is
-#     rare from Slack; reachable as /freeide init. Without this entry, adding
+#     rare from Slack; reachable as /jettstui init. Without this entry, adding
 #     /init clamps /version off the native list and breaks Telegram parity.
-#   - version: low-frequency info command; reachable as /freeide version on
+#   - version: low-frequency info command; reachable as /jettstui version on
 #     Slack. Demoted when /context claimed a native slot (context is a
 #     recurring inspection surface; version is a one-off lookup); the demotion
 #     also absorbs the native slot /approvals now consumes at the 50-cap.
-#   - diff: git working-tree diff; reached via /freeide diff on Slack so it
+#   - diff: git working-tree diff; reached via /jettstui diff on Slack so it
 #     doesn't displace an existing native slash at the 50-command cap.
 #   - update: low-frequency self-update maintenance command; reached via
-#     /freeide update on Slack. Demoted to free the native slot /approvals now
+#     /jettstui update on Slack. Demoted to free the native slot /approvals now
 #     claims — without this entry /approvals tips the registry past the 50-cap
 #     and silently clamps /update off, breaking Telegram parity.
-_SLACK_VIA_FREEIDE_ONLY = frozenset(
+_SLACK_VIA_JETTSTUI_ONLY = frozenset(
     {
         "moa", "debug", "egress", "init", "version", "diff", "update",
         # Lower-frequency reporting/operations stay available through the
@@ -1269,20 +1269,20 @@ def slack_native_slashes() -> list[tuple[str, str, str]]:
 
     Commands whose sanitized name collides with a Slack built-in
     (e.g. ``/status``, ``/me``, ``/join``) are silently skipped.  Users
-    can still reach them via ``/freeide <command>``.
+    can still reach them via ``/jettstui <command>``.
 
     Results are clamped to Slack's 50-command limit with duplicate-name
-    avoidance. ``/freeide`` is always reserved as the first entry so the
-    legacy ``/freeide <subcommand>`` form keeps working for anything that
+    avoidance. ``/jettstui`` is always reserved as the first entry so the
+    legacy ``/jettstui <subcommand>`` form keeps working for anything that
     gets dropped by the clamp or for free-form questions.
     """
     overrides = _resolve_config_gates()
     entries: list[tuple[str, str, str]] = []
     seen: set[str] = set()
 
-    # Reserve /freeide as the catch-all top-level command.
-    entries.append(("freeide", "Talk to FreeIDE or run a subcommand", "[subcommand] [args]"))
-    seen.add("freeide")
+    # Reserve /jettstui as the catch-all top-level command.
+    entries.append(("jettstui", "Talk to JettsTUI or run a subcommand", "[subcommand] [args]"))
+    seen.add("jettstui")
 
     def _add(name: str, desc: str, hint: str) -> None:
         slack_name = _sanitize_slack_name(name)
@@ -1290,8 +1290,8 @@ def slack_native_slashes() -> list[tuple[str, str, str]]:
             return
         if slack_name in _SLACK_RESERVED_COMMANDS:
             return
-        if slack_name in _SLACK_VIA_FREEIDE_ONLY:
-            # Intentionally Slack-via-/freeide only (see _SLACK_VIA_FREEIDE_ONLY).
+        if slack_name in _SLACK_VIA_JETTSTUI_ONLY:
+            # Intentionally Slack-via-/jettstui only (see _SLACK_VIA_JETTSTUI_ONLY).
             return
         if len(entries) >= _SLACK_MAX_SLASH_COMMANDS:
             return
@@ -1327,7 +1327,7 @@ def slack_native_slashes() -> list[tuple[str, str, str]]:
     return entries
 
 
-def slack_app_manifest(request_url: str = "https://freeide-agent.local/slack/commands") -> dict[str, Any]:
+def slack_app_manifest(request_url: str = "https://jettstui.local/slack/commands") -> dict[str, Any]:
     """Generate a Slack app manifest with all gateway commands as slashes.
 
     ``request_url`` is required by Slack's manifest schema for every slash
@@ -1355,12 +1355,12 @@ def slack_app_manifest(request_url: str = "https://freeide-agent.local/slack/com
 
 
 def slack_subcommand_map() -> dict[str, str]:
-    """Return subcommand -> /command mapping for Slack /freeide handler.
+    """Return subcommand -> /command mapping for Slack /jettstui handler.
 
-    Maps both canonical names and aliases so /freeide bg do stuff works
-    the same as /freeide background do stuff.
+    Maps both canonical names and aliases so /jettstui bg do stuff works
+    the same as /jettstui background do stuff.
 
-    Plugin-registered slash commands are included so ``/freeide <plugin-cmd>``
+    Plugin-registered slash commands are included so ``/jettstui <plugin-cmd>``
     routes through the plugin handler.
     """
     overrides = _resolve_config_gates()
@@ -1841,7 +1841,7 @@ class SlashCommandCompleter(Completer):
     def _skin_completions(sub_text: str, sub_lower: str):
         """Yield completions for /skin from available skins."""
         try:
-            from freeide_cli.skin_engine import list_skins
+            from jettstui.skin_engine import list_skins
             for s in list_skins():
                 name = s["name"]
                 if name.startswith(sub_lower) and name != sub_lower:
@@ -1884,8 +1884,8 @@ class SlashCommandCompleter(Completer):
         already = set(parts[1:] if trailing_space else parts[1:-1])
 
         try:
-            from freeide_cli.config import load_config
-            from freeide_cli.tools_config import (
+            from jettstui.config import load_config
+            from jettstui.tools_config import (
                 CONFIGURABLE_TOOLSETS,
                 _get_platform_tools,
                 _get_plugin_toolset_keys,
@@ -2112,7 +2112,7 @@ class SlashCommandCompleter(Completer):
 
         # Plugin-registered slash commands
         try:
-            from freeide_cli.plugins import get_plugin_commands
+            from jettstui.plugins import get_plugin_commands
             for cmd_name, cmd_info in get_plugin_commands().items():
                 if cmd_name.startswith(word):
                     desc = str(cmd_info.get("description", "Plugin command"))

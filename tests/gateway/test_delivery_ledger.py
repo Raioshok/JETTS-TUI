@@ -19,9 +19,9 @@ from gateway import delivery_ledger as dl
 
 @pytest.fixture(autouse=True)
 def _fresh_db(tmp_path, monkeypatch):
-    """Isolated state.db per test (autouse FREEIDE_HOME isolation already
-    redirects get_freeide_home; make the redirect explicit and per-test)."""
-    home = tmp_path / ".freeide"
+    """Isolated state.db per test (autouse JETTSTUI_HOME isolation already
+    redirects get_jettstui_home; make the redirect explicit and per-test)."""
+    home = tmp_path / ".jettstui"
     home.mkdir()
     monkeypatch.setattr(dl, "_db_path", lambda: home / "state.db")
     yield

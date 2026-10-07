@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Skills Hub CLI — Unified interface for the FreeIDE Skills Hub.
+Skills Hub CLI — Unified interface for the JettsTUI Skills Hub.
 
 Powers both:
-  - `freeide skills <subcommand>` (CLI argparse entry point)
+  - `jettstui skills <subcommand>` (CLI argparse entry point)
   - `/skills <subcommand>` (slash command in the interactive chat)
 
 All logic lives in shared do_* functions. The CLI entry point and slash command
@@ -22,7 +22,7 @@ from rich.table import Table
 
 # Lazy imports to avoid circular dependencies and slow startup.
 # tools.skills_hub and tools.skills_guard are imported inside functions.
-from freeide_constants import display_freeide_home
+from jettstui_constants import display_jettstui_home
 from agent.skill_utils import is_excluded_skill_path
 
 _console = Console()
@@ -73,7 +73,7 @@ def _resolve_short_name(name: str, sources, console: Console) -> str:
         table.add_column("Source", style="dim")
         table.add_column("Trust", style="dim")
         # overflow="fold" keeps the full slug visible (wraps instead of ellipsis-truncating)
-        # so users can copy it for `freeide skills install`.
+        # so users can copy it for `jettstui skills install`.
         table.add_column("Identifier", style="bold cyan", overflow="fold", no_wrap=False)
         for r in exact:
             trust_style = {"builtin": "bright_cyan", "trusted": "green", "community": "yellow"}.get(r.trust_level, "dim")
@@ -178,7 +178,7 @@ def _is_valid_installed_skill_name(name: str) -> bool:
 
 
 def _existing_categories() -> List[str]:
-    """Return sorted subdirectory names under ``~/.freeide/skills/`` that look
+    """Return sorted subdirectory names under ``~/.jettstui/skills/`` that look
     like category buckets (contain at least one ``SKILL.md`` somewhere below).
 
     Used to suggest reusable categories when interactively installing from a
@@ -245,7 +245,7 @@ def _prompt_for_category(c: Console, existing: List[str]) -> str:
         c.print(f"[dim]Existing: {', '.join(existing)}[/]")
     else:
         c.print(
-            "[bold]Category[/] [dim](optional — press Enter to install flat at ~/.freeide/skills/<name>/)[/]"
+            "[bold]Category[/] [dim](optional — press Enter to install flat at ~/.jettstui/skills/<name>/)[/]"
         )
     try:
         answer = input("Category: ").strip()
@@ -308,7 +308,7 @@ def do_search(query: str, source: str = "all", limit: int = 10,
     # overflow="fold" keeps the full slug visible (wraps instead of
     # ellipsis-truncating). Browse.sh slugs end in a `-XXXXXX` hash that
     # is part of the actual identifier — truncating it makes copy-paste
-    # into `freeide skills install` fail.
+    # into `jettstui skills install` fail.
     table.add_column("Identifier", style="dim", overflow="fold", no_wrap=False)
 
     for r in results:
@@ -323,8 +323,8 @@ def do_search(query: str, source: str = "all", limit: int = 10,
         )
 
     c.print(table)
-    c.print("[dim]Use: freeide skills inspect <identifier> to preview, "
-            "freeide skills install <identifier> to install "
+    c.print("[dim]Use: jettstui skills inspect <identifier> to preview, "
+            "jettstui skills install <identifier> to install "
             "(--json for scripting)[/]\n")
 
 
@@ -350,7 +350,7 @@ def do_browse(page: int = 1, page_size: int = 20, source: str = "all",
     # Per-source limits are generous — parallelism + 30s timeout cap prevents hangs.
     _TRUST_RANK = {"builtin": 3, "trusted": 2, "community": 1}
     # NOTE: when the centralized index is available, parallel_search_sources
-    # skips the external API sources and serves everything from "freeide-index".
+    # skips the external API sources and serves everything from "jettstui-index".
     # That source MUST therefore carry a limit large enough to cover the whole
     # catalog, or browse silently caps the hub — it shipped at 50 (surfaced
     # ~136 of 88k skills), then 5000 (surfaced ~5.4k of 90k). The index is
@@ -359,7 +359,7 @@ def do_browse(page: int = 1, page_size: int = 20, source: str = "all",
     # only apply when the index is unavailable (offline / first run before the
     # cache populates).
     _PER_SOURCE_LIMIT = {
-        "freeide-index": 1000000,
+        "jettstui-index": 1000000,
         "official": 200, "skills-sh": 200, "well-known": 50,
         "github": 200, "clawhub": 500, "claude-marketplace": 100,
         "lobehub": 500, "browse-sh": 500,
@@ -440,7 +440,7 @@ def do_browse(page: int = 1, page_size: int = 20, source: str = "all",
     c.print(f"\n[bold]Skills Hub — Browse {source_label}[/]"
             f"  [dim]({loaded_label}, page {page}/{total_pages})[/]")
     if official_count > 0 and page == 1:
-        c.print(f"[bright_cyan]★ {official_count} official optional skill(s) from FreeIDE[/]")
+        c.print(f"[bright_cyan]★ {official_count} official optional skill(s) from JettsTUI[/]")
     c.print()
 
     # Build table
@@ -450,7 +450,7 @@ def do_browse(page: int = 1, page_size: int = 20, source: str = "all",
     table.add_column("Description", max_width=44)
     table.add_column("Source", style="dim", width=12)
     table.add_column("Trust", width=10)
-    # The identifier is what you pass to `freeide skills install`. Browse used
+    # The identifier is what you pass to `jettstui skills install`. Browse used
     # to omit it entirely, so users couldn't act on what they saw without a
     # second `search`. overflow="fold" keeps long slugs copy-pasteable.
     table.add_column("Identifier", style="dim", overflow="fold", no_wrap=False)
@@ -494,9 +494,9 @@ def do_browse(page: int = 1, page_size: int = 20, source: str = "all",
         c.print(f"  [yellow]⚡ Slow sources skipped: {', '.join(timed_out)} "
                 f"— run again for cached results[/]")
 
-    c.print("[dim]Tip: 'freeide skills inspect <identifier>' to preview, "
-            "'freeide skills install <identifier>' to install, "
-            "'freeide skills search <query>' to search deeper[/]\n")
+    c.print("[dim]Tip: 'jettstui skills inspect <identifier>' to preview, "
+            "'jettstui skills install <identifier>' to install, "
+            "'jettstui skills search <query>' to search deeper[/]\n")
 
 
 def do_install(identifier: str, category: str = "", force: bool = False,
@@ -602,7 +602,7 @@ def do_install(identifier: str, category: str = "", force: bool = False,
                 "and the URL path doesn't produce a valid identifier.[/]\n\n"
                 "Retry with an explicit name:\n"
                 f"  [bold]/skills install {url} --name <your-name>[/]\n"
-                f"  [bold]freeide skills install {url} --name <your-name>[/]\n\n"
+                f"  [bold]jettstui skills install {url} --name <your-name>[/]\n\n"
                 "[dim]Or ask the SKILL.md's author to add a `name:` field to "
                 "its YAML frontmatter.[/]\n"
             )
@@ -711,10 +711,10 @@ def do_install(identifier: str, category: str = "", force: bool = False,
         c.print()
         if bundle.source == "official":
             c.print(Panel(
-                "[bold bright_cyan]This is an official optional skill maintained by FreeIDE.[/]\n\n"
-                "It ships with freeide-agent but is not activated by default.\n"
+                "[bold bright_cyan]This is an official optional skill maintained by JettsTUI.[/]\n\n"
+                "It ships with jettstui but is not activated by default.\n"
                 "Installing will copy it to your skills directory where the agent can use it.\n\n"
-                f"Files will be at: [cyan]{display_freeide_home()}/skills/{category + '/' if category else ''}{bundle.name}/[/]",
+                f"Files will be at: [cyan]{display_jettstui_home()}/skills/{category + '/' if category else ''}{bundle.name}/[/]",
                 title="Official Skill",
                 border_style="bright_cyan",
             ))
@@ -724,7 +724,7 @@ def do_install(identifier: str, category: str = "", force: bool = False,
                 "External skills can contain instructions that influence agent behavior,\n"
                 "shell commands, and scripts. Even after automated scanning, you should\n"
                 "review the installed files before use.\n\n"
-                f"Files will be at: [cyan]{display_freeide_home()}/skills/{category + '/' if category else ''}{bundle.name}/[/]",
+                f"Files will be at: [cyan]{display_jettstui_home()}/skills/{category + '/' if category else ''}{bundle.name}/[/]",
                 title="Disclaimer",
                 border_style="yellow",
             ))
@@ -753,7 +753,7 @@ def do_install(identifier: str, category: str = "", force: bool = False,
     c.print(f"[dim]Files: {', '.join(bundle.files.keys())}[/]\n")
 
     # Blueprint detection: if the installed skill declares a
-    # metadata.freeide.blueprint block, it is a runnable automation. Register it as
+    # metadata.jettstui.blueprint block, it is a runnable automation. Register it as
     # a Suggested Cron Job rather than auto-scheduling — installing never
     # silently creates a recurring job; the user accepts it via /suggestions.
     # This is the single surface every automation proposal flows through.
@@ -788,7 +788,7 @@ def do_install(identifier: str, category: str = "", force: bool = False,
                 )
                 c.print(
                     "[dim]You can still schedule it any time by asking the agent "
-                    "or via[/] [bold]freeide cron add[/][dim].[/]\n"
+                    "or via[/] [bold]jettstui cron add[/][dim].[/]\n"
                 )
     except Exception:  # pragma: no cover - blueprint detection is best-effort
         pass
@@ -850,7 +850,7 @@ def do_inspect(identifier: str, console: Optional[Console] = None) -> None:
         preview = "\n".join(lines[:50])
         if len(lines) > 50:
             preview += f"\n\n... ({len(lines) - 50} more lines)"
-        c.print(Panel(preview, title="SKILL.md Preview", subtitle="freeide skills install <id> to install"))
+        c.print(Panel(preview, title="SKILL.md Preview", subtitle="jettstui skills install <id> to install"))
 
     c.print()
 
@@ -866,16 +866,16 @@ def browse_skills(page: int = 1, page_size: int = 20, source: str = "all") -> di
 
     page_size = max(1, min(page_size, 100))
     _TRUST_RANK = {"builtin": 3, "trusted": 2, "community": 1}
-    # "freeide-index" must carry a high limit: when the index is available the
+    # "jettstui-index" must carry a high limit: when the index is available the
     # router skips external API sources and serves everything from it, so a
     # low cap here silently truncates the whole hub (see do_browse note).
-    _PER_SOURCE_LIMIT = {"freeide-index": 5000, "official": 100, "skills-sh": 100,
+    _PER_SOURCE_LIMIT = {"jettstui-index": 5000, "official": 100, "skills-sh": 100,
                          "well-known": 25, "github": 100, "clawhub": 50,
                          "claude-marketplace": 50, "lobehub": 50, "browse-sh": 500}
     auth = GitHubAuth()
     sources = create_source_router(auth)
     # Delegate to the shared parallel walker so this inherits the index-aware
-    # source-skip logic — querying freeide-index AND the external APIs at once
+    # source-skip logic — querying jettstui-index AND the external APIs at once
     # would double-count every skill.
     all_results, _counts, _timed_out = parallel_search_sources(
         sources, query="", per_source_limits=_PER_SOURCE_LIMIT,
@@ -952,8 +952,8 @@ def do_list(source_filter: str = "all",
         enabled_only: If True, hide disabled skills from the output.
 
     Enabled/disabled state is resolved against the currently active profile's
-    config — ``freeide -p <profile> skills list`` reads that profile's
-    ``skills.disabled`` list because ``-p`` swaps ``FREEIDE_HOME`` at process
+    config — ``jettstui -p <profile> skills list`` reads that profile's
+    ``skills.disabled`` list because ``-p`` swaps ``JETTSTUI_HOME`` at process
     start.  No explicit profile flag needed here.
     """
     from tools.skills_hub import HubLockFile, ensure_hub_dirs
@@ -1225,7 +1225,7 @@ def do_reset(name: str, restore: bool = False,
 
 def do_list_modified(console: Optional[Console] = None,
                      as_json: bool = False) -> None:
-    """List bundled skills the user has edited (which `freeide update` keeps)."""
+    """List bundled skills the user has edited (which `jettstui update` keeps)."""
     from tools.skills_sync import list_user_modified_bundled_skills
 
     c = console or _console
@@ -1242,13 +1242,13 @@ def do_list_modified(console: Optional[Console] = None,
         return
 
     c.print(f"\n[bold]{len(modified)} user-modified bundled skill(s)[/] "
-            "[dim](kept as-is by `freeide update`):[/]")
+            "[dim](kept as-is by `jettstui update`):[/]")
     for entry in modified:
         c.print(f"  [yellow]~[/] {entry['name']}")
     c.print()
-    c.print("[dim]See changes:   freeide skills diff <name>[/]")
-    c.print("[dim]Resume updates: freeide skills reset <name>          (keep your copy, re-baseline)[/]")
-    c.print("[dim]Revert to stock: freeide skills reset <name> --restore[/]\n")
+    c.print("[dim]See changes:   jettstui skills diff <name>[/]")
+    c.print("[dim]Resume updates: jettstui skills reset <name>          (keep your copy, re-baseline)[/]")
+    c.print("[dim]Revert to stock: jettstui skills reset <name> --restore[/]\n")
 
 
 def do_diff(name: str, console: Optional[Console] = None) -> None:
@@ -1287,7 +1287,7 @@ def do_diff(name: str, console: Optional[Console] = None) -> None:
         else:  # binary
             c.print(f"[yellow]~ {entry['path']}:[/] binary file differs")
     c.print()
-    c.print(f"[dim]Revert with: freeide skills reset {name} --restore[/]\n")
+    c.print(f"[dim]Revert with: jettstui skills reset {name} --restore[/]\n")
 
 
 def do_opt_out(remove: bool = False,
@@ -1366,7 +1366,7 @@ def do_opt_in(sync: bool = False,
     """Remove the opt-out marker so bundled-skill seeding resumes.
 
     With ``sync``, immediately re-seed bundled skills instead of waiting for
-    the next ``freeide update``.
+    the next ``jettstui update``.
     """
     from tools.skills_sync import set_bundled_skills_opt_out, sync_skills
 
@@ -1456,7 +1456,7 @@ def do_tap(action: str, repo: str = "", console: Optional[Console] = None) -> No
 
     elif action == "add":
         if not repo:
-            c.print("[bold red]Error:[/] Repo required. Usage: freeide skills tap add owner/repo\n")
+            c.print("[bold red]Error:[/] Repo required. Usage: jettstui skills tap add owner/repo\n")
             return
         if mgr.add(repo):
             c.print(f"[bold green]Added tap:[/] {repo}\n")
@@ -1465,7 +1465,7 @@ def do_tap(action: str, repo: str = "", console: Optional[Console] = None) -> No
 
     elif action == "remove":
         if not repo:
-            c.print("[bold red]Error:[/] Repo required. Usage: freeide skills tap remove owner/repo\n")
+            c.print("[bold red]Error:[/] Repo required. Usage: jettstui skills tap remove owner/repo\n")
             return
         if mgr.remove(repo):
             c.print(f"[bold green]Removed tap:[/] {repo}\n")
@@ -1523,13 +1523,13 @@ def do_publish(skill_path: str, target: str = "github", repo: str = "",
     if target == "github":
         if not repo:
             c.print("[bold red]Error:[/] --repo required for GitHub publish.\n"
-                    "Usage: freeide skills publish <path> --to github --repo owner/repo\n")
+                    "Usage: jettstui skills publish <path> --to github --repo owner/repo\n")
             return
 
         auth = GitHubAuth()
         if not auth.is_authenticated():
             c.print("[bold red]Error:[/] GitHub authentication required.\n"
-                    f"Set GITHUB_TOKEN in {display_freeide_home()}/.env or run 'gh auth login'.\n")
+                    f"Set GITHUB_TOKEN in {display_jettstui_home()}/.env or run 'gh auth login'.\n")
             return
 
         c.print(f"[bold]Publishing '{name}' to {repo}...[/]")
@@ -1628,8 +1628,8 @@ def _github_publish(skill_path: Path, skill_name: str, target_repo: str,
             headers=headers, timeout=15,
             json={
                 "title": f"Add skill: {skill_name}",
-                "body": f"Submitting the `{skill_name}` skill via FreeIDE Skills Hub.\n\n"
-                        f"This skill was scanned by the FreeIDE Skills Guard before submission.",
+                "body": f"Submitting the `{skill_name}` skill via JettsTUI Skills Hub.\n\n"
+                        f"This skill was scanned by the JettsTUI Skills Guard before submission.",
                 "head": f"{fork_repo.split('/')[0]}:{branch_name}",
                 "base": default_branch,
             },
@@ -1655,7 +1655,7 @@ def do_snapshot_export(output_path: str, console: Optional[Console] = None) -> N
     tap_list = taps.list_taps()
 
     snapshot = {
-        "freeide_version": "0.1.0",
+        "jettstui_version": "0.1.0",
         "exported_at": __import__("datetime").datetime.now(
             __import__("datetime").timezone.utc
         ).isoformat(),
@@ -1735,7 +1735,7 @@ def do_snapshot_import(input_path: str, force: bool = False,
 # ---------------------------------------------------------------------------
 
 def skills_command(args) -> None:
-    """Router for `freeide skills <subcommand>` — called from freeide_cli/main.py."""
+    """Router for `jettstui skills <subcommand>` — called from jettstui/main.py."""
     action = getattr(args, "skills_action", None)
 
     if action == "browse":
@@ -1791,17 +1791,17 @@ def skills_command(args) -> None:
         elif snap_action == "import":
             do_snapshot_import(args.input, force=getattr(args, "force", False))
         else:
-            _console.print("Usage: freeide skills snapshot [export|import]\n")
+            _console.print("Usage: jettstui skills snapshot [export|import]\n")
     elif action == "tap":
         tap_action = getattr(args, "tap_action", None)
         repo = getattr(args, "repo", "") or getattr(args, "name", "")
         if not tap_action:
-            _console.print("Usage: freeide skills tap [list|add|remove]\n")
+            _console.print("Usage: jettstui skills tap [list|add|remove]\n")
             return
         do_tap(tap_action, repo=repo)
     else:
-        _console.print("Usage: freeide skills [browse|search|install|inspect|list|list-modified|diff|check|update|audit|uninstall|reset|opt-out|opt-in|publish|snapshot|tap]\n")
-        _console.print("Run 'freeide skills <command> --help' for details.\n")
+        _console.print("Usage: jettstui skills [browse|search|install|inspect|list|list-modified|diff|check|update|audit|uninstall|reset|opt-out|opt-in|publish|snapshot|tap]\n")
+        _console.print("Run 'jettstui skills <command> --help' for details.\n")
 
 
 # ---------------------------------------------------------------------------

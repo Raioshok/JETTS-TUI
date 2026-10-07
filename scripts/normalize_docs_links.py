@@ -16,11 +16,11 @@ from urllib.parse import unquote, urlsplit
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = ROOT / "docs"
 MARKDOWN_LINK = re.compile(r"\]\((?P<target>[^\s)]+)(?P<suffix>\s+[^)]*)?\)")
-LEGACY_HOSTS = {"freeide-agent.freeide.dev", "www.freeide-agent.freeide.dev"}
+LEGACY_HOSTS = {"jettstui.jettstui.dev", "www.jettstui.jettstui.dev"}
 ROUTE_ALIASES = {"/reference/automation-blueprints-catalog": "/reference/automation-blueprints"}
 UPSTREAM_SOURCE_PREFIXES = (
-    "/freeide/freeide/blob/main/",
-    "/freeide/freeide/tree/main/",
+    "/jettstui/jettstui/blob/main/",
+    "/jettstui/jettstui/tree/main/",
 )
 
 
@@ -38,8 +38,8 @@ def destination(source: Path, target: str) -> str | None:
             if not parsed.path.startswith(prefix):
                 continue
             repo_path = unquote(parsed.path[len(prefix):])
-            if repo_path.startswith("freeide_cli/"):
-                repo_path = "jettstui/" + repo_path[len("freeide_cli/"):]
+            if repo_path.startswith("jettstui/"):
+                repo_path = "jettstui/" + repo_path[len("jettstui/"):]
             candidate = (ROOT / repo_path).resolve()
             if candidate.is_relative_to(ROOT.resolve()) and candidate.exists():
                 suffix = ("?" + parsed.query if parsed.query else "") + ("#" + parsed.fragment if parsed.fragment else "")
@@ -81,7 +81,7 @@ def normalize(source: Path, *, fix: bool) -> tuple[int, list[str]]:
         target = match.group("target")
         replacement = destination(source, target)
         if replacement is None:
-            if target.startswith("/") or "freeide-agent.freeide.dev" in target:
+            if target.startswith("/") or "jettstui.jettstui.dev" in target:
                 unresolved.append(target)
             return match.group(0)
         changed += 1

@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
-import { getGlobalModelOptions } from '@/freeide'
+import { getGlobalModelOptions } from '@/jettstui'
 import { useI18n } from '@/i18n'
 import { Check, ChevronLeft, KeyRound, Loader2 } from '@/lib/icons'
 import { isProviderSetupErrorMessage } from '@/lib/provider-setup-errors'
@@ -26,7 +26,7 @@ import {
   setOnboardingMode,
   startProviderOAuth
 } from '@/store/onboarding'
-import type { ModelOptionProvider, OAuthProvider } from '@/types/freeide'
+import type { ModelOptionProvider, OAuthProvider } from '@/types/jettstui'
 
 import { DocsLink, FlowPanel, Status } from './flow'
 import {
@@ -104,7 +104,7 @@ const API_KEY_OPTIONS: ApiKeyOption[] = [
 ]
 
 // Build the FULL API-key provider catalog from the backend model options so the
-// onboarding / Providers key form lists every `api_key` provider `freeide model`
+// onboarding / Providers key form lists every `api_key` provider `jettstui model`
 // knows about — not just the hand-curated five. Curated entries keep their
 // richer copy + placeholders and float to the top (recommended defaults); every
 // other api_key provider is appended with a generic "paste {KEY}" affordance.
@@ -311,7 +311,7 @@ export function DesktopOnboardingOverlay({
           'relative w-full max-w-[45rem] transition-all duration-500 ease-out',
           bare
             ? ''
-            : 'overflow-hidden rounded-xl border border-(--stroke-nous) bg-(--ui-chat-bubble-background) shadow-nous',
+            : 'overflow-hidden rounded-xl border border-(--stroke-float) bg-(--ui-chat-bubble-background) shadow-float',
           // Bare confirm screen orchestrates its own per-element exit; the
           // carded states use the simple lift/blur dissolve.
           leaving && !bare

@@ -6,8 +6,8 @@ from types import SimpleNamespace
 
 import pytest
 
-from freeide_cli.auth import AuthError
-from freeide_cli import main as freeide_main
+from jettstui.auth import AuthError
+from jettstui import main as jettstui_main
 
 
 # ---------------------------------------------------------------------------
@@ -123,18 +123,18 @@ def _import_cli():
     return importlib.import_module("cli")
 
 
-def test_freeide_cli_init_does_not_eagerly_resolve_runtime_provider(monkeypatch):
+def test_jettstui_init_does_not_eagerly_resolve_runtime_provider(monkeypatch):
     cli = _import_cli()
     calls = {"count": 0}
 
     def _unexpected_runtime_resolve(**kwargs):
         calls["count"] += 1
-        raise AssertionError("resolve_runtime_provider should not be called in FreeIDECLI.__init__")
+        raise AssertionError("resolve_runtime_provider should not be called in JettsTUICLI.__init__")
 
-    monkeypatch.setattr("freeide_cli.runtime_provider.resolve_runtime_provider", _unexpected_runtime_resolve)
-    monkeypatch.setattr("freeide_cli.runtime_provider.format_runtime_provider_error", lambda exc: str(exc))
+    monkeypatch.setattr("jettstui.runtime_provider.resolve_runtime_provider", _unexpected_runtime_resolve)
+    monkeypatch.setattr("jettstui.runtime_provider.format_runtime_provider_error", lambda exc: str(exc))
 
-    shell = cli.FreeIDECLI(model="gpt-5", compact=True, max_turns=1)
+    shell = cli.JettsTUICLI(model="gpt-5", compact=True, max_turns=1)
 
     assert shell is not None
     assert calls["count"] == 0
@@ -160,11 +160,11 @@ def test_runtime_resolution_failure_is_not_sticky(monkeypatch):
         def __init__(self, *args, **kwargs):
             self.kwargs = kwargs
 
-    monkeypatch.setattr("freeide_cli.runtime_provider.resolve_runtime_provider", _runtime_resolve)
-    monkeypatch.setattr("freeide_cli.runtime_provider.format_runtime_provider_error", lambda exc: str(exc))
+    monkeypatch.setattr("jettstui.runtime_provider.resolve_runtime_provider", _runtime_resolve)
+    monkeypatch.setattr("jettstui.runtime_provider.format_runtime_provider_error", lambda exc: str(exc))
     monkeypatch.setattr(cli, "AIAgent", _DummyAgent)
 
-    shell = cli.FreeIDECLI(model="gpt-5", compact=True, max_turns=1)
+    shell = cli.JettsTUICLI(model="gpt-5", compact=True, max_turns=1)
 
     assert shell._init_agent() is False
     assert shell._init_agent() is True
@@ -184,10 +184,10 @@ def test_runtime_resolution_rebuilds_agent_on_routing_change(monkeypatch):
             "source": "env/config",
         }
 
-    monkeypatch.setattr("freeide_cli.runtime_provider.resolve_runtime_provider", _runtime_resolve)
-    monkeypatch.setattr("freeide_cli.runtime_provider.format_runtime_provider_error", lambda exc: str(exc))
+    monkeypatch.setattr("jettstui.runtime_provider.resolve_runtime_provider", _runtime_resolve)
+    monkeypatch.setattr("jettstui.runtime_provider.format_runtime_provider_error", lambda exc: str(exc))
 
-    shell = cli.FreeIDECLI(model="gpt-5", compact=True, max_turns=1)
+    shell = cli.JettsTUICLI(model="gpt-5", compact=True, max_turns=1)
     shell.provider = "openrouter"
     shell.api_mode = "chat_completions"
     shell.base_url = "https://same-endpoint.example/v1"
@@ -202,7 +202,7 @@ def test_runtime_resolution_rebuilds_agent_on_routing_change(monkeypatch):
 
 def test_cli_turn_routing_uses_primary_when_disabled(monkeypatch):
     cli = _import_cli()
-    shell = cli.FreeIDECLI(model="gpt-5", compact=True, max_turns=1)
+    shell = cli.JettsTUICLI(model="gpt-5", compact=True, max_turns=1)
     shell.provider = "openrouter"
     shell.api_mode = "chat_completions"
     shell.base_url = "https://openrouter.ai/api/v1"
@@ -217,7 +217,7 @@ def test_cli_turn_routing_uses_primary_when_disabled(monkeypatch):
 def test_cli_prefers_config_provider_over_stale_env_override(monkeypatch):
     cli = _import_cli()
 
-    monkeypatch.setenv("FREEIDE_INFERENCE_PROVIDER", "openrouter")
+    monkeypatch.setenv("JETTSTUI_INFERENCE_PROVIDER", "openrouter")
     config_copy = dict(cli.CLI_CONFIG)
     model_copy = dict(config_copy.get("model", {}))
     model_copy["provider"] = "custom"
@@ -225,7 +225,7 @@ def test_cli_prefers_config_provider_over_stale_env_override(monkeypatch):
     config_copy["model"] = model_copy
     monkeypatch.setattr(cli, "CLI_CONFIG", config_copy)
 
-    shell = cli.FreeIDECLI(model="fireworks/minimax-m2p5", compact=True, max_turns=1)
+    shell = cli.JettsTUICLI(model="fireworks/minimax-m2p5", compact=True, max_turns=1)
 
     assert shell.requested_provider == "custom"
 
@@ -246,9 +246,9 @@ def test_cli_init_wires_moa_preset_model_to_moa_provider(monkeypatch):
     model_copy["provider"] = None
     config_copy["model"] = model_copy
     monkeypatch.setattr(cli, "CLI_CONFIG", config_copy)
-    monkeypatch.delenv("FREEIDE_INFERENCE_PROVIDER", raising=False)
+    monkeypatch.delenv("JETTSTUI_INFERENCE_PROVIDER", raising=False)
 
-    shell = cli.FreeIDECLI(model="moa:strategy", compact=True, max_turns=1)
+    shell = cli.JettsTUICLI(model="moa:strategy", compact=True, max_turns=1)
 
     assert shell.requested_provider == "moa"
     assert shell.model == "strategy"
@@ -261,9 +261,9 @@ def test_cli_init_moa_prefix_overrides_explicit_provider(monkeypatch):
     # moa: prefix must win over the explicit --provider.
     cli = _import_cli()
 
-    monkeypatch.delenv("FREEIDE_INFERENCE_PROVIDER", raising=False)
+    monkeypatch.delenv("JETTSTUI_INFERENCE_PROVIDER", raising=False)
 
-    shell = cli.FreeIDECLI(
+    shell = cli.JettsTUICLI(
         model="moa:strategy", provider="deepseek", compact=True, max_turns=1
     )
 
@@ -294,14 +294,14 @@ def test_codex_provider_replaces_incompatible_default_model(monkeypatch):
             "source": "env/config",
         }
 
-    monkeypatch.setattr("freeide_cli.runtime_provider.resolve_runtime_provider", _runtime_resolve)
-    monkeypatch.setattr("freeide_cli.runtime_provider.format_runtime_provider_error", lambda exc: str(exc))
+    monkeypatch.setattr("jettstui.runtime_provider.resolve_runtime_provider", _runtime_resolve)
+    monkeypatch.setattr("jettstui.runtime_provider.format_runtime_provider_error", lambda exc: str(exc))
     monkeypatch.setattr(
-        "freeide_cli.codex_models.get_codex_model_ids",
+        "jettstui.codex_models.get_codex_model_ids",
         lambda access_token=None: ["gpt-5.2-codex", "gpt-5.1-codex-mini"],
     )
 
-    shell = cli.FreeIDECLI(compact=True, max_turns=1)
+    shell = cli.JettsTUICLI(compact=True, max_turns=1)
 
     assert shell._model_is_default is True
     assert shell._ensure_runtime_credentials() is True
@@ -314,9 +314,9 @@ def test_codex_provider_replaces_incompatible_default_model(monkeypatch):
 def _seed_stale_custom_model(tmp_path, monkeypatch):
     import yaml
 
-    config_home = tmp_path / "freeide"
+    config_home = tmp_path / "jettstui"
     config_home.mkdir()
-    monkeypatch.setenv("FREEIDE_HOME", str(config_home))
+    monkeypatch.setenv("JETTSTUI_HOME", str(config_home))
     config_path = config_home / "config.yaml"
     config_path.write_text(
         yaml.safe_dump(
@@ -343,21 +343,21 @@ def test_model_flow_openrouter_clears_stale_custom_key(tmp_path, monkeypatch):
     config_path = _seed_stale_custom_model(tmp_path, monkeypatch)
 
     monkeypatch.setattr(
-        "freeide_cli.main._prompt_api_key",
+        "jettstui.main._prompt_api_key",
         lambda *args, **kwargs: ("sk-openrouter", False),
     )
     monkeypatch.setattr(
-        "freeide_cli.models.model_ids",
+        "jettstui.models.model_ids",
         lambda **kwargs: ["anthropic/claude-sonnet-4.6"],
     )
-    monkeypatch.setattr("freeide_cli.models.get_pricing_for_provider", lambda *a, **k: {})
+    monkeypatch.setattr("jettstui.models.get_pricing_for_provider", lambda *a, **k: {})
     monkeypatch.setattr(
-        "freeide_cli.auth._prompt_model_selection",
+        "jettstui.auth._prompt_model_selection",
         lambda *args, **kwargs: "anthropic/claude-sonnet-4.6",
     )
-    monkeypatch.setattr("freeide_cli.auth.deactivate_provider", lambda: None)
+    monkeypatch.setattr("jettstui.auth.deactivate_provider", lambda: None)
 
-    freeide_main._model_flow_openrouter({}, current_model="glm-5.2")
+    jettstui_main._model_flow_openrouter({}, current_model="glm-5.2")
 
     config = yaml.safe_load(config_path.read_text()) or {}
     model = config["model"]
@@ -373,7 +373,7 @@ def test_model_flow_anthropic_clears_stale_custom_key_and_mode(tmp_path, monkeyp
 
     config_path = _seed_stale_custom_model(tmp_path, monkeypatch)
 
-    monkeypatch.setattr("freeide_cli.auth.get_anthropic_key", lambda: "sk-ant-api03-test")
+    monkeypatch.setattr("jettstui.auth.get_anthropic_key", lambda: "sk-ant-api03-test")
     monkeypatch.setattr(
         "agent.anthropic_adapter.read_claude_code_credentials",
         lambda: None,
@@ -383,16 +383,16 @@ def test_model_flow_anthropic_clears_stale_custom_key_and_mode(tmp_path, monkeyp
         lambda creds: False,
     )
     monkeypatch.setattr(
-        "freeide_cli.model_setup_flows._prompt_auth_credentials_choice",
+        "jettstui.model_setup_flows._prompt_auth_credentials_choice",
         lambda title: "use",
     )
     monkeypatch.setattr(
-        "freeide_cli.auth._prompt_model_selection",
+        "jettstui.auth._prompt_model_selection",
         lambda *args, **kwargs: "claude-sonnet-4-6",
     )
-    monkeypatch.setattr("freeide_cli.auth.deactivate_provider", lambda: None)
+    monkeypatch.setattr("jettstui.auth.deactivate_provider", lambda: None)
 
-    freeide_main._model_flow_anthropic({}, current_model="glm-5.2")
+    jettstui_main._model_flow_anthropic({}, current_model="glm-5.2")
 
     config = yaml.safe_load(config_path.read_text()) or {}
     model = config["model"]
@@ -429,15 +429,15 @@ def test_codex_provider_uses_config_model(monkeypatch):
             "source": "env/config",
         }
 
-    monkeypatch.setattr("freeide_cli.runtime_provider.resolve_runtime_provider", _runtime_resolve)
-    monkeypatch.setattr("freeide_cli.runtime_provider.format_runtime_provider_error", lambda exc: str(exc))
+    monkeypatch.setattr("jettstui.runtime_provider.resolve_runtime_provider", _runtime_resolve)
+    monkeypatch.setattr("jettstui.runtime_provider.format_runtime_provider_error", lambda exc: str(exc))
     # Prevent live API call from overriding the config model
     monkeypatch.setattr(
-        "freeide_cli.codex_models.get_codex_model_ids",
+        "jettstui.codex_models.get_codex_model_ids",
         lambda access_token=None: ["gpt-5.2-codex"],
     )
 
-    shell = cli.FreeIDECLI(compact=True, max_turns=1)
+    shell = cli.JettsTUICLI(compact=True, max_turns=1)
 
     assert shell._ensure_runtime_credentials() is True
     assert shell.provider == "openai-codex"
@@ -472,15 +472,15 @@ def test_codex_config_model_not_replaced_by_normalization(monkeypatch):
             "source": "env/config",
         }
 
-    monkeypatch.setattr("freeide_cli.runtime_provider.resolve_runtime_provider", _runtime_resolve)
-    monkeypatch.setattr("freeide_cli.runtime_provider.format_runtime_provider_error", lambda exc: str(exc))
+    monkeypatch.setattr("jettstui.runtime_provider.resolve_runtime_provider", _runtime_resolve)
+    monkeypatch.setattr("jettstui.runtime_provider.format_runtime_provider_error", lambda exc: str(exc))
     # API returns a DIFFERENT model than what the user configured
     monkeypatch.setattr(
-        "freeide_cli.codex_models.get_codex_model_ids",
+        "jettstui.codex_models.get_codex_model_ids",
         lambda access_token=None: ["gpt-5.4", "gpt-5.3-codex"],
     )
 
-    shell = cli.FreeIDECLI(compact=True, max_turns=1)
+    shell = cli.JettsTUICLI(compact=True, max_turns=1)
 
     # Config model is NOT the global default — user made a deliberate choice
     assert shell._model_is_default is False
@@ -507,10 +507,10 @@ def test_codex_provider_preserves_explicit_codex_model(monkeypatch):
             "source": "env/config",
         }
 
-    monkeypatch.setattr("freeide_cli.runtime_provider.resolve_runtime_provider", _runtime_resolve)
-    monkeypatch.setattr("freeide_cli.runtime_provider.format_runtime_provider_error", lambda exc: str(exc))
+    monkeypatch.setattr("jettstui.runtime_provider.resolve_runtime_provider", _runtime_resolve)
+    monkeypatch.setattr("jettstui.runtime_provider.format_runtime_provider_error", lambda exc: str(exc))
 
-    shell = cli.FreeIDECLI(model="gpt-5.1-codex-mini", compact=True, max_turns=1)
+    shell = cli.JettsTUICLI(model="gpt-5.1-codex-mini", compact=True, max_turns=1)
 
     assert shell._model_is_default is False
     assert shell._ensure_runtime_credentials() is True
@@ -534,10 +534,10 @@ def test_codex_provider_strips_provider_prefix_from_model(monkeypatch):
             "source": "env/config",
         }
 
-    monkeypatch.setattr("freeide_cli.runtime_provider.resolve_runtime_provider", _runtime_resolve)
-    monkeypatch.setattr("freeide_cli.runtime_provider.format_runtime_provider_error", lambda exc: str(exc))
+    monkeypatch.setattr("jettstui.runtime_provider.resolve_runtime_provider", _runtime_resolve)
+    monkeypatch.setattr("jettstui.runtime_provider.format_runtime_provider_error", lambda exc: str(exc))
 
-    shell = cli.FreeIDECLI(model="openai/gpt-5.3-codex", compact=True, max_turns=1)
+    shell = cli.JettsTUICLI(model="openai/gpt-5.3-codex", compact=True, max_turns=1)
 
     assert shell._ensure_runtime_credentials() is True
     assert shell.model == "gpt-5.3-codex"
@@ -545,23 +545,23 @@ def test_codex_provider_strips_provider_prefix_from_model(monkeypatch):
 
 def test_cmd_model_falls_back_to_auto_on_invalid_provider(monkeypatch, capsys):
     monkeypatch.setattr(
-        "freeide_cli.config.load_config",
+        "jettstui.config.load_config",
         lambda: {"model": {"default": "gpt-5", "provider": "invalid-provider"}},
     )
-    monkeypatch.setattr("freeide_cli.config.save_config", lambda cfg: None)
-    monkeypatch.setattr("freeide_cli.config.get_env_value", lambda key: "")
-    monkeypatch.setattr("freeide_cli.config.save_env_value", lambda key, value: None)
+    monkeypatch.setattr("jettstui.config.save_config", lambda cfg: None)
+    monkeypatch.setattr("jettstui.config.get_env_value", lambda key: "")
+    monkeypatch.setattr("jettstui.config.save_env_value", lambda key, value: None)
 
     def _resolve_provider(requested, **kwargs):
         if requested == "invalid-provider":
             raise AuthError("Unknown provider 'invalid-provider'.", code="invalid_provider")
         return "openrouter"
 
-    monkeypatch.setattr("freeide_cli.auth.resolve_provider", _resolve_provider)
-    monkeypatch.setattr(freeide_main, "_prompt_provider_choice", lambda choices, **kwargs: len(choices) - 1)
+    monkeypatch.setattr("jettstui.auth.resolve_provider", _resolve_provider)
+    monkeypatch.setattr(jettstui_main, "_prompt_provider_choice", lambda choices, **kwargs: len(choices) - 1)
     monkeypatch.setattr("sys.stdin", type("FakeTTY", (), {"isatty": lambda self: True})())
 
-    freeide_main.cmd_model(SimpleNamespace())
+    jettstui_main.cmd_model(SimpleNamespace())
     output = capsys.readouterr().out
 
     assert "Warning:" in output
@@ -571,16 +571,16 @@ def test_cmd_model_falls_back_to_auto_on_invalid_provider(monkeypatch, capsys):
 
 def test_model_flow_custom_saves_verified_v1_base_url(monkeypatch, capsys):
     monkeypatch.setattr(
-        "freeide_cli.config.get_env_value",
+        "jettstui.config.get_env_value",
         lambda key: "" if key in {"OPENAI_BASE_URL", "OPENAI_API_KEY"} else "",
     )
     saved_env = {}
-    monkeypatch.setattr("freeide_cli.config.save_env_value", lambda key, value: saved_env.__setitem__(key, value))
-    monkeypatch.setattr("freeide_cli.auth._save_model_choice", lambda model: saved_env.__setitem__("MODEL", model))
-    monkeypatch.setattr("freeide_cli.auth.deactivate_provider", lambda: None)
-    monkeypatch.setattr("freeide_cli.main._save_custom_provider", lambda *args, **kwargs: None)
+    monkeypatch.setattr("jettstui.config.save_env_value", lambda key, value: saved_env.__setitem__(key, value))
+    monkeypatch.setattr("jettstui.auth._save_model_choice", lambda model: saved_env.__setitem__("MODEL", model))
+    monkeypatch.setattr("jettstui.auth.deactivate_provider", lambda: None)
+    monkeypatch.setattr("jettstui.main._save_custom_provider", lambda *args, **kwargs: None)
     monkeypatch.setattr(
-        "freeide_cli.models.probe_api_models",
+        "jettstui.models.probe_api_models",
         lambda api_key, base_url: {
             "models": ["llm"],
             "probed_url": "http://localhost:8000/v1/models",
@@ -590,19 +590,19 @@ def test_model_flow_custom_saves_verified_v1_base_url(monkeypatch, capsys):
         },
     )
     monkeypatch.setattr(
-        "freeide_cli.config.load_config",
+        "jettstui.config.load_config",
         lambda: {"model": {"default": "", "provider": "custom", "base_url": ""}},
     )
-    monkeypatch.setattr("freeide_cli.config.save_config", lambda cfg: None)
+    monkeypatch.setattr("jettstui.config.save_config", lambda cfg: None)
 
     # After the probe detects a single model ("llm"), the flow asks
     # "Use this model? [Y/n]:" — confirm with Enter, then context length,
     # then display name. The api_mode prompt also runs before model selection.
     answers = iter(["http://localhost:8000", "local-key", "", "", "", "", ""])
     monkeypatch.setattr("builtins.input", lambda _prompt="": next(answers))
-    monkeypatch.setattr("freeide_cli.secret_prompt.masked_secret_prompt", lambda _prompt="": next(answers))
+    monkeypatch.setattr("jettstui.secret_prompt.masked_secret_prompt", lambda _prompt="": next(answers))
 
-    freeide_main._model_flow_custom({})
+    jettstui_main._model_flow_custom({})
     output = capsys.readouterr().out
 
     assert "Saving the working base URL instead" in output
@@ -617,13 +617,13 @@ def test_model_flow_custom_persists_selected_api_mode(monkeypatch):
     captured_provider = {}
 
     monkeypatch.setattr(
-        "freeide_cli.config.get_env_value",
+        "jettstui.config.get_env_value",
         lambda key: "" if key in {"OPENAI_BASE_URL", "OPENAI_API_KEY"} else "",
     )
-    monkeypatch.setattr("freeide_cli.auth._save_model_choice", lambda model: None)
-    monkeypatch.setattr("freeide_cli.auth.deactivate_provider", lambda: None)
+    monkeypatch.setattr("jettstui.auth._save_model_choice", lambda model: None)
+    monkeypatch.setattr("jettstui.auth.deactivate_provider", lambda: None)
     monkeypatch.setattr(
-        "freeide_cli.models.probe_api_models",
+        "jettstui.models.probe_api_models",
         lambda api_key, base_url: {
             "models": [],
             "probed_url": f"{base_url.rstrip('/')}/models",
@@ -633,14 +633,14 @@ def test_model_flow_custom_persists_selected_api_mode(monkeypatch):
         },
     )
     saved_env = {}
-    monkeypatch.setattr("freeide_cli.config.load_config", lambda: saved_cfg)
-    monkeypatch.setattr("freeide_cli.config.save_config", lambda cfg: saved_cfg.update(cfg))
+    monkeypatch.setattr("jettstui.config.load_config", lambda: saved_cfg)
+    monkeypatch.setattr("jettstui.config.save_config", lambda cfg: saved_cfg.update(cfg))
     monkeypatch.setattr(
-        "freeide_cli.config.save_env_value",
+        "jettstui.config.save_env_value",
         lambda key, value: saved_env.__setitem__(key, value),
     )
     monkeypatch.setattr(
-        "freeide_cli.main._save_custom_provider",
+        "jettstui.main._save_custom_provider",
         lambda base_url, api_key="", model="", context_length=None, name=None, api_mode=None, key_env="": captured_provider.update(
             {
                 "base_url": base_url,
@@ -664,9 +664,9 @@ def test_model_flow_custom_persists_selected_api_mode(monkeypatch):
         ]
     )
     monkeypatch.setattr("builtins.input", lambda _prompt="": next(answers))
-    monkeypatch.setattr("freeide_cli.secret_prompt.masked_secret_prompt", lambda _prompt="": "test-key")
+    monkeypatch.setattr("jettstui.secret_prompt.masked_secret_prompt", lambda _prompt="": "test-key")
 
-    freeide_main._model_flow_custom({"model": {"provider": "custom"}})
+    jettstui_main._model_flow_custom({"model": {"provider": "custom"}})
 
     assert saved_cfg["model"]["provider"] == "custom"
     assert saved_cfg["model"]["base_url"] == "https://codex.example.com/v1"
@@ -684,18 +684,18 @@ def test_model_flow_custom_persists_selected_api_mode(monkeypatch):
 # ---------------------------------------------------------------------------
 
 def test_auto_provider_name_localhost():
-    from freeide_cli.main import _auto_provider_name
+    from jettstui.main import _auto_provider_name
     assert _auto_provider_name("http://localhost:11434/v1") == "Local (localhost:11434)"
     assert _auto_provider_name("http://127.0.0.1:1234/v1") == "Local (127.0.0.1:1234)"
 
 
 def test_auto_provider_name_runpod():
-    from freeide_cli.main import _auto_provider_name
+    from jettstui.main import _auto_provider_name
     assert "RunPod" in _auto_provider_name("https://xyz.runpod.io/v1")
 
 
 def test_auto_provider_name_remote():
-    from freeide_cli.main import _auto_provider_name
+    from jettstui.main import _auto_provider_name
     result = _auto_provider_name("https://api.together.xyz/v1")
     assert result == "Api.together.xyz"
 
@@ -703,18 +703,18 @@ def test_auto_provider_name_remote():
 def test_save_custom_provider_uses_provided_name(monkeypatch, tmp_path):
     """When a display name is passed, it should appear in the saved entry."""
     import yaml
-    from freeide_cli.main import _save_custom_provider
+    from jettstui.main import _save_custom_provider
 
     cfg_path = tmp_path / "config.yaml"
     cfg_path.write_text(yaml.dump({}))
 
     monkeypatch.setattr(
-        "freeide_cli.config.load_config", lambda: yaml.safe_load(cfg_path.read_text()) or {},
+        "jettstui.config.load_config", lambda: yaml.safe_load(cfg_path.read_text()) or {},
     )
     saved = {}
     def _save(cfg):
         saved.update(cfg)
-    monkeypatch.setattr("freeide_cli.config.save_config", _save)
+    monkeypatch.setattr("jettstui.config.save_config", _save)
 
     _save_custom_provider("http://localhost:11434/v1", name="Ollama")
     entries = saved.get("custom_providers", [])
@@ -725,25 +725,25 @@ def test_save_custom_provider_uses_provided_name(monkeypatch, tmp_path):
 def test_save_custom_provider_references_the_key_instead_of_inlining_it(monkeypatch, tmp_path):
     """With key_env set the entry must not carry the secret (#69449)."""
     import yaml
-    from freeide_cli.main import _save_custom_provider
+    from jettstui.main import _save_custom_provider
 
     cfg_path = tmp_path / "config.yaml"
     cfg_path.write_text(yaml.dump({}))
     monkeypatch.setattr(
-        "freeide_cli.config.load_config", lambda: yaml.safe_load(cfg_path.read_text()) or {},
+        "jettstui.config.load_config", lambda: yaml.safe_load(cfg_path.read_text()) or {},
     )
     saved = {}
-    monkeypatch.setattr("freeide_cli.config.save_config", lambda cfg: saved.update(cfg))
+    monkeypatch.setattr("jettstui.config.save_config", lambda cfg: saved.update(cfg))
 
     _save_custom_provider(
         "http://localhost:11434/v1",
         api_key="sk-secret",
         name="Ollama",
-        key_env="FREEIDE_CUSTOM_LOCALHOST_11434_API_KEY",
+        key_env="JETTSTUI_CUSTOM_LOCALHOST_11434_API_KEY",
     )
 
     entry = saved["custom_providers"][0]
-    assert entry["key_env"] == "FREEIDE_CUSTOM_LOCALHOST_11434_API_KEY"
+    assert entry["key_env"] == "JETTSTUI_CUSTOM_LOCALHOST_11434_API_KEY"
     assert "api_key" not in entry
     assert "sk-secret" not in yaml.safe_dump(saved)
 
@@ -751,7 +751,7 @@ def test_save_custom_provider_references_the_key_instead_of_inlining_it(monkeypa
 def test_save_custom_provider_migrates_an_existing_plaintext_entry(monkeypatch, tmp_path):
     """Re-saving a known URL swaps its inline key for the .env reference."""
     import yaml
-    from freeide_cli.main import _save_custom_provider
+    from jettstui.main import _save_custom_provider
 
     existing = {
         "custom_providers": [
@@ -762,17 +762,17 @@ def test_save_custom_provider_migrates_an_existing_plaintext_entry(monkeypatch, 
             }
         ]
     }
-    monkeypatch.setattr("freeide_cli.config.load_config", lambda: existing)
+    monkeypatch.setattr("jettstui.config.load_config", lambda: existing)
     saved = {}
-    monkeypatch.setattr("freeide_cli.config.save_config", lambda cfg: saved.update(cfg))
+    monkeypatch.setattr("jettstui.config.save_config", lambda cfg: saved.update(cfg))
 
     _save_custom_provider(
         "http://localhost:11434/v1",
-        key_env="FREEIDE_CUSTOM_LOCALHOST_11434_API_KEY",
+        key_env="JETTSTUI_CUSTOM_LOCALHOST_11434_API_KEY",
     )
 
     entry = saved["custom_providers"][0]
-    assert entry["key_env"] == "FREEIDE_CUSTOM_LOCALHOST_11434_API_KEY"
+    assert entry["key_env"] == "JETTSTUI_CUSTOM_LOCALHOST_11434_API_KEY"
     assert "api_key" not in entry
 
 
@@ -786,7 +786,7 @@ def test_custom_endpoint_key_env_is_a_valid_posix_name_for_ip_endpoints():
     """
     import re
 
-    from freeide_cli.config import _ENV_VAR_NAME_RE, custom_endpoint_key_env
+    from jettstui.config import _ENV_VAR_NAME_RE, custom_endpoint_key_env
 
     for identity in ("127.0.0.1_8080", "0.0.0.0", "10.0.0.7:11434", "", "-–-"):
         assert _ENV_VAR_NAME_RE.match(custom_endpoint_key_env(identity)), identity
@@ -794,7 +794,7 @@ def test_custom_endpoint_key_env_is_a_valid_posix_name_for_ip_endpoints():
 
 def test_custom_endpoint_key_env_separates_ports_on_one_host():
     """Two servers on one machine must not collapse onto one .env slot."""
-    from freeide_cli.config import custom_endpoint_key_env
+    from jettstui.config import custom_endpoint_key_env
 
     assert custom_endpoint_key_env("127.0.0.1_8000") != custom_endpoint_key_env("127.0.0.1_8001")
     assert custom_endpoint_key_env("acme") == custom_endpoint_key_env("ACME")

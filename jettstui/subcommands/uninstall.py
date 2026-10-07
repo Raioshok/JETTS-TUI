@@ -1,6 +1,6 @@
-"""``freeide uninstall`` subcommand parser.
+"""``jettstui uninstall`` subcommand parser.
 
-Extracted verbatim from ``freeide_cli/main.py:main()`` (god-file Phase 2).
+Extracted verbatim from ``jettstui/main.py:main()`` (god-file Phase 2).
 Handler injected to avoid importing ``main``.
 """
 
@@ -16,8 +16,8 @@ def build_uninstall_parser(subparsers, *, cmd_uninstall: Callable) -> None:
     # =========================================================================
     uninstall_parser = subparsers.add_parser(
         "uninstall",
-        help="Uninstall Jetts-TUI Agent",
-        description="Remove Jetts-TUI Agent from your system. Can keep configs/data for reinstall.",
+        help="Uninstall JettsTUI Agent",
+        description="Remove JettsTUI Agent from your system. Can keep configs/data for reinstall.",
     )
     uninstall_parser.add_argument(
         "--full",

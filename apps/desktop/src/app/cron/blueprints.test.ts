@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { AutomationBlueprint } from '@/freeide'
+import type { AutomationBlueprint } from '@/jettstui'
 
 import { initialBlueprintValues } from './blueprints'
 

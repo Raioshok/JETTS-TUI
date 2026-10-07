@@ -1,11 +1,11 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { MemoryProviderConfig, MemoryProviderField } from '@/types/freeide'
+import type { MemoryProviderConfig, MemoryProviderField } from '@/types/jettstui'
 
 const saveMemoryProviderConfig = vi.fn()
 
-vi.mock('@/freeide', () => ({
+vi.mock('@/jettstui', () => ({
   saveMemoryProviderConfig: (provider: string, values: unknown) => saveMemoryProviderConfig(provider, values)
 }))
 
@@ -40,7 +40,7 @@ function schema(): MemoryProviderConfig {
   return {
     name: 'honcho',
     label: 'Honcho',
-    docs_url: 'https://docs.honcho.dev/v3/guides/integrations/freeide',
+    docs_url: 'https://docs.honcho.dev/v3/guides/integrations/jettstui',
     fields: [
       field({ key: 'workspace', kind: 'text', label: 'Workspace', value: 'myws', inline: true, group: 'Connection' }),
       field({ key: 'saveMessages', kind: 'bool', label: 'Save messages', value: 'true', group: 'Message writing' }),

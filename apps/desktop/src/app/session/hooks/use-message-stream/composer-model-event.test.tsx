@@ -12,7 +12,7 @@ import {
   setCurrentModelSource,
   setCurrentProvider
 } from '@/store/session'
-import type { RpcEvent } from '@/types/freeide'
+import type { RpcEvent } from '@/types/jettstui'
 
 import { useMessageStream } from './index'
 
@@ -29,7 +29,7 @@ function Harness({ activeSessionId }: { activeSessionId: string | null }) {
     activeSessionIdRef: sessionIdRef,
     hydrateFromStoredSession: vi.fn(async () => undefined),
     queryClient: queryClientRef.current,
-    refreshFreeIDEConfig: vi.fn(async () => undefined),
+    refreshJettsTUIConfig: vi.fn(async () => undefined),
     refreshSessions: vi.fn(async () => undefined),
     sessionStateByRuntimeIdRef,
     updateSessionState: (sessionId, updater) => {

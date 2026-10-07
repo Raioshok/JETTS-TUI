@@ -2,14 +2,14 @@
 
 Starting the CLI and immediately quitting (or rotating sessions with /new)
 used to leave empty untitled rows in the session DB that clutter /resume
-and `freeide sessions list`. ``SessionDB.delete_session_if_empty`` removes
+and `jettstui sessions list`. ``SessionDB.delete_session_if_empty`` removes
 a just-ended session row only when it never gained resumable content:
 no messages, no title, and no child sessions.
 """
 
 import pytest
 
-from freeide_state import SessionDB
+from jettstui_state import SessionDB
 
 
 @pytest.fixture()
@@ -106,12 +106,12 @@ class TestDeleteSessionIfEmpty:
 
 
 class TestCLIDiscardSessionIfEmpty:
-    """Wiring tests for FreeIDECLI._discard_session_if_empty."""
+    """Wiring tests for JettsTUICLI._discard_session_if_empty."""
 
     def _make_cli(self, db):
-        from cli import FreeIDECLI
+        from cli import JettsTUICLI
 
-        cli = FreeIDECLI.__new__(FreeIDECLI)
+        cli = JettsTUICLI.__new__(JettsTUICLI)
         cli._session_db = db
         cli.conversation_history = []
         return cli

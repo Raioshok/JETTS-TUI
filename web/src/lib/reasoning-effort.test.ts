@@ -6,7 +6,7 @@ import {
 } from "./reasoning-effort";
 
 describe("normalizeEffort", () => {
-  it("treats empty/unset as the FreeIDE default (medium)", () => {
+  it("treats empty/unset as the JettsTUI default (medium)", () => {
     expect(normalizeEffort("")).toBe("medium");
     expect(normalizeEffort(null)).toBe("medium");
     expect(normalizeEffort(undefined)).toBe("medium");
@@ -38,7 +38,7 @@ describe("EFFORT_OPTIONS", () => {
   });
 
   it("covers the real reasoning levels plus thinking-off", () => {
-    // Invariant against freeide_constants.VALID_REASONING_EFFORTS + 'none'.
+    // Invariant against jettstui_constants.VALID_REASONING_EFFORTS + 'none'.
     const values = new Set(EFFORT_OPTIONS.map((o) => o.value));
     for (const level of ["none", "minimal", "low", "medium", "high", "xhigh", "max", "ultra"]) {
       expect(values.has(level)).toBe(true);

@@ -1,14 +1,14 @@
-"""freeide import-agent — import Claude Code / Codex CLI setups into FreeIDE.
+"""jettstui import-agent — import Claude Code / Codex CLI setups into JettsTUI.
 
 Usage:
-    freeide import-agent                       # auto-detect ~/.claude or ~/.codex
-    freeide import-agent claude-code           # import from ~/.claude
-    freeide import-agent codex                 # import from ~/.codex
-    freeide import-agent claude-code --dry-run # preview only, no changes
-    freeide import-agent codex --source /path/to/.codex
+    jettstui import-agent                       # auto-detect ~/.claude or ~/.codex
+    jettstui import-agent claude-code           # import from ~/.claude
+    jettstui import-agent codex                 # import from ~/.codex
+    jettstui import-agent claude-code --dry-run # preview only, no changes
+    jettstui import-agent codex --source /path/to/.codex
 
-Follows the OpenClaw migration pattern (``freeide claw migrate`` /
-``optional-skills/migration/openclaw-migration/scripts/openclaw_to_freeide.py``):
+Follows the OpenClaw migration pattern (``jettstui claw migrate`` /
+``optional-skills/migration/openclaw-migration/scripts/openclaw_to_jettstui.py``):
 detect → parse → map → apply, with a mandatory preview phase, per-item
 imported/skipped/conflict/error records, and a ``--dry-run`` that writes
 nothing.  The memory-entry merge and allowlist-merge primitives here are
@@ -18,22 +18,22 @@ works even when the optional migration skill is not installed.
 Mappings
 --------
 claude-code (~/.claude):
-    CLAUDE.md                       → memory entries in FREEIDE_HOME/memories/MEMORY.md
+    CLAUDE.md                       → memory entries in JETTSTUI_HOME/memories/MEMORY.md
     settings.json permissions.allow → config.yaml command_allowlist (Bash(...) rules)
     settings.json permissions.deny  → config.yaml approvals.deny (Bash(...) rules)
     mcpServers (~/.claude.json or settings.json) → config.yaml mcp_servers
-    skills/<name>/SKILL.md          → FREEIDE_HOME/skills/claude-code-imports/<name>/
+    skills/<name>/SKILL.md          → JETTSTUI_HOME/skills/claude-code-imports/<name>/
 
 codex (~/.codex):
-    AGENTS.md                       → memory entries in FREEIDE_HOME/memories/MEMORY.md
+    AGENTS.md                       → memory entries in JETTSTUI_HOME/memories/MEMORY.md
     config.toml [mcp_servers.*]     → config.yaml mcp_servers
-    memories/*.md                   → memory entries in FREEIDE_HOME/memories/MEMORY.md
-    skills/<name>/SKILL.md          → FREEIDE_HOME/skills/codex-imports/<name>/
+    memories/*.md                   → memory entries in JETTSTUI_HOME/memories/MEMORY.md
+    skills/<name>/SKILL.md          → JETTSTUI_HOME/skills/codex-imports/<name>/
 
 Secrets are NEVER imported: credential files (.credentials.json, auth.json)
 are ignored, and MCP server env vars with secret-looking names (KEY, TOKEN,
 SECRET, PASSWORD, ...) are stripped and reported so the user can re-add them
-deliberately via ``freeide setup`` or config.yaml.
+deliberately via ``jettstui setup`` or config.yaml.
 """
 
 from __future__ import annotations
@@ -48,7 +48,7 @@ from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 logger = logging.getLogger(__name__)
 
-# Same entry delimiter as the FreeIDE memory store and the openclaw migration
+# Same entry delimiter as the JettsTUI memory store and the openclaw migration
 # script — memories/MEMORY.md entries are separated by bare "§" lines.
 ENTRY_DELIMITER = "\n§\n"
 
@@ -116,7 +116,7 @@ def dump_yaml_file(path: Path, data: Dict[str, Any]) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Memory-entry primitives (ported from openclaw_to_freeide.py)
+# Memory-entry primitives (ported from openclaw_to_jettstui.py)
 # ---------------------------------------------------------------------------
 
 def extract_markdown_entries(text: str) -> List[str]:
@@ -247,14 +247,14 @@ def merge_entries(
 
 
 # ---------------------------------------------------------------------------
-# Claude Code permission rules → FreeIDE command patterns
+# Claude Code permission rules → JettsTUI command patterns
 # ---------------------------------------------------------------------------
 
 _BASH_RULE_RE = re.compile(r"^Bash\((?P<inner>.*)\)$")
 
 
 def claude_rule_to_command_pattern(rule: str) -> Optional[str]:
-    """Convert a Claude Code ``Bash(...)`` permission rule into a FreeIDE glob.
+    """Convert a Claude Code ``Bash(...)`` permission rule into a JettsTUI glob.
 
     ``Bash(npm run build)``   → ``npm run build``
     ``Bash(npm run test:*)``  → ``npm run test*``  (Claude ':*' prefix match)
@@ -389,7 +389,7 @@ class AgentImporter:
         if commands_dir.is_dir() and any(commands_dir.glob("*.md")):
             self.record(
                 "slash-commands", commands_dir, None, "skipped",
-                "Claude slash commands have no direct FreeIDE equivalent — "
+                "Claude slash commands have no direct JettsTUI equivalent — "
                 "consider converting them into skills",
             )
 
@@ -638,25 +638,25 @@ class AgentImporter:
                 continue
             if name in existing and not self.overwrite:
                 self.record(kind, name, f"mcp_servers.{name}", "conflict",
-                            "MCP server already exists in FreeIDE config")
+                            "MCP server already exists in JettsTUI config")
                 continue
 
-            freeide_srv: Dict[str, Any] = {}
+            jettstui_srv: Dict[str, Any] = {}
             if srv.get("command"):
-                freeide_srv["command"] = srv["command"]
+                jettstui_srv["command"] = srv["command"]
                 if srv.get("args"):
-                    freeide_srv["args"] = srv["args"]
+                    jettstui_srv["args"] = srv["args"]
                 env_kept, env_stripped = sanitize_mcp_env(srv.get("env"))
                 if env_kept:
-                    freeide_srv["env"] = env_kept
+                    jettstui_srv["env"] = env_kept
                 if env_stripped:
                     self.stripped_secrets.extend(
                         f"mcp_servers.{name}.env.{k}" for k in env_stripped
                     )
                 if srv.get("cwd"):
-                    freeide_srv["cwd"] = srv["cwd"]
+                    jettstui_srv["cwd"] = srv["cwd"]
             if srv.get("url"):
-                freeide_srv["url"] = srv["url"]
+                jettstui_srv["url"] = srv["url"]
                 headers = srv.get("headers")
                 if isinstance(headers, dict):
                     kept_headers = {
@@ -665,18 +665,18 @@ class AgentImporter:
                         and "authorization" not in str(k).lower()
                     }
                     if kept_headers:
-                        freeide_srv["headers"] = kept_headers
+                        jettstui_srv["headers"] = kept_headers
                     for k in headers:
                         if k not in kept_headers:
                             self.stripped_secrets.append(
                                 f"mcp_servers.{name}.headers.{k}"
                             )
-            if not freeide_srv:
+            if not jettstui_srv:
                 self.record(kind, name, None, "skipped",
                             "Server has neither a command nor a url")
                 continue
 
-            existing[name] = freeide_srv
+            existing[name] = jettstui_srv
             added += 1
             self.record(kind, name, f"config.yaml mcp_servers.{name}",
                         "imported")
@@ -686,7 +686,7 @@ class AgentImporter:
             dump_yaml_file(destination, config)
 
     def import_skills(self, source_root: Path) -> None:
-        """skills/<name>/SKILL.md dirs → FREEIDE_HOME/skills/<category>/<name>."""
+        """skills/<name>/SKILL.md dirs → JETTSTUI_HOME/skills/<category>/<name>."""
         category = _SKILL_CATEGORY[self.agent]
         destination_root = self.target_root / "skills" / category
         if not source_root.is_dir():
@@ -723,10 +723,10 @@ class AgentImporter:
 # ---------------------------------------------------------------------------
 
 def import_agent_command(args) -> None:
-    """Handle ``freeide import-agent`` (invoked from freeide_cli.main)."""
-    from freeide_cli.config import get_config_path, load_config, save_config
-    from freeide_constants import get_freeide_home
-    from freeide_cli.setup import (
+    """Handle ``jettstui import-agent`` (invoked from jettstui.main)."""
+    from jettstui.config import get_config_path, load_config, save_config
+    from jettstui_constants import get_jettstui_home
+    from jettstui.setup import (
         Colors,
         color,
         print_header,
@@ -748,12 +748,12 @@ def import_agent_command(args) -> None:
         if not detected:
             print()
             print_error("No supported agent setup found (~/.claude or ~/.codex).")
-            print_info("Specify one explicitly: freeide import-agent claude-code --source /path")
+            print_info("Specify one explicitly: jettstui import-agent claude-code --source /path")
             return
         if len(detected) > 1 and explicit_source is None:
             print()
             print_info("Multiple agent setups detected: " + ", ".join(detected))
-            print_info("Pick one: freeide import-agent claude-code   or   freeide import-agent codex")
+            print_info("Pick one: jettstui import-agent claude-code   or   jettstui import-agent codex")
             return
         agent = detected[0]
 
@@ -761,24 +761,24 @@ def import_agent_command(args) -> None:
 
     print()
     print(color("┌─────────────────────────────────────────────────────────┐", Colors.MAGENTA))
-    print(color("│          ◆ FreeIDE — Import From Another Agent          │", Colors.MAGENTA))
+    print(color("│          ◆ JettsTUI — Import From Another Agent          │", Colors.MAGENTA))
     print(color("└─────────────────────────────────────────────────────────┘", Colors.MAGENTA))
 
     if not source_dir.is_dir():
         print()
         print_error(f"Agent directory not found: {source_dir}")
-        print_info("Specify a custom path: freeide import-agent "
+        print_info("Specify a custom path: jettstui import-agent "
                     f"{agent} --source /path/to/{_AGENT_DEFAULT_DIRS[agent]}")
         return
 
-    freeide_home = get_freeide_home()
+    jettstui_home = get_jettstui_home()
     print()
     print_header("Import Settings")
     print_info(f"Agent:       {agent}")
     print_info(f"Source:      {source_dir}")
-    print_info(f"Target:      {freeide_home}")
+    print_info(f"Target:      {jettstui_home}")
     print_info(f"Overwrite:   {'yes' if overwrite else 'no (skip conflicts)'}")
-    print_info("Secrets:     never imported — run 'freeide setup' for credentials")
+    print_info("Secrets:     never imported — run 'jettstui setup' for credentials")
 
     # Ensure config.yaml exists before the import tries to merge into it
     config_path = get_config_path()
@@ -790,7 +790,7 @@ def import_agent_command(args) -> None:
         preview = AgentImporter(
             agent=agent,
             source_root=source_dir.resolve(),
-            target_root=freeide_home.resolve(),
+            target_root=jettstui_home.resolve(),
             execute=False,
             overwrite=overwrite,
         ).run()
@@ -820,7 +820,7 @@ def import_agent_command(args) -> None:
     if not auto_yes:
         if not sys.stdin.isatty():
             print_info("Non-interactive session — preview only.")
-            print_info(f"To execute, re-run with: freeide import-agent {agent} --yes")
+            print_info(f"To execute, re-run with: jettstui import-agent {agent} --yes")
             return
         if not prompt_yes_no("Proceed with import?", default=True):
             print_info("Import cancelled.")
@@ -830,7 +830,7 @@ def import_agent_command(args) -> None:
         report = AgentImporter(
             agent=agent,
             source_root=source_dir.resolve(),
-            target_root=freeide_home.resolve(),
+            target_root=jettstui_home.resolve(),
             execute=True,
             overwrite=overwrite,
         ).run()
@@ -843,13 +843,13 @@ def import_agent_command(args) -> None:
     print_import_report(report, dry_run=False)
     print()
     print_success("Import complete.")
-    print_info("API keys and credentials were NOT imported — run 'freeide setup' "
-               "to configure providers, or add them to ~/.freeide/.env.")
+    print_info("API keys and credentials were NOT imported — run 'jettstui setup' "
+               "to configure providers, or add them to ~/.jettstui/.env.")
 
 
 def print_import_report(report: Dict[str, Any], dry_run: bool) -> None:
     """Print a formatted per-item import report (claw-migrate style)."""
-    from freeide_cli.setup import Colors, color, print_header, print_info
+    from jettstui.setup import Colors, color, print_header, print_info
 
     summary = report.get("summary", {})
     print()
@@ -888,7 +888,7 @@ def print_import_report(report: Dict[str, Any], dry_run: bool) -> None:
         print(color("  ⚷ Secrets stripped (never imported):", Colors.YELLOW))
         for name in stripped:
             print(f"      {name}")
-        print_info("Re-add credentials deliberately via 'freeide setup' or ~/.freeide/.env.")
+        print_info("Re-add credentials deliberately via 'jettstui setup' or ~/.jettstui/.env.")
         print()
 
     parts = []

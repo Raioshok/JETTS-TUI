@@ -11,7 +11,7 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from freeide_constants import get_freeide_home
+from jettstui_constants import get_jettstui_home
 
 _HEX32 = re.compile(r"[0-9a-f]{32}\Z")
 _HEX16 = re.compile(r"[0-9a-f]{16}\Z")
@@ -50,7 +50,7 @@ def _nonce(value: str) -> str:
 
 
 def _root() -> Path:
-    return get_freeide_home() / "desktop-ssh"
+    return get_jettstui_home() / "desktop-ssh"
 
 
 def _directory(ownership_id: str) -> Path:
@@ -285,7 +285,7 @@ def remove_artifact(path: Path) -> bool:
     return True
 
 
-def process_state(pid: int, creation_time_ns: int, freeide_path: str, spawn_nonce: str) -> dict[str, Any]:
+def process_state(pid: int, creation_time_ns: int, jettstui_path: str, spawn_nonce: str) -> dict[str, Any]:
     import psutil
     _nonce(spawn_nonce)
     try:
@@ -304,17 +304,17 @@ def process_state(pid: int, creation_time_ns: int, freeide_path: str, spawn_nonc
                 "actualCreationTimeNs": str(actual_creation), "expectedCreationTimeNs": str(creation_time_ns)}
     if not argv:
         return {"alive": True, "owned": False, "indeterminate": True, "reason": "argv-unavailable"}
-    expected = os.path.normcase(os.path.abspath(freeide_path))
+    expected = os.path.normcase(os.path.abspath(jettstui_path))
     arg0 = os.path.normcase(os.path.abspath(argv[0]))
-    # argv[0] is either the freeide exe directly, or (normal case) the base Python
+    # argv[0] is either the jettstui exe directly, or (normal case) the base Python
     # interpreter -- its exact path varies by venv/uv layout, so match on "a python
     # running our module". We launch via `-c` bootstrap, so it shows as
-    # `-c <bootstrap that runs freeide_cli.main>`; also accept a plain `-m` launch.
+    # `-c <bootstrap that runs jettstui.main>`; also accept a plain `-m` launch.
     # Identity is anchored by the unforgeable creation-time + secret owner-nonce below.
     is_python = os.path.basename(arg0).startswith("python")
     launches_module = (
-        argv[1:3] == ["-m", "freeide_cli.main"]
-        or (len(argv) > 2 and argv[1] == "-c" and "freeide_cli.main" in argv[2])
+        argv[1:3] == ["-m", "jettstui.main"]
+        or (len(argv) > 2 and argv[1] == "-c" and "jettstui.main" in argv[2])
     )
     executable_match = arg0 == expected or (is_python and launches_module)
     try:
@@ -328,8 +328,8 @@ def process_state(pid: int, creation_time_ns: int, freeide_path: str, spawn_nonc
             "argv": argv[:20], "expectedExecutable": expected}
 
 
-def terminate_owned(pid: int, creation_time_ns: int, freeide_path: str, spawn_nonce: str) -> bool:
-    state = process_state(pid, creation_time_ns, freeide_path, spawn_nonce)
+def terminate_owned(pid: int, creation_time_ns: int, jettstui_path: str, spawn_nonce: str) -> bool:
+    state = process_state(pid, creation_time_ns, jettstui_path, spawn_nonce)
     if not state["alive"] or not state["owned"]:
         return False
     import psutil
@@ -352,12 +352,12 @@ def _resolve_direct_interpreter(python_entry: str) -> tuple[str, list[str]]:
     interpreter directly with the launcher's sys.path injected yields ONE process
     that both owns the port and is the process we lock.
 
-    Also resolves freeide_cli's own location and prepends its parent, because the
+    Also resolves jettstui's own location and prepends its parent, because the
     launcher finds the module via cwd / an editable-install path hook that a bare
     PYTHONPATH does not reproduce."""
     query = (
         "import sys,json,os,importlib.util as u;"
-        "s=u.find_spec('freeide_cli');"
+        "s=u.find_spec('jettstui');"
         "root=os.path.dirname(os.path.dirname(s.origin)) if s and s.origin else '';"
         "print(json.dumps({'base':getattr(sys,'_base_executable','') or sys.executable,"
         "'path':[p for p in sys.path if p],'root':root}))"
@@ -372,32 +372,32 @@ def _resolve_direct_interpreter(python_entry: str) -> tuple[str, list[str]]:
     # drop editable-install finder markers ('__editable__.*.finder.__path_hook__')
     # that PYTHONPATH cannot reproduce; keep only real filesystem entries.
     py_path = [p for p in info.get("path", []) if os.path.exists(p)]
-    # the freeide_cli package parent must be explicit -- the launcher resolves it via
+    # the jettstui package parent must be explicit -- the launcher resolves it via
     # cwd or an editable path hook, neither of which survives a bare PYTHONPATH spawn.
     root = info.get("root") or ""
     if root and os.path.isdir(root) and root not in py_path:
         py_path.insert(0, root)
     if not root or not os.path.isdir(root):
-        raise ValueError("could not locate the freeide_cli package")
+        raise ValueError("could not locate the jettstui package")
     return base, py_path
 
 
 def spawn_backend(payload: dict[str, Any]) -> dict[str, Any]:
     ownership_id = _ownership(str(payload["ownershipId"]))
     spawn_nonce = _nonce(str(payload["spawnNonce"]))
-    configured_path = str(payload["freeidePath"])
+    configured_path = str(payload["jettstuiPath"])
     if not os.path.isabs(configured_path):
-        raise ValueError("FreeIDE path must be absolute")
-    freeide_path = os.path.abspath(configured_path)
+        raise ValueError("JettsTUI path must be absolute")
+    jettstui_path = os.path.abspath(configured_path)
     token_path = str(_token_path(ownership_id, spawn_nonce))
     log_path = _log_path(ownership_id, spawn_nonce)
     profile = str(payload.get("profile") or "")
     if len(profile) > 256 or any(ch in profile for ch in "\x00\r\n"):
         raise ValueError("invalid profile")
-    venv_dir = os.path.dirname(freeide_path)
+    venv_dir = os.path.dirname(jettstui_path)
     python_entry = os.path.join(venv_dir, "python.exe")
     if not os.path.isfile(python_entry):
-        raise ValueError("FreeIDE Python runtime was not found")
+        raise ValueError("JettsTUI Python runtime was not found")
     base_python, sys_path = _resolve_direct_interpreter(python_entry)
     # Seed sys.path IN-PROCESS via a -c bootstrap rather than exporting PYTHONPATH:
     # PYTHONPATH would be inherited by every subprocess the running backend spawns
@@ -406,7 +406,7 @@ def spawn_backend(payload: dict[str, Any]) -> dict[str, Any]:
     bootstrap = (
         "import sys,runpy;"
         f"sys.path[:0]={sys_path!r};"
-        "runpy.run_module('freeide_cli.main',run_name='__main__',alter_sys=True)"
+        "runpy.run_module('jettstui.main',run_name='__main__',alter_sys=True)"
     )
     args = [base_python, "-c", bootstrap]
     if profile:
@@ -433,10 +433,10 @@ def spawn_backend(payload: dict[str, Any]) -> dict[str, Any]:
             "logPath": str(log_path), "tokenPath": token_path}
 
 
-def inspect_freeide(freeide_path: str) -> dict[str, Any]:
-    path = os.path.abspath(freeide_path)
-    if not os.path.isabs(freeide_path) or not os.path.isfile(path):
-        raise ValueError("FreeIDE path is not an executable file")
+def inspect_jettstui(jettstui_path: str) -> dict[str, Any]:
+    path = os.path.abspath(jettstui_path)
+    if not os.path.isabs(jettstui_path) or not os.path.isfile(path):
+        raise ValueError("JettsTUI path is not an executable file")
     version = subprocess.run([path, "--version"], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=20)
     help_result = subprocess.run([path, "serve", "--help"], capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=20)
     help_text = help_result.stdout + help_result.stderr
@@ -453,7 +453,7 @@ def dispatch(argv: list[str]) -> Any:
     operation = argv[0]
     if operation == "probe":
         import platform
-        return {"os": "Windows", "arch": platform.machine(), "freeideHome": str(get_freeide_home()), "python": sys.executable}
+        return {"os": "Windows", "arch": platform.machine(), "jettstuiHome": str(get_jettstui_home()), "python": sys.executable}
     if operation == "upload-token" and len(argv) == 3:
         return upload_token(argv[1], argv[2], sys.stdin.buffer.read(65))
     if operation == "read-lock" and len(argv) == 2:
@@ -485,7 +485,7 @@ def dispatch(argv: list[str]) -> Any:
     if operation == "spawn":
         return spawn_backend(_read_json_stdin())
     if operation == "inspect" and len(argv) == 2:
-        return inspect_freeide(argv[1])
+        return inspect_jettstui(argv[1])
     if operation == "process-state" and len(argv) == 5:
         return process_state(int(argv[1]), int(argv[2]), argv[3], argv[4])
     if operation == "terminate" and len(argv) == 5:

@@ -1,4 +1,4 @@
-"""Offline, non-destructive recovery for a damaged FreeIDE session database.
+"""Offline, non-destructive recovery for a damaged JettsTUI session database.
 
 The recovery path deliberately avoids in-place repair:
 
@@ -20,7 +20,7 @@ import tempfile
 from pathlib import Path
 from typing import Any, Callable, Optional
 
-from freeide_state import (
+from jettstui_state import (
     FTS_STORAGE_VERSION,
     SCHEMA_VERSION,
     SessionDB,
@@ -243,15 +243,15 @@ def _copy_source_bundle(source: Path, snapshot_dir: Path) -> tuple[Path, list[st
     connection-lifecycle lock for its duration. Checking for a live connection
     and *then* copying would be a check/use race: a connection could open in
     that window, and the copy's ``close()`` would cancel its POSIX advisory
-    locks -- the failure class ``freeide_cli.sqlite_safe_read`` exists to
+    locks -- the failure class ``jettstui.sqlite_safe_read`` exists to
     prevent (see #71724). Holding the lock means no connection can appear
     mid-copy, across the main file and every sidecar.
 
     Recovery normally runs as its own short-lived CLI process against an
     offline/quarantined file, so the refusal should never fire; the guard
-    keeps this path consistent with ``freeide_state._backup_db_file``.
+    keeps this path consistent with ``jettstui_state._backup_db_file``.
     """
-    from freeide_cli.sqlite_safe_read import LiveConnectionError, offline_file_access
+    from jettstui.sqlite_safe_read import LiveConnectionError, offline_file_access
 
     snapshot_source = snapshot_dir / source.name
     copied: list[str] = []
@@ -323,7 +323,7 @@ def _snapshot_and_inspect(
 ) -> tuple[tempfile.TemporaryDirectory[str], Path, dict[str, Any]]:
     before = _source_fingerprint(source)
     temp_dir = tempfile.TemporaryDirectory(
-        prefix="freeide-session-recovery-",
+        prefix="jettstui-session-recovery-",
         dir=str(work_root),
     )
     snapshot_dir = Path(temp_dir.name)
@@ -333,7 +333,7 @@ def _snapshot_and_inspect(
         if before != after:
             raise SessionRecoverySafetyError(
                 "The source database bundle changed while it was being copied. "
-                "Stop every FreeIDE process using this profile and retry."
+                "Stop every JettsTUI process using this profile and retry."
             )
 
         conn = sqlite3.connect(

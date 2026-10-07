@@ -99,7 +99,7 @@ describe('fmtProjectCwdBranch', () => {
   })
 
   it('keeps the project visible when space is tight', () => {
-    expect(fmtProjectCwdBranch('/Users/bb/proj', 'main', 'Jetts-TUI', 12)).toBe('Jetts-TUI')
+    expect(fmtProjectCwdBranch('/Users/bb/proj', 'main', 'JettsTUI', 12)).toBe('JettsTUI')
   })
 })
 

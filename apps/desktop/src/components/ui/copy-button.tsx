@@ -19,8 +19,8 @@ export async function writeClipboardText(text: string) {
     return
   }
 
-  if (window.freeideDesktop?.writeClipboard) {
-    await window.freeideDesktop.writeClipboard(text)
+  if (window.jettstuiDesktop?.writeClipboard) {
+    await window.jettstuiDesktop.writeClipboard(text)
 
     return
   }

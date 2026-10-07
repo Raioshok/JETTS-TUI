@@ -7,17 +7,17 @@ import { startInstall } from '../store'
  * Welcome screen.
  *
  * Mirrors the desktop's chat intro (apps/desktop/src/components/chat/intro.tsx):
- *   - FREEIDE AGENT wordmark rendered in Collapse Bold, uppercase, tracked
+ *   - JETTSTUI AGENT wordmark rendered in Collapse Bold, uppercase, tracked
  *   - mix-blend-plus-lighter so the type "glows" on the canvas
  *   - fit-text utility so the wordmark sizes itself to the column
  *
  * No install-path footer. The default install location is correct for
- * 99% of users; the rest will use the CLI installer with a -FreeIDEHome
+ * 99% of users; the rest will use the CLI installer with a -JettsTUIHome
  * flag. Showing %LOCALAPPDATA% to grandma is developer-brain.
  */
 export default function Welcome() {
   return (
-    <div className="freeide-fade-in flex h-full flex-col items-center justify-center gap-10 px-12 py-10">
+    <div className="jettstui-fade-in flex h-full flex-col items-center justify-center gap-10 px-12 py-10">
       {/* Hero — same recipe the desktop's chat/intro.tsx uses */}
       <div className="w-full max-w-2xl min-w-0 text-center">
         <p

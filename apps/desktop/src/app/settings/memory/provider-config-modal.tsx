@@ -11,11 +11,11 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
-import { saveMemoryProviderConfig } from '@/freeide'
+import { saveMemoryProviderConfig } from '@/jettstui'
 import { ExternalLink, Loader2, Save, SlidersHorizontal } from '@/lib/icons'
 import { notify, notifyError } from '@/store/notifications'
 import { $activeGatewayProfile } from '@/store/profile'
-import type { MemoryProviderConfig, MemoryProviderField } from '@/types/freeide'
+import type { MemoryProviderConfig, MemoryProviderField } from '@/types/jettstui'
 
 import { ListRow } from '../primitives'
 
@@ -104,7 +104,7 @@ export function ProviderConfigModal({
               href={config.docs_url}
               onClick={event => {
                 event.preventDefault()
-                void window.freeideDesktop?.openExternal?.(config.docs_url)
+                void window.jettstuiDesktop?.openExternal?.(config.docs_url)
               }}
               rel="noreferrer"
               target="_blank"

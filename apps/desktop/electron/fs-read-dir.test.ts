@@ -9,7 +9,7 @@ import { test } from 'vitest'
 import { readDirForIpc } from './fs-read-dir'
 
 function mkTmpDir() {
-  return fs.mkdtempSync(path.join(os.tmpdir(), 'freeide-fs-read-dir-'))
+  return fs.mkdtempSync(path.join(os.tmpdir(), 'jettstui-fs-read-dir-'))
 }
 
 function fakeDirent(name, flags: any = {}) {

@@ -1,6 +1,6 @@
 import { resolveGatewayWsUrl } from '@jetts-tui/shared'
 
-import { speakText } from '@/freeide'
+import { speakText } from '@/jettstui'
 import {
   $voicePlayback,
   setVoicePlaybackState,
@@ -67,7 +67,7 @@ export function stopVoicePlayback() {
 // ---------------------------------------------------------------------------
 
 async function resolveSpeakStreamUrl(): Promise<null | string> {
-  const desktop = window.freeideDesktop
+  const desktop = window.jettstuiDesktop
 
   if (!desktop?.getConnection) {
     return null

@@ -345,7 +345,7 @@ export default function ConfigPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "freeide-config.json";
+    a.download = "jettstui-config.json";
     a.click();
     URL.revokeObjectURL(url);
   };

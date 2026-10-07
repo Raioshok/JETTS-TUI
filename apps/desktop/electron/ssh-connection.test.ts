@@ -28,12 +28,12 @@ import {
 } from './ssh-connection'
 
 test('redactSecrets scrubs the spawn-time session token env var', () => {
-  const line = 'setsid env FREEIDE_DASHBOARD_SESSION_TOKEN=abc123deadbeef FREEIDE_DESKTOP=1 freeide dashboard'
+  const line = 'setsid env JETTSTUI_DASHBOARD_SESSION_TOKEN=abc123deadbeef JETTSTUI_DESKTOP=1 jettstui dashboard'
   const out = redactSecrets(line)
   assert.ok(!out.includes('abc123deadbeef'))
-  assert.match(out, /FREEIDE_DASHBOARD_SESSION_TOKEN=<redacted>/)
+  assert.match(out, /JETTSTUI_DASHBOARD_SESSION_TOKEN=<redacted>/)
   // non-secret env vars are preserved
-  assert.match(out, /FREEIDE_DESKTOP=1/)
+  assert.match(out, /JETTSTUI_DESKTOP=1/)
 })
 
 test('redactSecrets scrubs ?token= and ?ticket= URL params', () => {
@@ -43,11 +43,11 @@ test('redactSecrets scrubs ?token= and ?ticket= URL params', () => {
   assert.ok(!redactSecrets('?token=supersecret').includes('supersecret'))
 })
 
-test('redactSecrets scrubs Authorization and X-FreeIDE-Session-Token headers', () => {
+test('redactSecrets scrubs Authorization and X-JettsTUI-Session-Token headers', () => {
   assert.match(redactSecrets('Authorization: Bearer tok_9999'), /Authorization: Bearer <redacted>/)
   assert.ok(!redactSecrets('Authorization: Bearer tok_9999').includes('tok_9999'))
-  assert.match(redactSecrets('X-FreeIDE-Session-Token: hdr_888'), /X-FreeIDE-Session-Token: ?<redacted>/)
-  assert.ok(!redactSecrets('X-FreeIDE-Session-Token: hdr_888').includes('hdr_888'))
+  assert.match(redactSecrets('X-JettsTUI-Session-Token: hdr_888'), /X-JettsTUI-Session-Token: ?<redacted>/)
+  assert.ok(!redactSecrets('X-JettsTUI-Session-Token: hdr_888').includes('hdr_888'))
 })
 
 test('redactSecrets handles null/undefined and non-secret text untouched', () => {
@@ -70,7 +70,7 @@ test('controlSocketPath default base stays under sun_path even with the temp-lis
   // OpenSSH binds a temporary listener at `<ControlPath>.<16 random chars>` (a
   // 17-byte suffix) while opening the master. The macOS regression was the
   // default base under os.tmpdir() (/var/folders/.../T/) pushing it over 104.
-  const p = controlSocketPath('freeide', 'remote-build-server', 22) // no baseDir → default
+  const p = controlSocketPath('jettstui', 'remote-build-server', 22) // no baseDir → default
   const worstCase = `${p}.0123456789abcdef` // mimic the .<16-char> temp suffix
   assert.ok(
     worstCase.length <= 104,
@@ -107,8 +107,8 @@ test('target builds user@host or bare host', () => {
 
 test('buildExecArgs ends with host then the remote command', () => {
   const conn = { user: 'me', host: 'box', port: 22, keyPath: '', controlPath: '/tmp/x.sock' }
-  const args = buildExecArgs(conn, 'command -v freeide', 15000)
-  assert.equal(args[args.length - 1], 'command -v freeide')
+  const args = buildExecArgs(conn, 'command -v jettstui', 15000)
+  assert.equal(args[args.length - 1], 'command -v jettstui')
   assert.equal(args[args.length - 2], 'me@box')
   assert.ok(args.includes('BatchMode=yes'))
 })
@@ -315,7 +315,7 @@ test('open() evicts a wedged master (check passes, exec hangs) and dials fresh',
 })
 
 test('close() removes the control socket when -O exit fails', async () => {
-  const dir = path.join(os.tmpdir(), `freeide-ssh-close-${process.pid}-${Date.now()}`)
+  const dir = path.join(os.tmpdir(), `jettstui-ssh-close-${process.pid}-${Date.now()}`)
   fs.mkdirSync(dir, { recursive: true, mode: 0o700 })
 
   const spawnFn = scriptedSpawn(args => {
@@ -339,7 +339,7 @@ test('close() removes the control socket when -O exit fails', async () => {
 })
 
 test('open() creates the control-socket directory if it does not exist', async () => {
-  const dir = path.join(os.tmpdir(), `freeide-ssh-test-${process.pid}-${Date.now()}`)
+  const dir = path.join(os.tmpdir(), `jettstui-ssh-test-${process.pid}-${Date.now()}`)
   assert.ok(!fs.existsSync(dir), 'precondition: control dir absent')
   const spawnFn = scriptedSpawn(args => (args.includes('check') ? { code: 255 } : { code: 0 }))
   const conn = new SshConnection({ host: 'box', user: 'me' }, { spawnFn, controlDir: dir, mux: true })

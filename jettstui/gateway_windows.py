@@ -39,7 +39,7 @@ import time
 from pathlib import Path
 from xml.sax.saxutils import escape
 
-from freeide_cli._subprocess_compat import (
+from jettstui._subprocess_compat import (
     windows_detach_flags,
     windows_detach_flags_without_breakaway,
     windows_hide_flags,
@@ -55,8 +55,8 @@ _FALLBACK_PATTERNS = re.compile(
 )
 _ACCESS_DENIED_PATTERN = re.compile(r"(access is denied|acceso denegado)", re.IGNORECASE)
 
-_TASK_NAME_DEFAULT = "FreeIDE_Gateway"
-_TASK_DESCRIPTION = "FreeIDE Agent Gateway - Messaging Platform Integration"
+_TASK_NAME_DEFAULT = "JettsTUI_Gateway"
+_TASK_DESCRIPTION = "JettsTUI Gateway - Messaging Platform Integration"
 _TASK_LOGON_DELAY = "PT30S"
 _TASK_RESTART_INTERVAL = "PT1M"
 _TASK_RESTART_COUNT = 999
@@ -85,19 +85,19 @@ def _assert_windows() -> None:
         raise RuntimeError("gateway_windows is Windows-only")
 
 
-def _preserve_freeide_home_path(path: str | Path) -> str:
-    """Render FreeIDE-owned paths under the configured FREEIDE_HOME spelling.
+def _preserve_jettstui_home_path(path: str | Path) -> str:
+    """Render JettsTUI-owned paths under the configured JETTSTUI_HOME spelling.
 
-    Windows installs may keep ``%LOCALAPPDATA%\\freeide`` as a symlink/junction to
+    Windows installs may keep ``%LOCALAPPDATA%\\jettstui`` as a symlink/junction to
     another drive. Runtime state should still identify itself by the configured
     AppData path, so launcher files must not bake in the resolved target when a
-    path lives under FREEIDE_HOME.
+    path lives under JETTSTUI_HOME.
     """
     candidate = Path(path)
     try:
-        from freeide_cli.config import get_freeide_home
+        from jettstui.config import get_jettstui_home
 
-        home = Path(get_freeide_home())
+        home = Path(get_jettstui_home())
         resolved_home = home.resolve()
         resolved_candidate = candidate.resolve()
         home_key = os.path.normcase(str(resolved_home))
@@ -198,8 +198,8 @@ def _is_running_as_admin() -> bool:
 
 
 def _current_profile_cli_args() -> list[str]:
-    """Return CLI args that preserve the current FreeIDE profile."""
-    from freeide_cli.gateway import _profile_arg
+    """Return CLI args that preserve the current JettsTUI profile."""
+    from jettstui.gateway import _profile_arg
 
     profile_arg = _profile_arg()
     return shlex.split(profile_arg) if profile_arg else []
@@ -218,7 +218,7 @@ def _launch_elevated_gateway_command(command: str, extra_args: list[str] | None 
     the parent shell before this point.
     """
     _assert_windows()
-    args = ["-m", "freeide_cli.main", *_current_profile_cli_args(), "gateway", command]
+    args = ["-m", "jettstui.main", *_current_profile_cli_args(), "gateway", command]
     if extra_args:
         args.extend(extra_args)
     params = subprocess.list2cmdline(args)
@@ -249,15 +249,15 @@ def _launch_elevated_install(
     start_on_login: bool | None = None,
 ) -> bool:
     """Launch an elevated gateway install via UAC and return True on handoff."""
-    old_start_now = os.environ.get("FREEIDE_GATEWAY_INSTALL_START_NOW")
-    old_start_on_login = os.environ.get("FREEIDE_GATEWAY_INSTALL_START_ON_LOGIN")
-    old_handoff = os.environ.get("FREEIDE_GATEWAY_ELEVATED_HANDOFF")
+    old_start_now = os.environ.get("JETTSTUI_GATEWAY_INSTALL_START_NOW")
+    old_start_on_login = os.environ.get("JETTSTUI_GATEWAY_INSTALL_START_ON_LOGIN")
+    old_handoff = os.environ.get("JETTSTUI_GATEWAY_ELEVATED_HANDOFF")
     try:
         if start_now is not None:
-            os.environ["FREEIDE_GATEWAY_INSTALL_START_NOW"] = "1" if start_now else "0"
+            os.environ["JETTSTUI_GATEWAY_INSTALL_START_NOW"] = "1" if start_now else "0"
         if start_on_login is not None:
-            os.environ["FREEIDE_GATEWAY_INSTALL_START_ON_LOGIN"] = "1" if start_on_login else "0"
-        os.environ["FREEIDE_GATEWAY_ELEVATED_HANDOFF"] = "1"
+            os.environ["JETTSTUI_GATEWAY_INSTALL_START_ON_LOGIN"] = "1" if start_on_login else "0"
+        os.environ["JETTSTUI_GATEWAY_ELEVATED_HANDOFF"] = "1"
         extra_args = ["--elevated-handoff"]
         if force:
             extra_args.append("--force")
@@ -268,9 +268,9 @@ def _launch_elevated_install(
         return _launch_elevated_gateway_command("install", extra_args)
     finally:
         for key, old in (
-            ("FREEIDE_GATEWAY_INSTALL_START_NOW", old_start_now),
-            ("FREEIDE_GATEWAY_INSTALL_START_ON_LOGIN", old_start_on_login),
-            ("FREEIDE_GATEWAY_ELEVATED_HANDOFF", old_handoff),
+            ("JETTSTUI_GATEWAY_INSTALL_START_NOW", old_start_now),
+            ("JETTSTUI_GATEWAY_INSTALL_START_ON_LOGIN", old_start_on_login),
+            ("JETTSTUI_GATEWAY_ELEVATED_HANDOFF", old_handoff),
         ):
             if old is None:
                 os.environ.pop(key, None)
@@ -290,12 +290,12 @@ def _launch_elevated_uninstall() -> bool:
 def get_task_name() -> str:
     """Scheduled Task name, scoped per profile.
 
-    Default profile: ``FreeIDE_Gateway``
-    Named profile X: ``FreeIDE_Gateway_<X>``
+    Default profile: ``JettsTUI_Gateway``
+    Named profile X: ``JettsTUI_Gateway_<X>``
     """
     _assert_windows()
-    # Local import to avoid circular module initialization during freeide_cli boot.
-    from freeide_cli.gateway import _profile_suffix
+    # Local import to avoid circular module initialization during jettstui boot.
+    from jettstui.gateway import _profile_suffix
 
     suffix = _profile_suffix()
     if not suffix:
@@ -311,14 +311,14 @@ def _sanitize_filename(value: str) -> str:
 def get_task_script_path() -> Path:
     """The generated ``gateway.cmd`` wrapper kept beside the VBS launcher.
 
-    Lives under ``%LOCALAPPDATA%\\freeide\\gateway-service\\<task_name>.cmd``
-    (or ``<FREEIDE_HOME>/gateway-service/<task_name>.cmd`` so per-profile
-    FreeIDE installs stay self-contained).
+    Lives under ``%LOCALAPPDATA%\\jettstui\\gateway-service\\<task_name>.cmd``
+    (or ``<JETTSTUI_HOME>/gateway-service/<task_name>.cmd`` so per-profile
+    JettsTUI installs stay self-contained).
     """
     _assert_windows()
-    from freeide_cli.config import get_freeide_home
+    from jettstui.config import get_jettstui_home
 
-    script_dir = Path(get_freeide_home()) / "gateway-service"
+    script_dir = Path(get_jettstui_home()) / "gateway-service"
     script_dir.mkdir(parents=True, exist_ok=True)
     return script_dir / f"{_sanitize_filename(get_task_name())}.cmd"
 
@@ -359,17 +359,17 @@ def _legacy_startup_entry_path() -> Path:
 def _stable_gateway_working_dir(project_root: Path) -> str:
     """Return a stable cwd for detached/startup gateway runs.
 
-    Mirror the POSIX service invariant: anchor at ``FREEIDE_HOME`` whenever it
+    Mirror the POSIX service invariant: anchor at ``JETTSTUI_HOME`` whenever it
     exists so Scheduled Task / Startup launches do not fail at the ``cd`` step
     after a transient checkout or worktree is moved away. Fall back to the
-    source checkout only if ``FREEIDE_HOME`` cannot be used yet. Preserve the
+    source checkout only if ``JETTSTUI_HOME`` cannot be used yet. Preserve the
     configured spelling instead of resolving symlinks so AppData installs backed
     by a junction/symlink still identify themselves as AppData.
     """
-    from freeide_cli.config import get_freeide_home
+    from jettstui.config import get_jettstui_home
 
     try:
-        home = get_freeide_home()
+        home = get_jettstui_home()
         if home:
             home_path = Path(home)
             if home_path.is_dir():
@@ -386,21 +386,21 @@ def _stable_gateway_working_dir(project_root: Path) -> str:
 def _build_gateway_cmd_script(
     python_path: str,
     working_dir: str,
-    freeide_home: str,
+    jettstui_home: str,
     profile_arg: str,
 ) -> str:
     """Build the ``gateway.cmd`` wrapper content (CRLF-terminated).
 
     The script:
       - cd's into a stable working directory
-      - exports FREEIDE_HOME, PYTHONIOENCODING, VIRTUAL_ENV
-      - invokes ``python -m freeide_cli.main [--profile X] gateway run``
+      - exports JETTSTUI_HOME, PYTHONIOENCODING, VIRTUAL_ENV
+      - invokes ``python -m jettstui.main [--profile X] gateway run``
 
     The .cmd is a compatibility/manual-run artifact: service persistence
     (Scheduled Task, Startup folder) routes through the ``.vbs`` launcher,
     which runs this same command line hidden (window style 0).  Run by hand
     in a real terminal, the console interpreter keeps the gateway attached
-    to that terminal like a normal foreground ``freeide gateway run``.
+    to that terminal like a normal foreground ``jettstui gateway run``.
 
     We intentionally do NOT inline PATH overrides here — cmd.exe inherits
     the per-user PATH the Scheduled Task was created with, and forcibly
@@ -408,20 +408,20 @@ def _build_gateway_cmd_script(
     """
     lines = ["@echo off", f"rem {_TASK_DESCRIPTION}"]
     lines.append(f"cd /d {_quote_cmd_script_arg(working_dir)}")
-    lines.append(f'set "FREEIDE_HOME={freeide_home}"')
+    lines.append(f'set "JETTSTUI_HOME={jettstui_home}"')
     lines.append('set "PYTHONIOENCODING=utf-8"')
-    lines.append('set "FREEIDE_GATEWAY_DETACHED=1"')
+    lines.append('set "JETTSTUI_GATEWAY_DETACHED=1"')
     python_exe_path, venv_dir, extra_pythonpath = _resolve_detached_python(python_path)
     # VIRTUAL_ENV lets the gateway's own python detection find the venv
-    # if someone imports freeide_constants-based logic during startup.
-    lines.append(f'set "VIRTUAL_ENV={_preserve_freeide_home_path(venv_dir)}"')
+    # if someone imports jettstui_constants-based logic during startup.
+    lines.append(f'set "VIRTUAL_ENV={_preserve_jettstui_home_path(venv_dir)}"')
     pythonpath_entries = [
-        _preserve_freeide_home_path(Path(__file__).resolve().parent.parent),
-        *[_preserve_freeide_home_path(entry) for entry in extra_pythonpath],
+        _preserve_jettstui_home_path(Path(__file__).resolve().parent.parent),
+        *[_preserve_jettstui_home_path(entry) for entry in extra_pythonpath],
     ]
     lines.append(f'set "PYTHONPATH={";".join([*pythonpath_entries, "%PYTHONPATH%"])}"')
 
-    prog_args = [python_exe_path, "-m", "freeide_cli.main"]
+    prog_args = [python_exe_path, "-m", "jettstui.main"]
     if profile_arg:
         prog_args.extend(profile_arg.split())
     prog_args.extend(["gateway", "run"])
@@ -448,7 +448,7 @@ def _quote_vbs_string(value: str) -> str:
 def _build_gateway_vbs_script(
     python_path: str,
     working_dir: str,
-    freeide_home: str,
+    jettstui_home: str,
     profile_arg: str,
 ) -> str:
     """Build a hidden-console ``gateway.vbs`` launcher (CRLF-terminated).
@@ -475,16 +475,16 @@ def _build_gateway_vbs_script(
     """
     python_exe_path, venv_dir, extra_pythonpath = _resolve_detached_python(python_path)
 
-    prog_args = [python_exe_path, "-m", "freeide_cli.main"]
+    prog_args = [python_exe_path, "-m", "jettstui.main"]
     if profile_arg:
         prog_args.extend(profile_arg.split())
     prog_args.extend(["gateway", "run"])
     # list2cmdline gives CreateProcess-correct quoting for WScript.Shell.Run.
     command_line = subprocess.list2cmdline(prog_args)
 
-    repo_root = _preserve_freeide_home_path(Path(__file__).resolve().parent.parent)
+    repo_root = _preserve_jettstui_home_path(Path(__file__).resolve().parent.parent)
     static_pythonpath = os.pathsep.join(
-        [repo_root, *[_preserve_freeide_home_path(entry) for entry in extra_pythonpath]]
+        [repo_root, *[_preserve_jettstui_home_path(entry) for entry in extra_pythonpath]]
     )
 
     lines = [
@@ -493,10 +493,10 @@ def _build_gateway_vbs_script(
         "Dim sh, env, existing_pp",
         'Set sh = CreateObject("WScript.Shell")',
         'Set env = sh.Environment("PROCESS")',
-        f"env.Item({_quote_vbs_string('FREEIDE_HOME')}) = {_quote_vbs_string(freeide_home)}",
+        f"env.Item({_quote_vbs_string('JETTSTUI_HOME')}) = {_quote_vbs_string(jettstui_home)}",
         f"env.Item({_quote_vbs_string('PYTHONIOENCODING')}) = {_quote_vbs_string('utf-8')}",
-        f"env.Item({_quote_vbs_string('FREEIDE_GATEWAY_DETACHED')}) = {_quote_vbs_string('1')}",
-        f"env.Item({_quote_vbs_string('VIRTUAL_ENV')}) = {_quote_vbs_string(_preserve_freeide_home_path(venv_dir))}",
+        f"env.Item({_quote_vbs_string('JETTSTUI_GATEWAY_DETACHED')}) = {_quote_vbs_string('1')}",
+        f"env.Item({_quote_vbs_string('VIRTUAL_ENV')}) = {_quote_vbs_string(_preserve_jettstui_home_path(venv_dir))}",
         # Mirror the cmd wrapper's ``PYTHONPATH=<static>;%PYTHONPATH%``: chain onto
         # whatever PYTHONPATH the task environment already carries, at runtime.
         f"existing_pp = env.Item({_quote_vbs_string('PYTHONPATH')})",
@@ -542,19 +542,19 @@ def _write_task_script() -> Path:
     """Generate and write the gateway.cmd wrapper. Return its absolute path."""
     _assert_windows()
     # Local imports to avoid circular-init at module load time.
-    from freeide_cli.config import get_freeide_home
-    from freeide_cli.gateway import (
+    from jettstui.config import get_jettstui_home
+    from jettstui.gateway import (
         PROJECT_ROOT,
         _profile_arg,
         get_python_path,
     )
 
-    python_path = _preserve_freeide_home_path(get_python_path())
+    python_path = _preserve_jettstui_home_path(get_python_path())
     working_dir = _stable_gateway_working_dir(PROJECT_ROOT)
-    freeide_home = str(Path(get_freeide_home()))
-    profile_arg = _profile_arg(freeide_home)
+    jettstui_home = str(Path(get_jettstui_home()))
+    profile_arg = _profile_arg(jettstui_home)
 
-    content = _build_gateway_cmd_script(python_path, working_dir, freeide_home, profile_arg)
+    content = _build_gateway_cmd_script(python_path, working_dir, jettstui_home, profile_arg)
     script_path = get_task_script_path()
     tmp = script_path.with_suffix(".tmp")
     tmp.write_text(content, encoding="utf-8", newline="")
@@ -563,7 +563,7 @@ def _write_task_script() -> Path:
     # Also render the console-less .vbs launcher used by Scheduled Task and the
     # Startup-folder fallback via wscript.exe (issue #45599 fix A). The .cmd
     # wrapper stays as a generated helper/compatibility artifact.
-    vbs_content = _build_gateway_vbs_script(python_path, working_dir, freeide_home, profile_arg)
+    vbs_content = _build_gateway_vbs_script(python_path, working_dir, jettstui_home, profile_arg)
     vbs_path = script_path.with_suffix(".vbs")
     vbs_tmp = vbs_path.with_name(vbs_path.name + ".tmp")
     vbs_tmp.write_text(vbs_content, encoding="utf-8", newline="")
@@ -657,7 +657,7 @@ def _write_scheduled_task_xml(task_name: str, launcher_path: Path, user: str | N
 def _install_scheduled_task(task_name: str, script_path: Path) -> tuple[bool, str]:
     """Create or replace the Scheduled Task. Returns (success, detail).
 
-    Always recreate instead of ``/Change``. Older FreeIDE builds and failed
+    Always recreate instead of ``/Change``. Older JettsTUI builds and failed
     experiments may have left repeat/restart settings on the task; ``/Change``
     preserves those stale triggers and can make the gateway relaunch every
     minute. Delete+create gives us a clean ONLOGON task every install.
@@ -786,35 +786,35 @@ def _build_gateway_argv() -> tuple[list[str], str, dict[str, str]]:
     layer in between.
     """
     _assert_windows()
-    from freeide_cli.config import get_freeide_home
-    from freeide_cli.gateway import (
+    from jettstui.config import get_jettstui_home
+    from jettstui.gateway import (
         PROJECT_ROOT,
         _profile_arg,
         get_python_path,
     )
 
     python_exe, venv_dir, extra_pythonpath = _resolve_detached_python(
-        _preserve_freeide_home_path(get_python_path())
+        _preserve_jettstui_home_path(get_python_path())
     )
-    project_root = _preserve_freeide_home_path(PROJECT_ROOT)
+    project_root = _preserve_jettstui_home_path(PROJECT_ROOT)
     working_dir = _stable_gateway_working_dir(PROJECT_ROOT)
-    freeide_home = str(Path(get_freeide_home()))
-    profile_arg = _profile_arg(freeide_home)
+    jettstui_home = str(Path(get_jettstui_home()))
+    profile_arg = _profile_arg(jettstui_home)
 
-    argv = [python_exe, "-m", "freeide_cli.main"]
+    argv = [python_exe, "-m", "jettstui.main"]
     if profile_arg:
         argv.extend(profile_arg.split())
     argv.extend(["gateway", "run"])
 
     env_overlay = {
-        "FREEIDE_HOME": freeide_home,
+        "JETTSTUI_HOME": jettstui_home,
         "PYTHONIOENCODING": "utf-8",
-        "FREEIDE_GATEWAY_DETACHED": "1",
-        "VIRTUAL_ENV": _preserve_freeide_home_path(venv_dir),
+        "JETTSTUI_GATEWAY_DETACHED": "1",
+        "VIRTUAL_ENV": _preserve_jettstui_home_path(venv_dir),
     }
     _prepend_pythonpath(
         env_overlay,
-        [project_root, *[_preserve_freeide_home_path(entry) for entry in extra_pythonpath]]
+        [project_root, *[_preserve_jettstui_home_path(entry) for entry in extra_pythonpath]]
         if extra_pythonpath
         else [project_root],
     )
@@ -834,12 +834,12 @@ def windowless_gateway_restart_spec(
     pythonw.exe rewrite here produced a console-less gateway whose every
     console-subsystem child allocated a visible conhost).  This helper now
     only normalizes the interpreter via ``_resolve_detached_python`` and
-    supplies the stable cwd + env overlay (FREEIDE_HOME, VIRTUAL_ENV,
+    supplies the stable cwd + env overlay (JETTSTUI_HOME, VIRTUAL_ENV,
     PYTHONPATH) so the respawn doesn't depend on the watcher's transient
     working directory.
 
     Returns ``(new_argv, working_dir, env_overlay)``.  ``new_argv``
-    preserves every argument after the interpreter (``-m freeide_cli.main
+    preserves every argument after the interpreter (``-m jettstui.main
     [--profile X] gateway run [--replace]``) verbatim.  On non-Windows, or
     if ``run_argv`` doesn't start with a resolvable python, the argv is
     returned unchanged with an empty overlay.
@@ -849,8 +849,8 @@ def windowless_gateway_restart_spec(
     if sys.platform != "win32":
         return run_argv, "", {}
 
-    from freeide_cli.config import get_freeide_home
-    from freeide_cli.gateway import PROJECT_ROOT
+    from jettstui.config import get_jettstui_home
+    from jettstui.gateway import PROJECT_ROOT
 
     python_exe = run_argv[0]
     rest = run_argv[1:]
@@ -870,17 +870,17 @@ def windowless_gateway_restart_spec(
     working_dir = _stable_gateway_working_dir(PROJECT_ROOT)
     project_root = str(PROJECT_ROOT)
     try:
-        freeide_home = str(Path(get_freeide_home()).resolve())
+        jettstui_home = str(Path(get_jettstui_home()).resolve())
     except Exception:
-        freeide_home = ""
+        jettstui_home = ""
 
     env_overlay: dict[str, str] = {
         "PYTHONIOENCODING": "utf-8",
-        "FREEIDE_GATEWAY_DETACHED": "1",
+        "JETTSTUI_GATEWAY_DETACHED": "1",
         "VIRTUAL_ENV": str(venv_dir),
     }
-    if freeide_home:
-        env_overlay["FREEIDE_HOME"] = freeide_home
+    if jettstui_home:
+        env_overlay["JETTSTUI_HOME"] = jettstui_home
     _prepend_pythonpath(
         env_overlay,
         [project_root, *extra_pythonpath] if extra_pythonpath else [project_root],
@@ -891,7 +891,7 @@ def windowless_gateway_restart_spec(
 def _spawn_detached(script_path: Path | None = None) -> int:
     """Launch the gateway as a fully detached background process.
 
-    We spawn ``python.exe -m freeide_cli.main gateway run`` directly — NOT
+    We spawn ``python.exe -m jettstui.main gateway run`` directly — NOT
     through a cmd.exe shim — because on Windows a cmd.exe child inherits the
     parent session's console handle and tends to get reaped when the spawning
     shell exits.  With ``CREATE_NO_WINDOW`` the gateway gets its OWN hidden
@@ -931,9 +931,9 @@ def _spawn_detached(script_path: Path | None = None) -> int:
     # logging module writes to gateway.log through a FileHandler, so the
     # real gateway logs still land there — this just captures anything
     # that goes to print() or native stderr.
-    from freeide_cli.config import get_freeide_home
+    from jettstui.config import get_jettstui_home
 
-    log_dir = Path(get_freeide_home()) / "logs"
+    log_dir = Path(get_jettstui_home()) / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
     stray_log = log_dir / "gateway-stdio.log"
 
@@ -987,8 +987,8 @@ def _prompt_install_choices(
     start_on_login: bool | None = None,
 ) -> tuple[bool, bool]:
     """Return (start_now, start_on_login), asking before any UAC escalation."""
-    env_start_now = _install_choice_from_env("FREEIDE_GATEWAY_INSTALL_START_NOW")
-    env_start_on_login = _install_choice_from_env("FREEIDE_GATEWAY_INSTALL_START_ON_LOGIN")
+    env_start_now = _install_choice_from_env("JETTSTUI_GATEWAY_INSTALL_START_NOW")
+    env_start_on_login = _install_choice_from_env("JETTSTUI_GATEWAY_INSTALL_START_ON_LOGIN")
     if start_now is None:
         start_now = env_start_now
     if start_on_login is None:
@@ -996,7 +996,7 @@ def _prompt_install_choices(
     if start_now is not None and start_on_login is not None:
         return start_now, start_on_login
 
-    from freeide_cli.setup import prompt_yes_no
+    from jettstui.setup import prompt_yes_no
 
     if start_now is None:
         start_now = prompt_yes_no("Start the gateway now after install?", True)
@@ -1015,11 +1015,11 @@ def _install_startup_fallback(script_path: Path, start_now: bool, detail: str) -
     print(f"✓ Installed Windows login item: {entry}")
     print(f"  Task script: {script_path}")
 
-    # Re-running `freeide -p <profile> gateway install` must be safe.
+    # Re-running `jettstui -p <profile> gateway install` must be safe.
     # Startup-folder fallback only installs login persistence. Starting is
     # controlled by the pre-UAC start_now answer so all user decisions happen
     # before any elevation prompt.
-    from freeide_cli.gateway import find_gateway_pids, _profile_arg
+    from jettstui.gateway import find_gateway_pids, _profile_arg
 
     running_pids = list(find_gateway_pids())
     if running_pids:
@@ -1029,7 +1029,7 @@ def _install_startup_fallback(script_path: Path, start_now: bool, detail: str) -
         _report_gateway_start(f"direct spawn (PID {pid})")
     else:
         profile_arg = _profile_arg()
-        start_cmd = f"freeide {profile_arg} gateway start" if profile_arg else "freeide gateway start"
+        start_cmd = f"jettstui {profile_arg} gateway start" if profile_arg else "jettstui gateway start"
         print("ℹ Startup fallback installed; gateway not started now.")
         print(f"  Start manually with: {start_cmd}")
     _print_next_steps()
@@ -1062,7 +1062,7 @@ def install(
                 _report_gateway_start(f"direct spawn (PID {pid})")
         else:
             print("ℹ Gateway not started and no auto-start service installed.")
-            print("  Run later with: freeide gateway start")
+            print("  Run later with: jettstui gateway start")
         return
 
     task_name = get_task_name()
@@ -1073,17 +1073,17 @@ def install(
     # Access Denied. We already collected all intent questions above, so avoid
     # a mysterious post-question pause: ask for UAC before touching schtasks.
     if not _is_running_as_admin() and not elevated_handoff:
-        from freeide_cli.setup import prompt_yes_no
+        from jettstui.setup import prompt_yes_no
 
         print("↻ Scheduled Task install may need administrator approval on this Windows account.")
         print("  UAC is Windows' admin approval prompt; it is needed to create/update the Scheduled Task.")
         if prompt_yes_no("  Open the UAC prompt now?", False):
             if _launch_elevated_install(force=force, start_now=start_now, start_on_login=start_on_login):
-                print("✓ Launched elevated FreeIDE gateway install prompt.")
+                print("✓ Launched elevated JettsTUI gateway install prompt.")
                 if start_now:
                     print("  Approve the Windows UAC prompt; the elevated install will start the gateway afterwards.")
                 else:
-                    print("  Approve the Windows UAC prompt, then run: freeide gateway status")
+                    print("  Approve the Windows UAC prompt, then run: jettstui gateway status")
                 return
             print("⚠ Falling back to Startup folder because elevation was unavailable or cancelled.")
         else:
@@ -1105,7 +1105,7 @@ def install(
                 _report_gateway_start(f"direct spawn (PID {pid})")
         else:
             print("ℹ Gateway not started now.")
-            print("  Start manually with: freeide gateway start")
+            print("  Start manually with: jettstui gateway start")
         _print_next_steps()
         return
 
@@ -1114,17 +1114,17 @@ def install(
     # users a UAC prompt instead of silently installing a less reliable login
     # item, and keeps the fallback for locked-down boxes / cancelled prompts.
     if _is_access_denied(detail) and not _is_running_as_admin():
-        from freeide_cli.setup import prompt_yes_no
+        from jettstui.setup import prompt_yes_no
 
         print(f"↻ Scheduled Task install needs administrator approval ({detail.splitlines()[0]})")
         print("  UAC is Windows' admin approval prompt; it is needed to create/update the Scheduled Task.")
         if prompt_yes_no("  Open the UAC prompt now?", False):
             if _launch_elevated_install(force=force, start_now=start_now, start_on_login=start_on_login):
-                print("✓ Launched elevated FreeIDE gateway install prompt.")
+                print("✓ Launched elevated JettsTUI gateway install prompt.")
                 if start_now:
                     print("  Approve the Windows UAC prompt; the elevated install will start the gateway afterwards.")
                 else:
-                    print("  Approve the Windows UAC prompt, then run: freeide gateway status")
+                    print("  Approve the Windows UAC prompt, then run: jettstui gateway status")
                 return
             print("⚠ Falling back to Startup folder because elevation was unavailable or cancelled.")
         else:
@@ -1137,11 +1137,11 @@ def install(
         print(f"✓ Installed Windows login item: {entry}")
         print(f"  Task script: {script_path}")
 
-        # Re-running `freeide -p <profile> gateway install` must be safe.
+        # Re-running `jettstui -p <profile> gateway install` must be safe.
         # Startup-folder fallback only installs login persistence. Starting is
         # controlled by the pre-UAC start_now answer so all user decisions happen
         # before any elevation prompt.
-        from freeide_cli.gateway import find_gateway_pids, _profile_arg
+        from jettstui.gateway import find_gateway_pids, _profile_arg
 
         running_pids = list(find_gateway_pids())
         if running_pids:
@@ -1151,7 +1151,7 @@ def install(
             _report_gateway_start(f"direct spawn (PID {pid})")
         else:
             profile_arg = _profile_arg()
-            start_cmd = f"freeide {profile_arg} gateway start" if profile_arg else "freeide gateway start"
+            start_cmd = f"jettstui {profile_arg} gateway start" if profile_arg else "jettstui gateway start"
             print("ℹ Startup fallback installed; gateway not started now.")
             print(f"  Start manually with: {start_cmd}")
         _print_next_steps()
@@ -1167,7 +1167,7 @@ def _wait_for_gateway_ready(timeout_s: float = 6.0, interval_s: float = 0.4) -> 
     Returns the list of PIDs found. Empty list means nothing came up in
     time — the caller should surface that to the user as a failed start.
     """
-    from freeide_cli.gateway import find_gateway_pids
+    from jettstui.gateway import find_gateway_pids
 
     deadline = time.time() + timeout_s
     while time.time() < deadline:
@@ -1185,19 +1185,19 @@ def _report_gateway_start(via: str) -> None:
     else:
         print(f"⚠ Launched gateway via {via}, but no process detected after 6s.")
         print("  Check the log for startup errors:")
-        from freeide_cli.config import get_freeide_home
-        print(f"    type {Path(get_freeide_home())}\\logs\\gateway.log")
-        print(f"    type {Path(get_freeide_home())}\\logs\\gateway-stdio.log")
+        from jettstui.config import get_jettstui_home
+        print(f"    type {Path(get_jettstui_home())}\\logs\\gateway.log")
+        print(f"    type {Path(get_jettstui_home())}\\logs\\gateway-stdio.log")
 
 
 def _print_next_steps() -> None:
-    from freeide_cli.config import get_freeide_home
+    from jettstui.config import get_jettstui_home
 
-    freeide_home = Path(get_freeide_home())
+    jettstui_home = Path(get_jettstui_home())
     print()
     print("Next steps:")
-    print("  freeide gateway status                      # Check status")
-    print(f"  type {freeide_home}\\logs\\gateway.log       # View logs")
+    print("  jettstui gateway status                      # Check status")
+    print(f"  type {jettstui_home}\\logs\\gateway.log       # View logs")
 
 
 def uninstall() -> None:
@@ -1217,14 +1217,14 @@ def uninstall() -> None:
             scheduled_task_removed = True
             print(f"✓ Removed Scheduled Task {task_name!r}")
         elif _is_access_denied(detail) and not _is_running_as_admin():
-            from freeide_cli.setup import prompt_yes_no
+            from jettstui.setup import prompt_yes_no
 
             print(f"↻ Scheduled Task uninstall needs administrator approval ({detail or 'access denied'})")
             print("  UAC is Windows' admin approval prompt; it is needed to remove the Scheduled Task.")
             if prompt_yes_no("  Open the UAC prompt now?", False):
                 if _launch_elevated_uninstall():
-                    print("✓ Launched elevated FreeIDE gateway uninstall prompt.")
-                    print("  Approve the Windows UAC prompt, then run: freeide gateway status")
+                    print("✓ Launched elevated JettsTUI gateway uninstall prompt.")
+                    print("  Approve the Windows UAC prompt, then run: jettstui gateway status")
                     return
                 print("⚠ Elevated uninstall prompt was unavailable or cancelled.")
             else:
@@ -1290,7 +1290,7 @@ def query_task_status() -> dict[str, str]:
 
 def _gateway_pids() -> list[int]:
     """Reuse the cross-platform PID scanner in gateway.py."""
-    from freeide_cli.gateway import find_gateway_pids
+    from jettstui.gateway import find_gateway_pids
 
     return list(find_gateway_pids())
 
@@ -1314,9 +1314,9 @@ def _print_deep_probes() -> None:
     import json
     from datetime import datetime, timezone
 
-    from freeide_cli.config import get_freeide_home
+    from jettstui.config import get_jettstui_home
 
-    home = Path(get_freeide_home())
+    home = Path(get_jettstui_home())
     pid_path = home / "gateway.pid"
     lock_path = home / "gateway.lock"
     state_path = home / "gateway_state.json"
@@ -1468,7 +1468,7 @@ def status(deep: bool = False) -> None:
     if not task_installed and not startup_installed and not pids:
         print()
         print("To install:")
-        print("  freeide gateway install")
+        print("  jettstui gateway install")
 
 
 def start() -> None:
@@ -1483,18 +1483,18 @@ def start() -> None:
     startup_installed = is_startup_entry_installed()
 
     if not task_installed and not startup_installed:
-        from freeide_cli.setup import prompt_yes_no
+        from jettstui.setup import prompt_yes_no
 
         print("✗ Gateway service is not installed")
         if not prompt_yes_no("  Install it now so the gateway starts on login?", True):
-            print("  Run: freeide gateway install")
+            print("  Run: jettstui gateway install")
             return
         install(force=False)
         task_installed = is_task_registered()
         startup_installed = is_startup_entry_installed()
         if not task_installed and not startup_installed:
             print("⚠ Gateway install did not complete in this process.")
-            print("  If a UAC prompt opened, approve it, then run: freeide gateway start")
+            print("  If a UAC prompt opened, approve it, then run: jettstui gateway start")
             return
 
     # Manual starts use the same console-less direct spawn path as restart()
@@ -1543,7 +1543,7 @@ def _drain_gateway_pid(pid: int, drain_timeout: float) -> bool:
 def _windows_stop_drain_timeout() -> float:
     """Return a bounded Windows gateway stop grace period."""
     try:
-        from freeide_cli.gateway import _get_restart_drain_timeout
+        from jettstui.gateway import _get_restart_drain_timeout
 
         configured = float(_get_restart_drain_timeout() or 30.0)
     except Exception:
@@ -1692,5 +1692,5 @@ def restart() -> None:
     if not _wait_for_gateway_ready(timeout_s=15.0):
         raise RuntimeError(
             "Gateway restart did not produce a running gateway process. "
-            "Check logs/gateway.log and run `freeide gateway status`."
+            "Check logs/gateway.log and run `jettstui gateway status`."
         )

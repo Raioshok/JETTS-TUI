@@ -1,4 +1,4 @@
-"""``freeide brain`` subcommand parser."""
+"""``jettstui brain`` subcommand parser."""
 
 from __future__ import annotations
 
@@ -13,7 +13,7 @@ def build_brain_parser(subparsers, *, cmd_brain: Callable) -> None:
     )
     actions = parser.add_subparsers(dest="brain_action")
     init = actions.add_parser("init", help="Create or safely upgrade the vault")
-    init.add_argument("vault", nargs="?", help="Vault path (default: config or ~/Documents/Jetts-TUI Brain)")
+    init.add_argument("vault", nargs="?", help="Vault path (default: config or ~/Documents/JettsTUI Brain)")
     init.add_argument("--project", help="Project to register (default: current directory)")
     status = actions.add_parser("status", help="Show vault health and capture counts")
     status.add_argument("--vault")

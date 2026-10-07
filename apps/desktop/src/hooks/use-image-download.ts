@@ -18,7 +18,7 @@ export function imageFilename(src?: string): string {
 function isMissingIpcHandler(error: unknown): boolean {
   const message = error instanceof Error ? error.message : typeof error === 'string' ? error : ''
 
-  return message.includes("No handler registered for 'freeide:saveImageFromUrl'")
+  return message.includes("No handler registered for 'jettstui:saveImageFromUrl'")
 }
 
 async function startBrowserDownload(src: string) {
@@ -54,8 +54,8 @@ export function useImageDownload(src?: string) {
     setSaving(true)
 
     try {
-      if (window.freeideDesktop?.saveImageFromUrl) {
-        if (await window.freeideDesktop.saveImageFromUrl(src)) {
+      if (window.jettstuiDesktop?.saveImageFromUrl) {
+        if (await window.jettstuiDesktop.saveImageFromUrl(src)) {
           notify({ kind: 'success', title: copy.imageSaved, message: imageFilename(src) })
         }
 

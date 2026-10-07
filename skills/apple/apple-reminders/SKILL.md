@@ -2,11 +2,11 @@
 name: apple-reminders
 description: "Apple Reminders via remindctl: add, list, complete."
 version: 1.0.0
-author: FreeIDE Agent
+author: JettsTUI
 license: MIT
 platforms: [macos]
 metadata:
-  freeide:
+  jettstui:
     tags: [Reminders, tasks, todo, macOS, Apple]
 prerequisites:
   commands: [remindctl]

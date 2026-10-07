@@ -1,12 +1,12 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import { getGlobalModelOptions } from '@/freeide'
+import { getGlobalModelOptions } from '@/jettstui'
 
 import { manualPickRemoved, modelOptionsQueryKey, requestModelOptions } from './model-options'
 
-const globalOptions = { model: 'freeide-4', provider: 'nous', providers: [] }
+const globalOptions = { model: 'jettstui-4', provider: 'nous', providers: [] }
 
-vi.mock('@/freeide', () => ({
+vi.mock('@/jettstui', () => ({
   getGlobalModelOptions: vi.fn(() => Promise.resolve(globalOptions))
 }))
 
@@ -85,7 +85,7 @@ describe('manualPickRemoved', () => {
   })
 
   it('never clobbers when the provider has an empty model list (re-auth)', () => {
-    expect(manualPickRemoved(providers, 'nous', 'freeide-4')).toBe(false)
+    expect(manualPickRemoved(providers, 'nous', 'jettstui-4')).toBe(false)
   })
 
   it('never clobbers on a not-yet-loaded or empty catalog', () => {

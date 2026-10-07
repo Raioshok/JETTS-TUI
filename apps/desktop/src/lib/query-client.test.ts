@@ -13,8 +13,8 @@ describe('invalidateProfileScopedQueries', () => {
 
   it('invalidates profile-scoped caches and leaves account/global caches intact', () => {
     const profileScoped = [
-      ['freeide-config-record'],
-      ['freeide-config-schema'],
+      ['jettstui-config-record'],
+      ['jettstui-config-schema'],
       ['skills-list'],
       ['toolsets-list'],
       ['model-options', 'global'],

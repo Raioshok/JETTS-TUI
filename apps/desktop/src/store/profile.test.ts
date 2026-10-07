@@ -1,8 +1,8 @@
 import { atom } from 'nanostores'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { FreeIDEConnection } from '@/global'
-import type { ProfileInfo } from '@/types/freeide'
+import type { JettsTUIConnection } from '@/global'
+import type { ProfileInfo } from '@/types/jettstui'
 
 // Keep profile.ts's side-effecting imports inert: the gateway socket layer and
 // the REST query client must not run for real in a unit test.
@@ -12,7 +12,7 @@ const $gateway = atom<unknown>({ id: 'live-socket' })
 const resetStarmapGraph = vi.fn()
 
 vi.mock('@/store/gateway', () => ({ $gateway, ensureGatewayForProfile, openGatewayForProfile }))
-vi.mock('@/freeide', () => ({
+vi.mock('@/jettstui', () => ({
   getProfiles: vi.fn(async () => ({ profiles: [] })),
   setApiRequestProfile: vi.fn()
 }))
@@ -24,25 +24,25 @@ const { $activeGatewayProfile, $profiles, ensureGatewayProfile, prewarmProfileBa
 
 const { $connection } = await import('./session')
 const { invalidateProfileScopedQueries } = await import('@/lib/query-client')
-const { getProfiles } = await import('@/freeide')
+const { getProfiles } = await import('@/jettstui')
 
 const profile = (name: string, isDefault = false): ProfileInfo => ({
   has_env: false,
   is_default: isDefault,
   model: null,
   name,
-  path: `/tmp/freeide/${name}`,
+  path: `/tmp/jettstui/${name}`,
   provider: null,
   skill_count: 0
 })
 
-const remoteConn = (over: Partial<FreeIDEConnection> = {}): FreeIDEConnection =>
-  ({ baseUrl: 'https://freeide-roy.tail.ts.net', mode: 'remote', profile: 'vps-remote', ...over }) as FreeIDEConnection
+const remoteConn = (over: Partial<JettsTUIConnection> = {}): JettsTUIConnection =>
+  ({ baseUrl: 'https://jettstui-roy.tail.ts.net', mode: 'remote', profile: 'vps-remote', ...over }) as JettsTUIConnection
 
-const localConn = (over: Partial<FreeIDEConnection> = {}): FreeIDEConnection =>
-  ({ baseUrl: '', mode: 'local', profile: 'default', ...over }) as FreeIDEConnection
+const localConn = (over: Partial<JettsTUIConnection> = {}): JettsTUIConnection =>
+  ({ baseUrl: '', mode: 'local', profile: 'default', ...over }) as JettsTUIConnection
 
-const getConnection = vi.fn<(profile?: string | null) => Promise<FreeIDEConnection>>()
+const getConnection = vi.fn<(profile?: string | null) => Promise<JettsTUIConnection>>()
 
 beforeEach(() => {
   getConnection.mockReset()
@@ -52,7 +52,7 @@ beforeEach(() => {
   $activeGatewayProfile.set('default')
   $connection.set(localConn())
   $profiles.set([])
-  vi.stubGlobal('window', { freeideDesktop: { getConnection } })
+  vi.stubGlobal('window', { jettstuiDesktop: { getConnection } })
   vi.mocked(invalidateProfileScopedQueries).mockClear()
   resetStarmapGraph.mockClear()
 })

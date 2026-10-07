@@ -23,7 +23,7 @@ function createGitRepo(root: string): string {
   fs.mkdirSync(repo, { recursive: true })
   execFileSync('git', ['init', '--initial-branch=main'], { cwd: repo })
   execFileSync('git', ['config', 'user.email', 'e2e@example.com'], { cwd: repo })
-  execFileSync('git', ['config', 'user.name', 'FreeIDE E2E'], { cwd: repo })
+  execFileSync('git', ['config', 'user.name', 'JettsTUI E2E'], { cwd: repo })
   fs.writeFileSync(path.join(repo, 'README.md'), '# E2E repo\n', 'utf8')
   execFileSync('git', ['add', 'README.md'], { cwd: repo })
   execFileSync('git', ['commit', '-m', 'initial'], { cwd: repo })
@@ -31,10 +31,10 @@ function createGitRepo(root: string): string {
   return repo
 }
 
-function configureRepoCwd(freeideHome: string, mockUrl: string, repo: string): void {
-  writeMockProviderConfig(freeideHome, mockUrl)
-  fs.appendFileSync(path.join(freeideHome, 'config.yaml'), `\nterminal:\n  cwd: ${repo}\n`, 'utf8')
-  writeEnvFile(freeideHome)
+function configureRepoCwd(jettstuiHome: string, mockUrl: string, repo: string): void {
+  writeMockProviderConfig(jettstuiHome, mockUrl)
+  fs.appendFileSync(path.join(jettstuiHome, 'config.yaml'), `\nterminal:\n  cwd: ${repo}\n`, 'utf8')
+  writeEnvFile(jettstuiHome)
 }
 
 let fixture: MockBackendFixture | null = null
@@ -44,7 +44,7 @@ test.beforeAll(async () => {
   const repo = createGitRepo(sandbox.root)
   const mock = await startMockServer()
 
-  configureRepoCwd(sandbox.freeideHome, mock.url, repo)
+  configureRepoCwd(sandbox.jettstuiHome, mock.url, repo)
 
   const { app, page } = await launchDesktop(buildAppEnv(sandbox))
   fixture = {

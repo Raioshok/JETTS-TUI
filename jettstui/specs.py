@@ -11,7 +11,7 @@ from typing import Optional
 from utils import atomic_replace
 
 
-SPEC_ROOT = Path(".freeide") / "specs"
+SPEC_ROOT = Path(".jettstui") / "specs"
 STAGE_FILES = {
     "requirements": "requirements.md",
     "design": "design.md",
@@ -139,7 +139,7 @@ def create_spec(cwd: Path, feature: str) -> SpecCommandResult:
         _atomic_text(spec_dir / filename, content)
     seed = (
         f"Create the requirements stage for feature '{feature}' in "
-        f"`.freeide/specs/{slug}/requirements.md`. Inspect the repository with "
+        f"`.jettstui/specs/{slug}/requirements.md`. Inspect the repository with "
         "read-only tools, replace generic placeholders with concrete EARS-style "
         "requirements and testable acceptance criteria, and preserve the YAML "
         "frontmatter status as draft. Do not implement code and do not author the "
@@ -167,7 +167,7 @@ def quick_spec(cwd: Path, feature: str) -> SpecCommandResult:
         return result
     seed = (
         f"Create a complete Quick Spec for feature '{feature}' in "
-        f"`.freeide/specs/{result.active_spec}/`. Fill requirements.md, design.md, "
+        f"`.jettstui/specs/{result.active_spec}/`. Fill requirements.md, design.md, "
         "and tasks.md in one pass with concrete repository-specific content. "
         "Inspect the repository with read-only tools, replace all placeholders, "
         "keep every file status as draft, do not implement code, and end by "
@@ -258,9 +258,9 @@ def _approve(cwd: Path, name: str, stage: str) -> SpecCommandResult:
     if canonical_stage == "requirements":
         seed = (
             f"Requirements for spec '{spec.name}' are approved. Read "
-            f"`.freeide/specs/{spec.name}/requirements.md`, inspect the current "
+            f"`.jettstui/specs/{spec.name}/requirements.md`, inspect the current "
             "codebase using read-only tools, and complete "
-            f"`.freeide/specs/{spec.name}/design.md` with concrete architecture, "
+            f"`.jettstui/specs/{spec.name}/design.md` with concrete architecture, "
             "interfaces, data flow, errors, security, alternatives, and tests. "
             "Keep status draft; do not implement. End by requesting "
             f"`/spec approve {spec.name} design`."
@@ -318,7 +318,7 @@ def run_spec_command(args: str, cwd: Path, active_spec: Optional[str] = None) ->
         if _status(spec / tasks_file) != "approved":
             return SpecCommandResult("Approve the task list before implementation.", active_spec=spec.name)
         seed = (
-            f"Implement the approved spec in `.freeide/specs/{spec.name}/`. "
+            f"Implement the approved spec in `.jettstui/specs/{spec.name}/`. "
             f"Read requirements.md, design.md, and {tasks_file} first. Execute tasks "
             f"in order, verify each one, and update {tasks_file} checkboxes only after "
             "the corresponding verification passes. Preserve unrelated user changes."

@@ -398,7 +398,7 @@ export function Journey({ gw, onClose, t }: JourneyProps) {
     return (
       <Shell t={t}>
         <Text color={t.color.muted}>
-          No learning yet — your learned skills and memories will start mapping out here as you use Jetts-TUI.
+          No learning yet — your learned skills and memories will start mapping out here as you use JettsTUI.
         </Text>
       </Shell>
     )

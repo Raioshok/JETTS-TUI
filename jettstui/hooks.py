@@ -1,14 +1,14 @@
-"""freeide hooks — inspect and manage shell-script hooks.
+"""jettstui hooks — inspect and manage shell-script hooks.
 
 Usage::
 
-    freeide hooks list
-    freeide hooks test <event> [--for-tool X] [--payload-file F]
-    freeide hooks revoke <command>
-    freeide hooks doctor
+    jettstui hooks list
+    jettstui hooks test <event> [--for-tool X] [--payload-file F]
+    jettstui hooks revoke <command>
+    jettstui hooks doctor
 
-Consent records live under ``~/.freeide/shell-hooks-allowlist.json`` and
-hook definitions come from the ``hooks:`` block in ``~/.freeide/config.yaml``
+Consent records live under ``~/.jettstui/shell-hooks-allowlist.json`` and
+hook definitions come from the ``hooks:`` block in ``~/.jettstui/config.yaml``
 (the same config read by the CLI / gateway at startup).
 
 This module is a thin CLI shell over :mod:`agent.shell_hooks`; every
@@ -24,12 +24,12 @@ from typing import Any, Dict, List
 
 
 def hooks_command(args) -> None:
-    """Entry point for ``freeide hooks`` — dispatches to the requested action."""
+    """Entry point for ``jettstui hooks`` — dispatches to the requested action."""
     sub = getattr(args, "hooks_action", None)
 
     if not sub:
-        print("Usage: freeide hooks {list|test|revoke|doctor}")
-        print("Run 'freeide hooks --help' for details.")
+        print("Usage: jettstui hooks {list|test|revoke|doctor}")
+        print("Run 'jettstui hooks --help' for details.")
         return
 
     if sub in {"list", "ls"}:
@@ -49,14 +49,14 @@ def hooks_command(args) -> None:
 # ---------------------------------------------------------------------------
 
 def _cmd_list(_args) -> None:
-    from freeide_cli.config import load_config
+    from jettstui.config import load_config
     from agent import shell_hooks
 
     specs = shell_hooks.iter_configured_hooks(load_config())
 
     if not specs:
-        print("No shell hooks configured in ~/.freeide/config.yaml.")
-        print("See `freeide hooks --help` or")
+        print("No shell hooks configured in ~/.jettstui/config.yaml.")
+        print("See `jettstui hooks --help` or")
         print("    docs/user-guide/features/hooks.md")
         print("for the config schema and worked examples.")
         return
@@ -95,7 +95,7 @@ def _cmd_list(_args) -> None:
                         print(
                             f"      ⚠ script modified since approval "
                             f"(was {mtime_at}, now {mtime_now}) — "
-                            f"run `freeide hooks doctor` to re-validate"
+                            f"run `jettstui hooks doctor` to re-validate"
                         )
         print()
 
@@ -107,7 +107,7 @@ def _cmd_list(_args) -> None:
 # Synthetic kwargs matching the real invoke_hook() call sites — these are
 # passed verbatim to agent.shell_hooks.run_once(), which routes them through
 # the same _serialize_payload() that production firings use.  That way the
-# stdin a script sees under `freeide hooks test` and `freeide hooks doctor`
+# stdin a script sees under `jettstui hooks test` and `jettstui hooks doctor`
 # is identical in shape to what it will see at runtime.
 _DEFAULT_PAYLOADS = {
     "pre_tool_call": {
@@ -207,8 +207,8 @@ _DEFAULT_PAYLOADS = {
 
 
 def _cmd_test(args) -> None:
-    from freeide_cli.config import load_config
-    from freeide_cli.plugins import VALID_HOOKS
+    from jettstui.config import load_config
+    from jettstui.plugins import VALID_HOOKS
     from agent import shell_hooks
 
     event = args.event
@@ -280,7 +280,7 @@ def _print_run_result(result: Dict[str, Any]) -> None:
 
     parsed = result.get("parsed")
     if parsed:
-        print(f"      parsed (FreeIDE wire shape): {json.dumps(parsed)}")
+        print(f"      parsed (JettsTUI wire shape): {json.dumps(parsed)}")
     else:
         print("      parsed: <none — hook contributed nothing to the dispatcher>")
 
@@ -312,7 +312,7 @@ def _cmd_revoke(args) -> None:
 # ---------------------------------------------------------------------------
 
 def _cmd_doctor(_args) -> None:
-    from freeide_cli.config import load_config
+    from jettstui.config import load_config
     from agent import shell_hooks
 
     specs = shell_hooks.iter_configured_hooks(load_config())
@@ -363,19 +363,19 @@ def _doctor_one(spec, shell_hooks) -> int:
             problems += 1
             print(f"      ⚠ script modified since approval "
                   f"(was {mtime_at}, now {mtime_now}) — review changes, "
-                  f"then `freeide hooks revoke` + re-approve to refresh")
+                  f"then `jettstui hooks revoke` + re-approve to refresh")
         elif mtime_now and mtime_at and mtime_now == mtime_at:
             print("      ✓ script unchanged since approval")
 
     # 4. Produces valid JSON for a synthetic payload — only when the entry
-    # is already allowlisted.  Otherwise `freeide hooks doctor` would execute
+    # is already allowlisted.  Otherwise `jettstui hooks doctor` would execute
     # every script listed in a freshly-pulled config before the user has
     # reviewed them, which directly contradicts the documented workflow
     # ("spot newly-added hooks *before they register*").
     if not entry:
         print("      ℹ skipped JSON smoke test — not allowlisted yet. "
               "Approve the hook first (via TTY prompt or --accept-hooks), "
-              "then re-run `freeide hooks doctor`.")
+              "then re-run `jettstui hooks doctor`.")
     elif shell_hooks.script_is_executable(spec.command):
         payload = _DEFAULT_PAYLOADS.get(spec.event, {"extra": {}})
         result = shell_hooks.run_once(spec, payload)

@@ -1,22 +1,22 @@
-"""``freeide logs`` — view and filter FreeIDE log files.
+"""``jettstui logs`` — view and filter JettsTUI log files.
 
 Supports tailing, following, session filtering, level filtering,
 component filtering, and relative time ranges.  All log files live
-under ``~/.freeide/logs/``.
+under ``~/.jettstui/logs/``.
 
 Usage examples::
 
-    freeide logs                    # last 50 lines of agent.log
-    freeide logs -f                 # follow agent.log in real time
-    freeide logs errors             # last 50 lines of errors.log
-    freeide logs gateway -n 100    # last 100 lines of gateway.log
-    freeide logs gui -f            # follow gui.log (dashboard/pty/ws)
-    freeide logs desktop -f        # follow desktop.log (Electron app boot/backend)
-    freeide logs --level WARNING    # only WARNING+ lines
-    freeide logs --session abc123   # filter by session ID substring
-    freeide logs --component tools  # only tool-related lines
-    freeide logs --since 1h         # lines from the last hour
-    freeide logs --since 30m -f     # follow, starting 30 min ago
+    jettstui logs                    # last 50 lines of agent.log
+    jettstui logs -f                 # follow agent.log in real time
+    jettstui logs errors             # last 50 lines of errors.log
+    jettstui logs gateway -n 100    # last 100 lines of gateway.log
+    jettstui logs gui -f            # follow gui.log (dashboard/pty/ws)
+    jettstui logs desktop -f        # follow desktop.log (Electron app boot/backend)
+    jettstui logs --level WARNING    # only WARNING+ lines
+    jettstui logs --session abc123   # filter by session ID substring
+    jettstui logs --component tools  # only tool-related lines
+    jettstui logs --since 1h         # lines from the last hour
+    jettstui logs --since 30m -f     # follow, starting 30 min ago
 """
 
 import re
@@ -26,7 +26,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Optional, Sequence
 
-from freeide_constants import get_freeide_home, display_freeide_home
+from jettstui_constants import get_jettstui_home, display_jettstui_home
 
 # Known log files (name → filename)
 LOG_FILES = {
@@ -176,10 +176,10 @@ def tail_log(
         print(f"Unknown log: {log_name!r}. Available: {', '.join(sorted(LOG_FILES))}")
         sys.exit(1)
 
-    log_path = get_freeide_home() / "logs" / filename
+    log_path = get_jettstui_home() / "logs" / filename
     if not log_path.exists():
         print(f"Log file not found: {log_path}")
-        print("(Logs are created when FreeIDE runs — try 'freeide chat' first)")
+        print("(Logs are created when JettsTUI runs — try 'jettstui chat' first)")
         sys.exit(1)
 
     # Parse --since into a datetime cutoff
@@ -198,7 +198,7 @@ def tail_log(
     # Resolve component to logger name prefixes
     component_prefixes = None
     if component:
-        from freeide_logging import COMPONENT_PREFIXES
+        from jettstui_logging import COMPONENT_PREFIXES
         component_lower = component.lower()
         if component_lower not in COMPONENT_PREFIXES:
             available = ", ".join(sorted(COMPONENT_PREFIXES))
@@ -235,9 +235,9 @@ def tail_log(
     filter_desc = f" [{', '.join(filter_parts)}]" if filter_parts else ""
 
     if follow:
-        print(f"--- {display_freeide_home()}/logs/{filename}{filter_desc} (Ctrl+C to stop) ---")
+        print(f"--- {display_jettstui_home()}/logs/{filename}{filter_desc} (Ctrl+C to stop) ---")
     else:
-        print(f"--- {display_freeide_home()}/logs/{filename}{filter_desc} (last {num_lines}) ---")
+        print(f"--- {display_jettstui_home()}/logs/{filename}{filter_desc} (last {num_lines}) ---")
 
     for line in lines:
         print(line, end="")
@@ -364,12 +364,12 @@ def _follow_log(
 
 def list_logs() -> None:
     """Print available log files with sizes."""
-    log_dir = get_freeide_home() / "logs"
+    log_dir = get_jettstui_home() / "logs"
     if not log_dir.exists():
-        print(f"No logs directory at {display_freeide_home()}/logs/")
+        print(f"No logs directory at {display_jettstui_home()}/logs/")
         return
 
-    print(f"Log files in {display_freeide_home()}/logs/:\n")
+    print(f"Log files in {display_jettstui_home()}/logs/:\n")
     found = False
     for entry in sorted(log_dir.iterdir()):
         if entry.is_file() and entry.suffix == ".log":
@@ -394,4 +394,4 @@ def list_logs() -> None:
             found = True
 
     if not found:
-        print("  (no log files yet — run 'freeide chat' to generate logs)")
+        print("  (no log files yet — run 'jettstui chat' to generate logs)")

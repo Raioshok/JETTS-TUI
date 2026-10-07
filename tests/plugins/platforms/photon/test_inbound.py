@@ -284,7 +284,7 @@ async def test_dispatch_attachment_downloads_document(
     adapter = _make_adapter(monkeypatch)
     captured = _capture(adapter, monkeypatch)
 
-    raw = b"%PDF-1.4 freeide test document"
+    raw = b"%PDF-1.4 jettstui test document"
     event = _attachment_event(
         {
             "name": "report.pdf",

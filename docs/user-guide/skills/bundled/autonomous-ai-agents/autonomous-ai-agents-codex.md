@@ -17,21 +17,21 @@ Delegate coding to OpenAI Codex CLI (features, PRs).
 | Source | Bundled (installed by default) |
 | Path | `skills/autonomous-ai-agents/codex` |
 | Version | `1.0.1` |
-| Author | FreeIDE Agent |
+| Author | JettsTUI |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `Coding-Agent`, `Codex`, `OpenAI`, `Code-Review`, `Refactoring` |
-| Related skills | [`claude-code`](./autonomous-ai-agents-claude-code.md), [`freeide-agent`](./autonomous-ai-agents-freeide-agent.md) |
+| Related skills | [`claude-code`](./autonomous-ai-agents-claude-code.md), [`jettstui`](./autonomous-ai-agents-jettstui.md) |
 
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that FreeIDE loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that JettsTUI loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Codex CLI
 
-Delegate coding tasks to [Codex](https://github.com/openai/codex) via the FreeIDE terminal. Codex is OpenAI's autonomous coding agent CLI.
+Delegate coding tasks to [Codex](https://github.com/openai/codex) via the JettsTUI terminal. Codex is OpenAI's autonomous coding agent CLI.
 
 ## When to use
 
@@ -50,8 +50,8 @@ Requires the codex CLI and a git repository.
 - **Must run inside a git repository** — Codex refuses to run outside one
 - Use `pty=true` in terminal calls — Codex is an interactive terminal app
 
-For FreeIDE itself, `model.provider: openai-codex` uses FreeIDE-managed Codex
-OAuth from `~/.freeide/auth.json` after `freeide auth add openai-codex`. For the
+For JettsTUI itself, `model.provider: openai-codex` uses JettsTUI-managed Codex
+OAuth from `~/.jettstui/auth.json` after `jettstui auth add openai-codex`. For the
 standalone Codex CLI, a valid CLI OAuth session may live under
 `~/.codex/auth.json`; do not treat a missing `OPENAI_API_KEY` alone as proof
 that Codex auth is missing.
@@ -96,9 +96,9 @@ process(action="kill", session_id="<id>")
 
 > **Deprecated:** `--full-auto` still works but the live CLI warns to use `--sandbox workspace-write` instead.
 
-## FreeIDE Gateway Caveat
+## JettsTUI Gateway Caveat
 
-When invoking the Codex CLI from a FreeIDE gateway/service context (for example,
+When invoking the Codex CLI from a JettsTUI gateway/service context (for example,
 Telegram-driven agent sessions), Codex `workspace-write` sandboxing may fail even
 when the same command works in the user's interactive shell. A typical symptom is
 bubblewrap/user-namespace errors such as `setting up uid map: Permission denied`

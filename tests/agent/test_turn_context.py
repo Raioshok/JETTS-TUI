@@ -16,7 +16,7 @@ import pytest
 
 from agent.context_compressor import ContextCompressor
 from agent.turn_context import TurnContext, build_turn_context
-from freeide_state import SessionDB
+from jettstui_state import SessionDB
 
 
 class _FakeTodoStore:

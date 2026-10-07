@@ -163,7 +163,7 @@ def _ensure_qrcode_installed() -> bool:
 
     import subprocess
 
-    from freeide_cli.tools_config import _pip_install
+    from jettstui.tools_config import _pip_install
 
     try:
         result = _pip_install(["-q", "qrcode"], timeout=120)
@@ -231,7 +231,7 @@ def dingtalk_qr_auth() -> Optional[Tuple[str, str]]:
     Returns (client_id, client_secret) on success, or None if the user
     cancelled or the flow failed.
     """
-    from freeide_cli.setup import print_info, print_success, print_warning, print_error
+    from jettstui.setup import print_info, print_success, print_warning, print_error
 
     print()
     print_info("  Initializing DingTalk device authorization...")

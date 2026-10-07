@@ -10,12 +10,12 @@ covers the operational concerns: starting them all together, viewing logs
 across profiles, preventing the host from sleeping, and recovering from common
 launchd/systemd quirks.
 
-If you only run one FreeIDE agent, you don't need this page — see
+If you only run one JettsTUI agent, you don't need this page — see
 [Profiles](./profiles.md) for the basics.
 
 ## When to use this
 
-You want this setup when you have two or more FreeIDE agents that should all
+You want this setup when you have two or more JettsTUI agents that should all
 be online at the same time. Common reasons:
 
 - A personal assistant on one Telegram bot and a coding agent on another
@@ -25,17 +25,17 @@ be online at the same time. Common reasons:
   memory and skills
 
 Every profile already gets its own per-platform LaunchAgent
-(`ai.freeide.gateway-<name>.plist`) or systemd user service
-(`freeide-gateway-<name>.service`). This guide adds the patterns for managing
+(`ai.jettstui.gateway-<name>.plist`) or systemd user service
+(`jettstui-gateway-<name>.service`). This guide adds the patterns for managing
 them collectively.
 
 ## Quick start
 
 ```bash
 # Create profiles (once)
-freeide profile create coder
-freeide profile create personal-bot
-freeide profile create research
+jettstui profile create coder
+jettstui profile create personal-bot
+jettstui profile create research
 
 # Configure each
 coder setup
@@ -85,11 +85,11 @@ Set the flag on the **default profile** (it owns the multiplexer) and restart
 its gateway:
 
 ```bash
-freeide config set gateway.multiplex_profiles true
-freeide gateway restart
+jettstui config set gateway.multiplex_profiles true
+jettstui gateway restart
 ```
 
-Equivalently, in the default profile's `~/.freeide/config.yaml`:
+Equivalently, in the default profile's `~/.jettstui/config.yaml`:
 
 ```yaml
 gateway:
@@ -103,7 +103,7 @@ credentials, and routes each inbound message to the profile it belongs to. Each
 turn resolves the routed profile's config, skills, memory, SOUL, **and provider
 keys** — credentials are never shared across profiles.
 
-You do **not** run `freeide gateway start` for the secondary profiles — the
+You do **not** run `jettstui gateway start` for the secondary profiles — the
 default gateway serves them. See the contract changes below.
 
 ### What changes when multiplexing is on
@@ -113,7 +113,7 @@ moment the flag is off.
 
 #### 1. Secondary profiles must not start their own gateway
 
-With a multiplexer running, a named-profile `freeide gateway start` / `run` is a
+With a multiplexer running, a named-profile `jettstui gateway start` / `run` is a
 **hard error**, pointing you back at the multiplexer:
 
 ```
@@ -183,8 +183,8 @@ migration, no orphaned history.
 #### 5. One PID/lock and one status surface
 
 There is a single process-level PID and lock (the multiplexer, under the default
-home). `freeide status` reports the multiplexer and the profiles it serves;
-`freeide status -p <name>` slices to one profile. Each profile still writes its
+home). `jettstui status` reports the multiplexer and the profiles it serves;
+`jettstui status -p <name>` slices to one profile. Each profile still writes its
 own `runtime_status.json` under its own home, so existing per-profile readers
 keep working.
 
@@ -245,7 +245,7 @@ falls back to the default home.
 
 The CLI ships with single-profile lifecycle commands. To act across every
 profile, wrap them in a shell loop. Put the snippet below in
-`~/.local/bin/freeide-gateways` and `chmod +x` it:
+`~/.local/bin/jettstui-gateways` and `chmod +x` it:
 
 ```sh
 #!/bin/sh
@@ -255,16 +255,16 @@ set -eu
 profiles="default coder personal-bot research"
 
 usage() {
-  echo "Usage: freeide-gateways {start|stop|restart|status|list}"
+  echo "Usage: jettstui-gateways {start|stop|restart|status|list}"
 }
 
 run_for_profile() {
   profile="$1"
   action="$2"
   if [ "$profile" = "default" ]; then
-    freeide gateway "$action"
+    jettstui gateway "$action"
   else
-    freeide -p "$profile" gateway "$action"
+    jettstui -p "$profile" gateway "$action"
   fi
 }
 
@@ -277,7 +277,7 @@ case "$action" in
     done
     ;;
   list)
-    freeide gateway list
+    jettstui gateway list
     ;;
   *)
     usage
@@ -289,16 +289,16 @@ esac
 Then:
 
 ```bash
-freeide-gateways start      # start every configured profile
-freeide-gateways stop       # stop every configured profile
-freeide-gateways restart    # restart all
-freeide-gateways status     # status across all
-freeide-gateways list       # delegates to `freeide gateway list`
+jettstui-gateways start      # start every configured profile
+jettstui-gateways stop       # stop every configured profile
+jettstui-gateways restart    # restart all
+jettstui-gateways status     # status across all
+jettstui-gateways list       # delegates to `jettstui gateway list`
 ```
 
 :::tip
-The `default` profile is targeted with `freeide gateway <action>` (no `-p`),
-not `freeide -p default gateway <action>`. The wrapper above handles both forms.
+The `default` profile is targeted with `jettstui gateway <action>` (no `-p`),
+not `jettstui -p default gateway <action>`. The wrapper above handles both forms.
 :::
 
 ## Manage one profile
@@ -315,7 +315,7 @@ coder gateway install    # create the LaunchAgent / systemd unit
 coder gateway uninstall  # remove the service file
 ```
 
-These are equivalent to `freeide -p coder gateway <action>` — useful if a
+These are equivalent to `jettstui -p coder gateway <action>` — useful if a
 profile alias is not on `PATH` or if you target profiles dynamically from a
 script.
 
@@ -326,11 +326,11 @@ never clash:
 
 | Platform | Path                                                              |
 | -------- | ----------------------------------------------------------------- |
-| macOS    | `~/Library/LaunchAgents/ai.freeide.gateway-<profile>.plist`        |
-| Linux    | `~/.config/systemd/user/freeide-gateway-<profile>.service`         |
+| macOS    | `~/Library/LaunchAgents/ai.jettstui.gateway-<profile>.plist`        |
+| Linux    | `~/.config/systemd/user/jettstui-gateway-<profile>.service`         |
 
-The default profile keeps the historical names: `ai.freeide.gateway.plist` /
-`freeide-gateway.service`.
+The default profile keeps the historical names: `ai.jettstui.gateway.plist` /
+`jettstui-gateway.service`.
 
 ## Viewing logs
 
@@ -338,35 +338,35 @@ Each profile writes to its own log files:
 
 ```bash
 # Default profile
-tail -f ~/.freeide/logs/gateway.log
-tail -f ~/.freeide/logs/gateway.error.log
+tail -f ~/.jettstui/logs/gateway.log
+tail -f ~/.jettstui/logs/gateway.error.log
 
 # Named profile
-tail -f ~/.freeide/profiles/<name>/logs/gateway.log
-tail -f ~/.freeide/profiles/<name>/logs/gateway.error.log
+tail -f ~/.jettstui/profiles/<name>/logs/gateway.log
+tail -f ~/.jettstui/profiles/<name>/logs/gateway.error.log
 ```
 
 Stream every profile's log simultaneously:
 
 ```bash
-tail -f ~/.freeide/logs/gateway.log ~/.freeide/profiles/*/logs/gateway.log
+tail -f ~/.jettstui/logs/gateway.log ~/.jettstui/profiles/*/logs/gateway.log
 ```
 
 The CLI also has a structured log viewer:
 
 ```bash
-freeide logs -f                  # follow default profile
-freeide -p coder logs -f         # follow one profile
-freeide logs --help              # filters, levels, JSON output
+jettstui logs -f                  # follow default profile
+jettstui -p coder logs -f         # follow one profile
+jettstui logs --help              # filters, levels, JSON output
 ```
 
 ## Identify what's actually running
 
 ```bash
-freeide profile list             # profiles + model + gateway state
-freeide-gateways status          # full status across every profile
-launchctl list | grep freeide    # macOS — PIDs and labels
-systemctl --user list-units 'freeide-gateway-*'   # Linux — units
+jettstui profile list             # profiles + model + gateway state
+jettstui-gateways status          # full status across every profile
+launchctl list | grep jettstui    # macOS — PIDs and labels
+systemctl --user list-units 'jettstui-gateway-*'   # Linux — units
 ```
 
 ## Editing configuration
@@ -374,18 +374,18 @@ systemctl --user list-units 'freeide-gateway-*'   # Linux — units
 Every profile keeps its config inside its own directory:
 
 ```
-~/.freeide/profiles/<name>/
+~/.jettstui/profiles/<name>/
 ├── .env              # API keys, bot tokens (chmod 600)
 ├── config.yaml       # model, provider, toolsets, gateway settings
 └── SOUL.md           # personality / system prompt
 ```
 
-The default profile uses `~/.freeide/` directly with the same three files.
+The default profile uses `~/.jettstui/` directly with the same three files.
 
 Edit them with any editor or via the CLI:
 
 ```bash
-freeide config set model.model anthropic/claude-sonnet-4    # default profile
+jettstui config set model.model anthropic/claude-sonnet-4    # default profile
 coder config set model.model openai/gpt-5                  # named profile
 ```
 
@@ -394,7 +394,7 @@ After editing `.env` or `config.yaml`, restart the affected gateway:
 ```bash
 coder gateway restart
 # or, for everything:
-freeide-gateways restart
+jettstui-gateways restart
 ```
 
 ## Keeping the host awake
@@ -409,7 +409,7 @@ to sleep when idle. Two patterns:
 ```bash
 caffeinate -dis                    # block display, idle, and system sleep
 caffeinate -dis -t 28800           # same, auto-exit after 8 hours
-caffeinate -i -w $(cat ~/.freeide/gateway.pid) &   # awake while default gateway runs
+caffeinate -i -w $(cat ~/.jettstui/gateway.pid) &   # awake while default gateway runs
 
 # Persistent: run in background and forget
 nohup caffeinate -dis >/dev/null 2>&1 &
@@ -440,7 +440,7 @@ use a third-party tool.
 
 ```bash
 # Inhibit suspend while a command runs
-systemd-inhibit --what=idle:sleep --who=freeide --why="gateways running" \
+systemd-inhibit --what=idle:sleep --who=jettstui --why="gateways running" \
   sleep infinity &
 
 # Allow user services to keep running after logout (recommended)
@@ -448,7 +448,7 @@ sudo loginctl enable-linger "$USER"
 ```
 
 After enabling lingering, your systemd user units (including
-`freeide-gateway-<profile>.service`) continue running across SSH disconnects
+`jettstui-gateway-<profile>.service`) continue running across SSH disconnects
 and reboots.
 
 ## Token-conflict safety
@@ -461,17 +461,17 @@ To audit:
 
 ```bash
 grep -H 'TELEGRAM_BOT_TOKEN\|DISCORD_BOT_TOKEN' \
-     ~/.freeide/.env ~/.freeide/profiles/*/.env
+     ~/.jettstui/.env ~/.jettstui/profiles/*/.env
 ```
 
 ## Updating the code
 
-`freeide update` pulls the latest code once and syncs new bundled skills into
+`jettstui update` pulls the latest code once and syncs new bundled skills into
 every profile:
 
 ```bash
-freeide update
-freeide-gateways restart
+jettstui update
+jettstui-gateways restart
 ```
 
 User-modified skills are never overwritten.
@@ -480,7 +480,7 @@ User-modified skills are never overwritten.
 
 ### "Could not find service in domain for user gui: 501"
 
-You ran `freeide gateway start` after a previous `freeide gateway stop`. The
+You ran `jettstui gateway start` after a previous `jettstui gateway stop`. The
 CLI's `stop` does a full `launchctl unload`, which removes the service from
 launchd's registry. The CLI catches this specific error on `start` and
 automatically re-loads the plist (`↻ launchd job was unloaded; reloading
@@ -491,8 +491,8 @@ service definition`). The service starts normally. Nothing to fix.
 If a profile's gateway shows `not running` but a process is still alive:
 
 ```bash
-ps -ef | grep "freeide_cli.*-p <profile>"
-cat ~/.freeide/profiles/<profile>/gateway.pid
+ps -ef | grep "jettstui.*-p <profile>"
+cat ~/.jettstui/profiles/<profile>/gateway.pid
 kill -TERM <pid>          # graceful
 kill -KILL <pid>          # if that fails after a few seconds
 <profile> gateway start
@@ -502,16 +502,16 @@ kill -KILL <pid>          # if that fails after a few seconds
 
 ```bash
 # macOS
-launchctl unload ~/Library/LaunchAgents/ai.freeide.gateway-<profile>.plist
-launchctl load   ~/Library/LaunchAgents/ai.freeide.gateway-<profile>.plist
+launchctl unload ~/Library/LaunchAgents/ai.jettstui.gateway-<profile>.plist
+launchctl load   ~/Library/LaunchAgents/ai.jettstui.gateway-<profile>.plist
 
 # Linux
-systemctl --user restart freeide-gateway-<profile>.service
+systemctl --user restart jettstui-gateway-<profile>.service
 ```
 
 ### Health check
 
 ```bash
-freeide doctor                  # default profile
-freeide -p <profile> doctor     # one profile
+jettstui doctor                  # default profile
+jettstui -p <profile> doctor     # one profile
 ```

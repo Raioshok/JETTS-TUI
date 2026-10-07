@@ -318,20 +318,20 @@ class TestOneTurnNeverPersisted:
 
         import gateway.run as gateway_run
         from gateway.run import GatewayRunner
-        from freeide_cli.model_switch import ModelSwitchResult
+        from jettstui.model_switch import ModelSwitchResult
 
-        freeide_home = tmp_path / ".freeide"
-        freeide_home.mkdir()
-        (freeide_home / "config.yaml").write_text(
+        jettstui_home = tmp_path / ".jettstui"
+        jettstui_home.mkdir()
+        (jettstui_home / "config.yaml").write_text(
             _yaml.safe_dump(
                 {"model": {"default": "old-model", "provider": "openrouter"}}
             ),
             encoding="utf-8",
         )
-        monkeypatch.setattr(gateway_run, "_freeide_home", freeide_home)
+        monkeypatch.setattr(gateway_run, "_jettstui_home", jettstui_home)
         monkeypatch.setattr("agent.models_dev.fetch_models_dev", lambda: {})
         monkeypatch.setattr(
-            "freeide_cli.model_switch.switch_model",
+            "jettstui.model_switch.switch_model",
             lambda **kw: ModelSwitchResult(
                 success=True,
                 new_model="gpt-5.5",
@@ -343,8 +343,8 @@ class TestOneTurnNeverPersisted:
                 provider_label="OpenRouter",
             ),
         )
-        monkeypatch.setattr("freeide_constants.get_freeide_home", lambda: freeide_home)
-        monkeypatch.setattr("freeide_cli.config.get_freeide_home", lambda: freeide_home)
+        monkeypatch.setattr("jettstui_constants.get_jettstui_home", lambda: jettstui_home)
+        monkeypatch.setattr("jettstui.config.get_jettstui_home", lambda: jettstui_home)
 
         runner = object.__new__(GatewayRunner)
         runner.adapters = {}

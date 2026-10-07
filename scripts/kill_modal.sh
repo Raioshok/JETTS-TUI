@@ -2,7 +2,7 @@
 # Kill all running Modal apps (sandboxes, deployments, etc.)
 #
 # Usage:
-#   bash scripts/kill_modal.sh          # Stop freeide-agent sandboxes
+#   bash scripts/kill_modal.sh          # Stop jettstui sandboxes
 #   bash scripts/kill_modal.sh --all    # Stop ALL Modal apps
 
 set -uo pipefail
@@ -17,10 +17,10 @@ if [[ "${1:-}" == "--all" ]]; then
         modal app stop "$app_id" 2>/dev/null || true
     done
 else
-    echo "Stopping freeide-agent sandboxes..."
-    APPS=$(echo "$APP_LIST" | grep 'freeide-agent' | grep -oE 'ap-[A-Za-z0-9]+' || true)
+    echo "Stopping jettstui sandboxes..."
+    APPS=$(echo "$APP_LIST" | grep 'jettstui' | grep -oE 'ap-[A-Za-z0-9]+' || true)
     if [[ -z "$APPS" ]]; then
-        echo "  No freeide-agent apps found."
+        echo "  No jettstui apps found."
     else
         echo "$APPS" | while read app_id; do
             echo "  Stopping $app_id"
@@ -30,5 +30,5 @@ else
 fi
 
 echo ""
-echo "Current freeide-agent status:"
-modal app list 2>/dev/null | grep -E 'State|freeide-agent' || echo "  (none)"
+echo "Current jettstui status:"
+modal app list 2>/dev/null | grep -E 'State|jettstui' || echo "  (none)"

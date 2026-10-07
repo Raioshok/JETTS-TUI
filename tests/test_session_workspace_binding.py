@@ -1,12 +1,12 @@
-"""Session <-> workspace grouping key (freeide_state.workspace_key).
+"""Session <-> workspace grouping key (jettstui_state.workspace_key).
 
-The key is what `freeide sessions list --workspace` groups/filters on. It is a
+The key is what `jettstui sessions list --workspace` groups/filters on. It is a
 coarse workspace identity derived from fields already recorded on sessions
 (git_repo_root, cwd) — no git shelling, no new columns. Branch is deliberately
 NOT part of the key.
 """
 
-from freeide_state import workspace_key
+from jettstui_state import workspace_key
 
 
 def test_repo_root_is_the_key_when_known():

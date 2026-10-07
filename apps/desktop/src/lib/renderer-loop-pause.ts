@@ -23,7 +23,7 @@ export function createRendererLoopPauseController(onChange: () => void, { pauseW
     }
   }
 
-  const offWindowState = window.freeideDesktop?.onWindowStateChanged?.((payload: WindowStatePayload) => {
+  const offWindowState = window.jettstuiDesktop?.onWindowStateChanged?.((payload: WindowStatePayload) => {
     const next = payload?.isMinimized === true || payload?.isVisible === false
 
     if (windowPaused === next) {

@@ -13,11 +13,11 @@ through a thin wrapper that mirrors the real dispatch shape.
 
 from unittest.mock import patch
 
-from cli import FreeIDECLI
+from cli import JettsTUICLI
 
 
 def _make_cli():
-    cli = FreeIDECLI.__new__(FreeIDECLI)
+    cli = JettsTUICLI.__new__(JettsTUICLI)
     cli._should_exit = False
     cli.conversation_history = []
     cli.agent = None

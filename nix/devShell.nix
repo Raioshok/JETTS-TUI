@@ -11,14 +11,14 @@
     { pkgs, self', ... }:
     let
       packages = builtins.attrValues self'.packages;
-      freeideNpmLib = self'.packages.default.passthru.freeideNpmLib;
+      jettstuiNpmLib = self'.packages.default.passthru.jettstuiNpmLib;
 
       # Collect all packageJsonPath values from npm workspace packages.
       npmPackageJsonPaths = builtins.filter (p: p != null) (
         map (p: p.passthru.packageJsonPath or null) packages
       );
 
-      # Non-npm packages may have their own devShellHook (e.g. freeide-agent
+      # Non-npm packages may have their own devShellHook (e.g. jettstui
       # stamps pyproject.toml + uv.lock for Python venv setup).
       nonNpmHooks = map (p: p.passthru.devShellHook or "") packages;
       combinedNonNpm = pkgs.lib.concatStringsSep "\n" (builtins.filter (h: h != "") nonNpmHooks);
@@ -26,9 +26,9 @@
     {
       devShells.default = pkgs.mkShell {
         packages = with pkgs; [
-          (pkgs.runCommand "freeide" { } ''
+          (pkgs.runCommand "jettstui" { } ''
             mkdir -p $out/bin
-            install -Dm755 ${../freeide} $out/bin/freeide
+            install -Dm755 ${../jettstui} $out/bin/jettstui
           '')
           (pkgs.runCommand "dev-sandbox" { } ''
             mkdir -p $out/bin
@@ -50,20 +50,20 @@
         ++ self'.packages.default.passthru.devDeps;
         shellHook = ''
           ${combinedNonNpm}
-          ${freeideNpmLib.mkNpmDevShellHook npmPackageJsonPaths}
+          ${jettstuiNpmLib.mkNpmDevShellHook npmPackageJsonPaths}
 
           # Force Node to use Nix's playwright-test binary instead of node_modules/.bin
           export PATH="${pkgs.playwright-test}/bin:$PATH"
 
           # for the devshell to pick up the src
-          export FREEIDE_PYTHON_SRC_ROOT=$(git rev-parse --show-toplevel)
+          export JETTSTUI_PYTHON_SRC_ROOT=$(git rev-parse --show-toplevel)
 
           # Let `uv run --active --no-sync` reuse Nix's provisioned Python
           # environment instead of creating an empty project .venv.
           export VIRTUAL_ENV="$(dirname "$(dirname "$(readlink -f "$(command -v python)")")")"
 
-          echo "FreeIDE Agent dev shell in $FREEIDE_PYTHON_SRC_ROOT"
-          echo "Ready. Run 'freeide' or 'sandbox freeide' to start."
+          echo "JettsTUI dev shell in $JETTSTUI_PYTHON_SRC_ROOT"
+          echo "Ready. Run 'jettstui' or 'sandbox jettstui' to start."
         '';
       };
     };

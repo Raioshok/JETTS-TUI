@@ -1,6 +1,6 @@
-"""``freeide doctor`` subcommand parser.
+"""``jettstui doctor`` subcommand parser.
 
-Extracted verbatim from ``freeide_cli/main.py:main()`` (god-file Phase 2).
+Extracted verbatim from ``jettstui/main.py:main()`` (god-file Phase 2).
 Handler injected to avoid importing ``main``.
 """
 
@@ -17,7 +17,7 @@ def build_doctor_parser(subparsers, *, cmd_doctor: Callable) -> None:
     doctor_parser = subparsers.add_parser(
         "doctor",
         help="Check configuration and dependencies",
-        description="Diagnose issues with Jetts-TUI Agent setup",
+        description="Diagnose issues with JettsTUI Agent setup",
     )
     doctor_parser.add_argument(
         "--fix", action="store_true", help="Attempt to fix issues automatically"
@@ -28,7 +28,7 @@ def build_doctor_parser(subparsers, *, cmd_doctor: Callable) -> None:
         default=None,
         help=(
             "Acknowledge a security advisory by ID and exit. After ack, the "
-            "advisory will no longer trigger startup banners. Run `freeide "
+            "advisory will no longer trigger startup banners. Run `jettstui "
             "doctor` first to see active advisories and their IDs."
         ),
     )

@@ -22,14 +22,14 @@ from typing import Awaitable, Callable
 from fastapi import Request
 from fastapi.responses import JSONResponse, RedirectResponse, Response
 
-from freeide_cli.dashboard_auth import list_session_providers
-from freeide_cli.dashboard_auth.audit import AuditEvent, audit_log
-from freeide_cli.dashboard_auth.base import (
+from jettstui.dashboard_auth import list_session_providers
+from jettstui.dashboard_auth.audit import AuditEvent, audit_log
+from jettstui.dashboard_auth.base import (
     DashboardAuthProvider,
     ProviderError,
     RefreshExpiredError,
 )
-from freeide_cli.dashboard_auth.cookies import (
+from jettstui.dashboard_auth.cookies import (
     clear_sso_attempt_cookie,
     read_session_cookies,
     read_session_provider,
@@ -37,7 +37,7 @@ from freeide_cli.dashboard_auth.cookies import (
     set_session_provider_cookie,
     set_sso_attempt_cookie,
 )
-from freeide_cli.dashboard_auth.public_paths import PUBLIC_API_PATHS
+from jettstui.dashboard_auth.public_paths import PUBLIC_API_PATHS
 
 _log = logging.getLogger(__name__)
 
@@ -125,13 +125,13 @@ def _unauth_response(request: Request, *, reason: str) -> Response:
     navigation to ``/sessions`` (etc.) without a cookie comes back to
     ``/sessions`` after login.
 
-    Under a reverse proxy with ``X-Forwarded-Prefix: /freeide``, the
-    ``login_url`` is prefixed (``/freeide/login?next=...``) so the
+    Under a reverse proxy with ``X-Forwarded-Prefix: /jettstui``, the
+    ``login_url`` is prefixed (``/jettstui/login?next=...``) so the
     browser's window.location.assign / Location: follow lands on the
     proxied login page rather than the bare ``/login`` (which the
     proxy doesn't route to the dashboard).
     """
-    from freeide_cli.dashboard_auth.prefix import prefix_from_request
+    from jettstui.dashboard_auth.prefix import prefix_from_request
 
     path = request.url.path
     next_param = _safe_next_target(request)
@@ -198,7 +198,7 @@ def _auto_sso_response(request: Request) -> Response | None:
     # Already bounced once and still no session → IDP has no session for
     # this user. Stop here, clear the marker, let /login render.
     if read_sso_attempt_cookie(request):
-        from freeide_cli.dashboard_auth.prefix import prefix_from_request
+        from jettstui.dashboard_auth.prefix import prefix_from_request
         resp = _unauth_response(request, reason="no_cookie")
         clear_sso_attempt_cookie(resp, prefix=prefix_from_request(request))
         return resp
@@ -210,7 +210,7 @@ def _auto_sso_response(request: Request) -> Response | None:
         # Zero → nothing to redirect to. Two+ → user must choose at /login.
         return None
 
-    from freeide_cli.dashboard_auth.prefix import prefix_from_request
+    from jettstui.dashboard_auth.prefix import prefix_from_request
 
     provider = providers[0]
     if getattr(provider, "supports_password", False):
@@ -228,7 +228,7 @@ def _auto_sso_response(request: Request) -> Response | None:
     # (portal had no session) trips the guard above next time instead of
     # looping. Detect HTTPS for the Secure flag the same way the auth routes
     # do; bind Path via the active prefix.
-    from freeide_cli.dashboard_auth.cookies import detect_https
+    from jettstui.dashboard_auth.cookies import detect_https
     set_sso_attempt_cookie(
         resp, use_https=detect_https(request), prefix=prefix,
     )
@@ -266,7 +266,7 @@ def _safe_next_target(request: Request) -> str:
     # navigates to ``login_url``. After the OAuth round trip the user
     # would land on the API URL and see raw JSON instead of the
     # dashboard. SPA routes survive (they don't start with ``/api/``);
-    # the SPA's own ``sessionStorage["freeide.lastLocation"]`` fallback
+    # the SPA's own ``sessionStorage["jettstui.lastLocation"]`` fallback
     # in ``web/src/lib/api.ts`` covers the deep-link case.
     if path == "/api" or path.startswith("/api/"):
         return ""
@@ -346,7 +346,7 @@ async def gated_auth_middleware(
     # RFC 8252 native-app bearer path (goal: no session cookies). The desktop
     # authenticates REST with ``Authorization: Bearer <access_token>`` — the
     # SAME provider-minted access token the cookie flow stores in
-    # ``freeide_session_at``. Verify it with the identical ``verify_session``
+    # ``jettstui_session_at``. Verify it with the identical ``verify_session``
     # provider stack and attach the Session; on success we're done, with no
     # cookie set or read. A missing/expired/invalid bearer falls through to
     # the cookie path (a request may legitimately carry neither). Token
@@ -398,7 +398,7 @@ async def gated_auth_middleware(
     # cookie is set with ``Max-Age = access_token_expires_in`` (~15 min), so
     # the browser EVICTS it the moment the token lapses, while the
     # refresh-token cookie lives for 30 days. From that point the browser
-    # sends only ``freeide_session_rt``. If we bailed on ``not at`` here we'd
+    # sends only ``jettstui_session_rt``. If we bailed on ``not at`` here we'd
     # bounce the user to /login on every expiry despite holding a perfectly
     # good refresh token — defeating the whole transparent-refresh feature.
     session = None
@@ -476,11 +476,11 @@ async def gated_auth_middleware(
             # back is mandatory: a stale RT cookie would replay a rotated
             # token on the next refresh and (outside the IDP's grace) revoke
             # the whole session. Bind cookie Secure/Path to the request shape.
-            from freeide_cli.dashboard_auth.cookies import (
+            from jettstui.dashboard_auth.cookies import (
                 detect_https,
                 set_session_cookies,
             )
-            from freeide_cli.dashboard_auth.prefix import prefix_from_request
+            from jettstui.dashboard_auth.prefix import prefix_from_request
 
             set_session_cookies(
                 response,
@@ -511,16 +511,16 @@ async def gated_auth_middleware(
         # cycle with cookies → middleware at module load. Pass the active
         # prefix so the deletion's Path matches the set-Path (otherwise
         # the browser ignores it).
-        from freeide_cli.dashboard_auth.cookies import clear_session_cookies
-        from freeide_cli.dashboard_auth.prefix import prefix_from_request
+        from jettstui.dashboard_auth.cookies import clear_session_cookies
+        from jettstui.dashboard_auth.prefix import prefix_from_request
         clear_session_cookies(response, prefix=prefix_from_request(request))
         return response
 
     request.state.session = session
     response = await call_next(request)
     if not provider_hint and session.provider:
-        from freeide_cli.dashboard_auth.cookies import detect_https
-        from freeide_cli.dashboard_auth.prefix import prefix_from_request
+        from jettstui.dashboard_auth.cookies import detect_https
+        from jettstui.dashboard_auth.prefix import prefix_from_request
 
         set_session_provider_cookie(
             response,

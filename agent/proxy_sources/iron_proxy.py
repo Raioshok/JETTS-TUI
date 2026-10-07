@@ -20,16 +20,16 @@ infrastructure, the guarantee no longer holds).
 Design summary
 --------------
 
-* The ``iron-proxy`` binary is auto-installed into ``<freeide_home>/bin/iron-proxy``
-  on first use.  FreeIDE pins one upstream version (``_IRON_PROXY_VERSION``)
+* The ``iron-proxy`` binary is auto-installed into ``<jettstui_home>/bin/iron-proxy``
+  on first use.  JettsTUI pins one upstream version (``_IRON_PROXY_VERSION``)
   and downloads the matching tar.gz from the official GitHub Releases page,
   verifying the SHA-256 against the release's ``checksums.txt``.
 
-* A long-lived CA at ``<freeide_home>/proxy/ca.{crt,key}`` is generated on
-  first ``freeide egress setup``.  Sandboxes trust this CA so iron-proxy can
+* A long-lived CA at ``<jettstui_home>/proxy/ca.{crt,key}`` is generated on
+  first ``jettstui egress setup``.  Sandboxes trust this CA so iron-proxy can
   terminate TLS and rewrite headers.
 
-* The proxy config lives at ``<freeide_home>/proxy/proxy.yaml``.  It enumerates
+* The proxy config lives at ``<jettstui_home>/proxy/proxy.yaml``.  It enumerates
   the per-provider allowlists and the ``secrets`` transform that does the
   Authorization-header swap.
 
@@ -39,9 +39,9 @@ Design summary
   Bitwarden Secrets Manager is configured, the real value is pulled there
   at proxy startup instead.
 
-* The proxy runs as a managed subprocess (``freeide egress start``), pidfile
-  at ``<freeide_home>/proxy/iron-proxy.pid``.  Daemon output (including
-  per-request records on v0.39) goes to ``<freeide_home>/proxy/iron-proxy.log``;
+* The proxy runs as a managed subprocess (``jettstui egress start``), pidfile
+  at ``<jettstui_home>/proxy/iron-proxy.pid``.  Daemon output (including
+  per-request records on v0.39) goes to ``<jettstui_home>/proxy/iron-proxy.log``;
   ``audit.log`` is pre-created but reserved for a future pin that supports
   ``log.audit_path``.
 
@@ -110,14 +110,14 @@ _STARTUP_GRACE_SECONDS = 5
 # whose ``POST /v1/reload`` re-reads proxy.yaml and atomically swaps the
 # transform pipeline in-place — no restart, no dropped connections.  We
 # always enable it on generated configs: it binds loopback only and every
-# request needs the bearer key below.  ``freeide egress reload`` is the
+# request needs the bearer key below.  ``jettstui egress reload`` is the
 # client.
 #
 # The key is minted at setup time, stored at
-# ``<freeide_home>/proxy/management.token`` (0600), and injected into the
+# ``<jettstui_home>/proxy/management.token`` (0600), and injected into the
 # daemon's env under this name at start.  v0.39 validates at startup that
 # the named env var is non-empty when management.listen is set.
-_MGMT_API_KEY_ENV = "FREEIDE_IRON_PROXY_MGMT_KEY"
+_MGMT_API_KEY_ENV = "JETTSTUI_IRON_PROXY_MGMT_KEY"
 # The management listener binds loopback at tunnel_port + 2 (tunnel_port
 # is CONNECT/MITM, +1 is the plain-HTTP forward listener).
 _MGMT_PORT_OFFSET = 2
@@ -163,7 +163,7 @@ _BEARER_PROVIDERS: Dict[str, Tuple[str, ...]] = {
 # not "uncovered".
 #
 # ``aliases`` are interchangeable env-var names for the SAME upstream
-# credential (FreeIDE' auth.py keys Google on both GEMINI_API_KEY and
+# credential (JettsTUI' auth.py keys Google on both GEMINI_API_KEY and
 # GOOGLE_API_KEY).  Aliased names MUST collapse into a single mapping:
 # every rule carries ``require: true``, and two require-rules on the same
 # host reject each other's requests (each rule whose own token isn't
@@ -354,22 +354,22 @@ class TokenMapping:
 # ---------------------------------------------------------------------------
 
 
-def _freeide_bin_dir() -> Path:
-    from freeide_constants import get_freeide_home
+def _jettstui_bin_dir() -> Path:
+    from jettstui_constants import get_jettstui_home
 
-    return get_freeide_home() / "bin"
+    return get_jettstui_home() / "bin"
 
 
 def _proxy_state_dir_ro() -> Path:
     """Return the proxy state dir without creating it.
 
     Read-only callers (status probes, pidfile reads, version queries) use
-    this — there's no reason to materialize ``~/.freeide/proxy/`` just to
+    this — there's no reason to materialize ``~/.jettstui/proxy/`` just to
     check whether a pidfile exists.
     """
-    from freeide_constants import get_freeide_home
+    from jettstui_constants import get_jettstui_home
 
-    return get_freeide_home() / "proxy"
+    return get_jettstui_home() / "proxy"
 
 
 def _proxy_state_dir() -> Path:
@@ -435,14 +435,14 @@ def find_iron_proxy(*, install_if_missing: bool = False) -> Optional[Path]:
     """Return a path to a usable ``iron-proxy`` binary, or None.
 
     Resolution order:
-      1. ``<freeide_home>/bin/iron-proxy``  (our managed copy — preferred)
+      1. ``<jettstui_home>/bin/iron-proxy``  (our managed copy — preferred)
       2. ``shutil.which("iron-proxy")``    (system PATH)
 
     When ``install_if_missing`` is True and neither resolves, calls
     :func:`install_iron_proxy` to download and verify the pinned version.
     """
 
-    managed = _freeide_bin_dir() / _platform_binary_name()
+    managed = _jettstui_bin_dir() / _platform_binary_name()
     if managed.exists() and os.access(managed, os.X_OK):
         return managed
 
@@ -464,11 +464,11 @@ def install_iron_proxy(*, force: bool = False) -> Path:
 
     Returns the path to the installed executable.  Raises on any failure
     (network, checksum, extraction).  Callers in the auto-install path catch
-    these; the user-facing ``freeide proxy install`` surface lets them
+    these; the user-facing ``jettstui proxy install`` surface lets them
     propagate so the wizard can show a clear error.
     """
 
-    bin_dir = _freeide_bin_dir()
+    bin_dir = _jettstui_bin_dir()
     bin_dir.mkdir(parents=True, exist_ok=True)
     target = bin_dir / _platform_binary_name()
 
@@ -479,7 +479,7 @@ def install_iron_proxy(*, force: bool = False) -> Path:
     asset_url = f"{_IRON_PROXY_RELEASE_BASE}/{asset_name}"
     checksum_url = f"{_IRON_PROXY_RELEASE_BASE}/{_IRON_PROXY_CHECKSUM_NAME}"
 
-    with tempfile.TemporaryDirectory(prefix="freeide-iron-proxy-") as tmpdir:
+    with tempfile.TemporaryDirectory(prefix="jettstui-iron-proxy-") as tmpdir:
         tmp = Path(tmpdir)
         archive_path = tmp / asset_name
         checksum_path = tmp / _IRON_PROXY_CHECKSUM_NAME
@@ -545,7 +545,7 @@ def install_iron_proxy(*, force: bool = False) -> Path:
 
 
 def _http_download(url: str, dest: Path) -> None:
-    req = urllib.request.Request(url, headers={"User-Agent": "freeide-agent"})
+    req = urllib.request.Request(url, headers={"User-Agent": "jettstui"})
     try:
         with urllib.request.urlopen(req, timeout=_DOWNLOAD_TIMEOUT) as resp:  # noqa: S310
             with open(dest, "wb") as f:
@@ -711,7 +711,7 @@ def iron_proxy_version(binary: Path) -> str:
     except (OSError, subprocess.TimeoutExpired):
         return ""
     out = (res.stdout or res.stderr or "").strip()
-    # Don't cache empty output — that would poison ``freeide egress
+    # Don't cache empty output — that would poison ``jettstui egress
     # status`` for the lifetime of the process if the first probe hit a
     # corrupt binary or a flag-rename in a newer upstream.  Re-probe on
     # the next call instead.
@@ -749,7 +749,7 @@ def ensure_ca_cert(*, force: bool = False) -> Tuple[Path, Path]:
 
     # 10-year cert.  iron-proxy mints short-lived leaf certs from this CA,
     # so the CA itself only rotates when the user explicitly forces it.
-    with tempfile.TemporaryDirectory(prefix="freeide-proxy-ca-") as tmpdir:
+    with tempfile.TemporaryDirectory(prefix="jettstui-proxy-ca-") as tmpdir:
         tmp = Path(tmpdir)
         tmp_key = tmp / "ca.key"
         tmp_crt = tmp / "ca.crt"
@@ -765,7 +765,7 @@ def ensure_ca_cert(*, force: bool = False) -> Tuple[Path, Path]:
                 "openssl", "req", "-x509", "-new", "-nodes",
                 "-key", str(tmp_key),
                 "-sha256", "-days", "3650",
-                "-subj", "/CN=freeide iron-proxy CA",
+                "-subj", "/CN=jettstui iron-proxy CA",
                 "-addext", "basicConstraints=critical,CA:TRUE",
                 "-addext", "keyUsage=critical,keyCertSign",
                 "-out", str(tmp_crt),
@@ -823,7 +823,7 @@ def ensure_ca_cert(*, force: bool = False) -> Tuple[Path, Path]:
 # ---------------------------------------------------------------------------
 
 
-def mint_proxy_token(prefix: str = "freeide-proxy") -> str:
+def mint_proxy_token(prefix: str = "jettstui-proxy") -> str:
     """Mint a fresh opaque token to hand to the sandbox.
 
     The token has no internal structure beyond a recognizable prefix —
@@ -843,10 +843,10 @@ def _management_token_path() -> Path:
 def ensure_management_token(*, force: bool = False) -> str:
     """Return the management-API bearer key, minting it on first call.
 
-    Stored at ``<freeide_home>/proxy/management.token`` with 0600 perms.
-    The daemon receives it via the ``FREEIDE_IRON_PROXY_MGMT_KEY`` env var
+    Stored at ``<jettstui_home>/proxy/management.token`` with 0600 perms.
+    The daemon receives it via the ``JETTSTUI_IRON_PROXY_MGMT_KEY`` env var
     (named in the generated config's ``management.api_key_env``);
-    ``freeide egress reload`` reads the same file to authenticate.
+    ``jettstui egress reload`` reads the same file to authenticate.
     """
 
     p = _management_token_path()
@@ -857,7 +857,7 @@ def ensure_management_token(*, force: bool = False) -> str:
                 return existing
         except OSError:
             pass
-    token = mint_proxy_token(prefix="freeide-mgmt")
+    token = mint_proxy_token(prefix="jettstui-mgmt")
     fd = os.open(
         str(p),
         os.O_WRONLY | os.O_CREAT | os.O_TRUNC | getattr(os, "O_NOFOLLOW", 0),
@@ -927,20 +927,20 @@ def reload_proxy() -> bool:
     if not pid or not _pid_alive(pid):
         raise RuntimeError(
             "iron-proxy is not running — nothing to reload.  "
-            "Run `freeide egress start`."
+            "Run `jettstui egress start`."
         )
     mgmt = _read_management_listen_from_config()
     if mgmt is None:
         raise RuntimeError(
             "The generated proxy.yaml has no management listener (written "
-            "before reload support).  Re-run `freeide egress setup` and use "
-            "`freeide egress restart` this one time."
+            "before reload support).  Re-run `jettstui egress setup` and use "
+            "`jettstui egress restart` this one time."
         )
     token = _read_management_token()
     if not token:
         raise RuntimeError(
-            "management.token is missing — re-run `freeide egress setup`, "
-            "then `freeide egress restart`."
+            "management.token is missing — re-run `jettstui egress setup`, "
+            "then `jettstui egress restart`."
         )
 
     import urllib.error
@@ -975,7 +975,7 @@ def reload_proxy() -> bool:
             raise RuntimeError(
                 "management API rejected our key (401).  The running "
                 "daemon was started with a different management.token — "
-                "run `freeide egress restart`."
+                "run `jettstui egress restart`."
             ) from exc
         raise RuntimeError(
             f"management reload failed (HTTP {exc.code}): {body}"
@@ -986,7 +986,7 @@ def reload_proxy() -> bool:
         raise RuntimeError(
             f"could not reach the management API at {host}:{port} ({exc}).  "
             "If the daemon was started before reload support, run "
-            "`freeide egress restart` once."
+            "`jettstui egress restart` once."
         ) from exc
 
 
@@ -1280,7 +1280,7 @@ def build_proxy_config(
         # random port each start and nothing records it — metrics are
         # effectively disabled/undiscoverable at this pin.  If we want
         # scrapable metrics later, allocate a fixed port and surface it
-        # in ``ProxyStatus`` / ``freeide egress status``.
+        # in ``ProxyStatus`` / ``jettstui egress status``.
         "metrics": {
             "listen": "127.0.0.1:0",
         },
@@ -1288,7 +1288,7 @@ def build_proxy_config(
         # authenticated (key read from the env var named below; injected
         # by ``start_proxy`` from ``management.token``).  ``POST /v1/reload``
         # re-reads THIS config file and atomically swaps the transform
-        # pipeline — `freeide egress reload` applies allowlist/token/mapping
+        # pipeline — `jettstui egress reload` applies allowlist/token/mapping
         # changes without a restart.  Loopback deliberately: sandboxes must
         # never reach the management surface, so it does NOT bind the
         # docker bridge like the traffic listeners do.
@@ -1355,13 +1355,13 @@ def ensure_audit_log(audit_path: Path) -> None:
 
 
 def write_proxy_config(config: Dict) -> Path:
-    """Serialize the config dict to ``<freeide_home>/proxy/proxy.yaml``.
+    """Serialize the config dict to ``<jettstui_home>/proxy/proxy.yaml``.
 
     Uses ``yaml.safe_dump`` so we never emit Python tags.
     """
 
     try:
-        import yaml  # PyYAML is already a FreeIDE dep
+        import yaml  # PyYAML is already a JettsTUI dep
     except ImportError as exc:
         raise RuntimeError(
             "PyYAML is required to write the iron-proxy config but is not "
@@ -1505,7 +1505,7 @@ def discover_uncovered_providers(
     sandbox is holding real credentials that the proxy can't strip — the
     isolation guarantee is incomplete for those providers.
 
-    The wizard and ``freeide egress status`` use this to print a warning.
+    The wizard and ``jettstui egress status`` use this to print a warning.
     (Anthropic / Azure OpenAI / Gemini used to be here; they're now
     first-class swapped providers via ``_HEADER_AUTH_PROVIDERS``.)
     """
@@ -1527,7 +1527,7 @@ def merge_mappings(
     """Combine an existing mapping set with freshly discovered providers.
 
     By default this PRESERVES tokens for providers already in ``existing`` —
-    re-running ``freeide egress setup`` should not invalidate the tokens
+    re-running ``jettstui egress setup`` should not invalidate the tokens
     baked into containers that are already running.  Only newly added
     providers get freshly minted tokens.
 
@@ -1587,7 +1587,7 @@ def _read_pid() -> Optional[int]:
 # by ``_pid_alive`` to confirm a candidate PID still refers to *our* managed
 # binary even across PID recycling (a fresh process can't inherit our
 # arbitrary env value).
-_FREEIDE_IRON_PROXY_NONCE_ENV = "FREEIDE_IRON_PROXY_NONCE"
+_JETTSTUI_IRON_PROXY_NONCE_ENV = "JETTSTUI_IRON_PROXY_NONCE"
 _proxy_nonce: Optional[str] = None
 
 
@@ -1716,7 +1716,7 @@ def _pid_alive(pid: int) -> bool:
         try:
             env_bytes = Path(f"/proc/{pid}/environ").read_bytes()
             for nonce in nonce_candidates:
-                needle = f"{_FREEIDE_IRON_PROXY_NONCE_ENV}={nonce}".encode()
+                needle = f"{_JETTSTUI_IRON_PROXY_NONCE_ENV}={nonce}".encode()
                 if needle in env_bytes:
                     return True
         except OSError:
@@ -1785,14 +1785,14 @@ def start_proxy(
     bin_path = binary or find_iron_proxy(install_if_missing=install_if_missing)
     if bin_path is None:
         raise RuntimeError(
-            "iron-proxy binary not available — run `freeide egress install`."
+            "iron-proxy binary not available — run `jettstui egress install`."
         )
 
     cfg = config_path or (_proxy_state_dir() / "proxy.yaml")
     if not cfg.exists():
         raise RuntimeError(
             f"iron-proxy config not found at {cfg}. "
-            "Run `freeide egress setup` first."
+            "Run `jettstui egress setup` first."
         )
 
     # Build a minimal subprocess env.  os.environ.copy() would ship every
@@ -1816,15 +1816,15 @@ def start_proxy(
     # Plant a per-start nonce in the child env so ``_pid_alive`` can
     # confirm a candidate PID still refers to *our* binary across PID
     # recycling.  Module-global is fine — only one managed proxy per
-    # FreeIDE process.
+    # JettsTUI process.
     _proxy_nonce = hashlib.sha256(os.urandom(16)).hexdigest()
-    env[_FREEIDE_IRON_PROXY_NONCE_ENV] = _proxy_nonce
+    env[_JETTSTUI_IRON_PROXY_NONCE_ENV] = _proxy_nonce
 
     log_path = _proxy_state_dir() / "iron-proxy.log"
     # Keep ownership of the fd tight: open with explicit 0o600 so the
     # log doesn't get world-readable under a slack umask, then close it
     # immediately after Popen (the child has its own dup).  Without the
-    # close-on-success path, every restart leaked one fd in the FreeIDE
+    # close-on-success path, every restart leaked one fd in the JettsTUI
     # process.
     #
     # O_NOFOLLOW (defence-in-depth, same threat model as the pidfile
@@ -1890,7 +1890,7 @@ def start_proxy(
     # Write the pidfile IMMEDIATELY after Popen, BEFORE the listening
     # verification.  If the parent dies during the poll loop (SIGINT,
     # OOM, kernel pause), the pidfile is still on disk so the next
-    # ``freeide egress stop`` can clean up the orphan.  Failure paths
+    # ``jettstui egress stop`` can clean up the orphan.  Failure paths
     # below unlink the pidfile when they kill the child.
     pidfile = _pidfile()
     try:
@@ -1905,7 +1905,7 @@ def start_proxy(
     # of liveness keeps Docker container creation snappy.
     #
     # We scope a Ctrl-C handler around the poll loop so an operator who
-    # hits Ctrl-C while waiting for ``freeide egress start`` doesn't leak
+    # hits Ctrl-C while waiting for ``jettstui egress start`` doesn't leak
     # an orphan with the port bound.
     #
     # Probe the CONFIGURED bind host, not loopback unconditionally — on
@@ -2027,7 +2027,7 @@ def _write_pidfile_safely(pidfile: Path, pid: int) -> None:
             raise RuntimeError(
                 f"Another iron-proxy start appears to be in progress "
                 f"(pidfile {pidfile} -> pid {existing_pid}).  "
-                f"Run `freeide egress stop` if that proxy is stuck."
+                f"Run `jettstui egress stop` if that proxy is stuck."
             )
         # Stale — unlink and retry.
         try:
@@ -2187,7 +2187,7 @@ def _build_proxy_subprocess_env(
                             f"Bitwarden refresh did not return secrets for "
                             f"{missing}.  Either add the secrets to your BWS "
                             f"project, switch to credential_source: env via "
-                            f"`freeide egress setup --no-bitwarden`, or set "
+                            f"`jettstui egress setup --no-bitwarden`, or set "
                             f"`proxy.allow_env_fallback: true` in config.yaml "
                             f"to opt into the legacy host-env fallback."
                         )
@@ -2204,7 +2204,7 @@ def _build_proxy_subprocess_env(
                 if warnings:
                     logger.warning(
                         "Bitwarden refresh produced %d warning(s); "
-                        "run `freeide secrets bitwarden status` for detail.",
+                        "run `jettstui secrets bitwarden status` for detail.",
                         len(warnings),
                     )
             else:

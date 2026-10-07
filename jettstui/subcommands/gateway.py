@@ -1,6 +1,6 @@
-"""``freeide gateway`` and ``freeide proxy`` subcommand parsers.
+"""``jettstui gateway`` and ``jettstui proxy`` subcommand parsers.
 
-Extracted verbatim from ``freeide_cli/main.py:main()`` (god-file Phase 2).
+Extracted verbatim from ``jettstui/main.py:main()`` (god-file Phase 2).
 Both parsers are built together because they shared one inline block (the
 ``gateway`` section also defined ``proxy``). Handlers injected to avoid
 importing ``main``.
@@ -11,7 +11,7 @@ from __future__ import annotations
 import argparse
 from typing import Callable
 
-from freeide_cli.subcommands._shared import add_accept_hooks_flag
+from jettstui.subcommands._shared import add_accept_hooks_flag
 
 
 def _add_compat_platform_flag(parser: argparse.ArgumentParser) -> None:
@@ -79,7 +79,7 @@ def build_gateway_parser(
             "Inside the s6-overlay Docker image, normally `gateway run` is "
             "automatically redirected to the supervised s6 service (so the "
             "gateway gets auto-restart on crash, plus a supervised dashboard "
-            "if FREEIDE_DASHBOARD is set). Pass --no-supervise to opt out and "
+            "if JETTSTUI_DASHBOARD is set). Pass --no-supervise to opt out and "
             "get the historical pre-s6 foreground behavior: the gateway is "
             "the container's main process and the container exits with the "
             "gateway's exit code. No effect outside an s6 container."
@@ -226,11 +226,11 @@ def build_gateway_parser(
     # gateway migrate-legacy
     gateway_migrate_legacy = gateway_subparsers.add_parser(
         "migrate-legacy",
-        help="Remove legacy freeide.service units from pre-rename installs",
+        help="Remove legacy jettstui.service units from pre-rename installs",
         description=(
-            "Stop, disable, and remove legacy Jetts-TUI gateway unit files "
-            "(e.g. freeide.service) left over from older installs. Profile "
-            "units (freeide-gateway-<profile>.service) and unrelated "
+            "Stop, disable, and remove legacy JettsTUI gateway unit files "
+            "(e.g. jettstui.service) left over from older installs. Profile "
+            "units (jettstui-gateway-<profile>.service) and unrelated "
             "third-party services are never touched."
         ),
     )
@@ -262,7 +262,7 @@ def build_gateway_parser(
             "authoritative tenant from it), mints this gateway's per-gateway secret "
             "and per-tenant delivery key, and writes GATEWAY_RELAY_ID / "
             "GATEWAY_RELAY_SECRET / GATEWAY_RELAY_DELIVERY_KEY into ~/.jettstui/.env. "
-            "Requires being logged in (freeide setup). Not available in managed installs."
+            "Requires being logged in (jettstui setup). Not available in managed installs."
         ),
     )
     gateway_enroll.add_argument(
@@ -331,7 +331,7 @@ def build_gateway_parser(
     proxy_start.add_argument(
         "--provider",
         default="xai",
-        help="Upstream provider: xai (default: xai). See `freeide proxy providers`.",
+        help="Upstream provider: xai (default: xai). See `jettstui proxy providers`.",
     )
     proxy_start.add_argument(
         "--host",

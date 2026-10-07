@@ -18,7 +18,7 @@ from typing import Any, Dict, Optional
 
 import yaml
 
-from freeide_constants import get_freeide_home
+from jettstui_constants import get_jettstui_home
 
 
 _TRIGGER_RE = re.compile(r"\b(use|activate|run|apply)\s+(this\s+)?(skill\s+)?when\b|\bwhen\s+to\s+use\b", re.I)
@@ -32,7 +32,7 @@ _CONCRETE_RE = re.compile(r"`[^`\n]+`|(?:^|\s)(?:\.?\.?[/\\])[\w.\-/\\]+", re.M)
 def enabled() -> bool:
     """Return whether the autonomous improvement gate is enabled."""
     try:
-        from freeide_cli.config import cfg_get, load_config
+        from jettstui.config import cfg_get, load_config
         raw = cfg_get(load_config(), "skills", "improvement_gate", default=False)
     except Exception:
         return False
@@ -140,7 +140,7 @@ def evaluate_candidate(
 def record_evaluation(evaluation: Dict[str, Any]) -> None:
     """Append a content-free audit event. Failure never permits a blocked write."""
     event = {"timestamp": time.time(), **evaluation}
-    path = Path(get_freeide_home()) / "logs" / "self_improvement.jsonl"
+    path = Path(get_jettstui_home()) / "logs" / "self_improvement.jsonl"
     path.parent.mkdir(parents=True, exist_ok=True)
     with path.open("a", encoding="utf-8") as handle:
         handle.write(json.dumps(event, ensure_ascii=False, sort_keys=True) + "\n")

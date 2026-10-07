@@ -1,4 +1,4 @@
-"""Render the code-native Jetts-TUI mark for desktop packaging assets.
+"""Render the code-native JettsTUI mark for desktop packaging assets.
 
 Run with a Python environment containing Pillow. The geometry mirrors
 docs/assets/img/jetts-tui-mark.svg and does not depend on upstream art.

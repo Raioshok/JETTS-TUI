@@ -1,5 +1,5 @@
 """
-FreeIDE Jailbreak Presets — built-in model jailbreaking for red team research.
+JettsTUI Jailbreak Presets — built-in model jailbreaking for red team research.
 
 Three techniques scored by effectiveness against hardened models (DeepSeek v4 Pro):
 
@@ -23,10 +23,10 @@ Usage:
       jailbreak: e   # or f, d
 
     # Via env:
-    FREEIDE_JAILBREAK=e freeide chat
+    JETTSTUI_JAILBREAK=e jettstui chat
 
     # Via code:
-    from freeide_cli.jailbreak import resolve_jailbreak
+    from jettstui.jailbreak import resolve_jailbreak
     system_prompt, prefill_messages = resolve_jailbreak("e")
 """
 

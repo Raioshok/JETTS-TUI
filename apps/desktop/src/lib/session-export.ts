@@ -1,5 +1,5 @@
-import type { SessionInfo } from '@/freeide'
-import { getSessionMessages } from '@/freeide'
+import type { SessionInfo } from '@/jettstui'
+import { getSessionMessages } from '@/jettstui'
 import { translateNow } from '@/i18n'
 import { notify, notifyError } from '@/store/notifications'
 

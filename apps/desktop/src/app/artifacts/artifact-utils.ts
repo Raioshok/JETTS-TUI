@@ -1,6 +1,6 @@
 import { readDesktopFileDataUrl } from '@/lib/desktop-fs'
 import { filePathFromMediaPath, isRemoteGateway, mediaExternalUrl } from '@/lib/media'
-import type { SessionInfo, SessionMessage } from '@/types/freeide'
+import type { SessionInfo, SessionMessage } from '@/types/jettstui'
 
 export type ArtifactKind = 'image' | 'file' | 'link'
 export type ArtifactFilter = 'all' | ArtifactKind
@@ -105,7 +105,7 @@ export async function artifactImageSrc(value: string, href = artifactHref(value)
     return href
   }
 
-  if (typeof window !== 'undefined' && window.freeideDesktop && isRemoteGateway()) {
+  if (typeof window !== 'undefined' && window.jettstuiDesktop && isRemoteGateway()) {
     return readDesktopFileDataUrl(filePathFromMediaPath(value))
   }
 

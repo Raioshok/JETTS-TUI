@@ -1,7 +1,7 @@
 """Tests for the mcp-oauth-remote-gateway optional skill.
 
 Covers the diagnose-oauth-mcp.py decision tree (TOKEN_OK / REFRESH_FIXED /
-SESSION_REVOKED / REFRESH_DEAD), the FREEIDE_HOME resolution fallback, the
+SESSION_REVOKED / REFRESH_DEAD), the JETTSTUI_HOME resolution fallback, the
 atomic --write persistence path, and SKILL.md frontmatter invariants.
 No live network calls — urllib is mocked throughout.
 """
@@ -83,11 +83,11 @@ def _run_main(mod, tokens_dir, argv, responses):
             raise item
         return item
 
-    with patch.object(mod.os, "environ", dict(mod.os.environ, FREEIDE_HOME=str(tokens_dir.parent))), \
+    with patch.object(mod.os, "environ", dict(mod.os.environ, JETTSTUI_HOME=str(tokens_dir.parent))), \
          patch.object(mod.urllib.request, "urlopen", side_effect=fake_urlopen), \
          patch.object(sys, "argv", ["diagnose-oauth-mcp.py", *argv]):
-        # Force the env-var fallback path (ignore any importable freeide_constants).
-        with patch.object(mod, "_freeide_home", lambda: str(tokens_dir.parent)):
+        # Force the env-var fallback path (ignore any importable jettstui_constants).
+        with patch.object(mod, "_jettstui_home", lambda: str(tokens_dir.parent)):
             buf = io.StringIO()
             from contextlib import redirect_stdout
             with redirect_stdout(buf):
@@ -201,12 +201,12 @@ def test_session_revoked_branch(tmp_path):
     assert on_disk["access_token"] == "at-stored"
 
 
-def test_freeide_home_env_fallback(tmp_path, monkeypatch):
+def test_jettstui_home_env_fallback(tmp_path, monkeypatch):
     mod = load_module()
-    monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / "custom-home"))
-    # Block the freeide_constants import so the env fallback is exercised
-    with patch.dict(sys.modules, {"freeide_constants": None}):
-        home = mod._freeide_home()
+    monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / "custom-home"))
+    # Block the jettstui_constants import so the env fallback is exercised
+    with patch.dict(sys.modules, {"jettstui_constants": None}):
+        home = mod._jettstui_home()
     assert home == str(tmp_path / "custom-home")
 
 
@@ -228,4 +228,4 @@ def test_skill_md_frontmatter_invariants():
     assert len(fm["description"]) <= 60
     assert fm["description"].endswith(".")
     assert "platforms" in fm and len(fm["platforms"]) >= 1
-    assert fm["author"].split(",")[0].strip() != "FreeIDE Agent"  # human credited first
+    assert fm["author"].split(",")[0].strip() != "JettsTUI"  # human credited first

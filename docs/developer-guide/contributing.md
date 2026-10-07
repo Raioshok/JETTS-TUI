@@ -1,12 +1,12 @@
 ---
 sidebar_position: 4
 title: "Contributing"
-description: "How to contribute to FreeIDE Agent — dev setup, code style, PR process"
+description: "How to contribute to JettsTUI — dev setup, code style, PR process"
 ---
 
 # Contributing
 
-Thank you for contributing to FreeIDE Agent! This guide covers setting up your dev environment, understanding the codebase, and getting your PR merged.
+Thank you for contributing to JettsTUI! This guide covers setting up your dev environment, understanding the codebase, and getting your PR merged.
 
 ## Contribution Priorities
 
@@ -22,8 +22,8 @@ We value contributions in this order:
 
 ## Common contribution paths
 
-- Building a custom/local tool without modifying FreeIDE core? Start with [Build a FreeIDE Plugin](../developer-guide/plugins/index.md)
-- Building a new built-in core tool for FreeIDE itself? Start with [Adding Tools](./adding-tools.md)
+- Building a custom/local tool without modifying JettsTUI core? Start with [Build a JettsTUI Plugin](../developer-guide/plugins/index.md)
+- Building a new built-in core tool for JettsTUI itself? Start with [Adding Tools](./adding-tools.md)
 - Building a new skill? Start with [Creating Skills](./creating-skills.md)
 - Building a new inference provider? Start with [Adding Providers](./adding-providers.md)
 
@@ -42,15 +42,15 @@ We value contributions in this order:
 
 For most contributors, the best development bootstrap is the same path users
 take: run the standard installer, then work inside the repository it cloned.
-The installer creates the FreeIDE venv, wires the `freeide` command, stamps the
-install method for `freeide update`, and clones the full git project into
-`$FREEIDE_HOME/freeide-agent` (usually `~/.freeide/freeide-agent`). That keeps your
+The installer creates the JettsTUI venv, wires the `jettstui` command, stamps the
+install method for `jettstui update`, and clones the full git project into
+`$JETTSTUI_HOME/jettstui` (usually `~/.jettstui/jettstui`). That keeps your
 development environment on the same layout the CLI, updater, lazy dependency
 installer, gateway, and docs assume.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Raioshok/JETTS-TUI/main/scripts/install.sh | bash
-cd "${FREEIDE_HOME:-$HOME/.freeide}/freeide-agent"
+cd "${JETTSTUI_HOME:-$HOME/.jettstui}/jettstui"
 
 # Add dev/test extras on top of the standard install.
 uv pip install -e ".[all,dev]"
@@ -66,20 +66,20 @@ git checkout -b fix/description
 scripts/run_tests.sh
 ```
 
-You can also run a fully isolated FreeIDE instance (throwaway FREEIDE_HOME, separate Electron
+You can also run a fully isolated JettsTUI instance (throwaway JETTSTUI_HOME, separate Electron
 userData, distinct Electron app name to avoid the single-instance lock):
 
 ```bash
-scripts/dev-sandbox.sh python -m freeide_cli.main
-scripts/dev-sandbox.sh --persistent python -m freeide_cli.main desktop  # state survives restarts, but lives in the worktree :)
+scripts/dev-sandbox.sh python -m jettstui.main
+scripts/dev-sandbox.sh --persistent python -m jettstui.main desktop  # state survives restarts, but lives in the worktree :)
 ```
 
 ### Manual clone fallback
 
-Use this only if you intentionally do not want FreeIDE' managed install layout
+Use this only if you intentionally do not want JettsTUI' managed install layout
 (for example, a throwaway clone inside a container or CI job). If you install
-this way, make sure you run the `freeide` entrypoint from this venv; running the
-system `python3 -m freeide_cli.main` can pick up unrelated system Python
+this way, make sure you run the `jettstui` entrypoint from this venv; running the
+system `python3 -m jettstui.main` can pick up unrelated system Python
 packages.
 
 Create the venv **outside** the cloned source tree. A venv that lives inside
@@ -93,8 +93,8 @@ git clone https://github.com/Raioshok/JETTS-TUI.git
 cd JETTS-TUI
 
 # Create venv with Python 3.11, OUTSIDE the source tree
-uv venv ~/.freeide/venvs/freeide-dev --python 3.11
-export VIRTUAL_ENV="$HOME/.freeide/venvs/freeide-dev"
+uv venv ~/.jettstui/venvs/jettstui-dev --python 3.11
+export VIRTUAL_ENV="$HOME/.jettstui/venvs/jettstui-dev"
 export PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # Install with all extras (messaging, cron, CLI menus, dev tools)
@@ -107,28 +107,28 @@ npm install
 ### Configure for Development
 
 ```bash
-mkdir -p ~/.freeide/{cron,sessions,logs,memories,skills}
-cp cli-config.yaml.example ~/.freeide/config.yaml
-touch ~/.freeide/.env
+mkdir -p ~/.jettstui/{cron,sessions,logs,memories,skills}
+cp cli-config.yaml.example ~/.jettstui/config.yaml
+touch ~/.jettstui/.env
 
 # Add at minimum an LLM provider key:
-echo 'OPENROUTER_API_KEY=sk-or-v1-your-key' >> ~/.freeide/.env
+echo 'OPENROUTER_API_KEY=sk-or-v1-your-key' >> ~/.jettstui/.env
 ```
 
 ### Run
 
 ```bash
-# The standard installer already put `freeide` on PATH.
-freeide doctor
-freeide chat -q "Hello"
+# The standard installer already put `jettstui` on PATH.
+jettstui doctor
+jettstui chat -q "Hello"
 ```
 
-If you used the manual clone fallback, run `./freeide` from the checkout or
+If you used the manual clone fallback, run `./jettstui` from the checkout or
 symlink this clone's venv explicitly:
 
 ```bash
 mkdir -p ~/.local/bin
-ln -sf "$(pwd)/venv/bin/freeide" ~/.local/bin/freeide
+ln -sf "$(pwd)/venv/bin/jettstui" ~/.local/bin/jettstui
 ```
 
 ### Run Tests
@@ -143,7 +143,7 @@ scripts/run_tests.sh
 - **Comments**: Only when explaining non-obvious intent, trade-offs, or API quirks
 - **Error handling**: Catch specific exceptions. Use `logger.warning()`/`logger.error()` with `exc_info=True` for unexpected errors
 - **Cross-platform**: Never assume Unix (see below)
-- **Profile-safe paths**: Never hardcode `~/.freeide` — use `get_freeide_home()` from `freeide_constants` for code paths and `display_freeide_home()` for user-facing messages. See [AGENTS.md](https://github.com/Raioshok/JETTS-TUI/blob/main/AGENTS.md) for full rules.
+- **Profile-safe paths**: Never hardcode `~/.jettstui` — use `get_jettstui_home()` from `jettstui_constants` for code paths and `display_jettstui_home()` for user-facing messages. See [AGENTS.md](https://github.com/Raioshok/JETTS-TUI/blob/main/AGENTS.md) for full rules.
 
 ## Cross-Platform Compatibility
 
@@ -202,7 +202,7 @@ Use `pathlib.Path` instead of string concatenation with `/`.
 
 ## Security Considerations
 
-FreeIDE has terminal access. Security matters.
+JettsTUI has terminal access. Security matters.
 
 ### Existing Protections
 
@@ -239,7 +239,7 @@ refactor/description   # Code restructuring
 ### Before Submitting
 
 1. **Run tests**: `scripts/run_tests.sh` for CI-parity. Use direct `python -m pytest ...` only when the wrapper is unavailable or you are intentionally debugging outside the wrapper.
-2. **Test manually**: Run `freeide` and exercise the code path you changed
+2. **Test manually**: Run `jettstui` and exercise the code path you changed
 3. **Check cross-platform impact**: Consider macOS, Linux, WSL2, and native Windows. If you touch file I/O, process management, terminal handling, subprocesses, or signals, run `scripts/check-windows-footguns.py`.
 4. **Keep PRs focused**: One logical change per PR
 
@@ -282,14 +282,14 @@ fix(security): prevent shell injection in sudo password piping
 ## Reporting Issues
 
 - Use [GitHub Issues](https://github.com/Raioshok/JETTS-TUI/issues)
-- Include: OS, Python version, FreeIDE version (`freeide version`), full error traceback
+- Include: OS, Python version, JettsTUI version (`jettstui version`), full error traceback
 - Include steps to reproduce
 - Check existing issues before creating duplicates
 - For security vulnerabilities, please report privately
 
 ## Community
 
-- **Discord**: [discord.gg/freeide](https://discord.gg/freeide)
+- **Discussions**: [GitHub Discussions](https://github.com/Raioshok/JETTS-TUI/discussions)
 - **GitHub Discussions**: For design proposals and architecture discussions
 - **Skills Hub**: Upload specialized skills and share with the community
 

@@ -1,9 +1,9 @@
 """
-Skills configuration for FreeIDE Agent.
-`freeide skills` enters this module.
+Skills configuration for JettsTUI.
+`jettstui skills` enters this module.
 
 Toggle individual skills or categories on/off, globally or per-platform.
-Config stored in ~/.freeide/config.yaml under:
+Config stored in ~/.jettstui/config.yaml under:
 
   skills:
     disabled: [skill-a, skill-b]          # global disabled list
@@ -13,9 +13,9 @@ Config stored in ~/.freeide/config.yaml under:
 """
 from typing import List, Optional, Set
 
-from freeide_cli.config import cfg_get, load_config, save_config
-from freeide_cli.colors import Colors, color
-from freeide_cli.platforms import PLATFORMS as _PLATFORMS
+from jettstui.config import cfg_get, load_config, save_config
+from jettstui.colors import Colors, color
+from jettstui.platforms import PLATFORMS as _PLATFORMS
 
 # Backward-compatible view: {key: label_string} so existing code that
 # iterates ``PLATFORMS.items()`` or calls ``PLATFORMS.get(key)`` keeps
@@ -118,7 +118,7 @@ def _select_platform() -> Optional[str]:
 
 def _toggle_by_category(skills: List[dict], disabled: Set[str]) -> Set[str]:
     """Toggle all skills in a category at once."""
-    from freeide_cli.curses_ui import curses_checklist
+    from jettstui.curses_ui import curses_checklist
 
     categories = _get_categories(skills)
     cat_labels = []
@@ -148,8 +148,8 @@ def _toggle_by_category(skills: List[dict], disabled: Set[str]) -> Set[str]:
 # ─── Entry Point ──────────────────────────────────────────────────────────────
 
 def skills_command(args=None):
-    """Entry point for `freeide skills`."""
-    from freeide_cli.curses_ui import curses_checklist
+    """Entry point for `jettstui skills`."""
+    from jettstui.curses_ui import curses_checklist
 
     config = load_config()
     skills = _list_all_skills()

@@ -17,12 +17,12 @@ afterEach(() => {
 })
 
 function makeRepo() {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'freeide-desktop-git-status-'))
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jettstui-desktop-git-status-'))
 
   tempDirs.push(dir)
   execFileSync('git', ['init', '-q'], { cwd: dir })
-  execFileSync('git', ['config', 'user.email', 'freeide-test@example.com'], { cwd: dir })
-  execFileSync('git', ['config', 'user.name', 'FreeIDE Test'], { cwd: dir })
+  execFileSync('git', ['config', 'user.email', 'jettstui-test@example.com'], { cwd: dir })
+  execFileSync('git', ['config', 'user.name', 'JettsTUI Test'], { cwd: dir })
   fs.writeFileSync(path.join(dir, 'tracked.txt'), 'tracked\n')
   execFileSync('git', ['add', 'tracked.txt'], { cwd: dir })
   execFileSync('git', ['commit', '-qm', 'initial'], { cwd: dir })

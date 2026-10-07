@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Canonical test runner for freeide-agent. Run this instead of calling
+# Canonical test runner for jettstui. Run this instead of calling
 # `pytest` directly to guarantee your local run matches CI behavior.
 #
 # What this script enforces:
@@ -11,7 +11,7 @@
 #   * Env vars blanked (conftest.py also does this, but this
 #     is belt-and-suspenders for anyone running pytest outside our
 #     conftest path — e.g. on a single file)
-#   * Proper venv activation (probes .venv, venv, then ~/.freeide/...)
+#   * Proper venv activation (probes .venv, venv, then ~/.jettstui/...)
 #
 # Usage:
 #   scripts/run_tests.sh                            # full suite
@@ -39,20 +39,20 @@ REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 # ── Locate python ───────────────────────────────────────────────────────────
 # Probe local venvs first; fall back to the Nix devShell's editable venv
-# (FREEIDE_PYTHON is exported by the devShell hook and ships [dev] extras:
+# (JETTSTUI_PYTHON is exported by the devShell hook and ships [dev] extras:
 # pytest, pytest-asyncio, pytest-timeout, ruff, ty).
 #
 # A candidate must have pytest INSTALLED, not merely exist. The release venv
-# at ~/.freeide/freeide-agent/venv has bin/activate but no pytest, so an
+# at ~/.jettstui/jettstui/venv has bin/activate but no pytest, so an
 # existence-only probe selected it in checkouts/worktrees without a local
 # .venv — every file then died with "No module named pytest" and the run
 # reported "0 tests passed" (which reads green at a glance even though the
 # exit code is 1). Skip such a venv and keep probing instead.
 SKIPPED_VENVS=""
-for candidate in "$REPO_ROOT/.venv" "$REPO_ROOT/venv" "$HOME/.freeide/freeide-agent/venv"; do
+for candidate in "$REPO_ROOT/.venv" "$REPO_ROOT/venv" "$HOME/.jettstui/jettstui/venv"; do
   # Accept both POSIX (bin/python) and native Windows (Scripts/python.exe)
   # layouts. Probing only bin/ matched nothing on Windows/MSYS, so with
-  # FREEIDE_PYTHON also unset the script fell through to the "no virtualenv
+  # JETTSTUI_PYTHON also unset the script fell through to the "no virtualenv
   # with pytest" error instead of running anything.
   venv_python=""
   if [ -f "$candidate/bin/activate" ]; then
@@ -76,18 +76,18 @@ if [ -n "$SKIPPED_VENVS" ]; then
   done
 fi
 
-if [ -z "${PYTHON:-}" ] && [ -n "${FREEIDE_PYTHON:-}" ] && [ -x "$FREEIDE_PYTHON" ] \
-    && "$FREEIDE_PYTHON" -c 'import pytest' 2>/dev/null; then
-  # Guard with an import check: FREEIDE_PYTHON may point at the RELEASE
-  # venv (no pytest) when inherited from a wrapped `freeide` binary rather
+if [ -z "${PYTHON:-}" ] && [ -n "${JETTSTUI_PYTHON:-}" ] && [ -x "$JETTSTUI_PYTHON" ] \
+    && "$JETTSTUI_PYTHON" -c 'import pytest' 2>/dev/null; then
+  # Guard with an import check: JETTSTUI_PYTHON may point at the RELEASE
+  # venv (no pytest) when inherited from a wrapped `jettstui` binary rather
   # than the devShell hook.
-  PYTHON="$FREEIDE_PYTHON"
-  echo "▶ no local venv — using Nix dev venv via FREEIDE_PYTHON: $PYTHON"
+  PYTHON="$JETTSTUI_PYTHON"
+  echo "▶ no local venv — using Nix dev venv via JETTSTUI_PYTHON: $PYTHON"
 fi
 
 if [ -z "${PYTHON:-}" ]; then
   echo "error: no virtualenv with pytest found in $REPO_ROOT/.venv or $REPO_ROOT/venv," >&2
-  echo "       and FREEIDE_PYTHON is not a python with pytest (enter the Nix devShell or create a venv)" >&2
+  echo "       and JETTSTUI_PYTHON is not a python with pytest (enter the Nix devShell or create a venv)" >&2
   if [ -n "$SKIPPED_VENVS" ]; then
     echo "       (skipped for missing pytest:$SKIPPED_VENVS — install dev extras there, or create $REPO_ROOT/.venv)" >&2
   fi
@@ -98,8 +98,8 @@ fi
 # ── Live-gateway plugin (computed before we drop env) ───────────────────────
 EXTRA_PYTHONPATH=""
 EXTRA_PYTEST_PLUGINS=""
-if [ -f "$HOME/.freeide/pytest_live_guard.py" ]; then
-  EXTRA_PYTHONPATH="$HOME/.freeide"
+if [ -f "$HOME/.jettstui/pytest_live_guard.py" ]; then
+  EXTRA_PYTHONPATH="$HOME/.jettstui"
   EXTRA_PYTEST_PLUGINS="pytest_live_guard"
 fi
 
@@ -145,7 +145,7 @@ exec env -i \
   ${LOCALAPPDATA:+LOCALAPPDATA="$LOCALAPPDATA"} \
   ${NUMBER_OF_PROCESSORS:+NUMBER_OF_PROCESSORS="$NUMBER_OF_PROCESSORS"} \
   ${PATHEXT:+PATHEXT="$PATHEXT"} \
-  ${FREEIDE_RUN_SLOW_PET_TESTS:+FREEIDE_RUN_SLOW_PET_TESTS="$FREEIDE_RUN_SLOW_PET_TESTS"} \
+  ${JETTSTUI_RUN_SLOW_PET_TESTS:+JETTSTUI_RUN_SLOW_PET_TESTS="$JETTSTUI_RUN_SLOW_PET_TESTS"} \
   ${EXTRA_PYTHONPATH:+PYTHONPATH="$EXTRA_PYTHONPATH"} \
   ${EXTRA_PYTEST_PLUGINS:+PYTEST_PLUGINS="$EXTRA_PYTEST_PLUGINS"} \
   "$PYTHON" "$SCRIPT_DIR/run_tests_parallel.py" "$@"

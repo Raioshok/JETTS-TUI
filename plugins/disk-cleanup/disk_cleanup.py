@@ -1,4 +1,4 @@
-"""disk_cleanup — ephemeral file cleanup for FreeIDE Agent.
+"""disk_cleanup — ephemeral file cleanup for JettsTUI.
 
 Library module wrapping the deterministic cleanup rules written by
 @LVT382009 in PR #12212. The plugin ``__init__.py`` wires these
@@ -10,13 +10,13 @@ Rules:
   - test files    → delete immediately at task end (age >= 0)
   - temp files    → delete after 7 days
   - cron-output   → delete after 14 days
-  - empty dirs    → always delete (under FREEIDE_HOME)
+  - empty dirs    → always delete (under JETTSTUI_HOME)
   - research      → keep 10 newest, prompt for older (deep only)
   - chrome-profile→ prompt after 14 days (deep only)
   - >500 MB files → prompt always (deep only)
 
-Scope: strictly FREEIDE_HOME and /tmp/freeide-*
-Never touches: ~/.freeide/logs/ or any system directory.
+Scope: strictly JETTSTUI_HOME and /tmp/jettstui-*
+Never touches: ~/.jettstui/logs/ or any system directory.
 """
 
 from __future__ import annotations
@@ -29,13 +29,13 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 try:
-    from freeide_constants import get_freeide_home
+    from jettstui_constants import get_jettstui_home
 except Exception:  # pragma: no cover — plugin may load before constants resolves
     import os
 
-    def get_freeide_home() -> Path:  # type: ignore[no-redef]
-        val = (os.environ.get("FREEIDE_HOME") or "").strip()
-        return Path(val).resolve() if val else (Path.home() / ".freeide").resolve()
+    def get_jettstui_home() -> Path:  # type: ignore[no-redef]
+        val = (os.environ.get("JETTSTUI_HOME") or "").strip()
+        return Path(val).resolve() if val else (Path.home() / ".jettstui").resolve()
 
 
 logger = logging.getLogger(__name__)
@@ -46,8 +46,8 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 def get_state_dir() -> Path:
-    """State dir — separate from ``$FREEIDE_HOME/logs/``."""
-    return get_freeide_home() / "disk-cleanup"
+    """State dir — separate from ``$JETTSTUI_HOME/logs/``."""
+    return get_jettstui_home() / "disk-cleanup"
 
 
 def get_tracked_file() -> Path:
@@ -55,7 +55,7 @@ def get_tracked_file() -> Path:
 
 
 def get_log_file() -> Path:
-    """Audit log — intentionally NOT under ``$FREEIDE_HOME/logs/``."""
+    """Audit log — intentionally NOT under ``$JETTSTUI_HOME/logs/``."""
     return get_state_dir() / "cleanup.log"
 
 
@@ -64,19 +64,19 @@ def get_log_file() -> Path:
 # ---------------------------------------------------------------------------
 
 def is_safe_path(path: Path) -> bool:
-    """Accept only paths under FREEIDE_HOME or ``/tmp/freeide-*``.
+    """Accept only paths under JETTSTUI_HOME or ``/tmp/jettstui-*``.
 
     Rejects Windows mounts (``/mnt/c`` etc.) and any system directory.
     """
-    freeide_home = get_freeide_home()
+    jettstui_home = get_jettstui_home()
     try:
-        path.resolve().relative_to(freeide_home)
+        path.resolve().relative_to(jettstui_home)
         return True
     except (ValueError, OSError):
         pass
-    # Allow /tmp/freeide-* explicitly
+    # Allow /tmp/jettstui-* explicitly
     parts = path.parts
-    if len(parts) >= 3 and parts[1] == "tmp" and parts[2].startswith("freeide-"):
+    if len(parts) >= 3 and parts[1] == "tmp" and parts[2].startswith("jettstui-"):
         return True
     return False
 
@@ -147,7 +147,7 @@ ALLOWED_CATEGORIES = {
 _EMPTY_DIR_PROTECTED_TOP_LEVEL = frozenset({
     "logs", "memories", "sessions", "cron", "cronjobs",
     "cache", "skills", "plugins", "disk-cleanup", "optional-skills",
-    "freeide-agent", "backups", "profiles", ".worktrees",
+    "jettstui", "backups", "profiles", ".worktrees",
 })
 
 _EMPTY_DIR_SWEEP_PRUNE_DIRS = frozenset({
@@ -156,7 +156,7 @@ _EMPTY_DIR_SWEEP_PRUNE_DIRS = frozenset({
 })
 
 
-# Paths under $FREEIDE_HOME that must NEVER be deleted by quick(),
+# Paths under $JETTSTUI_HOME that must NEVER be deleted by quick(),
 # regardless of what the stored category says.  This is a defense-in-depth
 # guard against stale tracked.json entries from before #34840.
 _PROTECTED_CRON_PATHS: set[str] = set()
@@ -174,12 +174,12 @@ def _is_protected_cron_path(p: Path) -> bool:
     protected, because deleting it wholesale erases every job's retained run
     history at once.
     """
-    # Lazily build the set once per process so FREEIDE_HOME is resolved
+    # Lazily build the set once per process so JETTSTUI_HOME is resolved
     # exactly once.
     if not _PROTECTED_CRON_PATHS:
-        freeide_home = get_freeide_home()
+        jettstui_home = get_jettstui_home()
         for parent in ("cron", "cronjobs"):
-            base = freeide_home / parent
+            base = jettstui_home / parent
             _PROTECTED_CRON_PATHS.add(str(base))
             _PROTECTED_CRON_PATHS.add(str(base / "output"))
             _PROTECTED_CRON_PATHS.add(str(base / "jobs.json"))
@@ -213,7 +213,7 @@ def track(path_str: str, category: str, silent: bool = False) -> bool:
         return False
 
     if not is_safe_path(path):
-        _log(f"REJECT: {path} (outside FREEIDE_HOME)")
+        _log(f"REJECT: {path} (outside JETTSTUI_HOME)")
         return False
 
     size = path.stat().st_size if path.is_file() else 0
@@ -364,15 +364,15 @@ def quick() -> Dict[str, Any]:
         else:
             new_tracked.append(item)
 
-    # Remove empty dirs under FREEIDE_HOME, but never recurse into known
-    # durable state trees.  Some installs place the FreeIDE checkout, venv,
-    # and desktop build under FREEIDE_HOME; a full rglob over that tree can
+    # Remove empty dirs under JETTSTUI_HOME, but never recurse into known
+    # durable state trees.  Some installs place the JettsTUI checkout, venv,
+    # and desktop build under JETTSTUI_HOME; a full rglob over that tree can
     # stall the gateway event loop for minutes.
-    freeide_home = get_freeide_home()
+    jettstui_home = get_jettstui_home()
     empty_removed = 0
     sweep_stack: List[Tuple[Path, bool]] = []
     try:
-        for top in freeide_home.iterdir():
+        for top in jettstui_home.iterdir():
             if (
                 top.is_dir()
                 and not top.is_symlink()
@@ -555,14 +555,14 @@ def guess_category(path: Path) -> Optional[str]:
         return None
 
     # Skip the state dir itself, logs, memory files, sessions, config.
-    freeide_home = get_freeide_home()
+    jettstui_home = get_jettstui_home()
     try:
-        rel = path.resolve().relative_to(freeide_home)
+        rel = path.resolve().relative_to(jettstui_home)
         top = rel.parts[0] if rel.parts else ""
         if top in {
             "disk-cleanup", "logs", "memories", "sessions", "config.yaml",
             "skills", "plugins", ".env", "USER.md", "MEMORY.md", "SOUL.md",
-            "auth.json", "freeide-agent",
+            "auth.json", "jettstui",
         }:
             return None
         if top == "cron" or top == "cronjobs":
@@ -577,7 +577,7 @@ def guess_category(path: Path) -> Optional[str]:
         if top == "cache":
             return "temp"
     except ValueError:
-        # Path isn't under FREEIDE_HOME (e.g. /tmp/freeide-*) — fall through.
+        # Path isn't under JETTSTUI_HOME (e.g. /tmp/jettstui-*) — fall through.
         pass
 
     name = path.name

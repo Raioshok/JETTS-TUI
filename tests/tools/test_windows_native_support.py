@@ -2,7 +2,7 @@
 
 Complements ``tests/tools/test_windows_compat.py`` (which does source-level
 pattern linting) with cross-platform-mocked tests that exercise the actual
-code paths FreeIDE takes on native Windows.
+code paths JettsTUI takes on native Windows.
 
 Runs on Linux CI — every test mocks ``sys.platform``, ``subprocess.run``,
 and ``os.kill`` as needed to simulate Windows behavior without requiring a
@@ -29,7 +29,7 @@ import pytest
 
 
 class TestConfigureWindowsStdio:
-    """``freeide_cli.stdio.configure_windows_stdio`` wiring.
+    """``jettstui.stdio.configure_windows_stdio`` wiring.
 
     The function must:
     - be a no-op on non-Windows
@@ -37,23 +37,23 @@ class TestConfigureWindowsStdio:
     - set PYTHONIOENCODING / PYTHONUTF8 without overriding explicit user settings
     - reconfigure sys.stdout/stderr/stdin to UTF-8 on Windows
     - flip the console code page to CP_UTF8 (65001) via ctypes
-    - respect FREEIDE_DISABLE_WINDOWS_UTF8 opt-out
+    - respect JETTSTUI_DISABLE_WINDOWS_UTF8 opt-out
     """
 
     @pytest.fixture(autouse=True)
     def _reset_configured(self, monkeypatch):
         """Reload the module before each test so the _CONFIGURED flag resets."""
         # Remove from sys.modules so import triggers a fresh load
-        sys.modules.pop("freeide_cli.stdio", None)
-        # Fresh import now; tests import from freeide_cli.stdio themselves,
+        sys.modules.pop("jettstui.stdio", None)
+        # Fresh import now; tests import from jettstui.stdio themselves,
         # but this guarantees the module they get is a brand-new copy.
-        import freeide_cli.stdio as _s
+        import jettstui.stdio as _s
         _s._CONFIGURED = False
         yield
-        sys.modules.pop("freeide_cli.stdio", None)
+        sys.modules.pop("jettstui.stdio", None)
 
     def test_no_op_on_posix(self, monkeypatch):
-        from freeide_cli import stdio
+        from jettstui import stdio
 
         monkeypatch.setattr(stdio, "is_windows", lambda: False)
         assert stdio.is_windows() is False
@@ -61,20 +61,20 @@ class TestConfigureWindowsStdio:
         assert result is False
 
     def test_idempotent(self):
-        from freeide_cli import stdio
+        from jettstui import stdio
 
         stdio.configure_windows_stdio()
         # Second call returns False because _CONFIGURED is set
         assert stdio.configure_windows_stdio() is False
 
     def test_windows_path_sets_env_and_reconfigures_streams(self, monkeypatch):
-        from freeide_cli import stdio
+        from jettstui import stdio
 
         monkeypatch.setattr(stdio, "is_windows", lambda: True)
         # Pretend the user has no prior setting
         monkeypatch.delenv("PYTHONIOENCODING", raising=False)
         monkeypatch.delenv("PYTHONUTF8", raising=False)
-        monkeypatch.delenv("FREEIDE_DISABLE_WINDOWS_UTF8", raising=False)
+        monkeypatch.delenv("JETTSTUI_DISABLE_WINDOWS_UTF8", raising=False)
         monkeypatch.delenv("EDITOR", raising=False)
         monkeypatch.delenv("VISUAL", raising=False)
 
@@ -107,7 +107,7 @@ class TestConfigureWindowsStdio:
 
     def test_respects_existing_editor_var(self, monkeypatch):
         """User's explicit EDITOR wins over our default."""
-        from freeide_cli import stdio
+        from jettstui import stdio
 
         monkeypatch.setattr(stdio, "is_windows", lambda: True)
         monkeypatch.setenv("EDITOR", "code --wait")
@@ -120,7 +120,7 @@ class TestConfigureWindowsStdio:
 
     def test_respects_existing_visual_var(self, monkeypatch):
         """VISUAL takes precedence over our EDITOR default too."""
-        from freeide_cli import stdio
+        from jettstui import stdio
 
         monkeypatch.setattr(stdio, "is_windows", lambda: True)
         monkeypatch.delenv("EDITOR", raising=False)
@@ -137,7 +137,7 @@ class TestConfigureWindowsStdio:
 
     def test_respects_existing_env_var(self, monkeypatch):
         """User's explicit PYTHONIOENCODING wins over our default."""
-        from freeide_cli import stdio
+        from jettstui import stdio
 
         monkeypatch.setattr(stdio, "is_windows", lambda: True)
         monkeypatch.setenv("PYTHONIOENCODING", "latin-1")
@@ -149,10 +149,10 @@ class TestConfigureWindowsStdio:
 
     @pytest.mark.parametrize("optout", ["1", "true", "True", "yes"])
     def test_disable_flag_short_circuits(self, monkeypatch, optout):
-        from freeide_cli import stdio
+        from jettstui import stdio
 
         monkeypatch.setattr(stdio, "is_windows", lambda: True)
-        monkeypatch.setenv("FREEIDE_DISABLE_WINDOWS_UTF8", optout)
+        monkeypatch.setenv("JETTSTUI_DISABLE_WINDOWS_UTF8", optout)
 
         reconfigure_hit = []
         monkeypatch.setattr(
@@ -167,7 +167,7 @@ class TestConfigureWindowsStdio:
 
     def test_reconfigure_stream_handles_missing_method(self, monkeypatch):
         """StringIO-like objects without .reconfigure() must not blow up."""
-        from freeide_cli import stdio
+        from jettstui import stdio
         import io
 
         buf = io.StringIO()
@@ -506,7 +506,7 @@ class TestEntryPointsConfigureStdio:
         root = Path(__file__).resolve().parents[2]
         source = (root / relpath).read_text(encoding="utf-8")
         assert "configure_windows_stdio" in source, (
-            f"{relpath} must call freeide_cli.stdio.configure_windows_stdio() "
+            f"{relpath} must call jettstui.stdio.configure_windows_stdio() "
             "early in startup so Windows consoles render Unicode without crashing"
         )
 
@@ -517,15 +517,15 @@ class TestEntryPointsConfigureStdio:
 
 
 class TestSubprocessCompatHelpers:
-    """freeide_cli/_subprocess_compat.py POSIX + Windows behaviour."""
+    """jettstui/_subprocess_compat.py POSIX + Windows behaviour."""
 
     def test_is_windows_matches_sys_platform(self):
-        from freeide_cli import _subprocess_compat as sc
+        from jettstui import _subprocess_compat as sc
         assert sc.IS_WINDOWS == (sys.platform == "win32")
 
     def test_resolve_node_command_returns_absolute_on_posix(self):
         """On Linux, resolve_node_command('sh', ['-c','echo hi']) picks up /bin/sh."""
-        from freeide_cli._subprocess_compat import resolve_node_command
+        from jettstui._subprocess_compat import resolve_node_command
         # We can't assert "npm is on PATH" portably; use `sh` which is
         # guaranteed on POSIX.  On Windows the test only confirms the
         # no-crash fallback path.
@@ -535,7 +535,7 @@ class TestSubprocessCompatHelpers:
         # name (fallback) — both are acceptable behaviours.
 
     def test_resolve_node_command_fallback_when_absent(self):
-        from freeide_cli._subprocess_compat import resolve_node_command
+        from jettstui._subprocess_compat import resolve_node_command
         argv = resolve_node_command(
             "zzz-definitely-not-on-path-xyzzy", ["--help"]
         )
@@ -544,7 +544,7 @@ class TestSubprocessCompatHelpers:
         assert argv[1:] == ["--help"]
 
     def test_windows_flags_zero_on_posix(self):
-        from freeide_cli._subprocess_compat import (
+        from jettstui._subprocess_compat import (
             windows_detach_flags,
             windows_detach_flags_without_breakaway,
             windows_hide_flags,
@@ -555,7 +555,7 @@ class TestSubprocessCompatHelpers:
             assert windows_hide_flags() == 0
 
     def test_windows_detach_popen_kwargs_is_posix_equivalent_on_posix(self):
-        from freeide_cli._subprocess_compat import windows_detach_popen_kwargs
+        from jettstui._subprocess_compat import windows_detach_popen_kwargs
         kwargs = windows_detach_popen_kwargs()
         if sys.platform != "win32":
             # POSIX path MUST produce start_new_session=True, which maps to
@@ -573,7 +573,7 @@ class TestSubprocessCompatHelpers:
 
     def test_windows_detach_flags_has_expected_win32_bits(self, monkeypatch):
         """Simulate Windows to verify flag bundle."""
-        from freeide_cli import _subprocess_compat as sc
+        from jettstui import _subprocess_compat as sc
         monkeypatch.setattr(sc, "IS_WINDOWS", True)
         flags = sc.windows_detach_flags()
         # CREATE_NEW_PROCESS_GROUP | CREATE_NO_WINDOW | CREATE_BREAKAWAY_FROM_JOB
@@ -594,7 +594,7 @@ class TestSubprocessCompatHelpers:
            all descendants inherit (parent-console root cause isolated by
            the desktop backend fix, commit aa2ae36c3f).
         """
-        from freeide_cli import _subprocess_compat as sc
+        from jettstui import _subprocess_compat as sc
         monkeypatch.setattr(sc, "IS_WINDOWS", True)
         assert not sc.windows_detach_flags() & 0x00000008, (
             "DETACHED_PROCESS must not be in windows_detach_flags(): it makes "
@@ -608,8 +608,8 @@ class TestSubprocessCompatHelpers:
     def test_windows_detach_flags_includes_breakaway_from_job(self, monkeypatch):
         """CREATE_BREAKAWAY_FROM_JOB is load-bearing for the GUI-driven update path.
 
-        Without it, the gateway-respawn watcher spawned by ``freeide update``
-        (which runs under freeide-setup.exe, itself a grandchild of the
+        Without it, the gateway-respawn watcher spawned by ``jettstui update``
+        (which runs under jettstui-setup.exe, itself a grandchild of the
         Electron Desktop app) gets reaped when Electron exits and its
         Win32 job object is torn down by the OS.  Result: gateway dies
         during update and never comes back.
@@ -619,7 +619,7 @@ class TestSubprocessCompatHelpers:
         ``fix/windows-gateway-reliability`` (PR #40909) and the bit must
         stay in the default bundle going forward.
         """
-        from freeide_cli import _subprocess_compat as sc
+        from jettstui import _subprocess_compat as sc
         monkeypatch.setattr(sc, "IS_WINDOWS", True)
         assert sc.windows_detach_flags() & 0x01000000, (
             "CREATE_BREAKAWAY_FROM_JOB (0x01000000) must remain in the "
@@ -639,7 +639,7 @@ class TestSubprocessCompatHelpers:
         It must drop ONLY the breakaway bit — DETACHED_PROCESS et al.
         are still required for the child to survive the parent's exit.
         """
-        from freeide_cli import _subprocess_compat as sc
+        from jettstui import _subprocess_compat as sc
         monkeypatch.setattr(sc, "IS_WINDOWS", True)
         full = sc.windows_detach_flags()
         fallback = sc.windows_detach_flags_without_breakaway()
@@ -694,7 +694,7 @@ class TestTuiGatewayEntrySignalGuards:
 
 
 # ---------------------------------------------------------------------------
-# freeide_cli/kanban_db.py waitpid guard
+# jettstui/kanban_db.py waitpid guard
 # ---------------------------------------------------------------------------
 
 
@@ -736,7 +736,7 @@ class TestCodeExecutionTransportTcpFallback:
 
     We can't easily execute the sandbox on Linux CI in Windows mode, but we
     CAN assert that the generated client module supports both AF_UNIX and
-    AF_INET endpoints based on the FREEIDE_RPC_SOCKET format.
+    AF_INET endpoints based on the JETTSTUI_RPC_SOCKET format.
     """
 
     def test_generated_client_handles_tcp_endpoint(self):
@@ -792,7 +792,7 @@ class TestCronSchedulerBashResolution:
 
 class TestNpmBareSpawnsResolved:
     """Every spawn site that launches ``npm``/``npx`` must resolve via
-    shutil.which / freeide_cli._subprocess_compat.resolve_node_command
+    shutil.which / jettstui._subprocess_compat.resolve_node_command
     so Windows can execute the .cmd batch shims."""
 
     @pytest.mark.parametrize(
@@ -866,12 +866,12 @@ class TestLocalEnvironmentWindowsTempDir:
                 f"POSIX temp dir must start with '/'; got {tmp_dir!r}"
             )
 
-    def test_source_has_windows_branch_using_freeide_home(self):
+    def test_source_has_windows_branch_using_jettstui_home(self):
         root = Path(__file__).resolve().parents[2]
         source = (root / "tools" / "environments" / "local.py").read_text(encoding="utf-8")
         assert "if _IS_WINDOWS:" in source
-        assert "get_freeide_home" in source
-        assert 'cache_dir = get_freeide_home() / "cache" / "terminal"' in source
+        assert "get_jettstui_home" in source
+        assert 'cache_dir = get_jettstui_home() / "cache" / "terminal"' in source
 
 
 class TestLocalEnvironmentPathInjectionGated:
@@ -949,11 +949,11 @@ class TestGatewayDetachedWatcherWindowsFlags:
     launcher must use CREATE_NEW_PROCESS_GROUP | DETACHED_PROCESS on
     Windows, not silent start_new_session=True."""
 
-    def test_freeide_cli_gateway_uses_compat_kwargs(self):
+    def test_jettstui_gateway_uses_compat_kwargs(self):
         root = Path(__file__).resolve().parents[2]
         source = (root / "jettstui" / "gateway.py").read_text(encoding="utf-8")
         assert "windows_detach_popen_kwargs" in source, (
-            "freeide_cli/gateway.py must use the platform-aware detach helper"
+            "jettstui/gateway.py must use the platform-aware detach helper"
         )
         # The legacy start_new_session=True on the outer Popen should be
         # replaced by **windows_detach_popen_kwargs(). Inside the watcher
@@ -975,7 +975,7 @@ class TestGatewayDetachedWatcherWindowsFlags:
 
         Static check — the watcher source is built at import time and embedded
         verbatim in the module text.  The literal Win32 bits live in
-        freeide_cli._subprocess_compat; the watcher must call that helper from
+        jettstui._subprocess_compat; the watcher must call that helper from
         inside the inlined payload so runtime behavior keeps the breakaway bit.
 
         The bit was added to the inlined payload by PR #40909.  This test
@@ -989,7 +989,7 @@ class TestGatewayDetachedWatcherWindowsFlags:
         end = text.find(").strip()", idx)
         assert end != -1, "watcher block end not found"
         block = text[idx:end]
-        assert "from freeide_cli._subprocess_compat import" in block
+        assert "from jettstui._subprocess_compat import" in block
         assert "windows_detach_flags" in block
         assert "windows_detach_flags()" in block, (
             "Inlined respawn watcher must call windows_detach_flags() for the "
@@ -1047,7 +1047,7 @@ class TestGatewayDetachedWatcherWindowsFlags:
         """The post-update respawn must route through
         ``gateway_windows.windowless_gateway_restart_spec``.
 
-        The spec supplies the stable cwd + env overlay (FREEIDE_HOME,
+        The spec supplies the stable cwd + env overlay (JETTSTUI_HOME,
         VIRTUAL_ENV, PYTHONPATH) so the respawned gateway doesn't depend on
         the watcher's transient working directory. (The interpreter itself
         stays the venv's console ``python.exe``, launched hidden via
@@ -1078,7 +1078,7 @@ class TestGatewayDetachedWatcherWindowsFlags:
         )
         assert '_popen_kwargs["env"]' in block, (
             "Inlined respawn must overlay env (VIRTUAL_ENV / PYTHONPATH / "
-            "FREEIDE_HOME) from the restart spec."
+            "JETTSTUI_HOME) from the restart spec."
         )
 
 
@@ -1088,9 +1088,9 @@ class TestWindowlessGatewayRestartSpec:
     overlay)."""
 
     def test_noop_on_non_windows(self):
-        import freeide_cli.gateway_windows as gw
+        import jettstui.gateway_windows as gw
 
-        argv = ["/path/venv/bin/python", "-m", "freeide_cli.main", "gateway", "run"]
+        argv = ["/path/venv/bin/python", "-m", "jettstui.main", "gateway", "run"]
         with mock.patch.object(gw.sys, "platform", "linux"):
             new_argv, cwd, env = gw.windowless_gateway_restart_spec(list(argv))
         assert new_argv == argv
@@ -1098,7 +1098,7 @@ class TestWindowlessGatewayRestartSpec:
         assert env == {}
 
     def test_empty_argv_is_safe(self):
-        import freeide_cli.gateway_windows as gw
+        import jettstui.gateway_windows as gw
 
         new_argv, cwd, env = gw.windowless_gateway_restart_spec([])
         assert new_argv == []
@@ -1109,21 +1109,21 @@ class TestWindowlessGatewayRestartSpec:
         """On Windows the console interpreter is kept (hidden-console launch,
         NOT a pythonw swap — #54220/#56747) while every subsequent argument
         is preserved verbatim."""
-        import freeide_cli.gateway_windows as gw
+        import jettstui.gateway_windows as gw
 
         # Pre-import on the (Linux) host so the function's lazy
-        # ``from freeide_cli.gateway import PROJECT_ROOT`` resolves from
+        # ``from jettstui.gateway import PROJECT_ROOT`` resolves from
         # sys.modules instead of re-importing under the win32 platform
         # patch below — a fresh import would run gateway/status.py's
         # ``if sys.platform == "win32": import msvcrt`` branch and crash on
         # Linux CI with ModuleNotFoundError.
-        import freeide_cli.config  # noqa: F401
-        import freeide_cli.gateway  # noqa: F401
+        import jettstui.config  # noqa: F401
+        import jettstui.gateway  # noqa: F401
 
         argv = [
             "C:/venv/Scripts/python.exe",
             "-m",
-            "freeide_cli.main",
+            "jettstui.main",
             "--profile",
             "work",
             "gateway",
@@ -1131,13 +1131,13 @@ class TestWindowlessGatewayRestartSpec:
             "--replace",
         ]
 
-        # Mock get_freeide_home too: the real one calls Path.resolve(), which
+        # Mock get_jettstui_home too: the real one calls Path.resolve(), which
         # consults sysconfig and raises ModuleNotFoundError under the win32
         # platform patch on a Linux host.
         with mock.patch.object(gw.sys, "platform", "win32"), mock.patch.object(
-            gw, "_stable_gateway_working_dir", return_value="C:/freeide"
+            gw, "_stable_gateway_working_dir", return_value="C:/jettstui"
         ), mock.patch(
-            "freeide_cli.config.get_freeide_home", return_value="C:/freeide"
+            "jettstui.config.get_jettstui_home", return_value="C:/jettstui"
         ):
             new_argv, cwd, env = gw.windowless_gateway_restart_spec(list(argv))
 
@@ -1146,7 +1146,7 @@ class TestWindowlessGatewayRestartSpec:
         assert new_argv[0] == "C:/venv/Scripts/python.exe"
         # Everything after the interpreter is byte-for-byte preserved.
         assert new_argv[1:] == argv[1:]
-        assert cwd == "C:/freeide"
+        assert cwd == "C:/jettstui"
         assert env["VIRTUAL_ENV"] == str(Path("C:/venv"))
         assert "PYTHONPATH" in env
 
@@ -1191,14 +1191,14 @@ class TestGatewayRunRestartWatcherOuterPopenFallback:
 
     def test_outer_watcher_retries_without_breakaway_on_oserror(self, monkeypatch):
         import gateway.run as gr
-        from freeide_cli._subprocess_compat import (
+        from jettstui._subprocess_compat import (
             IS_WINDOWS,
             windows_detach_flags_without_breakaway,
             windows_detach_popen_kwargs,
         )
 
         monkeypatch.setattr(gr.sys, "platform", "win32")
-        monkeypatch.setattr(gr, "_resolve_freeide_bin", lambda: ["freeide"])
+        monkeypatch.setattr(gr, "_resolve_jettstui_bin", lambda: ["jettstui"])
 
         calls = []
 
@@ -1226,7 +1226,7 @@ class TestGatewayRunRestartWatcherOuterPopenFallback:
 
         # Scrubbed env preserved and identical on both calls.
         assert kw1["env"] is kw2["env"]
-        assert "_FREEIDE_GATEWAY" not in kw1["env"]
+        assert "_JETTSTUI_GATEWAY" not in kw1["env"]
 
         # Stable, non-flag spawn configuration preserved across both attempts.
         assert kw1["stdout"] is subprocess.DEVNULL
@@ -1262,7 +1262,7 @@ class TestGatewayRunRestartWatcherOuterPopenFallback:
         import gateway.run as gr
 
         monkeypatch.setattr(gr.sys, "platform", "win32")
-        monkeypatch.setattr(gr, "_resolve_freeide_bin", lambda: ["freeide"])
+        monkeypatch.setattr(gr, "_resolve_jettstui_bin", lambda: ["jettstui"])
 
         captured = {}
 
@@ -1281,7 +1281,7 @@ class TestGatewayRunRestartWatcherOuterPopenFallback:
         import gateway.run as gr
 
         monkeypatch.setattr(gr.sys, "platform", "win32")
-        monkeypatch.setattr(gr, "_resolve_freeide_bin", lambda: ["freeide"])
+        monkeypatch.setattr(gr, "_resolve_jettstui_bin", lambda: ["jettstui"])
 
         calls = []
         monkeypatch.setattr(
@@ -1302,7 +1302,7 @@ class TestGatewayRunRestartWatcherOuterPopenFallback:
         import gateway.run as gr
 
         monkeypatch.setattr(gr.sys, "platform", "win32")
-        monkeypatch.setattr(gr, "_resolve_freeide_bin", lambda: ["freeide"])
+        monkeypatch.setattr(gr, "_resolve_jettstui_bin", lambda: ["jettstui"])
 
         calls = []
 
@@ -1317,7 +1317,7 @@ class TestGatewayRunRestartWatcherOuterPopenFallback:
         # Deterministic sentinel in the environment the watcher inherits
         # (watcher_env = os.environ.copy()); the warning must never echo it.
         secret = "maxwell-do-not-log-this-secret-42993"
-        monkeypatch.setenv("FREEIDE_TEST_SECRET", secret)
+        monkeypatch.setenv("JETTSTUI_TEST_SECRET", secret)
 
         # Dual failure must NOT propagate — the user's CLI still exits cleanly.
         self._drive(gr)
@@ -1339,7 +1339,7 @@ class TestGatewayRunRestartWatcherOuterPopenFallback:
             assert not isinstance(arg, (OSError, list, dict))
 
         # The watcher's env carried the sentinel; the rendered warning must not.
-        assert secret in (kwargs_used.get("env") or {}).get("FREEIDE_TEST_SECRET", "")
+        assert secret in (kwargs_used.get("env") or {}).get("JETTSTUI_TEST_SECRET", "")
         rendered = fmt % tuple(log_args)
         assert secret not in rendered
         assert argv_used[2] not in rendered  # watcher script body

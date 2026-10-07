@@ -1,15 +1,15 @@
-"""``freeide slack ...`` CLI subcommands.
+"""``jettstui slack ...`` CLI subcommands.
 
-Today only ``freeide slack manifest`` is implemented — it generates the
+Today only ``jettstui slack manifest`` is implemented — it generates the
 Slack app manifest JSON for registering every gateway command as a native
 Slack slash (``/btw``, ``/stop``, ``/model``, …) so users get the same
 first-class slash UX Discord and Telegram already have.
 
 Typical workflow::
 
-    $ freeide slack manifest > slack-manifest.json
+    $ jettstui slack manifest > slack-manifest.json
     # or:
-    $ freeide slack manifest --write
+    $ jettstui slack manifest --write
 
 Then paste the printed JSON into the Slack app config (Features → App
 Manifest → Edit) and click Save. Slack diffs the manifest and prompts
@@ -37,12 +37,12 @@ def _build_full_manifest(
     """Build a full Slack manifest merging display info + our slash list.
 
     The slash-command list is always generated from ``COMMAND_REGISTRY`` so
-    it stays in sync with the rest of FreeIDE. Other manifest sections
+    it stays in sync with the rest of JettsTUI. Other manifest sections
     (display info, OAuth scopes, socket mode) are set to sensible defaults
-    for a FreeIDE deployment — users can tweak them in the Slack UI after
+    for a JettsTUI deployment — users can tweak them in the Slack UI after
     pasting.
 
-    By default, this keeps FreeIDE on Slack's older Assistant messaging
+    By default, this keeps JettsTUI on Slack's older Assistant messaging
     experience (``assistant_view``) for backward compatibility. Pass
     ``messaging_experience="agent"`` (``--agent-view``) to emit Slack's Agent
     messaging experience (``agent_view`` + ``app_home_opened``). Pass
@@ -50,7 +50,7 @@ def _build_full_manifest(
     (``--no-assistant``) to omit Slack AI messaging features and get a flat DM
     surface where ``/help``, ``/new``, etc. work inline.
     """
-    from freeide_cli.commands import slack_app_manifest
+    from jettstui.commands import slack_app_manifest
 
     if messaging_experience is None:
         messaging_experience = "assistant" if include_assistant else "none"
@@ -107,7 +107,7 @@ def _build_full_manifest(
 
     if messaging_experience == "assistant":
         features["assistant_view"] = {
-            "assistant_description": "Chat with Jetts-TUI in threads and DMs.",
+            "assistant_description": "Chat with JettsTUI in threads and DMs.",
         }
         bot_scopes.append("assistant:write")
         bot_events.extend(
@@ -118,7 +118,7 @@ def _build_full_manifest(
         )
     elif messaging_experience == "agent":
         features["agent_view"] = {
-            "agent_description": "Chat with Jetts-TUI in Slack Messages.",
+            "agent_description": "Chat with JettsTUI in Slack Messages.",
         }
         bot_scopes.append("assistant:write")
         # Slack includes current viewing context in Agent DM events only after
@@ -131,7 +131,7 @@ def _build_full_manifest(
 
     display_information = {
         "name": bot_name[:35],
-        "description": (bot_description or "Your Jetts-TUI agent on Slack")[:140],
+        "description": (bot_description or "Your JettsTUI agent on Slack")[:140],
         "background_color": "#1a1a2e",
     }
     if long_description is not None:
@@ -166,10 +166,10 @@ def _build_full_manifest(
 def slack_manifest_command(args) -> int:
     """Print or write a Slack app manifest JSON.
 
-    Flags (all parsed in ``freeide_cli/main.py``):
+    Flags (all parsed in ``jettstui/main.py``):
       --write [PATH]  Write to file instead of stdout (default path:
-                      ``$FREEIDE_HOME/slack-manifest.json``)
-      --name NAME     Override the bot display name (default: "Jetts-TUI")
+                      ``$JETTSTUI_HOME/slack-manifest.json``)
+      --name NAME     Override the bot display name (default: "JettsTUI")
       --description DESC  Override the bot description
       --long-description TEXT  Override the long app description (175-4,000 characters)
       --long-description-file PATH  Read the long app description from a UTF-8 file
@@ -183,8 +183,8 @@ def slack_manifest_command(args) -> int:
                       app_home_opened + message.im) instead of the legacy
                       Assistant messaging experience.
     """
-    name = getattr(args, "name", None) or "Jetts-TUI"
-    description = getattr(args, "description", None) or "Your Jetts-TUI agent on Slack"
+    name = getattr(args, "name", None) or "JettsTUI"
+    description = getattr(args, "description", None) or "Your JettsTUI agent on Slack"
     long_description = getattr(args, "long_description", None)
     long_description_file = getattr(args, "long_description_file", None)
     if getattr(args, "slashes_only", False) and (
@@ -239,7 +239,7 @@ def slack_manifest_command(args) -> int:
         messaging_experience = "assistant"
 
     if getattr(args, "slashes_only", False):
-        from freeide_cli.commands import slack_app_manifest
+        from jettstui.commands import slack_app_manifest
 
         manifest = slack_app_manifest()["features"]["slash_commands"]
     else:
@@ -257,11 +257,11 @@ def slack_manifest_command(args) -> int:
         if isinstance(write_target, bool) and write_target:
             # --write with no value → default location
             try:
-                from freeide_constants import get_freeide_home
+                from jettstui_constants import get_jettstui_home
 
-                target = Path(get_freeide_home()) / "slack-manifest.json"
+                target = Path(get_jettstui_home()) / "slack-manifest.json"
             except Exception:
-                target = Path(os.environ.get("FREEIDE_HOME") or str(Path.home() / ".jettstui")) / "slack-manifest.json"
+                target = Path(os.environ.get("JETTSTUI_HOME") or str(Path.home() / ".jettstui")) / "slack-manifest.json"
         else:
             target = Path(write_target).expanduser()
         target.parent.mkdir(parents=True, exist_ok=True)
@@ -269,7 +269,7 @@ def slack_manifest_command(args) -> int:
         print(f"Slack manifest written to: {target}", file=sys.stderr)
         print(
             "\nNext steps:\n"
-            "  1. Open https://api.slack.com/apps and pick your Jetts-TUI app\n"
+            "  1. Open https://api.slack.com/apps and pick your JettsTUI app\n"
             "     (or create a new one: Create New App → From an app manifest).\n"
             f"  2. Features → App Manifest → paste the contents of\n"
             f"     {target}\n"

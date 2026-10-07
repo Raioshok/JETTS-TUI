@@ -30,43 +30,43 @@ class TestWriteDenyExactPaths:
         assert _is_write_denied(path) is True
 
 
-    def test_freeide_env(self):
-        # ``.env`` under the active FREEIDE_HOME (profile-aware, not just
-        # ``~/.freeide``) must be write-denied. The hermetic test conftest
-        # points FREEIDE_HOME at a tempdir — resolve via get_freeide_home()
+    def test_jettstui_env(self):
+        # ``.env`` under the active JETTSTUI_HOME (profile-aware, not just
+        # ``~/.jettstui``) must be write-denied. The hermetic test conftest
+        # points JETTSTUI_HOME at a tempdir — resolve via get_jettstui_home()
         # to match the denylist.
-        from freeide_constants import get_freeide_home
-        path = str(get_freeide_home() / ".env")
+        from jettstui_constants import get_jettstui_home
+        path = str(get_jettstui_home() / ".env")
         assert _is_write_denied(path) is True
 
     def test_encrypted_bitwarden_cache(self):
-        from freeide_constants import get_freeide_home
+        from jettstui_constants import get_jettstui_home
 
-        path = get_freeide_home() / "cache" / "bws_cache.enc.json"
+        path = get_jettstui_home() / "cache" / "bws_cache.enc.json"
         assert _is_write_denied(str(path)) is True
 
-    def test_freeide_root_env_when_running_under_profile(self, tmp_path, monkeypatch):
+    def test_jettstui_root_env_when_running_under_profile(self, tmp_path, monkeypatch):
         """Top-level ``<root>/.env`` stays write-denied even when running under
         a profile (#15981).
 
         Before the fix, ``build_write_denied_paths`` only added
         ``<active_profile>/.env`` to the deny list, so the global
-        ``~/.freeide/.env`` (whose credentials are inherited by every profile)
+        ``~/.jettstui/.env`` (whose credentials are inherited by every profile)
         could be silently overwritten by ``write_file`` while a profile was
         active.
         """
-        root = tmp_path / "freeide_root"
+        root = tmp_path / "jettstui_root"
         profile_home = root / "profiles" / "coder"
         profile_home.mkdir(parents=True)
         global_env = root / ".env"
         global_env.write_text("OPENAI_API_KEY=sk-real\n")
 
-        monkeypatch.setenv("FREEIDE_HOME", str(profile_home))
+        monkeypatch.setenv("JETTSTUI_HOME", str(profile_home))
 
-        # Sanity check: FREEIDE_HOME does point to the profile dir, not the root.
-        from freeide_constants import get_freeide_home, get_default_freeide_root
-        assert get_freeide_home() == profile_home
-        assert get_default_freeide_root() == root
+        # Sanity check: JETTSTUI_HOME does point to the profile dir, not the root.
+        from jettstui_constants import get_jettstui_home, get_default_jettstui_root
+        assert get_jettstui_home() == profile_home
+        assert get_default_jettstui_root() == root
 
         assert _is_write_denied(str(global_env)) is True
 
@@ -126,9 +126,9 @@ class TestWriteAllowed:
     def test_project_file(self):
         assert _is_write_denied("/home/user/project/main.py") is False
 
-    def test_freeide_control_files_requested_writable(self):
-        from freeide_constants import get_freeide_home
+    def test_jettstui_control_files_requested_writable(self):
+        from jettstui_constants import get_jettstui_home
 
-        home = get_freeide_home()
+        home = get_jettstui_home()
         for name in ["auth.json", "config.yaml", "webhook_subscriptions.json"]:
             assert _is_write_denied(str(home / name)) is False, f"{name} should be writable"

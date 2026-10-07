@@ -2,7 +2,7 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { atom } from 'nanostores'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { ProfileInfo } from '@/types/freeide'
+import type { ProfileInfo } from '@/types/jettstui'
 
 const getConnectionConfig = vi.fn()
 const profiles = atom<ProfileInfo[]>([])
@@ -29,7 +29,7 @@ beforeEach(() => {
       is_default: true,
       model: null,
       name: 'default',
-      path: '/tmp/freeide',
+      path: '/tmp/jettstui',
       provider: null,
       skill_count: 0
     },
@@ -38,13 +38,13 @@ beforeEach(() => {
       is_default: false,
       model: null,
       name: 'work',
-      path: '/tmp/freeide/profiles/work',
+      path: '/tmp/jettstui/profiles/work',
       provider: null,
       skill_count: 0
     }
   ])
   getConnectionConfig.mockResolvedValue(localConnection)
-  Object.defineProperty(window, 'freeideDesktop', {
+  Object.defineProperty(window, 'jettstuiDesktop', {
     configurable: true,
     value: { getConnectionConfig }
   })
@@ -62,7 +62,7 @@ describe('GatewaySettings', () => {
     render(<GatewaySettings />)
     expect(await screen.findByText('Local gateway')).toBeTruthy()
     expect(
-      screen.getByText('Start a private Jetts-TUI backend on localhost. This is the default and works offline.')
+      screen.getByText('Start a private JettsTUI backend on localhost. This is the default and works offline.')
     ).toBeTruthy()
 
     fireEvent.click(screen.getByRole('button', { name: 'work' }))
@@ -71,7 +71,7 @@ describe('GatewaySettings', () => {
     expect(await screen.findByText('Use default gateway')).toBeTruthy()
     expect(screen.getByText("Remove this profile's override and use the default connection.")).toBeTruthy()
     expect(
-      screen.queryByText('Start a private Jetts-TUI backend on localhost. This is the default and works offline.')
+      screen.queryByText('Start a private JettsTUI backend on localhost. This is the default and works offline.')
     ).toBeNull()
   })
 })

@@ -1,6 +1,6 @@
-"""``freeide whatsapp`` subcommand parser.
+"""``jettstui whatsapp`` subcommand parser.
 
-Extracted verbatim from ``freeide_cli/main.py:main()`` (god-file Phase 2).
+Extracted verbatim from ``jettstui/main.py:main()`` (god-file Phase 2).
 Handler injected to avoid importing ``main``.
 """
 

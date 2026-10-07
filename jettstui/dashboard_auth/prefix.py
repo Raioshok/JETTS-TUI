@@ -1,12 +1,12 @@
 """Helpers for X-Forwarded-Prefix support.
 
 Mission-control style deploys reverse-proxy the dashboard at a path
-prefix (e.g. ``mission-control.tilos.com/freeide/*`` -> dashboard on
-:9119), injecting ``X-Forwarded-Prefix: /freeide`` so the backend can
+prefix (e.g. ``mission-control.tilos.com/jettstui/*`` -> dashboard on
+:9119), injecting ``X-Forwarded-Prefix: /jettstui`` so the backend can
 reconstruct prefixed URLs (Location: headers, OAuth redirect_uri,
 cookie Path attributes, SPA asset URLs).
 
-This module is also the home of the ``FREEIDE_DASHBOARD_PUBLIC_URL`` /
+This module is also the home of the ``JETTSTUI_DASHBOARD_PUBLIC_URL`` /
 ``dashboard.public_url`` resolution — when the operator declares a
 complete public URL (scheme + host + optional path prefix), we use
 that directly for the OAuth ``redirect_uri`` and skip the
@@ -50,9 +50,9 @@ def _warn_if_malformed(source: str, raw: str) -> None:
     was rejected by :func:`_normalise_public_url`.
 
     A non-empty value that normalises to ``""`` is almost always a
-    missing scheme (``freeide.example.com`` instead of
-    ``https://freeide.example.com``) — the single most common cause of
-    "I set FREEIDE_DASHBOARD_PUBLIC_URL but the OAuth callback is still
+    missing scheme (``jettstui.example.com`` instead of
+    ``https://jettstui.example.com``) — the single most common cause of
+    "I set JETTSTUI_DASHBOARD_PUBLIC_URL but the OAuth callback is still
     http://". Without this warning the value is silently discarded and
     the dashboard falls back to reconstructing the redirect URI from
     request headers, which behind a reverse proxy can yield the wrong
@@ -74,7 +74,7 @@ def _warn_if_malformed(source: str, raw: str) -> None:
         "scheme behind a reverse proxy.",
         source,
         cleaned,
-        cleaned.split("://")[-1] or "freeide.example.com",
+        cleaned.split("://")[-1] or "jettstui.example.com",
     )
 
 
@@ -98,7 +98,7 @@ def _warn_if_malformed_prefix(raw: Optional[str], reason: str) -> None:
 def normalise_prefix(raw: Optional[str]) -> str:
     """Normalise an X-Forwarded-Prefix header value.
 
-    Returns a string like ``"/freeide"`` (no trailing slash) or ``""``
+    Returns a string like ``"/jettstui"`` (no trailing slash) or ``""``
     when no prefix is set / the header is malformed. We deliberately
     reject anything containing ``..`` or non-printable bytes so a
     hostile proxy can't inject HTML or path-traversal sequences via the
@@ -139,7 +139,7 @@ def prefix_from_request(request) -> str:
 
 
 # ---------------------------------------------------------------------------
-# FREEIDE_DASHBOARD_PUBLIC_URL / dashboard.public_url
+# JETTSTUI_DASHBOARD_PUBLIC_URL / dashboard.public_url
 # ---------------------------------------------------------------------------
 
 
@@ -187,7 +187,7 @@ def _load_dashboard_section() -> dict:
     ``.get(...)`` access.
     """
     try:
-        from freeide_cli.config import load_config
+        from jettstui.config import load_config
     except Exception:
         return {}
     try:
@@ -208,7 +208,7 @@ def resolve_public_url() -> str:
 
     Precedence (mirrors ``dashboard.oauth.client_id``):
 
-      1. ``FREEIDE_DASHBOARD_PUBLIC_URL`` env var (when non-empty after
+      1. ``JETTSTUI_DASHBOARD_PUBLIC_URL`` env var (when non-empty after
          strip — empty values are treated as unset so a provisioned-but-
          not-populated Fly secret can't shadow a valid config.yaml entry).
       2. ``dashboard.public_url`` in ``config.yaml``.
@@ -220,11 +220,11 @@ def resolve_public_url() -> str:
     malformed config entry falls through to ``""``. This means a typo
     in one surface doesn't prevent the other from working.
     """
-    env_raw = os.environ.get("FREEIDE_DASHBOARD_PUBLIC_URL", "")
+    env_raw = os.environ.get("JETTSTUI_DASHBOARD_PUBLIC_URL", "")
     env_clean = _normalise_public_url(env_raw)
     if env_clean:
         return env_clean
-    _warn_if_malformed("FREEIDE_DASHBOARD_PUBLIC_URL env var", env_raw)
+    _warn_if_malformed("JETTSTUI_DASHBOARD_PUBLIC_URL env var", env_raw)
     cfg_raw = str(_load_dashboard_section().get("public_url", ""))
     cfg_clean = _normalise_public_url(cfg_raw)
     if not cfg_clean:

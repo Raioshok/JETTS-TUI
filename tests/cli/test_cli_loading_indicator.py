@@ -2,12 +2,12 @@
 
 from unittest.mock import patch
 
-from cli import FreeIDECLI
+from cli import JettsTUICLI
 
 
 class TestCLILoadingIndicator:
     def _make_cli(self):
-        cli_obj = FreeIDECLI.__new__(FreeIDECLI)
+        cli_obj = JettsTUICLI.__new__(JettsTUICLI)
         cli_obj._app = None
         cli_obj._last_invalidate = 0.0
         cli_obj._command_running = False

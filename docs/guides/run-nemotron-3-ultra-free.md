@@ -1,12 +1,12 @@
 ---
 sidebar_position: 0
-title: "Run Nemotron 3 Ultra free in FreeIDE Agent"
-description: "Try NVIDIA Nemotron 3 Ultra free — June 4–18 — with day 0 support in FreeIDE Agent"
+title: "Run Nemotron 3 Ultra free in JettsTUI"
+description: "Try NVIDIA Nemotron 3 Ultra free — June 4–18 — with day 0 support in JettsTUI"
 ---
 
-# Run Nemotron 3 Ultra free in FreeIDE Agent
+# Run Nemotron 3 Ultra free in JettsTUI
 
-FreeIDE has been inducted into the **Nemotron Coalition** of leading AI labs working with **NVIDIA** to advance open frontier foundation models. In honor of this, we've partnered with **Nebius** to provide **Nemotron 3 Ultra** free for two weeks (**June 4th – June 18th**), available through free providers like OpenRouter. Follow the instructions below to try the model in your FreeIDE Agent today.
+JettsTUI has been inducted into the **Nemotron Coalition** of leading AI labs working with **NVIDIA** to advance open frontier foundation models. In honor of this, we've partnered with **Nebius** to provide **Nemotron 3 Ultra** free for two weeks (**June 4th – June 18th**), available through free providers like OpenRouter. Follow the instructions below to try the model in your JettsTUI today.
 
 :::info Limited-time offer
 The `nvidia/nemotron-3-ultra:free` tier is available from **June 4th to June 18th**. The `:free` tag is what keeps it on the no-cost plan — pick that exact variant.
@@ -20,7 +20,7 @@ The simplest path: a one-click installer with a guided, point-and-click setup. N
 
 ### 1. Download and install
 
-[Download the FreeIDE Desktop installer](../README.md) for macOS or Windows, then open it. On first launch it finishes setting itself up (usually under a minute).
+[Download the JettsTUI Desktop installer](../README.md) for macOS or Windows, then open it. On first launch it finishes setting itself up (usually under a minute).
 
 ### 2. Connect a provider
 
@@ -44,7 +44,7 @@ Click **Start chatting**. That's it — you're talking to Nemotron 3 Ultra, free
 
 Prefer the terminal?
 
-### 1. Install FreeIDE Agent
+### 1. Install JettsTUI
 
 On macOS/Linux/WSL2/Android, run
 
@@ -69,7 +69,7 @@ source ~/.bashrc   # or source ~/.zshrc
 ### 2. Run setup and pick a provider
 
 ```bash
-freeide setup
+jettstui setup
 ```
 
 When prompted, choose a provider that offers Nemotron 3 Ultra — for example **OpenRouter** — and paste your API key. Create a free key from the provider's dashboard if you don't have one yet.
@@ -89,7 +89,7 @@ The `:free` tag is what keeps it on the no-cost tier, so make sure you pick that
 Complete the remaining setup prompts, then run:
 
 ```bash
-freeide
+jettstui
 ```
 
 That's it — you're talking to Nemotron 3 Ultra, free.
@@ -103,7 +103,7 @@ Already set up with another model?
 
 ## Troubleshooting
 
-- **Don't see the model in the list?** Make sure you selected a provider that offers Nemotron 3 Ultra and that your API key is valid. Re-run `freeide setup` to check or change your provider.
+- **Don't see the model in the list?** Make sure you selected a provider that offers Nemotron 3 Ultra and that your API key is valid. Re-run `jettstui setup` to check or change your provider.
 - **Picked the wrong variant?** Re-select `nvidia/nemotron-3-ultra:free` — the `:free` suffix is required to stay on the no-cost tier.
 - **Browser didn't open / you're on a remote host (CLI)?** See [OAuth over SSH / Remote Hosts](./oauth-over-ssh.md) for port-forwarding workarounds.
 

@@ -1,13 +1,13 @@
 # Tool Matrix — Skills + Toolsets per Role
 
-Maps each role archetype to the FreeIDE skills it should `always_load` and the
-toolsets it needs. Only references skills that ship in the public freeide-agent
+Maps each role archetype to the JettsTUI skills it should `always_load` and the
+toolsets it needs. Only references skills that ship in the public jettstui
 repository (under `skills/` or `optional-skills/`). External APIs and CLIs are
 called from the terminal toolset; they don't appear in `always_load`.
 
-## FreeIDE skills relevant to video production
+## JettsTUI skills relevant to video production
 
-### Visual / rendering skills (`freeide-agent/skills/creative/`)
+### Visual / rendering skills (`jettstui/skills/creative/`)
 
 | Skill | What it does | Best fit for |
 |-------|--------------|--------------|
@@ -23,7 +23,7 @@ called from the terminal toolset; they don't appear in `always_load`.
 | `baoyu-infographic` | Infographic generation | Renderer for data-driven explainer scenes |
 | `meme-generation` *(optional)* | Generate meme images by overlaying text on templates | Generator for satirical/social content; meme-style stills |
 
-### Design / pre-production skills (`freeide-agent/skills/creative/`)
+### Design / pre-production skills (`jettstui/skills/creative/`)
 
 | Skill | What it does | Best fit for |
 |-------|--------------|--------------|
@@ -38,7 +38,7 @@ called from the terminal toolset; they don't appear in `always_load`.
 | `creative-ideation` | Constraint-driven project ideation | Director / cinematographer when the brief is wide-open and needs framing |
 | `humanizer` | Strip AI-isms from text, add real voice | Writer / copywriter post-process to avoid AI-tells in scripts and VO copy |
 
-### Audio / media skills (`freeide-agent/skills/creative/` + `skills/media/`)
+### Audio / media skills (`jettstui/skills/creative/` + `skills/media/`)
 
 | Skill | What it does | Best fit for |
 |-------|--------------|--------------|
@@ -59,7 +59,7 @@ no kanban skill to load; the guidance is always present for kanban workers.
 
 ## External tools (called from terminal toolset)
 
-These are **not** FreeIDE skills but external CLIs / APIs that profiles invoke.
+These are **not** JettsTUI skills but external CLIs / APIs that profiles invoke.
 They don't appear in `always_load`; instead the role's terminal commands hit
 them directly.
 
@@ -76,14 +76,14 @@ them directly.
 | Manim CE (`manim`) | Math animation render (driven by `manim-video` skill's recipes) | renderer-manim |
 | Blender (`blender -b`) | 3D rendering (alternative to `blender-mcp`) | renderer-3d |
 
-## Built-in FreeIDE tools for media review
+## Built-in JettsTUI tools for media review
 
-These are native FreeIDE tools — not invoked via terminal but through their own
+These are native JettsTUI tools — not invoked via terminal but through their own
 toolsets. Enable them per-profile by adding the toolset to the profile config.
 
 | Tool | Toolset | What it does | Profile that uses it |
 |------|---------|--------------|----------------------|
-| `video_analyze` | `video` (opt-in — `freeide tools enable video`) | Native video understanding — sends full clip to a multimodal LLM (Gemini via OpenRouter) for review without frame extraction. Supports mp4, webm, mov, avi, mkv. 50 MB cap. Model: `AUXILIARY_VIDEO_MODEL` env → `AUXILIARY_VISION_MODEL` fallback. | reviewer, cinematographer, editor |
+| `video_analyze` | `video` (opt-in — `jettstui tools enable video`) | Native video understanding — sends full clip to a multimodal LLM (Gemini via OpenRouter) for review without frame extraction. Supports mp4, webm, mov, avi, mkv. 50 MB cap. Model: `AUXILIARY_VIDEO_MODEL` env → `AUXILIARY_VISION_MODEL` fallback. | reviewer, cinematographer, editor |
 | `vision_analyze` | `vision` (core — enabled by default) | Image/frame analysis — review stills, thumbnails, exported frames. Already available to all profiles without opt-in. | reviewer, cinematographer, concept-artist |
 
 ## Standard toolset configurations per role
@@ -269,7 +269,7 @@ skills:
 ## API key requirements
 
 Track these in the project setup. The setup script should verify each required
-key is present in `${FREEIDE_HOME:-~/.freeide}/.env` (or macOS Keychain) before firing the kanban.
+key is present in `${JETTSTUI_HOME:-~/.jettstui}/.env` (or macOS Keychain) before firing the kanban.
 
 | Service | Env var | Used by |
 |---------|---------|---------|
@@ -283,10 +283,10 @@ key is present in `${FREEIDE_HOME:-~/.freeide}/.env` (or macOS Keychain) before 
 | Luma | `LUMA_API_KEY` | image-to-video-generator (alternate) |
 | Suno | `SUNO_API_KEY` | music-supervisor (paired with `songwriting-and-ai-music`) |
 | Spotify | `SPOTIFY_CLIENT_ID` + `SPOTIFY_CLIENT_SECRET` | music-supervisor (paired with `spotify` skill) |
-| Anthropic | `ANTHROPIC_API_KEY` | every FreeIDE profile (Claude) |
+| Anthropic | `ANTHROPIC_API_KEY` | every JettsTUI profile (Claude) |
 
 If a key is missing, prompt the user to add it. Storage methods, in order of
-preference: macOS Keychain → `${FREEIDE_HOME:-~/.freeide}/.env` → environment variable.
+preference: macOS Keychain → `${JETTSTUI_HOME:-~/.jettstui}/.env` → environment variable.
 
 ## Skill version pinning
 
@@ -295,7 +295,7 @@ If a specific skill version is desired, pass it via the per-task
 
 ## Adding a new skill to the matrix
 
-When a new FreeIDE-public video skill ships:
+When a new JettsTUI-public video skill ships:
 
 1. Add a row to the relevant table at the top of this file
 2. If it warrants a specialized renderer variant, add to `role-archetypes.md`

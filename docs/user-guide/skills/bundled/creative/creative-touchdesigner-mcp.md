@@ -26,7 +26,7 @@ Control TouchDesigner via twozero MCP.
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that FreeIDE loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that JettsTUI loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # TouchDesigner Integration (twozero MCP)
@@ -42,7 +42,7 @@ The following is the complete skill definition that FreeIDE loads when this skil
 ## Architecture
 
 ```
-FreeIDE Agent -> MCP (Streamable HTTP) -> twozero.tox (port 40404) -> TD Python
+JettsTUI -> MCP (Streamable HTTP) -> twozero.tox (port 40404) -> TD Python
 ```
 
 36 native tools. Free plugin (no payment/license — confirmed April 2026).
@@ -54,13 +54,13 @@ Hub health check: `GET http://localhost:40404/mcp` returns JSON with instance PI
 Run the setup script to handle everything:
 
 ```bash
-bash "${FREEIDE_HOME:-$HOME/.freeide}/skills/creative/touchdesigner-mcp/scripts/setup.sh"
+bash "${JETTSTUI_HOME:-$HOME/.jettstui}/skills/creative/touchdesigner-mcp/scripts/setup.sh"
 ```
 
 The script will:
 1. Check if TD is running
 2. Download twozero.tox if not already cached
-3. Add `twozero_td` MCP server to FreeIDE config (if missing)
+3. Add `twozero_td` MCP server to JettsTUI config (if missing)
 4. Test the MCP connection on port 40404
 5. Report what manual steps remain (drag .tox into TD, enable MCP toggle)
 
@@ -68,7 +68,7 @@ The script will:
 
 1. **Drag `~/Downloads/twozero.tox` into the TD network editor** → click Install
 2. **Enable MCP:** click twozero icon → Settings → mcp → "auto start MCP" → Yes
-3. **Restart FreeIDE session** to pick up the new MCP server
+3. **Restart JettsTUI session** to pick up the new MCP server
 
 After setup, verify:
 ```bash

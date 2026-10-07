@@ -20,13 +20,13 @@ def test_plan_mode_allows_reads_and_planning_documents():
     set_current_work_mode("plan")
     assert maybe_block_tool("read_file", {"path": "src/app.py"}) is None
     assert maybe_block_tool(
-        "write_file", {"path": ".freeide/specs/login/design.md"}
+        "write_file", {"path": ".jettstui/specs/login/design.md"}
     ) is None
     assert maybe_block_tool(
-        "patch", {"mode": "replace", "path": ".freeide/plans/login.md"}
+        "patch", {"mode": "replace", "path": ".jettstui/plans/login.md"}
     ) is None
     traversal = maybe_block_tool(
-        "write_file", {"path": ".freeide/specs/../../src/app.py"}
+        "write_file", {"path": ".jettstui/specs/../../src/app.py"}
     )
     assert "Plan mode blocked" in json.loads(traversal)["error"]
 

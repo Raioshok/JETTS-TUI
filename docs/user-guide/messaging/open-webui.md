@@ -1,52 +1,52 @@
 ---
 sidebar_position: 8
 title: "Open WebUI"
-description: "Connect Open WebUI to FreeIDE Agent via the OpenAI-compatible API server"
+description: "Connect Open WebUI to JettsTUI via the OpenAI-compatible API server"
 ---
 
 # Open WebUI Integration
 
-[Open WebUI](https://github.com/open-webui/open-webui) (126k★) is the most popular self-hosted chat interface for AI. With FreeIDE Agent's built-in API server, you can use Open WebUI as a polished web frontend for your agent — complete with conversation management, user accounts, and a modern chat interface.
+[Open WebUI](https://github.com/open-webui/open-webui) (126k★) is the most popular self-hosted chat interface for AI. With JettsTUI's built-in API server, you can use Open WebUI as a polished web frontend for your agent — complete with conversation management, user accounts, and a modern chat interface.
 
 ## Architecture
 
 ```mermaid
 flowchart LR
     A["Open WebUI<br/>browser UI<br/>port 3000"]
-    B["freeide-agent<br/>gateway API server<br/>port 8642"]
+    B["jettstui<br/>gateway API server<br/>port 8642"]
     A -->|POST /v1/chat/completions| B
     B -->|SSE streaming response| A
 ```
 
-Open WebUI connects to FreeIDE Agent's API server just like it would connect to OpenAI. FreeIDE handles the requests with its full toolset — terminal, file operations, web search, memory, skills — and returns the final response.
+Open WebUI connects to JettsTUI's API server just like it would connect to OpenAI. JettsTUI handles the requests with its full toolset — terminal, file operations, web search, memory, skills — and returns the final response.
 
 :::important Runtime location
-The API server is a **FreeIDE agent runtime**, not a pure LLM proxy. For each request, FreeIDE creates a server-side `AIAgent` on the API-server host. Tool calls run where that API server is running.
+The API server is a **JettsTUI agent runtime**, not a pure LLM proxy. For each request, JettsTUI creates a server-side `AIAgent` on the API-server host. Tool calls run where that API server is running.
 
-For example, if a laptop points Open WebUI or another OpenAI-compatible client at a FreeIDE API server on a remote machine, `pwd`, file tools, browser tools, local MCP tools, and other workspace tools run on the remote API-server host, not on the laptop.
+For example, if a laptop points Open WebUI or another OpenAI-compatible client at a JettsTUI API server on a remote machine, `pwd`, file tools, browser tools, local MCP tools, and other workspace tools run on the remote API-server host, not on the laptop.
 :::
 
-Open WebUI talks to FreeIDE server-to-server, so you do not need `API_SERVER_CORS_ORIGINS` for this integration.
+Open WebUI talks to JettsTUI server-to-server, so you do not need `API_SERVER_CORS_ORIGINS` for this integration.
 
 ## Quick Setup
 
 ### 1. Enable the API server
 
 ```bash
-freeide config set API_SERVER_ENABLED true
-freeide config set API_SERVER_KEY your-secret-key
+jettstui config set API_SERVER_ENABLED true
+jettstui config set API_SERVER_KEY your-secret-key
 ```
 
-`freeide config set` auto-routes the flag to `config.yaml` and the secret to `~/.freeide/.env`. If the gateway is already running, restart it so the change takes effect:
+`jettstui config set` auto-routes the flag to `config.yaml` and the secret to `~/.jettstui/.env`. If the gateway is already running, restart it so the change takes effect:
 
 ```bash
-freeide gateway stop && freeide gateway
+jettstui gateway stop && jettstui gateway
 ```
 
-### 2. Start FreeIDE Agent gateway
+### 2. Start JettsTUI gateway
 
 ```bash
-freeide gateway
+jettstui gateway
 ```
 
 You should see:
@@ -62,7 +62,7 @@ curl -s http://127.0.0.1:8642/health
 # {"status": "ok", ...}
 
 curl -s -H "Authorization: Bearer your-secret-key" http://127.0.0.1:8642/v1/models
-# {"object":"list","data":[{"id":"freeide-agent", ...}]}
+# {"object":"list","data":[{"id":"jettstui", ...}]}
 ```
 
 If `/health` fails, the gateway didn't pick up `API_SERVER_ENABLED=true` — restart it. If `/v1/models` returns `401`, your `Authorization` header doesn't match `API_SERVER_KEY`.
@@ -87,7 +87,7 @@ First launch takes 15–30 seconds: Open WebUI downloads sentence-transformer em
 
 ### 5. Open the UI
 
-Go to **http://localhost:3000**. Create your admin account (the first user becomes admin). You should see your agent in the model dropdown (named after your profile, or **freeide-agent** for the default profile). Start chatting!
+Go to **http://localhost:3000**. Create your admin account (the first user becomes admin). You should see your agent in the model dropdown (named after your profile, or **jettstui** for the default profile). Start chatting!
 
 ## Docker Compose Setup
 
@@ -130,11 +130,11 @@ If you prefer to configure the connection through the UI instead of environment 
 5. Click **+ Add New Connection**
 6. Enter:
    - **URL**: `http://host.docker.internal:8642/v1`
-   - **API Key**: the exact same value as `API_SERVER_KEY` in FreeIDE
+   - **API Key**: the exact same value as `API_SERVER_KEY` in JettsTUI
 7. Click the **checkmark** to verify the connection
 8. **Save**
 
-Your agent model should now appear in the model dropdown (named after your profile, or **freeide-agent** for the default profile).
+Your agent model should now appear in the model dropdown (named after your profile, or **jettstui** for the default profile).
 
 :::warning
 Environment variables only take effect on Open WebUI's **first launch**. After that, connection settings are stored in its internal database. To change them later, use the Admin UI or delete the Docker volume and start fresh.
@@ -151,18 +151,18 @@ Open WebUI supports two API modes when connecting to a backend:
 
 ### Using Chat Completions (recommended)
 
-This is the default and requires no extra configuration. Open WebUI sends standard OpenAI-format requests and FreeIDE Agent responds accordingly. Each request includes the full conversation history.
+This is the default and requires no extra configuration. Open WebUI sends standard OpenAI-format requests and JettsTUI responds accordingly. Each request includes the full conversation history.
 
 ### Using Responses API
 
 To use the Responses API mode:
 
 1. Go to **Admin Settings** → **Connections** → **OpenAI** → **Manage**
-2. Edit your freeide-agent connection
+2. Edit your jettstui connection
 3. Change **API Type** from "Chat Completions" to **"Responses (Experimental)"**
 4. Save
 
-With the Responses API, Open WebUI sends requests in the Responses format (`input` array + `instructions`), and FreeIDE Agent can preserve full tool call history across turns via `previous_response_id`. When `stream: true`, FreeIDE also streams spec-native `function_call` and `function_call_output` items, which enables custom structured tool-call UI in clients that render Responses events.
+With the Responses API, Open WebUI sends requests in the Responses format (`input` array + `instructions`), and JettsTUI can preserve full tool call history across turns via `previous_response_id`. When `stream: true`, JettsTUI also streams spec-native `function_call` and `function_call_output` items, which enables custom structured tool-call UI in clients that render Responses events.
 
 :::note
 Open WebUI currently manages conversation history client-side even in Responses mode — it sends the full message history in each request rather than using `previous_response_id`. The main advantage of Responses mode today is the structured event stream: text deltas, `function_call`, and `function_call_output` items arrive as OpenAI Responses SSE events instead of Chat Completions chunks.
@@ -173,15 +173,15 @@ Open WebUI currently manages conversation history client-side even in Responses 
 When you send a message in Open WebUI:
 
 1. Open WebUI sends a `POST /v1/chat/completions` request with your message and conversation history
-2. FreeIDE Agent creates a server-side `AIAgent` instance using the API server's profile, model/provider config, memory, skills, and configured API-server toolsets
+2. JettsTUI creates a server-side `AIAgent` instance using the API server's profile, model/provider config, memory, skills, and configured API-server toolsets
 3. The agent processes your request — it may call tools (terminal, file operations, web search, etc.) on the API-server host
 4. As tools execute, **inline progress messages stream to the UI** so you can see what the agent is doing (e.g. `` `💻 ls -la` ``, `` `🔍 Python 3.12 release` ``)
 5. The agent's final text response streams back to Open WebUI
 6. Open WebUI displays the response in its chat interface
 
-Your agent has access to the same tools and capabilities as that API-server FreeIDE instance. If the API server is remote, those tools are remote too.
+Your agent has access to the same tools and capabilities as that API-server JettsTUI instance. If the API server is remote, those tools are remote too.
 
-If you need tools to run against your **local** workspace today, run FreeIDE locally and point it at a pure LLM provider or pure OpenAI-compatible model proxy (for example vLLM, LiteLLM, Ollama, llama.cpp, OpenAI, OpenRouter, etc.). A future split-runtime mode for "remote brain, local hands" is being tracked in [#18715](https://github.com/freeide/freeide/issues/18715); it is not the behavior of the current API server.
+If you need tools to run against your **local** workspace today, run JettsTUI locally and point it at a pure LLM provider or pure OpenAI-compatible model proxy (for example vLLM, LiteLLM, Ollama, llama.cpp, OpenAI, OpenRouter, etc.). A future split-runtime mode for "remote brain, local hands" is being tracked in [#18715](https://github.com/Raioshok/JETTS-TUI/issues/18715); it is not the behavior of the current API server.
 
 :::tip Tool Progress
 With streaming enabled (the default), you'll see brief inline indicators as tools run — the tool emoji and its key argument. These appear in the response stream before the agent's final answer, giving you visibility into what's happening behind the scenes.
@@ -189,7 +189,7 @@ With streaming enabled (the default), you'll see brief inline indicators as tool
 
 ## Configuration Reference
 
-### FreeIDE Agent (API server)
+### JettsTUI (API server)
 
 | Variable | Default | Description |
 |----------|---------|-------------|
@@ -202,7 +202,7 @@ With streaming enabled (the default), you'll see brief inline indicators as tool
 
 | Variable | Description |
 |----------|-------------|
-| `OPENAI_API_BASE_URL` | FreeIDE Agent's API URL (include `/v1`) |
+| `OPENAI_API_BASE_URL` | JettsTUI's API URL (include `/v1`) |
 | `OPENAI_API_KEY` | Must be non-empty. Match your `API_SERVER_KEY`. |
 
 ## Troubleshooting
@@ -211,9 +211,9 @@ With streaming enabled (the default), you'll see brief inline indicators as tool
 
 - **Check the URL has `/v1` suffix**: `http://host.docker.internal:8642/v1` (not just `:8642`)
 - **Verify the gateway is running**: `curl http://localhost:8642/health` should return `{"status": "ok"}`
-- **Check model listing**: `curl -H "Authorization: Bearer your-secret-key" http://localhost:8642/v1/models` should return a list with `freeide-agent`
+- **Check model listing**: `curl -H "Authorization: Bearer your-secret-key" http://localhost:8642/v1/models` should return a list with `jettstui`
 - **Docker networking**: From inside Docker, `localhost` means the container, not your host. Use `host.docker.internal` or `--network=host`.
-- **Empty Ollama backend shadowing the picker**: If you omitted `ENABLE_OLLAMA_API=false`, Open WebUI shows an empty Ollama section above your FreeIDE models. Restart the container with `-e ENABLE_OLLAMA_API=false` or disable Ollama in **Admin Settings → Connections**.
+- **Empty Ollama backend shadowing the picker**: If you omitted `ENABLE_OLLAMA_API=false`, Open WebUI shows an empty Ollama section above your JettsTUI models. Restart the container with `-e ENABLE_OLLAMA_API=false` or disable Ollama in **Admin Settings → Connections**.
 
 ### Connection test passes but no models load
 
@@ -221,11 +221,11 @@ This is almost always the missing `/v1` suffix. Open WebUI's connection test is 
 
 ### Response takes a long time
 
-FreeIDE Agent may be executing multiple tool calls (reading files, running commands, searching the web) before producing its final response. This is normal for complex queries. The response appears all at once when the agent finishes.
+JettsTUI may be executing multiple tool calls (reading files, running commands, searching the web) before producing its final response. This is normal for complex queries. The response appears all at once when the agent finishes.
 
 ### "Invalid API key" errors
 
-Make sure your `OPENAI_API_KEY` in Open WebUI matches the `API_SERVER_KEY` in FreeIDE Agent.
+Make sure your `OPENAI_API_KEY` in Open WebUI matches the `API_SERVER_KEY` in JettsTUI.
 
 :::warning
 Open WebUI persists OpenAI-compatible connection settings in its own database after first launch. If you accidentally saved a wrong key in the Admin UI, fixing the environment variables alone is not enough — update or delete the saved connection in **Admin Settings → Connections**, or reset the Open WebUI data directory / database.
@@ -233,22 +233,22 @@ Open WebUI persists OpenAI-compatible connection settings in its own database af
 
 ## Multi-User Setup with Profiles
 
-To run separate FreeIDE instances per user — each with their own config, memory, and skills — use [profiles](../profiles.md). Each profile runs its own API server on a different port and automatically advertises the profile name as the model in Open WebUI.
+To run separate JettsTUI instances per user — each with their own config, memory, and skills — use [profiles](../profiles.md). Each profile runs its own API server on a different port and automatically advertises the profile name as the model in Open WebUI.
 
 ### 1. Create profiles and configure API servers
 
 `API_SERVER_*` are env vars, not YAML config keys, so write them to each profile's `.env`. Pick ports outside the default-platform range (`8644` is the webhook adapter, `8645` is wecom-callback, `8646` is msgraph-webhook), e.g. `8650+`:
 
 ```bash
-freeide profile create alice
-cat >> ~/.freeide/profiles/alice/.env <<EOF
+jettstui profile create alice
+cat >> ~/.jettstui/profiles/alice/.env <<EOF
 API_SERVER_ENABLED=true
 API_SERVER_PORT=8650
 API_SERVER_KEY=alice-secret
 EOF
 
-freeide profile create bob
-cat >> ~/.freeide/profiles/bob/.env <<EOF
+jettstui profile create bob
+cat >> ~/.jettstui/profiles/bob/.env <<EOF
 API_SERVER_ENABLED=true
 API_SERVER_PORT=8651
 API_SERVER_KEY=bob-secret
@@ -258,8 +258,8 @@ EOF
 ### 2. Start each gateway
 
 ```bash
-freeide -p alice gateway &
-freeide -p bob gateway &
+jettstui -p alice gateway &
+jettstui -p bob gateway &
 ```
 
 ### 3. Add connections in Open WebUI
@@ -271,12 +271,12 @@ In **Admin Settings** → **Connections** → **OpenAI API** → **Manage**, add
 | Alice | `http://host.docker.internal:8650/v1` | `alice-secret` |
 | Bob | `http://host.docker.internal:8651/v1` | `bob-secret` |
 
-The model dropdown will show `alice` and `bob` as distinct models. You can assign models to Open WebUI users via the admin panel, giving each user their own isolated FreeIDE agent.
+The model dropdown will show `alice` and `bob` as distinct models. You can assign models to Open WebUI users via the admin panel, giving each user their own isolated JettsTUI agent.
 
 :::tip Custom Model Names
 The model name defaults to the profile name. To override it, set `API_SERVER_MODEL_NAME` in the profile's `.env`:
 ```bash
-freeide -p alice config set API_SERVER_MODEL_NAME "Alice's Agent"
+jettstui -p alice config set API_SERVER_MODEL_NAME "Alice's Agent"
 ```
 :::
 

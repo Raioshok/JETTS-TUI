@@ -1,6 +1,6 @@
 """Welcome banner, ASCII art, skills summary, and update check for the CLI.
 
-Pure display functions with no FreeIDECLI state dependency.
+Pure display functions with no JettsTUICLI state dependency.
 """
 import json
 import logging
@@ -11,10 +11,10 @@ import threading
 import time
 from pathlib import Path
 from urllib.parse import urlparse
-from freeide_constants import get_freeide_home
+from jettstui_constants import get_jettstui_home
 from typing import TYPE_CHECKING, Dict, List, Optional
 
-from freeide_cli import rice
+from jettstui import rice
 
 # rich and prompt_toolkit are imported lazily (inside the functions that use
 # them) rather than at module level.  Importing this module is on the TUI
@@ -52,7 +52,7 @@ def cprint(text: str):
 def _skin_color(key: str, fallback: str) -> str:
     """Get a color from the active skin, or return fallback."""
     try:
-        from freeide_cli.skin_engine import get_active_skin
+        from jettstui.skin_engine import get_active_skin
         return get_active_skin().get_color(key, fallback)
     except Exception:
         return fallback
@@ -60,9 +60,9 @@ def _skin_color(key: str, fallback: str) -> str:
 # ASCII Art & Branding
 # =========================================================================
 
-from freeide_cli import __version__ as VERSION, __release_date__ as RELEASE_DATE
+from jettstui import __version__ as VERSION, __release_date__ as RELEASE_DATE
 
-FREEIDE_AGENT_LOGO = """[bold #cba6f7]╭──────────────────────────────╮[/]
+JETTSTUI_AGENT_LOGO = """[bold #cba6f7]╭──────────────────────────────╮[/]
 [bold #b9a9fb]│                              │[/]
 [#b4befe]│          JETTS-TUI           │[/]
 [#a6b8fc]│                              │[/]
@@ -71,8 +71,8 @@ FREEIDE_AGENT_LOGO = """[bold #cba6f7]╭─────────────
 
 # Abstract prism emblem — a violet→sky gradient diamond that matches the
 # wordmark. Replaces the old winged-staff mascot, which carried upstream
-# symbolism; this one is pure FreeIDE.
-FREEIDE_CADUCEUS = """[#cba6f7]          ╱╲          [/]
+# symbolism; this one is pure JettsTUI.
+JETTSTUI_CADUCEUS = """[#cba6f7]          ╱╲          [/]
 [#c0a9f8]         ╱  ╲         [/]
 [#b4befe]        ╱ ╱╲ ╲        [/]
 [#adbafd]       ╱ ╱  ╲ ╲       [/]
@@ -118,7 +118,7 @@ def get_available_skills() -> Dict[str, List[str]]:
 _UPDATE_CHECK_CACHE_SECONDS = 6 * 3600
 
 # Sentinel returned when we know an update exists but can't count commits
-# (e.g. nix-built freeide — no local git history to count against).
+# (e.g. nix-built jettstui — no local git history to count against).
 UPDATE_AVAILABLE_NO_COUNT = -1
 
 _UPSTREAM_REPO_URL = "https://github.com/Raioshok/JETTS-TUI.git"
@@ -260,9 +260,9 @@ def _check_via_local_git(repo_dir: Path) -> Optional[int]:
 
 
 def check_for_updates() -> Optional[int]:
-    """Check whether a FreeIDE update is available.
+    """Check whether a JettsTUI update is available.
 
-    Two paths: if ``FREEIDE_REVISION`` is set (nix builds embed it), compare
+    Two paths: if ``JETTSTUI_REVISION`` is set (nix builds embed it), compare
     it to upstream main via ``git ls-remote``. Otherwise look for a local
     git checkout and count commits behind ``origin/main``.
 
@@ -270,19 +270,19 @@ def check_for_updates() -> Optional[int]:
     if behind but the count is unknown, ``0`` if up-to-date, or ``None`` if
     the check failed or doesn't apply. Cached for 6 hours.
     """
-    freeide_home = get_freeide_home()
-    cache_file = freeide_home / ".update_check"
-    embedded_rev = os.environ.get("FREEIDE_REVISION") or None
+    jettstui_home = get_jettstui_home()
+    cache_file = jettstui_home / ".update_check"
+    embedded_rev = os.environ.get("JETTSTUI_REVISION") or None
 
     # Docker images have no working tree to count commits against — the
     # published image excludes `.git` (see .dockerignore) and sets no
-    # FREEIDE_REVISION (that's nix-only). Returning None makes both the Rich
+    # JETTSTUI_REVISION (that's nix-only). Returning None makes both the Rich
     # banner (build_welcome_banner) and the Ink badge (branding.tsx, guarded
     # on `typeof === 'number' && > 0`) show nothing. The dashboard's REST
-    # `/api/freeide/update/check` endpoint short-circuits docker the same way
+    # `/api/jettstui/update/check` endpoint short-circuits docker the same way
     # (web_server.py); mirror that here so the banner/TUI surfaces agree.
     try:
-        from freeide_cli.config import detect_install_method, get_project_root
+        from jettstui.config import detect_install_method, get_project_root
         if detect_install_method(get_project_root()) == "docker":
             return None
     except Exception:
@@ -307,11 +307,11 @@ def check_for_updates() -> Optional[int]:
         behind = _check_via_rev(embedded_rev)
     else:
         # Prefer the running code's location over the profile-scoped path.
-        # $FREEIDE_HOME/freeide-agent/ may be a stale copy from --clone-all;
+        # $JETTSTUI_HOME/jettstui/ may be a stale copy from --clone-all;
         # Path(__file__) always resolves to the actual installed checkout.
         repo_dir = Path(__file__).parent.parent.resolve()
         if not (repo_dir / ".git").exists():
-            repo_dir = freeide_home / "freeide-agent"
+            repo_dir = jettstui_home / "jettstui"
         if not (repo_dir / ".git").exists():
             # No git checkout and no embedded revision — can't determine
             # update status. This is the Docker path (already short-circuited
@@ -332,16 +332,16 @@ def check_for_updates() -> Optional[int]:
 
 
 def _resolve_repo_dir() -> Optional[Path]:
-    """Return the active FreeIDE git checkout, or None if this isn't a git install.
+    """Return the active JettsTUI git checkout, or None if this isn't a git install.
 
     Prefers the running code's location over the profile-scoped path
-    because ``$FREEIDE_HOME/freeide-agent/`` may be a stale copy carried
+    because ``$JETTSTUI_HOME/jettstui/`` may be a stale copy carried
     over by ``--clone-all``.
     """
     repo_dir = Path(__file__).parent.parent.resolve()
     if not (repo_dir / ".git").exists():
-        freeide_home = get_freeide_home()
-        repo_dir = freeide_home / "freeide-agent"
+        jettstui_home = get_jettstui_home()
+        repo_dir = jettstui_home / "jettstui"
     return repo_dir if (repo_dir / ".git").exists() else None
 
 
@@ -372,7 +372,7 @@ def get_git_banner_state(repo_dir: Optional[Path] = None) -> Optional[dict]:
     the active checkout.  When no checkout is available — the canonical case
     is the published Docker image, which excludes ``.git`` from the build
     context — we fall back to the baked-in build SHA (see
-    ``freeide_cli/build_info.py``) and return it as a frozen
+    ``jettstui/build_info.py``) and return it as a frozen
     ``upstream == local`` state with ``ahead=0``.  A built image is by
     definition pinned to one commit, so "ahead" is always zero and the
     banner correctly shows ``· upstream <sha>`` with no carried-commits
@@ -382,7 +382,7 @@ def get_git_banner_state(repo_dir: Optional[Path] = None) -> Optional[dict]:
     if repo_dir is None:
         # No git checkout — try the baked build SHA (Docker image path).
         try:
-            from freeide_cli.build_info import get_build_sha
+            from jettstui.build_info import get_build_sha
             baked = get_build_sha(short=8)
             if baked:
                 return {"upstream": baked, "local": baked, "ahead": 0}
@@ -396,7 +396,7 @@ def get_git_banner_state(repo_dir: Optional[Path] = None) -> Optional[dict]:
         # Live-git lookup failed (e.g. shallow clone without origin/main).
         # Fall back to the baked build SHA if available.
         try:
-            from freeide_cli.build_info import get_build_sha
+            from jettstui.build_info import get_build_sha
             baked = get_build_sha(short=8)
             if baked:
                 return {"upstream": baked, "local": baked, "ahead": 0}
@@ -431,8 +431,8 @@ def get_latest_release_tag(repo_dir: Optional[Path] = None) -> Optional[tuple]:
     """Return ``(tag, release_url)`` for the latest git tag, or None.
 
     Local-only — runs ``git describe --tags --abbrev=0`` against the
-    Jetts-TUI checkout. Cached per-process. Release URL always points at the
-    canonical Jetts-TUI repo (forks don't get a link).
+    JettsTUI checkout. Cached per-process. Release URL always points at the
+    canonical JettsTUI repo (forks don't get a link).
     """
     global _latest_release_cache
     if _latest_release_cache is not None:
@@ -473,7 +473,7 @@ def get_latest_release_tag(repo_dir: Optional[Path] = None) -> Optional[tuple]:
 
 def format_banner_version_label() -> str:
     """Return the version label shown in the startup banner title."""
-    base = f"Jetts-TUI v{VERSION} ({RELEASE_DATE})"
+    base = f"JettsTUI v{VERSION} ({RELEASE_DATE})"
     state = get_git_banner_state()
     if not state:
         return base
@@ -620,7 +620,7 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
     border_color = _skin_color("banner_border", "#585b70")
 
     try:
-        from freeide_cli.skin_engine import get_active_skin
+        from jettstui.skin_engine import get_active_skin
         _bskin = get_active_skin()
     except Exception:
         _bskin = None
@@ -654,7 +654,7 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
         total_skills = 0
 
     try:
-        from freeide_cli.models import CANONICAL_PROVIDERS as _CP
+        from jettstui.models import CANONICAL_PROVIDERS as _CP
         n_providers = len(_CP)
     except Exception:
         n_providers = 0
@@ -701,7 +701,7 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
     _fact("▸", "cwd", f"[{text}]{_cwd}[/]")
     if session_id:
         _fact("⟩", "session", f"[{dim}]{escape(session_id)}[/]")
-    if os.getenv("FREEIDE_YOLO_MODE"):
+    if os.getenv("JETTSTUI_YOLO_MODE"):
         _fact("⚠", "mode", "[bold red]YOLO — approvals bypassed[/]")
 
     # ── Toolset chips (names only — no per-tool wall) ────────────────────
@@ -742,7 +742,7 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
     try:
         behind = get_update_result(timeout=0.5)
         if behind:
-            from freeide_cli.config import recommended_update_command, get_managed_update_command
+            from jettstui.config import recommended_update_command, get_managed_update_command
             if behind > 0:
                 _w = "commit" if behind == 1 else "commits"
                 body.append(Text.from_markup(
@@ -755,7 +755,7 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
         pass
 
     try:
-        from freeide_cli.profiles import get_active_profile_name
+        from jettstui.profiles import get_active_profile_name
         _profile_name = get_active_profile_name()
         if _profile_name and _profile_name != "default":
             body.append(Text.from_markup(f"[{dim}]profile[/]  [{text}]{escape(_profile_name)}[/]"))
@@ -763,9 +763,9 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
         pass
 
     if _bskin and _bskin.name == "studio":
-        from freeide_cli.studio import welcome_panel
+        from jettstui.studio import welcome_panel
         notices = body[notice_start:]
-        if os.getenv("FREEIDE_YOLO_MODE"):
+        if os.getenv("JETTSTUI_YOLO_MODE"):
             notices.append(Text("YOLO · approvals bypassed", style="bold red"))
         console.print(welcome_panel(
             skin=_bskin, width=console.width, model=model, provider=provider,
@@ -798,14 +798,14 @@ def build_welcome_banner(console: "Console", model: str, cwd: str,
     # The gradient wordmark is the hero on a roomy terminal; the compact prism
     # emblem stands in when there isn't room for it.
     if term_width >= 52:
-        _logo = _bskin.banner_logo if _bskin and getattr(_bskin, "banner_logo", "") else FREEIDE_AGENT_LOGO
+        _logo = _bskin.banner_logo if _bskin and getattr(_bskin, "banner_logo", "") else JETTSTUI_AGENT_LOGO
         console.print(Align.center(_logo, width=_card_width))
         # Gradient hairline + tagline tie the wordmark to the info card.
         console.print(Align.center(Text.from_markup(rice.gradient_rule(min(_card_width - 2, 52))), width=_card_width))
         console.print(Align.center(Text.from_markup(f"[{dim}]bring-your-own-key coding agent[/]"), width=_card_width))
         console.print()
     else:
-        _hero = _bskin.banner_hero if _bskin and getattr(_bskin, "banner_hero", "") else FREEIDE_CADUCEUS
+        _hero = _bskin.banner_hero if _bskin and getattr(_bskin, "banner_hero", "") else JETTSTUI_CADUCEUS
         console.print(_hero)
         console.print()
     console.print(Align.center(outer_panel, width=_card_width))

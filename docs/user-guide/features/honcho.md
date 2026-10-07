@@ -6,7 +6,7 @@ description: "AI-native persistent memory via Honcho — dialectic reasoning, mu
 
 # Honcho Memory
 
-[Honcho](https://github.com/plastic-labs/honcho) is an AI-native memory backend that adds dialectic reasoning and deep user modeling on top of FreeIDE's built-in memory system. Instead of simple key-value storage, Honcho maintains a running model of who the user is — their preferences, communication style, goals, and patterns — by reasoning about conversations after they happen.
+[Honcho](https://github.com/plastic-labs/honcho) is an AI-native memory backend that adds dialectic reasoning and deep user modeling on top of JettsTUI's built-in memory system. Instead of simple key-value storage, Honcho maintains a running model of who the user is — their preferences, communication style, goals, and patterns — by reasoning about conversations after they happen.
 
 :::info Honcho is a Memory Provider Plugin
 Honcho is integrated into the [Memory Providers](./memory-providers.md) system. All features below are available through the unified memory provider interface.
@@ -28,24 +28,24 @@ Honcho is integrated into the [Memory Providers](./memory-providers.md) system. 
 
 **Session-scoped context**: Base context now includes the session summary alongside the user representation and peer card. This gives the agent awareness of what has already been discussed in the current session, reducing repetition and enabling continuity.
 
-**Multi-agent profiles**: When multiple FreeIDE instances talk to the same user (e.g., a coding assistant and a personal assistant), Honcho maintains separate "peer" profiles. Each peer sees only its own observations and conclusions, preventing cross-contamination of context.
+**Multi-agent profiles**: When multiple JettsTUI instances talk to the same user (e.g., a coding assistant and a personal assistant), Honcho maintains separate "peer" profiles. Each peer sees only its own observations and conclusions, preventing cross-contamination of context.
 
 ## Setup
 
 ```bash
-freeide memory setup    # select "honcho" from the provider list
+jettstui memory setup    # select "honcho" from the provider list
 ```
 
 Or configure manually:
 
 ```yaml
-# ~/.freeide/config.yaml
+# ~/.jettstui/config.yaml
 memory:
   provider: honcho
 ```
 
 ```bash
-echo 'HONCHO_API_KEY=***' >> ~/.freeide/.env
+echo 'HONCHO_API_KEY=***' >> ~/.jettstui/.env
 ```
 
 Get an API key at [honcho.dev](https://honcho.dev).
@@ -104,11 +104,11 @@ The auto-injected dialectic scales `dialecticReasoningLevel` by query length: +1
 
 ## Configuration Options
 
-Honcho is configured in `~/.honcho/config.json` (global) or `$FREEIDE_HOME/honcho.json` (profile-local). The setup wizard handles this for you.
+Honcho is configured in `~/.honcho/config.json` (global) or `$JETTSTUI_HOME/honcho.json` (profile-local). The setup wizard handles this for you.
 
 ### Self-Hosted Honcho with Authentication
 
-When pointing FreeIDE at a self-hosted Honcho server, `freeide honcho setup` (and `freeide memory setup`) ask for a **local JWT / bearer token** after the base URL. Paste a JWT signed with the server's `AUTH_JWT_SECRET` (the Honcho compose env var) to enable authenticated access; leave it blank for servers running with `AUTH_USE_AUTH=false`. The local token is stored under the host block (`hosts.<host>.apiKey` in `honcho.json`), separate from any cloud `apiKey`, so you can flip the `Cloud or local?` prompt back to `cloud` later without losing either credential.
+When pointing JettsTUI at a self-hosted Honcho server, `jettstui honcho setup` (and `jettstui memory setup`) ask for a **local JWT / bearer token** after the base URL. Paste a JWT signed with the server's `AUTH_JWT_SECRET` (the Honcho compose env var) to enable authenticated access; leave it blank for servers running with `AUTH_USE_AUTH=false`. The local token is stored under the host block (`hosts.<host>.apiKey` in `honcho.json`), separate from any cloud `apiKey`, so you can flip the `Cloud or local?` prompt back to `cloud` later without losing either credential.
 
 ### Full Config Reference
 
@@ -134,7 +134,7 @@ When pointing FreeIDE at a self-hosted Honcho server, `freeide honcho setup` (an
 | `runtimePeerPrefix` | `""` | Gateway only. Namespaces unknown runtime IDs (`telegram_7654321`) when no alias matches |
 
 **Session strategy** controls how Honcho sessions map to your work:
-- `per-session` — each `freeide` run gets a fresh session. Clean starts, memory via tools. Recommended for new users.
+- `per-session` — each `jettstui` run gets a fresh session. Clean starts, memory via tools. Recommended for new users.
 - `per-directory` — one Honcho session per working directory. Context accumulates across runs.
 - `per-repo` — one session per git repository.
 - `global` — single session across all directories.
@@ -159,7 +159,7 @@ In `tools` mode, the model is fully in control — it calls `honcho_reasoning` w
 
 ## Gateway Identity Mapping
 
-These settings only matter when you run the [FreeIDE gateway](../../developer-guide/gateway-internals.md) — the one entrypoint where users arrive with platform-native runtime IDs (Telegram UID, Discord snowflake, Slack user). CLI, TUI, and desktop sessions have no runtime ID and always resolve to `peerName`, so off-gateway these keys do nothing.
+These settings only matter when you run the [JettsTUI gateway](../../developer-guide/gateway-internals.md) — the one entrypoint where users arrive with platform-native runtime IDs (Telegram UID, Discord snowflake, Slack user). CLI, TUI, and desktop sessions have no runtime ID and always resolve to `peerName`, so off-gateway these keys do nothing.
 
 The setup wizard detects whether a gateway platform is connected and skips this step entirely if not. When it runs, it asks one question — *who talks to this gateway?* — and derives the keys:
 
@@ -214,7 +214,7 @@ Common patterns:
 | AI shouldn't re-model the user from its own replies | `"ai": {"observeMe": true, "observeOthers": false}` |
 | Strong persona the AI peer shouldn't update from self-observation | `"ai": {"observeMe": false, "observeOthers": true}` |
 
-Server-side toggles set via the [Honcho dashboard](https://app.honcho.dev) win over local defaults — FreeIDE syncs them back at session init.
+Server-side toggles set via the [Honcho dashboard](https://app.honcho.dev) win over local defaults — JettsTUI syncs them back at session init.
 
 ## Tools
 
@@ -230,35 +230,35 @@ When Honcho is active as the memory provider, five tools become available:
 
 ## CLI Commands
 
-The `freeide honcho` subcommand is **only registered when Honcho is the active memory provider** (`memory.provider: honcho` in `config.yaml`). On a fresh install, configure Honcho directly with `freeide memory setup honcho` (or run `freeide memory setup` and pick it from the list); the `freeide honcho` subcommand then appears on the next invocation.
+The `jettstui honcho` subcommand is **only registered when Honcho is the active memory provider** (`memory.provider: honcho` in `config.yaml`). On a fresh install, configure Honcho directly with `jettstui memory setup honcho` (or run `jettstui memory setup` and pick it from the list); the `jettstui honcho` subcommand then appears on the next invocation.
 
 ```bash
-freeide memory setup honcho    # Configure Honcho directly (works before activation)
-freeide honcho status          # Connection status, config, and key settings
-freeide honcho setup           # Redirects to `freeide memory setup` (post-activation alias)
-freeide honcho strategy        # Show or set session strategy (per-session/per-directory/per-repo/global)
-freeide honcho peer            # Show or update peer names + dialectic reasoning level
-freeide honcho mode            # Show or set recall mode (hybrid/context/tools)
-freeide honcho tokens          # Show or set token budget for context and dialectic
-freeide honcho identity        # Seed or show the AI peer's Honcho identity
-freeide honcho sync            # Sync Honcho config to all existing profiles
-freeide honcho peers           # Show peer identities across all profiles
-freeide honcho sessions        # List known Honcho session mappings
-freeide honcho map             # Map current directory to a Honcho session name
-freeide honcho enable          # Enable Honcho for the active profile
-freeide honcho disable         # Disable Honcho for the active profile
-freeide honcho migrate         # Step-by-step migration guide from openclaw-honcho
+jettstui memory setup honcho    # Configure Honcho directly (works before activation)
+jettstui honcho status          # Connection status, config, and key settings
+jettstui honcho setup           # Redirects to `jettstui memory setup` (post-activation alias)
+jettstui honcho strategy        # Show or set session strategy (per-session/per-directory/per-repo/global)
+jettstui honcho peer            # Show or update peer names + dialectic reasoning level
+jettstui honcho mode            # Show or set recall mode (hybrid/context/tools)
+jettstui honcho tokens          # Show or set token budget for context and dialectic
+jettstui honcho identity        # Seed or show the AI peer's Honcho identity
+jettstui honcho sync            # Sync Honcho config to all existing profiles
+jettstui honcho peers           # Show peer identities across all profiles
+jettstui honcho sessions        # List known Honcho session mappings
+jettstui honcho map             # Map current directory to a Honcho session name
+jettstui honcho enable          # Enable Honcho for the active profile
+jettstui honcho disable         # Disable Honcho for the active profile
+jettstui honcho migrate         # Step-by-step migration guide from openclaw-honcho
 ```
 
-## Migrating from `freeide honcho`
+## Migrating from `jettstui honcho`
 
-If you previously used the standalone `freeide honcho setup`:
+If you previously used the standalone `jettstui honcho setup`:
 
 1. Your existing configuration (`honcho.json` or `~/.honcho/config.json`) is preserved
 2. Your server-side data (memories, conclusions, user profiles) is intact
 3. Set `memory.provider: honcho` in config.yaml to reactivate
 
-No re-login or re-setup needed. Run `freeide memory setup` and select "honcho" — the wizard detects your existing config.
+No re-login or re-setup needed. Run `jettstui memory setup` and select "honcho" — the wizard detects your existing config.
 
 ## Full Documentation
 

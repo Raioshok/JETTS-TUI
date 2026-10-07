@@ -1,4 +1,4 @@
-from freeide_state import AsyncSessionDB
+from jettstui_state import AsyncSessionDB
 """Tests for gateway /usage command — agent cache lookup and output fields."""
 
 import threading

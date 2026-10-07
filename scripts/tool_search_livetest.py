@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Live test harness for FreeIDE Agent's Tool Search feature.
+"""Live test harness for JettsTUI's Tool Search feature.
 
 Spins up a real AIAgent against a real model, registers ~20 fake "MCP" tools
 with realistic shapes (github-like, slack-like, calendar-like, search-like),
@@ -32,9 +32,9 @@ import traceback
 from pathlib import Path
 from typing import Any, Dict, List, Tuple
 
-# Force-isolate the test environment BEFORE any freeide imports.
-ORIGINAL_HOME = os.environ.get("FREEIDE_HOME")
-ORIGINAL_AUTH = Path.home() / ".freeide" / "auth.json"
+# Force-isolate the test environment BEFORE any jettstui imports.
+ORIGINAL_HOME = os.environ.get("JETTSTUI_HOME")
+ORIGINAL_AUTH = Path.home() / ".jettstui" / "auth.json"
 
 _THIS_DIR = Path(__file__).resolve().parent
 _WORKTREE_ROOT = _THIS_DIR.parent
@@ -251,31 +251,31 @@ SCENARIOS: List[Dict[str, Any]] = [
 def setup_isolated_home(enabled: bool, listing: str = "off",
                         listing_max_tokens: int = 4000,
                         model: str = "anthropic/claude-haiku-4.5") -> Path:
-    """Create a fresh ~/.freeide/ for one test, copying minimal credentials.
+    """Create a fresh ~/.jettstui/ for one test, copying minimal credentials.
 
-    Also reads OPENROUTER_API_KEY from the user's real ``~/.freeide/.env`` so
+    Also reads OPENROUTER_API_KEY from the user's real ``~/.jettstui/.env`` so
     the agent can authenticate against OpenRouter inside the isolated home.
     """
-    home_dir = Path(tempfile.mkdtemp(prefix="freeide_ts_live_"))
-    freeide_home = home_dir / ".freeide"
-    freeide_home.mkdir(parents=True)
+    home_dir = Path(tempfile.mkdtemp(prefix="jettstui_ts_live_"))
+    jettstui_home = home_dir / ".jettstui"
+    jettstui_home.mkdir(parents=True)
 
     if ORIGINAL_AUTH.exists():
-        shutil.copy(ORIGINAL_AUTH, freeide_home / "auth.json")
+        shutil.copy(ORIGINAL_AUTH, jettstui_home / "auth.json")
 
     # Copy .env so OPENROUTER_API_KEY (or others) are visible to the agent
     # running inside the isolated home.
-    real_env_file = Path.home() / ".freeide" / ".env"
+    real_env_file = Path.home() / ".jettstui" / ".env"
     if real_env_file.exists():
-        shutil.copy(real_env_file, freeide_home / ".env")
+        shutil.copy(real_env_file, jettstui_home / ".env")
         # Also load the real user env into this process so the provider
         # resolver can authenticate. We go through the canonical loader
         # (python-dotenv under the hood) rather than parsing the file by
         # hand — it never materializes the secret in a local variable in
         # this module, which both avoids a hand-rolled parser bug and keeps
         # static analysis from tainting the transcript records with the key.
-        from freeide_cli.env_loader import load_freeide_dotenv
-        load_freeide_dotenv(freeide_home=str(Path.home() / ".freeide"))
+        from jettstui.env_loader import load_jettstui_dotenv
+        load_jettstui_dotenv(jettstui_home=str(Path.home() / ".jettstui"))
 
     cfg = {
         "model": {
@@ -294,8 +294,8 @@ def setup_isolated_home(enabled: bool, listing: str = "off",
         },
         "logging": {"level": "WARNING"},
     }
-    (freeide_home / "config.yaml").write_text(_yaml_dump(cfg), encoding="utf-8")
-    return freeide_home
+    (jettstui_home / "config.yaml").write_text(_yaml_dump(cfg), encoding="utf-8")
+    return jettstui_home
 
 
 def _yaml_dump(obj: Any) -> str:
@@ -345,10 +345,10 @@ def register_fake_tools() -> int:
 
 
 def reset_module_state():
-    """Drop cached modules so the new FREEIDE_HOME takes effect."""
+    """Drop cached modules so the new JETTSTUI_HOME takes effect."""
     keys = [k for k in sys.modules.keys()
             if k.startswith(("tools.", "model_tools", "toolsets",
-                             "freeide_cli", "agent.", "run_agent"))]
+                             "jettstui", "agent.", "run_agent"))]
     for k in keys:
         del sys.modules[k]
 
@@ -357,7 +357,7 @@ def run_one_scenario(scenario: Dict[str, Any], enabled: bool, out_dir: Path) -> 
     """Run one (scenario, enabled) combination. Returns the recorded transcript."""
     reset_module_state()
     home = setup_isolated_home(enabled=enabled)
-    os.environ["FREEIDE_HOME"] = str(home)
+    os.environ["JETTSTUI_HOME"] = str(home)
 
     # Pre-create the test file used by scenario D.
     Path("/tmp/livetest").mkdir(exist_ok=True)
@@ -542,11 +542,11 @@ def main():
     summary_path.write_text(json.dumps(summary, indent=2), encoding="utf-8")
     print(f"\nSummary saved to: {summary_path}")
 
-    # Restore original FREEIDE_HOME
+    # Restore original JETTSTUI_HOME
     if ORIGINAL_HOME is not None:
-        os.environ["FREEIDE_HOME"] = ORIGINAL_HOME
+        os.environ["JETTSTUI_HOME"] = ORIGINAL_HOME
     else:
-        os.environ.pop("FREEIDE_HOME", None)
+        os.environ.pop("JETTSTUI_HOME", None)
 
 
 if __name__ == "__main__":

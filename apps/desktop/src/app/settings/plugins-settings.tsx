@@ -6,7 +6,7 @@ import { Switch } from '@/components/ui/switch'
 import { Tip } from '@/components/ui/tooltip'
 import { $pluginRecords, type PluginRecord, setPluginEnabled } from '@/contrib/plugins-store'
 import { discoverRuntimePlugins } from '@/contrib/runtime-loader'
-import { getStatus } from '@/freeide'
+import { getStatus } from '@/jettstui'
 import { useI18n } from '@/i18n'
 import { triggerHaptic } from '@/lib/haptics'
 import { Package } from '@/lib/icons'
@@ -17,15 +17,15 @@ import { EmptyState, ListRow, Pill, SectionHeading, SettingsContent } from './pr
 const KIND_ORDER: Record<PluginRecord['kind'], number> = { disk: 0, runtime: 1, bundled: 2 }
 
 function reveal(file: string) {
-  void window.freeideDesktop?.revealPath?.(file)?.catch(() => undefined)
+  void window.jettstuiDesktop?.revealPath?.(file)?.catch(() => undefined)
 }
 
 async function revealPluginsDir() {
   try {
-    const { freeide_home } = await getStatus()
+    const { jettstui_home } = await getStatus()
     // openDir (not reveal): the door often doesn't exist on first use, and
     // showItemInFolder on a missing path silently no-ops (esp. Windows).
-    const result = await window.freeideDesktop?.openDir?.(`${freeide_home}/desktop-plugins`)
+    const result = await window.jettstuiDesktop?.openDir?.(`${jettstui_home}/desktop-plugins`)
 
     if (result && !result.ok) {
       notifyError(result.error ?? 'unknown error', 'Could not open the plugins folder')

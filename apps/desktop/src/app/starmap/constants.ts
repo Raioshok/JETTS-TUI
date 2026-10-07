@@ -1,4 +1,4 @@
-import type { StarmapNode } from '@/types/freeide'
+import type { StarmapNode } from '@/types/jettstui'
 
 import type { GraphParams, Rgb, RingParams, Shape } from './types'
 

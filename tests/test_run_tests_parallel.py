@@ -36,7 +36,7 @@ from scripts.run_tests_parallel import _split_path_list
 # Both tests share the same handoff file: the leaker writes here, the
 # verifier reads here. We park it in $TMPDIR with a unique-per-run name
 # so concurrent invocations of the suite don't clobber each other.
-_HANDOFF_DIR = Path(os.environ.get("TMPDIR", "/tmp")) / "freeide-isolation-probe"
+_HANDOFF_DIR = Path(os.environ.get("TMPDIR", "/tmp")) / "jettstui-isolation-probe"
 _HANDOFF_DIR.mkdir(exist_ok=True)
 
 

@@ -21,7 +21,7 @@ import json
 import sqlite3
 from typing import Any, Iterable, Optional
 
-from freeide_cli import kanban_db as kb
+from jettstui import kanban_db as kb
 
 BLACKBOARD_PREFIX = "[swarm:blackboard] "
 

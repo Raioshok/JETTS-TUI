@@ -2,7 +2,7 @@
 
 ``terminal_tool._get_env_config()`` reads all settings from TERMINAL_* env
 vars, which the CLI / gateway / TUI-PTY launchers bridge from config.yaml at
-startup. Processes that skip every launcher bridge (``freeide serve`` and the
+startup. Processes that skip every launcher bridge (``jettstui serve`` and the
 Desktop app's in-process agents, the desktop cron ticker, ACP) used to fall
 back silently to the local backend even when config.yaml selected
 ``terminal.backend: docker`` — commands the user intended to sandbox ran on
@@ -18,7 +18,7 @@ import os
 import pytest
 
 import tools.terminal_tool as terminal_tool
-from freeide_constants import get_freeide_home
+from jettstui_constants import get_jettstui_home
 
 
 @pytest.fixture(autouse=True)
@@ -34,7 +34,7 @@ def _reset_bridge_state(monkeypatch):
 
 
 def _write_config(text: str) -> None:
-    home = get_freeide_home()
+    home = get_jettstui_home()
     home.mkdir(parents=True, exist_ok=True)
     (home / "config.yaml").write_text(text)
 
@@ -88,7 +88,7 @@ def test_bridge_failure_falls_back_to_local(monkeypatch):
     def _boom(*_a, **_k):
         raise RuntimeError("config exploded")
 
-    import freeide_cli.config as config_mod
+    import jettstui.config as config_mod
 
     monkeypatch.setattr(config_mod, "apply_terminal_config_to_env", _boom)
 
@@ -102,7 +102,7 @@ def test_bridge_only_attempted_once(monkeypatch):
     unset (e.g. empty config) — later calls skip the bridge entirely."""
     calls = []
 
-    import freeide_cli.config as config_mod
+    import jettstui.config as config_mod
 
     real = config_mod.apply_terminal_config_to_env
 

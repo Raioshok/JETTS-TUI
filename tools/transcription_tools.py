@@ -36,7 +36,7 @@ import tempfile
 from pathlib import Path
 from typing import Optional, Dict, Any
 
-from freeide_cli._subprocess_compat import windows_hide_flags
+from jettstui._subprocess_compat import windows_hide_flags
 from utils import is_truthy_value
 from tools.tool_backend_helpers import resolve_openai_audio_api_key
 
@@ -45,12 +45,12 @@ logger = logging.getLogger(__name__)
 def get_env_value(name, default=None):
     """Read env values through the live config module.
 
-    Tests may monkeypatch and later restore ``freeide_cli.config.get_env_value``
+    Tests may monkeypatch and later restore ``jettstui.config.get_env_value``
     before this module is imported. Resolve the helper at call time so STT does
     not keep a stale imported function for the rest of the test process.
     """
     try:
-        from freeide_cli.config import get_env_value as _get_env_value
+        from jettstui.config import get_env_value as _get_env_value
     except ImportError:
         return os.getenv(name, default)
     value = _get_env_value(name)
@@ -85,15 +85,15 @@ DEFAULT_STT_MODEL = os.getenv("STT_OPENAI_MODEL", "whisper-1")
 DEFAULT_GROQ_STT_MODEL = os.getenv("STT_GROQ_MODEL", "whisper-large-v3-turbo")
 DEFAULT_MISTRAL_STT_MODEL = os.getenv("STT_MISTRAL_MODEL", "voxtral-mini-latest")
 DEFAULT_ELEVENLABS_STT_MODEL = os.getenv("STT_ELEVENLABS_MODEL", "scribe_v2")
-LOCAL_STT_COMMAND_ENV = "FREEIDE_LOCAL_STT_COMMAND"
-LOCAL_STT_LANGUAGE_ENV = "FREEIDE_LOCAL_STT_LANGUAGE"
+LOCAL_STT_COMMAND_ENV = "JETTSTUI_LOCAL_STT_COMMAND"
+LOCAL_STT_LANGUAGE_ENV = "JETTSTUI_LOCAL_STT_LANGUAGE"
 COMMON_LOCAL_BIN_DIRS = ("/opt/homebrew/bin", "/usr/local/bin")
 
 GROQ_BASE_URL = os.getenv("GROQ_BASE_URL", "https://api.groq.com/openai/v1")
 OPENAI_BASE_URL = os.getenv("STT_OPENAI_BASE_URL", "https://api.openai.com/v1")
 XAI_STT_BASE_URL = os.getenv("XAI_STT_BASE_URL", "https://api.x.ai/v1")
 ELEVENLABS_STT_BASE_URL = os.getenv("ELEVENLABS_STT_BASE_URL", "https://api.elevenlabs.io/v1")
-# DeepInfra STT base URL now resolved via freeide_cli.models.deepinfra_base_url (shared).
+# DeepInfra STT base URL now resolved via jettstui.models.deepinfra_base_url (shared).
 
 SUPPORTED_FORMATS = {".mp3", ".mp4", ".mpeg", ".mpga", ".m4a", ".wav", ".webm", ".ogg", ".aac", ".flac"}
 LOCAL_NATIVE_AUDIO_FORMATS = {".wav", ".aiff", ".aif"}
@@ -116,7 +116,7 @@ _local_model_name: Optional[str] = None
 def _load_stt_config() -> dict:
     """Load the ``stt`` section from user config, falling back to defaults."""
     try:
-        from freeide_cli.config import load_config
+        from jettstui.config import load_config
         return load_config().get("stt") or {}
     except Exception:
         return {}
@@ -142,7 +142,7 @@ def _resolve_stt_language(
       1. ``stt.<provider>.language`` (plus any *extra_keys* aliases, e.g.
          ElevenLabs' historical ``language_code``)
       2. ``stt.language``           — global default for every provider
-      3. ``FREEIDE_LOCAL_STT_LANGUAGE`` env var (legacy escape hatch)
+      3. ``JETTSTUI_LOCAL_STT_LANGUAGE`` env var (legacy escape hatch)
       4. ``None``                   — let the provider auto-detect
 
     Returns a stripped ISO-639-1-ish code or None. Never returns "".
@@ -290,7 +290,7 @@ BUILTIN_STT_PROVIDERS = frozenset({
 #   3. Plugin-registered TranscriptionProvider  → plugin dispatch.
 #   4. No match                                 → "No STT provider available".
 #
-# The single-env-var ``FREEIDE_LOCAL_STT_COMMAND`` escape hatch is preserved
+# The single-env-var ``JETTSTUI_LOCAL_STT_COMMAND`` escape hatch is preserved
 # untouched via the built-in ``local_command`` path. Use the command-provider
 # registry when you want MULTIPLE shell-driven STT engines, or you want a
 # named provider you can pick via ``stt.provider`` in config.yaml.
@@ -488,7 +488,7 @@ def _render_command_stt_template(
 
     def replace_match(match: "re.Match[str]") -> str:
         name = match.group("double") or match.group("single")
-        token = f"__FREEIDE_STT_PLACEHOLDER_{len(replacements)}__"
+        token = f"__JETTSTUI_STT_PLACEHOLDER_{len(replacements)}__"
         replacements.append((
             token,
             _quote_command_stt_placeholder(
@@ -704,7 +704,7 @@ def _transcribe_command_stt(
     model = model_override or config.get("model") or ""
 
     try:
-        with tempfile.TemporaryDirectory(prefix=f"freeide-cmd-stt-{provider_name}-") as tmpdir:
+        with tempfile.TemporaryDirectory(prefix=f"jettstui-cmd-stt-{provider_name}-") as tmpdir:
             output_path = Path(tmpdir) / f"transcript.{output_format}"
             placeholders = {
                 "input_path": str(audio.resolve()),
@@ -805,7 +805,7 @@ def _get_provider(stt_config: dict) -> str:
                 return "local"
             logger.warning(
                 "STT provider 'local' configured but unavailable "
-                "(install faster-whisper or set FREEIDE_LOCAL_STT_COMMAND)"
+                "(install faster-whisper or set JETTSTUI_LOCAL_STT_COMMAND)"
             )
             return "none"
 
@@ -981,7 +981,7 @@ def _dispatch_to_plugin_provider(
         return None
     try:
         from agent.transcription_registry import get_provider
-        from freeide_cli.plugins import _ensure_plugins_discovered
+        from jettstui.plugins import _ensure_plugins_discovered
 
         _ensure_plugins_discovered()
         plugin_provider = get_provider(key)
@@ -1269,7 +1269,7 @@ def _transcribe_local_command(file_path: str, model_name: str) -> Dict[str, Any]
     normalized_model = _normalize_local_command_model(model_name)
 
     try:
-        with tempfile.TemporaryDirectory(prefix="freeide-local-stt-") as output_dir:
+        with tempfile.TemporaryDirectory(prefix="jettstui-local-stt-") as output_dir:
             prepared_input, prep_error = _prepare_local_audio(file_path, output_dir)
             if prep_error:
                 return {"success": False, "transcript": "", "error": prep_error}
@@ -1329,7 +1329,7 @@ def _transcribe_groq(file_path: str, model_name: str) -> Dict[str, Any]:
 
     Honours an optional ISO-639-1 language hint resolved from
     ``stt.groq.language`` > ``stt.language`` (config.yaml) >
-    ``FREEIDE_LOCAL_STT_LANGUAGE`` (env). When none is set, Groq
+    ``JETTSTUI_LOCAL_STT_LANGUAGE`` (env). When none is set, Groq
     Whisper auto-detects.
     """
     api_key = get_env_value("GROQ_API_KEY")
@@ -1535,7 +1535,7 @@ def _transcribe_xai(file_path: str, model_name: str) -> Dict[str, Any]:
         return {
             "success": False,
             "transcript": "",
-            "error": "No xAI credentials found. Configure xAI OAuth in `freeide model` or set XAI_API_KEY",
+            "error": "No xAI credentials found. Configure xAI OAuth in `jettstui model` or set XAI_API_KEY",
         }
 
     stt_config = _load_stt_config()
@@ -1554,7 +1554,7 @@ def _transcribe_xai(file_path: str, model_name: str) -> Dict[str, Any]:
 
     try:
         import requests
-        from tools.xai_http import freeide_xai_user_agent
+        from tools.xai_http import jettstui_xai_user_agent
 
         data: Dict[str, str] = {}
         if language:
@@ -1569,7 +1569,7 @@ def _transcribe_xai(file_path: str, model_name: str) -> Dict[str, Any]:
                 f"{base_url}/stt",
                 headers={
                     "Authorization": f"Bearer {api_key}",
-                    "User-Agent": freeide_xai_user_agent(),
+                    "User-Agent": jettstui_xai_user_agent(),
                 },
                 files={
                     "file": (Path(file_path).name, audio_file),
@@ -1719,14 +1719,14 @@ def _transcribe_deepinfra(file_path: str, model_name: str) -> Dict[str, Any]:
     DeepInfra's STT endpoint is OpenAI-compatible, so the actual SDK
     call lives in :func:`_transcribe_openai` — this wrapper only owns
     DeepInfra-specific credential and model resolution, using the shared
-    ``freeide_cli.models`` helpers so every DeepInfra surface resolves the
+    ``jettstui.models`` helpers so every DeepInfra surface resolves the
     base URL and model ids identically.
     """
     api_key = (get_env_value("DEEPINFRA_API_KEY") or "").strip()
     if not api_key:
         return {"success": False, "transcript": "", "error": "DEEPINFRA_API_KEY not set"}
 
-    from freeide_cli.models import deepinfra_base_url, deepinfra_model_ids
+    from jettstui.models import deepinfra_base_url, deepinfra_model_ids
 
     stt_config = _load_stt_config()
     # ``stt.deepinfra: null`` in YAML yields None, not {} — coalesce so the

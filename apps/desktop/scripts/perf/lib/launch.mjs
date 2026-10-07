@@ -5,9 +5,9 @@
 // the measurement that the single-instance lock used to prevent:
 //   · its own --user-data-dir  → its own Electron single-instance lock, so it
 //     never collides with (or steals focus from) the user's running `hgui`.
-//   · its own FREEIDE_HOME      → its own backend + sessions, no shared state.
+//   · its own JETTSTUI_HOME      → its own backend + sessions, no shared state.
 //   · its own --remote-debugging-port → a private CDP endpoint.
-//   · FREEIDE_DESKTOP_BOOT_FAKE=1 → deterministic boot overlay.
+//   · JETTSTUI_DESKTOP_BOOT_FAKE=1 → deterministic boot overlay.
 // The synthetic scenarios drive `$messages` directly, so no LLM credits are
 // spent regardless of the isolated backend.
 
@@ -47,9 +47,9 @@ async function waitFor(fn, { timeoutMs, label }) {
   throw new Error(`timed out after ${timeoutMs}ms waiting for ${label}`)
 }
 
-// Seed an isolated FREEIDE_HOME with just enough config (NOT sessions) so the
+// Seed an isolated JETTSTUI_HOME with just enough config (NOT sessions) so the
 // spawned instance reaches an empty chat view instead of the onboarding wizard.
-// A separate FREEIDE_HOME dir means a separate gateway lock — no collision with
+// A separate JETTSTUI_HOME dir means a separate gateway lock — no collision with
 // the user's running app, which keeps its own sessions DB and state.
 function seedConfigFrom(sourceHome, targetHome) {
   if (!existsSync(sourceHome)) {
@@ -167,7 +167,7 @@ export async function startIsolatedInstance({
   devPort = 5174,
   prod = false,
   coldStart = false,
-  freeideHome,
+  jettstuiHome,
   userDataDir,
   seedConfig = true,
   settleMs = 2500,
@@ -183,12 +183,12 @@ export async function startIsolatedInstance({
     return dir
   }
 
-  const home = freeideHome ?? mkTemp('freeide-perf-home-')
-  const userData = userDataDir ?? mkTemp('freeide-perf-ud-')
+  const home = jettstuiHome ?? mkTemp('jettstui-perf-home-')
+  const userData = userDataDir ?? mkTemp('jettstui-perf-ud-')
   const devUrl = prod ? null : `http://127.0.0.1:${devPort}`
 
-  if (seedConfig && !freeideHome) {
-    seedConfigFrom(join(homedir(), '.freeide'), home)
+  if (seedConfig && !jettstuiHome) {
+    seedConfigFrom(join(homedir(), '.jettstui'), home)
   }
 
   const teardown = () => {
@@ -229,20 +229,20 @@ export async function startIsolatedInstance({
     }
 
     // Isolated Electron: own --user-data-dir (single-instance lock scope) + own
-    // FREEIDE_HOME (backend + sessions). No DEV_SERVER env in prod → dist load.
+    // JETTSTUI_HOME (backend + sessions). No DEV_SERVER env in prod → dist load.
     const electronBin = require('electron')
-    // NB: do NOT set FREEIDE_DESKTOP_BOOT_FAKE here — it injects artificial
+    // NB: do NOT set JETTSTUI_DESKTOP_BOOT_FAKE here — it injects artificial
     // per-phase sleeps into the boot overlay, which inflates cold-start timing
     // (and adds pointless startup latency to the steady-state runs). We want the
     // real boot sequence.
     const env = {
       ...process.env,
-      FREEIDE_HOME: home,
+      JETTSTUI_HOME: home,
       XCURSOR_SIZE: '24'
     }
 
     if (devUrl) {
-      env.FREEIDE_DESKTOP_DEV_SERVER = devUrl
+      env.JETTSTUI_DESKTOP_DEV_SERVER = devUrl
     }
 
     const spawnAt = Date.now()
@@ -339,9 +339,9 @@ export async function coldStartSamples({ runs = 3, port = 9222, devPort = 5174, 
   if (warm) {
     // Shared profile across runs: run 0 warms the V8 code cache (discarded),
     // runs 1..N are the representative warm samples.
-    const home = mkdtempSync(join(tmpdir(), 'freeide-perf-cold-home-'))
-    const userDataDir = mkdtempSync(join(tmpdir(), 'freeide-perf-cold-ud-'))
-    seedConfigFrom(join(homedir(), '.freeide'), home)
+    const home = mkdtempSync(join(tmpdir(), 'jettstui-perf-cold-home-'))
+    const userDataDir = mkdtempSync(join(tmpdir(), 'jettstui-perf-cold-ud-'))
+    seedConfigFrom(join(homedir(), '.jettstui'), home)
 
     try {
       for (let i = 0; i <= runs; i++) {
@@ -350,7 +350,7 @@ export async function coldStartSamples({ runs = 3, port = 9222, devPort = 5174, 
           devPort: devPort + i,
           prod,
           coldStart: true,
-          freeideHome: home,
+          jettstuiHome: home,
           userDataDir,
           seedConfig: false
         })

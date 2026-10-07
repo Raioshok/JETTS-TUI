@@ -6,7 +6,7 @@ author: community
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
-  freeide:
+  jettstui:
     tags: [Audio, Visualization, Spectrogram, Music, Analysis]
     homepage: https://github.com/steipete/songsee
 prerequisites:

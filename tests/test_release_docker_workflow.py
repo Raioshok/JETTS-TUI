@@ -28,7 +28,7 @@ def test_docker_workflow_builds_here_and_publishes_to_own_registry():
         assert login["with"]["password"] == "${{ secrets.GITHUB_TOKEN }}"
 
     assert "DOCKERHUB_" not in source
-    assert "freeide/freeide" not in source
+    assert "jettstui/jettstui" not in source
 
     ci = yaml.safe_load(CI_WORKFLOW.read_text(encoding="utf-8"))
     assert ci["permissions"].get("packages") != "write", "PR-wide CI must not publish packages"

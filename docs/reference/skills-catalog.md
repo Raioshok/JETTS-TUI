@@ -1,14 +1,14 @@
 ---
 sidebar_position: 5
 title: "Bundled Skills Catalog"
-description: "Catalog of bundled skills that ship with Jetts-TUI"
+description: "Catalog of bundled skills that ship with JettsTUI"
 ---
 
 # Bundled Skills Catalog
 
-Jetts-TUI ships with a built-in skill library copied into `~/.jettstui/skills/` on a new install. Each skill below links to a Markdown guide with its definition, setup, and usage.
+JettsTUI ships with a built-in skill library copied into `~/.jettstui/skills/` on a new install. Each skill below links to a Markdown guide with its definition, setup, and usage.
 
-Jetts-TUI syncs bundled skills on `jetts-tui update`, while respecting local deletions and user edits. If a listed skill is missing from your profile's skills directory, restore it with `jetts-tui skills reset <name> --restore`.
+JettsTUI syncs bundled skills on `jetts-tui update`, while respecting local deletions and user edits. If a listed skill is missing from your profile's skills directory, restore it with `jetts-tui skills reset <name> --restore`.
 
 This catalog is a checked-in snapshot. Use the repository's `skills/` and `optional-skills/` directories as the source of truth when it differs.
 
@@ -28,7 +28,7 @@ This catalog is a checked-in snapshot. Use the repository's `skills/` and `optio
 | [`claude-code`](../user-guide/skills/bundled/autonomous-ai-agents/autonomous-ai-agents-claude-code.md) | Delegate coding to Claude Code CLI (features, PRs). | `autonomous-ai-agents/claude-code` |
 | [`codex`](../user-guide/skills/bundled/autonomous-ai-agents/autonomous-ai-agents-codex.md) | Delegate coding to OpenAI Codex CLI (features, PRs). | `autonomous-ai-agents/codex` |
 | [`computer-use`](../user-guide/skills/bundled/autonomous-ai-agents/autonomous-ai-agents-computer-use.md) | Drive the user's desktop in the background — clicking, typing, scrolling, dragging — without stealing the cursor, keyboard focus, or switching virtual desktops / Spaces. Cross-platform: macOS, Windows, Linux. Works with any tool-capable... | `autonomous-ai-agents/computer-use` |
-| [`freeide-agent`](../user-guide/skills/bundled/autonomous-ai-agents/autonomous-ai-agents-freeide-agent.md) | Use, configure, theme, extend, and orchestrate FreeIDE Agent. | `autonomous-ai-agents/freeide-agent` |
+| [`jettstui`](../user-guide/skills/bundled/autonomous-ai-agents/autonomous-ai-agents-jettstui.md) | Use, configure, theme, extend, and orchestrate JettsTUI. | `autonomous-ai-agents/jettstui` |
 | [`opencode`](../user-guide/skills/bundled/autonomous-ai-agents/autonomous-ai-agents-opencode.md) | Delegate coding to OpenCode CLI (features, PR review). | `autonomous-ai-agents/opencode` |
 | [`token-efficient-work`](../user-guide/skills/bundled/autonomous-ai-agents/autonomous-ai-agents-token-efficient-work.md) | Plan and execute expensive or repeated agent work with explicit budgets, narrow delegation, concise reporting, persistent preferences, and resumable progress. | `autonomous-ai-agents/token-efficient-work` |
 
@@ -137,10 +137,10 @@ This catalog is a checked-in snapshot. Use the repository's `skills/` and `optio
 | Skill | Description | Path |
 |-------|-------------|------|
 | [`dogfood`](../user-guide/skills/bundled/software-development/software-development-dogfood.md) | Exploratory QA of web apps: find bugs, evidence, reports. | `software-development/dogfood` |
-| [`freeide-agent-skill-authoring`](../user-guide/skills/bundled/software-development/software-development-freeide-agent-skill-authoring.md) | Author in-repo SKILL.md files: frontmatter and structure. | `software-development/freeide-agent-skill-authoring` |
-| [`inspecting-freeide-desktop-dom`](../user-guide/skills/bundled/software-development/software-development-inspecting-freeide-desktop-dom.md) | Read the live FreeIDE desktop DOM/CSS over CDP. | `software-development/inspecting-freeide-desktop-dom` |
+| [`jettstui-skill-authoring`](../user-guide/skills/bundled/software-development/software-development-jettstui-skill-authoring.md) | Author in-repo SKILL.md files: frontmatter and structure. | `software-development/jettstui-skill-authoring` |
+| [`inspecting-jettstui-desktop-dom`](../user-guide/skills/bundled/software-development/software-development-inspecting-jettstui-desktop-dom.md) | Read the live JettsTUI desktop DOM/CSS over CDP. | `software-development/inspecting-jettstui-desktop-dom` |
 | [`node-inspect-debugger`](../user-guide/skills/bundled/software-development/software-development-node-inspect-debugger.md) | Debug Node.js via --inspect + Chrome DevTools Protocol CLI. | `software-development/node-inspect-debugger` |
-| [`plan`](../user-guide/skills/bundled/software-development/software-development-plan.md) | Write a markdown plan to .freeide/plans/; no execution. | `software-development/plan` |
+| [`plan`](../user-guide/skills/bundled/software-development/software-development-plan.md) | Write a markdown plan to .jettstui/plans/; no execution. | `software-development/plan` |
 | [`python-debugpy`](../user-guide/skills/bundled/software-development/software-development-python-debugpy.md) | Debug Python: pdb REPL + debugpy remote (DAP). | `software-development/python-debugpy` |
 | [`requesting-code-review`](../user-guide/skills/bundled/software-development/software-development-requesting-code-review.md) | Pre-commit review: security scan, quality gates, auto-fix. | `software-development/requesting-code-review` |
 | [`simplify-code`](../user-guide/skills/bundled/software-development/software-development-simplify-code.md) | Parallel 4-agent cleanup of recent code changes. | `software-development/simplify-code` |

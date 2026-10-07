@@ -14,7 +14,7 @@ import time
 from pathlib import Path
 
 from tools.environments.base import BaseEnvironment, _pipe_stdin
-from freeide_cli._subprocess_compat import windows_hide_flags
+from jettstui._subprocess_compat import windows_hide_flags
 
 _IS_WINDOWS = platform.system() == "Windows"
 
@@ -54,9 +54,9 @@ def _resolve_local_initial_cwd(cwd: str) -> str:
 
     ``TERMINAL_CWD`` can be populated from config.yaml before the terminal
     backend is created.  If that value is relative and happens to match the
-    directory FreeIDE was already launched from (for example ``freeide-agent``
-    while the process cwd is ``~/.freeide/freeide-agent``), passing it through
-    unchanged makes the wrapper run ``cd freeide-agent`` *inside* the project
+    directory JettsTUI was already launched from (for example ``jettstui``
+    while the process cwd is ``~/.jettstui/jettstui``), passing it through
+    unchanged makes the wrapper run ``cd jettstui`` *inside* the project
     and fail with a confusing nested-path error.  Anchor relative local cwd
     values once, up front, so both ``subprocess.Popen(cwd=...)`` and the
     in-shell ``cd`` use the same absolute directory.
@@ -76,9 +76,9 @@ def _resolve_local_initial_cwd(cwd: str) -> str:
     candidate = os.path.abspath(expanded)
     current = os.getcwd()
 
-    # Common recovery for config values like ``freeide-agent`` when FreeIDE was
+    # Common recovery for config values like ``jettstui`` when JettsTUI was
     # launched from that directory already.  ``os.path.abspath`` would point at
-    # a nonexistent nested ``./freeide-agent``; use the current directory instead.
+    # a nonexistent nested ``./jettstui``; use the current directory instead.
     if not os.path.isdir(candidate):
         wanted_parts = Path(expanded).parts
         current_parts = Path(current).parts
@@ -196,12 +196,12 @@ def _resolve_safe_cwd(cwd: str) -> str:
     return tempfile.gettempdir()
 
 
-# FreeIDE-internal env vars that should NOT leak into terminal subprocesses.
-_FREEIDE_PROVIDER_ENV_FORCE_PREFIX = "_FREEIDE_FORCE_"
+# JettsTUI-internal env vars that should NOT leak into terminal subprocesses.
+_JETTSTUI_PROVIDER_ENV_FORCE_PREFIX = "_JETTSTUI_FORCE_"
 
-# FreeIDE-managed AWS *inference* credentials for ``auth_type="aws_sdk"``
+# JettsTUI-managed AWS *inference* credentials for ``auth_type="aws_sdk"``
 # providers (Bedrock).  Scoped DELIBERATELY NARROW: this lists only the
-# Bedrock-specific bearer token, which is a FreeIDE inference secret exactly
+# Bedrock-specific bearer token, which is a JettsTUI inference secret exactly
 # analogous to ``OPENAI_API_KEY`` — nobody drives the ``aws``/``terraform``/
 # ``boto3`` toolchain off it, so stripping it from terminal/execute_code
 # subprocesses costs no user capability.
@@ -226,7 +226,7 @@ def _build_provider_env_blocklist() -> frozenset:
     blocked: set[str] = set()
 
     try:
-        from freeide_cli.auth import PROVIDER_REGISTRY
+        from jettstui.auth import PROVIDER_REGISTRY
         for pconfig in PROVIDER_REGISTRY.values():
             blocked.update(pconfig.api_key_env_vars)
             if pconfig.auth_type == "aws_sdk":
@@ -237,7 +237,7 @@ def _build_provider_env_blocklist() -> frozenset:
         pass
 
     try:
-        from freeide_cli.config import OPTIONAL_ENV_VARS
+        from jettstui.config import OPTIONAL_ENV_VARS
         for name, metadata in OPTIONAL_ENV_VARS.items():
             category = metadata.get("category")
             if category in {"tool", "messaging"}:
@@ -303,7 +303,7 @@ def _build_provider_env_blocklist() -> frozenset:
         "EMAIL_SMTP_HOST",
         "EMAIL_HOME_ADDRESS",
         "EMAIL_HOME_ADDRESS_NAME",
-        "FREEIDE_DASHBOARD_SESSION_TOKEN",
+        "JETTSTUI_DASHBOARD_SESSION_TOKEN",
         "GATEWAY_ALLOWED_USERS",
         "GH_TOKEN",
         "GITHUB_APP_ID",
@@ -318,8 +318,8 @@ def _build_provider_env_blocklist() -> frozenset:
     })
     # CLAUDE_CODE_OAUTH_TOKEN is deliberately NOT stripped.  It is set and
     # owned by the user's Claude Code install (subscription OAuth), not a
-    # FreeIDE-managed inference credential — Claude subscription auth is not a
-    # working FreeIDE provider path.  Stripping it broke agent-spawned
+    # JettsTUI-managed inference credential — Claude subscription auth is not a
+    # working JettsTUI provider path.  Stripping it broke agent-spawned
     # ``claude`` CLIs: the child fell through to the shared macOS Keychain /
     # ``~/.claude/.credentials.json`` store and, on auth failure, cleared it,
     # logging the user out of their interactive Claude sessions (#55878).
@@ -329,25 +329,25 @@ def _build_provider_env_blocklist() -> frozenset:
     return frozenset(blocked)
 
 
-_FREEIDE_PROVIDER_ENV_BLOCKLIST = _build_provider_env_blocklist()
+_JETTSTUI_PROVIDER_ENV_BLOCKLIST = _build_provider_env_blocklist()
 
 # Active-virtualenv markers that must NOT leak into terminal subprocesses.
 # The gateway runs inside its own venv, so its process environment carries
 # VIRTUAL_ENV (and possibly CONDA_PREFIX). If those leak into commands the
 # agent runs against OTHER Python projects, tools like ``uv``/``poetry`` treat
 # the inherited value as the active environment and build/sync that other
-# project's dependencies into the FreeIDE venv path instead of the project's own
-# ``.venv`` — silently clobbering the FreeIDE environment (e.g. a project pinned
+# project's dependencies into the JettsTUI venv path instead of the project's own
+# ``.venv`` — silently clobbering the JettsTUI environment (e.g. a project pinned
 # to a different Python version overwrites it and breaks the gateway). The
-# FreeIDE venv stays reachable via PATH (its bin dir is first), so stripping
+# JettsTUI venv stays reachable via PATH (its bin dir is first), so stripping
 # these markers is safe and only prevents the cross-project clobber (#23473).
 _ACTIVE_VENV_MARKER_VARS = ("VIRTUAL_ENV", "CONDA_PREFIX")
 
 
-def _is_freeide_internal_secret(key: str) -> bool:
-    """Return True for FreeIDE-internal secrets injected under *dynamic* names.
+def _is_jettstui_internal_secret(key: str) -> bool:
+    """Return True for JettsTUI-internal secrets injected under *dynamic* names.
 
-    ``_FREEIDE_PROVIDER_ENV_BLOCKLIST`` is name-based and derived from the
+    ``_JETTSTUI_PROVIDER_ENV_BLOCKLIST`` is name-based and derived from the
     provider/tool registries, but the gateway and CLI also inject secrets into
     ``os.environ`` at runtime under names no static registry knows about:
 
@@ -369,10 +369,10 @@ def _is_freeide_internal_secret(key: str) -> bool:
     ``KEY`` / ``SECRET`` / ``TOKEN``; the terminal backend's narrower name-based
     blocklist did not, which is the leak this predicate closes.
 
-    This is the single source of truth for "FreeIDE-internal dynamic secret"
+    This is the single source of truth for "JettsTUI-internal dynamic secret"
     across every spawn path — the terminal ``_make_run_env`` /
     ``_sanitize_subprocess_env`` filters, the Docker passthrough filter, and the
-    non-terminal :func:`freeide_subprocess_env` helper all call it, so the
+    non-terminal :func:`jettstui_subprocess_env` helper all call it, so the
     dynamic patterns are stripped **unconditionally** regardless of
     ``env_passthrough`` skill registration or ``inherit_credentials``. Nothing
     a model-driving CLI legitimately needs matches these patterns.
@@ -389,14 +389,14 @@ def _is_freeide_internal_secret(key: str) -> bool:
     return False
 
 
-def _inject_context_freeide_home(env: dict) -> None:
-    """Bridge the context-local FreeIDE home override into subprocess env."""
+def _inject_context_jettstui_home(env: dict) -> None:
+    """Bridge the context-local JettsTUI home override into subprocess env."""
     try:
-        from freeide_constants import get_freeide_home_override
+        from jettstui_constants import get_jettstui_home_override
 
-        value = get_freeide_home_override()
+        value = get_jettstui_home_override()
         if value:
-            env["FREEIDE_HOME"] = value
+            env["JETTSTUI_HOME"] = value
     except Exception:
         pass
 
@@ -405,7 +405,7 @@ def _inject_session_context_env(env: dict) -> None:
     """Bridge gateway session ContextVars into a subprocess environment dict.
 
     ContextVars don't propagate to child processes, so the live session vars
-    (FREEIDE_SESSION_*) are bridged onto the child env here.
+    (JETTSTUI_SESSION_*) are bridged onto the child env here.
 
     🔴 Cross-session leak guard. The session vars also have a process-global
     os.environ mirror (written last-writer-wins as a CLI/cron fallback, never
@@ -449,7 +449,7 @@ def _inject_session_context_env(env: dict) -> None:
 
 
 def _sanitize_subprocess_env(base_env: dict | None, extra_env: dict | None = None) -> dict:
-    """Filter FreeIDE-managed secrets from a subprocess environment."""
+    """Filter JettsTUI-managed secrets from a subprocess environment."""
     try:
         from tools.env_passthrough import is_env_passthrough as _is_passthrough
     except Exception:
@@ -458,27 +458,27 @@ def _sanitize_subprocess_env(base_env: dict | None, extra_env: dict | None = Non
     sanitized: dict[str, str] = {}
 
     for key, value in (base_env or {}).items():
-        if key.startswith(_FREEIDE_PROVIDER_ENV_FORCE_PREFIX):
+        if key.startswith(_JETTSTUI_PROVIDER_ENV_FORCE_PREFIX):
             continue
-        if _is_freeide_internal_secret(key):
+        if _is_jettstui_internal_secret(key):
             continue
-        if key not in _FREEIDE_PROVIDER_ENV_BLOCKLIST or _is_passthrough(key):
+        if key not in _JETTSTUI_PROVIDER_ENV_BLOCKLIST or _is_passthrough(key):
             sanitized[key] = value
 
     for key, value in (extra_env or {}).items():
-        if key.startswith(_FREEIDE_PROVIDER_ENV_FORCE_PREFIX):
-            real_key = key[len(_FREEIDE_PROVIDER_ENV_FORCE_PREFIX):]
-            if _is_freeide_internal_secret(real_key):
+        if key.startswith(_JETTSTUI_PROVIDER_ENV_FORCE_PREFIX):
+            real_key = key[len(_JETTSTUI_PROVIDER_ENV_FORCE_PREFIX):]
+            if _is_jettstui_internal_secret(real_key):
                 continue
             sanitized[real_key] = value
-        elif _is_freeide_internal_secret(key):
+        elif _is_jettstui_internal_secret(key):
             continue
-        elif key not in _FREEIDE_PROVIDER_ENV_BLOCKLIST or _is_passthrough(key):
+        elif key not in _JETTSTUI_PROVIDER_ENV_BLOCKLIST or _is_passthrough(key):
             sanitized[key] = value
 
-    _inject_context_freeide_home(sanitized)
+    _inject_context_jettstui_home(sanitized)
 
-    from freeide_constants import apply_subprocess_home_env
+    from jettstui_constants import apply_subprocess_home_env
     apply_subprocess_home_env(sanitized)
 
     # Same cross-session leak guard as _make_run_env, for the background/PTY
@@ -513,11 +513,11 @@ def _scrub_delegated_child_kanban_env(env: dict[str, str]) -> dict[str, str]:
 # Tier-1 secrets: stripped from EVERY spawned subprocess unconditionally —
 # even when the caller opts into credential inheritance for a model-driving
 # CLI (claude / codex / gemini).  These are not LLM provider credentials; no
-# legitimate child FreeIDE spawns needs them, and they are the highest-value
+# legitimate child JettsTUI spawns needs them, and they are the highest-value
 # secrets to keep out of a compromised dependency's reach (gateway bot tokens,
 # GitHub auth, remote-compute tokens, dashboard session secret).  The set is a
-# narrow subset of _FREEIDE_PROVIDER_ENV_BLOCKLIST; provider keys are handled by
-# the conditional Tier-2 strip in freeide_subprocess_env().
+# narrow subset of _JETTSTUI_PROVIDER_ENV_BLOCKLIST; provider keys are handled by
+# the conditional Tier-2 strip in jettstui_subprocess_env().
 _ALWAYS_STRIP_KEYS: frozenset[str] = frozenset({
     # GitHub auth
     "GH_TOKEN",
@@ -537,7 +537,7 @@ _ALWAYS_STRIP_KEYS: frozenset[str] = frozenset({
     # provisions and persists to the 0600 .env. Stripped unconditionally on
     # EVERY spawn surface (terminal + model-driving CLIs) so it can't drift
     # between paths: _SECRET / _DELIVERY_KEY are also matched by
-    # _is_freeide_internal_secret, but _ID has no secret suffix, so it must be
+    # _is_jettstui_internal_secret, but _ID has no secret suffix, so it must be
     # enumerated here to stay stripped on the inherit_credentials=True path
     # (codex / copilot), which skips the Tier-2 blocklist.
     "GATEWAY_RELAY_ID",
@@ -545,7 +545,7 @@ _ALWAYS_STRIP_KEYS: frozenset[str] = frozenset({
     "GATEWAY_RELAY_DELIVERY_KEY",
     "HASS_TOKEN",
     "EMAIL_PASSWORD",
-    "FREEIDE_DASHBOARD_SESSION_TOKEN",
+    "JETTSTUI_DASHBOARD_SESSION_TOKEN",
     # Remote-compute / infrastructure secrets
     "MODAL_TOKEN_ID",
     "MODAL_TOKEN_SECRET",
@@ -553,14 +553,14 @@ _ALWAYS_STRIP_KEYS: frozenset[str] = frozenset({
 })
 
 
-def freeide_subprocess_env(*, inherit_credentials: bool = False) -> dict[str, str]:
+def jettstui_subprocess_env(*, inherit_credentials: bool = False) -> dict[str, str]:
     """Build a sanitized environment dict for a spawned subprocess.
 
     Centralized helper for the **non-terminal** spawn surface (browser,
     ACP/CLI executors, computer-use driver, dep-ensure, TUI Node host,
     detached gateway).  Use this instead of copying ``os.environ`` directly
     so strip-by-default is the uniform policy across every spawn site, with a
-    single source of truth (``_FREEIDE_PROVIDER_ENV_BLOCKLIST``).  The terminal
+    single source of truth (``_JETTSTUI_PROVIDER_ENV_BLOCKLIST``).  The terminal
     / execute_code path keeps using :func:`_sanitize_subprocess_env`, which is
     skill-aware (``env_passthrough``); this helper is for spawns that have no
     skill-passthrough concept.
@@ -569,8 +569,8 @@ def freeide_subprocess_env(*, inherit_credentials: bool = False) -> dict[str, st
 
     * **Tier 1 (always):** ``_ALWAYS_STRIP_KEYS`` — gateway bot tokens, GitHub
       auth, and remote-compute secrets are removed regardless of
-      ``inherit_credentials``.  No child FreeIDE spawns legitimately needs them.
-    * **Tier 2 (conditional):** the rest of ``_FREEIDE_PROVIDER_ENV_BLOCKLIST``
+      ``inherit_credentials``.  No child JettsTUI spawns legitimately needs them.
+    * **Tier 2 (conditional):** the rest of ``_JETTSTUI_PROVIDER_ENV_BLOCKLIST``
       (LLM provider API keys, tool secrets) is removed unless the caller passes
       ``inherit_credentials=True``.
 
@@ -590,27 +590,27 @@ def freeide_subprocess_env(*, inherit_credentials: bool = False) -> dict[str, st
     # Tier 1 — always strip.
     for key in _ALWAYS_STRIP_KEYS:
         env.pop(key, None)
-    # Internal routing hints and FreeIDE-internal dynamic secrets
+    # Internal routing hints and JettsTUI-internal dynamic secrets
     # (``AUXILIARY_<TASK>_API_KEY`` / ``_BASE_URL`` side-LLM credentials,
     # ``GATEWAY_RELAY_*`` relay-auth material) must never reach a child,
     # regardless of ``inherit_credentials`` — a model-driving CLI has no
-    # legitimate use for them. See :func:`_is_freeide_internal_secret`.
+    # legitimate use for them. See :func:`_is_jettstui_internal_secret`.
     for key in list(env):
-        if key.startswith(_FREEIDE_PROVIDER_ENV_FORCE_PREFIX):
+        if key.startswith(_JETTSTUI_PROVIDER_ENV_FORCE_PREFIX):
             env.pop(key, None)
-        elif _is_freeide_internal_secret(key):
+        elif _is_jettstui_internal_secret(key):
             env.pop(key, None)
 
     if not inherit_credentials:
         # Tier 2 — strip provider/tool credentials unless explicitly inherited.
-        for key in _FREEIDE_PROVIDER_ENV_BLOCKLIST:
+        for key in _JETTSTUI_PROVIDER_ENV_BLOCKLIST:
             env.pop(key, None)
 
     # Windows UTF-8 safety for spawned processes (#31420).
     env.setdefault("PYTHONUTF8", "1")
 
-    _inject_context_freeide_home(env)
-    from freeide_constants import apply_subprocess_home_env
+    _inject_context_jettstui_home(env)
+    from jettstui_constants import apply_subprocess_home_env
     apply_subprocess_home_env(env)
 
     # Active-venv markers must not clobber another project's environment.
@@ -620,7 +620,7 @@ def freeide_subprocess_env(*, inherit_credentials: bool = False) -> dict[str, st
     _apply_windows_msys_bash_env_defaults(env)
 
     # Cross-session leak guard, same as the terminal spawn paths: this helper
-    # copies os.environ, whose FREEIDE_SESSION_* mirror is a last-writer-wins
+    # copies os.environ, whose JETTSTUI_SESSION_* mirror is a last-writer-wins
     # global under a concurrent multi-session host. A caller that re-binds the
     # session identity explicitly (slash_worker/ACP via --session-key argv) is
     # unaffected — bound ContextVars win here — but a caller that spawns without
@@ -632,7 +632,7 @@ def freeide_subprocess_env(*, inherit_credentials: bool = False) -> dict[str, st
     # Non-terminal subprocess helpers (browser, lazy-deps, TUI/ACP hosts, etc.)
     # also need the delegate_task child lineage marker.  Otherwise a child
     # context that later imports Kanban DB code in the spawned process would
-    # still see the parent's FREEIDE_HOME but lose the DB mutation guard.
+    # still see the parent's JETTSTUI_HOME but lose the DB mutation guard.
     env = _scrub_delegated_child_kanban_env(env)
 
     return env
@@ -651,24 +651,24 @@ def _find_bash() -> str:
 
     candidates: list[str] = []
 
-    custom = os.environ.get("FREEIDE_GIT_BASH_PATH")
+    custom = os.environ.get("JETTSTUI_GIT_BASH_PATH")
     if custom and os.path.isfile(custom):
         candidates.append(custom)
 
     # Prefer our own portable Git install — a broken or partially-uninstalled
-    # system Git (or a stale FREEIDE_GIT_BASH_PATH pointing at one) must not
+    # system Git (or a stale JETTSTUI_GIT_BASH_PATH pointing at one) must not
     # brick the terminal.  install.ps1 drops PortableGit here when needed.
     #
     # Layouts (both checked so upgrades between MinGit and PortableGit
     # installs work transparently):
-    #   PortableGit: %LOCALAPPDATA%\freeide\git\bin\bash.exe   (primary)
-    #   MinGit:      %LOCALAPPDATA%\freeide\git\usr\bin\bash.exe (legacy/32-bit fallback)
+    #   PortableGit: %LOCALAPPDATA%\jettstui\git\bin\bash.exe   (primary)
+    #   MinGit:      %LOCALAPPDATA%\jettstui\git\usr\bin\bash.exe (legacy/32-bit fallback)
     _local_appdata = os.environ.get("LOCALAPPDATA", "")
-    _freeide_portable_git = os.path.join(_local_appdata, "freeide", "git") if _local_appdata else ""
-    if _freeide_portable_git:
+    _jettstui_portable_git = os.path.join(_local_appdata, "jettstui", "git") if _local_appdata else ""
+    if _jettstui_portable_git:
         for candidate in (
-            os.path.join(_freeide_portable_git, "bin", "bash.exe"),        # PortableGit (primary)
-            os.path.join(_freeide_portable_git, "usr", "bin", "bash.exe"), # MinGit fallback
+            os.path.join(_jettstui_portable_git, "bin", "bash.exe"),        # PortableGit (primary)
+            os.path.join(_jettstui_portable_git, "usr", "bin", "bash.exe"), # MinGit fallback
         ):
             if os.path.isfile(candidate) and candidate not in candidates:
                 candidates.append(candidate)
@@ -690,14 +690,14 @@ def _find_bash() -> str:
         candidates.append(found)
 
     # Prefer the first candidate that can actually start.  A stale
-    # FREEIDE_GIT_BASH_PATH pointing at a broken Git-for-Windows install
+    # JETTSTUI_GIT_BASH_PATH pointing at a broken Git-for-Windows install
     # (``Directory \\drivers\\etc does not exist``) must not win over a
-    # healthy portable Git under %LOCALAPPDATA%\\freeide\\git.
+    # healthy portable Git under %LOCALAPPDATA%\\jettstui\\git.
     for candidate in candidates:
         if _bash_starts(candidate):
             if candidate != custom and custom and os.path.isfile(custom):
                 logger.warning(
-                    "FREEIDE_GIT_BASH_PATH=%s fails to start; using %s instead",
+                    "JETTSTUI_GIT_BASH_PATH=%s fails to start; using %s instead",
                     custom,
                     candidate,
                 )
@@ -720,9 +720,9 @@ def _find_bash() -> str:
         return candidates[0]
 
     raise RuntimeError(
-        "Git Bash not found. FreeIDE Agent requires Git for Windows on Windows.\n"
+        "Git Bash not found. JettsTUI requires Git for Windows on Windows.\n"
         "Install it from: https://git-scm.com/download/win\n"
-        "Or set FREEIDE_GIT_BASH_PATH to your bash.exe location."
+        "Or set JETTSTUI_GIT_BASH_PATH to your bash.exe location."
     )
 
 
@@ -808,7 +808,7 @@ def _git_bash_aslr_help(bash: str, details: str = "") -> str:
         'Get-Item "$gitRoot\\bin\\bash.exe", "$gitRoot\\usr\\bin\\*.exe" '
         "-ErrorAction SilentlyContinue | ForEach-Object { "
         "Set-ProcessMitigation -Name $_.FullName -Disable ForceRelocateImages }\n"
-        "Then restart FreeIDE. If the override is blocked or later re-applied, "
+        "Then restart JettsTUI. If the override is blocked or later re-applied, "
         "ask your Windows administrator to allow this per-program exception."
     )
 
@@ -979,42 +979,42 @@ _SANE_PATH = (
     "/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin"
 )
 
-# Cached directory containing the ``freeide`` console-script.
+# Cached directory containing the ``jettstui`` console-script.
 # ``_SENTINEL`` distinguishes "not resolved yet" from a resolved ``None``.
 _SENTINEL = object()
-_FREEIDE_BIN_DIR: "str | None | object" = _SENTINEL
+_JETTSTUI_BIN_DIR: "str | None | object" = _SENTINEL
 
 
-def _resolve_freeide_bin_dir() -> str | None:
-    """Return the directory holding the ``freeide`` console-script, or None.
+def _resolve_jettstui_bin_dir() -> str | None:
+    """Return the directory holding the ``jettstui`` console-script, or None.
 
     The terminal tool runs in a freshly-spawned subshell whose PATH is the
     agent process's PATH plus a static set of system dirs (``_SANE_PATH``).
     When the gateway is launched by something that does NOT source the user's
     shell rc — systemd, a service manager, a desktop launcher, cron — the
-    freeide install dir (``~/.local/bin``, the venv ``bin``/``Scripts``, pipx,
-    nix) is absent from that PATH, so plugins shelling out to bare ``freeide``
+    jettstui install dir (``~/.local/bin``, the venv ``bin``/``Scripts``, pipx,
+    nix) is absent from that PATH, so plugins shelling out to bare ``jettstui``
     via the terminal tool hit ``command not found`` (exit 127) even though
-    ``freeide`` works fine in the user's own interactive terminal.
+    ``jettstui`` works fine in the user's own interactive terminal.
 
     We resolve the install dir once (it never changes within a process) and
-    prepend-if-missing it to the subshell PATH so bare ``freeide`` resolves
+    prepend-if-missing it to the subshell PATH so bare ``jettstui`` resolves
     regardless of how the gateway was started.
 
     Resolution order (cheap, no heavy imports):
-      1. ``shutil.which("freeide")`` — normal PATH-installed shim.
+      1. ``shutil.which("jettstui")`` — normal PATH-installed shim.
       2. The directory of ``sys.argv[0]`` when it's an absolute path to a
-         real ``freeide`` executable (covers nix-store / venv wrappers).
+         real ``jettstui`` executable (covers nix-store / venv wrappers).
       3. The directory of ``sys.executable`` — the running interpreter's
          venv ``bin``/``Scripts`` is where its console-scripts live.
     """
-    global _FREEIDE_BIN_DIR
-    if _FREEIDE_BIN_DIR is not _SENTINEL:
-        return _FREEIDE_BIN_DIR  # type: ignore[return-value]
+    global _JETTSTUI_BIN_DIR
+    if _JETTSTUI_BIN_DIR is not _SENTINEL:
+        return _JETTSTUI_BIN_DIR  # type: ignore[return-value]
 
     candidate: str | None = None
 
-    which = shutil.which("freeide")
+    which = shutil.which("jettstui")
     if which:
         candidate = os.path.dirname(which)
 
@@ -1023,7 +1023,7 @@ def _resolve_freeide_bin_dir() -> str | None:
         base = os.path.basename(argv0).lower()
         if (
             os.path.isabs(argv0)
-            and (base == "freeide" or base.startswith("freeide."))
+            and (base == "jettstui" or base.startswith("jettstui."))
             and os.path.isfile(argv0)
         ):
             candidate = os.path.dirname(argv0)
@@ -1031,25 +1031,25 @@ def _resolve_freeide_bin_dir() -> str | None:
     if candidate is None:
         exe_dir = os.path.dirname(sys.executable) if sys.executable else ""
         if exe_dir:
-            shim = "freeide.exe" if _IS_WINDOWS else "freeide"
+            shim = "jettstui.exe" if _IS_WINDOWS else "jettstui"
             if os.path.isfile(os.path.join(exe_dir, shim)):
                 candidate = exe_dir
 
     if candidate and not os.path.isdir(candidate):
         candidate = None
 
-    _FREEIDE_BIN_DIR = candidate
+    _JETTSTUI_BIN_DIR = candidate
     return candidate
 
 
-def _prepend_freeide_bin_dir(existing_path: str) -> str:
-    """Prepend the freeide install dir to ``existing_path`` if it's missing.
+def _prepend_jettstui_bin_dir(existing_path: str) -> str:
+    """Prepend the jettstui install dir to ``existing_path`` if it's missing.
 
     Cross-platform (uses ``os.pathsep``). First-occurrence wins, so a PATH
     that already contains the dir is returned unchanged. Returns the input
     unchanged when the install dir can't be resolved.
     """
-    bin_dir = _resolve_freeide_bin_dir()
+    bin_dir = _resolve_jettstui_bin_dir()
     if not bin_dir:
         return existing_path
     sep = os.pathsep
@@ -1112,7 +1112,7 @@ def _apply_windows_msys_bash_env_defaults(env: dict) -> None:
 
     Git Bash rewrites arguments that look like Unix paths (``/FO``, ``/TN``,
     ``/Create``) into ``C:/.../git/FO``-style paths, which breaks native
-    Windows commands such as ``tasklist``, ``schtasks``, and ``wmic``.  FreeIDE
+    Windows commands such as ``tasklist``, ``schtasks``, and ``wmic``.  JettsTUI
     runs terminal commands through bash on Windows, so set the standard MSYS
     opt-out by default.  Users who need conversion can override in their env.
     Refs #56700.
@@ -1158,14 +1158,14 @@ def _make_run_env(env: dict) -> dict:
     merged = dict(os.environ | env)
     run_env = {}
     for k, v in merged.items():
-        if k.startswith(_FREEIDE_PROVIDER_ENV_FORCE_PREFIX):
-            real_key = k[len(_FREEIDE_PROVIDER_ENV_FORCE_PREFIX):]
-            if _is_freeide_internal_secret(real_key):
+        if k.startswith(_JETTSTUI_PROVIDER_ENV_FORCE_PREFIX):
+            real_key = k[len(_JETTSTUI_PROVIDER_ENV_FORCE_PREFIX):]
+            if _is_jettstui_internal_secret(real_key):
                 continue
             run_env[real_key] = v
-        elif _is_freeide_internal_secret(k):
+        elif _is_jettstui_internal_secret(k):
             continue
-        elif k not in _FREEIDE_PROVIDER_ENV_BLOCKLIST or _is_passthrough(k):
+        elif k not in _JETTSTUI_PROVIDER_ENV_BLOCKLIST or _is_passthrough(k):
             run_env[k] = v
     path_key = _path_env_key(run_env)
     if path_key is not None:
@@ -1177,14 +1177,14 @@ def _make_run_env(env: dict) -> dict:
         # error / exit 127).  No-op off Windows and when a login snapshot is
         # healthy (the snapshot re-exports the full PATH inside the shell).
         new_path = _prepend_git_bash_dirs(new_path)
-        # Ensure the freeide install dir is reachable so plugins can shell out
-        # to bare ``freeide`` via the terminal tool even when the gateway was
+        # Ensure the jettstui install dir is reachable so plugins can shell out
+        # to bare ``jettstui`` via the terminal tool even when the gateway was
         # launched without it on PATH (systemd, service managers, cron, etc.).
-        run_env[path_key] = _prepend_freeide_bin_dir(new_path)
+        run_env[path_key] = _prepend_jettstui_bin_dir(new_path)
 
-    _inject_context_freeide_home(run_env)
+    _inject_context_jettstui_home(run_env)
 
-    from freeide_constants import apply_subprocess_home_env
+    from jettstui_constants import apply_subprocess_home_env
     apply_subprocess_home_env(run_env)
 
     # Bridge ContextVar-based session vars into the subprocess env (with the
@@ -1209,7 +1209,7 @@ def _read_terminal_shell_init_config() -> tuple[list[str], bool]:
     execution never breaks because the config file is unreadable.
     """
     try:
-        from freeide_cli.config import load_config
+        from jettstui.config import load_config
 
         cfg = load_config() or {}
         terminal_cfg = cfg.get("terminal") or {}
@@ -1228,7 +1228,7 @@ def _resolve_shell_init_files() -> list[str]:
     Expands ``~`` and ``${VAR}`` references and drops anything that doesn't
     exist on disk, so a missing ``~/.bashrc`` never breaks the snapshot.
     The ``auto_source_bashrc`` path runs only when the user hasn't supplied
-    an explicit list — once they have, FreeIDE trusts them.
+    an explicit list — once they have, JettsTUI trusts them.
     """
     explicit, auto_bashrc = _read_terminal_shell_init_config()
 
@@ -1314,20 +1314,20 @@ class LocalEnvironment(BaseEnvironment):
         can't open the path, and the Windows default temp (``%TEMP%``) often
         contains spaces (``C:\\Users\\Some Name\\AppData\\Local\\Temp``) that
         break unquoted bash interpolations.  Use a dedicated cache dir under
-        ``FREEIDE_HOME`` instead — single-word path, guaranteed to exist, same
+        ``JETTSTUI_HOME`` instead — single-word path, guaranteed to exist, same
         string resolves in both Git Bash and native Python.
         """
         if _IS_WINDOWS:
-            # Derive a Windows-safe temp dir under FREEIDE_HOME.  Using
+            # Derive a Windows-safe temp dir under JETTSTUI_HOME.  Using
             # forward slashes makes the same string work unchanged in bash
             # command interpolations AND in Python ``open()`` — Windows
             # accepts forward slashes in filesystem paths, and we control
             # the path so we can guarantee no spaces.
             try:
-                from freeide_constants import get_freeide_home
-                cache_dir = get_freeide_home() / "cache" / "terminal"
+                from jettstui_constants import get_jettstui_home
+                cache_dir = get_jettstui_home() / "cache" / "terminal"
             except Exception:
-                cache_dir = Path(tempfile.gettempdir()) / "freeide_terminal"
+                cache_dir = Path(tempfile.gettempdir()) / "jettstui_terminal"
             cache_dir.mkdir(parents=True, exist_ok=True)
             # Force forward slashes so the same string serves both contexts.
             return str(cache_dir).replace("\\", "/")
@@ -1416,7 +1416,7 @@ class LocalEnvironment(BaseEnvironment):
         )
         if not _IS_WINDOWS:
             try:
-                proc._freeide_pgid = os.getpgid(proc.pid)
+                proc._jettstui_pgid = os.getpgid(proc.pid)
             except ProcessLookupError:
                 pass
 
@@ -1473,7 +1473,7 @@ class LocalEnvironment(BaseEnvironment):
                 try:
                     pgid = os.getpgid(proc.pid)
                 except ProcessLookupError:
-                    pgid = getattr(proc, "_freeide_pgid", None)
+                    pgid = getattr(proc, "_jettstui_pgid", None)
                     if pgid is None:
                         raise
 

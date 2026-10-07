@@ -22,20 +22,20 @@ const textContent = (node: React.ReactNode): string => {
 
 describe('WorkspaceHeader responsive hierarchy', () => {
   const base = {
-    brand: 'FreeIDE',
+    brand: 'JettsTUI',
     busy: false,
-    cwd: 'C:\\dev\\freeide',
+    cwd: 'C:\\dev\\jettstui',
     mode: 'default' as const,
     model: 'openai/gpt-5.6-sol',
-    project: 'freeide',
+    project: 'jettstui',
     t: DEFAULT_THEME
   }
 
   it('shows model and mode when there is room', () => {
     const frame = textContent(WorkspaceHeader({ ...base, cols: 100 }))
 
-    expect(frame).toContain('FreeIDE')
-    expect(frame).toContain('freeide')
+    expect(frame).toContain('JettsTUI')
+    expect(frame).toContain('jettstui')
     expect(frame).toContain('gpt 5.6 sol')
     expect(frame).toContain('DEFAULT')
   })
@@ -43,7 +43,7 @@ describe('WorkspaceHeader responsive hierarchy', () => {
   it('keeps identity while progressively hiding secondary context', () => {
     const frame = textContent(WorkspaceHeader({ ...base, cols: 36 }))
 
-    expect(frame).toContain('FreeIDE')
+    expect(frame).toContain('JettsTUI')
     expect(frame).not.toContain('gpt 5.6 sol')
     expect(frame).not.toContain('DEFAULT')
   })

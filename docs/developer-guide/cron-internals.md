@@ -1,7 +1,7 @@
 ---
 sidebar_position: 11
 title: "Cron Internals"
-description: "How FreeIDE stores, schedules, edits, pauses, skill-loads, and delivers cron jobs"
+description: "How JettsTUI stores, schedules, edits, pauses, skill-loads, and delivers cron jobs"
 ---
 
 # Cron Internals
@@ -16,7 +16,7 @@ The cron subsystem provides scheduled task execution — from simple one-shot de
 | `cron/scheduler.py` | Scheduler loop — due-job detection, execution, repeat tracking |
 | `tools/cronjob_tools.py` | Model-facing `cronjob` tool registration and handler |
 | `gateway/run.py` | Gateway integration — cron ticking in the long-running loop |
-| `freeide_cli/cron.py` | CLI `freeide cron` subcommands |
+| `jettstui/cron.py` | CLI `jettstui cron` subcommands |
 
 ## Scheduling Model
 
@@ -33,7 +33,7 @@ The model-facing surface is a single `cronjob` tool with action-style operations
 
 ## Job Storage
 
-Jobs are stored in `~/.freeide/cron/jobs.json` with atomic write semantics (write to temp file, then rename). Each job record contains:
+Jobs are stored in `~/.jettstui/cron/jobs.json` with atomic write semantics (write to temp file, then rename). Each job record contains:
 
 ```json
 {
@@ -115,7 +115,7 @@ The active provider is chosen by the `cron.provider` config key:
   is byte-identical to the pre-provider behavior.
 - **a named provider** (a custom managed-cron backend, e.g. for scale-to-zero
   deployments) → discovered from `plugins/cron/<name>/` or
-  `$FREEIDE_HOME/plugins/<name>/`.
+  `$JETTSTUI_HOME/plugins/<name>/`.
 
 If a named provider is missing, fails to load, or reports `is_available() ==
 False`, the resolver falls back to the built-in with a warning — **cron is
@@ -127,7 +127,7 @@ What "firing" *means* (job execution + delivery) is unchanged and shared by all
 providers — it stays in `scheduler.run_job()` / `scheduler._deliver_result()`.
 A provider only controls the trigger, never execution.
 
-In CLI mode, cron jobs only fire when `freeide cron` commands are run or during active CLI sessions.
+In CLI mode, cron jobs only fire when `jettstui cron` commands are run or during active CLI sessions.
 
 ### Managed cron for scale-to-zero
 
@@ -175,7 +175,7 @@ Create a daily funding report → attach "ai-funding-daily-report" skill
 Jobs can also attach a Python script via the `script` field. The script runs *before* each agent turn, and its stdout is injected into the prompt as context. This enables data collection and change detection patterns:
 
 ```python
-# ~/.freeide/scripts/check_competitors.py
+# ~/.jettstui/scripts/check_competitors.py
 import requests, json
 # Fetch competitor release notes, diff against last run
 # Print summary to stdout — agent analyzes and reports
@@ -184,11 +184,11 @@ import requests, json
 The script timeout defaults to 3600 seconds (1 hour). `_get_script_timeout()` resolves the limit through a three-layer chain:
 
 1. **Module-level override** — `_SCRIPT_TIMEOUT` (for tests/monkeypatching). Only used when it differs from the default.
-2. **Environment variable** — `FREEIDE_CRON_SCRIPT_TIMEOUT`
+2. **Environment variable** — `JETTSTUI_CRON_SCRIPT_TIMEOUT`
 3. **Config** — `cron.script_timeout_seconds` in `config.yaml` (read via `load_config()`)
 4. **Default** — 3600 seconds (1 hour)
 
-This timeout bounds the **pre-run script only**, not the agent. Skill-based / LLM-driven jobs run on a separate *inactivity*-based budget (`FREEIDE_CRON_TIMEOUT`, default 600s of idle time, `0` = unlimited) — they can run for hours as long as they keep calling tools or streaming tokens, and are only killed after the configured idle period with no activity. Scripts are dispatched to a persistent thread pool (not held under the tick lock), so a long-running script does not block other due jobs from firing.
+This timeout bounds the **pre-run script only**, not the agent. Skill-based / LLM-driven jobs run on a separate *inactivity*-based budget (`JETTSTUI_CRON_TIMEOUT`, default 600s of idle time, `0` = unlimited) — they can run for hours as long as they keep calling tools or streaming tokens, and are only killed after the configured idle period with no activity. Scripts are dispatched to a persistent thread pool (not held under the tick lock), so a long-running script does not block other due jobs from firing.
 
 ### Provider Recovery
 
@@ -210,7 +210,7 @@ Most platforms also accept an optional thread/topic as a third segment: `platfor
 | Target | Syntax | Example |
 |--------|--------|---------|
 | Origin chat | `origin` | Deliver to the chat where the job was created |
-| Local file | `local` | Save to `~/.freeide/cron/output/` |
+| Local file | `local` | Save to `~/.jettstui/cron/output/` |
 | Telegram | `telegram`, `telegram:<chat_id>`, `telegram:<chat_id>:<thread_id>`, `telegram:@username` | `telegram:-1001234567890:17585` |
 | Discord | `discord`, `discord:#channel`, `discord:<channel_id>`, `discord:<channel_id>:<thread_id>` | `discord:#engineering` |
 | Slack | `slack`, `slack:#channel`, `slack:<channel_id>`, `slack:<channel_id>:<thread_ts>` | `slack:#engineering` |
@@ -255,20 +255,20 @@ Cron-run sessions have the `cronjob` toolset disabled. This prevents:
 
 ## Locking
 
-The scheduler uses cross-process file-based locking (`fcntl.flock` on Unix, `msvcrt.locking` on Windows) to prevent overlapping ticks from executing the same due-job batch twice — even between the gateway's in-process ticker and a standalone `freeide cron` / manual `tick()` call. If the lock cannot be acquired, `tick()` returns 0 immediately.
+The scheduler uses cross-process file-based locking (`fcntl.flock` on Unix, `msvcrt.locking` on Windows) to prevent overlapping ticks from executing the same due-job batch twice — even between the gateway's in-process ticker and a standalone `jettstui cron` / manual `tick()` call. If the lock cannot be acquired, `tick()` returns 0 immediately.
 
 ## CLI Interface
 
-The `freeide cron` CLI provides direct job management:
+The `jettstui cron` CLI provides direct job management:
 
 ```bash
-freeide cron list                    # Show all jobs
-freeide cron create                  # Interactive job creation (alias: add)
-freeide cron edit <job_id>           # Edit job configuration
-freeide cron pause <job_id>          # Pause a running job
-freeide cron resume <job_id>         # Resume a paused job
-freeide cron run <job_id>            # Trigger immediate execution
-freeide cron remove <job_id>         # Delete a job
+jettstui cron list                    # Show all jobs
+jettstui cron create                  # Interactive job creation (alias: add)
+jettstui cron edit <job_id>           # Edit job configuration
+jettstui cron pause <job_id>          # Pause a running job
+jettstui cron resume <job_id>         # Resume a paused job
+jettstui cron run <job_id>            # Trigger immediate execution
+jettstui cron remove <job_id>         # Delete a job
 ```
 
 ## Related Docs

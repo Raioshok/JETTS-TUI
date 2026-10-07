@@ -4,14 +4,14 @@ from __future__ import annotations
 
 from typing import Any
 
-from freeide_cli.config import load_config, save_config
-from freeide_cli.inventory import build_models_payload, load_picker_context
-from freeide_cli.moa_config import DEFAULT_MOA_PRESET_NAME, normalize_moa_config
+from jettstui.config import load_config, save_config
+from jettstui.inventory import build_models_payload, load_picker_context
+from jettstui.moa_config import DEFAULT_MOA_PRESET_NAME, normalize_moa_config
 
 
 def _prompt_choice(title: str, rows: list[str], default: int = 0) -> int:
     try:
-        from freeide_cli.curses_ui import curses_radiolist
+        from jettstui.curses_ui import curses_radiolist
 
         return curses_radiolist(title, rows, selected=default, cancel_returns=default)
     except Exception:
@@ -52,7 +52,7 @@ def _model_options() -> list[dict[str, Any]]:
 def _pick_slot(current: dict[str, str] | None = None) -> dict[str, str]:
     providers = _model_options()
     if not providers:
-        raise RuntimeError("No configured model providers found. Run `freeide model` first.")
+        raise RuntimeError("No configured model providers found. Run `jettstui model` first.")
     current_provider = (current or {}).get("provider", "")
     provider_default = next(
         (idx for idx, p in enumerate(providers) if p.get("slug") == current_provider),
@@ -134,7 +134,7 @@ def cmd_moa(args) -> None:
         moa = normalize_moa_config(cfg.get("moa") if isinstance(cfg, dict) else {})
         preset_name = (getattr(args, "name", None) or "").strip()
         if not preset_name:
-            raise SystemExit("Usage: freeide moa delete <name>")
+            raise SystemExit("Usage: jettstui moa delete <name>")
         if preset_name not in moa["presets"]:
             raise SystemExit(f"Unknown MoA preset: {preset_name}")
         if len(moa["presets"]) <= 1:

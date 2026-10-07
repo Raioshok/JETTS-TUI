@@ -1,15 +1,15 @@
 ---
 sidebar_position: 15
 title: "Google Vertex AI"
-description: "Use FreeIDE Agent with Gemini on Google Cloud Vertex AI — OAuth2 service account or ADC, GCP billing and quotas, no static API key"
+description: "Use JettsTUI with Gemini on Google Cloud Vertex AI — OAuth2 service account or ADC, GCP billing and quotas, no static API key"
 ---
 
 # Google Vertex AI
 
-FreeIDE Agent supports **Gemini models on Google Cloud Vertex AI** through Vertex's OpenAI-compatible endpoint. Unlike the [Google AI Studio provider](./google-gemini.md) (which uses a static API key against `generativelanguage.googleapis.com`), Vertex gives you **enterprise-grade rate limits and GCP billing/credits**, and is the right choice when you want Gemini usage to draw on your Google Cloud account rather than an AI Studio key.
+JettsTUI supports **Gemini models on Google Cloud Vertex AI** through Vertex's OpenAI-compatible endpoint. Unlike the [Google AI Studio provider](./google-gemini.md) (which uses a static API key against `generativelanguage.googleapis.com`), Vertex gives you **enterprise-grade rate limits and GCP billing/credits**, and is the right choice when you want Gemini usage to draw on your Google Cloud account rather than an AI Studio key.
 
 :::info Vertex authenticates with OAuth2, not an API key
-Vertex has **no static API key** for the standard endpoint. Every request needs a short-lived **OAuth2 access token** (≈1 hour TTL) minted from either a service-account JSON or Application Default Credentials (ADC). FreeIDE mints and **auto-refreshes** these tokens for you — you never paste a token by hand. This is why pasting a temporary token into a custom provider's `api_key` field does not work: it expires mid-session.
+Vertex has **no static API key** for the standard endpoint. Every request needs a short-lived **OAuth2 access token** (≈1 hour TTL) minted from either a service-account JSON or Application Default Credentials (ADC). JettsTUI mints and **auto-refreshes** these tokens for you — you never paste a token by hand. This is why pasting a temporary token into a custom provider's `api_key` field does not work: it expires mid-session.
 :::
 
 ## Prerequisites
@@ -18,36 +18,36 @@ Vertex has **no static API key** for the standard endpoint. Every request needs 
 - **Credentials**, one of:
   - a **service-account JSON** key file with the `roles/aiplatform.user` role, or
   - **Application Default Credentials** via `gcloud auth application-default login` (or the metadata server when running on a GCP VM).
-- **`google-auth`** — installed automatically the first time you select Vertex (lazy install). Run `freeide setup` to repair a managed install if that fails.
+- **`google-auth`** — installed automatically the first time you select Vertex (lazy install). Run `jettstui setup` to repair a managed install if that fails.
 
 ## Quick Start
 
 ```bash
 # Option A — service account JSON (recommended for servers / gateways)
-echo "VERTEX_CREDENTIALS_PATH=/path/to/service-account.json" >> ~/.freeide/.env
+echo "VERTEX_CREDENTIALS_PATH=/path/to/service-account.json" >> ~/.jettstui/.env
 
 # Option B — Application Default Credentials (good for local dev)
 gcloud auth application-default login
 
 # Select Vertex as your provider
-freeide model
+jettstui model
 # → Choose "More providers..." → "Google Vertex AI"
 # → Enter your GCP project ID (or leave blank to use the one in your credentials)
 # → Choose a region (default: global)
 # → Select a Gemini model
 
 # Start chatting
-freeide chat
+jettstui chat
 ```
 
 ## Configuration
 
 Vertex splits its settings by sensitivity:
 
-- The **credential path** is a pointer to a secret and lives in `~/.freeide/.env`.
-- **Project ID and region** are non-secret routing settings and live in `~/.freeide/config.yaml`.
+- The **credential path** is a pointer to a secret and lives in `~/.jettstui/.env`.
+- **Project ID and region** are non-secret routing settings and live in `~/.jettstui/config.yaml`.
 
-`~/.freeide/.env`:
+`~/.jettstui/.env`:
 
 ```bash
 # One of these (checked in this order); omit both to use ADC:
@@ -55,7 +55,7 @@ VERTEX_CREDENTIALS_PATH=/path/to/service-account.json
 GOOGLE_APPLICATION_CREDENTIALS=/path/to/service-account.json
 ```
 
-`~/.freeide/config.yaml`:
+`~/.jettstui/config.yaml`:
 
 ```yaml
 model:
@@ -73,18 +73,18 @@ vertex:
 
 ### How authentication works
 
-1. FreeIDE resolves credentials in this order: `VERTEX_CREDENTIALS_PATH` → `GOOGLE_APPLICATION_CREDENTIALS` → ADC.
+1. JettsTUI resolves credentials in this order: `VERTEX_CREDENTIALS_PATH` → `GOOGLE_APPLICATION_CREDENTIALS` → ADC.
 2. It mints an OAuth2 access token (`cloud-platform` scope) and caches it, refreshing when the token is within 5 minutes of expiry.
 3. The token is handed to a standard OpenAI client pointed at the Vertex endpoint:
    ```text
    https://aiplatform.googleapis.com/v1beta1/projects/{project}/locations/{region}/endpoints/openapi
    ```
    Regional locations use a `{region}-aiplatform.googleapis.com` host instead.
-4. If a session runs longer than the token lifetime and a request returns `401`, FreeIDE re-mints the token and retries automatically. On a long-running gateway, if ADC's refresh token has itself expired, FreeIDE falls back to the service-account JSON when one is configured.
+4. If a session runs longer than the token lifetime and a request returns `401`, JettsTUI re-mints the token and retries automatically. On a long-running gateway, if ADC's refresh token has itself expired, JettsTUI falls back to the service-account JSON when one is configured.
 
 ## Available Models
 
-Vertex requires the `google/` vendor prefix on model IDs. The `freeide model` picker offers:
+Vertex requires the `google/` vendor prefix on model IDs. The `jettstui model` picker offers:
 
 | Model | ID |
 |-------|----|
@@ -107,16 +107,16 @@ The Gemini 3.x preview models are served through the `global` endpoint. Regional
 /model google/gemini-3-flash-preview
 ```
 
-`/model` switches among already-configured providers and models; it does not collect new credentials. Configure Vertex with `freeide model` first.
+`/model` switches among already-configured providers and models; it does not collect new credentials. Configure Vertex with `jettstui model` first.
 
 ## Reasoning / Thinking
 
-Vertex exposes Gemini's thinking budget through the OpenAI-compatible surface. FreeIDE maps its reasoning-effort setting onto `extra_body.google.thinking_config` automatically, so `reasoning_effort` works the same way it does on other Gemini surfaces.
+Vertex exposes Gemini's thinking budget through the OpenAI-compatible surface. JettsTUI maps its reasoning-effort setting onto `extra_body.google.thinking_config` automatically, so `reasoning_effort` works the same way it does on other Gemini surfaces.
 
 ## Diagnostics
 
 ```bash
-freeide doctor
+jettstui doctor
 ```
 
 The doctor reports whether Vertex credentials can be resolved (service-account path or ADC) and whether the provider is configured.
@@ -125,11 +125,11 @@ The doctor reports whether Vertex credentials can be resolved (service-account p
 
 ### "Vertex AI credentials could not be resolved"
 
-FreeIDE found neither a service-account JSON nor working ADC. Either set `VERTEX_CREDENTIALS_PATH` in `~/.freeide/.env`, or run `gcloud auth application-default login`. If your project isn't embedded in the credentials, set `vertex.project_id` in `config.yaml`.
+JettsTUI found neither a service-account JSON nor working ADC. Either set `VERTEX_CREDENTIALS_PATH` in `~/.jettstui/.env`, or run `gcloud auth application-default login`. If your project isn't embedded in the credentials, set `vertex.project_id` in `config.yaml`.
 
 ### `google-auth` not installed
 
-FreeIDE lazy-installs it the first time you select the Vertex provider. If that fails, run `freeide setup` to repair the managed install.
+JettsTUI lazy-installs it the first time you select the Vertex provider. If that fails, run `jettstui setup` to repair the managed install.
 
 ### 404 on Gemini 3.x models
 

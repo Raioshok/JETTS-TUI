@@ -1,6 +1,6 @@
 import { cn } from '../lib/utils'
 
-// Jetts-TUI badge, using the teal-on-ink palette of the desktop mark.
+// JettsTUI badge, using the teal-on-ink palette of the desktop mark.
 export function BrandMark({ className, ...props }: React.ComponentProps<'span'>) {
   return (
     <span

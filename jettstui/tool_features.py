@@ -1,6 +1,6 @@
-"""Local tool-capability detection for FreeIDE.
+"""Local tool-capability detection for JettsTUI.
 
-FreeIDE is bring-your-own-key: every optional tool backend (web search, image
+JettsTUI is bring-your-own-key: every optional tool backend (web search, image
 and video generation, TTS/STT, browser automation, Modal execution) is
 available exactly when the user has configured a working local install or a
 direct API key for it. There is no managed gateway and no remote entitlement —
@@ -13,7 +13,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Dict, Iterable, Optional, Set
 
-from freeide_cli.config import get_env_value, load_config
+from jettstui.config import get_env_value, load_config
 from utils import is_truthy_value
 from tools.tool_backend_helpers import (
     fal_key_is_configured,
@@ -26,7 +26,7 @@ from tools.tool_backend_helpers import (
 
 
 _DEFAULT_PLATFORM_TOOLSETS = {
-    "cli": "freeide-cli",
+    "cli": "jettstui-cli",
 }
 
 @dataclass(frozen=True)
@@ -130,7 +130,7 @@ def _toolset_enabled(config: Dict[str, object], toolset_key: str) -> bool:
 def _has_agent_browser() -> bool:
     import shutil
 
-    from freeide_constants import agent_browser_runnable
+    from jettstui_constants import agent_browser_runnable
 
     # Validate the resolved binary actually runs — a dangling global symlink
     # is reported by ``which`` but fails at exec. Fall through to the local
@@ -196,7 +196,7 @@ def _stt_label(current_provider: str) -> str:
 
 def _local_stt_backend_available() -> bool:
     """Whether a local STT backend could serve transcription right now."""
-    if get_env_value("FREEIDE_LOCAL_STT_COMMAND"):
+    if get_env_value("JETTSTUI_LOCAL_STT_COMMAND"):
         return True
     try:
         from tools.transcription_tools import _HAS_FASTER_WHISPER
@@ -501,15 +501,15 @@ def apply_managed_defaults(
     enabled_toolsets: Optional[Iterable[str]] = None,
     force_fresh: bool = False,
 ) -> set:
-    """No managed gateway in FreeIDE — nothing to auto-configure."""
+    """No managed gateway in JettsTUI — nothing to auto-configure."""
     return set()
 
 
 def ensure_tool_backend_access(*args, **kwargs) -> bool:
-    """No remote entitlement gate in FreeIDE — local backends are always allowed."""
+    """No remote entitlement gate in JettsTUI — local backends are always allowed."""
     return True
 
 
 def prompt_enable_tool_gateway(config: Optional[Dict[str, object]] = None) -> None:
-    """No managed tool gateway in FreeIDE — nothing to prompt."""
+    """No managed tool gateway in JettsTUI — nothing to prompt."""
     return None

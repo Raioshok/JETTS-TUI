@@ -39,7 +39,7 @@ import inspect
 from gateway import run as gateway_run
 from gateway.config import GatewayConfig, Platform
 from gateway.session import SessionSource, SessionStore
-from freeide_state import SessionDB
+from jettstui_state import SessionDB
 
 
 # ---------------------------------------------------------------------------

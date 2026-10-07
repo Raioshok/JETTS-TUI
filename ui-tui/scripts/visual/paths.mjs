@@ -2,10 +2,10 @@
 // resolve to a drive-root like C:\tmp on native Windows (and fail when the
 // directory doesn't exist) — os.tmpdir() is the platform-neutral answer.
 // Both render.tsx and shot.mjs derive the same directory from here;
-// FREEIDE_TUI_VISUAL_DIR overrides it for CI or side-by-side runs.
+// JETTSTUI_TUI_VISUAL_DIR overrides it for CI or side-by-side runs.
 import { tmpdir } from 'os'
 import { join } from 'path'
 
 export function visualOutDir() {
-  return process.env.FREEIDE_TUI_VISUAL_DIR || join(tmpdir(), 'jetts-tui-visual')
+  return process.env.JETTSTUI_TUI_VISUAL_DIR || join(tmpdir(), 'jetts-tui-visual')
 }

@@ -307,7 +307,7 @@ class TestDefaultContextLengths:
 
         # Longest-first substring matching must resolve both the bare V4
         # ids (native DeepSeek) and the vendor-prefixed forms (OpenRouter
-        # / FreeIDE Portal) to 1M without probing down to the legacy 128K
+        # / JettsTUI Portal) to 1M without probing down to the legacy 128K
         # ``deepseek`` substring fallback.
         with mock_patch("agent.model_metadata.fetch_model_metadata", return_value={}), \
              mock_patch("agent.model_metadata.fetch_endpoint_model_metadata", return_value={}), \
@@ -1538,7 +1538,7 @@ class TestGrok43StaleCacheGuard:
         assert not _model_name_suggests_grok_4_3("grok-4.20")
 
     def test_stale_grok_4_3_dropped_and_reresolves_to_1m(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("FREEIDE_HOME", str(tmp_path))
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path))
         import importlib
         import agent.model_metadata as mm
         importlib.reload(mm)
@@ -1550,7 +1550,7 @@ class TestGrok43StaleCacheGuard:
         assert ctx == 1_000_000
 
     def test_correct_grok_4_3_cache_preserved(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("FREEIDE_HOME", str(tmp_path))
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path))
         import importlib
         import agent.model_metadata as mm
         importlib.reload(mm)
@@ -1562,7 +1562,7 @@ class TestGrok43StaleCacheGuard:
         assert ctx == 1_000_000
 
     def test_grok_4_not_clobbered(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("FREEIDE_HOME", str(tmp_path))
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path))
         import importlib
         import agent.model_metadata as mm
         importlib.reload(mm)
@@ -1606,8 +1606,8 @@ class TestMoAContextLength:
             yaml.safe_dump(payload, f)
 
     def test_moa_resolves_from_aggregator(self, tmp_path, monkeypatch):
-        home = str(tmp_path / ".freeide")
-        monkeypatch.setenv("FREEIDE_HOME", home)
+        home = str(tmp_path / ".jettstui")
+        monkeypatch.setenv("JETTSTUI_HOME", home)
         self._write_moa_config(home, {"provider": "openrouter", "model": "anthropic/claude-opus-4.8"})
 
         # The MoA preset name + virtual base_url would otherwise fall through to
@@ -1619,8 +1619,8 @@ class TestMoAContextLength:
         assert moa_ctx == agg_ctx
 
     def test_moa_config_override_still_wins(self, tmp_path, monkeypatch):
-        home = str(tmp_path / ".freeide")
-        monkeypatch.setenv("FREEIDE_HOME", home)
+        home = str(tmp_path / ".jettstui")
+        monkeypatch.setenv("JETTSTUI_HOME", home)
         self._write_moa_config(home, {"provider": "openrouter", "model": "anthropic/claude-opus-4.8"})
         ctx = get_model_context_length(
             "p", base_url="http://127.0.0.1/v1", provider="moa", config_context_length=500_000
@@ -1628,8 +1628,8 @@ class TestMoAContextLength:
         assert ctx == 500_000
 
     def test_moa_resolves_custom_provider_per_model_context(self, tmp_path, monkeypatch):
-        home = str(tmp_path / ".freeide")
-        monkeypatch.setenv("FREEIDE_HOME", home)
+        home = str(tmp_path / ".jettstui")
+        monkeypatch.setenv("JETTSTUI_HOME", home)
         self._write_moa_config(
             home,
             {"provider": "custom:example", "model": "example-model"},
@@ -1654,8 +1654,8 @@ class TestMoAContextLength:
     def test_moa_resolves_canonical_provider_per_model_context(
         self, tmp_path, monkeypatch
     ):
-        home = str(tmp_path / ".freeide")
-        monkeypatch.setenv("FREEIDE_HOME", home)
+        home = str(tmp_path / ".jettstui")
+        monkeypatch.setenv("JETTSTUI_HOME", home)
         self._write_moa_config(
             home,
             {"provider": "custom:example", "model": "example-model"},
@@ -1687,8 +1687,8 @@ class TestMoAContextLength:
         from agent.context_compressor import ContextCompressor
 
         configured_context = 600_000
-        home = str(tmp_path / ".freeide")
-        monkeypatch.setenv("FREEIDE_HOME", home)
+        home = str(tmp_path / ".jettstui")
+        monkeypatch.setenv("JETTSTUI_HOME", home)
         self._write_moa_config(
             home,
             {"provider": "custom:example", "model": "example-model"},
@@ -1724,8 +1724,8 @@ class TestMoAContextLength:
     def test_moa_preserves_caller_supplied_custom_provider_context(
         self, tmp_path, monkeypatch
     ):
-        home = str(tmp_path / ".freeide")
-        monkeypatch.setenv("FREEIDE_HOME", home)
+        home = str(tmp_path / ".jettstui")
+        monkeypatch.setenv("JETTSTUI_HOME", home)
         self._write_moa_config(
             home,
             {"provider": "custom:example", "model": "example-model"},

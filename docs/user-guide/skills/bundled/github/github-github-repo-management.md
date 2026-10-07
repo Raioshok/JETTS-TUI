@@ -17,7 +17,7 @@ Clone/create/fork repos; manage remotes, releases.
 | Source | Bundled (installed by default) |
 | Path | `skills/github/github-repo-management` |
 | Version | `1.1.0` |
-| Author | FreeIDE Agent |
+| Author | JettsTUI |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `GitHub`, `Repositories`, `Git`, `Releases`, `Secrets`, `Configuration` |
@@ -26,7 +26,7 @@ Clone/create/fork repos; manage remotes, releases.
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that FreeIDE loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that JettsTUI loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # GitHub Repository Management
@@ -45,10 +45,10 @@ if command -v gh &>/dev/null && gh auth status &>/dev/null; then
 else
   AUTH="git"
   if [ -z "$GITHUB_TOKEN" ]; then
-    if _freeide_env="${FREEIDE_HOME:-$HOME/.freeide}/.env"; [ -f "$_freeide_env" ] && grep -q "^GITHUB_TOKEN=" "$_freeide_env"; then
-      GITHUB_TOKEN=$(grep "^GITHUB_TOKEN=" "$_freeide_env" | head -1 | cut -d= -f2 | tr -d '\n\r')
+    if _jettstui_env="${JETTSTUI_HOME:-$HOME/.jettstui}/.env"; [ -f "$_jettstui_env" ] && grep -q "^GITHUB_TOKEN=" "$_jettstui_env"; then
+      GITHUB_TOKEN=$(grep "^GITHUB_TOKEN=" "$_jettstui_env" | head -1 | cut -d= -f2 | tr -d '\n\r')
     elif grep -q "github.com" ~/.git-credentials 2>/dev/null; then
-      GITHUB_TOKEN=$(uv run python3 "${FREEIDE_HOME:-$HOME/.freeide}/skills/github/github-auth/scripts/git-credential-token.py")
+      GITHUB_TOKEN=$(uv run python3 "${JETTSTUI_HOME:-$HOME/.jettstui}/skills/github/github-auth/scripts/git-credential-token.py")
     fi
   fi
 fi

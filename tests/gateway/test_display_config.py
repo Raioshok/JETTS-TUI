@@ -380,10 +380,10 @@ class TestConfigMigration:
         }
         config_path.write_text(yaml.dump(config), encoding="utf-8")
 
-        monkeypatch.setenv("FREEIDE_HOME", str(tmp_path))
-        # Re-import to pick up the new FREEIDE_HOME
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path))
+        # Re-import to pick up the new JETTSTUI_HOME
         import importlib
-        import freeide_cli.config as cfg_mod
+        import jettstui.config as cfg_mod
         importlib.reload(cfg_mod)
 
         result = cfg_mod.migrate_config(interactive=False, quiet=True)
@@ -407,9 +407,9 @@ class TestConfigMigration:
         }
         config_path.write_text(yaml.dump(config), encoding="utf-8")
 
-        monkeypatch.setenv("FREEIDE_HOME", str(tmp_path))
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path))
         import importlib
-        import freeide_cli.config as cfg_mod
+        import jettstui.config as cfg_mod
         importlib.reload(cfg_mod)
 
         cfg_mod.migrate_config(interactive=False, quiet=True)

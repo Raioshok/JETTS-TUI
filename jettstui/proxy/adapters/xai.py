@@ -7,15 +7,15 @@ import threading
 from typing import FrozenSet, Optional
 
 from agent.credential_pool import CredentialPool, PooledCredential, load_pool
-from freeide_cli.auth import DEFAULT_XAI_OAUTH_BASE_URL
-from freeide_cli.proxy.adapters.base import UpstreamAdapter, UpstreamCredential
+from jettstui.auth import DEFAULT_XAI_OAUTH_BASE_URL
+from jettstui.proxy.adapters.base import UpstreamAdapter, UpstreamCredential
 
 logger = logging.getLogger(__name__)
 
 _POOL_PROVIDER = "xai-oauth"
 
-# xAI's public API is OpenAI-compatible for the endpoints FreeIDE commonly
-# uses. The Responses endpoint is included because FreeIDE' native xAI runtime
+# xAI's public API is OpenAI-compatible for the endpoints JettsTUI commonly
+# uses. The Responses endpoint is included because JettsTUI' native xAI runtime
 # uses codex_responses mode.
 _ALLOWED_PATHS: FrozenSet[str] = frozenset(
     {
@@ -29,9 +29,9 @@ _ALLOWED_PATHS: FrozenSet[str] = frozenset(
 
 
 class XAIGrokAdapter(UpstreamAdapter):
-    """Proxy upstream for xAI Grok via FreeIDE-managed OAuth credentials."""
+    """Proxy upstream for xAI Grok via JettsTUI-managed OAuth credentials."""
 
-    auth_hint = "freeide auth add xai-oauth --type oauth"
+    auth_hint = "jettstui auth add xai-oauth --type oauth"
 
     def __init__(self) -> None:
         self._lock = threading.Lock()
@@ -59,15 +59,15 @@ class XAIGrokAdapter(UpstreamAdapter):
             if pool is None or not pool.has_credentials():
                 raise RuntimeError(
                     "No xAI OAuth credentials found. Run "
-                    "`freeide auth add xai-oauth --type oauth` first."
+                    "`jettstui auth add xai-oauth --type oauth` first."
                 )
 
             entry = pool.select()
             if entry is None:
                 raise RuntimeError(
                     "No available xAI OAuth credentials found. Run "
-                    "`freeide auth reset xai-oauth` or re-authenticate with "
-                    "`freeide auth add xai-oauth --type oauth`."
+                    "`jettstui auth reset xai-oauth` or re-authenticate with "
+                    "`jettstui auth add xai-oauth --type oauth`."
                 )
 
             self._pool = pool
@@ -125,7 +125,7 @@ class XAIGrokAdapter(UpstreamAdapter):
         if not bearer:
             raise RuntimeError(
                 "xAI OAuth credential pool entry did not contain an access token. "
-                "Re-authenticate with `freeide auth add xai-oauth --type oauth`."
+                "Re-authenticate with `jettstui auth add xai-oauth --type oauth`."
             )
 
         base_url = (

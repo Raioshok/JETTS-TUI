@@ -14,7 +14,7 @@ Render MP4/WebM videos from HTML compositions.
 
 | | |
 |---|---|
-| Source | Optional — install with `freeide skills install official/creative/hyperframes` |
+| Source | Optional — install with `jettstui skills install official/creative/hyperframes` |
 | Path | `optional-skills/creative/hyperframes` |
 | Version | `1.0.0` |
 | Author | heygen-com |
@@ -26,7 +26,7 @@ Render MP4/WebM videos from HTML compositions.
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that FreeIDE loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that JettsTUI loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # HyperFrames
@@ -69,7 +69,7 @@ Full CLI reference: [references/cli.md](../../../../../optional-skills/creative/
 ## Setup (one-time)
 
 ```bash
-bash "$(dirname "$(find ~/.freeide/skills -path '*/hyperframes/SKILL.md' 2>/dev/null | head -1)")/scripts/setup.sh"
+bash "$(dirname "$(find ~/.jettstui/skills -path '*/hyperframes/SKILL.md' 2>/dev/null | head -1)")/scripts/setup.sh"
 ```
 
 The script:

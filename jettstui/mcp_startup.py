@@ -14,7 +14,7 @@ _mcp_discovery_thread: Optional[threading.Thread] = None
 def _has_configured_mcp_servers() -> bool:
     """Cheap config probe so non-MCP users avoid importing the MCP stack."""
     try:
-        from freeide_cli.config import read_raw_config
+        from jettstui.config import read_raw_config
 
         mcp_servers = (read_raw_config() or {}).get("mcp_servers")
         return isinstance(mcp_servers, dict) and len(mcp_servers) > 0
@@ -58,7 +58,7 @@ def start_background_mcp_discovery(*, logger, thread_name: str) -> None:
         if not _has_configured_mcp_servers():
             return
 
-        # Capture the caller's context-local FREEIDE_HOME override (profile
+        # Capture the caller's context-local JETTSTUI_HOME override (profile
         # scoping in multi-profile processes like the dashboard/desktop
         # backend) and re-install it inside the discovery thread. ContextVars
         # do not propagate into bare threads, so without this a session
@@ -66,18 +66,18 @@ def start_background_mcp_discovery(*, logger, thread_name: str) -> None:
         # mcp_servers instead (#67605). The config gate above already runs on
         # the caller's thread, so it sees the same override.
         try:
-            from freeide_constants import get_freeide_home_override
+            from jettstui_constants import get_jettstui_home_override
 
-            home_override = get_freeide_home_override()
+            home_override = get_jettstui_home_override()
         except Exception:
             home_override = None
 
         def _discover() -> None:
             token = None
             try:
-                from freeide_constants import set_freeide_home_override
+                from jettstui_constants import set_jettstui_home_override
 
-                token = set_freeide_home_override(home_override)
+                token = set_jettstui_home_override(home_override)
             except Exception:
                 token = None
             try:
@@ -96,9 +96,9 @@ def start_background_mcp_discovery(*, logger, thread_name: str) -> None:
             finally:
                 if token is not None:
                     try:
-                        from freeide_constants import reset_freeide_home_override
+                        from jettstui_constants import reset_jettstui_home_override
 
-                        reset_freeide_home_override(token)
+                        reset_jettstui_home_override(token)
                     except Exception:
                         pass
                 with _mcp_discovery_lock:
@@ -125,7 +125,7 @@ def _resolve_discovery_timeout(explicit: "float | None") -> float:
     if explicit is not None:
         return explicit
     try:
-        from freeide_cli.config import load_config, DEFAULT_CONFIG
+        from jettstui.config import load_config, DEFAULT_CONFIG
 
         default = float(DEFAULT_CONFIG.get("mcp_discovery_timeout", 1.5))
         raw = (load_config() or {}).get("mcp_discovery_timeout", default)
@@ -170,7 +170,7 @@ def mcp_discovery_in_flight() -> bool:
     Mirrors ``tui_gateway.entry.mcp_discovery_in_flight`` for the surfaces that
     start discovery through ``start_background_mcp_discovery`` here (the desktop
     app + dashboard WebSocket sidecar via ``tui_gateway/ws.py``, and
-    ``freeide dashboard``).  Those processes populate THIS module's
+    ``jettstui dashboard``).  Those processes populate THIS module's
     ``_mcp_discovery_thread``, not ``tui_gateway.entry``'s, so the late-refresh
     scheduler must consult both to decide whether a slow server's tools are
     still pending (see #51587).

@@ -1,7 +1,7 @@
 """
-Doctor command for freeide CLI.
+Doctor command for jettstui CLI.
 
-Diagnoses issues with FreeIDE Agent setup.
+Diagnoses issues with JettsTUI setup.
 """
 
 import os
@@ -10,28 +10,28 @@ import subprocess
 import shutil
 from pathlib import Path
 
-from freeide_cli.config import (
+from jettstui.config import (
     detect_install_method,
     get_env_path,
-    get_freeide_home,
+    get_jettstui_home,
     get_project_root,
     recommended_update_command_for_method,
 )
-from freeide_cli.env_loader import load_freeide_dotenv
-from freeide_constants import display_freeide_home
-from freeide_constants import agent_browser_runnable
+from jettstui.env_loader import load_jettstui_dotenv
+from jettstui_constants import display_jettstui_home
+from jettstui_constants import agent_browser_runnable
 
 PROJECT_ROOT = get_project_root()
-FREEIDE_HOME = get_freeide_home()
-_DHH = display_freeide_home()  # user-facing display path (e.g. ~/.freeide or ~/.freeide/profiles/coder)
+JETTSTUI_HOME = get_jettstui_home()
+_DHH = display_jettstui_home()  # user-facing display path (e.g. ~/.jettstui or ~/.jettstui/profiles/coder)
 
-# Load environment variables from ~/.freeide/.env so API key checks work
+# Load environment variables from ~/.jettstui/.env so API key checks work
 _env_path = get_env_path()
-load_freeide_dotenv(freeide_home=_env_path.parent, project_env=PROJECT_ROOT / ".env")
+load_jettstui_dotenv(jettstui_home=_env_path.parent, project_env=PROJECT_ROOT / ".env")
 
-from freeide_cli.colors import Colors, color
-from freeide_cli.models import _FREEIDE_USER_AGENT
-from freeide_constants import OPENROUTER_MODELS_URL
+from jettstui.colors import Colors, color
+from jettstui.models import _JETTSTUI_USER_AGENT
+from jettstui_constants import OPENROUTER_MODELS_URL
 from utils import base_url_host_matches
 
 
@@ -62,7 +62,7 @@ _PROVIDER_ENV_HINTS = (
 )
 
 
-from freeide_constants import is_termux as _is_termux
+from jettstui_constants import is_termux as _is_termux
 
 
 def _python_install_cmd() -> str:
@@ -82,7 +82,7 @@ def _sqlite_upgrade_hint(install_method: str | None = None) -> str:
     method = install_method or detect_install_method(PROJECT_ROOT)
     if method == "docker":
         command = recommended_update_command_for_method(method)
-        action = f"run `{command}`, then recreate all Jetts-TUI containers"
+        action = f"run `{command}`, then recreate all JettsTUI containers"
     elif method in {"nix", "nixos"}:
         action = recommended_update_command_for_method(method)
     else:
@@ -122,7 +122,7 @@ def _termux_install_all_fallback_notes() -> list[str]:
 
 
 def _has_provider_env_config(content: str) -> bool:
-    """Return True when ~/.freeide/.env contains provider auth/base URL settings."""
+    """Return True when ~/.jettstui/.env contains provider auth/base URL settings."""
     return any(key in content for key in _PROVIDER_ENV_HINTS)
 
 
@@ -141,7 +141,7 @@ def _is_kanban_worker_env_gate(item: dict) -> bool:
     """Return True when Kanban is unavailable only because this is not a worker process."""
     if item.get("name") != "kanban":
         return False
-    if os.environ.get("FREEIDE_KANBAN_TASK"):
+    if os.environ.get("JETTSTUI_KANBAN_TASK"):
         return False
 
     tools = item.get("tools") or []
@@ -150,7 +150,7 @@ def _is_kanban_worker_env_gate(item: dict) -> bool:
 
 def _doctor_tool_availability_detail(toolset: str) -> str:
     """Optional explanatory suffix for toolsets whose doctor status needs context."""
-    if toolset == "kanban" and not os.environ.get("FREEIDE_KANBAN_TASK"):
+    if toolset == "kanban" and not os.environ.get("JETTSTUI_KANBAN_TASK"):
         return "(runtime-gated; loaded only for dispatcher-spawned workers)"
     return ""
 
@@ -184,13 +184,13 @@ def _has_healthy_oauth_fallback_for_apikey_provider(provider_label: str) -> bool
     normalized = (provider_label or "").strip().lower()
     if normalized == "minimax":
         try:
-            from freeide_cli.auth import get_minimax_oauth_auth_status
+            from jettstui.auth import get_minimax_oauth_auth_status
             return bool((get_minimax_oauth_auth_status() or {}).get("logged_in"))
         except Exception:
             return False
     if normalized == "xai":
         try:
-            from freeide_cli.auth import get_xai_oauth_auth_status
+            from jettstui.auth import get_xai_oauth_auth_status
             return bool((get_xai_oauth_auth_status() or {}).get("logged_in"))
         except Exception:
             return False
@@ -241,8 +241,8 @@ _DEPRECATED_COMPRESSION_SUMMARY_KEYS: tuple[str, ...] = (
 # Deprecated env vars (checked in the .env file, not process env, so config→env
 # bridges like terminal.cwd → TERMINAL_CWD do not false-positive).
 _DEPRECATED_ENV_VARS: tuple[tuple[str, str], ...] = (
-    ("FREEIDE_TOOL_PROGRESS", "display.tool_progress in config.yaml"),
-    ("FREEIDE_TOOL_PROGRESS_MODE", "display.tool_progress in config.yaml"),
+    ("JETTSTUI_TOOL_PROGRESS", "display.tool_progress in config.yaml"),
+    ("JETTSTUI_TOOL_PROGRESS_MODE", "display.tool_progress in config.yaml"),
     ("TERMINAL_CWD", "terminal.cwd in config.yaml"),
     ("MESSAGING_CWD", "terminal.cwd in config.yaml"),
     ("QQ_HOME_CHANNEL", "QQBOT_HOME_CHANNEL"),
@@ -319,8 +319,8 @@ def report_deprecated_config_and_env(
 def _enabled_cli_toolsets_for_doctor() -> set[str] | None:
     """Return toolsets enabled for the CLI, or None if config resolution fails."""
     try:
-        from freeide_cli.config import load_config
-        from freeide_cli.tools_config import _get_platform_tools
+        from jettstui.config import load_config
+        from jettstui.tools_config import _get_platform_tools
 
         return {str(toolset) for toolset in _get_platform_tools(load_config() or {}, "cli")}
     except Exception:
@@ -369,15 +369,15 @@ def _read_pyproject_version() -> str | None:
 
 
 def _check_version_consistency(issues: list[str]) -> None:
-    """Verify pyproject.toml version matches freeide_cli.__version__.
+    """Verify pyproject.toml version matches jettstui.__version__.
 
     A git conflict resolution (reset/merge) can revert one file without the
-    other, leaving ``freeide --version`` reporting a stale version while
+    other, leaving ``jettstui --version`` reporting a stale version while
     ``pyproject.toml`` is current. Detect that drift so users can re-sync.
     Silent no-op for installed wheels where pyproject.toml isn't present.
     """
     try:
-        from freeide_cli import __version__ as init_version
+        from jettstui import __version__ as init_version
     except Exception:
         return
     pyproject_version = _read_pyproject_version()
@@ -389,9 +389,9 @@ def _check_version_consistency(issues: list[str]) -> None:
     else:
         _fail_and_issue(
             "Version mismatch between source files",
-            f"(pyproject.toml {pyproject_version} != freeide_cli/__init__.py {init_version})",
-            "Re-sync version files (e.g. run 'freeide update', or set "
-            "freeide_cli/__init__.py __version__ to match pyproject.toml)",
+            f"(pyproject.toml {pyproject_version} != jettstui/__init__.py {init_version})",
+            "Re-sync version files (e.g. run 'jettstui update', or set "
+            "jettstui/__init__.py __version__ to match pyproject.toml)",
             issues,
         )
 
@@ -410,7 +410,7 @@ def _check_s6_supervision(issues: list[str]) -> None:
         currently supervised as ``up``
     """
     try:
-        from freeide_cli.service_manager import (
+        from jettstui.service_manager import (
             S6ServiceManager,
             detect_service_manager,
         )
@@ -434,7 +434,7 @@ def _check_s6_supervision(issues: list[str]) -> None:
 
     profiles = mgr.list_profile_gateways()
     if not profiles:
-        check_info("No per-profile gateways registered yet — create one with `freeide profile create <name>`")
+        check_info("No per-profile gateways registered yet — create one with `jettstui profile create <name>`")
         return
 
     up_count = sum(1 for p in profiles if mgr.is_running(f"gateway-{p}"))
@@ -476,7 +476,7 @@ def check_certificates(should_fix: bool = False, issues: "list | None" = None) -
         check_fail("SSL CA certificate bundle is broken", first_error)
         if issues is not None:
             issues.append(
-                "Repair the CA bundle: run `freeide doctor --fix`, or "
+                "Repair the CA bundle: run `jettstui doctor --fix`, or "
                 f"`{sys.executable} -m pip install --force-reinstall certifi`"
             )
         return
@@ -539,12 +539,12 @@ def _check_gateway_service_linger(issues: list[str]) -> None:
     ``_check_s6_supervision``.
     """
     try:
-        from freeide_cli.gateway import (
+        from jettstui.gateway import (
             get_systemd_linger_status,
             get_systemd_unit_path,
             is_linux,
         )
-        from freeide_cli.service_manager import detect_service_manager
+        from jettstui.service_manager import detect_service_manager
     except Exception as e:
         check_warn("Gateway service linger", f"(could not import gateway helpers: {e})")
         return
@@ -630,7 +630,7 @@ def _build_apikey_providers_list() -> list:
         from providers import list_providers
         from providers.base import ProviderProfile as _PP
         try:
-            from freeide_cli.providers import normalize_provider as _normalize_provider
+            from jettstui.providers import normalize_provider as _normalize_provider
         except Exception:  # pragma: no cover - normalization is best-effort
             def _normalize_provider(_name: str) -> str:
                 return (_name or "").strip().lower()
@@ -673,12 +673,12 @@ def managed_scope_check() -> None:
     """Report the active managed scope (resolved dir + pinned key counts).
 
     Silent when no managed scope is present. When the managed directory was
-    resolved from the FREEIDE_MANAGED_DIR override (rather than the system
+    resolved from the JETTSTUI_MANAGED_DIR override (rather than the system
     default), that is surfaced too — a redirected scope is the documented
     foot-gun (see docs/design/managed-scope.md §7) and an operator should see it.
     """
     try:
-        from freeide_cli import managed_scope
+        from jettstui import managed_scope
         managed_dir = managed_scope.get_managed_dir()
     except Exception:  # noqa: BLE001 — diagnostics must never crash
         return
@@ -690,8 +690,8 @@ def managed_scope_check() -> None:
         f"Managed scope active: {n_cfg} config key(s), {n_env} env key(s) "
         f"pinned by {managed_dir}"
     )
-    if os.environ.get("FREEIDE_MANAGED_DIR", "").strip():
-        check_info(f"managed dir set via FREEIDE_MANAGED_DIR={managed_dir}")
+    if os.environ.get("JETTSTUI_MANAGED_DIR", "").strip():
+        check_info(f"managed dir set via JETTSTUI_MANAGED_DIR={managed_dir}")
 
 
 def run_doctor(args):
@@ -700,14 +700,14 @@ def run_doctor(args):
     ack_target = getattr(args, 'ack', None)
 
     # Doctor runs from the interactive CLI, so CLI-gated tool availability
-    # checks (like cronjob management) should see the same context as `freeide`.
-    os.environ.setdefault("FREEIDE_INTERACTIVE", "1")
+    # checks (like cronjob management) should see the same context as `jettstui`.
+    os.environ.setdefault("JETTSTUI_INTERACTIVE", "1")
 
-    # Handle `freeide doctor --ack <id>` as a fast path. Persist the ack and
+    # Handle `jettstui doctor --ack <id>` as a fast path. Persist the ack and
     # return without running the rest of the diagnostics — the user has
     # already seen the advisory and just wants to silence it.
     if ack_target:
-        from freeide_cli.security_advisories import (
+        from jettstui.security_advisories import (
             ADVISORIES,
             ack_advisory,
         )
@@ -728,7 +728,7 @@ def run_doctor(args):
         else:
             print(color(
                 f"  ✗ Failed to persist ack for {ack_target}. "
-                f"Check ~/.freeide/config.yaml is writable.",
+                f"Check ~/.jettstui/config.yaml is writable.",
                 Colors.RED,
             ))
             sys.exit(1)
@@ -740,12 +740,12 @@ def run_doctor(args):
 
     print()
     print(color("┌─────────────────────────────────────────────────────────┐", Colors.CYAN))
-    print(color("│                 🩺 FreeIDE Doctor                        │", Colors.CYAN))
+    print(color("│                 🩺 JettsTUI Doctor                        │", Colors.CYAN))
     print(color("└─────────────────────────────────────────────────────────┘", Colors.CYAN))
 
     _section("Security Advisories")
     try:
-        from freeide_cli.security_advisories import (
+        from jettstui.security_advisories import (
             detect_compromised,
             filter_unacked,
             full_remediation_text,
@@ -772,7 +772,7 @@ def run_doctor(args):
                     f"Resolve security advisory {hit.advisory.id}: "
                     f"uninstall {hit.package}=={hit.installed_version} and "
                     f"rotate credentials, then run "
-                    f"`freeide doctor --ack {hit.advisory.id}`."
+                    f"`jettstui doctor --ack {hit.advisory.id}`."
                 )
             # Acked-but-still-installed: show as informational so the user
             # knows the package is still on disk after the ack.
@@ -791,8 +791,8 @@ def run_doctor(args):
 
     _section("MCP Server Security")
     try:
-        from freeide_cli.config import load_config
-        from freeide_cli.mcp_security import validate_mcp_server_entry
+        from jettstui.config import load_config
+        from jettstui.mcp_security import validate_mcp_server_entry
 
         servers = load_config().get("mcp_servers") or {}
         suspicious = 0
@@ -835,7 +835,7 @@ def run_doctor(args):
     # SQLite across Python upgrades.
     try:
         import sqlite3
-        from freeide_state import is_sqlite_wal_reset_vulnerable, sqlite_source_id
+        from jettstui_state import is_sqlite_wal_reset_vulnerable, sqlite_source_id
 
         _sqlite_ver = sqlite3.sqlite_version
         _sqlite_src = sqlite_source_id()
@@ -843,7 +843,7 @@ def run_doctor(args):
             (_sqlite_src[:48] + "…") if len(_sqlite_src) > 48 else _sqlite_src
         )
         if is_sqlite_wal_reset_vulnerable():
-            # Warn-only: FreeIDE already refuses to enable WAL on fresh DBs.
+            # Warn-only: JettsTUI already refuses to enable WAL on fresh DBs.
             # Do not append to ``issues`` because runtime repair remains
             # best-effort and unsupported installs may need manual action.
             check_warn(
@@ -863,7 +863,7 @@ def run_doctor(args):
     else:
         check_warn("Not in virtual environment", "(recommended)")
 
-    # Detect drift between pyproject.toml and freeide_cli/__init__.py versions
+    # Detect drift between pyproject.toml and jettstui/__init__.py versions
     # (a git conflict resolution can silently revert one but not the other).
     _check_version_consistency(issues)
 
@@ -902,14 +902,14 @@ def run_doctor(args):
     _section("Configuration Files")
     # Managed scope (administrator-pinned config/env), when present.
     managed_scope_check()
-    # Check ~/.freeide/.env (primary location for user config)
-    env_path = FREEIDE_HOME / '.env'
+    # Check ~/.jettstui/.env (primary location for user config)
+    env_path = JETTSTUI_HOME / '.env'
     if env_path.exists():
         check_ok(f"{_DHH}/.env file exists")
         
         # Prefer UTF-8 (.env is written as UTF-8 elsewhere). Fall back to
         # latin-1 for Windows Notepad/cp1252 files that are not valid UTF-8 —
-        # matches freeide_cli.env_loader._load_dotenv_with_fallback.
+        # matches jettstui.env_loader._load_dotenv_with_fallback.
         try:
             content = env_path.read_text(encoding="utf-8")
         except UnicodeDecodeError:
@@ -918,7 +918,7 @@ def run_doctor(args):
             check_ok("API key or custom endpoint configured")
         else:
             check_warn(f"No API key found in {_DHH}/.env")
-            issues.append("Run 'freeide setup' to configure API keys")
+            issues.append("Run 'jettstui setup' to configure API keys")
     else:
         # Also check project root as fallback
         fallback_env = PROJECT_ROOT / '.env'
@@ -937,14 +937,14 @@ def run_doctor(args):
                 except OSError:
                     pass
                 check_ok(f"Created empty {_DHH}/.env")
-                check_info("Run 'freeide setup' to configure API keys")
+                check_info("Run 'jettstui setup' to configure API keys")
                 fixed_count += 1
             else:
-                check_info("Run 'freeide setup' to create one")
-                issues.append("Run 'freeide setup' to create .env")
+                check_info("Run 'jettstui setup' to create one")
+                issues.append("Run 'jettstui setup' to create .env")
     
-    # Check ~/.freeide/config.yaml (primary) or project cli-config.yaml (fallback)
-    config_path = FREEIDE_HOME / 'config.yaml'
+    # Check ~/.jettstui/config.yaml (primary) or project cli-config.yaml (fallback)
+    config_path = JETTSTUI_HOME / 'config.yaml'
     if config_path.exists():
         check_ok(f"{_DHH}/config.yaml exists")
 
@@ -959,7 +959,7 @@ def run_doctor(args):
 
             known_providers: set = set()
             try:
-                from freeide_cli.auth import (
+                from jettstui.auth import (
                     PROVIDER_REGISTRY,
                     resolve_provider as _resolve_auth_provider,
                 )
@@ -968,8 +968,8 @@ def run_doctor(args):
                 _resolve_auth_provider = None
                 pass
             try:
-                from freeide_cli.config import get_compatible_custom_providers as _compatible_custom_providers
-                from freeide_cli.providers import (
+                from jettstui.config import get_compatible_custom_providers as _compatible_custom_providers
+                from jettstui.providers import (
                     normalize_provider as _normalize_catalog_provider,
                     resolve_provider_full as _resolve_provider_full,
                 )
@@ -987,7 +987,7 @@ def run_doctor(args):
 
             user_providers = cfg.get("providers")
             if isinstance(user_providers, dict):
-                from freeide_cli.config import is_provider_enabled
+                from jettstui.config import is_provider_enabled
                 known_providers.update(
                     str(name).strip().lower()
                     for name, prov_cfg in user_providers.items()
@@ -1044,7 +1044,7 @@ def run_doctor(args):
                         (
                             f"model.provider '{provider_raw}' is unknown. "
                             f"Valid providers: {known_list}. "
-                            f"Fix: run 'freeide config set model.provider <valid_provider>'"
+                            f"Fix: run 'jettstui config set model.provider <valid_provider>'"
                         ),
                         issues,
                     )
@@ -1101,14 +1101,14 @@ def run_doctor(args):
             if runtime_provider and runtime_provider not in ("auto", "custom"):
                 try:
                     if runtime_provider == "openrouter":
-                        from freeide_cli.config import get_env_value
+                        from jettstui.config import get_env_value
 
                         configured = bool(
                             str(get_env_value("OPENROUTER_API_KEY") or "").strip()
                             or str(get_env_value("OPENAI_API_KEY") or "").strip()
                         )
                     else:
-                        from freeide_cli.auth import PROVIDER_REGISTRY, get_auth_status
+                        from jettstui.auth import PROVIDER_REGISTRY, get_auth_status
 
                         pconfig = PROVIDER_REGISTRY.get(runtime_provider)
                         configured = True
@@ -1122,11 +1122,11 @@ def run_doctor(args):
                     if not configured:
                         _fail_and_issue(
                             f"model.provider '{runtime_provider}' is set but no API key is configured",
-                            "(check ~/.freeide/.env or run 'freeide setup')",
+                            "(check ~/.jettstui/.env or run 'jettstui setup')",
                             (
                                 f"No credentials found for provider '{runtime_provider}'. "
-                                f"Run 'freeide setup' or set the provider's API key in {_DHH}/.env, "
-                                f"or switch providers with 'freeide config set model.provider <name>'"
+                                f"Run 'jettstui setup' or set the provider's API key in {_DHH}/.env, "
+                                f"or switch providers with 'jettstui config set model.provider <name>'"
                             ),
                             issues,
                         )
@@ -1147,7 +1147,7 @@ def run_doctor(args):
                     shutil.copy2(str(example_config), str(config_path))
                     check_ok(f"Created {_DHH}/config.yaml from cli-config.yaml.example")
                 else:
-                    from freeide_cli.config import DEFAULT_CONFIG, save_config
+                    from jettstui.config import DEFAULT_CONFIG, save_config
                     save_config(DEFAULT_CONFIG)
                     check_ok(f"Created {_DHH}/config.yaml from defaults")
                 fixed_count += 1
@@ -1155,10 +1155,10 @@ def run_doctor(args):
                 check_warn("config.yaml not found", "(using defaults)")
 
     # Check config version and stale keys
-    config_path = FREEIDE_HOME / 'config.yaml'
+    config_path = JETTSTUI_HOME / 'config.yaml'
     if config_path.exists():
         try:
-            from freeide_cli.config import check_config_version, migrate_config
+            from jettstui.config import check_config_version, migrate_config
             current_ver, latest_ver = check_config_version()
             if current_ver < latest_ver:
                 check_warn(
@@ -1172,9 +1172,9 @@ def run_doctor(args):
                         fixed_count += 1
                     except Exception as mig_err:
                         check_warn(f"Auto-migration failed: {mig_err}")
-                        issues.append("Run 'freeide setup' to migrate config")
+                        issues.append("Run 'jettstui setup' to migrate config")
                 else:
-                    issues.append("Run 'freeide doctor --fix' or 'freeide setup' to migrate config")
+                    issues.append("Run 'jettstui doctor --fix' or 'jettstui setup' to migrate config")
             else:
                 check_ok(f"Config version up to date (v{current_ver})")
         except Exception:
@@ -1209,20 +1209,20 @@ def run_doctor(args):
                             model_section[k] = raw_config.pop(k)
                         else:
                             raw_config.pop(k)
-                    from freeide_cli.config import atomic_config_write
+                    from jettstui.config import atomic_config_write
                     atomic_config_write(config_path, raw_config)
                     check_ok("Migrated stale root-level keys into model section")
                     fixed_count += 1
                 else:
-                    issues.append("Stale root-level provider/base_url in config.yaml — run 'freeide doctor --fix'")
+                    issues.append("Stale root-level provider/base_url in config.yaml — run 'jettstui doctor --fix'")
         except Exception:
             pass
 
-        # Detect stale FREEIDE_MAX_ITERATIONS ghost in .env shadowing
+        # Detect stale JETTSTUI_MAX_ITERATIONS ghost in .env shadowing
         # agent.max_turns in config.yaml (issue #17534). The setup wizard
         # used to dual-write the iteration budget to both stores; users who
         # later edit only config.yaml are left with a .env ghost. The gateway
-        # bridge normally derives FREEIDE_MAX_ITERATIONS from agent.max_turns
+        # bridge normally derives JETTSTUI_MAX_ITERATIONS from agent.max_turns
         # at startup, but if that bridge bails (any earlier config-parse
         # error), the stale .env value silently wins and the agent runs at the
         # wrong budget — e.g. config says 400 but the activity line reads N/90.
@@ -1230,7 +1230,7 @@ def run_doctor(args):
         # which the startup bridge may already have overridden.
         try:
             import yaml
-            from freeide_cli.config import load_env, remove_env_value
+            from jettstui.config import load_env, remove_env_value
             with open(config_path, encoding="utf-8") as f:
                 raw_config = yaml.safe_load(f) or {}
             agent_cfg = raw_config.get("agent")
@@ -1242,7 +1242,7 @@ def run_doctor(args):
             # Legacy root-level key counts too.
             if cfg_max_turns is None:
                 cfg_max_turns = raw_config.get("max_turns")
-            env_ghost = load_env().get("FREEIDE_MAX_ITERATIONS")
+            env_ghost = load_env().get("JETTSTUI_MAX_ITERATIONS")
             drift = (
                 cfg_max_turns is not None
                 and env_ghost is not None
@@ -1250,27 +1250,27 @@ def run_doctor(args):
             )
             if drift:
                 check_warn(
-                    f"FREEIDE_MAX_ITERATIONS={env_ghost} in .env shadows "
+                    f"JETTSTUI_MAX_ITERATIONS={env_ghost} in .env shadows "
                     f"agent.max_turns={cfg_max_turns} in config.yaml",
-                    "(stale ghost from an earlier `freeide setup` run)",
+                    "(stale ghost from an earlier `jettstui setup` run)",
                 )
                 if should_fix:
-                    if remove_env_value("FREEIDE_MAX_ITERATIONS"):
+                    if remove_env_value("JETTSTUI_MAX_ITERATIONS"):
                         check_ok(
-                            "Removed stale FREEIDE_MAX_ITERATIONS from .env "
+                            "Removed stale JETTSTUI_MAX_ITERATIONS from .env "
                             f"(config.yaml agent.max_turns={cfg_max_turns} is now authoritative)"
                         )
                         fixed_count += 1
                     else:
-                        check_warn("Could not remove FREEIDE_MAX_ITERATIONS from .env")
+                        check_warn("Could not remove JETTSTUI_MAX_ITERATIONS from .env")
                         manual_issues.append(
-                            "Manually delete the FREEIDE_MAX_ITERATIONS line from "
+                            "Manually delete the JETTSTUI_MAX_ITERATIONS line from "
                             f"{_DHH}/.env — config.yaml agent.max_turns is authoritative."
                         )
                 else:
                     issues.append(
-                        "Stale FREEIDE_MAX_ITERATIONS in .env shadows config.yaml — "
-                        "run 'freeide doctor --fix'"
+                        "Stale JETTSTUI_MAX_ITERATIONS in .env shadows config.yaml — "
+                        "run 'jettstui doctor --fix'"
                     )
         except Exception:
             pass
@@ -1280,7 +1280,7 @@ def run_doctor(args):
         # not auto-delete here — only tells the user the modern replacement.
         try:
             import yaml as _yaml_depr
-            from freeide_cli.config import load_env as _load_env_depr
+            from jettstui.config import load_env as _load_env_depr
 
             with open(config_path, encoding="utf-8") as _f_depr:
                 _raw_for_depr = _yaml_depr.safe_load(_f_depr) or {}
@@ -1296,7 +1296,7 @@ def run_doctor(args):
 
         # Validate config structure (catches malformed custom_providers, etc.)
         try:
-            from freeide_cli.config import validate_config_structure
+            from jettstui.config import validate_config_structure
             config_issues = validate_config_structure()
             if config_issues:
                 _section("Config Structure")
@@ -1315,7 +1315,7 @@ def run_doctor(args):
     if not config_path.exists():
         # No config.yaml — still surface deprecated env vars from .env.
         try:
-            from freeide_cli.config import load_env as _load_env_depr
+            from jettstui.config import load_env as _load_env_depr
 
             try:
                 _env_for_depr = _load_env_depr()
@@ -1328,8 +1328,8 @@ def run_doctor(args):
     _section("xAI Model Retirement (May 15, 2026)")
 
     try:
-        from freeide_cli.config import load_config
-        from freeide_cli.xai_retirement import (
+        from jettstui.config import load_config
+        from jettstui.xai_retirement import (
             MIGRATION_GUIDE_URL,
             find_retired_xai_refs,
             format_issue,
@@ -1353,7 +1353,7 @@ def run_doctor(args):
     _section("Auth Providers")
 
     try:
-        from freeide_cli.auth import (
+        from jettstui.auth import (
             get_codex_auth_status,
             get_minimax_oauth_auth_status,
         )
@@ -1365,7 +1365,7 @@ def run_doctor(args):
             check_warn("OpenAI Codex auth", "(not logged in)")
             if codex_status.get("error"):
                 check_info(codex_status["error"])
-            # Native OAuth uses FreeIDE' own device-code flow — the Codex CLI is
+            # Native OAuth uses JettsTUI' own device-code flow — the Codex CLI is
             # only needed to import existing tokens from ~/.codex/auth.json.
             # Attach the hint to the Codex auth row so it doesn't read as
             # remediation for whichever provider happens to print next (#27975).
@@ -1386,9 +1386,9 @@ def run_doctor(args):
         check_warn("Auth provider status", f"(could not check: {e})")
 
     # xAI OAuth — separate try/except so an import failure here cannot
-    # disrupt the already-printed FreeIDE/Codex/Gemini/MiniMax rows above.
+    # disrupt the already-printed JettsTUI/Codex/Gemini/MiniMax rows above.
     try:
-        from freeide_cli.auth import get_xai_oauth_auth_status
+        from jettstui.auth import get_xai_oauth_auth_status
         xai_oauth_status = get_xai_oauth_auth_status() or {}
         if xai_oauth_status.get("logged_in"):
             check_ok("xAI OAuth", "(logged in)")
@@ -1400,11 +1400,11 @@ def run_doctor(args):
         pass
 
     _section("Directory Structure")
-    freeide_home = FREEIDE_HOME
-    if freeide_home.exists():
+    jettstui_home = JETTSTUI_HOME
+    if jettstui_home.exists():
         check_ok(f"{_DHH} directory exists")
     elif should_fix:
-        freeide_home.mkdir(parents=True, exist_ok=True)
+        jettstui_home.mkdir(parents=True, exist_ok=True)
         check_ok(f"Created {_DHH} directory")
         fixed_count += 1
     else:
@@ -1413,7 +1413,7 @@ def run_doctor(args):
     # Check expected subdirectories
     expected_subdirs = ["cron", "sessions", "logs", "skills", "memories"]
     for subdir_name in expected_subdirs:
-        subdir_path = freeide_home / subdir_name
+        subdir_path = jettstui_home / subdir_name
         if subdir_path.exists():
             check_ok(f"{_DHH}/{subdir_name}/ exists")
         elif should_fix:
@@ -1424,7 +1424,7 @@ def run_doctor(args):
             check_warn(f"{_DHH}/{subdir_name}/ not found", "(will be created on first use)")
     
     # Check for SOUL.md persona file
-    soul_path = freeide_home / "SOUL.md"
+    soul_path = jettstui_home / "SOUL.md"
     if soul_path.exists():
         content = soul_path.read_text(encoding="utf-8").strip()
         # Check if it's just the template comments (no real content)
@@ -1434,20 +1434,20 @@ def run_doctor(args):
         else:
             check_info(f"{_DHH}/SOUL.md exists but is empty — edit it to customize personality")
     else:
-        check_warn(f"{_DHH}/SOUL.md not found", "(create it to give FreeIDE a custom personality)")
+        check_warn(f"{_DHH}/SOUL.md not found", "(create it to give JettsTUI a custom personality)")
         if should_fix:
             soul_path.parent.mkdir(parents=True, exist_ok=True)
             soul_path.write_text(
-                "# FreeIDE Agent Persona\n\n"
-                "<!-- Edit this file to customize how FreeIDE communicates. -->\n\n"
-                "You are FreeIDE, a helpful AI assistant.\n",
+                "# JettsTUI Persona\n\n"
+                "<!-- Edit this file to customize how JettsTUI communicates. -->\n\n"
+                "You are JettsTUI, a helpful AI assistant.\n",
                 encoding="utf-8",
             )
             check_ok(f"Created {_DHH}/SOUL.md with basic template")
             fixed_count += 1
     
     # Check memory directory
-    memories_dir = freeide_home / "memories"
+    memories_dir = jettstui_home / "memories"
     if memories_dir.exists():
         check_ok(f"{_DHH}/memories/ directory exists")
         memory_file = memories_dir / "MEMORY.md"
@@ -1470,7 +1470,7 @@ def run_doctor(args):
             fixed_count += 1
     
     # Check SQLite session store
-    state_db_path = freeide_home / "state.db"
+    state_db_path = jettstui_home / "state.db"
     if state_db_path.exists():
         try:
             import sqlite3
@@ -1485,7 +1485,7 @@ def run_doctor(args):
             # through the triggers. `_db_opens_cleanly` now drives a rolled-back
             # write so this otherwise-silent corruption class is surfaced (and
             # repaired in place with --fix).
-            from freeide_state import _db_opens_cleanly, repair_state_db_schema
+            from jettstui_state import _db_opens_cleanly, repair_state_db_schema
 
             _write_reason = _db_opens_cleanly(state_db_path)
             if _write_reason is not None:
@@ -1516,11 +1516,11 @@ def run_doctor(args):
                         )
                 else:
                     issues.append(
-                        "state.db FTS write corruption — run 'freeide doctor --fix' "
-                        "(or 'freeide sessions repair') to rebuild the FTS index"
+                        "state.db FTS write corruption — run 'jettstui doctor --fix' "
+                        "(or 'jettstui sessions repair') to rebuild the FTS index"
                     )
         except Exception as e:
-            from freeide_state import is_malformed_db_error, repair_state_db_schema
+            from jettstui_state import is_malformed_db_error, repair_state_db_schema
 
             if is_malformed_db_error(e):
                 # sqlite_master itself is malformed (e.g. duplicate
@@ -1562,8 +1562,8 @@ def run_doctor(args):
                         )
                 else:
                     issues.append(
-                        "state.db schema malformed — run 'freeide doctor --fix' "
-                        "(or 'freeide sessions repair') to recover hidden sessions"
+                        "state.db schema malformed — run 'jettstui doctor --fix' "
+                        "(or 'jettstui sessions repair') to recover hidden sessions"
                     )
             else:
                 check_warn(f"{_DHH}/state.db exists but has issues: {e}")
@@ -1571,7 +1571,7 @@ def run_doctor(args):
         check_info(f"{_DHH}/state.db not created yet (will be created on first session)")
 
     # Check WAL file size (unbounded growth indicates missed checkpoints)
-    wal_path = freeide_home / "state.db-wal"
+    wal_path = jettstui_home / "state.db-wal"
     if wal_path.exists():
         try:
             wal_size = wal_path.stat().st_size
@@ -1589,7 +1589,7 @@ def run_doctor(args):
                     check_ok(f"WAL checkpoint performed ({wal_size // 1024}K → {new_size // 1024}K)")
                     fixed_count += 1
                 else:
-                    issues.append("Large WAL file — run 'freeide doctor --fix' to checkpoint")
+                    issues.append("Large WAL file — run 'jettstui doctor --fix' to checkpoint")
             elif wal_size > 10 * 1024 * 1024:  # 10 MB
                 check_info(f"WAL file is {wal_size // (1024*1024)} MB (normal for active sessions)")
         except Exception:
@@ -1603,7 +1603,7 @@ def run_doctor(args):
         # Determine the venv entry point location
         _venv_bin = None
         for _venv_name in ("venv", ".venv"):
-            _candidate = PROJECT_ROOT / _venv_name / "bin" / "freeide"
+            _candidate = PROJECT_ROOT / _venv_name / "bin" / "jettstui"
             if _candidate.exists():
                 _venv_bin = _candidate
                 break
@@ -1617,12 +1617,12 @@ def run_doctor(args):
         else:
             _cmd_link_dir = Path.home() / ".local" / "bin"
             _cmd_link_display = "~/.local/bin"
-        _cmd_link = _cmd_link_dir / "freeide"
+        _cmd_link = _cmd_link_dir / "jettstui"
 
         if _venv_bin is None:
             check_warn(
                 "Venv entry point not found",
-                "(freeide not in venv/bin/ or .venv/bin/ — reinstall with pip install -e '.[all]')"
+                "(jettstui not in venv/bin/ or .venv/bin/ — reinstall with pip install -e '.[all]')"
             )
             manual_issues.append(
                 f"Reinstall entry point: cd {PROJECT_ROOT} && source venv/bin/activate && pip install -e '.[all]'"
@@ -1635,31 +1635,31 @@ def run_doctor(args):
                 _target = _cmd_link.resolve()
                 _expected = _venv_bin.resolve()
                 if _target == _expected:
-                    check_ok(f"{_cmd_link_display}/freeide → correct target")
+                    check_ok(f"{_cmd_link_display}/jettstui → correct target")
                 else:
                     check_warn(
-                        f"{_cmd_link_display}/freeide points to wrong target",
+                        f"{_cmd_link_display}/jettstui points to wrong target",
                         f"(→ {_target}, expected → {_expected})"
                     )
                     if should_fix:
                         _cmd_link.unlink()
                         _cmd_link.symlink_to(_venv_bin)
-                        check_ok(f"Fixed symlink: {_cmd_link_display}/freeide → {_venv_bin}")
+                        check_ok(f"Fixed symlink: {_cmd_link_display}/jettstui → {_venv_bin}")
                         fixed_count += 1
                     else:
-                        issues.append(f"Broken symlink at {_cmd_link_display}/freeide — run 'freeide doctor --fix'")
+                        issues.append(f"Broken symlink at {_cmd_link_display}/jettstui — run 'jettstui doctor --fix'")
             elif _cmd_link.exists():
                 # It's a regular file, not a symlink — possibly a wrapper script
-                check_ok(f"{_cmd_link_display}/freeide exists (non-symlink)")
+                check_ok(f"{_cmd_link_display}/jettstui exists (non-symlink)")
             else:
                 check_fail(
-                    f"{_cmd_link_display}/freeide not found",
-                    "(freeide command may not work outside the venv)"
+                    f"{_cmd_link_display}/jettstui not found",
+                    "(jettstui command may not work outside the venv)"
                 )
                 if should_fix:
                     _cmd_link_dir.mkdir(parents=True, exist_ok=True)
                     _cmd_link.symlink_to(_venv_bin)
-                    check_ok(f"Created symlink: {_cmd_link_display}/freeide → {_venv_bin}")
+                    check_ok(f"Created symlink: {_cmd_link_display}/jettstui → {_venv_bin}")
                     fixed_count += 1
 
                     # Check if the link dir is on PATH
@@ -1671,7 +1671,7 @@ def run_doctor(args):
                         )
                         manual_issues.append(f"Add {_cmd_link_display} to your PATH")
                 else:
-                    issues.append(f"Missing {_cmd_link_display}/freeide symlink — run 'freeide doctor --fix'")
+                    issues.append(f"Missing {_cmd_link_display}/jettstui symlink — run 'jettstui doctor --fix'")
 
     _section("External Tools")
     # Git
@@ -1690,7 +1690,7 @@ def run_doctor(args):
     # Docker (optional)
     terminal_env = os.getenv("TERMINAL_ENV", "local")
     try:
-        from freeide_constants import is_container as _is_container
+        from jettstui_constants import is_container as _is_container
         running_in_container = _is_container()
     except Exception:
         running_in_container = False
@@ -1811,7 +1811,7 @@ def run_doctor(args):
         elif _which_ab:
             # Found on PATH but won't run — almost always a dangling global
             # symlink left behind by agent-browser's npm postinstall after a
-            # `freeide update` wiped node_modules (issue #48521).
+            # `jettstui update` wiped node_modules (issue #48521).
             check_warn(
                 "agent-browser found but not runnable",
                 f"(broken symlink at {_which_ab}? run: npm install)",
@@ -1834,7 +1834,7 @@ def run_doctor(args):
         if agent_browser_ok and not _is_termux():
             try:
                 # Lazy import: browser_tool is a ~150KB module we don't want
-                # to eagerly load in every `freeide doctor` invocation.
+                # to eagerly load in every `jettstui doctor` invocation.
                 from tools.browser_tool import (
                     _chromium_installed,
                     _is_camofox_mode,
@@ -1891,7 +1891,7 @@ def run_doctor(args):
         # glob (which pulls in Electron, node-pty, etc.) is never resolved
         # for a routine security check. The web and ui-tui workspaces are
         # audited separately via --workspace flags. See #38772.
-        # The WhatsApp bridge may live under a writable FREEIDE_HOME mirror
+        # The WhatsApp bridge may live under a writable JETTSTUI_HOME mirror
         # instead of the (possibly read-only) install tree in Docker — resolve
         # it through the shared helper so we audit the dir that actually holds
         # node_modules. See #49561.
@@ -1963,7 +1963,7 @@ def run_doctor(args):
                         # tooling (esbuild/vite, etc.), not runtime code that ships
                         # to users. Manual npm remediation may error with a known
                         # arborist crash (edgesOut / isDescendantOf) on this monorepo
-                        # tree — in that case it is an npm bug, not a FreeIDE one.
+                        # tree — in that case it is an npm bug, not a JettsTUI one.
                         check_info(
                             "  ^ build-time tooling (not runtime); if manual npm remediation "
                             "errors with an arborist crash it's a known npm bug — clears "
@@ -2042,7 +2042,7 @@ def run_doctor(args):
                     [(color("✗", Colors.RED), "OpenRouter API",
                       color("(out of credits — payment required)", Colors.DIM))],
                     ["OpenRouter account has insufficient credits. "
-                     "Fix: run 'freeide config set model.provider <provider>' "
+                     "Fix: run 'jettstui config set model.provider <provider>' "
                      "to switch providers, or fund your OpenRouter account "
                      "at https://openrouter.ai/settings/credits"],
                 )
@@ -2069,7 +2069,7 @@ def run_doctor(args):
             )
 
     def _probe_anthropic() -> _ConnectivityResult:
-        from freeide_cli.auth import get_anthropic_key
+        from jettstui.auth import get_anthropic_key
         key = get_anthropic_key()
         if not key:
             return _ConnectivityResult("Anthropic API", [], [])
@@ -2172,7 +2172,7 @@ def run_doctor(args):
             url = (base.rstrip("/") + "/models") if base else default_url
             headers = {
                 "Authorization": f"Bearer {key}",
-                "User-Agent": _FREEIDE_USER_AGENT,
+                "User-Agent": _JETTSTUI_USER_AGENT,
             }
             if base_url_host_matches(base, "api.kimi.com"):
                 headers["User-Agent"] = "claude-code/0.1.0"
@@ -2181,7 +2181,7 @@ def run_doctor(args):
             # ``ACCESS_TOKEN_TYPE_UNSUPPORTED`` — that header is reserved for
             # OAuth 2 access tokens, not plain API keys. Plain keys use
             # ``x-goog-api-key`` (or ``?key=``). Without this, a perfectly valid
-            # GOOGLE_API_KEY/GEMINI_API_KEY always shows red in ``freeide doctor``.
+            # GOOGLE_API_KEY/GEMINI_API_KEY always shows red in ``jettstui doctor``.
             if url and base_url_host_matches(url, "generativelanguage.googleapis.com"):
                 headers.pop("Authorization", None)
                 headers["x-goog-api-key"] = key
@@ -2286,7 +2286,7 @@ def run_doctor(args):
         """
         label = "Azure Foundry (Entra ID)".ljust(28)
         try:
-            from freeide_cli.config import load_config
+            from jettstui.config import load_config
             cfg = load_config()
             model_cfg = cfg.get("model") if isinstance(cfg, dict) else {}
             if not isinstance(model_cfg, dict):
@@ -2386,7 +2386,7 @@ def run_doctor(args):
     # Set on the parent thread before submitting work so the env-var
     # mutation never races with another worker. has_aws_credentials() in
     # the bedrock probe already gates on real env-var creds, so IMDS is
-    # never the legitimate source for `freeide doctor`.
+    # never the legitimate source for `jettstui doctor`.
     _imds_prev = os.environ.get("AWS_EC2_METADATA_DISABLED")
     os.environ["AWS_EC2_METADATA_DISABLED"] = "true"
     try:
@@ -2443,12 +2443,12 @@ def run_doctor(args):
         # still show warnings above, but should not pollute the final summary.
         api_disabled = _missing_api_key_toolsets_for_summary(unavailable)
         if api_disabled:
-            issues.append("Run 'freeide setup' to configure missing API keys for full tool access")
+            issues.append("Run 'jettstui setup' to configure missing API keys for full tool access")
     except Exception as e:
         check_warn("Could not check tool availability", f"({e})")
     
     _section("Skills Hub")
-    hub_dir = FREEIDE_HOME / "skills" / ".hub"
+    hub_dir = JETTSTUI_HOME / "skills" / ".hub"
     if hub_dir.exists():
         check_ok("Skills Hub directory exists")
         lock_file = hub_dir / "lock.json"
@@ -2465,9 +2465,9 @@ def run_doctor(args):
         if q_count > 0:
             check_warn(f"{q_count} skill(s) in quarantine", "(pending review)")
     else:
-        check_warn("Skills Hub directory not initialized", "(run: freeide skills list)")
+        check_warn("Skills Hub directory not initialized", "(run: jettstui skills list)")
 
-    from freeide_cli.config import get_env_value
+    from jettstui.config import get_env_value
 
     def _gh_authenticated() -> bool:
         """Check if gh CLI is authenticated via token file or device flow."""
@@ -2492,12 +2492,12 @@ def run_doctor(args):
     _active_memory_provider = ""
     try:
         import yaml as _yaml
-        _mem_cfg_path = FREEIDE_HOME / "config.yaml"
+        _mem_cfg_path = JETTSTUI_HOME / "config.yaml"
         if _mem_cfg_path.exists():
             with open(_mem_cfg_path, encoding="utf-8") as _f:
                 _raw_cfg = _yaml.safe_load(_f) or {}
             try:
-                from freeide_cli import managed_scope
+                from jettstui import managed_scope
                 _raw_cfg = managed_scope.apply_managed_overlay(_raw_cfg)
             except Exception:
                 pass
@@ -2522,14 +2522,14 @@ def run_doctor(args):
                         f"config file {_honcho_cfg_path} not found, using HONCHO_API_KEY env var",
                     )
                 else:
-                    check_warn("Honcho config not found", "run: freeide memory setup")
+                    check_warn("Honcho config not found", "run: jettstui memory setup")
             elif not hcfg.enabled:
                 check_info(f"Honcho disabled (set enabled: true in {_honcho_cfg_path} to activate)")
             elif not (hcfg.api_key or hcfg.base_url):
                 _fail_and_issue(
                     "Honcho API key or base URL not set",
-                    "run: freeide memory setup",
-                    "No Honcho API key — run 'freeide memory setup'",
+                    "run: jettstui memory setup",
+                    "No Honcho API key — run 'jettstui memory setup'",
                     issues,
                 )
             else:
@@ -2563,7 +2563,7 @@ def run_doctor(args):
             else:
                 _fail_and_issue(
                     "Mem0 API key not set",
-                    "(set MEM0_API_KEY in .env or run freeide memory setup)",
+                    "(set MEM0_API_KEY in .env or run jettstui memory setup)",
                     "Mem0 is set as memory provider but API key is missing",
                     issues,
                 )
@@ -2584,14 +2584,14 @@ def run_doctor(args):
             if _provider and _provider.is_available():
                 check_ok(f"{_active_memory_provider} provider active")
             elif _provider:
-                check_warn(f"{_active_memory_provider} configured but not available", "run: freeide memory status")
+                check_warn(f"{_active_memory_provider} configured but not available", "run: jettstui memory status")
             else:
-                check_warn(f"{_active_memory_provider} plugin not found", "run: freeide memory setup")
+                check_warn(f"{_active_memory_provider} plugin not found", "run: jettstui memory setup")
         except Exception as _e:
             check_warn(f"{_active_memory_provider} check failed", str(_e))
 
     try:
-        from freeide_cli.profiles import list_profiles, _get_wrapper_dir, profile_exists
+        from jettstui.profiles import list_profiles, _get_wrapper_dir, profile_exists
         import re as _re
 
         named_profiles = [p for p in list_profiles() if not p.is_default]
@@ -2622,8 +2622,8 @@ def run_doctor(args):
                         continue
                     try:
                         content = wrapper.read_text(encoding="utf-8")
-                        if "freeide -p" in content:
-                            _m = _re.search(r"freeide -p (\S+)", content)
+                        if "jettstui -p" in content:
+                            _m = _re.search(r"jettstui -p (\S+)", content)
                             if _m and not profile_exists(_m.group(1)):
                                 check_warn(f"Orphan alias: {wrapper.name} → profile '{_m.group(1)}' no longer exists")
                     except Exception:
@@ -2655,7 +2655,7 @@ def run_doctor(args):
             print(f"  {i}. {issue}")
         print()
         if not should_fix:
-            print(color("  Tip: run 'freeide doctor --fix' to auto-fix what's possible.", Colors.DIM))
+            print(color("  Tip: run 'jettstui doctor --fix' to auto-fix what's possible.", Colors.DIM))
     else:
         print(color("─" * 60, Colors.GREEN))
         print(color("  All checks passed! 🎉", Colors.GREEN, Colors.BOLD))

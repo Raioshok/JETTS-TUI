@@ -44,7 +44,7 @@ function installDesktopMock(state: DesktopBootstrapState) {
     }
   }
 
-  Object.defineProperty(window, 'freeideDesktop', {
+  Object.defineProperty(window, 'jettstuiDesktop', {
     configurable: true,
     value: desktop
   })
@@ -86,63 +86,63 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   vi.useRealTimers()
-  Reflect.deleteProperty(window, 'freeideDesktop')
+  Reflect.deleteProperty(window, 'jettstuiDesktop')
 })
 
 describe('DesktopInstallOverlay first-run setup', () => {
   it('shows the remote/local choice without installer progress', async () => {
     installDesktopMock(
       bootstrapState({
-        setupChoice: { platform: 'win32', activeRoot: 'C:\\Users\\me\\AppData\\Local\\freeide\\freeide-agent' }
+        setupChoice: { platform: 'win32', activeRoot: 'C:\\Users\\me\\AppData\\Local\\jettstui\\jettstui' }
       })
     )
 
     render(<DesktopInstallOverlay />)
 
-    expect(await screen.findByText('Set up Jetts-TUI Desktop')).toBeTruthy()
-    expect(screen.getByText('Connect to existing Jetts-TUI')).toBeTruthy()
-    expect(screen.getByText('Install Jetts-TUI locally')).toBeTruthy()
+    expect(await screen.findByText('Set up JettsTUI Desktop')).toBeTruthy()
+    expect(screen.getByText('Connect to existing JettsTUI')).toBeTruthy()
+    expect(screen.getByText('Install JettsTUI locally')).toBeTruthy()
     expect(screen.queryByText(/steps complete/i)).toBeNull()
     expect(screen.queryByText(/Fetching installer manifest/i)).toBeNull()
   })
 
-  it('continues local bootstrap only when Install Jetts-TUI locally is selected', async () => {
+  it('continues local bootstrap only when Install JettsTUI locally is selected', async () => {
     const desktop = installDesktopMock(
       bootstrapState({
-        setupChoice: { platform: 'win32', activeRoot: 'C:\\Users\\me\\AppData\\Local\\freeide\\freeide-agent' }
+        setupChoice: { platform: 'win32', activeRoot: 'C:\\Users\\me\\AppData\\Local\\jettstui\\jettstui' }
       })
     )
 
     render(<DesktopInstallOverlay />)
 
-    fireEvent.click(await screen.findByText('Install Jetts-TUI locally'))
+    fireEvent.click(await screen.findByText('Install JettsTUI locally'))
 
     expect(desktop.continueBootstrapLocal).toHaveBeenCalledTimes(1)
-    expect(screen.getByText('Set up Jetts-TUI Desktop')).toBeTruthy()
+    expect(screen.getByText('Set up JettsTUI Desktop')).toBeTruthy()
 
     act(() => {
       desktop.emitBootstrapEvent({ type: 'manifest', protocolVersion: 1, stages: [] })
     })
 
-    await waitFor(() => expect(screen.queryByText('Set up Jetts-TUI Desktop')).toBeNull())
+    await waitFor(() => expect(screen.queryByText('Set up JettsTUI Desktop')).toBeNull())
     expect(screen.getByText(/Fetching installer manifest/i)).toBeTruthy()
   })
 
   it('surfaces a recoverable error when the local-bootstrap bridge is unavailable', async () => {
     const desktop = installDesktopMock(
       bootstrapState({
-        setupChoice: { platform: 'win32', activeRoot: 'C:\\Users\\me\\AppData\\Local\\freeide\\freeide-agent' }
+        setupChoice: { platform: 'win32', activeRoot: 'C:\\Users\\me\\AppData\\Local\\jettstui\\jettstui' }
       })
     )
 
     desktop.continueBootstrapLocal = undefined as never
     render(<DesktopInstallOverlay />)
 
-    const install = (await screen.findByText('Install Jetts-TUI locally')).closest('button') as HTMLButtonElement
+    const install = (await screen.findByText('Install JettsTUI locally')).closest('button') as HTMLButtonElement
     fireEvent.click(install)
 
     expect(
-      await screen.findByText('Local installation could not start. Restart Jetts-TUI Desktop and try again.')
+      await screen.findByText('Local installation could not start. Restart JettsTUI Desktop and try again.')
     ).toBeTruthy()
     expect(install.disabled).toBe(false)
   })
@@ -150,7 +150,7 @@ describe('DesktopInstallOverlay first-run setup', () => {
   it('keeps the local-start error when the first snapshot commits under the click', async () => {
     const desktop = installDesktopMock(
       bootstrapState({
-        setupChoice: { platform: 'win32', activeRoot: 'C:\\Users\\me\\AppData\\Local\\freeide\\freeide-agent' }
+        setupChoice: { platform: 'win32', activeRoot: 'C:\\Users\\me\\AppData\\Local\\jettstui\\jettstui' }
       })
     )
 
@@ -160,29 +160,29 @@ describe('DesktopInstallOverlay first-run setup', () => {
     // Click the instant the choice paints, before React drains the passive
     // effect that reacts to the first snapshot. A loaded runner hits this
     // window by accident; observing the DOM directly hits it every time.
-    const install = (await whenPresent('Install Jetts-TUI locally')).closest('button') as HTMLButtonElement
+    const install = (await whenPresent('Install JettsTUI locally')).closest('button') as HTMLButtonElement
     fireEvent.click(install)
 
     await act(async () => {
       await Promise.resolve()
     })
 
-    expect(screen.queryByText('Local installation could not start. Restart Jetts-TUI Desktop and try again.')).toBeTruthy()
+    expect(screen.queryByText('Local installation could not start. Restart JettsTUI Desktop and try again.')).toBeTruthy()
   })
 
   it('clears a stale local-start error when a repair presents a different root', async () => {
     const desktop = installDesktopMock(
       bootstrapState({
-        setupChoice: { platform: 'win32', activeRoot: 'C:\\Users\\me\\AppData\\Local\\freeide\\freeide-agent' }
+        setupChoice: { platform: 'win32', activeRoot: 'C:\\Users\\me\\AppData\\Local\\jettstui\\jettstui' }
       })
     )
 
     desktop.continueBootstrapLocal = undefined as never
     render(<DesktopInstallOverlay />)
 
-    fireEvent.click((await screen.findByText('Install Jetts-TUI locally')).closest('button') as HTMLButtonElement)
+    fireEvent.click((await screen.findByText('Install JettsTUI locally')).closest('button') as HTMLButtonElement)
     expect(
-      await screen.findByText('Local installation could not start. Restart Jetts-TUI Desktop and try again.')
+      await screen.findByText('Local installation could not start. Restart JettsTUI Desktop and try again.')
     ).toBeTruthy()
 
     act(() => {
@@ -190,23 +190,23 @@ describe('DesktopInstallOverlay first-run setup', () => {
         type: 'setup-choice',
         active: false,
         platform: 'win32',
-        activeRoot: 'C:\\Users\\me\\AppData\\Local\\freeide\\freeide-agent-repaired'
+        activeRoot: 'C:\\Users\\me\\AppData\\Local\\jettstui\\jettstui-repaired'
       })
     })
 
-    expect(screen.queryByText('Local installation could not start. Restart Jetts-TUI Desktop and try again.')).toBeNull()
+    expect(screen.queryByText('Local installation could not start. Restart JettsTUI Desktop and try again.')).toBeNull()
   })
 
   it('opens the remote connection form from the first-run choice', async () => {
     installDesktopMock(
       bootstrapState({
-        setupChoice: { platform: 'linux', activeRoot: '/home/me/.freeide/freeide-agent' }
+        setupChoice: { platform: 'linux', activeRoot: '/home/me/.jettstui/jettstui' }
       })
     )
 
     render(<DesktopInstallOverlay />)
 
-    fireEvent.click(await screen.findByText('Connect to existing Jetts-TUI'))
+    fireEvent.click(await screen.findByText('Connect to existing JettsTUI'))
 
     expect(await screen.findByText('Gateway URL')).toBeTruthy()
     expect(screen.getByText('Test connection')).toBeTruthy()
@@ -216,38 +216,38 @@ describe('DesktopInstallOverlay first-run setup', () => {
   it('returns from the remote connection form to the first-run choice', async () => {
     installDesktopMock(
       bootstrapState({
-        setupChoice: { platform: 'linux', activeRoot: '/home/me/.freeide/freeide-agent' }
+        setupChoice: { platform: 'linux', activeRoot: '/home/me/.jettstui/jettstui' }
       })
     )
 
     render(<DesktopInstallOverlay />)
 
-    fireEvent.click(await screen.findByText('Connect to existing Jetts-TUI'))
+    fireEvent.click(await screen.findByText('Connect to existing JettsTUI'))
     expect(await screen.findByText('Gateway URL')).toBeTruthy()
 
     fireEvent.click(screen.getByText('Back'))
 
-    expect(await screen.findByText('Set up Jetts-TUI Desktop')).toBeTruthy()
-    expect(screen.getByText('Install Jetts-TUI locally')).toBeTruthy()
+    expect(await screen.findByText('Set up JettsTUI Desktop')).toBeTruthy()
+    expect(screen.getByText('Install JettsTUI locally')).toBeTruthy()
   })
 
   it('requires a successful token connection test before applying remote config', async () => {
     const desktop = installDesktopMock(
       bootstrapState({
-        setupChoice: { platform: 'linux', activeRoot: '/home/me/.freeide/freeide-agent' }
+        setupChoice: { platform: 'linux', activeRoot: '/home/me/.jettstui/jettstui' }
       })
     )
 
     desktop.probeConnectionConfig.mockResolvedValue({
       authMode: 'token',
-      baseUrl: 'https://gateway.example.com/freeide',
+      baseUrl: 'https://gateway.example.com/jettstui',
       error: null,
       providers: [],
       reachable: true,
       version: '0.17.0'
     })
     desktop.testConnectionConfig.mockResolvedValue({
-      baseUrl: 'https://gateway.example.com/freeide',
+      baseUrl: 'https://gateway.example.com/jettstui',
       ok: true,
       version: '0.17.0'
     })
@@ -259,9 +259,9 @@ describe('DesktopInstallOverlay first-run setup', () => {
 
     render(<DesktopInstallOverlay />)
 
-    fireEvent.click(await screen.findByText('Connect to existing Jetts-TUI'))
-    fireEvent.change(await screen.findByPlaceholderText('https://gateway.example.com/freeide'), {
-      target: { value: 'https://gateway.example.com/freeide' }
+    fireEvent.click(await screen.findByText('Connect to existing JettsTUI'))
+    fireEvent.change(await screen.findByPlaceholderText('https://gateway.example.com/jettstui'), {
+      target: { value: 'https://gateway.example.com/jettstui' }
     })
 
     const apply = screen.getByText('Apply and reconnect').closest('button') as HTMLButtonElement
@@ -281,11 +281,11 @@ describe('DesktopInstallOverlay first-run setup', () => {
         mode: 'remote',
         remoteAuthMode: 'token',
         remoteToken: 'session-secret',
-        remoteUrl: 'https://gateway.example.com/freeide'
+        remoteUrl: 'https://gateway.example.com/jettstui'
       })
     })
 
-    await screen.findByText('Connected to https://gateway.example.com/freeide (0.17.0).')
+    await screen.findByText('Connected to https://gateway.example.com/jettstui (0.17.0).')
     expect(apply.disabled).toBe(false)
 
     fireEvent.click(screen.getByText('Apply and reconnect'))
@@ -295,7 +295,7 @@ describe('DesktopInstallOverlay first-run setup', () => {
         mode: 'remote',
         remoteAuthMode: 'token',
         remoteToken: 'session-secret',
-        remoteUrl: 'https://gateway.example.com/freeide'
+        remoteUrl: 'https://gateway.example.com/jettstui'
       })
     })
     await waitFor(() => expect(screen.queryByText('Gateway URL')).toBeNull())
@@ -304,7 +304,7 @@ describe('DesktopInstallOverlay first-run setup', () => {
   it('ignores a completed probe after the gateway URL becomes invalid', async () => {
     const desktop = installDesktopMock(
       bootstrapState({
-        setupChoice: { platform: 'linux', activeRoot: '/home/me/.freeide/freeide-agent' }
+        setupChoice: { platform: 'linux', activeRoot: '/home/me/.jettstui/jettstui' }
       })
     )
 
@@ -318,9 +318,9 @@ describe('DesktopInstallOverlay first-run setup', () => {
 
     render(<DesktopInstallOverlay />)
 
-    fireEvent.click(await screen.findByText('Connect to existing Jetts-TUI'))
-    const urlInput = await screen.findByPlaceholderText('https://gateway.example.com/freeide')
-    fireEvent.change(urlInput, { target: { value: 'https://gateway.example.com/freeide' } })
+    fireEvent.click(await screen.findByText('Connect to existing JettsTUI'))
+    const urlInput = await screen.findByPlaceholderText('https://gateway.example.com/jettstui')
+    fireEvent.change(urlInput, { target: { value: 'https://gateway.example.com/jettstui' } })
 
     await act(async () => {
       await new Promise(resolve => setTimeout(resolve, 550))
@@ -331,7 +331,7 @@ describe('DesktopInstallOverlay first-run setup', () => {
     await act(async () => {
       resolveProbe?.({
         authMode: 'token',
-        baseUrl: 'https://gateway.example.com/freeide',
+        baseUrl: 'https://gateway.example.com/jettstui',
         error: null,
         providers: [],
         reachable: true,
@@ -348,13 +348,13 @@ describe('DesktopInstallOverlay first-run setup', () => {
   it('does not enable Apply when credentials change during a connection test', async () => {
     const desktop = installDesktopMock(
       bootstrapState({
-        setupChoice: { platform: 'linux', activeRoot: '/home/me/.freeide/freeide-agent' }
+        setupChoice: { platform: 'linux', activeRoot: '/home/me/.jettstui/jettstui' }
       })
     )
 
     desktop.probeConnectionConfig.mockResolvedValue({
       authMode: 'token',
-      baseUrl: 'https://gateway.example.com/freeide',
+      baseUrl: 'https://gateway.example.com/jettstui',
       error: null,
       providers: [],
       reachable: true,
@@ -371,9 +371,9 @@ describe('DesktopInstallOverlay first-run setup', () => {
 
     render(<DesktopInstallOverlay />)
 
-    fireEvent.click(await screen.findByText('Connect to existing Jetts-TUI'))
-    fireEvent.change(await screen.findByPlaceholderText('https://gateway.example.com/freeide'), {
-      target: { value: 'https://gateway.example.com/freeide' }
+    fireEvent.click(await screen.findByText('Connect to existing JettsTUI'))
+    fireEvent.change(await screen.findByPlaceholderText('https://gateway.example.com/jettstui'), {
+      target: { value: 'https://gateway.example.com/jettstui' }
     })
 
     await act(async () => {
@@ -390,31 +390,31 @@ describe('DesktopInstallOverlay first-run setup', () => {
     fireEvent.change(tokenInput, { target: { value: 'token-b' } })
 
     await act(async () => {
-      resolveTest?.({ baseUrl: 'https://gateway.example.com/freeide', ok: true, version: '0.17.0' })
+      resolveTest?.({ baseUrl: 'https://gateway.example.com/jettstui', ok: true, version: '0.17.0' })
       await pendingTest
     })
 
-    expect(screen.queryByText('Connected to https://gateway.example.com/freeide (0.17.0).')).toBeNull()
+    expect(screen.queryByText('Connected to https://gateway.example.com/jettstui (0.17.0).')).toBeNull()
     expect(apply.disabled).toBe(true)
   })
 
   it('restores remote apply controls when applying the tested connection fails', async () => {
     const desktop = installDesktopMock(
       bootstrapState({
-        setupChoice: { platform: 'linux', activeRoot: '/home/me/.freeide/freeide-agent' }
+        setupChoice: { platform: 'linux', activeRoot: '/home/me/.jettstui/jettstui' }
       })
     )
 
     desktop.probeConnectionConfig.mockResolvedValue({
       authMode: 'token',
-      baseUrl: 'https://gateway.example.com/freeide',
+      baseUrl: 'https://gateway.example.com/jettstui',
       error: null,
       providers: [],
       reachable: true,
       version: '0.17.0'
     })
     desktop.testConnectionConfig.mockResolvedValue({
-      baseUrl: 'https://gateway.example.com/freeide',
+      baseUrl: 'https://gateway.example.com/jettstui',
       ok: true,
       version: '0.17.0'
     })
@@ -422,9 +422,9 @@ describe('DesktopInstallOverlay first-run setup', () => {
 
     render(<DesktopInstallOverlay />)
 
-    fireEvent.click(await screen.findByText('Connect to existing Jetts-TUI'))
-    fireEvent.change(await screen.findByPlaceholderText('https://gateway.example.com/freeide'), {
-      target: { value: 'https://gateway.example.com/freeide' }
+    fireEvent.click(await screen.findByText('Connect to existing JettsTUI'))
+    fireEvent.change(await screen.findByPlaceholderText('https://gateway.example.com/jettstui'), {
+      target: { value: 'https://gateway.example.com/jettstui' }
     })
 
     await act(async () => {
@@ -435,7 +435,7 @@ describe('DesktopInstallOverlay first-run setup', () => {
       target: { value: 'session-secret' }
     })
     fireEvent.click(screen.getByText('Test connection'))
-    await screen.findByText('Connected to https://gateway.example.com/freeide (0.17.0).')
+    await screen.findByText('Connected to https://gateway.example.com/jettstui (0.17.0).')
 
     const apply = screen.getByText('Apply and reconnect').closest('button') as HTMLButtonElement
     fireEvent.click(apply)
@@ -448,25 +448,25 @@ describe('DesktopInstallOverlay first-run setup', () => {
   it('signs in, tests, and applies a password-style remote gateway', async () => {
     const desktop = installDesktopMock(
       bootstrapState({
-        setupChoice: { platform: 'linux', activeRoot: '/home/me/.freeide/freeide-agent' }
+        setupChoice: { platform: 'linux', activeRoot: '/home/me/.jettstui/jettstui' }
       })
     )
 
     desktop.probeConnectionConfig.mockResolvedValue({
       authMode: 'oauth',
-      baseUrl: 'https://gateway.example.com/freeide',
+      baseUrl: 'https://gateway.example.com/jettstui',
       error: null,
       providers: [{ displayName: 'Username & Password', name: 'password', supportsPassword: true }],
       reachable: true,
       version: '0.17.0'
     })
     desktop.oauthLoginConnectionConfig.mockResolvedValue({
-      baseUrl: 'https://gateway.example.com/freeide',
+      baseUrl: 'https://gateway.example.com/jettstui',
       connected: true,
       ok: true
     })
     desktop.testConnectionConfig.mockResolvedValue({
-      baseUrl: 'https://gateway.example.com/freeide',
+      baseUrl: 'https://gateway.example.com/jettstui',
       ok: true,
       version: null
     })
@@ -474,9 +474,9 @@ describe('DesktopInstallOverlay first-run setup', () => {
 
     render(<DesktopInstallOverlay />)
 
-    fireEvent.click(await screen.findByText('Connect to existing Jetts-TUI'))
-    fireEvent.change(await screen.findByPlaceholderText('https://gateway.example.com/freeide'), {
-      target: { value: 'https://gateway.example.com/freeide' }
+    fireEvent.click(await screen.findByText('Connect to existing JettsTUI'))
+    fireEvent.change(await screen.findByPlaceholderText('https://gateway.example.com/jettstui'), {
+      target: { value: 'https://gateway.example.com/jettstui' }
     })
 
     await act(async () => {
@@ -487,7 +487,7 @@ describe('DesktopInstallOverlay first-run setup', () => {
     fireEvent.click(await screen.findByText('Sign in'))
 
     await waitFor(() => {
-      expect(desktop.oauthLoginConnectionConfig).toHaveBeenCalledWith('https://gateway.example.com/freeide')
+      expect(desktop.oauthLoginConnectionConfig).toHaveBeenCalledWith('https://gateway.example.com/jettstui')
     })
 
     fireEvent.click(screen.getByText('Test connection'))
@@ -497,11 +497,11 @@ describe('DesktopInstallOverlay first-run setup', () => {
         mode: 'remote',
         remoteAuthMode: 'oauth',
         remoteToken: undefined,
-        remoteUrl: 'https://gateway.example.com/freeide'
+        remoteUrl: 'https://gateway.example.com/jettstui'
       })
     })
 
-    await screen.findByText('Connected to https://gateway.example.com/freeide.')
+    await screen.findByText('Connected to https://gateway.example.com/jettstui.')
     const apply = screen.getByText('Apply and reconnect').closest('button') as HTMLButtonElement
     expect(apply.disabled).toBe(false)
     fireEvent.click(apply)
@@ -511,7 +511,7 @@ describe('DesktopInstallOverlay first-run setup', () => {
         mode: 'remote',
         remoteAuthMode: 'oauth',
         remoteToken: undefined,
-        remoteUrl: 'https://gateway.example.com/freeide'
+        remoteUrl: 'https://gateway.example.com/jettstui'
       })
     })
   })
@@ -521,7 +521,7 @@ describe('DesktopInstallOverlay first-run setup', () => {
       bootstrapState({
         unsupportedPlatform: {
           platform: 'darwin',
-          activeRoot: '/Users/me/.freeide/freeide-agent',
+          activeRoot: '/Users/me/.jettstui/jettstui',
           installCommand: 'curl -fsSL https://example.invalid/install.sh | sh',
           docsUrl: 'https://example.invalid/docs'
         }
@@ -530,7 +530,7 @@ describe('DesktopInstallOverlay first-run setup', () => {
 
     render(<DesktopInstallOverlay />)
 
-    expect(await screen.findByText('Jetts-TUI needs a one-time install')).toBeTruthy()
+    expect(await screen.findByText('JettsTUI needs a one-time install')).toBeTruthy()
 
     fireEvent.click(screen.getByText('Connect existing'))
 
@@ -538,14 +538,14 @@ describe('DesktopInstallOverlay first-run setup', () => {
 
     desktop.probeConnectionConfig.mockResolvedValue({
       authMode: 'token',
-      baseUrl: 'https://gateway.example.com/freeide',
+      baseUrl: 'https://gateway.example.com/jettstui',
       error: null,
       providers: [],
       reachable: true,
       version: '0.17.0'
     })
     desktop.testConnectionConfig.mockResolvedValue({
-      baseUrl: 'https://gateway.example.com/freeide',
+      baseUrl: 'https://gateway.example.com/jettstui',
       ok: true,
       version: '0.17.0'
     })
@@ -555,8 +555,8 @@ describe('DesktopInstallOverlay first-run setup', () => {
       return { mode: 'remote' }
     })
 
-    fireEvent.change(screen.getByPlaceholderText('https://gateway.example.com/freeide'), {
-      target: { value: 'https://gateway.example.com/freeide' }
+    fireEvent.change(screen.getByPlaceholderText('https://gateway.example.com/jettstui'), {
+      target: { value: 'https://gateway.example.com/jettstui' }
     })
 
     await act(async () => {
@@ -567,10 +567,10 @@ describe('DesktopInstallOverlay first-run setup', () => {
       target: { value: 'session-secret' }
     })
     fireEvent.click(screen.getByText('Test connection'))
-    await screen.findByText('Connected to https://gateway.example.com/freeide (0.17.0).')
+    await screen.findByText('Connected to https://gateway.example.com/jettstui (0.17.0).')
     fireEvent.click(screen.getByText('Apply and reconnect'))
 
     await waitFor(() => expect(screen.queryByText('Gateway URL')).toBeNull())
-    expect(screen.queryByText('Jetts-TUI needs a one-time install')).toBeNull()
+    expect(screen.queryByText('JettsTUI needs a one-time install')).toBeNull()
   })
 })

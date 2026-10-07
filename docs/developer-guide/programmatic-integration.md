@@ -1,12 +1,12 @@
 ---
 sidebar_position: 8
 title: "Programmatic Integration"
-description: "Three protocols for driving freeide-agent from external programs: ACP, the TUI gateway JSON-RPC, and the OpenAI-compatible HTTP API"
+description: "Three protocols for driving jettstui from external programs: ACP, the TUI gateway JSON-RPC, and the OpenAI-compatible HTTP API"
 ---
 
 # Programmatic Integration
 
-FreeIDE ships three protocols for driving the agent from external programs — IDE plugins, custom UIs, CI pipelines, embedded sub-agents. Pick the one that matches your transport and consumer.
+JettsTUI ships three protocols for driving the agent from external programs — IDE plugins, custom UIs, CI pipelines, embedded sub-agents. Pick the one that matches your transport and consumer.
 
 | Protocol | Transport | Best for | Defined by |
 |----------|-----------|----------|------------|
@@ -20,22 +20,22 @@ All three drive the same `AIAgent` core. They differ only in wire format and whi
 
 ## ACP (Agent Client Protocol)
 
-`freeide acp` starts a stdio JSON-RPC server speaking ACP. Used in production by VS Code (Zed Industries' ACP extension), Zed, and any JetBrains IDE with an ACP plugin.
+`jettstui acp` starts a stdio JSON-RPC server speaking ACP. Used in production by VS Code (Zed Industries' ACP extension), Zed, and any JetBrains IDE with an ACP plugin.
 
 Capabilities exposed: session creation, prompt submission, streaming agent message chunks, tool-call events, permission requests, session fork, cancel, and authentication. Tool output is rendered into ACP `Diff`/`ToolCall` content blocks the IDE understands.
 
 Full lifecycle, event bridge, and approval flow: [ACP Internals](./acp-internals).
 
 ```bash
-freeide acp                  # serve ACP on stdio
-freeide acp --bootstrap      # print install snippet for an ACP-capable IDE
+jettstui acp                  # serve ACP on stdio
+jettstui acp --bootstrap      # print install snippet for an ACP-capable IDE
 ```
 
 ---
 
 ## TUI Gateway JSON-RPC
 
-`tui_gateway/server.py` is the protocol the Ink TUI (`freeide --tui`) and the embedded dashboard PTY bridge talk to. Any external host can speak the same protocol over stdio (or WebSocket via `tui_gateway/ws.py`).
+`tui_gateway/server.py` is the protocol the Ink TUI (`jettstui --tui`) and the embedded dashboard PTY bridge talk to. Any external host can speak the same protocol over stdio (or WebSocket via `tui_gateway/ws.py`).
 
 ### Method catalog (selected)
 
@@ -61,9 +61,9 @@ terminal.resize         clipboard.paste         image.attach
 
 ### Pi-style RPC mapping
 
-Every command in the Pi-mono RPC spec ([issue #360](https://github.com/freeide/freeide/issues/360)) has a TUI-gateway equivalent:
+Every command in the Pi-mono RPC spec ([issue #360](https://github.com/Raioshok/JETTS-TUI/issues/360)) has a TUI-gateway equivalent:
 
-| Pi command | FreeIDE equivalent |
+| Pi command | JettsTUI equivalent |
 |------------|-------------------|
 | `prompt` | `prompt.submit` (or ACP `session/prompt`) |
 | `steer` | `session.steer` |
@@ -81,7 +81,7 @@ Every command in the Pi-mono RPC spec ([issue #360](https://github.com/freeide/f
 
 ## OpenAI-Compatible API Server
 
-`gateway/platforms/api_server.py` exposes freeide over HTTP for any client that already speaks the OpenAI format. Useful when you want a web frontend, a curl-driven CI runner, or a non-Python consumer.
+`gateway/platforms/api_server.py` exposes jettstui over HTTP for any client that already speaks the OpenAI format. Useful when you want a web frontend, a curl-driven CI runner, or a non-Python consumer.
 
 Endpoints:
 
@@ -94,24 +94,24 @@ GET  /v1/runs/{id}/events        SSE stream of lifecycle events
 POST /v1/runs/{id}/approval      Resolve a pending approval
 POST /v1/runs/{id}/stop          Interrupt the run
 GET  /v1/capabilities            Machine-readable feature flags
-GET  /v1/models                  Lists freeide-agent
+GET  /v1/models                  Lists jettstui
 GET  /api/model/options          Provider-aware picker inventory
 GET  /health, /health/detailed
 ```
 
-Setup, headers (`X-FreeIDE-Session-Id`, `X-FreeIDE-Session-Key`), and frontend wiring: [API Server](../user-guide/features/api-server).
+Setup, headers (`X-JettsTUI-Session-Id`, `X-JettsTUI-Session-Key`), and frontend wiring: [API Server](../user-guide/features/api-server).
 
 ### Model catalog surfaces
 
 The OpenAI-compatible API intentionally keeps `GET /v1/models` minimal: it is
-the compatibility endpoint frontends expect, not the full FreeIDE provider/model
+the compatibility endpoint frontends expect, not the full JettsTUI provider/model
 picker catalog.
 
-If an external control plane needs FreeIDE' curated provider rows, per-model
+If an external control plane needs JettsTUI' curated provider rows, per-model
 pricing, or capability hints, use one of the authenticated picker surfaces:
 
 - API server REST: `GET /api/model/options` with the API-server bearer key
-- Dashboard backend REST: `GET /api/model/options` with `X-FreeIDE-Session-Token`
+- Dashboard backend REST: `GET /api/model/options` with `X-JettsTUI-Session-Token`
 - TUI gateway RPC: `model.options`
 
 Those surfaces share the same payload builder and the same custom-provider
@@ -123,14 +123,14 @@ probe policy:
   cache and probe all saved custom providers so live catalogs repopulate fully.
 
 Use `/v1/models` for OpenAI-client compatibility. Use `/api/model/options` or
-`model.options` when you are building a FreeIDE-aware model picker.
+`model.options` when you are building a JettsTUI-aware model picker.
 
 ---
 
 ## Which one should I use?
 
 - **You're writing an IDE plugin and the IDE already speaks ACP** → ACP. Zero protocol work on the IDE side.
-- **You're writing a custom desktop / web / TUI host and want every FreeIDE feature** (slash commands, approvals, clarify, multi-agent, session branching) → TUI gateway JSON-RPC.
+- **You're writing a custom desktop / web / TUI host and want every JettsTUI feature** (slash commands, approvals, clarify, multi-agent, session branching) → TUI gateway JSON-RPC.
 - **You want any OpenAI-compatible frontend, a language-agnostic HTTP client, or curl-driven automation** → API server.
 - **You want a Python in-process embed without a subprocess** → import `run_agent.AIAgent` directly. See [Agent Loop](./agent-loop).
 
@@ -145,10 +145,10 @@ Mid-session model switching works on every surface — it's the `/model` slash c
 - **ACP:** the IDE sends the slash command as a prompt; the agent dispatches it
 - **API server:** include a `model` field in the request body
 
-Provider-aware resolution (the same model name picks the right format for whatever provider you're on) is built in. See `freeide_cli/model_switch.py`.
+Provider-aware resolution (the same model name picks the right format for whatever provider you're on) is built in. See `jettstui/model_switch.py`.
 
 ---
 
 ## A note on `--mode rpc`
 
-FreeIDE does not have a `--mode rpc` flag. The three protocols above already cover the use cases — ACP for IDE-protocol clients, the TUI gateway for stdio JSON-RPC hosts, and the API server for HTTP. If you find a real gap that none of them fill, open an issue with the concrete consumer you're building.
+JettsTUI does not have a `--mode rpc` flag. The three protocols above already cover the use cases — ACP for IDE-protocol clients, the TUI gateway for stdio JSON-RPC hosts, and the API server for HTTP. If you find a real gap that none of them fill, open an issue with the concrete consumer you're building.

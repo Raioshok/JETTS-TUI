@@ -1,5 +1,5 @@
-import { type FreeIDEGateway, getGlobalModelOptions, type ModelOptionsResponse } from '@/freeide'
-import type { ModelOptionProvider } from '@/types/freeide'
+import { type JettsTUIGateway, getGlobalModelOptions, type ModelOptionsResponse } from '@/jettstui'
+import type { ModelOptionProvider } from '@/types/jettstui'
 
 /**
  * True only when a persisted **manual** composer pick has been removed from the
@@ -39,7 +39,7 @@ interface ModelOptionsRequest {
    *  surfaces). Chat pickers default to true so only explicitly configured
    *  providers are listed (#56974). */
   explicitOnly?: boolean
-  gateway?: FreeIDEGateway
+  gateway?: JettsTUIGateway
   refresh?: boolean
   sessionId?: null | string
 }

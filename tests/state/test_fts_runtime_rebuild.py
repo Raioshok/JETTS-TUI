@@ -16,7 +16,7 @@ import sqlite3
 
 import pytest
 
-from freeide_state import SessionDB
+from jettstui_state import SessionDB
 
 
 @pytest.fixture

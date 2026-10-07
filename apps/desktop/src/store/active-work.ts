@@ -11,11 +11,11 @@
 
 import { computed } from 'nanostores'
 
-import type { FreeIDEActiveWork } from '@/global'
+import type { JettsTUIActiveWork } from '@/global'
 import { $sessions } from '@/store/session'
 import { $workingSessionIds } from '@/store/session-states'
 
-const $activeWork = computed([$workingSessionIds, $sessions], (workingIds, sessions): FreeIDEActiveWork => {
+const $activeWork = computed([$workingSessionIds, $sessions], (workingIds, sessions): JettsTUIActiveWork => {
   const titleById = new Map(sessions.map(session => [session.id, session.title?.trim() ?? '']))
 
   return {
@@ -37,6 +37,6 @@ if (typeof window !== 'undefined') {
     }
 
     lastSent = next
-    window.freeideDesktop?.setActiveWork?.(work)
+    window.jettstuiDesktop?.setActiveWork?.(work)
   })
 }

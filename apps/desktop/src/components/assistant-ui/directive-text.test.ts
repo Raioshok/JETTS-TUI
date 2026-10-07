@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { formatRefValue, freeideDirectiveFormatter } from './directive-text'
+import { formatRefValue, jettstuiDirectiveFormatter } from './directive-text'
 
 describe('formatRefValue', () => {
   it('leaves simple paths untouched', () => {
@@ -17,9 +17,9 @@ describe('formatRefValue', () => {
   })
 })
 
-describe('freeideDirectiveFormatter.parse', () => {
+describe('jettstuiDirectiveFormatter.parse', () => {
   it('keeps quoted file paths whole when parsing', () => {
-    const segments = freeideDirectiveFormatter.parse('see @image:`apple-touch-icon (1).png` for the icon')
+    const segments = jettstuiDirectiveFormatter.parse('see @image:`apple-touch-icon (1).png` for the icon')
 
     expect(segments).toEqual([
       { kind: 'text', text: 'see ' },
@@ -29,7 +29,7 @@ describe('freeideDirectiveFormatter.parse', () => {
   })
 
   it('still parses unquoted paths', () => {
-    const segments = freeideDirectiveFormatter.parse('@file:src/main.tsx the entry point')
+    const segments = jettstuiDirectiveFormatter.parse('@file:src/main.tsx the entry point')
 
     expect(segments).toEqual([
       { kind: 'mention', type: 'file', label: 'main.tsx', id: 'src/main.tsx' },
@@ -38,7 +38,7 @@ describe('freeideDirectiveFormatter.parse', () => {
   })
 
   it('parses session links with profile/id values', () => {
-    const segments = freeideDirectiveFormatter.parse('see @session:work/20260101_abc123 next')
+    const segments = jettstuiDirectiveFormatter.parse('see @session:work/20260101_abc123 next')
 
     expect(segments).toEqual([
       { kind: 'text', text: 'see ' },
@@ -50,7 +50,7 @@ describe('freeideDirectiveFormatter.parse', () => {
 
 describe('inline skill references', () => {
   const skills = (text: string) =>
-    [...freeideDirectiveFormatter.parse(text)]
+    [...jettstuiDirectiveFormatter.parse(text)]
       .filter(segment => segment.kind === 'mention' && segment.type === 'skill')
       .map(segment => (segment.kind === 'mention' ? segment.id : ''))
 
@@ -59,7 +59,7 @@ describe('inline skill references', () => {
   })
 
   it('keeps the surrounding prose as text around the chip', () => {
-    const segments = freeideDirectiveFormatter.parse('tidy this with /clean thanks')
+    const segments = jettstuiDirectiveFormatter.parse('tidy this with /clean thanks')
 
     expect(segments).toEqual([
       { kind: 'text', text: 'tidy this with ' },
@@ -85,7 +85,7 @@ describe('inline skill references', () => {
   })
 
   it('parses a skill chip alongside an @ reference', () => {
-    const mentions = [...freeideDirectiveFormatter.parse('run /clean on @file:`src/a.ts`')].filter(
+    const mentions = [...jettstuiDirectiveFormatter.parse('run /clean on @file:`src/a.ts`')].filter(
       segment => segment.kind === 'mention'
     )
 

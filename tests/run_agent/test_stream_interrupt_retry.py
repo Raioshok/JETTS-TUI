@@ -190,8 +190,8 @@ class TestStreamInterruptBeforeRetry:
             _make_tool_call_delta,
         )
 
-        monkeypatch.setenv("FREEIDE_STREAM_STALE_TIMEOUT", "0.05")
-        monkeypatch.setenv("FREEIDE_STREAM_RETRIES", "1")
+        monkeypatch.setenv("JETTSTUI_STREAM_STALE_TIMEOUT", "0.05")
+        monkeypatch.setenv("JETTSTUI_STREAM_RETRIES", "1")
 
         class LateChunkAfterStaleStream:
             response = SimpleNamespace(headers={})

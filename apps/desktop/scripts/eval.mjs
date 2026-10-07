@@ -1,11 +1,11 @@
 // Simple eval helper — runs an expression and returns the result.value.
 //
 //   node scripts/eval.mjs "document.title"
-//   FREEIDE_DESKTOP_CDP_PORT=9333 node scripts/eval.mjs "document.title"
+//   JETTSTUI_DESKTOP_CDP_PORT=9333 node scripts/eval.mjs "document.title"
 //
 // Needs a renderer with a debugging port: launch `hgui` / `npm run dev` with
-// FREEIDE_DESKTOP_CDP_PORT set (see electron/dev-cdp.ts).
-const port = Number(process.env.FREEIDE_DESKTOP_CDP_PORT || 9222)
+// JETTSTUI_DESKTOP_CDP_PORT set (see electron/dev-cdp.ts).
+const port = Number(process.env.JETTSTUI_DESKTOP_CDP_PORT || 9222)
 let targets
 
 try {
@@ -14,7 +14,7 @@ try {
   console.error(
     `no renderer debugging port on 127.0.0.1:${port}. ` +
       'Dev-server runs (`npm run dev` / `hgui`) open one automatically — check the app is running, ' +
-      'and that FREEIDE_DESKTOP_CDP_PORT is not set to "off" or another port.'
+      'and that JETTSTUI_DESKTOP_CDP_PORT is not set to "off" or another port.'
   )
   process.exit(1)
 }

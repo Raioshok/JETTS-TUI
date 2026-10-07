@@ -33,8 +33,8 @@ def test_secondary_profile_pairing_stores_created(tmp_path, monkeypatch):
     Pre-fix this silently did nothing: the ``PairingStore(profile=name)``
     reference raised NameError inside the swallowed try/except.
     """
-    monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / ".freeide"))
-    (tmp_path / ".freeide").mkdir()
+    monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / ".jettstui"))
+    (tmp_path / ".jettstui").mkdir()
 
     runner = _bare_runner()
 
@@ -44,9 +44,9 @@ def test_secondary_profile_pairing_stores_created(tmp_path, monkeypatch):
     runner._start_one_profile_adapters = _no_secondary
     runner._adapter_credential_fingerprint = lambda adapter: None
 
-    with patch("freeide_cli.profiles.profiles_to_serve", return_value=[
-        ("coder", tmp_path / ".freeide" / "profiles" / "coder"),
-    ]), patch("freeide_cli.profiles.get_active_profile_name", return_value="default"):
+    with patch("jettstui.profiles.profiles_to_serve", return_value=[
+        ("coder", tmp_path / ".jettstui" / "profiles" / "coder"),
+    ]), patch("jettstui.profiles.get_active_profile_name", return_value="default"):
         runner._profile_adapters["coder"] = {}
         asyncio.run(runner._start_secondary_profile_adapters())
 
@@ -61,8 +61,8 @@ def test_secondary_profile_pairing_stores_created(tmp_path, monkeypatch):
 
 def test_pairing_store_scoped_to_profile_dir(tmp_path, monkeypatch):
     """The created store must live under the profile's pairing directory."""
-    monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / ".freeide"))
-    (tmp_path / ".freeide").mkdir()
+    monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / ".jettstui"))
+    (tmp_path / ".jettstui").mkdir()
 
     runner = _bare_runner()
 
@@ -72,9 +72,9 @@ def test_pairing_store_scoped_to_profile_dir(tmp_path, monkeypatch):
     runner._start_one_profile_adapters = _no_secondary
     runner._adapter_credential_fingerprint = lambda adapter: None
 
-    with patch("freeide_cli.profiles.profiles_to_serve", return_value=[
-        ("ops", tmp_path / ".freeide" / "profiles" / "ops"),
-    ]), patch("freeide_cli.profiles.get_active_profile_name", return_value="default"):
+    with patch("jettstui.profiles.profiles_to_serve", return_value=[
+        ("ops", tmp_path / ".jettstui" / "profiles" / "ops"),
+    ]), patch("jettstui.profiles.get_active_profile_name", return_value="default"):
         runner._profile_adapters["ops"] = {}
         asyncio.run(runner._start_secondary_profile_adapters())
 

@@ -1,17 +1,17 @@
 ---
 sidebar_position: 1
 title: "Messaging Gateway"
-description: "Chat with FreeIDE from Telegram, Discord, Slack, WhatsApp, Signal, SMS, Email, Home Assistant, Mattermost, Matrix, DingTalk, Yuanbao, Microsoft Teams, LINE, Raft, Webhooks, or any OpenAI-compatible frontend via the API server — architecture and setup overview"
+description: "Chat with JettsTUI from Telegram, Discord, Slack, WhatsApp, Signal, SMS, Email, Home Assistant, Mattermost, Matrix, DingTalk, Yuanbao, Microsoft Teams, LINE, Raft, Webhooks, or any OpenAI-compatible frontend via the API server — architecture and setup overview"
 ---
 
 # Messaging Gateway
 
-Chat with FreeIDE from Telegram, Discord, Slack, WhatsApp, Signal, SMS, Email, Home Assistant, Mattermost, Matrix, DingTalk, Feishu/Lark, WeCom, Weixin, BlueBubbles (iMessage), QQ, Yuanbao, Microsoft Teams, LINE, ntfy, or your browser. The gateway is a single background process that connects to all your configured platforms, handles sessions, runs cron jobs, and delivers voice messages.
+Chat with JettsTUI from Telegram, Discord, Slack, WhatsApp, Signal, SMS, Email, Home Assistant, Mattermost, Matrix, DingTalk, Feishu/Lark, WeCom, Weixin, BlueBubbles (iMessage), QQ, Yuanbao, Microsoft Teams, LINE, ntfy, or your browser. The gateway is a single background process that connects to all your configured platforms, handles sessions, runs cron jobs, and delivers voice messages.
 
-For the full voice feature set — including CLI microphone mode, spoken replies in messaging, and Discord voice-channel conversations — see [Voice Mode](../features/voice-mode.md) and [Use Voice Mode with FreeIDE](../../guides/use-voice-mode-with-freeide.md).
+For the full voice feature set — including CLI microphone mode, spoken replies in messaging, and Discord voice-channel conversations — see [Voice Mode](../features/voice-mode.md) and [Use Voice Mode with JettsTUI](../../guides/use-voice-mode-with-jettstui.md).
 
 :::tip
-Bots need both a model provider and tool providers (TTS, web). Run `freeide setup`, pick a model provider, and configure each tool backend with your own key (Exa/Firecrawl/Tavily for web, OpenAI TTS for speech, etc.).
+Bots need both a model provider and tool providers (TTS, web). Run `jettstui setup`, pick a model provider, and configure each tool backend with your own key (Exa/Firecrawl/Tavily for web, OpenAI TTS for speech, etc.).
 :::
 
 ## Platform Comparison
@@ -49,7 +49,7 @@ Bots need both a model provider and tool providers (TTS, web). Run `freeide setu
 
 ```mermaid
 flowchart TB
-    subgraph Gateway["FreeIDE Gateway"]
+    subgraph Gateway["JettsTUI Gateway"]
         subgraph Adapters["Platform adapters"]
             tg[Telegram]
             dc[Discord]
@@ -110,7 +110,7 @@ Each platform adapter receives messages, routes them through a per-chat session 
 
 ## Intentional Silence Tokens
 
-For group chats, hooks, and automation flows, FreeIDE supports explicit silence tokens. If the agent's final response is exactly one supported token, the gateway suppresses outbound delivery and sends nothing to the chat.
+For group chats, hooks, and automation flows, JettsTUI supports explicit silence tokens. If the agent's final response is exactly one supported token, the gateway suppresses outbound delivery and sends nothing to the chat.
 
 Supported tokens:
 
@@ -121,7 +121,7 @@ Supported tokens:
 
 Whitespace and case are normalized, but the whole final response must be the token. A sentence like "Use `[SILENT]` when nothing changed" is delivered normally.
 
-Silence is a delivery decision only. FreeIDE keeps the assistant silence turn in the session transcript, so the conversation still alternates normally:
+Silence is a delivery decision only. JettsTUI keeps the assistant silence turn in the session transcript, so the conversation still alternates normally:
 
 ```text
 user: side-channel chatter
@@ -129,14 +129,14 @@ assistant: [SILENT]   # stored, not delivered
 user: next message
 ```
 
-Failed turns still surface as errors; FreeIDE does not hide failures just because the text resembles a silence token.
+Failed turns still surface as errors; JettsTUI does not hide failures just because the text resembles a silence token.
 
 ## Quick Setup
 
 The easiest way to configure messaging platforms is the interactive wizard:
 
 ```bash
-freeide gateway setup        # Interactive setup for all messaging platforms
+jettstui gateway setup        # Interactive setup for all messaging platforms
 ```
 
 This walks you through configuring each platform with arrow-key selection, shows which platforms are already configured, and offers to start/restart the gateway when done.
@@ -144,14 +144,14 @@ This walks you through configuring each platform with arrow-key selection, shows
 ## Gateway Commands
 
 ```bash
-freeide gateway              # Run in foreground
-freeide gateway setup        # Configure messaging platforms interactively
-freeide gateway install      # Install as a user service (Linux) / launchd service (macOS)
-sudo freeide gateway install --system   # Linux only: install a boot-time system service
-freeide gateway start        # Start the default service
-freeide gateway stop         # Stop the default service
-freeide gateway status       # Check default service status
-freeide gateway status --system         # Linux only: inspect the system service explicitly
+jettstui gateway              # Run in foreground
+jettstui gateway setup        # Configure messaging platforms interactively
+jettstui gateway install      # Install as a user service (Linux) / launchd service (macOS)
+sudo jettstui gateway install --system   # Linux only: install a boot-time system service
+jettstui gateway start        # Start the default service
+jettstui gateway stop         # Stop the default service
+jettstui gateway status       # Check default service status
+jettstui gateway status --system         # Linux only: inspect the system service explicitly
 ```
 
 ### Optional Linux event-loop watchdog
@@ -160,7 +160,7 @@ A systemd-managed gateway can opt into process recovery when Python's asyncio
 event loop stops receiving scheduling time. This covers whole-process stalls
 that also prevent platform-specific liveness tasks from running:
 
-```yaml title="~/.freeide/config.yaml"
+```yaml title="~/.jettstui/config.yaml"
 gateway:
   systemd_watchdog_seconds: 120
 ```
@@ -168,11 +168,11 @@ gateway:
 Regenerate the service unit after changing this setting:
 
 ```bash
-freeide gateway install --force
+jettstui gateway install --force
 ```
 
 A positive value makes the generated unit use `Type=notify`,
-`NotifyAccess=main`, and the matching `WatchdogSec`. FreeIDE sends heartbeats
+`NotifyAccess=main`, and the matching `WatchdogSec`. JettsTUI sends heartbeats
 only while its event loop is making timely progress; systemd restarts the
 process when they stop. The default `0` keeps the existing `Type=simple`
 behavior. This setting is Linux/systemd-only and does not treat an ordinary
@@ -203,7 +203,7 @@ platform network disconnect as an event-loop failure.
 | `/rollback [number]` | List or restore filesystem checkpoints |
 | `/background <prompt>` | Run a prompt in a separate background session |
 | `/reload-mcp` | Reload MCP servers from config |
-| `/update` | Update FreeIDE Agent to the latest version |
+| `/update` | Update JettsTUI to the latest version |
 | `/help` | Show available commands |
 | `/<skill-name>` | Invoke any installed skill |
 
@@ -238,7 +238,7 @@ old behavior: in-flight responses are lost on crash).
 
 **By default sessions never auto-reset** — context lives until you `/reset`
 manually or context compression kicks in. If you want automatic resets, opt in
-with the `session_reset` section in `~/.freeide/config.yaml`:
+with the `session_reset` section in `~/.jettstui/config.yaml`:
 
 ```yaml
 session_reset:
@@ -263,7 +263,7 @@ guard. Set it to `0` to disable the cutoff (any live process blocks reset, the
 old behavior), or raise it if you run legitimate multi-day jobs whose liveness
 should keep the conversation open.
 
-Configure per-platform overrides in `~/.freeide/gateway.json`:
+Configure per-platform overrides in `~/.jettstui/gateway.json`:
 
 ```json
 {
@@ -307,11 +307,11 @@ Instead of manually configuring user IDs, unknown users receive a one-time pairi
 ```bash
 # The user sees: "Pairing code: XKGH5N7P"
 # You approve them with:
-freeide pairing approve telegram XKGH5N7P
+jettstui pairing approve telegram XKGH5N7P
 
 # Other pairing commands:
-freeide pairing list          # View pending + approved users
-freeide pairing revoke telegram 123456789  # Remove access
+jettstui pairing list          # View pending + approved users
+jettstui pairing revoke telegram 123456789  # Remove access
 ```
 
 Pairing codes expire after 1 hour, are rate-limited, and use cryptographic randomness.
@@ -374,13 +374,13 @@ display:
   busy_ack_enabled: true   # set to false to suppress the ⚡/⏳/⏩ chat reply entirely
 ```
 
-The first time you message a busy agent on any platform, FreeIDE appends a one-line reminder to the busy-ack explaining the knob (`"💡 First-time tip — …"`). The reminder fires once per install — a flag under `onboarding.seen.busy_input_prompt` latches it. Delete that key to see the tip again.
+The first time you message a busy agent on any platform, JettsTUI appends a one-line reminder to the busy-ack explaining the knob (`"💡 First-time tip — …"`). The reminder fires once per install — a flag under `onboarding.seen.busy_input_prompt` latches it. Delete that key to see the tip again.
 
 If you find the busy acknowledgment noisy, set `display.busy_ack_enabled: false`. Input handling is unchanged; only the confirmation message is hidden.
 
 ## Tool Progress Notifications
 
-Control how much tool activity is displayed in `~/.freeide/config.yaml`:
+Control how much tool activity is displayed in `~/.jettstui/config.yaml`:
 
 ```yaml
 display:
@@ -395,7 +395,7 @@ display:
 
 ### Message timestamps in model context
 
-Off by default. When enabled, FreeIDE prepends a human-readable timestamp
+Off by default. When enabled, JettsTUI prepends a human-readable timestamp
 (e.g. `[Tue 2026-04-28 13:40:53 CEST]`) onto each **user** message *in the
 model's context* so the agent knows when messages were sent — useful for
 temporal reasoning ("you asked this morning…", noticing a long gap). It is
@@ -428,7 +428,7 @@ Run a prompt in a separate background session so the agent works on it independe
 /background Check all servers in the cluster and report any that are down
 ```
 
-FreeIDE confirms immediately:
+JettsTUI confirms immediately:
 
 ```
 🔄 Background task started: "Check all servers in the cluster..."
@@ -446,7 +446,7 @@ Each `/background` prompt spawns a **separate agent instance** that runs asynchr
 
 ### Background Process Notifications
 
-When the agent running a background session uses `terminal(background=true)` to start long-running processes (servers, builds, etc.), the gateway can push status updates to your chat. Control this with `display.background_process_notifications` in `~/.freeide/config.yaml`:
+When the agent running a background session uses `terminal(background=true)` to start long-running processes (servers, builds, etc.), the gateway can push status updates to your chat. Control this with `display.background_process_notifications` in `~/.jettstui/config.yaml`:
 
 ```yaml
 display:
@@ -463,7 +463,7 @@ display:
 You can also set this via environment variable:
 
 ```bash
-FREEIDE_BACKGROUND_NOTIFICATIONS=result
+JETTSTUI_BACKGROUND_NOTIFICATIONS=result
 ```
 
 ### Use Cases
@@ -482,73 +482,73 @@ Background tasks on messaging platforms are fire-and-forget — you don't need t
 ### Linux (systemd)
 
 ```bash
-freeide gateway install               # Install as user service
-freeide gateway start                 # Start the service
-freeide gateway stop                  # Stop the service
-freeide gateway status                # Check status
-journalctl --user -u freeide-gateway -f  # View logs
+jettstui gateway install               # Install as user service
+jettstui gateway start                 # Start the service
+jettstui gateway stop                  # Stop the service
+jettstui gateway status                # Check status
+journalctl --user -u jettstui-gateway -f  # View logs
 
 # Enable lingering (keeps running after logout)
 sudo loginctl enable-linger $USER
 
 # Or install a boot-time system service that still runs as your user
-sudo freeide gateway install --system
-sudo freeide gateway start --system
-sudo freeide gateway status --system
-journalctl -u freeide-gateway -f
+sudo jettstui gateway install --system
+sudo jettstui gateway start --system
+sudo jettstui gateway status --system
+journalctl -u jettstui-gateway -f
 ```
 
 Use the user service on laptops and dev boxes. Use the system service on VPS or headless hosts that should come back at boot without relying on systemd linger.
 
 :::danger Don't add a custom `ExecStopPost` kill drop-in
-The unit FreeIDE installs already shuts the gateway down cleanly with `KillMode=mixed` + `KillSignal=SIGTERM`, and uses `Restart=always` with `RestartForceExitStatus` so updates and `/restart` respawn correctly. Do **not** add a systemd drop-in such as `ExecStopPost=/bin/kill -9 $MAINPID` — `ExecStopPost` fires on *every* stop, including clean restarts, so it `SIGKILL`s the freshly spawned instance before it stabilizes and `Restart=always` immediately respawns it. The result is an infinite restart loop (and, on Telegram, a flood of restart messages). If you've added such a drop-in, remove it: `systemctl --user edit freeide-gateway` (or `sudo systemctl edit freeide-gateway` for a system service) and delete the `ExecStopPost` line, then `systemctl --user daemon-reload`.
+The unit JettsTUI installs already shuts the gateway down cleanly with `KillMode=mixed` + `KillSignal=SIGTERM`, and uses `Restart=always` with `RestartForceExitStatus` so updates and `/restart` respawn correctly. Do **not** add a systemd drop-in such as `ExecStopPost=/bin/kill -9 $MAINPID` — `ExecStopPost` fires on *every* stop, including clean restarts, so it `SIGKILL`s the freshly spawned instance before it stabilizes and `Restart=always` immediately respawns it. The result is an infinite restart loop (and, on Telegram, a flood of restart messages). If you've added such a drop-in, remove it: `systemctl --user edit jettstui-gateway` (or `sudo systemctl edit jettstui-gateway` for a system service) and delete the `ExecStopPost` line, then `systemctl --user daemon-reload`.
 :::
 
 :::tip Headless VMs: user service + linger avoids root prompts
-A system service needs root for every restart — including the automatic gateway restart at the end of `freeide update`. When `freeide update` runs as a non-root user, it tries passwordless `sudo systemctl`; if that's unavailable, it skips the restart and prints the manual `sudo systemctl restart freeide-gateway` command (it never blocks on an interactive password prompt).
+A system service needs root for every restart — including the automatic gateway restart at the end of `jettstui update`. When `jettstui update` runs as a non-root user, it tries passwordless `sudo systemctl`; if that's unavailable, it skips the restart and prints the manual `sudo systemctl restart jettstui-gateway` command (it never blocks on an interactive password prompt).
 
 For a headless VM you never log into, a **user** service with lingering enabled gives you the same start-at-boot behavior with zero root involvement:
 
 ```bash
-freeide gateway install          # user service
+jettstui gateway install          # user service
 sudo loginctl enable-linger $USER   # one-time: start at boot, survive logout
 ```
 
-After that, `freeide update` can restart the gateway without any privileges. If you prefer to keep the system service, either run updates with `sudo freeide update`, or grant the service account passwordless sudo for systemctl, e.g. in `sudo visudo -f /etc/sudoers.d/freeide-gateway`:
+After that, `jettstui update` can restart the gateway without any privileges. If you prefer to keep the system service, either run updates with `sudo jettstui update`, or grant the service account passwordless sudo for systemctl, e.g. in `sudo visudo -f /etc/sudoers.d/jettstui-gateway`:
 
 ```
-freeide ALL=(root) NOPASSWD: /usr/bin/systemctl --no-ask-password reset-failed freeide-gateway*, /usr/bin/systemctl --no-ask-password start freeide-gateway*, /usr/bin/systemctl --no-ask-password restart freeide-gateway*
+jettstui ALL=(root) NOPASSWD: /usr/bin/systemctl --no-ask-password reset-failed jettstui-gateway*, /usr/bin/systemctl --no-ask-password start jettstui-gateway*, /usr/bin/systemctl --no-ask-password restart jettstui-gateway*
 ```
 :::
 
-Avoid keeping both the user and system gateway units installed at once unless you really mean to. FreeIDE will warn if it detects both because start/stop/status behavior gets ambiguous.
+Avoid keeping both the user and system gateway units installed at once unless you really mean to. JettsTUI will warn if it detects both because start/stop/status behavior gets ambiguous.
 
 :::info Multiple installations
-If you run multiple FreeIDE installations on the same machine (with different `FREEIDE_HOME` directories), each gets its own systemd service name. The default `~/.freeide` uses `freeide-gateway`; other installations use `freeide-gateway-<hash>`. The `freeide gateway` commands automatically target the correct service for your current `FREEIDE_HOME`.
+If you run multiple JettsTUI installations on the same machine (with different `JETTSTUI_HOME` directories), each gets its own systemd service name. The default `~/.jettstui` uses `jettstui-gateway`; other installations use `jettstui-gateway-<hash>`. The `jettstui gateway` commands automatically target the correct service for your current `JETTSTUI_HOME`.
 :::
 
 ### macOS (launchd)
 
 ```bash
-freeide gateway install               # Install as launchd agent
-freeide gateway start                 # Start the service
-freeide gateway stop                  # Stop the service
-freeide gateway status                # Check status
-tail -f ~/.freeide/logs/gateway.log   # View logs
+jettstui gateway install               # Install as launchd agent
+jettstui gateway start                 # Start the service
+jettstui gateway stop                  # Stop the service
+jettstui gateway status                # Check status
+tail -f ~/.jettstui/logs/gateway.log   # View logs
 ```
 
-The generated plist lives at `~/Library/LaunchAgents/ai.freeide.gateway.plist`. It includes three environment variables:
+The generated plist lives at `~/Library/LaunchAgents/ai.jettstui.gateway.plist`. It includes three environment variables:
 
 - **PATH** — your full shell PATH at install time, with the venv `bin/` and `node_modules/.bin` prepended. This ensures user-installed tools (Node.js, ffmpeg, etc.) are available to gateway subprocesses like the WhatsApp bridge.
 - **VIRTUAL_ENV** — points to the Python virtualenv so tools can resolve packages correctly.
-- **FREEIDE_HOME** — scopes the gateway to your FreeIDE installation.
+- **JETTSTUI_HOME** — scopes the gateway to your JettsTUI installation.
 
 :::tip PATH changes after install
-launchd plists are static — if you install new tools (e.g. a new Node.js version via nvm, or ffmpeg via Homebrew) after setting up the gateway, run `freeide gateway install` again to capture the updated PATH. The gateway will detect the stale plist and reload automatically.
+launchd plists are static — if you install new tools (e.g. a new Node.js version via nvm, or ffmpeg via Homebrew) after setting up the gateway, run `jettstui gateway install` again to capture the updated PATH. The gateway will detect the stale plist and reload automatically.
 :::
 
 :::info Multiple installations
-Like the Linux systemd service, each `FREEIDE_HOME` directory gets its own launchd label. The default `~/.freeide` uses `ai.freeide.gateway`; other installations use `ai.freeide.gateway-<suffix>`.
+Like the Linux systemd service, each `JETTSTUI_HOME` directory gets its own launchd label. The default `~/.jettstui` uses `ai.jettstui.gateway`; other installations use `ai.jettstui.gateway-<suffix>`.
 :::
 
 ## Platform-Specific Toolsets
@@ -557,31 +557,31 @@ Each platform has its own toolset:
 
 | Platform | Toolset | Capabilities |
 |----------|---------|--------------|
-| CLI | `freeide-cli` | Full access |
-| Telegram | `freeide-telegram` | Full tools including terminal |
-| Discord | `freeide-discord` | Full tools including terminal |
-| WhatsApp | `freeide-whatsapp` | Full tools including terminal |
-| WhatsApp Cloud API | `freeide-whatsapp` | Full tools including terminal (shares toolset with the Baileys bridge) |
-| Slack | `freeide-slack` | Full tools including terminal |
-| Google Chat | `freeide-google_chat` | Full tools including terminal |
-| Signal | `freeide-signal` | Full tools including terminal |
-| SMS | `freeide-sms` | Full tools including terminal |
-| Email | `freeide-email` | Full tools including terminal |
-| Home Assistant | `freeide-homeassistant` | Full tools + HA device control (ha_list_entities, ha_get_state, ha_call_service, ha_list_services) |
-| Mattermost | `freeide-mattermost` | Full tools including terminal |
-| Matrix | `freeide-matrix` | Full tools including terminal |
-| DingTalk | `freeide-dingtalk` | Full tools including terminal |
-| Feishu/Lark | `freeide-feishu` | Full tools including terminal |
-| WeCom | `freeide-wecom` | Full tools including terminal |
-| WeCom Callback | `freeide-wecom-callback` | Full tools including terminal |
-| Weixin | `freeide-weixin` | Full tools including terminal |
-| BlueBubbles | `freeide-bluebubbles` | Full tools including terminal |
-| QQBot | `freeide-qqbot` | Full tools including terminal |
-| Yuanbao | `freeide-yuanbao` | Full tools including terminal |
-| Microsoft Teams | `freeide-teams` | Full tools including terminal |
-| API Server | `freeide-api-server` | Full tools (drops `clarify`, `text_to_speech` — programmatic access doesn't have an interactive user) |
-| Webhooks | `freeide-webhook` | Full tools including terminal |
-| Raft | `freeide-raft` | Wake-only channel; agent uses Raft CLI for message I/O |
+| CLI | `jettstui-cli` | Full access |
+| Telegram | `jettstui-telegram` | Full tools including terminal |
+| Discord | `jettstui-discord` | Full tools including terminal |
+| WhatsApp | `jettstui-whatsapp` | Full tools including terminal |
+| WhatsApp Cloud API | `jettstui-whatsapp` | Full tools including terminal (shares toolset with the Baileys bridge) |
+| Slack | `jettstui-slack` | Full tools including terminal |
+| Google Chat | `jettstui-google_chat` | Full tools including terminal |
+| Signal | `jettstui-signal` | Full tools including terminal |
+| SMS | `jettstui-sms` | Full tools including terminal |
+| Email | `jettstui-email` | Full tools including terminal |
+| Home Assistant | `jettstui-homeassistant` | Full tools + HA device control (ha_list_entities, ha_get_state, ha_call_service, ha_list_services) |
+| Mattermost | `jettstui-mattermost` | Full tools including terminal |
+| Matrix | `jettstui-matrix` | Full tools including terminal |
+| DingTalk | `jettstui-dingtalk` | Full tools including terminal |
+| Feishu/Lark | `jettstui-feishu` | Full tools including terminal |
+| WeCom | `jettstui-wecom` | Full tools including terminal |
+| WeCom Callback | `jettstui-wecom-callback` | Full tools including terminal |
+| Weixin | `jettstui-weixin` | Full tools including terminal |
+| BlueBubbles | `jettstui-bluebubbles` | Full tools including terminal |
+| QQBot | `jettstui-qqbot` | Full tools including terminal |
+| Yuanbao | `jettstui-yuanbao` | Full tools including terminal |
+| Microsoft Teams | `jettstui-teams` | Full tools including terminal |
+| API Server | `jettstui-api-server` | Full tools (drops `clarify`, `text_to_speech` — programmatic access doesn't have an interactive user) |
+| Webhooks | `jettstui-webhook` | Full tools including terminal |
+| Raft | `jettstui-raft` | Wake-only channel; agent uses Raft CLI for message I/O |
 
 ## Operating a multi-platform gateway
 
@@ -611,7 +611,7 @@ The breaker does **not** auto-resume — it stays open until you run `/platform 
 
 When an adapter is paused, check:
 
-1. **Gateway log** (`~/.freeide/logs/gateway.log` or the systemd / launchd unit log). Search for the platform name and `circuit breaker`, `paused`, or `disabled`. The trip event includes the failure count and the last error.
+1. **Gateway log** (`~/.jettstui/logs/gateway.log` or the systemd / launchd unit log). Search for the platform name and `circuit breaker`, `paused`, or `disabled`. The trip event includes the failure count and the last error.
 2. **`/platform list`** output — shows the current state and last reason.
 3. **The provider's status page** (Telegram bot API status, Discord status, etc.). The breaker tripped because the platform was unhealthy; don't try to resume until it's back.
 

@@ -1,6 +1,6 @@
-"""``freeide logs`` subcommand parser.
+"""``jettstui logs`` subcommand parser.
 
-Extracted verbatim from ``freeide_cli/main.py:main()`` (god-file Phase 2).
+Extracted verbatim from ``jettstui/main.py:main()`` (god-file Phase 2).
 Handler injected to avoid importing ``main``.
 """
 
@@ -17,23 +17,23 @@ def build_logs_parser(subparsers, *, cmd_logs: Callable) -> None:
     # =========================================================================
     logs_parser = subparsers.add_parser(
         "logs",
-        help="View and filter Jetts-TUI log files",
+        help="View and filter JettsTUI log files",
         description="View, tail, and filter agent.log / errors.log / gateway.log / gui.log / desktop.log",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""\
 Examples:
-    freeide logs                    Show last 50 lines of agent.log
-    freeide logs -f                 Follow agent.log in real time
-    freeide logs errors             Show last 50 lines of errors.log
-    freeide logs gateway -n 100     Show last 100 lines of gateway.log
-    freeide logs gui -f             Follow gui.log in real time
-    freeide logs desktop -f         Follow desktop.log (Electron app boot/backend)
-    freeide logs --level WARNING    Only show WARNING and above
-    freeide logs --session abc123   Filter by session ID
-    freeide logs --component tools  Only show tool-related lines
-    freeide logs --since 1h         Lines from the last hour
-    freeide logs --since 30m -f     Follow, starting from 30 min ago
-    freeide logs list               List available log files with sizes
+    jettstui logs                    Show last 50 lines of agent.log
+    jettstui logs -f                 Follow agent.log in real time
+    jettstui logs errors             Show last 50 lines of errors.log
+    jettstui logs gateway -n 100     Show last 100 lines of gateway.log
+    jettstui logs gui -f             Follow gui.log in real time
+    jettstui logs desktop -f         Follow desktop.log (Electron app boot/backend)
+    jettstui logs --level WARNING    Only show WARNING and above
+    jettstui logs --session abc123   Filter by session ID
+    jettstui logs --component tools  Only show tool-related lines
+    jettstui logs --since 1h         Lines from the last hour
+    jettstui logs --since 30m -f     Follow, starting from 30 min ago
+    jettstui logs list               List available log files with sizes
 """,
     )
     logs_parser.add_argument(

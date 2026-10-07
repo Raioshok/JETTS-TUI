@@ -1,13 +1,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { createWebhook, deleteWebhook, enableWebhooks, getWebhooks, setWebhookEnabled } from './freeide'
+import { createWebhook, deleteWebhook, enableWebhooks, getWebhooks, setWebhookEnabled } from './jettstui'
 
 describe('Webhook REST parity helpers', () => {
   let api: ReturnType<typeof vi.fn>
 
   beforeEach(() => {
     api = vi.fn().mockResolvedValue({})
-    Object.defineProperty(window, 'freeideDesktop', {
+    Object.defineProperty(window, 'jettstuiDesktop', {
       configurable: true,
       value: { api }
     })
@@ -15,7 +15,7 @@ describe('Webhook REST parity helpers', () => {
 
   afterEach(() => {
     vi.restoreAllMocks()
-    Reflect.deleteProperty(window, 'freeideDesktop')
+    Reflect.deleteProperty(window, 'jettstuiDesktop')
   })
 
   it('lists webhooks from the admin endpoint', async () => {

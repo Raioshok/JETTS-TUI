@@ -3,7 +3,7 @@
 Build the real image and verify the actual runtime behavior:
 
   1. PUID/PGID env vars remap the jettstui user UID/GID at boot
-  2. FREEIDE_UID/FREEIDE_GID take precedence over PUID/PGID aliases
+  2. JETTSTUI_UID/JETTSTUI_GID take precedence over PUID/PGID aliases
   3. NAS-style low UIDs (99:100) are accepted and remapped
   4. Invalid UIDs are rejected
   5. The remapped user can write to the data volume
@@ -13,7 +13,7 @@ from __future__ import annotations
 from tests.docker.conftest import docker_exec_sh, start_container
 
 
-def test_puid_pgid_remaps_freeide_user(
+def test_puid_pgid_remaps_jettstui_user(
     built_image: str, container_name: str,
 ) -> None:
     """PUID=1000 PGID=1000 must remap the jettstui user to UID 1000."""
@@ -38,20 +38,20 @@ def test_puid_pgid_remaps_freeide_user(
     )
 
 
-def test_freeide_uid_gid_take_precedence_over_aliases(
+def test_jettstui_uid_gid_take_precedence_over_aliases(
     built_image: str, container_name: str,
 ) -> None:
-    """FREEIDE_UID/FREEIDE_GID must win over PUID/PGID when both are set."""
-    start_container(built_image, container_name, "FREEIDE_UID=2000", "FREEIDE_GID=2001", "PUID=1000", "PGID=1000")
+    """JETTSTUI_UID/JETTSTUI_GID must win over PUID/PGID when both are set."""
+    start_container(built_image, container_name, "JETTSTUI_UID=2000", "JETTSTUI_GID=2001", "PUID=1000", "PGID=1000")
 
     r = docker_exec_sh(container_name, "id -u jettstui", timeout=10)
     assert r.stdout.strip() == "2000", (
-        f"expected jettstui UID 2000 (FREEIDE_UID wins), got: {r.stdout.strip()}"
+        f"expected jettstui UID 2000 (JETTSTUI_UID wins), got: {r.stdout.strip()}"
     )
 
     r = docker_exec_sh(container_name, "id -g jettstui", timeout=10)
     assert r.stdout.strip() == "2001", (
-        f"expected jettstui GID 2001 (FREEIDE_GID wins), got: {r.stdout.strip()}"
+        f"expected jettstui GID 2001 (JETTSTUI_GID wins), got: {r.stdout.strip()}"
     )
 
 

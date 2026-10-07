@@ -1,6 +1,6 @@
-"""``freeide gui`` subcommand parser.
+"""``jettstui gui`` subcommand parser.
 
-Extracted verbatim from ``freeide_cli/main.py:main()`` (god-file Phase 2).
+Extracted verbatim from ``jettstui/main.py:main()`` (god-file Phase 2).
 Handler injected to avoid importing ``main``.
 """
 
@@ -17,7 +17,7 @@ def build_gui_parser(subparsers, *, cmd_gui: Callable) -> None:
         aliases=["gui"],
         help="Build and launch the native desktop app",
         description=(
-            "Launch the Jetts-TUI Electron desktop app. By default this installs "
+            "Launch the JettsTUI Electron desktop app. By default this installs "
             "workspace Node dependencies, builds the current OS's unpacked "
             "Electron app, then launches that packaged artifact."
         ),
@@ -40,15 +40,15 @@ def build_gui_parser(subparsers, *, cmd_gui: Callable) -> None:
     gui_parser.add_argument(
         "--ignore-existing",
         action="store_true",
-        help="Force Desktop to ignore any freeide CLI already on PATH during backend resolution",
+        help="Force Desktop to ignore any jettstui CLI already on PATH during backend resolution",
     )
     gui_parser.add_argument(
-        "--freeide-root",
-        help="Override the Jetts-TUI source root used by Desktop (sets FREEIDE_DESKTOP_FREEIDE_ROOT)",
+        "--jettstui-root",
+        help="Override the JettsTUI source root used by Desktop (sets JETTSTUI_DESKTOP_JETTSTUI_ROOT)",
     )
     gui_parser.add_argument(
         "--cwd",
-        help="Initial project directory for Desktop chat sessions (sets FREEIDE_DESKTOP_CWD)",
+        help="Initial project directory for Desktop chat sessions (sets JETTSTUI_DESKTOP_CWD)",
     )
     gui_parser.add_argument(
         "--skip-build",

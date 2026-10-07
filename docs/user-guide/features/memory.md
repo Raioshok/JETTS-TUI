@@ -1,12 +1,12 @@
 ---
 sidebar_position: 3
 title: "Persistent Memory"
-description: "How FreeIDE Agent remembers across sessions — MEMORY.md, USER.md, and session search"
+description: "How JettsTUI remembers across sessions — MEMORY.md, USER.md, and session search"
 ---
 
 # Persistent Memory
 
-FreeIDE Agent has bounded, curated memory that persists across sessions. This lets it remember your preferences, your projects, your environment, and things it has learned.
+JettsTUI has bounded, curated memory that persists across sessions. This lets it remember your preferences, your projects, your environment, and things it has learned.
 
 ## How It Works
 
@@ -17,7 +17,7 @@ Two files make up the agent's memory:
 | **MEMORY.md** | Agent's personal notes — environment facts, conventions, things learned | 2,200 chars (~800 tokens) |
 | **USER.md** | User profile — your preferences, communication style, expectations | 1,375 chars (~500 tokens) |
 
-Both are stored in `~/.freeide/memories/` and are injected into the system prompt as a frozen snapshot at session start. The agent manages its own memory via the `memory` tool — it can add, replace, or remove entries.
+Both are stored in `~/.jettstui/memories/` and are injected into the system prompt as a frozen snapshot at session start. The agent manages its own memory via the `memory` tool — it can add, replace, or remove entries.
 
 :::info
 Character limits keep memory focused. Memory does **not** auto-compact: when a
@@ -182,13 +182,13 @@ Memory entries are scanned for injection and exfiltration patterns before being 
 
 Beyond MEMORY.md and USER.md, the agent can search its past conversations using the `session_search` tool:
 
-- All CLI and messaging sessions are stored in SQLite (`~/.freeide/state.db`) with FTS5 full-text search
+- All CLI and messaging sessions are stored in SQLite (`~/.jettstui/state.db`) with FTS5 full-text search
 - Search queries return actual messages from the DB — no LLM summarization, no truncation
 - The agent can find things it discussed weeks ago, even if they're not in its active memory
 - The agent can also scroll forward/backward inside any session it finds
 
 ```bash
-freeide sessions list    # Browse past sessions
+jettstui sessions list    # Browse past sessions
 ```
 
 See [Session Search Tool](../sessions.md#session-search-tool) for the three calling shapes (discovery / scroll / browse) and the response format.
@@ -209,7 +209,7 @@ See [Session Search Tool](../sessions.md#session-search-tool) for the three call
 ## Configuration
 
 ```yaml
-# In ~/.freeide/config.yaml
+# In ~/.jettstui/config.yaml
 memory:
   memory_enabled: true
   user_profile_enabled: true
@@ -248,7 +248,7 @@ ones — waits for your yes/no before it ever enters your profile.
 ## Background review notifications (`display.memory_notifications`)
 
 After a turn, the background self-improvement review may quietly save a memory
-or update a skill. This is FreeIDE' consent-aware learning loop: repeated
+or update a skill. This is JettsTUI' consent-aware learning loop: repeated
 corrections and durable workflow lessons become compact memory entries or
 procedural skills, while `write_approval` can stage those writes for review
 before they affect future sessions. By default it surfaces a short
@@ -319,19 +319,19 @@ inline, but the full diff stays out-of-band:
 
 On a messaging platform, approve a skill from its gist + metadata, or open
 `/skills diff` on the CLI / dashboard / the staged file under
-`~/.freeide/pending/skills/<id>.json` when you want to read the whole change.
+`~/.jettstui/pending/skills/<id>.json` when you want to read the whole change.
 Full details in [Gating agent skill writes](./skills.md#gating-agent-skill-writes-skillswrite_approval).
 
 
 ## External Memory Providers
 
-For deeper, persistent memory that goes beyond MEMORY.md and USER.md, FreeIDE ships with 8 external memory provider plugins — including Honcho, OpenViking, Mem0, Hindsight, Holographic, RetainDB, ByteRover, and Supermemory.
+For deeper, persistent memory that goes beyond MEMORY.md and USER.md, JettsTUI ships with 8 external memory provider plugins — including Honcho, OpenViking, Mem0, Hindsight, Holographic, RetainDB, ByteRover, and Supermemory.
 
 External providers run **alongside** built-in memory (never replacing it) and add capabilities like knowledge graphs, semantic search, automatic fact extraction, and cross-session user modeling.
 
 ```bash
-freeide memory setup      # pick a provider and configure it
-freeide memory status     # check what's active
+jettstui memory setup      # pick a provider and configure it
+jettstui memory status     # check what's active
 ```
 
 See the [Memory Providers](./memory-providers.md) guide for full details on each provider, setup instructions, and comparison.

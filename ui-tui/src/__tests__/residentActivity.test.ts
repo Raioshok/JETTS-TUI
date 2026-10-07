@@ -7,12 +7,17 @@ const sess = (id: string, lastActive?: number, status: SessionActiveItem['status
   ({ id, last_active: lastActive, status })
 
 describe('relativeTime', () => {
-  const now = 1_000_000
+  const now = Date.UTC(2026, 9, 7, 12)
 
   it('renders fresh, minutes, hours, and days', () => {
     expect(relativeTime(now, now)).toBe('now')
     expect(relativeTime(now - 5 * 60_000, now)).toBe('5m')
     expect(relativeTime(now - 3 * 3_600_000, now)).toBe('3h')
+  })
+
+  it('accepts the gateway wire format (Unix seconds)', () => {
+    expect(relativeTime((now - 5 * 60_000) / 1000, now)).toBe('5m')
+    expect(relativeTime((now - 2 * 86_400_000) / 1000, now)).toBe('2d')
     expect(relativeTime(now - 2 * 86_400_000, now)).toBe('2d')
   })
 

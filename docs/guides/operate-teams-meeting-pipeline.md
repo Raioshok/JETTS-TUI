@@ -19,7 +19,7 @@ This page covers:
 ### Validate the config snapshot
 
 ```bash
-freeide teams-pipeline validate
+jettstui teams-pipeline validate
 ```
 
 Use this first after any config change.
@@ -27,8 +27,8 @@ Use this first after any config change.
 ### Inspect token health
 
 ```bash
-freeide teams-pipeline token-health
-freeide teams-pipeline token-health --force-refresh
+jettstui teams-pipeline token-health
+jettstui teams-pipeline token-health --force-refresh
 ```
 
 Use `--force-refresh` when you suspect stale auth state.
@@ -36,14 +36,14 @@ Use `--force-refresh` when you suspect stale auth state.
 ### Inspect subscriptions
 
 ```bash
-freeide teams-pipeline subscriptions
+jettstui teams-pipeline subscriptions
 ```
 
 ### Renew near-expiry subscriptions
 
 ```bash
-freeide teams-pipeline maintain-subscriptions
-freeide teams-pipeline maintain-subscriptions --dry-run
+jettstui teams-pipeline maintain-subscriptions
+jettstui teams-pipeline maintain-subscriptions --dry-run
 ```
 
 ### Automating subscription renewal (REQUIRED for production)
@@ -52,23 +52,23 @@ freeide teams-pipeline maintain-subscriptions --dry-run
 
 You MUST run `maintain-subscriptions` on a schedule. Pick one of these three options:
 
-#### Option 1: FreeIDE cron (recommended if you already run the FreeIDE gateway)
+#### Option 1: JettsTUI cron (recommended if you already run the JettsTUI gateway)
 
-FreeIDE ships a built-in cron scheduler. The `--no-agent` mode runs a script as the job (rather than using an LLM), and `--script` must point at a file under `~/.freeide/scripts/`. First create the script:
+JettsTUI ships a built-in cron scheduler. The `--no-agent` mode runs a script as the job (rather than using an LLM), and `--script` must point at a file under `~/.jettstui/scripts/`. First create the script:
 
 ```bash
-mkdir -p ~/.freeide/scripts
-cat > ~/.freeide/scripts/maintain-teams-subscriptions.sh <<'EOF'
+mkdir -p ~/.jettstui/scripts
+cat > ~/.jettstui/scripts/maintain-teams-subscriptions.sh <<'EOF'
 #!/usr/bin/env bash
-exec freeide teams-pipeline maintain-subscriptions
+exec jettstui teams-pipeline maintain-subscriptions
 EOF
-chmod +x ~/.freeide/scripts/maintain-teams-subscriptions.sh
+chmod +x ~/.jettstui/scripts/maintain-teams-subscriptions.sh
 ```
 
 Then register a script-only cron job that runs every 12 hours (gives 6x headroom against the 72h expiry window):
 
 ```bash
-freeide cron create "0 */12 * * *" \
+jettstui cron create "0 */12 * * *" \
   --name "teams-pipeline-maintain-subscriptions" \
   --no-agent \
   --script maintain-teams-subscriptions.sh \
@@ -78,31 +78,31 @@ freeide cron create "0 */12 * * *" \
 Verify it was registered and inspect the next run time:
 
 ```bash
-freeide cron list
-freeide cron status        # scheduler status
+jettstui cron list
+jettstui cron status        # scheduler status
 ```
 
 #### Option 2: systemd timer (recommended for Linux production deployments)
 
-Create `/etc/systemd/system/freeide-teams-pipeline-maintain.service`:
+Create `/etc/systemd/system/jettstui-teams-pipeline-maintain.service`:
 
 ```ini
 [Unit]
-Description=FreeIDE Teams pipeline subscription maintenance
+Description=JettsTUI Teams pipeline subscription maintenance
 After=network-online.target
 
 [Service]
 Type=oneshot
-User=freeide
-EnvironmentFile=/etc/freeide/env
-ExecStart=/usr/local/bin/freeide teams-pipeline maintain-subscriptions
+User=jettstui
+EnvironmentFile=/etc/jettstui/env
+ExecStart=/usr/local/bin/jettstui teams-pipeline maintain-subscriptions
 ```
 
-And `/etc/systemd/system/freeide-teams-pipeline-maintain.timer`:
+And `/etc/systemd/system/jettstui-teams-pipeline-maintain.timer`:
 
 ```ini
 [Unit]
-Description=Run FreeIDE Teams pipeline subscription maintenance every 12 hours
+Description=Run JettsTUI Teams pipeline subscription maintenance every 12 hours
 
 [Timer]
 OnBootSec=5min
@@ -117,25 +117,25 @@ Enable:
 
 ```bash
 sudo systemctl daemon-reload
-sudo systemctl enable --now freeide-teams-pipeline-maintain.timer
-systemctl list-timers freeide-teams-pipeline-maintain.timer
+sudo systemctl enable --now jettstui-teams-pipeline-maintain.timer
+systemctl list-timers jettstui-teams-pipeline-maintain.timer
 ```
 
 #### Option 3: Plain crontab
 
 ```cron
-0 */12 * * * /usr/local/bin/freeide teams-pipeline maintain-subscriptions >> /var/log/freeide/teams-pipeline-maintain.log 2>&1
+0 */12 * * * /usr/local/bin/jettstui teams-pipeline maintain-subscriptions >> /var/log/jettstui/teams-pipeline-maintain.log 2>&1
 ```
 
-Make sure the cron environment has the `MSGRAPH_*` credentials. Simplest fix: source `~/.freeide/.env` at the top of a wrapper script that crontab calls.
+Make sure the cron environment has the `MSGRAPH_*` credentials. Simplest fix: source `~/.jettstui/.env` at the top of a wrapper script that crontab calls.
 
 #### Verifying renewal is working
 
 After you've set up the schedule, check renewal activity after the first scheduled run:
 
 ```bash
-freeide teams-pipeline subscriptions   # should show expirationDateTime advanced
-freeide teams-pipeline maintain-subscriptions --dry-run   # should show "0 expiring soon" most of the time
+jettstui teams-pipeline subscriptions   # should show expirationDateTime advanced
+jettstui teams-pipeline maintain-subscriptions --dry-run   # should show "0 expiring soon" most of the time
 ```
 
 If you ever see your Graph webhook mysteriously "stop working" after exactly ~72 hours, this is the first thing to check: did the renewal job actually run?
@@ -143,22 +143,22 @@ If you ever see your Graph webhook mysteriously "stop working" after exactly ~72
 ### Inspect recent jobs
 
 ```bash
-freeide teams-pipeline list
-freeide teams-pipeline list --status failed
-freeide teams-pipeline show <job-id>
+jettstui teams-pipeline list
+jettstui teams-pipeline list --status failed
+jettstui teams-pipeline show <job-id>
 ```
 
 ### Replay a stored job
 
 ```bash
-freeide teams-pipeline run <job-id>
+jettstui teams-pipeline run <job-id>
 ```
 
 ### Dry-run meeting artifact fetches
 
 ```bash
-freeide teams-pipeline fetch --meeting-id <meeting-id>
-freeide teams-pipeline fetch --join-web-url "<join-url>"
+jettstui teams-pipeline fetch --meeting-id <meeting-id>
+jettstui teams-pipeline fetch --join-web-url "<join-url>"
 ```
 
 ## Routine Runbook
@@ -168,28 +168,28 @@ freeide teams-pipeline fetch --join-web-url "<join-url>"
 Run these in order:
 
 ```bash
-freeide teams-pipeline validate
-freeide teams-pipeline token-health --force-refresh
-freeide teams-pipeline subscriptions
+jettstui teams-pipeline validate
+jettstui teams-pipeline token-health --force-refresh
+jettstui teams-pipeline subscriptions
 ```
 
 Then trigger or wait for a real meeting event and confirm:
 
 ```bash
-freeide teams-pipeline list
-freeide teams-pipeline show <job-id>
+jettstui teams-pipeline list
+jettstui teams-pipeline show <job-id>
 ```
 
 ### Daily or periodic checks
 
-- run `freeide teams-pipeline maintain-subscriptions --dry-run`
-- inspect `freeide teams-pipeline list --status failed`
+- run `jettstui teams-pipeline maintain-subscriptions --dry-run`
+- inspect `jettstui teams-pipeline list --status failed`
 - verify the Teams delivery target is still the correct chat or channel
 
 ### Before changing webhook URLs or delivery targets
 
 - update the public notification URL or Teams target config
-- run `freeide teams-pipeline validate`
+- run `jettstui teams-pipeline validate`
 - renew or recreate affected subscriptions
 - confirm new events land in the expected sink
 
@@ -223,7 +223,7 @@ Check:
 ### Duplicate or unexpected replays
 
 Check:
-- whether you manually replayed a job with `freeide teams-pipeline run`
+- whether you manually replayed a job with `jettstui teams-pipeline run`
 - whether the sink record already exists for that meeting
 - whether you intentionally enabled a resend path in your local config
 
@@ -237,9 +237,9 @@ Check:
 - [ ] `ffmpeg` is installed if recording fallback is enabled
 - [ ] Teams outbound delivery target is configured and verified
 - [ ] Notion and Linear sinks are configured only if actually needed
-- [ ] `freeide teams-pipeline validate` returns an OK snapshot
-- [ ] `freeide teams-pipeline token-health --force-refresh` succeeds
-- [ ] **`maintain-subscriptions` is scheduled** (FreeIDE cron, systemd timer, or crontab — see [Automating subscription renewal](#automating-subscription-renewal-required-for-production)). Without this, Graph subscriptions silently expire within 72 hours.
+- [ ] `jettstui teams-pipeline validate` returns an OK snapshot
+- [ ] `jettstui teams-pipeline token-health --force-refresh` succeeds
+- [ ] **`maintain-subscriptions` is scheduled** (JettsTUI cron, systemd timer, or crontab — see [Automating subscription renewal](#automating-subscription-renewal-required-for-production)). Without this, Graph subscriptions silently expire within 72 hours.
 - [ ] a real end-to-end meeting event has produced a stored job
 - [ ] at least one summary has reached the intended delivery sink
 

@@ -10,7 +10,7 @@ def test_site_route_becomes_relative_markdown_link():
 
 def test_removed_site_host_uses_local_document():
     source = DOCS / "getting-started" / "quickstart.md"
-    assert destination(source, "https://freeide-agent.freeide.dev/docs/user-guide/tui") == "../user-guide/tui.md"
+    assert destination(source, "https://github.com/Raioshok/JETTS-TUI/blob/main/docs/user-guide/tui.md") == "../user-guide/tui.md"
 
 
 def test_unrelated_external_link_is_unchanged():
@@ -20,13 +20,13 @@ def test_unrelated_external_link_is_unchanged():
 
 def test_upstream_source_link_uses_renamed_local_package():
     source = DOCS / "user-guide" / "messaging" / "slack.md"
-    target = "https://github.com/freeide/freeide/blob/main/freeide_cli/commands.py#registry"
+    target = "https://github.com/Raioshok/JETTS-TUI/blob/main/jettstui/commands.py#registry"
     assert destination(source, target) == "../../../jettstui/commands.py#registry"
 
 
 def test_historical_upstream_issue_link_is_preserved():
     source = DOCS / "user-guide" / "messaging" / "slack.md"
-    assert destination(source, "https://github.com/freeide/freeide/issues/30768") is None
+    assert destination(source, "https://github.com/Raioshok/JETTS-TUI/issues/30768") is None
 
 
 def test_docs_have_no_resolvable_or_unresolved_site_style_links():

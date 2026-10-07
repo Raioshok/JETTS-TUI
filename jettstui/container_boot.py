@@ -2,7 +2,7 @@
 
 Service directories under /run/service/ live on **tmpfs** and are wiped
 on every container restart. Profile directories under
-``$FREEIDE_HOME/profiles/<name>/`` live on the persistent VOLUME, and
+``$JETTSTUI_HOME/profiles/<name>/`` live on the persistent VOLUME, and
 each one records its gateway's last state in ``gateway_state.json``.
 This module bridges the two: on every container boot, walk the
 persistent profiles, recreate the s6 service slots, and auto-start
@@ -10,7 +10,7 @@ only those whose last recorded state was ``running``.
 
 Wired into the image as /etc/cont-init.d/02-reconcile-profiles by the
 Dockerfile (Phase 4 Task 4.0). Runs as root after 01-jettstui-setup
-(the stage2 hook) has chowned the volume and seeded $FREEIDE_HOME, but
+(the stage2 hook) has chowned the volume and seeded $JETTSTUI_HOME, but
 before s6-rc starts user services.
 
 Without this module, every ``docker restart`` would silently wipe
@@ -87,7 +87,7 @@ class ReconcileAction:
 
 def reconcile_profile_gateways(
     *,
-    freeide_home: Path,
+    jettstui_home: Path,
     scandir: Path,
     dry_run: bool = False,
     container_argv: Sequence[str] | None = None,
@@ -95,23 +95,23 @@ def reconcile_profile_gateways(
     """Recreate s6 service registrations for every persistent profile.
 
     Always registers a ``gateway-default`` slot for the root profile
-    (the implicit profile that lives at the top of ``$FREEIDE_HOME``,
-    not under ``profiles/``). The dispatcher in ``freeide_cli.gateway``
+    (the implicit profile that lives at the top of ``$JETTSTUI_HOME``,
+    not under ``profiles/``). The dispatcher in ``jettstui.gateway``
     maps an empty profile suffix to ``gateway-default``, so this slot
-    is what ``freeide gateway start`` (no ``-p``) targets. Without it,
-    bare ``freeide gateway start`` inside the container would land on
+    is what ``jettstui gateway start`` (no ``-p``) targets. Without it,
+    bare ``jettstui gateway start`` inside the container would land on
     ``s6-svc -u /run/service/gateway-default`` → uncaught
     ``CalledProcessError`` → traceback to the user (PR #30136 review).
 
     The default slot's prior state is read from
-    ``$FREEIDE_HOME/gateway_state.json`` (sibling to the profile root,
+    ``$JETTSTUI_HOME/gateway_state.json`` (sibling to the profile root,
     not under ``profiles/``); stale runtime files there are swept the
     same way as for named profiles.
 
     Args:
-        freeide_home: The container's FREEIDE_HOME (typically /opt/data).
-            Profiles live under ``<freeide_home>/profiles/<name>/``;
-            the default profile lives at ``<freeide_home>`` itself.
+        jettstui_home: The container's JETTSTUI_HOME (typically /opt/data).
+            Profiles live under ``<jettstui_home>/profiles/<name>/``;
+            the default profile lives at ``<jettstui_home>`` itself.
         scandir: The s6 dynamic scandir (typically /run/service). Service
             directories are created at ``<scandir>/gateway-<profile>/``.
         dry_run: When True, walk and return the action list without
@@ -137,20 +137,20 @@ def reconcile_profile_gateways(
 
     # Default profile — always register, even if nothing has ever
     # populated the root profile dir. The slot exists so
-    # ``freeide gateway start`` (no ``-p``) has somewhere to land;
+    # ``jettstui gateway start`` (no ``-p``) has somewhere to land;
     # auto-up only when the prior state was "running" (same rule as
     # named profiles). If the container was launched with the legacy
     # `gateway run` command and no state exists yet, seed that intent
     # as `running` so the s6 reconciler preserves the pre-s6 behavior.
     legacy_default_state = _maybe_migrate_legacy_gateway_run_state(
-        freeide_home,
+        jettstui_home,
         container_argv=container_argv,
         dry_run=dry_run,
     )
-    default_prior_state = legacy_default_state or _read_desired_state(freeide_home)
+    default_prior_state = legacy_default_state or _read_desired_state(jettstui_home)
     default_should_start = default_prior_state in _AUTOSTART_STATES
     if not dry_run:
-        _cleanup_stale_runtime_files(freeide_home)
+        _cleanup_stale_runtime_files(jettstui_home)
         _register_service(scandir, "default", start=default_should_start)
     actions.append(ReconcileAction(
         profile="default",
@@ -158,13 +158,13 @@ def reconcile_profile_gateways(
         action="started" if default_should_start else "registered",
     ))
 
-    profiles_root = freeide_home / "profiles"
+    profiles_root = jettstui_home / "profiles"
     if profiles_root.is_dir():
         for entry in sorted(profiles_root.iterdir()):
             if not entry.is_dir():
                 continue
-            # SOUL.md is always seeded by `freeide profile create` (config.yaml
-            # is not — that comes later via `freeide setup`). Use it as the
+            # SOUL.md is always seeded by `jettstui profile create` (config.yaml
+            # is not — that comes later via `jettstui setup`). Use it as the
             # "real profile" marker so stray dirs (backups, manual mkdir)
             # aren't picked up.
             if not (entry / "SOUL.md").exists():
@@ -173,7 +173,7 @@ def reconcile_profile_gateways(
             # profile (above) — if a user has somehow created a
             # ``profiles/default/`` directory, skip it to avoid the
             # slot collision. Their gateway would still be reachable
-            # via ``freeide -p default-named gateway start`` if they
+            # via ``jettstui -p default-named gateway start`` if they
             # rename the directory; we don't try to disambiguate here.
             if entry.name == "default":
                 log.warning(
@@ -198,12 +198,12 @@ def reconcile_profile_gateways(
             ))
 
     if not dry_run:
-        _write_reconcile_log(freeide_home, actions)
+        _write_reconcile_log(jettstui_home, actions)
     return actions
 
 
 def _maybe_migrate_legacy_gateway_run_state(
-    freeide_home: Path,
+    jettstui_home: Path,
     *,
     container_argv: Sequence[str] | None,
     dry_run: bool,
@@ -218,11 +218,11 @@ def _maybe_migrate_legacy_gateway_run_state(
     root gateway_state.json exists so explicit stopped/failed states keep
     winning across restarts.
     """
-    state_file = freeide_home / "gateway_state.json"
+    state_file = jettstui_home / "gateway_state.json"
     if state_file.exists():
         return None
 
-    if os.environ.get("FREEIDE_GATEWAY_NO_SUPERVISE", "").lower() in ("1", "true", "yes"):
+    if os.environ.get("JETTSTUI_GATEWAY_NO_SUPERVISE", "").lower() in ("1", "true", "yes"):
         return None
 
     argv = tuple(container_argv) if container_argv is not None else _read_container_argv()
@@ -287,7 +287,7 @@ def _read_container_argv() -> tuple[str, ...]:
 
 
 def _strip_container_argv_prefix(argv: Sequence[str]) -> list[str]:
-    """Strip the s6/wrapper prefix off the container argv, leaving the freeide args.
+    """Strip the s6/wrapper prefix off the container argv, leaving the jettstui args.
 
     Two container-command argv shapes are handled:
 
@@ -303,9 +303,9 @@ def _strip_container_argv_prefix(argv: Sequence[str]) -> list[str]:
     in the v2→v3 bump), drop everything up to and including the
     ``main-wrapper.sh`` token: that wrapper path is the stable boundary the
     image owns, and the subcommand always follows it. Pre-s6 / direct
-    ``freeide`` invocations carry no wrapper, so fall back to peeling a bare
-    ``init`` prefix. The wrapper re-execs ``freeide <subcommand>``, so an
-    explicit leading ``freeide`` is peeled too. Shared by the legacy-gateway
+    ``jettstui`` invocations carry no wrapper, so fall back to peeling a bare
+    ``init`` prefix. The wrapper re-execs ``jettstui <subcommand>``, so an
+    explicit leading ``jettstui`` is peeled too. Shared by the legacy-gateway
     and dashboard role detectors.
     """
     args = list(argv)
@@ -324,7 +324,7 @@ def _strip_container_argv_prefix(argv: Sequence[str]) -> list[str]:
         args = args[1:]
 
     # Peel the current executable and the legacy name for upgraded images.
-    if args and Path(args[0]).name in {"jetts-tui", "freeide"}:
+    if args and Path(args[0]).name in {"jetts-tui", "jettstui"}:
         args = args[1:]
     return args
 
@@ -340,10 +340,10 @@ def _is_legacy_gateway_run_request(argv: Sequence[str]) -> bool:
 def _is_dashboard_container(argv: Sequence[str]) -> bool:
     """Return True when the container's command is the dashboard.
 
-    A dashboard-only container (``freeide dashboard ...``) never spawns or
+    A dashboard-only container (``jettstui dashboard ...``) never spawns or
     supervises per-profile gateways — that is the gateway container's job.
     Reconciling profile gateway s6 slots there is not just wasted work: when
-    the gateway and dashboard containers share a bind-mounted FREEIDE_HOME,
+    the gateway and dashboard containers share a bind-mounted JETTSTUI_HOME,
     both race to ``flock()`` the same ``logs/gateways/<profile>/lock`` files,
     producing "Resource busy" failures and an s6-log restart storm. So the
     dashboard container skips reconciliation entirely.
@@ -425,7 +425,7 @@ def _register_service(scandir: Path, profile: str, *, start: bool) -> None:
     """
     import shutil
 
-    from freeide_cli.service_manager import (
+    from jettstui.service_manager import (
         S6ServiceManager,
         _seed_supervise_skeleton,
         validate_profile_name,
@@ -474,19 +474,19 @@ def _register_service(scandir: Path, profile: str, *, start: bool) -> None:
 
         # The presence of a `down` file tells s6-supervise to NOT
         # start the service when s6-svscan picks it up. User brings
-        # it up explicitly with `freeide -p <profile> gateway start`
+        # it up explicitly with `jettstui -p <profile> gateway start`
         # (which routes through the Phase 4
         # _dispatch_via_service_manager_if_s6 helper to `s6-svc -u`).
         if not start:
             (tmp_dir / "down").touch()
 
-        # Pre-create the supervise/ skeleton with freeide ownership
+        # Pre-create the supervise/ skeleton with jettstui ownership
         # BEFORE we publish the slot. Mirrors the same pre-creation
         # step in S6ServiceManager.register_profile_gateway — when
         # s6-svscan picks the published slot up, the s6-supervise it
-        # spawns will EEXIST our dirs/FIFOs and inherit freeide
+        # spawns will EEXIST our dirs/FIFOs and inherit jettstui
         # ownership, so runtime s6-svc / s6-svstat / s6-svwait calls
-        # (all dispatched as the freeide user) won't hit EACCES. See
+        # (all dispatched as the jettstui user) won't hit EACCES. See
         # ``_seed_supervise_skeleton`` in service_manager.py for the
         # full rationale.
         _seed_supervise_skeleton(tmp_dir)
@@ -504,9 +504,9 @@ def _register_service(scandir: Path, profile: str, *, start: bool) -> None:
 
 
 def _write_reconcile_log(
-    freeide_home: Path, actions: list[ReconcileAction],
+    jettstui_home: Path, actions: list[ReconcileAction],
 ) -> None:
-    """Append one line per profile to $FREEIDE_HOME/logs/container-boot.log.
+    """Append one line per profile to $JETTSTUI_HOME/logs/container-boot.log.
 
     Operators inspect this to debug "why didn't my profile come back
     up". Keeping a separate log file (vs. mixing into agent.log) lets
@@ -522,7 +522,7 @@ def _write_reconcile_log(
     one append-only file (PR #30136 review item O3).
     """
     import time
-    log_dir = freeide_home / "logs"
+    log_dir = jettstui_home / "logs"
     log_dir.mkdir(parents=True, exist_ok=True)
     log_path = log_dir / "container-boot.log"
 
@@ -558,7 +558,7 @@ def main() -> int:
     # A dashboard-only container never spawns or supervises per-profile
     # gateways, so reconciling their s6 slots here is pure waste — and
     # actively harmful: when the gateway and dashboard containers share a
-    # bind-mounted FREEIDE_HOME, both race to flock() the same s6-log lock
+    # bind-mounted JETTSTUI_HOME, both race to flock() the same s6-log lock
     # files under logs/gateways/<profile>/lock, producing "Resource busy"
     # failures and a restart storm. Detect the role from PID 1 argv and
     # skip reconciliation in the dashboard container. No operator flag:
@@ -571,10 +571,10 @@ def main() -> int:
         )
         return 0
 
-    freeide_home = Path(os.environ.get("FREEIDE_HOME", "/opt/data"))
+    jettstui_home = Path(os.environ.get("JETTSTUI_HOME", "/opt/data"))
     scandir = Path(os.environ.get("S6_PROFILE_GATEWAY_SCANDIR", "/run/service"))
     actions = reconcile_profile_gateways(
-        freeide_home=freeide_home, scandir=scandir,
+        jettstui_home=jettstui_home, scandir=scandir,
     )
     for a in actions:
         print(

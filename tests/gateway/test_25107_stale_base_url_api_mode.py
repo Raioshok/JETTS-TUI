@@ -61,7 +61,7 @@ def _make_event(text):
 
 
 def _fake_switch_result(*, base_url="", api_mode=""):
-    from freeide_cli.model_switch import ModelSwitchResult
+    from jettstui.model_switch import ModelSwitchResult
 
     return ModelSwitchResult(
         success=True,
@@ -79,30 +79,30 @@ def _fake_switch_result(*, base_url="", api_mode=""):
 def _setup_isolated_home(tmp_path, monkeypatch, model_yaml_value, *, base_url="", api_mode=""):
     import gateway.run as gateway_run
 
-    freeide_home = tmp_path / ".freeide"
-    freeide_home.mkdir()
-    cfg_path = freeide_home / "config.yaml"
+    jettstui_home = tmp_path / ".jettstui"
+    jettstui_home.mkdir()
+    cfg_path = jettstui_home / "config.yaml"
     cfg_path.write_text(
         yaml.safe_dump({"model": model_yaml_value, "providers": {}}),
         encoding="utf-8",
     )
 
-    monkeypatch.setattr(gateway_run, "_freeide_home", freeide_home)
+    monkeypatch.setattr(gateway_run, "_jettstui_home", jettstui_home)
     monkeypatch.setattr("agent.models_dev.fetch_models_dev", lambda: {})
     monkeypatch.setattr(
-        "freeide_cli.model_switch.list_picker_providers",
+        "jettstui.model_switch.list_picker_providers",
         lambda **kw: [{"slug": "custom", "name": "Custom", "models": ["local-llama"]}],
     )
     monkeypatch.setattr(
-        "freeide_cli.model_switch.switch_model",
+        "jettstui.model_switch.switch_model",
         lambda **kw: _fake_switch_result(base_url=base_url, api_mode=api_mode),
     )
     monkeypatch.setattr(
-        "freeide_cli.model_switch.resolve_display_context_length",
+        "jettstui.model_switch.resolve_display_context_length",
         lambda *a, **k: 8192,
     )
-    monkeypatch.setattr("freeide_constants.get_freeide_home", lambda: freeide_home)
-    monkeypatch.setattr("freeide_cli.config.get_freeide_home", lambda: freeide_home)
+    monkeypatch.setattr("jettstui_constants.get_jettstui_home", lambda: jettstui_home)
+    monkeypatch.setattr("jettstui.config.get_jettstui_home", lambda: jettstui_home)
     return cfg_path
 
 

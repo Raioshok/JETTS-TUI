@@ -20,7 +20,7 @@ import { isLikelyProseCodeBlock } from '@/lib/markdown-code'
  * `react-shiki` full bundle so all `bundledLanguages` work; theme switches
  * follow the document `color-scheme` via `defaultColor="light-dark()"`.
  */
-interface FreeIDESyntaxHighlighterProps extends SyntaxHighlighterProps {
+interface JettsTUISyntaxHighlighterProps extends SyntaxHighlighterProps {
   defer?: boolean
 }
 
@@ -123,7 +123,7 @@ const PlainCode: FC<{ code: string }> = ({ code }) => {
   )
 }
 
-export const SyntaxHighlighter: FC<FreeIDESyntaxHighlighterProps> = ({
+export const SyntaxHighlighter: FC<JettsTUISyntaxHighlighterProps> = ({
   components: { Pre },
   language,
   code,

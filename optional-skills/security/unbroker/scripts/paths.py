@@ -1,7 +1,7 @@
 """Filesystem paths for the unbroker skill (stdlib only).
 
-All per-subject data lives under PDD_DATA_DIR (default: $FREEIDE_HOME/unbroker),
-which is the same trust boundary FreeIDE uses for .env and OAuth tokens.
+All per-subject data lives under PDD_DATA_DIR (default: $JETTSTUI_HOME/unbroker),
+which is the same trust boundary JettsTUI uses for .env and OAuth tokens.
 """
 from __future__ import annotations
 
@@ -9,13 +9,13 @@ import os
 from pathlib import Path
 
 
-def freeide_home() -> Path:
-    return Path(os.environ.get("FREEIDE_HOME") or (Path.home() / ".freeide"))
+def jettstui_home() -> Path:
+    return Path(os.environ.get("JETTSTUI_HOME") or (Path.home() / ".jettstui"))
 
 
 def data_dir() -> Path:
     override = os.environ.get("PDD_DATA_DIR")
-    return Path(override) if override else freeide_home() / "unbroker"
+    return Path(override) if override else jettstui_home() / "unbroker"
 
 
 def config_path() -> Path:

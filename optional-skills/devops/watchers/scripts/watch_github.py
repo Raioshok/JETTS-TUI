@@ -3,13 +3,13 @@
 
 Usage (via cron with --no-agent):
 
-    freeide cron create freeide-issues \\
+    jettstui cron create jettstui-issues \\
       --schedule "*/5 * * * *" --no-agent \\
-      --script "$FREEIDE_HOME/skills/devops/watchers/scripts/watch_github.py" \\
-      --script-args "--name freeide-issues --repo freeide/freeide --scope issues"
+      --script "$JETTSTUI_HOME/skills/devops/watchers/scripts/watch_github.py" \\
+      --script-args "--name jettstui-issues --repo jettstui/jettstui --scope issues"
 
-Set GITHUB_TOKEN (or GH_TOKEN) in the FreeIDE .env file
-(``${FREEIDE_HOME:-~/.freeide}/.env``) to avoid the 60 req/hr
+Set GITHUB_TOKEN (or GH_TOKEN) in the JettsTUI .env file
+(``${JETTSTUI_HOME:-~/.jettstui}/.env``) to avoid the 60 req/hr
 anonymous rate limit.
 
 Scopes: issues | pulls | releases | commits.  Or pass --search QUERY to
@@ -113,7 +113,7 @@ def main() -> int:
 
     headers = {
         "Accept": "application/vnd.github+json",
-        "User-Agent": "FreeIDE-Watcher/1.0",
+        "User-Agent": "JettsTUI-Watcher/1.0",
     }
     token = os.environ.get("GITHUB_TOKEN") or os.environ.get("GH_TOKEN")
     if token:

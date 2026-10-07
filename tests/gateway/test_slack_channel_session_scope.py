@@ -43,7 +43,7 @@ def adapter():
 
 @pytest.fixture(autouse=True)
 def _redirect_cache(tmp_path, monkeypatch):
-    """Point document cache to tmp_path so tests don't touch ~/.freeide."""
+    """Point document cache to tmp_path so tests don't touch ~/.jettstui."""
     monkeypatch.setattr(
         "gateway.platforms.base.DOCUMENT_CACHE_DIR", tmp_path / "doc_cache"
     )

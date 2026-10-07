@@ -6,8 +6,8 @@ export type ToolViewMode = 'product' | 'technical'
 
 type ToolDisclosureStates = Record<string, boolean>
 
-const TOOL_VIEW_TECHNICAL_STORAGE_KEY = 'freeide.desktop.toolView.technical'
-const TOOL_DISCLOSURE_STORAGE_KEY = 'freeide.desktop.toolDisclosure.v1'
+const TOOL_VIEW_TECHNICAL_STORAGE_KEY = 'jettstui.desktop.toolView.technical'
+const TOOL_DISCLOSURE_STORAGE_KEY = 'jettstui.desktop.toolDisclosure.v1'
 const MAX_DISCLOSURE_STATES = 240
 
 export const $toolViewMode = atom<ToolViewMode>(

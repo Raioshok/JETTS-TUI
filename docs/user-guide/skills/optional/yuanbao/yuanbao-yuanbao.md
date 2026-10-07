@@ -14,7 +14,7 @@ Yuanbao (元宝) groups: @mention users, query info/members.
 
 | | |
 |---|---|
-| Source | Optional — install with `freeide skills install official/yuanbao/yuanbao` |
+| Source | Optional — install with `jettstui skills install official/yuanbao/yuanbao` |
 | Path | `optional-skills/yuanbao` |
 | Version | `1.0.0` |
 | Platforms | linux, macos, windows |
@@ -23,7 +23,7 @@ Yuanbao (元宝) groups: @mention users, query info/members.
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that FreeIDE loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that JettsTUI loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Yuanbao Group Interaction

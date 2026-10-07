@@ -72,7 +72,7 @@ export const LOCALE_META: Record<Locale, { name: string }> = {
 };
 
 const SUPPORTED_LOCALES = Object.keys(TRANSLATIONS) as Locale[];
-const STORAGE_KEY = "freeide-locale";
+const STORAGE_KEY = "jettstui-locale";
 
 function isLocale(value: string): value is Locale {
   return (SUPPORTED_LOCALES as string[]).includes(value);

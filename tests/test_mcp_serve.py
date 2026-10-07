@@ -1,5 +1,5 @@
 """
-Tests for mcp_serve — FreeIDE MCP server.
+Tests for mcp_serve — JettsTUI MCP server.
 
 Three layers of tests:
 1. Unit tests — helpers, content extraction, attachment parsing
@@ -25,12 +25,12 @@ import pytest
 # ---------------------------------------------------------------------------
 
 @pytest.fixture(autouse=True)
-def _isolate_freeide_home(tmp_path, monkeypatch):
-    """Redirect FREEIDE_HOME to a temp directory."""
-    monkeypatch.setenv("FREEIDE_HOME", str(tmp_path))
+def _isolate_jettstui_home(tmp_path, monkeypatch):
+    """Redirect JETTSTUI_HOME to a temp directory."""
+    monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path))
     try:
-        import freeide_constants
-        monkeypatch.setattr(freeide_constants, "get_freeide_home", lambda: tmp_path)
+        import jettstui_constants
+        monkeypatch.setattr(jettstui_constants, "get_jettstui_home", lambda: tmp_path)
     except (ImportError, AttributeError):
         pass
     return tmp_path
@@ -122,7 +122,7 @@ def populated_sessions_dir(sessions_dir, sample_sessions):
 
 
 def _create_test_db(db_path, session_id, messages):
-    """Create a minimal SQLite DB mimicking freeide_state schema."""
+    """Create a minimal SQLite DB mimicking jettstui_state schema."""
     conn = sqlite3.connect(str(db_path))
     conn.execute("""
         CREATE TABLE IF NOT EXISTS sessions (
@@ -1004,13 +1004,13 @@ class TestCliIntegration:
         assert args.verbose is True
 
     def test_dispatcher_routes_serve(self, monkeypatch, tmp_path):
-        monkeypatch.setenv("FREEIDE_HOME", str(tmp_path))
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path))
         mock_run = MagicMock()
         monkeypatch.setattr("mcp_serve.run_mcp_server", mock_run)
 
         import argparse
         args = argparse.Namespace(mcp_action="serve", verbose=True)
-        from freeide_cli.mcp_config import mcp_command
+        from jettstui.mcp_config import mcp_command
         mcp_command(args)
         mock_run.assert_called_once_with(verbose=True)
 
@@ -1252,8 +1252,8 @@ class TestEventBridgePollE2E:
         sessions_dir.mkdir()
         monkeypatch.setattr(mcp_serve, "_get_sessions_dir", lambda: sessions_dir)
 
-        # _poll_once reads <FREEIDE_HOME>/state.db for its mtime gate; the autouse
-        # fixture points FREEIDE_HOME at tmp_path.
+        # _poll_once reads <JETTSTUI_HOME>/state.db for its mtime gate; the autouse
+        # fixture points JETTSTUI_HOME at tmp_path.
         db_path = tmp_path / "state.db"
         db_path.write_text("placeholder")
 

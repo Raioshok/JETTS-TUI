@@ -50,12 +50,12 @@ export const pt: Translations = {
   },
 
   app: {
-    brand: "Jetts-TUI",
+    brand: "JettsTUI",
     brandShort: "HA",
     closeNavigation: "Fechar navegação",
     closeModelTools: "Fechar modelo e ferramentas",
     footer: {
-      org: "Jetts-TUI",
+      org: "JettsTUI",
     },
     activeSessionsLabel: "Sessões ativas:",
     gatewayStatusLabel: "Estado do gateway:",
@@ -120,8 +120,8 @@ export const pt: Translations = {
     starting: "A iniciar",
     startedInBackground: "Iniciado em segundo plano — verifique os registos para acompanhar",
     stopped: "Parado",
-    updateFreeIDE: "Atualizar Jetts-TUI",
-    updatingFreeIDE: "A atualizar Jetts-TUI…",
+    updateJettsTUI: "Atualizar JettsTUI",
+    updatingJettsTUI: "A atualizar JettsTUI…",
     waitingForOutput: "À espera de saída…",
   },
 
@@ -321,7 +321,7 @@ export const pt: Translations = {
     enableRuntime: "Ativar",
     forceReinstall: "Forçar reinstalação (eliminar pasta existente primeiro)",
     headline:
-      "Descobrir, instalar, ativar e atualizar plugins Jetts-TUI (paridade com `jetts-tui plugins`).",
+      "Descobrir, instalar, ativar e atualizar plugins JettsTUI (paridade com `jetts-tui plugins`).",
     identifierLabel: "URL Git ou owner/repo",
     inactive: "inativo",
     installBtn: "Instalar",
@@ -338,8 +338,8 @@ export const pt: Translations = {
     providersHint:
       "Escreve memory.provider (vazio = incorporado) e context.engine no config.yaml. Aplicado na próxima sessão.",
     refreshDashboard: "Re-analisar extensões do dashboard",
-    removeConfirm: "Remover este plugin de ~/.freeide/plugins/?",
-    removeHint: "Apenas plugins instalados pelo utilizador em ~/.freeide/plugins podem ser removidos.",
+    removeConfirm: "Remover este plugin de ~/.jettstui/plugins/?",
+    removeHint: "Apenas plugins instalados pelo utilizador em ~/.jettstui/plugins podem ser removidos.",
     rescanHeading: "Registo de plugins SPA",
     rescanHint: "Re-analise depois de adicionar ficheiros em disco para que a barra lateral detete novos manifestos.",
     runtimeHeading: "Runtime do gateway (plugins YAML)",
@@ -361,7 +361,7 @@ export const pt: Translations = {
     all: "Todas",
     categories: "Categorias",
     filters: "Filtros",
-    noSkills: "Nenhuma competência encontrada. As competências são carregadas de ~/.freeide/skills/",
+    noSkills: "Nenhuma competência encontrada. As competências são carregadas de ~/.jettstui/skills/",
     noSkillsMatch: "Nenhuma competência corresponde à pesquisa ou filtro.",
     skillCount: "{count} competência{s}",
     resultCount: "{count} resultado{s}",
@@ -375,7 +375,7 @@ export const pt: Translations = {
   },
 
   config: {
-    configPath: "~/.freeide/config.yaml",
+    configPath: "~/.jettstui/config.yaml",
     filters: "Filtros",
     sections: "Secções",
     exportConfig: "Exportar configuração como JSON",
@@ -435,7 +435,7 @@ export const pt: Translations = {
     showValue: "Mostrar valor real",
     hideValue: "Ocultar valor",
     customTitle: "Chaves personalizadas",
-    customHint: "Variáveis de ambiente arbitrárias armazenadas no seu .env que o Jetts-TUI não reconhece. Use-as para injetar variáveis de ambiente para skills, servidores MCP ou suas próprias ferramentas.",
+    customHint: "Variáveis de ambiente arbitrárias armazenadas no seu .env que o JettsTUI não reconhece. Use-as para injetar variáveis de ambiente para skills, servidores MCP ou suas próprias ferramentas.",
     customConfigured: "{count} chave(s) personalizada(s) definida(s)",
     addCustomKey: "Adicionar uma chave personalizada",
     customKeyName: "Nome da variável",
@@ -498,11 +498,11 @@ export const pt: Translations = {
   achievements: {
     hero: {
       kicker: "Agentic Gamerscore",
-      title: "Jetts-TUI Achievements",
+      title: "JettsTUI Achievements",
       subtitle:
-        "Distintivos colecionáveis do Jetts-TUI obtidos a partir do histórico real de sessões. Conquistas conhecidas mas ainda não obtidas aparecem como Descobertas; conquistas Secretas permanecem ocultas até surgir o primeiro comportamento correspondente.",
+        "Distintivos colecionáveis do JettsTUI obtidos a partir do histórico real de sessões. Conquistas conhecidas mas ainda não obtidas aparecem como Descobertas; conquistas Secretas permanecem ocultas até surgir o primeiro comportamento correspondente.",
       scan_subtitle:
-        "A analisar o histórico de sessões do Jetts-TUI. A primeira análise pode demorar 5–10 segundos em históricos extensos.",
+        "A analisar o histórico de sessões do JettsTUI. A primeira análise pode demorar 5–10 segundos em históricos extensos.",
     },
     actions: {
       rescan: "Voltar a analisar",
@@ -517,7 +517,7 @@ export const pt: Translations = {
       highest_tier: "Nível mais alto",
       highest_tier_hint: "Copper → Silver → Gold → Diamond → Olympian",
       latest: "Mais recente",
-      latest_hint_empty: "execute mais o Jetts-TUI",
+      latest_hint_empty: "execute mais o JettsTUI",
       none_yet: "Ainda nenhuma",
     },
     state: {
@@ -548,10 +548,10 @@ export const pt: Translations = {
       tiers_header: "Níveis",
       secret_header: "Conquistas secretas",
       secret_body:
-        "As secretas escondem o seu acionador exato. Assim que o Jetts-TUI detetar um sinal relacionado, o cartão passa a Descoberta e mostra o requisito.",
+        "As secretas escondem o seu acionador exato. Assim que o JettsTUI detetar um sinal relacionado, o cartão passa a Descoberta e mostra o requisito.",
       scan_status_header: "Estado da análise",
       scan_status_body:
-        "O Jetts-TUI analisa o histórico local uma vez e depois os cartões aparecem automaticamente. Nada está bloqueado se isto demorar alguns segundos.",
+        "O JettsTUI analisa o histórico local uma vez e depois os cartões aparecem automaticamente. Nada está bloqueado se isto demorar alguns segundos.",
       what_scanned_header: "O que é analisado",
       what_scanned_body:
         "Sessões, chamadas de ferramentas, metadados de modelos, erros, conquistas e estado de desbloqueio local.",
@@ -598,7 +598,7 @@ export const pt: Translations = {
         "Partilhar no X abre uma publicação pré-preenchida num novo separador. Clique primeiro em Copiar imagem se quiser anexar o distintivo 1200×630 — o X permite colá-lo diretamente no compositor da publicação. Transferir PNG guarda o ficheiro para utilização em qualquer lado.",
       clipboard_unsupported:
         "A cópia de imagens para a área de transferência não é suportada neste navegador — utilize Transferir.",
-      tweet_text: "Just unlocked {tier_part}\"{name}\" in Jetts-TUI ☤",
+      tweet_text: "Just unlocked {tier_part}\"{name}\" in JettsTUI ☤",
     },
   },
   kanban: {

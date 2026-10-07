@@ -1,6 +1,6 @@
-"""``freeide mcp`` subcommand parser.
+"""``jettstui mcp`` subcommand parser.
 
-Extracted from ``freeide_cli/main.py:main()`` (god-file Phase 2 follow-up).
+Extracted from ``jettstui/main.py:main()`` (god-file Phase 2 follow-up).
 Handler injected to avoid importing ``main``.
 """
 
@@ -9,26 +9,26 @@ from __future__ import annotations
 import argparse
 from typing import Callable
 
-from freeide_cli.subcommands._shared import add_accept_hooks_flag
+from jettstui.subcommands._shared import add_accept_hooks_flag
 
 
 def build_mcp_parser(subparsers, *, cmd_mcp: Callable) -> None:
     """Attach the ``mcp`` subcommand to ``subparsers``."""
     mcp_parser = subparsers.add_parser(
         "mcp",
-        help="Manage MCP servers and run Jetts-TUI as an MCP server",
+        help="Manage MCP servers and run JettsTUI as an MCP server",
         description=(
-            "Manage MCP server connections and run Jetts-TUI as an MCP server.\n\n"
+            "Manage MCP server connections and run JettsTUI as an MCP server.\n\n"
             "MCP servers provide additional tools via the Model Context Protocol.\n"
-            "Use 'freeide mcp add' to connect to a new server, or\n"
-            "'jetts-tui mcp serve' to expose Jetts-TUI conversations over MCP."
+            "Use 'jettstui mcp add' to connect to a new server, or\n"
+            "'jetts-tui mcp serve' to expose JettsTUI conversations over MCP."
         ),
     )
     mcp_sub = mcp_parser.add_subparsers(dest="mcp_action")
 
     mcp_serve_p = mcp_sub.add_parser(
         "serve",
-        help="Run Jetts-TUI as an MCP server (expose conversations to other agents)",
+        help="Run JettsTUI as an MCP server (expose conversations to other agents)",
     )
     mcp_serve_p.add_argument(
         "-v",
@@ -47,7 +47,7 @@ def build_mcp_parser(subparsers, *, cmd_mcp: Callable) -> None:
     # subparser's args.command attribute, which the dispatcher reads to
     # route to cmd_mcp.  Without an explicit dest, argparse derives
     # dest="command" from the flag name and sets it to None when the
-    # flag is omitted, causing `freeide mcp add ...` to fall through to
+    # flag is omitted, causing `jettstui mcp add ...` to fall through to
     # interactive chat.
     mcp_add_p.add_argument(
         "--command", dest="mcp_command", help="Stdio command (e.g. npx)"
@@ -107,7 +107,7 @@ def build_mcp_parser(subparsers, *, cmd_mcp: Callable) -> None:
     # ── Catalog (curated MCPs shipped with the repo) ─────────────────
     mcp_sub.add_parser(
         "picker",
-        help="Interactive catalog picker (also the default for `freeide mcp`)",
+        help="Interactive catalog picker (also the default for `jettstui mcp`)",
     )
     mcp_sub.add_parser(
         "catalog",
@@ -115,7 +115,7 @@ def build_mcp_parser(subparsers, *, cmd_mcp: Callable) -> None:
     )
     mcp_install_p = mcp_sub.add_parser(
         "install",
-        help="Install a catalog MCP by name (e.g. `freeide mcp install n8n`)",
+        help="Install a catalog MCP by name (e.g. `jettstui mcp install n8n`)",
     )
     mcp_install_p.add_argument(
         "identifier",

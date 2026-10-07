@@ -14,7 +14,7 @@ Query Shopify Admin/Storefront GraphQL APIs via curl.
 
 | | |
 |---|---|
-| Source | Optional — install with `freeide skills install official/productivity/shopify` |
+| Source | Optional — install with `jettstui skills install official/productivity/shopify` |
 | Path | `optional-skills/productivity/shopify` |
 | Version | `1.0.0` |
 | Author | community |
@@ -26,7 +26,7 @@ Query Shopify Admin/Storefront GraphQL APIs via curl.
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that FreeIDE loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that JettsTUI loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Shopify — Admin & Storefront GraphQL APIs
@@ -40,7 +40,7 @@ The REST Admin API is legacy since 2024-04 and only receives security fixes. **U
 1. In Shopify admin: **Settings → Apps and sales channels → Develop apps → Create an app**.
 2. Click **Configure Admin API scopes**, select what you need (examples below), save.
 3. **Install app** → the Admin API access token appears ONCE. Copy it immediately — Shopify will never show it again. Tokens start with `shpat_`.
-4. Save to `${FREEIDE_HOME:-~/.freeide}/.env`:
+4. Save to `${JETTSTUI_HOME:-~/.jettstui}/.env`:
    ```
    SHOPIFY_ACCESS_TOKEN=shpat_xxxxxxxxxxxxxxxxxxxx
    SHOPIFY_STORE_DOMAIN=my-store.myshopify.com
@@ -142,7 +142,7 @@ mutation($input: ProductCreateInput!) {
     product { id handle }
     userErrors { field message }
   }
-}' '{"input":{"title":"Test Hoodie","status":"DRAFT","vendor":"FreeIDE","productType":"Apparel","tags":["test"]}}'
+}' '{"input":{"title":"Test Hoodie","status":"DRAFT","vendor":"JettsTUI","productType":"Apparel","tags":["test"]}}'
 ```
 
 Variants now have their own mutations in recent versions:

@@ -23,7 +23,7 @@ import {
 } from '@/store/find-in-page'
 
 // ── Bridge double ───────────────────────────────────────────────────────────
-// Stands in for the preload `freeideDesktop` surface. `onFoundInPage` records
+// Stands in for the preload `jettstuiDesktop` surface. `onFoundInPage` records
 // its subscribers so the tests can assert the listener refcount and drive
 // results back into the store the way the main process would.
 
@@ -43,7 +43,7 @@ function installBridge() {
     return () => subscribers.delete(callback)
   })
 
-  ;(window as unknown as { freeideDesktop: unknown }).freeideDesktop = {
+  ;(window as unknown as { jettstuiDesktop: unknown }).jettstuiDesktop = {
     findInPage,
     stopFindInPage,
     onFoundInPage
@@ -83,7 +83,7 @@ afterEach(() => {
   resetStore()
   drainListeners()
   vi.restoreAllMocks()
-  delete (window as unknown as { freeideDesktop?: unknown }).freeideDesktop
+  delete (window as unknown as { jettstuiDesktop?: unknown }).jettstuiDesktop
 })
 
 // ── Pure: match-count formatting ────────────────────────────────────────────

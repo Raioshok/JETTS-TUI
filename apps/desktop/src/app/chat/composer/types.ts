@@ -1,7 +1,7 @@
 import type { ReactNode } from 'react'
 
 import type { SubmitTextOptions } from '@/app/session/hooks/use-prompt-actions/utils'
-import type { FreeIDEGateway } from '@/freeide'
+import type { JettsTUIGateway } from '@/jettstui'
 
 import type { DroppedFile } from '../hooks/use-composer-actions'
 
@@ -37,7 +37,7 @@ export interface ChatBarProps {
   focusKey?: string | null
   maxRecordingSeconds?: number
   state: ChatBarState
-  gateway?: FreeIDEGateway | null
+  gateway?: JettsTUIGateway | null
   queueSessionKey?: string | null
   sessionId?: string | null
   cwd?: string | null

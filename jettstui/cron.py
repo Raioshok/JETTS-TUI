@@ -1,5 +1,5 @@
 """
-Cron subcommand for freeide CLI.
+Cron subcommand for jettstui CLI.
 
 Handles standalone cron management commands like list, create, edit,
 pause/resume/run/remove, status, and tick.
@@ -13,14 +13,14 @@ from typing import Iterable, List, Optional
 PROJECT_ROOT = Path(__file__).parent.parent.resolve()
 sys.path.insert(0, str(PROJECT_ROOT))
 
-from freeide_cli.colors import Colors, color
+from jettstui.colors import Colors, color
 
 # Gateway-lifecycle command detection lives in ``cron.lifecycle_guard`` so it
 # can be shared across every job-creation path (CLI + the agent's ``cronjob``
 # model tool via ``cron.jobs.create_job``) without a circular import. Re-export
 # ``_contains_gateway_lifecycle_command`` here for back-compat: ``tools/
 # terminal_tool.py`` imports it from this module to hard-block the same
-# commands at execution time when ``_FREEIDE_GATEWAY=1``.
+# commands at execution time when ``_JETTSTUI_GATEWAY=1``.
 from cron.lifecycle_guard import (  # noqa: F401  (re-exported for terminal_tool)
     contains_gateway_lifecycle_command as _contains_gateway_lifecycle_command,
 )
@@ -82,7 +82,7 @@ def _warn_if_gateway_not_running() -> None:
         if _active_cron_provider_name() != "builtin":
             return
 
-        from freeide_cli.gateway import find_gateway_pids
+        from jettstui.gateway import find_gateway_pids
 
         if find_gateway_pids():
             return
@@ -91,9 +91,9 @@ def _warn_if_gateway_not_running() -> None:
         return
 
     print(color("  ⚠  Gateway is not running — jobs won't fire automatically.", Colors.YELLOW))
-    print(color("     Start it with: freeide gateway install", Colors.DIM))
-    print(color("                    sudo freeide gateway install --system  # Linux servers", Colors.DIM))
-    print(color("     Check status:  freeide cron status", Colors.DIM))
+    print(color("     Start it with: jettstui gateway install", Colors.DIM))
+    print(color("                    sudo jettstui gateway install --system  # Linux servers", Colors.DIM))
+    print(color("     Check status:  jettstui cron status", Colors.DIM))
 
 
 def cron_list(show_all: bool = False):
@@ -104,7 +104,7 @@ def cron_list(show_all: bool = False):
 
     if not jobs:
         print(color("No scheduled jobs.", Colors.DIM))
-        print(color("Create one with 'freeide cron create ...' or the /cron command in chat.", Colors.DIM))
+        print(color("Create one with 'jettstui cron create ...' or the /cron command in chat.", Colors.DIM))
         return
 
     print()
@@ -217,7 +217,7 @@ def cron_runs(job_id: Optional[str] = None, limit: int = 20):
 def cron_status():
     """Show cron execution status."""
     from cron.jobs import list_jobs
-    from freeide_cli.gateway import find_gateway_pids
+    from jettstui.gateway import find_gateway_pids
 
     print()
 
@@ -274,7 +274,7 @@ def cron_status():
                 Colors.YELLOW,
             ))
             print(f"  PID: {', '.join(map(str, pids))}")
-            print("  Cron jobs may NOT be firing. Restart: freeide gateway restart")
+            print("  Cron jobs may NOT be firing. Restart: jettstui gateway restart")
         elif hb_age is not None and ok_age is not None and ok_age > STALE_AFTER:
             # Loop is alive (fresh heartbeat) but no tick has SUCCEEDED in a
             # long time → ticks are failing every iteration.
@@ -293,8 +293,8 @@ def cron_status():
                 if "Permission denied" in last_error:
                     print(color(
                         "  Hint: jobs.json may be owned by another user "
-                        "(e.g. rewritten by a root `docker exec freeide "
-                        "freeide cron ...`). Fix ownership to match the "
+                        "(e.g. rewritten by a root `docker exec jettstui "
+                        "jettstui cron ...`). Fix ownership to match the "
                         "gateway user, and prefer `docker exec -u <uid>:<gid>`.",
                         Colors.YELLOW,
                     ))
@@ -308,9 +308,9 @@ def cron_status():
         print(color("✗ Gateway is not running — cron jobs will NOT fire", Colors.RED))
         print()
         print("  To enable automatic execution:")
-        print("    freeide gateway install    # Install as a user service")
-        print("    sudo freeide gateway install --system  # Linux servers: boot-time system service")
-        print("    freeide gateway            # Or run in foreground")
+        print("    jettstui gateway install    # Install as a user service")
+        print("    sudo jettstui gateway install --system  # Linux servers: boot-time system service")
+        print("    jettstui gateway            # Or run in foreground")
 
     print()
 
@@ -496,5 +496,5 @@ def cron_command(args):
         return _job_action("remove", args.job_id, "Removed")
 
     print(f"Unknown cron command: {subcmd}")
-    print("Usage: freeide cron [list|create|edit|pause|resume|run|remove|status|runs|tick]")
+    print("Usage: jettstui cron [list|create|edit|pause|resume|run|remove|status|runs|tick]")
     sys.exit(1)

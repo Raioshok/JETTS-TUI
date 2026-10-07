@@ -1,5 +1,5 @@
 """
-Single source of truth for provider identity in FreeIDE Agent.
+Single source of truth for provider identity in JettsTUI.
 
 Two data sources, merged at runtime:
 
@@ -7,7 +7,7 @@ Two data sources, merged at runtime:
    names, and full model metadata (context, cost, capabilities).  This is
    the primary database.
 
-2. **FreeIDE overlays** — transport type, auth patterns, aggregator flags,
+2. **JettsTUI overlays** — transport type, auth patterns, aggregator flags,
    and additional env vars that models.dev doesn't track.  Small dict,
    maintained here.
 
@@ -28,12 +28,12 @@ from utils import base_url_host_matches, base_url_hostname
 logger = logging.getLogger(__name__)
 
 
-# -- FreeIDE overlay ----------------------------------------------------------
-# FreeIDE-specific metadata that models.dev doesn't provide.
+# -- JettsTUI overlay ----------------------------------------------------------
+# JettsTUI-specific metadata that models.dev doesn't provide.
 
 @dataclass(frozen=True)
-class FreeIDEOverlay:
-    """FreeIDE-specific provider metadata layered on top of models.dev."""
+class JettsTUIOverlay:
+    """JettsTUI-specific provider metadata layered on top of models.dev."""
 
     transport: str = "openai_chat"        # openai_chat | anthropic_messages | codex_responses
     is_aggregator: bool = False
@@ -43,177 +43,177 @@ class FreeIDEOverlay:
     base_url_env_var: str = ""            # env var for user-custom base URL
 
 
-FREEIDE_OVERLAYS: Dict[str, FreeIDEOverlay] = {
-    "moa": FreeIDEOverlay(
+JETTSTUI_OVERLAYS: Dict[str, JettsTUIOverlay] = {
+    "moa": JettsTUIOverlay(
         transport="openai_chat",
         auth_type="virtual",
         base_url_override="moa://local",
     ),
-    "openrouter": FreeIDEOverlay(
+    "openrouter": JettsTUIOverlay(
         transport="openai_chat",
         is_aggregator=True,
         base_url_env_var="OPENROUTER_BASE_URL",
     ),
-    "openai-codex": FreeIDEOverlay(
+    "openai-codex": JettsTUIOverlay(
         transport="codex_responses",
         auth_type="oauth_external",
         base_url_override="https://chatgpt.com/backend-api/codex",
     ),
-    "openai-api": FreeIDEOverlay(
+    "openai-api": JettsTUIOverlay(
         transport="codex_responses",
         base_url_override="https://api.openai.com/v1",
         base_url_env_var="OPENAI_BASE_URL",
     ),
-    "xai-oauth": FreeIDEOverlay(
+    "xai-oauth": JettsTUIOverlay(
         transport="codex_responses",
         auth_type="oauth_external",
         base_url_override="https://api.x.ai/v1",
         base_url_env_var="XAI_BASE_URL",
     ),
-    "qwen-oauth": FreeIDEOverlay(
+    "qwen-oauth": JettsTUIOverlay(
         transport="openai_chat",
         auth_type="oauth_external",
         base_url_override="https://portal.qwen.ai/v1",
-        base_url_env_var="FREEIDE_QWEN_BASE_URL",
+        base_url_env_var="JETTSTUI_QWEN_BASE_URL",
     ),
-    "lmstudio": FreeIDEOverlay(
+    "lmstudio": JettsTUIOverlay(
         transport="openai_chat",
         auth_type="api_key",
         extra_env_vars=("LM_API_KEY",),
         base_url_override="http://127.0.0.1:1234/v1",
         base_url_env_var="LM_BASE_URL",
     ),
-    "copilot-acp": FreeIDEOverlay(
+    "copilot-acp": JettsTUIOverlay(
         transport="codex_responses",
         auth_type="external_process",
         base_url_override="acp://copilot",
         base_url_env_var="COPILOT_ACP_BASE_URL",
     ),
-    "github-copilot": FreeIDEOverlay(
+    "github-copilot": JettsTUIOverlay(
         transport="openai_chat",
         extra_env_vars=("COPILOT_GITHUB_TOKEN", "GH_TOKEN"),
     ),
-    "anthropic": FreeIDEOverlay(
+    "anthropic": JettsTUIOverlay(
         transport="anthropic_messages",
         extra_env_vars=("ANTHROPIC_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN"),
     ),
-    "zai": FreeIDEOverlay(
+    "zai": JettsTUIOverlay(
         transport="openai_chat",
         extra_env_vars=("GLM_API_KEY", "ZAI_API_KEY", "Z_AI_API_KEY"),
         base_url_env_var="GLM_BASE_URL",
     ),
-    "kimi-for-coding": FreeIDEOverlay(
+    "kimi-for-coding": JettsTUIOverlay(
         transport="openai_chat",
         base_url_env_var="KIMI_BASE_URL",
     ),
-    "stepfun": FreeIDEOverlay(
+    "stepfun": JettsTUIOverlay(
         transport="openai_chat",
         extra_env_vars=("STEPFUN_API_KEY",),
         base_url_override="https://api.stepfun.ai/step_plan/v1",
         base_url_env_var="STEPFUN_BASE_URL",
     ),
-    "minimax": FreeIDEOverlay(
+    "minimax": JettsTUIOverlay(
         transport="anthropic_messages",
         base_url_env_var="MINIMAX_BASE_URL",
     ),
-    "minimax-oauth": FreeIDEOverlay(
+    "minimax-oauth": JettsTUIOverlay(
         transport="anthropic_messages",
         auth_type="oauth_external",
         base_url_override="https://api.minimax.io/anthropic",
     ),
-    "minimax-cn": FreeIDEOverlay(
+    "minimax-cn": JettsTUIOverlay(
         transport="anthropic_messages",
         base_url_env_var="MINIMAX_CN_BASE_URL",
     ),
-    "deepseek": FreeIDEOverlay(
+    "deepseek": JettsTUIOverlay(
         transport="openai_chat",
         base_url_env_var="DEEPSEEK_BASE_URL",
     ),
-    "alibaba": FreeIDEOverlay(
+    "alibaba": JettsTUIOverlay(
         transport="openai_chat",
         base_url_env_var="DASHSCOPE_BASE_URL",
     ),
-    "alibaba-coding-plan": FreeIDEOverlay(
+    "alibaba-coding-plan": JettsTUIOverlay(
         transport="openai_chat",
         base_url_env_var="ALIBABA_CODING_PLAN_BASE_URL",
     ),
-    "opencode": FreeIDEOverlay(
+    "opencode": JettsTUIOverlay(
         transport="openai_chat",
         is_aggregator=True,
         base_url_env_var="OPENCODE_ZEN_BASE_URL",
     ),
-    "opencode-go": FreeIDEOverlay(
+    "opencode-go": JettsTUIOverlay(
         transport="openai_chat",
         is_aggregator=True,
         base_url_env_var="OPENCODE_GO_BASE_URL",
     ),
-    "kilo": FreeIDEOverlay(
+    "kilo": JettsTUIOverlay(
         transport="openai_chat",
         is_aggregator=True,
         base_url_env_var="KILOCODE_BASE_URL",
     ),
-    "huggingface": FreeIDEOverlay(
+    "huggingface": JettsTUIOverlay(
         transport="openai_chat",
         is_aggregator=True,
         base_url_env_var="HF_BASE_URL",
     ),
-    "novita": FreeIDEOverlay(
+    "novita": JettsTUIOverlay(
         transport="openai_chat",
         is_aggregator=True,
         base_url_env_var="NOVITA_BASE_URL",
     ),
-    "xai": FreeIDEOverlay(
+    "xai": JettsTUIOverlay(
         transport="codex_responses",
         base_url_override="https://api.x.ai/v1",
         base_url_env_var="XAI_BASE_URL",
     ),
-    "nvidia": FreeIDEOverlay(
+    "nvidia": JettsTUIOverlay(
         transport="openai_chat",
         base_url_override="https://integrate.api.nvidia.com/v1",
         base_url_env_var="NVIDIA_BASE_URL",
     ),
-    "xiaomi": FreeIDEOverlay(
+    "xiaomi": JettsTUIOverlay(
         transport="openai_chat",
         base_url_env_var="XIAOMI_BASE_URL",
     ),
-    "tencent-tokenhub": FreeIDEOverlay(
+    "tencent-tokenhub": JettsTUIOverlay(
         transport="openai_chat",
         base_url_env_var="TOKENHUB_BASE_URL",
     ),
-    "arcee": FreeIDEOverlay(
+    "arcee": JettsTUIOverlay(
         transport="openai_chat",
         base_url_override="https://api.arcee.ai/api/v1",
         base_url_env_var="ARCEE_BASE_URL",
     ),
-    "gmi": FreeIDEOverlay(
+    "gmi": JettsTUIOverlay(
         transport="openai_chat",
         extra_env_vars=("GMI_API_KEY",),
         base_url_override="https://api.gmi-serving.com/v1",
         base_url_env_var="GMI_BASE_URL",
     ),
-    "fireworks": FreeIDEOverlay(
+    "fireworks": JettsTUIOverlay(
         transport="openai_chat",
         extra_env_vars=("FIREWORKS_API_KEY",),
         base_url_override="https://api.fireworks.ai/inference/v1",
     ),
-    "upstage": FreeIDEOverlay(
+    "upstage": JettsTUIOverlay(
         transport="openai_chat",
         extra_env_vars=("UPSTAGE_API_KEY",),
         base_url_override="https://api.upstage.ai/v1",
         base_url_env_var="UPSTAGE_BASE_URL",
     ),
-    "ollama-cloud": FreeIDEOverlay(
+    "ollama-cloud": JettsTUIOverlay(
         transport="openai_chat",
         base_url_override="https://ollama.com/v1",
         base_url_env_var="OLLAMA_BASE_URL",
     ),
     # Azure Foundry: supports both OpenAI-style and Anthropic-style endpoints.
     # The transport is determined at runtime from config.yaml model.api_mode.
-    "azure-foundry": FreeIDEOverlay(
+    "azure-foundry": JettsTUIOverlay(
         transport="openai_chat",  # default; overridden by api_mode in config
         base_url_env_var="AZURE_FOUNDRY_BASE_URL",
     ),
-    "bedrock": FreeIDEOverlay(
+    "bedrock": JettsTUIOverlay(
         transport="bedrock_converse",
         auth_type="aws_sdk",
     ),
@@ -226,7 +226,7 @@ FREEIDE_OVERLAYS: Dict[str, FreeIDEOverlay] = {
     # custom endpoint instead of "vertex" — losing the provider identity
     # that _refresh_provider_credentials() needs to re-mint an expired
     # OAuth2 token on a 401.
-    "vertex": FreeIDEOverlay(
+    "vertex": JettsTUIOverlay(
         transport="openai_chat",
         auth_type="vertex",
     ),
@@ -249,7 +249,7 @@ class ProviderDef:
     is_aggregator: bool = False
     auth_type: str = "api_key"
     doc: str = ""
-    source: str = ""                      # "models.dev", "freeide", "user-config"
+    source: str = ""                      # "models.dev", "jettstui", "user-config"
 
 
 # -- Aliases ------------------------------------------------------------------
@@ -429,8 +429,8 @@ def get_provider(name: str) -> Optional[ProviderDef]:
     """Look up a built-in provider by id or alias.
 
     Resolution order:
-      1. FreeIDE overlays (for providers not in models.dev: openai-codex, etc.)
-      2. models.dev catalog + FreeIDE overlay
+      1. JettsTUI overlays (for providers not in models.dev: openai-codex, etc.)
+      2. models.dev catalog + JettsTUI overlay
 
     User-defined providers from config.yaml (``providers:`` / ``custom_providers:``)
     are resolved by :func:`resolve_provider_full`, which layers ``resolve_user_provider``
@@ -448,7 +448,7 @@ def get_provider(name: str) -> Optional[ProviderDef]:
     except Exception:
         mdev_info = None
 
-    overlay = FREEIDE_OVERLAYS.get(canonical)
+    overlay = JETTSTUI_OVERLAYS.get(canonical)
 
     if mdev_info is not None:
         # Merge models.dev + overlay
@@ -458,7 +458,7 @@ def get_provider(name: str) -> Optional[ProviderDef]:
         base_url_env = overlay.base_url_env_var if overlay else ""
         base_url_override = overlay.base_url_override if overlay else ""
 
-        # Combine env vars: models.dev env + freeide extra
+        # Combine env vars: models.dev env + jettstui extra
         env_vars = list(mdev_info.env)
         if overlay and overlay.extra_env_vars:
             for ev in overlay.extra_env_vars:
@@ -479,7 +479,7 @@ def get_provider(name: str) -> Optional[ProviderDef]:
         )
 
     if overlay is not None:
-        # FreeIDE-only provider (not in models.dev)
+        # JettsTUI-only provider (not in models.dev)
         return ProviderDef(
             id=canonical,
             name=_LABEL_OVERRIDES.get(canonical, canonical),
@@ -489,7 +489,7 @@ def get_provider(name: str) -> Optional[ProviderDef]:
             base_url_env_var=overlay.base_url_env_var,
             is_aggregator=overlay.is_aggregator,
             auth_type=overlay.auth_type,
-            source="freeide",
+            source="jettstui",
         )
 
     return None
@@ -611,7 +611,7 @@ def determine_api_mode(provider: str, base_url: str = "", model: str = "") -> st
     if pdef is not None:
         return TRANSPORT_TO_API_MODE.get(pdef.transport, "chat_completions")
 
-    # Direct provider checks for providers not in FREEIDE_OVERLAYS
+    # Direct provider checks for providers not in JETTSTUI_OVERLAYS
     if provider == "bedrock":
         return "bedrock_converse"
 
@@ -776,7 +776,7 @@ def resolve_provider_full(
         if user_pdef is not None:
             return user_pdef
 
-    # 0.5 Exact FreeIDE provider IDs must win over LOSSY alias collapsing.
+    # 0.5 Exact JettsTUI provider IDs must win over LOSSY alias collapsing.
     # Example: kimi-coding-cn should stay distinct from kimi-coding instead of
     # normalizing through the shared models.dev alias "kimi-for-coding".
     # A collapse is lossy only when MULTIPLE distinct registry providers
@@ -786,7 +786,7 @@ def resolve_provider_full(
     # resolving through the built-in chain below so overlay transports apply.
     if canonical != raw:
         try:
-            from freeide_cli.auth import PROVIDER_REGISTRY as _AUTH_PROVIDER_REGISTRY
+            from jettstui.auth import PROVIDER_REGISTRY as _AUTH_PROVIDER_REGISTRY
             _pcfg = _AUTH_PROVIDER_REGISTRY.get(raw)
             if _pcfg is not None:
                 _collapsed_siblings = [
@@ -801,7 +801,7 @@ def resolve_provider_full(
                         transport="openai_chat",
                         api_key_env_vars=tuple(_pcfg.api_key_env_vars or ()),
                         base_url=_pcfg.inference_base_url or "",
-                        source="freeide-auth-registry",
+                        source="jettstui-auth-registry",
                     )
         except Exception:
             pass

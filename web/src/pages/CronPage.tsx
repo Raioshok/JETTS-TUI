@@ -562,7 +562,7 @@ export default function CronPage() {
   });
 
   // Skills installed in the profile a job will run under, for the
-  // attach-skill selector (parity with `freeide cron edit --add-skill`).
+  // attach-skill selector (parity with `jettstui cron edit --add-skill`).
   // Keyed on the create-modal profile; the edit modal reuses the list —
   // a job's current skills are always shown even if not in it.
   const [availableSkills, setAvailableSkills] = useState<SkillInfo[]>([]);

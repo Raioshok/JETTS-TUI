@@ -48,7 +48,7 @@ IGNORED_PATTERNS = [
     re.compile(r"^github-actions(\[bot\])?$", re.IGNORECASE),
     re.compile(r"^dependabot", re.IGNORECASE),
     re.compile(r"^renovate", re.IGNORECASE),
-    re.compile(r"^FreeIDE\s+(Agent|Audit)$", re.IGNORECASE),
+    re.compile(r"^JettsTUI\s+(Agent|Audit)$", re.IGNORECASE),
     re.compile(r"^nousbot(-eng)?$", re.IGNORECASE),
     re.compile(r"^Ubuntu$", re.IGNORECASE),
 ]
@@ -56,12 +56,12 @@ IGNORED_PATTERNS = [
 IGNORED_EMAILS = {
     "noreply@anthropic.com",
     "noreply@github.com",
-    "noreply@freeide.dev",
+    "noreply@jettstui.dev",
     "cursoragent@cursor.com",
-    "freeide@freeide.dev",
-    "freeide-audit@example.com",
-    "nousbot@freeide.dev",
-    "freeide@habibilabs.dev",
+    "jettstui@jettstui.dev",
+    "jettstui-audit@example.com",
+    "nousbot@jettstui.dev",
+    "jettstui@habibilabs.dev",
     "omx@oh-my-codex.dev",
     "codex@openai.com",
     "noreply@commandcode.ai",
@@ -106,7 +106,7 @@ def gh_pr_list():
         result = subprocess.run(
             [
                 "gh", "pr", "list",
-                "--repo", "freeide/freeide",
+                "--repo", "jettstui/jettstui",
                 "--state", "merged",
                 "--json", "number,title,body,author,mergedAt",
                 "--limit", "300",

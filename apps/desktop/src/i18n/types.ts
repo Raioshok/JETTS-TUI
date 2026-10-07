@@ -115,7 +115,7 @@ export interface Translations {
       loadingSettings: string
       loadingSessions: string
       startingDesktopConnection: string
-      startingFreeIDEDesktop: string
+      startingJettsTUIDesktop: string
     }
     errors: {
       backgroundExited: string
@@ -167,7 +167,7 @@ export interface Translations {
     backendOutOfDateTitle: string
     backendOutOfDateMessage: string
     installMethodUnsupportedTitle: string
-    updateFreeIDE: string
+    updateJettsTUI: string
     updateReadyTitle: string
     updateReadyMessage: (count: number) => string
     seeWhatsNew: string
@@ -565,9 +565,9 @@ export interface Translations {
       sshPortDesc: string
       sshKeyTitle: string
       sshKeyDesc: string
-      sshFreeIDEPathTitle: string
-      sshFreeIDEPathDesc: string
-      sshFreeIDEPathPlaceholder: string
+      sshJettsTUIPathTitle: string
+      sshJettsTUIPathDesc: string
+      sshJettsTUIPathPlaceholder: string
       sshTestConnection: string
       sshConnect: string
       sshButtonsHint: string
@@ -1044,10 +1044,10 @@ export interface Translations {
     noSessions: string
     gatewayRunning: string
     gatewayStopped: string
-    freeideActiveSessions: (version: string, count: number) => string
+    jettstuiActiveSessions: (version: string, count: number) => string
     restartGateway: string
     gatewayRestartFailed: string
-    updateFreeIDE: string
+    updateJettsTUI: string
     actionRunning: string
     actionDone: string
     actionFailed: string

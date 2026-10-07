@@ -2,11 +2,11 @@
 name: test-driven-development
 description: "TDD: enforce RED-GREEN-REFACTOR, tests before code."
 version: 1.1.0
-author: FreeIDE Agent (adapted from obra/superpowers)
+author: JettsTUI (adapted from obra/superpowers)
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
-  freeide:
+  jettstui:
     tags: [testing, tdd, development, quality, red-green-refactor]
     related_skills: [systematic-debugging, plan, subagent-driven-development]
 ---
@@ -299,7 +299,7 @@ Can't check all boxes? You skipped TDD. Start over.
 | Must mock everything | Code too coupled. Use dependency injection. |
 | Test setup huge | Extract helpers. Still complex? Simplify the design. |
 
-## FreeIDE Agent Integration
+## JettsTUI Integration
 
 ### Running Tests
 

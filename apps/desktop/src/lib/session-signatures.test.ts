@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { SessionInfo } from '@/freeide'
+import type { SessionInfo } from '@/jettstui'
 
 import { sameCronSignature, sessionMessagesSignature } from './session-signatures'
 

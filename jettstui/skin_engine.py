@@ -1,13 +1,13 @@
-"""Jetts-TUI skin/theme engine — the theme SDK for every surface.
+"""JettsTUI skin/theme engine — the theme SDK for every surface.
 
-A data-driven skin system that lets users (and Jetts-TUI itself) customize the
+A data-driven skin system that lets users (and JettsTUI itself) customize the
 visual appearance across the CLI, the TUI, and the desktop GUI from a single
-file. Skins are defined as YAML files in ~/.freeide/skins/ or as built-in presets.
+file. Skins are defined as YAML files in ~/.jettstui/skins/ or as built-in presets.
 No code changes are needed to add a new skin.
 
 This module is the source of truth: it resolves the active skin, and the gateway
 pushes the resolved palette to the TUI and desktop (see tui_gateway's
-``resolve_skin`` / ``skin.changed``). A skin dropped in ~/.freeide/skins/ therefore
+``resolve_skin`` / ``skin.changed``). A skin dropped in ~/.jettstui/skins/ therefore
 themes all three surfaces at once — the theme analogue of the plugin SDK.
 
 SKIN YAML SCHEMA
@@ -94,10 +94,10 @@ All fields are optional. Missing values inherit from the ``default`` skin.
 
     # Branding: text strings used throughout the CLI
     branding:
-      agent_name: "Jetts-TUI"          # Banner title, status display
+      agent_name: "JettsTUI"          # Banner title, status display
       welcome: "Welcome message"          # Shown at CLI startup
       goodbye: "Goodbye! ◆"              # Shown on exit
-      response_label: " ◆ Jetts-TUI "       # Response box header label
+      response_label: " ◆ JettsTUI "       # Response box header label
       prompt_symbol: "❯"                 # Input prompt symbol (bare token; renderers add trailing space)
       help_header: "(^_^)? Commands"      # /help header text
 
@@ -115,19 +115,19 @@ USAGE
 
 .. code-block:: python
 
-    from freeide_cli.skin_engine import get_active_skin, list_skins, set_active_skin
+    from jettstui.skin_engine import get_active_skin, list_skins, set_active_skin
 
     skin = get_active_skin()
     print(skin.colors["banner_title"])    # "#FFD700"
-    print(skin.get_branding("agent_name"))  # "Jetts-TUI"
+    print(skin.get_branding("agent_name"))  # "JettsTUI"
 
     set_active_skin("ares")               # Switch to built-in ares skin
-    set_active_skin("mytheme")            # Switch to user skin from ~/.freeide/skins/
+    set_active_skin("mytheme")            # Switch to user skin from ~/.jettstui/skins/
 
 BUILT-IN SKINS
 ==============
 
-- ``default`` — Classic Jetts-TUI gold/kawaii (the current look)
+- ``default`` — Classic JettsTUI gold/kawaii (the current look)
 - ``ares``    — Crimson/bronze war-god theme with custom spinner wings
 - ``mono``    — Clean grayscale monochrome
 - ``slate``   — Cool blue developer-focused theme
@@ -137,7 +137,7 @@ BUILT-IN SKINS
 USER SKINS
 ==========
 
-Drop a YAML file in ``~/.freeide/skins/<name>.yaml`` following the schema above.
+Drop a YAML file in ``~/.jettstui/skins/<name>.yaml`` following the schema above.
 Activate with ``/skin <name>`` in the CLI or ``display.skin: <name>`` in config.yaml.
 """
 
@@ -146,7 +146,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from freeide_constants import get_freeide_home
+from jettstui_constants import get_jettstui_home
 
 logger = logging.getLogger(__name__)
 
@@ -173,8 +173,8 @@ class SkinConfig:
     branding: Dict[str, str] = field(default_factory=dict)
     tool_prefix: str = "┊"
     tool_emojis: Dict[str, str] = field(default_factory=dict)  # per-tool emoji overrides
-    banner_logo: str = ""    # Rich-markup ASCII art logo (replaces FREEIDE_AGENT_LOGO)
-    banner_hero: str = ""    # Rich-markup hero art (replaces FREEIDE_CADUCEUS)
+    banner_logo: str = ""    # Rich-markup ASCII art logo (replaces JETTSTUI_AGENT_LOGO)
+    banner_hero: str = ""    # Rich-markup hero art (replaces JETTSTUI_CADUCEUS)
 
     def get_color(self, key: str, fallback: str = "") -> str:
         """Get a color value with fallback."""
@@ -251,16 +251,16 @@ _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
             "thinking_verbs": ["thinking"], "wings": [],
         },
         "branding": {
-            "agent_name": "Jetts-TUI", "welcome": "What would you like to build?",
+            "agent_name": "JettsTUI", "welcome": "What would you like to build?",
             "goodbye": "See you next time.",
-            "response_label": " Jetts-TUI ", "prompt_symbol": "❯",
-            "help_header": "Jetts-TUI commands",
+            "response_label": " JettsTUI ", "prompt_symbol": "❯",
+            "help_header": "JettsTUI commands",
         },
         "tool_prefix": "│",
     },
     "default": {
         "name": "default",
-        "description": "Jetts-TUI — Catppuccin Mocha, bold gradient rice (violet→sky)",
+        "description": "JettsTUI — Catppuccin Mocha, bold gradient rice (violet→sky)",
         # Catppuccin Mocha with a mauve/violet accent — the modern riced
         # terminal palette. Roles map onto Catppuccin's named colours so the
         # whole UI reads as one deliberate scheme rather than scattered hexes:
@@ -351,10 +351,10 @@ _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
             ],
         },
         "branding": {
-            "agent_name": "Jetts-TUI",
-            "welcome": "Welcome to Jetts-TUI! Type your message or /help for commands.",
+            "agent_name": "JettsTUI",
+            "welcome": "Welcome to JettsTUI! Type your message or /help for commands.",
             "goodbye": "Goodbye! ◆",
-            "response_label": " ◆ Jetts-TUI ",
+            "response_label": " ◆ JettsTUI ",
             "prompt_symbol": "❯",
             "help_header": "◆ Available Commands",
         },
@@ -472,10 +472,10 @@ _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
         },
         "spinner": {},
         "branding": {
-            "agent_name": "Jetts-TUI",
-            "welcome": "Welcome to Jetts-TUI! Type your message or /help for commands.",
+            "agent_name": "JettsTUI",
+            "welcome": "Welcome to JettsTUI! Type your message or /help for commands.",
             "goodbye": "Goodbye! ◆",
-            "response_label": " ◆ Jetts-TUI ",
+            "response_label": " ◆ JettsTUI ",
             "prompt_symbol": "❯",
             "help_header": "[?] Available Commands",
         },
@@ -516,10 +516,10 @@ _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
         },
         "spinner": {},
         "branding": {
-            "agent_name": "Jetts-TUI",
-            "welcome": "Welcome to Jetts-TUI! Type your message or /help for commands.",
+            "agent_name": "JettsTUI",
+            "welcome": "Welcome to JettsTUI! Type your message or /help for commands.",
             "goodbye": "Goodbye! ◆",
-            "response_label": " ◆ Jetts-TUI ",
+            "response_label": " ◆ JettsTUI ",
             "prompt_symbol": "❯",
             "help_header": "(^_^)? Available Commands",
         },
@@ -562,10 +562,10 @@ _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
         },
         "spinner": {},
         "branding": {
-            "agent_name": "Jetts-TUI",
-            "welcome": "Welcome to Jetts-TUI! Type your message or /help for commands.",
+            "agent_name": "JettsTUI",
+            "welcome": "Welcome to JettsTUI! Type your message or /help for commands.",
             "goodbye": "Goodbye! ◆",
-            "response_label": " ◆ Jetts-TUI ",
+            "response_label": " ◆ JettsTUI ",
             "prompt_symbol": "❯",
             "help_header": "[?] Available Commands",
         },
@@ -608,10 +608,10 @@ _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
         },
         "spinner": {},
         "branding": {
-            "agent_name": "Jetts-TUI",
-            "welcome": "Welcome to Jetts-TUI! Type your message or /help for commands.",
+            "agent_name": "JettsTUI",
+            "welcome": "Welcome to JettsTUI! Type your message or /help for commands.",
             "goodbye": "Goodbye! \u2695",
-            "response_label": " \u2695 Jetts-TUI ",
+            "response_label": " \u2695 JettsTUI ",
             "prompt_symbol": "\u276f",
             "help_header": "(^_^)? Available Commands",
         },
@@ -864,7 +864,7 @@ _active_skin_name: str = "default"
 
 def _skins_dir() -> Path:
     """User skins directory."""
-    return get_freeide_home() / "skins"
+    return get_jettstui_home() / "skins"
 
 
 def _load_skin_from_yaml(path: Path) -> Optional[Dict[str, Any]]:

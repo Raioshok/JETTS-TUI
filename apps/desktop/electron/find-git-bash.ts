@@ -10,9 +10,9 @@ export interface GitBashOptions {
 /**
  * Locate bash.exe on Windows.
  * Resolution order (first match wins):
- *   1. FREEIDE_GIT_BASH_PATH env var override
+ *   1. JETTSTUI_GIT_BASH_PATH env var override
  *   2. PortableGit under %LOCALAPPDATA%\jettstui\git\ (install.ps1)
- *      with the legacy freeide location as a fallback
+ *      with the legacy jettstui location as a fallback
  *   3. Standard Git for Windows install locations
  *   4. %LOCALAPPDATA%\Programs\Git\ (user-scoped)
  *   5. bash on PATH
@@ -24,8 +24,8 @@ export function findGitBash(opts: GitBashOptions): string | null {
     return findOnPath ? findOnPath('bash') : null
   }
 
-  // Respect FREEIDE_GIT_BASH_PATH if set (mirrors tools/environments/local.py:_find_bash).
-  const gitBashPath = env.FREEIDE_GIT_BASH_PATH
+  // Respect JETTSTUI_GIT_BASH_PATH if set (mirrors tools/environments/local.py:_find_bash).
+  const gitBashPath = env.JETTSTUI_GIT_BASH_PATH
 
   if (gitBashPath && fileExists(gitBashPath)) {
     return gitBashPath
@@ -41,8 +41,8 @@ export function findGitBash(opts: GitBashOptions): string | null {
   if (localAppData) {
     candidates.push(joinWin(localAppData, 'jettstui', 'git', 'bin', 'bash.exe'))
     candidates.push(joinWin(localAppData, 'jettstui', 'git', 'usr', 'bin', 'bash.exe'))
-    candidates.push(joinWin(localAppData, 'freeide', 'git', 'bin', 'bash.exe'))
-    candidates.push(joinWin(localAppData, 'freeide', 'git', 'usr', 'bin', 'bash.exe'))
+    candidates.push(joinWin(localAppData, 'jettstui', 'git', 'bin', 'bash.exe'))
+    candidates.push(joinWin(localAppData, 'jettstui', 'git', 'usr', 'bin', 'bash.exe'))
   }
 
   candidates.push(joinWin(env['ProgramFiles'] || 'C:\\Program Files', 'Git', 'bin', 'bash.exe'))

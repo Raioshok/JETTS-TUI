@@ -6,7 +6,7 @@ description: "Generate agent trajectories at scale — parallel processing, chec
 
 # Batch Processing
 
-Batch processing lets you run the FreeIDE agent across hundreds or thousands of prompts in parallel, generating structured trajectory data. This is primarily used for **training data generation** — producing ShareGPT-format trajectories with tool usage statistics that can be used for fine-tuning or evaluation.
+Batch processing lets you run the JettsTUI agent across hundreds or thousands of prompts in parallel, generating structured trajectory data. This is primarily used for **training data generation** — producing ShareGPT-format trajectories with tool usage statistics that can be used for fine-tuning or evaluation.
 
 ## Overview
 
@@ -35,7 +35,7 @@ python batch_runner.py --list_distributions
 ```
 
 :::tip Predictable cost at scale
-Batch runs spin up many concurrent agent sessions, each making model calls and tool calls. Run `freeide setup` to configure a provider with your own API key, then configure the tool backends you need (web search, image gen, TTS, cloud browsers) with their own keys — pick providers whose pricing gives you a stable cost-per-trajectory before pointing `--model` at your chosen model.
+Batch runs spin up many concurrent agent sessions, each making model calls and tool calls. Run `jettstui setup` to configure a provider with your own API key, then configure the tool backends you need (web search, image gen, TTS, cloud browsers) with their own keys — pick providers whose pricing gives you a stable cost-per-trajectory before pointing `--model` at your chosen model.
 :::
 
 ## Dataset Format

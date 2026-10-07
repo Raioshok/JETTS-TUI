@@ -10,7 +10,7 @@ export interface DesktopBootState extends DesktopBootProgress {
 const INITIAL_BOOT_STATE: DesktopBootState = {
   error: null,
   fakeMode: false,
-  message: translateNow('boot.steps.startingFreeIDEDesktop'),
+  message: translateNow('boot.steps.startingJettsTUIDesktop'),
   phase: 'renderer.init',
   progress: 2,
   running: true,

@@ -133,7 +133,7 @@ def test_addressed_pipe_form_other_user():
 
 
 def test_addressed_pipe_form_bot_is_not_other():
-    assert _addressed(f"<@{BOT_USER_ID}|freeide> hello") is False
+    assert _addressed(f"<@{BOT_USER_ID}|jettstui> hello") is False
 
 
 def test_addressed_no_mention():
@@ -172,7 +172,7 @@ def test_mentions_self_plain_form():
 
 
 def test_mentions_self_pipe_form():
-    assert _mentions_self(f"hello <@{BOT_USER_ID}|freeide>") is True
+    assert _mentions_self(f"hello <@{BOT_USER_ID}|jettstui>") is True
 
 
 def test_mentions_self_other_user_only():
@@ -284,7 +284,7 @@ async def test_free_response_replies_when_bot_mentioned_in_pipe_form(adapter):
     await _run(
         adapter,
         _event(
-            f"<@{OTHER_USER_ID}|rasha> and <@{BOT_USER_ID}|freeide> please compare",
+            f"<@{OTHER_USER_ID}|rasha> and <@{BOT_USER_ID}|jettstui> please compare",
             ts="1700000000.000004",
         ),
     )
@@ -334,13 +334,13 @@ def test_config_bridges_slack_ignore_other_user_mentions(monkeypatch, tmp_path):
     apply_yaml_config_fn bridge, not the generic shared-key allowlist)."""
     from gateway.config import load_gateway_config
 
-    freeide_home = tmp_path / ".freeide"
-    freeide_home.mkdir()
-    (freeide_home / "config.yaml").write_text(
+    jettstui_home = tmp_path / ".jettstui"
+    jettstui_home.mkdir()
+    (jettstui_home / "config.yaml").write_text(
         "slack:\n  ignore_other_user_mentions: true\n",
         encoding="utf-8",
     )
-    monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+    monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
     monkeypatch.delenv("SLACK_IGNORE_OTHER_USER_MENTIONS", raising=False)
 
     load_gateway_config()
@@ -352,13 +352,13 @@ def test_config_bridges_slack_ignore_other_user_mentions(monkeypatch, tmp_path):
 def test_ignore_other_user_mentions_env_wins_over_yaml(monkeypatch, tmp_path):
     from gateway.config import load_gateway_config
 
-    freeide_home = tmp_path / ".freeide"
-    freeide_home.mkdir()
-    (freeide_home / "config.yaml").write_text(
+    jettstui_home = tmp_path / ".jettstui"
+    jettstui_home.mkdir()
+    (jettstui_home / "config.yaml").write_text(
         "slack:\n  ignore_other_user_mentions: true\n",
         encoding="utf-8",
     )
-    monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+    monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
     monkeypatch.setenv("SLACK_IGNORE_OTHER_USER_MENTIONS", "false")
 
     load_gateway_config()

@@ -141,7 +141,7 @@ const stopMemoryMonitor = startMemoryMonitor({
   }
 })
 
-if (process.env.FREEIDE_HEAPDUMP_ON_START === '1') {
+if (process.env.JETTSTUI_HEAPDUMP_ON_START === '1') {
   void performHeapDump('manual')
 }
 

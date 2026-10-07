@@ -20,12 +20,12 @@ def server():
     with patch.dict(
         "sys.modules",
         {
-            "freeide_constants": MagicMock(
-                get_freeide_home=MagicMock(return_value="/tmp/freeide_test_child_mirror")
+            "jettstui_constants": MagicMock(
+                get_jettstui_home=MagicMock(return_value="/tmp/jettstui_test_child_mirror")
             ),
-            "freeide_cli.env_loader": MagicMock(),
-            "freeide_cli.banner": MagicMock(),
-            "freeide_state": MagicMock(),
+            "jettstui.env_loader": MagicMock(),
+            "jettstui.banner": MagicMock(),
+            "jettstui_state": MagicMock(),
         },
     ):
         import importlib

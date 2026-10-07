@@ -5,7 +5,7 @@ exists to prevent the auth.json ownership-mismatch bug where
 `docker exec <c> jettstui login` would write /opt/data/auth.json as
 root:root mode 0600, leaving the supervised gateway (UID 10000) unable
 to read its own credentials and returning "Provider authentication
-failed: FreeIDE is not logged into FreeIDE Portal" on every message.
+failed: JettsTUI is not logged into JettsTUI Portal" on every message.
 
 These tests verify:
 
@@ -13,9 +13,9 @@ These tests verify:
    jettstui user before the real binary runs.
 2. ``docker exec --user jettstui <c> jettstui …`` (already non-root) short-
    circuits and doesn't try to drop again.
-3. Files written under $FREEIDE_HOME from a ``docker exec`` session land
+3. Files written under $JETTSTUI_HOME from a ``docker exec`` session land
    as jettstui:jettstui — the actual user-visible invariant.
-4. The FREEIDE_DOCKER_EXEC_AS_ROOT opt-out lets diagnostic sessions keep
+4. The JETTSTUI_DOCKER_EXEC_AS_ROOT opt-out lets diagnostic sessions keep
    running as root deliberately.
 5. The main CMD path (``docker run <image> …``) is unaffected by the
    PATH-shim ordering — no recursion, no behavior change.
@@ -53,8 +53,8 @@ def _wait_for_cont_init(container: str) -> None:
     failing ``test_shim_opt_out_keeps_root`` non-deterministically.
 
     The reliable "cont-init is done" signal is
-    ``$FREEIDE_HOME/logs/container-boot.log``: it is written by
-    ``02-reconcile-profiles`` (freeide_cli.container_boot), which s6 runs
+    ``$JETTSTUI_HOME/logs/container-boot.log``: it is written by
+    ``02-reconcile-profiles`` (jettstui.container_boot), which s6 runs
     *strictly after* ``01-jettstui-setup`` in lexicographic order. The
     reconciler always logs at least one ``profile=default`` line even for a
     bare ``sleep infinity`` container, so once that marker appears every
@@ -103,7 +103,7 @@ def sleep_container(built_image: str, container_name: str) -> Iterator[str]:
         )
 
 
-def test_shim_drops_root_to_freeide_uid(sleep_container: str) -> None:
+def test_shim_drops_root_to_jettstui_uid(sleep_container: str) -> None:
     """docker exec defaults to root; the shim should drop to uid 10000.
 
     We invoke `jettstui` with a Python-style `-c` shim equivalent — there's no
@@ -115,7 +115,7 @@ def test_shim_drops_root_to_freeide_uid(sleep_container: str) -> None:
     into it without forking subcommands. Simplest approach: have `jettstui`
     do anything that writes to disk, then check the file's owner.
 
-    Use `jetts-tui config set` which writes config.yaml under FREEIDE_HOME.
+    Use `jetts-tui config set` which writes config.yaml under JETTSTUI_HOME.
     The resulting file ownership tells us what UID the shim ended up at.
     """
     # Wipe any prior state.
@@ -180,7 +180,7 @@ def test_shim_short_circuits_for_non_root_exec(sleep_container: str) -> None:
 
 
 def test_shim_opt_out_keeps_root(sleep_container: str) -> None:
-    """FREEIDE_DOCKER_EXEC_AS_ROOT=1 should suppress the privilege drop.
+    """JETTSTUI_DOCKER_EXEC_AS_ROOT=1 should suppress the privilege drop.
 
     Reserved for diagnostic sessions where the operator deliberately
     wants root semantics. Verified by writing a file and checking its
@@ -194,7 +194,7 @@ def test_shim_opt_out_keeps_root(sleep_container: str) -> None:
 
     r = subprocess.run(
         ["docker", "exec",
-         "-e", "FREEIDE_DOCKER_EXEC_AS_ROOT=1",
+         "-e", "JETTSTUI_DOCKER_EXEC_AS_ROOT=1",
          sleep_container,
          "jetts-tui", "config", "set", "_test.opt_out", "1"],
         capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30,
@@ -207,7 +207,7 @@ def test_shim_opt_out_keeps_root(sleep_container: str) -> None:
         capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=10,
     )
     assert r.stdout.strip() == "root:root", (
-        f"With FREEIDE_DOCKER_EXEC_AS_ROOT=1, expected root:root, "
+        f"With JETTSTUI_DOCKER_EXEC_AS_ROOT=1, expected root:root, "
         f"got {r.stdout.strip()!r}"
     )
 
@@ -218,9 +218,9 @@ def test_shim_opt_out_strict_truthiness(
 ) -> None:
     """Anything other than 1/true/yes (case-insensitive) does NOT opt out.
 
-    Strict truthiness so a typo (``FREEIDE_DOCKER_EXEC_AS_ROOT=0``) doesn't
+    Strict truthiness so a typo (``JETTSTUI_DOCKER_EXEC_AS_ROOT=0``) doesn't
     silently keep the user as root. Mirrors the policy used by
-    ``FREEIDE_GATEWAY_NO_SUPERVISE`` in #33583.
+    ``JETTSTUI_GATEWAY_NO_SUPERVISE`` in #33583.
     """
     subprocess.run(
         ["docker", "exec", "--user", "root", sleep_container,
@@ -230,7 +230,7 @@ def test_shim_opt_out_strict_truthiness(
 
     r = subprocess.run(
         ["docker", "exec",
-         "-e", f"FREEIDE_DOCKER_EXEC_AS_ROOT={falsy_value}",
+         "-e", f"JETTSTUI_DOCKER_EXEC_AS_ROOT={falsy_value}",
          sleep_container,
          "jetts-tui", "config", "set", "_test.falsy", "1"],
         capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30,
@@ -279,7 +279,7 @@ def test_e2e_login_then_supervised_gateway_can_read_auth(
     /opt/data/auth.json as root:root 0600. The supervised gateway (UID
     10000) couldn't read it, _load_auth_store swallowed PermissionError
     as a parse failure, and resolve_nous_runtime_credentials raised
-    "FreeIDE is not logged into FreeIDE Portal" on every message.
+    "JettsTUI is not logged into JettsTUI Portal" on every message.
 
     We can't do a real OAuth login in a unit test, but we can stand in
     for it by writing the same file shape via `jetts-tui config set`-style
@@ -296,7 +296,7 @@ def test_e2e_login_then_supervised_gateway_can_read_auth(
     # Have the shim-protected `docker exec` write the auth store.
     # `jetts-tui auth list` is read-only but still exercises _load_auth_store
     # under the shim's UID. We invoke `jetts-tui config set` first to
-    # provoke a write into FREEIDE_HOME so we have something concrete to
+    # provoke a write into JETTSTUI_HOME so we have something concrete to
     # owner-check.
     r = subprocess.run(
         ["docker", "exec", sleep_container,
@@ -306,7 +306,7 @@ def test_e2e_login_then_supervised_gateway_can_read_auth(
     assert r.returncode == 0, f"config set failed: {r.stderr}"
 
     # The supervised UID (10000) must be able to read everything under
-    # FREEIDE_HOME that docker exec just wrote.
+    # JETTSTUI_HOME that docker exec just wrote.
     r = subprocess.run(
         ["docker", "exec", "--user", "jettstui", sleep_container,
          "find", "/opt/data", "-maxdepth", "2", "-type", "f",

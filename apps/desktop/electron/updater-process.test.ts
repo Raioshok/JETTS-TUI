@@ -17,9 +17,9 @@ test('spawnUpdaterProcess hides the updater console and detaches the child on Wi
   }
 
   const result = spawnUpdaterProcess(
-    'freeide-setup.exe',
+    'jettstui-setup.exe',
     ['--update', '--branch', 'main'],
-    { cwd: 'C:\\FreeIDE', detached: true, stdio: 'ignore' },
+    { cwd: 'C:\\JettsTUI', detached: true, stdio: 'ignore' },
     {
       isWindows: true,
       spawnProcess: (command, args, options) => {
@@ -35,8 +35,8 @@ test('spawnUpdaterProcess hides the updater console and detaches the child on Wi
   assert.deepEqual(calls, [
     {
       args: ['--update', '--branch', 'main'],
-      command: 'freeide-setup.exe',
-      options: { cwd: 'C:\\FreeIDE', detached: true, stdio: 'ignore', windowsHide: true }
+      command: 'jettstui-setup.exe',
+      options: { cwd: 'C:\\JettsTUI', detached: true, stdio: 'ignore', windowsHide: true }
     }
   ])
 })
@@ -45,7 +45,7 @@ test('spawnUpdaterProcess preserves updater options off Windows', () => {
   let capturedOptions: SpawnOptions | undefined
 
   spawnUpdaterProcess(
-    'freeide-setup',
+    'jettstui-setup',
     ['--update'],
     { detached: true, stdio: 'ignore' },
     {

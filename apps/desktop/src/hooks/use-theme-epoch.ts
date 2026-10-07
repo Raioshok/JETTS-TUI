@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react'
 
 // Theme repaints (themes/context.tsx) toggle `.dark` + rewrite inline custom
-// props/data-freeide-* on <html>. Canvas/probe consumers that rasterize the
+// props/data-jettstui-* on <html>. Canvas/probe consumers that rasterize the
 // *computed* color-mix()/oklch tokens must re-resolve AFTER the paint — useTheme()
 // can't, since a child's effect runs before the provider's applyTheme. A
 // MutationObserver fires post-mutation, so the next getComputedStyle is fresh.
 // One observer, fanned out to every listener.
-const ATTRS = ['class', 'style', 'data-freeide-mode', 'data-freeide-theme']
+const ATTRS = ['class', 'style', 'data-jettstui-mode', 'data-jettstui-theme']
 const listeners = new Set<() => void>()
 let observer: MutationObserver | null = null
 

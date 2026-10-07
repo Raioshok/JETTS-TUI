@@ -1,6 +1,6 @@
 import { useCallback, useRef } from 'react'
 
-import { getCronJobs, listAllProfileSessions, listSidebarSessions, type SessionInfo } from '@/freeide'
+import { getCronJobs, listAllProfileSessions, listSidebarSessions, type SessionInfo } from '@/jettstui'
 import { sameCronSignature } from '@/lib/session-signatures'
 import {
   isMessagingSource,

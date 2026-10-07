@@ -2,7 +2,7 @@
  * native-oauth.ts
  *
  * Pure, electron-free helpers for the desktop's RFC 8252 (OAuth 2.0 for Native
- * Apps) login to a gated FreeIDE gateway: system-browser + loopback redirect +
+ * Apps) login to a gated JettsTUI gateway: system-browser + loopback redirect +
  * PKCE, with tokens returned to the app (never browser session cookies).
  *
  * Kept standalone (no `import 'electron'`) so it unit-tests with `node --test`
@@ -27,7 +27,7 @@
 import { createHash, randomBytes } from 'node:crypto'
 
 // The gateway status field that lists supported auth flows. See
-// freeide_cli/web_server.py status handler.
+// jettstui/web_server.py status handler.
 const NATIVE_FLOW_ID = 'native_pkce'
 
 export interface NativePkcePair {

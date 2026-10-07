@@ -40,7 +40,7 @@ const statusFromLiveSession = (status?: string, running = false) => {
   return running || status === 'working' ? 'running…' : 'ready'
 }
 
-export const writeActiveSessionFile = (sessionId: null | string, file = process.env.FREEIDE_TUI_ACTIVE_SESSION_FILE) => {
+export const writeActiveSessionFile = (sessionId: null | string, file = process.env.JETTSTUI_TUI_ACTIVE_SESSION_FILE) => {
   if (!file || !sessionId) {
     return
   }

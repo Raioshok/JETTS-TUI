@@ -27,9 +27,9 @@ import {
 // --- uninstallArgsForMode ---
 
 test('uninstallArgsForMode maps each mode to the module-runner argv', () => {
-  assert.deepEqual(uninstallArgsForMode('gui'), ['-m', 'freeide_cli.uninstall', '--mode', 'gui'])
-  assert.deepEqual(uninstallArgsForMode('lite'), ['-m', 'freeide_cli.uninstall', '--mode', 'lite'])
-  assert.deepEqual(uninstallArgsForMode('full'), ['-m', 'freeide_cli.uninstall', '--mode', 'full'])
+  assert.deepEqual(uninstallArgsForMode('gui'), ['-m', 'jettstui.uninstall', '--mode', 'gui'])
+  assert.deepEqual(uninstallArgsForMode('lite'), ['-m', 'jettstui.uninstall', '--mode', 'lite'])
+  assert.deepEqual(uninstallArgsForMode('full'), ['-m', 'jettstui.uninstall', '--mode', 'full'])
 })
 
 test('uninstallArgsForMode throws on an unknown mode (no silent full wipe)', () => {
@@ -57,12 +57,12 @@ test('mode predicates classify what each mode removes', () => {
 
 test('resolveRemovableAppPath finds the .app bundle on macOS', () => {
   assert.equal(
-    resolveRemovableAppPath('/Applications/FreeIDE.app/Contents/MacOS/FreeIDE', 'darwin'),
-    '/Applications/FreeIDE.app'
+    resolveRemovableAppPath('/Applications/JettsTUI.app/Contents/MacOS/JettsTUI', 'darwin'),
+    '/Applications/JettsTUI.app'
   )
   assert.equal(
-    resolveRemovableAppPath('/Users/x/Applications/FreeIDE.app/Contents/MacOS/FreeIDE', 'darwin'),
-    '/Users/x/Applications/FreeIDE.app'
+    resolveRemovableAppPath('/Users/x/Applications/JettsTUI.app/Contents/MacOS/JettsTUI', 'darwin'),
+    '/Users/x/Applications/JettsTUI.app'
   )
 })
 
@@ -81,30 +81,30 @@ test('resolveRemovableAppPath: dev-run .app resolves (safety is shouldRemoveAppB
 
 test('resolveRemovableAppPath finds the install dir on Windows', () => {
   assert.equal(
-    resolveRemovableAppPath('C:\\Users\\x\\AppData\\Local\\Programs\\FreeIDE\\FreeIDE.exe', 'win32'),
-    'C:\\Users\\x\\AppData\\Local\\Programs\\FreeIDE'
+    resolveRemovableAppPath('C:\\Users\\x\\AppData\\Local\\Programs\\JettsTUI\\JettsTUI.exe', 'win32'),
+    'C:\\Users\\x\\AppData\\Local\\Programs\\JettsTUI'
   )
   assert.equal(
-    resolveRemovableAppPath('C:\\Users\\x\\AppData\\Local\\freeide-desktop\\FreeIDE.exe', 'win32'),
-    'C:\\Users\\x\\AppData\\Local\\freeide-desktop'
+    resolveRemovableAppPath('C:\\Users\\x\\AppData\\Local\\jettstui-desktop\\JettsTUI.exe', 'win32'),
+    'C:\\Users\\x\\AppData\\Local\\jettstui-desktop'
   )
 })
 
 test('resolveRemovableAppPath returns null for an unrecognized Windows dir', () => {
-  assert.equal(resolveRemovableAppPath('C:\\Temp\\foo\\FreeIDE.exe', 'win32'), null)
+  assert.equal(resolveRemovableAppPath('C:\\Temp\\foo\\JettsTUI.exe', 'win32'), null)
 })
 
 test('resolveRemovableAppPath uses APPIMAGE on Linux when set', () => {
   assert.equal(
-    resolveRemovableAppPath('/tmp/.mount_FreeIDEXXXX/freeide', 'linux', { APPIMAGE: '/home/x/Apps/FreeIDE.AppImage' }),
-    '/home/x/Apps/FreeIDE.AppImage'
+    resolveRemovableAppPath('/tmp/.mount_JettsTUIXXXX/jettstui', 'linux', { APPIMAGE: '/home/x/Apps/JettsTUI.AppImage' }),
+    '/home/x/Apps/JettsTUI.AppImage'
   )
 })
 
 test('resolveRemovableAppPath finds the unpacked dir on Linux', () => {
-  assert.equal(resolveRemovableAppPath('/opt/jettstui/linux-unpacked/freeide', 'linux', {}), '/opt/jettstui/linux-unpacked')
+  assert.equal(resolveRemovableAppPath('/opt/jettstui/linux-unpacked/jettstui', 'linux', {}), '/opt/jettstui/linux-unpacked')
   // A system-package install (/usr/bin) → null, left to apt/dnf.
-  assert.equal(resolveRemovableAppPath('/usr/bin/freeide', 'linux', {}), null)
+  assert.equal(resolveRemovableAppPath('/usr/bin/jettstui', 'linux', {}), null)
 })
 
 test('resolveRemovableAppPath returns null for an empty exe path', () => {
@@ -115,8 +115,8 @@ test('resolveRemovableAppPath returns null for an empty exe path', () => {
 // --- shouldRemoveAppBundle ---
 
 test('shouldRemoveAppBundle requires packaged AND a resolved path', () => {
-  assert.equal(shouldRemoveAppBundle(true, '/Applications/FreeIDE.app'), true)
-  assert.equal(shouldRemoveAppBundle(false, '/Applications/FreeIDE.app'), false)
+  assert.equal(shouldRemoveAppBundle(true, '/Applications/JettsTUI.app'), true)
+  assert.equal(shouldRemoveAppBundle(false, '/Applications/JettsTUI.app'), false)
   assert.equal(shouldRemoveAppBundle(true, null), false)
   assert.equal(shouldRemoveAppBundle(false, null), false)
 })
@@ -126,12 +126,12 @@ test('shouldRemoveAppBundle requires packaged AND a resolved path', () => {
 test('buildPosixCleanupScript waits for the PID, runs the uninstall module, removes bundle', () => {
   const script = buildPosixCleanupScript({
     desktopPid: 4321,
-    pythonExe: '/home/x/.freeide/freeide-agent/venv/bin/python',
+    pythonExe: '/home/x/.jettstui/jettstui/venv/bin/python',
     pythonPath: null,
-    agentRoot: '/home/x/.freeide/freeide-agent',
-    uninstallArgs: ['-m', 'freeide_cli.uninstall', '--mode', 'gui'],
+    agentRoot: '/home/x/.jettstui/jettstui',
+    uninstallArgs: ['-m', 'jettstui.uninstall', '--mode', 'gui'],
     appPath: '/opt/jettstui/linux-unpacked',
-    freeideHome: '/home/x/.freeide'
+    jettstuiHome: '/home/x/.jettstui'
   })
 
   assert.match(script, /^#!\/bin\/bash/)
@@ -139,26 +139,26 @@ test('buildPosixCleanupScript waits for the PID, runs the uninstall module, remo
   assert.match(script, /kill -0 "\$pid"/)
   // bounded wait (~30s), not unbounded
   assert.match(script, /seq 1 60/)
-  assert.match(script, /'-m' 'freeide_cli\.uninstall' '--mode' 'gui'/)
+  assert.match(script, /'-m' 'jettstui\.uninstall' '--mode' 'gui'/)
   assert.match(script, /rm -rf '\/opt\/jettstui\/linux-unpacked'/)
-  assert.match(script, /export FREEIDE_HOME='\/home\/x\/\.freeide'/)
+  assert.match(script, /export JETTSTUI_HOME='\/home\/x\/\.jettstui'/)
 })
 
 test('buildPosixCleanupScript exports PYTHONPATH when pythonPath is set (lite/full)', () => {
   const script = buildPosixCleanupScript({
     desktopPid: 1,
     pythonExe: '/usr/bin/python3',
-    pythonPath: '/home/x/.freeide/freeide-agent',
-    agentRoot: '/home/x/.freeide/freeide-agent',
-    uninstallArgs: ['-m', 'freeide_cli.uninstall', '--mode', 'full'],
+    pythonPath: '/home/x/.jettstui/jettstui',
+    agentRoot: '/home/x/.jettstui/jettstui',
+    uninstallArgs: ['-m', 'jettstui.uninstall', '--mode', 'full'],
     appPath: null,
-    freeideHome: '/home/x/.freeide'
+    jettstuiHome: '/home/x/.jettstui'
   })
 
-  // System python + source on PYTHONPATH so import freeide_cli works while the
+  // System python + source on PYTHONPATH so import jettstui works while the
   // venv is torn down.
-  assert.match(script, /export PYTHONPATH='\/home\/x\/\.freeide\/freeide-agent'/)
-  assert.match(script, /'\/usr\/bin\/python3' '-m' 'freeide_cli\.uninstall' '--mode' 'full'/)
+  assert.match(script, /export PYTHONPATH='\/home\/x\/\.jettstui\/jettstui'/)
+  assert.match(script, /'\/usr\/bin\/python3' '-m' 'jettstui\.uninstall' '--mode' 'full'/)
 })
 
 test('buildPosixCleanupScript omits PYTHONPATH when pythonPath is null (gui)', () => {
@@ -167,9 +167,9 @@ test('buildPosixCleanupScript omits PYTHONPATH when pythonPath is null (gui)', (
     pythonExe: '/p/python',
     pythonPath: null,
     agentRoot: '/a',
-    uninstallArgs: ['-m', 'freeide_cli.uninstall', '--mode', 'gui'],
+    uninstallArgs: ['-m', 'jettstui.uninstall', '--mode', 'gui'],
     appPath: null,
-    freeideHome: '/h'
+    jettstuiHome: '/h'
   })
 
   assert.doesNotMatch(script, /export PYTHONPATH/)
@@ -181,14 +181,14 @@ test('buildPosixCleanupScript omits the bundle rm when appPath is null', () => {
     pythonExe: '/p/python',
     pythonPath: null,
     agentRoot: '/a',
-    uninstallArgs: ['-m', 'freeide_cli.uninstall', '--mode', 'lite'],
+    uninstallArgs: ['-m', 'jettstui.uninstall', '--mode', 'lite'],
     appPath: null,
-    freeideHome: '/h'
+    jettstuiHome: '/h'
   })
 
   assert.doesNotMatch(script, /rm -rf '\//)
   // Still runs the uninstall.
-  assert.match(script, /'-m' 'freeide_cli\.uninstall' '--mode' 'lite'/)
+  assert.match(script, /'-m' 'jettstui\.uninstall' '--mode' 'lite'/)
 })
 
 test('buildPosixCleanupScript single-quote-escapes paths with apostrophes', () => {
@@ -197,9 +197,9 @@ test('buildPosixCleanupScript single-quote-escapes paths with apostrophes', () =
     pythonExe: "/home/o'brien/python",
     pythonPath: null,
     agentRoot: '/a',
-    uninstallArgs: ['-m', 'freeide_cli.uninstall', '--mode', 'gui'],
+    uninstallArgs: ['-m', 'jettstui.uninstall', '--mode', 'gui'],
     appPath: null,
-    freeideHome: '/h'
+    jettstuiHome: '/h'
   })
 
   // The apostrophe is closed-escaped-reopened so the shell sees the literal.
@@ -212,25 +212,25 @@ test('buildWindowsCleanupScript waits (bounded) for PID, runs uninstall, rmdir b
   const script = buildWindowsCleanupScript({
     desktopPid: 9988,
     pythonExe: 'C:\\Python313\\python.exe',
-    pythonPath: 'C:\\freeide',
-    agentRoot: 'C:\\freeide',
-    uninstallArgs: ['-m', 'freeide_cli.uninstall', '--mode', 'full'],
-    appPath: 'C:\\Users\\x\\AppData\\Local\\Programs\\FreeIDE',
-    freeideHome: 'C:\\Users\\x\\AppData\\Local\\freeide'
+    pythonPath: 'C:\\jettstui',
+    agentRoot: 'C:\\jettstui',
+    uninstallArgs: ['-m', 'jettstui.uninstall', '--mode', 'full'],
+    appPath: 'C:\\Users\\x\\AppData\\Local\\Programs\\JettsTUI',
+    jettstuiHome: 'C:\\Users\\x\\AppData\\Local\\jettstui'
   })
 
   assert.match(script, /@echo off/)
   assert.match(script, /set "PID=9988"/)
-  // PYTHONPATH set so a system python can import freeide_cli from source.
-  assert.match(script, /set "PYTHONPATH=C:\\freeide;%PYTHONPATH%"/)
-  assert.match(script, /"C:\\Python313\\python.exe" "-m" "freeide_cli\.uninstall" "--mode" "full"/)
+  // PYTHONPATH set so a system python can import jettstui from source.
+  assert.match(script, /set "PYTHONPATH=C:\\jettstui;%PYTHONPATH%"/)
+  assert.match(script, /"C:\\Python313\\python.exe" "-m" "jettstui\.uninstall" "--mode" "full"/)
   // Bounded wait-loop (no infinite loop), whole-token PID match (no substring).
   assert.match(script, /if %waited% geq 60 goto waited_done/)
   assert.match(script, /findstr \/r \/c:" %PID% "/)
   assert.doesNotMatch(script, /find "%PID%"/) // the old substring-prone form is gone
   // Removal is a retry loop (Windows releases dir handles lazily).
   assert.match(script, /:rmloop/)
-  assert.match(script, /rmdir \/s \/q "C:\\Users\\x\\AppData\\Local\\Programs\\FreeIDE" >nul 2>&1/)
+  assert.match(script, /rmdir \/s \/q "C:\\Users\\x\\AppData\\Local\\Programs\\JettsTUI" >nul 2>&1/)
   assert.match(script, /if %tries% geq 10 goto rmdone/)
   assert.match(script, /del "%~f0"/)
 })
@@ -241,9 +241,9 @@ test('buildWindowsCleanupScript omits PYTHONPATH + rmdir when not needed (gui, n
     pythonExe: 'C:\\h\\venv\\Scripts\\python.exe',
     pythonPath: null,
     agentRoot: 'C:\\h',
-    uninstallArgs: ['-m', 'freeide_cli.uninstall', '--mode', 'gui'],
+    uninstallArgs: ['-m', 'jettstui.uninstall', '--mode', 'gui'],
     appPath: null,
-    freeideHome: 'C:\\h'
+    jettstuiHome: 'C:\\h'
   })
 
   assert.doesNotMatch(script, /rmdir/)

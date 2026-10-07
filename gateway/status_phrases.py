@@ -1,21 +1,21 @@
 """Human-friendly generic gateway status phrases.
 
 These helpers deliberately avoid relaying raw model scratch text.  They turn
-FreeIDE' long-running gateway status surface into short status lines suitable
+JettsTUI' long-running gateway status surface into short status lines suitable
 for chat surfaces.
 
 Built-in defaults live in ``gateway/assets/status_phrases.yaml``. Users can add
-portable, profile-relative phrase catalogs under ``FREEIDE_HOME`` either by using
+portable, profile-relative phrase catalogs under ``JETTSTUI_HOME`` either by using
 conventional paths::
 
-    ~/.freeide/status_phrases.yaml
-    ~/.freeide/status_phrases/*.yaml
+    ~/.jettstui/status_phrases.yaml
+    ~/.jettstui/status_phrases/*.yaml
 
 or by pointing config at a relative file/directory::
 
     display:
       status_phrases:
-        path: status_phrases/whatsapp.yaml  # relative to FREEIDE_HOME
+        path: status_phrases/whatsapp.yaml  # relative to JETTSTUI_HOME
         mode: append                        # append (default) or replace
 
 Absolute paths and ``..`` escapes are ignored on purpose so config stays
@@ -34,9 +34,9 @@ from typing import Any
 
 import yaml
 
-from freeide_constants import get_freeide_home
+from jettstui_constants import get_jettstui_home
 
-# These are FreeIDE UI surfaces, not app/vendor/domain buckets.  Keep this
+# These are JettsTUI UI surfaces, not app/vendor/domain buckets.  Keep this
 # long-running-only: regular tool/thinking/interim chatter is intentionally not
 # rewritten into generic placeholders because that gets noisy fast in chat.
 _STATUS_SURFACES = ("status", "generic")
@@ -163,22 +163,22 @@ def resolve_status_phrase_catalog(user_config: Mapping[str, Any] | None, platfor
     ``display.platforms.<platform>.status_phrases``.
     """
     catalog = _copy_default_catalog()
-    freeide_home = get_freeide_home()
-    _merge_phrase_paths(catalog, list(_CONVENTIONAL_RELATIVE_PATHS), base_dir=freeide_home)
+    jettstui_home = get_jettstui_home()
+    _merge_phrase_paths(catalog, list(_CONVENTIONAL_RELATIVE_PATHS), base_dir=jettstui_home)
 
     display = (user_config or {}).get("display") if isinstance(user_config, Mapping) else None
     if not isinstance(display, Mapping):
         return catalog
 
-    _merge_phrase_config(catalog, display.get("generic_status_phrases"), base_dir=freeide_home)
-    _merge_phrase_config(catalog, display.get("status_phrases"), base_dir=freeide_home)
+    _merge_phrase_config(catalog, display.get("generic_status_phrases"), base_dir=jettstui_home)
+    _merge_phrase_config(catalog, display.get("status_phrases"), base_dir=jettstui_home)
 
     platforms = display.get("platforms")
     if platform_key and isinstance(platforms, Mapping):
         platform_display = platforms.get(platform_key)
         if isinstance(platform_display, Mapping):
-            _merge_phrase_config(catalog, platform_display.get("generic_status_phrases"), base_dir=freeide_home)
-            _merge_phrase_config(catalog, platform_display.get("status_phrases"), base_dir=freeide_home)
+            _merge_phrase_config(catalog, platform_display.get("generic_status_phrases"), base_dir=jettstui_home)
+            _merge_phrase_config(catalog, platform_display.get("status_phrases"), base_dir=jettstui_home)
     return catalog
 
 
@@ -189,7 +189,7 @@ def classify_status_context(
     preview: str | None = None,
     args: Any = None,
 ) -> str:
-    """Classify an internal gateway event into a FreeIDE UI-surface bucket."""
+    """Classify an internal gateway event into a JettsTUI UI-surface bucket."""
     normalized = str(kind or "").strip().lower()
     if normalized in {"heartbeat", "waiting", "long_running", "status"}:
         return "status"

@@ -25,7 +25,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from agent.context_compressor import ContextCompressor
-from freeide_state import SessionDB
+from jettstui_state import SessionDB
 
 
 def _build_agent_with_db(db: SessionDB, session_id: str, platform: str = "telegram"):
@@ -101,9 +101,9 @@ class TestGoalMigratesOnRotation:
         agent = _build_agent_with_db(db, parent)
 
         # Set a persistent goal on the parent via the real persistence path.
-        with patch.dict(os.environ, {"FREEIDE_HOME": str(tmp_path / ".freeide")}):
-            (tmp_path / ".freeide").mkdir(exist_ok=True)
-            import freeide_cli.goals as goals
+        with patch.dict(os.environ, {"JETTSTUI_HOME": str(tmp_path / ".jettstui")}):
+            (tmp_path / ".jettstui").mkdir(exist_ok=True)
+            import jettstui.goals as goals
             goals._DB_CACHE.clear()
             # Point the goal DB at the same state.db the agent uses.
             with patch.object(goals, "_get_session_db", return_value=db):

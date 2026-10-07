@@ -9,7 +9,7 @@ Covers the canonical fix for issues #4146, #27303, #30882, #33057:
   3. tools.approval.check_execute_code_guard — the entry-point guard decision
      matrix (isolated backends, yolo/off, cron-deny, headless-local,
      gateway approve/deny/timeout/missing-notify, smart mode).
-  4. tools.code_execution_tool._scrub_child_env — broad FREEIDE_ prefix dropped,
+  4. tools.code_execution_tool._scrub_child_env — broad JETTSTUI_ prefix dropped,
      operational allowlist kept, DSN/WEBHOOK blocked, passthrough precedence.
 """
 
@@ -106,12 +106,12 @@ def test_both_rpc_threads_use_propagation_helper():
 
 @pytest.fixture
 def gw_session(monkeypatch):
-    """A clean gateway session: FREEIDE_GATEWAY_SESSION set, a bound session
+    """A clean gateway session: JETTSTUI_GATEWAY_SESSION set, a bound session
     key, and isolated gateway queues/callbacks. Yields the session_key."""
-    monkeypatch.setenv("FREEIDE_GATEWAY_SESSION", "1")
-    monkeypatch.delenv("FREEIDE_INTERACTIVE", raising=False)
-    monkeypatch.delenv("FREEIDE_CRON_SESSION", raising=False)
-    monkeypatch.delenv("FREEIDE_EXEC_ASK", raising=False)
+    monkeypatch.setenv("JETTSTUI_GATEWAY_SESSION", "1")
+    monkeypatch.delenv("JETTSTUI_INTERACTIVE", raising=False)
+    monkeypatch.delenv("JETTSTUI_CRON_SESSION", raising=False)
+    monkeypatch.delenv("JETTSTUI_EXEC_ASK", raising=False)
     # Force manual mode regardless of host config and disable any process-level
     # yolo inherited from the developer's live environment.
     monkeypatch.setattr(A, "_get_approval_mode", lambda: "manual")
@@ -169,18 +169,18 @@ def test_guard_isolated_backend_approved():
 
 def test_guard_headless_local_approved(monkeypatch):
     # Documented #30882 limitation: no approval surface → preserve auto-run.
-    monkeypatch.delenv("FREEIDE_GATEWAY_SESSION", raising=False)
-    monkeypatch.delenv("FREEIDE_INTERACTIVE", raising=False)
-    monkeypatch.delenv("FREEIDE_CRON_SESSION", raising=False)
-    monkeypatch.delenv("FREEIDE_EXEC_ASK", raising=False)
+    monkeypatch.delenv("JETTSTUI_GATEWAY_SESSION", raising=False)
+    monkeypatch.delenv("JETTSTUI_INTERACTIVE", raising=False)
+    monkeypatch.delenv("JETTSTUI_CRON_SESSION", raising=False)
+    monkeypatch.delenv("JETTSTUI_EXEC_ASK", raising=False)
     monkeypatch.setattr(A, "_get_approval_mode", lambda: "manual")
     assert A.check_execute_code_guard("import os", "local")["approved"] is True
 
 
 def test_guard_cron_deny_blocks(monkeypatch):
     monkeypatch.setattr(A, "_YOLO_MODE_FROZEN", False)
-    monkeypatch.setenv("FREEIDE_CRON_SESSION", "1")
-    monkeypatch.delenv("FREEIDE_GATEWAY_SESSION", raising=False)
+    monkeypatch.setenv("JETTSTUI_CRON_SESSION", "1")
+    monkeypatch.delenv("JETTSTUI_GATEWAY_SESSION", raising=False)
     monkeypatch.setattr(A, "_get_approval_mode", lambda: "manual")
     monkeypatch.setattr(A, "_get_cron_approval_mode", lambda: "deny")
     res = A.check_execute_code_guard("import os", "local")
@@ -457,17 +457,17 @@ def test_guard_session_yolo_bypasses(gw_session):
 # 4. Env scrubbing (#27303)
 # ---------------------------------------------------------------------------
 
-def test_env_scrub_freeide_allowlist_and_secret_blocks():
+def test_env_scrub_jettstui_allowlist_and_secret_blocks():
     from tools.code_execution_tool import _scrub_child_env
 
     env = {
         # operational allowlist → kept
-        "FREEIDE_HOME": "/h", "FREEIDE_PROFILE": "p",
-        "FREEIDE_CONFIG": "/c.yaml", "FREEIDE_ENV": "/e",
-        "FREEIDE_DELEGATED_CHILD_CONTEXT": "1",
-        # other FREEIDE_* → dropped (broad prefix removed)
-        "FREEIDE_BASE_URL": "https://x", "FREEIDE_INTERACTIVE": "1",
-        "FREEIDE_KANBAN_DB": "postgres://u:p@h/db",
+        "JETTSTUI_HOME": "/h", "JETTSTUI_PROFILE": "p",
+        "JETTSTUI_CONFIG": "/c.yaml", "JETTSTUI_ENV": "/e",
+        "JETTSTUI_DELEGATED_CHILD_CONTEXT": "1",
+        # other JETTSTUI_* → dropped (broad prefix removed)
+        "JETTSTUI_BASE_URL": "https://x", "JETTSTUI_INTERACTIVE": "1",
+        "JETTSTUI_KANBAN_DB": "postgres://u:p@h/db",
         # secret substrings (incl. new DSN/WEBHOOK) → dropped
         "SENTRY_DSN": "https://a@s.io/1", "SLACK_WEBHOOK": "https://h/x",
         "OPENAI_API_KEY": "sk", "GITHUB_TOKEN": "ghp",
@@ -477,12 +477,12 @@ def test_env_scrub_freeide_allowlist_and_secret_blocks():
     out = _scrub_child_env(env, is_passthrough=lambda _: False, is_windows=False)
 
     for kept in (
-        "FREEIDE_HOME", "FREEIDE_PROFILE", "FREEIDE_CONFIG", "FREEIDE_ENV",
-        "FREEIDE_DELEGATED_CHILD_CONTEXT", "PATH",
+        "JETTSTUI_HOME", "JETTSTUI_PROFILE", "JETTSTUI_CONFIG", "JETTSTUI_ENV",
+        "JETTSTUI_DELEGATED_CHILD_CONTEXT", "PATH",
     ):
         assert kept in out, f"{kept} should be kept"
     for dropped in (
-        "FREEIDE_BASE_URL", "FREEIDE_INTERACTIVE", "FREEIDE_KANBAN_DB",
+        "JETTSTUI_BASE_URL", "JETTSTUI_INTERACTIVE", "JETTSTUI_KANBAN_DB",
         "SENTRY_DSN", "SLACK_WEBHOOK", "OPENAI_API_KEY", "GITHUB_TOKEN",
         "RANDOM_X",
     ):
@@ -515,9 +515,9 @@ def test_execute_code_entry_blocks_before_spawn_when_guard_denies(monkeypatch, t
 
     marker = tmp_path / "child-ran.marker"
     monkeypatch.setattr(A, "_YOLO_MODE_FROZEN", False)
-    monkeypatch.setenv("FREEIDE_CRON_SESSION", "1")
-    monkeypatch.delenv("FREEIDE_GATEWAY_SESSION", raising=False)
-    monkeypatch.delenv("FREEIDE_INTERACTIVE", raising=False)
+    monkeypatch.setenv("JETTSTUI_CRON_SESSION", "1")
+    monkeypatch.delenv("JETTSTUI_GATEWAY_SESSION", raising=False)
+    monkeypatch.delenv("JETTSTUI_INTERACTIVE", raising=False)
     monkeypatch.setattr(A, "_get_approval_mode", lambda: "manual")
     monkeypatch.setattr(A, "_get_cron_approval_mode", lambda: "deny")
     monkeypatch.setattr(TT, "_get_env_config", lambda: {"env_type": "local"})
@@ -534,44 +534,44 @@ def test_execute_code_entry_blocks_before_spawn_when_guard_denies(monkeypatch, t
 # 6. Env-scrub diagnosability mitigation (#27303 follow-up)
 # ---------------------------------------------------------------------------
 
-def test_env_scrub_logs_dropped_freeide_vars(caplog):
-    """Dropping a non-allowlisted, non-secret FREEIDE_* var must be diagnosable:
+def test_env_scrub_logs_dropped_jettstui_vars(caplog):
+    """Dropping a non-allowlisted, non-secret JETTSTUI_* var must be diagnosable:
     the scrub emits a one-shot debug log naming the dropped vars and pointing at
     the env_passthrough opt-in, so the silent behavior change (#27303) doesn't
-    leave users guessing why a sandbox script sees an unset FREEIDE_* var."""
+    leave users guessing why a sandbox script sees an unset JETTSTUI_* var."""
     import logging
 
     from tools.code_execution_tool import _scrub_child_env
 
     env = {
-        "FREEIDE_HOME": "/h",          # allowlisted → kept, not logged
-        "FREEIDE_BASE_URL": "https://x",   # dropped → logged
-        "FREEIDE_KANBAN_DB": "postgres://u:p@h/db",  # dropped → logged
-        "FREEIDE_API_KEY": "sk",       # secret → dropped silently (not logged)
+        "JETTSTUI_HOME": "/h",          # allowlisted → kept, not logged
+        "JETTSTUI_BASE_URL": "https://x",   # dropped → logged
+        "JETTSTUI_KANBAN_DB": "postgres://u:p@h/db",  # dropped → logged
+        "JETTSTUI_API_KEY": "sk",       # secret → dropped silently (not logged)
         "PATH": "/usr/bin",           # safe prefix → kept
     }
     with caplog.at_level(logging.DEBUG, logger="tools.code_execution_tool"):
         out = _scrub_child_env(env, is_passthrough=lambda _: False, is_windows=False)
 
-    assert "FREEIDE_HOME" in out and "PATH" in out
-    assert "FREEIDE_BASE_URL" not in out and "FREEIDE_KANBAN_DB" not in out
+    assert "JETTSTUI_HOME" in out and "PATH" in out
+    assert "JETTSTUI_BASE_URL" not in out and "JETTSTUI_KANBAN_DB" not in out
 
     msgs = "\n".join(r.getMessage() for r in caplog.records)
-    assert "FREEIDE_BASE_URL" in msgs and "FREEIDE_KANBAN_DB" in msgs
+    assert "JETTSTUI_BASE_URL" in msgs and "JETTSTUI_KANBAN_DB" in msgs
     assert "env_passthrough" in msgs
     # Secret vars are dropped but must NOT be named in the diagnostic log.
-    assert "FREEIDE_API_KEY" not in msgs
+    assert "JETTSTUI_API_KEY" not in msgs
 
 
 def test_env_scrub_no_log_when_nothing_dropped(caplog):
-    """No diagnostic noise when there are no dropped FREEIDE_* vars."""
+    """No diagnostic noise when there are no dropped JETTSTUI_* vars."""
     import logging
 
     from tools.code_execution_tool import _scrub_child_env
 
     with caplog.at_level(logging.DEBUG, logger="tools.code_execution_tool"):
         _scrub_child_env(
-            {"FREEIDE_HOME": "/h", "PATH": "/usr/bin"},
+            {"JETTSTUI_HOME": "/h", "PATH": "/usr/bin"},
             is_passthrough=lambda _: False,
             is_windows=False,
         )

@@ -71,10 +71,10 @@ class TestBuildLearnPrompt:
         assert "count" in std and "60" in std
         # #3 platforms gating against OS-bound primitives.
         assert "platforms" in std
-        # author is always the literal FreeIDE, never the host/OS identity (#52368).
-        assert "author: always the literal value `freeide`" in std
+        # author is always the literal JettsTUI, never the host/OS identity (#52368).
+        assert "author: always the literal value `jettstui`" in std
         assert "never fill it from the host" in std
-        # #2 FreeIDE-tool framing names the wrapped tools, not shell utilities.
+        # #2 JettsTUI-tool framing names the wrapped tools, not shell utilities.
         for tool in ("read_file", "search_files", "patch", "write_file"):
             assert tool in std
         # #6 scripts/references/templates layout.
@@ -83,25 +83,25 @@ class TestBuildLearnPrompt:
 
 class TestLearnRegistryWiring:
     def test_learn_is_registered_and_resolves(self):
-        from freeide_cli.commands import resolve_command
+        from jettstui.commands import resolve_command
 
         cmd = resolve_command("learn")
         assert cmd is not None
         assert cmd.name == "learn"
 
     def test_learn_is_in_tools_and_skills_category(self):
-        from freeide_cli.commands import resolve_command
+        from jettstui.commands import resolve_command
 
         assert resolve_command("learn").category == "Tools & Skills"
 
     def test_learn_works_on_the_gateway(self):
         # /learn must reach the gateway runner (it's a both-surfaces command),
         # not be CLI-only.
-        from freeide_cli.commands import GATEWAY_KNOWN_COMMANDS
+        from jettstui.commands import GATEWAY_KNOWN_COMMANDS
 
         assert "learn" in GATEWAY_KNOWN_COMMANDS
 
     def test_learn_is_not_cli_only(self):
-        from freeide_cli.commands import resolve_command
+        from jettstui.commands import resolve_command
 
         assert not resolve_command("learn").cli_only

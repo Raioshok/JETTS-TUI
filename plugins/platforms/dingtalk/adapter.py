@@ -905,7 +905,7 @@ class DingTalkAdapter(BasePlatformAdapter):
 
         payload = {
             "msgtype": "markdown",
-            "markdown": {"title": "FreeIDE", "text": normalized},
+            "markdown": {"title": "JettsTUI", "text": normalized},
         }
 
         try:
@@ -1042,7 +1042,7 @@ class DingTalkAdapter(BasePlatformAdapter):
             if not token:
                 return None
 
-            out_track_id = f"freeide_{uuid.uuid4().hex[:12]}"
+            out_track_id = f"jettstui_{uuid.uuid4().hex[:12]}"
 
             conversation_id = getattr(message, "conversation_id", "") or ""
             conversation_type = getattr(message, "conversation_type", "1")
@@ -1519,7 +1519,7 @@ class _IncomingHandler(
 # per-platform core touchpoints (the Platform.DINGTALK elif in gateway/run.py,
 # the dingtalk_cfg YAML→env block + _PLATFORM_CONNECTED_CHECKERS entry in
 # gateway/config.py, the _setup_dingtalk wizard + _PLATFORMS["dingtalk"] static
-# dict in freeide_cli/gateway.py, and the _send_dingtalk dispatch in
+# dict in jettstui/gateway.py, and the _send_dingtalk dispatch in
 # tools/send_message_tool.py).
 # ──────────────────────────────────────────────────────────────────────────
 
@@ -1575,13 +1575,13 @@ async def _standalone_send(
 def interactive_setup() -> None:
     """Configure DingTalk — QR scan (recommended) or manual credential entry.
 
-    Replaces freeide_cli/setup.py-era _setup_dingtalk + the static
-    _PLATFORMS["dingtalk"] dict in freeide_cli/gateway.py. CLI helpers are
+    Replaces jettstui/setup.py-era _setup_dingtalk + the static
+    _PLATFORMS["dingtalk"] dict in jettstui/gateway.py. CLI helpers are
     lazy-imported so the plugin's module-load surface stays minimal.
     """
-    from freeide_cli.config import get_env_value, save_env_value
-    from freeide_cli.setup import prompt_choice
-    from freeide_cli.cli_output import (
+    from jettstui.config import get_env_value, save_env_value
+    from jettstui.setup import prompt_choice
+    from jettstui.cli_output import (
         prompt,
         prompt_yes_no,
         print_header,
@@ -1607,7 +1607,7 @@ def interactive_setup() -> None:
 
     if method == 0:
         try:
-            from freeide_cli.dingtalk_auth import dingtalk_qr_auth
+            from jettstui.dingtalk_auth import dingtalk_qr_auth
         except ImportError as exc:
             print_warning(f"QR auth module failed to load ({exc}), falling back to manual input.")
             _manual_credential_entry(prompt, save_env_value, print_success)
@@ -1711,7 +1711,7 @@ def _build_adapter(config):
 
 
 def register(ctx) -> None:
-    """Plugin entry point — called by the FreeIDE plugin system."""
+    """Plugin entry point — called by the JettsTUI plugin system."""
     ctx.register_platform(
         name="dingtalk",
         label="DingTalk",

@@ -464,7 +464,7 @@ class TestTranscribeAudioDispatchToCommandProvider:
     """Verify ``transcribe_audio()`` picks command providers correctly.
 
     These tests bypass the lazy-load STT detection (faster-whisper /
-    FREEIDE_LOCAL_STT_COMMAND) by patching ``_load_stt_config`` directly.
+    JETTSTUI_LOCAL_STT_COMMAND) by patching ``_load_stt_config`` directly.
     """
 
     def _config_with_command_provider(self, name: str, command: str) -> dict:

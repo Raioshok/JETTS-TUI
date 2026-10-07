@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * FreeIDE Agent WhatsApp Bridge
+ * JettsTUI WhatsApp Bridge
  *
  * Standalone Node.js process that connects to WhatsApp via Baileys
  * and exposes HTTP endpoints for the Python gateway adapter.
@@ -16,7 +16,7 @@
  *   GET  /health         - Health check
  *
  * Usage:
- *   node bridge.js --port 3000 --session ~/.freeide/whatsapp/session
+ *   node bridge.js --port 3000 --session ~/.jettstui/whatsapp/session
  */
 
 import { makeWASocket, useMultiFileAuthState, DisconnectReason, fetchLatestBaileysVersion, downloadMediaMessage, getAggregateVotesInPollMessage, decryptPollVote, getKeyAuthor, jidNormalizedUser } from '@whiskeysockets/baileys';
@@ -76,21 +76,21 @@ const FORWARD_OWNER_MESSAGES =
   ['1', 'true', 'yes', 'on'].includes(process.env.WHATSAPP_FORWARD_OWNER_MESSAGES.toLowerCase());
 
 const PORT = parseInt(getArg('port', '3000'), 10);
-const SESSION_DIR = getArg('session', path.join(process.env.HOME || '~', '.freeide', 'whatsapp', 'session'));
+const SESSION_DIR = getArg('session', path.join(process.env.HOME || '~', '.jettstui', 'whatsapp', 'session'));
 // Cache directories: the Python gateway passes the profile-aware paths via
-// env (FREEIDE_HOME-aware, new cache/ layout).  Fall back to the legacy
+// env (JETTSTUI_HOME-aware, new cache/ layout).  Fall back to the legacy
 // hardcoded locations for bridges launched outside the gateway.
-const IMAGE_CACHE_DIR = process.env.FREEIDE_IMAGE_CACHE_DIR
-  || path.join(process.env.HOME || '~', '.freeide', 'image_cache');
-const DOCUMENT_CACHE_DIR = process.env.FREEIDE_DOCUMENT_CACHE_DIR
-  || path.join(process.env.HOME || '~', '.freeide', 'document_cache');
-const AUDIO_CACHE_DIR = process.env.FREEIDE_AUDIO_CACHE_DIR
-  || path.join(process.env.HOME || '~', '.freeide', 'audio_cache');
+const IMAGE_CACHE_DIR = process.env.JETTSTUI_IMAGE_CACHE_DIR
+  || path.join(process.env.HOME || '~', '.jettstui', 'image_cache');
+const DOCUMENT_CACHE_DIR = process.env.JETTSTUI_DOCUMENT_CACHE_DIR
+  || path.join(process.env.HOME || '~', '.jettstui', 'document_cache');
+const AUDIO_CACHE_DIR = process.env.JETTSTUI_AUDIO_CACHE_DIR
+  || path.join(process.env.HOME || '~', '.jettstui', 'audio_cache');
 
 // Self-hash of this script file.  Reported in /health so the Python gateway
 // can detect a running bridge that predates the current bridge.js and
 // restart it instead of silently reusing stale code (stale-bridge trap:
-// `freeide update` updates bridge.js on disk but a long-lived bridge process
+// `jettstui update` updates bridge.js on disk but a long-lived bridge process
 // keeps serving the old behavior forever).
 let SCRIPT_HASH = '';
 try {
@@ -104,7 +104,7 @@ const PAIR_JSON = args.includes('--pair-json');
 const WHATSAPP_MODE = getArg('mode', process.env.WHATSAPP_MODE || 'self-chat'); // "bot" or "self-chat"
 const WHATSAPP_DM_POLICY = String(process.env.WHATSAPP_DM_POLICY || 'open').trim().toLowerCase();
 const ALLOWED_USERS = parseAllowedUsers(process.env.WHATSAPP_ALLOWED_USERS || '');
-const DEFAULT_REPLY_PREFIX = '⚕ *FreeIDE Agent*\n────────────\n';
+const DEFAULT_REPLY_PREFIX = '⚕ *JettsTUI*\n────────────\n';
 const REPLY_PREFIX = process.env.WHATSAPP_REPLY_PREFIX === undefined
   ? DEFAULT_REPLY_PREFIX
   : process.env.WHATSAPP_REPLY_PREFIX.replace(/\\n/g, '\n');
@@ -323,7 +323,7 @@ function enqueuePollUpdateEvent({ key, update, selectedOptions, aggregation }) {
     || update?.pollUpdates?.[0]?.pollCreationMessageKey?.id
     || update?.pollUpdates?.[0]?.pollUpdateMessageKey?.id
     || '';
-  // Only surface votes on polls FreeIDE itself created (tracked when
+  // Only surface votes on polls JettsTUI itself created (tracked when
   // /send-poll returns). Arbitrary human polls in a group chat must not
   // inject agent-visible messages on every vote.
   if (!pollId || !recentlySentIds.has(pollId)) {
@@ -395,7 +395,7 @@ async function startSocket() {
     auth: state,
     logger,
     printQRInTerminal: false,
-    browser: ['FreeIDE Agent', 'Chrome', '120.0'],
+    browser: ['JettsTUI', 'Chrome', '120.0'],
     syncFullHistory: false,
     markOnlineOnConnect: false,
     // Required for Baileys 7.x: without this, incoming messages that need
@@ -565,7 +565,7 @@ async function startSocket() {
           // via WHATSAPP_FORWARD_OWNER_MESSAGES so existing deployments see
           // no behavior change. When opted in, we still gate on the
           // customer chatId allowlist — without that gate, any contact
-          // the owner replied to would leak into FreeIDE and trigger
+          // the owner replied to would leak into JettsTUI and trigger
           // implicit handover. See `owner_message_gate.js`.
           const decision = classifyOwnerMessageGate({
             fromMe: true,
@@ -723,7 +723,7 @@ async function startSocket() {
       });
       event.fromOwner = fromOwner;
 
-      // Ignore FreeIDE' own reply messages in self-chat mode to avoid loops.
+      // Ignore JettsTUI' own reply messages in self-chat mode to avoid loops.
       if (msg.key.fromMe && ((REPLY_PREFIX && event.body.startsWith(REPLY_PREFIX)) || recentlySentIds.has(msg.key.id))) {
         if (WHATSAPP_DEBUG) {
           emitDebugEvent({
@@ -910,7 +910,7 @@ app.post('/send-media', async (req, res) => {
           // as video/mp4.
           let tmpGifMp4 = null;
           try {
-            tmpGifMp4 = path.join(tmpdir(), `freeide_gif_${randomBytes(6).toString('hex')}.mp4`);
+            tmpGifMp4 = path.join(tmpdir(), `jettstui_gif_${randomBytes(6).toString('hex')}.mp4`);
             execFileSync(
               'ffmpeg',
               ['-y', '-i', filePath, '-movflags', 'faststart', '-pix_fmt', 'yuv420p', '-vf', 'scale=trunc(iw/2)*2:trunc(ih/2)*2', tmpGifMp4],
@@ -944,7 +944,7 @@ app.post('/send-media', async (req, res) => {
         const needsConversion = !['ogg', 'opus'].includes(ext);
         let tmpPath = null;
         if (needsConversion) {
-          tmpPath = path.join(tmpdir(), `freeide_voice_${randomBytes(6).toString('hex')}.ogg`);
+          tmpPath = path.join(tmpdir(), `jettstui_voice_${randomBytes(6).toString('hex')}.ogg`);
           try {
             execFileSync(
               'ffmpeg',

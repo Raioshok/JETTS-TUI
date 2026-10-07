@@ -13,8 +13,8 @@ import { __resetNativeNotifyBaselineForTests, markNativeNotifyBaseline } from '.
 import { $approvalRequest, setApprovalRequest } from './prompts'
 import { $activeSessionId, setActiveSessionId } from './session'
 
-const desktopWindow = window as unknown as { freeideDesktop?: Window['freeideDesktop'] }
-const initialFreeIDEDesktop = desktopWindow.freeideDesktop
+const desktopWindow = window as unknown as { jettstuiDesktop?: Window['jettstuiDesktop'] }
+const initialJettsTUIDesktop = desktopWindow.jettstuiDesktop
 
 const notify = vi.fn().mockResolvedValue(true)
 
@@ -35,7 +35,7 @@ function freshSession(): string {
 
 beforeEach(() => {
   notify.mockClear()
-  desktopWindow.freeideDesktop = { notify } as unknown as Window['freeideDesktop']
+  desktopWindow.jettstuiDesktop = { notify } as unknown as Window['jettstuiDesktop']
   setNativeNotifyEnabled(true)
 
   for (const kind of NATIVE_NOTIFICATION_KINDS) {
@@ -48,10 +48,10 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  if (initialFreeIDEDesktop) {
-    desktopWindow.freeideDesktop = initialFreeIDEDesktop
+  if (initialJettsTUIDesktop) {
+    desktopWindow.jettstuiDesktop = initialJettsTUIDesktop
   } else {
-    delete desktopWindow.freeideDesktop
+    delete desktopWindow.jettstuiDesktop
   }
 })
 
@@ -184,7 +184,7 @@ describe('sendTestNativeNotification', () => {
   it('fires regardless of focus or active session', () => {
     setWindowState({ focused: true, hidden: false })
     setActiveSessionId('on-screen')
-    sendTestNativeNotification('FreeIDE', 'works')
+    sendTestNativeNotification('JettsTUI', 'works')
     expect(notify).toHaveBeenCalledTimes(1)
   })
 })

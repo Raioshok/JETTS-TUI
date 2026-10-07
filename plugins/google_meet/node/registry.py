@@ -1,6 +1,6 @@
 """Local JSON registry of approved remote meet nodes.
 
-Lives at ``$FREEIDE_HOME/workspace/meetings/nodes.json``. The gateway
+Lives at ``$JETTSTUI_HOME/workspace/meetings/nodes.json``. The gateway
 consults it to resolve a ``chrome_node`` name to a ``(url, token)`` pair
 before opening a WebSocket to the remote bot host.
 
@@ -24,11 +24,11 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from freeide_constants import get_freeide_home
+from jettstui_constants import get_jettstui_home
 
 
 def _default_path() -> Path:
-    return Path(get_freeide_home()) / "workspace" / "meetings" / "nodes.json"
+    return Path(get_jettstui_home()) / "workspace" / "meetings" / "nodes.json"
 
 
 class NodeRegistry:

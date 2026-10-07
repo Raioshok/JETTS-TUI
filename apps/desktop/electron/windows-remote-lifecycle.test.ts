@@ -39,8 +39,8 @@ test('platform detection preserves POSIX and falls back to Windows PowerShell', 
       return JSON.stringify({
         os: 'Windows',
         arch: 'ARM64',
-        freeideHome: 'C:\\h',
-        freeidePath: 'C:\\h\\freeide.exe',
+        jettstuiHome: 'C:\\h',
+        jettstuiPath: 'C:\\h\\jettstui.exe',
         python: 'C:\\h\\python.exe'
       })
     })
@@ -52,7 +52,7 @@ test('platform detection preserves POSIX and falls back to Windows PowerShell', 
 
   assert.match(probe, /LOCALAPPDATA "jettstui"/)
   assert.match(probe, /Get-Command jetts-tui\.exe/)
-  assert.match(probe, /freeide-agent\\venv\\Scripts\\freeide\.exe/)
+  assert.match(probe, /jettstui\\venv\\Scripts\\jettstui\.exe/)
 })
 
 test('platform detection surfaces transport failures as themselves, not unsupported-platform', async () => {
@@ -77,23 +77,23 @@ test('platform detection surfaces transport failures as themselves, not unsuppor
           throw new Error('not recognized')
         }
 
-        throw new Error('FreeIDE is not installed on the remote Windows host.')
+        throw new Error('JettsTUI is not installed on the remote Windows host.')
       })
     ),
-    (err: any) => err.kind === 'unsupported-platform' && /FreeIDE is not installed/.test(err.message)
+    (err: any) => err.kind === 'unsupported-platform' && /JettsTUI is not installed/.test(err.message)
   )
 })
 
 test('helper command uses the fixed remote Python entry point and quotes path data', () => {
-  const command = helperCommand({ python: "C:\\Program Files\\FreeIDE's\\python.exe" }, 'inspect', [
-    'C:\\x y\\freeide.exe'
+  const command = helperCommand({ python: "C:\\Program Files\\JettsTUI's\\python.exe" }, 'inspect', [
+    'C:\\x y\\jettstui.exe'
   ])
 
   const encoded = command.split(' ').pop()!
   const script = Buffer.from(encoded, 'base64').toString('utf16le')
-  assert.match(script, /-m' 'freeide_cli\.windows_ssh_runtime' 'inspect'/)
-  assert.match(script, /FreeIDE''s/)
-  assert.match(script, /C:\\x y\\freeide\.exe/)
+  assert.match(script, /-m' 'jettstui\.windows_ssh_runtime' 'inspect'/)
+  assert.match(script, /JettsTUI''s/)
+  assert.match(script, /C:\\x y\\jettstui\.exe/)
 })
 
 test('Windows lock validation is scoped and exact', () => {
@@ -106,8 +106,8 @@ test('Windows lock validation is scoped and exact', () => {
     creationTimeNs: '1784219690452757504',
     port: 1234,
     tokenFingerprint: 'a'.repeat(32),
-    freeidePath: 'C:\\h\\freeide.exe',
-    freeideHome: 'C:\\h'
+    jettstuiPath: 'C:\\h\\jettstui.exe',
+    jettstuiHome: 'C:\\h'
   }
 
   assert.equal(validLock(lock, ownershipId), true)

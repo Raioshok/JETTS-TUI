@@ -14,7 +14,7 @@ Manage Docker containers, images, volumes, and Compose.
 
 | | |
 |---|---|
-| Source | Optional — install with `freeide skills install official/devops/docker-management` |
+| Source | Optional — install with `jettstui skills install official/devops/docker-management` |
 | Path | `optional-skills/devops/docker-management` |
 | Version | `1.0.0` |
 | Author | sprmn24 |
@@ -25,7 +25,7 @@ Manage Docker containers, images, volumes, and Compose.
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that FreeIDE loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that JettsTUI loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Docker Management

@@ -84,8 +84,8 @@ from agent.retry_utils import (
 )
 from agent.trajectory import has_incomplete_scratchpad
 from agent.usage_pricing import estimate_usage_cost, normalize_usage
-from freeide_constants import PARTIAL_STREAM_STUB_ID
-from freeide_logging import set_session_context
+from jettstui_constants import PARTIAL_STREAM_STUB_ID
+from jettstui_logging import set_session_context
 from tools.skill_provenance import set_current_write_origin
 from utils import base_url_host_matches, env_var_enabled
 
@@ -135,7 +135,7 @@ def _apply_active_turn_redirect(agent: Any, messages: List[Dict[str, Any]], text
     "Provider returned an empty response" storms that no retry, nudge, or
     empty-recovery branch can escape (July 2026: four sessions bricked this
     way; every reasoning-free checkpoint that week was untouched — same
-    mechanism as the ~/.freeide/prefill.json incident, 20/20 blocked with
+    mechanism as the ~/.jettstui/prefill.json incident, 20/20 blocked with
     assistant-exposed CoT vs 0/20 without). The interrupted reasoning was
     incomplete by definition; the model regenerates it on the retried turn.
     If a future path needs to preserve interrupted thinking, carry it in a
@@ -243,7 +243,7 @@ def _ollama_context_limit_error(agent: Any, request_tokens: int) -> Optional[str
     tool_count = len(getattr(agent, "tools", None) or [])
 
     logger.warning(
-        "Ollama runtime context too small for FreeIDE tool use: "
+        "Ollama runtime context too small for JettsTUI tool use: "
         "model=%s provider=%s base_url=%s runtime_context=%d "
         "minimum_context=%d estimated_request_tokens=%d tool_count=%d "
         "session=%s",
@@ -259,11 +259,11 @@ def _ollama_context_limit_error(agent: Any, request_tokens: int) -> Optional[str
 
     return (
         f"Ollama loaded `{model}` with only {runtime_ctx:,} tokens of runtime "
-        f"context, but FreeIDE needs at least {MINIMUM_CONTEXT_LENGTH:,} tokens "
+        f"context, but JettsTUI needs at least {MINIMUM_CONTEXT_LENGTH:,} tokens "
         "for reliable tool use.\n\n"
         "Increase the Ollama context for this model and restart/reload the "
         "model before trying again. A known-good starting point is 65,536 "
-        "tokens. In FreeIDE config, set `model.ollama_num_ctx: 65536` "
+        "tokens. In JettsTUI config, set `model.ollama_num_ctx: 65536` "
         "(and `model.context_length: 65536` if you also override the displayed "
         "model context). If you manage the model through an Ollama Modelfile, "
         "set `PARAMETER num_ctx 65536` there instead."
@@ -444,7 +444,7 @@ def _restore_or_build_system_prompt(agent, system_message, conversation_history)
     # session is created (not on continuation).  Plugins can use this
     # to initialise session-scoped state (e.g. warm a memory cache).
     try:
-        from freeide_cli.plugins import invoke_hook as _invoke_hook
+        from jettstui.plugins import invoke_hook as _invoke_hook
         _invoke_hook(
             "on_session_start",
             session_id=agent.session_id,
@@ -503,7 +503,7 @@ def _stored_prompt_matches_runtime(agent, prompt: str) -> bool:
 
         Anchor on the ``User home directory:`` line that immediately precedes
         the working-directory line in that block, and take the FIRST such
-        occurrence, so only FreeIDE' own emitted block can satisfy the read.
+        occurrence, so only JettsTUI' own emitted block can satisfy the read.
         """
         prefix = f"{label}:"
         lines = prompt.splitlines()
@@ -599,7 +599,7 @@ _CODEX_INCOMPLETE_NUDGE = (
 # share one trailer to keep the guidance from drifting between the two sites.
 _CONTENT_POLICY_RECOVERY_HINT = (
     "Try rephrasing the request, narrowing the context, or "
-    "adding a fallback provider with `freeide fallback add`."
+    "adding a fallback provider with `jettstui fallback add`."
 )
 
 
@@ -1038,7 +1038,7 @@ def run_conversation(
     """
     if moa_config is None:
         try:
-            from freeide_cli.moa_config import decode_moa_turn
+            from jettstui.moa_config import decode_moa_turn
 
             _decoded_message, _decoded_moa_config = decode_moa_turn(user_message)
             if _decoded_moa_config is not None:
@@ -1157,7 +1157,7 @@ def run_conversation(
 
     # Optional opt-in runtime: if api_mode == codex_app_server, hand the
     # turn to the codex app-server subprocess (terminal/file ops/patching
-    # all run inside Codex). Default FreeIDE path is bypassed entirely.
+    # all run inside Codex). Default JettsTUI path is bypassed entirely.
     # See agent/transports/codex_app_server_session.py for the adapter
     # and references/codex-app-server-runtime.md for the rationale.
     if agent.api_mode == "codex_app_server":
@@ -1437,9 +1437,9 @@ def run_conversation(
         # NOTE: Plugin context from pre_llm_call hooks is injected into the
         # user message (see injection block above), NOT the system prompt.
         # This is intentional — system prompt modifications break the prompt
-        # cache prefix.  The system prompt is reserved for FreeIDE internals.
+        # cache prefix.  The system prompt is reserved for JettsTUI internals.
         #
-        # FreeIDE invariant: the system prompt is built ONCE per session
+        # JettsTUI invariant: the system prompt is built ONCE per session
         # (cached on ``_cached_system_prompt``) and replayed verbatim on
         # every turn. ``apply_anthropic_cache_control`` may split its stable
         # prefix into content blocks on the wire, but the stored string and
@@ -1670,7 +1670,7 @@ def run_conversation(
             failed = True
             _turn_exit_reason = "ollama_runtime_context_too_small"
             messages.append({"role": "assistant", "content": final_response})
-            agent._emit_status("❌ Ollama runtime context is too small for FreeIDE tool use")
+            agent._emit_status("❌ Ollama runtime context is too small for JettsTUI tool use")
             api_call_count -= 1
             agent._api_call_count = api_call_count
             try:
@@ -1938,7 +1938,7 @@ def run_conversation(
                     api_kwargs["extra_headers"] = _xh
                     agent._is_user_initiated_turn = False
                 try:
-                    from freeide_cli.middleware import apply_llm_request_middleware
+                    from jettstui.middleware import apply_llm_request_middleware
 
                     _llm_request_mw = apply_llm_request_middleware(
                         api_kwargs,
@@ -1961,7 +1961,7 @@ def run_conversation(
                     _llm_middleware_trace = []
 
                 try:
-                    from freeide_cli.plugins import (
+                    from jettstui.plugins import (
                         has_hook,
                         invoke_hook as _invoke_hook,
                     )
@@ -2017,7 +2017,7 @@ def run_conversation(
                 except Exception:
                     pass
 
-                if env_var_enabled("FREEIDE_DUMP_REQUESTS"):
+                if env_var_enabled("JETTSTUI_DUMP_REQUESTS"):
                     agent._dump_api_request_debug(api_kwargs, reason="preflight")
 
                 # This object is private to the in-process MoA facade.  Add it
@@ -2093,7 +2093,7 @@ def run_conversation(
                         )
                     return agent._interruptible_api_call(next_api_kwargs)
 
-                from freeide_cli.middleware import run_llm_execution_middleware
+                from jettstui.middleware import run_llm_execution_middleware
 
                 _model_request_active = getattr(agent, "_model_request_active", None)
                 _redirect_lock = getattr(agent, "_pending_redirect_lock", None)
@@ -2561,7 +2561,7 @@ def run_conversation(
                     )
                     _refusal_response = (
                         "⚠️  The model declined to respond to this request "
-                        "(safety refusal — not a FreeIDE/gateway failure).\n\n"
+                        "(safety refusal — not a JettsTUI/gateway failure).\n\n"
                         f"{_refusal_detail}\n\n"
                         f"{_CONTENT_POLICY_RECOVERY_HINT}"
                     )
@@ -3643,21 +3643,21 @@ def run_conversation(
                         # means Azure rejected the JWT (RBAC role missing,
                         # az login expired, IMDS unreachable, etc.).
                         print(f"{agent.log_prefix}   Auth method: Microsoft Entra ID (httpx event hook)")
-                        print(f"{agent.log_prefix}   Run `freeide doctor` for credential-chain diagnostics, or")
+                        print(f"{agent.log_prefix}   Run `jettstui doctor` for credential-chain diagnostics, or")
                         print(f"{agent.log_prefix}   `az login` if your developer session expired.")
                     else:
                         auth_method = "Bearer (OAuth/setup-token)" if _is_oauth_token(key) else "x-api-key (API key)"
                         print(f"{agent.log_prefix}   Auth method: {auth_method}")
                         print(f"{agent.log_prefix}   Token prefix: {key[:12]}..." if isinstance(key, str) and len(key) > 12 else f"{agent.log_prefix}   Token: (empty or short)")
                     print(f"{agent.log_prefix}   Troubleshooting:")
-                    from freeide_constants import display_freeide_home as _dhh_fn
+                    from jettstui_constants import display_jettstui_home as _dhh_fn
                     _dhh = _dhh_fn()
-                    print(f"{agent.log_prefix}     • Check ANTHROPIC_TOKEN in {_dhh}/.env for FreeIDE-managed OAuth/setup tokens")
+                    print(f"{agent.log_prefix}     • Check ANTHROPIC_TOKEN in {_dhh}/.env for JettsTUI-managed OAuth/setup tokens")
                     print(f"{agent.log_prefix}     • Check ANTHROPIC_API_KEY in {_dhh}/.env for API keys or legacy token values")
                     print(f"{agent.log_prefix}     • For API keys: verify at https://platform.claude.com/settings/keys")
                     print(f"{agent.log_prefix}     • For Claude Code: run 'claude /login' to refresh, then retry")
-                    print(f"{agent.log_prefix}     • Legacy cleanup: freeide config set ANTHROPIC_TOKEN \"\"")
-                    print(f"{agent.log_prefix}     • Clear stale keys: freeide config set ANTHROPIC_API_KEY \"\"")
+                    print(f"{agent.log_prefix}     • Legacy cleanup: jettstui config set ANTHROPIC_TOKEN \"\"")
+                    print(f"{agent.log_prefix}     • Clear stale keys: jettstui config set ANTHROPIC_API_KEY \"\"")
 
                 # Thinking block signature recovery.
                 #
@@ -4115,7 +4115,7 @@ def run_conversation(
 
                 # Actionable hint for GitHub Models (Azure) 413 errors.
                 # The free tier enforces a hard 8K token cap per request,
-                # which FreeIDE' system prompt + tool schemas alone exceed.
+                # which JettsTUI' system prompt + tool schemas alone exceed.
                 # Compression can't help — the floor is the system prompt
                 # itself, not the conversation — so surface a clear "not
                 # compatible" message instead of looping into three futile
@@ -4130,7 +4130,7 @@ def run_conversation(
                         force=True,
                     )
                     agent._vprint(
-                        f"{agent.log_prefix}      request at ~8K tokens. FreeIDE' system prompt + tool schemas baseline",
+                        f"{agent.log_prefix}      request at ~8K tokens. JettsTUI' system prompt + tool schemas baseline",
                         force=True,
                     )
                     agent._vprint(
@@ -4138,7 +4138,7 @@ def run_conversation(
                         force=True,
                     )
                     agent._vprint(
-                        f"{agent.log_prefix}      Use the `copilot` provider with a Copilot subscription token (`freeide",
+                        f"{agent.log_prefix}      Use the `copilot` provider with a Copilot subscription token (`jettstui",
                         force=True,
                     )
                     agent._vprint(
@@ -4265,7 +4265,7 @@ def run_conversation(
                         # cap for the failed request, so keep it as an upper
                         # bound.  Also estimate the current API request shape
                         # (system prompt, injected context, tool schemas) because
-                        # FreeIDE may add API-only content not present in persisted
+                        # JettsTUI may add API-only content not present in persisted
                         # messages.  Use the smaller budget and apply a small
                         # safety margin.  Do not alter context_length.
                         request_input_estimate = estimate_request_tokens_rough(
@@ -4618,13 +4618,13 @@ def run_conversation(
                                 agent._vprint(f"{agent.log_prefix}   💡 Codex OAuth token was rejected (HTTP 401). Your token may have been", force=True)
                                 agent._vprint(f"{agent.log_prefix}      refreshed by another client (Codex CLI, VS Code). To fix:", force=True)
                                 agent._vprint(f"{agent.log_prefix}      1. Run `codex` in your terminal to generate fresh tokens.", force=True)
-                                agent._vprint(f"{agent.log_prefix}      2. Then run `freeide auth` to re-authenticate.", force=True)
+                                agent._vprint(f"{agent.log_prefix}      2. Then run `jettstui auth` to re-authenticate.", force=True)
                             elif _provider == "xai-oauth":
                                 agent._vprint(f"{agent.log_prefix}   💡 xAI OAuth token was rejected (HTTP 401). To fix:", force=True)
-                                agent._vprint(f"{agent.log_prefix}      re-authenticate with xAI Grok OAuth (SuperGrok / Premium+) from `freeide model`.", force=True)
+                                agent._vprint(f"{agent.log_prefix}      re-authenticate with xAI Grok OAuth (SuperGrok / Premium+) from `jettstui model`.", force=True)
                         else:
                             agent._vprint(f"{agent.log_prefix}   💡 Your API key was rejected by the provider. Check:", force=True)
-                            agent._vprint(f"{agent.log_prefix}      • Is the key valid? Run: freeide setup", force=True)
+                            agent._vprint(f"{agent.log_prefix}      • Is the key valid? Run: jettstui setup", force=True)
                             agent._vprint(f"{agent.log_prefix}      • Does your account have access to {_model}?", force=True)
                             if base_url_host_matches(str(_base), "openrouter.ai"):
                                 agent._vprint(f"{agent.log_prefix}      • Check credits: https://openrouter.ai/settings/credits", force=True)
@@ -4649,7 +4649,7 @@ def run_conversation(
                             force=True,
                         )
                         agent._vprint(
-                            f"{agent.log_prefix}        freeide fallback add   (interactive picker — same as `freeide model`)",
+                            f"{agent.log_prefix}        jettstui fallback add   (interactive picker — same as `jettstui model`)",
                             force=True,
                         )
                     # TLS certificate failures are environment problems, not
@@ -4706,7 +4706,7 @@ def run_conversation(
                     if classified.reason == FailoverReason.content_policy_blocked:
                         _policy_response = (
                             "⚠️  The model provider's safety filter blocked this request "
-                            "(not a FreeIDE/gateway failure).\n\n"
+                            "(not a JettsTUI/gateway failure).\n\n"
                             f"Provider message: {_nonretryable_summary}\n\n"
                             f"{_CONTENT_POLICY_RECOVERY_HINT}"
                         )
@@ -4874,8 +4874,8 @@ def run_conversation(
                         agent._vprint(
                             f"{agent.log_prefix}      1. Set "
                             f"`providers.{_provider}.models.{_model}.stale_timeout_seconds: 900` "
-                            f"in `~/.freeide/config.yaml` to extend the per-call "
-                            f"timeout. (FreeIDE's built-in floor is 600s for "
+                            f"in `~/.jettstui/config.yaml` to extend the per-call "
+                            f"timeout. (JettsTUI's built-in floor is 600s for "
                             f"known reasoning models — if you still see this "
                             f"after raising, the upstream cap is even shorter.)",
                             force=True,
@@ -5146,7 +5146,7 @@ def run_conversation(
                     assistant_message.content = str(raw)
 
             try:
-                from freeide_cli.plugins import (
+                from jettstui.plugins import (
                     has_hook,
                     invoke_hook as _invoke_hook,
                 )
@@ -5729,7 +5729,7 @@ def run_conversation(
                 try:
                     # Persist the assistant tool-call turn before any tool
                     # side effects run. If a destructive tool restarts or
-                    # terminates FreeIDE mid-turn, resume logic still sees the
+                    # terminates JettsTUI mid-turn, resume logic still sees the
                     # exact tool-call block that already executed.
                     _tool_turn_persisted = agent._flush_messages_to_session_db(
                         messages, conversation_history
@@ -5970,7 +5970,7 @@ def run_conversation(
                 # takes ~0s to process) followed by slow post-tool
                 # processing (compression, persist) and a slow
                 # follow-up API call can exceed the gateway inactivity
-                # timeout (FREEIDE_AGENT_TIMEOUT, default 1800s) and the
+                # timeout (JETTSTUI_AGENT_TIMEOUT, default 1800s) and the
                 # gateway kills the session before the next activity
                 # touch fires (#69559, #69131).
                 agent._touch_activity(f"tool results posted, continuing iteration #{api_call_count}")
@@ -6479,7 +6479,7 @@ def run_conversation(
                 _attempt = getattr(agent, "_pre_verify_nudges", 0)
                 try:
                     from agent.verify_hooks import max_verify_nudges
-                    from freeide_cli.plugins import get_pre_verify_continue_message, has_hook
+                    from jettstui.plugins import get_pre_verify_continue_message, has_hook
 
                     if _edited and has_hook("pre_verify") and _attempt < max_verify_nudges():
                         # Posture is fixed for the session — resolve once + cache.
@@ -6563,7 +6563,7 @@ def run_conversation(
                     logger.info(
                         "kanban stop-loop nudge issued (attempt %d) task=%s",
                         agent._kanban_stop_nudges,
-                        os.environ.get("FREEIDE_KANBAN_TASK", ""),
+                        os.environ.get("JETTSTUI_KANBAN_TASK", ""),
                     )
                     agent._emit_status(
                         "⚠️ Kanban worker tried to exit without "

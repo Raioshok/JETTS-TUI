@@ -13,8 +13,8 @@ import tui_gateway.server as server
 @pytest.fixture(autouse=True)
 def _isolated_project_databases(tmp_path, monkeypatch):
     """Use explicit test DB paths even when other gateway modules were imported."""
-    from freeide_cli import projects_db
-    from freeide_state import SessionDB
+    from jettstui import projects_db
+    from jettstui_state import SessionDB
 
     session_db = SessionDB(db_path=tmp_path / "state.db")
     monkeypatch.setattr(server, "_get_db", lambda: session_db)
@@ -268,7 +268,7 @@ def test_record_repos_persists_and_shows_zero_session_repo(tmp_path):
     repo = tmp_path / "fresh-repo"
     repo.mkdir()
 
-    # Repo-first: a scanned repo with no freeide sessions still surfaces.
+    # Repo-first: a scanned repo with no jettstui sessions still surfaces.
     _call("projects.record_repos", {"repos": [{"root": str(repo), "label": "fresh-repo"}]})
 
     by_label = {r["label"]: r for r in _call("projects.discover_repos")["repos"]}
@@ -282,7 +282,7 @@ def test_scan_time_is_not_treated_as_session_activity(tmp_path):
     ``discovered_repos.last_seen`` records when the disk scan last saw the
     directory. Folding it into ``last_active`` stamped every scanned checkout
     with the scan time — i.e. "just now" — so repos the user has never opened
-    in FreeIDE outranked the ones they actually work in.
+    in JettsTUI outranked the ones they actually work in.
     """
     worked_in = tmp_path / "worked-in"
     worked_in.mkdir()
@@ -311,7 +311,7 @@ def test_scan_time_is_not_treated_as_session_activity(tmp_path):
 def test_terminal_session_persists_its_launch_cwd():
     """A terminal session's cwd IS its workspace, so the row must record it.
 
-    The user cd'd into that directory before running freeide. Dropping it left
+    The user cd'd into that directory before running jettstui. Dropping it left
     the row with no cwd and no git_repo_root, so the sidebar could never place
     the session under its project.
     """

@@ -1,16 +1,16 @@
-"""Cross-session FREEIDE_SESSION_ID leak via the shared bash snapshot.
+"""Cross-session JETTSTUI_SESSION_ID leak via the shared bash snapshot.
 
 Regression coverage for the bug where a single long-lived backend serves many
 sessions through ONE ``_active_environments["default"]`` LocalEnvironment (the
 messaging gateway, TUI, and desktop/web dashboard all collapse the terminal to
 "default"). That environment persists a bash *session snapshot* file and
 ``source``s it before every command. ``export -p`` dumped the FIRST session's
-``FREEIDE_SESSION_ID`` into the snapshot, so every LATER session ``source``d that
-stale value and its ``echo $FREEIDE_SESSION_ID`` reported a FOREIGN session's id
+``JETTSTUI_SESSION_ID`` into the snapshot, so every LATER session ``source``d that
+stale value and its ``echo $JETTSTUI_SESSION_ID`` reported a FOREIGN session's id
 — overriding the correct per-command Popen env injected by
 ``_inject_session_context_env``.
 
-The fix strips the per-session bridged vars (FREEIDE_SESSION_* / UI /
+The fix strips the per-session bridged vars (JETTSTUI_SESSION_* / UI /
 CRON_AUTO_DELIVER_) from the snapshot at both dump sites in
 ``tools/environments/base.py``; they are re-injected fresh on every command.
 """
@@ -46,9 +46,9 @@ def test_regex_preserves_user_env():
     for line in (
         'declare -x PATH="/usr/bin:/bin"',
         'declare -x HOME="/home/user"',
-        'declare -x FREEIDE_HOME="/home/user/.freeide"',  # NOT a session var
-        'declare -x FREEIDEX="x"',
-        'declare -x MY_FREEIDE_SESSION_ID="x"',  # prefix must anchor after "declare -x "
+        'declare -x JETTSTUI_HOME="/home/user/.jettstui"',  # NOT a session var
+        'declare -x JETTSTUIX="x"',
+        'declare -x MY_JETTSTUI_SESSION_ID="x"',  # prefix must anchor after "declare -x "
     ):
         assert not rx.search(line), f"{line!r} must be preserved in the snapshot"
 
@@ -59,9 +59,9 @@ def test_export_snippet_shape():
     # Unset-by-name (not line-grep): multi-line declare values must not leave
     # continuation lines in the snapshot (issue #71296).
     assert "unset" in snippet
-    assert "${!FREEIDE_SESSION_*}" in snippet
-    assert "${!FREEIDE_CRON_AUTO_DELIVER_*}" in snippet
-    assert "FREEIDE_UI_SESSION_ID" in snippet
+    assert "${!JETTSTUI_SESSION_*}" in snippet
+    assert "${!JETTSTUI_CRON_AUTO_DELIVER_*}" in snippet
+    assert "JETTSTUI_UI_SESSION_ID" in snippet
     assert "grep -vE" not in snippet
     assert "/tmp/snap.tmp.$BASHPID" in snippet
     # The redirection must be attached to a brace group wrapping the dump,
@@ -95,7 +95,7 @@ def test_shared_snapshot_no_cross_session_leak(tmp_path):
                 for v in _VAR_MAP.values():
                     v.set(_UNSET)
                 set_session_vars(session_key="k" + sid, session_id=sid, source="desktop")
-                out["r"] = env.execute('echo "[$FREEIDE_SESSION_ID]"')
+                out["r"] = env.execute('echo "[$JETTSTUI_SESSION_ID]"')
 
             t = threading.Thread(target=worker)
             t.start()
@@ -114,6 +114,6 @@ def test_shared_snapshot_no_cross_session_leak(tmp_path):
         snap = env._snapshot_path
         if os.path.exists(snap):
             with open(snap) as f:
-                assert "FREEIDE_SESSION_ID" not in f.read()
+                assert "JETTSTUI_SESSION_ID" not in f.read()
     finally:
         env.cleanup()

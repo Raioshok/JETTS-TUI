@@ -1,9 +1,15 @@
 import type { SessionActiveItem } from '../gatewayTypes.js'
 
 /** Compact recency label: now | Nm | Nh | Nd. Empty when unknown or future. */
+// The gateway reports `last_active` as Unix seconds (Python `time.time()`);
+// anything below ~1973 in milliseconds is therefore a seconds value.
+const SECONDS_CEILING = 1e11
+
 export const relativeTime = (ts: number | undefined, now: number): string => {
-  if (!ts || ts > now) {return ''}
-  const delta = Math.max(0, now - ts)
+  const ms = ts && ts < SECONDS_CEILING ? ts * 1000 : ts
+
+  if (!ms || ms > now) {return ''}
+  const delta = Math.max(0, now - ms)
 
   if (delta < 60_000) {return 'now'}
 

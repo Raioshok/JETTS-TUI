@@ -46,7 +46,7 @@ from urllib import request as urllib_request
 from urllib.error import HTTPError, URLError
 from urllib.parse import urlparse
 
-from freeide_cli.urllib_security import open_credentialed_url
+from jettstui.urllib_security import open_credentialed_url
 
 logger = logging.getLogger(__name__)
 
@@ -158,7 +158,7 @@ def _http_get_json(url: str,
     token, mode = _resolve_credential(api_key, token_provider)
     req = urllib_request.Request(url, method="GET")
     _apply_auth_headers(req, token, mode)
-    req.add_header("User-Agent", "freeide-agent/azure-detect")
+    req.add_header("User-Agent", "jettstui/azure-detect")
     try:
         with open_credentialed_url(req, timeout=timeout) as resp:
             body = resp.read()
@@ -269,7 +269,7 @@ def _probe_anthropic_messages(base_url: str,
     _apply_auth_headers(req, token, mode)
     req.add_header("anthropic-version", "2023-06-01")
     req.add_header("content-type", "application/json")
-    req.add_header("User-Agent", "freeide-agent/azure-detect")
+    req.add_header("User-Agent", "jettstui/azure-detect")
     try:
         with open_credentialed_url(req, timeout=6.0) as resp:
             # Should never 200 — "probe" isn't a real deployment.  But

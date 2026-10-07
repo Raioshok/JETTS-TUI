@@ -1,5 +1,5 @@
 """
-Top-level argparse construction for the freeide CLI.
+Top-level argparse construction for the jettstui CLI.
 
 Lives in its own module so other modules (e.g. ``relaunch.py``) can
 introspect the parser to discover which flags exist without running the
@@ -14,7 +14,7 @@ import argparse
 
 
 # `--profile` / `-p` is consumed by ``main._apply_profile_override`` before
-# argparse runs (it sets ``FREEIDE_HOME`` and strips itself from ``sys.argv``),
+# argparse runs (it sets ``JETTSTUI_HOME`` and strips itself from ``sys.argv``),
 # so it isn't on the parser. Listed here so all "carry over on relaunch"
 # metadata lives in one file.
 PRE_ARGPARSE_INHERITED_FLAGS: list[tuple[str, bool]] = [
@@ -24,7 +24,7 @@ PRE_ARGPARSE_INHERITED_FLAGS: list[tuple[str, bool]] = [
 
 
 def _inherited_flag(parser, *args, **kwargs):
-    """Register a flag that ``freeide_cli.relaunch`` should carry over when
+    """Register a flag that ``jettstui.relaunch`` should carry over when
     the CLI re-execs itself (e.g. after ``sessions browse`` picks a session,
     or after the setup wizard launches chat).
 
@@ -60,7 +60,7 @@ def build_top_level_parser():
     """
     parser = argparse.ArgumentParser(
         prog="jetts-tui",
-        description="Jetts-TUI - terminal-first AI workspace",
+        description="JettsTUI - terminal-first AI workspace",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=_EPILOGUE,
     )
@@ -95,7 +95,7 @@ def build_top_level_parser():
     # --model / --provider are accepted at the top level so they can pair
     # with -z without needing the `chat` subcommand.  If neither -z nor a
     # subcommand consumes them, they fall through harmlessly as None.
-    # Mirrors `freeide chat --model ... --provider ...` semantics.
+    # Mirrors `jettstui chat --model ... --provider ...` semantics.
     _inherited_flag(
         parser,
         "-m",
@@ -103,7 +103,7 @@ def build_top_level_parser():
         default=None,
         help=(
             "Model override for this invocation (e.g. anthropic/claude-sonnet-4.6). "
-            "Applies to -z/--oneshot and the terminal UI. Also settable via FREEIDE_INFERENCE_MODEL env var."
+            "Applies to -z/--oneshot and the terminal UI. Also settable via JETTSTUI_INFERENCE_MODEL env var."
         ),
     )
     _inherited_flag(
@@ -159,7 +159,7 @@ def build_top_level_parser():
         default=False,
         help=(
             "Auto-approve any unseen shell hooks declared in config.yaml "
-            "without a TTY prompt.  Equivalent to FREEIDE_ACCEPT_HOOKS=1 or "
+            "without a TTY prompt.  Equivalent to JETTSTUI_ACCEPT_HOOKS=1 or "
             "hooks_auto_accept: true in config.yaml.  Use on CI / headless "
             "runs that can't prompt."
         ),
@@ -238,7 +238,7 @@ def build_top_level_parser():
     chat_parser = subparsers.add_parser(
         "chat",
         help="Interactive chat with the agent",
-        description="Start an interactive chat session with Jetts-TUI",
+        description="Start an interactive chat session with JettsTUI",
     )
     chat_parser.add_argument(
         "-q", "--query", help="Single query (non-interactive mode)"
@@ -247,7 +247,7 @@ def build_top_level_parser():
         "--image", help="Optional local image path to attach to a single query"
     )
     # `default=argparse.SUPPRESS` on flags that are ALSO declared on the
-    # top-level parser: when the user writes `freeide -m foo chat`, argparse
+    # top-level parser: when the user writes `jettstui -m foo chat`, argparse
     # first sets `args.model = "foo"` from the top-level parser, then
     # dispatches to the chat subparser. Without SUPPRESS the chat subparser's
     # own default (`None`) would silently clobber the top-level value because
@@ -255,7 +255,7 @@ def build_top_level_parser():
     # subparser action a no-op unless the user actually passes the flag after
     # the subcommand. Matches the pattern already used for `-s/--skills` and
     # the relaunch-inherited flags `-r/--resume`, `-c/--continue`,
-    # `-w/--worktree`, `--yolo`, etc. (see tests/freeide_cli/
+    # `-w/--worktree`, `--yolo`, etc. (see tests/jettstui_cli/
     # test_argparse_flag_propagation.py).
     _inherited_flag(
         chat_parser,
@@ -336,7 +336,7 @@ def build_top_level_parser():
         default=argparse.SUPPRESS,
         help=(
             "Auto-approve any unseen shell hooks declared in config.yaml "
-            "without a TTY prompt (see also FREEIDE_ACCEPT_HOOKS env var and "
+            "without a TTY prompt (see also JETTSTUI_ACCEPT_HOOKS env var and "
             "hooks_auto_accept: in config.yaml)."
         ),
     )
@@ -386,7 +386,7 @@ def build_top_level_parser():
         "--safe-mode",
         action="store_true",
         default=argparse.SUPPRESS,
-        help="Troubleshooting mode: disable ALL customizations — user config, AGENTS.md/memory injection, plugins, and MCP servers (implies --ignore-user-config and --ignore-rules). Use to isolate whether a problem comes from your setup or from Jetts-TUI itself.",
+        help="Troubleshooting mode: disable ALL customizations — user config, AGENTS.md/memory injection, plugins, and MCP servers (implies --ignore-user-config and --ignore-rules). Use to isolate whether a problem comes from your setup or from JettsTUI itself.",
     )
     chat_parser.add_argument(
         "--source",

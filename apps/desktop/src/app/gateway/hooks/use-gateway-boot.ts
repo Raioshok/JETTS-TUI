@@ -1,8 +1,8 @@
 import { isGatewayReauthRequired, resolveGatewayWsUrl } from '@jetts-tui/shared'
 import { useEffect, useRef } from 'react'
 
-import { FreeIDEGateway } from '@/freeide'
-import type { FreeIDEConnection } from '@/global'
+import { JettsTUIGateway } from '@/jettstui'
+import type { JettsTUIConnection } from '@/global'
 import { translateNow } from '@/i18n'
 import { desktopDefaultCwd } from '@/lib/desktop-fs'
 import {
@@ -38,7 +38,7 @@ import {
   setSessionsLoading
 } from '@/store/session'
 import { $attentionSessionIds, $workingSessionIds, resetTileRuntimeBindings } from '@/store/session-states'
-import type { RpcEvent } from '@/types/freeide'
+import type { RpcEvent } from '@/types/jettstui'
 
 import { stashGatewaySurvivor, survivorIsStale, takeGatewaySurvivor } from './gateway-hmr-survivor'
 
@@ -53,10 +53,10 @@ interface GatewayBootOptions {
   beforeConnectionSwitch: () => void
   handleGatewayEvent: (event: RpcEvent) => void
   onConnectionReady: (
-    connection: Awaited<ReturnType<NonNullable<typeof window.freeideDesktop>['getConnection']>> | null
+    connection: Awaited<ReturnType<NonNullable<typeof window.jettstuiDesktop>['getConnection']>> | null
   ) => void
-  onGatewayReady: (gateway: FreeIDEGateway | null) => void
-  refreshFreeIDEConfig: () => Promise<void>
+  onGatewayReady: (gateway: JettsTUIGateway | null) => void
+  refreshJettsTUIConfig: () => Promise<void>
   refreshSessions: () => Promise<void>
 }
 
@@ -65,7 +65,7 @@ export function useGatewayBoot({
   handleGatewayEvent,
   onConnectionReady,
   onGatewayReady,
-  refreshFreeIDEConfig,
+  refreshJettsTUIConfig,
   refreshSessions
 }: GatewayBootOptions) {
   const callbacksRef = useRef({
@@ -73,7 +73,7 @@ export function useGatewayBoot({
     handleGatewayEvent,
     onConnectionReady,
     onGatewayReady,
-    refreshFreeIDEConfig,
+    refreshJettsTUIConfig,
     refreshSessions
   })
 
@@ -82,15 +82,15 @@ export function useGatewayBoot({
     handleGatewayEvent,
     onConnectionReady,
     onGatewayReady,
-    refreshFreeIDEConfig,
+    refreshJettsTUIConfig,
     refreshSessions
   }
 
   useEffect(() => {
     let cancelled = false
-    const desktop = window.freeideDesktop
+    const desktop = window.jettstuiDesktop
 
-    const publish = (next: FreeIDEConnection | null) => {
+    const publish = (next: JettsTUIConnection | null) => {
       callbacksRef.current.onConnectionReady(next)
       setConnection(next)
     }
@@ -105,7 +105,7 @@ export function useGatewayBoot({
     // --- Reconnect-after-sleep machinery -------------------------------------
     // macOS sleep silently drops the renderer's WebSocket. The backend Python
     // process keeps running, but nothing re-opened the socket on wake, so the
-    // composer stayed disabled forever on "Starting FreeIDE...". Once the
+    // composer stayed disabled forever on "Starting JettsTUI...". Once the
     // initial boot succeeds we treat any non-open state as recoverable and
     // reconnect with backoff, and we nudge a reconnect on the OS/browser
     // signals that fire around wake (power resume, network online, the window
@@ -147,7 +147,7 @@ export function useGatewayBoot({
         // remote backend can become unreachable, but it has no child process
         // whose 'exit' would clear the main process's cached descriptor — without
         // this the renderer re-dials the same dead endpoint forever and stays on
-        // "Starting FreeIDE…". The probe is a no-op for a healthy or local backend.
+        // "Starting JettsTUI…". The probe is a no-op for a healthy or local backend.
         await desktop.revalidateConnection?.().catch(() => undefined)
 
         const conn = await desktop.getConnection($activeGatewayProfile.get())
@@ -160,7 +160,7 @@ export function useGatewayBoot({
         // Re-mint the WS URL before reconnecting. OAuth tickets are single-use
         // with a short TTL, so the ticket baked into the cached conn.wsUrl is
         // dead on every reconnect after the initial boot — reusing it surfaces
-        // as an opaque "Could not connect to FreeIDE gateway". resolveGatewayWsUrl
+        // as an opaque "Could not connect to JettsTUI gateway". resolveGatewayWsUrl
         // mints a fresh ticket rather than connecting with a stale one. An
         // explicit auth rejection asks for sign-in; transport failures stay in
         // this reconnect loop. For local/token gateways the URL carries a
@@ -177,7 +177,7 @@ export function useGatewayBoot({
         // bound runtime id is now stale — drop them so each tile re-resumes.
         resetTileRuntimeBindings()
         // Resync state that may have moved on the backend while we were asleep.
-        await callbacksRef.current.refreshFreeIDEConfig().catch(() => undefined)
+        await callbacksRef.current.refreshJettsTUIConfig().catch(() => undefined)
         await callbacksRef.current.refreshSessions().catch(() => undefined)
       } catch (err) {
         // OAuth session expired mid-reconnect: surface the actionable "sign in
@@ -297,7 +297,7 @@ export function useGatewayBoot({
         await adoptPrimaryProfile()
         await Promise.all([
           seedDefaultCwd(),
-          callbacksRef.current.refreshFreeIDEConfig().catch(() => undefined),
+          callbacksRef.current.refreshJettsTUIConfig().catch(() => undefined),
           callbacksRef.current.refreshSessions().catch(() => undefined)
         ])
         completeDesktopBoot()
@@ -315,7 +315,7 @@ export function useGatewayBoot({
     }
 
     const offBootProgress = desktop.onBootProgress(payload => {
-      // Soft switch / post-boot startFreeIDE re-emits progress — ignore so the
+      // Soft switch / post-boot startJettsTUI re-emits progress — ignore so the
       // cold-boot CONNECTING overlay stays down. Errors still surface.
       if ($gatewaySwitching.get() || bootCompleted) {
         if (payload.error) {
@@ -357,7 +357,7 @@ export function useGatewayBoot({
       }
     }
 
-    const gateway = adoptedFromHmr ? survivor!.gateway : new FreeIDEGateway()
+    const gateway = adoptedFromHmr ? survivor!.gateway : new JettsTUIGateway()
 
     callbacksRef.current.onGatewayReady(gateway)
     setPrimaryGateway(gateway, survivor?.profile ?? normalizeProfileKey($activeGatewayProfile.get()))
@@ -506,12 +506,12 @@ export function useGatewayBoot({
 
         await Promise.all([
           seedDefaultCwd(),
-          callbacksRef.current.refreshFreeIDEConfig(),
+          callbacksRef.current.refreshJettsTUIConfig(),
           // Session-list population is never boot-fatal. The gateway WS is
           // already open by this point — a failed sidebar fetch (transient
           // blip, or an endpoint the fallback couldn't cover) must leave the
           // app usable with an empty sidebar (the reconnect/turn refreshes
-          // retry it), not brick boot behind the "FreeIDE couldn't start"
+          // retry it), not brick boot behind the "JettsTUI couldn't start"
           // overlay. Matches the reconnect + softSwitch call sites.
           callbacksRef.current.refreshSessions().catch(() => {
             setSessionsLoading(false)
@@ -556,7 +556,7 @@ export function useGatewayBoot({
       // input doesn't sit disabled after the swap.
       reportPrimaryGatewayState(gateway.connectionState)
 
-      await callbacksRef.current.refreshFreeIDEConfig().catch(() => undefined)
+      await callbacksRef.current.refreshJettsTUIConfig().catch(() => undefined)
 
       if (cancelled) {
         return

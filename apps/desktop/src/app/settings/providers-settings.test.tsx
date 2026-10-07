@@ -2,7 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { atom } from 'nanostores'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { EnvVarInfo, OAuthProvider } from '@/types/freeide'
+import type { EnvVarInfo, OAuthProvider } from '@/types/jettstui'
 
 const listOAuthProviders = vi.fn()
 const disconnectOAuthProvider = vi.fn()
@@ -11,7 +11,7 @@ const startManualProviderOAuth = vi.fn()
 const startManualLocalEndpoint = vi.fn()
 const onboarding = atom({ manual: false })
 
-vi.mock('@/freeide', () => ({
+vi.mock('@/jettstui', () => ({
   disconnectOAuthProvider: (providerId: string) => disconnectOAuthProvider(providerId),
   getEnvVars: () => getEnvVars(),
   listOAuthProviders: () => listOAuthProviders()
@@ -25,12 +25,12 @@ vi.mock('@/store/onboarding', () => ({
 
 function provider(id: string, loggedIn: boolean, patch: Partial<OAuthProvider> = {}): OAuthProvider {
   return {
-    cli_command: `freeide auth add ${id}`,
+    cli_command: `jettstui auth add ${id}`,
     disconnectable: true,
     docs_url: '',
     flow: 'device_code',
     id,
-    name: id === 'nous' ? 'FreeIDE Portal' : 'MiniMax',
+    name: id === 'nous' ? 'JettsTUI Portal' : 'MiniMax',
     status: {
       logged_in: loggedIn
     },
@@ -123,8 +123,8 @@ describe('ProvidersSettings', () => {
     listOAuthProviders.mockResolvedValue({
       providers: [
         provider('qwen-oauth', true, {
-          cli_command: 'freeide auth add qwen-oauth',
-          disconnect_hint: "Use `freeide auth add qwen-oauth` or that provider's CLI to remove it.",
+          cli_command: 'jettstui auth add qwen-oauth',
+          disconnect_hint: "Use `jettstui auth add qwen-oauth` or that provider's CLI to remove it.",
           disconnectable: false,
           flow: 'external',
           name: 'Qwen (via Qwen CLI)'

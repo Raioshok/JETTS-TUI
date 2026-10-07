@@ -24,7 +24,7 @@ def sample_repo(tmp_path: Path) -> Path:
     repo = tmp_path / "repo"
     repo.mkdir()
     _git(repo, "init")
-    _git(repo, "config", "user.name", "FreeIDE Tests")
+    _git(repo, "config", "user.name", "JettsTUI Tests")
     _git(repo, "config", "user.email", "tests@example.com")
 
     (repo / "src").mkdir()
@@ -329,23 +329,23 @@ def test_defaults_allowed_root_to_cwd(tmp_path: Path):
 
 
 @pytest.mark.asyncio
-async def test_blocks_sensitive_home_and_freeide_paths(tmp_path: Path, monkeypatch):
+async def test_blocks_sensitive_home_and_jettstui_paths(tmp_path: Path, monkeypatch):
     from agent.context_references import preprocess_context_references_async
 
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("USERPROFILE", str(tmp_path))
-    monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / ".freeide"))
+    monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / ".jettstui"))
 
-    freeide_env = tmp_path / ".freeide" / ".env"
-    freeide_env.parent.mkdir(parents=True)
-    freeide_env.write_text("API_KEY=super-secret\n", encoding="utf-8")
+    jettstui_env = tmp_path / ".jettstui" / ".env"
+    jettstui_env.parent.mkdir(parents=True)
+    jettstui_env.write_text("API_KEY=super-secret\n", encoding="utf-8")
 
     ssh_key = tmp_path / ".ssh" / "id_rsa"
     ssh_key.parent.mkdir(parents=True)
     ssh_key.write_text("PRIVATE-KEY\n", encoding="utf-8")
 
     result = await preprocess_context_references_async(
-        "read @file:.freeide/.env and @file:.ssh/id_rsa",
+        "read @file:.jettstui/.env and @file:.ssh/id_rsa",
         cwd=tmp_path,
         allowed_root=tmp_path,
         context_length=100_000,
@@ -364,7 +364,7 @@ async def test_blocks_canonical_read_denylist_credential_stores(tmp_path: Path, 
     The narrow in-module list historically missed the real credential stores
     (provider keys, OAuth tokens, MCP tokens, project-local .env). Because the
     gateway routes untrusted remote message text through reference expansion,
-    a chat peer could otherwise attach `@file:~/.freeide/auth.json` and read the
+    a chat peer could otherwise attach `@file:~/.jettstui/auth.json` and read the
     operator's keys into context. These must all be refused, with their secret
     bodies kept out of the expanded message.
     """
@@ -372,18 +372,18 @@ async def test_blocks_canonical_read_denylist_credential_stores(tmp_path: Path, 
 
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("USERPROFILE", str(tmp_path))
-    monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / ".freeide"))
+    monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / ".jettstui"))
 
-    freeide_home = tmp_path / ".freeide"
-    (freeide_home).mkdir(parents=True)
+    jettstui_home = tmp_path / ".jettstui"
+    (jettstui_home).mkdir(parents=True)
 
-    auth_json = freeide_home / "auth.json"
+    auth_json = jettstui_home / "auth.json"
     auth_json.write_text('{"openai": "sk-AUTHJSON-SECRET"}\n', encoding="utf-8")
 
-    oauth = freeide_home / ".anthropic_oauth.json"
+    oauth = jettstui_home / ".anthropic_oauth.json"
     oauth.write_text('{"access_token": "OAUTH-SECRET"}\n', encoding="utf-8")
 
-    mcp_token = freeide_home / "mcp-tokens" / "github.json"
+    mcp_token = jettstui_home / "mcp-tokens" / "github.json"
     mcp_token.parent.mkdir(parents=True)
     mcp_token.write_text('{"token": "MCP-TOKEN-SECRET"}\n', encoding="utf-8")
 
@@ -392,8 +392,8 @@ async def test_blocks_canonical_read_denylist_credential_stores(tmp_path: Path, 
     project_env.write_text("DB_PASSWORD=ENV-SECRET\n", encoding="utf-8")
 
     result = await preprocess_context_references_async(
-        "inspect @file:.freeide/auth.json and @file:.freeide/.anthropic_oauth.json "
-        "and @file:.freeide/mcp-tokens/github.json and @file:project/.env",
+        "inspect @file:.jettstui/auth.json and @file:.jettstui/.anthropic_oauth.json "
+        "and @file:.jettstui/mcp-tokens/github.json and @file:project/.env",
         cwd=tmp_path,
         allowed_root=tmp_path,
         context_length=100_000,
@@ -425,11 +425,11 @@ async def test_canonical_guard_fails_closed_when_lookup_raises(tmp_path: Path, m
 
     monkeypatch.setenv("HOME", str(tmp_path))
     monkeypatch.setenv("USERPROFILE", str(tmp_path))
-    monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / ".freeide"))
+    monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / ".jettstui"))
 
-    freeide_home = tmp_path / ".freeide"
-    freeide_home.mkdir(parents=True)
-    auth_json = freeide_home / "auth.json"
+    jettstui_home = tmp_path / ".jettstui"
+    jettstui_home.mkdir(parents=True)
+    auth_json = jettstui_home / "auth.json"
     auth_json.write_text('{"openai": "sk-AUTHJSON-SECRET"}\n', encoding="utf-8")
 
     def _boom(_path):
@@ -438,7 +438,7 @@ async def test_canonical_guard_fails_closed_when_lookup_raises(tmp_path: Path, m
     monkeypatch.setattr("agent.file_safety.get_read_block_error", _boom)
 
     result = await preprocess_context_references_async(
-        "inspect @file:.freeide/auth.json",
+        "inspect @file:.jettstui/auth.json",
         cwd=tmp_path,
         allowed_root=tmp_path,
         context_length=100_000,
@@ -455,7 +455,7 @@ async def test_canonical_guard_fails_closed_when_lookup_raises(tmp_path: Path, m
     "value",
     [
         "/tmp/plain.png",
-        "/Users/me/Library/Application Support/FreeIDE/composer-images/a.png",
+        "/Users/me/Library/Application Support/JettsTUI/composer-images/a.png",
         r"C:\Users\John Doe\Pictures\cat.png",
         "/tmp/report (final).pdf",
         "/tmp/it's here.png",

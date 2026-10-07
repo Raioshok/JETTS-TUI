@@ -51,7 +51,7 @@ export function useDesktopIntegrations({
   // process's "open updates" menu request.
   useEffect(() => {
     startUpdatePoller()
-    const unsubscribe = window.freeideDesktop?.onOpenUpdatesRequested?.(() => openUpdatesWindow())
+    const unsubscribe = window.jettstuiDesktop?.onOpenUpdatesRequested?.(() => openUpdatesWindow())
 
     return () => {
       unsubscribe?.()
@@ -63,7 +63,7 @@ export function useDesktopIntegrations({
   // close the window, so claim it unconditionally — the menu then routes ⌘W
   // to us (close-preview-requested IPC) and we decide tab-vs-window.
   useEffect(() => {
-    window.freeideDesktop?.setPreviewShortcutActive?.(true)
+    window.jettstuiDesktop?.setPreviewShortcutActive?.(true)
   }, [])
 
   // Remember the open chat (session id for notifications/resume) AND the last
@@ -128,7 +128,7 @@ export function useDesktopIntegrations({
   // tile / main) instead of forcing main. Runtime id is translated to the
   // stored id the chat route is keyed by; action buttons resolve in place.
   useEffect(() => {
-    const unsubscribe = window.freeideDesktop?.onFocusSession?.(sessionId => {
+    const unsubscribe = window.jettstuiDesktop?.onFocusSession?.(sessionId => {
       if (sessionId) {
         openSession(storedSessionIdForNotification(sessionId, runtimeIdByStoredSessionId.current), navigate)
       }
@@ -138,16 +138,16 @@ export function useDesktopIntegrations({
   }, [navigate, runtimeIdByStoredSessionId])
 
   useEffect(() => {
-    const unsubscribe = window.freeideDesktop?.onNotificationAction?.(({ actionId, sessionId }) => {
+    const unsubscribe = window.jettstuiDesktop?.onNotificationAction?.(({ actionId, sessionId }) => {
       void respondToApprovalAction(sessionId ?? null, actionId)
     })
 
     return () => unsubscribe?.()
   }, [])
 
-  // freeide:// deep links -> a reviewable /blueprint command in the composer.
+  // jettstui:// deep links -> a reviewable /blueprint command in the composer.
   useEffect(() => {
-    const unsubscribe = window.freeideDesktop?.onDeepLink?.(payload => {
+    const unsubscribe = window.jettstuiDesktop?.onDeepLink?.(payload => {
       if (!payload || payload.kind !== 'blueprint' || !payload.name) {
         return
       }
@@ -165,7 +165,7 @@ export function useDesktopIntegrations({
       requestComposerFocus('main')
     })
 
-    void window.freeideDesktop?.signalDeepLinkReady?.()
+    void window.jettstuiDesktop?.signalDeepLinkReady?.()
 
     return () => unsubscribe?.()
   }, [])
@@ -175,7 +175,7 @@ export function useDesktopIntegrations({
   // OS-standard window close, esp. secondary windows). The Win/Linux keyboard
   // path is the `view.closeTab` keybind (use-keybinds), sharing closeActiveTab.
   useEffect(() => {
-    const unsubscribe = window.freeideDesktop?.onClosePreviewRequested?.(
+    const unsubscribe = window.jettstuiDesktop?.onClosePreviewRequested?.(
       () => void closeActiveTab(id => navigate(sessionRoute(id)))
     )
 

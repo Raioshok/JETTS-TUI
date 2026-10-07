@@ -116,7 +116,7 @@ describe('artifacts store', () => {
 
     openArtifact(result.artifactId)
 
-    expect(window.localStorage.getItem('freeide.desktop.previewTabs.v2')).toBe('[]')
+    expect(window.localStorage.getItem('jettstui.desktop.previewTabs.v2')).toBe('[]')
   })
 
   it('tracks version selection and snaps back to latest', () => {

@@ -1,4 +1,4 @@
-"""Shell completion script generation for Jetts-TUI.
+"""Shell completion script generation for JettsTUI.
 
 Walks the live argparse parser tree to generate accurate, always-up-to-date
 completion scripts — no hardcoded subcommand lists, no extra dependencies.
@@ -97,12 +97,12 @@ def generate_bash(parser: argparse.ArgumentParser) -> str:
 
     cases_str = "\n".join(cases)
 
-    return f"""# Jetts-TUI bash completion
+    return f"""# JettsTUI bash completion
 # Add to ~/.bashrc:
 #   eval "$(jetts-tui completion bash)"
 
 _jettstui_profiles() {{
-    local profiles_dir="${{FREEIDE_HOME:-$HOME/.jettstui}}/profiles"
+    local profiles_dir="${{JETTSTUI_HOME:-$HOME/.jettstui}}/profiles"
     local profiles="default"
     if [ -d "$profiles_dir" ]; then
         for f in "$profiles_dir"/*/; do
@@ -200,14 +200,14 @@ def generate_zsh(parser: argparse.ArgumentParser) -> str:
     sub_cases_str = "\n".join(sub_cases)
 
     return f"""#compdef jetts-tui
-# Jetts-TUI zsh completion
+# JettsTUI zsh completion
 # Add to ~/.zshrc:
 #   eval "$(jetts-tui completion zsh)"
 
 _jettstui_profiles() {{
     local -a profiles
     profiles=(default)
-    local profiles_dir="${{FREEIDE_HOME:-$HOME/.jettstui}}/profiles"
+    local profiles_dir="${{JETTSTUI_HOME:-$HOME/.jettstui}}/profiles"
     if [[ -d "$profiles_dir" ]]; then
         profiles+=($profiles_dir/*(N/:t))
     fi
@@ -255,7 +255,7 @@ def generate_fish(parser: argparse.ArgumentParser) -> str:
     top_cmds_str = " ".join(top_cmds)
 
     lines: list[str] = [
-        "# Jetts-TUI fish completion",
+        "# JettsTUI fish completion",
         "# Add to your config:",
         "#   jetts-tui completion fish | source",
         "",
@@ -263,7 +263,7 @@ def generate_fish(parser: argparse.ArgumentParser) -> str:
         "function __jettstui_profiles",
         "    echo default",
         "    set -l profiles_dir $HOME/.jettstui/profiles",
-        "    if set -q FREEIDE_HOME; set profiles_dir $FREEIDE_HOME/profiles; end",
+        "    if set -q JETTSTUI_HOME; set profiles_dir $JETTSTUI_HOME/profiles; end",
         "    if test -d $profiles_dir",
         "        for d in $profiles_dir/*/",
         "            basename $d",

@@ -1,7 +1,7 @@
 # Design System: Cal.com
 
 
-> **FreeIDE Agent — Implementation Notes**
+> **JettsTUI — Implementation Notes**
 >
 > The original site uses proprietary fonts. For self-contained HTML output, use these CDN substitutes:
 > - **Primary:** `Inter` | **Mono:** `Roboto Mono`

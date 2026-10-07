@@ -1,4 +1,4 @@
-"""CLI subcommand: `freeide curator <subcommand>`.
+"""CLI subcommand: `jettstui curator <subcommand>`.
 
 Thin shell around agent/curator.py and tools/skill_usage.py. Renders a status
 table, triggers a run, pauses/resumes, and pins/unpins skills.
@@ -61,7 +61,7 @@ def _print_unmanaged_summary() -> None:
     print(f"  foreground-created  {foreground}")
     print(
         "  never auto-staled or archived — "
-        "`freeide curator adopt <name>` hands one over"
+        "`jettstui curator adopt <name>` hands one over"
     )
 
 
@@ -258,17 +258,17 @@ def _cmd_run(args) -> int:
                 f"reactivated={auto.get('reactivated', 0)}"
             )
     if not synchronous:
-        print("llm pass running in background — check `freeide curator status` later")
+        print("llm pass running in background — check `jettstui curator status` later")
     if dry:
         if synchronous:
             print(
                 "dry-run: no changes applied. Read the report with "
-                "`freeide curator status` and run `freeide curator run` (no flag) to apply."
+                "`jettstui curator status` and run `jettstui curator run` (no flag) to apply."
             )
         else:
             print(
                 "dry-run: no changes applied. When the report lands, read it with "
-                "`freeide curator status` and run `freeide curator run` (no flag) to apply."
+                "`jettstui curator status` and run `jettstui curator run` (no flag) to apply."
             )
     return 0
 
@@ -336,8 +336,8 @@ def _cmd_list_unmanaged(args) -> int:
             f"last_activity={last:14s}  "
             f"({why})"
         )
-    print("\nadopt one with `freeide curator adopt <name>`, "
-          "or all with `freeide curator adopt --all-unmanaged`")
+    print("\nadopt one with `jettstui curator adopt <name>`, "
+          "or all with `jettstui curator adopt --all-unmanaged`")
     return 0
 
 
@@ -414,7 +414,7 @@ def _cmd_archive(args) -> int:
     if skill_usage.get_record(args.skill).get("pinned"):
         print(
             f"curator: '{args.skill}' is pinned — unpin first with "
-            f"`freeide curator unpin {args.skill}`"
+            f"`jettstui curator unpin {args.skill}`"
         )
         return 1
     ok, msg = skill_usage.archive_skill(args.skill)
@@ -524,7 +524,7 @@ def _cmd_backup(args) -> int:
     if snap is None:
         print("curator: snapshot failed — check logs (backup disabled or IO error)")
         return 1
-    print(f"curator: snapshot created at ~/.freeide/skills/.curator_backups/{snap.name}")
+    print(f"curator: snapshot created at ~/.jettstui/skills/.curator_backups/{snap.name}")
     return 0
 
 
@@ -549,7 +549,7 @@ def _cmd_rollback(args) -> int:
         if not rows:
             print(
                 "curator: no snapshots exist yet. Take one with "
-                "`freeide curator backup` or wait for the next curator run."
+                "`jettstui curator backup` or wait for the next curator run."
             )
         else:
             print(
@@ -577,7 +577,7 @@ def _cmd_rollback(args) -> int:
                 reason = cron.get("reason", "not captured")
                 print(f"  cron jobs:   not in snapshot ({reason})")
     print(
-        "\nThis will replace the current ~/.freeide/skills/ tree (a safety "
+        "\nThis will replace the current ~/.jettstui/skills/ tree (a safety "
         "snapshot of the current state is taken first so this is undoable). "
         "Cron jobs that still exist will have their skills/skill fields "
         "restored from the snapshot; all other cron fields are left alone."
@@ -674,7 +674,7 @@ def _cmd_usage(args) -> int:
 
 
 # ---------------------------------------------------------------------------
-# argparse wiring (called from freeide_cli.main)
+# argparse wiring (called from jettstui.main)
 # ---------------------------------------------------------------------------
 
 def register_cli(parent: argparse.ArgumentParser) -> None:
@@ -805,7 +805,7 @@ def register_cli(parent: argparse.ArgumentParser) -> None:
 
     p_backup = subs.add_parser(
         "backup",
-        help="Take a manual tar.gz snapshot of ~/.freeide/skills/ "
+        help="Take a manual tar.gz snapshot of ~/.jettstui/skills/ "
              "(curator also does this automatically before every real run)",
     )
     p_backup.add_argument(
@@ -816,7 +816,7 @@ def register_cli(parent: argparse.ArgumentParser) -> None:
 
     p_rollback = subs.add_parser(
         "rollback",
-        help="Restore ~/.freeide/skills/ from a curator snapshot "
+        help="Restore ~/.jettstui/skills/ from a curator snapshot "
              "(defaults to the newest)",
     )
     p_rollback.add_argument(
@@ -835,8 +835,8 @@ def register_cli(parent: argparse.ArgumentParser) -> None:
 
 
 def cli_main(argv=None) -> int:
-    """Standalone entry (also usable by freeide_cli.main fallthrough)."""
-    parser = argparse.ArgumentParser(prog="freeide curator")
+    """Standalone entry (also usable by jettstui.main fallthrough)."""
+    parser = argparse.ArgumentParser(prog="jettstui curator")
     register_cli(parser)
     args = parser.parse_args(argv)
     fn = getattr(args, "func", None)

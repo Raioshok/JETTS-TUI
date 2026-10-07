@@ -1,15 +1,15 @@
 # Optional Skills
 
-Official skills maintained by FreeIDE that are **not activated by default**.
+Official skills maintained by JettsTUI that are **not activated by default**.
 
-These skills ship with the freeide-agent repository but are not copied to
-`~/.freeide/skills/` during setup. They are discoverable via the Skills Hub:
+These skills ship with the jettstui repository but are not copied to
+`~/.jettstui/skills/` during setup. They are discoverable via the Skills Hub:
 
 ```bash
-freeide skills browse               # browse all skills, official shown first
-freeide skills browse --source official  # browse only official optional skills
-freeide skills search <query>       # finds optional skills labeled "official"
-freeide skills install <identifier> # copies to ~/.freeide/skills/ and activates
+jettstui skills browse               # browse all skills, official shown first
+jettstui skills browse --source official  # browse only official optional skills
+jettstui skills search <query>       # finds optional skills labeled "official"
+jettstui skills install <identifier> # copies to ~/.jettstui/skills/ and activates
 ```
 
 ## Why optional?

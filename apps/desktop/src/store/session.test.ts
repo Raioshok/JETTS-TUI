@@ -2,7 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import type { ClientSessionState } from '@/app/types'
 import { createClientSessionState } from '@/lib/chat-runtime'
-import type { SessionInfo } from '@/types/freeide'
+import type { SessionInfo } from '@/types/jettstui'
 
 import {
   $activeSessionId,
@@ -213,13 +213,13 @@ describe('workspaceCwdForNewSession', () => {
     $connection.set(null)
     $currentCwd.set('')
     $activeSessionId.set(null)
-    window.localStorage.removeItem('freeide.desktop.workspace-cwd')
-    window.localStorage.removeItem('freeide.desktop.workspace-cwd.remote.http%3A%2F%2Fbackend-a.default')
-    window.localStorage.removeItem('freeide.desktop.workspace-cwd.remote.http%3A%2F%2Fbackend-b.default')
+    window.localStorage.removeItem('jettstui.desktop.workspace-cwd')
+    window.localStorage.removeItem('jettstui.desktop.workspace-cwd.remote.http%3A%2F%2Fbackend-a.default')
+    window.localStorage.removeItem('jettstui.desktop.workspace-cwd.remote.http%3A%2F%2Fbackend-b.default')
   })
 
   it('prefers the configured default over the sticky remembered workspace', () => {
-    window.localStorage.setItem('freeide.desktop.workspace-cwd', '/home/user/sticky')
+    window.localStorage.setItem('jettstui.desktop.workspace-cwd', '/home/user/sticky')
     applyConfiguredDefaultProjectDir('/home/user/configured')
 
     expect(workspaceCwdForNewSession()).toBe('/home/user/configured')
@@ -238,7 +238,7 @@ describe('workspaceCwdForNewSession', () => {
     // A bare new chat must NOT inherit the sticky/remembered or live workspace —
     // that's the "why is my new session already on a branch" bug. Only an
     // explicit configured default pre-attaches.
-    window.localStorage.setItem('freeide.desktop.workspace-cwd', '/home/user/sticky')
+    window.localStorage.setItem('jettstui.desktop.workspace-cwd', '/home/user/sticky')
     $currentCwd.set('/home/user/live')
 
     expect(workspaceCwdForNewSession()).toBe('')
@@ -254,7 +254,7 @@ describe('workspaceCwdForNewSession', () => {
   })
 
   it('keeps remote workspace memory separate from local and other remotes', () => {
-    window.localStorage.setItem('freeide.desktop.workspace-cwd', '/local/project')
+    window.localStorage.setItem('jettstui.desktop.workspace-cwd', '/local/project')
     $currentCwd.set('/live/session/path')
     $connection.set({ baseUrl: 'http://backend-a', mode: 'remote' } as never)
 
@@ -424,7 +424,7 @@ describe('remembered session id (per profile)', () => {
 
   it('keeps the default profile on the legacy unsuffixed key for back-compat', () => {
     // An existing install remembered its session under the pre-per-profile key.
-    localStorage.setItem('freeide.desktop.lastSessionId', 'legacy-session')
+    localStorage.setItem('jettstui.desktop.lastSessionId', 'legacy-session')
 
     expect(getRememberedSessionId('default')).toBe('legacy-session')
     // Absent/blank profile normalizes to the default key too.

@@ -1,14 +1,14 @@
 """Tests for the Slack plugin's interactive_setup wizard.
 
 These cover the home-channel save logic that previously lived in
-``freeide_cli/setup.py::_setup_slack`` before the Slack adapter migrated to a
+``jettstui/setup.py::_setup_slack`` before the Slack adapter migrated to a
 bundled plugin (#41112). ``interactive_setup`` lazy-imports its CLI helpers
-from ``freeide_cli.config`` (get_env_value / save_env_value / remove_env_value)
-and ``freeide_cli.cli_output`` (prompt / prompt_yes_no / print_*), so we patch
+from ``jettstui.config`` (get_env_value / save_env_value / remove_env_value)
+and ``jettstui.cli_output`` (prompt / prompt_yes_no / print_*), so we patch
 those source modules.
 """
-import freeide_cli.config as config_mod
-import freeide_cli.cli_output as cli_output_mod
+import jettstui.config as config_mod
+import jettstui.cli_output as cli_output_mod
 from plugins.platforms.slack.adapter import interactive_setup
 
 
@@ -28,14 +28,14 @@ def _patch_setup_io(monkeypatch, prompts, saved, removed, existing):
     monkeypatch.setattr(cli_output_mod, "prompt_yes_no", lambda *_a, **_kw: False)
     for name in ("print_header", "print_info", "print_success", "print_warning"):
         monkeypatch.setattr(cli_output_mod, name, lambda *_a, **_kw: None)
-    # Manifest writing reaches out to freeide_cli.slack_cli + filesystem; stub it.
-    import freeide_cli.slack_cli as slack_cli_mod
+    # Manifest writing reaches out to jettstui.slack_cli + filesystem; stub it.
+    import jettstui.slack_cli as slack_cli_mod
     monkeypatch.setattr(slack_cli_mod, "_build_full_manifest", lambda **_kw: {"display_information": {}})
 
 
 def test_interactive_setup_saves_home_channel(monkeypatch, tmp_path):
     """interactive_setup() saves SLACK_HOME_CHANNEL when the user provides one."""
-    monkeypatch.setenv("FREEIDE_HOME", str(tmp_path))
+    monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path))
     saved, removed = {}, []
     # prompts: bot token, app token, allowed users (empty), home channel
     _patch_setup_io(
@@ -54,7 +54,7 @@ def test_interactive_setup_saves_home_channel(monkeypatch, tmp_path):
 
 def test_interactive_setup_home_channel_empty_not_saved(monkeypatch, tmp_path):
     """interactive_setup() does not save SLACK_HOME_CHANNEL when left blank."""
-    monkeypatch.setenv("FREEIDE_HOME", str(tmp_path))
+    monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path))
     saved, removed = {}, []
     _patch_setup_io(
         monkeypatch,
@@ -73,7 +73,7 @@ class TestSlackHomeChannelClear:
     """Blank home-channel answer must clear SLACK_HOME_CHANNEL (#12423)."""
 
     def test_blank_removes_existing_home_channel(self, monkeypatch, tmp_path):
-        monkeypatch.setenv("FREEIDE_HOME", str(tmp_path))
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path))
         saved, removed = {}, []
         _patch_setup_io(
             monkeypatch,
@@ -87,7 +87,7 @@ class TestSlackHomeChannelClear:
         assert "SLACK_HOME_CHANNEL" not in saved
 
     def test_blank_without_prior_home_still_attempts_remove(self, monkeypatch, tmp_path):
-        monkeypatch.setenv("FREEIDE_HOME", str(tmp_path))
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path))
         saved, removed = {}, []
         _patch_setup_io(
             monkeypatch,
@@ -100,7 +100,7 @@ class TestSlackHomeChannelClear:
         assert removed.count("SLACK_HOME_CHANNEL") == 1
 
     def test_nonempty_saves_home_channel(self, monkeypatch, tmp_path):
-        monkeypatch.setenv("FREEIDE_HOME", str(tmp_path))
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path))
         saved, removed = {}, []
         _patch_setup_io(
             monkeypatch,
@@ -115,7 +115,7 @@ class TestSlackHomeChannelClear:
 
     def test_whitespace_only_clears_home_channel(self, monkeypatch, tmp_path):
         """Whitespace-only input should clear, not save."""
-        monkeypatch.setenv("FREEIDE_HOME", str(tmp_path))
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path))
         saved, removed = {}, []
         _patch_setup_io(
             monkeypatch,

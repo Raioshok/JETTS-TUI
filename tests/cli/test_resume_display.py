@@ -19,13 +19,13 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
 @pytest.fixture(autouse=True)
 def _isolated_session_home(tmp_path, monkeypatch):
-    monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / "jettstui-home"))
+    monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / "jettstui-home"))
 
 
 def _make_cli(config_overrides=None, env_overrides=None, **kwargs):
-    """Create a FreeIDECLI instance with minimal mocking."""
+    """Create a JettsTUICLI instance with minimal mocking."""
     import cli as _cli_mod
-    from cli import FreeIDECLI
+    from cli import JettsTUICLI
 
     _clean_config = {
         "model": {
@@ -44,7 +44,7 @@ def _make_cli(config_overrides=None, env_overrides=None, **kwargs):
             else:
                 _clean_config[k] = v
 
-    clean_env = {"LLM_MODEL": "", "FREEIDE_MAX_ITERATIONS": ""}
+    clean_env = {"LLM_MODEL": "", "JETTSTUI_MAX_ITERATIONS": ""}
     if env_overrides:
         clean_env.update(env_overrides)
     with (
@@ -52,7 +52,7 @@ def _make_cli(config_overrides=None, env_overrides=None, **kwargs):
         patch.dict("os.environ", clean_env, clear=False),
         patch.dict(_cli_mod.__dict__, {"CLI_CONFIG": _clean_config}),
     ):
-        return FreeIDECLI(**kwargs)
+        return JettsTUICLI(**kwargs)
 
 
 # ── Sample conversation histories for tests ──────────────────────────
@@ -139,7 +139,7 @@ class TestDisplayResumedHistory:
         output = self._capture_display(cli)
 
         assert "You:" in output
-        assert "Jetts-TUI:" in output
+        assert "JettsTUI:" in output
         assert "What is Python?" in output
         assert "Python is a high-level programming language." in output
         assert "How do I install it?" in output
@@ -355,7 +355,7 @@ class TestDisplayResumedHistory:
 
         # The assistant entry should be skipped, only the user message shown
         assert "You:" in output
-        assert "Jetts-TUI:" not in output
+        assert "JettsTUI:" not in output
 
     def test_only_system_messages_no_output(self):
         cli = _make_cli()
@@ -670,7 +670,7 @@ class TestHandleResumeCommandRecap:
         cli._session_db = mock_db
 
         with (
-            patch("freeide_cli.main._resolve_session_by_name_or_id", return_value="target_session"),
+            patch("jettstui.main._resolve_session_by_name_or_id", return_value="target_session"),
             patch.object(cli, "_display_resumed_history") as display_mock,
         ):
             cli._handle_resume_command("/resume test session")
@@ -693,7 +693,7 @@ class TestHandleResumeCommandRecap:
         cli._session_db = mock_db
 
         with (
-            patch("freeide_cli.main._resolve_session_by_name_or_id", return_value="target_session"),
+            patch("jettstui.main._resolve_session_by_name_or_id", return_value="target_session"),
             patch.object(cli, "_display_resumed_history") as display_mock,
         ):
             cli._handle_resume_command("/resume target_session")
@@ -719,7 +719,7 @@ class TestHandleResumeCommandRecap:
         cli._session_db = mock_db
 
         with (
-            patch("freeide_cli.main._resolve_session_by_name_or_id", return_value="session_b"),
+            patch("jettstui.main._resolve_session_by_name_or_id", return_value="session_b"),
             patch.object(cli, "_display_resumed_history") as display_mock,
         ):
             cli._handle_resume_command("/resume session_b")
@@ -765,8 +765,8 @@ class TestResumeDisplayConfig:
     """resume_display config option defaults and behavior."""
 
     def test_default_config_has_resume_display(self):
-        """DEFAULT_CONFIG in freeide_cli/config.py includes resume_display."""
-        from freeide_cli.config import DEFAULT_CONFIG
+        """DEFAULT_CONFIG in jettstui/config.py includes resume_display."""
+        from jettstui.config import DEFAULT_CONFIG
         display = DEFAULT_CONFIG.get("display", {})
         assert "resume_display" in display
         assert display["resume_display"] == "full"

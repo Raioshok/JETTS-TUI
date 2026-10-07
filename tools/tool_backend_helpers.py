@@ -98,7 +98,7 @@ def prefers_gateway(config_section: str) -> bool:
     Reads ``<section>.use_gateway`` from config.yaml.  Never raises.
     """
     try:
-        from freeide_cli.config import load_config
+        from jettstui.config import load_config
         section = (load_config() or {}).get(config_section)
         if isinstance(section, dict):
             return is_truthy_value(section.get("use_gateway"), default=False)
@@ -110,8 +110,8 @@ def prefers_gateway(config_section: str) -> bool:
 def fal_key_is_configured() -> bool:
     """Return True when FAL_KEY is set to a non-whitespace value.
 
-    Consults both ``os.environ`` and ``~/.freeide/.env`` (via
-    ``freeide_cli.config.get_env_value`` when available) so tool-side
+    Consults both ``os.environ`` and ``~/.jettstui/.env`` (via
+    ``jettstui.config.get_env_value`` when available) so tool-side
     checks and CLI setup-time checks agree.  A whitespace-only value
     is treated as unset everywhere.
     """
@@ -120,7 +120,7 @@ def fal_key_is_configured() -> bool:
         # Fall back to the .env file for CLI paths that may run before
         # dotenv is loaded into os.environ.
         try:
-            from freeide_cli.config import get_env_value
+            from jettstui.config import get_env_value
 
             value = get_env_value("FAL_KEY")
         except Exception:

@@ -25,12 +25,12 @@ Infographics: 21 layouts x 21 styles (信息图, 可视化).
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that FreeIDE loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that JettsTUI loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Infographic Generator
 
-Adapted from [baoyu-infographic](https://github.com/JimLiu/baoyu-skills) for FreeIDE Agent's tool ecosystem.
+Adapted from [baoyu-infographic](https://github.com/JimLiu/baoyu-skills) for JettsTUI's tool ecosystem.
 
 Two dimensions: **layout** (information structure) × **style** (visual aesthetics). Freely combine any layout with any style.
 

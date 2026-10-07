@@ -2,7 +2,7 @@
 
 On Windows, Python's ``sys.stdout``/``sys.stderr`` default to the console's
 active code page (often ``cp1252``, sometimes ``cp437``, occasionally ``cp932``
-on Japanese locales, etc.).  FreeIDE's banners, tool output feed, and slash
+on Japanese locales, etc.).  JettsTUI's banners, tool output feed, and slash
 command listings all contain Unicode: box-drawing characters (``─┌┐└┘├┤``),
 mathematical and geometric symbols (``◆ ◇ ◎ ▣ ⚔ ⚖ →``), and user-supplied
 text in any language.  Printing those to a cp1252 console raises
@@ -15,7 +15,7 @@ Python's stdout is a real TTY; code-page flipping lets subprocesses and
 child Python ``print()`` calls agree on encoding.
 
 This module is a no-op on every non-Windows platform, and idempotent.
-Entry points (``cli.py`` ``main``, ``freeide_cli/main.py`` CLI dispatch,
+Entry points (``cli.py`` ``main``, ``jettstui/main.py`` CLI dispatch,
 ``gateway/run.py`` startup) call :func:`configure_windows_stdio` exactly
 once early in startup.
 
@@ -47,7 +47,7 @@ def _flip_console_code_page_to_utf8() -> None:
     """Set the attached console's input and output code pages to UTF-8.
 
     Uses ``SetConsoleCP`` / ``SetConsoleOutputCP`` via ``ctypes``.  Failure
-    is silent — if there's no attached console (e.g. FreeIDE is running
+    is silent — if there's no attached console (e.g. JettsTUI is running
     behind a redirected stdout, under a service, or inside a PTY-less CI
     runner) these calls simply return 0 and we move on.
 
@@ -90,7 +90,7 @@ def configure_windows_stdio() -> bool:
     Returns ``True`` if anything was actually changed, ``False`` on
     non-Windows or on a repeat call.
 
-    Set ``FREEIDE_DISABLE_WINDOWS_UTF8=1`` in the environment to opt out
+    Set ``JETTSTUI_DISABLE_WINDOWS_UTF8=1`` in the environment to opt out
     (for diagnosing encoding-related bugs by forcing the old cp1252 path).
 
     Also sets a sensible default ``EDITOR`` on Windows if none is already
@@ -105,7 +105,7 @@ def configure_windows_stdio() -> bool:
         _CONFIGURED = True
         return False
 
-    if os.environ.get("FREEIDE_DISABLE_WINDOWS_UTF8") in {"1", "true", "True", "yes"}:
+    if os.environ.get("JETTSTUI_DISABLE_WINDOWS_UTF8") in {"1", "true", "True", "yes"}:
         _CONFIGURED = True
         return False
 
@@ -127,15 +127,15 @@ def configure_windows_stdio() -> bool:
     if _default_editor and not os.environ.get("EDITOR") and not os.environ.get("VISUAL"):
         os.environ["EDITOR"] = _default_editor
 
-    # Augment PATH with the FreeIDE-managed Git install directories so
+    # Augment PATH with the JettsTUI-managed Git install directories so
     # subprocess calls (bash, rg, grep, etc.) resolve even in sessions
     # that started before the User PATH broadcast reached them.  When
     # install.ps1 adds these to User PATH via SetEnvironmentVariable,
-    # already-running shells don't see the change — which means freeide
+    # already-running shells don't see the change — which means jettstui
     # launched from the install session won't find rg / bash / grep
     # even though they're "installed".  Prepending the known paths here
     # closes that gap.  No-op when the paths don't exist (e.g. system-Git
-    # install without FreeIDE-managed PortableGit).
+    # install without JettsTUI-managed PortableGit).
     _augment_path_with_known_tools()
 
     # Flip the console code page first so that any subprocess that
@@ -149,7 +149,7 @@ def configure_windows_stdio() -> bool:
     # degraded output over a stack trace.
     _reconfigure_stream(sys.stdout)
     _reconfigure_stream(sys.stderr)
-    # stdin is re-configured for completeness; FreeIDE's interactive
+    # stdin is re-configured for completeness; JettsTUI's interactive
     # input path uses prompt_toolkit which manages its own encoding,
     # but batch/pipe input benefits from UTF-8 decoding on stdin too.
     _reconfigure_stream(sys.stdin)
@@ -167,8 +167,8 @@ def _default_windows_editor() -> str:
        blocking editor (``subprocess.call(["notepad", file])`` blocks until
        the user closes the window).  This is the "always-works" default.
 
-    The prompt_toolkit buffer's ``open_in_editor`` and FreeIDE's
-    ``freeide config edit`` both honour ``$EDITOR``.  Users who prefer a
+    The prompt_toolkit buffer's ``open_in_editor`` and JettsTUI's
+    ``jettstui config edit`` both honour ``$EDITOR``.  Users who prefer a
     different editor can override:
 
     - VSCode: ``$env:EDITOR = "code --wait"``  (``--wait`` is critical;
@@ -176,8 +176,8 @@ def _default_windows_editor() -> str:
     - Notepad++: ``$env:EDITOR = "'C:\\Program Files\\Notepad++\\notepad++.exe' -multiInst -nosession"``
     - Neovim: ``$env:EDITOR = "nvim"``  (if installed)
 
-    Set this before launching FreeIDE (User env var in Windows Settings, or
-    export in a PowerShell profile) and FreeIDE picks it up automatically.
+    Set this before launching JettsTUI (User env var in Windows Settings, or
+    export in a PowerShell profile) and JettsTUI picks it up automatically.
     """
     import shutil
 
@@ -193,21 +193,21 @@ def _default_windows_editor() -> str:
 
 
 def _augment_path_with_known_tools() -> None:
-    """Prepend well-known FreeIDE-managed tool directories to os.environ['PATH'].
+    """Prepend well-known JettsTUI-managed tool directories to os.environ['PATH'].
 
     Fixes the "User PATH was just updated but my process can't see it" gap on
     Windows.  When install.ps1 runs, it adds entries like
-    ``%LOCALAPPDATA%\\freeide\\git\\bin`` to the User PATH via
+    ``%LOCALAPPDATA%\\jettstui\\git\\bin`` to the User PATH via
     ``SetEnvironmentVariable(..., "User")``.  That write propagates to newly
     *spawned* processes only — already-running shells (including the one the
-    user invokes ``freeide`` from right after install) retain their old PATH.
+    user invokes ``jettstui`` from right after install) retain their old PATH.
 
-    Any subprocess FreeIDE spawns — bash, ``rg``, ``grep``, ``npm`` — inherits
+    Any subprocess JettsTUI spawns — bash, ``rg``, ``grep``, ``npm`` — inherits
     that stale PATH and reports commands as missing even though they're on
     disk.  Symptom: ``search_files`` reports "rg/find not available" when
     the user clearly just installed ripgrep.
 
-    Patch-up strategy: add the known FreeIDE-managed tool directories to our
+    Patch-up strategy: add the known JettsTUI-managed tool directories to our
     PATH at startup so subprocess calls resolve correctly.  No-op on POSIX
     and when the directories don't exist.  The User PATH broadcast still
     happens in the background for future shells; this just smooths over
@@ -226,13 +226,13 @@ def _augment_path_with_known_tools() -> None:
     # should match so this prefill fully mirrors what a fresh shell would
     # see on next launch.
     candidate_dirs = [
-        os.path.join(local_appdata, "freeide", "git", "cmd"),
-        os.path.join(local_appdata, "freeide", "git", "bin"),
-        os.path.join(local_appdata, "freeide", "git", "usr", "bin"),
-        # FreeIDE venv Scripts directory — host of the freeide.exe shim itself,
+        os.path.join(local_appdata, "jettstui", "git", "cmd"),
+        os.path.join(local_appdata, "jettstui", "git", "bin"),
+        os.path.join(local_appdata, "jettstui", "git", "usr", "bin"),
+        # JettsTUI venv Scripts directory — host of the jettstui.exe shim itself,
         # also where any pip-installed console scripts land.  Usually already
-        # on PATH when the user invokes freeide, but harmless to include.
-        os.path.join(local_appdata, "freeide", "freeide-agent", "venv", "Scripts"),
+        # on PATH when the user invokes jettstui, but harmless to include.
+        os.path.join(local_appdata, "jettstui", "jettstui", "venv", "Scripts"),
         # WinGet packages directory — where ``winget install`` drops CLI
         # shims by default (ripgrep lands here as rg.exe).  Covers the case
         # of a system-Git install + ripgrep-via-winget that isn't yet on

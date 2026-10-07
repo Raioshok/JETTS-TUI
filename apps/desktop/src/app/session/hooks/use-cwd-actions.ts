@@ -9,7 +9,7 @@ import {
   setCurrentCwd,
   setNewChatWorkspaceTarget
 } from '@/store/session'
-import type { SessionRuntimeInfo } from '@/types/freeide'
+import type { SessionRuntimeInfo } from '@/types/jettstui'
 
 interface CwdActionsOptions {
   activeSessionIdRef: MutableRefObject<string | null>

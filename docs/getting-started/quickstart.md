@@ -1,22 +1,22 @@
 ---
 sidebar_position: 1
 title: "Quickstart"
-description: "Your first conversation with Jetts-TUI — from install to chatting"
+description: "Your first conversation with JettsTUI — from install to chatting"
 ---
 
 # Quickstart
 
-This guide gets you from zero to a working FreeIDE setup that survives real use. Install, choose a provider, verify a working chat, and know exactly what to do when something breaks.
+This guide gets you from zero to a working JettsTUI setup that survives real use. Install, choose a provider, verify a working chat, and know exactly what to do when something breaks.
 
 ## Prefer to watch?
 
-**Onchain AI Garage** put together a Masterclass walkthrough of installation, setup, and basic commands — a good companion to this page if you'd rather follow along on video. For more, see the full [FreeIDE Agent Tutorials & Use Cases](https://www.youtube.com/playlist?list=PLmpUb_PWAkDxewld5ZYyKifuHxgIbiq2d) playlist.
+**Onchain AI Garage** put together a Masterclass walkthrough of installation, setup, and basic commands — a good companion to this page if you'd rather follow along on video. For more, see the full [JettsTUI Tutorials & Use Cases](https://www.youtube.com/playlist?list=PLmpUb_PWAkDxewld5ZYyKifuHxgIbiq2d) playlist.
 
 <div style={{position: 'relative', paddingBottom: '56.25%', height: 0, overflow: 'hidden', maxWidth: '100%', marginBottom: '1.5rem'}}>
   <iframe
     style={{position: 'absolute', top: 0, left: 0, width: '100%', height: '100%'}}
     src="https://www.youtube-nocookie.com/embed/R3YOGfTBcQg"
-    title="FreeIDE Agent Masterclass: Installation, Setup, Basic Commands"
+    title="JettsTUI Masterclass: Installation, Setup, Basic Commands"
     frameBorder="0"
     allow="accelerometer; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
     allowFullScreen
@@ -27,7 +27,7 @@ This guide gets you from zero to a working FreeIDE setup that survives real use.
 
 - Brand new and want the shortest path to a working setup
 - Switching providers and don't want to lose time to config mistakes
-- Setting up FreeIDE for a team, bot, or always-on workflow
+- Setting up JettsTUI for a team, bot, or always-on workflow
 - Tired of "it installed, but it still does nothing"
 
 ## The fastest path
@@ -36,17 +36,17 @@ Pick the row that matches your goal:
 
 | Goal | Do this first | Then do this |
 |---|---|---|
-| I just want FreeIDE working on my machine | `freeide setup` | Run a real chat and verify it responds |
-| I already know my provider | `freeide model` | Save the config, then start chatting |
-| I want a bot or always-on setup | `freeide gateway setup` after CLI works | Connect Telegram, Discord, Slack, or another platform |
-| I want a local or self-hosted model | `freeide model` → custom endpoint | Verify the endpoint, model name, and context length |
-| I want multi-provider fallback | `freeide model` first | Add routing and fallback only after the base chat works |
+| I just want JettsTUI working on my machine | `jettstui setup` | Run a real chat and verify it responds |
+| I already know my provider | `jettstui model` | Save the config, then start chatting |
+| I want a bot or always-on setup | `jettstui gateway setup` after CLI works | Connect Telegram, Discord, Slack, or another platform |
+| I want a local or self-hosted model | `jettstui model` → custom endpoint | Verify the endpoint, model name, and context length |
+| I want multi-provider fallback | `jettstui model` first | Add routing and fallback only after the base chat works |
 
-**Rule of thumb:** if FreeIDE cannot complete a normal chat, do not add more features yet. Get one clean conversation working first, then layer on gateway, cron, skills, voice, or routing.
+**Rule of thumb:** if JettsTUI cannot complete a normal chat, do not add more features yet. Get one clean conversation working first, then layer on gateway, cron, skills, voice, or routing.
 
 ---
 
-## 1. Install Jetts-TUI
+## 1. Install JettsTUI
 Prebuilt desktop installers are not published yet. Install from source using the scripts below, then run `jetts-tui desktop` if you want the desktop app.
 
 ### Terminal install
@@ -77,31 +77,31 @@ For detailed installation options, prerequisites, and troubleshooting, see the [
 
 ## 2. Choose a Provider
 
-The single most important setup step. Use `freeide model` to walk through the choice interactively:
+The single most important setup step. Use `jettstui model` to walk through the choice interactively:
 
 ```bash
-freeide model
+jettstui model
 ```
 
 :::tip Bring your own key
-FreeIDE is bring-your-own-key. Run `freeide setup` and pick a free or paid provider, then paste an API key — or use a provider's own OAuth (`openai-codex`, `xai-oauth`, `qwen-oauth`, `minimax-oauth`). Tools (web search, image/video, TTS, browser) are configured per-backend with your own keys.
+JettsTUI is bring-your-own-key. Run `jettstui setup` and pick a free or paid provider, then paste an API key — or use a provider's own OAuth (`openai-codex`, `xai-oauth`, `qwen-oauth`, `minimax-oauth`). Tools (web search, image/video, TTS, browser) are configured per-backend with your own keys.
 :::
 
 :::info Setup modes
-On a fresh install, `freeide setup` offers two modes:
+On a fresh install, `jettstui setup` offers two modes:
 
 - **Full Setup** — walk through every provider, tool, and option yourself (bring your own keys).
 - **Blank Slate** — everything starts **off** except the bare minimum needed to run an agent: **provider & model, the File Operations toolset, and the Terminal toolset**. No web, browser, code execution, vision, memory, delegation, cron, skills, plugins, or MCP servers — and compression, checkpoints, smart routing, and memory capture are all disabled. After the minimal baseline is applied, you choose one of two paths: **start with everything disabled** (finish now with the minimal agent), or **walk through all configurations** (opt in to tools, skills, plugins, MCP, and messaging). Pick this when you want a minimal, fully-controlled agent and intend to enable only exactly what you need.
 
-Blank Slate writes an explicit `platform_toolsets.cli` list plus `agent.disabled_toolsets`, so nothing you didn't choose ever loads — not even after `freeide update`. Re-enable anything later with `freeide tools`, seed skills with `freeide skills opt-in --sync`, or tune settings with `freeide setup agent`.
+Blank Slate writes an explicit `platform_toolsets.cli` list plus `agent.disabled_toolsets`, so nothing you didn't choose ever loads — not even after `jettstui update`. Re-enable anything later with `jettstui tools`, seed skills with `jettstui skills opt-in --sync`, or tune settings with `jettstui setup agent`.
 :::
 
 Good defaults:
 
 | Provider | What it is | How to set up |
 |----------|-----------|---------------|
-| **OpenAI Codex** | ChatGPT OAuth, uses Codex models | Device code auth via `freeide model` |
-| **Anthropic** | Claude models directly — Max plan + extra usage credits (OAuth), or API key for pay-per-token | `freeide model` → OAuth login (requires Max + extra credits), or an Anthropic API key |
+| **OpenAI Codex** | ChatGPT OAuth, uses Codex models | Device code auth via `jettstui model` |
+| **Anthropic** | Claude models directly — Max plan + extra usage credits (OAuth), or API key for pay-per-token | `jettstui model` → OAuth login (requires Max + extra credits), or an Anthropic API key |
 | **OpenRouter** | Multi-provider routing across many models | Enter your API key |
 | **Fireworks AI** | Direct OpenAI-compatible model API | Set `FIREWORKS_API_KEY` |
 | **Z.AI** | GLM / Zhipu-hosted models | Set `GLM_API_KEY` / `ZAI_API_KEY` (also accepts `Z_AI_API_KEY`) |
@@ -109,7 +109,7 @@ Good defaults:
 | **Kimi / Moonshot China** | China-region Moonshot endpoint | Set `KIMI_CN_API_KEY` |
 | **Arcee AI** | Trinity models | Set `ARCEEAI_API_KEY` |
 | **GMI Cloud** | Multi-model direct API | Set `GMI_API_KEY` |
-| **MiniMax (OAuth)** | MiniMax frontier model via browser OAuth — no API key needed (model name in `freeide_cli/models.py` may change between releases) | `freeide model` → MiniMax (OAuth) |
+| **MiniMax (OAuth)** | MiniMax frontier model via browser OAuth — no API key needed (model name in `jettstui/models.py` may change between releases) | `jettstui model` → MiniMax (OAuth) |
 | **MiniMax** | International MiniMax endpoint | Set `MINIMAX_API_KEY` |
 | **MiniMax China** | China-region MiniMax endpoint | Set `MINIMAX_CN_API_KEY` |
 | **Alibaba Cloud** | Qwen models via DashScope | Set `DASHSCOPE_API_KEY` (Qwen Coding Plan also accepts `ALIBABA_CODING_PLAN_API_KEY`) |
@@ -118,46 +118,46 @@ Good defaults:
 | **Azure Foundry** | Azure AI Foundry-hosted models | Set `AZURE_FOUNDRY_API_KEY` + `AZURE_FOUNDRY_BASE_URL` |
 | **Google AI Studio** | Gemini models via direct API | Set `GOOGLE_API_KEY` / `GEMINI_API_KEY` |
 | **xAI** | Grok models via direct API | Set `XAI_API_KEY` |
-| **xAI Grok OAuth** | SuperGrok / Premium+ subscription, no API key needed | `freeide model` → xAI Grok OAuth |
+| **xAI Grok OAuth** | SuperGrok / Premium+ subscription, no API key needed | `jettstui model` → xAI Grok OAuth |
 | **NovitaAI** | Multi-model API gateway | Set `NOVITA_API_KEY` |
 | **StepFun** | Step Plan models | Set `STEPFUN_API_KEY` |
 | **Xiaomi MiMo** | Xiaomi-hosted models | Set `XIAOMI_API_KEY` |
 | **Tencent TokenHub** | Tencent-hosted models | Set `TOKENHUB_API_KEY` |
 | **Ollama Cloud** | Managed Ollama-hosted models | Set `OLLAMA_API_KEY` |
 | **LM Studio** | Local desktop app exposing an OpenAI-compatible API | Set `LM_API_KEY` (and `LM_BASE_URL` if non-default) |
-| **Qwen OAuth** | Qwen Portal browser OAuth — no API key needed | `freeide model` → Qwen OAuth |
+| **Qwen OAuth** | Qwen Portal browser OAuth — no API key needed | `jettstui model` → Qwen OAuth |
 | **Kilo Code** | KiloCode-hosted models | Set `KILOCODE_API_KEY` |
 | **OpenCode Zen** | Pay-as-you-go access to curated models | Set `OPENCODE_ZEN_API_KEY` |
 | **OpenCode Go** | $10/month subscription for open models | Set `OPENCODE_GO_API_KEY` |
 | **DeepSeek** | Direct DeepSeek API access | Set `DEEPSEEK_API_KEY` |
 | **NVIDIA NIM** | Nemotron models via build.nvidia.com or local NIM | Set `NVIDIA_API_KEY` (optional: `NVIDIA_BASE_URL`) |
-| **GitHub Copilot** | GitHub Copilot subscription (GPT-5.x, Claude, Gemini, etc.) | OAuth via `freeide model`, or `COPILOT_GITHUB_TOKEN` / `GH_TOKEN` |
-| **GitHub Copilot ACP** | Copilot ACP agent backend (spawns local `copilot` CLI) | `freeide model` (requires `copilot` CLI + `copilot login`) |
+| **GitHub Copilot** | GitHub Copilot subscription (GPT-5.x, Claude, Gemini, etc.) | OAuth via `jettstui model`, or `COPILOT_GITHUB_TOKEN` / `GH_TOKEN` |
+| **GitHub Copilot ACP** | Copilot ACP agent backend (spawns local `copilot` CLI) | `jettstui model` (requires `copilot` CLI + `copilot login`) |
 | **Custom Endpoint** | VLLM, SGLang, Ollama, or any OpenAI-compatible API | Set base URL + API key |
 
 For most first-time users: choose a provider, accept the defaults unless you know why you're changing them. The full provider catalog with env vars and setup steps lives on the [Providers](../integrations/providers.md) page.
 
 :::caution Minimum context: 64K tokens
-FreeIDE Agent requires a model with at least **64,000 tokens** of context. Models with smaller windows cannot maintain enough working memory for multi-step tool-calling workflows and will be rejected at startup. Most hosted models (Claude, GPT, Gemini, Qwen, DeepSeek) meet this easily. If you're running a local model, set its context size to at least 64K (e.g. `--ctx-size 65536` for llama.cpp or `-c 65536` for Ollama).
+JettsTUI requires a model with at least **64,000 tokens** of context. Models with smaller windows cannot maintain enough working memory for multi-step tool-calling workflows and will be rejected at startup. Most hosted models (Claude, GPT, Gemini, Qwen, DeepSeek) meet this easily. If you're running a local model, set its context size to at least 64K (e.g. `--ctx-size 65536` for llama.cpp or `-c 65536` for Ollama).
 :::
 
 :::tip
-You can switch providers at any time with `freeide model` — no lock-in. For a full list of all supported providers and setup details, see [AI Providers](../integrations/providers.md).
+You can switch providers at any time with `jettstui model` — no lock-in. For a full list of all supported providers and setup details, see [AI Providers](../integrations/providers.md).
 :::
 
 ### How settings are stored
 
-FreeIDE separates secrets from normal config:
+JettsTUI separates secrets from normal config:
 
-- **Secrets and tokens** → `~/.freeide/.env`
-- **Non-secret settings** → `~/.freeide/config.yaml`
+- **Secrets and tokens** → `~/.jettstui/.env`
+- **Non-secret settings** → `~/.jettstui/config.yaml`
 
 The easiest way to set values correctly is through the CLI:
 
 ```bash
-freeide config set model anthropic/claude-opus-4.6
-freeide config set terminal.backend docker
-freeide config set OPENROUTER_API_KEY sk-or-...
+jettstui config set model anthropic/claude-opus-4.6
+jettstui config set terminal.backend docker
+jettstui config set OPENROUTER_API_KEY sk-or-...
 ```
 
 The right value goes to the right file automatically.
@@ -165,13 +165,13 @@ The right value goes to the right file automatically.
 ## 3. Run Your First Chat
 
 ```bash
-freeide            # launch the terminal UI
+jettstui            # launch the terminal UI
 ```
 
 You'll see a welcome banner with your model, available tools, and skills. Use a prompt that's specific and easy to verify:
 
 :::tip One terminal experience
-FreeIDE uses its Ink [TUI](../user-guide/tui.md) for interactive terminal sessions, with modal overlays, mouse selection, and non-blocking input. `freeide --tui` remains accepted for compatibility, but plain `freeide` is the canonical command.
+JettsTUI uses its Ink [TUI](../user-guide/tui.md) for interactive terminal sessions, with modal overlays, mouse selection, and non-blocking input. `jettstui --tui` remains accepted for compatibility, but plain `jettstui` is the canonical command.
 :::
 
 ```
@@ -189,7 +189,7 @@ Help me set up a clean GitHub PR workflow for this codebase.
 **What success looks like:**
 
 - The banner shows your chosen model/provider
-- FreeIDE replies without error
+- JettsTUI replies without error
 - It can use a tool if needed (terminal, file read, web search)
 - The conversation continues normally for more than one turn
 
@@ -200,8 +200,8 @@ If that works, you're past the hardest part.
 Before moving on, make sure resume works:
 
 ```bash
-freeide --continue    # Resume the most recent session
-freeide -c            # Short form
+jettstui --continue    # Resume the most recent session
+jettstui -c            # Short form
 ```
 
 That should bring you back to the session you just had. If it doesn't, check whether you're in the same profile and whether the session actually saved. This matters later when you're juggling multiple setups or machines.
@@ -243,15 +243,15 @@ Only after the base chat works. Pick what you need:
 ### Bot or shared assistant
 
 ```bash
-freeide gateway setup    # Interactive platform configuration
+jettstui gateway setup    # Interactive platform configuration
 ```
 
 Connect [Telegram](../user-guide/messaging/telegram.md), [Discord](../user-guide/messaging/discord.md), [Slack](../user-guide/messaging/slack.md), [WhatsApp](../user-guide/messaging/whatsapp.md), [Signal](../user-guide/messaging/signal.md), [Email](../user-guide/messaging/email.md), or [Home Assistant](../user-guide/messaging/homeassistant.md), or [Microsoft Teams](../user-guide/messaging/teams.md).
 
 ### Automation and tools
 
-- `freeide tools` — tune tool access per platform
-- `freeide skills` — browse and install reusable workflows
+- `jettstui tools` — tune tool access per platform
+- `jettstui skills` — browse and install reusable workflows
 - Cron — only after your bot or CLI setup is stable
 
 ### Sandboxed terminal
@@ -259,18 +259,18 @@ Connect [Telegram](../user-guide/messaging/telegram.md), [Discord](../user-guide
 For safety, run the agent in a Docker container or on a remote server:
 
 ```bash
-freeide config set terminal.backend docker    # Docker isolation
-freeide config set terminal.backend ssh       # Remote server
+jettstui config set terminal.backend docker    # Docker isolation
+jettstui config set terminal.backend ssh       # Remote server
 ```
 
-For Docker sandboxes, you can also enable the **egress credential-injection proxy** so the sandbox never sees your real API keys — only opaque proxy tokens that work exclusively from behind a local TLS-intercepting daemon. See [Egress proxy](../user-guide/egress/iron-proxy.md). Setup is `freeide egress setup && freeide egress start`; `freeide setup terminal` also points Docker users at it. Modal, SSH, Daytona, and Singularity are not wired yet.
+For Docker sandboxes, you can also enable the **egress credential-injection proxy** so the sandbox never sees your real API keys — only opaque proxy tokens that work exclusively from behind a local TLS-intercepting daemon. See [Egress proxy](../user-guide/egress/iron-proxy.md). Setup is `jettstui egress setup && jettstui egress start`; `jettstui setup terminal` also points Docker users at it. Modal, SSH, Daytona, and Singularity are not wired yet.
 
 ### Voice mode
 
 ```bash
-# From the FreeIDE install directory (the curl installer placed it at
-# ~/.freeide/freeide-agent on Linux/macOS or %LOCALAPPDATA%\freeide\freeide-agent on Windows):
-cd ~/.freeide/freeide-agent
+# From the JettsTUI install directory (the curl installer placed it at
+# ~/.jettstui/jettstui on Linux/macOS or %LOCALAPPDATA%\jettstui\jettstui on Windows):
+cd ~/.jettstui/jettstui
 uv pip install -e ".[voice]"
 # Includes faster-whisper for free local speech-to-text
 ```
@@ -279,25 +279,25 @@ Then in the CLI: `/voice on`. Press `Ctrl+B` to record. See [Voice Mode](../user
 
 ### Skills
 
-Skills are on-demand instruction documents that teach FreeIDE how to do a specific task — deploy to Kubernetes, open a GitHub PR, fine-tune a model, search for GIFs. Each is a `SKILL.md` file with a name, a description, and a step-by-step procedure. The agent reads the short descriptions for free and only loads a skill's full content when a task actually calls for it, so adding skills doesn't bloat every request.
+Skills are on-demand instruction documents that teach JettsTUI how to do a specific task — deploy to Kubernetes, open a GitHub PR, fine-tune a model, search for GIFs. Each is a `SKILL.md` file with a name, a description, and a step-by-step procedure. The agent reads the short descriptions for free and only loads a skill's full content when a task actually calls for it, so adding skills doesn't bloat every request.
 
-FreeIDE ships with a catalog of bundled skills already installed in `~/.freeide/skills/`. You can add more from the Skills Hub, or write your own.
+JettsTUI ships with a catalog of bundled skills already installed in `~/.jettstui/skills/`. You can add more from the Skills Hub, or write your own.
 
 **Browse and install from the hub:**
 
 ```bash
-freeide skills browse                      # list everything available
-freeide skills search kubernetes           # find skills by keyword
-freeide skills install openai/skills/k8s   # install one (runs a security scan first)
+jettstui skills browse                      # list everything available
+jettstui skills search kubernetes           # find skills by keyword
+jettstui skills install openai/skills/k8s   # install one (runs a security scan first)
 ```
 
-The install argument is a `source/path` slug from the hub — `openai/skills/k8s` means the `k8s` skill from OpenAI's catalog. `freeide skills browse` shows the exact slugs to use.
+The install argument is a `source/path` slug from the hub — `openai/skills/k8s` means the `k8s` skill from OpenAI's catalog. `jettstui skills browse` shows the exact slugs to use.
 
 **Use a skill** — every installed skill becomes a slash command automatically:
 
 ```bash
 /k8s deploy the staging manifest          # run the skill with a request
-/k8s                                       # load it and let FreeIDE ask what you need
+/k8s                                       # load it and let JettsTUI ask what you need
 ```
 
 This works in the CLI and in any connected messaging platform. You don't have to install everything up front — the agent picks the right bundled skill on its own during normal conversation when a task matches one.
@@ -307,7 +307,7 @@ See [Skills System](../user-guide/features/skills.md) for writing your own, exte
 ### MCP servers
 
 ```yaml
-# Add to ~/.freeide/config.yaml
+# Add to ~/.jettstui/config.yaml
 mcp_servers:
   github:
     command: npx
@@ -321,10 +321,10 @@ mcp_servers:
 ACP support ships with the standard `[all]` extras, so the curl installer already includes it. Just run:
 
 ```bash
-freeide acp
+jettstui acp
 ```
 
-(If you installed without `[all]`, run `cd ~/.freeide/freeide-agent && uv pip install -e ".[acp]"` first.)
+(If you installed without `[all]`, run `cd ~/.jettstui/jettstui && uv pip install -e ".[acp]"` first.)
 
 See [ACP Editor Integration](../user-guide/features/acp.md).
 
@@ -336,23 +336,23 @@ These are the problems that waste the most time:
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
-| FreeIDE opens but gives empty or broken replies | Provider auth or model selection is wrong | Run `freeide model` again and confirm provider, model, and auth |
+| JettsTUI opens but gives empty or broken replies | Provider auth or model selection is wrong | Run `jettstui model` again and confirm provider, model, and auth |
 | Custom endpoint "works" but returns garbage | Wrong base URL, model name, or not actually OpenAI-compatible | Verify the endpoint in a separate client first |
-| Gateway starts but nobody can message it | Bot token, allowlist, or platform setup is incomplete | Re-run `freeide gateway setup` and check `freeide gateway status` |
-| `freeide --continue` can't find old session | Switched profiles or session never saved | Check `freeide sessions list` and confirm you're in the right profile |
+| Gateway starts but nobody can message it | Bot token, allowlist, or platform setup is incomplete | Re-run `jettstui gateway setup` and check `jettstui gateway status` |
+| `jettstui --continue` can't find old session | Switched profiles or session never saved | Check `jettstui sessions list` and confirm you're in the right profile |
 | Model unavailable or odd fallback behavior | Provider routing or fallback settings are too aggressive | Keep routing off until the base provider is stable |
-| `freeide doctor` flags config problems | Config values are missing or stale | Fix the config, retest a plain chat before adding features |
+| `jettstui doctor` flags config problems | Config values are missing or stale | Fix the config, retest a plain chat before adding features |
 
 ## Recovery Toolkit
 
 When something feels off, use this order:
 
-1. `freeide doctor`
-2. `freeide model`
-3. `freeide setup`
-4. `freeide sessions list`
-5. `freeide --continue`
-6. `freeide gateway status`
+1. `jettstui doctor`
+2. `jettstui model`
+3. `jettstui setup`
+4. `jettstui sessions list`
+5. `jettstui --continue`
+6. `jettstui gateway status`
 
 That sequence gets you from "broken vibes" back to a known state fast.
 
@@ -362,14 +362,14 @@ That sequence gets you from "broken vibes" back to a known state fast.
 
 | Command | Description |
 |---------|-------------|
-| `freeide` | Start chatting |
-| `freeide model` | Choose your LLM provider and model |
-| `freeide tools` | Configure which tools are enabled per platform |
-| `freeide setup` | Full setup wizard (configures everything at once) |
-| `freeide doctor` | Diagnose issues |
-| `freeide update` | Update to latest version |
-| `freeide gateway` | Start the messaging gateway |
-| `freeide --continue` | Resume last session |
+| `jettstui` | Start chatting |
+| `jettstui model` | Choose your LLM provider and model |
+| `jettstui tools` | Configure which tools are enabled per platform |
+| `jettstui setup` | Full setup wizard (configures everything at once) |
+| `jettstui doctor` | Diagnose issues |
+| `jettstui update` | Update to latest version |
+| `jettstui gateway` | Start the messaging gateway |
+| `jettstui --continue` | Resume last session |
 
 ## Next Steps
 

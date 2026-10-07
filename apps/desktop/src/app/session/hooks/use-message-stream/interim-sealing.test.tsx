@@ -7,7 +7,7 @@ import type { ClientSessionState } from '@/app/types'
 import { chatMessageText } from '@/lib/chat-messages'
 import { createClientSessionState } from '@/lib/chat-runtime'
 import { clearSessionTodos } from '@/store/todos'
-import type { RpcEvent } from '@/types/freeide'
+import type { RpcEvent } from '@/types/jettstui'
 
 import { useMessageStream } from './index'
 
@@ -27,7 +27,7 @@ function Harness() {
     activeSessionIdRef,
     hydrateFromStoredSession: vi.fn(async () => undefined),
     queryClient: queryClientRef.current,
-    refreshFreeIDEConfig: vi.fn(async () => undefined),
+    refreshJettsTUIConfig: vi.fn(async () => undefined),
     refreshSessions: vi.fn(async () => undefined),
     sessionStateByRuntimeIdRef,
     updateSessionState: (sessionId, updater) => {

@@ -61,7 +61,7 @@ export const PreviewStatusRow = memo(function PreviewStatusRow({ item, onDismiss
 
   const openInBrowser = async () => {
     try {
-      const bridge = window.freeideDesktop?.openPreviewInBrowser
+      const bridge = window.jettstuiDesktop?.openPreviewInBrowser
 
       if (!bridge) {
         throw new Error('Desktop preview browser bridge is unavailable')

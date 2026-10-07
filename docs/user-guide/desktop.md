@@ -1,33 +1,33 @@
 ---
 sidebar_position: 3
 title: "Desktop App"
-description: "The native FreeIDE desktop app — a polished experience for chatting with FreeIDE, with streaming tool output, side-by-side previews, a file browser, voice, cron, profiles, skills, and settings. macOS, Windows, and Linux."
+description: "The native JettsTUI desktop app — a polished experience for chatting with JettsTUI, with streaming tool output, side-by-side previews, a file browser, voice, cron, profiles, skills, and settings. macOS, Windows, and Linux."
 ---
 
 # Desktop App
 
-The FreeIDE desktop app is a native app built around the **same** agent you get from the CLI and the gateway — same config, same API keys, same sessions, same skills, same memory. It is not a separate product or a lightweight clone; it uses the same FreeIDE Agent core and settings, and drives it through a modern & thoughtfully designed UI. If you have used `freeide` in a terminal, everything you set up there is already here, and anything you do here shows up there.
+The JettsTUI desktop app is a native app built around the **same** agent you get from the CLI and the gateway — same config, same API keys, same sessions, same skills, same memory. It is not a separate product or a lightweight clone; it uses the same JettsTUI core and settings, and drives it through a modern & thoughtfully designed UI. If you have used `jettstui` in a terminal, everything you set up there is already here, and anything you do here shows up there.
 
 It runs on **macOS, Windows, and Linux**.
 
 :::tip Which interface is which?
-FreeIDE has several front ends that all talk to the same agent:
+JettsTUI has several front ends that all talk to the same agent:
 
 - **Desktop App** (this page) — a native application with a purpose-built UI for chat, configuration, and management.
-- **[Terminal UI](./tui.md)** (`freeide`) — the single interactive terminal interface.
-- **[Web Dashboard](./features/web-dashboard.md)** (`freeide dashboard`) — a browser admin panel; its optional **Chat** tab embeds the TUI through a pseudo-terminal.
+- **[Terminal UI](./tui.md)** (`jettstui`) — the single interactive terminal interface.
+- **[Web Dashboard](./features/web-dashboard.md)** (`jettstui dashboard`) — a browser admin panel; its optional **Chat** tab embeds the TUI through a pseudo-terminal.
 
 Pick whichever fits the moment. They share state, so you can start a session in one and resume it in another.
 :::
 
 ## Install
 
-Follow the [installation instructions for FreeIDE Desktop](../getting-started/installation.md).
+Follow the [installation instructions for JettsTUI Desktop](../getting-started/installation.md).
 
-If you already have FreeIDE installed, simply run
+If you already have JettsTUI installed, simply run
 
 ```bash
-freeide desktop
+jettstui desktop
 ```
 
 That uses your current config, keys, sessions, and skills.
@@ -41,7 +41,7 @@ The desktop app is organized as a chat-first window with a left sidebar for navi
 The center of the app. You get:
 
 - **Streaming responses** with live tool activity and structured tool-call summaries as the agent works.
-- **The same conversation history** as every other FreeIDE surface — sessions started here resume in the CLI/TUI and vice versa.
+- **The same conversation history** as every other JettsTUI surface — sessions started here resume in the CLI/TUI and vice versa.
 - **Drag-and-drop files** anywhere in the chat area to attach them to your next message.
 - **A right-hand preview rail** — render web pages, files, and tool outputs side by side while you keep chatting.
 - **Composer history and queue editing** — press the up/down arrow keys in an empty composer to recall and reuse previous prompts, and edit messages you've queued up before they're sent. Pressing Stop (or Esc) while turns are queued pauses the queue and expands it above the composer; resume it from there, or send, edit, and delete individual entries.
@@ -52,11 +52,11 @@ The bar along the bottom of the chat shows live session state and exposes quick 
 
 - **Per-session YOLO toggle** — flip YOLO on or off for just this session (matching the TUI). YOLO bypasses the dangerous-command approval prompts, so know what you're turning off — see [Security → YOLO Mode](./security.md#yolo-mode).
 
-Chatting against a FreeIDE instance on another machine instead of the bundled local backend? See [Connecting to a remote backend](#connecting-to-a-remote-backend) below — and for the full picture of how the remote-hosted dashboard connection works (the auth gate, the `/api/ws` chat socket, and WebSocket close-code triage), see [Web Dashboard → Connecting FreeIDE Desktop to a remote backend](./features/web-dashboard.md#connecting-freeide-desktop-to-a-remote-backend).
+Chatting against a JettsTUI instance on another machine instead of the bundled local backend? See [Connecting to a remote backend](#connecting-to-a-remote-backend) below — and for the full picture of how the remote-hosted dashboard connection works (the auth gate, the `/api/ws` chat socket, and WebSocket close-code triage), see [Web Dashboard → Connecting JettsTUI Desktop to a remote backend](./features/web-dashboard.md#connecting-jettstui-desktop-to-a-remote-backend).
 
 #### Repository discovery
 
-FreeIDE Desktop discovers local Git repositories for the Projects sidebar by scanning your home directory to a bounded depth. You can change this per profile in **Settings → Workspace**, or in `config.yaml`:
+JettsTUI Desktop discovers local Git repositories for the Projects sidebar by scanning your home directory to a bounded depth. You can change this per profile in **Settings → Workspace**, or in `config.yaml`:
 
 ```yaml
 desktop:
@@ -65,7 +65,7 @@ desktop:
   repo_scan_exclude_paths: []
 ```
 
-- Set `repo_scan_enabled: false` to stop the filesystem scan completely. Existing disk-discovery cache rows for that profile are cleared; explicit projects and repositories inferred from intentional FreeIDE sessions remain available.
+- Set `repo_scan_enabled: false` to stop the filesystem scan completely. Existing disk-discovery cache rows for that profile are cleared; explicit projects and repositories inferred from intentional JettsTUI sessions remain available.
 - Set `repo_scan_roots` to a list of folders to restrict scanning. An empty list preserves the default home-directory scan.
 - Set `repo_scan_exclude_paths` to folders whose complete subtrees should be skipped.
 
@@ -82,18 +82,18 @@ The model picker lives in the **composer**, just left of the microphone. Click i
 
 ### File browser
 
-Explore and preview the working directory without leaving the app — useful for following along as the agent reads, writes, and edits files. Set the initial project directory with `freeide desktop --cwd <path>` (or the `FREEIDE_DESKTOP_CWD` environment variable).
+Explore and preview the working directory without leaving the app — useful for following along as the agent reads, writes, and edits files. Set the initial project directory with `jettstui desktop --cwd <path>` (or the `JETTSTUI_DESKTOP_CWD` environment variable).
 
 ### Voice
 
-Talk to FreeIDE and hear it back, the same [voice mode](./features/voice-mode.md) available elsewhere. On macOS the OS will prompt once for microphone access.
+Talk to JettsTUI and hear it back, the same [voice mode](./features/voice-mode.md) available elsewhere. On macOS the OS will prompt once for microphone access.
 
 ### Settings & onboarding
 
 Manage providers, models, tools, and credentials from a real UI instead of editing YAML. First-run onboarding gets you to your first message in seconds. The settings panes cover providers/keys, model selection, toolset configuration, MCP servers, the gateway, and session management.
 
 - **Providers settings pane** — a dedicated place to manage inference providers, with an Accounts / API-keys UX for signing in and storing credentials per provider.
-- **Every provider and model in the menus** — the GUI surfaces the full provider list and every model that `freeide model` knows about, so you pick from the same catalog the CLI sees rather than a curated subset.
+- **Every provider and model in the menus** — the GUI surfaces the full provider list and every model that `jettstui model` knows about, so you pick from the same catalog the CLI sees rather than a curated subset.
 - **xAI Grok OAuth** — Grok is a first-class OAuth provider in the launcher; sign in through the browser flow like the other OAuth providers.
 - **Tool-backend installs from the GUI** — run a tool backend's post-setup install steps directly from the app instead of dropping to a terminal.
 - **Auxiliary-model warning** — if you switch the main model to a new provider while auxiliary tasks (titling, summarization, and similar helpers) are still pinned to another provider, the app warns you so you don't unknowingly split work across two providers.
@@ -102,11 +102,11 @@ First-run onboarding has been redesigned on a unified overlay design system, and
 
 ### Management panes
 
-The app also surfaces the broader FreeIDE management surface so you don't have to drop to a terminal:
+The app also surfaces the broader JettsTUI management surface so you don't have to drop to a terminal:
 
 - **Skills** — browse, install, and manage [skills](./features/skills.md).
-- **Cron** — view and manage [scheduled jobs](../reference/cli-commands.md#freeide-cron).
-- **Profiles** — switch between [FreeIDE profiles](./profiles.md) (isolated config/skills/sessions).
+- **Cron** — view and manage [scheduled jobs](../reference/cli-commands.md#jettstui-cron).
+- **Profiles** — switch between [JettsTUI profiles](./profiles.md) (isolated config/skills/sessions).
 - **Messaging** — set up gateway channels.
 - **Agents** and **Command Center** — orchestration surfaces for multi-agent work.
 
@@ -133,82 +133,82 @@ The [manual update process](../getting-started/updating.md) also works with the 
 
 Open **Settings → About → Danger zone** and pick how much to remove:
 
-- **Uninstall Chat GUI only** — removes the desktop app and its data; the FreeIDE agent, your config, and your chats stay. (Same as `freeide uninstall --gui`.)
-- **Uninstall GUI + agent, keep my data** — removes the app and the agent but keeps config, chats, and secrets for a future reinstall. (Same as `freeide uninstall`.)
-- **Uninstall everything** — removes the app, the agent, and all user data. (Same as `freeide uninstall --full`.)
+- **Uninstall Chat GUI only** — removes the desktop app and its data; the JettsTUI agent, your config, and your chats stay. (Same as `jettstui uninstall --gui`.)
+- **Uninstall GUI + agent, keep my data** — removes the app and the agent but keeps config, chats, and secrets for a future reinstall. (Same as `jettstui uninstall`.)
+- **Uninstall everything** — removes the app, the agent, and all user data. (Same as `jettstui uninstall --full`.)
 
 The app closes to finish the job (the cleanup runs after it exits so it can remove the running app bundle and its own venv). The agent-removing options are hidden automatically when no local agent is installed (for example, a GUI-only "lite" client connected to a remote backend).
 
-You can do the same from the terminal — `freeide uninstall --gui` for the GUI alone, or `freeide uninstall` / `freeide uninstall --full` for the agent too.
+You can do the same from the terminal — `jettstui uninstall --gui` for the GUI alone, or `jettstui uninstall` / `jettstui uninstall --full` for the agent too.
 
 :::note
-Running `freeide uninstall --gui` from a **source checkout** (a `freeide desktop` dev build) also removes the workspace `node_modules` and `apps/desktop/{dist,release}` build output, since those are GUI build artifacts. They're recoverable with `freeide desktop` (or `npm install` + a rebuild) — but if you're actively hacking on the desktop app, expect to reinstall dependencies afterward.
+Running `jettstui uninstall --gui` from a **source checkout** (a `jettstui desktop` dev build) also removes the workspace `node_modules` and `apps/desktop/{dist,release}` build output, since those are GUI build artifacts. They're recoverable with `jettstui desktop` (or `npm install` + a rebuild) — but if you're actively hacking on the desktop app, expect to reinstall dependencies afterward.
 :::
 
-## CLI reference: `freeide desktop`
+## CLI reference: `jettstui desktop`
 
-To launch via the CLI, simply run `freeide desktop`. By default it installs workspace Node dependencies, builds the current OS's unpacked Electron app, then launches that packaged artifact.
+To launch via the CLI, simply run `jettstui desktop`. By default it installs workspace Node dependencies, builds the current OS's unpacked Electron app, then launches that packaged artifact.
 
 | Flag                 | Description                                                                               |
 | -------------------- | ----------------------------------------------------------------------------------------- |
 | `--skip-build`       | Skip npm install/package and launch the existing unpacked app from `apps/desktop/release` |
 | `--force-build`      | Force a full rebuild even if the content stamp matches                                    |
-| `--build-only`       | Build the desktop app but do not launch it (used by `freeide update`)                      |
+| `--build-only`       | Build the desktop app but do not launch it (used by `jettstui update`)                      |
 | `--source`           | Launch via `electron .` against `apps/desktop/dist` instead of the packaged app           |
-| `--cwd PATH`         | Initial project directory for desktop chat sessions (sets `FREEIDE_DESKTOP_CWD`)           |
-| `--freeide-root PATH` | Override the FreeIDE source root the app uses (sets `FREEIDE_DESKTOP_FREEIDE_ROOT`)          |
-| `--ignore-existing`  | Force the app to ignore any `freeide` CLI already on `PATH` during backend resolution      |
+| `--cwd PATH`         | Initial project directory for desktop chat sessions (sets `JETTSTUI_DESKTOP_CWD`)           |
+| `--jettstui-root PATH` | Override the JettsTUI source root the app uses (sets `JETTSTUI_DESKTOP_JETTSTUI_ROOT`)          |
+| `--ignore-existing`  | Force the app to ignore any `jettstui` CLI already on `PATH` during backend resolution      |
 | `--fake-boot`        | Enable deterministic boot delays for validating the startup UI                            |
 
 ## How it works
 
-The packaged app ships the Electron shell and a native React chat surface. On first launch it can install the FreeIDE Agent runtime into `FREEIDE_HOME` (`~/.freeide`, or `%LOCALAPPDATA%\freeide` on Windows) — **the same layout a CLI install uses**, which is why the two are interchangeable. Backend resolution first honours `FREEIDE_DESKTOP_FREEIDE_ROOT`, then a completed managed install, then a probed `freeide` on `PATH` (unless `--ignore-existing` / `FREEIDE_DESKTOP_IGNORE_EXISTING=1` is set), and finally an explicit `FREEIDE_DESKTOP_FREEIDE` command override for packagers such as Nix. The React renderer talks to a headless backend the app launches for you — a `freeide serve` process that serves the `tui_gateway` JSON-RPC/WebSocket API — and reuses the agent runtime rather than embedding `freeide --tui`. The desktop app is **self-contained**: it runs its own `freeide serve` backend and never opens or requires the [web dashboard](./features/web-dashboard.md). (Runtimes older than the `serve` command fall back to a headless `dashboard --no-open` automatically, so an app update never outruns its backend.) Install, backend-resolution, and self-update logic live in the Electron main process.
+The packaged app ships the Electron shell and a native React chat surface. On first launch it can install the JettsTUI runtime into `JETTSTUI_HOME` (`~/.jettstui`, or `%LOCALAPPDATA%\jettstui` on Windows) — **the same layout a CLI install uses**, which is why the two are interchangeable. Backend resolution first honours `JETTSTUI_DESKTOP_JETTSTUI_ROOT`, then a completed managed install, then a probed `jettstui` on `PATH` (unless `--ignore-existing` / `JETTSTUI_DESKTOP_IGNORE_EXISTING=1` is set), and finally an explicit `JETTSTUI_DESKTOP_JETTSTUI` command override for packagers such as Nix. The React renderer talks to a headless backend the app launches for you — a `jettstui serve` process that serves the `tui_gateway` JSON-RPC/WebSocket API — and reuses the agent runtime rather than embedding `jettstui --tui`. The desktop app is **self-contained**: it runs its own `jettstui serve` backend and never opens or requires the [web dashboard](./features/web-dashboard.md). (Runtimes older than the `serve` command fall back to a headless `dashboard --no-open` automatically, so an app update never outruns its backend.) Install, backend-resolution, and self-update logic live in the Electron main process.
 
 ## Connecting to a remote backend
 
-By default the app starts and manages its own **local** backend. You can instead point it at a FreeIDE backend running on another machine — a VPS, a home server, or a Mini behind Tailscale.
+By default the app starts and manages its own **local** backend. You can instead point it at a JettsTUI backend running on another machine — a VPS, a home server, or a Mini behind Tailscale.
 
-:::info The remote backend is a running `freeide serve` process
-"Remote backend" means a **`freeide serve`** server running on the remote machine — that is the process the desktop app connects to. Nothing in this section works unless that backend is actually up and reachable. The desktop app does not start it for you; you (or a `systemd` service) keep `freeide serve` running on the remote host, and the app attaches to it. If you also use messaging channels (Telegram, Discord, etc.), the **gateway** is a *separate* long-running process you start independently — see the note after the setup steps.
+:::info The remote backend is a running `jettstui serve` process
+"Remote backend" means a **`jettstui serve`** server running on the remote machine — that is the process the desktop app connects to. Nothing in this section works unless that backend is actually up and reachable. The desktop app does not start it for you; you (or a `systemd` service) keep `jettstui serve` running on the remote host, and the app attaches to it. If you also use messaging channels (Telegram, Discord, etc.), the **gateway** is a *separate* long-running process you start independently — see the note after the setup steps.
 :::
 
 The connection has two halves: on the backend you protect it with an **auth provider**, and in the app you enter the backend's URL and sign in. Binding the backend to a non-loopback address automatically engages its auth gate, and the provider you configure is what lets the desktop app through.
 
 **Pick a provider based on where the backend lives:**
 
-- **OAuth / OIDC — preferred for anything reachable beyond your own machine.** Point the dashboard at your own OIDC identity provider, so this is the option suitable for a VPS, a public host, or any remote backend. Register the dashboard with `freeide dashboard register` to provision its OAuth client, then sign in from the app.
+- **OAuth / OIDC — preferred for anything reachable beyond your own machine.** Point the dashboard at your own OIDC identity provider, so this is the option suitable for a VPS, a public host, or any remote backend. Register the dashboard with `jettstui dashboard register` to provision its OAuth client, then sign in from the app.
 - **Username/password — local / trusted-network use only.** The simplest option when the backend is on the same trusted LAN or reachable only over a VPN (e.g. Tailscale). It protects a single shared credential with no external identity provider, so **do not use it for a dashboard exposed to the public internet** — reach for OAuth there instead.
 
 The rest of this section shows the username/password path because it's the quickest to stand up on a trusted network; for the OAuth path see [Web Dashboard → Authentication](./features/web-dashboard.md#authentication-gated-mode).
 
 ### On the backend (the remote machine)
 
-Set a username and password, then start the backend bound to a reachable address. The credentials live in `~/.freeide/.env` (the secrets file, mode 0600):
+Set a username and password, then start the backend bound to a reachable address. The credentials live in `~/.jettstui/.env` (the secrets file, mode 0600):
 
 ```bash
 # 1. Set the dashboard login credentials.
-cat >> ~/.freeide/.env <<'EOF'
-FREEIDE_DASHBOARD_BASIC_AUTH_USERNAME=admin
-FREEIDE_DASHBOARD_BASIC_AUTH_PASSWORD=choose-a-strong-password
+cat >> ~/.jettstui/.env <<'EOF'
+JETTSTUI_DASHBOARD_BASIC_AUTH_USERNAME=admin
+JETTSTUI_DASHBOARD_BASIC_AUTH_PASSWORD=choose-a-strong-password
 # Recommended: a stable signing secret so sessions survive restarts.
 # Without it a random key is generated per boot and you'll be logged out
 # on every restart.
-FREEIDE_DASHBOARD_BASIC_AUTH_SECRET=$(openssl rand -base64 32)
+JETTSTUI_DASHBOARD_BASIC_AUTH_SECRET=$(openssl rand -base64 32)
 EOF
-chmod 600 ~/.freeide/.env
+chmod 600 ~/.jettstui/.env
 
 # 2. Run the backend bound to a reachable address. The non-loopback bind
 #    engages the auth gate; the username/password provider handles login.
-freeide serve --host 0.0.0.0 --port 9119
+jettstui serve --host 0.0.0.0 --port 9119
 ```
 
-Keep that `freeide serve` process running for as long as you want the desktop app to be able to connect — if it stops, the app can no longer reach the backend. Run it under `systemd`, `tmux`, or your process manager of choice so it survives logout and reboots.
+Keep that `jettstui serve` process running for as long as you want the desktop app to be able to connect — if it stops, the app can no longer reach the backend. Run it under `systemd`, `tmux`, or your process manager of choice so it survives logout and reboots.
 
-Separately, make sure the **gateway is running** on the remote host if you rely on messaging channels — the `freeide serve` backend is what the desktop app talks to, but your Telegram/Discord/Slack gateway sessions are a different process that you start and keep running on their own. See [Messaging](./messaging/index.md) for gateway setup.
+Separately, make sure the **gateway is running** on the remote host if you rely on messaging channels — the `jettstui serve` backend is what the desktop app talks to, but your Telegram/Discord/Slack gateway sessions are a different process that you start and keep running on their own. See [Messaging](./messaging/index.md) for gateway setup.
 
-Prefer not to keep a plaintext password at rest? Set `FREEIDE_DASHBOARD_BASIC_AUTH_PASSWORD_HASH` to a scrypt hash instead — compute it with `python -c "from plugins.dashboard_auth.basic import hash_password; print(hash_password('PW'))"`. Full configuration surface (config.yaml keys, every env var, the rate limiter): [Web Dashboard → Username/password provider](./features/web-dashboard.md#usernamepassword-provider-no-oauth-idp).
+Prefer not to keep a plaintext password at rest? Set `JETTSTUI_DASHBOARD_BASIC_AUTH_PASSWORD_HASH` to a scrypt hash instead — compute it with `python -c "from plugins.dashboard_auth.basic import hash_password; print(hash_password('PW'))"`. Full configuration surface (config.yaml keys, every env var, the rate limiter): [Web Dashboard → Username/password provider](./features/web-dashboard.md#usernamepassword-provider-no-oauth-idp).
 
-Running the backend as a systemd service? Give the unit `EnvironmentFile=%h/.freeide/.env` so the credentials are in the environment at boot.
+Running the backend as a systemd service? Give the unit `EnvironmentFile=%h/.jettstui/.env` so the credentials are in the environment at boot.
 
 :::warning
 The backend reads and writes your `.env` (API keys, secrets) and can run agent commands. The **username/password** setup shown above is for a trusted network — never expose a password-protected backend directly to the open internet; put it behind a VPN. [Tailscale](https://tailscale.com/) is the clean option: bind to the machine's tailscale IP (`--host <tailscale-ip>`) and use `http://<tailscale-ip>:9119` as the Remote URL so only your tailnet can reach it. To reach a backend over the public internet, use an **OAuth / OIDC** provider instead.
@@ -218,11 +218,11 @@ The backend reads and writes your `.env` (API keys, secrets) and can run agent c
 
 **Settings → Gateway → Remote gateway:**
 
-1. **Remote URL** — `http://<backend-host>:9119` (path prefixes like `/freeide` work if you front it with a reverse proxy)
-2. **Sign in** — the app detects which provider the backend advertises and adapts the button. For a username/password backend it shows a **Sign in** button that opens a credential form (enter the credentials from step 1). For an OAuth backend it shows **Sign in with `<provider>`** (e.g. *Sign in with FreeIDE*), which runs the provider's browser sign-in. Either way the app ends up with an authenticated session against the backend.
-3. **Save and reconnect** — switches the desktop shell onto the remote backend. The session refreshes automatically; you stay signed in across restarts when `FREEIDE_DASHBOARD_BASIC_AUTH_SECRET` is set.
+1. **Remote URL** — `http://<backend-host>:9119` (path prefixes like `/jettstui` work if you front it with a reverse proxy)
+2. **Sign in** — the app detects which provider the backend advertises and adapts the button. For a username/password backend it shows a **Sign in** button that opens a credential form (enter the credentials from step 1). For an OAuth backend it shows **Sign in with `<provider>`** (e.g. *Sign in with JettsTUI*), which runs the provider's browser sign-in. Either way the app ends up with an authenticated session against the backend.
+3. **Save and reconnect** — switches the desktop shell onto the remote backend. The session refreshes automatically; you stay signed in across restarts when `JETTSTUI_DASHBOARD_BASIC_AUTH_SECRET` is set.
 
-You can also set the backend URL without the UI via the `FREEIDE_DESKTOP_REMOTE_URL` environment variable before launching the app (it overrides the in-app setting); you still sign in from the Gateway settings panel.
+You can also set the backend URL without the UI via the `JETTSTUI_DESKTOP_REMOTE_URL` environment variable before launching the app (it overrides the in-app setting); you still sign in from the Gateway settings panel.
 
 :::note Per-profile remote hosts
 The remote gateway host is configured per [profile](./profiles.md), so each profile can point at its own remote backend (or stay on its local one). Switching profiles switches which remote host the app connects to.
@@ -230,19 +230,19 @@ The remote gateway host is configured per [profile](./profiles.md), so each prof
 
 ### Troubleshooting
 
-- **Sign-in fails with 401 / "Invalid credentials"** — the username or password doesn't match the backend's `FREEIDE_DASHBOARD_BASIC_AUTH_USERNAME` / `FREEIDE_DASHBOARD_BASIC_AUTH_PASSWORD`. The backend returns the same generic error for an unknown user and a wrong password (no enumeration oracle), so double-check both. Confirm the gate is on with `curl -s http://<host>:9119/api/status | jq '.auth_required, .auth_providers'` — it should report `true` and include `"basic"`.
-- **No "Sign in" button — it asks for a session token instead** — the backend's username/password provider isn't active. `/api/status` won't list `"basic"` in `auth_providers`. Make sure both the username and a password (or password hash) are set in `~/.freeide/.env` and that the dashboard process actually loaded them.
-- **Signed out on every restart** — set `FREEIDE_DASHBOARD_BASIC_AUTH_SECRET` to a stable value. Without it the token-signing key is regenerated per boot, invalidating all sessions.
+- **Sign-in fails with 401 / "Invalid credentials"** — the username or password doesn't match the backend's `JETTSTUI_DASHBOARD_BASIC_AUTH_USERNAME` / `JETTSTUI_DASHBOARD_BASIC_AUTH_PASSWORD`. The backend returns the same generic error for an unknown user and a wrong password (no enumeration oracle), so double-check both. Confirm the gate is on with `curl -s http://<host>:9119/api/status | jq '.auth_required, .auth_providers'` — it should report `true` and include `"basic"`.
+- **No "Sign in" button — it asks for a session token instead** — the backend's username/password provider isn't active. `/api/status` won't list `"basic"` in `auth_providers`. Make sure both the username and a password (or password hash) are set in `~/.jettstui/.env` and that the dashboard process actually loaded them.
+- **Signed out on every restart** — set `JETTSTUI_DASHBOARD_BASIC_AUTH_SECRET` to a stable value. Without it the token-signing key is regenerated per boot, invalidating all sessions.
 - **Connection refused / times out** — the backend bound to `127.0.0.1` (the default) or a firewall/VPN is blocking the port. Bind to `0.0.0.0` or the tailscale IP and open the port to your trusted network.
 
-For the same setup from the web-dashboard angle, see [Web Dashboard → Connecting FreeIDE Desktop to a remote backend](./features/web-dashboard.md#connecting-freeide-desktop-to-a-remote-backend); the env vars are catalogued under [Environment Variables → Web Dashboard & FreeIDE Desktop](../reference/environment-variables.md#web-dashboard--freeide-desktop).
+For the same setup from the web-dashboard angle, see [Web Dashboard → Connecting JettsTUI Desktop to a remote backend](./features/web-dashboard.md#connecting-jettstui-desktop-to-a-remote-backend); the env vars are catalogued under [Environment Variables → Web Dashboard & JettsTUI Desktop](../reference/environment-variables.md#web-dashboard--jettstui-desktop).
 
 ## Extending the desktop app
 
 The desktop app is contribution-driven — panes, pages, sidebar nav, status-bar
 items, palette commands, keybinds, and themes all register through one SDK, and
 you can add your own. A plugin is a single ESM file dropped in
-`$FREEIDE_HOME/desktop-plugins/<id>/plugin.js`; the app loads it within seconds and
+`$JETTSTUI_HOME/desktop-plugins/<id>/plugin.js`; the app loads it within seconds and
 hot-reloads every save. Manage installed plugins live in **Settings → Plugins**.
 
 See [Desktop Plugin SDK](../developer-guide/desktop-plugin-sdk.md) for the full
@@ -250,23 +250,23 @@ reference. (This is separate from the [web dashboard plugin system](./features/e
 
 ## Troubleshooting
 
-Boot logs land in `FREEIDE_HOME/logs/desktop.log` (it includes backend output and recent Python tracebacks) — check it first if the app reports a boot failure. You can also tail it from the CLI:
+Boot logs land in `JETTSTUI_HOME/logs/desktop.log` (it includes backend output and recent Python tracebacks) — check it first if the app reports a boot failure. You can also tail it from the CLI:
 
 ```bash
-freeide logs gui -f
+jettstui logs gui -f
 ```
 
 Common resets:
 
 ```bash
 # Force a clean first-launch setup (macOS/Linux)
-rm "$HOME/.freeide/freeide-agent/.freeide-bootstrap-complete"
+rm "$HOME/.jettstui/jettstui/.jettstui-bootstrap-complete"
 
 # Rebuild a broken Python venv (macOS/Linux)
-rm -rf "$HOME/.freeide/freeide-agent/venv"
+rm -rf "$HOME/.jettstui/jettstui/venv"
 
 # Reset a stuck macOS microphone prompt
-tccutil reset Microphone com.freeide.freeide
+tccutil reset Microphone com.jettstui.jettstui
 ```
 
 ### "Build desktop app" stuck on Electron download
@@ -279,7 +279,7 @@ To **choose your own mirror** (e.g. a corporate/trusted one), set `ELECTRON_MIRR
 
 ```bash
 ELECTRON_MIRROR=https://npmmirror.com/mirrors/electron/ \
-  bash -c 'cd "$HOME/.freeide/freeide-agent/apps/desktop" && CSC_IDENTITY_AUTO_DISCOVERY=false npm run pack'
+  bash -c 'cd "$HOME/.jettstui/jettstui/apps/desktop" && CSC_IDENTITY_AUTO_DISCOVERY=false npm run pack'
 ```
 
 To clear a corrupt cached zip by hand:
@@ -302,8 +302,8 @@ npm run dev          # Vite renderer + Electron, which boots the Python backend
 Point the app at a specific checkout, or sandbox it from your real config:
 
 ```bash
-FREEIDE_DESKTOP_FREEIDE_ROOT=/path/to/clone npm run dev
-FREEIDE_HOME=/tmp/throwaway npm run dev
+JETTSTUI_DESKTOP_JETTSTUI_ROOT=/path/to/clone npm run dev
+JETTSTUI_HOME=/tmp/throwaway npm run dev
 npm run dev:fake-boot   # exercise the startup overlay with deterministic delays
 ```
 
@@ -321,7 +321,7 @@ macOS/Windows signing and notarization run automatically when the relevant crede
 ## See also
 
 - [CLI Guide](./cli.md) — commands and terminal workflows
-- [TUI](./tui.md) — the terminal UI used by `freeide` and the dashboard chat tab
+- [TUI](./tui.md) — the terminal UI used by `jettstui` and the dashboard chat tab
 - [Web Dashboard](./features/web-dashboard.md) — browser admin panel with an embedded chat tab
 - [Configuration](./configuration.md) — config that the desktop app reads and writes
 - [Windows (Native)](./windows-native.md) — native Windows install path

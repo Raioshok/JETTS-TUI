@@ -1,59 +1,59 @@
 ---
 sidebar_position: 1
 title: "CLI Interface"
-description: "Master the FreeIDE Agent terminal interface — commands, keybindings, personalities, and more"
+description: "Master the JettsTUI terminal interface — commands, keybindings, personalities, and more"
 ---
 
 # CLI Interface
 
-FreeIDE Agent's CLI is a full terminal user interface (TUI) — not a web UI. It features multiline editing, slash-command autocomplete, conversation history, interrupt-and-redirect, and streaming tool output. Built for people who live in the terminal.
+JettsTUI's CLI is a full terminal user interface (TUI) — not a web UI. It features multiline editing, slash-command autocomplete, conversation history, interrupt-and-redirect, and streaming tool output. Built for people who live in the terminal.
 
 :::tip First-time setup
-Run `freeide setup`, pick a provider, and paste your API key (or use a provider's own OAuth) — then you're ready to `freeide chat`.
+Run `jettstui setup`, pick a provider, and paste your API key (or use a provider's own OAuth) — then you're ready to `jettstui chat`.
 :::
 
 :::tip
-The Ink TUI is FreeIDE's only interactive terminal surface. Launch it with `freeide`; the older `freeide --tui` spelling remains compatible. See the [TUI](tui.md) guide.
+The Ink TUI is JettsTUI's only interactive terminal surface. Launch it with `jettstui`; the older `jettstui --tui` spelling remains compatible. See the [TUI](tui.md) guide.
 :::
 
 ## Running the CLI
 
 ```bash
 # Start an interactive session (default)
-freeide
+jettstui
 
 # Single query mode (non-interactive)
-freeide chat -q "Hello"
+jettstui chat -q "Hello"
 
 # With a specific model
-freeide chat --model "anthropic/claude-sonnet-4"
+jettstui chat --model "anthropic/claude-sonnet-4"
 
 # With a specific provider
-freeide chat --provider openrouter  # Force OpenRouter
+jettstui chat --provider openrouter  # Force OpenRouter
 
 # With specific toolsets
-freeide chat --toolsets "web,terminal,skills"
+jettstui chat --toolsets "web,terminal,skills"
 
 # Start with one or more skills preloaded
-freeide -s freeide-agent-dev,github-auth
-freeide chat -s github-pr-workflow -q "open a draft PR"
+jettstui -s jettstui-dev,github-auth
+jettstui chat -s github-pr-workflow -q "open a draft PR"
 
 # Resume previous sessions
-freeide --continue             # Resume the most recent CLI session (-c)
-freeide --resume <session_id>  # Resume a specific session by ID (-r)
+jettstui --continue             # Resume the most recent CLI session (-c)
+jettstui --resume <session_id>  # Resume a specific session by ID (-r)
 
 # Verbose mode (debug output)
-freeide chat --verbose
+jettstui chat --verbose
 
 # Isolated git worktree (for running multiple agents in parallel)
-freeide -w                         # Interactive mode in worktree
-freeide -w -z "Fix issue #123"     # Single query in worktree
+jettstui -w                         # Interactive mode in worktree
+jettstui -w -z "Fix issue #123"     # Single query in worktree
 ```
 
 ## Interface Layout
 
 ![Terminal layout](../assets/img/docs/cli-layout.svg)
-<p className="docs-figure-caption">The FreeIDE CLI banner, conversation stream, and fixed input prompt rendered as a stable docs figure instead of fragile text art.</p>
+<p className="docs-figure-caption">The JettsTUI CLI banner, conversation stream, and fixed input prompt rendered as a stable docs figure instead of fragile text art.</p>
 
 The welcome banner shows your model, terminal backend, working directory, available tools, and installed skills at a glance.
 
@@ -74,7 +74,7 @@ A persistent status bar sits above the input area, updating in real time:
 | 🗜️ N | **Context compression count** — how many times the running session has been auto-compressed. Appears once the first compression fires. |
 | ▶ N | **Active background tasks** — how many `/background` prompts are still running in the current session. Appears whenever at least one task is in flight. |
 | Duration | Elapsed session time |
-| ⚠ YOLO | **YOLO mode warning** — shown whenever `FREEIDE_YOLO_MODE` is on (either `freeide --yolo` at launch or `/yolo` toggled mid-session). Mirrors the banner-line warning so you can't forget you're in auto-approve mode. |
+| ⚠ YOLO | **YOLO mode warning** — shown whenever `JETTSTUI_YOLO_MODE` is on (either `jettstui --yolo` at launch or `/yolo` toggled mid-session). Mirrors the banner-line warning so you can't forget you're in auto-approve mode. |
 
 The bar adapts to terminal width — full layout at ≥ 76 columns, compact at 52–75, minimal (model + duration, plus the YOLO badge when active) below 52.
 
@@ -89,11 +89,11 @@ The bar adapts to terminal width — full layout at ≥ 76 columns, compact at 5
 
 Use `/usage` for a detailed breakdown including per-category costs (input vs output tokens).
 
-On the `openai-codex` provider, `/usage` also shows any banked usage-limit resets on your ChatGPT account ("You have N resets banked - use /usage reset to activate"). `/usage reset` redeems one banked reset, fully restoring your 5-hour and weekly limits. FreeIDE refuses to redeem while your limits aren't exhausted (a banked reset restores the full allowance, so spending it early wastes it) — pass `/usage reset --force` to redeem anyway.
+On the `openai-codex` provider, `/usage` also shows any banked usage-limit resets on your ChatGPT account ("You have N resets banked - use /usage reset to activate"). `/usage reset` redeems one banked reset, fully restoring your 5-hour and weekly limits. JettsTUI refuses to redeem while your limits aren't exhausted (a banked reset restores the full allowance, so spending it early wastes it) — pass `/usage reset --force` to redeem anyway.
 
 ### Session Resume Display
 
-When resuming a previous session (`freeide -c` or `freeide --resume <id>`), a "Previous Conversation" panel appears between the banner and the input prompt, showing a compact recap of the conversation history. See [Sessions — Conversation Recap on Resume](sessions.md#conversation-recap-on-resume) for details and configuration.
+When resuming a previous session (`jettstui -c` or `jettstui --resume <id>`), a "Previous Conversation" panel appears between the banner and the input prompt, showing a compact recap of the conversation history. See [Sessions — Conversation Recap on Resume](sessions.md#conversation-recap-on-resume) for details and configuration.
 
 ## Keybindings
 
@@ -108,7 +108,7 @@ When resuming a previous session (`freeide -c` or `freeide --resume <id>`), a "P
 | `Ctrl+X Ctrl+E` | Emacs-style alternate binding for the external editor (same behavior as `Ctrl+G`). |
 | `Ctrl+C` | Interrupt agent (double-press within 2s to force exit) |
 | `Ctrl+D` | Exit |
-| `Ctrl+Z` | Suspend FreeIDE to background (Unix only). Run `fg` in the shell to resume. |
+| `Ctrl+Z` | Suspend JettsTUI to background (Unix only). Run `fg` in the shell to resume. |
 | `Tab` | Accept auto-suggestion (ghost text) or autocomplete slash commands |
 | `Shift+Tab` | Cycle the session work mode: Default → Accept Edits → Plan. With completion open, move to the previous suggestion instead. |
 
@@ -118,7 +118,7 @@ When resuming a previous session (`freeide -c` or `freeide --resume <id>`), a "P
 
 ## Slash Commands
 
-Type `/` to see the autocomplete dropdown. FreeIDE supports a large set of CLI slash commands, dynamic skill commands, and user-defined quick commands.
+Type `/` to see the autocomplete dropdown. JettsTUI supports a large set of CLI slash commands, dynamic skill commands, and user-defined quick commands.
 
 Common examples:
 
@@ -131,7 +131,7 @@ Common examples:
 | `/background <prompt>` | Run a prompt in a separate background session |
 | `/skin` | Show or switch the active CLI skin |
 | `/voice on` | Enable CLI voice mode (press `Ctrl+B` to record) |
-| `/voice tts` | Toggle spoken playback for FreeIDE replies |
+| `/voice tts` | Toggle spoken playback for JettsTUI replies |
 | `/reasoning high` | Increase reasoning effort |
 | `/title My Session` | Name the current session |
 | `/status` | Show session info — model/profile/tokens/duration — followed by a local **Session recap** block (recent turn counts, top tools used, files touched, latest user prompt + assistant reply). Pure local compute; no LLM call. |
@@ -151,11 +151,11 @@ Commands are case-insensitive — `/HELP` works the same as `/help`. Installed s
 You can define custom commands that run shell commands instantly without invoking the LLM. These work in both the CLI and messaging platforms (Telegram, Discord, etc.).
 
 ```yaml
-# ~/.freeide/config.yaml
+# ~/.jettstui/config.yaml
 quick_commands:
   status:
     type: exec
-    command: systemctl status freeide-agent
+    command: systemctl status jettstui
   gpu:
     type: exec
     command: nvidia-smi --query-gpu=utilization.gpu,memory.used --format=csv,noheader
@@ -171,15 +171,15 @@ Then type `/status`, `/gpu`, or `/restart` in any chat. See the [Configuration g
 If you already know which skills you want active for the session, pass them at launch time:
 
 ```bash
-freeide -s freeide-agent-dev,github-auth
-freeide chat -s github-pr-workflow -s github-auth
+jettstui -s jettstui-dev,github-auth
+jettstui chat -s github-pr-workflow -s github-auth
 ```
 
-FreeIDE loads each named skill into the session prompt before the first turn. The same flag works in interactive mode and single-query mode.
+JettsTUI loads each named skill into the session prompt before the first turn. The same flag works in interactive mode and single-query mode.
 
 ## Skill Slash Commands
 
-Every installed skill in `~/.freeide/skills/` is automatically registered as a slash command. The skill name becomes the command:
+Every installed skill in `~/.jettstui/skills/` is automatically registered as a slash command. The skill name becomes the command:
 
 ```
 /gif-search funny cats
@@ -202,13 +202,13 @@ Set a predefined personality to change the agent's tone:
 
 Built-in personalities include: `helpful`, `concise`, `technical`, `creative`, `teacher`, `kawaii`, `catgirl`, `pirate`, `shakespeare`, `surfer`, `noir`, `uwu`, `philosopher`, `hype`.
 
-You can also define custom personalities in `~/.freeide/config.yaml`:
+You can also define custom personalities in `~/.jettstui/config.yaml`:
 
 ```yaml
 personalities:
   helpful: "You are a helpful, friendly AI assistant."
   kawaii: "You are a kawaii assistant! Use cute expressions..."
-  pirate: "Arrr! Ye be talkin' to Captain FreeIDE..."
+  pirate: "Arrr! Ye be talkin' to Captain JettsTUI..."
   # Add your own!
 ```
 
@@ -231,7 +231,7 @@ Pasting multi-line text is supported — use any of the newline keys above, or s
 
 ### Shift+Enter compatibility
 
-Most terminals send the same byte sequence for `Enter` and `Shift+Enter` by default, so applications cannot distinguish them. FreeIDE recognises `Shift+Enter` only when the terminal sends a distinct sequence via the [Kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/) or xterm's `modifyOtherKeys` mode.
+Most terminals send the same byte sequence for `Enter` and `Shift+Enter` by default, so applications cannot distinguish them. JettsTUI recognises `Shift+Enter` only when the terminal sends a distinct sequence via the [Kitty keyboard protocol](https://sw.kovidgoyal.net/kitty/keyboard-protocol/) or xterm's `modifyOtherKeys` mode.
 
 | Terminal | Status |
 |---|---|
@@ -240,7 +240,7 @@ Most terminals send the same byte sequence for `Enter` and `Shift+Enter` by defa
 | Windows Terminal Preview 1.25+ | Supported once the Kitty protocol is enabled in settings |
 | macOS Terminal.app, stock Windows Terminal (stable) | Not supported — `Shift+Enter` is indistinguishable from `Enter` |
 
-Where the terminal cannot distinguish them, `Alt+Enter` and `Ctrl+J` continue to work everywhere. **On Windows Terminal specifically, `Alt+Enter` is captured by the terminal (toggles fullscreen) and never reaches FreeIDE — use `Ctrl+Enter` (delivered as `Ctrl+J`) or `Ctrl+J` directly for a newline.**
+Where the terminal cannot distinguish them, `Alt+Enter` and `Ctrl+J` continue to work everywhere. **On Windows Terminal specifically, `Alt+Enter` is captured by the terminal (toggles fullscreen) and never reaches JettsTUI — use `Ctrl+Enter` (delivered as `Ctrl+J`) or `Ctrl+J` directly for a newline.**
 
 ## Redirecting the Agent Mid-Turn
 
@@ -262,7 +262,7 @@ The `display.busy_input_mode` config key controls what happens when you press En
 | `"steer"` | Your message is injected into the current run via `/steer`, arriving at the agent after the next tool call — no interrupt, no new turn |
 
 ```yaml
-# ~/.freeide/config.yaml
+# ~/.jettstui/config.yaml
 display:
   busy_input_mode: "steer"   # or "queue" or "interrupt" (default)
 ```
@@ -281,15 +281,15 @@ You can also change it inside the CLI:
 ```
 
 :::tip First-touch hint
-The first time you press Enter while FreeIDE is working, FreeIDE prints a one-line reminder explaining the `/busy` knob. It only fires once per install; `onboarding.seen.busy_input_prompt` in `config.yaml` records that it was shown. Delete that key to see the tip again.
+The first time you press Enter while JettsTUI is working, JettsTUI prints a one-line reminder explaining the `/busy` knob. It only fires once per install; `onboarding.seen.busy_input_prompt` in `config.yaml` records that it was shown. Delete that key to see the tip again.
 :::
 
 ### Suspending to Background
 
-On Unix systems, press **`Ctrl+Z`** to suspend FreeIDE to the background — just like any terminal process. The shell prints a confirmation:
+On Unix systems, press **`Ctrl+Z`** to suspend JettsTUI to the background — just like any terminal process. The shell prints a confirmation:
 
 ```
-FreeIDE Agent has been suspended. Run `fg` to bring FreeIDE Agent back.
+JettsTUI has been suspended. Run `fg` to bring JettsTUI back.
 ```
 
 Type `fg` in your shell to resume the session exactly where you left off. This is not supported on Windows.
@@ -319,7 +319,7 @@ Cycle through display modes with `/verbose`: `off → new → all → verbose`. 
 The `display.tool_preview_length` config key controls the maximum number of characters shown in tool call preview lines (e.g. file paths, terminal commands). The default is `0`, which means no limit — full paths and commands are shown.
 
 ```yaml
-# ~/.freeide/config.yaml
+# ~/.jettstui/config.yaml
 display:
   tool_preview_length: 80   # Truncate tool previews to 80 chars (0 = no limit)
 ```
@@ -334,7 +334,7 @@ When you exit a CLI session, a resume command is printed:
 
 ```
 Resume this session with:
-  freeide --resume 20260225_143052_a1b2c3
+  jettstui --resume 20260225_143052_a1b2c3
 
 Session:        20260225_143052_a1b2c3
 Duration:       12m 34s
@@ -344,21 +344,21 @@ Messages:       28 (5 user, 18 tool calls)
 Resume options:
 
 ```bash
-freeide --continue                          # Resume the most recent CLI session
-freeide -c                                  # Short form
-freeide -c "my project"                     # Resume a named session (latest in lineage)
-freeide --resume 20260225_143052_a1b2c3     # Resume a specific session by ID
-freeide --resume "refactoring auth"         # Resume by title
-freeide -r 20260225_143052_a1b2c3           # Short form
+jettstui --continue                          # Resume the most recent CLI session
+jettstui -c                                  # Short form
+jettstui -c "my project"                     # Resume a named session (latest in lineage)
+jettstui --resume 20260225_143052_a1b2c3     # Resume a specific session by ID
+jettstui --resume "refactoring auth"         # Resume by title
+jettstui -r 20260225_143052_a1b2c3           # Short form
 ```
 
 Resuming restores the full conversation history from SQLite. The agent sees all previous messages, tool calls, and responses — just as if you never left.
 
-Use `/title My Session Name` inside a chat to name the current session, or `freeide sessions rename <id> <title>` from the command line. Use `freeide sessions list` to browse past sessions.
+Use `/title My Session Name` inside a chat to name the current session, or `jettstui sessions rename <id> <title>` from the command line. Use `jettstui sessions list` to browse past sessions.
 
 ### Session Storage
 
-CLI sessions are stored in FreeIDE's SQLite state database under `~/.freeide/state.db`. The database keeps:
+CLI sessions are stored in JettsTUI's SQLite state database under `~/.jettstui/state.db`. The database keeps:
 
 - session metadata (ID, title, timestamps, token counters)
 - message history
@@ -372,7 +372,7 @@ Some messaging adapters also keep per-platform transcript files alongside the da
 Long conversations are automatically summarized when approaching context limits:
 
 ```yaml
-# In ~/.freeide/config.yaml
+# In ~/.jettstui/config.yaml
 compression:
   enabled: true
   threshold: 0.50    # Compress at 50% of context limit by default
@@ -393,7 +393,7 @@ Run a prompt in a separate background session while continuing to use the CLI fo
 /background Analyze the logs in /var/log and summarize any errors from today
 ```
 
-FreeIDE immediately confirms the task and gives you back the prompt:
+JettsTUI immediately confirms the task and gives you back the prompt:
 
 ```
 🔄 Background task #1 started: "Analyze the logs in /var/log and summarize..."
@@ -414,7 +414,7 @@ Each `/background` prompt spawns a **completely separate agent session** in a da
 When a background task finishes, the result appears as a panel in your terminal:
 
 ```
-╭─ ⚕ FreeIDE (background #1) ──────────────────────────────────╮
+╭─ ⚕ JettsTUI (background #1) ──────────────────────────────────╮
 │ Found 3 errors in syslog from today:                         │
 │ 1. OOM killer invoked at 03:22 — killed process nginx        │
 │ 2. Disk I/O error on /dev/sda1 at 07:15                      │
@@ -443,5 +443,5 @@ By default, the CLI runs in quiet mode which:
 
 For debug output:
 ```bash
-freeide chat --verbose
+jettstui chat --verbose
 ```

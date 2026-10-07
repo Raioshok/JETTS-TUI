@@ -28,14 +28,14 @@ from typing import List, Dict, Any, Set, Optional
 
 # Shared tool list for CLI and all messaging platform toolsets.
 # Edit this once to update all platforms simultaneously.
-_FREEIDE_CORE_TOOLS = [
+_JETTSTUI_CORE_TOOLS = [
     # Web
     "web_search", "web_extract",
     # Terminal + process management
     "terminal", "process",
     # Desktop GUI affordances: read the embedded terminal pane, close an agent's
     # read-only terminal tab, open a URL/file in the preview pane, and focus a
-    # pane (all gated on FREEIDE_DESKTOP via check_fn — hidden outside the GUI).
+    # pane (all gated on JETTSTUI_DESKTOP via check_fn — hidden outside the GUI).
     "read_terminal", "close_terminal", "open_preview", "focus_pane",
     # File manipulation
     "read_file", "write_file", "patch", "search_files",
@@ -68,7 +68,7 @@ _FREEIDE_CORE_TOOLS = [
     # Home Assistant smart home control (gated on HASS_TOKEN via check_fn)
     "ha_list_entities", "ha_get_state", "ha_list_services", "ha_call_service",
     # Kanban multi-agent coordination — only in schema when the agent is
-    # spawned as a kanban worker (FREEIDE_KANBAN_TASK env set) or the current
+    # spawned as a kanban worker (JETTSTUI_KANBAN_TASK env set) or the current
     # profile explicitly enables the kanban toolset. Gated via check_fn in
     # tools/kanban_tools.py.
     "kanban_show", "kanban_list",
@@ -83,7 +83,7 @@ _FREEIDE_CORE_TOOLS = [
 # Webhook events may originate from untrusted third-party content (for example,
 # public PR titles/comments). Keep the default webhook toolset intentionally
 # constrained to avoid local file/system execution by prompt injection.
-_FREEIDE_WEBHOOK_SAFE_TOOLS = [
+_JETTSTUI_WEBHOOK_SAFE_TOOLS = [
     "web_search",
     "web_extract",
     "vision_analyze",
@@ -113,7 +113,7 @@ TOOLSETS = {
             "x_search Responses tool. Read-only public X discovery; use the "
             "xurl skill for authenticated X API reads and account actions. "
             "Available when xAI credentials are configured (SuperGrok OAuth "
-            "or XAI_API_KEY). Off by default; enable in `freeide tools` → "
+            "or XAI_API_KEY). Off by default; enable in `jettstui tools` → "
             "X (Twitter) Search."
         ),
         "tools": ["x_search"],
@@ -144,7 +144,7 @@ TOOLSETS = {
             "text-to-video (prompt only) and image-to-video (prompt + "
             "image_url), plus reference-to-video. Provider-specific edit/"
             "extend workflows may appear as separate tools. Configure via "
-            "``freeide tools`` → Video Generation."
+            "``jettstui tools`` → Video Generation."
         ),
         "tools": ["video_generate", "xai_video_edit", "xai_video_extend"],
         "includes": []
@@ -263,7 +263,7 @@ TOOLSETS = {
     "kanban": {
         "description": (
             "Kanban multi-agent coordination — only active when the agent "
-            "is spawned by the kanban dispatcher (FREEIDE_KANBAN_TASK env "
+            "is spawned by the kanban dispatcher (JETTSTUI_KANBAN_TASK env "
             "set). The dispatcher runs inside the gateway by default; see "
             "`kanban.dispatch_in_gateway` in config.yaml. Lets workers mark "
             "tasks done with structured handoffs, block for human input, "
@@ -343,7 +343,7 @@ TOOLSETS = {
         "includes": ["web", "vision", "image_gen"]
     },
 
-    # Coding posture (base FreeIDE — CLI/TUI/desktop/ACP). Auto-selected in a
+    # Coding posture (base JettsTUI — CLI/TUI/desktop/ACP). Auto-selected in a
     # code workspace; see agent/coding_context.py. Keeps everything you reach
     # for while pairing on code and drops the rest (messaging, tts, image_gen,
     # spotify, home-assistant, cron, computer-use).
@@ -366,20 +366,20 @@ TOOLSETS = {
         "includes": [],
         # Posture toolset: selected per-session by agent/coding_context.py,
         # never auto-recovered into per-platform tool config (see the
-        # non-configurable-toolset recovery loop in freeide_cli/tools_config.py).
+        # non-configurable-toolset recovery loop in jettstui/tools_config.py).
         "posture": True,
     },
     
     # ==========================================================================
-    # Full FreeIDE toolsets (CLI + messaging platforms)
+    # Full JettsTUI toolsets (CLI + messaging platforms)
     #
     # All platforms share the same core tools. Note: agents do NOT get an
     # agent-callable send_message tool — outbound platform messaging is handled
     # outside the agent loop (cron delivery, the gateway kanban notifier, and
-    # the `freeide send` CLI), not by the model deciding to send on its own.
+    # the `jettstui send` CLI), not by the model deciding to send on its own.
     # ==========================================================================
 
-    "freeide-acp": {
+    "jettstui-acp": {
         "description": "Editor integration (VS Code, Zed, JetBrains) — coding-focused tools without messaging, audio, or clarify UI",
         "tools": [
             "web_search", "web_extract",
@@ -398,7 +398,7 @@ TOOLSETS = {
         "includes": []
     },
 
-    "freeide-api-server": {
+    "jettstui-api-server": {
         "description": "OpenAI-compatible API server — full agent tools accessible via HTTP (no interactive UI tools like clarify or send_message)",
         "tools": [
             # Web
@@ -431,95 +431,95 @@ TOOLSETS = {
         "includes": []
     },
     
-    "freeide-cli": {
+    "jettstui-cli": {
         "description": "Full interactive CLI toolset - all default tools plus cronjob management",
-        "tools": _FREEIDE_CORE_TOOLS,
+        "tools": _JETTSTUI_CORE_TOOLS,
         "includes": []
     },
 
-    "freeide-cron": {
-        # Mirrors freeide-cli so cron's "default" toolset is the same set of
-        # core tools users see interactively — then `freeide tools` filters
+    "jettstui-cron": {
+        # Mirrors jettstui-cli so cron's "default" toolset is the same set of
+        # core tools users see interactively — then `jettstui tools` filters
         # them down per the platform config. _DEFAULT_OFF_TOOLSETS (moa,
         # homeassistant) are excluded by _get_platform_tools() unless
         # the user explicitly enables them.
-        "description": "Default cron toolset - same core tools as freeide-cli; gated by `freeide tools`",
-        "tools": _FREEIDE_CORE_TOOLS,
+        "description": "Default cron toolset - same core tools as jettstui-cli; gated by `jettstui tools`",
+        "tools": _JETTSTUI_CORE_TOOLS,
         "includes": []
     },
 
-    "freeide-telegram": {
+    "jettstui-telegram": {
         "description": "Telegram bot toolset - full access for personal use (terminal has safety checks)",
-        "tools": _FREEIDE_CORE_TOOLS,
+        "tools": _JETTSTUI_CORE_TOOLS,
         "includes": []
     },
     
-    "freeide-discord": {
+    "jettstui-discord": {
         "description": "Discord bot toolset - full access (terminal has safety checks via dangerous command approval)",
-        "tools": _FREEIDE_CORE_TOOLS + [
+        "tools": _JETTSTUI_CORE_TOOLS + [
             "discord",
             "discord_admin",
         ],
         "includes": []
     },
     
-    "freeide-whatsapp": {
+    "jettstui-whatsapp": {
         "description": "WhatsApp bot toolset - similar to Telegram (personal messaging, more trusted)",
-        "tools": _FREEIDE_CORE_TOOLS,
+        "tools": _JETTSTUI_CORE_TOOLS,
         "includes": []
     },
     
-    "freeide-slack": {
+    "jettstui-slack": {
         "description": "Slack bot toolset - full access for workspace use (terminal has safety checks)",
-        "tools": _FREEIDE_CORE_TOOLS,
+        "tools": _JETTSTUI_CORE_TOOLS,
         "includes": []
     },
     
-    "freeide-signal": {
+    "jettstui-signal": {
         "description": "Signal bot toolset - encrypted messaging platform (full access)",
-        "tools": _FREEIDE_CORE_TOOLS,
+        "tools": _JETTSTUI_CORE_TOOLS,
         "includes": []
     },
 
-    "freeide-bluebubbles": {
+    "jettstui-bluebubbles": {
         "description": "BlueBubbles iMessage bot toolset - Apple iMessage via local BlueBubbles server",
-        "tools": _FREEIDE_CORE_TOOLS,
+        "tools": _JETTSTUI_CORE_TOOLS,
         "includes": []
     },
 
-    "freeide-homeassistant": {
+    "jettstui-homeassistant": {
         "description": "Home Assistant bot toolset - smart home event monitoring and control",
-        "tools": _FREEIDE_CORE_TOOLS,
+        "tools": _JETTSTUI_CORE_TOOLS,
         "includes": []
     },
 
-    "freeide-email": {
-        "description": "Email bot toolset - interact with FreeIDE via email (IMAP/SMTP)",
-        "tools": _FREEIDE_CORE_TOOLS,
+    "jettstui-email": {
+        "description": "Email bot toolset - interact with JettsTUI via email (IMAP/SMTP)",
+        "tools": _JETTSTUI_CORE_TOOLS,
         "includes": []
     },
 
-    "freeide-mattermost": {
+    "jettstui-mattermost": {
         "description": "Mattermost bot toolset - self-hosted team messaging (full access)",
-        "tools": _FREEIDE_CORE_TOOLS,
+        "tools": _JETTSTUI_CORE_TOOLS,
         "includes": []
     },
 
-    "freeide-matrix": {
+    "jettstui-matrix": {
         "description": "Matrix bot toolset - decentralized encrypted messaging (full access)",
-        "tools": _FREEIDE_CORE_TOOLS,
+        "tools": _JETTSTUI_CORE_TOOLS,
         "includes": []
     },
 
-    "freeide-dingtalk": {
+    "jettstui-dingtalk": {
         "description": "DingTalk bot toolset - enterprise messaging platform (full access)",
-        "tools": _FREEIDE_CORE_TOOLS,
+        "tools": _JETTSTUI_CORE_TOOLS,
         "includes": []
     },
 
-    "freeide-feishu": {
+    "jettstui-feishu": {
         "description": "Feishu/Lark bot toolset - enterprise messaging via Feishu/Lark (full access)",
-        "tools": _FREEIDE_CORE_TOOLS + [
+        "tools": _JETTSTUI_CORE_TOOLS + [
             "feishu_doc_read",
             "feishu_drive_list_comments",
             "feishu_drive_list_comment_replies",
@@ -529,33 +529,33 @@ TOOLSETS = {
         "includes": []
     },
 
-    "freeide-weixin": {
+    "jettstui-weixin": {
         "description": "Weixin bot toolset - personal WeChat messaging via iLink (full access)",
-        "tools": _FREEIDE_CORE_TOOLS,
+        "tools": _JETTSTUI_CORE_TOOLS,
         "includes": []
     },
 
-    "freeide-qqbot": {
+    "jettstui-qqbot": {
         "description": "QQBot toolset - QQ messaging via Official Bot API v2 (full access)",
-        "tools": _FREEIDE_CORE_TOOLS,
+        "tools": _JETTSTUI_CORE_TOOLS,
         "includes": []
     },
 
-    "freeide-wecom": {
+    "jettstui-wecom": {
         "description": "WeCom bot toolset - enterprise WeChat messaging (full access)",
-        "tools": _FREEIDE_CORE_TOOLS,
+        "tools": _JETTSTUI_CORE_TOOLS,
         "includes": []
     },
 
-    "freeide-wecom-callback": {
+    "jettstui-wecom-callback": {
         "description": "WeCom callback toolset - enterprise self-built app messaging (full access)",
-        "tools": _FREEIDE_CORE_TOOLS,
+        "tools": _JETTSTUI_CORE_TOOLS,
         "includes": []
     },
 
-    "freeide-yuanbao": {
+    "jettstui-yuanbao": {
         "description": "Yuanbao Bot 元宝消息平台工具集 - 群信息、成员查询、私聊、贴纸表情",
-        "tools": _FREEIDE_CORE_TOOLS + [
+        "tools": _JETTSTUI_CORE_TOOLS + [
             "yb_query_group_info",
             "yb_query_group_members",
             "yb_send_dm",
@@ -566,22 +566,22 @@ TOOLSETS = {
         "includes": []
     },
 
-    "freeide-sms": {
-        "description": "SMS bot toolset - interact with FreeIDE via SMS (Twilio)",
-        "tools": _FREEIDE_CORE_TOOLS,
+    "jettstui-sms": {
+        "description": "SMS bot toolset - interact with JettsTUI via SMS (Twilio)",
+        "tools": _JETTSTUI_CORE_TOOLS,
         "includes": []
     },
 
-    "freeide-webhook": {
+    "jettstui-webhook": {
         "description": "Webhook toolset - receive and process external webhook events",
-        "tools": _FREEIDE_WEBHOOK_SAFE_TOOLS,
+        "tools": _JETTSTUI_WEBHOOK_SAFE_TOOLS,
         "includes": []
     },
 
-    "freeide-gateway": {
+    "jettstui-gateway": {
         "description": "Gateway toolset - union of all messaging platform tools",
         "tools": [],
-        "includes": ["freeide-telegram", "freeide-discord", "freeide-whatsapp", "freeide-slack", "freeide-signal", "freeide-bluebubbles", "freeide-homeassistant", "freeide-email", "freeide-sms", "freeide-mattermost", "freeide-matrix", "freeide-dingtalk", "freeide-feishu", "freeide-wecom", "freeide-wecom-callback", "freeide-weixin", "freeide-qqbot", "freeide-webhook", "freeide-yuanbao"]
+        "includes": ["jettstui-telegram", "jettstui-discord", "jettstui-whatsapp", "jettstui-slack", "jettstui-signal", "jettstui-bluebubbles", "jettstui-homeassistant", "jettstui-email", "jettstui-sms", "jettstui-mattermost", "jettstui-matrix", "jettstui-dingtalk", "jettstui-feishu", "jettstui-wecom", "jettstui-wecom-callback", "jettstui-weixin", "jettstui-qqbot", "jettstui-webhook", "jettstui-yuanbao"]
     }
 }
 
@@ -661,9 +661,9 @@ def get_toolset(name: str, *, include_registry: bool = True) -> Optional[Dict[st
 
 
 def bundle_non_core_tools(toolset_name: str) -> Set[str]:
-    """Return a ``freeide-*`` bundle's platform-specific tools, excluding core.
+    """Return a ``jettstui-*`` bundle's platform-specific tools, excluding core.
 
-    Platform bundles are defined as ``_FREEIDE_CORE_TOOLS + [platform extras]``.
+    Platform bundles are defined as ``_JETTSTUI_CORE_TOOLS + [platform extras]``.
     When a bundle name appears in ``disabled_toolsets``, subtracting the whole
     bundle would strip core tools (terminal, read_file, …) shared by every
     other enabled toolset, emptying the model's tool list (#33924). This
@@ -671,12 +671,12 @@ def bundle_non_core_tools(toolset_name: str) -> Set[str]:
     one-level ``includes``), so disabling a bundle removes its platform tools
     while leaving core intact.
 
-    Bundle nesting is one level deep in practice (only ``freeide-gateway``
+    Bundle nesting is one level deep in practice (only ``jettstui-gateway``
     includes other bundles, and those leaves don't nest further), so a single
     ``includes`` pass is sufficient. Unknown/garbage names fall back to the
     full resolution minus core — never re-introducing the core wipe.
     """
-    core = set(_FREEIDE_CORE_TOOLS)
+    core = set(_JETTSTUI_CORE_TOOLS)
     ts_def = get_toolset(toolset_name)
     if not (ts_def and "tools" in ts_def):
         return set(resolve_toolset(toolset_name)) - core
@@ -732,17 +732,17 @@ def resolve_toolset(name: str, visited: Set[str] = None, *, include_registry: bo
     # Get toolset definition
     toolset = get_toolset(name, include_registry=include_registry)
     if not toolset:
-        # Auto-generate a toolset for plugin platforms (freeide-<name>).
-        # Gives them _FREEIDE_CORE_TOOLS plus any tools the plugin registered
+        # Auto-generate a toolset for plugin platforms (jettstui-<name>).
+        # Gives them _JETTSTUI_CORE_TOOLS plus any tools the plugin registered
         # into a toolset matching the platform name. This is a registry-derived
         # view, so it only applies when registry tools are requested; the static
         # view (include_registry=False) has no plugin-platform definition.
-        if include_registry and name.startswith("freeide-"):
-            platform_name = name[len("freeide-"):]
+        if include_registry and name.startswith("jettstui-"):
+            platform_name = name[len("jettstui-"):]
             try:
                 from gateway.platform_registry import platform_registry
                 if platform_registry.is_registered(platform_name):
-                    plugin_tools = set(_FREEIDE_CORE_TOOLS)
+                    plugin_tools = set(_JETTSTUI_CORE_TOOLS)
                     try:
                         from tools.registry import registry
                         plugin_tools.update(

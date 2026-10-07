@@ -25,10 +25,10 @@ import pytest
 
 
 def _make_cli():
-    """Minimal FreeIDECLI shell exposing the prompt/modal helpers."""
+    """Minimal JettsTUICLI shell exposing the prompt/modal helpers."""
     import cli as cli_mod
 
-    obj = object.__new__(cli_mod.FreeIDECLI)
+    obj = object.__new__(cli_mod.JettsTUICLI)
     obj._app = MagicMock()
     obj._app.loop = MagicMock()
     obj._status_bar_visible = True

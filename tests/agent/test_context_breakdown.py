@@ -192,8 +192,8 @@ def test_compute_context_details_maps_bytes_to_tokens():
     }]
     fake_toolsets = [{"toolset": "terminal", "tool_count": 2, "json_bytes": 399}]
     with patch("agent.system_prompt.build_system_prompt_parts", return_value=parts), \
-         patch("freeide_cli.prompt_size._compute_skills_breakdown", return_value=fake_skills), \
-         patch("freeide_cli.prompt_size._compute_toolsets_breakdown", return_value=fake_toolsets):
+         patch("jettstui.prompt_size._compute_skills_breakdown", return_value=fake_skills), \
+         patch("jettstui.prompt_size._compute_toolsets_breakdown", return_value=fake_toolsets):
         details = compute_context_details(agent)
 
     assert details["skills"] == [

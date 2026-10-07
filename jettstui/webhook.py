@@ -1,12 +1,12 @@
-"""freeide webhook — manage dynamic webhook subscriptions from the CLI.
+"""jettstui webhook — manage dynamic webhook subscriptions from the CLI.
 
 Usage:
-    freeide webhook subscribe <name> [options]
-    freeide webhook list
-    freeide webhook remove <name>
-    freeide webhook test <name> [--payload '{"key": "value"}']
+    jettstui webhook subscribe <name> [options]
+    jettstui webhook list
+    jettstui webhook remove <name>
+    jettstui webhook test <name> [--payload '{"key": "value"}']
 
-Subscriptions persist to ~/.freeide/webhook_subscriptions.json and are
+Subscriptions persist to ~/.jettstui/webhook_subscriptions.json and are
 hot-reloaded by the webhook adapter without a gateway restart.
 """
 
@@ -19,22 +19,22 @@ import time
 from pathlib import Path
 from typing import Dict
 
-from freeide_constants import display_freeide_home
+from jettstui_constants import display_jettstui_home
 from utils import atomic_replace
-from freeide_cli.config import cfg_get
+from jettstui.config import cfg_get
 
 
 _SUBSCRIPTIONS_FILENAME = "webhook_subscriptions.json"
 _SUBSCRIPTIONS_FILE_MODE = 0o600
 
 
-def _freeide_home() -> Path:
-    from freeide_constants import get_freeide_home
-    return get_freeide_home()
+def _jettstui_home() -> Path:
+    from jettstui_constants import get_jettstui_home
+    return get_jettstui_home()
 
 
 def _subscriptions_path() -> Path:
-    return _freeide_home() / _SUBSCRIPTIONS_FILENAME
+    return _jettstui_home() / _SUBSCRIPTIONS_FILENAME
 
 
 def _load_subscriptions() -> Dict[str, dict]:
@@ -83,7 +83,7 @@ def _save_subscriptions(subs: Dict[str, dict]) -> None:
 def _get_webhook_config() -> dict:
     """Load webhook platform config. Returns {} if not configured."""
     try:
-        from freeide_cli.config import load_config
+        from jettstui.config import load_config
         cfg = load_config()
         return cfg_get(cfg, "platforms", "webhook", default={})
     except Exception:
@@ -105,12 +105,12 @@ def _get_webhook_base_url() -> str:
 
 
 def _setup_hint() -> str:
-    _dhh = display_freeide_home()
+    _dhh = display_jettstui_home()
     return f"""
   Webhook platform is not enabled. To set it up:
 
   1. Run the gateway setup wizard:
-     freeide gateway setup
+     jettstui gateway setup
 
   2. Or manually add to {_dhh}/config.yaml:
      platforms:
@@ -125,7 +125,7 @@ def _setup_hint() -> str:
      WEBHOOK_PORT=8644
      WEBHOOK_SECRET=your-global-secret
 
-  Then start the gateway: freeide gateway run
+  Then start the gateway: jettstui gateway run
 """
 
 
@@ -138,12 +138,12 @@ def _require_webhook_enabled() -> bool:
 
 
 def webhook_command(args):
-    """Entry point for 'freeide webhook' subcommand."""
+    """Entry point for 'jettstui webhook' subcommand."""
     sub = getattr(args, "webhook_action", None)
 
     if not sub:
-        print("Usage: freeide webhook {subscribe|list|remove|test}")
-        print("Run 'freeide webhook --help' for details.")
+        print("Usage: jettstui webhook {subscribe|list|remove|test}")
+        print("Run 'jettstui webhook --help' for details.")
         return
 
     if not _require_webhook_enabled():
@@ -221,14 +221,14 @@ def _cmd_subscribe(args):
         print(f"  Script: {route['script']}")
     print("\n  Configure your service to POST to the URL above.")
     print("  Use the secret for HMAC-SHA256 signature validation.")
-    print("  The gateway must be running to receive events (freeide gateway run).\n")
+    print("  The gateway must be running to receive events (jettstui gateway run).\n")
 
 
 def _cmd_list(args):
     subs = _load_subscriptions()
     if not subs:
         print("  No dynamic webhook subscriptions.")
-        print("  Create one with: freeide webhook subscribe <name>")
+        print("  Create one with: jettstui webhook subscribe <name>")
         return
 
     base_url = _get_webhook_base_url()
@@ -278,7 +278,7 @@ def _cmd_test(args):
     base_url = _get_webhook_base_url()
     url = f"{base_url}/webhooks/{name}"
 
-    payload = args.payload or '{"test": true, "event_type": "test", "message": "Hello from freeide webhook test"}'
+    payload = args.payload or '{"test": true, "event_type": "test", "message": "Hello from jettstui webhook test"}'
 
     import hmac
     import hashlib
@@ -304,4 +304,4 @@ def _cmd_test(args):
             print(f"  Response ({resp.status}): {body}")
     except Exception as e:
         print(f"  Error: {e}")
-        print("  Is the gateway running? (freeide gateway run)")
+        print("  Is the gateway running? (jettstui gateway run)")

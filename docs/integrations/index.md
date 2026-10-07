@@ -6,27 +6,27 @@ sidebar_position: 0
 
 # Integrations
 
-FreeIDE Agent connects to external systems for AI inference, tool servers, IDE workflows, programmatic access, and more. These integrations extend what FreeIDE can do and where it can run.
+JettsTUI connects to external systems for AI inference, tool servers, IDE workflows, programmatic access, and more. These integrations extend what JettsTUI can do and where it can run.
 
 :::tip Start here
-If you only have time to set up one integration, set up an [AI provider](./providers.md) — run `freeide setup` and pick a free or paid provider, then paste an API key (or use a provider's own OAuth). FreeIDE is bring-your-own-key.
+If you only have time to set up one integration, set up an [AI provider](./providers.md) — run `jettstui setup` and pick a free or paid provider, then paste an API key (or use a provider's own OAuth). JettsTUI is bring-your-own-key.
 :::
 
 ## AI Providers & Routing
 
-FreeIDE supports multiple AI inference providers out of the box. Use `freeide model` to configure interactively, or set them in `config.yaml`.
+JettsTUI supports multiple AI inference providers out of the box. Use `jettstui model` to configure interactively, or set them in `config.yaml`.
 
-- **[AI Providers](./providers.md)** — OpenRouter, Anthropic, OpenAI, Google, and any OpenAI-compatible endpoint. FreeIDE auto-detects capabilities like vision, streaming, and tool use per provider.
+- **[AI Providers](./providers.md)** — OpenRouter, Anthropic, OpenAI, Google, and any OpenAI-compatible endpoint. JettsTUI auto-detects capabilities like vision, streaming, and tool use per provider.
 - **[Provider Routing](../user-guide/features/provider-routing.md)** — Fine-grained control over which underlying providers handle your OpenRouter requests. Optimize for cost, speed, or quality with sorting, whitelists, blacklists, and explicit priority ordering.
 - **[Fallback Providers](../user-guide/features/fallback-providers.md)** — Automatic failover to backup LLM providers when your primary model encounters errors. Includes primary model fallback and independent auxiliary task fallback for vision, compression, and web extraction.
 
 ## Tool Servers (MCP)
 
-- **[MCP Servers](../user-guide/features/mcp.md)** — Connect FreeIDE to external tool servers via Model Context Protocol. Access tools from GitHub, databases, file systems, browser stacks, internal APIs, and more without writing native FreeIDE tools. Supports both stdio and SSE transports, per-server tool filtering, and capability-aware resource/prompt registration.
+- **[MCP Servers](../user-guide/features/mcp.md)** — Connect JettsTUI to external tool servers via Model Context Protocol. Access tools from GitHub, databases, file systems, browser stacks, internal APIs, and more without writing native JettsTUI tools. Supports both stdio and SSE transports, per-server tool filtering, and capability-aware resource/prompt registration.
 
 ## Web Search Backends
 
-The `web_search` and `web_extract` tools support eight backend providers, configured via `config.yaml` or `freeide tools`:
+The `web_search` and `web_extract` tools support eight backend providers, configured via `config.yaml` or `jettstui tools`:
 
 | Backend | Env Var | Search | Extract | Crawl |
 |---------|---------|--------|---------|-------|
@@ -50,7 +50,7 @@ If `web.backend` is not set, the backend is auto-detected from whichever API key
 
 ## Browser Automation
 
-FreeIDE includes full browser automation with multiple backend options for navigating websites, filling forms, and extracting information:
+JettsTUI includes full browser automation with multiple backend options for navigating websites, filling forms, and extracting information:
 
 - **Browserbase** — Managed cloud browsers with anti-bot tooling, CAPTCHA solving, and residential proxies
 - **Browser Use** — Alternative cloud browser provider
@@ -76,11 +76,11 @@ Speech-to-text supports six providers: local faster-whisper (free, runs on-devic
 
 ## IDE & Editor Integration
 
-- **[IDE Integration (ACP)](../user-guide/features/acp.md)** — Use FreeIDE Agent inside ACP-compatible editors such as VS Code, Zed, and JetBrains. FreeIDE runs as an ACP server, rendering chat messages, tool activity, file diffs, and terminal commands inside your editor.
+- **[IDE Integration (ACP)](../user-guide/features/acp.md)** — Use JettsTUI inside ACP-compatible editors such as VS Code, Zed, and JetBrains. JettsTUI runs as an ACP server, rendering chat messages, tool activity, file diffs, and terminal commands inside your editor.
 
 ## Programmatic Access
 
-- **[API Server](../user-guide/features/api-server.md)** — Expose FreeIDE as an OpenAI-compatible HTTP endpoint. Any frontend that speaks the OpenAI format — Open WebUI, LobeChat, LibreChat, NextChat, ChatBox — can connect and use FreeIDE as a backend with its full toolset.
+- **[API Server](../user-guide/features/api-server.md)** — Expose JettsTUI as an OpenAI-compatible HTTP endpoint. Any frontend that speaks the OpenAI format — Open WebUI, LobeChat, LibreChat, NextChat, ChatBox — can connect and use JettsTUI as a backend with its full toolset.
 
 ## Memory & Personalization
 
@@ -89,7 +89,7 @@ Speech-to-text supports six providers: local faster-whisper (free, runs on-devic
 
 ## Messaging Platforms
 
-FreeIDE runs as a gateway bot on 27+ messaging platforms, all configured through the same `gateway` subsystem:
+JettsTUI runs as a gateway bot on 27+ messaging platforms, all configured through the same `gateway` subsystem:
 
 - **[Telegram](../user-guide/messaging/telegram.md)**, **[Discord](../user-guide/messaging/discord.md)**, **[Slack](../user-guide/messaging/slack.md)**, **[WhatsApp](../user-guide/messaging/whatsapp.md)**, **[Signal](../user-guide/messaging/signal.md)**, **[Matrix](../user-guide/messaging/matrix.md)**, **[Mattermost](../user-guide/messaging/mattermost.md)**, **[Email](../user-guide/messaging/email.md)**, **[SMS](../user-guide/messaging/sms.md)**, **[DingTalk](../user-guide/messaging/dingtalk.md)**, **[Feishu/Lark](../user-guide/messaging/feishu.md)**, **[WeCom](../user-guide/messaging/wecom.md)**, **[WeCom Callback](../user-guide/messaging/wecom-callback.md)**, **[Weixin](../user-guide/messaging/weixin.md)**, **[BlueBubbles](../user-guide/messaging/bluebubbles.md)**, **[QQ Bot](../user-guide/messaging/qqbot.md)**, **[Yuanbao](../user-guide/messaging/yuanbao.md)**, **[Home Assistant](../user-guide/messaging/homeassistant.md)**, **[Microsoft Teams](../user-guide/messaging/teams.md)**, **[Microsoft Teams Meetings](../user-guide/messaging/teams-meetings.md)**, **[Microsoft Graph Webhook](../user-guide/messaging/msgraph-webhook.md)**, **[Google Chat](../user-guide/messaging/google_chat.md)**, **[LINE](../user-guide/messaging/line.md)**, **[ntfy](../user-guide/messaging/ntfy.md)**, **[SimpleX](../user-guide/messaging/simplex.md)**, **[Open WebUI](../user-guide/messaging/open-webui.md)**, **[Webhooks](../user-guide/messaging/webhooks.md)**
 
@@ -101,8 +101,8 @@ See the [Messaging Gateway overview](../user-guide/messaging/index.md) for the p
 
 ## Plugins
 
-- **[Plugin System](../user-guide/features/plugins.md)** — Extend FreeIDE with custom tools, lifecycle hooks, and CLI commands without modifying core code. Plugins are discovered from `~/.freeide/plugins/`, project-local `.freeide/plugins/`, and pip-installed entry points.
-- **[Build a Plugin](../developer-guide/plugins/index.md)** — Step-by-step guide for creating FreeIDE plugins with tools, hooks, and CLI commands.
+- **[Plugin System](../user-guide/features/plugins.md)** — Extend JettsTUI with custom tools, lifecycle hooks, and CLI commands without modifying core code. Plugins are discovered from `~/.jettstui/plugins/`, project-local `.jettstui/plugins/`, and pip-installed entry points.
+- **[Build a Plugin](../developer-guide/plugins/index.md)** — Step-by-step guide for creating JettsTUI plugins with tools, hooks, and CLI commands.
 
 ## Training & Evaluation
 

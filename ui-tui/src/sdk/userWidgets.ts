@@ -19,14 +19,14 @@ import { defineWidgetApp, listWidgetApps, removeWidgetApp } from './registry.js'
 import { isCtrl } from './types.js'
 
 /**
- * User widget apps — FreeIDE authors its own TUI widgets, mirroring the
- * Python plugin contract: drop `<name>.mjs` into `$FREEIDE_HOME/tui-widgets/`,
+ * User widget apps — JettsTUI authors its own TUI widgets, mirroring the
+ * Python plugin contract: drop `<name>.mjs` into `$JETTSTUI_HOME/tui-widgets/`,
  * default-export `register(sdk)`, and the app surfaces in `/` completions
  * and dispatch automatically (the registry is the catalog). Plain ESM so the
  * production bundle can import it — no bundler, no JSX; `sdk.h` is
  * React.createElement.
  *
- * Trust model matches `~/.freeide/plugins/`: files under FREEIDE_HOME execute
+ * Trust model matches `~/.jettstui/plugins/`: files under JETTSTUI_HOME execute
  * with the TUI's privileges. Load errors log and skip — a broken widget
  * never takes the TUI down.
  */
@@ -58,7 +58,7 @@ export const widgetSdk = {
 
 export type WidgetSdk = typeof widgetSdk
 
-const widgetsDir = () => join(process.env.FREEIDE_HOME?.trim() || join(homedir(), '.freeide'), 'tui-widgets')
+const widgetsDir = () => join(process.env.JETTSTUI_HOME?.trim() || join(homedir(), '.jettstui'), 'tui-widgets')
 
 export interface UserWidgetLoadResult {
   /** App ids newly registered by this scan. */
@@ -156,7 +156,7 @@ export async function loadUserWidgets(dir = widgetsDir()): Promise<UserWidgetLoa
 let watching = false
 
 /** Generative-UI hot loading: watch the widgets directory and re-scan on
- *  every change, so a widget FreeIDE writes appears within ~a second — no
+ *  every change, so a widget JettsTUI writes appears within ~a second — no
  *  `/widgets-reload`, no restart (GUI parity). Debounced (editors and
  *  write_file emit bursts); polls until the directory exists so the very
  *  first widget ever written also hot-loads. */
@@ -188,7 +188,7 @@ export function watchUserWidgets(dir = widgetsDir()): void {
   if (!attach()) {
     // Event-driven first-creation: watch the PARENT for the widgets dir to
     // appear, attach + scan the instant it does. The very first widget a
-    // user (or FreeIDE) ever writes must hot-load too — a 10s poll here read
+    // user (or JettsTUI) ever writes must hot-load too — a 10s poll here read
     // as "requires a restart" in live use.
     try {
       const parent = watch(dirname(dir), () => {

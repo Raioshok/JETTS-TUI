@@ -4,7 +4,7 @@ No React, no JavaScript dependency. Listed providers come from the
 registry; clicking a provider sends a GET to
 ``/auth/login?provider=<name>``.
 
-Visual styling mirrors the FreeIDE design system (the same UI package
+Visual styling mirrors the JettsTUI design system (the same UI package
 the React dashboard uses): the same
 ``Collapse`` / ``Rules Compressed`` typeface, amber-on-dark colour
 tokens (``#170d02`` / ``#ffac02`` / ``#fff``), uppercase + wide-tracking
@@ -17,13 +17,13 @@ bundle loaded.
 Test-stable class names: the existing test suite extracts the
 ``class="provider-btn"`` anchor href to walk the OAuth flow. That
 class name MUST NOT change without updating
-``tests/freeide_cli/test_dashboard_auth_401_reauth.py``.
+``tests/jettstui_cli/test_dashboard_auth_401_reauth.py``.
 """
 from __future__ import annotations
 
 import html
 
-from freeide_cli.dashboard_auth import list_session_providers
+from jettstui.dashboard_auth import list_session_providers
 
 # Inline minimal CSS. The dashboard's full skin lives in the React
 # bundle, which we deliberately do NOT load here — the login page must
@@ -38,9 +38,9 @@ _LOGIN_HTML_TEMPLATE = """\
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sign in — FreeIDE Agent</title>
+<title>Sign in — JettsTUI</title>
 <style>
-  /* Brand fonts shipped by the FreeIDE UI package — same files the SPA loads. */
+  /* Brand fonts shipped by the JettsTUI UI package — same files the SPA loads. */
   @font-face {{
     font-family: 'Collapse';
     font-style: normal;
@@ -305,7 +305,7 @@ _LOGIN_HTML_TEMPLATE = """\
   <div class="brand">Free<span class="dot"></span>IDE</div>
   <div class="card">
     <h1>Sign in</h1>
-    <p class="subtitle">Choose a sign-in method to continue to the FreeIDE Agent dashboard.</p>
+    <p class="subtitle">Choose a sign-in method to continue to the JettsTUI dashboard.</p>
     <div class="provider-list">
 {provider_buttons}
     </div>
@@ -325,7 +325,7 @@ _EMPTY_HTML = """\
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Sign-in unavailable — FreeIDE Agent</title>
+<title>Sign-in unavailable — JettsTUI</title>
 <style>
   @font-face {
     font-family: 'Collapse';

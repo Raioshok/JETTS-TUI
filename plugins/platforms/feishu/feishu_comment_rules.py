@@ -3,8 +3,8 @@ Feishu document comment access-control rules.
 
 3-tier rule resolution: exact doc > wildcard "*" > top-level > code defaults.
 Each field (enabled/policy/allow_from) falls back independently.
-Config: ~/.freeide/feishu_comment_rules.json (mtime-cached, hot-reload).
-Pairing store: ~/.freeide/feishu_comment_pairing.json.
+Config: ~/.jettstui/feishu_comment_rules.json (mtime-cached, hot-reload).
+Pairing store: ~/.jettstui/feishu_comment_pairing.json.
 """
 
 from __future__ import annotations
@@ -16,7 +16,7 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any, Dict, Optional
 
-from freeide_constants import get_freeide_home
+from jettstui_constants import get_jettstui_home
 
 logger = logging.getLogger(__name__)
 
@@ -24,13 +24,13 @@ logger = logging.getLogger(__name__)
 # Paths
 # ---------------------------------------------------------------------------
 #
-# Uses the canonical ``get_freeide_home()`` helper (FREEIDE_HOME-aware and
+# Uses the canonical ``get_jettstui_home()`` helper (JETTSTUI_HOME-aware and
 # profile-safe). Resolved at import time; this module is lazy-imported by
 # the Feishu comment event handler, which runs long after profile overrides
 # have been applied, so freezing paths here is safe.
 
-RULES_FILE = get_freeide_home() / "feishu_comment_rules.json"
-PAIRING_FILE = get_freeide_home() / "feishu_comment_pairing.json"
+RULES_FILE = get_jettstui_home() / "feishu_comment_rules.json"
+PAIRING_FILE = get_jettstui_home() / "feishu_comment_pairing.json"
 
 # ---------------------------------------------------------------------------
 # Data models
@@ -351,8 +351,8 @@ def _main() -> int:
     import sys
 
     try:
-        from freeide_cli.env_loader import load_freeide_dotenv
-        load_freeide_dotenv()
+        from jettstui.env_loader import load_jettstui_dotenv
+        load_jettstui_dotenv()
     except Exception:
         pass
 

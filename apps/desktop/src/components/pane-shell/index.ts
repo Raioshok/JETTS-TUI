@@ -4,4 +4,4 @@
  * in `detail`; the layout tree's narrow overlays (tree/renderer.tsx) listen
  * and slide the pane over the grid.
  */
-export const PANE_TOGGLE_REVEAL_EVENT = 'freeide:pane-toggle-reveal'
+export const PANE_TOGGLE_REVEAL_EVENT = 'jettstui:pane-toggle-reveal'

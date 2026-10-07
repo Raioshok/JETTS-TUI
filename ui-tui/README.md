@@ -1,6 +1,6 @@
-# Jetts-TUI
+# JettsTUI
 
-React + Ink terminal UI for Jetts-TUI. TypeScript owns the screen. Python owns sessions, tools, model calls, and most command logic.
+React + Ink terminal UI for JettsTUI. TypeScript owns the screen. Python owns sessions, tools, model calls, and most command logic.
 
 ```bash
 jetts-tui
@@ -16,7 +16,7 @@ The client entrypoint is `src/entry.tsx`. It exits early if `stdin` is not a TTY
 python -m tui_gateway.entry
 ```
 
-Interpreter resolution order is: `FREEIDE_PYTHON` → `PYTHON` → `$VIRTUAL_ENV/bin/python` → `./.venv/bin/python` → `./venv/bin/python` → `python3` (or `python` on Windows).
+Interpreter resolution order is: `JETTSTUI_PYTHON` → `PYTHON` → `$VIRTUAL_ENV/bin/python` → `./.venv/bin/python` → `./venv/bin/python` → `python3` (or `python` on Windows).
 
 The transport is newline-delimited JSON-RPC over stdio:
 
@@ -195,7 +195,7 @@ Notes:
 - Completion requests are debounced by 60 ms. Input starting with `/` uses `complete.slash`. A trailing token that starts with `./`, `../`, `~/`, `/`, or `@` uses `complete.path`.
 - Text pastes are inserted inline directly into the draft. Nothing is newline-flattened.
 - `Cmd/Ctrl+G` (or `Alt+G` in VSCode/Cursor, which intercept the primary keystroke for Find Next) writes the current draft, including any multiline buffer, to a temp file, suspends Ink, launches `$EDITOR`, then restores the TUI and submits the saved text if the editor exits cleanly.
-- Input history is stored in `~/.freeide/.freeide_history` or under `FREEIDE_HOME`.
+- Input history is stored in `~/.jettstui/.jettstui_history` or under `JETTSTUI_HOME`.
 
 ## Rendering
 
@@ -453,7 +453,7 @@ ui-tui/
       messages.ts                transcript message append helpers
       openExternalUrl.ts         platform-aware URL opener (macOS/Linux/Windows)
       osc52.ts                   OSC 52 terminal clipboard copy sequence
-      parentLog.ts               append-only log to ~/.freeide/tui-parent.log
+      parentLog.ts               append-only log to ~/.jettstui/tui-parent.log
       perfPane.tsx               FPS / render perf overlay pane
       platform.ts                platform-aware keybinding and SSH detection helpers
       precisionWheel.ts          high-precision scroll wheel with sticky-frame budget
@@ -489,5 +489,5 @@ tui_gateway/
   entry.py               stdio entrypoint
   server.py              RPC handlers and session logic
   render.py              optional rich/ANSI bridge
-  slash_worker.py        persistent Jetts-TUICLI subprocess for slash commands
+  slash_worker.py        persistent JettsTUICLI subprocess for slash commands
 ```

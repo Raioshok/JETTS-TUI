@@ -28,7 +28,7 @@ export interface NativeNotificationPrefs {
   kinds: Record<NativeNotificationKind, boolean>
 }
 
-const STORAGE_KEY = 'freeide:native-notifications'
+const STORAGE_KEY = 'jettstui:native-notifications'
 
 const DEFAULT_PREFS: NativeNotificationPrefs = {
   enabled: true,
@@ -100,7 +100,7 @@ function throttled(key: string, now: number): boolean {
   return false
 }
 
-// "Backgrounded" = the user isn't on FreeIDE. `document.hidden` only flips when
+// "Backgrounded" = the user isn't on JettsTUI. `document.hidden` only flips when
 // minimized/occluded; an alt-tabbed window is visible-but-unfocused, so we also
 // check `document.hasFocus()`.
 function isBackgrounded(): boolean {
@@ -173,7 +173,7 @@ export function dispatchNativeNotification(input: NativeNotificationInput): void
     return
   }
 
-  void window.freeideDesktop?.notify({
+  void window.jettstuiDesktop?.notify({
     actions: input.actions,
     body: input.body,
     kind: input.kind,
@@ -209,7 +209,7 @@ export async function respondToApprovalAction(sessionId: null | string, actionId
 // Settings "send test" — bypasses gating. Returns whether the OS accepted it so
 // the panel can flag a silent permission failure instead of looking dead.
 export async function sendTestNativeNotification(title: string, body: string): Promise<boolean> {
-  const bridge = window.freeideDesktop
+  const bridge = window.jettstuiDesktop
 
   if (!bridge?.notify) {
     return false

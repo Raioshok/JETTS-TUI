@@ -1,4 +1,4 @@
-import type { SessionInfo } from '@/types/freeide'
+import type { SessionInfo } from '@/types/jettstui'
 
 export interface SidebarSessionEntry {
   branchStem?: string

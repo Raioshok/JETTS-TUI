@@ -4,12 +4,12 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
-from cli import FreeIDECLI
-from freeide_cli.commands import resolve_command
+from cli import JettsTUICLI
+from jettstui.commands import resolve_command
 
 
 def _make_cli():
-    cli_obj = FreeIDECLI.__new__(FreeIDECLI)
+    cli_obj = JettsTUICLI.__new__(JettsTUICLI)
     cli_obj.config = {}
     cli_obj.console = MagicMock()
     cli_obj.agent = None
@@ -52,7 +52,7 @@ def test_process_command_status_dispatches_without_toggling_status_bar():
 def test_process_command_egress_prints_proxy_status(monkeypatch):
     cli_obj = _make_cli()
     monkeypatch.setattr(
-        "freeide_cli.proxy_cli.format_status_text",
+        "jettstui.proxy_cli.format_status_text",
         lambda: "Egress proxy status\nEnabled: no",
     )
 
@@ -91,13 +91,13 @@ def test_show_session_status_prints_gateway_style_summary():
         "started_at": 1775791440,
     }
 
-    with patch("cli.display_freeide_home", return_value="~/.freeide"):
+    with patch("cli.display_jettstui_home", return_value="~/.jettstui"):
         cli_obj._show_session_status()
 
     printed = "\n".join(str(call.args[0]) for call in cli_obj.console.print.call_args_list)
-    assert "FreeIDE CLI Status" in printed
+    assert "JettsTUI CLI Status" in printed
     assert "Session ID: session-123" in printed
-    assert "Path: ~/.freeide" in printed
+    assert "Path: ~/.jettstui" in printed
     assert "Title: My titled session" in printed
     assert "Model: openai/gpt-5.4 (openai)" in printed
     assert "Tokens: 321" in printed
@@ -108,11 +108,11 @@ def test_show_session_status_prints_gateway_style_summary():
 
 
 def test_profile_command_reports_custom_root_profile(monkeypatch, tmp_path, capsys):
-    """Profile detection works for custom-root deployments (not under ~/.freeide)."""
+    """Profile detection works for custom-root deployments (not under ~/.jettstui)."""
     cli_obj = _make_cli()
     profile_home = tmp_path / "profiles" / "coder"
 
-    monkeypatch.setenv("FREEIDE_HOME", str(profile_home))
+    monkeypatch.setenv("JETTSTUI_HOME", str(profile_home))
     monkeypatch.setattr(Path, "home", lambda: tmp_path / "unrelated-home")
 
     cli_obj._handle_profile_command()

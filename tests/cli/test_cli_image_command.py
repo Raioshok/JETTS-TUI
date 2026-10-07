@@ -2,7 +2,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 from cli import (
-    FreeIDECLI,
+    JettsTUICLI,
     _collect_query_images,
     _format_image_attachment_badges,
     _termux_example_image_path,
@@ -10,7 +10,7 @@ from cli import (
 
 
 def _make_cli():
-    cli_obj = FreeIDECLI.__new__(FreeIDECLI)
+    cli_obj = JettsTUICLI.__new__(JettsTUICLI)
     cli_obj._attached_images = []
     return cli_obj
 

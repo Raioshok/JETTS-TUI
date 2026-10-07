@@ -163,7 +163,7 @@ ORDER BY event_count DESC
 
 ---
 
-## Accessing via FreeIDE
+## Accessing via JettsTUI
 
 **Option A: BigQuery CLI** (if `gcloud` is installed)
 ```bash

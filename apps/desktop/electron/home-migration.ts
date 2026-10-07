@@ -25,7 +25,7 @@ export function managedCheckoutRoot(home: string): string {
 /** Move the default home only when the destination is absent.
  *
  * The old path becomes an alias so older managed runtimes and shortcuts keep
- * working. Explicit FREEIDE_HOME overrides never call this function.
+ * working. Explicit JETTSTUI_HOME overrides never call this function.
  */
 export function migrateDefaultHome(newPath: string, oldPath: string): string {
   if (fs.existsSync(newPath)) {

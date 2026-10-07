@@ -1,7 +1,7 @@
 """
-Dump command for freeide CLI.
+Dump command for jettstui CLI.
 
-Outputs a compact, plain-text summary of the user's FreeIDE setup
+Outputs a compact, plain-text summary of the user's JettsTUI setup
 that can be copy-pasted into Discord/GitHub/Telegram for support context.
 No ANSI colors, no checkmarks — just data.
 """
@@ -13,18 +13,18 @@ import subprocess
 import sys
 from pathlib import Path
 
-from freeide_cli.config import get_freeide_home, get_env_path, get_project_root, load_config
-from freeide_cli.env_loader import load_freeide_dotenv
-from freeide_constants import display_freeide_home
+from jettstui.config import get_jettstui_home, get_env_path, get_project_root, load_config
+from jettstui.env_loader import load_jettstui_dotenv
+from jettstui_constants import display_jettstui_home
 from agent.skill_utils import is_excluded_skill_path
 
 
 def _dotenv_key_names() -> set[str]:
-    """Return the set of env-var names assigned a non-empty value in ~/.freeide/.env.
+    """Return the set of env-var names assigned a non-empty value in ~/.jettstui/.env.
 
     The managed backends (launchd / systemd / the desktop-spawned ``serve``
     process) load credentials from this file — NOT from an interactive shell's
-    exports. ``freeide debug share`` runs in a terminal, so ``os.getenv`` reflects
+    exports. ``jettstui debug share`` runs in a terminal, so ``os.getenv`` reflects
     the shell's environment, which can include exported keys the managed backend
     never sees. Comparing against this set lets the dump flag that mismatch (the
     exact trap behind #48504-style "no web_search" reports: key exported in the
@@ -57,8 +57,8 @@ def _get_git_commit(project_root: Path) -> str:
     Source installs and dev images resolve this live via ``git rev-parse``.
     The published Docker image excludes ``.git`` from the build context, so
     that lookup always fails — we fall back to the baked-in build SHA written
-    to ``<project_root>/.freeide_build_sha`` by the Dockerfile's
-    ``FREEIDE_GIT_SHA`` build-arg (see ``freeide_cli/build_info.py``).
+    to ``<project_root>/.jettstui_build_sha`` by the Dockerfile's
+    ``JETTSTUI_GIT_SHA`` build-arg (see ``jettstui/build_info.py``).
     The output format is identical regardless of source.
     """
     try:
@@ -78,7 +78,7 @@ def _get_git_commit(project_root: Path) -> str:
     # images, absent otherwise).  Defers the import so the dump module
     # stays cheap on non-dump code paths.
     try:
-        from freeide_cli.build_info import get_build_sha
+        from jettstui.build_info import get_build_sha
         baked = get_build_sha(short=8)
         if baked:
             return baked
@@ -117,7 +117,7 @@ def _redact(value: str) -> str:
 
     Thin wrapper over :func:`agent.redact.mask_secret`. Returns ``""`` for
     an empty value (matches the historical behavior of this helper —
-    ``freeide dump`` formats empty values as blank, not as ``"(not set)"``).
+    ``jettstui dump`` formats empty values as blank, not as ``"(not set)"``).
     """
     from agent.redact import mask_secret
     return mask_secret(value)
@@ -126,7 +126,7 @@ def _redact(value: str) -> str:
 def _gateway_status() -> str:
     """Return a short gateway status string."""
     try:
-        from freeide_cli.gateway import get_gateway_runtime_snapshot
+        from jettstui.gateway import get_gateway_runtime_snapshot
 
         snapshot = get_gateway_runtime_snapshot()
         if snapshot.running:
@@ -141,9 +141,9 @@ def _gateway_status() -> str:
         return "unknown" if sys.platform.startswith(("linux", "darwin")) else "N/A"
 
 
-def _count_skills(freeide_home: Path) -> int:
+def _count_skills(jettstui_home: Path) -> int:
     """Count installed skills."""
-    skills_dir = freeide_home / "skills"
+    skills_dir = jettstui_home / "skills"
     if not skills_dir.is_dir():
         return 0
     count = 0
@@ -161,9 +161,9 @@ def _count_mcp_servers(config: dict) -> int:
     return len(servers)
 
 
-def _cron_summary(freeide_home: Path) -> str:
+def _cron_summary(jettstui_home: Path) -> str:
     """Return cron jobs summary."""
-    jobs_file = freeide_home / "cron" / "jobs.json"
+    jobs_file = jettstui_home / "cron" / "jobs.json"
     if not jobs_file.exists():
         return "0"
     try:
@@ -228,7 +228,7 @@ def _config_overrides(config: dict) -> dict[str, str]:
     
     Returns a flat dict of dotpath -> value for interesting overrides.
     """
-    from freeide_cli.config import DEFAULT_CONFIG
+    from jettstui.config import DEFAULT_CONFIG
 
     overrides = {}
 
@@ -281,16 +281,16 @@ def run_dump(args):
 
     # Load env from .env file so key checks work
     env_path = get_env_path()
-    load_freeide_dotenv(
-        freeide_home=env_path.parent,
+    load_jettstui_dotenv(
+        jettstui_home=env_path.parent,
         project_env=get_project_root() / ".env",
     )
 
     project_root = get_project_root()
-    freeide_home = get_freeide_home()
+    jettstui_home = get_jettstui_home()
 
     try:
-        from freeide_cli import __version__
+        from jettstui import __version__
     except ImportError:
         __version__ = "(unknown)"
 
@@ -306,7 +306,7 @@ def run_dump(args):
 
     # Profile
     try:
-        from freeide_cli.profiles import get_active_profile_name
+        from jettstui.profiles import get_active_profile_name
         profile = get_active_profile_name() or "(default)"
     except Exception:
         profile = "(default)"
@@ -341,7 +341,7 @@ def run_dump(args):
     os_info = f"{platform.system()} {platform.release()} {platform.machine()}"
 
     lines = []
-    lines.append("--- freeide dump ---")
+    lines.append("--- jettstui dump ---")
     # Identify the build by commit + the date that commit was made, resolved
     # live via git.  __release_date__ (the package release date) is
     # intentionally NOT shown here — it reads like a wall-clock timestamp and
@@ -355,7 +355,7 @@ def run_dump(args):
     lines.append(f"python:           {sys.version.split()[0]}")
     lines.append(f"openai_sdk:       {openai_ver}")
     lines.append(f"profile:          {profile}")
-    lines.append(f"freeide_home:      {display_freeide_home()}")
+    lines.append(f"jettstui_home:      {display_jettstui_home()}")
     lines.append(f"model:            {model}")
     lines.append(f"provider:         {provider}")
     lines.append(f"terminal:         {backend}")
@@ -397,16 +397,16 @@ def run_dump(args):
             display = _redact(val)
         else:
             display = "set" if val else "not set"
-        # Set in this (shell) process but absent from ~/.freeide/.env: a managed
+        # Set in this (shell) process but absent from ~/.jettstui/.env: a managed
         # backend (launchd/systemd/desktop `serve`) loads .env, not the login
         # shell, so it likely can't see this key — even though the dump reads
         # "set". Flag it so support doesn't chase a phantom "key is configured"
         # (the actual cause of gated tools like web_search going missing).
         if val and env_var not in dotenv_keys:
             display += " (shell only — not in .env; managed/desktop backend may not see it)"
-        # A credential added via `freeide auth add openrouter` lives in the
+        # A credential added via `jettstui auth add openrouter` lives in the
         # credential pool, not as an env var — surface it so the dump doesn't
-        # misleadingly read "not set" while `freeide auth list` shows it (#42130).
+        # misleadingly read "not set" while `jettstui auth list` shows it (#42130).
         if not val and label == "openrouter":
             try:
                 from agent.credential_pool import load_pool as _load_pool
@@ -421,7 +421,7 @@ def run_dump(args):
     lines.append("")
     lines.append("features:")
 
-    toolsets = config.get("toolsets", ["freeide-cli"])
+    toolsets = config.get("toolsets", ["jettstui-cli"])
     lines.append(f"  toolsets:           {', '.join(toolsets) if toolsets else '(default)'}")
     lines.append(f"  mcp_servers:        {_count_mcp_servers(config)}")
     lines.append(f"  memory_provider:    {_memory_provider(config)}")
@@ -429,8 +429,8 @@ def run_dump(args):
 
     platforms = _configured_platforms()
     lines.append(f"  platforms:          {', '.join(platforms) if platforms else 'none'}")
-    lines.append(f"  cron_jobs:          {_cron_summary(freeide_home)}")
-    lines.append(f"  skills:             {_count_skills(freeide_home)}")
+    lines.append(f"  cron_jobs:          {_cron_summary(jettstui_home)}")
+    lines.append(f"  skills:             {_count_skills(jettstui_home)}")
 
     # Config overrides (non-default values)
     overrides = _config_overrides(config)

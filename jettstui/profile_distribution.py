@@ -1,22 +1,22 @@
-"""Profile distributions — shareable, packaged FreeIDE profiles via git.
+"""Profile distributions — shareable, packaged JettsTUI profiles via git.
 
-A distribution is a FreeIDE profile published as a git repository (or
+A distribution is a JettsTUI profile published as a git repository (or
 installed from a local directory for development). Install with one command
 from a git URL, update in place, and keep your local memories / sessions /
 credentials untouched.
 
 Where this fits relative to the existing pieces:
 
-* ``freeide profile export/import`` — local backup / restore for a profile
+* ``jettstui profile export/import`` — local backup / restore for a profile
   on your own machine. NOT a distribution format. Stays as-is.
-* ``freeide skills install <url>`` — the URL install pattern we're mirroring,
+* ``jettstui skills install <url>`` — the URL install pattern we're mirroring,
   but at the profile granularity.
 
-Subcommands (all live under ``freeide profile``, not a parallel tree):
+Subcommands (all live under ``jettstui profile``, not a parallel tree):
 
-    freeide profile install <source> [--name N] [--alias] [--force] [--yes]
-    freeide profile update  <name>  [--force-config] [--yes]
-    freeide profile info    <name>
+    jettstui profile install <source> [--name N] [--alias] [--force] [--yes]
+    jettstui profile update  <name>  [--force-config] [--yes]
+    jettstui profile info    <name>
 
 ``<source>`` is one of:
 
@@ -31,7 +31,7 @@ Manifest format (``distribution.yaml`` at the profile root)::
     name: telemetry
     version: 0.1.0
     description: "Compliance monitoring harness"
-    freeide_requires: ">=0.12.0"
+    jettstui_requires: ">=0.12.0"
     author: "..."
     license: "..."
     env_requires:
@@ -102,18 +102,18 @@ USER_OWNED_EXCLUDE: frozenset = frozenset({
     "auth.json", ".env",
     # Databases & runtime state
     "state.db", "state.db-shm", "state.db-wal",
-    "freeide_state.db", "response_store.db",
+    "jettstui_state.db", "response_store.db",
     "response_store.db-shm", "response_store.db-wal",
     "gateway.pid", "gateway_state.json", "processes.json",
     "auth.lock", "active_profile", ".update_check",
-    "errors.log", ".freeide_history",
+    "errors.log", ".jettstui_history",
     # User data
     "memories", "sessions", "logs", "plans", "workspace", "home",
     "image_cache", "audio_cache", "document_cache",
     "browser_screenshots", "checkpoints", "sandboxes",
     "backups", "cache",
     # Infrastructure
-    "freeide-agent", ".worktrees", "profiles", "bin", "node_modules",
+    "jettstui", ".worktrees", "profiles", "bin", "node_modules",
     # User customization namespace
     "local",
 })
@@ -170,7 +170,7 @@ class DistributionManifest:
     name: str
     version: str = "0.1.0"
     description: str = ""
-    freeide_requires: str = ""
+    jettstui_requires: str = ""
     author: str = ""
     license: str = ""
     env_requires: List[EnvRequirement] = field(default_factory=list)
@@ -203,7 +203,7 @@ class DistributionManifest:
             name=name,
             version=str(data.get("version") or "0.1.0"),
             description=str(data.get("description") or ""),
-            freeide_requires=str(data.get("freeide_requires") or ""),
+            jettstui_requires=str(data.get("jettstui_requires") or ""),
             author=str(data.get("author") or ""),
             license=str(data.get("license") or ""),
             env_requires=env_requires,
@@ -219,8 +219,8 @@ class DistributionManifest:
         }
         if self.description:
             out["description"] = self.description
-        if self.freeide_requires:
-            out["freeide_requires"] = self.freeide_requires
+        if self.jettstui_requires:
+            out["jettstui_requires"] = self.jettstui_requires
         if self.author:
             out["author"] = self.author
         if self.license:
@@ -296,7 +296,7 @@ def _parse_semver(v: str) -> Tuple[int, int, int]:
         raise DistributionError(f"Unparseable version: {v!r}") from exc
 
 
-def check_freeide_requires(spec: str, current_version: str) -> None:
+def check_jettstui_requires(spec: str, current_version: str) -> None:
     """Raise DistributionError if ``current_version`` does not satisfy ``spec``.
 
     ``spec`` accepts a single comparator (``>=0.12.0``, ``==0.12.0``, etc.).
@@ -322,7 +322,7 @@ def check_freeide_requires(spec: str, current_version: str) -> None:
     }[op]
     if not ok:
         raise DistributionError(
-            f"This distribution requires FreeIDE {op}{target}, "
+            f"This distribution requires JettsTUI {op}{target}, "
             f"but you have {current_version}."
         )
 
@@ -335,7 +335,7 @@ def check_freeide_requires(spec: str, current_version: str) -> None:
 def _env_template_from_manifest(manifest: DistributionManifest) -> str:
     """Generate a ``.env.template`` body from env_requires."""
     lines = [
-        "# Environment variables required by this FreeIDE distribution.",
+        "# Environment variables required by this JettsTUI distribution.",
         "# Copy to `.env` and fill in your own values before running.",
         "",
     ]
@@ -393,7 +393,7 @@ def _stage_source(source: str, workdir: Path) -> Tuple[Path, str]:
     """Resolve *source* to a local directory containing distribution.yaml.
 
     Returns ``(staged_dir, provenance)`` where ``provenance`` is stored in the
-    installed manifest's ``source:`` field so ``freeide profile update`` can
+    installed manifest's ``source:`` field so ``jettstui profile update`` can
     re-pull from the same place.
 
     Accepts:
@@ -412,7 +412,7 @@ def _stage_source(source: str, workdir: Path) -> Tuple[Path, str]:
         if not (cloned / MANIFEST_FILENAME).is_file():
             raise DistributionError(
                 f"No {MANIFEST_FILENAME} at the root of {src_str!r}. "
-                "This repository is not a FreeIDE profile distribution."
+                "This repository is not a JettsTUI profile distribution."
             )
         return cloned, src_str
 
@@ -490,12 +490,12 @@ def plan_install(
     override_name: Optional[str] = None,
 ) -> InstallPlan:
     """Stage *source* and produce a plan describing what install would do."""
-    from freeide_cli.profiles import (
+    from jettstui.profiles import (
         get_profile_dir,
         normalize_profile_name,
         validate_profile_name,
     )
-    from freeide_cli import __version__ as freeide_version
+    from jettstui import __version__ as jettstui_version
 
     staged, provenance = _stage_source(source, workdir)
     _reject_distribution_symlinks(staged)
@@ -503,11 +503,11 @@ def plan_install(
     if manifest is None:
         raise DistributionError(
             f"No {MANIFEST_FILENAME} found at the distribution root — "
-            "this source is not a FreeIDE distribution."
+            "this source is not a JettsTUI distribution."
         )
 
     # Version check up-front so we fail fast
-    check_freeide_requires(manifest.freeide_requires, freeide_version)
+    check_jettstui_requires(manifest.jettstui_requires, jettstui_version)
 
     # Resolve target profile name
     target_name = override_name or manifest.name
@@ -516,7 +516,7 @@ def plan_install(
     if canon == "default":
         raise DistributionError(
             "Cannot install a distribution as 'default' — that is the built-in "
-            "root profile (~/.freeide).  Pass --name <name> to install under a "
+            "root profile (~/.jettstui).  Pass --name <name> to install under a "
             "new profile."
         )
     manifest.name = canon
@@ -614,18 +614,18 @@ def install_distribution(
     Returns the resolved :class:`InstallPlan`.  Use :func:`plan_install`
     first if you want to preview + prompt the user before calling this.
     """
-    from freeide_cli.profiles import (
+    from jettstui.profiles import (
         check_alias_collision,
         create_wrapper_script,
     )
 
-    with tempfile.TemporaryDirectory(prefix="freeide_dist_install_") as tmp:
+    with tempfile.TemporaryDirectory(prefix="jettstui_dist_install_") as tmp:
         plan = plan_install(source, Path(tmp), override_name=name)
 
         if plan.existing and not force:
             raise DistributionError(
                 f"Profile '{plan.manifest.name}' already exists at {plan.target_dir}. "
-                "Use `freeide profile update` to upgrade in place, "
+                "Use `jettstui profile update` to upgrade in place, "
                 "or pass --force to overwrite."
             )
 
@@ -657,7 +657,7 @@ def update_distribution(
     data (memories, sessions, auth) is never touched.  ``config.yaml`` is
     preserved unless ``force_config`` is True.
     """
-    from freeide_cli.profiles import (
+    from jettstui.profiles import (
         get_profile_dir,
         normalize_profile_name,
         validate_profile_name,
@@ -673,15 +673,15 @@ def update_distribution(
     if existing_manifest is None:
         raise DistributionError(
             f"Profile '{canon}' is not a distribution (no {MANIFEST_FILENAME}). "
-            "Only profiles installed via `freeide profile install` can be updated."
+            "Only profiles installed via `jettstui profile install` can be updated."
         )
     if not existing_manifest.source:
         raise DistributionError(
             f"Profile '{canon}' has no recorded source.  Re-install with "
-            "`freeide profile install <source> --name {canon} --force`."
+            "`jettstui profile install <source> --name {canon} --force`."
         )
 
-    with tempfile.TemporaryDirectory(prefix="freeide_dist_update_") as tmp:
+    with tempfile.TemporaryDirectory(prefix="jettstui_dist_update_") as tmp:
         plan = plan_install(
             existing_manifest.source,
             Path(tmp),
@@ -709,7 +709,7 @@ def describe_distribution(profile_name: str) -> Dict[str, Any]:
     Returns an empty dict if the profile exists but has no manifest.
     Raises DistributionError if the profile itself doesn't exist.
     """
-    from freeide_cli.profiles import (
+    from jettstui.profiles import (
         get_profile_dir,
         normalize_profile_name,
         validate_profile_name,

@@ -1,26 +1,26 @@
 ---
 sidebar_position: 8
 title: "Context Files"
-description: "Project context files — .freeide.md, AGENTS.md, CLAUDE.md, global SOUL.md, and .cursorrules — automatically injected into every conversation"
+description: "Project context files — .jettstui.md, AGENTS.md, CLAUDE.md, global SOUL.md, and .cursorrules — automatically injected into every conversation"
 ---
 
 # Context Files
 
-FreeIDE Agent automatically discovers and loads context files that shape how it behaves. Some are project-local and discovered from your working directory. `SOUL.md` is now global to the FreeIDE instance and is loaded from `FREEIDE_HOME` only.
+JettsTUI automatically discovers and loads context files that shape how it behaves. Some are project-local and discovered from your working directory. `SOUL.md` is now global to the JettsTUI instance and is loaded from `JETTSTUI_HOME` only.
 
 ## Supported Context Files
 
 | File | Purpose | Discovery |
 |------|---------|-----------| 
-| **.freeide.md** / **FREEIDE.md** | Project instructions (highest priority) | Walks to git root |
+| **.jettstui.md** / **JETTSTUI.md** | Project instructions (highest priority) | Walks to git root |
 | **AGENTS.md** | Project instructions, conventions, architecture | CWD at startup + subdirectories progressively |
 | **CLAUDE.md** | Claude Code context files (also detected) | CWD at startup + subdirectories progressively |
-| **SOUL.md** | Global personality and tone customization for this FreeIDE instance | `FREEIDE_HOME/SOUL.md` only |
+| **SOUL.md** | Global personality and tone customization for this JettsTUI instance | `JETTSTUI_HOME/SOUL.md` only |
 | **.cursorrules** | Cursor IDE coding conventions | CWD only |
 | **.cursor/rules/*.mdc** | Cursor IDE rule modules | CWD only |
 
 :::info Priority system
-Only **one** project context type is loaded per session (first match wins): `.freeide.md` → `AGENTS.md` → `CLAUDE.md` → `.cursorrules`. **SOUL.md** is always loaded independently as the agent identity (slot #1).
+Only **one** project context type is loaded per session (first match wins): `.jettstui.md` → `AGENTS.md` → `CLAUDE.md` → `.cursorrules`. **SOUL.md** is always loaded independently as the agent identity (slot #1).
 :::
 
 ## AGENTS.md
@@ -29,7 +29,7 @@ Only **one** project context type is loaded per session (first match wins): `.fr
 
 ### Progressive Subdirectory Discovery
 
-At session start, FreeIDE loads the `AGENTS.md` from your working directory into the system prompt. As the agent navigates into subdirectories during the session (via `read_file`, `terminal`, `search_files`, etc.), it **progressively discovers** context files in those directories and injects them into the conversation at the moment they become relevant.
+At session start, JettsTUI loads the `AGENTS.md` from your working directory into the system prompt. As the agent navigates into subdirectories during the session (via `read_file`, `terminal`, `search_files`, etc.), it **progressively discovers** context files in those directories and injects them into the conversation at the moment they become relevant.
 
 ```
 my-project/
@@ -83,22 +83,22 @@ This is a Next.js 14 web application with a Python FastAPI backend.
 
 **Location:**
 
-- `~/.freeide/SOUL.md`
-- or `$FREEIDE_HOME/SOUL.md` if you run FreeIDE with a custom home directory
+- `~/.jettstui/SOUL.md`
+- or `$JETTSTUI_HOME/SOUL.md` if you run JettsTUI with a custom home directory
 
 Important details:
 
-- FreeIDE seeds a default `SOUL.md` automatically if one does not exist yet
-- FreeIDE loads `SOUL.md` only from `FREEIDE_HOME`
-- FreeIDE does not probe the working directory for `SOUL.md`
+- JettsTUI seeds a default `SOUL.md` automatically if one does not exist yet
+- JettsTUI loads `SOUL.md` only from `JETTSTUI_HOME`
+- JettsTUI does not probe the working directory for `SOUL.md`
 - If the file is empty, nothing from `SOUL.md` is added to the prompt
 - If the file has content, the content is injected verbatim after scanning and truncation
 
 ## .cursorrules
 
-FreeIDE is compatible with Cursor IDE's `.cursorrules` file and `.cursor/rules/*.mdc` rule modules. If these files exist in your project root and no higher-priority context file (`.freeide.md`, `AGENTS.md`, or `CLAUDE.md`) is found, they're loaded as the project context.
+JettsTUI is compatible with Cursor IDE's `.cursorrules` file and `.cursor/rules/*.mdc` rule modules. If these files exist in your project root and no higher-priority context file (`.jettstui.md`, `AGENTS.md`, or `CLAUDE.md`) is found, they're loaded as the project context.
 
-This means your existing Cursor conventions automatically apply when using FreeIDE.
+This means your existing Cursor conventions automatically apply when using JettsTUI.
 
 ## How Context Files Are Loaded
 
@@ -106,7 +106,7 @@ This means your existing Cursor conventions automatically apply when using FreeI
 
 Context files are loaded by `build_context_files_prompt()` in `agent/prompt_builder.py`:
 
-1. **Scan working directory** — checks for `.freeide.md` → `AGENTS.md` → `CLAUDE.md` → `.cursorrules` (first match wins)
+1. **Scan working directory** — checks for `.jettstui.md` → `AGENTS.md` → `CLAUDE.md` → `.cursorrules` (first match wins)
 2. **Content is read** — each file is read as UTF-8 text
 3. **Security scan** — content is checked for prompt injection patterns
 4. **Truncation** — files exceeding `context_file_max_chars` characters (default 20,000) are head/tail truncated (70% head, 20% tail, with a marker in the middle)

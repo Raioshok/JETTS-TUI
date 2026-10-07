@@ -14,7 +14,7 @@ Plan and run multi-agent video production pipelines.
 
 | | |
 |---|---|
-| Source | Optional — install with `freeide skills install official/creative/kanban-video-orchestrator` |
+| Source | Optional — install with `jettstui skills install official/creative/kanban-video-orchestrator` |
 | Path | `optional-skills/creative/kanban-video-orchestrator` |
 | Version | `1.0.0` |
 | Author | ['SHL0MS', 'alt-glitch'] |
@@ -26,20 +26,20 @@ Plan and run multi-agent video production pipelines.
 ## Reference: full SKILL.md
 
 :::info
-The following is the complete skill definition that FreeIDE loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
+The following is the complete skill definition that JettsTUI loads when this skill is triggered. This is what the agent sees as instructions when the skill is active.
 :::
 
 # Kanban Video Orchestrator
 
 Wrap any video request — from a 15-second product teaser to a 5-minute narrative
-short to a music video to an ASCII loop — in a FreeIDE Kanban pipeline that
+short to a music video to an ASCII loop — in a JettsTUI Kanban pipeline that
 decomposes the work to specialized agent profiles.
 
 This skill does **not** render anything itself. It is a meta-pipeline that:
 
 1. **Scopes** the request through targeted discovery
 2. **Designs** an appropriate team (which roles, which tools per role) based on the style
-3. **Generates** a setup script that creates FreeIDE profiles, project workspace, and the initial kanban task
+3. **Generates** a setup script that creates JettsTUI profiles, project workspace, and the initial kanban task
 4. **Hands off** to the director profile, which decomposes via the kanban
 5. **Monitors** execution, helps intervene when tasks stall or fail
 
@@ -102,7 +102,7 @@ rest are picked by what the brief actually requires.
 For the role library and per-style team compositions, see
 **[references/role-archetypes.md](../../../../../optional-skills/creative/kanban-video-orchestrator/references/role-archetypes.md)**.
 
-For mapping role → which FreeIDE skills + toolsets it loads, see
+For mapping role → which JettsTUI skills + toolsets it loads, see
 **[references/tool-matrix.md](../../../../../optional-skills/creative/kanban-video-orchestrator/references/tool-matrix.md)**.
 
 ### Step 4 — Setup
@@ -111,11 +111,11 @@ Generate a setup script (`setup.sh`) and run it. The script:
 
 1. Creates the project workspace (`~/projects/video-pipeline/<slug>/`)
 2. Copies any provided assets into `taste/`, `audio/`, `assets/`
-3. Creates each FreeIDE profile via `freeide profile create --clone`
+3. Creates each JettsTUI profile via `jettstui profile create --clone`
 4. Writes per-profile `SOUL.md` (personality + role definition)
 5. Configures profile YAML (toolsets, always_load skills, cwd)
 6. Writes `brief.md`, `TEAM.md`, and `taste/` content
-7. Fires the initial `freeide kanban create` task assigned to the director
+7. Fires the initial `jettstui kanban create` task assigned to the director
 
 Use `scripts/bootstrap_pipeline.py` to generate setup.sh from a brief +
 team-design JSON. See **[references/kanban-setup.md](../../../../../optional-skills/creative/kanban-video-orchestrator/references/kanban-setup.md)**
@@ -127,9 +127,9 @@ for the setup script structure, profile config patterns, and the critical
 Run `setup.sh`. Then provide the user with monitoring commands:
 
 ```bash
-freeide kanban watch --tenant <project-tenant>     # live events
-freeide kanban list  --tenant <project-tenant>     # board snapshot
-freeide dashboard                                   # visual board UI
+jettstui kanban watch --tenant <project-tenant>     # live events
+jettstui kanban list  --tenant <project-tenant>     # board snapshot
+jettstui dashboard                                   # visual board UI
 ```
 
 The director profile takes over from here, decomposing the work and routing
@@ -186,7 +186,7 @@ task graphs. See **[references/examples.md](../../../../../optional-skills/creat
 6. **The director never executes.** Even with the full `kanban + terminal +
    file` toolset, the director's `SOUL.md` rules forbid it from executing
    work itself. It decomposes and routes only — every concrete task becomes
-   a `freeide kanban create` call to a specialist profile. The kanban
+   a `jettstui kanban create` call to a specialist profile. The kanban
    orchestration guidance auto-injected into every kanban worker's system
    prompt spells this out further.
 
@@ -195,7 +195,7 @@ task graphs. See **[references/examples.md](../../../../../optional-skills/creat
    right human-review gates.
 
 8. **Verify API keys BEFORE firing.** External APIs (TTS, image-gen,
-   image-to-video) need keys in `${FREEIDE_HOME:-~/.freeide}/.env` or the user's secret store.
+   image-to-video) need keys in `${JETTSTUI_HOME:-~/.jettstui}/.env` or the user's secret store.
    A worker that hits a missing-key error wastes a task slot. The setup
    script's `check_key` helper aborts cleanly if a required key is missing.
 

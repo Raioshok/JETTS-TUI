@@ -4,15 +4,15 @@ sidebar_position: 7
 
 # Profile Commands Reference
 
-This page covers all commands related to [FreeIDE profiles](../user-guide/profiles.md). For general CLI commands, see [CLI Commands Reference](./cli-commands.md).
+This page covers all commands related to [JettsTUI profiles](../user-guide/profiles.md). For general CLI commands, see [CLI Commands Reference](./cli-commands.md).
 
-## `freeide profile`
+## `jettstui profile`
 
 ```bash
-freeide profile <subcommand>
+jettstui profile <subcommand>
 ```
 
-Top-level command for managing profiles. Running `freeide profile` without a subcommand shows help.
+Top-level command for managing profiles. Running `jettstui profile` without a subcommand shows help.
 
 | Subcommand | Description |
 |------------|-------------|
@@ -30,10 +30,10 @@ Top-level command for managing profiles. Running `freeide profile` without a sub
 | `update` | Re-pull a distribution-managed profile and re-apply its bundle. |
 | `info` | Show distribution metadata for a profile (origin URL, commit, last update). |
 
-## `freeide profile list`
+## `jettstui profile list`
 
 ```bash
-freeide profile list
+jettstui profile list
 ```
 
 Lists all profiles. The currently active profile is marked with `*`.
@@ -41,7 +41,7 @@ Lists all profiles. The currently active profile is marked with `*`.
 **Example:**
 
 ```bash
-$ freeide profile list
+$ jettstui profile list
   default
 * work
   dev
@@ -50,13 +50,13 @@ $ freeide profile list
 
 No options.
 
-## `freeide profile use`
+## `jettstui profile use`
 
 ```bash
-freeide profile use <name>
+jettstui profile use <name>
 ```
 
-Sets `<name>` as the active profile. All subsequent `freeide` commands (without `-p`) will use this profile.
+Sets `<name>` as the active profile. All subsequent `jettstui` commands (without `-p`) will use this profile.
 
 | Argument | Description |
 |----------|-------------|
@@ -65,14 +65,14 @@ Sets `<name>` as the active profile. All subsequent `freeide` commands (without 
 **Example:**
 
 ```bash
-freeide profile use work
-freeide profile use default
+jettstui profile use work
+jettstui profile use default
 ```
 
-## `freeide profile create`
+## `jettstui profile create`
 
 ```bash
-freeide profile create <name> [options]
+jettstui profile create <name> [options]
 ```
 
 Creates a new profile.
@@ -84,8 +84,8 @@ Creates a new profile.
 | `--clone-all` | Copy everything (config, memories, skills, cron, plugins) from the current profile. Excludes per-profile history: sessions, `state.db`, backups, state-snapshots, checkpoints. |
 | `--clone-from <profile>` | Clone config/skills/SOUL from a specific profile instead of the current one. Implies `--clone` unless paired with `--clone-all`. |
 | `--no-alias` | Skip wrapper script creation. |
-| `--description "<text>"` | One- or two-sentence description of what this profile is good at. Used by the kanban orchestrator to route tasks based on role instead of profile name alone. Skip and add later via `freeide profile describe`. Persisted in `<profile_dir>/profile.yaml`. |
-| `--no-skills` | Create an **empty** profile with zero bundled skills enabled. Writes a `.no-bundled-skills` marker into the profile so future `freeide update` runs won't re-seed the bundled set, and refuses to combine with `--clone`, `--clone-from`, or `--clone-all` (which would copy skills in anyway). Useful for narrow orchestrator profiles or sandbox profiles that should not inherit the full skill catalog. To toggle this on an already-created profile (including the default `~/.freeide`), use `freeide skills opt-out` / `freeide skills opt-in`. |
+| `--description "<text>"` | One- or two-sentence description of what this profile is good at. Used by the kanban orchestrator to route tasks based on role instead of profile name alone. Skip and add later via `jettstui profile describe`. Persisted in `<profile_dir>/profile.yaml`. |
+| `--no-skills` | Create an **empty** profile with zero bundled skills enabled. Writes a `.no-bundled-skills` marker into the profile so future `jettstui update` runs won't re-seed the bundled set, and refuses to combine with `--clone`, `--clone-from`, or `--clone-all` (which would copy skills in anyway). Useful for narrow orchestrator profiles or sandbox profiles that should not inherit the full skill catalog. To toggle this on an already-created profile (including the default `~/.jettstui`), use `jettstui skills opt-out` / `jettstui skills opt-in`. |
 
 Creating a profile does **not** make that profile directory the default project/workspace directory for terminal commands. If you want a profile to start in a specific project, set `terminal.cwd` in that profile's `config.yaml`.
 
@@ -93,25 +93,25 @@ Creating a profile does **not** make that profile directory the default project/
 
 ```bash
 # Blank profile — needs full setup
-freeide profile create mybot
+jettstui profile create mybot
 
 # Clone config only from current profile
-freeide profile create work --clone
+jettstui profile create work --clone
 
 # Clone everything from current profile
-freeide profile create backup --clone-all
+jettstui profile create backup --clone-all
 
 # Clone config from a specific profile
-freeide profile create work2 --clone-from work
+jettstui profile create work2 --clone-from work
 
 # Clone everything from a specific profile
-freeide profile create work2-backup --clone-from work --clone-all
+jettstui profile create work2-backup --clone-from work --clone-all
 ```
 
-## `freeide profile describe`
+## `jettstui profile describe`
 
 ```bash
-freeide profile describe [<name>] [options]
+jettstui profile describe [<name>] [options]
 ```
 
 Read or set a profile's description. The description is consumed by the kanban orchestrator to route tasks based on what each profile is good at, rather than guessing from the profile name alone. Persisted in `<profile_dir>/profile.yaml` so it survives reboots and is shared with the gateway.
@@ -130,22 +130,22 @@ With no flags, prints the current description (or `(no description set for '<nam
 
 ```bash
 # Read the current description
-freeide profile describe researcher
+jettstui profile describe researcher
 
 # Set it explicitly
-freeide profile describe researcher --text "Reads source code and writes findings."
+jettstui profile describe researcher --text "Reads source code and writes findings."
 
 # Let the LLM generate one
-freeide profile describe researcher --auto
+jettstui profile describe researcher --auto
 
 # Fill in descriptions for every profile that doesn't have one
-freeide profile describe --all --auto
+jettstui profile describe --all --auto
 ```
 
-## `freeide profile delete`
+## `jettstui profile delete`
 
 ```bash
-freeide profile delete <name> [options]
+jettstui profile delete <name> [options]
 ```
 
 Deletes a profile and removes its shell alias.
@@ -158,23 +158,23 @@ Deletes a profile and removes its shell alias.
 **Example:**
 
 ```bash
-freeide profile delete mybot
-freeide profile delete mybot --yes
+jettstui profile delete mybot
+jettstui profile delete mybot --yes
 ```
 
 :::warning
 This permanently deletes the profile's entire directory including all config, memories, sessions, and skills. Cannot delete the currently active profile.
 :::
 
-## `freeide profile show`
+## `jettstui profile show`
 
 ```bash
-freeide profile show <name>
+jettstui profile show <name>
 ```
 
 Displays details about a profile including its home directory, configured model, gateway status, skills count, and configuration file status.
 
-This shows the profile's FreeIDE home directory, not the terminal working directory. Terminal commands start from `terminal.cwd` (or the launch directory on the local backend when `cwd: "."`).
+This shows the profile's JettsTUI home directory, not the terminal working directory. Terminal commands start from `terminal.cwd` (or the launch directory on the local backend when `cwd: "."`).
 
 | Argument | Description |
 |----------|-------------|
@@ -183,9 +183,9 @@ This shows the profile's FreeIDE home directory, not the terminal working direct
 **Example:**
 
 ```bash
-$ freeide profile show work
+$ jettstui profile show work
 Profile: work
-Path:    ~/.freeide/profiles/work
+Path:    ~/.jettstui/profiles/work
 Model:   anthropic/claude-sonnet-4 (anthropic)
 Gateway: stopped
 Skills:  12
@@ -194,13 +194,13 @@ SOUL.md: exists
 Alias:   ~/.local/bin/work
 ```
 
-## `freeide profile alias`
+## `jettstui profile alias`
 
 ```bash
-freeide profile alias <name> [options]
+jettstui profile alias <name> [options]
 ```
 
-Regenerates the shell alias script at `~/.local/bin/<name>`. Useful if the alias was accidentally deleted or if you need to update it after moving your FreeIDE installation.
+Regenerates the shell alias script at `~/.local/bin/<name>`. Useful if the alias was accidentally deleted or if you need to update it after moving your JettsTUI installation.
 
 | Argument / Option | Description |
 |-------------------|-------------|
@@ -211,20 +211,20 @@ Regenerates the shell alias script at `~/.local/bin/<name>`. Useful if the alias
 **Example:**
 
 ```bash
-freeide profile alias work
+jettstui profile alias work
 # Creates/updates ~/.local/bin/work
 
-freeide profile alias work --name mywork
+jettstui profile alias work --name mywork
 # Creates ~/.local/bin/mywork
 
-freeide profile alias work --remove
+jettstui profile alias work --remove
 # Removes the wrapper script
 ```
 
-## `freeide profile rename`
+## `jettstui profile rename`
 
 ```bash
-freeide profile rename <old-name> <new-name>
+jettstui profile rename <old-name> <new-name>
 ```
 
 Renames a profile. Updates the directory and shell alias.
@@ -237,15 +237,15 @@ Renames a profile. Updates the directory and shell alias.
 **Example:**
 
 ```bash
-freeide profile rename mybot assistant
-# ~/.freeide/profiles/mybot → ~/.freeide/profiles/assistant
+jettstui profile rename mybot assistant
+# ~/.jettstui/profiles/mybot → ~/.jettstui/profiles/assistant
 # ~/.local/bin/mybot → ~/.local/bin/assistant
 ```
 
-## `freeide profile export`
+## `jettstui profile export`
 
 ```bash
-freeide profile export <name> [options]
+jettstui profile export <name> [options]
 ```
 
 Exports a profile as a compressed tar.gz archive.
@@ -258,16 +258,16 @@ Exports a profile as a compressed tar.gz archive.
 **Example:**
 
 ```bash
-freeide profile export work
+jettstui profile export work
 # Creates work.tar.gz in the current directory
 
-freeide profile export work -o ./work-2026-03-29.tar.gz
+jettstui profile export work -o ./work-2026-03-29.tar.gz
 ```
 
-## `freeide profile import`
+## `jettstui profile import`
 
 ```bash
-freeide profile import <archive> [options]
+jettstui profile import <archive> [options]
 ```
 
 Imports a profile from a tar.gz archive.
@@ -280,10 +280,10 @@ Imports a profile from a tar.gz archive.
 **Example:**
 
 ```bash
-freeide profile import ./work-2026-03-29.tar.gz
+jettstui profile import ./work-2026-03-29.tar.gz
 # Infers profile name from the archive
 
-freeide profile import ./work-2026-03-29.tar.gz --name work-restored
+jettstui profile import ./work-2026-03-29.tar.gz --name work-restored
 ```
 
 ## Distribution commands
@@ -305,16 +305,16 @@ The recipient's user data (memories, sessions, auth, their own edits to
 updates.
 
 :::info
-`freeide profile export` / `import` are still the right commands for
+`jettstui profile export` / `import` are still the right commands for
 **local backup and restore** of a profile on your own machine. Distribution
 (`install` / `update` / `info`) is a separate concept: ship a profile via
 git so someone else can install it.
 :::
 
-### `freeide profile install`
+### `jettstui profile install`
 
 ```bash
-freeide profile install <source> [--name <name>] [--alias] [--force] [--yes]
+jettstui profile install <source> [--name <name>] [--alias] [--force] [--yes]
 ```
 
 Installs a profile distribution from a git URL or a local directory.
@@ -323,7 +323,7 @@ Installs a profile distribution from a git URL or a local directory.
 |--------|-------------|
 | `<source>` | Git URL (`github.com/user/repo`, `https://...`, `git@...`, `ssh://`, `git://`) or a local directory containing `distribution.yaml` at its root. |
 | `--name NAME` | Override the profile name from the manifest. |
-| `--alias` | Also create a shell wrapper (e.g. `telemetry` → `freeide -p telemetry`). |
+| `--alias` | Also create a shell wrapper (e.g. `telemetry` → `jettstui -p telemetry`). |
 | `--force` | Overwrite an existing profile of the same name. User data is still preserved. |
 | `-y`, `--yes` | Skip the manifest-preview confirmation prompt. |
 
@@ -335,22 +335,22 @@ cron jobs before asking for confirmation. Required env vars go into a
 
 ```bash
 # Install from a GitHub repo (shorthand)
-freeide profile install github.com/kyle/telemetry-distribution --alias
+jettstui profile install github.com/kyle/telemetry-distribution --alias
 
 # Install from a full HTTPS git URL
-freeide profile install https://github.com/kyle/telemetry-distribution.git
+jettstui profile install https://github.com/kyle/telemetry-distribution.git
 
 # Install from SSH
-freeide profile install git@github.com:kyle/telemetry-distribution.git
+jettstui profile install git@github.com:kyle/telemetry-distribution.git
 
 # Install from a local directory during development
-freeide profile install ./telemetry/
+jettstui profile install ./telemetry/
 ```
 
-### `freeide profile update`
+### `jettstui profile update`
 
 ```bash
-freeide profile update <name> [--force-config] [--yes]
+jettstui profile update <name> [--force-config] [--yes]
 ```
 
 Re-clones the distribution from its recorded source and applies updates.
@@ -360,21 +360,21 @@ overwritten; user data (memories, sessions, auth, .env) is never touched.
 `config.yaml` is preserved by default to keep your local overrides.
 Pass `--force-config` to reset it to the distribution's shipped config.
 
-### `freeide profile info`
+### `jettstui profile info`
 
 ```bash
-freeide profile info <name>
+jettstui profile info <name>
 ```
 
 Prints the profile's distribution manifest — name, version, required
-FreeIDE version, author, env var requirements, the source URL/path, and
+JettsTUI version, author, env var requirements, the source URL/path, and
 the `Installed:` timestamp recorded when the distribution was last
 `install`-ed or `update`-d. Useful for checking what a shared profile
 needs before installing it, and for spotting "this profile was installed
 6 months ago and hasn't been updated."
 
-`freeide profile list` also shows the distribution name and version in a
-`Distribution` column, and `freeide profile show <name>` / `delete <name>`
+`jettstui profile list` also shows the distribution name and version in a
+`Distribution` column, and `jettstui profile show <name>` / `delete <name>`
 surface the source URL so you can tell at a glance which profiles came
 from a git repo vs. were created locally.
 
@@ -388,10 +388,10 @@ transparently.
 
 ```bash
 # Uses your SSH key, the same as any other `git clone`
-freeide profile install git@github.com:your-org/internal-assistant.git
+jettstui profile install git@github.com:your-org/internal-assistant.git
 
 # Uses your git credential helper
-freeide profile install https://github.com/your-org/internal-assistant.git
+jettstui profile install https://github.com/your-org/internal-assistant.git
 ```
 
 If a clone prompts for credentials interactively in your terminal during
@@ -406,7 +406,7 @@ Every distribution has a `distribution.yaml` at the root of its repository:
 name: telemetry
 version: 0.1.0
 description: "Compliance monitoring harness"
-freeide_requires: ">=0.12.0"
+jettstui_requires: ">=0.12.0"
 author: "Your Name"
 license: "MIT"
 env_requires:
@@ -424,9 +424,9 @@ distribution_owned:   # optional; defaults to SOUL.md, config.yaml,
   - cron/
 ```
 
-`freeide_requires` supports `>=`, `<=`, `==`, `!=`, `>`, `<`, or a bare
+`jettstui_requires` supports `>=`, `<=`, `==`, `!=`, `>`, `<`, or a bare
 version (treated as `>=`). Install fails with a clear error if the current
-FreeIDE version doesn't satisfy the spec.
+JettsTUI version doesn't satisfy the spec.
 
 `distribution_owned` is optional. If set, only those paths are replaced on
 update; anything else in the profile stays user-owned. If omitted, the
@@ -439,20 +439,20 @@ Authoring a distribution is just a git push:
 1. In your profile directory, create `distribution.yaml` with at least `name`
    and `version`.
 2. Initialize a git repo (or use an existing one) and push to GitHub /
-   GitLab / any host FreeIDE can clone from.
-3. Tell recipients to run `freeide profile install <your-repo-url>`.
+   GitLab / any host JettsTUI can clone from.
+3. Tell recipients to run `jettstui profile install <your-repo-url>`.
 
 Use git tags for versioned releases — recipients who clone `HEAD` get your
 latest state, and you can always bump `version:` in the manifest.
 
-## `freeide -p` / `freeide --profile`
+## `jettstui -p` / `jettstui --profile`
 
 ```bash
-freeide -p <name> <command> [options]
-freeide --profile <name> <command> [options]
+jettstui -p <name> <command> [options]
+jettstui --profile <name> <command> [options]
 ```
 
-Global flag to run any FreeIDE command under a specific profile without changing the sticky default. This overrides the active profile for the duration of the command.
+Global flag to run any JettsTUI command under a specific profile without changing the sticky default. This overrides the active profile for the duration of the command.
 
 | Option | Description |
 |--------|-------------|
@@ -461,16 +461,16 @@ Global flag to run any FreeIDE command under a specific profile without changing
 **Examples:**
 
 ```bash
-freeide -p work chat -q "Check the server status"
-freeide --profile dev gateway start
-freeide -p personal skills list
-freeide -p work config edit
+jettstui -p work chat -q "Check the server status"
+jettstui --profile dev gateway start
+jettstui -p personal skills list
+jettstui -p work config edit
 ```
 
-## `freeide completion`
+## `jettstui completion`
 
 ```bash
-freeide completion <shell>
+jettstui completion <shell>
 ```
 
 Generates shell completion scripts. Includes completions for profile names and profile subcommands.
@@ -483,18 +483,18 @@ Generates shell completion scripts. Includes completions for profile names and p
 
 ```bash
 # Install completions
-freeide completion bash >> ~/.bashrc
-freeide completion zsh >> ~/.zshrc
-freeide completion fish > ~/.config/fish/completions/freeide.fish
+jettstui completion bash >> ~/.bashrc
+jettstui completion zsh >> ~/.zshrc
+jettstui completion fish > ~/.config/fish/completions/jettstui.fish
 
 # Reload shell
 source ~/.bashrc
 ```
 
 After installation, tab completion works for:
-- `freeide profile <TAB>` — subcommands (list, use, create, etc.)
-- `freeide profile use <TAB>` — profile names
-- `freeide -p <TAB>` — profile names
+- `jettstui profile <TAB>` — subcommands (list, use, create, etc.)
+- `jettstui profile use <TAB>` — profile names
+- `jettstui -p <TAB>` — profile names
 
 ## See also
 

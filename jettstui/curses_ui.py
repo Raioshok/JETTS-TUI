@@ -1,6 +1,6 @@
-"""Shared curses-based UI components for FreeIDE CLI.
+"""Shared curses-based UI components for JettsTUI CLI.
 
-Used by `freeide tools` and `freeide skills` for interactive checklists.
+Used by `jettstui tools` and `jettstui skills` for interactive checklists.
 Provides a curses multi-select with keyboard navigation, plus a
 text-based numbered fallback for terminals without curses support.
 """
@@ -8,7 +8,7 @@ import sys
 from dataclasses import dataclass
 from typing import Callable, List, Optional, Sequence, Set, Tuple, Union
 
-from freeide_cli.colors import Colors, color
+from jettstui.colors import Colors, color
 
 # Rich radiolist rows: (text, style). style is None | "yellow" | "dim".
 # Plain ``str`` items remain fully supported.

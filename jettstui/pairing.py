@@ -2,14 +2,14 @@
 CLI commands for the DM pairing system.
 
 Usage:
-    freeide pairing list              # Show all pending + approved users
-    freeide pairing approve <platform> <code>  # Approve a pairing code
-    freeide pairing revoke <platform> <user_id> # Revoke user access
-    freeide pairing clear-pending     # Clear all expired/pending codes
+    jettstui pairing list              # Show all pending + approved users
+    jettstui pairing approve <platform> <code>  # Approve a pairing code
+    jettstui pairing revoke <platform> <user_id> # Revoke user access
+    jettstui pairing clear-pending     # Clear all expired/pending codes
 """
 
 def pairing_command(args):
-    """Handle freeide pairing subcommands."""
+    """Handle jettstui pairing subcommands."""
     from gateway.pairing import PairingStore
 
     store = PairingStore()
@@ -24,8 +24,8 @@ def pairing_command(args):
     elif action == "clear-pending":
         _cmd_clear_pending(store)
     else:
-        print("Usage: freeide pairing {list|approve|revoke|clear-pending}")
-        print("Run 'freeide pairing --help' for details.")
+        print("Usage: jettstui pairing {list|approve|revoke|clear-pending}")
+        print("Run 'jettstui pairing --help' for details.")
 
 
 def _cmd_list(store):
@@ -89,11 +89,11 @@ def _cmd_approve(store, platform: str, code: str):
         print(f"  Lockout clears in ~{mins} minute(s).")
         print(
             "  To reset sooner, delete the '_lockout:{0}' entry from "
-            "~/.freeide/platforms/pairing/_rate_limits.json\n".format(platform)
+            "~/.jettstui/platforms/pairing/_rate_limits.json\n".format(platform)
         )
     else:
         print(f"\n  Code '{code}' not found or expired for platform '{platform}'.")
-        print("  Run 'freeide pairing list' to see pending codes.\n")
+        print("  Run 'jettstui pairing list' to see pending codes.\n")
 
 
 def _cmd_revoke(store, platform: str, user_id: str):

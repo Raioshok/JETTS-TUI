@@ -1,22 +1,22 @@
 ---
 sidebar_position: 9
 title: "Optional Skills Catalog"
-description: "Official optional skills shipped with freeide-agent — install via freeide skills install official/<category>/<skill>"
+description: "Official optional skills shipped with jettstui — install via jettstui skills install official/<category>/<skill>"
 ---
 
 # Optional Skills Catalog
 
-Optional skills ship with freeide-agent under `optional-skills/` but are **not active by default**. Install them explicitly:
+Optional skills ship with jettstui under `optional-skills/` but are **not active by default**. Install them explicitly:
 
 ```bash
-freeide skills install official/<category>/<skill>
+jettstui skills install official/<category>/<skill>
 ```
 
 For example:
 
 ```bash
-freeide skills install official/blockchain/solana
-freeide skills install official/mlops/flash-attention
+jettstui skills install official/blockchain/solana
+jettstui skills install official/mlops/flash-attention
 ```
 
 Each skill below links to a dedicated page with its full definition, setup, and usage.
@@ -24,7 +24,7 @@ Each skill below links to a dedicated page with its full definition, setup, and 
 To uninstall:
 
 ```bash
-freeide skills uninstall <skill-name>
+jettstui skills uninstall <skill-name>
 ```
 
 ## autonomous-ai-agents
@@ -34,7 +34,7 @@ freeide skills uninstall <skill-name>
 | [**antigravity-cli**](../user-guide/skills/optional/autonomous-ai-agents/autonomous-ai-agents-antigravity-cli.md) | Operate the Antigravity CLI (agy): plugins, auth, sandbox. |
 | [**blackbox**](../user-guide/skills/optional/autonomous-ai-agents/autonomous-ai-agents-blackbox.md) | Delegate coding tasks to the Blackbox AI multi-model CLI. |
 | [**grok**](../user-guide/skills/optional/autonomous-ai-agents/autonomous-ai-agents-grok.md) | Delegate coding to xAI Grok Build CLI (features, PRs). |
-| [**honcho**](../user-guide/skills/optional/autonomous-ai-agents/autonomous-ai-agents-honcho.md) | Configure and troubleshoot Honcho memory for FreeIDE. |
+| [**honcho**](../user-guide/skills/optional/autonomous-ai-agents/autonomous-ai-agents-honcho.md) | Configure and troubleshoot Honcho memory for JettsTUI. |
 | [**openhands**](../user-guide/skills/optional/autonomous-ai-agents/autonomous-ai-agents-openhands.md) | Delegate coding to OpenHands CLI (model-agnostic, LiteLLM). |
 
 ## blockchain
@@ -81,7 +81,7 @@ freeide skills uninstall <skill-name>
 |-------|-------------|
 | [**inference-sh-cli**](../user-guide/skills/optional/devops/devops-cli.md) | Run 150+ AI apps (image, video, LLM) via inference.sh CLI. |
 | [**docker-management**](../user-guide/skills/optional/devops/devops-docker-management.md) | Manage Docker containers, images, volumes, and Compose. |
-| [**freeide-s6-container-supervision**](../user-guide/skills/optional/devops/devops-freeide-s6-container-supervision.md) | Modify or debug s6 services in the FreeIDE Docker image. |
+| [**jettstui-s6-container-supervision**](../user-guide/skills/optional/devops/devops-jettstui-s6-container-supervision.md) | Modify or debug s6 services in the JettsTUI Docker image. |
 | [**pinggy-tunnel**](../user-guide/skills/optional/devops/devops-pinggy-tunnel.md) | Zero-install localhost tunnels over SSH via Pinggy. |
 | [**watchers**](../user-guide/skills/optional/devops/devops-watchers.md) | Poll RSS, JSON APIs, and GitHub with watermark dedup. |
 
@@ -136,7 +136,7 @@ freeide skills uninstall <skill-name>
 
 | Skill | Description |
 |-------|-------------|
-| [**openclaw-migration**](../user-guide/skills/optional/migration/migration-openclaw-migration.md) | Import an OpenClaw setup (memories, skills) into FreeIDE. |
+| [**openclaw-migration**](../user-guide/skills/optional/migration/migration-openclaw-migration.md) | Import an OpenClaw setup (memories, skills) into JettsTUI. |
 
 ## mlops
 

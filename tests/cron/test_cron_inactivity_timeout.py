@@ -3,8 +3,8 @@
 Tests cover:
 - Active agent runs indefinitely (no inactivity timeout)
 - Idle agent triggers inactivity timeout with diagnostic info
-- Unlimited timeout (FREEIDE_CRON_TIMEOUT=0)
-- Backward compat: FREEIDE_CRON_TIMEOUT env var still works
+- Unlimited timeout (JETTSTUI_CRON_TIMEOUT=0)
+- Backward compat: JETTSTUI_CRON_TIMEOUT env var still works
 - Error message includes activity summary
 """
 
@@ -153,7 +153,7 @@ class TestInactivityTimeout:
         assert result is None  # Never got a result — interrupted
 
     def test_unlimited_timeout(self):
-        """FREEIDE_CRON_TIMEOUT=0 means no timeout at all."""
+        """JETTSTUI_CRON_TIMEOUT=0 means no timeout at all."""
         agent = FakeAgent(idle_seconds=0.0)
         _cron_inactivity_limit = None  # unlimited
 
@@ -176,9 +176,9 @@ class TestInactivityTimeout:
         return 600.0
 
     def test_timeout_env_var_parsing(self, monkeypatch):
-        """FREEIDE_CRON_TIMEOUT env var is respected."""
-        monkeypatch.setenv("FREEIDE_CRON_TIMEOUT", "1200")
-        raw = os.getenv("FREEIDE_CRON_TIMEOUT", "").strip()
+        """JETTSTUI_CRON_TIMEOUT env var is respected."""
+        monkeypatch.setenv("JETTSTUI_CRON_TIMEOUT", "1200")
+        raw = os.getenv("JETTSTUI_CRON_TIMEOUT", "").strip()
         _cron_timeout = self._parse_cron_timeout(raw)
         assert _cron_timeout == 1200.0
 
@@ -186,26 +186,26 @@ class TestInactivityTimeout:
         assert _cron_inactivity_limit == 1200.0
 
     def test_timeout_zero_means_unlimited(self, monkeypatch):
-        """FREEIDE_CRON_TIMEOUT=0 yields None (unlimited)."""
-        monkeypatch.setenv("FREEIDE_CRON_TIMEOUT", "0")
-        raw = os.getenv("FREEIDE_CRON_TIMEOUT", "").strip()
+        """JETTSTUI_CRON_TIMEOUT=0 yields None (unlimited)."""
+        monkeypatch.setenv("JETTSTUI_CRON_TIMEOUT", "0")
+        raw = os.getenv("JETTSTUI_CRON_TIMEOUT", "").strip()
         _cron_timeout = self._parse_cron_timeout(raw)
         _cron_inactivity_limit = _cron_timeout if _cron_timeout > 0 else None
         assert _cron_inactivity_limit is None
 
     def test_timeout_invalid_value_falls_back_to_default(self, monkeypatch):
-        """FREEIDE_CRON_TIMEOUT=abc should fall back to 600s, not raise ValueError."""
-        monkeypatch.setenv("FREEIDE_CRON_TIMEOUT", "abc")
-        raw = os.getenv("FREEIDE_CRON_TIMEOUT", "").strip()
+        """JETTSTUI_CRON_TIMEOUT=abc should fall back to 600s, not raise ValueError."""
+        monkeypatch.setenv("JETTSTUI_CRON_TIMEOUT", "abc")
+        raw = os.getenv("JETTSTUI_CRON_TIMEOUT", "").strip()
         _cron_timeout = self._parse_cron_timeout(raw)
         assert _cron_timeout == 600.0
         _cron_inactivity_limit = _cron_timeout if _cron_timeout > 0 else None
         assert _cron_inactivity_limit == 600.0
 
     def test_timeout_empty_string_uses_default(self, monkeypatch):
-        """FREEIDE_CRON_TIMEOUT='' (empty) should use the 600s default."""
-        monkeypatch.setenv("FREEIDE_CRON_TIMEOUT", "")
-        raw = os.getenv("FREEIDE_CRON_TIMEOUT", "").strip()
+        """JETTSTUI_CRON_TIMEOUT='' (empty) should use the 600s default."""
+        monkeypatch.setenv("JETTSTUI_CRON_TIMEOUT", "")
+        raw = os.getenv("JETTSTUI_CRON_TIMEOUT", "").strip()
         _cron_timeout = self._parse_cron_timeout(raw)
         assert _cron_timeout == 600.0
 
@@ -301,13 +301,13 @@ class TestInactivityTimeout:
 class TestSysPathOrdering:
     """Test that sys.path is set before repo-level imports."""
 
-    def test_freeide_time_importable(self):
-        """freeide_time should be importable when cron.scheduler loads."""
+    def test_jettstui_time_importable(self):
+        """jettstui_time should be importable when cron.scheduler loads."""
         # This import would fail if sys.path.insert comes after the import
-        from cron.scheduler import _freeide_now
-        assert callable(_freeide_now)
+        from cron.scheduler import _jettstui_now
+        assert callable(_jettstui_now)
 
-    def test_freeide_constants_importable(self):
-        """freeide_constants should be importable from cron context."""
-        from freeide_constants import get_freeide_home
-        assert callable(get_freeide_home)
+    def test_jettstui_constants_importable(self):
+        """jettstui_constants should be importable from cron context."""
+        from jettstui_constants import get_jettstui_home
+        assert callable(get_jettstui_home)

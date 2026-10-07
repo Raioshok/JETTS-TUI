@@ -9,12 +9,12 @@ import {
   getCustomEndpoints,
   saveCustomEndpoint,
   validateCustomEndpoint
-} from '@/freeide'
+} from '@/jettstui'
 import { triggerHaptic } from '@/lib/haptics'
 import { Check, Globe, Loader2, Plus, Save, Trash2, Zap } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { notify, notifyError } from '@/store/notifications'
-import type { CustomEndpoint, CustomEndpointUpdate } from '@/types/freeide'
+import type { CustomEndpoint, CustomEndpointUpdate } from '@/types/jettstui'
 
 import { EmptyState, Pill, SectionHeading, SettingsContent, SettingsSkeleton } from './primitives'
 

@@ -53,7 +53,7 @@ const loadCommandRegistryNames = (): CommandRegistryLoad => {
         resolvePython(root),
         [
           '-c',
-          'import json; from freeide_cli.commands import COMMAND_REGISTRY; print(json.dumps([c.name for c in COMMAND_REGISTRY]))'
+          'import json; from jettstui.commands import COMMAND_REGISTRY; print(json.dumps([c.name for c in COMMAND_REGISTRY]))'
         ],
         { cwd: root, encoding: 'utf8' }
       )

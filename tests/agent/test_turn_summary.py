@@ -238,7 +238,7 @@ class _StubAgent:
 def _make_cli(**overrides):
     """Bind the real CLI accounting methods onto a minimal stub object.
 
-    Avoids constructing FreeIDECLI (which loads config, sessions, and a
+    Avoids constructing JettsTUICLI (which loads config, sessions, and a
     prompt_toolkit app) while still exercising the shipped gate + emit code.
     """
     import cli as cli_module
@@ -256,12 +256,12 @@ def _make_cli(**overrides):
         _spinner_text = "⚡ reading file"
         _tool_start_time = 0
 
-        _turn_summary_is_active = cli_module.FreeIDECLI._turn_summary_is_active
-        _turn_summary_begin = cli_module.FreeIDECLI._turn_summary_begin
-        _turn_summary_record = cli_module.FreeIDECLI._turn_summary_record
-        _turn_summary_emit = cli_module.FreeIDECLI._turn_summary_emit
-        _spinner_token_flow = cli_module.FreeIDECLI._spinner_token_flow
-        _render_spinner_text = cli_module.FreeIDECLI._render_spinner_text
+        _turn_summary_is_active = cli_module.JettsTUICLI._turn_summary_is_active
+        _turn_summary_begin = cli_module.JettsTUICLI._turn_summary_begin
+        _turn_summary_record = cli_module.JettsTUICLI._turn_summary_record
+        _turn_summary_emit = cli_module.JettsTUICLI._turn_summary_emit
+        _spinner_token_flow = cli_module.JettsTUICLI._spinner_token_flow
+        _render_spinner_text = cli_module.JettsTUICLI._render_spinner_text
 
         def _studio_activity_enabled(self):
             return False
@@ -342,7 +342,7 @@ def test_spinner_token_flow_silent_without_agent_or_idle():
 
 
 def test_turn_summary_config_defaults_present():
-    from freeide_cli.config import DEFAULT_CONFIG
+    from jettstui.config import DEFAULT_CONFIG
 
     display = DEFAULT_CONFIG["display"]
     assert display["turn_summary"] is True

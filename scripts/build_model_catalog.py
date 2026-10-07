@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Build the Jetts-TUI fallback model catalog.
+"""Build the JettsTUI fallback model catalog.
 
 This script reads the in-repo hardcoded curated list (``OPENROUTER_MODELS``)
 and writes it to a JSON manifest that the runtime fetches from the repository.
@@ -25,10 +25,10 @@ from datetime import datetime, timezone
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, REPO_ROOT)
 
-# Ensure FREEIDE_HOME is set for imports that touch it at module level.
-os.environ.setdefault("FREEIDE_HOME", os.path.join(os.path.expanduser("~"), ".freeide"))
+# Ensure JETTSTUI_HOME is set for imports that touch it at module level.
+os.environ.setdefault("JETTSTUI_HOME", os.path.join(os.path.expanduser("~"), ".jettstui"))
 
-from freeide_cli.models import (  # noqa: E402
+from jettstui.models import (  # noqa: E402
     OPENROUTER_MODELS,
     PREFERRED_SILENT_DEFAULT_MODEL,
 )
@@ -50,7 +50,7 @@ def build_catalog() -> dict:
         "version": CATALOG_VERSION,
         "updated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "metadata": {
-            "source": "Jetts-TUI repository",
+            "source": "JettsTUI repository",
             "docs": "https://github.com/Raioshok/JETTS-TUI/blob/main/docs/reference/model-catalog.md",
         },
         "providers": {
@@ -60,7 +60,7 @@ def build_catalog() -> dict:
                     "note": (
                         "Descriptions drive picker badges. Live /api/v1/models "
                         "filters curated ids by tool-calling support and free pricing. "
-                        'The entry labeled "default": true is the model Jetts-TUI '
+                        'The entry labeled "default": true is the model JettsTUI '
                         "silently lands on when the user never picked one."
                     ),
                 },

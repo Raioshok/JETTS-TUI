@@ -1,12 +1,12 @@
 ---
 sidebar_position: 3
 title: "Creating Skills"
-description: "How to create skills for FreeIDE Agent — SKILL.md format, guidelines, and publishing"
+description: "How to create skills for JettsTUI — SKILL.md format, guidelines, and publishing"
 ---
 
 # Creating Skills
 
-Skills are the preferred way to add new capabilities to FreeIDE Agent. They're easier to create than tools, require no code changes to the agent, and can be shared with the community.
+Skills are the preferred way to add new capabilities to JettsTUI. They're easier to create than tools, require no code changes to the agent, and can be shared with the community.
 
 ## Should it be a Skill or a Tool?
 
@@ -54,7 +54,7 @@ platforms: [macos, linux]          # Optional — restrict to specific OS platfo
                                    #   Valid: macos, linux, windows
                                    #   Omit to load on all platforms (default)
 metadata:
-  freeide:
+  jettstui:
     tags: [Category, Subcategory, Keywords]
     related_skills: [other-skill-name]
     requires_toolsets: [web]            # Optional — only show when these toolsets are active
@@ -116,7 +116,7 @@ Skills can declare dependencies on specific tools or toolsets. This controls whe
 
 ```yaml
 metadata:
-  freeide:
+  jettstui:
     requires_toolsets: [web]           # Hide if the web toolset is NOT active
     requires_tools: [web_search]       # Hide if web_search tool is NOT available
     fallback_for_toolsets: [browser]   # Hide if the browser toolset IS active
@@ -165,7 +165,7 @@ See `skills/apple/` for examples of macOS-only skills.
 
 ## Secure Setup on Load
 
-Use `required_environment_variables` when a skill needs an API key or token. Missing values do **not** hide the skill from discovery. Instead, FreeIDE prompts for them securely when the skill is loaded in the local CLI.
+Use `required_environment_variables` when a skill needs an API key or token. Missing values do **not** hide the skill from discovery. Instead, JettsTUI prompts for them securely when the skill is loaded in the local CLI.
 
 ```yaml
 required_environment_variables:
@@ -175,7 +175,7 @@ required_environment_variables:
     required_for: full functionality
 ```
 
-The user can skip setup and keep loading the skill. FreeIDE never exposes the raw secret value to the model. Gateway and messaging sessions show local setup guidance instead of collecting secrets in-band.
+The user can skip setup and keep loading the skill. JettsTUI never exposes the raw secret value to the model. Gateway and messaging sessions show local setup guidance instead of collecting secrets in-band.
 
 :::tip Sandbox Passthrough
 When your skill is loaded, any declared `required_environment_variables` that are set are **automatically passed through** to `execute_code` and `terminal` sandboxes — including remote backends like Docker and Modal. Your skill's scripts can access `$TENOR_API_KEY` (or `os.environ["TENOR_API_KEY"]` in Python) without the user needing to configure anything extra. See [Environment Variable Passthrough](../user-guide/security.md#environment-variable-passthrough) for details.
@@ -189,7 +189,7 @@ Skills can declare non-secret settings that are stored in `config.yaml` under th
 
 ```yaml
 metadata:
-  freeide:
+  jettstui:
     config:
       - key: myplugin.path
         description: Path to the plugin data directory
@@ -205,7 +205,7 @@ Each entry supports:
 - `key` (required) — dotpath for the setting (e.g., `myplugin.path`)
 - `description` (required) — explains what the setting controls
 - `default` (optional) — default value if the user doesn't configure it
-- `prompt` (optional) — prompt text shown during `freeide config migrate`; falls back to `description`
+- `prompt` (optional) — prompt text shown during `jettstui config migrate`; falls back to `description`
 
 **How it works:**
 
@@ -217,11 +217,11 @@ Each entry supports:
          path: ~/my-data
    ```
 
-2. **Discovery:** `freeide config migrate` scans all enabled skills, finds unconfigured settings, and prompts the user. Settings also appear in `freeide config show` under "Skill Settings."
+2. **Discovery:** `jettstui config migrate` scans all enabled skills, finds unconfigured settings, and prompts the user. Settings also appear in `jettstui config show` under "Skill Settings."
 
 3. **Runtime injection:** When a skill loads, its config values are resolved and appended to the skill message:
    ```
-   [Skill config (from ~/.freeide/config.yaml):
+   [Skill config (from ~/.jettstui/config.yaml):
      myplugin.path = /home/user/my-data
    ]
    ```
@@ -229,11 +229,11 @@ Each entry supports:
 
 4. **Manual setup:** Users can also set values directly:
    ```bash
-   freeide config set skills.config.myplugin.path ~/my-data
+   jettstui config set skills.config.myplugin.path ~/my-data
    ```
 
 :::tip When to use which
-Use `required_environment_variables` for API keys, tokens, and other **secrets** (stored in `~/.freeide/.env`, never shown to the model). Use `config` for **paths, preferences, and non-sensitive settings** (stored in `config.yaml`, visible in config show).
+Use `required_environment_variables` for API keys, tokens, and other **secrets** (stored in `~/.jettstui/.env`, never shown to the model). Use `config` for **paths, preferences, and non-sensitive settings** (stored in `config.yaml`, visible in config show).
 :::
 
 ### Credential File Requirements (OAuth tokens, etc.)
@@ -249,16 +249,16 @@ required_credential_files:
 ```
 
 Each entry supports:
-- `path` (required) — file path relative to `~/.freeide/`
+- `path` (required) — file path relative to `~/.jettstui/`
 - `description` (optional) — explains what the file is and how it's created
 
-When loaded, FreeIDE checks if these files exist. Missing files trigger `setup_needed`. Existing files are automatically:
+When loaded, JettsTUI checks if these files exist. Missing files trigger `setup_needed`. Existing files are automatically:
 - **Mounted into Docker** containers as read-only bind mounts
 - **Synced into Modal** sandboxes (at creation + before each command, so mid-session OAuth works)
 - Available on **local** backend without any special handling
 
 :::tip When to use which
-Use `required_environment_variables` for simple API keys and tokens (strings stored in `~/.freeide/.env`). Use `required_credential_files` for OAuth token files, client secrets, service account JSON, certificates, or any credential that's a file on disk.
+Use `required_environment_variables` for simple API keys and tokens (strings stored in `~/.jettstui/.env`). Use `required_credential_files` for OAuth token files, client secrets, service account JSON, certificates, or any credential that's a file on disk.
 :::
 
 See the `skills/productivity/google-workspace/SKILL.md` for a complete example using both.
@@ -267,7 +267,7 @@ See the `skills/productivity/google-workspace/SKILL.md` for a complete example u
 
 ### No External Dependencies
 
-Prefer stdlib Python, curl, and existing FreeIDE tools (`web_extract`, `terminal`, `read_file`). If a dependency is needed, document installation steps in the skill.
+Prefer stdlib Python, curl, and existing JettsTUI tools (`web_extract`, `terminal`, `read_file`). If a dependency is needed, document installation steps in the skill.
 
 ### Progressive Disclosure
 
@@ -287,15 +287,15 @@ When a skill is loaded, the activation message exposes the absolute skill direct
 
 | Token | Replaced with |
 |---|---|
-| `${FREEIDE_SKILL_DIR}` | Absolute path to the skill's directory |
-| `${FREEIDE_SESSION_ID}` | The active session id (left in place if there is no session) |
+| `${JETTSTUI_SKILL_DIR}` | Absolute path to the skill's directory |
+| `${JETTSTUI_SESSION_ID}` | The active session id (left in place if there is no session) |
 
 So a SKILL.md can tell the agent to run a bundled script directly with:
 
 ```markdown
 To analyse the input, run:
 
-    node ${FREEIDE_SKILL_DIR}/scripts/analyse.js <input>
+    node ${JETTSTUI_SKILL_DIR}/scripts/analyse.js <input>
 ```
 
 The agent sees the substituted absolute path and invokes the `terminal` tool with a ready-to-run command — no path math, no extra `skill_view` round-trip. Disable substitution globally with `skills.template_vars: false` in `config.yaml`.
@@ -306,7 +306,7 @@ Skills can also embed inline shell snippets written as `` !`cmd` `` in the SKILL
 
 ```markdown
 Current date: !`date -u +%Y-%m-%d`
-Git branch: !`git -C ${FREEIDE_SKILL_DIR} rev-parse --abbrev-ref HEAD`
+Git branch: !`git -C ${JETTSTUI_SKILL_DIR} rev-parse --abbrev-ref HEAD`
 ```
 
 This is **off by default** — any snippet in a SKILL.md runs on the host without approval, so only enable it for skill sources you trust:
@@ -325,27 +325,27 @@ Snippets run with the skill directory as their working directory, and output is 
 Run the skill and verify the agent follows the instructions correctly:
 
 ```bash
-freeide chat --toolsets skills -q "Use the X skill to do Y"
+jettstui chat --toolsets skills -q "Use the X skill to do Y"
 ```
 
 ## Where Should the Skill Live?
 
-Bundled skills (in `skills/`) ship with every FreeIDE install. They should be **broadly useful to most users**:
+Bundled skills (in `skills/`) ship with every JettsTUI install. They should be **broadly useful to most users**:
 
 - Document handling, web research, common dev workflows, system administration
 - Used regularly by a wide range of people
 
-If your skill is official and useful but not universally needed (e.g., a paid service integration, a heavyweight dependency), put it in **`optional-skills/`** — it ships with the repo, is discoverable via `freeide skills browse` (labeled "official"), and installs with built-in trust.
+If your skill is official and useful but not universally needed (e.g., a paid service integration, a heavyweight dependency), put it in **`optional-skills/`** — it ships with the repo, is discoverable via `jettstui skills browse` (labeled "official"), and installs with built-in trust.
 
-If your skill is specialized, community-contributed, or niche, it's better suited for a **Skills Hub** — upload it to a registry and share it via `freeide skills install`.
+If your skill is specialized, community-contributed, or niche, it's better suited for a **Skills Hub** — upload it to a registry and share it via `jettstui skills install`.
 
 ## Blueprints: skills that are also automations
 
-A **blueprint** is an ordinary skill that additionally declares a schedule in its frontmatter. Add a `metadata.freeide.blueprint` block and the skill becomes a shareable, runnable automation:
+A **blueprint** is an ordinary skill that additionally declares a schedule in its frontmatter. Add a `metadata.jettstui.blueprint` block and the skill becomes a shareable, runnable automation:
 
 ```yaml
 metadata:
-  freeide:
+  jettstui:
     tags: [blueprint, email]
     blueprint:
       schedule: "0 8 * * *"     # presence of `blueprint:` marks it runnable
@@ -354,12 +354,12 @@ metadata:
       no_agent: false            # optional
 ```
 
-Because a blueprint **is** a skill, it flows through the entire skills pipeline unchanged — search, inspect, install, security scan, provenance, taps, the centralized index, and `freeide skills publish` for sharing. Nothing new to learn.
+Because a blueprint **is** a skill, it flows through the entire skills pipeline unchanged — search, inspect, install, security scan, provenance, taps, the centralized index, and `jettstui skills publish` for sharing. Nothing new to learn.
 
-**Installing a blueprint.** When you install a skill that carries a `blueprint:` block, FreeIDE registers it as a **suggested cron job** rather than scheduling it. Scheduling is **opt-in** — installing never silently creates a recurring job. You review and accept it via `/suggestions`:
+**Installing a blueprint.** When you install a skill that carries a `blueprint:` block, JettsTUI registers it as a **suggested cron job** rather than scheduling it. Scheduling is **opt-in** — installing never silently creates a recurring job. You review and accept it via `/suggestions`:
 
 ```bash
-freeide skills install owner/morning-brief
+jettstui skills install owner/morning-brief
 # → Blueprint: 'morning-brief' is an automation (schedule 0 8 * * *).
 #   Added to your suggestions — run /suggestions to schedule or dismiss it.
 
@@ -371,13 +371,13 @@ freeide skills install owner/morning-brief
 
 Blueprints are one **source** of the unified Suggested Cron Jobs surface — the same place curated starter automations and (later) usage-pattern and integration suggestions appear. See [Suggested Cron Jobs](#suggested-cron-jobs) below.
 
-**Sharing an automation you built.** A blueprint loaded by a cron job (`freeide cron create --skill <name> ...`) can be exported back to a SKILL.md and published like any other skill, so an automation you tuned for yourself becomes a one-command install for someone else.
+**Sharing an automation you built.** A blueprint loaded by a cron job (`jettstui cron create --skill <name> ...`) can be exported back to a SKILL.md and published like any other skill, so an automation you tuned for yourself becomes a one-command install for someone else.
 
 The blueprint layer adds no new object type, store, or transport — the blueprint is a skill, the schedule is a cron job, and sharing is the existing publish/tap/index path.
 
 ## Suggested Cron Jobs
 
-FreeIDE can *propose* automations and let you accept them with one tap, instead of making you assemble cron jobs by hand. Every proposal flows through one surface — the `/suggestions` command — regardless of where it came from:
+JettsTUI can *propose* automations and let you accept them with one tap, instead of making you assemble cron jobs by hand. Every proposal flows through one surface — the `/suggestions` command — regardless of where it came from:
 
 | Source | Trigger |
 |--------|---------|
@@ -402,7 +402,7 @@ The **important-mail monitor** catalog entry is the poll→classify→surface pa
 ### To the Skills Hub
 
 ```bash
-freeide skills publish skills/my-skill --to github --repo owner/repo
+jettstui skills publish skills/my-skill --to github --repo owner/repo
 ```
 
 ### To a Custom Repository
@@ -410,7 +410,7 @@ freeide skills publish skills/my-skill --to github --repo owner/repo
 Add your repo as a tap:
 
 ```bash
-freeide skills tap add owner/repo
+jettstui skills tap add owner/repo
 ```
 
 Users can then search and install from your repository.
@@ -425,12 +425,12 @@ All hub-installed skills go through a security scanner that checks for:
 - Shell injection
 
 Trust levels:
-- `builtin` — ships with FreeIDE (always trusted)
+- `builtin` — ships with JettsTUI (always trusted)
 - `official` — from `optional-skills/` in the repo (built-in trust, no third-party warning)
 - `trusted` — from openai/skills, anthropics/skills, huggingface/skills
 - `community` — non-dangerous findings can be overridden with `--force`; `dangerous` verdicts remain blocked
 
-FreeIDE can now consume third-party skills from multiple external discovery models:
+JettsTUI can now consume third-party skills from multiple external discovery models:
 - direct GitHub identifiers (for example `openai/skills/k8s`)
 - `skills.sh` identifiers (for example `skills-sh/vercel-labs/json-render/json-render-react`)
 - well-known endpoints served from `/.well-known/skills/index.json`

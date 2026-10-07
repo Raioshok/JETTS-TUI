@@ -60,10 +60,10 @@ function writeImage(sandbox: Sandbox): string {
 async function setupSeededDesktop(): Promise<SeededFixture> {
   const mock = await startMockServer()
   const sandbox = createSandbox('image-attachment')
-  writeMockProviderConfig(sandbox.freeideHome, mock.url, undefined, NATIVE_IMAGE_CONFIG)
-  writeEnvFile(sandbox.freeideHome)
+  writeMockProviderConfig(sandbox.jettstuiHome, mock.url, undefined, NATIVE_IMAGE_CONFIG)
+  writeEnvFile(sandbox.jettstuiHome)
 
-  const builder = await RealSessionBuilder.start(sandbox.freeideHome)
+  const builder = await RealSessionBuilder.start(sandbox.jettstuiHome)
 
   try {
     await builder.createSession({

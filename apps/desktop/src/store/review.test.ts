@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { FreeIDEReviewFile, FreeIDEReviewShipInfo } from '@/global'
+import type { JettsTUIReviewFile, JettsTUIReviewShipInfo } from '@/global'
 
 import {
   $reviewCommitDefault,
@@ -38,7 +38,7 @@ import {
 import { $currentCwd } from './session'
 
 // requestOneShot is the only cross-module dependency that must be faked (it
-// reaches the gateway); everything else routes through window.freeideDesktop.git,
+// reaches the gateway); everything else routes through window.jettstuiDesktop.git,
 // which we stub per-test like the sibling coding-status.test.ts does.
 const requestOneShot = vi.fn(async (_args: unknown) => 'generated message')
 vi.mock('@/lib/oneshot', () => ({ requestOneShot: (args: unknown) => requestOneShot(args) }))
@@ -46,13 +46,13 @@ vi.mock('@/lib/oneshot', () => ({ requestOneShot: (args: unknown) => requestOneS
 // doesn't try to hit the (absent) probe and log.
 vi.mock('./coding-status', () => ({ refreshRepoStatus: vi.fn() }))
 
-function file(path: string, over: Partial<FreeIDEReviewFile> = {}): FreeIDEReviewFile {
-  return { path, status: 'modified', staged: false, added: 1, removed: 0, ...over } as FreeIDEReviewFile
+function file(path: string, over: Partial<JettsTUIReviewFile> = {}): JettsTUIReviewFile {
+  return { path, status: 'modified', staged: false, added: 1, removed: 0, ...over } as JettsTUIReviewFile
 }
 
 type ReviewStub = Record<string, ReturnType<typeof vi.fn>>
 
-// Install a review bridge on window.freeideDesktop. Any op not supplied defaults
+// Install a review bridge on window.jettstuiDesktop. Any op not supplied defaults
 // to a resolved no-op so a test only declares what it exercises.
 function stubReview(over: ReviewStub = {}) {
   const review: ReviewStub = {
@@ -69,7 +69,7 @@ function stubReview(over: ReviewStub = {}) {
     ...over
   }
 
-  ;(window as unknown as { freeideDesktop?: unknown }).freeideDesktop = {
+  ;(window as unknown as { jettstuiDesktop?: unknown }).jettstuiDesktop = {
     git: { review },
     openExternal: vi.fn()
   }
@@ -96,7 +96,7 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  delete (window as unknown as { freeideDesktop?: unknown }).freeideDesktop
+  delete (window as unknown as { jettstuiDesktop?: unknown }).jettstuiDesktop
 })
 
 describe('refreshReview', () => {
@@ -113,7 +113,7 @@ describe('refreshReview', () => {
   })
 
   it('flags not-a-repo (and clears loading) when there is no bridge/cwd', async () => {
-    delete (window as unknown as { freeideDesktop?: unknown }).freeideDesktop
+    delete (window as unknown as { jettstuiDesktop?: unknown }).jettstuiDesktop
     $reviewOpen.set(true)
     $reviewLoading.set(true)
 
@@ -205,7 +205,7 @@ describe('selectReviewFile / clearReviewSelection', () => {
   })
 
   it('sets diff null when there is no bridge', async () => {
-    delete (window as unknown as { freeideDesktop?: unknown }).freeideDesktop
+    delete (window as unknown as { jettstuiDesktop?: unknown }).jettstuiDesktop
 
     await selectReviewFile(file('a.ts'))
 
@@ -348,13 +348,13 @@ describe('ship flow', () => {
 
   it('createOrOpenPr opens the existing PR without creating a new one', async () => {
     const review = stubReview()
-    $reviewShipInfo.set({ ghReady: true, pr: { url: 'https://example.com/pr/9' } } as FreeIDEReviewShipInfo)
+    $reviewShipInfo.set({ ghReady: true, pr: { url: 'https://example.com/pr/9' } } as JettsTUIReviewShipInfo)
 
     await createOrOpenPr()
 
     expect(review.createPr).not.toHaveBeenCalled()
     expect(
-      (window.freeideDesktop as unknown as { openExternal: ReturnType<typeof vi.fn> }).openExternal
+      (window.jettstuiDesktop as unknown as { openExternal: ReturnType<typeof vi.fn> }).openExternal
     ).toHaveBeenCalledWith('https://example.com/pr/9')
   })
 
@@ -366,17 +366,17 @@ describe('ship flow', () => {
 
     expect(review.createPr).toHaveBeenCalledWith('/repo')
     expect(
-      (window.freeideDesktop as unknown as { openExternal: ReturnType<typeof vi.fn> }).openExternal
+      (window.jettstuiDesktop as unknown as { openExternal: ReturnType<typeof vi.fn> }).openExternal
     ).toHaveBeenCalledWith('https://example.com/pr/new')
   })
 })
 
 describe('refreshShipInfo', () => {
   it('populates ship info from the bridge', async () => {
-    const info: FreeIDEReviewShipInfo = {
+    const info: JettsTUIReviewShipInfo = {
       ghReady: true,
       pr: { url: 'https://example.com/pr/3' }
-    } as FreeIDEReviewShipInfo
+    } as JettsTUIReviewShipInfo
 
     stubReview({ shipInfo: vi.fn(async () => info) })
 
@@ -386,8 +386,8 @@ describe('refreshShipInfo', () => {
   })
 
   it('resets ship info when there is no bridge', async () => {
-    delete (window as unknown as { freeideDesktop?: unknown }).freeideDesktop
-    $reviewShipInfo.set({ ghReady: true, pr: { url: 'x' } } as FreeIDEReviewShipInfo)
+    delete (window as unknown as { jettstuiDesktop?: unknown }).jettstuiDesktop
+    $reviewShipInfo.set({ ghReady: true, pr: { url: 'x' } } as JettsTUIReviewShipInfo)
 
     await refreshShipInfo()
 
@@ -400,7 +400,7 @@ describe('refreshShipInfo', () => {
         throw new Error('gh missing')
       })
     })
-    $reviewShipInfo.set({ ghReady: true, pr: { url: 'x' } } as FreeIDEReviewShipInfo)
+    $reviewShipInfo.set({ ghReady: true, pr: { url: 'x' } } as JettsTUIReviewShipInfo)
 
     await refreshShipInfo()
 

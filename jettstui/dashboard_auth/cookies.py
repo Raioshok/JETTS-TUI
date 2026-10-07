@@ -1,9 +1,9 @@
 """Cookie helpers for dashboard auth.
 
 Three cookies in play:
-  - freeide_session_at:   the OAuth access token
+  - jettstui_session_at:   the OAuth access token
                          (HttpOnly, lifetime = token TTL, ~15 min)
-  - freeide_session_rt:   the OAuth refresh token
+  - jettstui_session_rt:   the OAuth refresh token
                          (HttpOnly, lifetime = 24h, ROTATING + reuse-detected)
                          An identity provider may issue a rotating refresh
                          token for the dashboard auth-code grant.
@@ -14,7 +14,7 @@ Three cookies in play:
                          provider that omits the refresh token (empty string)
                          degrades gracefully to access-token-only sessions —
                          the RT cookie is simply not written.
-  - freeide_session_pkce: short-lived PKCE state + CSRF nonce + provider
+  - jettstui_session_pkce: short-lived PKCE state + CSRF nonce + provider
                          hint (HttpOnly, lifetime = 10 minutes)
 
 All three are ``SameSite=Lax`` (browser will send on cross-site GET
@@ -34,15 +34,15 @@ https://datatracker.ietf.org/doc/html/draft-west-cookie-prefixes):
   * Gated HTTPS, direct deploy (Path=/) — ``__Host-`` prefix. Binds the
     cookie to the exact origin (no Domain attribute) — strongest spec
     guarantee.
-  * Gated HTTPS, behind a reverse-proxy prefix (Path=/freeide) —
+  * Gated HTTPS, behind a reverse-proxy prefix (Path=/jettstui) —
     ``__Secure-`` prefix. ``__Host-`` is disallowed when Path != "/";
     ``__Secure-`` keeps the Secure-required hardening without the
-    Path constraint, and the explicit ``Path=/freeide`` covers
+    Path constraint, and the explicit ``Path=/jettstui`` covers
     same-origin app isolation.
 
 The setters and readers BOTH consult the active prefix because the
 cookie *name* changes — a reader that looked up the bare name when the
-setter wrote ``__Secure-freeide_session_at`` would never find the value.
+setter wrote ``__Secure-jettstui_session_at`` would never find the value.
 
 Refresh-token handling:
    ``set_session_cookies`` accepts ``refresh_token=""`` (provider omitted
@@ -64,13 +64,13 @@ from fastapi.responses import Response
 # Bare cookie names — the request-scoped ``_resolved_name`` helper
 # decides whether to prepend ``__Host-`` / ``__Secure-`` based on the
 # request's HTTPS + prefix combination.
-SESSION_AT_COOKIE = "freeide_session_at"
-SESSION_RT_COOKIE = "freeide_session_rt"
+SESSION_AT_COOKIE = "jettstui_session_at"
+SESSION_RT_COOKIE = "jettstui_session_rt"
 # Provider that minted the session. This non-secret routing hint prevents a
 # refresh token from being handed to the wrong provider when several dashboard
-# auth plugins are enabled (for example Basic + FreeIDE OAuth).
-SESSION_PROVIDER_COOKIE = "freeide_session_provider"
-PKCE_COOKIE = "freeide_session_pkce"
+# auth plugins are enabled (for example Basic + JettsTUI OAuth).
+SESSION_PROVIDER_COOKIE = "jettstui_session_provider"
+PKCE_COOKIE = "jettstui_session_pkce"
 # One-shot loop-guard marker for the auto-SSO redirect (Phase 1,
 # cloud-auto-discovery). Set when the gate auto-initiates the portal OAuth
 # redirect on an unauthenticated document load; its mere PRESENCE on the next
@@ -79,7 +79,7 @@ PKCE_COOKIE = "freeide_session_pkce"
 # Carries no secret — it's a boolean breadcrumb — but is set HttpOnly/Lax/Secure
 # like the others for consistency. Short TTL so a user who returns later gets a
 # fresh silent attempt rather than a permanently-disabled one.
-SSO_ATTEMPT_COOKIE = "freeide_sso_attempt"
+SSO_ATTEMPT_COOKIE = "jettstui_sso_attempt"
 
 # Possible name variants we may have to read back. Sorted so most-strict
 # wins on iteration when both happen to be present (shouldn't happen in
@@ -122,7 +122,7 @@ def _resolved_name(bare: str, *, use_https: bool, prefix: str) -> str:
 def _cookie_path(prefix: str) -> str:
     """Cookie ``Path`` attribute for the active deploy shape.
 
-    Under ``X-Forwarded-Prefix: /freeide`` we want ``Path=/freeide`` so:
+    Under ``X-Forwarded-Prefix: /jettstui`` we want ``Path=/jettstui`` so:
       a) the browser sends the cookie back on requests under the prefix
          (browsers omit the cookie if request path doesn't start with
          Path);
@@ -184,7 +184,7 @@ def set_session_cookies(
     persist the RT cookie — the session then behaves as access-token-only
     until the AT expires. No other branch changes between the two cases.
 
-    ``prefix`` is the normalised X-Forwarded-Prefix value (e.g. ``/freeide``)
+    ``prefix`` is the normalised X-Forwarded-Prefix value (e.g. ``/jettstui``)
     or ``""`` for a direct deploy. It influences both the cookie name
     (``__Host-`` vs ``__Secure-`` vs bare) and the ``Path`` attribute.
     """

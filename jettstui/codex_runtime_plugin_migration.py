@@ -1,4 +1,4 @@
-"""Migrate FreeIDE' MCP server config and Codex's installed curated plugins
+"""Migrate JettsTUI' MCP server config and Codex's installed curated plugins
 to the format Codex expects in ~/.codex/config.toml.
 
 When the user enables the codex_app_server runtime, the codex subprocess
@@ -7,7 +7,7 @@ Asana, plus per-account ChatGPT apps via app/list). For both of those to
 be useful, the user's choices need to be visible to codex too. This
 module:
 
-  1. Reads FreeIDE' YAML and writes equivalent [mcp_servers.<name>]
+  1. Reads JettsTUI' YAML and writes equivalent [mcp_servers.<name>]
      entries to ~/.codex/config.toml.
   2. Queries codex's `plugin/list` for the openai-curated marketplace
      and writes [plugins."<name>@<marketplace>"] entries for any plugin
@@ -19,17 +19,17 @@ module:
      don't get an approval prompt on every write attempt.
 
 What translates (MCP servers):
-  FreeIDE mcp_servers.<n>.command/args/env  → codex stdio transport
-  FreeIDE mcp_servers.<n>.url/headers       → codex streamable_http transport
-  FreeIDE mcp_servers.<n>.timeout           → codex tool_timeout_sec
-  FreeIDE mcp_servers.<n>.connect_timeout   → codex startup_timeout_sec
+  JettsTUI mcp_servers.<n>.command/args/env  → codex stdio transport
+  JettsTUI mcp_servers.<n>.url/headers       → codex streamable_http transport
+  JettsTUI mcp_servers.<n>.timeout           → codex tool_timeout_sec
+  JettsTUI mcp_servers.<n>.connect_timeout   → codex startup_timeout_sec
 
 What does NOT translate (warned + skipped):
-  FreeIDE-specific keys (sampling, etc.) — codex's MCP client has no
+  JettsTUI-specific keys (sampling, etc.) — codex's MCP client has no
   equivalent. Listed in the per-server skipped[] field of the report.
 
 What's NOT migrated (intentional):
-  AGENTS.md — codex respects this file natively in its cwd. FreeIDE' own
+  AGENTS.md — codex respects this file natively in its cwd. JettsTUI' own
   AGENTS.md (project-level) is already in the worktree, so codex picks
   it up without translation. No code needed.
 """
@@ -48,10 +48,10 @@ logger = logging.getLogger(__name__)
 # Marker comments wrapping the managed section so re-runs can detect
 # what's ours and what's user-edited. Both must appear or strip is a no-op.
 MIGRATION_MARKER = (
-    "# managed by freeide-agent — `freeide codex-runtime migrate` regenerates this section"
+    "# managed by jettstui — `jettstui codex-runtime migrate` regenerates this section"
 )
 MIGRATION_END_MARKER = (
-    "# end freeide-agent managed section"
+    "# end jettstui managed section"
 )
 
 
@@ -84,7 +84,7 @@ class MigrationReport:
                 )
                 lines.append(f"  - {name}{note}")
         else:
-            lines.append("No MCP servers found in FreeIDE config.")
+            lines.append("No MCP servers found in JettsTUI config.")
         if self.migrated_plugins:
             lines.append(
                 f"Migrated {len(self.migrated_plugins)} native Codex plugin(s):"
@@ -103,10 +103,10 @@ class MigrationReport:
         return "\n".join(lines)
 
 
-# FreeIDE keys that codex's MCP schema doesn't support — dropped during
+# JettsTUI keys that codex's MCP schema doesn't support — dropped during
 # migration with a warning. Anything not on the keep list AND not the
 # transport keys is added to skipped.
-_KNOWN_FREEIDE_KEYS = {
+_KNOWN_JETTSTUI_KEYS = {
     # transport — stdio
     "command", "args", "env", "cwd",
     # transport — http
@@ -119,27 +119,27 @@ _KNOWN_FREEIDE_KEYS = {
 
 # Subset that have a direct codex equivalent.
 _KEYS_DROPPED_WITH_WARNING = {
-    # FreeIDE' sampling subsection — codex MCP has no equivalent
+    # JettsTUI' sampling subsection — codex MCP has no equivalent
     "sampling",
 }
 
 
 def _translate_one_server(
-    name: str, freeide_cfg: dict
+    name: str, jettstui_cfg: dict
 ) -> tuple[Optional[dict], list[str]]:
-    """Translate one FreeIDE MCP server config to the codex inline-table dict
+    """Translate one JettsTUI MCP server config to the codex inline-table dict
     representation. Returns (codex_entry, skipped_keys).
 
     codex_entry is a dict ready for TOML serialization, or None when the
     server can't be translated (e.g. neither command nor url present)."""
-    if not isinstance(freeide_cfg, dict):
+    if not isinstance(jettstui_cfg, dict):
         return None, []
 
     skipped: list[str] = []
     out: dict[str, Any] = {}
 
-    has_command = bool(freeide_cfg.get("command"))
-    has_url = bool(freeide_cfg.get("url"))
+    has_command = bool(jettstui_cfg.get("command"))
+    has_url = bool(jettstui_cfg.get("url"))
 
     if has_command and has_url:
         skipped.append("url (both command and url set; preferring stdio)")
@@ -147,51 +147,51 @@ def _translate_one_server(
 
     if has_command:
         # Stdio transport
-        out["command"] = str(freeide_cfg["command"])
-        args = freeide_cfg.get("args") or []
+        out["command"] = str(jettstui_cfg["command"])
+        args = jettstui_cfg.get("args") or []
         if args:
             out["args"] = [str(a) for a in args]
-        env = freeide_cfg.get("env") or {}
+        env = jettstui_cfg.get("env") or {}
         if env:
             # Codex expects string values
             out["env"] = {str(k): str(v) for k, v in env.items()}
-        cwd = freeide_cfg.get("cwd")
+        cwd = jettstui_cfg.get("cwd")
         if cwd:
             out["cwd"] = str(cwd)
     elif has_url:
         # streamable_http transport (codex covers both http and SSE here)
-        out["url"] = str(freeide_cfg["url"])
-        headers = freeide_cfg.get("headers") or {}
+        out["url"] = str(jettstui_cfg["url"])
+        headers = jettstui_cfg.get("headers") or {}
         if headers:
             out["http_headers"] = {str(k): str(v) for k, v in headers.items()}
-        # FreeIDE' transport: sse hint is informational; codex auto-negotiates
-        if freeide_cfg.get("transport") == "sse":
+        # JettsTUI' transport: sse hint is informational; codex auto-negotiates
+        if jettstui_cfg.get("transport") == "sse":
             skipped.append("transport=sse (codex auto-negotiates)")
     else:
         return None, ["no command or url field"]
 
     # Timeouts
-    if "timeout" in freeide_cfg:
+    if "timeout" in jettstui_cfg:
         try:
-            out["tool_timeout_sec"] = float(freeide_cfg["timeout"])
+            out["tool_timeout_sec"] = float(jettstui_cfg["timeout"])
         except (TypeError, ValueError):
             skipped.append("timeout (not numeric)")
-    if "connect_timeout" in freeide_cfg:
+    if "connect_timeout" in jettstui_cfg:
         try:
-            out["startup_timeout_sec"] = float(freeide_cfg["connect_timeout"])
+            out["startup_timeout_sec"] = float(jettstui_cfg["connect_timeout"])
         except (TypeError, ValueError):
             skipped.append("connect_timeout (not numeric)")
 
     # Enabled flag (codex defaults to true so we only emit when explicitly false)
-    if freeide_cfg.get("enabled") is False:
+    if jettstui_cfg.get("enabled") is False:
         out["enabled"] = False
 
     # Detect keys we explicitly drop with warning
-    for key in freeide_cfg:
+    for key in jettstui_cfg:
         if key in _KEYS_DROPPED_WITH_WARNING:
             skipped.append(f"{key} (no codex equivalent)")
-        elif key not in _KNOWN_FREEIDE_KEYS:
-            skipped.append(f"{key} (unknown FreeIDE key)")
+        elif key not in _KNOWN_JETTSTUI_KEYS:
+            skipped.append(f"{key} (unknown JettsTUI key)")
 
     return out, skipped
 
@@ -212,7 +212,7 @@ def _format_toml_value(value: Any) -> str:
         # because TOML basic strings don't allow literal control chars
         # — passing them through would produce invalid TOML that codex
         # would refuse to load. Paths usually don't contain control
-        # chars but env-var passthrough (FREEIDE_HOME, PYTHONPATH) could
+        # chars but env-var passthrough (JETTSTUI_HOME, PYTHONPATH) could
         # in pathological cases.
         escaped = (
             value
@@ -263,7 +263,7 @@ def render_codex_toml_section(
     """
     out = [MIGRATION_MARKER]
     if not servers and not plugins and not default_permission_profile:
-        out.append("# (no MCP servers, plugins, or permissions configured by FreeIDE)")
+        out.append("# (no MCP servers, plugins, or permissions configured by JettsTUI)")
         out.append(MIGRATION_END_MARKER)
         return "\n".join(out) + "\n"
 
@@ -305,7 +305,7 @@ def render_codex_toml_section(
 
 
 def _insert_managed_block_at_top_level(user_text: str, managed_block: str) -> str:
-    """Insert FreeIDE' managed Codex TOML block while keeping root keys root-scoped.
+    """Insert JettsTUI' managed Codex TOML block while keeping root keys root-scoped.
 
     TOML has no syntax to return to the document root after a table header.
     Therefore appending a root key like `default_permissions = ...` after a
@@ -340,7 +340,7 @@ def _strip_unmanaged_plugin_tables(toml_text: str) -> str:
     managed block.
 
     Codex itself writes these tables when the user runs ``codex plugins enable``
-    directly (i.e. before FreeIDE' migrate has ever touched the file). When we
+    directly (i.e. before JettsTUI' migrate has ever touched the file). When we
     later run migrate, ``_query_codex_plugins()`` reports the same plugins via
     the live ``plugin/list`` RPC and we re-emit them inside the managed block.
     The result without this strip is duplicate ``[plugins."X@Y"]`` table
@@ -412,7 +412,7 @@ def _strip_existing_managed_block(toml_text: str) -> str:
     follows, we fall back to the heuristic that swallows lines until we
     hit a section that's not [mcp_servers.*]/[plugins.*]/[permissions]/
     a `default_permissions =` key. This matches what older versions of
-    this code wrote so re-runs don't break configs from prior FreeIDE
+    this code wrote so re-runs don't break configs from prior JettsTUI
     versions."""
     lines = toml_text.splitlines(keepends=True)
     out: list[str] = []
@@ -471,7 +471,7 @@ def _query_codex_plugins(
         with CodexAppServerClient(
             codex_home=str(codex_home) if codex_home else None
         ) as client:
-            client.initialize(client_name="freeide-migration")
+            client.initialize(client_name="jettstui-migration")
             resp = client.request("plugin/list", {}, timeout=timeout)
     except Exception as exc:
         return [], f"plugin/list query failed: {exc}"
@@ -534,12 +534,12 @@ def _looks_like_test_tempdir(path: str) -> bool:
     pytest tempdirs live under ``pytest-of-<user>/pytest-<n>/`` (created via
     ``tmp_path`` / ``tmp_path_factory``) and are reaped between sessions.
     macOS routes ``/tmp`` through ``/private/var/folders/<…>/T`` which is
-    what pytest's tempdir factory uses by default. If a FREEIDE_HOME pointing
+    what pytest's tempdir factory uses by default. If a JETTSTUI_HOME pointing
     at one of those paths is burned into ``~/.codex/config.toml``, every
-    codex-routed freeide-tools call fails silently once the directory is GC'd.
+    codex-routed jettstui-tools call fails silently once the directory is GC'd.
 
     We err on the side of refusing — losing a (very unlikely) real
-    ``~/.freeide`` symlink that happens to live under ``/private/var/folders``
+    ``~/.jettstui`` symlink that happens to live under ``/private/var/folders``
     is much less harmful than silently bricking codex's tool surface.
     """
     if not path:
@@ -554,48 +554,48 @@ def _looks_like_test_tempdir(path: str) -> bool:
     return any(needle in normalized for needle in needles)
 
 
-def _build_freeide_tools_mcp_entry() -> dict:
-    """Build the codex stdio-transport entry that launches FreeIDE' own
+def _build_jettstui_tools_mcp_entry() -> dict:
+    """Build the codex stdio-transport entry that launches JettsTUI' own
     tool surface as an MCP server. Codex's subprocess will call back into
     this for browser/web/delegate_task/vision/memory/skills tools.
 
     The command runs the worktree's Python via the current sys.executable
-    so a freeide installed under /opt/, /usr/local/, or a venv all work.
-    FREEIDE_HOME and PYTHONPATH are passed through so the spawned process
+    so a jettstui installed under /opt/, /usr/local/, or a venv all work.
+    JETTSTUI_HOME and PYTHONPATH are passed through so the spawned process
     sees the same config + module layout the user is running."""
     import sys
 
     env: dict[str, str] = {}
-    # FREEIDE_HOME passes through IF SET so the MCP subprocess sees the same
+    # JETTSTUI_HOME passes through IF SET so the MCP subprocess sees the same
     # config / auth / sessions DB as the parent CLI. Read from os.environ
-    # (not get_freeide_home()) on purpose: when the env var is unset we want
-    # codex's subprocess to inherit whatever FREEIDE_HOME its launcher sets
+    # (not get_jettstui_home()) on purpose: when the env var is unset we want
+    # codex's subprocess to inherit whatever JETTSTUI_HOME its launcher sets
     # at runtime (systemd unit, gateway, kanban dispatcher, custom shell),
     # rather than burning the migrate-time resolved default into config.toml
-    # — that would override the launcher's FREEIDE_HOME and pin the subprocess
+    # — that would override the launcher's JETTSTUI_HOME and pin the subprocess
     # to the wrong profile.
     #
     # The pytest-tempdir guard below catches the issue #26250 Bug C scenario:
-    # a sibling test's monkeypatch.setenv("FREEIDE_HOME", tmp_path) would
+    # a sibling test's monkeypatch.setenv("JETTSTUI_HOME", tmp_path) would
     # otherwise leak a transient pytest tempdir into the user's real
     # ~/.codex/config.toml and silently brick codex once the tempdir is GC'd.
-    freeide_home = os.environ.get("FREEIDE_HOME") or ""
-    if freeide_home and _looks_like_test_tempdir(freeide_home):
-        freeide_home = ""
-    if freeide_home:
-        env["FREEIDE_HOME"] = freeide_home
-    # PYTHONPATH passes through so a worktree-launched freeide finds the
+    jettstui_home = os.environ.get("JETTSTUI_HOME") or ""
+    if jettstui_home and _looks_like_test_tempdir(jettstui_home):
+        jettstui_home = ""
+    if jettstui_home:
+        env["JETTSTUI_HOME"] = jettstui_home
+    # PYTHONPATH passes through so a worktree-launched jettstui finds the
     # branch's modules instead of the installed package.
     pythonpath = os.environ.get("PYTHONPATH")
     if pythonpath:
         env["PYTHONPATH"] = pythonpath
     # Quiet mode + redaction defaults so the MCP wire stays clean.
-    env["FREEIDE_QUIET"] = "1"
-    env["FREEIDE_REDACT_SECRETS"] = env.get("FREEIDE_REDACT_SECRETS", "true")
+    env["JETTSTUI_QUIET"] = "1"
+    env["JETTSTUI_REDACT_SECRETS"] = env.get("JETTSTUI_REDACT_SECRETS", "true")
 
     out: dict[str, Any] = {
         "command": sys.executable,
-        "args": ["-m", "agent.transports.freeide_tools_mcp_server"],
+        "args": ["-m", "agent.transports.jettstui_tools_mcp_server"],
     }
     if env:
         out["env"] = env
@@ -607,19 +607,19 @@ def _build_freeide_tools_mcp_entry() -> dict:
 
 
 def migrate(
-    freeide_config: dict,
+    jettstui_config: dict,
     *,
     codex_home: Optional[Path] = None,
     dry_run: bool = False,
     discover_plugins: bool = True,
     default_permission_profile: Optional[str] = ":workspace",
-    expose_freeide_tools: bool = True,
+    expose_jettstui_tools: bool = True,
 ) -> MigrationReport:
-    """Translate FreeIDE mcp_servers config + Codex curated plugins into
+    """Translate JettsTUI mcp_servers config + Codex curated plugins into
     ~/.codex/config.toml.
 
     Args:
-        freeide_config: full ~/.freeide/config.yaml dict
+        jettstui_config: full ~/.jettstui/config.yaml dict
         codex_home: override CODEX_HOME (defaults to ~/.codex)
         dry_run: skip the actual write; report what would happen
         discover_plugins: when True (default), query `plugin/list` against
@@ -635,10 +635,10 @@ def migrate(
             configured in their own [permissions.<name>] table. Set None
             to leave permissions unset and let codex use its compiled-in
             default (which is read-only).
-        expose_freeide_tools: when True (default), register FreeIDE' own
+        expose_jettstui_tools: when True (default), register JettsTUI' own
             tool surface (web_search, browser_*, delegate_task, vision,
             memory, skills, etc.) as an MCP server in ~/.codex/config.toml
-            so the codex subprocess can call back into FreeIDE for tools
+            so the codex subprocess can call back into JettsTUI for tools
             codex doesn't have built in. Set False to opt out.
     """
     report = MigrationReport(dry_run=dry_run)
@@ -646,15 +646,15 @@ def migrate(
     target = codex_home / "config.toml"
     report.target_path = target
 
-    freeide_servers = (freeide_config or {}).get("mcp_servers") or {}
-    if not isinstance(freeide_servers, dict):
+    jettstui_servers = (jettstui_config or {}).get("mcp_servers") or {}
+    if not isinstance(jettstui_servers, dict):
         report.errors.append(
-            "mcp_servers in FreeIDE config is not a dict; cannot migrate."
+            "mcp_servers in JettsTUI config is not a dict; cannot migrate."
         )
         return report
 
     translated: dict[str, dict] = {}
-    for name, cfg in freeide_servers.items():
+    for name, cfg in jettstui_servers.items():
         out, skipped = _translate_one_server(str(name), cfg or {})
         if out is None:
             report.errors.append(
@@ -687,16 +687,16 @@ def migrate(
     if default_permission_profile:
         report.wrote_permissions_default = default_permission_profile
 
-    # Inject FreeIDE' own tool surface as an MCP server so the spawned
-    # codex subprocess can call back into FreeIDE for the tools codex
+    # Inject JettsTUI' own tool surface as an MCP server so the spawned
+    # codex subprocess can call back into JettsTUI for the tools codex
     # doesn't ship with — web_search, browser_*, delegate_task, vision,
     # memory, skills, session_search, image_generate, text_to_speech.
-    # The server itself is agent/transports/freeide_tools_mcp_server.py
+    # The server itself is agent/transports/jettstui_tools_mcp_server.py
     # and is launched on demand by codex (stdio MCP).
-    if expose_freeide_tools:
-        translated["freeide-tools"] = _build_freeide_tools_mcp_entry()
-        if "freeide-tools" not in report.migrated:
-            report.migrated.append("freeide-tools")
+    if expose_jettstui_tools:
+        translated["jettstui-tools"] = _build_jettstui_tools_mcp_entry()
+        if "jettstui-tools" not in report.migrated:
+            report.migrated.append("jettstui-tools")
 
     # Build the new managed block
     managed_block = render_codex_toml_section(

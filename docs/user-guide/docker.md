@@ -1,21 +1,21 @@
 ---
 sidebar_position: 7
 title: "Docker"
-description: "Running Jetts-TUI in Docker and using Docker as a terminal backend"
+description: "Running JettsTUI in Docker and using Docker as a terminal backend"
 ---
 
-# Jetts-TUI — Docker
+# JettsTUI — Docker
 
-There are two distinct ways Docker intersects with Jetts-TUI:
+There are two distinct ways Docker intersects with JettsTUI:
 
-1. **Running Jetts-TUI in Docker** — the agent itself runs inside a container (this page's primary focus)
-2. **Docker as a terminal backend** — the agent runs on your host but executes every command inside a single, persistent Docker sandbox container that survives across tool calls, `/new`, and subagents for the life of the Jetts-TUI process (see [Configuration → Docker Backend](./configuration.md#docker-backend))
+1. **Running JettsTUI in Docker** — the agent itself runs inside a container (this page's primary focus)
+2. **Docker as a terminal backend** — the agent runs on your host but executes every command inside a single, persistent Docker sandbox container that survives across tool calls, `/new`, and subagents for the life of the JettsTUI process (see [Configuration → Docker Backend](./configuration.md#docker-backend))
 
 This page covers option 1. The container stores all user data (config, API keys, sessions, skills, memories) in a single directory mounted from the host at `/opt/data`. The image itself is stateless and can be upgraded by pulling a new version without losing any configuration.
 
 ## Quick start
 
-If this is your first time running Jetts-TUI, create a data directory on the host and start the container interactively to run the setup wizard. The image below is this repository's image. Existing Docker users can keep mounting their old data directory at `/opt/data` until they migrate it explicitly.
+If this is your first time running JettsTUI, create a data directory on the host and start the container interactively to run the setup wizard. The image below is this repository's image. Existing Docker users can keep mounting their old data directory at `/opt/data` until they migrate it explicitly.
 
 :::caution Avoid browser-based VPS consoles for the install commands
 Some VPS providers (Hetzner Cloud, and several others) offer a browser-based
@@ -59,9 +59,9 @@ docker run -d \
 Port 8642 exposes the gateway's [OpenAI-compatible API server](./features/api-server.md) and health endpoint. It's optional if you only use chat platforms (Telegram, Discord, etc.), but required if you want the dashboard or external tools to reach the gateway.
 
 :::tip Gateway runs supervised
-Inside the official Docker image, `gateway run` is **automatically supervised by s6-overlay**: if the gateway process crashes it's restarted within a couple of seconds without losing the container, and the dashboard (when `FREEIDE_DASHBOARD=1` is set) is supervised alongside it. The `gateway run` CMD process itself is a `sleep infinity` heartbeat that keeps the container alive while s6 manages the actual gateway process — so `docker stop` still shuts everything down cleanly, but `docker logs` shows the supervised gateway's output.
+Inside the official Docker image, `gateway run` is **automatically supervised by s6-overlay**: if the gateway process crashes it's restarted within a couple of seconds without losing the container, and the dashboard (when `JETTSTUI_DASHBOARD=1` is set) is supervised alongside it. The `gateway run` CMD process itself is a `sleep infinity` heartbeat that keeps the container alive while s6 manages the actual gateway process — so `docker stop` still shuts everything down cleanly, but `docker logs` shows the supervised gateway's output.
 
-You'll see a one-line breadcrumb in `docker logs` confirming the upgrade. To opt out — and get the historical "gateway is the container's main process, container exit = gateway exit" semantics — pass `--no-supervise` or set `FREEIDE_GATEWAY_NO_SUPERVISE=1`. The opt-out is useful for CI smoke tests that want the container to exit with the gateway's status code; for production deployments the supervised default is strictly better.
+You'll see a one-line breadcrumb in `docker logs` confirming the upgrade. To opt out — and get the historical "gateway is the container's main process, container exit = gateway exit" semantics — pass `--no-supervise` or set `JETTSTUI_GATEWAY_NO_SUPERVISE=1`. The opt-out is useful for CI smoke tests that want the container to exit with the gateway's status code; for production deployments the supervised default is strictly better.
 
 This behavior applies to the s6-based image only. Earlier (tini-based) images still run `gateway run` as the foreground main process.
 :::
@@ -101,7 +101,7 @@ Opening any port on an internet facing machine is a security risk. You should no
 
 ## Running the dashboard
 
-The built-in web dashboard runs as a supervised s6-rc service alongside the gateway in the same container. Set `FREEIDE_DASHBOARD=1` to bring it up:
+The built-in web dashboard runs as a supervised s6-rc service alongside the gateway in the same container. Set `JETTSTUI_DASHBOARD=1` to bring it up:
 
 ```sh
 docker run -d \
@@ -110,7 +110,7 @@ docker run -d \
   -v ~/.jettstui:/opt/data \
   -p 8642:8642 \
   -p 9119:9119 \
-  -e FREEIDE_DASHBOARD=1 \
+  -e JETTSTUI_DASHBOARD=1 \
   ghcr.io/raioshok/jetts-tui gateway run
 ```
 
@@ -118,12 +118,12 @@ The dashboard is supervised by s6 — if it crashes, `s6-supervise` restarts it 
 
 | Environment variable | Description | Default |
 |---------------------|-------------|---------|
-| `FREEIDE_DASHBOARD` | Set to `1` (or `true` / `yes`) to enable the supervised dashboard service | *(unset — service is registered but stays down)* |
-| `FREEIDE_DASHBOARD_HOST` | Bind address for the dashboard HTTP server | `0.0.0.0` |
-| `FREEIDE_DASHBOARD_PORT` | Port for the dashboard HTTP server | `9119` |
-| `FREEIDE_DASHBOARD_INSECURE` | **Deprecated / no-op.** Formerly bypassed the auth gate; as of the June 2026 hardening it no longer disables authentication. A non-loopback bind always requires an auth provider | *(ignored — configure a provider instead)* |
+| `JETTSTUI_DASHBOARD` | Set to `1` (or `true` / `yes`) to enable the supervised dashboard service | *(unset — service is registered but stays down)* |
+| `JETTSTUI_DASHBOARD_HOST` | Bind address for the dashboard HTTP server | `0.0.0.0` |
+| `JETTSTUI_DASHBOARD_PORT` | Port for the dashboard HTTP server | `9119` |
+| `JETTSTUI_DASHBOARD_INSECURE` | **Deprecated / no-op.** Formerly bypassed the auth gate; as of the June 2026 hardening it no longer disables authentication. A non-loopback bind always requires an auth provider | *(ignored — configure a provider instead)* |
 
-The dashboard inside the container defaults to binding `0.0.0.0` — without it, the published `-p 9119:9119` port would not be reachable from the host. To restrict the bind to container loopback (for sidecar / reverse-proxy setups), set `FREEIDE_DASHBOARD_HOST=127.0.0.1`.
+The dashboard inside the container defaults to binding `0.0.0.0` — without it, the published `-p 9119:9119` port would not be reachable from the host. To restrict the bind to container loopback (for sidecar / reverse-proxy setups), set `JETTSTUI_DASHBOARD_HOST=127.0.0.1`.
 
 The dashboard's auth gate engages automatically when both of the following are true:
 
@@ -132,15 +132,15 @@ The dashboard's auth gate engages automatically when both of the following are t
 
 There are two bundled ways to satisfy the second condition:
 
-- **Username/password** — the simplest for a self-hosted / on-prem / homelab container on a trusted network or behind a VPN: set `FREEIDE_DASHBOARD_BASIC_AUTH_USERNAME` + `FREEIDE_DASHBOARD_BASIC_AUTH_PASSWORD` (and `FREEIDE_DASHBOARD_BASIC_AUTH_SECRET` for restart-stable sessions). Not suitable for direct public-internet exposure.
-- **Self-hosted OIDC** — to authenticate against your own identity provider via standard OpenID Connect: the `dashboard_auth/self_hosted` provider activates when `FREEIDE_DASHBOARD_OIDC_ISSUER` + `FREEIDE_DASHBOARD_OIDC_CLIENT_ID` are set.
+- **Username/password** — the simplest for a self-hosted / on-prem / homelab container on a trusted network or behind a VPN: set `JETTSTUI_DASHBOARD_BASIC_AUTH_USERNAME` + `JETTSTUI_DASHBOARD_BASIC_AUTH_PASSWORD` (and `JETTSTUI_DASHBOARD_BASIC_AUTH_SECRET` for restart-stable sessions). Not suitable for direct public-internet exposure.
+- **Self-hosted OIDC** — to authenticate against your own identity provider via standard OpenID Connect: the `dashboard_auth/self_hosted` provider activates when `JETTSTUI_DASHBOARD_OIDC_ISSUER` + `JETTSTUI_DASHBOARD_OIDC_CLIENT_ID` are set.
 
 Whichever you choose, the gate redirects callers to a login page before they can reach any protected route. See [Web Dashboard → Authentication](features/web-dashboard.md#authentication-gated-mode) for both providers.
 
-If no provider is registered and the bind is non-loopback, the dashboard **fails closed at startup** with a specific error pointing at the missing env var. There is no longer an escape hatch that serves the dashboard unauthenticated on a public bind: `FREEIDE_DASHBOARD_INSECURE=1` is now a deprecated no-op (it logs a warning and is ignored). Configure a provider, or bind `FREEIDE_DASHBOARD_HOST=127.0.0.1` and reach the dashboard over an SSH tunnel / Tailscale instead.
+If no provider is registered and the bind is non-loopback, the dashboard **fails closed at startup** with a specific error pointing at the missing env var. There is no longer an escape hatch that serves the dashboard unauthenticated on a public bind: `JETTSTUI_DASHBOARD_INSECURE=1` is now a deprecated no-op (it logs a warning and is ignored). Configure a provider, or bind `JETTSTUI_DASHBOARD_HOST=127.0.0.1` and reach the dashboard over an SSH tunnel / Tailscale instead.
 
 :::warning Why `--insecure` was removed
-An unauthenticated public dashboard was the entry point for the June 2026 MCP-config persistence campaign: internet scanners reached exposed dashboards (and OpenAI API servers) and drove the agent into planting an SSH-key backdoor. The auth gate is now mandatory on every non-loopback bind. For a trusted-LAN / homelab box, the bundled username/password provider (`FREEIDE_DASHBOARD_BASIC_AUTH_USERNAME` + `_PASSWORD`) is the zero-infra way to satisfy it.
+An unauthenticated public dashboard was the entry point for the June 2026 MCP-config persistence campaign: internet scanners reached exposed dashboards (and OpenAI API servers) and drove the agent into planting an SSH-key backdoor. The auth gate is now mandatory on every non-loopback bind. For a trusted-LAN / homelab box, the bundled username/password provider (`JETTSTUI_DASHBOARD_BASIC_AUTH_USERNAME` + `_PASSWORD`) is the zero-infra way to satisfy it.
 :::
 
 Running the dashboard as a separate container **is** supported when that container shares the host PID and network namespace (e.g. `network_mode: host`, as the repo's own `docker-compose.yml` does — see its `dashboard` service). Its gateway-liveness detection requires a shared PID namespace with the gateway process, so the limitation only applies to dashboards run in isolated bridge-network containers without a shared PID namespace.
@@ -163,17 +163,17 @@ Or if you have already opened a terminal in your running container (via Docker D
 
 ## Persistent volumes
 
-The `/opt/data` volume is the single source of truth for all Jetts-TUI state. It maps to your host's `~/.jettstui/` directory and contains:
+The `/opt/data` volume is the single source of truth for all JettsTUI state. It maps to your host's `~/.jettstui/` directory and contains:
 
 | Path | Contents |
 |------|----------|
 | `.env` | API keys and secrets |
-| `config.yaml` | All Jetts-TUI configuration |
+| `config.yaml` | All JettsTUI configuration |
 | `SOUL.md` | Agent personality/identity |
 | `sessions/` | Conversation history |
 | `memories/` | Persistent memory store |
 | `skills/` | Installed skills |
-| `home/` | Per-profile HOME for Jetts-TUI tool subprocesses (`git`, `ssh`, `gh`, `npm`, and skill CLIs) |
+| `home/` | Per-profile HOME for JettsTUI tool subprocesses (`git`, `ssh`, `gh`, `npm`, and skill CLIs) |
 | `cron/` | Scheduled job definitions |
 | `hooks/` | Event hooks |
 | `logs/` | Runtime logs |
@@ -183,27 +183,27 @@ The `/opt/data` volume is the single source of truth for all Jetts-TUI state. It
 
 In hosted and published Docker images, `/opt/jettstui` is the installed application tree. It is root-owned and read-only to the runtime `jettstui` user, so agent turns, gateway sessions, dashboard actions, and normal `docker exec jetts-tui jetts-tui ...` commands cannot edit the core source, bundled `.venv`, `node_modules`, or TUI bundle in place.
 
-All mutable Jetts-TUI state belongs under `/opt/data`: config, `.env`, profiles, skills, memories, sessions, logs, dashboard uploads, plugins, and other user-managed files. The image also disables runtime `.pyc` writes and Jetts-TUI lazy dependency installs into `/opt/jettstui`; optional platform dependencies needed by the published image should be baked into the image or installed through a new image build.
+All mutable JettsTUI state belongs under `/opt/data`: config, `.env`, profiles, skills, memories, sessions, logs, dashboard uploads, plugins, and other user-managed files. The image also disables runtime `.pyc` writes and JettsTUI lazy dependency installs into `/opt/jettstui`; optional platform dependencies needed by the published image should be baked into the image or installed through a new image build.
 
 On hosted/published images, agent self-improvement is scoped to skills, memory, plugins, and config under `/opt/data`. The installed core source under `/opt/jettstui` is immutable; core changes are made via PRs to the repo and shipped by updating the image, not by live-editing the running install.
 
-If an operator needs to repair or inspect files outside `/opt/data`, use a root shell intentionally. The `jetts-tui` shim normally drops `docker exec jetts-tui jetts-tui ...` back to the runtime user; set `FREEIDE_DOCKER_EXEC_AS_ROOT=1` for a one-off root invocation when you explicitly need root semantics.
+If an operator needs to repair or inspect files outside `/opt/data`, use a root shell intentionally. The `jetts-tui` shim normally drops `docker exec jetts-tui jetts-tui ...` back to the runtime user; set `JETTSTUI_DOCKER_EXEC_AS_ROOT=1` for a one-off root invocation when you explicitly need root semantics.
 
-Skill CLIs that store credentials under `~` must be initialized against the subprocess HOME, not just the data-volume root. For example, the [xurl skill](./skills/bundled/social-media/social-media-xurl.md) stores OAuth state in `~/.xurl`; in the official Docker layout, Jetts-TUI tool calls read that as `/opt/data/home/.xurl`, so run manual xurl auth with `HOME=/opt/data/home` and verify with `HOME=/opt/data/home xurl auth status`.
+Skill CLIs that store credentials under `~` must be initialized against the subprocess HOME, not just the data-volume root. For example, the [xurl skill](./skills/bundled/social-media/social-media-xurl.md) stores OAuth state in `~/.xurl`; in the official Docker layout, JettsTUI tool calls read that as `/opt/data/home/.xurl`, so run manual xurl auth with `HOME=/opt/data/home` and verify with `HOME=/opt/data/home xurl auth status`.
 
 :::warning
-Never run two Jetts-TUI **gateway** containers against the same data directory simultaneously — session files and memory stores are not designed for concurrent write access.
+Never run two JettsTUI **gateway** containers against the same data directory simultaneously — session files and memory stores are not designed for concurrent write access.
 :::
 
 ## Multi-profile support
 
-Jetts-TUI supports [multiple profiles](../reference/profile-commands.md) — separate `~/.jettstui/` subdirectories that let you run independent agents (different SOUL, skills, memory, sessions, credentials) from a single installation. **Inside the official Docker image, the s6 supervision tree treats each profile as a first-class supervised service**, so the recommended deployment is **one container hosting all profiles**.
+JettsTUI supports [multiple profiles](../reference/profile-commands.md) — separate `~/.jettstui/` subdirectories that let you run independent agents (different SOUL, skills, memory, sessions, credentials) from a single installation. **Inside the official Docker image, the s6 supervision tree treats each profile as a first-class supervised service**, so the recommended deployment is **one container hosting all profiles**.
 
 Each profile created with `jetts-tui profile create <name>` gets:
 
 - A dedicated s6 service slot at `/run/service/gateway-<name>/`, registered dynamically by the runtime — no container rebuild required.
 - Auto-restart on crash, backoff-managed by `s6-supervise`.
-- Per-profile rotated logs at `${FREEIDE_HOME}/logs/gateways/<name>/current` (10 archives × 1 MB each).
+- Per-profile rotated logs at `${JETTSTUI_HOME}/logs/gateways/<name>/current` (10 archives × 1 MB each).
 - State persistence across container restarts: the boot-time reconciler reads `gateway_state.json` from each profile directory and brings the slot back up only for profiles whose last recorded state was `running`. Only a gateway you explicitly stopped (`jetts-tui gateway stop`) stays down across a restart — a container restart, image upgrade, or unexpected exit leaves the recorded state as `running`, so the gateway auto-starts on the next boot.
 
 The lifecycle commands you'd run on the host work the same way from inside the container:
@@ -230,7 +230,7 @@ Under the hood, `jetts-tui gateway start/stop/restart` inside the container is i
 
 Two different surfaces reach a profile's gateway from outside, and they behave differently — don't conflate them:
 
-**Jetts-TUI Desktop (and the web dashboard).** The Desktop app's **Remote Gateway** connection talks to a `jetts-tui dashboard` backend (default **port 9119**, enabled by `FREEIDE_DASHBOARD=1`) — *not* the OpenAI API server. One dashboard backend serves **every** co-located profile: the app's profile switcher sends the target profile with each request and the backend opens that profile's `FREEIDE_HOME` on disk. So you do **not** need a second port — or a second connection — per profile for Desktop; one `:9119` connection covers them all through the switcher.
+**JettsTUI Desktop (and the web dashboard).** The Desktop app's **Remote Gateway** connection talks to a `jetts-tui dashboard` backend (default **port 9119**, enabled by `JETTSTUI_DASHBOARD=1`) — *not* the OpenAI API server. One dashboard backend serves **every** co-located profile: the app's profile switcher sends the target profile with each request and the backend opens that profile's `JETTSTUI_HOME` on disk. So you do **not** need a second port — or a second connection — per profile for Desktop; one `:9119` connection covers them all through the switcher.
 
 **OpenAI-compatible API clients (Open WebUI, LobeChat, `/v1/...`).** These talk to each profile's **API server**, which binds **port 8642 for every profile** (resolved from `API_SERVER_PORT` / `platforms.api_server.extra.port` — there is no auto-allocation and no `config.yaml`/`gateway.port` key). If you want a client to reach a *specific* second profile, give that profile a distinct `API_SERVER_PORT` in **its own** `.env`, otherwise its gateway tries to bind 8642 too and conflicts with the default profile:
 
@@ -306,10 +306,10 @@ The s6 container has four distinct log surfaces, and "why isn't my gateway showi
 
 | Source | Where it lands | How to read it |
 |---|---|---|
-| **Per-profile gateway** (`jetts-tui gateway run` and per-profile gateways under s6) | Tee'd to two places: `docker logs <container>` (real time, no extra prefix) **and** `${FREEIDE_HOME}/logs/gateways/<profile>/current` (rotated, ISO-8601 timestamped, 10 archives × 1 MB each) | `docker logs -f jetts-tui` or `tail -F ~/.jettstui/logs/gateways/default/current` on the host |
-| **Dashboard** (when `FREEIDE_DASHBOARD=1`) | `docker logs <container>` (no prefix) | `docker logs -f jetts-tui` — interleaved with gateway lines |
-| **Boot reconciler** (records which profile gateways were restored on each container start) | `${FREEIDE_HOME}/logs/container-boot.log` (append-only audit log) | `tail -F ~/.jettstui/logs/container-boot.log` |
-| **Generic Jetts-TUI logs** (`agent.log`, `errors.log`) | `${FREEIDE_HOME}/logs/` (profile-aware) | `docker exec jetts-tui jetts-tui logs --follow [--level WARNING] [--session <id>]` |
+| **Per-profile gateway** (`jetts-tui gateway run` and per-profile gateways under s6) | Tee'd to two places: `docker logs <container>` (real time, no extra prefix) **and** `${JETTSTUI_HOME}/logs/gateways/<profile>/current` (rotated, ISO-8601 timestamped, 10 archives × 1 MB each) | `docker logs -f jetts-tui` or `tail -F ~/.jettstui/logs/gateways/default/current` on the host |
+| **Dashboard** (when `JETTSTUI_DASHBOARD=1`) | `docker logs <container>` (no prefix) | `docker logs -f jetts-tui` — interleaved with gateway lines |
+| **Boot reconciler** (records which profile gateways were restored on each container start) | `${JETTSTUI_HOME}/logs/container-boot.log` (append-only audit log) | `tail -F ~/.jettstui/logs/container-boot.log` |
+| **Generic JettsTUI logs** (`agent.log`, `errors.log`) | `${JETTSTUI_HOME}/logs/` (profile-aware) | `docker exec jetts-tui jetts-tui logs --follow [--level WARNING] [--session <id>]` |
 
 Two practical consequences worth knowing:
 
@@ -331,7 +331,7 @@ docker run -it --rm \
 Direct `-e` flags override values from `.env`. This is useful for CI/CD or secrets-manager integrations where you don't want keys on disk.
 
 :::note Looking for Docker as the **terminal backend**?
-This page covers running Jetts-TUI itself inside Docker. If you want Jetts-TUI to execute the agent's `terminal` / `execute_code` calls inside a Docker sandbox container (one long-lived container shared across Jetts-TUI processes — see issue #20561), that's a separate config block — `terminal.backend: docker` plus `terminal.docker_image`, `terminal.docker_volumes`, `terminal.docker_forward_env`, `terminal.docker_env`, `terminal.docker_run_as_host_user`, `terminal.docker_extra_args`, `terminal.docker_persist_across_processes`, and `terminal.docker_orphan_reaper`. See [Configuration → Docker Backend](configuration.md#docker-backend) for the full set including container-lifecycle rules.
+This page covers running JettsTUI itself inside Docker. If you want JettsTUI to execute the agent's `terminal` / `execute_code` calls inside a Docker sandbox container (one long-lived container shared across JettsTUI processes — see issue #20561), that's a separate config block — `terminal.backend: docker` plus `terminal.docker_image`, `terminal.docker_volumes`, `terminal.docker_forward_env`, `terminal.docker_env`, `terminal.docker_run_as_host_user`, `terminal.docker_extra_args`, `terminal.docker_persist_across_processes`, and `terminal.docker_orphan_reaper`. See [Configuration → Docker Backend](configuration.md#docker-backend) for the full set including container-lifecycle rules.
 :::
 
 ## Docker Compose example
@@ -347,11 +347,11 @@ services:
     command: gateway run
     ports:
       - "8642:8642"   # gateway API
-      - "9119:9119"   # dashboard (only reached when FREEIDE_DASHBOARD=1)
+      - "9119:9119"   # dashboard (only reached when JETTSTUI_DASHBOARD=1)
     volumes:
       - ~/.jettstui:/opt/data
     environment:
-      - FREEIDE_DASHBOARD=1
+      - JETTSTUI_DASHBOARD=1
       # Uncomment to forward specific env vars instead of using .env file:
       # - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
       # - OPENAI_API_KEY=${OPENAI_API_KEY}
@@ -363,14 +363,14 @@ services:
           cpus: "2.0"
 ```
 
-Start with `docker compose up -d` and view logs with `docker compose logs -f`. The supervised gateway's stdout is also tee'd to `${FREEIDE_HOME}/logs/gateways/<profile>/current` on the volume — see [Where the logs go](#where-the-logs-go) for the full routing map.
+Start with `docker compose up -d` and view logs with `docker compose logs -f`. The supervised gateway's stdout is also tee'd to `${JETTSTUI_HOME}/logs/gateways/<profile>/current` on the volume — see [Where the logs go](#where-the-logs-go) for the full routing map.
 
 ## Optional: Linux desktop audio bridge
 
-Voice mode in Docker needs two separate things to work: Jetts-TUI must be allowed to probe audio devices inside the container, and the container must be able to reach your host audio server. The setup below covers the host audio plumbing for Linux desktops that expose a PulseAudio-compatible socket, including many PipeWire setups.
+Voice mode in Docker needs two separate things to work: JettsTUI must be allowed to probe audio devices inside the container, and the container must be able to reach your host audio server. The setup below covers the host audio plumbing for Linux desktops that expose a PulseAudio-compatible socket, including many PipeWire setups.
 
 :::caution
-This is a Linux desktop workaround, not a general Docker Desktop feature. It is useful when you already have host audio working and want CLI voice mode inside the Jetts-TUI container. If Jetts-TUI still reports `Running inside Docker container -- no audio devices`, use a build that includes Docker audio probing support for `PULSE_SERVER` / `PIPEWIRE_REMOTE`.
+This is a Linux desktop workaround, not a general Docker Desktop feature. It is useful when you already have host audio working and want CLI voice mode inside the JettsTUI container. If JettsTUI still reports `Running inside Docker container -- no audio devices`, use a build that includes Docker audio probing support for `PULSE_SERVER` / `PIPEWIRE_REMOTE`.
 :::
 
 First, create an ALSA config next to your Compose file:
@@ -418,22 +418,22 @@ services:
     command: gateway run
     volumes:
       - ~/.jettstui:/opt/data
-      - /run/user/${FREEIDE_UID}/pulse:/run/user/${FREEIDE_UID}/pulse
+      - /run/user/${JETTSTUI_UID}/pulse:/run/user/${JETTSTUI_UID}/pulse
       - ~/.config/pulse/cookie:/tmp/pulse-cookie:ro
       - ./asound.conf:/etc/asound.conf:ro
     environment:
-      - FREEIDE_UID=${FREEIDE_UID}
-      - FREEIDE_GID=${FREEIDE_GID}
-      - XDG_RUNTIME_DIR=/run/user/${FREEIDE_UID}
-      - PULSE_SERVER=unix:/run/user/${FREEIDE_UID}/pulse/native
+      - JETTSTUI_UID=${JETTSTUI_UID}
+      - JETTSTUI_GID=${JETTSTUI_GID}
+      - XDG_RUNTIME_DIR=/run/user/${JETTSTUI_UID}
+      - PULSE_SERVER=unix:/run/user/${JETTSTUI_UID}/pulse/native
       - PULSE_COOKIE=/tmp/pulse-cookie
 ```
 
 Start it with your host UID/GID so the container process can access the per-user audio socket:
 
 ```sh
-export FREEIDE_UID="$(id -u)"
-export FREEIDE_GID="$(id -g)"
+export JETTSTUI_UID="$(id -u)"
+export JETTSTUI_GID="$(id -g)"
 docker compose up -d --build
 ```
 
@@ -445,7 +445,7 @@ docker exec jetts-tui /opt/jettstui/.venv/bin/python -c "import sounddevice as s
 
 ## Resource limits
 
-The Jetts-TUI container needs moderate resources. Recommended minimums:
+The JettsTUI container needs moderate resources. Recommended minimums:
 
 | Resource | Minimum | Recommended |
 |----------|---------|-------------|
@@ -470,7 +470,7 @@ docker run -d \
 
 The official image is based on `debian:13.4` and includes:
 
-- Python 3.13 with dependencies synced from the lockfile via `uv sync --frozen --no-install-project` for the baked extras (`all`, `messaging`, Anthropic/Bedrock/Azure identity, Hindsight, Matrix), followed by a no-dependency editable install of Jetts-TUI itself.
+- Python 3.13 with dependencies synced from the lockfile via `uv sync --frozen --no-install-project` for the baked extras (`all`, `messaging`, Anthropic/Bedrock/Azure identity, Hindsight, Matrix), followed by a no-dependency editable install of JettsTUI itself.
 - Node.js 22 + npm (for browser automation, WhatsApp bridge, TUI/Desktop bundles, and workspace build tooling)
 - Playwright with Chromium (`npx playwright install --with-deps chromium --only-shell`)
 - ripgrep, ffmpeg, git, and `xz-utils` as system utilities
@@ -482,8 +482,8 @@ The official image is based on `debian:13.4` and includes:
 The image treats `/opt/jettstui` as an immutable install tree at runtime. Optional Python extras, Node workspaces, and TUI assets that must be available inside Docker need to be baked during the image build; runtime lazy installs are disabled so supervised gateways and `docker exec jetts-tui …` commands do not try to write dependency artifacts back into the read-only source tree.
 
 The container's `ENTRYPOINT` is s6-overlay's `/init`. On boot it:
-1. Runs `/etc/cont-init.d/01-jettstui-setup` (= `docker/stage2-hook.sh`) as root: optional UID/GID remap, fixes volume ownership, seeds `.env` / `config.yaml` / `SOUL.md` on first boot, runs non-interactive config-schema migrations unless `FREEIDE_SKIP_CONFIG_MIGRATION=1`, syncs bundled skills.
-2. Runs `/etc/cont-init.d/02-reconcile-profiles` (= `jettstui.container_boot`): walks `$FREEIDE_HOME/profiles/<name>/`, recreates the per-profile gateway s6 service slot under `/run/service/gateway-<profile>/`, and auto-starts only those whose last recorded state was `running` (see [Per-profile gateway supervision](#per-profile-gateway-supervision)).
+1. Runs `/etc/cont-init.d/01-jettstui-setup` (= `docker/stage2-hook.sh`) as root: optional UID/GID remap, fixes volume ownership, seeds `.env` / `config.yaml` / `SOUL.md` on first boot, runs non-interactive config-schema migrations unless `JETTSTUI_SKIP_CONFIG_MIGRATION=1`, syncs bundled skills.
+2. Runs `/etc/cont-init.d/02-reconcile-profiles` (= `jettstui.container_boot`): walks `$JETTSTUI_HOME/profiles/<name>/`, recreates the per-profile gateway s6 service slot under `/run/service/gateway-<profile>/`, and auto-starts only those whose last recorded state was `running` (see [Per-profile gateway supervision](#per-profile-gateway-supervision)).
 3. Starts the static `main-jettstui` and `dashboard` s6-rc services.
 4. Exec's the container's CMD as the main program (`/opt/jettstui/docker/main-wrapper.sh`), which routes the arguments the user passed to `docker run`:
    - no args → `jetts-tui` (the default)
@@ -496,7 +496,7 @@ The container ENTRYPOINT is now `/init` (s6-overlay), not `/usr/bin/tini`. All f
 :::
 
 :::warning Privilege model
-Do not override the image entrypoint unless you keep `/init` (or, equivalently, the legacy `docker/entrypoint.sh` shim that forwards to the stage2 hook) in the command chain. s6-overlay's `/init` runs as root so it can chown the volume on first boot, then drops to the `jettstui` user via `s6-setuidgid` for every supervised service AND for the main program. Starting `jetts-tui gateway run` as root inside the official image is refused by default because it can leave root-owned files in `/opt/data` and break later dashboard or gateway starts. Set `FREEIDE_ALLOW_ROOT_GATEWAY=1` only when you intentionally accept that risk.
+Do not override the image entrypoint unless you keep `/init` (or, equivalently, the legacy `docker/entrypoint.sh` shim that forwards to the stage2 hook) in the command chain. s6-overlay's `/init` runs as root so it can chown the volume on first boot, then drops to the `jettstui` user via `s6-setuidgid` for every supervised service AND for the main program. Starting `jetts-tui gateway run` as root inside the official image is refused by default because it can leave root-owned files in `/opt/data` and break later dashboard or gateway starts. Set `JETTSTUI_ALLOW_ROOT_GATEWAY=1` only when you intentionally accept that risk.
 :::
 
 ### `docker exec` automatically drops to the runtime user
@@ -506,7 +506,7 @@ Do not override the image entrypoint unless you keep `/init` (or, equivalently, 
 If you specifically need a `docker exec` that retains root semantics (diagnostic sessions, inspecting root-only state, files outside `/opt/data` that root happens to own), opt out per invocation:
 
 ```sh
-docker exec -e FREEIDE_DOCKER_EXEC_AS_ROOT=1 jetts-tui jetts-tui <subcommand>
+docker exec -e JETTSTUI_DOCKER_EXEC_AS_ROOT=1 jetts-tui jetts-tui <subcommand>
 ```
 
 The shim accepts `1` / `true` / `yes` (case-insensitive). Anything else — including typos like `=0` — falls through to the drop, so silent opt-outs aren't possible. If `s6-setuidgid` isn't available (custom builds that stripped s6-overlay), the shim refuses to run as root and exits 126 instead of creating root-owned credentials.
@@ -518,9 +518,9 @@ Each profile created with `jetts-tui profile create <name>` automatically gets a
 **Supervision benefits over the pre-s6 image:**
 
 - Gateway crashes are auto-restarted by `s6-supervise` after a ~1s backoff.
-- Dashboard, when enabled with `FREEIDE_DASHBOARD=1`, is supervised on the same supervision tree and gets the same auto-restart treatment.
-- `docker restart`, image upgrades (`docker compose up -d --force-recreate`), and unexpected exits preserve running gateways: the cont-init reconciler reads `$FREEIDE_HOME/profiles/<name>/gateway_state.json` and brings the slot back up if the last recorded state was `running`. Only an explicit `jetts-tui gateway stop` records `stopped` and keeps the gateway down across the restart; the container/s6 SIGTERM sent on a restart or upgrade is treated as "still running" and auto-starts.
-- Per-profile gateway logs persist under `$FREEIDE_HOME/logs/gateways/<profile>/current` (rotated by `s6-log`), and the reconciler's actions are appended to `$FREEIDE_HOME/logs/container-boot.log` per boot. See [Where the logs go](#where-the-logs-go) for the full routing map.
+- Dashboard, when enabled with `JETTSTUI_DASHBOARD=1`, is supervised on the same supervision tree and gets the same auto-restart treatment.
+- `docker restart`, image upgrades (`docker compose up -d --force-recreate`), and unexpected exits preserve running gateways: the cont-init reconciler reads `$JETTSTUI_HOME/profiles/<name>/gateway_state.json` and brings the slot back up if the last recorded state was `running`. Only an explicit `jetts-tui gateway stop` records `stopped` and keeps the gateway down across the restart; the container/s6 SIGTERM sent on a restart or upgrade is treated as "still running" and auto-starts.
+- Per-profile gateway logs persist under `$JETTSTUI_HOME/logs/gateways/<profile>/current` (rotated by `s6-log`), and the reconciler's actions are appended to `$JETTSTUI_HOME/logs/container-boot.log` per boot. See [Where the logs go](#where-the-logs-go) for the full routing map.
 
 `jetts-tui status` inside the container reports `Manager: s6 (container supervisor)`. Use `/command/s6-svstat /run/service/gateway-<name>` for the raw supervisor view (note `/command/` is on PATH for supervision-tree processes only; pass the absolute path when calling from `docker exec`).
 
@@ -528,8 +528,8 @@ Each profile created with `jetts-tui profile create <name>` automatically gets a
 
 Pull the latest image and recreate the container. Your data directory is
 preserved, and the container runs non-interactive config-schema migrations
-against the mounted `$FREEIDE_HOME/config.yaml` before starting the gateway.
-When a migration is needed, Jetts-TUI writes timestamped backups next to
+against the mounted `$JETTSTUI_HOME/config.yaml` before starting the gateway.
+When a migration is needed, JettsTUI writes timestamped backups next to
 `config.yaml` and `.env` first.
 
 ```sh
@@ -549,12 +549,12 @@ docker compose pull
 docker compose up -d
 ```
 
-Set `FREEIDE_SKIP_CONFIG_MIGRATION=1` only if you need to inspect or migrate the
+Set `JETTSTUI_SKIP_CONFIG_MIGRATION=1` only if you need to inspect or migrate the
 persisted config manually before letting the new image rewrite it.
 
 ## Skills and credential files
 
-When using Docker as the execution environment (not the methods above, but when the agent runs commands inside a Docker sandbox — see [Configuration → Docker Backend](./configuration.md#docker-backend)), Jetts-TUI reuses a single long-lived container for all tool calls and automatically bind-mounts the skills directory (`~/.jettstui/skills/`) and any credential files declared by skills into that container as read-only volumes. Skill scripts, templates, and references are available inside the sandbox without manual configuration, and because the container persists for the life of the Jetts-TUI process, any dependencies you install or files you write stay around for the next tool call.
+When using Docker as the execution environment (not the methods above, but when the agent runs commands inside a Docker sandbox — see [Configuration → Docker Backend](./configuration.md#docker-backend)), JettsTUI reuses a single long-lived container for all tool calls and automatically bind-mounts the skills directory (`~/.jettstui/skills/`) and any credential files declared by skills into that container as read-only volumes. Skill scripts, templates, and references are available inside the sandbox without manual configuration, and because the container persists for the life of the JettsTUI process, any dependencies you install or files you write stay around for the next tool call.
 
 The same syncing happens for SSH and Modal backends — skills and credential files are uploaded via rsync or the Modal mount API before each command.
 
@@ -564,13 +564,13 @@ The official image ships with a curated set of utilities (see [What the Dockerfi
 
 ### npm or Python tools — use `npx` or `uvx`
 
-For any tool published to npm or PyPI, instruct Jetts-TUI to run it via `npx` (npm) or `uvx` (Python) and to remember that command in its persistent memory. If the tool needs a config file or credentials, instruct it to drop those under `/opt/data` (e.g. `/opt/data/<tool>/config.yaml`).
+For any tool published to npm or PyPI, instruct JettsTUI to run it via `npx` (npm) or `uvx` (Python) and to remember that command in its persistent memory. If the tool needs a config file or credentials, instruct it to drop those under `/opt/data` (e.g. `/opt/data/<tool>/config.yaml`).
 
 Dependencies are fetched on demand and cached for the life of the container. Configuration written under `/opt/data` survives container restarts because it lives on the bind-mounted host directory. The package cache itself is rebuilt after a `docker rm`, but `npx` and `uvx` re-fetch transparently the next time the tool runs.
 
 ### Other tools (apt packages, binaries) — install and remember
 
-For anything outside npm or PyPI — `apt` packages, prebuilt binaries, language runtimes not already in the image — instruct Jetts-TUI how to install it (e.g. `apt-get update && apt-get install -y <package>`) and tell it to remember the install command. The tool persists for the rest of the container's lifetime, and Jetts-TUI will re-run the install command after a container restart when it next needs the tool.
+For anything outside npm or PyPI — `apt` packages, prebuilt binaries, language runtimes not already in the image — instruct JettsTUI how to install it (e.g. `apt-get update && apt-get install -y <package>`) and tell it to remember the install command. The tool persists for the rest of the container's lifetime, and JettsTUI will re-run the install command after a container restart when it next needs the tool.
 
 This is a good fit for tools that are quick to install and used occasionally. For tools used constantly, prefer the next approach.
 
@@ -600,11 +600,11 @@ docker run -d \
   my-jetts-tui:latest gateway run
 ```
 
-The entrypoint script and `/opt/data` semantics are inherited unchanged, so the rest of this page still applies. Rebuild your derived image when a newer Jetts-TUI base image is published.
+The entrypoint script and `/opt/data` semantics are inherited unchanged, so the rest of this page still applies. Rebuild your derived image when a newer JettsTUI base image is published.
 
 ### Complex tools or multi-service stacks — run a sidecar container
 
-For tools that bring their own service (a database, a web server, a queue, a headless browser farm) or that are too heavy to live inside the Jetts-TUI container, run them as a separate container on a shared Docker network. Jetts-TUI reaches the sidecar by container name, the same way it reaches a local inference server (see [Connecting to local inference servers](#connecting-to-local-inference-servers-vllm-ollama-etc)).
+For tools that bring their own service (a database, a web server, a queue, a headless browser farm) or that are too heavy to live inside the JettsTUI container, run them as a separate container on a shared Docker network. JettsTUI reaches the sidecar by container name, the same way it reaches a local inference server (see [Connecting to local inference servers](#connecting-to-local-inference-servers-vllm-ollama-etc)).
 
 ```yaml
 services:
@@ -632,15 +632,15 @@ networks:
     driver: bridge
 ```
 
-From inside the Jetts-TUI container, the sidecar is reachable at `http://my-tool:<port>` (or whatever protocol it serves). This pattern keeps each service's lifecycle, resource limits, and upgrade cadence independent, and avoids bloating the Jetts-TUI image with dependencies that are only needed by one tool.
+From inside the JettsTUI container, the sidecar is reachable at `http://my-tool:<port>` (or whatever protocol it serves). This pattern keeps each service's lifecycle, resource limits, and upgrade cadence independent, and avoids bloating the JettsTUI image with dependencies that are only needed by one tool.
 
 ### Broadly useful tools — open an issue or pull request
 
-If a tool is likely to be useful to most Jetts-TUI users, consider contributing it rather than carrying it in a private derived image. Open an issue or pull request on the [Jetts-TUI repository](https://github.com/Raioshok/JETTS-TUI) describing the tool and its use case. Bundled tools can benefit every user and avoid the maintenance overhead of a downstream fork.
+If a tool is likely to be useful to most JettsTUI users, consider contributing it rather than carrying it in a private derived image. Open an issue or pull request on the [JettsTUI repository](https://github.com/Raioshok/JETTS-TUI) describing the tool and its use case. Bundled tools can benefit every user and avoid the maintenance overhead of a downstream fork.
 
 ## Connecting to local inference servers (vLLM, Ollama, etc.)
 
-When running Jetts-TUI in Docker and your inference server (vLLM, Ollama, text-generation-inference, etc.) is also running on the host or in another container, networking requires extra attention.
+When running JettsTUI in Docker and your inference server (vLLM, Ollama, text-generation-inference, etc.) is also running on the host or in another container, networking requires extra attention.
 
 ### Docker Compose (recommended)
 
@@ -694,7 +694,7 @@ model:
 ```
 
 :::tip Key points
-- Use the **container name** (`vllm`) as the hostname — not `localhost` or `127.0.0.1`, which refer to the Jetts-TUI container itself.
+- Use the **container name** (`vllm`) as the hostname — not `localhost` or `127.0.0.1`, which refer to the JettsTUI container itself.
 - The `model` value must match the `--served-model-name` you passed to vLLM.
 - Set `api_key` to any non-empty string (vLLM requires the header but doesn't validate it by default).
 - Do **not** include a trailing slash in `base_url`.
@@ -747,7 +747,7 @@ model:
 
 ### Verifying connectivity
 
-From inside the Jetts-TUI container, confirm the inference server is reachable:
+From inside the JettsTUI container, confirm the inference server is reachable:
 
 ```sh
 docker exec jetts-tui curl -s http://vllm:8000/v1/models
@@ -781,13 +781,13 @@ Check logs: `docker logs jetts-tui`. Common causes:
 
 ### "Permission denied" errors
 
-The container's stage2 hook drops privileges to the non-root `jettstui` user (UID 10000) via `s6-setuidgid` inside each supervised service. If your host `~/.jettstui/` is owned by a different UID, set `FREEIDE_UID`/`FREEIDE_GID` — or their `PUID`/`PGID` aliases, for parity with LinuxServer.io and NAS images — to match your host user, or ensure the data directory is writable:
+The container's stage2 hook drops privileges to the non-root `jettstui` user (UID 10000) via `s6-setuidgid` inside each supervised service. If your host `~/.jettstui/` is owned by a different UID, set `JETTSTUI_UID`/`JETTSTUI_GID` — or their `PUID`/`PGID` aliases, for parity with LinuxServer.io and NAS images — to match your host user, or ensure the data directory is writable:
 
 ```sh
 chmod -R 755 ~/.jettstui
 ```
 
-On a NAS (UGOS, Synology, unRAID) the data directory is typically a **bind mount** owned by a host UID the container cannot `chown`. Set `PUID`/`PGID` (or `FREEIDE_UID`/`FREEIDE_GID`) to that host user so the runtime runs as the owner of the mount rather than UID 10000:
+On a NAS (UGOS, Synology, unRAID) the data directory is typically a **bind mount** owned by a host UID the container cannot `chown`. Set `PUID`/`PGID` (or `JETTSTUI_UID`/`JETTSTUI_GID`) to that host user so the runtime runs as the owner of the mount rather than UID 10000:
 
 ```sh
 docker run -d \

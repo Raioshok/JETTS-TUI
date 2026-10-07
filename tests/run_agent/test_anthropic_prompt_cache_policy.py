@@ -314,7 +314,7 @@ class TestRemovedNousProvider:
     def test_removed_provider_does_not_enable_claude_caching(self):
         agent = _make_agent(
             provider="nous",
-            base_url="https://inference-api.freeide.dev/v1",
+            base_url="https://inference-api.jettstui.dev/v1",
             api_mode="chat_completions",
             model="anthropic/claude-opus-4.8",
         )
@@ -323,7 +323,7 @@ class TestRemovedNousProvider:
     def test_removed_provider_does_not_enable_qwen_caching(self):
         agent = _make_agent(
             provider="nous",
-            base_url="https://inference-api.freeide.dev/v1",
+            base_url="https://inference-api.jettstui.dev/v1",
             api_mode="chat_completions",
             model="qwen3.6-plus",
         )

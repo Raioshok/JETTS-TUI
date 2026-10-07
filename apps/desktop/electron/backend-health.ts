@@ -10,7 +10,7 @@ export const DEFAULT_HEALTH_PROBE_TIMEOUT_MS = 5_000
 type FetchPublicJson = (url: string, options?: { timeoutMs?: number }) => Promise<unknown>
 type FetchJson = (url: string, token?: string | null, options?: { timeoutMs?: number }) => Promise<unknown>
 
-export interface FreeIDEReadyOptions {
+export interface JettsTUIReadyOptions {
   fetchPublicJson: FetchPublicJson
   fetchJson: FetchJson
   token?: string | null
@@ -30,7 +30,7 @@ export interface FreeIDEReadyOptions {
   probeHealth?: (url: string, options?: { timeoutMs?: number }) => Promise<unknown>
   /**
    * Whether `probeHealth` actually presents credentials. Distinguishes the
-   * two very different meanings of a 401 (see `waitForFreeIDEReady`).
+   * two very different meanings of a 401 (see `waitForJettsTUIReady`).
    */
   probeIsCredentialed?: boolean
 }
@@ -93,7 +93,7 @@ function supersededError() {
   return error
 }
 
-export async function waitForFreeIDEReady(baseUrl: string, options: FreeIDEReadyOptions): Promise<void> {
+export async function waitForJettsTUIReady(baseUrl: string, options: JettsTUIReadyOptions): Promise<void> {
   const timeoutMs = options.timeoutMs ?? DEFAULT_BACKEND_READY_TIMEOUT_MS
   const pollMs = options.pollMs ?? DEFAULT_BACKEND_READY_POLL_MS
   const healthProbeTimeoutMs = options.healthProbeTimeoutMs ?? DEFAULT_HEALTH_PROBE_TIMEOUT_MS
@@ -165,5 +165,5 @@ export async function waitForFreeIDEReady(baseUrl: string, options: FreeIDEReady
   }
 
   const detail = lastError instanceof Error ? lastError.message : 'timeout'
-  throw new Error(`FreeIDE backend did not become ready: ${detail}`)
+  throw new Error(`JettsTUI backend did not become ready: ${detail}`)
 }

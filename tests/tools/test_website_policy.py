@@ -88,7 +88,7 @@ def test_check_website_access_supports_wildcard_subdomains_only(tmp_path):
 
 
 def test_default_config_exposes_website_blocklist_shape():
-    from freeide_cli.config import DEFAULT_CONFIG
+    from jettstui.config import DEFAULT_CONFIG
 
     website_blocklist = DEFAULT_CONFIG["security"]["website_blocklist"]
     assert website_blocklist["enabled"] is False
@@ -241,10 +241,10 @@ def test_load_website_blocklist_wraps_shared_file_read_errors(tmp_path, monkeypa
     assert result["rules"] == []  # shared file rules skipped
 
 
-def test_check_website_access_uses_dynamic_freeide_home(monkeypatch, tmp_path):
-    freeide_home = tmp_path / "freeide-home"
-    freeide_home.mkdir()
-    (freeide_home / "config.yaml").write_text(
+def test_check_website_access_uses_dynamic_jettstui_home(monkeypatch, tmp_path):
+    jettstui_home = tmp_path / "jettstui-home"
+    jettstui_home.mkdir()
+    (jettstui_home / "config.yaml").write_text(
         yaml.safe_dump(
             {
                 "security": {
@@ -259,11 +259,11 @@ def test_check_website_access_uses_dynamic_freeide_home(monkeypatch, tmp_path):
         encoding="utf-8",
     )
 
-    monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+    monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
-    # Invalidate the module-level cache so the new FREEIDE_HOME is picked up.
+    # Invalidate the module-level cache so the new JETTSTUI_HOME is picked up.
     # A prior test may have cached a default policy (enabled=False) under the
-    # old FREEIDE_HOME set by the autouse _isolate_freeide_home fixture.
+    # old JETTSTUI_HOME set by the autouse _isolate_jettstui_home fixture.
     from tools.website_policy import invalidate_cache
     invalidate_cache()
 
@@ -505,8 +505,8 @@ def test_check_website_access_fails_open_on_malformed_config(tmp_path, monkeypat
     with pytest.raises(WebsitePolicyError):
         check_website_access("https://example.com", config_path=config_path)
 
-    # Simulate default path by pointing FREEIDE_HOME to tmp_path
-    monkeypatch.setenv("FREEIDE_HOME", str(tmp_path))
+    # Simulate default path by pointing JETTSTUI_HOME to tmp_path
+    monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path))
     from tools import website_policy
     website_policy.invalidate_cache()
 

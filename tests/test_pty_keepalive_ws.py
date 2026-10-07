@@ -2,7 +2,7 @@ import json
 
 import pytest
 
-from freeide_cli import web_server
+from jettstui import web_server
 
 
 class FakeBridge:
@@ -38,7 +38,7 @@ def pty_keepalive_harness(monkeypatch):
 
     async def fake_argv(**kw):
         resume = "child" if kw.get("resume") == "parent" else kw.get("resume")
-        env = {"FREEIDE_TUI_RESUME": resume} if resume else {}
+        env = {"JETTSTUI_TUI_RESUME": resume} if resume else {}
         return (["x", resume or "fresh"], "/tmp", env)
 
     monkeypatch.setattr(web_server, "_resolve_chat_argv_async", fake_argv)

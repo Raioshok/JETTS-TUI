@@ -12,9 +12,9 @@ import urllib.parse
 import urllib.request
 
 DEFAULT_UA = (
-    "freeide-osint-investigation/0.2 "
-    "(+https://github.com/freeide/freeide; "
-    "set FREEIDE_OSINT_UA env var to identify yourself per "
+    "jettstui-osint-investigation/0.2 "
+    "(+https://github.com/Raioshok/JETTS-TUI; "
+    "set JETTSTUI_OSINT_UA env var to identify yourself per "
     "Wikimedia / SEC fair-use guidance)"
 )
 
@@ -38,7 +38,7 @@ def get(
     if params:
         sep = "&" if "?" in url else "?"
         url = f"{url}{sep}{urllib.parse.urlencode(params)}"
-    h = {"User-Agent": user_agent or os.environ.get("FREEIDE_OSINT_UA", DEFAULT_UA)}
+    h = {"User-Agent": user_agent or os.environ.get("JETTSTUI_OSINT_UA", DEFAULT_UA)}
     if headers:
         h.update(headers)
 

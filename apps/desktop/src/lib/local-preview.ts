@@ -134,7 +134,7 @@ export async function normalizeOrLocalPreviewTarget(
   cwd?: string | null
 ): Promise<PreviewTarget | null> {
   try {
-    const normalized = await window.freeideDesktop?.normalizePreviewTarget?.(rawTarget, cwd || undefined)
+    const normalized = await window.jettstuiDesktop?.normalizePreviewTarget?.(rawTarget, cwd || undefined)
 
     if (normalized) {
       return enrichPreviewTarget(normalized)

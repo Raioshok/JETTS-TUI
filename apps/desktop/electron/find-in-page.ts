@@ -109,7 +109,7 @@ export function installFoundInPageForwarder(webContents: Electron.WebContents | 
       return
     }
 
-    webContents.send('freeide:found-in-page', formatFoundInPage(result))
+    webContents.send('jettstui:found-in-page', formatFoundInPage(result))
   }
 
   webContents.on('found-in-page', handler)

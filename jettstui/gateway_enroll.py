@@ -1,4 +1,4 @@
-"""``freeide gateway enroll`` — enroll a self-hosted gateway with a relay connector.
+"""``jettstui gateway enroll`` — enroll a self-hosted gateway with a relay connector.
 
 The connector⇄gateway channel is authenticated (the gateway may be
 customer-managed and internet-exposed). This command is the gateway half of the
@@ -6,7 +6,7 @@ zero-touch enrollment in the connector repo's
 ``docs/connector-gateway-auth-design.md``:
 
   1. Resolve a fresh caller-identity access token from the existing login
-     (``~/.freeide/auth.json``). This proves *which FreeIDE org (tenant)*
+     (``~/.jettstui/auth.json``). This proves *which JettsTUI org (tenant)*
      the caller owns; the connector derives the authoritative tenant from it via
      ``GET /api/oauth/account`` (never from anything the gateway asserts).
   2. POST ``{enrollmentToken, gatewayId}`` to the connector's ``/relay/enroll``
@@ -16,7 +16,7 @@ zero-touch enrollment in the connector repo's
      delivery key, and returns both ONCE.
   4. Persist ``GATEWAY_RELAY_ID`` / ``GATEWAY_RELAY_SECRET`` /
      ``GATEWAY_RELAY_DELIVERY_KEY`` (+ ``GATEWAY_RELAY_URL`` if supplied) into
-     ``~/.freeide/.env``. The per-gateway secret authenticates the WS upgrade;
+     ``~/.jettstui/.env``. The per-gateway secret authenticates the WS upgrade;
      the per-tenant delivery key verifies signed inbound deliveries.
 
 Managed/hosted installs do NOT self-enroll: the orchestrator (NAS) mints the
@@ -51,7 +51,7 @@ def _default_gateway_id() -> str:
         host = socket.gethostname().strip()
     except Exception:
         host = ""
-    return f"gw-{host or 'freeide'}"
+    return f"gw-{host or 'jettstui'}"
 
 
 def _resolve_connector_url(override: Optional[str]) -> Optional[str]:
@@ -159,8 +159,8 @@ def _post_enroll(
 
 def cmd_gateway_enroll(args) -> None:
     """Enroll this gateway with a relay connector; persist the auth creds to .env."""
-    from freeide_cli.auth import AuthError
-    from freeide_cli.config import is_managed, save_env_value
+    from jettstui.auth import AuthError
+    from jettstui.config import is_managed, save_env_value
 
     # Managed installs get GATEWAY_RELAY_* stamped in by the orchestrator (NAS
     # mints the secret directly per the design's managed shape). Self-enrolling
@@ -168,7 +168,7 @@ def cmd_gateway_enroll(args) -> None:
     # write anyway.
     if is_managed():
         print(
-            "✗ `freeide gateway enroll` is not available in a managed/hosted install.\n"
+            "✗ `jettstui gateway enroll` is not available in a managed/hosted install.\n"
             "  The relay gateway secret is provisioned by the hosting platform."
         )
         sys.exit(1)
@@ -201,7 +201,7 @@ def cmd_gateway_enroll(args) -> None:
     except AuthError as exc:
         if getattr(exc, "relogin_required", False):
             print("✗ You're not logged in.")
-            print("  Run `freeide setup` first, then retry.")
+            print("  Run `jettstui setup` first, then retry.")
         else:
             print(f"✗ Could not resolve a caller-identity access token: {exc}")
         sys.exit(1)
@@ -227,7 +227,7 @@ def cmd_gateway_enroll(args) -> None:
     resolved_gateway_id = str(result.get("gatewayId") or gateway_id)
 
     # 4. Persist the creds idempotently. The secret + delivery key are sensitive;
-    #    save_env_value writes them to ~/.freeide/.env (0600 dir) and never logs.
+    #    save_env_value writes them to ~/.jettstui/.env (0600 dir) and never logs.
     to_write = {
         "GATEWAY_RELAY_ID": resolved_gateway_id,
         "GATEWAY_RELAY_SECRET": secret,
@@ -256,7 +256,7 @@ def cmd_gateway_enroll(args) -> None:
             print(f"✗ Failed to write {key} to .env: {exc}")
             sys.exit(1)
 
-    from freeide_cli.config import get_env_path
+    from jettstui.config import get_env_path
 
     print(f'✓ Enrolled gateway "{resolved_gateway_id}"' + (f" for tenant {tenant}" if tenant else ""))
     print()

@@ -8,15 +8,15 @@ description: "Background maintenance for agent-created skills — usage tracking
 
 The curator is a background maintenance pass for **agent-created skills**. It tracks how often each skill is viewed, used, and patched, moves long-unused skills through `active → stale → archived` states, and periodically spawns a short auxiliary-model review that proposes consolidations or patches drift.
 
-It exists so that skills created via the [self-improvement loop](./skills.md#agent-managed-skills-skill_manage-tool) don't pile up forever. Every time the agent solves a novel problem and saves a skill, that skill lands in `~/.freeide/skills/`. Without maintenance, you end up with dozens of narrow near-duplicates that pollute the catalog and waste tokens.
+It exists so that skills created via the [self-improvement loop](./skills.md#agent-managed-skills-skill_manage-tool) don't pile up forever. Every time the agent solves a novel problem and saves a skill, that skill lands in `~/.jettstui/skills/`. Without maintenance, you end up with dozens of narrow near-duplicates that pollute the catalog and waste tokens.
 
-By default (`prune_builtins: true`) the curator can archive **unused bundled built-in skills** (shipped with the repo) after `archive_after_days` of non-use, alongside the agent-created skills it primarily manages. Hub-installed skills (from [agentskills.io](https://agentskills.io)) are always off-limits. Set `curator.prune_builtins: false` to restore the old agent-created-only behavior, where bundled skills are never touched. The curator also **never auto-deletes** — the worst outcome is archival into `~/.freeide/skills/.archive/`, which is recoverable.
+By default (`prune_builtins: true`) the curator can archive **unused bundled built-in skills** (shipped with the repo) after `archive_after_days` of non-use, alongside the agent-created skills it primarily manages. Hub-installed skills (from [agentskills.io](https://agentskills.io)) are always off-limits. Set `curator.prune_builtins: false` to restore the old agent-created-only behavior, where bundled skills are never touched. The curator also **never auto-deletes** — the worst outcome is archival into `~/.jettstui/skills/.archive/`, which is recoverable.
 
-Tracks [issue #7816](https://github.com/freeide/freeide/issues/7816).
+Tracks [issue #7816](https://github.com/Raioshok/JETTS-TUI/issues/7816).
 
 ## How it runs
 
-The curator is triggered by an inactivity check, not a cron daemon. On CLI session start, and on a recurring tick inside the gateway's cron-ticker thread, FreeIDE checks whether:
+The curator is triggered by an inactivity check, not a cron daemon. On CLI session start, and on a recurring tick inside the gateway's cron-ticker thread, JettsTUI checks whether:
 
 1. Enough time has passed since the last curator run (`interval_hours`, default **7 days**), and
 2. The agent has been idle long enough (`min_idle_hours`, default **2 hours**).
@@ -24,18 +24,18 @@ The curator is triggered by an inactivity check, not a cron daemon. On CLI sessi
 If both are true, it spawns a background fork of `AIAgent` — the same pattern used by the memory/skill self-improvement nudges. The fork runs in its own prompt cache and never touches the active conversation.
 
 :::info First-run behavior
-On a brand-new install (or the first time a pre-curator install ticks after `freeide update`), the curator **does not run immediately**. The first observation seeds `last_run_at` to "now" and defers the first real pass by one full `interval_hours`. This gives you a full interval to review your skill library, pin anything important, or opt out entirely before the curator ever touches it.
+On a brand-new install (or the first time a pre-curator install ticks after `jettstui update`), the curator **does not run immediately**. The first observation seeds `last_run_at` to "now" and defers the first real pass by one full `interval_hours`. This gives you a full interval to review your skill library, pin anything important, or opt out entirely before the curator ever touches it.
 
-If you want to see what the curator *would* do before it runs for real, run `freeide curator run --dry-run` — it produces the same review report without mutating the library.
+If you want to see what the curator *would* do before it runs for real, run `jettstui curator run --dry-run` — it produces the same review report without mutating the library.
 :::
 
 A run has two phases:
 
-1. **Automatic transitions** (deterministic, no LLM). Skills unused for `stale_after_days` (30) become `stale`; skills unused for `archive_after_days` (90) are moved to `~/.freeide/skills/.archive/`. This is the always-on pruning behavior — it runs whenever the curator is enabled, with no aux-model cost.
+1. **Automatic transitions** (deterministic, no LLM). Skills unused for `stale_after_days` (30) become `stale`; skills unused for `archive_after_days` (90) are moved to `~/.jettstui/skills/.archive/`. This is the always-on pruning behavior — it runs whenever the curator is enabled, with no aux-model cost.
 2. **LLM consolidation** (single aux-model pass, `max_iterations=8`) — **OFF by default**. When `curator.consolidate: true`, the forked agent surveys the agent-created skills, can read any of them with `skill_view`, and decides per-skill whether to keep, patch (via `skill_manage`), consolidate overlapping ones into class-level umbrellas, or archive via the terminal tool. Consolidation treats a skill as a full package: if a skill has `references/`, `templates/`, `scripts/`, `assets/`, or relative links to those paths, the curator must either keep it standalone, re-home the needed support files and rewrite paths, or archive the entire package unchanged — not flatten only `SKILL.md` into another skill's `references/` file.
 
 :::info Consolidation is opt-in
-By default the curator only **prunes** — the deterministic inactivity pass marks skills stale and archives long-unused ones. The opinionated LLM **consolidation** pass (umbrella-building, merging overlapping skills) is off by default because it costs aux-model tokens on every run and makes broad structural changes to your library. Turn it on with `curator.consolidate: true`, or run it once on demand with `freeide curator run --consolidate`.
+By default the curator only **prunes** — the deterministic inactivity pass marks skills stale and archives long-unused ones. The opinionated LLM **consolidation** pass (umbrella-building, merging overlapping skills) is off by default because it costs aux-model tokens on every run and makes broad structural changes to your library. Turn it on with `curator.consolidate: true`, or run it once on demand with `jettstui curator run --consolidate`.
 :::
 
 Pinned skills are off-limits to both the curator's auto-transitions and the agent's own `skill_manage` tool. See [Pinning a skill](#pinning-a-skill) below.
@@ -61,10 +61,10 @@ To disable entirely, set `curator.enabled: false`. To keep the always-on pruning
 
 The curator's LLM review pass is a regular auxiliary task slot — `auxiliary.curator` — alongside Vision, Compression, Session Search, etc. "Auto" means "use my main chat model"; override the slot to pin a specific provider + model for the review pass instead.
 
-**Easiest — `freeide model`:**
+**Easiest — `jettstui model`:**
 
 ```bash
-freeide model                   # → "Auxiliary models — side-task routing"
+jettstui model                   # → "Auxiliary models — side-task routing"
                                # → pick "Curator" → pick provider → pick model
 ```
 
@@ -83,48 +83,48 @@ auxiliary:
 Leaving `provider: auto` (the default) routes the review pass through whatever your main chat model is, matching the behavior of every other auxiliary task.
 
 :::note Legacy config
-Earlier releases used a one-off `curator.auxiliary.{provider,model}` block. That path still works but emits a deprecation log line — please migrate to `auxiliary.curator` above so the curator shares the same plumbing (`freeide model`, dashboard Models tab, `base_url`, `api_key`, `timeout`, `extra_body`) as every other aux task.
+Earlier releases used a one-off `curator.auxiliary.{provider,model}` block. That path still works but emits a deprecation log line — please migrate to `auxiliary.curator` above so the curator shares the same plumbing (`jettstui model`, dashboard Models tab, `base_url`, `api_key`, `timeout`, `extra_body`) as every other aux task.
 :::
 
 ## CLI
 
 ```bash
-freeide curator status         # last run, counts, pinned list, LRU top 5
-freeide curator run            # trigger a run now (blocks until done). Prune-only unless curator.consolidate: true
-freeide curator run --consolidate # force the LLM consolidation pass on for this run, overriding the config default
-freeide curator run --background  # fire-and-forget: start the run in a background thread
-freeide curator run --dry-run  # preview only — report without any mutations
-freeide curator backup         # take a manual snapshot of ~/.freeide/skills/
-freeide curator rollback       # restore from the newest snapshot
-freeide curator rollback --list     # list available snapshots
-freeide curator rollback --id <ts>  # restore a specific snapshot
-freeide curator rollback -y         # skip the confirmation prompt
-freeide curator pause          # stop runs until resumed
-freeide curator resume
-freeide curator pin <skill>    # never auto-transition this skill
-freeide curator unpin <skill>
-freeide curator adopt <skill>    # hand an unmanaged skill to the curator
-freeide curator adopt --all-unmanaged   # hand over every unmanaged skill
-freeide curator list-unmanaged   # itemize skills with no provenance marker
-freeide curator restore <skill>  # move an archived skill back to active
-freeide curator list-archived    # list skills currently in ~/.freeide/skills/.archive/
-freeide curator archive <skill>  # manually archive a single skill now
-freeide curator prune [--days N] # bulk-archive agent-created skills idle >= N days (default 90)
+jettstui curator status         # last run, counts, pinned list, LRU top 5
+jettstui curator run            # trigger a run now (blocks until done). Prune-only unless curator.consolidate: true
+jettstui curator run --consolidate # force the LLM consolidation pass on for this run, overriding the config default
+jettstui curator run --background  # fire-and-forget: start the run in a background thread
+jettstui curator run --dry-run  # preview only — report without any mutations
+jettstui curator backup         # take a manual snapshot of ~/.jettstui/skills/
+jettstui curator rollback       # restore from the newest snapshot
+jettstui curator rollback --list     # list available snapshots
+jettstui curator rollback --id <ts>  # restore a specific snapshot
+jettstui curator rollback -y         # skip the confirmation prompt
+jettstui curator pause          # stop runs until resumed
+jettstui curator resume
+jettstui curator pin <skill>    # never auto-transition this skill
+jettstui curator unpin <skill>
+jettstui curator adopt <skill>    # hand an unmanaged skill to the curator
+jettstui curator adopt --all-unmanaged   # hand over every unmanaged skill
+jettstui curator list-unmanaged   # itemize skills with no provenance marker
+jettstui curator restore <skill>  # move an archived skill back to active
+jettstui curator list-archived    # list skills currently in ~/.jettstui/skills/.archive/
+jettstui curator archive <skill>  # manually archive a single skill now
+jettstui curator prune [--days N] # bulk-archive agent-created skills idle >= N days (default 90)
 ```
 
 ## Backups and rollback
 
-Before every real curator pass, FreeIDE takes a tar.gz snapshot of `~/.freeide/skills/` at `~/.freeide/skills/.curator_backups/<utc-iso>/skills.tar.gz`. If a pass archives or consolidates something you didn't want touched, you can undo the whole run with one command:
+Before every real curator pass, JettsTUI takes a tar.gz snapshot of `~/.jettstui/skills/` at `~/.jettstui/skills/.curator_backups/<utc-iso>/skills.tar.gz`. If a pass archives or consolidates something you didn't want touched, you can undo the whole run with one command:
 
 ```bash
-freeide curator rollback        # restore newest snapshot (with confirmation)
-freeide curator rollback -y     # skip the prompt
-freeide curator rollback --list # see all snapshots with reason + size
+jettstui curator rollback        # restore newest snapshot (with confirmation)
+jettstui curator rollback -y     # skip the prompt
+jettstui curator rollback --list # see all snapshots with reason + size
 ```
 
-The rollback itself is reversible: before replacing the skills tree, FreeIDE takes another snapshot tagged `pre-rollback to <target-id>`, so a mistaken rollback can be undone by rolling forward to that one with `--id`.
+The rollback itself is reversible: before replacing the skills tree, JettsTUI takes another snapshot tagged `pre-rollback to <target-id>`, so a mistaken rollback can be undone by rolling forward to that one with `--id`.
 
-You can also take manual snapshots at any time with `freeide curator backup --reason "before-refactor"`. The `--reason` string lands in the snapshot's `manifest.json` and is shown in `--list`.
+You can also take manual snapshots at any time with `jettstui curator backup --reason "before-refactor"`. The `--reason` string lands in the snapshot's `manifest.json` and is shown in `--list`.
 
 Snapshots are pruned to `curator.backup.keep` (default 5) to keep disk usage bounded:
 
@@ -135,20 +135,20 @@ curator:
     keep: 5
 ```
 
-Set `curator.backup.enabled: false` to disable automatic snapshotting. The manual `freeide curator backup` command still works when backups are disabled only if you set `enabled: true` first — the flag gates both paths symmetrically so there's no way to accidentally skip the pre-run snapshot on mutating runs.
+Set `curator.backup.enabled: false` to disable automatic snapshotting. The manual `jettstui curator backup` command still works when backups are disabled only if you set `enabled: true` first — the flag gates both paths symmetrically so there's no way to accidentally skip the pre-run snapshot on mutating runs.
 
-`freeide curator status` also lists the five least-recently-used skills — a quick way to see what's likely to become stale next.
+`jettstui curator status` also lists the five least-recently-used skills — a quick way to see what's likely to become stale next.
 
 The same subcommands are available as the `/curator` slash command inside a running session (CLI or gateway platforms).
 
 ## What "agent-created" means
 
 The curator only manages skills explicitly marked as **agent-created** in
-`~/.freeide/skills/.usage.json`. A skill qualifies when ALL of the following
+`~/.jettstui/skills/.usage.json`. A skill qualifies when ALL of the following
 are true:
 
-1. Its name is **not** in `~/.freeide/skills/.bundled_manifest` (bundled skills shipped with the repo).
-2. Its name is **not** in `~/.freeide/skills/.hub/lock.json` (hub-installed skills).
+1. Its name is **not** in `~/.jettstui/skills/.bundled_manifest` (bundled skills shipped with the repo).
+2. Its name is **not** in `~/.jettstui/skills/.hub/lock.json` (hub-installed skills).
 3. Its `.usage.json` entry has `"created_by": "agent"` or `"agent_created": true`.
 
 Currently, only the **background self-improvement review fork** sets this marker
@@ -162,12 +162,12 @@ conversation are **not** marked as agent-created — they are considered
 user-directed and the curator intentionally leaves them alone.
 
 :::warning Your hand-written skills are NOT curated
-If you manually created a `SKILL.md` or pointed FreeIDE at an external skill
+If you manually created a `SKILL.md` or pointed JettsTUI at an external skill
 directory, that skill will have a `.usage.json` entry with `created_by: null`
 (or the field absent). The curator will not touch it. The same applies to
 skills the foreground agent created at your request.
 
-**To see which skills the curator actually manages**, run `freeide curator status`.
+**To see which skills the curator actually manages**, run `jettstui curator status`.
 If the agent-created count is 0, no skills are currently in the curator's
 jurisdiction — the LLM review pass is skipped and the report will show
 `Model: (not resolved) via (not resolved)` with `Duration: 0s`.
@@ -175,7 +175,7 @@ jurisdiction — the LLM review pass is skipped and the report will show
 
 ### Adopting unmanaged skills
 
-`freeide curator status` reports an **unmanaged** count alongside the managed
+`jettstui curator status` reports an **unmanaged** count alongside the managed
 one:
 
 ```
@@ -187,7 +187,7 @@ curator-managed skills: 43 total  (agent-created=43  bundled=0)
 unmanaged (no provenance marker): 112 total
   pre-dates marker    34
   foreground-created  78
-  never auto-staled or archived — `freeide curator adopt <name>` hands one over
+  never auto-staled or archived — `jettstui curator adopt <name>` hands one over
 ```
 
 Those 112 are curation-*eligible* but permanently invisible to the lifecycle,
@@ -203,11 +203,11 @@ A large library can therefore look fully curated while most of it is
 untouchable. `adopt` closes that gap by **declaration**:
 
 ```bash
-freeide curator list-unmanaged                    # itemize them, with reasons
-freeide curator adopt <name> [<name> ...]         # hand specific skills over
-freeide curator adopt --all-unmanaged --dry-run   # preview the full list
-freeide curator adopt --all-unmanaged             # hand over everything (prompts)
-freeide curator adopt --all-unmanaged --yes       # skip the prompt
+jettstui curator list-unmanaged                    # itemize them, with reasons
+jettstui curator adopt <name> [<name> ...]         # hand specific skills over
+jettstui curator adopt --all-unmanaged --dry-run   # preview the full list
+jettstui curator adopt --all-unmanaged             # hand over everything (prompts)
+jettstui curator adopt --all-unmanaged --yes       # skip the prompt
 ```
 
 Adoption writes the same `created_by: agent` marker the background review fork
@@ -227,14 +227,14 @@ The stored field is named `created_by`, but it is consumed as "may autonomous
 curation touch this?" — not "who wrote this file". Those are different
 questions, and for records predating the marker the authorship answer is simply
 unrecoverable. The name is kept because it is already on disk in every
-`.usage.json`; read it as policy. `freeide curator adopt` changes the policy, and
+`.usage.json`; read it as policy. `jettstui curator adopt` changes the policy, and
 says nothing about who authored the file.
 :::
 
 :::note Provenance is declared, never inferred
 Adoption is deliberately manual. Telemetry cannot establish authorship: a skill
 with thousands of patches proves the agent **maintains** it, not that the agent
-**wrote** it — FreeIDE edits user-authored skills on your behalf constantly. An
+**wrote** it — JettsTUI edits user-authored skills on your behalf constantly. An
 automatic "looks agent-made, adopt it" heuristic would eventually archive
 something you hand-wrote. `adopt` refuses bundled, hub-installed, external, and
 protected built-in skills, which have an owner other than you.
@@ -244,10 +244,10 @@ Skills that ARE agent-created follow the full lifecycle:
 
 - `active` → (30d unused) `stale` → (90d unused) `archived`
 - Pinned skills bypass all auto-transitions
-- Archives are recoverable via `freeide curator restore <name>`
+- Archives are recoverable via `jettstui curator restore <name>`
 
 If you want to protect a specific skill from ever being touched — for example a
-hand-authored skill you rely on — use `freeide curator pin <name>`. See the next
+hand-authored skill you rely on — use `jettstui curator pin <name>`. See the next
 section.
 
 ## Pinning a skill
@@ -255,26 +255,26 @@ section.
 Pinning protects a skill from deletion — both the curator's automated archive passes and the agent's `skill_manage(action="delete")` tool call. Once a skill is pinned:
 
 - The **curator** skips it during auto-transitions (`active → stale → archived`), and its LLM review pass is instructed to leave it alone.
-- The **agent's `skill_manage` tool** refuses `delete` on it, pointing the user at `freeide curator unpin <name>`. Patches and edits still go through, so the agent can improve a pinned skill's content as pitfalls come up without a pin/unpin/re-pin dance.
+- The **agent's `skill_manage` tool** refuses `delete` on it, pointing the user at `jettstui curator unpin <name>`. Patches and edits still go through, so the agent can improve a pinned skill's content as pitfalls come up without a pin/unpin/re-pin dance.
 
 Pin and unpin with:
 
 ```bash
-freeide curator pin <skill>
-freeide curator unpin <skill>
+jettstui curator pin <skill>
+jettstui curator unpin <skill>
 ```
 
-The flag is stored as `"pinned": true` on the skill's entry in `~/.freeide/skills/.usage.json`, so it survives across sessions.
+The flag is stored as `"pinned": true` on the skill's entry in `~/.jettstui/skills/.usage.json`, so it survives across sessions.
 
-Only **agent-created** skills can be pinned — `freeide curator pin` refuses on bundled and hub-installed skills with an explanatory message if you try. Hub-installed skills are never subject to curator mutation. Bundled built-in skills are only touched when `curator.prune_builtins: true` (the default), and even then only archived after `archive_after_days` of non-use — never patched, consolidated, or deleted. Set `curator.prune_builtins: false` to exempt bundled skills entirely.
+Only **agent-created** skills can be pinned — `jettstui curator pin` refuses on bundled and hub-installed skills with an explanatory message if you try. Hub-installed skills are never subject to curator mutation. Bundled built-in skills are only touched when `curator.prune_builtins: true` (the default), and even then only archived after `archive_after_days` of non-use — never patched, consolidated, or deleted. Set `curator.prune_builtins: false` to exempt bundled skills entirely.
 
 A small set of **protected built-ins** is hardcoded as never-archivable and never-consolidatable, regardless of `curator.prune_builtins`, pin state, or LLM judgment. These back load-bearing UX — for example, `plan` powers the `/plan` slash-command flow — so silently archiving one would turn its slash command into an "Unknown command" error with no signal to you. Protected built-ins are filtered out of the curator's candidate list entirely, so the consolidation pass never sees them.
 
-If you want a stronger guarantee than "no deletion" — for instance, freezing a skill's content entirely while the agent still reads it — edit `~/.freeide/skills/<name>/SKILL.md` directly with your editor. The pin guards tool-driven deletion, not your own filesystem access.
+If you want a stronger guarantee than "no deletion" — for instance, freezing a skill's content entirely while the agent still reads it — edit `~/.jettstui/skills/<name>/SKILL.md` directly with your editor. The pin guards tool-driven deletion, not your own filesystem access.
 
 ## Usage telemetry
 
-The curator maintains a sidecar at `~/.freeide/skills/.usage.json` with one entry per skill:
+The curator maintains a sidecar at `~/.jettstui/skills/.usage.json` with one entry per skill:
 
 ```json
 {
@@ -303,10 +303,10 @@ Bundled and hub-installed skills are explicitly excluded from telemetry writes.
 
 ## Per-run reports
 
-Every curator run writes a timestamped directory under `~/.freeide/logs/curator/`:
+Every curator run writes a timestamped directory under `~/.jettstui/logs/curator/`:
 
 ```
-~/.freeide/logs/curator/
+~/.jettstui/logs/curator/
 └── 20260429-111512/
     ├── run.json      # machine-readable: full fidelity, stats, LLM output
     └── REPORT.md     # human-readable summary
@@ -325,24 +325,24 @@ runs and reports its counts normally.
 
 ### Rename map in the summary
 
-If a run consolidated multiple skills under an umbrella (or merged near-duplicates), the user-visible summary printed at the end of the run includes an explicit rename map showing every `old-name → new-name` pair the curator applied. This is in addition to per-skill transition lines, so when a wave of renames lands you can spot them at a glance without diffing the JSON report. The hint also surfaces under `freeide curator pin` so you can pin the umbrella name immediately if you want to lock the new label in.
+If a run consolidated multiple skills under an umbrella (or merged near-duplicates), the user-visible summary printed at the end of the run includes an explicit rename map showing every `old-name → new-name` pair the curator applied. This is in addition to per-skill transition lines, so when a wave of renames lands you can spot them at a glance without diffing the JSON report. The hint also surfaces under `jettstui curator pin` so you can pin the umbrella name immediately if you want to lock the new label in.
 
 ## Restoring an archived skill
 
 If the curator archived something you still want:
 
 ```bash
-freeide curator restore <skill-name>
+jettstui curator restore <skill-name>
 ```
 
-This moves the skill back from `~/.freeide/skills/.archive/` to the active tree and resets its state to `active`. The restore refuses if a bundled or hub-installed skill has since been installed under the same name (would shadow upstream).
+This moves the skill back from `~/.jettstui/skills/.archive/` to the active tree and resets its state to `active`. The restore refuses if a bundled or hub-installed skill has since been installed under the same name (would shadow upstream).
 
 ## Disabling per environment
 
 The curator is on by default. To turn it off:
 
-- **For one profile only:** edit `~/.freeide/config.yaml` (or the active profile's config) and set `curator.enabled: false`.
-- **For just one run:** `freeide curator pause` — the pause persists across sessions; use `resume` to re-enable.
+- **For one profile only:** edit `~/.jettstui/config.yaml` (or the active profile's config) and set `curator.enabled: false`.
+- **For just one run:** `jettstui curator pause` — the pause persists across sessions; use `resume` to re-enable.
 
 The curator also refuses to run if `min_idle_hours` hasn't elapsed, so on an active dev machine it naturally only runs during quiet stretches.
 
@@ -351,4 +351,4 @@ The curator also refuses to run if `min_idle_hours` hasn't elapsed, so on an act
 - [Skills System](./skills.md) — how skills work in general and the self-improvement loop that creates them
 - [Memory](./memory.md) — a parallel background review that maintains long-term memory
 - [Bundled Skills Catalog](../../reference/skills-catalog.md)
-- [Issue #7816](https://github.com/freeide/freeide/issues/7816) — original proposal and design discussion
+- [Issue #7816](https://github.com/Raioshok/JETTS-TUI/issues/7816) — original proposal and design discussion

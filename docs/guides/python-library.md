@@ -1,18 +1,18 @@
 ---
 sidebar_position: 5
-title: "Using FreeIDE as a Python Library"
+title: "Using JettsTUI as a Python Library"
 description: "Embed AIAgent in your own Python scripts, web apps, or automation pipelines — no CLI required"
 ---
 
-# Using FreeIDE as a Python Library
+# Using JettsTUI as a Python Library
 
-FreeIDE isn't just a CLI tool. You can import `AIAgent` directly and use it programmatically in your own Python scripts, web applications, or automation pipelines. This guide shows you how.
+JettsTUI isn't just a CLI tool. You can import `AIAgent` directly and use it programmatically in your own Python scripts, web applications, or automation pipelines. This guide shows you how.
 
 ---
 
 ## Installation
 
-Clone FreeIDE and create its supported editable development environment:
+Clone JettsTUI and create its supported editable development environment:
 
 ```bash
 git clone https://github.com/Raioshok/JETTS-TUI.git
@@ -20,17 +20,17 @@ cd JETTS-TUI
 uv sync
 ```
 
-Run your application with `uv run python your_app.py` from that checkout. FreeIDE does not publish a supported wheel or source distribution for `requirements.txt` installs.
+Run your application with `uv run python your_app.py` from that checkout. JettsTUI does not publish a supported wheel or source distribution for `requirements.txt` installs.
 
 :::tip
-The same environment variables used by the CLI are required when using FreeIDE as a library. At minimum, set `OPENROUTER_API_KEY` (or `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` if using direct provider access).
+The same environment variables used by the CLI are required when using JettsTUI as a library. At minimum, set `OPENROUTER_API_KEY` (or `OPENAI_API_KEY` / `ANTHROPIC_API_KEY` if using direct provider access).
 :::
 
 ---
 
 ## Basic Usage
 
-The simplest way to use FreeIDE is the `chat()` method — pass a message, get a string back:
+The simplest way to use JettsTUI is the `chat()` method — pass a message, get a string back:
 
 ```python
 from run_agent import AIAgent
@@ -46,7 +46,7 @@ print(response)
 `chat()` handles the full conversation loop internally — tool calls, retries, everything — and returns just the final text response.
 
 :::warning
-Always set `quiet_mode=True` when embedding FreeIDE in your own code. Without it, the agent prints CLI spinners, progress indicators, and other terminal output that will clutter your application's output.
+Always set `quiet_mode=True` when embedding JettsTUI in your own code. Without it, the agent prints CLI spinners, progress indicators, and other terminal output that will clutter your application's output.
 :::
 
 ---
@@ -179,7 +179,7 @@ This is ideal for building specialized agents — a code reviewer, a documentati
 
 ## Batch Processing
 
-For running many prompts in parallel, FreeIDE includes `batch_runner.py`. It manages concurrent `AIAgent` instances with proper resource isolation:
+For running many prompts in parallel, JettsTUI includes `batch_runner.py`. It manages concurrent `AIAgent` instances with proper resource isolation:
 
 ```bash
 python batch_runner.py --input prompts.jsonl --output results.jsonl
@@ -258,7 +258,7 @@ client = discord.Client(intents=discord.Intents.default())
 async def on_message(message):
     if message.author == client.user:
         return
-    if message.content.startswith("!freeide "):
+    if message.content.startswith("!jettstui "):
         query = message.content[8:]
         agent = AIAgent(
             model="anthropic/claude-sonnet-4",
@@ -303,7 +303,7 @@ print(review)
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
-| `model` | `str` | `""` | Model in OpenRouter format (defaults to empty; resolved from your freeide config at runtime) |
+| `model` | `str` | `""` | Model in OpenRouter format (defaults to empty; resolved from your jettstui config at runtime) |
 | `quiet_mode` | `bool` | `False` | Suppress CLI output |
 | `enabled_toolsets` | `List[str]` | `None` | Whitelist specific toolsets |
 | `disabled_toolsets` | `List[str]` | `None` | Blacklist specific toolsets |

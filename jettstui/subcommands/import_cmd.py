@@ -1,6 +1,6 @@
-"""``freeide import`` subcommand parser.
+"""``jettstui import`` subcommand parser.
 
-Extracted verbatim from ``freeide_cli/main.py:main()`` (god-file Phase 2).
+Extracted verbatim from ``jettstui/main.py:main()`` (god-file Phase 2).
 Handler injected to avoid importing ``main``.
 """
 
@@ -16,9 +16,9 @@ def build_import_cmd_parser(subparsers, *, cmd_import: Callable) -> None:
     # =========================================================================
     import_parser = subparsers.add_parser(
         "import",
-        help="Restore a Jetts-TUI backup from a zip file",
-        description="Extract a previously created Jetts-TUI backup into your "
-        "Jetts-TUI home directory, restoring configuration, skills, "
+        help="Restore a JettsTUI backup from a zip file",
+        description="Extract a previously created JettsTUI backup into your "
+        "JettsTUI home directory, restoring configuration, skills, "
         "sessions, and data",
     )
     import_parser.add_argument("zipfile", help="Path to the backup zip file")

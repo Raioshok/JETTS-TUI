@@ -7,10 +7,10 @@ from tools.skill_improvement_eval import evaluate_candidate, score_skill
 
 
 @pytest.fixture
-def freeide_home(tmp_path, monkeypatch):
-    home = tmp_path / ".freeide"
+def jettstui_home(tmp_path, monkeypatch):
+    home = tmp_path / ".jettstui"
     home.mkdir()
-    monkeypatch.setenv("FREEIDE_HOME", os.fspath(home))
+    monkeypatch.setenv("JETTSTUI_HOME", os.fspath(home))
     return home
 
 
@@ -76,8 +76,8 @@ def test_focused_edit_with_equal_score_can_reach_human_review():
     assert result["delta"] == 0
 
 
-def test_background_create_is_scored_and_staged(freeide_home):
-    import freeide_cli.config as cfg
+def test_background_create_is_scored_and_staged(jettstui_home):
+    import jettstui.config as cfg
     import tools.skill_manager_tool as smt
     from tools import write_approval as wa
     from tools.skill_provenance import reset_current_write_origin, set_current_write_origin
@@ -101,8 +101,8 @@ def test_background_create_is_scored_and_staged(freeide_home):
     assert evaluation["after_score"] >= 7
 
 
-def test_background_weak_create_is_rejected_before_staging(freeide_home):
-    import freeide_cli.config as cfg
+def test_background_weak_create_is_rejected_before_staging(jettstui_home):
+    import jettstui.config as cfg
     import tools.skill_manager_tool as smt
     from tools import write_approval as wa
     from tools.skill_provenance import reset_current_write_origin, set_current_write_origin

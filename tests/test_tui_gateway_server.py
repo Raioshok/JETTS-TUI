@@ -11,9 +11,9 @@ from unittest.mock import Mock, patch
 
 import pytest
 
-from freeide_constants import reset_freeide_home_override, set_freeide_home_override
-from freeide_cli.active_sessions import active_session_registry_snapshot
-from freeide_cli.browser_connect import ChromeDebugLaunch
+from jettstui_constants import reset_jettstui_home_override, set_jettstui_home_override
+from jettstui.active_sessions import active_session_registry_snapshot
+from jettstui.browser_connect import ChromeDebugLaunch
 from tui_gateway import server
 
 
@@ -38,10 +38,10 @@ def _neuter_agent_prewarm_timer(request, monkeypatch):
 
 
 def test_session_create_rejects_at_active_session_limit(monkeypatch, tmp_path):
-    home = tmp_path / ".freeide"
+    home = tmp_path / ".jettstui"
     home.mkdir()
     (home / "config.yaml").write_text("max_concurrent_sessions: 1\n", encoding="utf-8")
-    token = set_freeide_home_override(home)
+    token = set_jettstui_home_override(home)
 
     def _clear_server_sessions():
         for session in list(server._sessions.values()):
@@ -62,7 +62,7 @@ def test_session_create_rejects_at_active_session_limit(monkeypatch, tmp_path):
 
         second = server._methods["session.create"]("r2", {"cols": 80})
         assert second["error"]["message"] == (
-            "FreeIDE is at the active session limit (1/1). "
+            "JettsTUI is at the active session limit (1/1). "
             "Try again when another session finishes."
         )
         assert list(server._sessions) == [sid]
@@ -78,7 +78,7 @@ def test_session_create_rejects_at_active_session_limit(monkeypatch, tmp_path):
         server._cfg_cache = None
         server._cfg_mtime = None
         server._cfg_path = None
-        reset_freeide_home_override(token)
+        reset_jettstui_home_override(token)
 
 
 def test_session_context_uses_session_cwd(monkeypatch, tmp_path):
@@ -186,7 +186,7 @@ def test_dashboard_process_isolation_config_coerces_raw_values():
 
 
 def test_default_config_seeds_dashboard_process_isolation_keys():
-    from freeide_cli.config import DEFAULT_CONFIG
+    from jettstui.config import DEFAULT_CONFIG
 
     dashboard = DEFAULT_CONFIG["dashboard"]
     assert dashboard["turn_isolation"] is False
@@ -568,9 +568,9 @@ def _write_profile_cfg(home: Path, cwd: str | None) -> Path:
 
 
 def test_profile_scoped_mcp_discovery_uses_target_home(monkeypatch, tmp_path):
-    """MCP discovery must start under the selected profile's FREEIDE_HOME."""
-    from freeide_cli import mcp_startup
-    from freeide_constants import get_freeide_home
+    """MCP discovery must start under the selected profile's JETTSTUI_HOME."""
+    from jettstui import mcp_startup
+    from jettstui_constants import get_jettstui_home
     from tui_gateway import entry
 
     profile_home = tmp_path / "profiles" / "sheepyr"
@@ -583,8 +583,8 @@ def test_profile_scoped_mcp_discovery_uses_target_home(monkeypatch, tmp_path):
         encoding="utf-8",
     )
 
-    monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / "default"))
-    token = set_freeide_home_override(str(profile_home))
+    monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / "default"))
+    token = set_jettstui_home_override(str(profile_home))
 
     seen = []
 
@@ -596,7 +596,7 @@ def test_profile_scoped_mcp_discovery_uses_target_home(monkeypatch, tmp_path):
     monkeypatch.setattr(
         mcp_startup,
         "_discover_mcp_tools_without_interactive_oauth",
-        lambda: seen.append(str(get_freeide_home())),
+        lambda: seen.append(str(get_jettstui_home())),
     )
 
     try:
@@ -605,7 +605,7 @@ def test_profile_scoped_mcp_discovery_uses_target_home(monkeypatch, tmp_path):
         assert thread is not None
         thread.join(timeout=2)
     finally:
-        reset_freeide_home_override(token)
+        reset_jettstui_home_override(token)
         mcp_startup._mcp_discovery_thread = None
         mcp_startup._mcp_discovery_started = False
 
@@ -618,12 +618,12 @@ def test_profile_scoped_agent_build_starts_mcp_discovery_in_profile_home(
     """Agent construction must start MCP discovery under the selected profile."""
     import threading
 
-    from freeide_constants import get_freeide_home
+    from jettstui_constants import get_jettstui_home
 
     profile_home = tmp_path / "profiles" / "sheepyr"
     profile_home.mkdir(parents=True)
 
-    monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / "default"))
+    monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / "default"))
 
     seen = []
     built = threading.Event()
@@ -636,7 +636,7 @@ def test_profile_scoped_agent_build_starts_mcp_discovery_in_profile_home(
     )
     monkeypatch.setattr(
         "tui_gateway.entry.ensure_mcp_discovery_started",
-        lambda: seen.append(str(get_freeide_home())),
+        lambda: seen.append(str(get_jettstui_home())),
     )
     monkeypatch.setattr(server, "_wire_callbacks", lambda _sid: None)
     monkeypatch.setattr(server, "_SlashWorker", lambda *args: None)
@@ -678,7 +678,7 @@ def test_profile_scoped_agent_build_installs_secret_scope(monkeypatch, tmp_path)
         "PROXMOX_TOKEN=grace-secret\n", encoding="utf-8"
     )
 
-    monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / "default"))
+    monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / "default"))
 
     scopes = []
     built = threading.Event()
@@ -764,7 +764,7 @@ def test_completion_cwd_prefers_launch_config_over_stale_env(monkeypatch, tmp_pa
     """
     configured = tmp_path / "omni"
     configured.mkdir()
-    stale = tmp_path / "freeide-agent"
+    stale = tmp_path / "jettstui"
     stale.mkdir()
 
     monkeypatch.setenv("TERMINAL_CWD", str(stale))
@@ -1187,12 +1187,12 @@ def test_voice_toggle_returns_configured_record_key(monkeypatch):
             check_voice_requirements=lambda: {"available": True, "details": ""}
         ),
     )
-    # ``voice.toggle`` action=on mutates ``os.environ["FREEIDE_VOICE"]``
+    # ``voice.toggle`` action=on mutates ``os.environ["JETTSTUI_VOICE"]``
     # directly (CLI parity, runtime-only flag). Take monkeypatch
     # ownership of the var so the change is reverted at teardown and
     # later tests don't inherit a stale ON state (Copilot round-5
     # review on #19835).
-    monkeypatch.setenv("FREEIDE_VOICE", "0")
+    monkeypatch.setenv("JETTSTUI_VOICE", "0")
 
     on_resp = server.dispatch(
         {"id": "voice-on", "method": "voice.toggle", "params": {"action": "on"}}
@@ -1274,12 +1274,12 @@ def test_voice_record_start_handles_non_dict_voice_cfg(monkeypatch):
 
     monkeypatch.setitem(
         sys.modules,
-        "freeide_cli.voice",
+        "jettstui.voice",
         types.SimpleNamespace(
             start_continuous=fake_start_continuous, stop_continuous=lambda: None
         ),
     )
-    monkeypatch.setenv("FREEIDE_VOICE", "1")
+    monkeypatch.setenv("JETTSTUI_VOICE", "1")
 
     for bad in (True, "cmd+b", None, 42, ["ctrl+b"], {"silence_threshold": "loud"}):
         captured.clear()
@@ -1339,7 +1339,7 @@ def test_voice_record_stop_forces_transcription(monkeypatch):
 
     monkeypatch.setitem(
         sys.modules,
-        "freeide_cli.voice",
+        "jettstui.voice",
         types.SimpleNamespace(
             start_continuous=lambda **_kwargs: None,
             stop_continuous=fake_stop_continuous,
@@ -1361,7 +1361,7 @@ def test_voice_record_stop_forces_transcription(monkeypatch):
 def test_voice_record_stop_updates_event_session_id(monkeypatch):
     monkeypatch.setitem(
         sys.modules,
-        "freeide_cli.voice",
+        "jettstui.voice",
         types.SimpleNamespace(
             start_continuous=lambda **_kwargs: True,
             stop_continuous=lambda **_kwargs: None,
@@ -1384,13 +1384,13 @@ def test_voice_record_stop_updates_event_session_id(monkeypatch):
 def test_voice_record_start_reports_busy_when_stop_is_in_progress(monkeypatch):
     monkeypatch.setitem(
         sys.modules,
-        "freeide_cli.voice",
+        "jettstui.voice",
         types.SimpleNamespace(
             start_continuous=lambda **_kwargs: False,
             stop_continuous=lambda **_kwargs: None,
         ),
     )
-    monkeypatch.setenv("FREEIDE_VOICE", "1")
+    monkeypatch.setenv("JETTSTUI_VOICE", "1")
     monkeypatch.setattr(server, "_load_cfg", lambda: {"voice": {}})
 
     resp = server.dispatch(
@@ -1425,11 +1425,11 @@ def test_voice_toggle_tts_branch_also_carries_record_key(monkeypatch):
             check_voice_requirements=lambda: {"available": True, "details": ""}
         ),
     )
-    monkeypatch.setenv("FREEIDE_VOICE", "1")
-    # setenv (not delenv) — the handler writes FREEIDE_VOICE_TTS directly, and
+    monkeypatch.setenv("JETTSTUI_VOICE", "1")
+    # setenv (not delenv) — the handler writes JETTSTUI_VOICE_TTS directly, and
     # delenv on an absent var registers no teardown, leaking TTS=1 into every
     # later test in the file (which now spins up the streaming TTS pipeline).
-    monkeypatch.setenv("FREEIDE_VOICE_TTS", "0")
+    monkeypatch.setenv("JETTSTUI_VOICE_TTS", "0")
 
     tts_resp = server.dispatch(
         {"id": "voice-tts", "method": "voice.toggle", "params": {"action": "tts"}}
@@ -1440,16 +1440,16 @@ def test_voice_toggle_tts_branch_also_carries_record_key(monkeypatch):
 
 
 def test_load_enabled_toolsets_prefers_tui_env(monkeypatch):
-    monkeypatch.setenv("FREEIDE_TUI_TOOLSETS", "web, terminal, ,memory")
+    monkeypatch.setenv("JETTSTUI_TUI_TOOLSETS", "web, terminal, ,memory")
 
     assert server._load_enabled_toolsets() == ["web", "terminal", "memory"]
 
 
 def test_load_enabled_toolsets_filters_invalid_tui_env(monkeypatch, capsys):
-    monkeypatch.setenv("FREEIDE_TUI_TOOLSETS", "web, nope")
+    monkeypatch.setenv("JETTSTUI_TUI_TOOLSETS", "web, nope")
     monkeypatch.setitem(
         sys.modules,
-        "freeide_cli.plugins",
+        "jettstui.plugins",
         types.SimpleNamespace(discover_plugins=lambda: None),
     )
 
@@ -1458,7 +1458,7 @@ def test_load_enabled_toolsets_filters_invalid_tui_env(monkeypatch, capsys):
 
 
 def test_load_enabled_toolsets_accepts_plugin_env_after_discovery(monkeypatch):
-    monkeypatch.setenv("FREEIDE_TUI_TOOLSETS", "plugin_demo")
+    monkeypatch.setenv("JETTSTUI_TUI_TOOLSETS", "plugin_demo")
 
     import toolsets
 
@@ -1471,7 +1471,7 @@ def test_load_enabled_toolsets_accepts_plugin_env_after_discovery(monkeypatch):
     monkeypatch.setattr(toolsets, "validate_toolset", fake_validate)
     monkeypatch.setitem(
         sys.modules,
-        "freeide_cli.plugins",
+        "jettstui.plugins",
         types.SimpleNamespace(
             discover_plugins=lambda: discovered.update({"ready": True})
         ),
@@ -1484,7 +1484,7 @@ def test_load_enabled_toolsets_folds_project_into_focus_posture(monkeypatch):
     # Focus-mode coding posture returns before the config fallback, but it's
     # still a GUI-only resolver — `project` must come along so the desktop keeps
     # the project tools while sitting in a repo.
-    monkeypatch.delenv("FREEIDE_TUI_TOOLSETS", raising=False)
+    monkeypatch.delenv("JETTSTUI_TUI_TOOLSETS", raising=False)
 
     import agent.coding_context as cc
 
@@ -1494,14 +1494,14 @@ def test_load_enabled_toolsets_folds_project_into_focus_posture(monkeypatch):
 
 
 def test_load_enabled_toolsets_rejects_disabled_mcp_env(monkeypatch, capsys):
-    monkeypatch.setenv("FREEIDE_TUI_TOOLSETS", "mcp-off")
+    monkeypatch.setenv("JETTSTUI_TUI_TOOLSETS", "mcp-off")
     monkeypatch.setitem(
         sys.modules,
-        "freeide_cli.plugins",
+        "jettstui.plugins",
         types.SimpleNamespace(discover_plugins=lambda: None),
     )
 
-    import freeide_cli.config as config_mod
+    import jettstui.config as config_mod
 
     monkeypatch.setattr(
         config_mod,
@@ -1513,7 +1513,7 @@ def test_load_enabled_toolsets_rejects_disabled_mcp_env(monkeypatch, capsys):
     )
 
     # Sorted: ["kanban", "memory", "project"]. `kanban` is auto-recovered by
-    # _get_platform_tools (a non-configurable platform toolset in freeide-cli's
+    # _get_platform_tools (a non-configurable platform toolset in jettstui-cli's
     # universe); `project` is GUI-only, folded in by _load_enabled_toolsets.
     assert server._load_enabled_toolsets() == ["kanban", "memory", "project"]
     err = capsys.readouterr().err
@@ -1523,14 +1523,14 @@ def test_load_enabled_toolsets_rejects_disabled_mcp_env(monkeypatch, capsys):
 
 
 def test_load_enabled_toolsets_falls_back_when_tui_env_invalid(monkeypatch, capsys):
-    monkeypatch.setenv("FREEIDE_TUI_TOOLSETS", "nope")
+    monkeypatch.setenv("JETTSTUI_TUI_TOOLSETS", "nope")
     monkeypatch.setitem(
         sys.modules,
-        "freeide_cli.plugins",
+        "jettstui.plugins",
         types.SimpleNamespace(discover_plugins=lambda: None),
     )
 
-    import freeide_cli.config as config_mod
+    import jettstui.config as config_mod
 
     monkeypatch.setattr(
         config_mod, "load_config", lambda: {"platform_toolsets": {"cli": ["memory"]}}
@@ -1541,14 +1541,14 @@ def test_load_enabled_toolsets_falls_back_when_tui_env_invalid(monkeypatch, caps
 
 
 def test_load_enabled_toolsets_warns_when_config_fallback_fails(monkeypatch, capsys):
-    monkeypatch.setenv("FREEIDE_TUI_TOOLSETS", "nope")
+    monkeypatch.setenv("JETTSTUI_TUI_TOOLSETS", "nope")
     monkeypatch.setitem(
         sys.modules,
-        "freeide_cli.plugins",
+        "jettstui.plugins",
         types.SimpleNamespace(discover_plugins=lambda: None),
     )
 
-    import freeide_cli.config as config_mod
+    import jettstui.config as config_mod
 
     monkeypatch.setattr(
         config_mod, "load_config", lambda: (_ for _ in ()).throw(RuntimeError("boom"))
@@ -1559,9 +1559,9 @@ def test_load_enabled_toolsets_warns_when_config_fallback_fails(monkeypatch, cap
 
 
 def test_load_enabled_toolsets_honors_builtin_env_if_config_fails(monkeypatch):
-    monkeypatch.setenv("FREEIDE_TUI_TOOLSETS", "web")
+    monkeypatch.setenv("JETTSTUI_TUI_TOOLSETS", "web")
 
-    import freeide_cli.config as config_mod
+    import jettstui.config as config_mod
 
     monkeypatch.setattr(
         config_mod, "load_config", lambda: (_ for _ in ()).throw(RuntimeError("boom"))
@@ -1571,7 +1571,7 @@ def test_load_enabled_toolsets_honors_builtin_env_if_config_fails(monkeypatch):
 
 
 def test_load_enabled_toolsets_all_env_means_all(monkeypatch):
-    monkeypatch.setenv("FREEIDE_TUI_TOOLSETS", "all")
+    monkeypatch.setenv("JETTSTUI_TUI_TOOLSETS", "all")
 
     assert server._load_enabled_toolsets() is None
 
@@ -1579,21 +1579,21 @@ def test_load_enabled_toolsets_all_env_means_all(monkeypatch):
 def test_load_enabled_toolsets_all_env_warns_about_ignored_extra_entries(
     monkeypatch, capsys
 ):
-    monkeypatch.setenv("FREEIDE_TUI_TOOLSETS", "all,nope")
+    monkeypatch.setenv("JETTSTUI_TUI_TOOLSETS", "all,nope")
 
     assert server._load_enabled_toolsets() is None
     assert "ignoring additional entries: nope" in capsys.readouterr().err
 
 
 def test_load_enabled_toolsets_reports_disabled_mcp_separately(monkeypatch, capsys):
-    monkeypatch.setenv("FREEIDE_TUI_TOOLSETS", "web,mcp-off,nope")
+    monkeypatch.setenv("JETTSTUI_TUI_TOOLSETS", "web,mcp-off,nope")
     monkeypatch.setitem(
         sys.modules,
-        "freeide_cli.plugins",
+        "jettstui.plugins",
         types.SimpleNamespace(discover_plugins=lambda: None),
     )
 
-    import freeide_cli.config as config_mod
+    import jettstui.config as config_mod
 
     monkeypatch.setattr(
         config_mod,
@@ -1603,7 +1603,7 @@ def test_load_enabled_toolsets_reports_disabled_mcp_separately(monkeypatch, caps
 
     assert server._load_enabled_toolsets() == ["web"]
     err = capsys.readouterr().err
-    assert "ignoring unknown FREEIDE_TUI_TOOLSETS entries: nope" in err
+    assert "ignoring unknown JETTSTUI_TUI_TOOLSETS entries: nope" in err
     assert "ignoring disabled MCP servers" in err
     assert "mcp-off" in err
 
@@ -2093,7 +2093,7 @@ def test_live_visible_history_matches_eager_resume_with_real_db(tmp_path):
     projection — both keeping the candidate — so switching to a live session
     shows the same substantive answer a cold resume would.
     """
-    from freeide_state import SessionDB
+    from jettstui_state import SessionDB
 
     db = SessionDB(db_path=tmp_path / "state.db")
     db.create_session("s1", source="tui")
@@ -2125,7 +2125,7 @@ def test_live_visible_history_matches_eager_resume_with_real_db(tmp_path):
 def test_live_visible_history_keeps_candidate_and_new_flushed_turn_real_db(tmp_path):
     """Real-DB variant of the combined case: a candidate from turn 1 AND a
     fully-flushed turn 2 both appear once."""
-    from freeide_state import SessionDB
+    from jettstui_state import SessionDB
 
     db = SessionDB(db_path=tmp_path / "state.db")
     db.create_session("s1", source="tui")
@@ -2156,7 +2156,7 @@ def test_lazy_child_watch_resume_serves_candidate_inclusive_display(monkeypatch,
     verbatim display projection so a persisted verification candidate is not
     collapsed out of the watch window (#65919 sibling of the warm-payload fix).
     """
-    from freeide_state import SessionDB
+    from jettstui_state import SessionDB
 
     db = SessionDB(db_path=tmp_path / "state.db")
     db.create_session("child1", source="tui")
@@ -2207,7 +2207,7 @@ def test_session_resume_follows_compression_tip(monkeypatch, tmp_path):
     the response generated after compression. session.resume must follow the
     compression tip via resolve_resume_session_id.
     """
-    from freeide_state import SessionDB
+    from jettstui_state import SessionDB
 
     db = SessionDB(db_path=tmp_path / "state.db")
     base = int(time.time()) - 10_000
@@ -2392,7 +2392,7 @@ def test_session_resume_profile_uses_profile_db_cwd(monkeypatch, tmp_path):
 
     monkeypatch.setenv("TERMINAL_CWD", str(launch_cwd))
     monkeypatch.setattr(server, "_profile_home", lambda _profile: profile_home)
-    monkeypatch.setattr("freeide_state.SessionDB", lambda db_path=None: profile_db)
+    monkeypatch.setattr("jettstui_state.SessionDB", lambda db_path=None: profile_db)
     monkeypatch.setattr(server, "_get_db", lambda: launch_db)
     monkeypatch.setattr(server, "_enable_gateway_prompts", lambda: None)
     monkeypatch.setattr(server, "_set_session_context", lambda target: [])
@@ -2456,7 +2456,7 @@ def test_session_cwd_set_profile_session_updates_profile_db(monkeypatch, tmp_pat
 
     import tools.terminal_tool as terminal_tool
 
-    monkeypatch.setattr("freeide_state.SessionDB", lambda db_path=None: profile_db)
+    monkeypatch.setattr("jettstui_state.SessionDB", lambda db_path=None: profile_db)
     monkeypatch.setattr(server, "_get_db", lambda: LaunchDB())
     monkeypatch.setattr(terminal_tool, "cleanup_vm", lambda _key: None)
     monkeypatch.setattr(server, "_register_session_cwd", lambda _session: None)
@@ -2606,20 +2606,20 @@ def test_status_callback_accepts_single_message_argument():
 
 
 def test_resolve_model_uses_inference_model_env(monkeypatch):
-    monkeypatch.delenv("FREEIDE_MODEL", raising=False)
-    monkeypatch.setenv("FREEIDE_INFERENCE_MODEL", " anthropic/claude-sonnet-4.6\n")
+    monkeypatch.delenv("JETTSTUI_MODEL", raising=False)
+    monkeypatch.setenv("JETTSTUI_INFERENCE_MODEL", " anthropic/claude-sonnet-4.6\n")
 
     assert server._resolve_model() == "anthropic/claude-sonnet-4.6"
 
 
 def test_resolve_model_strips_config_model(monkeypatch):
-    monkeypatch.delenv("FREEIDE_MODEL", raising=False)
-    monkeypatch.delenv("FREEIDE_INFERENCE_MODEL", raising=False)
+    monkeypatch.delenv("JETTSTUI_MODEL", raising=False)
+    monkeypatch.delenv("JETTSTUI_INFERENCE_MODEL", raising=False)
     monkeypatch.setattr(
-        server, "_load_cfg", lambda: {"model": {"default": " nous/freeide-test "}}
+        server, "_load_cfg", lambda: {"model": {"default": " nous/jettstui-test "}}
     )
 
-    assert server._resolve_model() == "nous/freeide-test"
+    assert server._resolve_model() == "nous/jettstui-test"
 
 
 def _sync_test_session(**extra):
@@ -2632,8 +2632,8 @@ def _sync_test_session(**extra):
 
 
 def _patch_config_model(monkeypatch, model, provider=""):
-    monkeypatch.delenv("FREEIDE_MODEL", raising=False)
-    monkeypatch.delenv("FREEIDE_INFERENCE_MODEL", raising=False)
+    monkeypatch.delenv("JETTSTUI_MODEL", raising=False)
+    monkeypatch.delenv("JETTSTUI_INFERENCE_MODEL", raising=False)
     cfg_model = {"default": model}
     if provider:
         cfg_model["provider"] = provider
@@ -2761,10 +2761,10 @@ def test_config_sync_failure_emits_error_once_per_edit(monkeypatch):
 
 
 def test_config_sync_config_wins_over_env_seed(monkeypatch):
-    # Hosted instances set FREEIDE_INFERENCE_MODEL as a provision-time seed;
+    # Hosted instances set JETTSTUI_INFERENCE_MODEL as a provision-time seed;
     # the per-turn sync must follow config.yaml edits, not stay pinned to it.
-    monkeypatch.setenv("FREEIDE_INFERENCE_MODEL", "seed/model")
-    monkeypatch.delenv("FREEIDE_MODEL", raising=False)
+    monkeypatch.setenv("JETTSTUI_INFERENCE_MODEL", "seed/model")
+    monkeypatch.delenv("JETTSTUI_MODEL", raising=False)
     monkeypatch.setattr(server, "_load_cfg", lambda: {"model": {"default": "new/model"}})
     session = _sync_test_session(config_model_seen=("seed/model", ""))
     calls = []
@@ -2781,14 +2781,14 @@ def test_config_sync_config_wins_over_env_seed(monkeypatch):
 
 
 def test_config_sync_ignores_env_seed_without_config_model(monkeypatch):
-    # `freeide --tui -m <model>` sets FREEIDE_MODEL/FREEIDE_INFERENCE_MODEL as a
+    # `jettstui --tui -m <model>` sets JETTSTUI_MODEL/JETTSTUI_INFERENCE_MODEL as a
     # launch-scoped seed. When config.yaml has NO model.default (typical
     # custom-provider-only setup), the sync must NOT adopt the env seed as a
     # config target — doing so replayed the -m flag as a /model switch and
     # (with persist_switch_by_default=True) wrote it into config.yaml
     # permanently.
-    monkeypatch.setenv("FREEIDE_MODEL", "one-shot/model")
-    monkeypatch.setenv("FREEIDE_INFERENCE_MODEL", "one-shot/model")
+    monkeypatch.setenv("JETTSTUI_MODEL", "one-shot/model")
+    monkeypatch.setenv("JETTSTUI_INFERENCE_MODEL", "one-shot/model")
     monkeypatch.setattr(
         server, "_load_cfg", lambda: {"model": {"provider": "custom:mylocal"}}
     )
@@ -2803,8 +2803,8 @@ def test_config_sync_ignores_env_seed_without_config_model(monkeypatch):
 
 
 def test_config_model_target_never_reads_env(monkeypatch):
-    monkeypatch.setenv("FREEIDE_MODEL", "seed/model")
-    monkeypatch.setenv("FREEIDE_INFERENCE_MODEL", "seed/model")
+    monkeypatch.setenv("JETTSTUI_MODEL", "seed/model")
+    monkeypatch.setenv("JETTSTUI_INFERENCE_MODEL", "seed/model")
     monkeypatch.setattr(server, "_load_cfg", lambda: {"model": {"provider": "nous"}})
 
     assert server._config_model_target() == ("", "nous")
@@ -2828,10 +2828,10 @@ def test_apply_model_switch_persist_override_false_never_persists(monkeypatch):
         error_message="",
     )
     monkeypatch.setattr(
-        "freeide_cli.model_switch.switch_model", lambda **kw: result
+        "jettstui.model_switch.switch_model", lambda **kw: result
     )
     monkeypatch.setattr(
-        "freeide_cli.model_switch.resolve_persist_behavior",
+        "jettstui.model_switch.resolve_persist_behavior",
         lambda *a: pytest.fail("persist_override must bypass resolve_persist_behavior"),
     )
     monkeypatch.setattr(
@@ -2839,7 +2839,7 @@ def test_apply_model_switch_persist_override_false_never_persists(monkeypatch):
         lambda _r: pytest.fail("persist_override=False must not persist"),
     )
     monkeypatch.setattr(
-        "freeide_cli.model_cost_guard.expensive_model_warning",
+        "jettstui.model_cost_guard.expensive_model_warning",
         lambda *a, **k: None,
     )
     session = {"agent": None}
@@ -2853,29 +2853,29 @@ def test_apply_model_switch_persist_override_false_never_persists(monkeypatch):
 
 
 def test_startup_runtime_uses_tui_provider_env(monkeypatch):
-    monkeypatch.setenv("FREEIDE_MODEL", "nous/freeide-test")
-    monkeypatch.setenv("FREEIDE_TUI_PROVIDER", "nous")
-    monkeypatch.delenv("FREEIDE_INFERENCE_PROVIDER", raising=False)
+    monkeypatch.setenv("JETTSTUI_MODEL", "nous/jettstui-test")
+    monkeypatch.setenv("JETTSTUI_TUI_PROVIDER", "nous")
+    monkeypatch.delenv("JETTSTUI_INFERENCE_PROVIDER", raising=False)
 
-    assert server._resolve_startup_runtime() == ("nous/freeide-test", "nous")
+    assert server._resolve_startup_runtime() == ("nous/jettstui-test", "nous")
 
 
 def test_startup_runtime_does_not_treat_inference_provider_as_explicit(monkeypatch):
-    monkeypatch.setenv("FREEIDE_MODEL", "nous/freeide-test")
-    monkeypatch.delenv("FREEIDE_TUI_PROVIDER", raising=False)
-    monkeypatch.setenv("FREEIDE_INFERENCE_PROVIDER", "nous")
+    monkeypatch.setenv("JETTSTUI_MODEL", "nous/jettstui-test")
+    monkeypatch.delenv("JETTSTUI_TUI_PROVIDER", raising=False)
+    monkeypatch.setenv("JETTSTUI_INFERENCE_PROVIDER", "nous")
     monkeypatch.setattr(
-        "freeide_cli.models.detect_static_provider_for_model",
+        "jettstui.models.detect_static_provider_for_model",
         lambda model, provider: None,
     )
 
-    assert server._resolve_startup_runtime() == ("nous/freeide-test", None)
+    assert server._resolve_startup_runtime() == ("nous/jettstui-test", None)
 
 
 def test_startup_runtime_detects_provider_for_model_env(monkeypatch):
-    monkeypatch.setenv("FREEIDE_MODEL", "sonnet")
-    monkeypatch.delenv("FREEIDE_TUI_PROVIDER", raising=False)
-    monkeypatch.delenv("FREEIDE_INFERENCE_PROVIDER", raising=False)
+    monkeypatch.setenv("JETTSTUI_MODEL", "sonnet")
+    monkeypatch.delenv("JETTSTUI_TUI_PROVIDER", raising=False)
+    monkeypatch.delenv("JETTSTUI_INFERENCE_PROVIDER", raising=False)
     monkeypatch.setattr(server, "_load_cfg", lambda: {"model": {"provider": "auto"}})
 
     def fake_detect(model, current_provider):
@@ -2884,7 +2884,7 @@ def test_startup_runtime_detects_provider_for_model_env(monkeypatch):
         return "anthropic", "anthropic/claude-sonnet-4.6"
 
     monkeypatch.setattr(
-        "freeide_cli.models.detect_static_provider_for_model", fake_detect
+        "jettstui.models.detect_static_provider_for_model", fake_detect
     )
 
     assert server._resolve_startup_runtime() == (
@@ -2894,7 +2894,7 @@ def test_startup_runtime_detects_provider_for_model_env(monkeypatch):
 
 
 def test_load_fallback_model_merges_chain_providers_first(monkeypatch):
-    # Parity with FreeIDECLI / gateway: fallback_providers stays first and keeps
+    # Parity with JettsTUICLI / gateway: fallback_providers stays first and keeps
     # its order, with any distinct legacy fallback_model entry merged in after
     # (deduped on provider/model/base_url).
     fallback_chain = [
@@ -2927,11 +2927,11 @@ def test_make_agent_passes_configured_fallback_chain(monkeypatch):
         captured.update(kwargs)
         return types.SimpleNamespace(model=kwargs.get("model"))
 
-    monkeypatch.delenv("FREEIDE_MODEL", raising=False)
-    monkeypatch.delenv("FREEIDE_INFERENCE_MODEL", raising=False)
-    monkeypatch.delenv("FREEIDE_TUI_PROVIDER", raising=False)
-    monkeypatch.delenv("FREEIDE_DESKTOP", raising=False)
-    monkeypatch.delenv("FREEIDE_DESKTOP_TERMINAL", raising=False)
+    monkeypatch.delenv("JETTSTUI_MODEL", raising=False)
+    monkeypatch.delenv("JETTSTUI_INFERENCE_MODEL", raising=False)
+    monkeypatch.delenv("JETTSTUI_TUI_PROVIDER", raising=False)
+    monkeypatch.delenv("JETTSTUI_DESKTOP", raising=False)
+    monkeypatch.delenv("JETTSTUI_DESKTOP_TERMINAL", raising=False)
     monkeypatch.setattr(
         server,
         "_load_cfg",
@@ -2941,7 +2941,7 @@ def test_make_agent_passes_configured_fallback_chain(monkeypatch):
         },
     )
     monkeypatch.setattr(
-        "freeide_cli.runtime_provider.resolve_runtime_provider",
+        "jettstui.runtime_provider.resolve_runtime_provider",
         lambda requested=None, target_model=None: {
             "provider": "openai-codex",
             "base_url": "https://chatgpt.com/backend-api/codex",
@@ -3005,12 +3005,12 @@ def test_background_agent_kwargs_preserves_empty_fallback_chain(monkeypatch):
 
 
 def test_startup_runtime_resolves_short_alias_without_network(monkeypatch):
-    monkeypatch.setenv("FREEIDE_MODEL", "sonnet")
-    monkeypatch.delenv("FREEIDE_TUI_PROVIDER", raising=False)
-    monkeypatch.delenv("FREEIDE_INFERENCE_PROVIDER", raising=False)
+    monkeypatch.setenv("JETTSTUI_MODEL", "sonnet")
+    monkeypatch.delenv("JETTSTUI_TUI_PROVIDER", raising=False)
+    monkeypatch.delenv("JETTSTUI_INFERENCE_PROVIDER", raising=False)
     monkeypatch.setattr(server, "_load_cfg", lambda: {"model": {"provider": "auto"}})
     monkeypatch.setattr(
-        "freeide_cli.models.fetch_openrouter_models",
+        "jettstui.models.fetch_openrouter_models",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(
             AssertionError("network lookup should not run")
         ),
@@ -3023,12 +3023,12 @@ def test_startup_runtime_resolves_short_alias_without_network(monkeypatch):
 
 
 def test_startup_runtime_does_not_call_network_detector(monkeypatch):
-    monkeypatch.setenv("FREEIDE_MODEL", "sonnet")
-    monkeypatch.delenv("FREEIDE_TUI_PROVIDER", raising=False)
-    monkeypatch.delenv("FREEIDE_INFERENCE_PROVIDER", raising=False)
+    monkeypatch.setenv("JETTSTUI_MODEL", "sonnet")
+    monkeypatch.delenv("JETTSTUI_TUI_PROVIDER", raising=False)
+    monkeypatch.delenv("JETTSTUI_INFERENCE_PROVIDER", raising=False)
     monkeypatch.setattr(server, "_load_cfg", lambda: {"model": {"provider": "auto"}})
     monkeypatch.setattr(
-        "freeide_cli.models.detect_provider_for_model",
+        "jettstui.models.detect_provider_for_model",
         lambda *_args, **_kwargs: (_ for _ in ()).throw(
             AssertionError("network detector called")
         ),
@@ -4373,8 +4373,8 @@ def test_ensure_session_db_row_persists_explicit_cwd(monkeypatch, tmp_path):
 
     monkeypatch.setattr(server, "_get_db", lambda: _FakeDB())
     monkeypatch.setattr(server, "_resolve_model", lambda: "test-model")
-    monkeypatch.delenv("FREEIDE_DESKTOP", raising=False)
-    monkeypatch.delenv("FREEIDE_DESKTOP_TERMINAL", raising=False)
+    monkeypatch.delenv("JETTSTUI_DESKTOP", raising=False)
+    monkeypatch.delenv("JETTSTUI_DESKTOP_TERMINAL", raising=False)
 
     server._ensure_session_db_row({"session_key": "k1", "cwd": str(tmp_path), "explicit_cwd": True})
 
@@ -4405,7 +4405,7 @@ def test_ensure_session_db_row_persists_session_source(monkeypatch):
 def test_ensure_session_db_row_records_a_terminal_workspace(monkeypatch, tmp_path):
     """A terminal session's directory IS its workspace, so the row records it.
 
-    The user cd'd there before running freeide. Leaving it null stranded the row
+    The user cd'd there before running jettstui. Leaving it null stranded the row
     with no cwd and no git_repo_root, so the sidebar could never place the
     session under its project.
     """
@@ -4419,8 +4419,8 @@ def test_ensure_session_db_row_records_a_terminal_workspace(monkeypatch, tmp_pat
 
     monkeypatch.setattr(server, "_get_db", lambda: _FakeDB())
     monkeypatch.setattr(server, "_resolve_model", lambda: "test-model")
-    monkeypatch.delenv("FREEIDE_DESKTOP", raising=False)
-    monkeypatch.delenv("FREEIDE_DESKTOP_TERMINAL", raising=False)
+    monkeypatch.delenv("JETTSTUI_DESKTOP", raising=False)
+    monkeypatch.delenv("JETTSTUI_DESKTOP_TERMINAL", raising=False)
 
     server._ensure_session_db_row({"session_key": "k1", "cwd": str(tmp_path)})
 
@@ -4523,7 +4523,7 @@ def test_ensure_session_db_row_stamps_profile_name(monkeypatch, tmp_path):
         def close(self):
             pass
 
-    monkeypatch.setattr("freeide_state.SessionDB", _ProfileDB)
+    monkeypatch.setattr("jettstui_state.SessionDB", _ProfileDB)
     monkeypatch.setattr(server, "_resolve_model", lambda: "test-model")
 
     server._ensure_session_db_row(
@@ -4914,7 +4914,7 @@ def test_config_set_yolo_global_scope_writes_approvals_mode(tmp_path, monkeypatc
 
     cfg_path = tmp_path / "config.yaml"
     cfg_path.write_text(yaml.safe_dump({"approvals": {"mode": "manual"}}))
-    monkeypatch.setattr(server, "_freeide_home", tmp_path)
+    monkeypatch.setattr(server, "_jettstui_home", tmp_path)
 
     resp_on = server.handle_request(
         {
@@ -4943,7 +4943,7 @@ def test_config_get_approval_mode_uses_smart_default_when_key_is_missing(
 ):
     import yaml
 
-    monkeypatch.setattr(server, "_freeide_home", tmp_path)
+    monkeypatch.setattr(server, "_jettstui_home", tmp_path)
     (tmp_path / "config.yaml").write_text(
         yaml.safe_dump({"approvals": {"timeout": 15}})
     )
@@ -4959,7 +4959,7 @@ def test_config_get_approval_mode_fails_safe_to_manual_for_invalid_explicit_valu
 ):
     import yaml
 
-    monkeypatch.setattr(server, "_freeide_home", tmp_path)
+    monkeypatch.setattr(server, "_jettstui_home", tmp_path)
     (tmp_path / "config.yaml").write_text(
         yaml.safe_dump({"approvals": {"mode": "sometimes"}})
     )
@@ -4973,7 +4973,7 @@ def test_config_get_approval_mode_fails_safe_to_manual_for_invalid_explicit_valu
 def test_config_get_approval_mode_normalizes_yaml_off(tmp_path, monkeypatch):
     import yaml
 
-    monkeypatch.setattr(server, "_freeide_home", tmp_path)
+    monkeypatch.setattr(server, "_jettstui_home", tmp_path)
     (tmp_path / "config.yaml").write_text(
         yaml.safe_dump({"approvals": {"mode": False}})
     )
@@ -4989,7 +4989,7 @@ def test_config_set_approval_mode_persists_three_way_value_and_emits_live_status
 ):
     import yaml
 
-    monkeypatch.setattr(server, "_freeide_home", tmp_path)
+    monkeypatch.setattr(server, "_jettstui_home", tmp_path)
     emitted = []
     monkeypatch.setattr(server, "_emit", lambda *args: emitted.append(args))
     server._sessions["sid"] = {"agent": object(), "session_key": "profile-session"}
@@ -5033,7 +5033,7 @@ def test_config_set_yolo_global_scope_honors_explicit_value(tmp_path, monkeypatc
 
     cfg_path = tmp_path / "config.yaml"
     cfg_path.write_text(yaml.safe_dump({"approvals": {"mode": "manual"}}))
-    monkeypatch.setattr(server, "_freeide_home", tmp_path)
+    monkeypatch.setattr(server, "_jettstui_home", tmp_path)
 
     resp = server.handle_request(
         {
@@ -5079,7 +5079,7 @@ def test_config_set_fast_updates_live_agent_session_scoped(monkeypatch):
     monkeypatch.setattr(server, "_session_info", lambda _agent, *a: {"model": "x"})
     monkeypatch.setattr(server, "_emit", lambda *args: emits.append(args))
     monkeypatch.setattr(
-        "freeide_cli.models.resolve_fast_mode_overrides",
+        "jettstui.models.resolve_fast_mode_overrides",
         lambda _model_id: {"service_tier": "priority"},
     )
 
@@ -5158,7 +5158,7 @@ def test_config_set_fast_rejects_unsupported_model(monkeypatch):
         server, "_write_config_key", lambda path, value: writes.append((path, value))
     )
     monkeypatch.setattr(
-        "freeide_cli.models.resolve_fast_mode_overrides",
+        "jettstui.models.resolve_fast_mode_overrides",
         lambda _model_id: None,
     )
 
@@ -5238,7 +5238,7 @@ def test_config_busy_get_and_set(monkeypatch):
 
 
 def test_config_set_yolo_process_scope_treats_false_like_env_as_disabled(monkeypatch):
-    monkeypatch.setenv("FREEIDE_YOLO_MODE", "false")
+    monkeypatch.setenv("JETTSTUI_YOLO_MODE", "false")
 
     resp = server.handle_request(
         {
@@ -5249,7 +5249,7 @@ def test_config_set_yolo_process_scope_treats_false_like_env_as_disabled(monkeyp
     )
 
     assert resp["result"]["value"] == "1"
-    assert os.environ.get("FREEIDE_YOLO_MODE") == "1"
+    assert os.environ.get("JETTSTUI_YOLO_MODE") == "1"
 
 
 def test_config_get_statusbar_survives_non_dict_display(monkeypatch):
@@ -5277,7 +5277,7 @@ def test_config_set_statusbar_survives_non_dict_display(tmp_path, monkeypatch):
 
     cfg_path = tmp_path / "config.yaml"
     cfg_path.write_text(yaml.safe_dump({"display": "broken"}))
-    monkeypatch.setattr(server, "_freeide_home", tmp_path)
+    monkeypatch.setattr(server, "_jettstui_home", tmp_path)
 
     resp = server.handle_request(
         {
@@ -5301,7 +5301,7 @@ def test_config_set_details_mode_pins_all_sections(tmp_path, monkeypatch):
             {"display": {"sections": {"tools": "expanded", "activity": "hidden"}}}
         )
     )
-    monkeypatch.setattr(server, "_freeide_home", tmp_path)
+    monkeypatch.setattr(server, "_jettstui_home", tmp_path)
 
     resp = server.handle_request(
         {
@@ -5326,7 +5326,7 @@ def test_config_set_section_writes_per_section_override(tmp_path, monkeypatch):
     import yaml
 
     cfg_path = tmp_path / "config.yaml"
-    monkeypatch.setattr(server, "_freeide_home", tmp_path)
+    monkeypatch.setattr(server, "_jettstui_home", tmp_path)
 
     resp = server.handle_request(
         {
@@ -5350,7 +5350,7 @@ def test_config_set_section_clears_override_on_empty_value(tmp_path, monkeypatch
             {"display": {"sections": {"activity": "hidden", "tools": "expanded"}}}
         )
     )
-    monkeypatch.setattr(server, "_freeide_home", tmp_path)
+    monkeypatch.setattr(server, "_jettstui_home", tmp_path)
 
     resp = server.handle_request(
         {
@@ -5366,7 +5366,7 @@ def test_config_set_section_clears_override_on_empty_value(tmp_path, monkeypatch
 
 
 def test_config_set_section_rejects_unknown_section_or_mode(tmp_path, monkeypatch):
-    monkeypatch.setattr(server, "_freeide_home", tmp_path)
+    monkeypatch.setattr(server, "_jettstui_home", tmp_path)
 
     bad_section = server.handle_request(
         {
@@ -5467,19 +5467,19 @@ def test_config_mouse_accepts_preset_strings_and_aliases(monkeypatch):
 
 
 def test_enable_gateway_prompts_sets_gateway_env(monkeypatch):
-    monkeypatch.delenv("FREEIDE_EXEC_ASK", raising=False)
-    monkeypatch.delenv("FREEIDE_GATEWAY_SESSION", raising=False)
-    monkeypatch.delenv("FREEIDE_INTERACTIVE", raising=False)
+    monkeypatch.delenv("JETTSTUI_EXEC_ASK", raising=False)
+    monkeypatch.delenv("JETTSTUI_GATEWAY_SESSION", raising=False)
+    monkeypatch.delenv("JETTSTUI_INTERACTIVE", raising=False)
 
     server._enable_gateway_prompts()
 
-    assert server.os.environ["FREEIDE_GATEWAY_SESSION"] == "1"
-    assert server.os.environ["FREEIDE_EXEC_ASK"] == "1"
-    assert server.os.environ["FREEIDE_INTERACTIVE"] == "1"
+    assert server.os.environ["JETTSTUI_GATEWAY_SESSION"] == "1"
+    assert server.os.environ["JETTSTUI_EXEC_ASK"] == "1"
+    assert server.os.environ["JETTSTUI_INTERACTIVE"] == "1"
 
 
 def test_setup_status_reports_provider_config(monkeypatch):
-    monkeypatch.setattr("freeide_cli.main._has_any_provider_configured", lambda: False)
+    monkeypatch.setattr("jettstui.main._has_any_provider_configured", lambda: False)
 
     resp = server.handle_request({"id": "1", "method": "setup.status", "params": {}})
 
@@ -5501,9 +5501,9 @@ def test_probe_credentials_allows_keyless_custom_runtime():
 
 
 def test_setup_runtime_check_rejects_empty_runtime_key(monkeypatch):
-    monkeypatch.setattr("freeide_cli.main._has_any_provider_configured", lambda: True)
+    monkeypatch.setattr("jettstui.main._has_any_provider_configured", lambda: True)
     monkeypatch.setattr(
-        "freeide_cli.runtime_provider.resolve_runtime_provider",
+        "jettstui.runtime_provider.resolve_runtime_provider",
         lambda requested=None: {
             "provider": "openrouter",
             "api_key": "",
@@ -5523,9 +5523,9 @@ def test_setup_runtime_check_rejects_empty_runtime_key(monkeypatch):
 
 
 def test_setup_runtime_check_allows_no_key_custom_runtime(monkeypatch):
-    monkeypatch.setattr("freeide_cli.main._has_any_provider_configured", lambda: True)
+    monkeypatch.setattr("jettstui.main._has_any_provider_configured", lambda: True)
     monkeypatch.setattr(
-        "freeide_cli.runtime_provider.resolve_runtime_provider",
+        "jettstui.runtime_provider.resolve_runtime_provider",
         lambda requested=None: {
             "provider": "custom",
             "api_key": "no-key-required",
@@ -5540,9 +5540,9 @@ def test_setup_runtime_check_allows_no_key_custom_runtime(monkeypatch):
 
 
 def test_setup_runtime_check_rejects_implicit_bedrock_when_unconfigured(monkeypatch):
-    monkeypatch.setattr("freeide_cli.main._has_any_provider_configured", lambda: False)
+    monkeypatch.setattr("jettstui.main._has_any_provider_configured", lambda: False)
     monkeypatch.setattr(
-        "freeide_cli.runtime_provider.resolve_runtime_provider",
+        "jettstui.runtime_provider.resolve_runtime_provider",
         lambda requested=None: {
             "provider": "bedrock",
             "api_key": "aws-sdk",
@@ -5558,7 +5558,7 @@ def test_setup_runtime_check_rejects_implicit_bedrock_when_unconfigured(monkeypa
 
 def test_setup_runtime_check_honors_requested_provider(monkeypatch):
     """Onboarding must be able to validate the provider the user just connected."""
-    monkeypatch.setattr("freeide_cli.main._has_any_provider_configured", lambda: True)
+    monkeypatch.setattr("jettstui.main._has_any_provider_configured", lambda: True)
 
     def fake_resolve(requested=None, **kwargs):
         if requested == "nous":
@@ -5574,7 +5574,7 @@ def test_setup_runtime_check_honors_requested_provider(monkeypatch):
         }
 
     monkeypatch.setattr(
-        "freeide_cli.runtime_provider.resolve_runtime_provider",
+        "jettstui.runtime_provider.resolve_runtime_provider",
         fake_resolve,
     )
 
@@ -5673,7 +5673,7 @@ def test_complete_slash_reasoning_includes_current_efforts_and_global_scope():
 
 
 def test_config_set_reasoning_updates_live_session_and_agent(tmp_path, monkeypatch):
-    monkeypatch.setattr(server, "_freeide_home", tmp_path)
+    monkeypatch.setattr(server, "_jettstui_home", tmp_path)
     (tmp_path / "config.yaml").write_text("agent:\n  reasoning_effort: medium\n", encoding="utf-8")
     agent = types.SimpleNamespace(reasoning_config=None)
     server._sessions["sid"] = _session(agent=agent)
@@ -5770,7 +5770,7 @@ def test_config_set_reasoning_updates_live_session_and_agent(tmp_path, monkeypat
 
 
 def test_config_set_reasoning_global_scope_clears_session_override(tmp_path, monkeypatch):
-    monkeypatch.setattr(server, "_freeide_home", tmp_path)
+    monkeypatch.setattr(server, "_jettstui_home", tmp_path)
     (tmp_path / "config.yaml").write_text("agent:\n  reasoning_effort: medium\n", encoding="utf-8")
     agent = types.SimpleNamespace(reasoning_config=None)
     server._sessions["sid"] = _session(agent=agent)
@@ -5800,7 +5800,7 @@ def test_config_set_reasoning_global_scope_clears_session_override(tmp_path, mon
 
 
 def test_config_set_verbose_updates_session_mode_and_agent(tmp_path, monkeypatch):
-    monkeypatch.setattr(server, "_freeide_home", tmp_path)
+    monkeypatch.setattr(server, "_jettstui_home", tmp_path)
     agent = types.SimpleNamespace(verbose_logging=False)
     server._sessions["sid"] = _session(agent=agent)
 
@@ -5910,7 +5910,7 @@ def test_config_set_model_requires_confirmation_for_expensive_model(monkeypatch)
     agent = _Agent()
     server._sessions["sid"] = _session(agent=agent)
     monkeypatch.setattr(
-        "freeide_cli.model_switch.switch_model", lambda **_kwargs: result
+        "jettstui.model_switch.switch_model", lambda **_kwargs: result
     )
     monkeypatch.setattr(server, "_restart_slash_worker", lambda sid, session: None)
     monkeypatch.setattr(server, "_emit", lambda *args, **kwargs: None)
@@ -5976,12 +5976,12 @@ def test_config_set_model_global_persists(monkeypatch):
         return result
 
     server._sessions["sid"] = _session(agent=_Agent())
-    monkeypatch.setattr("freeide_cli.model_switch.switch_model", _switch_model)
+    monkeypatch.setattr("jettstui.model_switch.switch_model", _switch_model)
     monkeypatch.setattr(server, "_restart_slash_worker", lambda sid, session: None)
     monkeypatch.setattr(server, "_emit", lambda *args, **kwargs: None)
     # _persist_model_switch uses targeted save_config_value writes (#48305) so it
     # preserves sibling model.* keys instead of rewriting the whole block.
-    monkeypatch.setattr("freeide_cli.config_edit.save_config_value", lambda key, value: saved_values.__setitem__(key, value) or True)
+    monkeypatch.setattr("jettstui.config_edit.save_config_value", lambda key, value: saved_values.__setitem__(key, value) or True)
 
     resp = server.handle_request(
         {
@@ -6025,7 +6025,7 @@ def test_config_set_model_explicit_provider_skips_broken_default_init(monkeypatc
             }
         raise RuntimeError(f"unexpected provider {requested}")
 
-    monkeypatch.setattr("freeide_cli.runtime_provider.resolve_runtime_provider", fake_runtime_provider)
+    monkeypatch.setattr("jettstui.runtime_provider.resolve_runtime_provider", fake_runtime_provider)
 
     try:
         resp = server.handle_request(
@@ -6066,7 +6066,7 @@ def test_config_set_model_explicit_provider_surfaces_selected_provider_errors(mo
             raise RuntimeError("missing anthropic API key")
         raise RuntimeError(f"unexpected provider {requested}")
 
-    monkeypatch.setattr("freeide_cli.runtime_provider.resolve_runtime_provider", fake_runtime_provider)
+    monkeypatch.setattr("jettstui.runtime_provider.resolve_runtime_provider", fake_runtime_provider)
 
     try:
         resp = server.handle_request(
@@ -6093,7 +6093,7 @@ def test_config_set_model_explicit_provider_surfaces_selected_provider_errors(mo
 def test_config_set_model_does_not_leak_inference_provider_env(monkeypatch):
     """A /model switch must NOT mutate process-global env vars. The desktop /
     dashboard tui_gateway backend hosts every same-profile session in one
-    process; writing FREEIDE_INFERENCE_PROVIDER on a switch leaked the new
+    process; writing JETTSTUI_INFERENCE_PROVIDER on a switch leaked the new
     provider into every other live session's next agent rebuild. The switch
     must instead record a per-session override and leave shared env untouched.
 
@@ -6122,9 +6122,9 @@ def test_config_set_model_does_not_leak_inference_provider_env(monkeypatch):
 
     session = _session(agent=_Agent())
     server._sessions["sid"] = session
-    monkeypatch.setenv("FREEIDE_INFERENCE_PROVIDER", "openrouter")
+    monkeypatch.setenv("JETTSTUI_INFERENCE_PROVIDER", "openrouter")
     monkeypatch.setattr(
-        "freeide_cli.model_switch.switch_model", lambda **_kwargs: result
+        "jettstui.model_switch.switch_model", lambda **_kwargs: result
     )
     monkeypatch.setattr(server, "_restart_slash_worker", lambda sid, session: None)
     monkeypatch.setattr(server, "_emit", lambda *args, **kwargs: None)
@@ -6143,7 +6143,7 @@ def test_config_set_model_does_not_leak_inference_provider_env(monkeypatch):
         )
 
         # Shared process env is UNCHANGED (the contamination vector is gone).
-        assert os.environ["FREEIDE_INFERENCE_PROVIDER"] == "openrouter"
+        assert os.environ["JETTSTUI_INFERENCE_PROVIDER"] == "openrouter"
         # The switch was recorded as a per-session override instead.
         assert session["model_override"]["provider"] == "anthropic"
         assert session["model_override"]["model"] == "claude-sonnet-4.6"
@@ -6182,10 +6182,10 @@ def test_config_set_model_records_per_session_override_not_env(monkeypatch):
 
     session = _session(agent=_Agent())
     server._sessions["sid"] = session
-    monkeypatch.delenv("FREEIDE_TUI_PROVIDER", raising=False)
-    monkeypatch.delenv("FREEIDE_INFERENCE_PROVIDER", raising=False)
+    monkeypatch.delenv("JETTSTUI_TUI_PROVIDER", raising=False)
+    monkeypatch.delenv("JETTSTUI_INFERENCE_PROVIDER", raising=False)
     monkeypatch.setattr(
-        "freeide_cli.model_switch.switch_model", lambda **_kwargs: result
+        "jettstui.model_switch.switch_model", lambda **_kwargs: result
     )
     monkeypatch.setattr(server, "_restart_slash_worker", lambda sid, session: None)
     monkeypatch.setattr(server, "_emit", lambda *args, **kwargs: None)
@@ -6204,8 +6204,8 @@ def test_config_set_model_records_per_session_override_not_env(monkeypatch):
         )
 
         # No process-global env mutation.
-        assert "FREEIDE_TUI_PROVIDER" not in os.environ
-        assert "FREEIDE_INFERENCE_PROVIDER" not in os.environ
+        assert "JETTSTUI_TUI_PROVIDER" not in os.environ
+        assert "JETTSTUI_INFERENCE_PROVIDER" not in os.environ
         # The user's explicit provider + resolved endpoint live on the session,
         # carried into the next /new rebuild by _make_agent.
         override = session["model_override"]
@@ -6220,7 +6220,7 @@ def test_config_set_model_records_per_session_override_not_env(monkeypatch):
 
 def test_config_set_model_switches_agent_without_touching_env(monkeypatch):
     """A /model switch mutates the target session's agent in place and records
-    a per-session override; it does NOT write FREEIDE_MODEL / FREEIDE_TUI_PROVIDER
+    a per-session override; it does NOT write JETTSTUI_MODEL / JETTSTUI_TUI_PROVIDER
     etc. into the shared process environment.
 
     (Was test_config_set_model_syncs_tui_provider_env.)
@@ -6266,9 +6266,9 @@ def test_config_set_model_switches_agent_without_touching_env(monkeypatch):
     agent._session_db = db
     session = _session(agent=agent)
     server._sessions["sid"] = session
-    monkeypatch.setenv("FREEIDE_TUI_PROVIDER", "openai-codex")
-    monkeypatch.delenv("FREEIDE_MODEL", raising=False)
-    monkeypatch.delenv("FREEIDE_INFERENCE_MODEL", raising=False)
+    monkeypatch.setenv("JETTSTUI_TUI_PROVIDER", "openai-codex")
+    monkeypatch.delenv("JETTSTUI_MODEL", raising=False)
+    monkeypatch.delenv("JETTSTUI_INFERENCE_MODEL", raising=False)
     monkeypatch.setattr(server, "_restart_slash_worker", lambda sid, session: None)
     monkeypatch.setattr(server, "_emit", lambda *args, **kwargs: None)
 
@@ -6283,7 +6283,7 @@ def test_config_set_model_switches_agent_without_touching_env(monkeypatch):
             warning_message="",
         )
 
-    monkeypatch.setattr("freeide_cli.model_switch.switch_model", fake_switch_model)
+    monkeypatch.setattr("jettstui.model_switch.switch_model", fake_switch_model)
 
     try:
         resp = server.handle_request(
@@ -6321,9 +6321,9 @@ def test_config_set_model_switches_agent_without_touching_env(monkeypatch):
             "content": session["history"][-1]["content"],
         }
         # ...and the shared process env was NOT touched.
-        assert os.environ["FREEIDE_TUI_PROVIDER"] == "openai-codex"
-        assert "FREEIDE_MODEL" not in os.environ
-        assert "FREEIDE_INFERENCE_MODEL" not in os.environ
+        assert os.environ["JETTSTUI_TUI_PROVIDER"] == "openai-codex"
+        assert "JETTSTUI_MODEL" not in os.environ
+        assert "JETTSTUI_INFERENCE_MODEL" not in os.environ
     finally:
         server._sessions.clear()
 
@@ -6356,10 +6356,10 @@ def test_config_set_model_once_keeps_env_and_records_restore(monkeypatch):
     agent = Agent()
     session = _session(agent=agent)
     server._sessions["sid"] = session
-    monkeypatch.setenv("FREEIDE_INFERENCE_PROVIDER", "openrouter")
-    monkeypatch.setenv("FREEIDE_MODEL", "old/model")
+    monkeypatch.setenv("JETTSTUI_INFERENCE_PROVIDER", "openrouter")
+    monkeypatch.setenv("JETTSTUI_MODEL", "old/model")
     monkeypatch.setattr(
-        "freeide_cli.model_switch.switch_model",
+        "jettstui.model_switch.switch_model",
         lambda **kwargs: seen.update(kwargs) or result,
     )
     monkeypatch.setattr(server, "_restart_slash_worker", lambda *args, **kwargs: None)
@@ -6382,15 +6382,15 @@ def test_config_set_model_once_keeps_env_and_records_restore(monkeypatch):
         assert seen["is_global"] is False
         assert agent.model == "claude-sonnet-4.6"
         assert session["one_turn_model_restore"]["model"] == "old/model"
-        assert os.environ["FREEIDE_INFERENCE_PROVIDER"] == "openrouter"
-        assert os.environ["FREEIDE_MODEL"] == "old/model"
+        assert os.environ["JETTSTUI_INFERENCE_PROVIDER"] == "openrouter"
+        assert os.environ["JETTSTUI_MODEL"] == "old/model"
     finally:
         server._sessions.clear()
 
 
 def test_config_set_model_once_requires_live_session(monkeypatch):
     monkeypatch.setattr(
-        "freeide_cli.model_switch.switch_model",
+        "jettstui.model_switch.switch_model",
         lambda **_: (_ for _ in ()).throw(AssertionError("switch should not run")),
     )
 
@@ -6436,7 +6436,7 @@ def test_config_set_model_session_switch_clears_pending_once_restore(monkeypatch
     session = _session(agent=Agent())
     session["one_turn_model_restore"] = {"model": "old/model"}
     server._sessions["sid"] = session
-    monkeypatch.setattr("freeide_cli.model_switch.switch_model", lambda **_kwargs: result)
+    monkeypatch.setattr("jettstui.model_switch.switch_model", lambda **_kwargs: result)
     monkeypatch.setattr(server, "_restart_slash_worker", lambda *args, **kwargs: None)
     monkeypatch.setattr(server, "_emit", lambda *args, **kwargs: None)
 
@@ -7111,14 +7111,14 @@ def test_prompt_submit_expands_context_refs(monkeypatch):
 
 
 def test_image_attach_appends_local_image(monkeypatch):
-    monkeypatch.setattr("freeide_cli.attachments._IMAGE_EXTENSIONS", {".png"})
-    monkeypatch.setattr("freeide_cli.attachments._detect_file_drop", lambda raw: {
+    monkeypatch.setattr("jettstui.attachments._IMAGE_EXTENSIONS", {".png"})
+    monkeypatch.setattr("jettstui.attachments._detect_file_drop", lambda raw: {
         "path": Path("/tmp/cat.png"),
         "is_image": True,
         "remainder": "",
     })
-    monkeypatch.setattr("freeide_cli.attachments._split_path_input", lambda raw: (raw, ""))
-    monkeypatch.setattr("freeide_cli.attachments._resolve_attachment_path", lambda raw: Path("/tmp/cat.png"))
+    monkeypatch.setattr("jettstui.attachments._split_path_input", lambda raw: (raw, ""))
+    monkeypatch.setattr("jettstui.attachments._resolve_attachment_path", lambda raw: Path("/tmp/cat.png"))
 
     server._sessions["sid"] = _session()
 
@@ -7181,11 +7181,11 @@ def test_file_attach_uploads_remote_file_into_session_workspace(monkeypatch, tmp
             }
         )
 
-        stored = workspace / ".freeide" / "desktop-attachments" / "report.txt"
+        stored = workspace / ".jettstui" / "desktop-attachments" / "report.txt"
         assert resp["result"]["attached"] is True
         assert resp["result"]["uploaded"] is True
         assert resp["result"]["path"] == str(stored)
-        assert resp["result"]["ref_text"] == "@file:.freeide/desktop-attachments/report.txt"
+        assert resp["result"]["ref_text"] == "@file:.jettstui/desktop-attachments/report.txt"
         assert stored.read_text(encoding="utf-8") == "hello world"
     finally:
         server._sessions.pop("sid", None)
@@ -7214,10 +7214,10 @@ def test_file_attach_copies_gateway_visible_file_outside_workspace(monkeypatch, 
             }
         )
 
-        stored = workspace / ".freeide" / "desktop-attachments" / "outside.txt"
+        stored = workspace / ".jettstui" / "desktop-attachments" / "outside.txt"
         assert resp["result"]["attached"] is True
         assert resp["result"]["uploaded"] is True
-        assert resp["result"]["ref_text"] == "@file:.freeide/desktop-attachments/outside.txt"
+        assert resp["result"]["ref_text"] == "@file:.jettstui/desktop-attachments/outside.txt"
         assert stored.read_text(encoding="utf-8") == "outside workspace"
     finally:
         server._sessions.pop("sid", None)
@@ -7250,7 +7250,7 @@ def test_file_attach_uses_in_workspace_file_without_copying(monkeypatch, tmp_pat
         assert resp["result"]["uploaded"] is False
         assert resp["result"]["ref_text"] == "@file:data/exam.csv"
         # No copy: nothing staged under desktop-attachments.
-        assert not (workspace / ".freeide" / "desktop-attachments").exists()
+        assert not (workspace / ".jettstui" / "desktop-attachments").exists()
     finally:
         server._sessions.pop("sid", None)
 
@@ -7308,7 +7308,7 @@ def test_file_attach_quotes_ref_with_spaces(monkeypatch, tmp_path):
         )
 
         assert resp["result"]["attached"] is True
-        assert resp["result"]["ref_text"] == "@file:`.freeide/desktop-attachments/my exam schedule.csv`"
+        assert resp["result"]["ref_text"] == "@file:`.jettstui/desktop-attachments/my exam schedule.csv`"
     finally:
         server._sessions.pop("sid", None)
 
@@ -7452,7 +7452,7 @@ def test_session_status_reads_live_gateway_agent(monkeypatch):
         server._sessions.pop("sid", None)
 
     out = resp["result"]["output"]
-    assert "FreeIDE TUI Status" in out
+    assert "JettsTUI TUI Status" in out
     assert "Session ID: session-key" in out
     assert "Title: Live TUI" in out
     assert "Model: live-model (live-provider)" in out
@@ -7523,7 +7523,7 @@ def test_command_dispatch_routes_spec_and_brain_without_a_slash_worker(tmp_path,
     session["cwd"] = str(tmp_path)
     server._sessions["sid"] = session
     monkeypatch.setattr(
-        "freeide_cli.brain.handle_brain_slash",
+        "jettstui.brain.handle_brain_slash",
         lambda command, cwd: types.SimpleNamespace(text="Brain status", prompt=None),
     )
     try:
@@ -7572,7 +7572,7 @@ def test_command_dispatch_exec_nonzero_surfaces_error(monkeypatch):
 
 
 def test_plugins_list_surfaces_loader_error(monkeypatch):
-    with patch("freeide_cli.plugins.get_plugin_manager", side_effect=Exception("boom")):
+    with patch("jettstui.plugins.get_plugin_manager", side_effect=Exception("boom")):
         resp = server.handle_request(
             {"id": "1", "method": "plugins.list", "params": {}}
         )
@@ -7583,7 +7583,7 @@ def test_plugins_list_surfaces_loader_error(monkeypatch):
 
 def test_complete_slash_surfaces_completer_error(monkeypatch):
     with patch(
-        "freeide_cli.commands.SlashCommandCompleter",
+        "jettstui.commands.SlashCommandCompleter",
         side_effect=Exception("no completer"),
     ):
         resp = server.handle_request(
@@ -9563,14 +9563,14 @@ def test_session_create_no_race_keeps_worker_alive(monkeypatch):
 
 
 def test_get_db_degrades_cleanly_when_sessiondb_init_fails(monkeypatch):
-    fake_mod = types.ModuleType("freeide_state")
+    fake_mod = types.ModuleType("jettstui_state")
 
     class _BrokenSessionDB:
         def __init__(self):
             raise RuntimeError("locking protocol")
 
     fake_mod.SessionDB = _BrokenSessionDB
-    monkeypatch.setitem(sys.modules, "freeide_state", fake_mod)
+    monkeypatch.setitem(sys.modules, "jettstui_state", fake_mod)
     monkeypatch.setattr(server, "_db", None)
     monkeypatch.setattr(server, "_db_error", None)
 
@@ -9802,8 +9802,8 @@ def test_session_delete_success_returns_deleted_id(monkeypatch):
     assert resp["result"] == {"deleted": "old-1"}
     assert captured["sid"] == "old-1"
     # sessions_dir must be forwarded so transcript files get cleaned up
-    # too — not just the SQLite row.  The autouse _isolate_freeide_home
-    # fixture pins FREEIDE_HOME to a temp dir; the handler should append
+    # too — not just the SQLite row.  The autouse _isolate_jettstui_home
+    # fixture pins JETTSTUI_HOME to a temp dir; the handler should append
     # /sessions to it.
     assert captured["sessions_dir"] is not None
     assert str(captured["sessions_dir"]).endswith("sessions")
@@ -9850,7 +9850,7 @@ def test_session_list_honors_params_profile_opens_profile_db(monkeypatch, tmp_pa
 
     monkeypatch.setattr(server, "_profile_home", lambda p: profile_home if p == "mlperf" else None)
     monkeypatch.setattr(server, "_get_db", lambda: LaunchDB())
-    monkeypatch.setattr("freeide_state.SessionDB", ProfileDB)
+    monkeypatch.setattr("jettstui_state.SessionDB", ProfileDB)
 
     resp = server.handle_request(
         {
@@ -9891,7 +9891,7 @@ def test_session_most_recent_honors_params_profile(monkeypatch, tmp_path):
 
     monkeypatch.setattr(server, "_profile_home", lambda p: profile_home if p == "mlperf" else None)
     monkeypatch.setattr(server, "_get_db", lambda: LaunchDB())
-    monkeypatch.setattr("freeide_state.SessionDB", ProfileDB2)
+    monkeypatch.setattr("jettstui_state.SessionDB", ProfileDB2)
 
     resp = server.handle_request(
         {
@@ -9951,7 +9951,7 @@ def test_session_delete_honors_params_profile_sessions_dir(monkeypatch, tmp_path
 
     monkeypatch.setattr(server, "_profile_home", lambda p: profile_home if p == "mlperf" else None)
     monkeypatch.setattr(server, "_get_db", lambda: None)
-    monkeypatch.setattr("freeide_state.SessionDB", ProfileDB)
+    monkeypatch.setattr("jettstui_state.SessionDB", ProfileDB)
 
     resp = server.handle_request(
         {
@@ -10018,7 +10018,7 @@ def test_session_title_uses_session_profile_db_not_launch(monkeypatch, tmp_path)
         "last_active": 1.0,
     }
     monkeypatch.setattr(server, "_get_db", lambda: LaunchDB())
-    monkeypatch.setattr("freeide_state.SessionDB", ProfileDB)
+    monkeypatch.setattr("jettstui_state.SessionDB", ProfileDB)
     try:
         set_resp = server.handle_request(
             {
@@ -10075,7 +10075,7 @@ def test_session_history_uses_session_profile_db(monkeypatch, tmp_path):
         "last_active": 1.0,
     }
     monkeypatch.setattr(server, "_get_db", lambda: LaunchDB())
-    monkeypatch.setattr("freeide_state.SessionDB", ProfileDB)
+    monkeypatch.setattr("jettstui_state.SessionDB", ProfileDB)
     try:
         resp = server.handle_request(
             {"id": "1", "method": "session.history", "params": {"session_id": "sid"}}
@@ -10126,7 +10126,7 @@ def test_session_status_uses_session_profile_db(monkeypatch, tmp_path):
         "last_active": 1.0,
     }
     monkeypatch.setattr(server, "_get_db", lambda: LaunchDB())
-    monkeypatch.setattr("freeide_state.SessionDB", ProfileDB)
+    monkeypatch.setattr("jettstui_state.SessionDB", ProfileDB)
     try:
         resp = server.handle_request(
             {"id": "1", "method": "session.status", "params": {"session_id": "sid"}}
@@ -10168,7 +10168,7 @@ def test_teardown_ends_session_in_profile_db(monkeypatch, tmp_path):
             seen["closed"] = True
 
     monkeypatch.setattr(server, "_get_db", lambda: LaunchDB())
-    monkeypatch.setattr("freeide_state.SessionDB", ProfileDB)
+    monkeypatch.setattr("jettstui_state.SessionDB", ProfileDB)
     session = {
         "session_key": "ml-sess",
         "profile_home": str(profile_home),
@@ -10256,7 +10256,7 @@ def test_session_branch_writes_to_parent_profile_db(monkeypatch, tmp_path):
     }
     server._sessions["parent"] = parent
     monkeypatch.setattr(server, "_get_db", lambda: LaunchDB())
-    monkeypatch.setattr("freeide_state.SessionDB", ProfileDB)
+    monkeypatch.setattr("jettstui_state.SessionDB", ProfileDB)
     monkeypatch.setattr(server, "_claim_active_session_slot", lambda *a, **k: (None, None))
 
     def _fake_make_agent(*a, **k):
@@ -10322,7 +10322,7 @@ def test_pending_title_finalizer_uses_session_profile_db(monkeypatch, tmp_path):
             seen["closed"] = True
 
     monkeypatch.setattr(server, "_get_db", lambda: LaunchDB())
-    monkeypatch.setattr("freeide_state.SessionDB", ProfileDB)
+    monkeypatch.setattr("jettstui_state.SessionDB", ProfileDB)
     session = {
         "session_key": "ml-sess",
         "pending_title": "deferred-title",
@@ -10340,13 +10340,13 @@ def test_pending_title_finalizer_uses_session_profile_db(monkeypatch, tmp_path):
 
 
 # --------------------------------------------------------------------------
-# model.options — curated-list parity with `freeide model` and classic /model
+# model.options — curated-list parity with `jettstui model` and classic /model
 # --------------------------------------------------------------------------
 
 
 def test_model_options_does_not_overwrite_curated_models(monkeypatch):
     """The TUI model.options handler must surface the same curated model
-    list as `freeide model` and the classic CLI /model picker.
+    list as `jettstui model` and the classic CLI /model picker.
 
     Regression: earlier versions of this handler unconditionally replaced
     each provider's curated ``models`` field with ``provider_model_ids()``
@@ -10373,13 +10373,13 @@ def test_model_options_does_not_overwrite_curated_models(monkeypatch):
     )
 
     with patch(
-        "freeide_cli.model_switch.list_authenticated_providers",
+        "jettstui.model_switch.list_authenticated_providers",
         return_value=curated_providers,
     ) as listing:
         # If provider_model_ids gets called at all, the handler is still
         # overwriting curated with live — that's the regression we're
         # guarding against.
-        with patch("freeide_cli.models.provider_model_ids") as live_fetch:
+        with patch("jettstui.models.provider_model_ids") as live_fetch:
             resp = server._methods["model.options"](99, {"session_id": ""})
 
     assert "result" in resp, resp
@@ -10408,7 +10408,7 @@ def test_model_options_propagates_list_exception(monkeypatch):
         lambda: {"providers": {}, "custom_providers": []},
     )
     with patch(
-        "freeide_cli.model_switch.list_authenticated_providers",
+        "jettstui.model_switch.list_authenticated_providers",
         side_effect=RuntimeError("catalog blew up"),
     ):
         resp = server._methods["model.options"](77, {"session_id": ""})
@@ -10418,13 +10418,13 @@ def test_model_options_propagates_list_exception(monkeypatch):
 
 
 def test_model_options_hides_unconfigured_providers_by_default(monkeypatch):
-    from freeide_cli.inventory import ConfigContext
+    from jettstui.inventory import ConfigContext
 
     calls = []
 
     monkeypatch.setattr(server, "_resolve_model", lambda: "")
     monkeypatch.setattr(
-        "freeide_cli.inventory.load_picker_context",
+        "jettstui.inventory.load_picker_context",
         lambda: ConfigContext(
             current_provider="",
             current_model="",
@@ -10439,7 +10439,7 @@ def test_model_options_hides_unconfigured_providers_by_default(monkeypatch):
         return {"providers": [], "model": "", "provider": ""}
 
     monkeypatch.setattr(
-        "freeide_cli.inventory.build_models_payload",
+        "jettstui.inventory.build_models_payload",
         _fake_build_models_payload,
     )
 
@@ -10464,7 +10464,7 @@ def test_model_options_hides_unconfigured_providers_by_default(monkeypatch):
 
 
 def test_model_options_preserves_canonical_custom_row_after_agent_init(monkeypatch):
-    from freeide_cli.inventory import ConfigContext
+    from jettstui.inventory import ConfigContext
 
     class _Agent:
         provider = "custom"
@@ -10474,7 +10474,7 @@ def test_model_options_preserves_canonical_custom_row_after_agent_init(monkeypat
     server._sessions["custom-session"] = _session(agent=_Agent())
     monkeypatch.setattr(server, "_resolve_model", lambda: "")
     monkeypatch.setattr(
-        "freeide_cli.inventory.load_picker_context",
+        "jettstui.inventory.load_picker_context",
         lambda: ConfigContext(
             current_provider="custom:local-ollama",
             current_model="qwen3.6:35b-65k",
@@ -10485,11 +10485,11 @@ def test_model_options_preserves_canonical_custom_row_after_agent_init(monkeypat
     )
     canonical = Mock(return_value="custom:local-ollama")
     monkeypatch.setattr(
-        "freeide_cli.runtime_provider.canonical_custom_identity",
+        "jettstui.runtime_provider.canonical_custom_identity",
         canonical,
     )
     monkeypatch.setattr(
-        "freeide_cli.model_switch.list_authenticated_providers",
+        "jettstui.model_switch.list_authenticated_providers",
         lambda **_kwargs: [
             {
                 "slug": "custom:local-ollama",
@@ -10510,11 +10510,11 @@ def test_model_options_preserves_canonical_custom_row_after_agent_init(monkeypat
         ],
     )
     monkeypatch.setattr(
-        "freeide_cli.auth.is_provider_explicitly_configured",
+        "jettstui.auth.is_provider_explicitly_configured",
         lambda _slug: False,
     )
-    monkeypatch.setattr("freeide_cli.inventory._apply_pricing", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr("freeide_cli.inventory._apply_capabilities", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr("jettstui.inventory._apply_pricing", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr("jettstui.inventory._apply_capabilities", lambda *_args, **_kwargs: None)
 
     resp = server._methods["model.options"](
         102,
@@ -10545,7 +10545,7 @@ def test_model_save_key_uses_credential_lifecycle_and_picker_context(monkeypatch
     }
     server._sessions["save-key-session"] = _session(agent=agent)
     monkeypatch.setattr(
-        "freeide_cli.auth.PROVIDER_REGISTRY",
+        "jettstui.auth.PROVIDER_REGISTRY",
         {
             "test-provider": types.SimpleNamespace(
                 name="Test Provider",
@@ -10554,17 +10554,17 @@ def test_model_save_key_uses_credential_lifecycle_and_picker_context(monkeypatch
             )
         },
     )
-    monkeypatch.setattr("freeide_cli.config.is_managed", lambda: False)
+    monkeypatch.setattr("jettstui.config.is_managed", lambda: False)
     save_credential = Mock()
     monkeypatch.setattr(
-        "freeide_cli.credential_lifecycle.save_provider_env_credential",
+        "jettstui.credential_lifecycle.save_provider_env_credential",
         save_credential,
     )
     picker_context = Mock(return_value=picker_ctx)
     monkeypatch.setattr(server, "_model_picker_context", picker_context)
     build_payload = Mock(return_value={"providers": [provider]})
     monkeypatch.setattr(
-        "freeide_cli.inventory.build_models_payload",
+        "jettstui.inventory.build_models_payload",
         build_payload,
     )
     monkeypatch.setenv(env_var, "previous-value")
@@ -10602,7 +10602,7 @@ def test_model_options_refresh_allows_custom_provider_probes(monkeypatch):
         lambda: {"providers": {}, "custom_providers": []},
     )
     with patch(
-        "freeide_cli.model_switch.list_authenticated_providers",
+        "jettstui.model_switch.list_authenticated_providers",
         return_value=[],
     ) as listing:
         resp = server._methods["model.options"](78, {"session_id": "", "refresh": True})
@@ -10888,7 +10888,7 @@ def test_session_active_list_excludes_finalized_sessions(monkeypatch):
     that window ``session.active_list`` would otherwise still report the dead
     session, which is exactly the footer "N sessions" count that only ever grew
     until a gateway restart. A live session on the real stdio transport (the
-    standalone ``freeide --tui`` case) must still be reported.
+    standalone ``jettstui --tui`` case) must still be reported.
     """
     class _DB:
         def get_session_title(self, key):
@@ -11172,7 +11172,7 @@ def test_verification_status_returns_recorded_evidence(tmp_path, monkeypatch):
     profile_home = tmp_path / "profiles" / "verify"
     profile_home.mkdir(parents=True)
     monkeypatch.setattr(server, "_profile_home", lambda p: profile_home if p == "verify" else None)
-    token = set_freeide_home_override(profile_home)
+    token = set_jettstui_home_override(profile_home)
     project = tmp_path / "project"
     project.mkdir()
     (project / ".git").mkdir()
@@ -11200,7 +11200,7 @@ def test_verification_status_returns_recorded_evidence(tmp_path, monkeypatch):
             }
         )
     finally:
-        reset_freeide_home_override(token)
+        reset_jettstui_home_override(token)
 
     verification = resp["result"]["verification"]
     assert verification["status"] == "passed"
@@ -11219,9 +11219,9 @@ def test_verification_status_outside_workspace_is_not_applicable(monkeypatch, tm
 
     monkeypatch.setattr(coding_context, "project_facts_for", lambda _cwd=None: None)
 
-    home = tmp_path / ".freeide"
+    home = tmp_path / ".jettstui"
     home.mkdir()
-    token = set_freeide_home_override(home)
+    token = set_jettstui_home_override(home)
     try:
         resp = server.handle_request(
             {
@@ -11231,7 +11231,7 @@ def test_verification_status_outside_workspace_is_not_applicable(monkeypatch, tm
             }
         )
     finally:
-        reset_freeide_home_override(token)
+        reset_jettstui_home_override(token)
 
     assert resp["result"]["verification"]["status"] == "not_applicable"
 
@@ -11305,7 +11305,7 @@ def test_browser_manage_status_falls_back_to_config_cdp_url(monkeypatch):
     fake_cfg = types.SimpleNamespace(
         read_raw_config=lambda: {"browser": {"cdp_url": "http://lan:9222"}}
     )
-    with patch.dict(sys.modules, {"freeide_cli.config": fake_cfg}):
+    with patch.dict(sys.modules, {"jettstui.config": fake_cfg}):
         resp = server.handle_request(
             {"id": "1", "method": "browser.manage", "params": {"action": "status"}}
         )
@@ -11404,13 +11404,13 @@ def test_browser_manage_connect_default_local_reports_launch_hint(monkeypatch):
         _stub_urlopen(monkeypatch, ok=False)
         with (
             patch(
-                "freeide_cli.browser_connect.launch_chrome_debug",
+                "jettstui.browser_connect.launch_chrome_debug",
                 return_value=ChromeDebugLaunch(),
             ),
-            patch("freeide_cli.browser_connect.local_port_in_use", return_value=False),
-            patch("freeide_cli.browser_connect.manual_chrome_debug_command", return_value=None),
+            patch("jettstui.browser_connect.local_port_in_use", return_value=False),
+            patch("jettstui.browser_connect.manual_chrome_debug_command", return_value=None),
             patch(
-                "freeide_cli.browser_connect.get_chrome_debug_candidates",
+                "jettstui.browser_connect.get_chrome_debug_candidates",
                 return_value=[],
             ),
         ):
@@ -11463,12 +11463,12 @@ def test_browser_manage_connect_no_session_skips_progress_events(monkeypatch):
         _stub_urlopen(monkeypatch, ok=False)
         with (
             patch(
-                "freeide_cli.browser_connect.launch_chrome_debug",
+                "jettstui.browser_connect.launch_chrome_debug",
                 return_value=ChromeDebugLaunch(),
             ),
-            patch("freeide_cli.browser_connect.manual_chrome_debug_command", return_value=None),
+            patch("jettstui.browser_connect.manual_chrome_debug_command", return_value=None),
             patch(
-                "freeide_cli.browser_connect.get_chrome_debug_candidates",
+                "jettstui.browser_connect.get_chrome_debug_candidates",
                 return_value=[],
             ),
         ):
@@ -11559,10 +11559,10 @@ def test_browser_manage_connect_default_local_retries_after_launch(monkeypatch):
     with patch.dict(sys.modules, {"tools.browser_tool": fake}):
         with (
             patch(
-                "freeide_cli.browser_connect.launch_chrome_debug",
+                "jettstui.browser_connect.launch_chrome_debug",
                 return_value=launched,
             ),
-            patch("freeide_cli.browser_connect.local_port_in_use", return_value=False),
+            patch("jettstui.browser_connect.local_port_in_use", return_value=False),
         ):
             resp = server.handle_request(
                 {"id": "1", "method": "browser.manage", "params": {"action": "connect"}}
@@ -11650,9 +11650,9 @@ def test_browser_manage_connect_squatted_port_launches_on_alternate(monkeypatch)
 
     with patch.dict(sys.modules, {"tools.browser_tool": fake}):
         with (
-            patch("freeide_cli.browser_connect.launch_chrome_debug", side_effect=_launch),
-            patch("freeide_cli.browser_connect.local_port_in_use", return_value=True),
-            patch("freeide_cli.browser_connect.find_free_debug_port", return_value=9223),
+            patch("jettstui.browser_connect.launch_chrome_debug", side_effect=_launch),
+            patch("jettstui.browser_connect.local_port_in_use", return_value=True),
+            patch("jettstui.browser_connect.find_free_debug_port", return_value=9223),
         ):
             resp = server.handle_request(
                 {"id": "1", "method": "browser.manage", "params": {"action": "connect"}}
@@ -12040,8 +12040,8 @@ def test_config_set_indicator_none_keeps_blank_repr(monkeypatch):
 # ── reload.env ───────────────────────────────────────────────────────
 
 
-def test_reload_env_rpc_calls_freeide_cli_reload_env(monkeypatch):
-    """reload.env mirrors classic CLI's `/reload` — re-reads ~/.freeide/.env
+def test_reload_env_rpc_calls_jettstui_reload_env(monkeypatch):
+    """reload.env mirrors classic CLI's `/reload` — re-reads ~/.jettstui/.env
     into the gateway process and reports the count of vars updated."""
     calls = {"n": 0}
 
@@ -12050,7 +12050,7 @@ def test_reload_env_rpc_calls_freeide_cli_reload_env(monkeypatch):
         return 7
 
     fake = types.SimpleNamespace(reload_env=_fake_reload)
-    with patch.dict(sys.modules, {"freeide_cli.config": fake}):
+    with patch.dict(sys.modules, {"jettstui.config": fake}):
         resp = server.handle_request({"id": "1", "method": "reload.env", "params": {}})
 
     assert resp["result"] == {"updated": 7}
@@ -12062,7 +12062,7 @@ def test_reload_env_rpc_surfaces_errors(monkeypatch):
         raise RuntimeError("env path locked")
 
     fake = types.SimpleNamespace(reload_env=_broken)
-    with patch.dict(sys.modules, {"freeide_cli.config": fake}):
+    with patch.dict(sys.modules, {"jettstui.config": fake}):
         resp = server.handle_request({"id": "1", "method": "reload.env", "params": {}})
 
     assert "error" in resp
@@ -12078,7 +12078,7 @@ def _setup_make_agent_mocks(monkeypatch, cfg):
         server, "_resolve_startup_runtime", lambda: ("test-model", None)
     )
     monkeypatch.setattr(
-        "freeide_cli.runtime_provider.resolve_runtime_provider",
+        "jettstui.runtime_provider.resolve_runtime_provider",
         lambda requested=None, target_model=None: {
             "provider": None,
             "base_url": None,
@@ -12110,7 +12110,7 @@ def test_make_agent_waits_for_shared_mcp_discovery(monkeypatch):
     _setup_make_agent_mocks(monkeypatch, {})
     waited = []
 
-    from freeide_cli import mcp_startup
+    from jettstui import mcp_startup
 
     monkeypatch.setattr(
         mcp_startup,
@@ -12162,7 +12162,7 @@ def test_make_agent_uses_session_runtime_overrides(monkeypatch):
         }
 
     monkeypatch.setattr(
-        "freeide_cli.runtime_provider.resolve_runtime_provider",
+        "jettstui.runtime_provider.resolve_runtime_provider",
         fake_resolve_runtime_provider,
     )
 
@@ -12440,18 +12440,18 @@ def test_notification_poller_requeues_when_busy(monkeypatch):
             process_registry.completion_queue.get_nowait()
 
 
-def test_session_save_writes_under_freeide_home_with_system_prompt(monkeypatch, tmp_path):
-    """TUI /save (session.save RPC) must snapshot under the FreeIDE profile
+def test_session_save_writes_under_jettstui_home_with_system_prompt(monkeypatch, tmp_path):
+    """TUI /save (session.save RPC) must snapshot under the JettsTUI profile
     home — not the project/workspace CWD — and include the system prompt,
     mirroring the classic CLI /save and the dashboard save export.
 
-    Regression: the gateway handler wrote ``freeide_conversation_*.json`` to
+    Regression: the gateway handler wrote ``jettstui_conversation_*.json`` to
     ``os.path.abspath(...)`` (the workspace CWD) and only exported ``model``
     and ``messages``, so ``system_prompt`` was missing.
     """
-    home = tmp_path / ".freeide"
+    home = tmp_path / ".jettstui"
     home.mkdir()
-    monkeypatch.setenv("FREEIDE_HOME", str(home))
+    monkeypatch.setenv("JETTSTUI_HOME", str(home))
 
     # Run from a different CWD to prove the snapshot does NOT leak there.
     work = tmp_path / "workspace"
@@ -12460,10 +12460,10 @@ def test_session_save_writes_under_freeide_home_with_system_prompt(monkeypatch, 
 
     sid = "save-sid"
     agent = types.SimpleNamespace(
-        model="freeide-test",
+        model="jettstui-test",
         session_id="20260101_120000_abc123",
         session_start=datetime(2026, 1, 1, 12, 0, 0),
-        _cached_system_prompt="You are FreeIDE.",
+        _cached_system_prompt="You are JettsTUI.",
     )
     history = [
         {"role": "user", "content": "hi"},
@@ -12485,17 +12485,17 @@ def test_session_save_writes_under_freeide_home_with_system_prompt(monkeypatch, 
     saved_file = Path(resp["result"]["file"])
 
     # Must NOT leak into the workspace/project CWD.
-    assert not list(work.glob("freeide_conversation_*.json"))
+    assert not list(work.glob("jettstui_conversation_*.json"))
 
     saved_dir = home / "sessions" / "saved"
     assert saved_file.parent == saved_dir
     assert saved_file.exists()
 
     payload = json.loads(saved_file.read_text())
-    assert payload["model"] == "freeide-test"
+    assert payload["model"] == "jettstui-test"
     assert payload["session_id"] == "20260101_120000_abc123"
     assert payload["session_start"] == "2026-01-01T12:00:00"
-    assert payload["system_prompt"] == "You are FreeIDE."
+    assert payload["system_prompt"] == "You are JettsTUI."
     assert payload["messages"] == history
 
 
@@ -12632,7 +12632,7 @@ def _attach_bytes_cli(monkeypatch):
 def test_image_attach_bytes_writes_to_gateway_dir(monkeypatch, tmp_path):
     """Remote client uploads base64 bytes; gateway writes them to its own disk."""
     _attach_bytes_cli(monkeypatch)
-    monkeypatch.setattr(server, "_freeide_home", tmp_path)
+    monkeypatch.setattr(server, "_jettstui_home", tmp_path)
     server._sessions["abx"] = _session()
 
     resp = server.handle_request(
@@ -12659,7 +12659,7 @@ def test_image_attach_bytes_writes_to_gateway_dir(monkeypatch, tmp_path):
 
 def test_image_attach_bytes_accepts_data_url_prefix(monkeypatch, tmp_path):
     _attach_bytes_cli(monkeypatch)
-    monkeypatch.setattr(server, "_freeide_home", tmp_path)
+    monkeypatch.setattr(server, "_jettstui_home", tmp_path)
     server._sessions["abx2"] = _session()
 
     resp = server.handle_request(
@@ -12678,7 +12678,7 @@ def test_image_attach_bytes_accepts_data_url_prefix(monkeypatch, tmp_path):
 def test_image_attach_bytes_data_alias_and_magic_sniff(monkeypatch, tmp_path):
     """Older desktop builds send `data` (not content_base64); ext sniffed from bytes."""
     _attach_bytes_cli(monkeypatch)
-    monkeypatch.setattr(server, "_freeide_home", tmp_path)
+    monkeypatch.setattr(server, "_jettstui_home", tmp_path)
     server._sessions["abx3"] = _session()
 
     resp = server.handle_request(
@@ -12695,7 +12695,7 @@ def test_image_attach_bytes_data_alias_and_magic_sniff(monkeypatch, tmp_path):
 
 def test_image_attach_bytes_rejects_invalid_base64(monkeypatch, tmp_path):
     _attach_bytes_cli(monkeypatch)
-    monkeypatch.setattr(server, "_freeide_home", tmp_path)
+    monkeypatch.setattr(server, "_jettstui_home", tmp_path)
     server._sessions["abx4"] = _session()
 
     resp = server.handle_request(
@@ -12713,7 +12713,7 @@ def test_image_attach_bytes_rejects_oversize(monkeypatch, tmp_path):
     import base64 as _b64
 
     _attach_bytes_cli(monkeypatch)
-    monkeypatch.setattr(server, "_freeide_home", tmp_path)
+    monkeypatch.setattr(server, "_jettstui_home", tmp_path)
     monkeypatch.setattr(server, "_ATTACH_BYTES_MAX_BYTES", 10)
     server._sessions["abx5"] = _session()
 
@@ -12731,7 +12731,7 @@ def test_image_attach_bytes_rejects_oversize(monkeypatch, tmp_path):
 
 def test_image_attach_bytes_rejects_unsupported_extension(monkeypatch, tmp_path):
     _attach_bytes_cli(monkeypatch)
-    monkeypatch.setattr(server, "_freeide_home", tmp_path)
+    monkeypatch.setattr(server, "_jettstui_home", tmp_path)
     server._sessions["abx6"] = _session()
 
     # filename hint forces a non-image extension; magic sniff is bypassed by hint
@@ -12753,7 +12753,7 @@ def test_image_attach_bytes_rejects_unsupported_extension(monkeypatch, tmp_path)
 def test_pdf_attach_requires_poppler(monkeypatch, tmp_path):
     """Without pdftoppm on PATH, pdf.attach returns a clear 5028."""
     _attach_bytes_cli(monkeypatch)
-    monkeypatch.setattr(server, "_freeide_home", tmp_path)
+    monkeypatch.setattr(server, "_jettstui_home", tmp_path)
     monkeypatch.setattr("shutil.which", lambda _name: None)
     server._sessions["pdf1"] = _session()
 
@@ -12772,7 +12772,7 @@ def test_pdf_attach_rejects_non_pdf_bytes(monkeypatch, tmp_path):
     import base64 as _b64
 
     _attach_bytes_cli(monkeypatch)
-    monkeypatch.setattr(server, "_freeide_home", tmp_path)
+    monkeypatch.setattr(server, "_jettstui_home", tmp_path)
     monkeypatch.setattr("shutil.which", lambda _name: "/usr/bin/pdftoppm")
     server._sessions["pdf2"] = _session()
 
@@ -12790,7 +12790,7 @@ def test_pdf_attach_rejects_non_pdf_bytes(monkeypatch, tmp_path):
 
 def test_pdf_attach_requires_path_or_bytes(monkeypatch, tmp_path):
     _attach_bytes_cli(monkeypatch)
-    monkeypatch.setattr(server, "_freeide_home", tmp_path)
+    monkeypatch.setattr(server, "_jettstui_home", tmp_path)
     monkeypatch.setattr("shutil.which", lambda _name: "/usr/bin/pdftoppm")
     server._sessions["pdf3"] = _session()
 
@@ -13415,7 +13415,7 @@ def test_persist_model_switch_preserves_sibling_model_keys(tmp_path, monkeypatch
         "  system_prompt: keepme\n"
     )
     # The gateway resolves its profile home at call time, not from cli.py.
-    monkeypatch.setenv("FREEIDE_HOME", str(tmp_path))
+    monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path))
 
     result = types.SimpleNamespace(
         new_model="new-model", target_provider="anthropic", base_url=None
@@ -13446,7 +13446,7 @@ def test_persist_model_switch_clears_stale_base_url(tmp_path, monkeypatch):
         "  provider: custom:mylocal\n"
         "  base_url: http://localhost:1234/v1\n"
     )
-    monkeypatch.setenv("FREEIDE_HOME", str(tmp_path))
+    monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path))
 
     # Switch to a native provider with no base_url.
     result = types.SimpleNamespace(
@@ -13473,7 +13473,7 @@ class TestResolveRuntimeWithFallback:
         """When primary resolve succeeds, return its result directly."""
         expected = {"provider": "openai", "api_key": "tok"}
         monkeypatch.setattr(
-            "freeide_cli.runtime_provider.resolve_runtime_provider",
+            "jettstui.runtime_provider.resolve_runtime_provider",
             lambda **kw: expected,
         )
         resolution = server._resolve_runtime_with_fallback(
@@ -13485,7 +13485,7 @@ class TestResolveRuntimeWithFallback:
 
     def test_auth_error_tries_fallback_chain(self, monkeypatch):
         """On AuthError from primary, walk fallback_providers chain."""
-        from freeide_cli.auth import AuthError
+        from jettstui.auth import AuthError
 
         fallback_runtime = {"provider": "deepseek", "api_key": "fb-tok"}
 
@@ -13495,7 +13495,7 @@ class TestResolveRuntimeWithFallback:
             return fallback_runtime
 
         monkeypatch.setattr(
-            "freeide_cli.runtime_provider.resolve_runtime_provider",
+            "jettstui.runtime_provider.resolve_runtime_provider",
             fake_resolve,
         )
         monkeypatch.setattr(
@@ -13512,7 +13512,7 @@ class TestResolveRuntimeWithFallback:
 
     def test_auth_error_skips_provider_only_fallback(self, monkeypatch):
         """Auth fallback requires one complete provider/model pair."""
-        from freeide_cli.auth import AuthError
+        from jettstui.auth import AuthError
 
         requested = []
         fallback_runtime = {"provider": "openrouter", "api_key": "fb-tok"}
@@ -13524,7 +13524,7 @@ class TestResolveRuntimeWithFallback:
             return fallback_runtime
 
         monkeypatch.setattr(
-            "freeide_cli.runtime_provider.resolve_runtime_provider",
+            "jettstui.runtime_provider.resolve_runtime_provider",
             fake_resolve,
         )
         monkeypatch.setattr(
@@ -13548,7 +13548,7 @@ class TestResolveRuntimeWithFallback:
     def test_fallback_entry_key_env_resolves_api_key(self, monkeypatch):
         """A fallback entry naming its key via key_env passes the resolved
         env value as explicit_api_key (#43861, @VrtxOmega)."""
-        from freeide_cli.auth import AuthError
+        from jettstui.auth import AuthError
 
         monkeypatch.setenv("FB_TEST_KEY", "env-resolved-key")
         captured = {}
@@ -13561,7 +13561,7 @@ class TestResolveRuntimeWithFallback:
             return fallback_runtime
 
         monkeypatch.setattr(
-            "freeide_cli.runtime_provider.resolve_runtime_provider",
+            "jettstui.runtime_provider.resolve_runtime_provider",
             fake_resolve,
         )
         monkeypatch.setattr(
@@ -13583,13 +13583,13 @@ class TestResolveRuntimeWithFallback:
 
     def test_auth_error_all_fallbacks_fail_raises(self, monkeypatch):
         """When all fallbacks also fail, re-raise the original AuthError."""
-        from freeide_cli.auth import AuthError
+        from jettstui.auth import AuthError
 
         def fake_resolve(**kwargs):
             raise AuthError("No credentials for " + str(kwargs.get("requested")))
 
         monkeypatch.setattr(
-            "freeide_cli.runtime_provider.resolve_runtime_provider",
+            "jettstui.runtime_provider.resolve_runtime_provider",
             fake_resolve,
         )
         monkeypatch.setattr(
@@ -13606,7 +13606,7 @@ class TestResolveRuntimeWithFallback:
 
     def test_auth_error_skips_non_dict_entries(self, monkeypatch):
         """Fallback chain entries that are not dicts are skipped."""
-        from freeide_cli.auth import AuthError
+        from jettstui.auth import AuthError
 
         fallback_runtime = {"provider": "anthropic", "api_key": "ant-tok"}
 
@@ -13616,7 +13616,7 @@ class TestResolveRuntimeWithFallback:
             return fallback_runtime
 
         monkeypatch.setattr(
-            "freeide_cli.runtime_provider.resolve_runtime_provider",
+            "jettstui.runtime_provider.resolve_runtime_provider",
             fake_resolve,
         )
         monkeypatch.setattr(
@@ -13639,7 +13639,7 @@ class TestResolveRuntimeWithFallback:
         provider when the primary provider raises AuthError."""
         import types
 
-        from freeide_cli.auth import AuthError
+        from jettstui.auth import AuthError
 
         captured = {}
         fallback_runtime = {
@@ -13657,9 +13657,9 @@ class TestResolveRuntimeWithFallback:
             captured.update(kwargs)
             return types.SimpleNamespace(model=kwargs.get("model"))
 
-        monkeypatch.delenv("FREEIDE_MODEL", raising=False)
-        monkeypatch.delenv("FREEIDE_INFERENCE_MODEL", raising=False)
-        monkeypatch.delenv("FREEIDE_TUI_PROVIDER", raising=False)
+        monkeypatch.delenv("JETTSTUI_MODEL", raising=False)
+        monkeypatch.delenv("JETTSTUI_INFERENCE_MODEL", raising=False)
+        monkeypatch.delenv("JETTSTUI_TUI_PROVIDER", raising=False)
         monkeypatch.setattr(
             server,
             "_load_cfg",
@@ -13671,7 +13671,7 @@ class TestResolveRuntimeWithFallback:
             },
         )
         monkeypatch.setattr(
-            "freeide_cli.runtime_provider.resolve_runtime_provider",
+            "jettstui.runtime_provider.resolve_runtime_provider",
             fake_resolve,
         )
         monkeypatch.setattr("run_agent.AIAgent", fake_agent)
@@ -13790,20 +13790,20 @@ def _fake_tts_modules(monkeypatch, *, requirements=True, playback_stops=None, li
 
 
 def test_tts_stream_begin_requires_voice_tts(monkeypatch):
-    monkeypatch.setenv("FREEIDE_VOICE_TTS", "0")
+    monkeypatch.setenv("JETTSTUI_VOICE_TTS", "0")
     assert server._tts_stream_begin() is None
 
 
 def test_tts_stream_begin_requires_working_provider(monkeypatch):
-    monkeypatch.setenv("FREEIDE_VOICE_TTS", "1")
+    monkeypatch.setenv("JETTSTUI_VOICE_TTS", "1")
     _fake_tts_modules(monkeypatch, requirements=False)
     assert server._tts_stream_begin() is None
 
 
 def test_tts_stream_begin_and_stop_lifecycle(monkeypatch):
     """begin() spawns the consumer; stop() cuts it and clears the slot."""
-    monkeypatch.setenv("FREEIDE_VOICE_TTS", "1")
-    monkeypatch.setenv("FREEIDE_VOICE", "0")  # no barge-in monitor (no mic)
+    monkeypatch.setenv("JETTSTUI_VOICE_TTS", "1")
+    monkeypatch.setenv("JETTSTUI_VOICE", "0")  # no barge-in monitor (no mic)
     playback_stops: list = []
     started = _fake_tts_modules(monkeypatch, playback_stops=playback_stops)
 
@@ -13824,8 +13824,8 @@ def test_tts_stream_begin_and_stop_lifecycle(monkeypatch):
 
 def test_tts_stream_begin_barges_in_on_previous_pipeline(monkeypatch):
     """A new turn's pipeline stops the previous turn's speech (one speaker)."""
-    monkeypatch.setenv("FREEIDE_VOICE_TTS", "1")
-    monkeypatch.setenv("FREEIDE_VOICE", "0")
+    monkeypatch.setenv("JETTSTUI_VOICE_TTS", "1")
+    monkeypatch.setenv("JETTSTUI_VOICE", "0")
     _fake_tts_modules(monkeypatch)
 
     server._tts_stream_begin()
@@ -13842,8 +13842,8 @@ def test_tts_stream_stop_latches_interruption_for_next_turn(monkeypatch):
     import tools.tts_streaming as ts
 
     ts._interrupted_at = None
-    monkeypatch.setenv("FREEIDE_VOICE_TTS", "1")
-    monkeypatch.setenv("FREEIDE_VOICE", "0")
+    monkeypatch.setenv("JETTSTUI_VOICE_TTS", "1")
+    monkeypatch.setenv("JETTSTUI_VOICE", "0")
     _fake_tts_modules(monkeypatch)
 
     server._tts_stream_begin()
@@ -13860,8 +13860,8 @@ def test_tts_stream_stop_after_natural_finish_does_not_latch(monkeypatch):
     import tools.tts_streaming as ts
 
     ts._interrupted_at = None
-    monkeypatch.setenv("FREEIDE_VOICE_TTS", "1")
-    monkeypatch.setenv("FREEIDE_VOICE", "0")
+    monkeypatch.setenv("JETTSTUI_VOICE_TTS", "1")
+    monkeypatch.setenv("JETTSTUI_VOICE", "0")
     _fake_tts_modules(monkeypatch)
 
     server._tts_stream_begin()
@@ -13880,8 +13880,8 @@ def test_tts_stream_vad_barge_in_cuts_pipeline_and_submits_capture(monkeypatch, 
     import tools.tts_streaming as ts
 
     ts._interrupted_at = None
-    monkeypatch.setenv("FREEIDE_VOICE_TTS", "1")
-    monkeypatch.setenv("FREEIDE_VOICE", "1")
+    monkeypatch.setenv("JETTSTUI_VOICE_TTS", "1")
+    monkeypatch.setenv("JETTSTUI_VOICE", "1")
     monkeypatch.setattr(server, "_load_cfg", lambda: {"voice": {"barge_in": True}})
     events: list = []
     monkeypatch.setattr(
@@ -14031,7 +14031,7 @@ def test_build_persist_message_quotes_paths_containing_spaces(tmp_path):
     with a space parses as a truncated ref with the tail left as loose text.
     Desktop composer images live in the app's userData dir, which on macOS is
     ``~/Library/Application Support/...`` — a space every time."""
-    img_dir = tmp_path / "Application Support" / "FreeIDE" / "composer-images"
+    img_dir = tmp_path / "Application Support" / "JettsTUI" / "composer-images"
     img_dir.mkdir(parents=True)
     img = img_dir / "cat.png"
     img.write_bytes(b"png")

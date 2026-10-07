@@ -1,6 +1,6 @@
 """Kanban decomposer — fan a triage task out into a graph of child tasks.
 
-Invoked by ``freeide kanban decompose [task_id | --all]`` and the
+Invoked by ``jettstui kanban decompose [task_id | --all]`` and the
 auto-decompose path in the gateway dispatcher loop. Reads the user's
 profile roster (with descriptions) and asks the auxiliary LLM to
 return a task graph in JSON. Then atomically creates the children,
@@ -14,7 +14,7 @@ and add more tasks if the work isn't done yet.
 Design notes
 ------------
 
-* Mirrors the shape of ``freeide_cli/kanban_specify.py``: lazy aux
+* Mirrors the shape of ``jettstui/kanban_specify.py``: lazy aux
   client import inside the function, lenient response parse, never
   raises on expected failure modes.
 
@@ -43,13 +43,13 @@ import re
 from dataclasses import dataclass
 from typing import Optional
 
-from freeide_cli import kanban_db as kb
-from freeide_cli import profiles as profiles_mod
+from jettstui import kanban_db as kb
+from jettstui import profiles as profiles_mod
 
 logger = logging.getLogger(__name__)
 
 
-_SYSTEM_PROMPT = """You are the Kanban decomposer for the FreeIDE Agent board.
+_SYSTEM_PROMPT = """You are the Kanban decomposer for the JettsTUI board.
 
 A user dropped a rough idea into the Triage column. Your job is to break it
 into a small graph of concrete child tasks and route each one to the best-
@@ -161,9 +161,9 @@ def _extract_json_blob(raw: str) -> Optional[dict]:
 
 
 def _profile_author() -> str:
-    """Mirror of ``freeide_cli.kanban._profile_author``."""
+    """Mirror of ``jettstui.kanban._profile_author``."""
     return (
-        os.environ.get("FREEIDE_PROFILE")
+        os.environ.get("JETTSTUI_PROFILE")
         or os.environ.get("USER")
         or "decomposer"
     )
@@ -171,7 +171,7 @@ def _profile_author() -> str:
 
 def _load_config() -> dict:
     try:
-        from freeide_cli.config import load_config
+        from jettstui.config import load_config
         return load_config() or {}
     except Exception:
         return {}

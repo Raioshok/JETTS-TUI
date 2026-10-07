@@ -2,14 +2,14 @@
   "version": 1,
   "updated_at": "2026-09-27T19:52:48Z",
   "metadata": {
-    "source": "Jetts-TUI repository",
+    "source": "JettsTUI repository",
     "docs": "https://github.com/Raioshok/JETTS-TUI/blob/main/docs/reference/model-catalog.md"
   },
   "providers": {
     "openrouter": {
       "metadata": {
         "display_name": "OpenRouter",
-        "note": "Descriptions drive picker badges. Live /api/v1/models filters curated ids by tool-calling support and free pricing. The entry labeled \"default\": true is the model Jetts-TUI silently lands on when the user never picked one."
+        "note": "Descriptions drive picker badges. Live /api/v1/models filters curated ids by tool-calling support and free pricing. The entry labeled \"default\": true is the model JettsTUI silently lands on when the user never picked one."
       },
       "models": [
         {

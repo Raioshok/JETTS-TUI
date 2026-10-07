@@ -1,8 +1,8 @@
 """Regression coverage for #58720 / #55924 — cron scheduling races
 interpreter finalization.
 
-When the gateway tears down (SIGTERM from ``freeide update`` /
-``freeide gateway stop`` / systemd restart, or an OOM-kill), a cron tick can
+When the gateway tears down (SIGTERM from ``jettstui update`` /
+``jettstui gateway stop`` / systemd restart, or an OOM-kill), a cron tick can
 still fire. Once the Python interpreter is finalizing, ``concurrent.futures``
 refuses new work with ``RuntimeError: cannot schedule new futures after
 interpreter shutdown`` and asyncio's default executor is gone. The cron

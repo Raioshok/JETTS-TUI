@@ -1,5 +1,5 @@
 name: openai-codex
 version: 1.0.0
-description: "OpenAI image generation backed by ChatGPT/Codex OAuth (gpt-image-2 via the Responses image_generation tool). Saves generated images to $FREEIDE_HOME/cache/images/."
-author: freeide
+description: "OpenAI image generation backed by ChatGPT/Codex OAuth (gpt-image-2 via the Responses image_generation tool). Saves generated images to $JETTSTUI_HOME/cache/images/."
+author: jettstui
 kind: backend

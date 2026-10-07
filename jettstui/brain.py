@@ -21,7 +21,7 @@ from pathlib import Path
 from typing import Any
 
 SCHEMA_VERSION = 1
-MANIFEST_NAME = ".freeide-brain.json"
+MANIFEST_NAME = ".jettstui-brain.json"
 
 FOLDERS = (
     ".obsidian",
@@ -64,7 +64,7 @@ def resolve_vault_path(explicit: str | os.PathLike[str] | None = None) -> Path:
     if explicit:
         return Path(explicit).expanduser().resolve()
     try:
-        from freeide_cli.config import load_config
+        from jettstui.config import load_config
 
         obsidian = (load_config().get("obsidian") or {})
         configured = str(obsidian.get("vault_path") or "").strip()
@@ -75,7 +75,7 @@ def resolve_vault_path(explicit: str | os.PathLike[str] | None = None) -> Path:
     legacy = os.environ.get("OBSIDIAN_VAULT_PATH", "").strip()
     if legacy:
         return Path(legacy).expanduser().resolve()
-    return (Path.home() / "Documents" / "FreeIDE Brain").resolve()
+    return (Path.home() / "Documents" / "JettsTUI Brain").resolve()
 
 
 def _frontmatter(
@@ -122,7 +122,7 @@ def _base_files(project_path: Path | None) -> dict[str, str]:
         "# Brain Dashboard\n\n"
         "> [!tip] Start here\n"
         "> Capture first, organize later: [[11-Inbox/Inbox|Inbox]]. "
-        "Run `freeide brain status` for measured health.\n\n"
+        "Run `jettstui brain status` for measured health.\n\n"
         "## Focus\n\n"
         "- [[01-Projects/Project Index|Projects]]\n"
         "- [[08-Decisions/Decision Log|Decisions]]\n"
@@ -132,9 +132,9 @@ def _base_files(project_path: Path | None) -> dict[str, str]:
         "![[00-System/Brain.base]]\n\n"
         "## Quick commands\n\n"
         "```text\n"
-        "freeide brain capture \"an idea, task, or fact\"\n"
-        "freeide                       # then /brain sync\n"
-        "freeide brain doctor\n"
+        "jettstui brain capture \"an idea, task, or fact\"\n"
+        "jettstui                       # then /brain sync\n"
+        "jettstui brain doctor\n"
         "obsidian open path=Dashboard.md\n"
         "```\n"
     )
@@ -255,7 +255,7 @@ Review weekly. Segment by project and task class so easy tasks do not inflate sa
         "03-Skills/Skill Index.md": """# Skill Index
 
 Store stable working preferences and reusable procedures here. Keep session-specific
-evidence in linked notes, and keep executable FreeIDE skills in FreeIDE's skill store.
+evidence in linked notes, and keep executable JettsTUI skills in JettsTUI's skill store.
 
 - [[03-Skills/coding]]
 - [[03-Skills/backend]]
@@ -345,7 +345,7 @@ hit; cap breadth and total context. Stable prompt prefixes stay byte-identical.
 
 ## Weekly, conflict-aware
 
-1. Run `freeide brain doctor`.
+1. Run `jettstui brain doctor`.
 2. Review orphaned, stale, disputed, and `needs-review` notes.
 3. Consolidate duplicates while preserving redirects and provenance.
 4. Promote frequently reused context; archive low-value cache entries.
@@ -415,7 +415,7 @@ def _read_manifest(vault: Path) -> dict[str, Any]:
 
 
 def _write_config(vault: Path) -> None:
-    from freeide_cli.config import atomic_config_write, get_config_path, read_raw_config
+    from jettstui.config import atomic_config_write, get_config_path, read_raw_config
 
     config = read_raw_config()
     obsidian = config.setdefault("obsidian", {})
@@ -658,7 +658,7 @@ def brain_command(args: Any) -> int:
             result = setup_brain(vault, project_path=getattr(args, "project", None))
             print(f"✓ Brain ready: {result.vault}")
             print(f"  created {len(result.created)} · updated {len(result.updated)} · preserved {len(result.preserved)}")
-            print("  Next: start `freeide`, then run /brain sync")
+            print("  Next: start `jettstui`, then run /brain sync")
         elif action == "capture":
             text = " ".join(args.text) if isinstance(args.text, list) else args.text
             print(f"✓ Captured in {capture(text, vault)}")

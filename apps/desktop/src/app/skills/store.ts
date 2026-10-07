@@ -2,5 +2,5 @@ import { Codecs, persistentAtom } from '@/lib/persisted'
 
 // Per-view sort direction for the Capabilities lists — persisted so each tab
 // remembers most/least-used across navigations and restarts.
-export const $skillsSortDesc = persistentAtom('freeide.desktop.capabilities.skillsSortDesc', true, Codecs.bool)
-export const $toolsetsSortDesc = persistentAtom('freeide.desktop.capabilities.toolsetsSortDesc', true, Codecs.bool)
+export const $skillsSortDesc = persistentAtom('jettstui.desktop.capabilities.skillsSortDesc', true, Codecs.bool)
+export const $toolsetsSortDesc = persistentAtom('jettstui.desktop.capabilities.toolsetsSortDesc', true, Codecs.bool)

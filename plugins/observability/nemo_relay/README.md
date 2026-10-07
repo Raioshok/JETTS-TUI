@@ -1,17 +1,17 @@
 # NeMo Relay Observability
 
-Optional FreeIDE observability plugin that maps FreeIDE observer hooks to
+Optional JettsTUI observability plugin that maps JettsTUI observer hooks to
 NeMo Relay scopes, LLM spans, tool spans, marks, ATOF, and ATIF.
 
 NeMo Relay is NVIDIA's runtime layer for agent execution boundaries. It does
-not replace FreeIDE Agent's planner, tools, memory, model provider routing, or
-CLI UX. Instead, this plugin lets FreeIDE emit NeMo Relay lifecycle events for
-the work FreeIDE already owns: sessions, turns, provider/API calls, tool calls,
+not replace JettsTUI's planner, tools, memory, model provider routing, or
+CLI UX. Instead, this plugin lets JettsTUI emit NeMo Relay lifecycle events for
+the work JettsTUI already owns: sessions, turns, provider/API calls, tool calls,
 approval prompts, and delegated subagents.
 
-With this plugin enabled, FreeIDE Agent can:
+With this plugin enabled, JettsTUI can:
 
-- Preserve FreeIDE execution as NeMo Relay scopes, LLM spans, tool spans, and
+- Preserve JettsTUI execution as NeMo Relay scopes, LLM spans, tool spans, and
   mark events.
 - Export raw lifecycle events as Agent Trajectory Observability Format (ATOF)
   JSONL for debugging and offline inspection.
@@ -38,44 +38,44 @@ https://github.com/harbor-framework/harbor/blob/main/rfcs/0001-trajectory-format
 Enable the plugin before setting export options:
 
 ```bash
-freeide plugins enable observability/nemo_relay
+jettstui plugins enable observability/nemo_relay
 ```
 
-The `FREEIDE_NEMO_RELAY_*` environment variables below only configure an
+The `JETTSTUI_NEMO_RELAY_*` environment variables below only configure an
 already-enabled plugin. They do not enable plugin discovery by themselves.
 
-For isolated test homes, enable the plugin in the same `FREEIDE_HOME` that the
+For isolated test homes, enable the plugin in the same `JETTSTUI_HOME` that the
 agent run will use:
 
 ```bash
-env FREEIDE_HOME=/tmp/freeide-nemo-relay-test \
-  freeide plugins enable observability/nemo_relay
+env JETTSTUI_HOME=/tmp/jettstui-nemo-relay-test \
+  jettstui plugins enable observability/nemo_relay
 ```
 
 Runs started with `--ignore_user_config` skip the enabled-plugin state from
-`FREEIDE_HOME`, so local E2E tests should omit that flag unless the test harness
+`JETTSTUI_HOME`, so local E2E tests should omit that flag unless the test harness
 loads `observability/nemo_relay` explicitly another way.
 
-`FREEIDE_HOME` is the FreeIDE profile/config home used by both
-`freeide plugins enable ...` and the later `freeide chat ...` run. If unset,
-FreeIDE uses the user's default home, usually `~/.freeide`. For isolated smoke
+`JETTSTUI_HOME` is the JettsTUI profile/config home used by both
+`jettstui plugins enable ...` and the later `jettstui chat ...` run. If unset,
+JettsTUI uses the user's default home, usually `~/.jettstui`. For isolated smoke
 tests, choose any writable temporary directory and use the same value for every
 command in that test:
 
 ```bash
-export FREEIDE_HOME=/tmp/freeide-nemo-relay-test
-freeide plugins enable observability/nemo_relay
-freeide chat --query 'Reply exactly ok' --provider custom --model qwen3.6:35b
+export JETTSTUI_HOME=/tmp/jettstui-nemo-relay-test
+jettstui plugins enable observability/nemo_relay
+jettstui chat --query 'Reply exactly ok' --provider custom --model qwen3.6:35b
 ```
 
-For source checkouts, make sure the `freeide` command you run is built from the
+For source checkouts, make sure the `jettstui` command you run is built from the
 checkout that contains this plugin. A globally installed older CLI will not see
 new bundled plugins from your working tree.
 
 ```bash
 uv sync --extra nemo-relay
-uv run freeide plugins enable observability/nemo_relay
-uv run freeide chat --query 'Reply exactly ok' --provider custom --model qwen3.6:35b
+uv run jettstui plugins enable observability/nemo_relay
+uv run jettstui chat --query 'Reply exactly ok' --provider custom --model qwen3.6:35b
 ```
 
 To ship the updated CLI into another environment, build and install a fresh
@@ -83,9 +83,9 @@ wheel from this checkout, then install the official NeMo Relay runtime extra:
 
 ```bash
 uv build --wheel
-python -m pip install --force-reinstall dist/freeide_agent-*.whl
+python -m pip install --force-reinstall dist/jettstui_agent-*.whl
 python -m pip install "nemo-relay>=0.5,<1.0"
-freeide plugins enable observability/nemo_relay
+jettstui plugins enable observability/nemo_relay
 ```
 
 The plugin fails open when `nemo-relay` is not installed. Install a supported
@@ -97,7 +97,7 @@ pip install "nemo-relay>=0.5,<1.0"
 
 ## Export Configuration
 
-The plugin can configure exporters directly from `FREEIDE_NEMO_RELAY_*`
+The plugin can configure exporters directly from `JETTSTUI_NEMO_RELAY_*`
 environment variables, or delegate exporter setup to a NeMo Relay
 `plugins.toml` component config.
 
@@ -111,29 +111,29 @@ OpenInference.
 Useful local export settings after the plugin is enabled:
 
 ```bash
-export FREEIDE_NEMO_RELAY_ATOF_ENABLED=1
-export FREEIDE_NEMO_RELAY_ATOF_OUTPUT_DIRECTORY=.nemo-relay/atof
-export FREEIDE_NEMO_RELAY_ATIF_ENABLED=1
-export FREEIDE_NEMO_RELAY_ATIF_OUTPUT_DIRECTORY=.nemo-relay/atif
+export JETTSTUI_NEMO_RELAY_ATOF_ENABLED=1
+export JETTSTUI_NEMO_RELAY_ATOF_OUTPUT_DIRECTORY=.nemo-relay/atof
+export JETTSTUI_NEMO_RELAY_ATIF_ENABLED=1
+export JETTSTUI_NEMO_RELAY_ATIF_OUTPUT_DIRECTORY=.nemo-relay/atif
 ```
 
 Optional overrides:
 
-- `FREEIDE_NEMO_RELAY_ATOF_FILENAME`
-- `FREEIDE_NEMO_RELAY_ATOF_MODE` (`append` or `overwrite`)
-- `FREEIDE_NEMO_RELAY_ATIF_FILENAME_TEMPLATE`
-- `FREEIDE_NEMO_RELAY_ATIF_AGENT_NAME`
-- `FREEIDE_NEMO_RELAY_ATIF_AGENT_VERSION`
-- `FREEIDE_NEMO_RELAY_ATIF_MODEL_NAME`
-- `FREEIDE_NEMO_RELAY_ATIF_SUBAGENT_EXPORT_MODE` (`embedded` by default; set `all` to also write standalone child files)
+- `JETTSTUI_NEMO_RELAY_ATOF_FILENAME`
+- `JETTSTUI_NEMO_RELAY_ATOF_MODE` (`append` or `overwrite`)
+- `JETTSTUI_NEMO_RELAY_ATIF_FILENAME_TEMPLATE`
+- `JETTSTUI_NEMO_RELAY_ATIF_AGENT_NAME`
+- `JETTSTUI_NEMO_RELAY_ATIF_AGENT_VERSION`
+- `JETTSTUI_NEMO_RELAY_ATIF_MODEL_NAME`
+- `JETTSTUI_NEMO_RELAY_ATIF_SUBAGENT_EXPORT_MODE` (`embedded` by default; set `all` to also write standalone child files)
 
 ### NeMo Relay Component Config
 
 To initialize NeMo Relay from a component config, create a `plugins.toml` file
-and point FreeIDE at it:
+and point JettsTUI at it:
 
 ```bash
-export FREEIDE_NEMO_RELAY_PLUGINS_TOML=.nemo-relay/plugins.toml
+export JETTSTUI_NEMO_RELAY_PLUGINS_TOML=.nemo-relay/plugins.toml
 ```
 
 Minimal ATOF and ATIF config:
@@ -158,17 +158,17 @@ mode = "overwrite"
 enabled = true
 output_directory = ".nemo-relay/atif"
 filename_template = "trajectory-{session_id}.json"
-agent_name = "FreeIDE Agent"
+agent_name = "JettsTUI"
 agent_version = "local"
 ```
 
-When `FREEIDE_NEMO_RELAY_PLUGINS_TOML` is set and initializes successfully, NeMo
+When `JETTSTUI_NEMO_RELAY_PLUGINS_TOML` is set and initializes successfully, NeMo
 Relay owns exporter lifecycle through that config. The direct
-`FREEIDE_NEMO_RELAY_ATOF_*` fallback setup is skipped. If the same
+`JETTSTUI_NEMO_RELAY_ATOF_*` fallback setup is skipped. If the same
 `plugins.toml` observability config enables `atif`, the direct
-`FREEIDE_NEMO_RELAY_ATIF_*` fallback setup is also skipped so FreeIDE does not
+`JETTSTUI_NEMO_RELAY_ATIF_*` fallback setup is also skipped so JettsTUI does not
 double-export trajectories on teardown. If `plugins.toml` initialization fails,
-FreeIDE keeps the direct env-var fallbacks active for that run.
+JettsTUI keeps the direct env-var fallbacks active for that run.
 
 To enable NeMo Relay managed execution intercepts for provider and tool calls,
 include an adaptive component in the same `plugins.toml`:
@@ -183,7 +183,7 @@ mode = "observe_only"
 ```
 
 When the adaptive component is enabled and the installed NeMo Relay runtime
-exposes `llm.execute(...)` / `tools.execute(...)`, FreeIDE routes LLM and tool
+exposes `llm.execute(...)` / `tools.execute(...)`, JettsTUI routes LLM and tool
 execution through those middleware boundaries. The observer hooks still emit
 session, turn, approval, and subagent marks; the plugin skips its manual
 `llm.call` and `tools.call` spans for executions that are already managed by
@@ -192,8 +192,8 @@ observational while still wrapping the real execution boundary.
 
 ### Dynamic Plugins
 
-FreeIDE feature-detects the dynamic-plugin activation API available in NeMo Relay
-0.6 and later. Configure native or worker plugins with FreeIDE-owned
+JettsTUI feature-detects the dynamic-plugin activation API available in NeMo Relay
+0.6 and later. Configure native or worker plugins with JettsTUI-owned
 `[[dynamic_plugins]]` entries that match the Python binding's activation-spec
 fields:
 
@@ -229,14 +229,14 @@ Relative `manifest_ref` and `environment_ref` values resolve relative to the
 physical `plugins.toml` file.
 
 Relay's canonical gateway `[[plugins.dynamic]]` records are not interchangeable
-with this FreeIDE-owned section. The gateway combines those records with
+with this JettsTUI-owned section. The gateway combines those records with
 separate lifecycle state for enablement, trust policy, and worker environments;
-the Python binding does not yet expose that resolver. FreeIDE rejects
+the Python binding does not yet expose that resolver. JettsTUI rejects
 `[[plugins.dynamic]]` with an actionable diagnostic instead of silently
 ignoring it or bypassing lifecycle policy. Use `[[dynamic_plugins]]` until Relay
 exposes shared file-and-lifecycle resolution to embedding hosts.
 
-FreeIDE activates these plugins before registering its managed LLM and tool
+JettsTUI activates these plugins before registering its managed LLM and tool
 execution middleware and retains the activation for the runtime lifetime.
 During shutdown it closes session exporters, flushes Relay subscribers, and
 then closes the activation so callbacks are removed before plugin code is
@@ -244,11 +244,11 @@ unloaded.
 
 NeMo Relay 0.5 does not expose dynamic activation through its Python binding.
 When dynamic plugin configuration is present with a binding that lacks the
-activation API, FreeIDE logs an actionable warning and continues with the
+activation API, JettsTUI logs an actionable warning and continues with the
 ordinary static component configuration, so ATOF and ATIF observability remain
 available. No dynamic plugin is loaded in that degraded mode.
 
-For the full generic FreeIDE middleware contract, see
+For the full generic JettsTUI middleware contract, see
 [`docs/middleware/README.md`](../../../docs/middleware/README.md).
 
 ## Canonical Local Examples
@@ -260,10 +260,10 @@ OpenAI-compatible API.
 ```bash
 pip install "nemo-relay>=0.5,<1.0"
 
-export FREEIDE_HOME=/tmp/freeide-nemo-relay-docs/freeide-home
-mkdir -p "$FREEIDE_HOME"
+export JETTSTUI_HOME=/tmp/jettstui-nemo-relay-docs/jettstui-home
+mkdir -p "$JETTSTUI_HOME"
 
-cat > "$FREEIDE_HOME/config.yaml" <<'YAML'
+cat > "$JETTSTUI_HOME/config.yaml" <<'YAML'
 model:
   provider: custom
   default: qwen3.6:35b
@@ -285,22 +285,22 @@ YAML
 
 ### Delegated Subagent Tool Call
 
-This run starts a parent FreeIDE session, delegates to a child subagent, has the
+This run starts a parent JettsTUI session, delegates to a child subagent, has the
 child call `terminal`, and writes both ATOF and ATIF.
 
 ```bash
-export FREEIDE_NEMO_RELAY_ATOF_ENABLED=1
-export FREEIDE_NEMO_RELAY_ATOF_OUTPUT_DIRECTORY=/tmp/freeide-nemo-relay-docs/subagent/atof
-export FREEIDE_NEMO_RELAY_ATOF_FILENAME=nested-subagent-atof.jsonl
-export FREEIDE_NEMO_RELAY_ATOF_MODE=overwrite
-export FREEIDE_NEMO_RELAY_ATIF_ENABLED=1
-export FREEIDE_NEMO_RELAY_ATIF_OUTPUT_DIRECTORY=/tmp/freeide-nemo-relay-docs/subagent/atif
-export FREEIDE_NEMO_RELAY_ATIF_FILENAME_TEMPLATE='nested-subagent-atif-{session_id}.json'
-export FREEIDE_NEMO_RELAY_ATIF_AGENT_NAME='FreeIDE Agent E2E'
-export FREEIDE_NEMO_RELAY_ATIF_AGENT_VERSION=docs-example
-export FREEIDE_NEMO_RELAY_ATIF_SUBAGENT_EXPORT_MODE=all
+export JETTSTUI_NEMO_RELAY_ATOF_ENABLED=1
+export JETTSTUI_NEMO_RELAY_ATOF_OUTPUT_DIRECTORY=/tmp/jettstui-nemo-relay-docs/subagent/atof
+export JETTSTUI_NEMO_RELAY_ATOF_FILENAME=nested-subagent-atof.jsonl
+export JETTSTUI_NEMO_RELAY_ATOF_MODE=overwrite
+export JETTSTUI_NEMO_RELAY_ATIF_ENABLED=1
+export JETTSTUI_NEMO_RELAY_ATIF_OUTPUT_DIRECTORY=/tmp/jettstui-nemo-relay-docs/subagent/atif
+export JETTSTUI_NEMO_RELAY_ATIF_FILENAME_TEMPLATE='nested-subagent-atif-{session_id}.json'
+export JETTSTUI_NEMO_RELAY_ATIF_AGENT_NAME='JettsTUI E2E'
+export JETTSTUI_NEMO_RELAY_ATIF_AGENT_VERSION=docs-example
+export JETTSTUI_NEMO_RELAY_ATIF_SUBAGENT_EXPORT_MODE=all
 
-freeide chat \
+jettstui chat \
   --query 'Use delegate_task exactly once. Ask the child subagent to use the terminal tool exactly once to run printf docs_nested_leaf_function. After the child returns, reply with exactly: parent received nested subagent result.' \
   --provider custom \
   --model qwen3.6:35b \
@@ -321,7 +321,7 @@ Sanitized ATOF excerpt:
 
 ```jsonl
 {"kind":"scope","category":"tool","name":"delegate_task","scope_category":"start","metadata":{"session_id":"docs-parent-session","tool_call_id":"call_delegate"},"data":{"goal":"Run the command `printf docs_nested_leaf_function` using the terminal tool.","toolsets":["terminal"]}}
-{"kind":"mark","name":"freeide.subagent.start","metadata":{"parent_session_id":"docs-parent-session","session_id":"docs-child-session","subagent_id":"sa-0-docs","child_role":"leaf"}}
+{"kind":"mark","name":"jettstui.subagent.start","metadata":{"parent_session_id":"docs-parent-session","session_id":"docs-child-session","subagent_id":"sa-0-docs","child_role":"leaf"}}
 {"kind":"scope","category":"tool","name":"terminal","scope_category":"end","metadata":{"session_id":"docs-child-session","tool_call_id":"call_terminal","status":"ok"},"data":"{\"output\":\"docs_nested_leaf_function\",\"exit_code\":0,\"error\":null}"}
 {"kind":"scope","category":"tool","name":"delegate_task","scope_category":"end","metadata":{"session_id":"docs-parent-session","tool_call_id":"call_delegate","status":"ok"}}
 ```
@@ -332,7 +332,7 @@ Sanitized ATIF excerpt:
 {
   "schema_version": "ATIF-v1.7",
   "session_id": "docs-parent-session",
-  "agent": {"name": "FreeIDE Agent E2E", "version": "docs-example", "model_name": "qwen3.6:35b"},
+  "agent": {"name": "JettsTUI E2E", "version": "docs-example", "model_name": "qwen3.6:35b"},
   "steps": [
     {
       "source": "agent",
@@ -366,26 +366,26 @@ Sanitized ATIF excerpt:
 ### Parallel Tool Calls
 
 This run asks the model to emit two `read_file` tool calls in the same assistant
-message. FreeIDE dispatches the read-only tools as one batch, and NeMo Relay
+message. JettsTUI dispatches the read-only tools as one batch, and NeMo Relay
 records both tool invocations.
 
 ```bash
-mkdir -p /tmp/freeide-nemo-relay-docs/workdir
-printf 'docs_parallel_alpha_function\n' > /tmp/freeide-nemo-relay-docs/workdir/alpha.txt
-printf 'docs_parallel_beta_function\n' > /tmp/freeide-nemo-relay-docs/workdir/beta.txt
-cd /tmp/freeide-nemo-relay-docs/workdir
+mkdir -p /tmp/jettstui-nemo-relay-docs/workdir
+printf 'docs_parallel_alpha_function\n' > /tmp/jettstui-nemo-relay-docs/workdir/alpha.txt
+printf 'docs_parallel_beta_function\n' > /tmp/jettstui-nemo-relay-docs/workdir/beta.txt
+cd /tmp/jettstui-nemo-relay-docs/workdir
 
-export FREEIDE_NEMO_RELAY_ATOF_ENABLED=1
-export FREEIDE_NEMO_RELAY_ATOF_OUTPUT_DIRECTORY=/tmp/freeide-nemo-relay-docs/parallel/atof
-export FREEIDE_NEMO_RELAY_ATOF_FILENAME=parallel-tools-atof.jsonl
-export FREEIDE_NEMO_RELAY_ATOF_MODE=overwrite
-export FREEIDE_NEMO_RELAY_ATIF_ENABLED=1
-export FREEIDE_NEMO_RELAY_ATIF_OUTPUT_DIRECTORY=/tmp/freeide-nemo-relay-docs/parallel/atif
-export FREEIDE_NEMO_RELAY_ATIF_FILENAME_TEMPLATE='parallel-tools-atif-{session_id}.json'
-export FREEIDE_NEMO_RELAY_ATIF_AGENT_NAME='FreeIDE Agent E2E'
-export FREEIDE_NEMO_RELAY_ATIF_AGENT_VERSION=docs-example
+export JETTSTUI_NEMO_RELAY_ATOF_ENABLED=1
+export JETTSTUI_NEMO_RELAY_ATOF_OUTPUT_DIRECTORY=/tmp/jettstui-nemo-relay-docs/parallel/atof
+export JETTSTUI_NEMO_RELAY_ATOF_FILENAME=parallel-tools-atof.jsonl
+export JETTSTUI_NEMO_RELAY_ATOF_MODE=overwrite
+export JETTSTUI_NEMO_RELAY_ATIF_ENABLED=1
+export JETTSTUI_NEMO_RELAY_ATIF_OUTPUT_DIRECTORY=/tmp/jettstui-nemo-relay-docs/parallel/atif
+export JETTSTUI_NEMO_RELAY_ATIF_FILENAME_TEMPLATE='parallel-tools-atif-{session_id}.json'
+export JETTSTUI_NEMO_RELAY_ATIF_AGENT_NAME='JettsTUI E2E'
+export JETTSTUI_NEMO_RELAY_ATIF_AGENT_VERSION=docs-example
 
-freeide chat \
+jettstui chat \
   --query 'Use exactly two read_file tool calls in the same assistant message. Read alpha.txt and beta.txt. Do not call terminal. After both tool results are available, reply with exactly: parallel tools complete.' \
   --provider custom \
   --model qwen3.6:35b \
@@ -418,7 +418,7 @@ Sanitized ATIF excerpt:
 {
   "schema_version": "ATIF-v1.7",
   "session_id": "docs-parallel-session",
-  "agent": {"name": "FreeIDE Agent E2E", "version": "docs-example", "model_name": "qwen3.6:35b"},
+  "agent": {"name": "JettsTUI E2E", "version": "docs-example", "model_name": "qwen3.6:35b"},
   "steps": [
     {
       "source": "agent",
@@ -442,9 +442,9 @@ Sanitized ATIF excerpt:
 
 The plugin keeps NeMo Relay's native event model:
 
-- FreeIDE sessions map to `agent` scopes.
-- FreeIDE API request hooks map to `llm` scope start/end events.
-- FreeIDE tool hooks map to `tool` scope start/end events.
+- JettsTUI sessions map to `agent` scopes.
+- JettsTUI API request hooks map to `llm` scope start/end events.
+- JettsTUI tool hooks map to `tool` scope start/end events.
 - Turn, approval, subagent, and diagnostic fallback events map to `mark`
   events.
 
@@ -456,7 +456,7 @@ separate trajectories.
 
 ## Adaptive Middleware Example
 
-The `observability/nemo_relay` plugin uses FreeIDE execution middleware to hand
+The `observability/nemo_relay` plugin uses JettsTUI execution middleware to hand
 LLM and tool calls to NeMo Relay managed execution when an adaptive component is
 enabled.
 
@@ -473,26 +473,26 @@ enabled = true
 mode = "observe_only"
 ```
 
-Enable it for FreeIDE:
+Enable it for JettsTUI:
 
 ```bash
-export FREEIDE_NEMO_RELAY_PLUGINS_TOML=/tmp/freeide-middleware-test/plugins.toml
+export JETTSTUI_NEMO_RELAY_PLUGINS_TOML=/tmp/jettstui-middleware-test/plugins.toml
 ```
 
 When the adaptive component is enabled and the installed NeMo Relay runtime
-exposes `llm.execute(...)` and `tools.execute(...)`, FreeIDE routes execution
+exposes `llm.execute(...)` and `tools.execute(...)`, JettsTUI routes execution
 through these boundaries:
 
 ```text
-FreeIDE provider call
+JettsTUI provider call
   -> llm_execution middleware
     -> nemo_relay.llm.execute(...)
-      -> FreeIDE provider adapter next_call(...)
+      -> JettsTUI provider adapter next_call(...)
 
-FreeIDE tool call
+JettsTUI tool call
   -> tool_execution middleware
     -> nemo_relay.tools.execute(...)
-      -> FreeIDE tool dispatcher next_call(...)
+      -> JettsTUI tool dispatcher next_call(...)
 ```
 
 The plugin still emits observer marks for sessions, turns, approvals, and
@@ -503,15 +503,15 @@ for the same execution.
 ### Local Adaptive E2E
 
 This example enables both NeMo Relay observability export and adaptive execution
-middleware for a local FreeIDE run. This path requires a NeMo Relay runtime that
+middleware for a local JettsTUI run. This path requires a NeMo Relay runtime that
 supports `[components.config.tool_parallelism]`, as provided by the supported
 0.x release range beginning with 0.5.
 
 ```bash
-export FREEIDE_HOME=/tmp/freeide-middleware-test/freeide-home
-mkdir -p "$FREEIDE_HOME" /tmp/freeide-middleware-test/nemo-relay
+export JETTSTUI_HOME=/tmp/jettstui-middleware-test/jettstui-home
+mkdir -p "$JETTSTUI_HOME" /tmp/jettstui-middleware-test/nemo-relay
 
-cat > "$FREEIDE_HOME/config.yaml" <<'YAML'
+cat > "$JETTSTUI_HOME/config.yaml" <<'YAML'
 model:
   provider: custom
   default: qwen3.6:35b
@@ -522,7 +522,7 @@ plugins:
     - observability/nemo_relay
 YAML
 
-cat > /tmp/freeide-middleware-test/nemo-relay/plugins.toml <<'TOML'
+cat > /tmp/jettstui-middleware-test/nemo-relay/plugins.toml <<'TOML'
 version = 1
 
 [[components]]
@@ -534,15 +534,15 @@ version = 1
 
 [components.config.atof]
 enabled = true
-output_directory = "/tmp/freeide-middleware-test/atof"
+output_directory = "/tmp/jettstui-middleware-test/atof"
 filename = "middleware-events.jsonl"
 mode = "overwrite"
 
 [components.config.atif]
 enabled = true
-output_directory = "/tmp/freeide-middleware-test/atif"
+output_directory = "/tmp/jettstui-middleware-test/atif"
 filename_template = "middleware-trajectory-{session_id}.json"
-agent_name = "FreeIDE Middleware E2E"
+agent_name = "JettsTUI Middleware E2E"
 agent_version = "local"
 
 [[components]]
@@ -553,9 +553,9 @@ enabled = true
 mode = "observe_only"
 TOML
 
-export FREEIDE_NEMO_RELAY_PLUGINS_TOML=/tmp/freeide-middleware-test/nemo-relay/plugins.toml
+export JETTSTUI_NEMO_RELAY_PLUGINS_TOML=/tmp/jettstui-middleware-test/nemo-relay/plugins.toml
 
-freeide chat \
+jettstui chat \
   --query 'Use the terminal tool exactly once to run printf middleware_execution_ok. Then reply with exactly the command output.' \
   --provider custom \
   --model qwen3.6:35b \
@@ -587,7 +587,7 @@ Expected ATIF shape:
   "schema_version": "ATIF-v1.7",
   "session_id": "middleware-demo-session",
   "agent": {
-    "name": "FreeIDE Middleware E2E",
+    "name": "JettsTUI Middleware E2E",
     "version": "local",
     "model_name": "qwen3.6:35b"
   },

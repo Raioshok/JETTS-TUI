@@ -1,10 +1,10 @@
-"""MCP picker — interactive `freeide mcp picker` (also the default `freeide mcp`).
+"""MCP picker — interactive `jettstui mcp picker` (also the default `jettstui mcp`).
 
 Lists every catalog entry plus any custom MCP servers the user has added via
-``freeide mcp add``, lets them pick one, and routes to install / enable /
+``jettstui mcp add``, lets them pick one, and routes to install / enable /
 disable / uninstall / configure-tools flows.
 
-Mirrors the `freeide plugin` picker UX: arrow keys to navigate, ENTER on a row
+Mirrors the `jettstui plugin` picker UX: arrow keys to navigate, ENTER on a row
 to act on it. The action depends on current status:
 
   not installed (catalog)   → install  (clone/bootstrap if needed, prompt for creds)
@@ -22,10 +22,10 @@ import sys
 from dataclasses import dataclass
 from typing import List, Optional
 
-from freeide_cli.colors import Colors, color
-from freeide_cli.cli_output import prompt_yes_no
-from freeide_cli.curses_ui import curses_single_select
-from freeide_cli.mcp_catalog import (
+from jettstui.colors import Colors, color
+from jettstui.cli_output import prompt_yes_no
+from jettstui.curses_ui import curses_single_select
+from jettstui.mcp_catalog import (
     CatalogEntry,
     CatalogError,
     catalog_diagnostics,
@@ -36,7 +36,7 @@ from freeide_cli.mcp_catalog import (
     installed_servers,
     uninstall_entry,
 )
-from freeide_cli.config import load_config, save_config
+from jettstui.config import load_config, save_config
 
 
 # ─── Status badges ────────────────────────────────────────────────────────────
@@ -122,7 +122,7 @@ def _enable_disable(name: str, *, enable: bool) -> None:
     save_config(cfg)
     print(color(
         f"  ✓ '{name}' {'enabled' if enable else 'disabled'}. "
-        "Start a new FreeIDE session for changes to take effect.",
+        "Start a new JettsTUI session for changes to take effect.",
         Colors.GREEN,
     ))
 
@@ -134,7 +134,7 @@ def _configure_tools(name: str) -> None:
     server, displays a checklist, and writes ``tools.include``.
     """
     import argparse
-    from freeide_cli.mcp_config import cmd_mcp_configure
+    from jettstui.mcp_config import cmd_mcp_configure
 
     cmd_mcp_configure(argparse.Namespace(name=name))
 
@@ -230,7 +230,7 @@ def _handle_row(row: _Row) -> None:
 
 def _print_rows_text(rows: List[_Row]) -> None:
     """Plain-text catalog dump used as a fallback when curses can't run, and
-    as the default output of `freeide mcp catalog`."""
+    as the default output of `jettstui mcp catalog`."""
     if not rows:
         print()
         print(color("  No MCPs in the catalog or configured.", Colors.DIM))
@@ -246,11 +246,11 @@ def _print_rows_text(rows: List[_Row]) -> None:
         print(f"  {_format_row(row)}")
     print()
     print(color(
-        "  Install: freeide mcp install <name>    Picker: freeide mcp",
+        "  Install: jettstui mcp install <name>    Picker: jettstui mcp",
         Colors.DIM,
     ))
 
-    # Surface manifest-version warnings so users know when their FreeIDE is
+    # Surface manifest-version warnings so users know when their JettsTUI is
     # too old to install everything in the catalog.
     diags = catalog_diagnostics()
     future = [d for d in diags if d[1] == "future_manifest"]
@@ -258,7 +258,7 @@ def _print_rows_text(rows: List[_Row]) -> None:
         print()
         for name, _, msg in future:
             print(color(
-                f"  ⚠ '{name}' requires a newer FreeIDE — run `freeide update` "
+                f"  ⚠ '{name}' requires a newer JettsTUI — run `jettstui update` "
                 "to install this entry.",
                 Colors.YELLOW,
             ))
@@ -267,12 +267,12 @@ def _print_rows_text(rows: List[_Row]) -> None:
 
 
 def show_catalog() -> None:
-    """`freeide mcp catalog` — print the curated list + custom servers, no interaction."""
+    """`jettstui mcp catalog` — print the curated list + custom servers, no interaction."""
     _print_rows_text(_build_rows())
 
 
 def run_picker() -> None:
-    """`freeide mcp picker` (and default `freeide mcp`) — interactive selector.
+    """`jettstui mcp picker` (and default `jettstui mcp`) — interactive selector.
 
     Loops until the user hits ESC/q. After each action the picker re-renders
     so the user can manage several entries in one session.
@@ -299,18 +299,18 @@ def run_picker() -> None:
 
 
 def install_by_name(identifier: str) -> int:
-    """`freeide mcp install <name>` — non-interactive entry-point.
+    """`jettstui mcp install <name>` — non-interactive entry-point.
 
     Returns 0 on success, non-zero on failure (so the CLI can propagate
     exit codes).
     """
-    from freeide_cli.mcp_catalog import get_entry
+    from jettstui.mcp_catalog import get_entry
 
     entry = get_entry(identifier)
     if entry is None:
         print(color(
             f"  ✗ '{identifier}' is not in the catalog. "
-            "Run `freeide mcp catalog` to see available entries.",
+            "Run `jettstui mcp catalog` to see available entries.",
             Colors.RED,
         ))
         return 1

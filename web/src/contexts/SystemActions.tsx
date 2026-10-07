@@ -10,7 +10,7 @@ import {
 
 const ACTION_NAMES: Record<SystemAction, string> = {
   restart: "gateway-restart",
-  update: "freeide-update",
+  update: "jettstui-update",
 };
 
 export function SystemActionsProvider({
@@ -73,7 +73,7 @@ export function SystemActionsProvider({
           await api.restartGateway();
           setActiveAction(action);
         } else {
-          const resp = await api.updateFreeIDE();
+          const resp = await api.updateJettsTUI();
           // Some installs cannot apply updates from inside the dashboard. The
           // endpoint returns a structured {ok:false, message, update_command}
           // envelope instead of spawning the action; surface that guidance

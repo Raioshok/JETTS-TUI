@@ -1,6 +1,6 @@
 # Usage
 
-This skill is triggered by natural language in FreeIDE — no slash command or CLI flags.
+This skill is triggered by natural language in JettsTUI — no slash command or CLI flags.
 
 ## Trigger Phrases
 

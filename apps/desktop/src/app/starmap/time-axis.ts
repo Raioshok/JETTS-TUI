@@ -1,4 +1,4 @@
-import type { StarmapGraph, StarmapNode } from '@/types/freeide'
+import type { StarmapGraph, StarmapNode } from '@/types/jettstui'
 
 import { clamp } from './geometry'
 

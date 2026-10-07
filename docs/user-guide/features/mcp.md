@@ -1,28 +1,28 @@
 ---
 sidebar_position: 4
 title: "MCP (Model Context Protocol)"
-description: "Connect FreeIDE Agent to external tool servers via MCP — and control exactly which MCP tools FreeIDE loads"
+description: "Connect JettsTUI to external tool servers via MCP — and control exactly which MCP tools JettsTUI loads"
 ---
 
 # MCP (Model Context Protocol)
 
-MCP lets FreeIDE Agent connect to external tool servers so the agent can use tools that live outside FreeIDE itself — GitHub, databases, file systems, browser stacks, internal APIs, and more.
+MCP lets JettsTUI connect to external tool servers so the agent can use tools that live outside JettsTUI itself — GitHub, databases, file systems, browser stacks, internal APIs, and more.
 
-If you have ever wanted FreeIDE to use a tool that already exists somewhere else, MCP is usually the cleanest way to do it.
+If you have ever wanted JettsTUI to use a tool that already exists somewhere else, MCP is usually the cleanest way to do it.
 
 ## What MCP gives you
 
-- Access to external tool ecosystems without writing a native FreeIDE tool first
+- Access to external tool ecosystems without writing a native JettsTUI tool first
 - Local stdio servers and remote HTTP MCP servers in the same config
 - Automatic tool discovery and registration at startup
 - Utility wrappers for MCP resources and prompts when supported by the server
-- Per-server filtering so you can expose only the MCP tools you actually want FreeIDE to see
+- Per-server filtering so you can expose only the MCP tools you actually want JettsTUI to see
 
 ## Quick start
 
 1. MCP support ships with the standard install — no extra step needed.
 
-2. Add an MCP server to `~/.freeide/config.yaml`:
+2. Add an MCP server to `~/.jettstui/config.yaml`:
 
 ```yaml
 mcp_servers:
@@ -31,13 +31,13 @@ mcp_servers:
     args: ["-y", "@modelcontextprotocol/server-filesystem", "/home/user/projects"]
 ```
 
-3. Start FreeIDE:
+3. Start JettsTUI:
 
 ```bash
-freeide chat
+jettstui chat
 ```
 
-4. Ask FreeIDE to use the MCP-backed capability.
+4. Ask JettsTUI to use the MCP-backed capability.
 
 For example:
 
@@ -45,46 +45,46 @@ For example:
 List the files in /home/user/projects and summarize the repo structure.
 ```
 
-FreeIDE will discover the MCP server's tools and use them like any other tool.
+JettsTUI will discover the MCP server's tools and use them like any other tool.
 
-## Catalog: one-click install for FreeIDE-approved MCPs
+## Catalog: one-click install for JettsTUI-approved MCPs
 
-FreeIDE ships a curated catalog of MCP servers that FreeIDE staff has reviewed
+JettsTUI ships a curated catalog of MCP servers that JettsTUI staff has reviewed
 and merged. They're disabled by default — install only what you actually
 want.
 
 ```bash
-freeide mcp                # interactive picker (default)
-freeide mcp catalog        # plain-text list, scriptable
-freeide mcp install n8n    # install a catalog entry by name
+jettstui mcp                # interactive picker (default)
+jettstui mcp catalog        # plain-text list, scriptable
+jettstui mcp install n8n    # install a catalog entry by name
 ```
 
 The picker shows each entry with its current status:
 
 ```
-n8n          available              Manage and inspect n8n workflows from FreeIDE
+n8n          available              Manage and inspect n8n workflows from JettsTUI
 linear       enabled                Linear issue/project management (remote OAuth)
 github       installed (disabled)   GitHub repo + PR tools
 ```
 
 Hit `Enter` on a row to install (and walk through any required credentials),
 enable, disable, or uninstall. Catalog entries are stored under
-`optional-mcps/` in the freeide-agent repo — presence in that directory means
-FreeIDE approval. There is no community submission tier; entries are added by
+`optional-mcps/` in the jettstui repo — presence in that directory means
+JettsTUI approval. There is no community submission tier; entries are added by
 merging a PR.
 
 Catalog entries can require:
 
-- **API key** — FreeIDE prompts at install time and writes the value to
-  `~/.freeide/.env`. Non-secret values (base URLs) go to the same file.
+- **API key** — JettsTUI prompts at install time and writes the value to
+  `~/.jettstui/.env`. Non-secret values (base URLs) go to the same file.
 - **OAuth** (remote MCP) — written as `auth: oauth` in your config; the MCP
   client opens a browser on first connection.
-- **OAuth** (third-party provider like Google/GitHub) — FreeIDE points you at
-  `freeide auth <provider>` if you haven't authenticated already.
+- **OAuth** (third-party provider like Google/GitHub) — JettsTUI points you at
+  `jettstui auth <provider>` if you haven't authenticated already.
 
 ### Tool selection at install time
 
-After credentials are configured, FreeIDE probes the MCP server to list every
+After credentials are configured, JettsTUI probes the MCP server to list every
 tool it exposes and presents a checklist:
 
 ```
@@ -111,7 +111,7 @@ written (cleanest config shape, identical behavior).
 **If the probe fails** (server unreachable, OAuth not yet completed,
 backing service not running), the install still succeeds: the manifest's
 `tools.default_enabled` is applied directly (if declared), or no filter is
-written (if not). Re-run `freeide mcp configure <name>` once the server is
+written (if not). Re-run `jettstui mcp configure <name>` once the server is
 reachable to refine.
 
 ### Trust model
@@ -119,7 +119,7 @@ reachable to refine.
 Installing a catalog entry runs whatever the manifest specifies — `git clone`,
 the entry's `bootstrap` commands (`pip install`, `npm install`, etc.), and
 ultimately the MCP server's own code. Manifests are gated by PR review into
-the freeide-agent repo, so FreeIDE has reviewed each entry before it shipped —
+the jettstui repo, so JettsTUI has reviewed each entry before it shipped —
 **but you should still read the manifest before installing**, especially the
 `source:` field's repository, the `install.bootstrap:` commands, and any
 `transport.command:` invocation.
@@ -137,16 +137,16 @@ before clicking Install.
 ### Manifest version compatibility
 
 Manifests pin a `manifest_version`. The catalog is forward-compatible: if a
-PR adds an entry with a newer `manifest_version` than your installed FreeIDE
+PR adds an entry with a newer `manifest_version` than your installed JettsTUI
 understands, the picker will surface a warning (`⚠ '<name>' requires a newer
-FreeIDE`) for that entry instead of silently hiding it. Run `freeide update`
-to install the latest FreeIDE when you see that.
+JettsTUI`) for that entry instead of silently hiding it. Run `jettstui update`
+to install the latest JettsTUI when you see that.
 
 ### Runtime `${ENV_VAR}` substitution
 
 Inside an entry's `transport.command`, `transport.args`, `transport.url`,
 and `headers`, `${VAR}` placeholders are resolved at server-connect time
-from environment variables (which include everything in `~/.freeide/.env`).
+from environment variables (which include everything in `~/.jettstui/.env`).
 This is useful when a catalog entry wants to reference a value the user
 configured elsewhere — e.g. `${HOME}/foo` or `${MY_PROVIDER_TOKEN}`.
 
@@ -157,7 +157,7 @@ repo into.
 ### Updating tool selection later
 
 ```bash
-freeide mcp configure linear
+jettstui mcp configure linear
 ```
 
 Reopens the same checklist with your current selection pre-checked. Use this
@@ -166,8 +166,8 @@ you want to opt into.
 
 ### Updating the catalog manifest
 
-MCPs are never auto-updated. Re-run `freeide mcp install <name>` to refresh
-after a FreeIDE update if a manifest version changed.
+MCPs are never auto-updated. Re-run `jettstui mcp install <name>` to refresh
+after a JettsTUI update if a manifest version changed.
 
 To add an MCP to the catalog, open a PR against
 [`optional-mcps/`](../../../optional-mcps).
@@ -194,7 +194,7 @@ Use stdio servers when:
 
 ### HTTP servers
 
-HTTP MCP servers are remote endpoints FreeIDE connects to directly.
+HTTP MCP servers are remote endpoints JettsTUI connects to directly.
 
 ```yaml
 mcp_servers:
@@ -207,14 +207,14 @@ mcp_servers:
 Use HTTP servers when:
 - the MCP server is hosted elsewhere
 - your organization exposes internal MCP endpoints
-- you do not want FreeIDE spawning a local subprocess for that integration
+- you do not want JettsTUI spawning a local subprocess for that integration
 
 ### OAuth-authenticated HTTP servers
 
-Most hosted MCP servers (Linear, Sentry, Atlassian, Asana, Figma, Stripe, …) require OAuth 2.1 instead of a static bearer token. Set `auth: oauth` and FreeIDE handles discovery, dynamic client registration, PKCE, token exchange, refresh, and step-up auth via the MCP Python SDK.
+Most hosted MCP servers (Linear, Sentry, Atlassian, Asana, Figma, Stripe, …) require OAuth 2.1 instead of a static bearer token. Set `auth: oauth` and JettsTUI handles discovery, dynamic client registration, PKCE, token exchange, refresh, and step-up auth via the MCP Python SDK.
 
 :::tip Figma remote MCP
-Figma's hosted endpoint (`https://mcp.figma.com/mcp`) allowlists Dynamic Client Registration by **exact `client_name`** — bare `"FreeIDE Agent"` 403s, while `"Claude Code"` and `"Codex"` succeed. FreeIDE auto-sets `oauth.client_name: "Claude Code"` for `mcp.figma.com` so install/login works without a special trick:
+Figma's hosted endpoint (`https://mcp.figma.com/mcp`) allowlists Dynamic Client Registration by **exact `client_name`** — bare `"JettsTUI"` 403s, while `"Claude Code"` and `"Codex"` succeed. JettsTUI auto-sets `oauth.client_name: "Claude Code"` for `mcp.figma.com` so install/login works without a special trick:
 
 ```yaml
 mcp_servers:
@@ -223,7 +223,7 @@ mcp_servers:
     auth: oauth
 ```
 
-Or: `freeide mcp install figma`, then `freeide mcp login figma`.
+Or: `jettstui mcp install figma`, then `jettstui mcp login figma`.
 :::
 
 ```yaml
@@ -233,13 +233,13 @@ mcp_servers:
     auth: oauth
 ```
 
-On first connect, FreeIDE prints an authorize URL, opens your browser when possible, and waits for the OAuth callback on a local loopback port. Tokens are cached at `~/.freeide/mcp-tokens/<server>.json` with 0o600 perms; subsequent runs reuse them silently until refresh fails.
+On first connect, JettsTUI prints an authorize URL, opens your browser when possible, and waits for the OAuth callback on a local loopback port. Tokens are cached at `~/.jettstui/mcp-tokens/<server>.json` with 0o600 perms; subsequent runs reuse them silently until refresh fails.
 
-**Remote / headless hosts.** When FreeIDE runs on a different machine than your browser, the loopback callback can't reach your laptop. Two ways to complete the flow:
+**Remote / headless hosts.** When JettsTUI runs on a different machine than your browser, the loopback callback can't reach your laptop. Two ways to complete the flow:
 
-- **Paste-back (no setup):** on an interactive terminal FreeIDE prints "Or paste the redirect URL here…" alongside the authorize URL. Open the URL in your browser, approve, copy the full URL the browser ends up on (the redirect will show a connection error — that's expected), paste it at the prompt. Bare `?code=…&state=…` query strings work too.
+- **Paste-back (no setup):** on an interactive terminal JettsTUI prints "Or paste the redirect URL here…" alongside the authorize URL. Open the URL in your browser, approve, copy the full URL the browser ends up on (the redirect will show a connection error — that's expected), paste it at the prompt. Bare `?code=…&state=…` query strings work too.
 - **SSH port forward:** `ssh -N -L <port>:127.0.0.1:<port> user@host` in a separate terminal, then let the redirect flow normally.
-- **Proxied callback (`redirect_uri`):** when a public HTTPS endpoint forwards to the host (e.g. a Tailscale Funnel or reverse proxy pointed at the callback port), set `oauth.redirect_uri` and the browser redirect reaches FreeIDE on its own — no tunnel or paste needed:
+- **Proxied callback (`redirect_uri`):** when a public HTTPS endpoint forwards to the host (e.g. a Tailscale Funnel or reverse proxy pointed at the callback port), set `oauth.redirect_uri` and the browser redirect reaches JettsTUI on its own — no tunnel or paste needed:
 
 ```yaml
 mcp_servers:
@@ -251,13 +251,13 @@ mcp_servers:
       redirect_uri: "https://oauth.example.ts.net/callback"
 ```
 
-For fully headless gateways (messaging bot, no interactive terminal at all), the optional [`mcp-oauth-remote-gateway` skill](../skills/optional/mcp/mcp-mcp-oauth-remote-gateway.md) walks the agent through completing the flow manually and writing tokens where FreeIDE expects them.
+For fully headless gateways (messaging bot, no interactive terminal at all), the optional [`mcp-oauth-remote-gateway` skill](../skills/optional/mcp/mcp-mcp-oauth-remote-gateway.md) walks the agent through completing the flow manually and writing tokens where JettsTUI expects them.
 
 **Pitfall — WAF rejects `127.0.0.1` redirect URIs.** A few providers front their authorization server with a WAF that 403s any authorize request whose query string contains a literal `127.0.0.1` (Reclaim.ai's AWS API Gateway is a known example — every attempt returns `{"message":"Forbidden"}` before reaching the OAuth app). Set `oauth.redirect_host: localhost` to use `http://localhost:<port>/callback` instead; the callback listener still binds `127.0.0.1` either way.
 
-See [OAuth over SSH / Remote Hosts](../../guides/oauth-over-ssh.md#mcp-servers) for the full walkthrough, including DCR-less servers (e.g. Slack), pre-registered `client_id`/`client_secret`, scope customization, and re-auth via `freeide mcp login <server>`.
+See [OAuth over SSH / Remote Hosts](../../guides/oauth-over-ssh.md#mcp-servers) for the full walkthrough, including DCR-less servers (e.g. Slack), pre-registered `client_id`/`client_secret`, scope customization, and re-auth via `jettstui mcp login <server>`.
 
-**Pitfall — providers that don't support automatic registration (Google Drive, Atlassian).** Some servers reject the dynamic client registration step (RFC 7591) that bare `auth: oauth` relies on — Google's official Drive server (`https://drivemcp.googleapis.com/mcp/v1`) returns a `400 Bad Request`, so no OAuth client is created and no token is acquired. The symptom is subtle: these servers also serve `tools/list` *without* auth, so `freeide mcp login` can list the tools and look like it worked, but every real tool call later times out. `freeide mcp login` now detects this (it checks that a token actually landed on disk) and tells you to supply your own OAuth client. Create one in the provider's console and add it to config:
+**Pitfall — providers that don't support automatic registration (Google Drive, Atlassian).** Some servers reject the dynamic client registration step (RFC 7591) that bare `auth: oauth` relies on — Google's official Drive server (`https://drivemcp.googleapis.com/mcp/v1`) returns a `400 Bad Request`, so no OAuth client is created and no token is acquired. The symptom is subtle: these servers also serve `tools/list` *without* auth, so `jettstui mcp login` can list the tools and look like it worked, but every real tool call later times out. `jettstui mcp login` now detects this (it checks that a token actually landed on disk) and tells you to supply your own OAuth client. Create one in the provider's console and add it to config:
 
 ```yaml
 mcp_servers:
@@ -269,13 +269,13 @@ mcp_servers:
       client_secret: "<your-oauth-client-secret>"
 ```
 
-Then run `freeide mcp login googledrive` — with the pre-registered client, FreeIDE skips registration and runs the normal browser authorization flow.
+Then run `jettstui mcp login googledrive` — with the pre-registered client, JettsTUI skips registration and runs the normal browser authorization flow.
 
-**Pitfall — config auto-reload race.** When you edit `~/.freeide/config.yaml` from inside a running FreeIDE session, the CLI auto-reloads MCP connections with a 30s timeout. That's not enough for an interactive OAuth flow. Add the entry, then run `freeide mcp login <server>` from a fresh terminal — it waits the full 5 minutes for you to complete auth.
+**Pitfall — config auto-reload race.** When you edit `~/.jettstui/config.yaml` from inside a running JettsTUI session, the CLI auto-reloads MCP connections with a 30s timeout. That's not enough for an interactive OAuth flow. Add the entry, then run `jettstui mcp login <server>` from a fresh terminal — it waits the full 5 minutes for you to complete auth.
 
 ## mTLS / client certificates
 
-Remote HTTP MCP servers that require mutual TLS (client-certificate authentication) are supported via `client_cert` / `client_key`. FreeIDE passes the resolved certificate to the underlying HTTP client for the TLS handshake.
+Remote HTTP MCP servers that require mutual TLS (client-certificate authentication) are supported via `client_cert` / `client_key`. JettsTUI passes the resolved certificate to the underlying HTTP client for the TLS handshake.
 
 `client_cert` accepts three shapes:
 
@@ -310,7 +310,7 @@ You can also keep the cert and key fully separate via `client_cert` (combined PE
 
 ## Basic configuration reference
 
-FreeIDE reads MCP config from `~/.freeide/config.yaml` under `mcp_servers`.
+JettsTUI reads MCP config from `~/.jettstui/config.yaml` under `mcp_servers`.
 
 ### Common keys
 
@@ -327,7 +327,7 @@ FreeIDE reads MCP config from `~/.freeide/config.yaml` under `mcp_servers`.
 | `connect_timeout` | number | Initial connection timeout (also bounds the MCP `initialize` handshake) |
 | `idle_timeout_seconds` | number | Recycle a stdio server after this many seconds without a tool call (`0` = never, default). The server restarts transparently on the next tool call. |
 | `max_lifetime_seconds` | number | Recycle a stdio server after this total age (`0` = never, default). Restarts transparently on next use. |
-| `enabled` | bool | If `false`, FreeIDE skips the server entirely |
+| `enabled` | bool | If `false`, JettsTUI skips the server entirely |
 | `supports_parallel_tool_calls` | bool | If `true`, tools from this server may run concurrently |
 | `tools` | mapping | Per-server tool filtering and utility policy |
 
@@ -369,7 +369,7 @@ mcp_servers:
 
 ## Built-in presets
 
-For well-known MCP servers, `freeide mcp add` accepts a `--preset` flag that fills in the transport details so you don't have to look up the command and args. The preset only supplies defaults — anything else (env vars, headers, filtering) you pass on the same command line still wins.
+For well-known MCP servers, `jettstui mcp add` accepts a `--preset` flag that fills in the transport details so you don't have to look up the command and args. The preset only supplies defaults — anything else (env vars, headers, filtering) you pass on the same command line still wins.
 
 | Preset | What it wires up |
 |---|---|
@@ -377,7 +377,7 @@ For well-known MCP servers, `freeide mcp add` accepts a `--preset` flag that fil
 
 ```bash
 # Add Codex CLI as an MCP server in one line
-freeide mcp add codex --preset codex
+jettstui mcp add codex --preset codex
 ```
 
 That writes the equivalent of:
@@ -389,11 +389,11 @@ mcp_servers:
     args: ["mcp-server"]
 ```
 
-You can pick any local name (`freeide mcp add my-codex --preset codex` is fine); the preset only provides the `command`/`args` defaults.
+You can pick any local name (`jettstui mcp add my-codex --preset codex` is fine); the preset only provides the `command`/`args` defaults.
 
-## How FreeIDE registers MCP tools
+## How JettsTUI registers MCP tools
 
-FreeIDE prefixes MCP tools so they do not collide with built-in names:
+JettsTUI prefixes MCP tools so they do not collide with built-in names:
 
 ```text
 mcp_<server_name>_<tool_name>
@@ -407,11 +407,11 @@ Examples:
 | `github` | `create-issue` | `mcp_github_create_issue` |
 | `my-api` | `query.data` | `mcp_my_api_query_data` |
 
-In practice, you usually do not need to call the prefixed name manually — FreeIDE sees the tool and chooses it during normal reasoning.
+In practice, you usually do not need to call the prefixed name manually — JettsTUI sees the tool and chooses it during normal reasoning.
 
 ## MCP utility tools
 
-When supported, FreeIDE also registers utility tools around MCP resources and prompts:
+When supported, JettsTUI also registers utility tools around MCP resources and prompts:
 
 - `list_resources`
 - `read_resource`
@@ -426,14 +426,14 @@ These are registered per server with the same prefix pattern, for example:
 ### Important
 
 These utility tools are now capability-aware:
-- FreeIDE only registers resource utilities if the MCP session actually supports resource operations
-- FreeIDE only registers prompt utilities if the MCP session actually supports prompt operations
+- JettsTUI only registers resource utilities if the MCP session actually supports resource operations
+- JettsTUI only registers prompt utilities if the MCP session actually supports prompt operations
 
 So a server that exposes callable tools but no resources/prompts will not get those extra wrappers.
 
 ## Per-server filtering
 
-You can control which tools each MCP server contributes to FreeIDE, allowing fine-grained management of your tool namespace.
+You can control which tools each MCP server contributes to JettsTUI, allowing fine-grained management of your tool namespace.
 
 ### Disable a server entirely
 
@@ -444,7 +444,7 @@ mcp_servers:
     enabled: false
 ```
 
-If `enabled: false`, FreeIDE skips the server completely and does not even attempt a connection.
+If `enabled: false`, JettsTUI skips the server completely and does not even attempt a connection.
 
 ### Whitelist server tools
 
@@ -505,7 +505,7 @@ tools:
 
 ### Filter utility tools too
 
-You can also separately disable FreeIDE-added utility wrappers:
+You can also separately disable JettsTUI-added utility wrappers:
 
 ```yaml
 mcp_servers:
@@ -548,7 +548,7 @@ mcp_servers:
 
 ## What happens if everything is filtered out?
 
-If your config filters out all callable tools and disables or omits all supported utilities, FreeIDE does not create an empty runtime MCP toolset for that server.
+If your config filters out all callable tools and disables or omits all supported utilities, JettsTUI does not create an empty runtime MCP toolset for that server.
 
 That keeps the tool list clean.
 
@@ -556,11 +556,11 @@ That keeps the tool list clean.
 
 ### Discovery time
 
-FreeIDE discovers MCP servers at startup and registers their tools into the normal tool registry.
+JettsTUI discovers MCP servers at startup and registers their tools into the normal tool registry.
 
 ### Dynamic Tool Discovery
 
-MCP servers can notify FreeIDE when their available tools change at runtime by sending a `notifications/tools/list_changed` notification. When FreeIDE receives this notification, it automatically re-fetches the server's tool list and updates the registry — no manual `/reload-mcp` required.
+MCP servers can notify JettsTUI when their available tools change at runtime by sending a `notifications/tools/list_changed` notification. When JettsTUI receives this notification, it automatically re-fetches the server's tool list and updates the registry — no manual `/reload-mcp` required.
 
 This is useful for MCP servers whose capabilities change dynamically (e.g. a server that adds tools when a new database schema is loaded, or removes tools when a service goes offline).
 
@@ -590,7 +590,7 @@ That makes MCP servers easier to reason about at the toolset level.
 
 ### Stdio env filtering
 
-For stdio servers, FreeIDE does not blindly pass your full shell environment.
+For stdio servers, JettsTUI does not blindly pass your full shell environment.
 
 Only explicitly configured `env` plus a safe baseline are passed through. This reduces accidental secret leakage.
 
@@ -665,13 +665,13 @@ Check:
 
 ```bash
 # Verify MCP deps are installed (already included in standard install)
-cd ~/.freeide/freeide-agent && uv pip install -e ".[mcp]"
+cd ~/.jettstui/jettstui && uv pip install -e ".[mcp]"
 
 node --version
 npx --version
 ```
 
-Then verify your config and restart FreeIDE.
+Then verify your config and restart JettsTUI.
 
 ### Tools not appearing
 
@@ -686,7 +686,7 @@ If you are intentionally filtering, this is expected.
 
 ### Why didn't resource or prompt utilities appear?
 
-Because FreeIDE now only registers those wrappers when both are true:
+Because JettsTUI now only registers those wrappers when both are true:
 1. your config allows them
 2. the server session actually supports the capability
 
@@ -703,7 +703,7 @@ mcp_servers:
     supports_parallel_tool_calls: true
 ```
 
-When `supports_parallel_tool_calls` is `true`, FreeIDE may execute multiple tools from that server at the same time within a single tool-call batch, just like it does for built-in read-only tools (web_search, read_file, etc.).
+When `supports_parallel_tool_calls` is `true`, JettsTUI may execute multiple tools from that server at the same time within a single tool-call batch, just like it does for built-in read-only tools (web_search, read_file, etc.).
 
 :::caution
 Only enable parallel calls for MCP servers whose tools are safe to run at the same time. If tools read and write shared state, files, databases, or external resources, review the read/write race conditions before enabling this setting.
@@ -711,7 +711,7 @@ Only enable parallel calls for MCP servers whose tools are safe to run at the sa
 
 ## MCP Sampling Support
 
-MCP servers can request LLM inference from FreeIDE via the `sampling/createMessage` protocol. This allows an MCP server to ask FreeIDE to generate text on its behalf — useful for servers that need LLM capabilities but don't have their own model access.
+MCP servers can request LLM inference from JettsTUI via the `sampling/createMessage` protocol. This allows an MCP server to ask JettsTUI to generate text on its behalf — useful for servers that need LLM capabilities but don't have their own model access.
 
 Sampling is **enabled by default** for all MCP servers (when the MCP SDK supports it). Configure it per-server under the `sampling` key:
 
@@ -742,46 +742,46 @@ mcp_servers:
       enabled: false
 ```
 
-## Running FreeIDE as an MCP server
+## Running JettsTUI as an MCP server
 
-In addition to connecting **to** MCP servers, FreeIDE can also **be** an MCP server. This lets other MCP-capable agents (Claude Code, Cursor, Codex, or any MCP client) use FreeIDE's messaging capabilities — list conversations, read message history, and send messages across all your connected platforms.
+In addition to connecting **to** MCP servers, JettsTUI can also **be** an MCP server. This lets other MCP-capable agents (Claude Code, Cursor, Codex, or any MCP client) use JettsTUI's messaging capabilities — list conversations, read message history, and send messages across all your connected platforms.
 
 ### When to use this
 
-- You want Claude Code, Cursor, or another coding agent to send and read Telegram/Discord/Slack messages through FreeIDE
-- You want a single MCP server that bridges to all of FreeIDE's connected messaging platforms at once
-- You already have a running FreeIDE gateway with connected platforms
+- You want Claude Code, Cursor, or another coding agent to send and read Telegram/Discord/Slack messages through JettsTUI
+- You want a single MCP server that bridges to all of JettsTUI's connected messaging platforms at once
+- You already have a running JettsTUI gateway with connected platforms
 
 ### Quick start
 
 ```bash
-freeide mcp serve
+jettstui mcp serve
 ```
 
 This starts a stdio MCP server. The MCP client (not you) manages the process lifecycle.
 
 ### MCP client configuration
 
-Add FreeIDE to your MCP client config. For example, in Claude Code's `~/.claude/claude_desktop_config.json`:
+Add JettsTUI to your MCP client config. For example, in Claude Code's `~/.claude/claude_desktop_config.json`:
 
 ```json
 {
   "mcpServers": {
-    "freeide": {
-      "command": "freeide",
+    "jettstui": {
+      "command": "jettstui",
       "args": ["mcp", "serve"]
     }
   }
 }
 ```
 
-Or if you installed FreeIDE in a specific location:
+Or if you installed JettsTUI in a specific location:
 
 ```json
 {
   "mcpServers": {
-    "freeide": {
-      "command": "/home/user/.freeide/freeide-agent/venv/bin/freeide",
+    "jettstui": {
+      "command": "/home/user/.jettstui/jettstui/venv/bin/jettstui",
       "args": ["mcp", "serve"]
     }
   }
@@ -790,7 +790,7 @@ Or if you installed FreeIDE in a specific location:
 
 ### Available tools
 
-The MCP server exposes 10 tools, matching OpenClaw's channel bridge surface plus a FreeIDE-specific channel browser:
+The MCP server exposes 10 tools, matching OpenClaw's channel bridge surface plus a JettsTUI-specific channel browser:
 
 | Tool | Description |
 |------|-------------|
@@ -807,7 +807,7 @@ The MCP server exposes 10 tools, matching OpenClaw's channel bridge surface plus
 
 ### Event system
 
-The MCP server includes a live event bridge that polls FreeIDE's session database for new messages. This gives MCP clients near-real-time awareness of incoming conversations:
+The MCP server includes a live event bridge that polls JettsTUI's session database for new messages. This gives MCP clients near-real-time awareness of incoming conversations:
 
 ```
 # Poll for new events (non-blocking)
@@ -824,26 +824,26 @@ The event queue is in-memory and starts when the bridge connects. Older messages
 ### Options
 
 ```bash
-freeide mcp serve              # Normal mode
-freeide mcp serve --verbose    # Debug logging on stderr
+jettstui mcp serve              # Normal mode
+jettstui mcp serve --verbose    # Debug logging on stderr
 ```
 
 ### How it works
 
-The MCP server reads conversation data directly from FreeIDE's session store (`~/.freeide/sessions/sessions.json` and the SQLite database). A background thread polls the database for new messages and maintains an in-memory event queue. For sending messages, it uses the same internal send engine (`tools/send_message_tool.py`) that powers cron delivery and the `freeide send` CLI.
+The MCP server reads conversation data directly from JettsTUI's session store (`~/.jettstui/sessions/sessions.json` and the SQLite database). A background thread polls the database for new messages and maintains an in-memory event queue. For sending messages, it uses the same internal send engine (`tools/send_message_tool.py`) that powers cron delivery and the `jettstui send` CLI.
 
 The gateway does NOT need to be running for read operations (listing conversations, reading history, polling events). It DOES need to be running for send operations, since the platform adapters need active connections.
 
 ### Current limits
 
-- The embedded `freeide mcp serve` exposes a **stdio-only** MCP server today. If you need an HTTP MCP server, run a separate adapter — or, much more commonly, use the MCP **client** side of FreeIDE, which already speaks both stdio and HTTP (`url` + `headers` in `mcp_servers.yaml` / `config.yaml`; see [HTTP servers](#http-servers) above).
+- The embedded `jettstui mcp serve` exposes a **stdio-only** MCP server today. If you need an HTTP MCP server, run a separate adapter — or, much more commonly, use the MCP **client** side of JettsTUI, which already speaks both stdio and HTTP (`url` + `headers` in `mcp_servers.yaml` / `config.yaml`; see [HTTP servers](#http-servers) above).
 - Event polling at ~200ms intervals via mtime-optimized DB polling (skips work when files are unchanged)
 - No `claude/channel` push notification protocol yet
 - Text-only sends (no media/attachment sending through `messages_send`)
 
 ## Related docs
 
-- [Use MCP with FreeIDE](../../guides/use-mcp-with-freeide.md)
+- [Use MCP with JettsTUI](../../guides/use-mcp-with-jettstui.md)
 - [CLI Commands](../../reference/cli-commands.md)
 - [Slash Commands](../../reference/slash-commands.md)
 - [FAQ](../../reference/faq.md)

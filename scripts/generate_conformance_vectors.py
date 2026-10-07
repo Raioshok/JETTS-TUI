@@ -56,7 +56,7 @@ GRID: List[tuple] = [
     ("italic", "This is *italic* text."),
     ("bold-italic", "Mix of **bold** and *italic* in one line."),
     ("strikethrough", "This is ~~struck~~ text."),
-    ("inline-code", "Run `pip install freeide` to start."),
+    ("inline-code", "Run `pip install jettstui` to start."),
     ("fenced-code", "```\nprint('hello')\n```"),
     ("fenced-code-lang", "```python\ndef f(x):\n    return x * 2\n```"),
     ("link", "See [the docs](https://example.com/docs) for more."),
@@ -227,11 +227,11 @@ def generate(out_dir: Path) -> Dict[str, Any]:
         doc = {
             "$comment": (
                 "GENERATED — do not hand-edit. Regenerate with "
-                "freeide-agent scripts/generate_conformance_vectors.py; the "
+                "jettstui scripts/generate_conformance_vectors.py; the "
                 "native renderers are the oracle (executable spec)."
             ),
             "oracle": {
-                "repo": "freeide/freeide",
+                "repo": "jettstui/jettstui",
                 "commit": commit,
                 "generator": "scripts/generate_conformance_vectors.py",
                 "generator_version": GENERATOR_VERSION,

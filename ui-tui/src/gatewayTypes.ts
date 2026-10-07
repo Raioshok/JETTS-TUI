@@ -1,11 +1,11 @@
 import type { BillingBlock, UsageModelData } from '@jetts-tui/shared/billing'
-import type { FreeIDESkin } from '@jetts-tui/shared/skin'
+import type { JettsTUISkin } from '@jetts-tui/shared/skin'
 
 import type { SessionInfo, SlashCategory, SubagentStatus, Usage } from './types.js'
 
 /** The cross-surface skin contract (canonical shape in `@jetts-tui/shared`).
  *  Includes the paired light_colors/dark_colors overlays from #20379. */
-export type GatewaySkin = FreeIDESkin
+export type GatewaySkin = JettsTUISkin
 
 export interface GatewayCompletionItem {
   display: string

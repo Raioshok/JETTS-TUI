@@ -31,7 +31,7 @@ def test_arbitrary_user_uid_rejected(
         f"rejection message missing 'not supported': {combined[-500:]}"
     )
     # Must mention the remediation env vars
-    assert "FREEIDE_UID" in combined or "PUID" in combined, (
+    assert "JETTSTUI_UID" in combined or "PUID" in combined, (
         f"rejection message missing remediation guidance: {combined[-500:]}"
     )
 
@@ -48,7 +48,7 @@ def test_root_start_works(
     assert "OK" in r.stdout
 
 
-def test_user_pinned_to_freeide_uid_works(
+def test_user_pinned_to_jettstui_uid_works(
     built_image: str,
 ) -> None:
     """docker run --user 10000:10000 (the jettstui UID) must be allowed.

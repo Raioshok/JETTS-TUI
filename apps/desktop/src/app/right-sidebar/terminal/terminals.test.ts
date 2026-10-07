@@ -1,7 +1,7 @@
 import { atom } from 'nanostores'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 
-const STORAGE_KEY = 'freeide.desktop.terminals.v1'
+const STORAGE_KEY = 'jettstui.desktop.terminals.v1'
 
 async function loadTerminalStore() {
   vi.doMock('@/store/session', () => ({

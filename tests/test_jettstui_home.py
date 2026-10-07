@@ -57,7 +57,7 @@ def test_alias_failure_rolls_back_without_losing_data(tmp_path: Path, monkeypatc
 
 @pytest.mark.skipif(sys.platform != "win32", reason="Windows legacy-home precedence")
 def test_runtime_moves_active_windows_home_but_preserves_older_home(tmp_path: Path, monkeypatch) -> None:
-    import freeide_constants
+    import jettstui_constants
 
     local = tmp_path / "Local"
     local.mkdir()
@@ -68,40 +68,40 @@ def test_runtime_moves_active_windows_home_but_preserves_older_home(tmp_path: Pa
     older.mkdir()
     (older / "notes.txt").write_text("preserve", encoding="utf-8")
     monkeypatch.setenv("LOCALAPPDATA", str(local))
-    monkeypatch.delenv("FREEIDE_HOME", raising=False)
+    monkeypatch.delenv("JETTSTUI_HOME", raising=False)
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
-    assert freeide_constants.get_freeide_home() == local / "jettstui"
+    assert jettstui_constants.get_jettstui_home() == local / "jettstui"
     assert (local / "jettstui" / "state.db").read_bytes() == b"active"
     assert (active / "state.db").read_bytes() == b"active"
     assert (older / "notes.txt").read_text(encoding="utf-8") == "preserve"
 
 
 def test_explicit_home_does_not_move_default(tmp_path: Path, monkeypatch) -> None:
-    import freeide_constants
+    import jettstui_constants
 
     old = tmp_path / ".freeide"
     old.mkdir()
     custom = tmp_path / "custom"
-    monkeypatch.setenv("FREEIDE_HOME", str(custom))
+    monkeypatch.setenv("JETTSTUI_HOME", str(custom))
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
-    assert freeide_constants.get_freeide_home() == custom
+    assert jettstui_constants.get_jettstui_home() == custom
     assert old.is_dir()
     assert not (tmp_path / ".jettstui").exists()
 
 
 @pytest.mark.skipif(sys.platform != "win32", reason="Windows installer persisted the old default")
 def test_legacy_installer_env_default_migrates(tmp_path: Path, monkeypatch) -> None:
-    import freeide_constants
+    import jettstui_constants
 
     old = tmp_path / "freeide"
     old.mkdir()
     (old / "config.yaml").write_text("active", encoding="utf-8")
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path))
-    monkeypatch.setenv("FREEIDE_HOME", str(old))
+    monkeypatch.setenv("JETTSTUI_HOME", str(old))
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
-    assert freeide_constants.get_freeide_home() == tmp_path / "jettstui"
+    assert jettstui_constants.get_jettstui_home() == tmp_path / "jettstui"
     assert (old / "config.yaml").read_text(encoding="utf-8") == "active"

@@ -1,4 +1,4 @@
-"""Runtime smoke test for Docker $FREEIDE_HOME/logs/gateways seeding.
+"""Runtime smoke test for Docker $JETTSTUI_HOME/logs/gateways seeding.
 
 Build the real image and verify logs/ and logs/gateways/ exist and are
 owned by the jettstui user after container boot.
@@ -17,7 +17,7 @@ from tests.docker.conftest import (
 )
 
 
-def test_logs_gateways_seeded_and_freeide_owned(
+def test_logs_gateways_seeded_and_jettstui_owned(
     built_image: str, container_name: str,
 ) -> None:
     """logs/ and logs/gateways/ must exist and be owned by jettstui after boot."""
@@ -56,7 +56,7 @@ def test_logs_gateways_healed_when_parent_root_owned(
 ) -> None:
     """Warm-boot stage2 must heal root-owned logs/gateways (#45258).
 
-    Mimics a poisoned volume: FREEIDE_HOME already jettstui-owned (so the
+    Mimics a poisoned volume: JETTSTUI_HOME already jettstui-owned (so the
     bulk data-volume chown is skipped) while logs/gateways is root-owned.
     Restartable log/run no longer root-chowns that path (symlink TOCTOU),
     so stage2 must repair the parent on every boot.

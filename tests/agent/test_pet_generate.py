@@ -12,10 +12,10 @@ import os
 import pytest
 
 pytestmark = pytest.mark.skipif(
-    os.environ.get("FREEIDE_RUN_SLOW_PET_TESTS") != "1",
+    os.environ.get("JETTSTUI_RUN_SLOW_PET_TESTS") != "1",
     reason=(
         "pet generation image-processing suite is opt-in; run with "
-        "FREEIDE_RUN_SLOW_PET_TESTS=1 scripts/run_tests.sh tests/agent/test_pet_generate.py"
+        "JETTSTUI_RUN_SLOW_PET_TESTS=1 scripts/run_tests.sh tests/agent/test_pet_generate.py"
     ),
 )
 
@@ -562,7 +562,7 @@ def test_list_sprite_providers_marks_default(monkeypatch):
     assert all(p["label"] for p in listed)
     assert all("note" not in p for p in listed)
     assert [p["name"] for p in listed if p["default"]] == ["openai"]
-    # Listed in preference order: FreeIDE Portal before OpenAI.
+    # Listed in preference order: JettsTUI Portal before OpenAI.
     assert [p["name"] for p in listed] == ["nous", "openai"]
 
 

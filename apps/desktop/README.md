@@ -1,12 +1,12 @@
-# Jetts-TUI Desktop
+# JettsTUI Desktop
 
-The desktop app is a native Electron interface to the same Jetts-TUI agent runtime used by the terminal UI and messaging gateway. It provides streaming chat, tool activity, project navigation, previews, voice, and settings without requiring a terminal window.
+The desktop app is a native Electron interface to the same JettsTUI agent runtime used by the terminal UI and messaging gateway. It provides streaming chat, tool activity, project navigation, previews, voice, and settings without requiring a terminal window.
 
-See the [main README](../../README.md) for source installation and the [documentation](../../docs/) for setup and configuration. This repository does not publish a separate documentation website. Desktop installers are intended for [Jetts-TUI releases](https://github.com/Raioshok/JETTS-TUI/releases); check that page for actual availability before relying on a prebuilt installer.
+See the [main README](../../README.md) for source installation and the [documentation](../../docs/) for setup and configuration. This repository does not publish a separate documentation website. Desktop installers are intended for [JettsTUI releases](https://github.com/Raioshok/JETTS-TUI/releases); check that page for actual availability before relying on a prebuilt installer.
 
 ## Run from a checkout
 
-Install Jetts-TUI using the platform script in the repository root, then run:
+Install JettsTUI using the platform script in the repository root, then run:
 
 ```bash
 jetts-tui desktop
@@ -42,7 +42,7 @@ For changes to installation, startup, updates, or packaging, also run `npm run t
 
 ## Troubleshooting
 
-Backend boot logs are under `FREEIDE_HOME/logs/desktop.log`. Without a `FREEIDE_HOME` override, Jetts-TUI uses `~/.jettstui` on POSIX and `%LOCALAPPDATA%\jettstui` on Windows. The `FREEIDE_HOME` environment variable is retained for compatibility with existing installations.
+Backend boot logs are under `JETTSTUI_HOME/logs/desktop.log`. Without a `JETTSTUI_HOME` override, JettsTUI uses `~/.jettstui` on POSIX and `%LOCALAPPDATA%\jettstui` on Windows. The `JETTSTUI_HOME` environment variable is retained for compatibility with existing installations.
 
 If the app cannot start a local backend, check that `jetts-tui --version` works from a new shell, then inspect the boot log. For persistent problems, open an [issue](https://github.com/Raioshok/JETTS-TUI/issues) with the platform, app version, and redacted log excerpt.
 

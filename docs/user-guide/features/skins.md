@@ -1,12 +1,12 @@
 ---
 sidebar_position: 10
 title: "Skins & Themes"
-description: "Customize the FreeIDE CLI with built-in and user-defined skins"
+description: "Customize the JettsTUI CLI with built-in and user-defined skins"
 ---
 
 # Skins & Themes
 
-Skins control the **visual presentation** of the FreeIDE CLI: banner colors, spinner faces and verbs, response-box labels, branding text, and the tool activity prefix.
+Skins control the **visual presentation** of the JettsTUI CLI: banner colors, spinner faces and verbs, response-box labels, branding text, and the tool activity prefix.
 
 Conversational style and visual style are separate concepts:
 
@@ -18,10 +18,10 @@ Conversational style and visual style are separate concepts:
 ```bash
 /skin                # show the current skin and list available skins
 /skin ares           # switch to a built-in skin
-/skin mytheme        # switch to a custom skin from ~/.freeide/skins/mytheme.yaml
+/skin mytheme        # switch to a custom skin from ~/.jettstui/skins/mytheme.yaml
 ```
 
-Or set the default skin in `~/.freeide/config.yaml`:
+Or set the default skin in `~/.jettstui/config.yaml`:
 
 ```yaml
 display:
@@ -32,12 +32,12 @@ display:
 
 | Skin | Description | Agent branding | Visual character |
 |------|-------------|----------------|------------------|
-| `default` | Classic FreeIDE — gold and kawaii | `FreeIDE Agent` | Warm gold borders, cornsilk text, kawaii faces in spinners. The familiar caduceus banner. Clean and inviting. |
+| `default` | Classic JettsTUI — gold and kawaii | `JettsTUI` | Warm gold borders, cornsilk text, kawaii faces in spinners. The familiar caduceus banner. Clean and inviting. |
 | `ares` | War-god theme — crimson and bronze | `Ares Agent` | Deep crimson borders with bronze accents. Aggressive spinner verbs ("forging", "marching", "tempering steel"). Custom sword-and-shield ASCII art banner. |
-| `mono` | Monochrome — clean grayscale | `FreeIDE Agent` | All grays — no color. Borders are `#555555`, text is `#c9d1d9`. Ideal for minimal terminal setups or screen recordings. |
-| `slate` | Cool blue — developer-focused | `FreeIDE Agent` | Royal blue borders (`#4169e1`), soft blue text. Calm and professional. No custom spinner — uses default faces. |
-| `daylight` | Light theme for bright terminals with dark text and cool blue accents | `FreeIDE Agent` | Designed for white or bright terminals. Dark slate text with blue borders, pale status surfaces, and a light completion menu that stays readable in light terminal profiles. |
-| `warm-lightmode` | Warm brown/gold text for light terminal backgrounds | `FreeIDE Agent` | Warm parchment tones for light terminals. Dark brown text with saddle-brown accents, cream-colored status surfaces. An earthy alternative to the cooler daylight theme. |
+| `mono` | Monochrome — clean grayscale | `JettsTUI` | All grays — no color. Borders are `#555555`, text is `#c9d1d9`. Ideal for minimal terminal setups or screen recordings. |
+| `slate` | Cool blue — developer-focused | `JettsTUI` | Royal blue borders (`#4169e1`), soft blue text. Calm and professional. No custom spinner — uses default faces. |
+| `daylight` | Light theme for bright terminals with dark text and cool blue accents | `JettsTUI` | Designed for white or bright terminals. Dark slate text with blue borders, pale status surfaces, and a light completion menu that stays readable in light terminal profiles. |
+| `warm-lightmode` | Warm brown/gold text for light terminal backgrounds | `JettsTUI` | Warm parchment tones for light terminals. Dark brown text with saddle-brown accents, cream-colored status surfaces. An earthy alternative to the cooler daylight theme. |
 | `poseidon` | Ocean-god theme — deep blue and seafoam | `Poseidon Agent` | Deep blue to seafoam gradient. Ocean-themed spinners ("charting currents", "sounding the depth"). Trident ASCII art banner. |
 | `sisyphus` | Sisyphean theme — austere grayscale with persistence | `Sisyphus Agent` | Light grays with stark contrast. Boulder-themed spinners ("pushing uphill", "resetting the boulder", "enduring the loop"). Boulder-and-hill ASCII art banner. |
 | `charizard` | Volcanic theme — burnt orange and ember | `Charizard Agent` | Warm burnt orange to ember gradient. Fire-themed spinners ("banking into the draft", "measuring burn"). Dragon-silhouette ASCII art banner. |
@@ -92,10 +92,10 @@ Text strings used throughout the CLI interface.
 
 | Key | Description | Default |
 |-----|-------------|---------|
-| `agent_name` | Name shown in banner title and status display | `FreeIDE Agent` |
-| `welcome` | Welcome message shown at CLI startup | `Welcome to FreeIDE Agent! Type your message or /help for commands.` |
+| `agent_name` | Name shown in banner title and status display | `JettsTUI` |
+| `welcome` | Welcome message shown at CLI startup | `Welcome to JettsTUI! Type your message or /help for commands.` |
 | `goodbye` | Message shown on exit | `Goodbye! ⚕` |
-| `response_label` | Label on the response box header | ` ⚕ FreeIDE ` |
+| `response_label` | Label on the response box header | ` ⚕ JettsTUI ` |
 | `prompt_symbol` | Symbol before the user input prompt (bare token, renderers add a trailing space) | `❯` |
 | `help_header` | Header text for the `/help` command output | `(^_^)? Available Commands` |
 
@@ -105,17 +105,17 @@ Text strings used throughout the CLI interface.
 |-----|------|-------------|---------|
 | `tool_prefix` | string | Character prefixed to tool output lines in the CLI | `┊` |
 | `tool_emojis` | dict | Per-tool emoji overrides for spinners and progress (`{tool_name: emoji}`) | `{}` |
-| `banner_logo` | string | Rich-markup ASCII art logo (replaces the default FREEIDE_AGENT banner) | `""` |
+| `banner_logo` | string | Rich-markup ASCII art logo (replaces the default JETTSTUI_AGENT banner) | `""` |
 | `banner_hero` | string | Rich-markup hero art (replaces the default caduceus art) | `""` |
 
 ## Custom skins
 
-Create YAML files under `~/.freeide/skins/`. User skins inherit missing values from the built-in `default` skin, so you only need to specify the keys you want to change.
+Create YAML files under `~/.jettstui/skins/`. User skins inherit missing values from the built-in `default` skin, so you only need to specify the keys you want to change.
 
 ### Full custom skin YAML template
 
 ```yaml
-# ~/.freeide/skins/mytheme.yaml
+# ~/.jettstui/skins/mytheme.yaml
 # Complete skin template — all keys shown. Delete any you don't need;
 # missing values automatically inherit from the 'default' skin.
 
@@ -212,20 +212,20 @@ branding:
 tool_prefix: "▏"
 ```
 
-## FreeIDE Mod — Visual Skin Editor
+## JettsTUI Mod — Visual Skin Editor
 
-[FreeIDE Mod](https://github.com/cocktailpeanut/freeide-mod) is a community-built web UI for creating and managing skins visually. Instead of writing YAML by hand, you get a point-and-click editor with live preview.
+[JettsTUI Mod](https://github.com/cocktailpeanut/jettstui-mod) is a community-built web UI for creating and managing skins visually. Instead of writing YAML by hand, you get a point-and-click editor with live preview.
 
-![FreeIDE Mod skin editor](https://raw.githubusercontent.com/cocktailpeanut/freeide-mod/master/nous.png)
+![JettsTUI Mod skin editor](https://raw.githubusercontent.com/cocktailpeanut/jettstui-mod/master/nous.png)
 
 **What it does:**
 
 - Lists all built-in and custom skins
-- Opens any skin into a visual editor with all FreeIDE skin fields (colors, spinner, branding, tool prefix, tool emojis)
+- Opens any skin into a visual editor with all JettsTUI skin fields (colors, spinner, branding, tool prefix, tool emojis)
 - Generates `banner_logo` text art from a text prompt
 - Converts uploaded images (PNG, JPG, GIF, WEBP) into `banner_hero` ASCII art with multiple render styles (braille, ASCII ramp, blocks, dots)
-- Saves directly to `~/.freeide/skins/`
-- Activates a skin by updating `~/.freeide/config.yaml`
+- Saves directly to `~/.jettstui/skins/`
+- Activates a skin by updating `~/.jettstui/config.yaml`
 - Shows the generated YAML and a live preview
 
 ### Install
@@ -237,14 +237,14 @@ Find it on [pinokio.computer](https://pinokio.computer) and install with one cli
 **Option 2 — npx (quickest from terminal):**
 
 ```bash
-npx -y freeide-mod
+npx -y jettstui-mod
 ```
 
 **Option 3 — Manual:**
 
 ```bash
-git clone https://github.com/cocktailpeanut/freeide-mod.git
-cd freeide-mod/app
+git clone https://github.com/cocktailpeanut/jettstui-mod.git
+cd jettstui-mod/app
 npm install
 npm start
 ```
@@ -256,16 +256,16 @@ npm start
 3. Choose a built-in or custom skin to edit.
 4. Generate a logo from text and/or upload an image for hero art. Pick a render style and width.
 5. Edit colors, spinner, branding, and other fields.
-6. Click **Save** to write the skin YAML to `~/.freeide/skins/`.
+6. Click **Save** to write the skin YAML to `~/.jettstui/skins/`.
 7. Click **Activate** to set it as the current skin (updates `display.skin` in `config.yaml`).
 
-FreeIDE Mod respects the `FREEIDE_HOME` environment variable, so it works with [profiles](../profiles.md) too.
+JettsTUI Mod respects the `JETTSTUI_HOME` environment variable, so it works with [profiles](../profiles.md) too.
 
 ## Operational notes
 
-- Built-in skins load from `freeide_cli/skin_engine.py`.
+- Built-in skins load from `jettstui/skin_engine.py`.
 - Unknown skins automatically fall back to `default`.
 - `/skin` updates the active CLI theme immediately for the current session.
-- User skins in `~/.freeide/skins/` take precedence over built-in skins with the same name.
+- User skins in `~/.jettstui/skins/` take precedence over built-in skins with the same name.
 - Skin changes via `/skin` are session-only. To make a skin your permanent default, set it in `config.yaml`.
 - The `banner_logo` and `banner_hero` fields support Rich console markup (e.g., `[bold #FF0000]text[/]`) for colored ASCII art.

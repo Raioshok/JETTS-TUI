@@ -9,7 +9,7 @@ import {
   expandRemotePath,
   fingerprintToken,
   isForwardBindCollision,
-  locateFreeIDE,
+  locateJettsTUI,
   LOCKFILE_SCHEMA_VERSION,
   lockfilePath,
   openForward,
@@ -40,8 +40,8 @@ function ownedLock(over: any = {}) {
     pid: 333,
     port: 40000,
     profile: '',
-    freeidePath: '~/.local/bin/jetts-tui',
-    freeideHome: '~/.jettstui',
+    jettstuiPath: '~/.local/bin/jetts-tui',
+    jettstuiHome: '~/.jettstui',
     logPath: spawnLogPath(OWNERSHIP_ID, SPAWN_NONCE),
     tokenFingerprint: fingerprintToken('stored-token'),
     startedAt: '2026-07-14T00:00:00.000Z',
@@ -78,80 +78,80 @@ function fakeSsh(rules: any[] = []) {
   }
 }
 
-test('locateFreeIDE prefers the explicit profile path when executable', async () => {
+test('locateJettsTUI prefers the explicit profile path when executable', async () => {
   const ssh = fakeSsh([[/\[ -x .*\/opt\/jettstui/, 'OK']])
-  assert.equal(await locateFreeIDE(ssh, '/opt/jettstui'), '/opt/jettstui')
+  assert.equal(await locateJettsTUI(ssh, '/opt/jettstui'), '/opt/jettstui')
 })
 
-test('locateFreeIDE throws (no silent fallback) when an EXPLICIT path is not executable', async () => {
+test('locateJettsTUI throws (no silent fallback) when an EXPLICIT path is not executable', async () => {
   // command -v WOULD find a different install, but an explicit path must not
-  // silently fall back to it — that is the "connected to the wrong freeide" bug.
+  // silently fall back to it — that is the "connected to the wrong jettstui" bug.
   const ssh = fakeSsh([
-    [/command -v freeide/, '/home/u/.local/bin/freeide\n'],
-    [/\[ -x .*\.local\/bin\/freeide/, 'OK']
+    [/command -v jettstui/, '/home/u/.local/bin/jettstui\n'],
+    [/\[ -x .*\.local\/bin\/jettstui/, 'OK']
   ])
 
   await assert.rejects(
-    () => locateFreeIDE(ssh, '/bad/path/freeide'),
+    () => locateJettsTUI(ssh, '/bad/path/jettstui'),
     (err: any) => {
-      assert.equal(err.kind, 'freeide-not-found')
-      assert.match(err.message, /\/bad\/path\/freeide/)
+      assert.equal(err.kind, 'jettstui-not-found')
+      assert.match(err.message, /\/bad\/path\/jettstui/)
 
       return true
     }
   )
 })
 
-test('locateFreeIDE falls back to the login-shell command -v probe', async () => {
+test('locateJettsTUI falls back to the login-shell command -v probe', async () => {
   const ssh = fakeSsh([
-    [/command -v freeide/, '/home/u/.local/bin/freeide\n'],
-    [/\[ -x .*\.local\/bin\/freeide/, 'OK']
+    [/command -v jettstui/, '/home/u/.local/bin/jettstui\n'],
+    [/\[ -x .*\.local\/bin\/jettstui/, 'OK']
   ])
 
-  assert.equal(await locateFreeIDE(ssh, ''), '/home/u/.local/bin/freeide')
+  assert.equal(await locateJettsTUI(ssh, ''), '/home/u/.local/bin/jettstui')
 })
 
-test('locateFreeIDE prefers jetts-tui over a legacy freeide executable', async () => {
+test('locateJettsTUI prefers jetts-tui over a legacy jettstui executable', async () => {
   const ssh = fakeSsh([
     [/command -v jetts-tui/, '/home/u/.local/bin/jetts-tui\n'],
-    [/command -v freeide/, '/home/u/.local/bin/freeide\n'],
-    [/\[ -x .*\.local\/bin\/(?:jetts-tui|freeide)/, 'OK']
+    [/command -v jettstui/, '/home/u/.local/bin/jettstui\n'],
+    [/\[ -x .*\.local\/bin\/(?:jetts-tui|jettstui)/, 'OK']
   ])
 
-  assert.equal(await locateFreeIDE(ssh, ''), '/home/u/.local/bin/jetts-tui')
+  assert.equal(await locateJettsTUI(ssh, ''), '/home/u/.local/bin/jetts-tui')
 })
 
-test('locateFreeIDE canonicalizes an installer wrapper to its executable target', async () => {
+test('locateJettsTUI canonicalizes an installer wrapper to its executable target', async () => {
   const ssh = fakeSsh([
-    [/command -v freeide/, '/home/u/.local/bin/freeide\n'],
-    [/\[ -x .*\.local\/bin\/freeide/, 'OK'],
-    [/python3 -c/, '/home/u/.freeide/freeide-agent/venv/bin/freeide\n']
+    [/command -v jettstui/, '/home/u/.local/bin/jettstui\n'],
+    [/\[ -x .*\.local\/bin\/jettstui/, 'OK'],
+    [/python3 -c/, '/home/u/.jettstui/jettstui/venv/bin/jettstui\n']
   ])
 
-  assert.equal(await locateFreeIDE(ssh, ''), '/home/u/.freeide/freeide-agent/venv/bin/freeide')
+  assert.equal(await locateJettsTUI(ssh, ''), '/home/u/.jettstui/jettstui/venv/bin/jettstui')
 })
 
-test('locateFreeIDE falls back to ~/.local/bin/freeide when the login-shell probe misses', async () => {
+test('locateJettsTUI falls back to ~/.local/bin/jettstui when the login-shell probe misses', async () => {
   // ~/.local/bin is the non-root installer's command location (scripts/install.sh).
   const ssh = fakeSsh([
-    [/command -v freeide/, ''],
-    [/\[ -x .*\.local\/bin\/freeide/, 'OK']
+    [/command -v jettstui/, ''],
+    [/\[ -x .*\.local\/bin\/jettstui/, 'OK']
   ])
 
-  assert.equal(await locateFreeIDE(ssh, ''), '~/.local/bin/freeide')
+  assert.equal(await locateJettsTUI(ssh, ''), '~/.local/bin/jettstui')
 })
 
-test('locateFreeIDE tries the conventional venv path last', async () => {
-  const ssh = fakeSsh([[/\[ -x .*venv\/bin\/freeide/, 'OK']])
-  assert.equal(await locateFreeIDE(ssh, ''), '~/.freeide/freeide-agent/venv/bin/freeide')
+test('locateJettsTUI tries the conventional venv path last', async () => {
+  const ssh = fakeSsh([[/\[ -x .*venv\/bin\/jettstui/, 'OK']])
+  assert.equal(await locateJettsTUI(ssh, ''), '~/.jettstui/jettstui/venv/bin/jettstui')
 })
 
-test('locateFreeIDE throws a freeide-not-found error with an install hint', async () => {
+test('locateJettsTUI throws a jettstui-not-found error with an install hint', async () => {
   const ssh = fakeSsh([]) // nothing is executable
   await assert.rejects(
-    () => locateFreeIDE(ssh, ''),
+    () => locateJettsTUI(ssh, ''),
     (err: any) => {
-      assert.equal(err.kind, 'freeide-not-found')
+      assert.equal(err.kind, 'jettstui-not-found')
       assert.match(err.message, /install/i)
 
       return true
@@ -159,13 +159,13 @@ test('locateFreeIDE throws a freeide-not-found error with an install hint', asyn
   )
 })
 
-test('locateFreeIDE uses a login shell for the command -v probe', async () => {
+test('locateJettsTUI uses a login shell for the command -v probe', async () => {
   const ssh = fakeSsh([
-    [/command -v freeide/, '/x/freeide'],
+    [/command -v jettstui/, '/x/jettstui'],
     [/\[ -x/, 'OK']
   ])
 
-  await locateFreeIDE(ssh, '')
+  await locateJettsTUI(ssh, '')
   assert.ok(
     ssh.calls.some(c => /bash -lc/.test(c)),
     'must probe in a login shell (PATH pitfall)'
@@ -233,24 +233,24 @@ test('metadata and process proof transport failures remain indeterminate', async
     (error: any) => error.kind === 'transient-transport-error'
   )
   await assert.rejects(
-    () => pidIsOurDashboard(fakeSsh([[/print\("OWNED"/, failure]]), 5, SPAWN_NONCE, '/x/freeide'),
+    () => pidIsOurDashboard(fakeSsh([[/print\("OWNED"/, failure]]), 5, SPAWN_NONCE, '/x/jettstui'),
     (error: any) => error.kind === 'transient-transport-error'
   )
 })
 
 test('pidIsOurDashboard requires the exact serve ownership nonce', async () => {
-  const ours = `/x/freeide serve --isolated --ssh-owner-nonce ${SPAWN_NONCE}`
-  assert.equal(await pidIsOurDashboard(fakeSsh([[/print\("OWNED"/, 'OWNED\n']]), 5, SPAWN_NONCE, '/x/freeide'), true)
+  const ours = `/x/jettstui serve --isolated --ssh-owner-nonce ${SPAWN_NONCE}`
+  assert.equal(await pidIsOurDashboard(fakeSsh([[/print\("OWNED"/, 'OWNED\n']]), 5, SPAWN_NONCE, '/x/jettstui'), true)
   assert.equal(
     await pidIsOurDashboard(
       fakeSsh([[/print\("OWNED"/, command => (command.includes('fedcba9876543210') ? 'FOREIGN\n' : 'OWNED\n')]]),
       5,
       'fedcba9876543210',
-      '/x/freeide'
+      '/x/jettstui'
     ),
     false
   )
-  assert.equal(await pidIsOurDashboard(fakeSsh([[/print\("OWNED"/, 'FOREIGN\n']]), 5, SPAWN_NONCE, '/x/freeide'), false)
+  assert.equal(await pidIsOurDashboard(fakeSsh([[/print\("OWNED"/, 'FOREIGN\n']]), 5, SPAWN_NONCE, '/x/jettstui'), false)
 })
 
 test('cleanupStale kills ONLY a provably-ours pid, always drops the lockfile', async () => {
@@ -258,7 +258,7 @@ test('cleanupStale kills ONLY a provably-ours pid, always drops the lockfile', a
   await cleanupStale(notOurs, OWNERSHIP_ID, {
     pid: 5,
     spawnNonce: SPAWN_NONCE,
-    freeidePath: '/x/freeide',
+    jettstuiPath: '/x/jettstui',
     logPath: spawnLogPath(OWNERSHIP_ID, SPAWN_NONCE)
   })
   assert.ok(!notOurs.calls.some(c => /kill 5\b/.test(c)), 'must not kill a pid that is not our dashboard')
@@ -268,7 +268,7 @@ test('cleanupStale kills ONLY a provably-ours pid, always drops the lockfile', a
   await cleanupStale(ours, OWNERSHIP_ID, {
     pid: 9,
     spawnNonce: SPAWN_NONCE,
-    freeidePath: '/x/freeide',
+    jettstuiPath: '/x/jettstui',
     logPath: spawnLogPath(OWNERSHIP_ID, SPAWN_NONCE)
   })
   assert.ok(ours.calls.some(c => /kill 9\b/.test(c)))
@@ -276,7 +276,7 @@ test('cleanupStale kills ONLY a provably-ours pid, always drops the lockfile', a
 })
 
 test('buildSpawnCommand is headless serve, detached, token not in argv', () => {
-  const cmd = buildSpawnCommand('/x/freeide', 'work', { logPath: spawnLogPath(OWNERSHIP_ID, SPAWN_NONCE) })
+  const cmd = buildSpawnCommand('/x/jettstui', 'work', { logPath: spawnLogPath(OWNERSHIP_ID, SPAWN_NONCE) })
   assert.match(cmd, /serve --isolated/)
   assert.match(cmd, /--host 127\.0\.0\.1 --port 0/)
   assert.doesNotMatch(cmd, /--skip-build|--no-open/)
@@ -287,11 +287,11 @@ test('buildSpawnCommand is headless serve, detached, token not in argv', () => {
   assert.match(cmd, /<\/dev\/null/)
   assert.match(cmd, /echo \$!/)
   assert.ok(!cmd.includes('tok_secret_value'), 'token must not appear in spawn command')
-  assert.ok(!cmd.includes('FREEIDE_DASHBOARD_SESSION_TOKEN'), 'token env var must not appear')
+  assert.ok(!cmd.includes('JETTSTUI_DASHBOARD_SESSION_TOKEN'), 'token env var must not appear')
 })
 
 test('buildSpawnCommand always uses serve (legacy dashboard path removed)', () => {
-  const cmd = buildSpawnCommand('/x/freeide', 'work', { logPath: spawnLogPath(OWNERSHIP_ID, SPAWN_NONCE) })
+  const cmd = buildSpawnCommand('/x/jettstui', 'work', { logPath: spawnLogPath(OWNERSHIP_ID, SPAWN_NONCE) })
   assert.match(cmd, /serve --isolated/)
   assert.match(cmd, /--host 127\.0\.0\.1 --port 0/)
   assert.doesNotMatch(cmd, /dashboard/)
@@ -308,7 +308,7 @@ test('spawnRemoteDashboard returns exact ownership artifacts', async () => {
   ])
 
   const { pid, spawnNonce, logPath } = await spawnRemoteDashboard(ssh, {
-    freeidePath: '/x/freeide',
+    jettstuiPath: '/x/jettstui',
     profile: '',
     token: 'tk',
     ownershipId: OWNERSHIP_ID
@@ -327,15 +327,15 @@ test('spawnRemoteDashboard always spawns serve (legacy dashboard path removed)',
     [/setsid|nohup/, '4242\n']
   ])
 
-  await spawnRemoteDashboard(ssh, { freeidePath: '/x/freeide', profile: '', token: 'tk', ownershipId: OWNERSHIP_ID })
+  await spawnRemoteDashboard(ssh, { jettstuiPath: '/x/jettstui', profile: '', token: 'tk', ownershipId: OWNERSHIP_ID })
   const spawn = ssh.calls.find(c => /setsid|nohup/.test(c))
   assert.match(spawn, /serve --isolated/)
   assert.doesNotMatch(spawn, /\bdashboard\b/)
 })
 
 test('READY_RE accepts both serve and dashboard sentinels', () => {
-  assert.equal(READY_RE.exec('FREEIDE_BACKEND_READY port=4321')?.[1], '4321')
-  assert.equal(READY_RE.exec('FREEIDE_DASHBOARD_READY port=8765')?.[1], '8765')
+  assert.equal(READY_RE.exec('JETTSTUI_BACKEND_READY port=4321')?.[1], '4321')
+  assert.equal(READY_RE.exec('JETTSTUI_DASHBOARD_READY port=8765')?.[1], '8765')
 })
 
 test('spawnRemoteDashboard rejects when no pid is returned', async () => {
@@ -347,7 +347,7 @@ test('spawnRemoteDashboard rejects when no pid is returned', async () => {
   ])
 
   await assert.rejects(
-    () => spawnRemoteDashboard(ssh, { freeidePath: '/x/freeide', profile: '', token: 't', ownershipId: OWNERSHIP_ID }),
+    () => spawnRemoteDashboard(ssh, { jettstuiPath: '/x/jettstui', profile: '', token: 't', ownershipId: OWNERSHIP_ID }),
     (err: any) => {
       assert.equal(err.kind, 'spawn-failed')
 
@@ -358,7 +358,7 @@ test('spawnRemoteDashboard rejects when no pid is returned', async () => {
 
 test('scrapeReadyPort reads only the named spawn log', async () => {
   const logPath = spawnLogPath(OWNERSHIP_ID, SPAWN_NONCE)
-  const ssh = fakeSsh([[/cat/, 'some noise\nFREEIDE_DASHBOARD_READY port=51234\n']])
+  const ssh = fakeSsh([[/cat/, 'some noise\nJETTSTUI_DASHBOARD_READY port=51234\n']])
   const port = await scrapeReadyPort(ssh, logPath, { timeoutMs: 1000 })
   assert.equal(port, 51234)
   assert.ok(ssh.calls.every(call => !call.includes('desktop-ssh.log')))
@@ -398,7 +398,7 @@ function connectDeps(ssh, over: any = {}) {
     forward: async () => {},
     cancelForward: async () => {},
     pickLocalPort: async () => 50001,
-    waitForFreeIDE: async () => {},
+    waitForJettsTUI: async () => {},
     probeReuseProof: async () => 'authenticated-ok',
     adoptServedToken: async (_baseUrl, spawn) => spawn || 'served-token',
     rememberLog: () => {},
@@ -417,7 +417,7 @@ test('connect() spawns fresh when there is no lockfile, adopts the served token'
     [/printf '%s\\n'/, ''],
     [/setsid/, '777\n'],
     [/kill -0 777/, 'ALIVE'],
-    [/cat .*\.log/, 'FREEIDE_DASHBOARD_READY port=51999\n']
+    [/cat .*\.log/, 'JETTSTUI_DASHBOARD_READY port=51999\n']
   ])
 
   const result = await connect(connectDeps(ssh, { adoptServedToken: async () => 'the-served-token' }))
@@ -450,9 +450,9 @@ test('connect() reuses a healthy dashboard when fingerprint + probe pass', async
   assert.ok(!ssh.calls.some(c => /setsid/.test(c)), 'reuse path must not spawn a new dashboard')
 })
 
-test('connect() respawns when the lockfile freeidePath differs from the resolved path', async () => {
+test('connect() respawns when the lockfile jettstuiPath differs from the resolved path', async () => {
   const reuseToken = 'stored-token'
-  const lock = ownedLock({ freeidePath: '/old/stale/freeide', tokenFingerprint: fingerprintToken(reuseToken) })
+  const lock = ownedLock({ jettstuiPath: '/old/stale/jettstui', tokenFingerprint: fingerprintToken(reuseToken) })
 
   const ssh = fakeSsh([
     [/uname/, 'Linux\nx86_64'],
@@ -460,15 +460,15 @@ test('connect() respawns when the lockfile freeidePath differs from the resolved
     [/cat .*lock\.json/, JSON.stringify(lock)],
     [/kill -0/, 'ALIVE'],
     [/print\("OWNED"/, 'FOREIGN\n'],
-    [/--version/, 'FreeIDE Agent v0.18.2\n'],
+    [/--version/, 'JettsTUI v0.18.2\n'],
     [/grep -q ssh-session-token-file/, 'YES\n'],
     [/python3 -c/, ''],
     [/setsid/, '890\n'],
-    [/cat .*\.log/, 'FREEIDE_DASHBOARD_READY port=52050\n']
+    [/cat .*\.log/, 'JETTSTUI_DASHBOARD_READY port=52050\n']
   ])
 
   const result = await connect(
-    connectDeps(ssh, { reuseToken, remoteFreeIDEPath: '/new/freeide', adoptServedToken: async () => 'fresh' })
+    connectDeps(ssh, { reuseToken, remoteJettsTUIPath: '/new/jettstui', adoptServedToken: async () => 'fresh' })
   )
 
   assert.equal(result.reused, false, 'must respawn, not reuse the old-path dashboard')
@@ -499,7 +499,7 @@ test('connect() respawns when the lockfile protocolVersion is incompatible', asy
     [/python3 -c/, ''],
     [/setsid/, '901\n'],
     [/kill -0 901/, 'ALIVE'],
-    [/cat .*\.log/, 'FREEIDE_DASHBOARD_READY port=44100\n']
+    [/cat .*\.log/, 'JETTSTUI_DASHBOARD_READY port=44100\n']
   ])
 
   const result = await connect(connectDeps(ssh, { reuseToken, adoptServedToken: async () => 'fresh' }))
@@ -507,20 +507,20 @@ test('connect() respawns when the lockfile protocolVersion is incompatible', asy
   assert.equal(result.pid, 901)
 })
 
-test('connect() fresh spawn writes freeideHome + protocolVersion into the lockfile', async () => {
+test('connect() fresh spawn writes jettstuiHome + protocolVersion into the lockfile', async () => {
   const writes: string[] = []
 
   const ssh = fakeSsh([
     [/uname/, 'Linux\nx86_64'],
     [/\[ -x/, 'OK'],
     [/cat .*lock\.json/, ''], // no lockfile
-    [/FREEIDE_HOME/, '/home/alice/.freeide\n'],
+    [/JETTSTUI_HOME/, '/home/alice/.jettstui\n'],
     [/grep -q ssh-session-token-file/, 'YES\n'],
     [/python3 -c/, ''],
     [/printf '%s\\n'/, ''],
     [/setsid/, '700\n'],
     [/kill -0 700/, 'ALIVE'],
-    [/cat .*\.log/, 'FREEIDE_DASHBOARD_READY port=45500\n'],
+    [/cat .*\.log/, 'JETTSTUI_DASHBOARD_READY port=45500\n'],
     [
       /printf '%s' '/,
       c => {
@@ -534,7 +534,7 @@ test('connect() fresh spawn writes freeideHome + protocolVersion into the lockfi
   await connect(connectDeps(ssh, { adoptServedToken: async () => 'fresh' }))
   const lockWrite = writes.find(c => c.includes('schemaVersion')) || ''
   assert.match(lockWrite, new RegExp(`"protocolVersion":${PROTOCOL_VERSION}`))
-  assert.match(lockWrite, /"freeideHome":"\/home\/alice\/\.freeide"/)
+  assert.match(lockWrite, /"jettstuiHome":"\/home\/alice\/\.jettstui"/)
 })
 
 test('connect() respawns when the lockfile pid is dead (killed dashboard)', async () => {
@@ -550,7 +550,7 @@ test('connect() respawns when the lockfile pid is dead (killed dashboard)', asyn
     [/python3 -c/, ''],
     [/setsid/, '888\n'],
     [/kill -0 888/, 'ALIVE'],
-    [/cat .*\.log/, 'FREEIDE_DASHBOARD_READY port=42000\n']
+    [/cat .*\.log/, 'JETTSTUI_DASHBOARD_READY port=42000\n']
   ])
 
   const result = await connect(connectDeps(ssh, { reuseToken: 't', adoptServedToken: async () => 'fresh' }))
@@ -584,7 +584,7 @@ test('connect() respawns when the dashboard is wedged (alive pid, probe fails)',
     [/python3 -c/, ''],
     [/setsid/, '999\n'],
     [/kill -0 999/, 'ALIVE'],
-    [/cat .*\.log/, 'FREEIDE_DASHBOARD_READY port=43000\n']
+    [/cat .*\.log/, 'JETTSTUI_DASHBOARD_READY port=43000\n']
   ])
 
   const result = await connect(
@@ -664,78 +664,78 @@ test('connect() preserves an owned backend when a reuse transport throws', async
 })
 
 test('validateRemotePath accepts absolute POSIX paths', () => {
-  assert.doesNotThrow(() => validateRemotePath('/usr/bin/freeide'))
-  assert.doesNotThrow(() => validateRemotePath('/home/user/.freeide/freeide-agent/venv/bin/freeide'))
+  assert.doesNotThrow(() => validateRemotePath('/usr/bin/jettstui'))
+  assert.doesNotThrow(() => validateRemotePath('/home/user/.jettstui/jettstui/venv/bin/jettstui'))
 })
 
 test('validateRemotePath accepts ~/ prefix paths', () => {
-  assert.doesNotThrow(() => validateRemotePath('~/bin/freeide'))
-  assert.doesNotThrow(() => validateRemotePath('~/.freeide/logs/desktop-ssh.log'))
+  assert.doesNotThrow(() => validateRemotePath('~/bin/jettstui'))
+  assert.doesNotThrow(() => validateRemotePath('~/.jettstui/logs/desktop-ssh.log'))
   assert.doesNotThrow(() => validateRemotePath('~'))
 })
 
 test('validateRemotePath accepts paths with spaces and quotes', () => {
-  assert.doesNotThrow(() => validateRemotePath('/home/user/my project/freeide'))
+  assert.doesNotThrow(() => validateRemotePath('/home/user/my project/jettstui'))
   assert.doesNotThrow(() => validateRemotePath("~/path with 'quotes'/file"))
   assert.doesNotThrow(() => validateRemotePath('/path with "double quotes"/file'))
 })
 
 test('validateRemotePath rejects relative paths', () => {
-  assert.throws(() => validateRemotePath('freeide'), /absolute|relative/i)
-  assert.throws(() => validateRemotePath('./bin/freeide'), /absolute|relative/i)
+  assert.throws(() => validateRemotePath('jettstui'), /absolute|relative/i)
+  assert.throws(() => validateRemotePath('./bin/jettstui'), /absolute|relative/i)
   assert.throws(() => validateRemotePath('../etc/passwd'), /absolute|relative/i)
 })
 
 test('validateRemotePath rejects NUL and newline', () => {
-  assert.throws(() => validateRemotePath('/usr/bin/freeide\x00'), /unsafe/i)
-  assert.throws(() => validateRemotePath('/usr/bin/freeide\n'), /unsafe/i)
-  assert.throws(() => validateRemotePath('/usr/bin/freeide\r'), /unsafe/i)
+  assert.throws(() => validateRemotePath('/usr/bin/jettstui\x00'), /unsafe/i)
+  assert.throws(() => validateRemotePath('/usr/bin/jettstui\n'), /unsafe/i)
+  assert.throws(() => validateRemotePath('/usr/bin/jettstui\r'), /unsafe/i)
 })
 
 test('validateRemotePath preserves shell metacharacters as path data', () => {
-  for (const p of ['/usr/$(whoami)/freeide', '/usr/`id`/freeide', '/usr/a;b|c&d<e>f']) {
+  for (const p of ['/usr/$(whoami)/jettstui', '/usr/`id`/jettstui', '/usr/a;b|c&d<e>f']) {
     assert.doesNotThrow(() => validateRemotePath(p))
     assert.match(expandRemotePath(p), /^'/)
   }
 })
 
 test('expandRemotePath expands ~/ to "$HOME"/', () => {
-  const result = expandRemotePath('~/.freeide/logs/desktop-ssh.log')
+  const result = expandRemotePath('~/.jettstui/logs/desktop-ssh.log')
   assert.match(result, /\$HOME/)
   assert.ok(!result.includes('eval'), 'must not use eval')
   assert.ok(!result.includes('echo'), 'must not use echo for expansion')
 })
 
 test('expandRemotePath returns quoted absolute paths unchanged', () => {
-  const result = expandRemotePath('/usr/local/bin/freeide')
-  assert.ok(result.includes('/usr/local/bin/freeide'))
+  const result = expandRemotePath('/usr/local/bin/jettstui')
+  assert.ok(result.includes('/usr/local/bin/jettstui'))
   assert.ok(!result.includes('eval'))
 })
 
 test('expandRemotePath preserves spaces as data', () => {
-  const result = expandRemotePath('/home/user/my project/freeide')
+  const result = expandRemotePath('/home/user/my project/jettstui')
   assert.ok(result.includes('my project'), 'spaces must be preserved, not split')
 })
 
 test('buildSpawnCommand does not embed the token in the command string', () => {
-  const cmd = buildSpawnCommand('/x/freeide', 'work', { logPath: spawnLogPath(OWNERSHIP_ID, SPAWN_NONCE) })
+  const cmd = buildSpawnCommand('/x/jettstui', 'work', { logPath: spawnLogPath(OWNERSHIP_ID, SPAWN_NONCE) })
   assert.ok(!cmd.includes('super_secret_token_value'), 'token must not appear in the spawn command')
-  assert.ok(!cmd.includes('FREEIDE_DASHBOARD_SESSION_TOKEN'), 'env var name must not appear')
+  assert.ok(!cmd.includes('JETTSTUI_DASHBOARD_SESSION_TOKEN'), 'env var name must not appear')
 })
 
 test('buildSpawnCommand includes --ssh-session-token-file when tokenFilePath is provided', () => {
-  const cmd = buildSpawnCommand('/x/freeide', 'work', {
-    tokenFilePath: `~/.freeide/desktop-ssh/${OWNERSHIP_ID}/${SPAWN_NONCE}.token`,
+  const cmd = buildSpawnCommand('/x/jettstui', 'work', {
+    tokenFilePath: `~/.jettstui/desktop-ssh/${OWNERSHIP_ID}/${SPAWN_NONCE}.token`,
     logPath: spawnLogPath(OWNERSHIP_ID, SPAWN_NONCE),
     spawnNonce: SPAWN_NONCE
   })
 
   assert.match(cmd, /--ssh-session-token-file/)
-  assert.match(cmd, /\.freeide\/desktop-ssh\//)
+  assert.match(cmd, /\.jettstui\/desktop-ssh\//)
 })
 
 test('buildSpawnCommand always uses serve, never dashboard', () => {
-  const cmd = buildSpawnCommand('/x/freeide', '', { logPath: spawnLogPath(OWNERSHIP_ID, SPAWN_NONCE) })
+  const cmd = buildSpawnCommand('/x/jettstui', '', { logPath: spawnLogPath(OWNERSHIP_ID, SPAWN_NONCE) })
   assert.match(cmd, /serve --isolated/)
   assert.doesNotMatch(cmd, /\bdashboard\b/)
   assert.doesNotMatch(cmd, /--skip-build/)
@@ -752,7 +752,7 @@ test('spawnRemoteDashboard removes a token file when upload reporting fails', as
   ])
 
   await assert.rejects(
-    () => spawnRemoteDashboard(ssh, { freeidePath: '/x/freeide', profile: '', token: 'tok', ownershipId: OWNERSHIP_ID }),
+    () => spawnRemoteDashboard(ssh, { jettstuiPath: '/x/jettstui', profile: '', token: 'tok', ownershipId: OWNERSHIP_ID }),
     /channel closed/
   )
   assert.ok(ssh.calls.some(command => /rm -f .*\.token/.test(command)))
@@ -792,7 +792,7 @@ test('spawnRemoteDashboard streams the token over stdin, not argv/env', async ()
   }
 
   const { pid } = await spawnRemoteDashboard(ssh as any, {
-    freeidePath: '/x/freeide',
+    jettstuiPath: '/x/jettstui',
     profile: '',
     token: 'secret_token_val',
     ownershipId: OWNERSHIP_ID
@@ -839,7 +839,7 @@ test('spawnRemoteDashboard upload uses exclusive-create and O_NOFOLLOW', async (
   }
 
   await spawnRemoteDashboard(ssh as any, {
-    freeidePath: '/x/freeide',
+    jettstuiPath: '/x/jettstui',
     profile: '',
     token: 'tk',
     ownershipId: OWNERSHIP_ID
@@ -898,7 +898,7 @@ test('spawnRemoteDashboard fails with update-required when remote lacks --ssh-se
   const ssh = fakeSsh([[/--ssh-session-token-file/, 'NO\n']])
 
   await assert.rejects(
-    () => spawnRemoteDashboard(ssh, { freeidePath: '/x/freeide', profile: '', token: 'tk', ownershipId: OWNERSHIP_ID }),
+    () => spawnRemoteDashboard(ssh, { jettstuiPath: '/x/jettstui', profile: '', token: 'tk', ownershipId: OWNERSHIP_ID }),
     (err: any) => {
       assert.match(err.message, /update|upgrade/i)
       assert.equal(err.kind, 'update-required')
@@ -909,22 +909,22 @@ test('spawnRemoteDashboard fails with update-required when remote lacks --ssh-se
 })
 
 test('readLockfile rejects a log path outside the exact ownership and spawn path', async () => {
-  const lock = ownedLock({ logPath: '~/.freeide/desktop-ssh/other.log' })
+  const lock = ownedLock({ logPath: '~/.jettstui/desktop-ssh/other.log' })
   const ssh = fakeSsh([[/cat .*lock\.json/, JSON.stringify(lock)]])
   assert.equal(await readLockfile(ssh, OWNERSHIP_ID), null)
 })
 
 test('cleanupStale never deletes a lock-supplied unexpected log path', async () => {
   const ssh = fakeSsh([[/print\("OWNED"/, 'OWNED\n']])
-  await cleanupStale(ssh, OWNERSHIP_ID, ownedLock({ logPath: '~/.freeide/unrelated.log' }))
+  await cleanupStale(ssh, OWNERSHIP_ID, ownedLock({ logPath: '~/.jettstui/unrelated.log' }))
   assert.ok(!ssh.calls.some(command => command.includes('unrelated.log')))
 })
 
 test('pidIsOurDashboard requires an exact nonce option value', async () => {
-  const prefix = `/x/freeide serve --isolated --ssh-owner-nonce ${SPAWN_NONCE}ff`
-  const suffix = `/x/freeide serve --isolated --ssh-owner-nonce xx${SPAWN_NONCE}`
-  assert.equal(await pidIsOurDashboard(fakeSsh([[/print\("OWNED"/, 'FOREIGN\n']]), 5, SPAWN_NONCE, '/x/freeide'), false)
-  assert.equal(await pidIsOurDashboard(fakeSsh([[/print\("OWNED"/, 'FOREIGN\n']]), 5, SPAWN_NONCE, '/x/freeide'), false)
+  const prefix = `/x/jettstui serve --isolated --ssh-owner-nonce ${SPAWN_NONCE}ff`
+  const suffix = `/x/jettstui serve --isolated --ssh-owner-nonce xx${SPAWN_NONCE}`
+  assert.equal(await pidIsOurDashboard(fakeSsh([[/print\("OWNED"/, 'FOREIGN\n']]), 5, SPAWN_NONCE, '/x/jettstui'), false)
+  assert.equal(await pidIsOurDashboard(fakeSsh([[/print\("OWNED"/, 'FOREIGN\n']]), 5, SPAWN_NONCE, '/x/jettstui'), false)
 })
 
 test('connect removes the token file when a fresh backend fails after returning a pid', async () => {
@@ -984,7 +984,7 @@ test('connect replaces an exact-owned backend only after authenticated stale pro
     [/python3 -c/, ''],
     [/setsid/, '999\n'],
     [/kill -0 999/, 'ALIVE'],
-    [/cat .*\.log/, 'FREEIDE_DASHBOARD_READY port=43000\n']
+    [/cat .*\.log/, 'JETTSTUI_DASHBOARD_READY port=43000\n']
   ])
 
   const result = await connect(
@@ -1018,10 +1018,10 @@ test('remote SSH ownership capability requires both secure bootstrap flags', asy
     ]
   ])
 
-  assert.equal(await remoteSupportsSshOwnership(supported, '/x/freeide'), true)
+  assert.equal(await remoteSupportsSshOwnership(supported, '/x/jettstui'), true)
   assert.match(helpProbe, /ssh-session-token-file/)
   assert.match(helpProbe, /ssh-owner-nonce/)
 
   const unsupported = fakeSsh([[/serve --help/, 'NO\n']])
-  assert.equal(await remoteSupportsSshOwnership(unsupported, '/x/freeide'), false)
+  assert.equal(await remoteSupportsSshOwnership(unsupported, '/x/jettstui'), false)
 })
