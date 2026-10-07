@@ -50,7 +50,7 @@ def _make_packaged_executable(root: Path, monkeypatch, platform: str = "darwin")
     elif platform == "win32":
         exe = desktop_dir / "release" / "win-unpacked" / "JettsTUI.exe"
     else:
-        exe = desktop_dir / "release" / "linux-unpacked" / "jettstui"
+        exe = desktop_dir / "release" / "linux-unpacked" / "JettsTUI"
     exe.parent.mkdir(parents=True)
     exe.write_text("", encoding="utf-8")
     return exe
@@ -565,7 +565,7 @@ def test_gui_retries_pack_once_after_purging_build_cache(tmp_path, monkeypatch):
     # signature the cache purge + retry exist for (#40187). Only the successful
     # retry produces it (via the side_effect below).
     monkeypatch.setattr(cli_main.sys, "platform", "linux")
-    packaged_exe = root / "apps" / "desktop" / "release" / "linux-unpacked" / "jettstui"
+    packaged_exe = root / "apps" / "desktop" / "release" / "linux-unpacked" / "JettsTUI"
 
     install_ok = subprocess.CompletedProcess(["npm", "ci"], 0)
     pack_fail = subprocess.CompletedProcess(["npm", "run", "pack"], 1)
@@ -968,7 +968,7 @@ class _FakeProc:
 def test_stop_desktop_build_lock_noop_off_windows(tmp_path, monkeypatch):
     """POSIX can unlink a running binary, so the helper is a no-op there."""
     desktop_dir = tmp_path / "apps" / "desktop"
-    exe = desktop_dir / "release" / "linux-unpacked" / "jettstui"
+    exe = desktop_dir / "release" / "linux-unpacked" / "JettsTUI"
     exe.parent.mkdir(parents=True)
     exe.write_text("", encoding="utf-8")
     monkeypatch.setattr(cli_main.sys, "platform", "linux")

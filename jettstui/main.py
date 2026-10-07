@@ -5777,12 +5777,8 @@ def _desktop_packaged_executable(desktop_dir: Path) -> Optional[Path]:
     release_dir = desktop_dir / "release"
     if sys.platform == "darwin":
         candidates = list(release_dir.glob("mac*/JettsTUI.app/Contents/MacOS/JettsTUI"))
-        candidates += list(release_dir.glob("mac*/JettsTUI.app/Contents/MacOS/JettsTUI"))
     elif sys.platform == "win32":
         candidates = [
-            release_dir / "win-unpacked" / "JettsTUI.exe",
-            release_dir / "win-ia32-unpacked" / "JettsTUI.exe",
-            release_dir / "win-arm64-unpacked" / "JettsTUI.exe",
             release_dir / "win-unpacked" / "JettsTUI.exe",
             release_dir / "win-ia32-unpacked" / "JettsTUI.exe",
             release_dir / "win-arm64-unpacked" / "JettsTUI.exe",
@@ -5792,9 +5788,7 @@ def _desktop_packaged_executable(desktop_dir: Path) -> Optional[Path]:
             release_dir / "linux-unpacked" / "JettsTUI",
             release_dir / "linux-arm64-unpacked" / "JettsTUI",
             release_dir / "linux-unpacked" / "jettstui",
-            release_dir / "linux-unpacked" / "JettsTUI",
             release_dir / "linux-arm64-unpacked" / "jettstui",
-            release_dir / "linux-arm64-unpacked" / "JettsTUI",
         ]
 
     existing = [p for p in candidates if p.exists()]

@@ -21,7 +21,7 @@ def temp_pyproject(tmp_path, monkeypatch):
 
         [project.scripts]
         jettstui = "jettstui.main:main"
-        jettstui = "run_agent:main"
+        jettstui-agent = "run_agent:main"
         jettstui-acp = "acp_adapter.entry:main"
     """
         )
@@ -41,7 +41,7 @@ def fake_scripts_dir(tmp_path):
 
 class TestVerifyConsoleScriptsInstalled:
     def test_no_action_when_all_shims_present(self, temp_pyproject, fake_scripts_dir):
-        for name in ("jettstui", "jettstui", "jettstui-acp"):
+        for name in ("jettstui", "jettstui-agent", "jettstui-acp"):
             (fake_scripts_dir / f"{name}.exe").write_bytes(b"fake")
 
         with patch("jettstui.main._is_windows", return_value=True), \
@@ -56,7 +56,7 @@ class TestVerifyConsoleScriptsInstalled:
     def test_triggers_reinstall_when_jettstui_exe_missing(
         self, temp_pyproject, fake_scripts_dir
     ):
-        (fake_scripts_dir / "jettstui.exe").write_bytes(b"fake")
+        (fake_scripts_dir / "jettstui-agent.exe").write_bytes(b"fake")
         (fake_scripts_dir / "jettstui-acp.exe").write_bytes(b"fake")
 
         with patch("jettstui.main._is_windows", return_value=True), \
@@ -85,7 +85,7 @@ class TestVerifyConsoleScriptsInstalled:
         from jettstui.main import _load_console_script_names
 
         names = _load_console_script_names()
-        assert names == ["jettstui", "jettstui", "jettstui-acp"]
+        assert names == ["jettstui", "jettstui-agent", "jettstui-acp"]
 
     def test_primary_install_success_still_verifies_scripts(self):
         import jettstui.main as main_mod
@@ -112,5 +112,5 @@ class TestVerifyConsoleScriptsInstalled:
         with patch("jettstui.main._is_windows", return_value=True):
             names = {path.name for path in main_mod._jettstui_exe_shims(fake_scripts_dir)}
 
-        assert {"jettstui.exe", "jettstui.exe", "jettstui-acp.exe"} <= names
+        assert {"jettstui.exe", "jettstui-agent.exe", "jettstui-acp.exe"} <= names
         assert "jettstui-gateway.exe" in names

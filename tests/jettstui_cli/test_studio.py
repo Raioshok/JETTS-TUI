@@ -23,7 +23,7 @@ def test_welcome_fits_terminal_and_keeps_user_text_literal(width):
     assert all(cell_len(line) <= width for line in output.splitlines())
     if width >= 54:
         assert "JettsTUI" in output
-        assert "JettsTUI" not in output
+        assert "FreeIDE" not in output
         assert "[red]model[/red]" in output
         assert "/resume" in output
         assert "[demo]" in output

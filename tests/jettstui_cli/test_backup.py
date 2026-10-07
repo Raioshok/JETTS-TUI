@@ -363,7 +363,7 @@ class TestBackup:
 
         with zipfile.ZipFile(out_zip, "r") as zf:
             names = zf.namelist()
-            agent_files = [n for n in names if "jettstui" in n]
+            agent_files = [n for n in names if n.startswith("jettstui/")]
             assert agent_files == [], f"jettstui files leaked into backup: {agent_files}"
 
     def test_excludes_dependency_and_cache_trees(self, tmp_path, monkeypatch):

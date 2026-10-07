@@ -525,14 +525,14 @@ def test_deleted_sibling_worktree_subdir_folds_into_parent_home_checkout():
 
 
 def test_deleted_unrelated_workspace_does_not_become_a_project():
-    # A deleted dir the sibling probe can't reach by name (`jettstui-salvage-drafts`
+    # A deleted dir the sibling probe can't reach by name (`salvage-drafts`
     # shares no prefix with `jettstui`; `/tmp/scratch` was never a worktree)
     # must not be promoted to a phantom project — it can never be opened and can
     # only be dismissed by hand. Those sessions land in the Home bucket.
     resolve = _resolver({"/www/jettstui": ("/www/jettstui", "/www/jettstui")})
     live, salvage, scratch = (
         _session("/www/jettstui", branch="main"),
-        _session("/www/jettstui-salvage-drafts/apps/desktop"),
+        _session("/www/salvage-drafts/apps/desktop"),
         _session("/tmp/scratch"),
     )
     on_disk = {"/www/jettstui"}
