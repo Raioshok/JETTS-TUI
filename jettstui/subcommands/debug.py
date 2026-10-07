@@ -1,4 +1,4 @@
-"""``jetts-tui debug`` subcommand parser.
+"""``jettstui debug`` subcommand parser.
 
 Extracted verbatim from ``jettstui/main.py:main()`` (god-file Phase 2).
 Handler injected to avoid importing ``main``.
@@ -18,19 +18,19 @@ def build_debug_parser(subparsers, *, cmd_debug: Callable) -> None:
     debug_parser = subparsers.add_parser(
         "debug",
         help="Debug tools — upload logs and system info for support",
-        description="Debug utilities for JettsTUI. Use 'jetts-tui debug share' to "
+        description="Debug utilities for JettsTUI. Use 'jettstui debug share' to "
         "upload a debug report (system info + recent logs) to a paste "
         "service and get a shareable URL.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""\
 Examples:
-    jetts-tui debug share              Upload debug report (asks for confirmation)
-    jetts-tui debug share --yes        Skip confirmation (for scripts/CI)
-    jetts-tui debug share --lines 500  Include more log lines
-    jetts-tui debug share --expire 30  Keep paste for 30 days
-    jetts-tui debug share --local      Print report locally (no upload)
-    jetts-tui debug share --no-redact  Disable upload-time secret redaction
-    jetts-tui debug delete <url>       Delete a previously uploaded paste
+    jettstui debug share              Upload debug report (asks for confirmation)
+    jettstui debug share --yes        Skip confirmation (for scripts/CI)
+    jettstui debug share --lines 500  Include more log lines
+    jettstui debug share --expire 30  Keep paste for 30 days
+    jettstui debug share --local      Print report locally (no upload)
+    jettstui debug share --no-redact  Disable upload-time secret redaction
+    jettstui debug delete <url>       Delete a previously uploaded paste
 """,
     )
     debug_sub = debug_parser.add_subparsers(dest="debug_command")
@@ -77,7 +77,7 @@ Examples:
     )
     delete_parser = debug_sub.add_parser(
         "delete",
-        help="Delete a paste uploaded by 'jetts-tui debug share'",
+        help="Delete a paste uploaded by 'jettstui debug share'",
     )
     delete_parser.add_argument(
         "urls",

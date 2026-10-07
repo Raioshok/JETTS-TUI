@@ -90,7 +90,7 @@ setupGracefulExit({
     consecutiveDeadStreamErrors = 0
 
     try {
-      process.stderr.write(`jetts-tui lifecycle ${scope}: ${message.slice(0, 2000)}\n`)
+      process.stderr.write(`jettstui lifecycle ${scope}: ${message.slice(0, 2000)}\n`)
     } catch {
       // stderr may be the dead stream itself.
     }
@@ -101,7 +101,7 @@ setupGracefulExit({
     // what tells SIGHUP (terminal/SSH dropped) apart from a real SIGTERM.
     recordParentLifecycle(`graceful-exit received signal=${signal} → killing gateway`)
     resetTerminalModes()
-    process.stderr.write(`jetts-tui lifecycle: received ${signal}\n`)
+    process.stderr.write(`jettstui lifecycle: received ${signal}\n`)
   },
   // The dashboard chat tab has no in-page restart path after the PTY child
   // exits. Ignore SIGINT there so Ctrl+C cannot kill the embedded TUI if raw

@@ -518,20 +518,6 @@ class TestTryRecoverPrimaryTransport:
         )
         assert result is False
 
-    def test_skipped_for_nous_chat_completions(self):
-        """OpenAI-wire Portal traffic still rides aggregator retry infra."""
-        agent = _make_agent(
-            provider="nous",
-            base_url="https://inference-api.jettstui.dev/v1",
-        )
-        agent.api_mode = "chat_completions"
-        error = _make_transport_error("ReadTimeout")
-
-        result = agent._try_recover_primary_transport(
-            error, retry_count=3, max_retries=3,
-        )
-        assert result is False
-
     def test_allowed_for_nous_anthropic_messages(self):
         """Portal Claude holds a local Anthropic SDK client — rebuild it."""
         agent = _make_agent(

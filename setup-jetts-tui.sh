@@ -15,7 +15,7 @@
 # 2. Creates a Python 3.11 virtual environment
 # 3. Installs the appropriate dependency set for the platform
 # 4. Creates .env from template (if not exists)
-# 5. Symlinks the 'jetts-tui' CLI command into a user-facing bin dir
+# 5. Symlinks the 'jettstui' CLI command into a user-facing bin dir
 # 6. Runs the setup wizard (optional)
 # ============================================================================
 
@@ -399,10 +399,10 @@ else
 fi
 
 # ============================================================================
-# PATH setup — symlink jetts-tui into a user-facing bin dir
+# PATH setup — symlink jettstui into a user-facing bin dir
 # ============================================================================
 
-echo -e "${CYAN}→${NC} Setting up jetts-tui command..."
+echo -e "${CYAN}→${NC} Setting up jettstui command..."
 
 JETTSTUI_BIN="$VENV_DIR/bin/jetts-tui"
 COMMAND_LINK_DIR="$(get_command_link_dir)"
@@ -410,7 +410,7 @@ COMMAND_LINK_DISPLAY_DIR="$(get_command_link_display_dir)"
 mkdir -p "$COMMAND_LINK_DIR"
 ln -sf "$JETTSTUI_BIN" "$COMMAND_LINK_DIR/jetts-tui"
 ln -sf "$VENV_DIR/bin/jettstui" "$COMMAND_LINK_DIR/jettstui"
-echo -e "${GREEN}✓${NC} Symlinked jettstui and jetts-tui → $COMMAND_LINK_DISPLAY_DIR/"
+echo -e "${GREEN}✓${NC} Symlinked jettstui and jettstui → $COMMAND_LINK_DISPLAY_DIR/"
 
 if is_termux; then
     export PATH="$COMMAND_LINK_DIR:$PATH"
@@ -490,31 +490,31 @@ echo "Next steps:"
 echo ""
 if is_termux; then
     echo "  1. Run the setup wizard to configure API keys:"
-    echo "     jetts-tui setup"
+    echo "     jettstui setup"
     echo ""
     echo "  2. Start chatting:"
-    echo "     jetts-tui"
+    echo "     jettstui"
     echo ""
 else
     echo "  1. Reload your shell:"
     echo "     source $SHELL_CONFIG"
     echo ""
     echo "  2. Run the setup wizard to configure API keys:"
-    echo "     jetts-tui setup"
+    echo "     jettstui setup"
     echo ""
     echo "  3. Start chatting:"
-    echo "     jetts-tui"
+    echo "     jettstui"
     echo ""
 fi
 echo "Other commands:"
-echo "  jetts-tui status        # Check configuration"
+echo "  jettstui status        # Check configuration"
 if is_termux; then
-    echo "  jetts-tui gateway       # Run gateway in foreground"
+    echo "  jettstui gateway       # Run gateway in foreground"
 else
-    echo "  jetts-tui gateway install # Install gateway service (messaging + cron)"
+    echo "  jettstui gateway install # Install gateway service (messaging + cron)"
 fi
-echo "  jetts-tui cron list     # View scheduled jobs"
-echo "  jetts-tui doctor        # Diagnose issues"
+echo "  jettstui cron list     # View scheduled jobs"
+echo "  jettstui doctor        # Diagnose issues"
 echo ""
 
 # Ask if they want to run setup wizard now. Never block a redirected shell.
@@ -527,5 +527,5 @@ if [ "$RUN_SETUP" = true ] && [ -t 0 ]; then
         "$SETUP_PYTHON" -m jettstui.main setup
     fi
 elif [ "$RUN_SETUP" = true ]; then
-    echo "Non-interactive shell detected. Finish configuration with: jetts-tui setup"
+    echo "Non-interactive shell detected. Finish configuration with: jettstui setup"
 fi

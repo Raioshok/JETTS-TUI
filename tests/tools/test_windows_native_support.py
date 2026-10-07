@@ -766,23 +766,43 @@ class TestCronSchedulerBashResolution:
     """cron.scheduler must NOT hardcode /bin/bash — .sh scripts need a
     dynamically-resolved bash so Windows (Git Bash) works."""
 
-    def test_source_uses_shutil_which_for_bash(self):
-        root = Path(__file__).resolve().parents[2]
-        source = (root / "cron" / "scheduler.py").read_text(encoding="utf-8")
-        # The old hardcoded path should be gone as the sole bash source.
-        # It may still appear as a POSIX fallback after shutil.which(), so
-        # we check for the shutil.which call near the .sh/.bash branch.
-        assert 'shutil.which("bash")' in source, (
-            "cron.scheduler must resolve bash dynamically via shutil.which"
-        )
+    def test_sh_script_runs_with_resolved_bash(self, tmp_path, monkeypatch):
+        from cron import scheduler
 
-    def test_error_message_when_bash_missing(self):
-        root = Path(__file__).resolve().parents[2]
-        source = (root / "cron" / "scheduler.py").read_text(encoding="utf-8")
-        # The graceful-failure message must mention "bash not found" so
-        # Windows users without Git Bash see an actionable error instead
-        # of a WinError 2 traceback.
-        assert "bash not found" in source.lower()
+        scripts = tmp_path / "scripts"
+        scripts.mkdir()
+        (scripts / "probe.sh").write_text("echo hi\n", encoding="utf-8")
+        monkeypatch.setattr(scheduler, "_get_jettstui_home", lambda: tmp_path)
+        monkeypatch.setattr(
+            "jettstui._subprocess_compat.resolve_bash_executable",
+            lambda: "/custom/git-bash",
+        )
+        seen = []
+
+        def fake_run(argv, **kwargs):
+            seen.append(argv)
+            return subprocess.CompletedProcess(argv, 0, stdout="hi\n", stderr="")
+
+        monkeypatch.setattr(scheduler.subprocess, "run", fake_run)
+
+        ok, _output = scheduler._run_job_script("probe.sh")
+
+        assert ok
+        assert seen and seen[0][0] == "/custom/git-bash"
+
+    def test_sh_script_reports_missing_bash(self, tmp_path, monkeypatch):
+        from cron import scheduler
+
+        scripts = tmp_path / "scripts"
+        scripts.mkdir()
+        (scripts / "probe.sh").write_text("echo hi\n", encoding="utf-8")
+        monkeypatch.setattr(scheduler, "_get_jettstui_home", lambda: tmp_path)
+        monkeypatch.setattr("jettstui._subprocess_compat.resolve_bash_executable", lambda: None)
+
+        ok, output = scheduler._run_job_script("probe.sh")
+
+        assert not ok
+        assert "bash not found" in output.lower()
 
 
 # ---------------------------------------------------------------------------

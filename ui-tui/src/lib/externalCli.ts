@@ -5,7 +5,7 @@ export interface LaunchResult {
   error?: string
 }
 
-const resolveJettsTUIBin = () => process.env.JETTSTUI_BIN?.trim() || 'jetts-tui'
+const resolveJettsTUIBin = () => process.env.JETTSTUI_BIN?.trim() || 'jettstui'
 
 export const launchJettsTUICommand = (args: string[]): Promise<LaunchResult> =>
   new Promise(resolve => {

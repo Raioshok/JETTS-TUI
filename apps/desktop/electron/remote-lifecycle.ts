@@ -166,7 +166,7 @@ async function locateJettsTUI(ssh, remoteJettsTUIPath) {
 
     const err: any = new Error(
       `The JettsTUI path you set is not an executable on the remote host: "${remoteJettsTUIPath}". ` +
-        'Check the path (it must be the full path to the `jetts-tui` binary on the remote, e.g. ' +
+        'Check the path (it must be the full path to the `jettstui` binary on the remote, e.g. ' +
         '~/.local/bin/jetts-tui), or clear it to auto-detect.'
     )
 
@@ -176,7 +176,7 @@ async function locateJettsTUI(ssh, remoteJettsTUIPath) {
 
   const candidates: string[] = []
 
-  for (const binary of ['jetts-tui', 'jettstui']) {
+  for (const binary of ['jettstui', 'jetts-tui']) {
     try {
       const found = (await ssh.exec(`bash -lc ${shq(`command -v ${binary}`)}`)).trim()
 
@@ -208,7 +208,7 @@ async function locateJettsTUI(ssh, remoteJettsTUIPath) {
   }
 
   const err: any = new Error(
-    'JettsTUI is not installed on the remote host (could not find a `jetts-tui` executable). ' +
+    'JettsTUI is not installed on the remote host (could not find a `jettstui` executable). ' +
       'Install it on the remote with:  curl -fsSL https://raw.githubusercontent.com/Raioshok/JETTS-TUI/main/scripts/install.sh | sh  ' +
       '— or set the JettsTUI path explicitly in the SSH connection settings.'
   )
@@ -217,7 +217,7 @@ async function locateJettsTUI(ssh, remoteJettsTUIPath) {
   throw err
 }
 
-// Probe the resolved binary's version string (first line of `<jetts-tui> --version`,
+// Probe the resolved binary's version string (first line of `<jettstui> --version`,
 // e.g. "JettsTUI v0.18.2 ..."), or '' on failure. Surfaces WHICH install a
 // connection uses, so a stale/unexpected install is visible.
 async function probeJettsTUIVersion(ssh, jettstuiPath) {

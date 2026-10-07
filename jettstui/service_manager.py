@@ -700,9 +700,9 @@ class S6ServiceManager:
         # single supervised instance per slot, so there is no legitimate
         # supervised sibling for ``--replace`` to clobber.
         if profile == "default":
-            gateway_cmd = "jetts-tui gateway run --replace"
+            gateway_cmd = "jettstui gateway run --replace"
         else:
-            gateway_cmd = f"jetts-tui -p {shlex.quote(profile)} gateway run --replace"
+            gateway_cmd = f"jettstui -p {shlex.quote(profile)} gateway run --replace"
         # Skip the drop when already non-root (setgroups() lacks CAP_SETGID →
         # s6 boot-loop).
         lines.append(f'[ "$(id -u)" = 0 ] || exec {gateway_cmd}')

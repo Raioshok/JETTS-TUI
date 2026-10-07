@@ -133,7 +133,7 @@ export const en: Translations = {
     stopped: "Stopped",
     updateJettsTUI: "Update JettsTUI",
     updateJettsTUIConfirmMessage:
-      "This runs jetts-tui update and restarts the gateway when it finishes. Active sessions keep their prompt cache until then.",
+      "This runs jettstui update and restarts the gateway when it finishes. Active sessions keep their prompt cache until then.",
     updateJettsTUIConfirmNow: "Update now",
     updateJettsTUIConfirmTitle: "Update JettsTUI?",
     updatingJettsTUI: "Updating JettsTUI…",
@@ -371,7 +371,7 @@ export const en: Translations = {
     enableRuntime: "Enable",
     forceReinstall: "Force reinstall (delete existing folder first)",
     headline:
-      "Discover, install, enable, and update JettsTUI plugins (`jetts-tui plugins` parity).",
+      "Discover, install, enable, and update JettsTUI plugins (`jettstui plugins` parity).",
     identifierLabel: "Git URL or owner/repo",
     inactive: "inactive",
     installBtn: "Install",

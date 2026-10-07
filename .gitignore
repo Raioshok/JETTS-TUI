@@ -206,3 +206,6 @@ build/
 # Windows writes caches under a literal %SystemDrive% folder when a child
 # process runs with a scrubbed environment (e.g. hermetic test runs).
 /%SystemDrive%/
+
+# Prebuilt plugin dashboard bundles ship in the repo (the dashboard loads them as-is).
+!plugins/*/dashboard/dist/

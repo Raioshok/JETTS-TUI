@@ -689,7 +689,7 @@ def test_render_run_script_resets_home_before_exec() -> None:
     run_text = S6ServiceManager._render_run_script("coder", {})
 
     assert "export HOME=/opt/data" in run_text
-    assert "exec s6-setuidgid jettstui jetts-tui -p coder gateway run --replace" in run_text
+    assert "exec s6-setuidgid jettstui jettstui -p coder gateway run --replace" in run_text
 
 
 def test_render_run_script_uses_replace_to_take_over_stale_holder() -> None:
@@ -707,9 +707,9 @@ def test_render_run_script_uses_replace_to_take_over_stale_holder() -> None:
     render paths.
     """
     default_text = S6ServiceManager._render_run_script("default", {})
-    # Root profile: bare `jetts-tui gateway run --replace` (no -p flag).
-    assert "jetts-tui gateway run --replace" in default_text
-    assert "jetts-tui -p default" not in default_text
+    # Root profile: bare `jettstui gateway run --replace` (no -p flag).
+    assert "jettstui gateway run --replace" in default_text
+    assert "jettstui -p default" not in default_text
     # Every exec line that launches the gateway must carry --replace, so
     # neither the non-root nor the privilege-drop branch can spin.
     gateway_execs = [

@@ -772,7 +772,7 @@ export const ja = defineLocale({
       sshKeyTitle: '鍵ファイル',
       sshKeyDesc: '秘密鍵のパス。空欄 = ssh-agent または ~/.ssh/config。',
       sshJettsTUIPathTitle: 'JettsTUI パス（任意）',
-      sshJettsTUIPathDesc: 'リモートの jetts-tui バイナリへのフルパス。空欄 = 自動検出。',
+      sshJettsTUIPathDesc: 'リモートの jettstui バイナリへのフルパス。空欄 = 自動検出。',
       sshJettsTUIPathPlaceholder: '自動検出',
       sshTestConnection: 'SSH をテスト',
       sshConnect: '接続',
@@ -1038,7 +1038,7 @@ export const ja = defineLocale({
     edit: '編集',
     archive: 'アーカイブ',
     skillArchivedTitle: 'スキルをアーカイブしました',
-    skillArchivedMessage: 'jetts-tui curator restore で復元できます。'
+    skillArchivedMessage: 'jettstui curator restore で復元できます。'
   },
 
   starmap: {
@@ -1822,7 +1822,7 @@ export const ja = defineLocale({
       '/resume': '以前のセッションを再開',
       '/details': 'トランスクリプトの詳細レベルを制御',
       '/copy': '選択または最後のアシスタントメッセージをコピー',
-      '/quit': 'jetts-tui を終了'
+      '/quit': 'jettstui を終了'
     },
     hotkeyDescs: {
       'composer.mention': 'ファイル、フォルダー、URL、Git を参照',
@@ -2750,7 +2750,7 @@ export const ja = defineLocale({
       success: platform => `${platform} に引き継ぎました。いつでもここで再開できます。`,
       systemNote: platform => `↻ ${platform} に引き継ぎました — いつでもここで再開できます。`,
       failed: error => `引き継ぎに失敗しました: ${error}`,
-      timedOut: 'ゲートウェイの待機がタイムアウトしました。`jetts-tui gateway` は起動していますか？'
+      timedOut: 'ゲートウェイの待機がタイムアウトしました。`jettstui gateway` は起動していますか？'
     }
   },
 

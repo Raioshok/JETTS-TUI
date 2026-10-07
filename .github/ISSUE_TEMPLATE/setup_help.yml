@@ -9,9 +9,9 @@ body:
         Sorry you're having trouble! Please fill out the details below so we can help.
 
         **Quick checks first:**
-        - Run `jetts-tui doctor` and paste the relevant output below (remove secrets first)
+        - Run `jettstui doctor` and paste the relevant output below (remove secrets first)
         - If you're in a chat session, you can use `/debug` instead — it does the same thing
-        - Try `jetts-tui update` to get the latest version
+        - Try `jettstui update` to get the latest version
         - Check the [README troubleshooting section](https://github.com/Raioshok/JETTS-TUI#troubleshooting)
 
   - type: textarea
@@ -20,7 +20,7 @@ body:
       label: What's Going Wrong?
       description: Describe what you're trying to do and where it fails.
       placeholder: |
-        I ran `jetts-tui setup` and selected OpenRouter, but when I try to
+        I ran `jettstui setup` and selected OpenRouter, but when I try to
         start the TUI I get...
     validations:
       required: true
@@ -32,9 +32,9 @@ body:
       description: What did you do? Include the exact commands you ran.
       placeholder: |
         1. Ran the install script: `curl -fsSL ... | bash`
-        2. Ran `jetts-tui setup` and chose "Quick setup"
+        2. Ran `jettstui setup` and chose "Quick setup"
         3. Selected OpenRouter, entered API key
-        4. Ran `jetts-tui` and got error...
+        4. Ran `jettstui` and got error...
     validations:
       required: true
 
@@ -70,7 +70,7 @@ body:
     id: jetts-version
     attributes:
       label: JettsTUI Version
-      description: Output of `jetts-tui version` (if install got that far)
+      description: Output of `jettstui version` (if install got that far)
       placeholder: "2.1.0"
 
   - type: textarea
@@ -78,13 +78,13 @@ body:
     attributes:
       label: Debug Report
       description: |
-        Run `jetts-tui debug share` from your terminal and paste the links it prints here.
+        Run `jettstui debug share` from your terminal and paste the links it prints here.
         This uploads your system info, config, and recent logs to a paste service automatically.
 
         If you're in an interactive chat session, you can also use the `/debug` slash command — it does the same thing.
 
-        If the upload fails or install didn't get that far, run `jetts-tui debug share --local` and paste the output directly.
-        If even that doesn't work, run `jetts-tui doctor` and paste that output instead.
+        If the upload fails or install didn't get that far, run `jettstui debug share --local` and paste the output directly.
+        If even that doesn't work, run `jettstui doctor` and paste that output instead.
       placeholder: |
         Report   https://paste.rs/abc123
         agent.log   https://paste.rs/def456
@@ -106,6 +106,6 @@ body:
       label: What I've Already Tried
       description: List any fixes or workarounds you've already attempted.
       placeholder: |
-        - Ran `jetts-tui update`
+        - Ran `jettstui update`
         - Tried reinstalling with `pip install -e ".[all]"`
         - Checked that OPENROUTER_API_KEY is set in the JettsTUI home `.env`

@@ -171,7 +171,7 @@ pub async fn launch_jettstui_desktop(
     let exe_path = resolve_jettstui_desktop_exe(&install_root).ok_or_else(|| {
         format!(
             "Couldn't find a built JettsTUI desktop at {}. The desktop build step \
-             may have been skipped or failed. Run `jetts-tui desktop` from a \
+             may have been skipped or failed. Run `jettstui desktop` from a \
              terminal to build and launch it.",
             install_root.join("apps").join("desktop").join("release").display()
         )

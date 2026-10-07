@@ -237,7 +237,9 @@ class TestCLIStatusBar:
         assert cli_obj._compression_count_style(10) == "class:status-bar-bad"
         assert cli_obj._compression_count_style(25) == "class:status-bar-bad"
 
-    def test_compression_count_in_wide_fragments(self):
+    def test_compression_count_in_wide_fragments(self, monkeypatch):
+        # Flat bar under test; the default skin's powerline bar folds meta into one segment.
+        monkeypatch.setenv("JETTSTUI_POWERLINE", "0")
         cli_obj = _attach_agent(
             _make_cli(),
             prompt_tokens=10_230,

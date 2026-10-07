@@ -2134,7 +2134,7 @@ except Exception:
         }
     }
     if (-not $installed) {
-        throw "Failed to install jetts-tui package even with no extras. Inspect the uv pip install output above."
+        throw "Failed to install jettstui package even with no extras. Inspect the uv pip install output above."
     }
 
     # Baseline-import gate. Even if a tier reported success above, the
@@ -2176,7 +2176,7 @@ except Exception:
         # uv on Windows can register jetts-tui.exe in dist-info/RECORD but fail to
         # materialise the .exe (file lock during self-update, distlib edge case).
         # Catch it here so a fresh install/update does not finish with a broken
-        # `jetts-tui` command while other entry points exist.
+        # `jettstui` command while other entry points exist.
         $scriptsDir = Join-Path $InstallDir "venv\Scripts"
         $pythonExe = Join-Path $scriptsDir "python.exe"
         if ((Test-Path $scriptsDir) -and (Test-Path $pythonExe)) {
@@ -2259,7 +2259,7 @@ print(','.join(scripts))
 }
 
 function Set-PathVariable {
-    Write-Info "Setting up jetts-tui command..."
+    Write-Info "Setting up jettstui command..."
     
     if ($NoVenv) {
         $jettstuiBin = "$InstallDir"
@@ -2267,7 +2267,7 @@ function Set-PathVariable {
         $jettstuiBin = "$InstallDir\venv\Scripts"
     }
     
-    # Add the venv Scripts dir to user PATH so jetts-tui is globally available.
+    # Add the venv Scripts dir to user PATH so jettstui is globally available.
     # The generated jetts-tui.exe in venv\Scripts\ has the venv Python baked in.
     $currentPath = [Environment]::GetEnvironmentVariable("Path", "User")
     
@@ -2295,7 +2295,7 @@ function Set-PathVariable {
     # Update current session
     $env:Path = "$jettstuiBin;$env:Path"
     
-    Write-Success "jetts-tui command ready"
+    Write-Success "jettstui command ready"
 }
 
 function Write-BootstrapMarker {
@@ -3337,7 +3337,7 @@ function Start-GatewayIfConfigured {
         $jettstuiCmd = "$InstallDir\venv\Scripts\jettstui.exe"
     }
     if (-not (Test-Path $jettstuiCmd)) {
-        $jettstuiCmd = "jetts-tui"
+        $jettstuiCmd = "jettstui"
     }
 
     # If WhatsApp is enabled but not yet paired, run foreground for QR scan
@@ -3346,7 +3346,7 @@ function Start-GatewayIfConfigured {
     if ($whatsappEnabled -and -not (Test-Path $whatsappSession)) {
         Write-Host ""
         Write-Info "WhatsApp is enabled but not yet paired."
-        Write-Info "Running 'jetts-tui whatsapp' to pair via QR code..."
+        Write-Info "Running 'jettstui whatsapp' to pair via QR code..."
         Write-Host ""
         # Non-interactive callers (GUI installer, CI) skip the QR-pair prompt;
         # WhatsApp pairing requires a human looking at a phone camera, so the
@@ -3375,7 +3375,7 @@ function Start-GatewayIfConfigured {
     # services on the build agent, etc.).  Treat it like the user declined.
     if ($NonInteractive) {
         Write-Info "Skipping gateway autostart prompt (non-interactive)."
-        Write-Info "Start the gateway later with: jetts-tui gateway"
+        Write-Info "Start the gateway later with: jettstui gateway"
         return
     }
 
@@ -3393,10 +3393,10 @@ function Start-GatewayIfConfigured {
             Write-Info "Logs: $logFile"
             Write-Info "To stop: close the gateway process from Task Manager"
         } catch {
-            Write-Warn "Failed to start gateway. Run manually: jetts-tui gateway"
+            Write-Warn "Failed to start gateway. Run manually: jettstui gateway"
         }
     } else {
-        Write-Info "Skipped. Start the gateway later with: jetts-tui gateway"
+        Write-Info "Skipped. Start the gateway later with: jettstui gateway"
     }
 }
 
@@ -3424,17 +3424,17 @@ function Write-Completion {
     Write-Host ""
     Write-Host "* Commands:" -ForegroundColor Cyan
     Write-Host ""
-    Write-Host "   jetts-tui              " -NoNewline -ForegroundColor Green
+    Write-Host "   jettstui              " -NoNewline -ForegroundColor Green
     Write-Host "Start chatting"
-    Write-Host "   jetts-tui setup        " -NoNewline -ForegroundColor Green
+    Write-Host "   jettstui setup        " -NoNewline -ForegroundColor Green
     Write-Host "Configure API keys & settings"
-    Write-Host "   jetts-tui config       " -NoNewline -ForegroundColor Green
+    Write-Host "   jettstui config       " -NoNewline -ForegroundColor Green
     Write-Host "View/edit configuration"
-    Write-Host "   jetts-tui config edit  " -NoNewline -ForegroundColor Green
+    Write-Host "   jettstui config edit  " -NoNewline -ForegroundColor Green
     Write-Host "Open config in editor"
-    Write-Host "   jetts-tui gateway      " -NoNewline -ForegroundColor Green
+    Write-Host "   jettstui gateway      " -NoNewline -ForegroundColor Green
     Write-Host "Start messaging gateway (Telegram, Discord, etc.)"
-    Write-Host "   jetts-tui update       " -NoNewline -ForegroundColor Green
+    Write-Host "   jettstui update       " -NoNewline -ForegroundColor Green
     Write-Host "Update to latest version"
     Write-Host ""
     

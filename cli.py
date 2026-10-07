@@ -13380,7 +13380,7 @@ class JettsTUICLI(CLIAgentSetupMixin, CLICommandsMixin):
                     _bb = result.get("billing_block") or {}
                     _prov_label = _bb.get("provider_label") or "your provider"
                     if _bb.get("is_nous"):
-                        _cta_lines = ["Select a provider with your own API key using [bold]jetts-tui model[/]."]
+                        _cta_lines = ["Select a provider with your own API key using [bold]jettstui model[/]."]
                     else:
                         _url = _bb.get("billing_url")
                         _cta_lines = [

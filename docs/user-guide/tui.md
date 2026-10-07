@@ -14,26 +14,26 @@ It's the recommended way to run JettsTUI interactively.
 
 ```bash
 # Launch the TUI
-jetts-tui
+jettstui
 
 # Resume the latest TUI session (falls back to the latest classic session)
-jetts-tui -c
-jetts-tui --continue
+jettstui -c
+jettstui --continue
 
 # Resume a specific session by ID or title
-jetts-tui -r 20260409_000000_aa11bb
-jetts-tui --resume "my t0p session"
+jettstui -r 20260409_000000_aa11bb
+jettstui --resume "my t0p session"
 
 # Run source directly — skips the prebuild step (for TUI contributors)
-jetts-tui --dev
+jettstui --dev
 ```
 
 The legacy environment switch remains accepted:
 
 ```bash
 export JETTSTUI_TUI=1
-jetts-tui          # TUI (already the default)
-jetts-tui chat     # same
+jettstui          # TUI (already the default)
+jettstui chat     # same
 ```
 
 Older configuration files may still contain:
@@ -43,7 +43,7 @@ display:
   interface: tui   # compatibility key; Ink is the only interactive terminal UI
 ```
 
-Bare `jetts-tui` and `jetts-tui chat` launch the TUI. Older `display.interface` values and the `--cli` spelling are accepted for configuration and script compatibility, but no longer expose a second interactive interface. Redirected and automated invocations still use the headless Python runner.
+Bare `jettstui` and `jettstui chat` launch the TUI. Older `display.interface` values and the `--cli` spelling are accepted for configuration and script compatibility, but no longer expose a second interactive interface. Redirected and automated invocations still use the headless Python runner.
 
 The [CLI command guide](cli.md) documents slash commands, quick commands, skill preloading, personalities, multiline input, and interrupts available in this interface.
 
@@ -74,13 +74,13 @@ Click anywhere on a section header (or its chevron) to toggle it. The Tools list
 
 ## Requirements
 
-- **Node.js** ≥ 20 — the TUI runs as a subprocess launched from the Python CLI. `jetts-tui doctor` verifies this.
+- **Node.js** ≥ 20 — the TUI runs as a subprocess launched from the Python CLI. `jettstui doctor` verifies this.
 - **TTY** — interactive sessions require a terminal. Piped and automated invocations use the headless runner.
 
 On first launch JettsTUI installs the TUI's Node dependencies into `ui-tui/node_modules` (one-time, a few seconds). Subsequent launches are fast. If you pull a new JettsTUI version, the TUI bundle is rebuilt automatically when sources are newer than the dist.
 
 :::tip Working across git worktrees?
-Contributors who run `jetts-tui --tui --dev` from many worktrees can share one `node_modules` instead of installing per checkout — see [TUI & Desktop from Worktrees](../developer-guide/worktree-ui-dev.md).
+Contributors who run `jettstui --tui --dev` from many worktrees can share one `node_modules` instead of installing per checkout — see [TUI & Desktop from Worktrees](../developer-guide/worktree-ui-dev.md).
 :::
 
 ### External prebuild
@@ -89,7 +89,7 @@ Distributions that ship a prebuilt bundle (Nix, system packages) can point Jetts
 
 ```bash
 export JETTSTUI_TUI_DIR=/path/to/prebuilt/ui-tui
-jetts-tui
+jettstui
 ```
 
 The directory must contain `dist/entry.js`.
@@ -126,7 +126,7 @@ Every other slash command, including installed skills, quick commands, and perso
 
 ## Live session switcher
 
-Use the live session switcher when you want one terminal to act as a dispatcher for several TUI sessions. It lists only sessions that are currently live in this TUI process; closed sessions remain saved transcripts and can still be reopened with `/resume` or `jetts-tui --resume <id-or-title>`.
+Use the live session switcher when you want one terminal to act as a dispatcher for several TUI sessions. It lists only sessions that are currently live in this TUI process; closed sessions remain saved transcripts and can still be reopened with `/resume` or `jettstui --resume <id-or-title>`.
 
 Open it with any of these:
 
@@ -193,7 +193,7 @@ Or in-session: `/indicator emoji` (etc.). Styles ship with matched glyph widths 
 
 ## Auto-resume
 
-By default, `jetts-tui --tui` starts a fresh session each launch. To re-attach to the most recent TUI session automatically (useful when your terminal or SSH connection drops unexpectedly), opt in:
+By default, `jettstui --tui` starts a fresh session each launch. To re-attach to the most recent TUI session automatically (useful when your terminal or SSH connection drops unexpectedly), opt in:
 
 ```bash
 export JETTSTUI_TUI_RESUME=1          # most-recent TUI session
@@ -223,7 +223,7 @@ The status line also shows:
 - **Per-prompt elapsed time** — `⏱ 12s/3m 45s` while the turn is running (live), frozen to `⏲ 32s / 3m 45s` after the turn completes. First number is time since last user message; second is total session duration. Resets on every new prompt.
 - **`🗜️ N`** — number of times the running session has been auto-compressed. Appears once the first compression fires.
 - **`▶ N`** — number of `/background` tasks currently running in this session. Appears whenever at least one task is in flight.
-- **`⚠ YOLO`** — visible warning whenever YOLO mode is on (`jetts-tui --yolo`, `/yolo`, or `JETTSTUI_YOLO_MODE=1`). The same badge also appears in the startup banner so you cannot launch an auto-approving session without noticing.
+- **`⚠ YOLO`** — visible warning whenever YOLO mode is on (`jettstui --yolo`, `/yolo`, or `JETTSTUI_YOLO_MODE=1`). The same badge also appears in the startup banner so you cannot launch an auto-approving session without noticing.
 
 ## Configuration
 
@@ -291,17 +291,17 @@ See [Sessions](sessions.md) for lifecycle, search, compression, and export.
 
 By default the TUI spawns its own in-process gateway, so each TUI instance is self-contained — there's nothing to configure.
 
-You may see a `JETTSTUI_TUI_GATEWAY_URL` env var referenced in the codebase or logs. This is an **internal wiring detail of the web dashboard**, not a user-facing remote-attach knob. When you open the dashboard's "Chat" tab (`jetts-tui dashboard` → `/chat`), the dashboard's web server spawns an embedded TUI child process and injects `JETTSTUI_TUI_GATEWAY_URL` so that child attaches to the dashboard's own in-process `tui_gateway` over a loopback WebSocket (`/api/ws`). The `/api/ws` endpoint exists only inside the dashboard server (`jettstui/web_server.py`) and is bound to that process's lifetime and auth.
+You may see a `JETTSTUI_TUI_GATEWAY_URL` env var referenced in the codebase or logs. This is an **internal wiring detail of the web dashboard**, not a user-facing remote-attach knob. When you open the dashboard's "Chat" tab (`jettstui dashboard` → `/chat`), the dashboard's web server spawns an embedded TUI child process and injects `JETTSTUI_TUI_GATEWAY_URL` so that child attaches to the dashboard's own in-process `tui_gateway` over a loopback WebSocket (`/api/ws`). The `/api/ws` endpoint exists only inside the dashboard server (`jettstui/web_server.py`) and is bound to that process's lifetime and auth.
 
-There is no general "point any TUI at any standalone gateway port" mode. In particular, the OpenAI-compatible API server (`jetts-tui gateway` / the `api_server` platform) does **not** serve `/api/ws` — it's the model-backend surface (`/v1/chat/completions`, `/v1/models`, …) and deliberately does not expose the TUI's JSON-RPC control channel. Setting `JETTSTUI_TUI_GATEWAY_URL` to that port will 404.
+There is no general "point any TUI at any standalone gateway port" mode. In particular, the OpenAI-compatible API server (`jettstui gateway` / the `api_server` platform) does **not** serve `/api/ws` — it's the model-backend surface (`/v1/chat/completions`, `/v1/models`, …) and deliberately does not expose the TUI's JSON-RPC control channel. Setting `JETTSTUI_TUI_GATEWAY_URL` to that port will 404.
 
 If you want multiple surfaces to share one set of sessions, use the shared `~/.jettstui/state.db` (see [Sessions](sessions.md)) or the web dashboard's embedded chat (see [Web Dashboard](features/web-dashboard.md#chat)) — not a hand-set gateway URL.
 
 ## Compatibility
 
-Launching `jetts-tui` starts the TUI. The `--tui` flag and `JETTSTUI_TUI=1` remain supported for older scripts, but are no longer necessary.
+Launching `jettstui` starts the TUI. The `--tui` flag and `JETTSTUI_TUI=1` remain supported for older scripts, but are no longer necessary.
 
-If the TUI cannot launch because Node or its bundle is unavailable, JettsTUI prints an actionable diagnostic. Run `jetts-tui doctor` to repair the local runtime.
+If the TUI cannot launch because Node or its bundle is unavailable, JettsTUI prints an actionable diagnostic. Run `jettstui doctor` to repair the local runtime.
 
 ## See also
 

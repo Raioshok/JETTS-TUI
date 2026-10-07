@@ -665,7 +665,7 @@ export const en: Translations = {
       sshKeyTitle: 'Identity file',
       sshKeyDesc: 'Private key path. Blank = ssh-agent or ~/.ssh/config.',
       sshJettsTUIPathTitle: 'JettsTUI path (optional)',
-      sshJettsTUIPathDesc: 'Full path to the remote jetts-tui binary. Blank = auto-detect.',
+      sshJettsTUIPathDesc: 'Full path to the remote jettstui binary. Blank = auto-detect.',
       sshJettsTUIPathPlaceholder: 'auto-detect',
       sshTestConnection: 'Test SSH',
       sshConnect: 'Connect',
@@ -974,7 +974,7 @@ export const en: Translations = {
     edit: 'Edit',
     archive: 'Archive',
     skillArchivedTitle: 'Skill archived',
-    skillArchivedMessage: 'Restorable via jetts-tui curator restore.',
+    skillArchivedMessage: 'Restorable via jettstui curator restore.',
     hub: {
       searchPlaceholder: 'Search the skill hub',
       search: 'Search',
@@ -1929,7 +1929,7 @@ export const en: Translations = {
       '/resume': 'resume a prior session',
       '/details': 'control transcript detail level',
       '/copy': 'copy selection or last assistant message',
-      '/quit': 'exit jetts-tui'
+      '/quit': 'exit jettstui'
     },
     hotkeyDescs: {
       'composer.mention': 'reference files, folders, urls, git',
@@ -2849,7 +2849,7 @@ export const en: Translations = {
       success: platform => `Handed off to ${platform}. Resume here anytime.`,
       systemNote: platform => `↻ Handed off to ${platform} — resume here anytime.`,
       failed: error => `Handoff failed: ${error}`,
-      timedOut: 'Timed out waiting for the gateway. Is `jetts-tui gateway` running?'
+      timedOut: 'Timed out waiting for the gateway. Is `jettstui gateway` running?'
     }
   },
 

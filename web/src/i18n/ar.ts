@@ -265,7 +265,7 @@ export const ar = defineLocale({
     enableRuntime: "تفعيل",
     forceReinstall: "إعادة تثبيت إجباري (حذف المجلد الموجود أولاً)",
     headline:
-      "اكتشف وثبِّت وفعِّل وحدِّث مكوِّنات JettsTUI الإضافية (مطابقة `jetts-tui plugins`).",
+      "اكتشف وثبِّت وفعِّل وحدِّث مكوِّنات JettsTUI الإضافية (مطابقة `jettstui plugins`).",
     identifierLabel: "رابط Git أو owner/repo",
     inactive: "غير نشط",
     installBtn: "تثبيت من Git",

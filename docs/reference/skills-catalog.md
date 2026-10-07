@@ -8,7 +8,7 @@ description: "Catalog of bundled skills that ship with JettsTUI"
 
 JettsTUI ships with a built-in skill library copied into `~/.jettstui/skills/` on a new install. Each skill below links to a Markdown guide with its definition, setup, and usage.
 
-JettsTUI syncs bundled skills on `jetts-tui update`, while respecting local deletions and user edits. If a listed skill is missing from your profile's skills directory, restore it with `jetts-tui skills reset <name> --restore`.
+JettsTUI syncs bundled skills on `jettstui update`, while respecting local deletions and user edits. If a listed skill is missing from your profile's skills directory, restore it with `jettstui skills reset <name> --restore`.
 
 This catalog is a checked-in snapshot. Use the repository's `skills/` and `optional-skills/` directories as the source of truth when it differs.
 

@@ -893,7 +893,7 @@ class TestWrapperScript:
         assert wrapper.name == "mybot.bat"
         content = wrapper.read_text()
         assert "@echo off" in content
-        assert "jetts-tui -p mybot" in content
+        assert "jettstui -p mybot" in content
         assert "%*" in content
 
     def test_remove_finds_bat_on_windows(self, profile_env, monkeypatch):
@@ -930,7 +930,7 @@ class TestWrapperScript:
         assert wrapper.name == "rq"
         content = wrapper.read_text()
         assert content.startswith("#!/bin/sh")
-        assert "jetts-tui -p redqueen" in content
+        assert "jettstui -p redqueen" in content
 
     def test_custom_alias_target_on_windows(self, profile_env, monkeypatch):
         # Regression: custom-name aliases must still produce an executable
@@ -942,7 +942,7 @@ class TestWrapperScript:
         assert wrapper.name == "rq.bat"
         content = wrapper.read_text()
         assert "@echo off" in content
-        assert "jetts-tui -p redqueen" in content
+        assert "jettstui -p redqueen" in content
         assert "%*" in content
         assert "#!/bin/sh" not in content
 
@@ -991,7 +991,7 @@ class TestWrapperScriptSecurity:
         wrapper = create_wrapper_script("mybot", target="coder")
         assert wrapper is not None
         assert wrapper.resolve().is_relative_to(_get_wrapper_dir().resolve())
-        assert 'jetts-tui -p coder "$@"' in wrapper.read_text()
+        assert 'jettstui -p coder "$@"' in wrapper.read_text()
 
 
 # ===================================================================

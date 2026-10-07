@@ -536,7 +536,7 @@ def recommended_update_command_for_method(method: str) -> str:
         return _NIX_UPDATE_MSG
     if method == "docker":
         return "docker pull ghcr.io/raioshok/jetts-tui:latest"
-    return "jetts-tui update"
+    return "jettstui update"
 
 
 def recommended_update_command() -> str:
@@ -564,7 +564,7 @@ def recommended_update_command() -> str:
 #     helper spells that out, with notes on tag pinning and config
 #     persistence so users don't get blindsided.
 _DOCKER_UPDATE_MESSAGE = """\
-✗ ``jetts-tui update`` doesn't apply inside the Docker container.
+✗ ``jettstui update`` doesn't apply inside the Docker container.
 
 JettsTUI runs as a published image (ghcr.io/raioshok/jetts-tui), not a
 git checkout — the container has no working tree to pull into.  Update by
@@ -573,7 +573,7 @@ pulling a fresh image and restarting your container instead:
   docker pull ghcr.io/raioshok/jetts-tui:latest
   # then restart whatever started the container. For Compose, first set its
   # image to ghcr.io/raioshok/jetts-tui:latest (bundled examples use a local build):
-  docker compose up -d --force-recreate jetts-tui
+  docker compose up -d --force-recreate jettstui
   # or, for ad-hoc runs, exit the current container and `docker run` again
 
 Verify the new version after restart:
@@ -6462,7 +6462,7 @@ def migrate_config(interactive: bool = True, quiet: bool = False) -> Dict[str, A
                 else:
                     print(
                         "  ✓ Plugins now opt-in: no existing plugins to grandfather. "
-                        "Use `jetts-tui plugins enable <name>` to activate."
+                        "Use `jettstui plugins enable <name>` to activate."
                     )
 
     # ── Version 22 → 23: seed curator defaults + create logs/curator/ ──
@@ -6537,7 +6537,7 @@ def migrate_config(interactive: bool = True, quiet: bool = False) -> Dict[str, A
                 if not quiet:
                     print(
                         "  ✓ Curator settings now available "
-                        f"({', '.join(added_curator)}) — edit via `jetts-tui config set`"
+                        f"({', '.join(added_curator)}) — edit via `jettstui config set`"
                     )
             if added_aux:
                 results["config_added"].append(
@@ -6546,7 +6546,7 @@ def migrate_config(interactive: bool = True, quiet: bool = False) -> Dict[str, A
                 if not quiet:
                     print(
                         "  ✓ auxiliary.curator settings now available "
-                        f"({', '.join(added_aux)}) — edit via `jetts-tui config set`"
+                        f"({', '.join(added_aux)}) — edit via `jettstui config set`"
                     )
 
     # ── Version 24 → 25: lower model_catalog TTL 24h → 1h ──
@@ -6827,7 +6827,7 @@ def migrate_config(interactive: bool = True, quiet: bool = False) -> Dict[str, A
                         print(f"  ✓ Saved {name}")
                     print()
             else:
-                print("  Set later with: jetts-tui config set <key> <value>")
+                print("  Set later with: jettstui config set <key> <value>")
     
     # Check for missing config fields.
     #
@@ -6886,7 +6886,7 @@ def migrate_config(interactive: bool = True, quiet: bool = False) -> Dict[str, A
                 print()
             _persist_migration(config)
         else:
-            print("  Set later with: jetts-tui config set <key> <value>")
+            print("  Set later with: jettstui config set <key> <value>")
 
     return results
 
@@ -8799,9 +8799,9 @@ def show_config():
 
     print()
     print(color("─" * 60, Colors.DIM))
-    print(color("  jetts-tui config edit     # Edit config file", Colors.DIM))
-    print(color("  jetts-tui config set <key> <value>", Colors.DIM))
-    print(color("  jetts-tui setup           # Run setup wizard", Colors.DIM))
+    print(color("  jettstui config edit     # Edit config file", Colors.DIM))
+    print(color("  jettstui config set <key> <value>", Colors.DIM))
+    print(color("  jettstui setup           # Run setup wizard", Colors.DIM))
     print()
 
 
@@ -9282,12 +9282,12 @@ def config_command(args):
         value = getattr(args, 'value', None)
         force = bool(getattr(args, 'force', False))
         if not key or value is None:
-            print("Usage: jetts-tui config set [--force] <key> <value>")
+            print("Usage: jettstui config set [--force] <key> <value>")
             print()
             print("Examples:")
-            print("  jetts-tui config set model anthropic/claude-sonnet-4")
-            print("  jetts-tui config set terminal.backend docker")
-            print("  jetts-tui config set OPENROUTER_API_KEY sk-or-...")
+            print("  jettstui config set model anthropic/claude-sonnet-4")
+            print("  jettstui config set terminal.backend docker")
+            print("  jettstui config set OPENROUTER_API_KEY sk-or-...")
             print()
             print("  --force: skip the unknown-key notice for unrecognized keys")
             sys.exit(1)
@@ -9412,7 +9412,7 @@ def config_command(args):
         print("  jettstui config           Show current configuration")
         print("  jettstui config edit      Open config in editor")
         print("  jettstui config get <key>          Print a resolved config value")
-        print("  jetts-tui config set <key> <value>   Set a config value")
+        print("  jettstui config set <key> <value>   Set a config value")
         print("  jettstui config unset <key>        Remove a config value")
         print("  jettstui config check     Check for missing/outdated config")
         print("  jettstui config migrate   Update config with new options")

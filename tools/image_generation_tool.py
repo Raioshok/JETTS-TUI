@@ -1351,7 +1351,7 @@ def _maybe_route_native_krea(
         return json.dumps({
             "success": False,
             "image": None,
-            "error": "Krea provider is unavailable. Run `jetts-tui tools` to configure image generation.",
+            "error": "Krea provider is unavailable. Run `jettstui tools` to configure image generation.",
             "error_type": "provider_not_registered",
         })
 

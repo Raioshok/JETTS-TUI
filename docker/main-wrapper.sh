@@ -7,14 +7,14 @@
 #
 # Shebang note: /init scrubs env before invoking CMD, so a plain
 # `#!/bin/sh` wrapper sees an empty environ and `ENV JETTSTUI_HOME=/opt/data`
-# from the Dockerfile never reaches `jetts-tui`. with-contenv repopulates
+# from the Dockerfile never reaches `jettstui`. with-contenv repopulates
 # the env from /run/s6/container_environment before exec'ing, which is
 # what s6-supervised services use too (see main-jettstui/run).
 #
 # Routing:
-#   no args                       → exec `jetts-tui` (the default)
+#   no args                       → exec `jettstui` (the default)
 #   first arg is an executable    → exec it directly (sleep, bash, sh, …)
-#   first arg is anything else    → exec `jetts-tui <args>` (subcommand passthrough)
+#   first arg is anything else    → exec `jettstui <args>` (subcommand passthrough)
 #
 # Drop to jettstui via s6-setuidgid, but skip it when already non-root.
 set -e
@@ -65,12 +65,12 @@ cd /opt/data
 . /opt/jettstui/.venv/bin/activate
 
 # Restore the original working directory before handing off to
-# the user's command so `jetts-tui chat` starts in the Docker -w
+# the user's command so `jettstui chat` starts in the Docker -w
 # directory, not /opt/data.
 cd "$_jettstui_orig_cwd"
 
 if [ $# -eq 0 ]; then
-    drop jetts-tui
+    drop jettstui
 fi
 
 if command -v "$1" >/dev/null 2>&1; then
@@ -79,4 +79,4 @@ if command -v "$1" >/dev/null 2>&1; then
 fi
 
 # JettsTUI subcommand pass-through.
-drop jetts-tui "$@"
+drop jettstui "$@"

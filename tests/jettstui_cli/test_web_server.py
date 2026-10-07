@@ -5674,7 +5674,7 @@ class TestNewEndpoints:
         resp = self.client.get("/api/profiles/default/setup-command")
 
         assert resp.status_code == 200
-        assert resp.json()["command"] == "jetts-tui setup"
+        assert resp.json()["command"] == "jettstui setup"
 
     def test_profiles_create_creates_wrapper_alias_when_safe(self, monkeypatch, tmp_path):
         import jettstui.profiles as profiles_mod
@@ -5695,7 +5695,7 @@ class TestNewEndpoints:
         assert wrapper_path.exists()
         lines = [line.strip() for line in wrapper_path.read_text().splitlines() if line.strip()]
         if is_windows:
-            assert lines == ["@echo off", "jetts-tui -p writer %*"]
+            assert lines == ["@echo off", "jettstui -p writer %*"]
         else:
             assert lines == ["#!/bin/sh", 'exec /opt/jettstui/bin/jetts-tui -p writer "$@"']
 

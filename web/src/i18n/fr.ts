@@ -321,7 +321,7 @@ export const fr: Translations = {
     enableRuntime: "Activer",
     forceReinstall: "Forcer la réinstallation (supprimer d'abord le dossier existant)",
     headline:
-      "Découvrez, installez, activez et mettez à jour les plugins JettsTUI (parité avec `jetts-tui plugins`).",
+      "Découvrez, installez, activez et mettez à jour les plugins JettsTUI (parité avec `jettstui plugins`).",
     identifierLabel: "URL Git ou owner/repo",
     inactive: "inactif",
     installBtn: "Installer",

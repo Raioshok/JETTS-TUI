@@ -99,7 +99,7 @@ def generate_bash(parser: argparse.ArgumentParser) -> str:
 
     return f"""# JettsTUI bash completion
 # Add to ~/.bashrc:
-#   eval "$(jetts-tui completion bash)"
+#   eval "$(jettstui completion bash)"
 
 _jettstui_profiles() {{
     local profiles_dir="${{JETTSTUI_HOME:-$HOME/.jettstui}}/profiles"
@@ -135,7 +135,7 @@ _jettstui_completion() {{
     fi
 }}
 
-complete -F _jettstui_completion jetts-tui
+complete -F _jettstui_completion jettstui
 """
 
 
@@ -199,10 +199,10 @@ def generate_zsh(parser: argparse.ArgumentParser) -> str:
             )
     sub_cases_str = "\n".join(sub_cases)
 
-    return f"""#compdef jetts-tui
+    return f"""#compdef jettstui
 # JettsTUI zsh completion
 # Add to ~/.zshrc:
-#   eval "$(jetts-tui completion zsh)"
+#   eval "$(jettstui completion zsh)"
 
 _jettstui_profiles() {{
     local -a profiles
@@ -231,7 +231,7 @@ _jettstui() {{
             subcmds=(
 {top_cmds_str}
             )
-            _describe 'jetts-tui command' subcmds
+            _describe 'jettstui command' subcmds
             ;;
         args)
             case ${{line[1]}} in
@@ -241,7 +241,7 @@ _jettstui() {{
     esac
 }}
 
-compdef _jettstui jetts-tui
+compdef _jettstui jettstui
 """
 
 
@@ -257,7 +257,7 @@ def generate_fish(parser: argparse.ArgumentParser) -> str:
     lines: list[str] = [
         "# JettsTUI fish completion",
         "# Add to your config:",
-        "#   jetts-tui completion fish | source",
+        "#   jettstui completion fish | source",
         "",
         "# Helper: list available profiles",
         "function __jettstui_profiles",
@@ -272,10 +272,10 @@ def generate_fish(parser: argparse.ArgumentParser) -> str:
         "end",
         "",
         "# Disable file completion by default",
-        "complete -c jetts-tui -f",
+        "complete -c jettstui -f",
         "",
         "# Complete profile names after -p / --profile",
-        "complete -c jetts-tui -f -s p -l profile"
+        "complete -c jettstui -f -s p -l profile"
         " -d 'Profile name' -xa '(__jettstui_profiles)'",
         "",
         "# Top-level subcommands",
@@ -285,7 +285,7 @@ def generate_fish(parser: argparse.ArgumentParser) -> str:
         info = tree["subcommands"][cmd]
         help_text = _clean(info.get("help", ""))
         lines.append(
-            f"complete -c jetts-tui -f "
+            f"complete -c jettstui -f "
             f"-n 'not __fish_seen_subcommand_from {top_cmds_str}' "
             f"-a {cmd} -d '{help_text}'"
         )
@@ -304,7 +304,7 @@ def generate_fish(parser: argparse.ArgumentParser) -> str:
             sinfo = info["subcommands"][sc]
             sh = _clean(sinfo.get("help", ""))
             lines.append(
-                f"complete -c jetts-tui -f "
+                f"complete -c jettstui -f "
                 f"-n '__fish_seen_subcommand_from {cmd}' "
                 f"-a {sc} -d '{sh}'"
             )
@@ -312,7 +312,7 @@ def generate_fish(parser: argparse.ArgumentParser) -> str:
         if cmd == "profile":
             for action in sorted(profile_name_actions):
                 lines.append(
-                    f"complete -c jetts-tui -f "
+                    f"complete -c jettstui -f "
                     f"-n '__fish_seen_subcommand_from {action}; "
                     f"and __fish_seen_subcommand_from profile' "
                     f"-a '(__jettstui_profiles)' -d 'Profile name'"

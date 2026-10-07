@@ -92,16 +92,17 @@ class TestCliSkinPromptIntegration:
 
 
 class TestCompactBannerSkinIntegration:
-    def test_default_compact_banner_keeps_legacy_nous_jettstui_branding(self):
+    def test_default_compact_banner_shows_product_branding(self):
         set_active_skin("default")
 
         with patch("cli.shutil.get_terminal_size", return_value=SimpleNamespace(columns=90)), \
              patch.dict(_build_compact_banner.__globals__, {"format_banner_version_label": lambda: "JettsTUI v0.1.0 (test)"}):
             banner = _build_compact_banner()
 
-        assert "NOUS JETTSTUI" in banner
+        assert "JettsTUI" in banner
+        assert "NOUS" not in banner
 
-    def test_poseidon_compact_banner_uses_skin_branding_instead_of_nous_jettstui(self):
+    def test_poseidon_compact_banner_uses_skin_branding(self):
         set_active_skin("poseidon")
 
         with patch("cli.shutil.get_terminal_size", return_value=SimpleNamespace(columns=90)), \

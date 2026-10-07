@@ -314,7 +314,7 @@ async fn run_update(app: AppHandle) -> Result<()> {
         }
         other => {
             let msg = format!(
-                "jetts-tui update failed (exit {:?}). See {} for details.",
+                "jettstui update failed (exit {:?}). See {} for details.",
                 other,
                 crate::paths::jettstui_home()
                     .join("logs")
@@ -386,7 +386,7 @@ async fn run_update(app: AppHandle) -> Result<()> {
     if rebuild.exit_code != Some(0) {
         let msg = format!(
             "Rebuilding the desktop app failed (exit {:?}). The update was \
-             applied but the app could not be rebuilt; run `jetts-tui desktop` \
+             applied but the app could not be rebuilt; run `jettstui desktop` \
              from a terminal to see the error.",
             rebuild.exit_code
         );
@@ -703,7 +703,7 @@ fn venv_jetts(install_root: &Path) -> PathBuf {
     if cfg!(target_os = "windows") {
         install_root.join("venv").join("Scripts").join("jetts-tui.exe")
     } else {
-        install_root.join("venv").join("bin").join("jetts-tui")
+        install_root.join("venv").join("bin").join("jettstui")
     }
 }
 
@@ -727,9 +727,9 @@ fn resolve_jettstui(install_root: &Path) -> Option<PathBuf> {
     if let Ok(path) = std::env::var("PATH") {
         let sep = if cfg!(target_os = "windows") { ';' } else { ':' };
         let names = if cfg!(target_os = "windows") {
-            ["jetts-tui.exe", "jettstui.exe"]
+            ["jettstui.exe", "jetts-tui.exe"]
         } else {
-            ["jetts-tui", "jettstui"]
+            ["jettstui", "jetts-tui"]
         };
         for name in names {
             for dir in path.split(sep) {

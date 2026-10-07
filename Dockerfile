@@ -274,14 +274,15 @@ RUN uv pip install --no-cache-dir --no-deps -e "."
 
 USER root
 RUN mkdir -p /opt/jettstui/bin && \
-    cp /opt/jettstui/docker/jetts-tui-exec-shim.sh /opt/jettstui/bin/jetts-tui && \
-    chmod 0755 /opt/jettstui/bin/jetts-tui && \
+    cp /opt/jettstui/docker/jetts-tui-exec-shim.sh /opt/jettstui/bin/jettstui && \
+    chmod 0755 /opt/jettstui/bin/jettstui && \
+    ln -sf jettstui /opt/jettstui/bin/jetts-tui && \
     printf 'docker\n' > /opt/jettstui/.install_method
 # The ``.install_method`` stamp is baked next to the running code (the install
 # tree), NOT into $JETTSTUI_HOME. $JETTSTUI_HOME (/opt/data) is a shared data
 # volume that is commonly bind-mounted from the host and even shared with a
 # host-side Desktop/CLI install; stamping it at boot used to clobber that
-# host install's marker and wrongly block its ``jetts-tui update``. A code-scoped
+# host install's marker and wrongly block its ``jettstui update``. A code-scoped
 # stamp is read first by detect_install_method() and is immune to the share.
 # Start as root so the s6-overlay stage2 hook can usermod/groupmod and chown
 # the data volume. Each supervised service then drops to the jettstui user via
@@ -290,14 +291,14 @@ RUN mkdir -p /opt/jettstui/bin && \
 
 # ---------- Bake build-time git revision ----------
 # .dockerignore excludes .git, so `git rev-parse HEAD` from inside the
-# container always returns nothing — meaning `jetts-tui dump` reports
+# container always returns nothing — meaning `jettstui dump` reports
 # "(unknown)" and the startup banner drops its `· upstream <sha>` suffix.
 # That makes support triage from container bug reports impossible:
 # we can't tell which commit the user is actually running.
 #
 # Fix: write the commit SHA passed via the JETTSTUI_GIT_SHA build-arg to
 # /opt/jettstui/.jettstui_build_sha at build time, and have
-# jettstui/build_info.py read it at runtime.  Both `jetts-tui dump` and
+# jettstui/build_info.py read it at runtime.  Both `jettstui dump` and
 # banner.get_git_banner_state() try the baked SHA first, then fall back
 # to live `git rev-parse` for source installs (unchanged behaviour).
 #
@@ -370,22 +371,22 @@ ENV JETTSTUI_DISABLE_LAZY_INSTALLS=1
 ENV JETTSTUI_LAZY_INSTALL_TARGET=/opt/data/lazy-packages
 
 # `docker exec` privilege-drop shim. When operators run
-# `docker exec <c> jetts-tui ...` they default to root, and any file the
+# `docker exec <c> jettstui ...` they default to root, and any file the
 # command writes under $JETTSTUI_HOME (auth.json, .env, config.yaml) ends
 # up root-owned and unreadable to the supervised gateway (UID 10000).
-# The shim lives at /opt/jettstui/bin/jetts-tui, sits earliest on PATH, and
+# The shim lives at /opt/jettstui/bin/jettstui (linked as jetts-tui), sits earliest on PATH, and
 # transparently re-exec's the real venv binary via `s6-setuidgid jettstui`
 # when invoked as root. Non-root callers (supervised processes,
 # `--user jettstui`, etc.) hit the short-circuit path with no overhead.
 # Recursion is impossible because the shim exec's the venv binary by
-# absolute path (/opt/jettstui/.venv/bin/jetts-tui). See the shim source for
+# absolute path (/opt/jettstui/.venv/bin/jettstui). See the shim source for
 # the opt-out env var (JETTSTUI_DOCKER_EXEC_AS_ROOT=1).
 
 # Pre-s6 entrypoint.sh did `source .venv/bin/activate` which exported
 # the venv bin onto PATH; Architecture B's main-wrapper.sh does the
 # same for the container's main process, but `docker exec` and our
 # cont-init.d scripts don't pass through the wrapper. Expose the venv
-# bin globally so `docker exec <container> jetts-tui ...` and any
+# bin globally so `docker exec <container> jettstui ...` and any
 # subprocess that doesn't activate the venv first still find jetts-tui.
 #
 # /opt/jettstui/bin is prepended ahead of the venv so the privilege-drop

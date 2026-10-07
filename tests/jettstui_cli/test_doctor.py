@@ -39,12 +39,12 @@ class TestDoctorPlatformHints:
 
         assert "docker pull ghcr.io/raioshok/jetts-tui:latest" in hint
         assert "recreate all JettsTUI containers" in hint
-        assert "jetts-tui update" not in hint
+        assert "jettstui update" not in hint
 
     def test_sqlite_upgrade_hint_keeps_git_runtime_repair(self):
         hint = doctor._sqlite_upgrade_hint("git")
 
-        assert "run `jetts-tui update`" in hint
+        assert "run `jettstui update`" in hint
 
     def test_sqlite_upgrade_hint_uses_nix_package_manager(self):
         hint = doctor._sqlite_upgrade_hint("nix")

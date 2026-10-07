@@ -111,11 +111,20 @@ test('locateJettsTUI falls back to the login-shell command -v probe', async () =
   assert.equal(await locateJettsTUI(ssh, ''), '/home/u/.local/bin/jettstui')
 })
 
-test('locateJettsTUI prefers jetts-tui over a legacy jettstui executable', async () => {
+test('locateJettsTUI prefers jettstui over the legacy jetts-tui executable', async () => {
   const ssh = fakeSsh([
     [/command -v jetts-tui/, '/home/u/.local/bin/jetts-tui\n'],
     [/command -v jettstui/, '/home/u/.local/bin/jettstui\n'],
     [/\[ -x .*\.local\/bin\/(?:jetts-tui|jettstui)/, 'OK']
+  ])
+
+  assert.equal(await locateJettsTUI(ssh, ''), '/home/u/.local/bin/jettstui')
+})
+
+test('locateJettsTUI falls back to a legacy jetts-tui executable', async () => {
+  const ssh = fakeSsh([
+    [/command -v jetts-tui/, '/home/u/.local/bin/jetts-tui\n'],
+    [/\[ -x .*\.local\/bin\/jetts-tui/, 'OK']
   ])
 
   assert.equal(await locateJettsTUI(ssh, ''), '/home/u/.local/bin/jetts-tui')

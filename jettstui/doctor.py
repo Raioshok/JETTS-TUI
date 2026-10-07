@@ -86,7 +86,7 @@ def _sqlite_upgrade_hint(install_method: str | None = None) -> str:
     elif method in {"nix", "nixos"}:
         action = recommended_update_command_for_method(method)
     else:
-        action = "run `jetts-tui update`"
+        action = "run `jettstui update`"
     return (
         f"({action}; fixed versions: 3.51.3+ / 3.50.7 / 3.44.6 — "
         "see https://sqlite.org/wal.html#walresetbug)"

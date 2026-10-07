@@ -40,7 +40,7 @@ def build_plugins_parser(subparsers, *, cmd_plugins: Callable) -> None:
     _install_enable_group.add_argument(
         "--no-enable",
         action="store_true",
-        help="Install disabled (skip confirmation prompt); enable later with `jetts-tui plugins enable <name>`",
+        help="Install disabled (skip confirmation prompt); enable later with `jettstui plugins enable <name>`",
     )
 
     plugins_update = plugins_subparsers.add_parser(

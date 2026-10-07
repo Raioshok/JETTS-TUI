@@ -953,13 +953,13 @@ def run_import(args) -> None:
         print()
         if not (jettstui_root / "jettstui").is_dir():
             print("Note: The JettsTUI codebase was not included in the backup.")
-            print("  If this is a fresh install, run: jetts-tui update")
+            print("  If this is a fresh install, run: jettstui update")
 
         if restored_profiles:
             gw_profiles = [n for n, _ in restored_profiles]
             print("\nTo re-enable gateway services for profiles:")
             for pname in gw_profiles:
-                print(f"  jetts-tui -p {pname} gateway install")
+                print(f"  jettstui -p {pname} gateway install")
 
         print("Done. Your JettsTUI configuration has been restored.")
 

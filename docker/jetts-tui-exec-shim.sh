@@ -1,24 +1,24 @@
 #!/bin/sh
 # shellcheck shell=sh
-# /opt/jettstui/bin/jetts-tui — `docker exec` privilege-drop shim.
+# /opt/jettstui/bin/jettstui (also linked as jetts-tui) — `docker exec` privilege-drop shim.
 #
 # Background
 # ----------
 # The s6 image runs the supervised gateway/main process as the unprivileged
-# `jettstui` user (UID 10000). When an operator runs `docker exec <c> jetts-tui ...`
+# `jettstui` user (UID 10000). When an operator runs `docker exec <c> jettstui ...`
 # the default UID is root (0), and any file the command writes under
 # $JETTSTUI_HOME — auth.json, .env, config.yaml — ends up root-owned and
 # unreadable to the supervised gateway. The most common manifestation: the
-# user runs `docker exec <c> jetts-tui login`, this writes
+# user runs `docker exec <c> jettstui login`, this writes
 # /opt/data/auth.json as root:root mode 0600, and from then on the gateway
 # leaves the gateway unable to read the credentials on every incoming message
-# — even though `docker exec <c> jetts-tui` (also running as root) succeeds because root happens to be
+# — even though `docker exec <c> jettstui` (also running as root) succeeds because root happens to be
 # able to read its own root-owned file. See systematic-debugging skill
 # notes attached to this fix.
 #
 # Fix
 # ---
-# This shim sits at /opt/jettstui/bin/jetts-tui and is placed earliest on PATH.
+# This shim sits at /opt/jettstui/bin/jettstui and is placed earliest on PATH.
 # When invoked as root, it drops to the jettstui user (via s6-setuidgid)
 # before exec'ing the real venv binary, so anything that writes under
 # $JETTSTUI_HOME is uid-aligned with the supervised processes. When invoked
@@ -29,7 +29,7 @@
 # other path.
 #
 # Recursion safety: the shim exec's the venv binary by *absolute path*
-# (/opt/jettstui/.venv/bin/jetts-tui), so the second hop cannot re-enter this
+# (/opt/jettstui/.venv/bin/jettstui), so the second hop cannot re-enter this
 # shim regardless of PATH state. No sentinel env var needed.
 #
 # Opt-out: set JETTSTUI_DOCKER_EXEC_AS_ROOT=1 (1/true/yes, case-insensitive)
@@ -39,7 +39,7 @@
 
 set -e
 
-REAL=/opt/jettstui/.venv/bin/jetts-tui
+REAL=/opt/jettstui/.venv/bin/jettstui
 
 # Defensive: if the venv binary is missing (corrupted image, partial
 # install), fail loudly rather than silently masking it.

@@ -51,7 +51,7 @@ def test_venv_launcher_bypasses_uv_console_script_that_requires_realpath(tmp_pat
         '#!/bin/sh\nprintf "%s\\n" "$@" > "$LAUNCH_RESULT"\n',
     )
     (install_dir / "jettstui").write_text("# source entrypoint\n", encoding="utf-8")
-    (install_dir / "jetts-tui").write_text("# branded source entrypoint\n", encoding="utf-8")
+    (install_dir / "jettstui").write_text("# branded source entrypoint\n", encoding="utf-8")
     _make_executable(
         venv_bin / "jettstui",
         "#!/bin/sh\n"
@@ -93,13 +93,13 @@ def test_venv_launcher_bypasses_uv_console_script_that_requires_realpath(tmp_pat
     ]
 
     branded = subprocess.run(
-        [command_dir / "jetts-tui", "--version"],
+        [command_dir / "jettstui", "--version"],
         env=os.environ | {"LAUNCH_RESULT": str(result)},
         text=True,
         capture_output=True,
     )
     assert branded.returncode == 0, branded.stderr
     assert result.read_text(encoding="utf-8").splitlines() == [
-        str(install_dir / "jetts-tui"),
+        str(install_dir / "jettstui"),
         "--version",
     ]

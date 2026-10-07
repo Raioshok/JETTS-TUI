@@ -550,6 +550,7 @@ def test_inline_skill_shell_hides_bash_window(monkeypatch):
 
     monkeypatch.setattr(skill_preprocessing, "IS_WINDOWS", True)
     monkeypatch.setattr(skill_preprocessing, "windows_hide_flags", lambda: _CREATE_NO_WINDOW)
+    monkeypatch.setattr(skill_preprocessing, "resolve_bash_executable", lambda: "bash")
     monkeypatch.setattr(skill_preprocessing.subprocess, "run", fake_run)
 
     assert skill_preprocessing.run_inline_shell("echo ok", cwd=None, timeout=5) == "ok"

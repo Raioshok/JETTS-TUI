@@ -21,7 +21,7 @@ def build_mcp_parser(subparsers, *, cmd_mcp: Callable) -> None:
             "Manage MCP server connections and run JettsTUI as an MCP server.\n\n"
             "MCP servers provide additional tools via the Model Context Protocol.\n"
             "Use 'jettstui mcp add' to connect to a new server, or\n"
-            "'jetts-tui mcp serve' to expose JettsTUI conversations over MCP."
+            "'jettstui mcp serve' to expose JettsTUI conversations over MCP."
         ),
     )
     mcp_sub = mcp_parser.add_subparsers(dest="mcp_action")

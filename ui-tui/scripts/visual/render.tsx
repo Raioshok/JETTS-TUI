@@ -312,7 +312,7 @@ for (const scene of scenes) {
         cwd="~/code/jetts-tui"
         mode="accept-edits"
         model={info.model}
-        project="jetts-tui"
+        project="jettstui"
         t={scene.theme}
       />
       <SessionPanel info={info} maxWidth={86} sid="d2a6ecf8" t={scene.theme} />
@@ -393,7 +393,7 @@ const resident = renderAnsi(
           cwd="~/code/jetts-tui"
           mode="accept-edits"
           model={residentSessions[1]!.model ?? ''}
-          project="jetts-tui"
+          project="jettstui"
           t={residentScene.theme}
         />
         <Box flexDirection="column" flexGrow={1} paddingX={1}>

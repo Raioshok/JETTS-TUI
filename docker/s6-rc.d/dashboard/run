@@ -51,6 +51,6 @@ case "${JETTSTUI_DASHBOARD_INSECURE:-}" in
 esac
 
 # Skip the drop when already non-root.
-[ "$(id -u)" = 0 ] || exec jetts-tui dashboard --host "$dash_host" --port "$dash_port" --no-open
-exec s6-setuidgid jettstui jetts-tui dashboard \
+[ "$(id -u)" = 0 ] || exec jettstui dashboard --host "$dash_host" --port "$dash_port" --no-open
+exec s6-setuidgid jettstui jettstui dashboard \
     --host "$dash_host" --port "$dash_port" --no-open

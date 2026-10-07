@@ -204,7 +204,7 @@ def show_status(args):
     codex_logged_in = bool(codex_status.get("logged_in"))
     print(
         f"  {'OpenAI Codex':<12}  {check_mark(codex_logged_in)} "
-        f"{'logged in' if codex_logged_in else 'not logged in (run: jetts-tui model)'}"
+        f"{'logged in' if codex_logged_in else 'not logged in (run: jettstui model)'}"
     )
     codex_auth_file = codex_status.get("auth_store")
     if codex_auth_file:
@@ -233,7 +233,7 @@ def show_status(args):
     minimax_logged_in = bool(minimax_status.get("logged_in"))
     print(
         f"  {'MiniMax OAuth':<12}  {check_mark(minimax_logged_in)} "
-        f"{'logged in' if minimax_logged_in else 'not logged in (run: jetts-tui auth add minimax-oauth)'}"
+        f"{'logged in' if minimax_logged_in else 'not logged in (run: jettstui auth add minimax-oauth)'}"
     )
     minimax_region = minimax_status.get("region")
     if minimax_logged_in and minimax_region:
@@ -255,7 +255,7 @@ def show_status(args):
     xai_oauth_logged_in = bool(xai_oauth_status.get("logged_in"))
     print(
         f"  {'xAI OAuth':<12}  {check_mark(xai_oauth_logged_in)} "
-        f"{'logged in' if xai_oauth_logged_in else 'not logged in (run: jetts-tui auth add xai-oauth)'}"
+        f"{'logged in' if xai_oauth_logged_in else 'not logged in (run: jettstui auth add xai-oauth)'}"
     )
     xai_auth_file = xai_oauth_status.get("auth_store")
     if xai_auth_file:
@@ -302,7 +302,7 @@ def show_status(args):
             if key_val:
                 break
         configured = bool(key_val)
-        label = "configured" if configured else "not configured (run: jetts-tui model)"
+        label = "configured" if configured else "not configured (run: jettstui model)"
         print(f"  {pname:<16} {check_mark(configured)} {label}")
 
     # LM Studio reachability — only probe when it's the active provider so
@@ -419,7 +419,7 @@ def show_status(args):
         if snapshot.has_process_service_mismatch:
             print("  Service:      installed but not managing the current running gateway")
         elif _is_termux() and not snapshot.gateway_pids:
-            print("  Start with:   jetts-tui gateway")
+            print("  Start with:   jettstui gateway")
             print("  Note:         Android may stop background jobs when Termux is suspended")
         elif snapshot.service_installed and not snapshot.service_running:
             print("  Service:      installed but stopped")
@@ -537,6 +537,6 @@ def show_status(args):
 
     print()
     print(color("─" * 60, Colors.DIM))
-    print(color("  Run 'jetts-tui doctor' for detailed diagnostics", Colors.DIM))
-    print(color("  Run 'jetts-tui setup' to configure", Colors.DIM))
+    print(color("  Run 'jettstui doctor' for detailed diagnostics", Colors.DIM))
+    print(color("  Run 'jettstui setup' to configure", Colors.DIM))
     print()

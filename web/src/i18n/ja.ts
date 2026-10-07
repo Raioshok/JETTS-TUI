@@ -319,7 +319,7 @@ export const ja: Translations = {
     enableRuntime: "有効化",
     forceReinstall: "強制再インストール (既存のフォルダを先に削除)",
     headline:
-      "JettsTUI プラグインを発見、インストール、有効化、更新します (`jetts-tui plugins` 相当)。",
+      "JettsTUI プラグインを発見、インストール、有効化、更新します (`jettstui plugins` 相当)。",
     identifierLabel: "Git URL または owner/repo",
     inactive: "非アクティブ",
     installBtn: "インストール",

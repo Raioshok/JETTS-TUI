@@ -172,7 +172,7 @@ while [[ $# -gt 0 ]]; do
             echo "  --skip-browser Skip Playwright/Chromium install (browser tools won't work)"
             echo "  --no-skills    Start with a blank slate — seed no bundled skills, and"
             echo "                   write \$JETTSTUI_HOME/.no-bundled-skills so future"
-            echo "                   'jetts-tui update' runs never inject bundled skills either"
+            echo "                   'jettstui update' runs never inject bundled skills either"
             echo "  --branch NAME  Git branch to install (default: main)"
             echo "  --commit SHA   Pin checkout to a specific commit after clone/update"
             echo "  --manifest     Print desktop bootstrap stage manifest as JSON"
@@ -325,7 +325,7 @@ emit_manifest() {
     if [ "$INCLUDE_DESKTOP" = true ]; then
         desktop_stage='{"name":"desktop","title":"Build desktop app","category":"runtime","needs_user_input":false},'
     fi
-    printf '%s' '{"protocol_version":1,"stages":[{"name":"prerequisites","title":"System prerequisites","category":"runtime","needs_user_input":false},{"name":"repository","title":"Download JettsTUI","category":"runtime","needs_user_input":false},{"name":"venv","title":"Create Python virtual environment","category":"runtime","needs_user_input":false},{"name":"python-deps","title":"Install Python dependencies","category":"runtime","needs_user_input":false},{"name":"node-deps","title":"Install browser-tool dependencies","category":"runtime","needs_user_input":false},{"name":"path","title":"Install jetts-tui command","category":"runtime","needs_user_input":false},{"name":"config","title":"Prepare config and skills","category":"configuration","needs_user_input":false},{"name":"setup","title":"Configure API keys and settings","category":"configuration","needs_user_input":true},{"name":"gateway","title":"Configure gateway service","category":"configuration","needs_user_input":true},'"$desktop_stage"'{"name":"complete","title":"Finish install","category":"runtime","needs_user_input":false}]}'
+    printf '%s' '{"protocol_version":1,"stages":[{"name":"prerequisites","title":"System prerequisites","category":"runtime","needs_user_input":false},{"name":"repository","title":"Download JettsTUI","category":"runtime","needs_user_input":false},{"name":"venv","title":"Create Python virtual environment","category":"runtime","needs_user_input":false},{"name":"python-deps","title":"Install Python dependencies","category":"runtime","needs_user_input":false},{"name":"node-deps","title":"Install browser-tool dependencies","category":"runtime","needs_user_input":false},{"name":"path","title":"Install jettstui command","category":"runtime","needs_user_input":false},{"name":"config","title":"Prepare config and skills","category":"configuration","needs_user_input":false},{"name":"setup","title":"Configure API keys and settings","category":"configuration","needs_user_input":true},{"name":"gateway","title":"Configure gateway service","category":"configuration","needs_user_input":true},'"$desktop_stage"'{"name":"complete","title":"Finish install","category":"runtime","needs_user_input":false}]}'
     printf '\n'
 }
 
@@ -505,7 +505,7 @@ get_jettstui_command_path() {
     elif [ -x "$link_dir/jettstui" ]; then
         echo "$link_dir/jettstui"
     else
-        echo "jetts-tui"
+        echo "jettstui"
     fi
 }
 
@@ -1637,7 +1637,7 @@ PY
 }
 
 setup_path() {
-    log_info "Setting up jetts-tui command..."
+    log_info "Setting up jettstui command..."
 
     if [ "$USE_VENV" = true ]; then
         JETTSTUI_BIN="$INSTALL_DIR/venv/bin/python"
@@ -1721,7 +1721,7 @@ EOF
     if [ "$DISTRO" = "termux" ]; then
         export PATH="$command_link_dir:$PATH"
         log_info "$command_link_display_dir is the native Termux command path"
-        log_success "jetts-tui command ready"
+        log_success "jettstui command ready"
         return 0
     fi
 
@@ -1736,14 +1736,14 @@ EOF
         # Probe a fresh non-login interactive bash the way the user will use it.
         # `bash -i -c` sources ~/.bashrc but NOT ~/.bash_profile or /etc/profile,
         # which is the exact scenario where RHEL root loses /usr/local/bin.
-        if env -i HOME="$HOME" TERM="${TERM:-dumb}" bash -i -c 'command -v jetts-tui' \
+        if env -i HOME="$HOME" TERM="${TERM:-dumb}" bash -i -c 'command -v jettstui' \
                 >/dev/null 2>&1; then
             log_info "/usr/local/bin is already on PATH for all shells"
-            log_success "jetts-tui command ready"
+            log_success "jettstui command ready"
             return 0
         fi
 
-        log_info "jetts-tui not on PATH in non-login shells (common on RHEL-family)"
+        log_info "jettstui not on PATH in non-login shells (common on RHEL-family)"
         PATH_LINE='export PATH="/usr/local/bin:$PATH"'
         PATH_COMMENT='# JettsTUI — ensure /usr/local/bin is on PATH (RHEL non-login shells)'
         for SHELL_CONFIG in "$HOME/.bashrc" "$HOME/.bash_profile"; do
@@ -1756,7 +1756,7 @@ EOF
                 log_success "Added /usr/local/bin to PATH in $SHELL_CONFIG"
             fi
         done
-        log_success "jetts-tui command ready"
+        log_success "jettstui command ready"
         return 0
     fi
 
@@ -1826,10 +1826,10 @@ EOF
         log_info "~/.local/bin already on PATH"
     fi
 
-    # Export for current session so jetts-tui works immediately.
+    # Export for current session so jettstui works immediately.
     export PATH="$command_link_dir:$PATH"
 
-    log_success "jetts-tui command ready"
+    log_success "jettstui command ready"
 }
 
 copy_config_templates() {
@@ -2306,7 +2306,7 @@ install_node_deps() {
         cd "$INSTALL_DIR/ui-tui"
         # Time-boxed: a stalled registry fetch would otherwise hang here (#39219).
         run_with_timeout "$NODE_DEPS_TIMEOUT" npm install --silent || {
-            log_warn "TUI npm install failed or timed out (jetts-tui may not work)"
+            log_warn "TUI npm install failed or timed out (jettstui may not work)"
         }
         log_success "TUI dependencies installed"
     fi
@@ -2330,7 +2330,7 @@ run_setup_wizard() {
     # but opening fails with ENXIO, so the wizard would proceed and
     # then crash on `< /dev/tty` below.
     if ! (: </dev/tty) 2>/dev/null; then
-        log_info "Setup wizard skipped (no terminal available). Run 'jetts-tui setup' after install."
+        log_info "Setup wizard skipped (no terminal available). Run 'jettstui setup' after install."
         return 0
     fi
 
@@ -2510,24 +2510,24 @@ print_success() {
     echo ""
     echo -e "${CYAN}${BOLD}🚀 Commands:${NC}"
     echo ""
-    echo -e "   ${GREEN}jetts-tui${NC}              Start chatting"
-    echo -e "   ${GREEN}jetts-tui setup${NC}        Configure API keys & settings"
-    echo -e "   ${GREEN}jetts-tui config${NC}       View/edit configuration"
-    echo -e "   ${GREEN}jetts-tui config edit${NC}  Open config in editor"
-    echo -e "   ${GREEN}jetts-tui gateway install${NC} Install gateway service (messaging + cron)"
-    echo -e "   ${GREEN}jetts-tui update${NC}       Update to latest version"
+    echo -e "   ${GREEN}jettstui${NC}              Start chatting"
+    echo -e "   ${GREEN}jettstui setup${NC}        Configure API keys & settings"
+    echo -e "   ${GREEN}jettstui config${NC}       View/edit configuration"
+    echo -e "   ${GREEN}jettstui config edit${NC}  Open config in editor"
+    echo -e "   ${GREEN}jettstui gateway install${NC} Install gateway service (messaging + cron)"
+    echo -e "   ${GREEN}jettstui update${NC}       Update to latest version"
     echo ""
 
     echo -e "${CYAN}─────────────────────────────────────────────────────────${NC}"
     echo ""
     if [ "$DISTRO" = "termux" ]; then
-        echo -e "${YELLOW}⚡ 'jetts-tui' was linked into $(get_command_link_display_dir), which is already on PATH in Termux.${NC}"
+        echo -e "${YELLOW}⚡ 'jettstui' was linked into $(get_command_link_display_dir), which is already on PATH in Termux.${NC}"
         echo ""
     elif [ "$ROOT_FHS_LAYOUT" = true ]; then
-        echo -e "${YELLOW}⚡ 'jetts-tui' was linked into /usr/local/bin and is ready to use — no shell reload needed.${NC}"
+        echo -e "${YELLOW}⚡ 'jettstui' was linked into /usr/local/bin and is ready to use — no shell reload needed.${NC}"
         echo ""
     else
-        echo -e "${YELLOW}⚡ Reload your shell to use 'jetts-tui' command:${NC}"
+        echo -e "${YELLOW}⚡ Reload your shell to use 'jettstui' command:${NC}"
         echo ""
         LOGIN_SHELL="$(basename "${SHELL:-/bin/bash}")"
         if [ "$LOGIN_SHELL" = "zsh" ]; then

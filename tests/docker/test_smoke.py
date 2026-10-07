@@ -51,7 +51,7 @@ def test_dashboard_subcommand_present(built_image: str) -> None:
         capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60,
     )
     assert r.returncode == 0, (
-        f"jetts-tui dashboard --help failed (exit {r.returncode}): "
+        f"jettstui dashboard --help failed (exit {r.returncode}): "
         f"stdout={r.stdout[-2000:]!r} stderr={r.stderr[-2000:]!r}"
     )
     combined = (r.stdout + r.stderr).lower()

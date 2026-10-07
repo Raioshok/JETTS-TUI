@@ -39,15 +39,15 @@ def _inherited_flag(parser, *args, **kwargs):
 
 _EPILOGUE = """
 Examples:
-    jetts-tui                    Launch the terminal UI
-    jetts-tui setup              Configure a provider and model
-    jetts-tui model              Change the default model
-    jetts-tui doctor             Diagnose setup problems
-    jetts-tui gateway            Run the messaging gateway
-    jetts-tui --oneshot "Hello"  Run a single non-interactive prompt
+    jettstui                    Launch the terminal UI
+    jettstui setup              Configure a provider and model
+    jettstui model              Change the default model
+    jettstui doctor             Diagnose setup problems
+    jettstui gateway            Run the messaging gateway
+    jettstui --oneshot "Hello"  Run a single non-interactive prompt
 
 For more help on a command:
-    jetts-tui <command> --help
+    jettstui <command> --help
 """
 
 
@@ -59,7 +59,7 @@ def build_top_level_parser():
     other subparsers via ``subparsers.add_parser(...)``.
     """
     parser = argparse.ArgumentParser(
-        prog="jetts-tui",
+        prog="jettstui",
         description="JettsTUI - terminal-first AI workspace",
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog=_EPILOGUE,
@@ -113,7 +113,7 @@ def build_top_level_parser():
         help=(
             "Provider override for this invocation (e.g. openrouter, anthropic). "
             "Applies to -z/--oneshot and the terminal UI. The persistent provider lives in config.yaml "
-            "under model.provider — use `jetts-tui setup` or edit the file to change it."
+            "under model.provider — use `jettstui setup` or edit the file to change it."
         ),
     )
     parser.add_argument(

@@ -19,7 +19,7 @@ from jettstui.completion import _walk, generate_bash, generate_zsh, generate_fis
 
 def _make_parser() -> argparse.ArgumentParser:
     """Build a minimal parser that mirrors the real JettsTUI structure."""
-    p = argparse.ArgumentParser(prog="jetts-tui")
+    p = argparse.ArgumentParser(prog="jettstui")
     p.add_argument("--version", "-V", action="store_true")
     p.add_argument("-p", "--profile", help="Profile name")
     sub = p.add_subparsers(dest="command")
@@ -96,7 +96,7 @@ class TestGenerateBash:
     def test_contains_completion_function_and_register(self):
         out = generate_bash(_make_parser())
         assert "_jettstui_completion()" in out
-        assert "complete -F _jettstui_completion jetts-tui" in out
+        assert "complete -F _jettstui_completion jettstui" in out
 
     def test_top_level_commands_present(self):
         out = generate_bash(_make_parser())
@@ -129,7 +129,7 @@ class TestGenerateBash:
 class TestGenerateZsh:
     def test_contains_compdef_header(self):
         out = generate_zsh(_make_parser())
-        assert "#compdef jetts-tui" in out
+        assert "#compdef jettstui" in out
 
     def test_top_level_commands_present(self):
         out = generate_zsh(_make_parser())
@@ -144,7 +144,7 @@ class TestGenerateZsh:
 
     def test_registers_compdef_instead_of_invoking_completion_function(self):
         out = generate_zsh(_make_parser())
-        assert 'compdef _jettstui jetts-tui' in out
+        assert 'compdef _jettstui jettstui' in out
         assert '_jettstui "$@"' not in out
 
     def test_preserves_valid_zsh_arguments_alias_syntax(self):
@@ -180,7 +180,7 @@ class TestGenerateZsh:
                 [
                     "zsh",
                     "-fc",
-                    f"autoload -Uz compinit && compinit -D; source {path}; [[ ${{_comps[jetts-tui]}} == _jettstui ]]",
+                    f"autoload -Uz compinit && compinit -D; source {path}; [[ ${{_comps[jettstui]}} == _jettstui ]]",
                 ],
                 capture_output=True,
                 text=True,
@@ -198,7 +198,7 @@ class TestGenerateZsh:
 class TestGenerateFish:
     def test_disables_file_completion(self):
         out = generate_fish(_make_parser())
-        assert "complete -c jetts-tui -f" in out
+        assert "complete -c jettstui -f" in out
 
     def test_top_level_commands_present(self):
         out = generate_fish(_make_parser())
@@ -274,7 +274,7 @@ class TestProfileCompletion:
         assert "use|delete|show|alias|rename|export)" in out
 
     def test_bash_profile_actions_complete_profile_names(self):
-        """After 'jetts-tui profile use', complete with profile names."""
+        """After 'jettstui profile use', complete with profile names."""
         out = generate_bash(_make_parser())
         # The profile case should have _jettstui_profiles for name-taking actions
         lines = out.split("\n")

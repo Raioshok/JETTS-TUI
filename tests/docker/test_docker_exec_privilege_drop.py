@@ -115,7 +115,7 @@ def test_shim_drops_root_to_jettstui_uid(sleep_container: str) -> None:
     into it without forking subcommands. Simplest approach: have `jettstui`
     do anything that writes to disk, then check the file's owner.
 
-    Use `jetts-tui config set` which writes config.yaml under JETTSTUI_HOME.
+    Use `jettstui config set` which writes config.yaml under JETTSTUI_HOME.
     The resulting file ownership tells us what UID the shim ended up at.
     """
     # Wipe any prior state.
@@ -128,7 +128,7 @@ def test_shim_drops_root_to_jettstui_uid(sleep_container: str) -> None:
     # Default docker exec (root) — should be dropped by the shim.
     r = subprocess.run(
         ["docker", "exec", sleep_container,
-         "jetts-tui", "config", "set", "_test.shim_marker", "1"],
+         "jettstui", "config", "set", "_test.shim_marker", "1"],
         capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30,
     )
     assert r.returncode == 0, f"config set failed: stdout={r.stdout!r} stderr={r.stderr!r}"
@@ -162,7 +162,7 @@ def test_shim_short_circuits_for_non_root_exec(sleep_container: str) -> None:
 
     r = subprocess.run(
         ["docker", "exec", "--user", "jettstui", sleep_container,
-         "jetts-tui", "config", "set", "_test.shim_short_circuit", "1"],
+         "jettstui", "config", "set", "_test.shim_short_circuit", "1"],
         capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30,
     )
     assert r.returncode == 0, (
@@ -196,7 +196,7 @@ def test_shim_opt_out_keeps_root(sleep_container: str) -> None:
         ["docker", "exec",
          "-e", "JETTSTUI_DOCKER_EXEC_AS_ROOT=1",
          sleep_container,
-         "jetts-tui", "config", "set", "_test.opt_out", "1"],
+         "jettstui", "config", "set", "_test.opt_out", "1"],
         capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30,
     )
     assert r.returncode == 0, f"opt-out invocation failed: {r.stderr}"
@@ -232,7 +232,7 @@ def test_shim_opt_out_strict_truthiness(
         ["docker", "exec",
          "-e", f"JETTSTUI_DOCKER_EXEC_AS_ROOT={falsy_value}",
          sleep_container,
-         "jetts-tui", "config", "set", "_test.falsy", "1"],
+         "jettstui", "config", "set", "_test.falsy", "1"],
         capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30,
     )
     assert r.returncode == 0, f"falsy value {falsy_value!r} caused failure: {r.stderr}"
@@ -282,25 +282,25 @@ def test_e2e_login_then_supervised_gateway_can_read_auth(
     "JettsTUI is not logged into JettsTUI Portal" on every message.
 
     We can't do a real OAuth login in a unit test, but we can stand in
-    for it by writing the same file shape via `jetts-tui config set`-style
+    for it by writing the same file shape via `jettstui config set`-style
     writes — what matters is the *file ownership invariant* downstream
     of `_save_auth_store`. If the shim works, every file the
     `docker exec` path produces is jettstui-readable.
 
     Specifically: pretend the operator ran `jettstui login` (writes
     auth.json) and verify (a) the file exists and (b) it's readable by
-    the jettstui UID. We use `jetts-tui auth list` since that touches the
+    the jettstui UID. We use `jettstui auth list` since that touches the
     auth store on the read side and would fail with the same
     'not logged in' shape if the file was unreadable to uid 10000.
     """
     # Have the shim-protected `docker exec` write the auth store.
-    # `jetts-tui auth list` is read-only but still exercises _load_auth_store
-    # under the shim's UID. We invoke `jetts-tui config set` first to
+    # `jettstui auth list` is read-only but still exercises _load_auth_store
+    # under the shim's UID. We invoke `jettstui config set` first to
     # provoke a write into JETTSTUI_HOME so we have something concrete to
     # owner-check.
     r = subprocess.run(
         ["docker", "exec", sleep_container,
-         "jetts-tui", "config", "set", "_test.e2e_marker", "1"],
+         "jettstui", "config", "set", "_test.e2e_marker", "1"],
         capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30,
     )
     assert r.returncode == 0, f"config set failed: {r.stderr}"

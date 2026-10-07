@@ -32,7 +32,7 @@ from setuptools.command.sdist import sdist
 _IN_NIX_BUILD = os.environ.get("JETTSTUI_NIX_BUILD") == "1"
 
 _BLOCK_MESSAGE = (
-    "Building wheels or sdists for jetts-tui is not supported.\n"
+    "Building wheels or sdists for jettstui is not supported.\n"
     "JettsTUI is distributed via the shell installer, Docker image, or Nix.\n"
     "See: https://github.com/Raioshok/JETTS-TUI#installation\n"
     "\n"

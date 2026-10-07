@@ -1,4 +1,4 @@
-"""Tests for ``jetts-tui debug`` and debug utilities."""
+"""Tests for ``jettstui debug`` and debug utilities."""
 
 import os
 import urllib.error
@@ -866,7 +866,7 @@ class TestRunDebug:
         run_debug(args)
 
         out = capsys.readouterr().out
-        assert "jetts-tui debug" in out
+        assert "jettstui debug" in out
         assert "share" in out
         assert "delete" in out
 
@@ -1205,7 +1205,7 @@ class TestRunDebugSweepsOnInvocation:
 
         # Default subcommand still printed help
         out = capsys.readouterr().out
-        assert "Usage: jetts-tui debug" in out
+        assert "Usage: jettstui debug" in out
 
 
 class TestRunDebugDelete:

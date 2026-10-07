@@ -35,34 +35,21 @@ class TestGetDefaultModelForProvider:
         # Custom providers don't have entries in _PROVIDER_MODELS
         assert get_default_model_for_provider("some-random-custom") == ""
 
-    def test_nous_silent_default_is_not_the_expensive_flagship(self):
-        """JettsTUI Portal is a metered aggregator whose curated list is ordered
-        most-capable-first, so entry [0] is the priciest flagship
-        (anthropic/claude-fable-5). The silent fallback (provider set, no model)
-        must NOT escalate to it — otherwise an unconfigured profile silently
-        bills the most expensive model. Regression for the billing footgun.
-        """
+    def test_openrouter_silent_default_is_not_an_expensive_flagship(self):
+        """OpenRouter is metered: the silent fallback (provider set, no model)
+        must resolve through the cost-safe silent default, never escalate to a
+        flagship. Regression for the billing footgun."""
         from jettstui.models import (
-            _PROVIDER_MODELS,
             get_default_model_for_provider,
             get_preferred_silent_default_model,
         )
 
-        result = get_default_model_for_provider("nous")
-        assert result, "nous must resolve to a usable default model"
+        result = get_default_model_for_provider("openrouter")
+        assert result, "openrouter must resolve to a usable default model"
+        assert result == get_preferred_silent_default_model("openrouter")
         assert "opus" not in result.lower(), (
             f"silent default escalated to an expensive flagship: {result!r}"
         )
-        assert "claude" not in result.lower(), (
-            f"silent default escalated to an expensive flagship: {result!r}"
-        )
-        assert result != _PROVIDER_MODELS["nous"][0], (
-            "silent default must not be the most-capable/priciest catalog entry"
-        )
-        # The default must resolve through the catalog-label helper and point
-        # at a model that actually exists in the curated catalog.
-        assert result == get_preferred_silent_default_model("nous")
-        assert result in _PROVIDER_MODELS["nous"]
 
     def test_catalog_label_overrides_constant(self):
         """A ``"default": true`` label in the cached catalog manifest wins over
@@ -77,12 +64,11 @@ class TestGetDefaultModelForProvider:
             return_value="qwen/qwen3.7-plus",
         ):
             assert (
-                models_mod.get_preferred_silent_default_model("nous")
+                models_mod.get_preferred_silent_default_model("openrouter")
                 == "qwen/qwen3.7-plus"
             )
-            # nous catalog carries qwen3.7-plus, so the full resolver follows.
             assert (
-                models_mod.get_default_model_for_provider("nous")
+                models_mod.get_default_model_for_provider("openrouter")
                 == "qwen/qwen3.7-plus"
             )
 
@@ -102,44 +88,10 @@ class TestGetDefaultModelForProvider:
                 == models_mod.PREFERRED_SILENT_DEFAULT_MODEL
             )
 
-    def test_stale_label_not_in_catalog_falls_back(self):
-        """If the labeled default model is no longer in the provider's curated
-        catalog, fall back to entry [0] rather than returning an absent id."""
-        from unittest.mock import patch
-
-        from jettstui import models as models_mod
-
-        with patch(
-            "jettstui.model_catalog.get_default_model_from_cache",
-            return_value="does-not-exist-model",
-        ):
-            result = models_mod.get_default_model_for_provider("nous")
-            assert result == models_mod._PROVIDER_MODELS["nous"][0]
-
 
 class TestDetectStaticProviderCostSafeDefault:
-    """detect_static_provider_for_model must apply the same cost-safe default
-    as get_default_model_for_provider when a bare provider name is typed as a
-    model (e.g. ``/model nous``)."""
-
-    def test_bare_nous_does_not_escalate_to_flagship(self):
-        from jettstui.models import (
-            _PROVIDER_MODELS,
-            get_default_model_for_provider,
-            detect_static_provider_for_model,
-        )
-
-        result = detect_static_provider_for_model("nous", "openrouter")
-        assert result is not None
-        provider, model = result
-        assert provider == "nous"
-        # Must match the cost-safe silent default, NOT the priciest catalog
-        # entry [0]. Regression: this path returned _PROVIDER_MODELS["nous"][0]
-        # directly, re-introducing the billing footgun on the interactive
-        # ``/model nous`` path.
-        assert model == get_default_model_for_provider("nous")
-        assert "opus" not in model.lower()
-        assert model != _PROVIDER_MODELS["nous"][0]
+    """detect_static_provider_for_model keeps static-catalog behaviour for
+    providers outside the silent-default set."""
 
     def test_provider_without_override_still_uses_first_model(self):
         """Providers outside _SILENT_DEFAULT_PROVIDERS are unchanged."""

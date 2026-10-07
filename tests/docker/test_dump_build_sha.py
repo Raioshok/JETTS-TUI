@@ -1,7 +1,7 @@
-"""Regression test: ``jetts-tui dump`` reports a real git SHA inside the container.
+"""Regression test: ``jettstui dump`` reports a real git SHA inside the container.
 
 Background: ``.dockerignore`` excludes ``.git``, so ``git rev-parse HEAD``
-fails inside the published image and ``jetts-tui dump`` used to report
+fails inside the published image and ``jettstui dump`` used to report
 ``version: ... [(unknown)]``.  The Dockerfile now writes the build-time
 ``$JETTSTUI_GIT_SHA`` build-arg to ``/opt/jettstui/.jettstui_build_sha`` and
 ``jettstui/build_info.py`` reads it as a fallback.
@@ -9,12 +9,12 @@ fails inside the published image and ``jetts-tui dump`` used to report
 CI (``.github/workflows/docker.yml``) always sets the build-arg
 to ``${{ github.sha }}``.  Local ``docker build`` (the ``built_image``
 fixture in ``tests/docker/conftest.py``) does NOT — so locally the file
-is absent and ``jetts-tui dump`` correctly falls back to ``(unknown)``.
+is absent and ``jettstui dump`` correctly falls back to ``(unknown)``.
 
 This test handles both cases:
 
 * If ``/opt/jettstui/.jettstui_build_sha`` exists in the image, assert that
-  ``jetts-tui dump`` surfaces its content as the version SHA (not
+  ``jettstui dump`` surfaces its content as the version SHA (not
   ``(unknown)``).
 * If the file is absent, assert the legacy behaviour (``(unknown)``)
   still holds — defensive guard against the helper accidentally
@@ -44,7 +44,7 @@ def _run_dump(image: str) -> str:
         capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120,
     )
     assert r.returncode == 0, (
-        f"jetts-tui dump exited {r.returncode}: "
+        f"jettstui dump exited {r.returncode}: "
         f"stderr={r.stderr[-1000:]!r}\nstdout={r.stdout[-1000:]!r}"
     )
     return r.stdout
@@ -91,7 +91,7 @@ def test_dump_reports_baked_sha_when_present(built_image: str) -> None:
         )
         return
 
-    # CI path: build-arg was set, baked file exists.  ``jetts-tui dump``
+    # CI path: build-arg was set, baked file exists.  ``jettstui dump``
     # truncates to 8 chars via ``git rev-parse --short=8`` semantics.
     assert reported != "(unknown)", (
         "baked SHA file present in image but dump still reported "

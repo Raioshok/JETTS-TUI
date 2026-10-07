@@ -1328,7 +1328,7 @@ class TestProfileRestoration:
 
         # Wrappers should contain the right content
         coder_wrapper = (wrapper_dir / f"coder{suffix}").read_text()
-        assert "jetts-tui -p coder" in coder_wrapper
+        assert "jettstui -p coder" in coder_wrapper
 
     def test_import_skips_profile_dirs_without_config(self, tmp_path, monkeypatch):
         """Import doesn't create wrappers for profile dirs without config."""

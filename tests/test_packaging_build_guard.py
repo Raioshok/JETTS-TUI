@@ -58,7 +58,7 @@ def test_artifact_build_rejects_nix_development_shell_environment(kind, tmp_path
     result = _build_artifact(kind, tmp_path, nix_build=False)
 
     assert result.returncode != 0
-    assert "Building wheels or sdists for jetts-tui is not supported" in result.stderr
+    assert "Building wheels or sdists for jettstui is not supported" in result.stderr
 
 
 @pytest.mark.parametrize(

@@ -328,7 +328,7 @@ export const ga: Translations = {
     enableRuntime: "Cumasaigh",
     forceReinstall: "Cuir iallach ar athshuiteáil (scrios an fillteán atá ann ar dtús)",
     headline:
-      "Faigh, suiteáil, cumasaigh agus nuashonraigh plugins JettsTUI (paireacht le `jetts-tui plugins`).",
+      "Faigh, suiteáil, cumasaigh agus nuashonraigh plugins JettsTUI (paireacht le `jettstui plugins`).",
     identifierLabel: "URL Git nó owner/repo",
     inactive: "neamhghníomhach",
     installBtn: "Suiteáil",

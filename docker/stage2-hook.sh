@@ -395,7 +395,7 @@ as_jettstui mkdir -p \
 # bind-mounted from the host (~/.jettstui:/opt/data) and sometimes shared with a
 # host-side Desktop/CLI install. Stamping 'docker' here clobbered that host
 # install's marker, so its in-app updater read 'docker' and refused to run
-# 'jetts-tui update'. To heal homes already poisoned by older images, remove a
+# 'jettstui update'. To heal homes already poisoned by older images, remove a
 # stale 'docker' stamp from $JETTSTUI_HOME if one is present (the host install's
 # own installer re-creates its code-scoped stamp; a genuine container relies on
 # the baked /opt/jettstui stamp, so deleting the data-dir copy is safe).
@@ -437,7 +437,7 @@ fi
 # --- Migrate persisted config schema ---
 # Docker image upgrades replace the code under $INSTALL_DIR but preserve
 # $JETTSTUI_HOME on the mounted volume. Run the same safe, non-interactive
-# config-schema migrations that `jetts-tui update` runs for non-Docker installs,
+# config-schema migrations that `jettstui update` runs for non-Docker installs,
 # after first-boot seeding and before supervised gateway services start.
 # Set JETTSTUI_SKIP_CONFIG_MIGRATION=1 for controlled/manual migrations.
 if [ -f "$JETTSTUI_HOME/config.yaml" ]; then
@@ -542,7 +542,7 @@ fi
 #
 # Fix: locate the binary at boot and export ``AGENT_BROWSER_EXECUTABLE_PATH``
 # via /run/s6/container_environment so the `with-contenv` shebang on
-# main-wrapper.sh propagates it into the supervised ``jetts-tui`` process
+# main-wrapper.sh propagates it into the supervised ``jettstui`` process
 # and thence to agent-browser subprocesses.
 #
 # - Skipped when the user has already set ``AGENT_BROWSER_EXECUTABLE_PATH``

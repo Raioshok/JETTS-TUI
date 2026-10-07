@@ -18,7 +18,7 @@ def build_setup_parser(subparsers, *, cmd_setup: Callable) -> None:
         "setup",
         help="Interactive setup wizard",
         description="Configure JettsTUI with an interactive wizard. "
-        "Run a specific section: jetts-tui setup model|tts|terminal|gateway|tools|agent",
+        "Run a specific section: jettstui setup model|tts|terminal|gateway|tools|agent",
     )
     setup_parser.add_argument(
         "section",
@@ -40,7 +40,7 @@ def build_setup_parser(subparsers, *, cmd_setup: Callable) -> None:
         action="store_true",
         help="(Default on existing installs.) Re-run the full wizard, "
         "showing current values as defaults. Kept for backwards "
-        "compatibility — a bare 'jetts-tui setup' now does this.",
+        "compatibility — a bare 'jettstui setup' now does this.",
     )
     setup_parser.add_argument(
         "--quick",

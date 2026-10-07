@@ -188,12 +188,12 @@ def print_noninteractive_setup_guidance(reason: str | None = None) -> None:
     print_info("The interactive wizard cannot be used here.")
     print()
     print_info("Configure JettsTUI using environment variables or config commands:")
-    print_info("  jetts-tui config set model.provider custom")
-    print_info("  jetts-tui config set model.base_url http://localhost:8080/v1")
-    print_info("  jetts-tui config set model.default your-model-name")
+    print_info("  jettstui config set model.provider custom")
+    print_info("  jettstui config set model.base_url http://localhost:8080/v1")
+    print_info("  jettstui config set model.default your-model-name")
     print()
     print_info("Or set OPENROUTER_API_KEY / OPENAI_API_KEY in your environment.")
-    print_info("Run 'jetts-tui setup' in an interactive terminal to use the full wizard.")
+    print_info("Run 'jettstui setup' in an interactive terminal to use the full wizard.")
     print()
 
 
@@ -388,7 +388,7 @@ def _prompt_api_key(var: dict):
         save_env_value(var["name"], value)
         print_success("  ✓ Saved")
     else:
-        print_warning("  Skipped (configure later with 'jetts-tui setup')")
+        print_warning("  Skipped (configure later with 'jettstui setup')")
 
 
 def _print_setup_summary(config: dict, jettstui_home):
@@ -411,7 +411,7 @@ def _print_setup_summary(config: dict, jettstui_home):
     if _vision_backends:
         tool_status.append(("Vision (image analysis)", True, None))
     else:
-        tool_status.append(("Vision (image analysis)", False, "run 'jetts-tui setup' to configure"))
+        tool_status.append(("Vision (image analysis)", False, "run 'jettstui setup' to configure"))
 
 
     # Web tools (Exa, Parallel, Firecrawl, or Tavily)
@@ -522,7 +522,7 @@ def _print_setup_summary(config: dict, jettstui_home):
         if neutts_ok:
             tool_status.append(("Text-to-Speech (NeuTTS local)", True, None))
         else:
-            tool_status.append(("Text-to-Speech (NeuTTS — not installed)", False, "run 'jetts-tui setup tts'"))
+            tool_status.append(("Text-to-Speech (NeuTTS — not installed)", False, "run 'jettstui setup tts'"))
     elif tts_provider == "kittentts":
         try:
             kittentts_ok = importlib.util.find_spec("kittentts") is not None
@@ -531,7 +531,7 @@ def _print_setup_summary(config: dict, jettstui_home):
         if kittentts_ok:
             tool_status.append(("Text-to-Speech (KittenTTS local)", True, None))
         else:
-            tool_status.append(("Text-to-Speech (KittenTTS — not installed)", False, "run 'jetts-tui setup tts'"))
+            tool_status.append(("Text-to-Speech (KittenTTS — not installed)", False, "run 'jettstui setup tts'"))
     else:
         tool_status.append(("Text-to-Speech (Edge TTS)", True, None))
 
@@ -539,7 +539,7 @@ def _print_setup_summary(config: dict, jettstui_home):
         if subscription_features.modal.direct_override:
             tool_status.append(("Modal Execution (direct Modal)", True, None))
         else:
-            tool_status.append(("Modal Execution", False, "run 'jetts-tui setup terminal'"))
+            tool_status.append(("Modal Execution", False, "run 'jettstui setup terminal'"))
 
     # Home Assistant
     if get_env_value("HASS_TOKEN"):
@@ -589,7 +589,7 @@ def _print_setup_summary(config: dict, jettstui_home):
     disabled_tools = [(name, var) for name, avail, var in tool_status if not avail]
     if disabled_tools:
         print_warning(
-            "Some tools are disabled. Run 'jetts-tui setup tools' to configure them,"
+            "Some tools are disabled. Run 'jettstui setup tools' to configure them,"
         )
         from jettstui_constants import display_jettstui_home as _dhh
         print_warning(f"or edit {_dhh()}/.env directly to add the missing API keys.")
@@ -629,17 +629,17 @@ def _print_setup_summary(config: dict, jettstui_home):
     print()
     print(color("📝 To edit your configuration:", Colors.CYAN, Colors.BOLD))
     print()
-    print(f"   {color('jetts-tui setup', Colors.GREEN)}          Re-run the full wizard")
-    print(f"   {color('jetts-tui setup model', Colors.GREEN)}    Change model/provider")
-    print(f"   {color('jetts-tui setup terminal', Colors.GREEN)} Change terminal backend")
-    print(f"   {color('jetts-tui setup gateway', Colors.GREEN)}  Configure messaging")
-    print(f"   {color('jetts-tui setup tools', Colors.GREEN)}    Configure tool providers")
+    print(f"   {color('jettstui setup', Colors.GREEN)}          Re-run the full wizard")
+    print(f"   {color('jettstui setup model', Colors.GREEN)}    Change model/provider")
+    print(f"   {color('jettstui setup terminal', Colors.GREEN)} Change terminal backend")
+    print(f"   {color('jettstui setup gateway', Colors.GREEN)}  Configure messaging")
+    print(f"   {color('jettstui setup tools', Colors.GREEN)}    Configure tool providers")
     print()
-    print(f"   {color('jetts-tui config', Colors.GREEN)}         View current settings")
+    print(f"   {color('jettstui config', Colors.GREEN)}         View current settings")
     print(
-        f"   {color('jetts-tui config edit', Colors.GREEN)}    Open config in your editor"
+        f"   {color('jettstui config edit', Colors.GREEN)}    Open config in your editor"
     )
-    print(f"   {color('jetts-tui config set <key> <value>', Colors.GREEN)}")
+    print(f"   {color('jettstui config set <key> <value>', Colors.GREEN)}")
     print("                          Set a specific value")
     print()
     print("   Or edit the files directly:")
@@ -651,9 +651,9 @@ def _print_setup_summary(config: dict, jettstui_home):
     print()
     print(color("🚀 Ready to go!", Colors.CYAN, Colors.BOLD))
     print()
-    print(f"   {color('jetts-tui', Colors.GREEN)}              Start chatting")
-    print(f"   {color('jetts-tui gateway', Colors.GREEN)}      Start messaging gateway")
-    print(f"   {color('jetts-tui doctor', Colors.GREEN)}       Check for issues")
+    print(f"   {color('jettstui', Colors.GREEN)}              Start chatting")
+    print(f"   {color('jettstui gateway', Colors.GREEN)}      Start messaging gateway")
+    print(f"   {color('jettstui doctor', Colors.GREEN)}       Check for issues")
     print()
 
 
@@ -738,7 +738,7 @@ def setup_model_provider(config: dict, *, quick: bool = False):
     except Exception as exc:
         logger.debug("select_provider_and_model error during setup: %s", exc)
         print_warning(f"Provider setup encountered an error: {exc}")
-        print_info("You can try again later with: jetts-tui model")
+        print_info("You can try again later with: jettstui model")
 
     # Re-sync the wizard's config dict from what cmd_model saved to disk.
     # This is critical: cmd_model writes to disk via its own load/save cycle,
@@ -1055,7 +1055,7 @@ def _setup_tts_provider(config: dict):
                     from jettstui_constants import display_jettstui_home as _dhh
                     print_warning(
                         "No xAI API key provided for TTS. Configure XAI_API_KEY "
-                        f"via jetts-tui setup model or {_dhh()}/.env to use xAI TTS. "
+                        f"via jettstui setup model or {_dhh()}/.env to use xAI TTS. "
                         "Falling back to Edge TTS."
                     )
                     selected = "edge"
@@ -1430,7 +1430,7 @@ def _apply_default_agent_settings(config: dict):
     print_info("  Tool progress: all")
     print_info("  Compression threshold: 0.50")
     print_info("  Session reset: never (use /reset or compression)")
-    print_info("  Run `jetts-tui setup agent` later to customize.")
+    print_info("  Run `jettstui setup agent` later to customize.")
 
 
 def setup_agent_settings(config: dict):
@@ -1895,8 +1895,8 @@ def _setup_webhooks():
     print_info("   Route configuration guide:")
     print_info("   https://github.com/Raioshok/JETTS-TUI/blob/main/docs/user-guide/messaging/webhooks.md#configuring-routes")
     print()
-    print_info("   Open config in your editor:  jetts-tui config edit")
-    print_info("   Open config in your editor:  jetts-tui config edit")
+    print_info("   Open config in your editor:  jettstui config edit")
+    print_info("   Open config in your editor:  jettstui config edit")
 
 
 def setup_gateway(config: dict):
@@ -1922,7 +1922,7 @@ def setup_gateway(config: dict):
     selected = prompt_checklist("Select platforms to configure:", items, pre_selected)
 
     if not selected:
-        print_info("No platforms selected. Run 'jetts-tui setup gateway' later to configure.")
+        print_info("No platforms selected. Run 'jettstui setup gateway' later to configure.")
         return
 
     for idx in selected:
@@ -1975,7 +1975,7 @@ def setup_gateway(config: dict):
             print_info("   Set one later with /set-home in your chat, or:")
             for plat in missing_home:
                 print_info(
-                    f"     jetts-tui config set {plat.upper()}_HOME_CHANNEL <channel_id>"
+                    f"     jettstui config set {plat.upper()}_HOME_CHANNEL <channel_id>"
                 )
 
         # Offer to install the gateway as a system service
@@ -2112,24 +2112,24 @@ def setup_gateway(config: dict):
                             print_error(f"  Start failed: {e}")
                 except Exception as e:
                     print_error(f"  Install failed: {e}")
-                    print_info("  You can try manually: jetts-tui gateway install")
+                    print_info("  You can try manually: jettstui gateway install")
             else:
-                print_info("  You can install later: jetts-tui gateway install")
+                print_info("  You can install later: jettstui gateway install")
                 if supports_systemd and os.geteuid() == 0:  # windows-footgun: ok — guarded by supports_systemd (Linux only)
-                    print_info("  Or as a boot-time service: jetts-tui gateway install --system")
-                print_info("  Or run in foreground:  jetts-tui gateway")
+                    print_info("  Or as a boot-time service: jettstui gateway install --system")
+                print_info("  Or run in foreground:  jettstui gateway")
         else:
             from jettstui_constants import is_container
             if is_container():
                 print_info("Start the gateway to bring your bots online:")
-                print_info("   jetts-tui gateway run          # Run as container main process")
+                print_info("   jettstui gateway run          # Run as container main process")
                 print_info("")
                 print_info("For automatic restarts, use a Docker restart policy:")
                 print_info("   docker run --restart unless-stopped ...")
                 print_info("   docker restart <container>  # Manual restart")
             else:
                 print_info("Start the gateway to bring your bots online:")
-                print_info("   jetts-tui gateway              # Run in foreground")
+                print_info("   jettstui gateway              # Run in foreground")
 
         print_info("━" * 50)
 
@@ -2538,7 +2538,7 @@ def _offer_openclaw_migration(jettstui_home: Path) -> bool:
     if migrated:
         print_success(f"Imported {migrated} item(s) from OpenClaw.")
     if conflicts:
-        print_info(f"Skipped {conflicts} item(s) that already exist in JettsTUI (use jetts-tui claw migrate --overwrite to force).")
+        print_info(f"Skipped {conflicts} item(s) that already exist in JettsTUI (use jettstui claw migrate --overwrite to force).")
     if skipped:
         print_info(f"Skipped {skipped} item(s) (not found or unchanged).")
     if errors:
@@ -2700,7 +2700,7 @@ def run_setup_wizard(args):
         print_info("Running the full wizard — each prompt shows your current value.")
         print_info("Press Enter to keep it, or type a new value to change it.")
         print_info("")
-        print_info("Tip: jump straight to a section with 'jetts-tui setup model|terminal|")
+        print_info("Tip: jump straight to a section with 'jettstui setup model|terminal|")
         print_info("     gateway|tools|agent', or fill only missing items with --quick.")
         # Fall through to the "Full Setup — run all sections" block below.
         # --reconfigure is now the default on existing installs; the flag
@@ -2742,7 +2742,7 @@ def run_setup_wizard(args):
     print_info(f"Data folder:  {jettstui_home}")
     print_info(f"Install dir:  {PROJECT_ROOT}")
     print()
-    print_info("You can edit these files directly or use 'jetts-tui config edit'")
+    print_info("You can edit these files directly or use 'jettstui config edit'")
 
     if migration_ran:
         print()
@@ -2924,11 +2924,11 @@ def _run_blank_slate_setup(config: dict, jettstui_home, is_existing: bool):
         print()
         print_success("Blank Slate setup complete — minimal agent ready.")
         print_info("Enable anything later, on demand:")
-        print_info("  Enable tools:        jetts-tui tools")
-        print_info("  Seed skills:         jetts-tui skills opt-in --sync")
-        print_info("  Add MCP servers:     jetts-tui mcp add")
-        print_info("  Enable plugins:      jetts-tui plugins")
-        print_info("  Tune agent settings: jetts-tui setup agent")
+        print_info("  Enable tools:        jettstui tools")
+        print_info("  Seed skills:         jettstui skills opt-in --sync")
+        print_info("  Add MCP servers:     jettstui mcp add")
+        print_info("  Enable plugins:      jettstui plugins")
+        print_info("  Tune agent settings: jettstui setup agent")
         print()
         _print_setup_summary(config, jettstui_home)
         return
@@ -2960,8 +2960,8 @@ def _blank_slate_walkthrough(config: dict, jettstui_home):
         else:
             set_bundled_skills_opt_out(True)
             print_info("No skills seeded. A .no-bundled-skills marker keeps future")
-            print_info("`jetts-tui update` runs from re-injecting them. Opt back in any")
-            print_info("time with `jetts-tui skills opt-in --sync`.")
+            print_info("`jettstui update` runs from re-injecting them. Opt back in any")
+            print_info("time with `jettstui skills opt-in --sync`.")
     except Exception as exc:
         logger.debug("blank-slate skill handling error: %s", exc)
         print_warning(f"Skill setup step encountered an error: {exc}")
@@ -2984,23 +2984,23 @@ def _blank_slate_walkthrough(config: dict, jettstui_home):
             logger.debug("blank-slate tools_command error: %s", exc)
             print_warning(f"Tool selector encountered an error: {exc}")
     else:
-        print_info("Keeping the minimal toolset. Add tools later with `jetts-tui tools`.")
+        print_info("Keeping the minimal toolset. Add tools later with `jettstui tools`.")
 
     # ── Built-in plugins (off unless chosen) ──
     print()
     print_header("Plugins")
     if prompt_yes_no("Review and enable built-in plugins now?", default=False):
-        print_info("Manage plugins with `jetts-tui plugins list` / `jetts-tui plugins install`.")
+        print_info("Manage plugins with `jettstui plugins list` / `jettstui plugins install`.")
     else:
-        print_info("No plugins enabled. Add later with `jetts-tui plugins`.")
+        print_info("No plugins enabled. Add later with `jettstui plugins`.")
 
     # ── MCP servers (off unless chosen) ──
     print()
     print_header("MCP Servers")
     if prompt_yes_no("Add an MCP server now?", default=False):
-        print_info("Add servers with `jetts-tui mcp add <name> --url ... | --command ...`.")
+        print_info("Add servers with `jettstui mcp add <name> --url ... | --command ...`.")
     else:
-        print_info("No MCP servers configured. Add later with `jetts-tui mcp add`.")
+        print_info("No MCP servers configured. Add later with `jettstui mcp add`.")
 
     # ── Optional messaging gateway ──
     print()
@@ -3011,10 +3011,10 @@ def _blank_slate_walkthrough(config: dict, jettstui_home):
 
     print()
     print_success("Blank Slate setup complete — minimal agent ready.")
-    print_info("  Enable more tools:   jetts-tui tools")
-    print_info("  Seed skills:         jetts-tui skills opt-in --sync")
-    print_info("  Add MCP servers:     jetts-tui mcp add")
-    print_info("  Tune agent settings: jetts-tui setup agent")
+    print_info("  Enable more tools:   jettstui tools")
+    print_info("  Seed skills:         jettstui skills opt-in --sync")
+    print_info("  Add MCP servers:     jettstui mcp add")
+    print_info("  Tune agent settings: jettstui setup agent")
     print()
 
     _print_setup_summary(config, jettstui_home)
@@ -3051,7 +3051,7 @@ def _run_quick_setup(config: dict, jettstui_home):
     if not has_anything_missing:
         print_success("Everything is configured! Nothing to do.")
         print()
-        print_info("Run 'jetts-tui setup' and choose 'Full Setup' to reconfigure,")
+        print_info("Run 'jettstui setup' and choose 'Full Setup' to reconfigure,")
         print_info("or pick a specific section from the menu.")
         return
 
@@ -3114,7 +3114,7 @@ def _run_quick_setup(config: dict, jettstui_home):
         print()
         print_header("Messaging Platforms")
         print_info("Connect JettsTUI to messaging apps to chat from anywhere.")
-        print_info("You can configure these later with 'jetts-tui setup gateway'.")
+        print_info("You can configure these later with 'jettstui setup gateway'.")
 
         # Group by platform (preserving order)
         platform_order = []

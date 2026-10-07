@@ -178,14 +178,14 @@ try {
     Write-Host ""
     Write-Ok "Setup complete"
     Write-Host "  Command: $VenvScripts\jettstui.exe"
-    Write-Host "  Diagnose: jetts-tui doctor"
+    Write-Host "  Diagnose: jettstui doctor"
     Write-Host ""
 
     if (-not $SkipSetup) {
         Write-Step "Starting the provider and model setup wizard"
         Invoke-Checked $VenvPython "-m" "jettstui.main" "setup"
     } else {
-        Write-Host "Finish configuration later with: jetts-tui setup"
+        Write-Host "Finish configuration later with: jettstui setup"
     }
 } finally {
     Pop-Location

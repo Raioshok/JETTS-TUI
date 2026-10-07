@@ -202,6 +202,7 @@ def test_native_machine_reports_os_arch_not_process_arch(monkeypatch):
     import ctypes
 
     monkeypatch.setattr(cli_main.sys, "platform", "win32")
+    monkeypatch.setattr(cli_main, "_resolve_node_runtime_npm", lambda: "/usr/bin/npm")
     # WinDLL only exists on Windows; create=True so Linux/macOS CI can stub it.
     with patch.object(ctypes, "WinDLL", _fake_windll(PE_ARM64), create=True), \
          patch("platform.machine", return_value="AMD64"):
@@ -216,6 +217,7 @@ def test_native_machine_binds_current_process_handle_restype(monkeypatch):
     from ctypes import wintypes
 
     monkeypatch.setattr(cli_main.sys, "platform", "win32")
+    monkeypatch.setattr(cli_main, "_resolve_node_runtime_npm", lambda: "/usr/bin/npm")
     windll = _fake_windll(PE_ARM64)
     with patch.object(ctypes, "WinDLL", windll, create=True), \
          patch("platform.machine", return_value="AMD64"):
@@ -232,6 +234,7 @@ def test_expected_machines_prefers_user_runnable_api_over_arch_name(monkeypatch)
     import ctypes
 
     monkeypatch.setattr(cli_main.sys, "platform", "win32")
+    monkeypatch.setattr(cli_main, "_resolve_node_runtime_npm", lambda: "/usr/bin/npm")
     monkeypatch.setenv("PROCESSOR_ARCHITECTURE", "AMD64")
     monkeypatch.delenv("PROCESSOR_ARCHITEW6432", raising=False)
     with patch.object(
@@ -251,6 +254,7 @@ def test_expected_machines_falls_back_when_attributes_api_missing(monkeypatch):
     import ctypes
 
     monkeypatch.setattr(cli_main.sys, "platform", "win32")
+    monkeypatch.setattr(cli_main, "_resolve_node_runtime_npm", lambda: "/usr/bin/npm")
     with patch.object(
         ctypes, "WinDLL", _fake_windll(PE_ARM64, user_runnable=None), create=True
     ), patch("platform.machine", return_value="AMD64"):
@@ -262,6 +266,7 @@ def test_native_machine_env_fallback_without_api(monkeypatch):
     import ctypes
 
     monkeypatch.setattr(cli_main.sys, "platform", "win32")
+    monkeypatch.setattr(cli_main, "_resolve_node_runtime_npm", lambda: "/usr/bin/npm")
     monkeypatch.setenv("PROCESSOR_ARCHITEW6432", "AMD64")
 
     def _no_kernel32(name, *args, **kwargs):
@@ -277,6 +282,7 @@ def test_native_machine_platform_fallback(monkeypatch):
     import ctypes
 
     monkeypatch.setattr(cli_main.sys, "platform", "win32")
+    monkeypatch.setattr(cli_main, "_resolve_node_runtime_npm", lambda: "/usr/bin/npm")
     monkeypatch.delenv("PROCESSOR_ARCHITEW6432", raising=False)
     monkeypatch.delenv("PROCESSOR_ARCHITECTURE", raising=False)
 
@@ -300,6 +306,7 @@ def test_integrity_gate_accepts_arm64_exe_from_emulated_x64_process(monkeypatch,
     import ctypes
 
     monkeypatch.setattr(cli_main.sys, "platform", "win32")
+    monkeypatch.setattr(cli_main, "_resolve_node_runtime_npm", lambda: "/usr/bin/npm")
     exe = make_pe(tmp_path / "JettsTUI.exe", PE_ARM64)
     with patch.object(ctypes, "WinDLL", _fake_windll(PE_ARM64), create=True), \
          patch("platform.machine", return_value="AMD64"):
@@ -315,6 +322,7 @@ def test_integrity_gate_accepts_arm64_when_iswow64_fails_but_attributes_ok(
     import ctypes
 
     monkeypatch.setattr(cli_main.sys, "platform", "win32")
+    monkeypatch.setattr(cli_main, "_resolve_node_runtime_npm", lambda: "/usr/bin/npm")
     monkeypatch.setenv("PROCESSOR_ARCHITECTURE", "AMD64")
     monkeypatch.delenv("PROCESSOR_ARCHITEW6432", raising=False)
     exe = make_pe(tmp_path / "JettsTUI.exe", PE_ARM64)
@@ -381,6 +389,7 @@ def test_packaged_executable_prefers_jetts_tui_over_legacy_build(tmp_path, monke
 def test_packaged_executable_prefers_host_arch_over_mtime(tmp_path, monkeypatch):
     """A newer wrong-arch tree must not shadow the loadable one (#69179)."""
     monkeypatch.setattr(cli_main.sys, "platform", "win32")
+    monkeypatch.setattr(cli_main, "_resolve_node_runtime_npm", lambda: "/usr/bin/npm")
     desktop_dir = tmp_path / "apps" / "desktop"
     good = make_pe(desktop_dir / "release" / "win-unpacked" / "JettsTUI.exe", PE_AMD64)
     bad = make_pe(desktop_dir / "release" / "win-arm64-unpacked" / "JettsTUI.exe", PE_ARM64)
@@ -396,6 +405,7 @@ def test_packaged_executable_prefers_host_arch_over_mtime(tmp_path, monkeypatch)
 def test_packaged_executable_falls_back_to_mtime_when_unparseable(tmp_path, monkeypatch):
     """Non-PE stubs (dev trees, tests) keep the historical newest-wins pick."""
     monkeypatch.setattr(cli_main.sys, "platform", "win32")
+    monkeypatch.setattr(cli_main, "_resolve_node_runtime_npm", lambda: "/usr/bin/npm")
     desktop_dir = tmp_path / "apps" / "desktop"
     a = desktop_dir / "release" / "win-unpacked" / "JettsTUI.exe"
     b = desktop_dir / "release" / "win-arm64-unpacked" / "JettsTUI.exe"
@@ -460,6 +470,7 @@ def test_rollback_refuses_corrupt_backup(tmp_path):
 
 def test_gate_passes_valid_exe(tmp_path, monkeypatch):
     monkeypatch.setattr(cli_main.sys, "platform", "win32")
+    monkeypatch.setattr(cli_main, "_resolve_node_runtime_npm", lambda: "/usr/bin/npm")
     desktop_dir, exe = _win_tree(tmp_path)
     make_pe(exe, PE_AMD64)
     with patch("jettstui.main._windows_native_machine", return_value="AMD64"):
@@ -480,6 +491,7 @@ def test_gate_noop_off_windows(tmp_path, monkeypatch):
 
 def test_gate_rolls_back_corrupt_exe_and_purges_cache(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(cli_main.sys, "platform", "win32")
+    monkeypatch.setattr(cli_main, "_resolve_node_runtime_npm", lambda: "/usr/bin/npm")
     monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / "home"))
     desktop_dir, exe = _win_tree(tmp_path)
     make_pe(exe, PE_AMD64, truncate_to=0x300)
@@ -507,6 +519,7 @@ def test_gate_rolls_back_corrupt_exe_and_purges_cache(tmp_path, monkeypatch, cap
 
 def test_gate_fails_clearly_without_backup(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(cli_main.sys, "platform", "win32")
+    monkeypatch.setattr(cli_main, "_resolve_node_runtime_npm", lambda: "/usr/bin/npm")
     desktop_dir, exe = _win_tree(tmp_path)
     fake = exe
     fake.parent.mkdir(parents=True)
@@ -551,6 +564,7 @@ def test_build_only_fails_when_pack_produces_corrupt_exe(tmp_path, monkeypatch, 
     (desktop_dir / "package.json").write_text("{}", encoding="utf-8")
     monkeypatch.setattr(cli_main, "PROJECT_ROOT", root)
     monkeypatch.setattr(cli_main.sys, "platform", "win32")
+    monkeypatch.setattr(cli_main, "_resolve_node_runtime_npm", lambda: "/usr/bin/npm")
 
     exe = desktop_dir / "release" / "win-unpacked" / "JettsTUI.exe"
     make_pe(exe, PE_AMD64, truncate_to=0x300)  # what the failed pack produced
@@ -587,6 +601,7 @@ def test_build_only_succeeds_with_valid_exe(tmp_path, monkeypatch, capsys):
     (desktop_dir / "package.json").write_text("{}", encoding="utf-8")
     monkeypatch.setattr(cli_main, "PROJECT_ROOT", root)
     monkeypatch.setattr(cli_main.sys, "platform", "win32")
+    monkeypatch.setattr(cli_main, "_resolve_node_runtime_npm", lambda: "/usr/bin/npm")
 
     make_pe(desktop_dir / "release" / "win-unpacked" / "JettsTUI.exe", PE_AMD64)
 

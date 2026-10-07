@@ -43,10 +43,11 @@ def _make_agent(provider="copilot", base_url="https://api.githubcopilot.com") ->
 
 
 @patch("agent.model_metadata.get_model_context_length", return_value=131_072)
-def test_switch_to_openrouter_reapplies_attribution_headers(mock_ctx_len):
-    """Switching to an openrouter.ai base_url must attach the OpenRouter
-    attribution headers (HTTP-Referer / X-Title) to the rebuilt client
-    kwargs — not ship a bare api_key+base_url client (#61099)."""
+def test_switch_to_openrouter_reapplies_provider_headers(mock_ctx_len):
+    """Switching to an openrouter.ai base_url must re-apply the OpenRouter
+    provider headers to the rebuilt client kwargs — not ship a bare
+    api_key+base_url client (#61099). Attribution headers stay off: they are
+    not sent without an explicit opt-in."""
     agent = _make_agent(provider="copilot", base_url="https://api.githubcopilot.com")
 
     agent.switch_model(
@@ -57,8 +58,9 @@ def test_switch_to_openrouter_reapplies_attribution_headers(mock_ctx_len):
     )
 
     headers = agent._client_kwargs.get("default_headers") or {}
-    assert "HTTP-Referer" in headers
-    assert headers.get("X-Title")
+    assert headers.get("X-OpenRouter-Cache") == "true"
+    assert "HTTP-Referer" not in headers
+    assert "X-Title" not in headers
 
 
 @patch("agent.model_metadata.get_model_context_length", return_value=131_072)

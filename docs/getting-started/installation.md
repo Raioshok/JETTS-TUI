@@ -34,18 +34,18 @@ iex (irm https://raw.githubusercontent.com/Raioshok/JETTS-TUI/main/scripts/insta
 
 To build and run the desktop app from a source install, run
 ```bash
-jetts-tui desktop
+jettstui desktop
 ```
 
 ### What the Installer Does
 
-The installer handles dependencies (Python, Node.js, ripgrep, ffmpeg), the repo clone, virtual environment, global `jetts-tui` command setup, and LLM provider configuration.
+The installer handles dependencies (Python, Node.js, ripgrep, ffmpeg), the repo clone, virtual environment, global `jettstui` command setup, and LLM provider configuration.
 
 #### Install Layout
 
 Where the installer puts things depends on whether you're installing as a normal user or as root:
 
-| Installer | Fresh code checkout | `jetts-tui` launcher | Data directory |
+| Installer | Fresh code checkout | `jettstui` launcher | Data directory |
 | --- | --- | --- | --- |
 | Per-user | `~/.jettstui/jettstui/` | `~/.local/bin/jetts-tui` | `~/.jettstui/` |
 | Root-mode (Linux) | `/usr/local/lib/jettstui/` | `/usr/local/bin/jetts-tui` | `/root/.jettstui/` (or `$JETTSTUI_HOME`) |
@@ -59,25 +59,25 @@ Reload your shell and start chatting:
 
 ```bash
 source ~/.bashrc   # or: source ~/.zshrc
-jetts-tui           # Start chatting!
+jettstui           # Start chatting!
 ```
 
 To reconfigure individual settings later, use the dedicated commands:
 
 ```bash
-jetts-tui model          # Choose your LLM provider and model
-jetts-tui tools          # Configure which tools are enabled
-jetts-tui gateway setup  # Set up messaging platforms
-jetts-tui config set     # Set individual config values
-jetts-tui config get     # Inspect individual config values
-jetts-tui setup          # Or run the full setup wizard to configure everything at once
+jettstui model          # Choose your LLM provider and model
+jettstui tools          # Configure which tools are enabled
+jettstui gateway setup  # Set up messaging platforms
+jettstui config set     # Set individual config values
+jettstui config get     # Inspect individual config values
+jettstui setup          # Or run the full setup wizard to configure everything at once
 ```
 
 :::tip Fastest path: pick a provider
 JettsTUI is bring-your-own-key. Run the setup wizard, pick a free or paid provider, and paste an API key (or use a provider's own OAuth like openai-codex, xai-oauth, or qwen-oauth):
 
 ```bash
-jetts-tui setup
+jettstui setup
 ```
 
 That walks you through choosing your provider and model in one command.
@@ -151,12 +151,12 @@ Running JettsTUI as a dedicated unprivileged service user is supported. The Play
    curl -fsSL https://raw.githubusercontent.com/Raioshok/JETTS-TUI/main/scripts/install.sh | bash -s -- --skip-browser
    ```
 
-3. **Make `jetts-tui` available to the service user's shells.** The installer writes the launcher to `~/.local/bin/jetts-tui`. System service accounts often have a minimal PATH that doesn't include `~/.local/bin`. Add it to the service user's environment:
+3. **Make `jettstui` available to the service user's shells.** The installer writes the launcher to `~/.local/bin/jetts-tui`. System service accounts often have a minimal PATH that doesn't include `~/.local/bin`. Add it to the service user's environment:
    ```bash
    echo 'export PATH="$HOME/.local/bin:$PATH"' >> ~/.bashrc
    ```
 
-4. **Verify:** `jetts-tui doctor` should now run. If you get `ModuleNotFoundError` for a dependency, check that your shell resolves the installed launcher rather than a source file run with system Python (`command -v jetts-tui`).
+4. **Verify:** `jettstui doctor` should now run. If you get `ModuleNotFoundError` for a dependency, check that your shell resolves the installed launcher rather than a source file run with system Python (`command -v jettstui`).
 
 The same pattern works on Arch (the installer uses pacman with the same sudo-detection logic), Fedora/RHEL, and openSUSE — those distros don't support `--with-deps` at all, so an administrator always installs the system libraries separately. The relevant `dnf`/`zypper` commands are printed by the installer.
 
@@ -167,11 +167,11 @@ The same pattern works on Arch (the installer uses pacman with the same sudo-det
 | Problem | Solution |
 |---------|----------|
 | `jetts-tui: command not found` | Reload your shell (`source ~/.bashrc`) or check PATH |
-| `API key not set` | Run `jetts-tui setup`; credentials belong in the active home's `.env`, not `config.yaml` |
-| Missing config after update | Run `jetts-tui config check` then `jetts-tui config migrate` |
+| `API key not set` | Run `jettstui setup`; credentials belong in the active home's `.env`, not `config.yaml` |
+| Missing config after update | Run `jettstui config check` then `jettstui config migrate` |
 
-For more diagnostics, run `jetts-tui doctor` — it will tell you what's missing and how to fix it.
+For more diagnostics, run `jettstui doctor` — it will tell you what's missing and how to fix it.
 
 ## Install method auto-detection
 
-JettsTUI auto-detects git, Docker, or Nix installs, and `jetts-tui update` prints the matching update command. Detection uses the checkout, Docker image stamp, or Nix store path; `jetts-tui doctor` reports the detected method. Legacy checkouts at `~/.jettstui/jettstui/` remain supported during migration.
+JettsTUI auto-detects git, Docker, or Nix installs, and `jettstui update` prints the matching update command. Detection uses the checkout, Docker image stamp, or Nix store path; `jettstui doctor` reports the detected method. Legacy checkouts at `~/.jettstui/jettstui/` remain supported during migration.

@@ -139,7 +139,7 @@ Daily scan for known vulnerabilities in project dependencies.
 **Trigger:** Schedule (daily)
 
 ```bash
-jetts-tui cron create "0 6 * * *" \
+jettstui cron create "0 6 * * *" \
   "Run a dependency security audit on the JettsTUI project.
 
 1. cd <your JettsTUI checkout> and activate its Python environment

@@ -817,7 +817,7 @@ def run_debug_share(args):
         )
     except RuntimeError as exc:
         print(f"\nUpload failed: {exc}", file=sys.stderr)
-        print("\nRun `jetts-tui debug share --local` to print the report instead.\n")
+        print("\nRun `jettstui debug share --local` to print the report instead.\n")
         sys.exit(1)
 
     # Print results
@@ -833,7 +833,7 @@ def run_debug_share(args):
     print(f"\n⏱  Pastes will auto-delete in {hours} hours.")
 
     # Manual delete fallback
-    print("To delete now:  jetts-tui debug delete <url>")
+    print("To delete now:  jettstui debug delete <url>")
 
     print("\nShare these links with the JettsTUI team for support.")
 
@@ -842,8 +842,8 @@ def run_debug_delete(args):
     """Delete one or more paste URLs uploaded by /debug."""
     urls = getattr(args, "urls", [])
     if not urls:
-        print("Usage: jetts-tui debug delete <url> [<url> ...]")
-        print("  Deletes paste.rs pastes uploaded by 'jetts-tui debug share'.")
+        print("Usage: jettstui debug delete <url> [<url> ...]")
+        print("  Deletes paste.rs pastes uploaded by 'jettstui debug share'.")
         return
 
     for url in urls:
@@ -878,7 +878,7 @@ def run_debug(args):
         run_debug_delete(args)
     else:
         # Default: show help
-        print("Usage: jetts-tui debug <command>")
+        print("Usage: jettstui debug <command>")
         print()
         print("Commands:")
         print("  share    Upload debug report to a paste service and print URL")

@@ -47,7 +47,7 @@ Pick the row that matches your goal:
 ---
 
 ## 1. Install JettsTUI
-Prebuilt desktop installers are not published yet. Install from source using the scripts below, then run `jetts-tui desktop` if you want the desktop app.
+Prebuilt desktop installers are not published yet. Install from source using the scripts below, then run `jettstui desktop` if you want the desktop app.
 
 ### Terminal install
 

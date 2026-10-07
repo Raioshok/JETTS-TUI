@@ -321,7 +321,7 @@ export const es: Translations = {
     enableRuntime: "Habilitar",
     forceReinstall: "Forzar reinstalación (eliminar carpeta existente primero)",
     headline:
-      "Descubre, instala, habilita y actualiza complementos de JettsTUI (equivalente a `jetts-tui plugins`).",
+      "Descubre, instala, habilita y actualiza complementos de JettsTUI (equivalente a `jettstui plugins`).",
     identifierLabel: "URL de Git u owner/repo",
     inactive: "inactivo",
     installBtn: "Instalar",

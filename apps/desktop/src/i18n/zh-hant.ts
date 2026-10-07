@@ -750,7 +750,7 @@ export const zhHant = defineLocale({
       sshKeyTitle: '金鑰檔案',
       sshKeyDesc: '私密金鑰路徑。留空 = ssh-agent 或 ~/.ssh/config。',
       sshJettsTUIPathTitle: 'JettsTUI 路徑（選用）',
-      sshJettsTUIPathDesc: '遠端 jetts-tui 執行檔的完整路徑。留空 = 自動偵測。',
+      sshJettsTUIPathDesc: '遠端 jettstui 執行檔的完整路徑。留空 = 自動偵測。',
       sshJettsTUIPathPlaceholder: '自動偵測',
       sshTestConnection: '測試 SSH',
       sshConnect: '連線',
@@ -1006,7 +1006,7 @@ export const zhHant = defineLocale({
     edit: '編輯',
     archive: '封存',
     skillArchivedTitle: '技能已封存',
-    skillArchivedMessage: '可透過 jetts-tui curator restore 還原。'
+    skillArchivedMessage: '可透過 jettstui curator restore 還原。'
   },
 
   starmap: {
@@ -1767,7 +1767,7 @@ export const zhHant = defineLocale({
       '/resume': '繼續之前的工作階段',
       '/details': '控制對話記錄的詳細程度',
       '/copy': '複製所選內容或最後一條助手訊息',
-      '/quit': '結束 jetts-tui'
+      '/quit': '結束 jettstui'
     },
     hotkeyDescs: {
       'composer.mention': '參照檔案、資料夾、URL、git',
@@ -2637,7 +2637,7 @@ export const zhHant = defineLocale({
       success: platform => `已移交到 ${platform}。隨時可在此處恢復。`,
       systemNote: platform => `↻ 已移交到 ${platform} — 隨時可在此處恢復。`,
       failed: error => `移交失敗：${error}`,
-      timedOut: '等待閘道逾時。`jetts-tui gateway` 是否正在執行？'
+      timedOut: '等待閘道逾時。`jettstui gateway` 是否正在執行？'
     }
   },
 

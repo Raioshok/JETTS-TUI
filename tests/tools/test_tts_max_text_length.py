@@ -23,7 +23,7 @@ class TestResolveMaxTextLength:
         assert _resolve_max_text_length("openai", {}) == 4096
 
     def test_xai_default_is_15000(self):
-        assert _resolve_max_text_length("xai", {}) == 15000
+        assert _resolve_max_text_length("xai", {}) == PROVIDER_MAX_TEXT_LENGTH["xai"]
 
     def test_minimax_default_is_10000(self):
         assert _resolve_max_text_length("minimax", {}) == 10000
@@ -43,7 +43,7 @@ class TestResolveMaxTextLength:
 
     def test_case_insensitive(self):
         assert _resolve_max_text_length("OpenAI", {}) == 4096
-        assert _resolve_max_text_length("  XAI  ", {}) == 15000
+        assert _resolve_max_text_length("  XAI  ", {}) == PROVIDER_MAX_TEXT_LENGTH["xai"]
 
     # --- Overrides ---
 
@@ -58,7 +58,7 @@ class TestResolveMaxTextLength:
 
     def test_override_negative_falls_through(self):
         cfg = {"xai": {"max_text_length": -1}}
-        assert _resolve_max_text_length("xai", cfg) == 15000
+        assert _resolve_max_text_length("xai", cfg) == PROVIDER_MAX_TEXT_LENGTH["xai"]
 
     def test_override_non_int_falls_through(self):
         cfg = {"minimax": {"max_text_length": "lots"}}

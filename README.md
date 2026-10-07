@@ -74,7 +74,7 @@ jettstui doctor       # diagnose configuration problems
 jettstui update       # update to the latest version
 ```
 
-`jetts-tui` is installed as an alias of `jettstui`.
+`jettstui` is installed as an alias of `jettstui`.
 
 Configuration lives in `~/.jettstui/config.yaml` (`%LOCALAPPDATA%\jettstui` on Windows); API keys live in the `.env` file beside it. Profiles (`jettstui -p <name>`) give you fully isolated instances with their own config, memory, and sessions.
 

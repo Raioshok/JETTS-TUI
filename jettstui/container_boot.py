@@ -324,7 +324,7 @@ def _strip_container_argv_prefix(argv: Sequence[str]) -> list[str]:
         args = args[1:]
 
     # Peel the current executable and the legacy name for upgraded images.
-    if args and Path(args[0]).name in {"jetts-tui", "jettstui"}:
+    if args and Path(args[0]).name in {"jettstui", "jetts-tui"}:
         args = args[1:]
     return args
 

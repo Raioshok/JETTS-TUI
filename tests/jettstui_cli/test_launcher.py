@@ -8,7 +8,7 @@ from pathlib import Path
 
 def test_launcher_delegates_to_argparse_entrypoint(monkeypatch):
     """`./jettstui` should use `jettstui.main`, not the legacy Fire wrapper."""
-    launcher_path = Path(__file__).resolve().parents[2] / "jetts-tui"
+    launcher_path = Path(__file__).resolve().parents[2] / "jettstui"
     called = []
 
     fake_main_module = types.ModuleType("jettstui.main")

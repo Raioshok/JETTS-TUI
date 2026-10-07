@@ -1680,7 +1680,7 @@ export const ar = defineLocale({
       '/resume': 'استئناف جلسة سابقة',
       '/details': 'التحكم في مستوى تفاصيل النص',
       '/copy': 'نسخ التحديد أو آخر رسالة من المساعد',
-      '/quit': 'الخروج من jetts-tui'
+      '/quit': 'الخروج من jettstui'
     },
     hotkeyDescs: {
       'composer.mention': 'الإشارة إلى الملفات والمجلدات والروابط وgit',
@@ -2562,7 +2562,7 @@ export const ar = defineLocale({
       success: platform => `تم التسليم إلى ${platform}. استأنف هنا في أي وقت.`,
       systemNote: platform => `↻ تم التسليم إلى ${platform} — استأنف هنا في أي وقت.`,
       failed: error => `فشل التسليم: ${error}`,
-      timedOut: 'انتهت المهلة في انتظار البوابة. هل `jetts-tui gateway` قيد التشغيل؟'
+      timedOut: 'انتهت المهلة في انتظار البوابة. هل `jettstui gateway` قيد التشغيل؟'
     }
   },
   errors: {

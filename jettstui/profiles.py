@@ -415,7 +415,7 @@ def check_alias_collision(name: str) -> Optional[str]:
             if existing_path == str(expected):
                 try:
                     content = expected.read_text(encoding="utf-8")
-                    if "jetts-tui -p" in content or "jettstui -p" in content:
+                    if "jettstui -p" in content or "jettstui -p" in content:
                         return None  # it's our wrapper, safe to overwrite
                 except Exception:
                     pass
@@ -458,7 +458,7 @@ def create_wrapper_script(name: str, target: Optional[str] = None) -> Optional[P
     if is_windows:
         wrapper_path = wrapper_dir / f"{canon}.bat"
         try:
-            wrapper_path.write_text(f"@echo off\r\njetts-tui -p {profile} %*\r\n", encoding="utf-8")
+            wrapper_path.write_text(f"@echo off\r\njettstui -p {profile} %*\r\n", encoding="utf-8")
             return wrapper_path
         except OSError as e:
             print(f"⚠ Could not create wrapper at {wrapper_path}: {e}")
@@ -466,7 +466,7 @@ def create_wrapper_script(name: str, target: Optional[str] = None) -> Optional[P
     else:
         wrapper_path = wrapper_dir / canon
         try:
-            jetts_exe = shutil.which("jetts-tui") or "jetts-tui"
+            jetts_exe = shutil.which("jettstui") or "jettstui"
             wrapper_path.write_text(f'#!/bin/sh\nexec {shlex.quote(jetts_exe)} -p {profile} "$@"\n', encoding="utf-8")
             wrapper_path.chmod(wrapper_path.stat().st_mode | stat.S_IEXEC | stat.S_IXGRP | stat.S_IXOTH)
             return wrapper_path
@@ -497,7 +497,7 @@ def remove_wrapper_script(name: str) -> bool:
             try:
                 # Verify it's our wrapper before removing
                 content = wrapper_path.read_text(encoding="utf-8")
-                if "jetts-tui -p" in content or "jettstui -p" in content:
+                if "jettstui -p" in content or "jettstui -p" in content:
                     wrapper_path.unlink()
                     return True
             except Exception:
@@ -580,7 +580,7 @@ def build_alias_map() -> dict[str, str]:
     if not wrapper_dir.is_dir():
         return result
     is_windows = sys.platform == "win32"
-    prefixes = ("jetts-tui -p ", "jettstui -p ")  # Keep legacy aliases discoverable.
+    prefixes = ("jettstui -p ", "jettstui -p ")  # Keep legacy aliases discoverable.
 
     for entry in sorted(wrapper_dir.iterdir()):
         if not entry.is_file():

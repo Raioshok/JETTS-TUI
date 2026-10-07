@@ -320,7 +320,7 @@ export const tr: Translations = {
     enableRuntime: "Etkinleştir",
     forceReinstall: "Yeniden yüklemeyi zorla (önce mevcut klasörü sil)",
     headline:
-      "JettsTUI eklentilerini keşfedin, yükleyin, etkinleştirin ve güncelleyin (`jetts-tui plugins` ile eşdeğer).",
+      "JettsTUI eklentilerini keşfedin, yükleyin, etkinleştirin ve güncelleyin (`jettstui plugins` ile eşdeğer).",
     identifierLabel: "Git URL veya owner/repo",
     inactive: "pasif",
     installBtn: "Yükle",

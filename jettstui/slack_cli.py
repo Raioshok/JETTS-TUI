@@ -191,7 +191,7 @@ def slack_manifest_command(args) -> int:
         long_description is not None or long_description_file is not None
     ):
         print(
-            "jetts-tui slack manifest: long description options cannot be used "
+            "jettstui slack manifest: long description options cannot be used "
             "with --slashes-only",
             file=sys.stderr,
         )
@@ -204,7 +204,7 @@ def slack_manifest_command(args) -> int:
                 long_description = handle.read()
         except (OSError, UnicodeError, RuntimeError) as exc:
             print(
-                f"jetts-tui slack manifest: cannot read long description from "
+                f"jettstui slack manifest: cannot read long description from "
                 f"{source_arg}: {exc}",
                 file=sys.stderr,
             )
@@ -214,7 +214,7 @@ def slack_manifest_command(args) -> int:
         and len(long_description) < SLACK_LONG_DESCRIPTION_MIN_CHARACTERS
     ):
         print(
-            "jetts-tui slack manifest: long description must be at least "
+            "jettstui slack manifest: long description must be at least "
             f"{SLACK_LONG_DESCRIPTION_MIN_CHARACTERS} characters "
             f"(got {len(long_description)})",
             file=sys.stderr,
@@ -225,7 +225,7 @@ def slack_manifest_command(args) -> int:
         and len(long_description) > SLACK_LONG_DESCRIPTION_MAX_CHARACTERS
     ):
         print(
-            "jetts-tui slack manifest: long description must be at most "
+            "jettstui slack manifest: long description must be at most "
             f"{SLACK_LONG_DESCRIPTION_MAX_CHARACTERS} characters "
             f"(got {len(long_description)})",
             file=sys.stderr,
@@ -277,7 +277,7 @@ def slack_manifest_command(args) -> int:
             "     slash commands changed.\n"
             "  4. Make sure Socket Mode is enabled and you have a bot token\n"
             "     (xoxb-...) and app token (xapp-...) configured via\n"
-            "     `jetts-tui setup`.\n",
+            "     `jettstui setup`.\n",
             file=sys.stderr,
         )
     else:

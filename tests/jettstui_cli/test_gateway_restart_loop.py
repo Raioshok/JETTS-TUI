@@ -26,8 +26,8 @@ class TestGatewayLifecyclePattern:
     """Verify the regex catches gateway lifecycle commands."""
 
     @pytest.mark.parametrize("text", [
-        "jetts-tui gateway restart",
-        "jetts-tui gateway stop",
+        "jettstui gateway restart",
+        "jettstui gateway stop",
         "JETTS-TUI GATEWAY RESTART",
         "jettstui gateway restart",
         "jettstui gateway stop",
@@ -73,7 +73,7 @@ class TestGatewayLifecyclePattern:
         # foot-gun (#30719 lists only those).
         "jettstui gateway start",
         "jettstui gateway start --all",
-        "jetts-tui gateway start",
+        "jettstui gateway start",
         # Tightened launchctl/systemctl branches: ops on NON-gateway jettstui
         # services must not be falsely blocked (the old `.*jettstui` matched any
         # jettstui token).

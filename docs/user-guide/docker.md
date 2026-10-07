@@ -40,7 +40,7 @@ docker run -it --rm \
 This drops you into the setup wizard, which will prompt you for your API keys and write them to `~/.jettstui/.env`. You only need to do this once. It is highly recommended to set up a chat system for the gateway to work with at this point.
 
 :::tip
-Inside the container, run `jetts-tui setup` once and pick a provider — your API key (or OAuth refresh token) persists in the mounted `~/.jettstui` volume.
+Inside the container, run `jettstui setup` once and pick a provider — your API key (or OAuth refresh token) persists in the mounted `~/.jettstui` volume.
 :::
 
 ## Running in gateway mode
@@ -49,7 +49,7 @@ Once configured, run the container in the background as a persistent gateway (Te
 
 ```sh
 docker run -d \
-  --name jetts-tui \
+  --name jettstui \
   --restart unless-stopped \
   -v ~/.jettstui:/opt/data \
   -p 8642:8642 \
@@ -86,7 +86,7 @@ Note: the API server is gated on `API_SERVER_ENABLED=true`. To expose it beyond 
 
 ```sh
 docker run -d \
-  --name jetts-tui \
+  --name jettstui \
   --restart unless-stopped \
   -v ~/.jettstui:/opt/data \
   -p 8642:8642 \
@@ -105,7 +105,7 @@ The built-in web dashboard runs as a supervised s6-rc service alongside the gate
 
 ```sh
 docker run -d \
-  --name jetts-tui \
+  --name jettstui \
   --restart unless-stopped \
   -v ~/.jettstui:/opt/data \
   -p 8642:8642 \
@@ -181,13 +181,13 @@ The `/opt/data` volume is the single source of truth for all JettsTUI state. It 
 
 ### Immutable install tree
 
-In hosted and published Docker images, `/opt/jettstui` is the installed application tree. It is root-owned and read-only to the runtime `jettstui` user, so agent turns, gateway sessions, dashboard actions, and normal `docker exec jetts-tui jetts-tui ...` commands cannot edit the core source, bundled `.venv`, `node_modules`, or TUI bundle in place.
+In hosted and published Docker images, `/opt/jettstui` is the installed application tree. It is root-owned and read-only to the runtime `jettstui` user, so agent turns, gateway sessions, dashboard actions, and normal `docker exec jettstui jettstui ...` commands cannot edit the core source, bundled `.venv`, `node_modules`, or TUI bundle in place.
 
 All mutable JettsTUI state belongs under `/opt/data`: config, `.env`, profiles, skills, memories, sessions, logs, dashboard uploads, plugins, and other user-managed files. The image also disables runtime `.pyc` writes and JettsTUI lazy dependency installs into `/opt/jettstui`; optional platform dependencies needed by the published image should be baked into the image or installed through a new image build.
 
 On hosted/published images, agent self-improvement is scoped to skills, memory, plugins, and config under `/opt/data`. The installed core source under `/opt/jettstui` is immutable; core changes are made via PRs to the repo and shipped by updating the image, not by live-editing the running install.
 
-If an operator needs to repair or inspect files outside `/opt/data`, use a root shell intentionally. The `jetts-tui` shim normally drops `docker exec jetts-tui jetts-tui ...` back to the runtime user; set `JETTSTUI_DOCKER_EXEC_AS_ROOT=1` for a one-off root invocation when you explicitly need root semantics.
+If an operator needs to repair or inspect files outside `/opt/data`, use a root shell intentionally. The `jettstui` shim normally drops `docker exec jettstui jettstui ...` back to the runtime user; set `JETTSTUI_DOCKER_EXEC_AS_ROOT=1` for a one-off root invocation when you explicitly need root semantics.
 
 Skill CLIs that store credentials under `~` must be initialized against the subprocess HOME, not just the data-volume root. For example, the [xurl skill](./skills/bundled/social-media/social-media-xurl.md) stores OAuth state in `~/.xurl`; in the official Docker layout, JettsTUI tool calls read that as `/opt/data/home/.xurl`, so run manual xurl auth with `HOME=/opt/data/home` and verify with `HOME=/opt/data/home xurl auth status`.
 
@@ -199,44 +199,44 @@ Never run two JettsTUI **gateway** containers against the same data directory si
 
 JettsTUI supports [multiple profiles](../reference/profile-commands.md) — separate `~/.jettstui/` subdirectories that let you run independent agents (different SOUL, skills, memory, sessions, credentials) from a single installation. **Inside the official Docker image, the s6 supervision tree treats each profile as a first-class supervised service**, so the recommended deployment is **one container hosting all profiles**.
 
-Each profile created with `jetts-tui profile create <name>` gets:
+Each profile created with `jettstui profile create <name>` gets:
 
 - A dedicated s6 service slot at `/run/service/gateway-<name>/`, registered dynamically by the runtime — no container rebuild required.
 - Auto-restart on crash, backoff-managed by `s6-supervise`.
 - Per-profile rotated logs at `${JETTSTUI_HOME}/logs/gateways/<name>/current` (10 archives × 1 MB each).
-- State persistence across container restarts: the boot-time reconciler reads `gateway_state.json` from each profile directory and brings the slot back up only for profiles whose last recorded state was `running`. Only a gateway you explicitly stopped (`jetts-tui gateway stop`) stays down across a restart — a container restart, image upgrade, or unexpected exit leaves the recorded state as `running`, so the gateway auto-starts on the next boot.
+- State persistence across container restarts: the boot-time reconciler reads `gateway_state.json` from each profile directory and brings the slot back up only for profiles whose last recorded state was `running`. Only a gateway you explicitly stopped (`jettstui gateway stop`) stays down across a restart — a container restart, image upgrade, or unexpected exit leaves the recorded state as `running`, so the gateway auto-starts on the next boot.
 
 The lifecycle commands you'd run on the host work the same way from inside the container:
 
 ```sh
 # Create a profile — registers the gateway-<name> s6 slot.
-docker exec jetts-tui jetts-tui profile create coder
+docker exec jettstui jettstui profile create coder
 
 # Start / stop / restart — dispatches s6-svc; the gateway lifecycle survives docker restart.
-docker exec jetts-tui jetts-tui -p coder gateway start
-docker exec jetts-tui jetts-tui -p coder gateway stop
-docker exec jetts-tui jetts-tui -p coder gateway restart
+docker exec jettstui jettstui -p coder gateway start
+docker exec jettstui jettstui -p coder gateway stop
+docker exec jettstui jettstui -p coder gateway restart
 
 # Status — reports `Manager: s6 (container supervisor)` inside the container.
-docker exec jetts-tui jetts-tui -p coder gateway status
+docker exec jettstui jettstui -p coder gateway status
 
 # Remove a profile — tears down the s6 slot too.
-docker exec jetts-tui jetts-tui profile delete coder
+docker exec jettstui jettstui profile delete coder
 ```
 
-Under the hood, `jetts-tui gateway start/stop/restart` inside the container is intercepted and routed to `s6-svc` against the right service directory; you don't need to learn the s6 commands directly. For raw supervisor state, use `/command/s6-svstat /run/service/gateway-<name>` (note `/command/` is on PATH only for processes spawned by the supervision tree — when calling from `docker exec`, pass the absolute path).
+Under the hood, `jettstui gateway start/stop/restart` inside the container is intercepted and routed to `s6-svc` against the right service directory; you don't need to learn the s6 commands directly. For raw supervisor state, use `/command/s6-svstat /run/service/gateway-<name>` (note `/command/` is on PATH only for processes spawned by the supervision tree — when calling from `docker exec`, pass the absolute path).
 
 ### Reaching more than one profile from outside the container
 
 Two different surfaces reach a profile's gateway from outside, and they behave differently — don't conflate them:
 
-**JettsTUI Desktop (and the web dashboard).** The Desktop app's **Remote Gateway** connection talks to a `jetts-tui dashboard` backend (default **port 9119**, enabled by `JETTSTUI_DASHBOARD=1`) — *not* the OpenAI API server. One dashboard backend serves **every** co-located profile: the app's profile switcher sends the target profile with each request and the backend opens that profile's `JETTSTUI_HOME` on disk. So you do **not** need a second port — or a second connection — per profile for Desktop; one `:9119` connection covers them all through the switcher.
+**JettsTUI Desktop (and the web dashboard).** The Desktop app's **Remote Gateway** connection talks to a `jettstui dashboard` backend (default **port 9119**, enabled by `JETTSTUI_DASHBOARD=1`) — *not* the OpenAI API server. One dashboard backend serves **every** co-located profile: the app's profile switcher sends the target profile with each request and the backend opens that profile's `JETTSTUI_HOME` on disk. So you do **not** need a second port — or a second connection — per profile for Desktop; one `:9119` connection covers them all through the switcher.
 
 **OpenAI-compatible API clients (Open WebUI, LobeChat, `/v1/...`).** These talk to each profile's **API server**, which binds **port 8642 for every profile** (resolved from `API_SERVER_PORT` / `platforms.api_server.extra.port` — there is no auto-allocation and no `config.yaml`/`gateway.port` key). If you want a client to reach a *specific* second profile, give that profile a distinct `API_SERVER_PORT` in **its own** `.env`, otherwise its gateway tries to bind 8642 too and conflicts with the default profile:
 
 ```sh
 # Create the profile (registers its gateway-<name> s6 slot)
-docker exec jetts-tui jetts-tui profile create work
+docker exec jettstui jettstui profile create work
 
 # Point its API server at a free port (write to the profile's own .env)
 cat >> /opt/data/profiles/work/.env <<'EOF'
@@ -244,7 +244,7 @@ API_SERVER_ENABLED=true
 API_SERVER_PORT=8643
 EOF
 
-docker exec jetts-tui jetts-tui -p work gateway restart
+docker exec jettstui jettstui -p work gateway restart
 ```
 
 Keep `API_SERVER_PORT` in each profile's **own** `.env`, never in the container-wide `environment:` block — a global value would force every profile onto the same port and they would collide. With bridge networking, publish the extra port in `docker-compose.yml` (`- "8643:8643"`); with `network_mode: host` it is already reachable on the host. The default profile's 8642 connection is untouched.
@@ -257,7 +257,7 @@ Before the s6 migration, "one container per profile" was the recommended pattern
 |---|---|---|
 | Disk overhead | One image, one bundled venv, one Playwright cache | N images / N caches |
 | Memory overhead | Shared Python interpreter cache, shared node_modules | Duplicated per container |
-| Profile creation | `docker exec ... jetts-tui profile create <name>` (seconds) | New `docker run` invocation + port allocation + bind-mount config |
+| Profile creation | `docker exec ... jettstui profile create <name>` (seconds) | New `docker run` invocation + port allocation + bind-mount config |
 | Per-profile crash recovery | `s6-supervise` auto-restart | Docker's `--restart unless-stopped` (slower, kills sibling work) |
 | Logs | Per-profile rotated file via `s6-log`, plus container-boot audit log | `docker logs <name>` per container — no built-in rotation |
 | Backup | One `~/.jettstui` directory | N directories to coordinate |
@@ -306,10 +306,10 @@ The s6 container has four distinct log surfaces, and "why isn't my gateway showi
 
 | Source | Where it lands | How to read it |
 |---|---|---|
-| **Per-profile gateway** (`jetts-tui gateway run` and per-profile gateways under s6) | Tee'd to two places: `docker logs <container>` (real time, no extra prefix) **and** `${JETTSTUI_HOME}/logs/gateways/<profile>/current` (rotated, ISO-8601 timestamped, 10 archives × 1 MB each) | `docker logs -f jetts-tui` or `tail -F ~/.jettstui/logs/gateways/default/current` on the host |
-| **Dashboard** (when `JETTSTUI_DASHBOARD=1`) | `docker logs <container>` (no prefix) | `docker logs -f jetts-tui` — interleaved with gateway lines |
+| **Per-profile gateway** (`jettstui gateway run` and per-profile gateways under s6) | Tee'd to two places: `docker logs <container>` (real time, no extra prefix) **and** `${JETTSTUI_HOME}/logs/gateways/<profile>/current` (rotated, ISO-8601 timestamped, 10 archives × 1 MB each) | `docker logs -f jettstui` or `tail -F ~/.jettstui/logs/gateways/default/current` on the host |
+| **Dashboard** (when `JETTSTUI_DASHBOARD=1`) | `docker logs <container>` (no prefix) | `docker logs -f jettstui` — interleaved with gateway lines |
 | **Boot reconciler** (records which profile gateways were restored on each container start) | `${JETTSTUI_HOME}/logs/container-boot.log` (append-only audit log) | `tail -F ~/.jettstui/logs/container-boot.log` |
-| **Generic JettsTUI logs** (`agent.log`, `errors.log`) | `${JETTSTUI_HOME}/logs/` (profile-aware) | `docker exec jetts-tui jetts-tui logs --follow [--level WARNING] [--session <id>]` |
+| **Generic JettsTUI logs** (`agent.log`, `errors.log`) | `${JETTSTUI_HOME}/logs/` (profile-aware) | `docker exec jettstui jettstui logs --follow [--level WARNING] [--session <id>]` |
 
 Two practical consequences worth knowing:
 
@@ -342,7 +342,7 @@ For persistent deployment with both the gateway and dashboard, a `docker-compose
 services:
   jetts-tui:
     image: ghcr.io/raioshok/jetts-tui:latest
-    container_name: jetts-tui
+    container_name: jettstui
     restart: unless-stopped
     command: gateway run
     ports:
@@ -413,7 +413,7 @@ services:
       context: .
       dockerfile: Dockerfile.audio
     image: jetts-tui-agent-audio
-    container_name: jetts-tui
+    container_name: jettstui
     restart: unless-stopped
     command: gateway run
     volumes:
@@ -440,7 +440,7 @@ docker compose up -d --build
 To verify what PortAudio sees inside the container:
 
 ```sh
-docker exec jetts-tui /opt/jettstui/.venv/bin/python -c "import sounddevice as sd; print(sd.query_devices())"
+docker exec jettstui /opt/jettstui/.venv/bin/python -c "import sounddevice as sd; print(sd.query_devices())"
 ```
 
 ## Resource limits
@@ -459,7 +459,7 @@ Set limits in Docker:
 
 ```sh
 docker run -d \
-  --name jetts-tui \
+  --name jettstui \
   --restart unless-stopped \
   --memory=4g --cpus=2 \
   -v ~/.jettstui:/opt/data \
@@ -479,16 +479,16 @@ The official image is based on `debian:13.4` and includes:
 - The WhatsApp bridge (`scripts/whatsapp-bridge/`)
 - **[`s6-overlay`](https://github.com/just-containers/s6-overlay) v3** as PID 1 (replaces the older `tini`) — supervises the dashboard and per-profile gateways with auto-restart on crash, reaps zombie subprocesses, and forwards signals.
 
-The image treats `/opt/jettstui` as an immutable install tree at runtime. Optional Python extras, Node workspaces, and TUI assets that must be available inside Docker need to be baked during the image build; runtime lazy installs are disabled so supervised gateways and `docker exec jetts-tui …` commands do not try to write dependency artifacts back into the read-only source tree.
+The image treats `/opt/jettstui` as an immutable install tree at runtime. Optional Python extras, Node workspaces, and TUI assets that must be available inside Docker need to be baked during the image build; runtime lazy installs are disabled so supervised gateways and `docker exec jettstui …` commands do not try to write dependency artifacts back into the read-only source tree.
 
 The container's `ENTRYPOINT` is s6-overlay's `/init`. On boot it:
 1. Runs `/etc/cont-init.d/01-jettstui-setup` (= `docker/stage2-hook.sh`) as root: optional UID/GID remap, fixes volume ownership, seeds `.env` / `config.yaml` / `SOUL.md` on first boot, runs non-interactive config-schema migrations unless `JETTSTUI_SKIP_CONFIG_MIGRATION=1`, syncs bundled skills.
 2. Runs `/etc/cont-init.d/02-reconcile-profiles` (= `jettstui.container_boot`): walks `$JETTSTUI_HOME/profiles/<name>/`, recreates the per-profile gateway s6 service slot under `/run/service/gateway-<profile>/`, and auto-starts only those whose last recorded state was `running` (see [Per-profile gateway supervision](#per-profile-gateway-supervision)).
 3. Starts the static `main-jettstui` and `dashboard` s6-rc services.
 4. Exec's the container's CMD as the main program (`/opt/jettstui/docker/main-wrapper.sh`), which routes the arguments the user passed to `docker run`:
-   - no args → `jetts-tui` (the default)
+   - no args → `jettstui` (the default)
    - first arg is an executable on PATH (e.g. `sleep`, `bash`) → exec it directly
-   - anything else → `jetts-tui <args>` (subcommand passthrough)
+   - anything else → `jettstui <args>` (subcommand passthrough)
    The container exits when this main program exits, with its exit code.
 
 :::warning Breaking change vs. pre-s6 images
@@ -496,33 +496,33 @@ The container ENTRYPOINT is now `/init` (s6-overlay), not `/usr/bin/tini`. All f
 :::
 
 :::warning Privilege model
-Do not override the image entrypoint unless you keep `/init` (or, equivalently, the legacy `docker/entrypoint.sh` shim that forwards to the stage2 hook) in the command chain. s6-overlay's `/init` runs as root so it can chown the volume on first boot, then drops to the `jettstui` user via `s6-setuidgid` for every supervised service AND for the main program. Starting `jetts-tui gateway run` as root inside the official image is refused by default because it can leave root-owned files in `/opt/data` and break later dashboard or gateway starts. Set `JETTSTUI_ALLOW_ROOT_GATEWAY=1` only when you intentionally accept that risk.
+Do not override the image entrypoint unless you keep `/init` (or, equivalently, the legacy `docker/entrypoint.sh` shim that forwards to the stage2 hook) in the command chain. s6-overlay's `/init` runs as root so it can chown the volume on first boot, then drops to the `jettstui` user via `s6-setuidgid` for every supervised service AND for the main program. Starting `jettstui gateway run` as root inside the official image is refused by default because it can leave root-owned files in `/opt/data` and break later dashboard or gateway starts. Set `JETTSTUI_ALLOW_ROOT_GATEWAY=1` only when you intentionally accept that risk.
 :::
 
 ### `docker exec` automatically drops to the runtime user
 
-`docker exec jetts-tui jetts-tui <subcommand>` defaults to running as root inside the container, but the image ships a thin shim at `/opt/jettstui/bin/jetts-tui` (earliest on PATH) that detects root callers and transparently re-execs through `s6-setuidgid jettstui`. Commands such as `docker exec jetts-tui jetts-tui profile create coder` therefore write files owned by the runtime UID (10000 by default), readable by the supervised gateway. Non-root callers take a direct path to the venv binary. The shim applies only when the command is `jetts-tui`; a `docker exec` shell or another executable still runs as Docker's selected user.
+`docker exec jettstui jettstui <subcommand>` defaults to running as root inside the container, but the image ships a thin shim at `/opt/jettstui/bin/jetts-tui` (earliest on PATH) that detects root callers and transparently re-execs through `s6-setuidgid jettstui`. Commands such as `docker exec jettstui jettstui profile create coder` therefore write files owned by the runtime UID (10000 by default), readable by the supervised gateway. Non-root callers take a direct path to the venv binary. The shim applies only when the command is `jettstui`; a `docker exec` shell or another executable still runs as Docker's selected user.
 
 If you specifically need a `docker exec` that retains root semantics (diagnostic sessions, inspecting root-only state, files outside `/opt/data` that root happens to own), opt out per invocation:
 
 ```sh
-docker exec -e JETTSTUI_DOCKER_EXEC_AS_ROOT=1 jetts-tui jetts-tui <subcommand>
+docker exec -e JETTSTUI_DOCKER_EXEC_AS_ROOT=1 jettstui jettstui <subcommand>
 ```
 
 The shim accepts `1` / `true` / `yes` (case-insensitive). Anything else — including typos like `=0` — falls through to the drop, so silent opt-outs aren't possible. If `s6-setuidgid` isn't available (custom builds that stripped s6-overlay), the shim refuses to run as root and exits 126 instead of creating root-owned credentials.
 
 ### Per-profile gateway supervision
 
-Each profile created with `jetts-tui profile create <name>` automatically gets an s6-supervised gateway service registered at `/run/service/gateway-<name>/`, with state-persistent auto-restart across container restarts. See [Multi-profile support](#multi-profile-support) above for the user-facing workflow and the lifecycle commands.
+Each profile created with `jettstui profile create <name>` automatically gets an s6-supervised gateway service registered at `/run/service/gateway-<name>/`, with state-persistent auto-restart across container restarts. See [Multi-profile support](#multi-profile-support) above for the user-facing workflow and the lifecycle commands.
 
 **Supervision benefits over the pre-s6 image:**
 
 - Gateway crashes are auto-restarted by `s6-supervise` after a ~1s backoff.
 - Dashboard, when enabled with `JETTSTUI_DASHBOARD=1`, is supervised on the same supervision tree and gets the same auto-restart treatment.
-- `docker restart`, image upgrades (`docker compose up -d --force-recreate`), and unexpected exits preserve running gateways: the cont-init reconciler reads `$JETTSTUI_HOME/profiles/<name>/gateway_state.json` and brings the slot back up if the last recorded state was `running`. Only an explicit `jetts-tui gateway stop` records `stopped` and keeps the gateway down across the restart; the container/s6 SIGTERM sent on a restart or upgrade is treated as "still running" and auto-starts.
+- `docker restart`, image upgrades (`docker compose up -d --force-recreate`), and unexpected exits preserve running gateways: the cont-init reconciler reads `$JETTSTUI_HOME/profiles/<name>/gateway_state.json` and brings the slot back up if the last recorded state was `running`. Only an explicit `jettstui gateway stop` records `stopped` and keeps the gateway down across the restart; the container/s6 SIGTERM sent on a restart or upgrade is treated as "still running" and auto-starts.
 - Per-profile gateway logs persist under `$JETTSTUI_HOME/logs/gateways/<profile>/current` (rotated by `s6-log`), and the reconciler's actions are appended to `$JETTSTUI_HOME/logs/container-boot.log` per boot. See [Where the logs go](#where-the-logs-go) for the full routing map.
 
-`jetts-tui status` inside the container reports `Manager: s6 (container supervisor)`. Use `/command/s6-svstat /run/service/gateway-<name>` for the raw supervisor view (note `/command/` is on PATH for supervision-tree processes only; pass the absolute path when calling from `docker exec`).
+`jettstui status` inside the container reports `Manager: s6 (container supervisor)`. Use `/command/s6-svstat /run/service/gateway-<name>` for the raw supervisor view (note `/command/` is on PATH for supervision-tree processes only; pass the absolute path when calling from `docker exec`).
 
 ## Upgrading
 
@@ -534,9 +534,9 @@ When a migration is needed, JettsTUI writes timestamped backups next to
 
 ```sh
 docker pull ghcr.io/raioshok/jetts-tui:latest
-docker rm -f jetts-tui
+docker rm -f jettstui
 docker run -d \
-  --name jetts-tui \
+  --name jettstui \
   --restart unless-stopped \
   -v ~/.jettstui:/opt/data \
   ghcr.io/raioshok/jetts-tui gateway run
@@ -593,7 +593,7 @@ Build it and use it in place of the official image:
 ```sh
 docker build -t my-jetts-tui:latest .
 docker run -d \
-  --name jetts-tui \
+  --name jettstui \
   --restart unless-stopped \
   -v ~/.jettstui:/opt/data \
   -p 8642:8642 \
@@ -610,7 +610,7 @@ For tools that bring their own service (a database, a web server, a queue, a hea
 services:
   jetts-tui:
     image: ghcr.io/raioshok/jetts-tui:latest
-    container_name: jetts-tui
+    container_name: jettstui
     restart: unless-stopped
     command: gateway run
     ports:
@@ -668,7 +668,7 @@ services:
 
   jetts-tui:
     image: ghcr.io/raioshok/jetts-tui:latest
-    container_name: jetts-tui
+    container_name: jettstui
     restart: unless-stopped
     command: gateway run
     ports:
@@ -708,7 +708,7 @@ If your inference server runs directly on the host (not in Docker), use `host.do
 
 ```sh
 docker run -d \
-  --name jetts-tui \
+  --name jettstui \
   -v ~/.jettstui:/opt/data \
   -p 8642:8642 \
   ghcr.io/raioshok/jetts-tui gateway run
@@ -727,7 +727,7 @@ model:
 
 ```sh
 docker run -d \
-  --name jetts-tui \
+  --name jettstui \
   --network host \
   -v ~/.jettstui:/opt/data \
   ghcr.io/raioshok/jetts-tui gateway run
@@ -750,7 +750,7 @@ model:
 From inside the JettsTUI container, confirm the inference server is reachable:
 
 ```sh
-docker exec jetts-tui curl -s http://vllm:8000/v1/models
+docker exec jettstui curl -s http://vllm:8000/v1/models
 ```
 
 You should see a JSON response listing your served model. If this fails, check:
@@ -775,7 +775,7 @@ model:
 
 ### Container exits immediately
 
-Check logs: `docker logs jetts-tui`. Common causes:
+Check logs: `docker logs jettstui`. Common causes:
 - Missing or invalid `.env` file — run interactively first to complete setup
 - Port conflicts if running with exposed ports
 
@@ -791,13 +791,13 @@ On a NAS (UGOS, Synology, unRAID) the data directory is typically a **bind mount
 
 ```sh
 docker run -d \
-  --name jetts-tui \
+  --name jettstui \
   -e PUID=1000 -e PGID=10 \
   -v /volume1/docker/jetts-tui:/opt/data \
   ghcr.io/raioshok/jetts-tui gateway run
 ```
 
-`docker exec jetts-tui jetts-tui <subcommand>` drops to the configured runtime UID; other `docker exec` commands do not. See [`docker exec` automatically drops to the runtime user](#docker-exec-automatically-drops-to-the-runtime-user) for details and the per-invocation opt-out.
+`docker exec jettstui jettstui <subcommand>` drops to the configured runtime UID; other `docker exec` commands do not. See [`docker exec` automatically drops to the runtime user](#docker-exec-automatically-drops-to-the-runtime-user) for details and the per-invocation opt-out.
 
 ### Browser tools not working
 
@@ -805,7 +805,7 @@ Playwright needs shared memory. Add `--shm-size=1g` to your Docker run command:
 
 ```sh
 docker run -d \
-  --name jetts-tui \
+  --name jettstui \
   --shm-size=1g \
   -v ~/.jettstui:/opt/data \
   ghcr.io/raioshok/jetts-tui gateway run
@@ -816,13 +816,13 @@ docker run -d \
 The `--restart unless-stopped` flag handles most transient failures. If the gateway is stuck, restart the container:
 
 ```sh
-docker restart jetts-tui
+docker restart jettstui
 ```
 
 ### Checking container health
 
 ```sh
-docker logs --tail 50 jetts-tui          # Recent logs
+docker logs --tail 50 jettstui          # Recent logs
 docker run -it --rm ghcr.io/raioshok/jetts-tui:latest version     # Verify version
-docker stats jetts-tui                    # Resource usage
+docker stats jettstui                    # Resource usage
 ```

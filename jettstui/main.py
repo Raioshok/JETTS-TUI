@@ -230,7 +230,7 @@ def _set_process_title() -> None:
     try:
         import setproctitle  # type: ignore[import-untyped]
 
-        setproctitle.setproctitle("jetts-tui")
+        setproctitle.setproctitle("jettstui")
         return
     except ImportError:
         pass
@@ -243,10 +243,10 @@ def _set_process_title() -> None:
         system = platform.system()
         if system == "Linux":
             libc = ctypes.CDLL("libc.so.6", use_errno=True)
-            libc.prctl(15, b"jetts-tui", 0, 0, 0)  # PR_SET_NAME = 15
+            libc.prctl(15, b"jettstui", 0, 0, 0)  # PR_SET_NAME = 15
         elif system == "Darwin":
             libc = ctypes.CDLL("libc.dylib", use_errno=True)
-            libc.pthread_setname_np(b"jetts-tui")
+            libc.pthread_setname_np(b"jettstui")
         # Windows: the .exe name is already ``jettstui.exe`` — nothing to do.
     except Exception:
         pass
@@ -2574,7 +2574,7 @@ def cmd_chat(args):
             "It looks like JettsTUI isn't configured yet -- no API keys or providers found."
         )
         print()
-        print("  Run:  jetts-tui setup")
+        print("  Run:  jettstui setup")
         print()
 
         from jettstui.setup import (
@@ -2596,7 +2596,7 @@ def cmd_chat(args):
             cmd_setup(args)
             return
         print()
-        print("You can run 'jetts-tui setup' at any time to configure.")
+        print("You can run 'jettstui setup' at any time to configure.")
         sys.exit(1)
 
     # Start update check in background (runs while other init happens).
@@ -4573,7 +4573,7 @@ def cmd_webhook(args):
 def cmd_slack(args):
     """Slack integration helpers.
 
-    Dispatches ``jetts-tui slack <subcommand>``. Currently supports:
+    Dispatches ``jettstui slack <subcommand>``. Currently supports:
       manifest — print or write a Slack app manifest with every gateway
                  command registered as a first-class slash.
     """
@@ -4581,13 +4581,13 @@ def cmd_slack(args):
     if sub in {None, ""}:
         # No subcommand — print usage hint.
         print(
-            "usage: jetts-tui slack <subcommand>\n"
+            "usage: jettstui slack <subcommand>\n"
             "\n"
             "subcommands:\n"
             "  manifest   Generate a Slack app manifest with every gateway\n"
             "             command registered as a native slash\n"
             "\n"
-            "Run `jetts-tui slack manifest -h` for details.",
+            "Run `jettstui slack manifest -h` for details.",
             file=sys.stderr,
         )
         return 1
@@ -7061,8 +7061,8 @@ def _print_curator_first_run_notice() -> None:
         f"~{days}d after installation; only agent-created skills are in "
         f"scope and nothing is ever auto-deleted (archive is recoverable)."
     )
-    print("  Preview now:  jetts-tui curator run --dry-run")
-    print("  Pause it:     jetts-tui curator pause")
+    print("  Preview now:  jettstui curator run --dry-run")
+    print("  Pause it:     jettstui curator pause")
     print(
         "  Docs:         https://github.com/Raioshok/JETTS-TUI/blob/main/docs/user-guide/features/curator.md"
     )
@@ -7237,7 +7237,7 @@ def _print_curator_recent_run_notice() -> None:
         print(f"  {line}")
     print(
         "  (This message shows once per curator run. "
-        "View anytime: jetts-tui curator status)"
+        "View anytime: jettstui curator status)"
     )
 
     # Stamp shown so we don't repeat on the next update.
@@ -13772,7 +13772,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
 
         print()
         print("Tip: You can now select a provider and model:")
-        print("  jetts-tui model            # Select provider and model")
+        print("  jettstui model            # Select provider and model")
 
         if gateway_fleet_restart_incomplete:
             # Code update itself succeeded, but at least one gateway still
@@ -15786,7 +15786,7 @@ def main():
     )
     fallback_subparsers.add_parser(
         "add",
-        help="Pick a provider + model (same picker as `jetts-tui model`) and append to the chain",
+        help="Pick a provider + model (same picker as `jettstui model`) and append to the chain",
     )
     fallback_subparsers.add_parser(
         "remove",
