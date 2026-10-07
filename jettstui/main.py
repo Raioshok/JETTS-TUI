@@ -9132,7 +9132,7 @@ def _jettstui_exe_shims(scripts_dir: Path) -> list[Path]:
     if not _is_windows():
         return []
 
-    names = set(_load_console_script_names()) or {"jettstui", "jettstui", "jettstui-acp"}
+    names = set(_load_console_script_names()) or {"jettstui", "jettstui-agent", "jettstui-acp"}
     # The gateway shim is not a [project.scripts] entry point, but older
     # update/install paths still rewrite and quarantine it.
     names.add("jettstui-gateway")

@@ -50,8 +50,9 @@ def test_venv_launcher_bypasses_uv_console_script_that_requires_realpath(tmp_pat
         venv_bin / "python",
         '#!/bin/sh\nprintf "%s\\n" "$@" > "$LAUNCH_RESULT"\n',
     )
-    (install_dir / "jettstui").write_text("# source entrypoint\n", encoding="utf-8")
-    (install_dir / "jettstui").write_text("# branded source entrypoint\n", encoding="utf-8")
+    # The checked-in launcher script; `jettstui/` beside it is the package dir.
+    (install_dir / "jettstui").mkdir()
+    (install_dir / "jetts-tui").write_text("# source entrypoint\n", encoding="utf-8")
     _make_executable(
         venv_bin / "jettstui",
         "#!/bin/sh\n"
@@ -88,18 +89,18 @@ def test_venv_launcher_bypasses_uv_console_script_that_requires_realpath(tmp_pat
 
     assert completed.returncode == 0, completed.stderr
     assert result.read_text(encoding="utf-8").splitlines() == [
-        str(install_dir / "jettstui"),
+        str(install_dir / "jetts-tui"),
         "--version",
     ]
 
-    branded = subprocess.run(
-        [command_dir / "jettstui", "--version"],
+    alias = subprocess.run(
+        [command_dir / "jetts-tui", "--version"],
         env=os.environ | {"LAUNCH_RESULT": str(result)},
         text=True,
         capture_output=True,
     )
-    assert branded.returncode == 0, branded.stderr
+    assert alias.returncode == 0, alias.stderr
     assert result.read_text(encoding="utf-8").splitlines() == [
-        str(install_dir / "jettstui"),
+        str(install_dir / "jetts-tui"),
         "--version",
     ]

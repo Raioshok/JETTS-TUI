@@ -410,7 +410,7 @@ COMMAND_LINK_DISPLAY_DIR="$(get_command_link_display_dir)"
 mkdir -p "$COMMAND_LINK_DIR"
 ln -sf "$JETTSTUI_BIN" "$COMMAND_LINK_DIR/jetts-tui"
 ln -sf "$VENV_DIR/bin/jettstui" "$COMMAND_LINK_DIR/jettstui"
-echo -e "${GREEN}✓${NC} Symlinked jettstui and jettstui → $COMMAND_LINK_DISPLAY_DIR/"
+echo -e "${GREEN}✓${NC} Symlinked jettstui and jetts-tui → $COMMAND_LINK_DISPLAY_DIR/"
 
 if is_termux; then
     export PATH="$COMMAND_LINK_DIR:$PATH"

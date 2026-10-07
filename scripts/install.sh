@@ -1641,8 +1641,10 @@ setup_path() {
 
     if [ "$USE_VENV" = true ]; then
         JETTSTUI_BIN="$INSTALL_DIR/venv/bin/python"
-        JETTSTUI_ENTRYPOINT="$INSTALL_DIR/jettstui"
-        JETTS_ENTRYPOINT="$INSTALL_DIR/jetts-tui"
+        # The checked-in launcher script; `$INSTALL_DIR/jettstui` is the package
+        # directory, so both commands run through this one entrypoint.
+        JETTSTUI_ENTRYPOINT="$INSTALL_DIR/jetts-tui"
+        JETTS_ENTRYPOINT="$JETTSTUI_ENTRYPOINT"
     else
         JETTSTUI_BIN="$(which jettstui 2>/dev/null || echo "")"
         if [ -z "$JETTSTUI_BIN" ]; then
@@ -1716,7 +1718,7 @@ exec "$JETTSTUI_BIN" "\$@"
 EOF
     fi
     chmod +x "$command_link_dir/jetts-tui"
-    log_success "Installed JettsTUI launcher → $command_link_display_dir/jetts-tui"
+    log_success "Installed JettsTUI launcher → $command_link_display_dir/jettstui"
 
     if [ "$DISTRO" = "termux" ]; then
         export PATH="$command_link_dir:$PATH"

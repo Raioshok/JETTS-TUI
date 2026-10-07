@@ -1861,7 +1861,7 @@ function backendSupportsServe(backend) {
   let supported = null
 
   if (backend.root) {
-    for (const packageName of ['jettstui', 'jettstui']) {
+    for (const packageName of ['jettstui']) {
       try {
         const src = fs.readFileSync(path.join(backend.root, packageName, 'subcommands', 'dashboard.py'), 'utf8')
         supported = sourceDeclaresServe(src)
@@ -10589,7 +10589,7 @@ ipcMain.handle('jettstui:updates:branch:set', async (_event, name) => {
 function resolveJettsTUIVersion() {
   try {
     const root = resolveUpdateRoot()
-    const initPath = ['jettstui', 'jettstui']
+    const initPath = ['jettstui']
       .map(packageName => path.join(root, packageName, '__init__.py'))
       .find(fileExists)
 
