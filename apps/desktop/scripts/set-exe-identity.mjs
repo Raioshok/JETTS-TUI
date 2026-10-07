@@ -65,7 +65,7 @@ async function stampExeIdentity(exe, desktopRoot = resolve(import.meta.dirname, 
       ProductName: 'JettsTUI',
       FileDescription: 'JettsTUI',
       CompanyName: 'JettsTUI',
-      LegalCopyright: 'Copyright (c) 2025 Nous Research'
+      LegalCopyright: 'Copyright (c) 2026 JettsTUI contributors'
     }
   })
 

@@ -1778,7 +1778,7 @@ export interface StatusResponse {
    * (public bind, no ``--insecure``). Read alongside ``auth_providers``
    * to render a "gated / loopback" badge. */
   auth_required?: boolean;
-  /** Phase 7: registered ``DashboardAuthProvider`` names (e.g. ``["nous"]``).
+  /** Phase 7: registered ``DashboardAuthProvider`` names (e.g. ``["local"]``).
    * Empty in loopback mode; empty + ``auth_required=true`` is a
    * fail-closed state (the dashboard will refuse to bind). */
   auth_providers?: string[];
@@ -2225,7 +2225,6 @@ export interface ToolsetProvider {
   tag: string;
   env_vars: ToolsetProviderEnvVar[];
   post_setup: string | null;
-  requires_nous_auth: boolean;
   is_active: boolean;
 }
 

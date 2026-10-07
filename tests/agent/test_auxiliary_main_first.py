@@ -111,11 +111,11 @@ class TestResolveAutoMainFirst:
         # aggregator's base_url.
         assert mock_resolve.call_args.kwargs.get("explicit_base_url") in (None, "")
 
-    def test_nous_main_uses_main_model_for_aux(self, monkeypatch):
-        """JettsTUI Portal main user → aux uses their picked Nous model, not free-tier MiMo."""
+    def test_acme_main_uses_main_model_for_aux(self, monkeypatch):
+        """JettsTUI Portal main user → aux uses their picked Acme model, not free-tier MiMo."""
         # No OPENROUTER_API_KEY → ensures if main failed we'd fall to chain
         with patch(
-            "agent.auxiliary_client._read_main_provider", return_value="nous",
+            "agent.auxiliary_client._read_main_provider", return_value="acme",
         ), patch(
             "agent.auxiliary_client._read_main_model",
             return_value="anthropic/claude-opus-4.6",
@@ -131,7 +131,7 @@ class TestResolveAutoMainFirst:
 
         assert client is mock_client
         assert model == "anthropic/claude-opus-4.6"
-        assert mock_resolve.call_args.args[0] == "nous"
+        assert mock_resolve.call_args.args[0] == "acme"
 
     def test_non_aggregator_main_still_uses_main(self, monkeypatch):
         """Non-aggregator main (DeepSeek) → unchanged behavior, main model used."""
@@ -506,7 +506,7 @@ class TestResolveVisionMainFirst:
         assert "default_headers" not in mock_openai.call_args.kwargs
 
     def test_main_unavailable_vision_falls_through_to_aggregators(self):
-        """Main provider fails → fall back to OpenRouter/Nous strict backends."""
+        """Main provider fails → fall back to OpenRouter/Acme strict backends."""
         fallback_client = MagicMock()
         with patch(
             "agent.auxiliary_client._read_main_provider", return_value="deepseek",
@@ -562,7 +562,7 @@ class TestResolveVisionCustomProvider:
     Regression: a ``custom:<name>`` main provider resolves to the bare
     runtime provider id ``"custom"``.  ``resolve_provider_client("custom")``
     has no built-in endpoint, so without forwarding the live base_url/api_key
-    it returns ``(None, None)`` and vision falls through to OpenRouter / Nous,
+    it returns ``(None, None)`` and vision falls through to OpenRouter / Acme,
     which an offline / aggregator-less user has never configured — breaking
     vision entirely with ``No LLM provider configured for task=vision
     provider=auto``.  The fix recovers the live endpoint that

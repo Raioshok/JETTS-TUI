@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for the OpenRouter-compatible image gen provider (OpenRouter + Nous)."""
+"""Tests for the OpenRouter-compatible image gen provider (OpenRouter + Acme)."""
 
 from __future__ import annotations
 

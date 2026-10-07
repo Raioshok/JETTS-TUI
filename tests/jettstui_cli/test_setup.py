@@ -14,7 +14,7 @@ def _maybe_keep_current_tts(question, choices):
 
 def _clear_provider_env(monkeypatch):
     for key in (
-        "NOUS_API_KEY",
+        "ACME_API_KEY",
         "OPENROUTER_API_KEY",
         "OPENAI_BASE_URL",
         "OPENAI_API_KEY",
@@ -93,8 +93,8 @@ def test_setup_syncs_openrouter_from_disk(tmp_path, monkeypatch):
     assert reloaded["model"]["provider"] == "openrouter"
 
 
-def test_setup_syncs_nous_from_disk(tmp_path, monkeypatch):
-    """Nous OAuth writes config to disk; wizard config dict must pick it up."""
+def test_setup_syncs_acme_from_disk(tmp_path, monkeypatch):
+    """Acme OAuth writes config to disk; wizard config dict must pick it up."""
     monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path))
     _clear_provider_env(monkeypatch)
     _stub_tts(monkeypatch)
@@ -102,7 +102,7 @@ def test_setup_syncs_nous_from_disk(tmp_path, monkeypatch):
     config = load_config()
 
     def fake_select():
-        _write_model_config(tmp_path, "nous", "https://inference.example.com/v1", "gemini-3-flash")
+        _write_model_config(tmp_path, "acme", "https://inference.example.com/v1", "gemini-3-flash")
 
     monkeypatch.setattr("jettstui.main.select_provider_and_model", fake_select)
 
@@ -111,7 +111,7 @@ def test_setup_syncs_nous_from_disk(tmp_path, monkeypatch):
 
     reloaded = load_config()
     assert isinstance(reloaded["model"], dict)
-    assert reloaded["model"]["provider"] == "nous"
+    assert reloaded["model"]["provider"] == "acme"
     assert reloaded["model"]["base_url"] == "https://inference.example.com/v1"
 
 

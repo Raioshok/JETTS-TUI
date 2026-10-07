@@ -107,7 +107,7 @@ jettstui profile rename A B | alias NAME | export NAME | import FILE
 
 ```
 jettstui auth                 Interactive credential manager
-jettstui auth add [PROVIDER]  Add OAuth or API-key credential (nous, openai-codex, qwen-oauth, …)
+jettstui auth add [PROVIDER]  Add OAuth or API-key credential (openai-codex, qwen-oauth, …)
 jettstui auth list|remove P IDX|reset PROVIDER|status
 ```
 Multiple credentials per provider form a pool that rotates automatically and skips exhausted keys.

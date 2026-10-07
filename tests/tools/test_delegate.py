@@ -239,7 +239,7 @@ class TestStripBlockedTools(unittest.TestCase):
         ):
             self.assertIn(toolset_name, disabled)
         # code_execution is deliberately NOT denied — children keep
-        # execute_code for programmatic tool calling (Teknium, Jul 2026).
+        # execute_code for programmatic tool calling (Alice, Jul 2026).
         self.assertNotIn("code_execution", disabled)
 
         definitions = model_tools.get_tool_definitions(
@@ -1246,7 +1246,7 @@ class TestBlockedTools(unittest.TestCase):
     def test_execute_code_not_blocked(self):
         """Children retain execute_code (programmatic tool calling) so they
         can batch mechanical work instead of burning reasoning iterations
-        (Teknium, Jul 2026)."""
+        (Alice, Jul 2026)."""
         self.assertNotIn("execute_code", DELEGATE_BLOCKED_TOOLS)
 
     def test_constants(self):
@@ -1475,7 +1475,7 @@ class TestDelegationCredentialResolution(unittest.TestCase):
     def test_standard_provider_not_overwritten_by_configured_name(self, mock_resolve):
         """Standard (non-custom) providers must still return runtime identity,
         not the configured name, to preserve existing behaviour for openrouter,
-        nous, etc.
+        acme, etc.
         """
         mock_resolve.return_value = {
             "provider": "openrouter",
@@ -1594,7 +1594,7 @@ class TestDelegationProviderIntegration(unittest.TestCase):
     @patch("tools.delegate_tool._load_config")
     @patch("tools.delegate_tool._resolve_delegation_credentials")
     def test_cross_provider_delegation(self, mock_creds, mock_cfg):
-        """Parent on Nous, subagent on OpenRouter — full credential switch."""
+        """Parent on Acme, subagent on OpenRouter — full credential switch."""
         mock_cfg.return_value = {
             "max_iterations": 45,
             "model": "google/gemini-3-flash-preview",
@@ -1608,9 +1608,9 @@ class TestDelegationProviderIntegration(unittest.TestCase):
             "api_mode": "chat_completions",
         }
         parent = _make_mock_parent(depth=0)
-        parent.provider = "nous"
+        parent.provider = "acme"
         parent.base_url = "https://inference-api.jettstui.dev/v1"
-        parent.api_key = "nous-key-abc"
+        parent.api_key = "acme-key-abc"
 
         with patch("run_agent.AIAgent") as MockAgent:
             mock_child = MagicMock()
@@ -1622,7 +1622,7 @@ class TestDelegationProviderIntegration(unittest.TestCase):
             delegate_task(goal="Cross-provider test", parent_agent=parent)
 
             _, kwargs = MockAgent.call_args
-            # Child should use OpenRouter, NOT Nous
+            # Child should use OpenRouter, NOT Acme
             self.assertEqual(kwargs["provider"], "openrouter")
             self.assertEqual(kwargs["base_url"], "https://openrouter.ai/api/v1")
             self.assertEqual(kwargs["api_key"], "sk-or-key")
@@ -1687,7 +1687,7 @@ class TestDelegationProviderIntegration(unittest.TestCase):
             "api_mode": None,
         }
         parent = _make_mock_parent(depth=0)
-        parent.provider = "nous"
+        parent.provider = "acme"
         parent.providers_allowed = ["deepseek"]
         parent.providers_ignored = ["deepinfra"]
         parent.providers_order = ["anthropic"]

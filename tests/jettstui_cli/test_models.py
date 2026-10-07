@@ -331,11 +331,11 @@ class TestDetectProviderForModel:
             assert detect_provider_for_model("nonexistent-model-xyz", "openai-codex") is None
 
     def test_aggregator_not_suggested(self):
-        """nous/openrouter should never be auto-suggested as target provider."""
+        """acme/openrouter should never be auto-suggested as target provider."""
         with patch("jettstui.models.fetch_openrouter_models", return_value=LIVE_OPENROUTER_MODELS):
             result = detect_provider_for_model("claude-opus-4-6", "openai-codex")
         assert result is not None
-        assert result[0] not in {"nous",}  # nous has claude models but shouldn't be suggested
+        assert result[0] not in {"acme",}  # acme has claude models but shouldn't be suggested
 
     def test_custom_provider_not_overridden_by_static_catalog(self):
         """When current provider is custom:*, a static-catalog match must NOT

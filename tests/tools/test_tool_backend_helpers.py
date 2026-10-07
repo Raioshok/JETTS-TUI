@@ -182,59 +182,59 @@ class TestResolveModalBackendState:
     """Full matrix of direct vs managed Modal backend selection."""
 
     @staticmethod
-    def _resolve(monkeypatch, mode, *, has_direct, managed_ready, nous_enabled=False):
+    def _resolve(monkeypatch, mode, *, has_direct, managed_ready, acme_enabled=False):
         """Helper to call resolve_modal_backend_state with feature flag control."""
         return resolve_modal_backend_state(
             mode,
             has_direct=has_direct,
             managed_ready=managed_ready,
-            managed_enabled=nous_enabled,
+            managed_enabled=acme_enabled,
         )
 
     # --- auto mode ---
 
     def test_auto_prefers_managed_when_available(self, monkeypatch):
-        result = self._resolve(monkeypatch, "auto", has_direct=True, managed_ready=True, nous_enabled=True)
+        result = self._resolve(monkeypatch, "auto", has_direct=True, managed_ready=True, acme_enabled=True)
         assert result["selected_backend"] == "managed"
 
     def test_auto_falls_back_to_direct(self, monkeypatch):
-        result = self._resolve(monkeypatch, "auto", has_direct=True, managed_ready=False, nous_enabled=True)
+        result = self._resolve(monkeypatch, "auto", has_direct=True, managed_ready=False, acme_enabled=True)
         assert result["selected_backend"] == "direct"
 
     def test_auto_no_backends_available(self, monkeypatch):
         result = self._resolve(monkeypatch, "auto", has_direct=False, managed_ready=False)
         assert result["selected_backend"] is None
 
-    def test_auto_managed_ready_but_nous_disabled(self, monkeypatch):
-        result = self._resolve(monkeypatch, "auto", has_direct=True, managed_ready=True, nous_enabled=False)
+    def test_auto_managed_ready_but_acme_disabled(self, monkeypatch):
+        result = self._resolve(monkeypatch, "auto", has_direct=True, managed_ready=True, acme_enabled=False)
         assert result["selected_backend"] == "direct"
 
-    def test_auto_nothing_when_only_managed_and_nous_disabled(self, monkeypatch):
-        result = self._resolve(monkeypatch, "auto", has_direct=False, managed_ready=True, nous_enabled=False)
+    def test_auto_nothing_when_only_managed_and_acme_disabled(self, monkeypatch):
+        result = self._resolve(monkeypatch, "auto", has_direct=False, managed_ready=True, acme_enabled=False)
         assert result["selected_backend"] is None
 
     # --- direct mode ---
 
     def test_direct_selects_direct_when_available(self, monkeypatch):
-        result = self._resolve(monkeypatch, "direct", has_direct=True, managed_ready=True, nous_enabled=True)
+        result = self._resolve(monkeypatch, "direct", has_direct=True, managed_ready=True, acme_enabled=True)
         assert result["selected_backend"] == "direct"
 
     def test_direct_none_when_no_credentials(self, monkeypatch):
-        result = self._resolve(monkeypatch, "direct", has_direct=False, managed_ready=True, nous_enabled=True)
+        result = self._resolve(monkeypatch, "direct", has_direct=False, managed_ready=True, acme_enabled=True)
         assert result["selected_backend"] is None
 
     # --- managed mode ---
 
     def test_managed_selects_managed_when_ready_and_enabled(self, monkeypatch):
-        result = self._resolve(monkeypatch, "managed", has_direct=True, managed_ready=True, nous_enabled=True)
+        result = self._resolve(monkeypatch, "managed", has_direct=True, managed_ready=True, acme_enabled=True)
         assert result["selected_backend"] == "managed"
 
     def test_managed_none_when_not_ready(self, monkeypatch):
-        result = self._resolve(monkeypatch, "managed", has_direct=True, managed_ready=False, nous_enabled=True)
+        result = self._resolve(monkeypatch, "managed", has_direct=True, managed_ready=False, acme_enabled=True)
         assert result["selected_backend"] is None
 
-    def test_managed_blocked_when_nous_disabled(self, monkeypatch):
-        result = self._resolve(monkeypatch, "managed", has_direct=True, managed_ready=True, nous_enabled=False)
+    def test_managed_blocked_when_acme_disabled(self, monkeypatch):
+        result = self._resolve(monkeypatch, "managed", has_direct=True, managed_ready=True, acme_enabled=False)
         assert result["selected_backend"] is None
         assert result["managed_mode_blocked"] is True
 

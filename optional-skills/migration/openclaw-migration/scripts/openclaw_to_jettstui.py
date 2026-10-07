@@ -2990,14 +2990,12 @@ def _default_target_home() -> str:
 
         return str(get_jettstui_home())
     except ImportError:
-        # The skill can be copied without the Python runtime. Avoid creating
-        # a new empty home beside existing data in that standalone case.
+        # The skill can be copied without the Python runtime: use the
+        # platform-native default home.
         if os.name == "nt":
             base = Path(os.environ.get("LOCALAPPDATA") or Path.home() / "AppData" / "Local")
-            new, old = base / "jettstui", base / "freeide"
-        else:
-            new, old = Path.home() / ".jettstui", Path.home() / ".freeide"
-        return str(new if new.exists() or not old.exists() else old)
+            return str(base / "jettstui")
+        return str(Path.home() / ".jettstui")
 
 
 def parse_args() -> argparse.Namespace:

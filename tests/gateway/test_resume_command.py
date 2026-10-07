@@ -830,7 +830,7 @@ class TestSameOriginChatGroupScoping:
         assert runner._same_origin_chat(a, b) is False
 
     def test_dm_no_identity_no_chat_id_fails_closed(self):
-        # teknium1 review: an identity-less no-chat_id DM must fail closed rather
+        # octocat review: an identity-less no-chat_id DM must fail closed rather
         # than be treated as a shared origin.
         runner = _make_runner()
         a = self._src(None, chat_type="dm", chat_id=None)

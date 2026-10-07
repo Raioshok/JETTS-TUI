@@ -10,7 +10,6 @@ Full docs: https://github.com/Raioshok/JETTS-TUI/blob/main/docs/integrations/pro
 |----------|------|----------------|
 | openrouter | API key | `OPENROUTER_API_KEY` |
 | anthropic | API key | `ANTHROPIC_API_KEY` (also `CLAUDE_CODE_OAUTH_TOKEN`) |
-| nous | OAuth device code | `jettstui auth add nous` (or `NOUS_API_KEY`) |
 | openai-codex | OAuth | `jettstui auth add openai-codex` |
 | qwen-oauth | OAuth | `jettstui auth add qwen-oauth` |
 | minimax-oauth | OAuth | `jettstui auth add minimax-oauth` |

@@ -30,7 +30,7 @@ function provider(id: string, loggedIn: boolean, patch: Partial<OAuthProvider> =
     docs_url: '',
     flow: 'device_code',
     id,
-    name: id === 'nous' ? 'JettsTUI Portal' : 'MiniMax',
+    name: id === 'acme' ? 'Acme Cloud' : 'MiniMax',
     status: {
       logged_in: loggedIn
     },
@@ -60,9 +60,9 @@ function keyVar(patch: Partial<EnvVarInfo> = {}): EnvVarInfo {
 beforeEach(() => {
   onboarding.set({ manual: false })
   getEnvVars.mockResolvedValue({})
-  disconnectOAuthProvider.mockResolvedValue({ ok: true, provider: 'nous' })
+  disconnectOAuthProvider.mockResolvedValue({ ok: true, provider: 'acme' })
   listOAuthProviders.mockResolvedValue({
-    providers: [provider('nous', true), provider('minimax-oauth', false)]
+    providers: [provider('acme', true), provider('minimax-oauth', false)]
   })
   vi.spyOn(window, 'confirm').mockReturnValue(true)
 })
@@ -84,27 +84,15 @@ async function renderProvidersSettings() {
 }
 
 describe('ProvidersSettings', () => {
-  it('does not offer sign-in to a disconnected legacy account', async () => {
-    listOAuthProviders.mockResolvedValue({
-      providers: [provider('nous', false), provider('minimax-oauth', false)]
-    })
-    await renderProvidersSettings()
-
-    expect(screen.queryByText('Legacy account (nous)')).toBeNull()
-    expect(screen.getByText('MiniMax')).toBeTruthy()
-    expect(screen.getByText('Fireworks AI')).toBeTruthy()
-    expect(screen.getByText('OpenRouter')).toBeTruthy()
-  })
-
   it('disconnects a connected provider account and refreshes the accounts list', async () => {
     await renderProvidersSettings()
 
-    const remove = await screen.findByRole('button', { name: 'Remove Legacy account (nous)' })
+    const remove = await screen.findByRole('button', { name: 'Remove Acme Cloud' })
     await act(async () => {
       fireEvent.click(remove)
     })
 
-    await waitFor(() => expect(disconnectOAuthProvider).toHaveBeenCalledWith('nous'))
+    await waitFor(() => expect(disconnectOAuthProvider).toHaveBeenCalledWith('acme'))
     expect(listOAuthProviders).toHaveBeenCalledTimes(2)
   })
 
@@ -112,10 +100,10 @@ describe('ProvidersSettings', () => {
     await renderProvidersSettings()
 
     await act(async () => {
-      fireEvent.click(await screen.findByText('Legacy account (nous)'))
+      fireEvent.click(await screen.findByText('Acme Cloud'))
     })
 
-    expect(startManualProviderOAuth).toHaveBeenCalledWith('nous')
+    expect(startManualProviderOAuth).toHaveBeenCalledWith('acme')
     expect(disconnectOAuthProvider).not.toHaveBeenCalled()
   })
 

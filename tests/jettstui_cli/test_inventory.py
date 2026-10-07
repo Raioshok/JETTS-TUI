@@ -191,7 +191,7 @@ def test_build_models_payload_does_not_call_provider_model_ids():
     caching). ``build_models_payload`` itself must not call the live fetcher
     directly; the test pins that boundary.
     """
-    rows = [{"slug": "nous", "name": "Nous", "models": ["jettstui-4-405b"],
+    rows = [{"slug": "acme", "name": "Acme", "models": ["jettstui-4-405b"],
              "total_models": 1, "is_current": False, "is_user_defined": False,
              "source": "built-in"}]
     ctx = _empty_ctx()
@@ -322,7 +322,7 @@ def test_explicit_only_filters_ambient_credentials_but_keeps_current_and_custom_
         {"slug": "copilot", "name": "Copilot", "models": ["gpt-5.4"],
          "total_models": 1, "is_current": False, "is_user_defined": False,
          "source": "jettstui"},
-        {"slug": "nous", "name": "Nous", "models": ["anthropic/claude-sonnet-5"],
+        {"slug": "acme", "name": "Acme", "models": ["anthropic/claude-sonnet-5"],
          "total_models": 1, "is_current": False, "is_user_defined": False,
          "source": "jettstui"},
         {"slug": "custom:lab", "name": "Lab", "models": ["lab-1"],
@@ -957,7 +957,7 @@ def test_apply_featured_keeps_newest_n_per_lab():
     # One lab ("a") with N+2 dated models, plus a second lab so the row counts
     # as a multi-lab aggregator.
     a_models = [f"a/m{i}" for i in range(_FEATURED_PER_LAB + 2)]
-    rows = [{"slug": "nous", "models": [*a_models, "b/solo"]}]
+    rows = [{"slug": "acme", "models": [*a_models, "b/solo"]}]
     # m0 newest … m{N+1} oldest (descending dates), b/solo dated in the middle.
     dates = {f"a/m{i}": f"2026-{12 - i:02d}-01" for i in range(_FEATURED_PER_LAB + 2)}
     dates["b/solo"] = "2026-01-01"
@@ -974,7 +974,7 @@ def test_apply_featured_keeps_whole_lab_when_under_the_cap():
     """A lab with <= _FEATURED_PER_LAB models keeps all of them."""
     rows = [
         {
-            "slug": "nous",
+            "slug": "acme",
             "models": ["anthropic/opus", "anthropic/haiku", "google/gemini"],
         }
     ]
@@ -998,7 +998,7 @@ def test_apply_featured_keeps_whole_lab_when_under_the_cap():
 def test_apply_featured_ranks_within_list_not_against_now():
     """The kept models are the newest *in the list*, even if every model is old
     — the current date never enters the comparison."""
-    rows = [{"slug": "nous", "models": ["a/one", "a/two", "b/three"]}]
+    rows = [{"slug": "acme", "models": ["a/one", "a/two", "b/three"]}]
     _apply_featured_with_dates(
         rows,
         {"a/one": "2019-01-01", "a/two": "2020-01-01", "b/three": "2018-06-01"},
@@ -1015,7 +1015,7 @@ def test_apply_featured_tie_breaks_on_list_order():
     # N+1 same-dated models in lab "x" so exactly one must be dropped; the LAST
     # one in list order loses the tie.
     x_models = [f"x/m{i}" for i in range(_FEATURED_PER_LAB + 1)]
-    rows = [{"slug": "nous", "models": [*x_models, "y/solo"]}]
+    rows = [{"slug": "acme", "models": [*x_models, "y/solo"]}]
     dates = {m: "2026-07-09" for m in x_models}
     dates["y/solo"] = "2026-01-01"
     _apply_featured_with_dates(rows, dates)
@@ -1029,7 +1029,7 @@ def test_apply_featured_tie_breaks_on_list_order():
 def test_apply_featured_undated_lab_falls_back_to_list_order():
     """A lab whose models have no models.dev date keeps them in list order
     (undated sorts last, ties broken by position), up to the per-lab cap."""
-    rows = [{"slug": "nous", "models": ["a/first", "a/second", "b/only"]}]
+    rows = [{"slug": "acme", "models": ["a/first", "a/second", "b/only"]}]
     _apply_featured_with_dates(rows, {"b/only": "2026-01-01"})  # a/* undated
     # Both undated "a" models kept (2 <= 5), in list order; "b" kept.
     assert rows[0]["featured_models"] == ["a/first", "a/second", "b/only"]

@@ -175,7 +175,6 @@ export const zh: Translations = {
   },
 
   billingBlock: {
-    titleNous: 'JettsTUI 额度已用尽',
     titleProvider: provider => `额度已用尽 — ${provider}`,
     fallbackMessage: '您的账户额度已用尽。请充值以继续使用。',
     openBilling: '打开账单',
@@ -1071,7 +1070,6 @@ export const zh: Translations = {
       needsSignIn: '需要登录',
       needsSetup: '需要安装',
       noApiKeyRequired: '不需要 API 密钥。',
-      legacyHostedUnavailable: '此托管服务已不可用。请选择使用您自己的 API 密钥的提供商。',
       postSetupHint: step => `此后端需要一次性安装 (${step})。将在此机器上执行，可能需要几分钟。`,
       postSetupInstalledHint: '已安装。仅在出现问题时才需要重新运行安装。',
       postSetupRun: '运行设置',

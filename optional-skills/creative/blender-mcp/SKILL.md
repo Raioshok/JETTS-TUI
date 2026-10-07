@@ -24,7 +24,7 @@ connected.
 
 ## Prerequisites
 
-1. Install the MCP server from the Nous catalog (one-time):
+1. Install the MCP server from the MCP catalog (one-time):
 
        jettstui mcp install blender
 

@@ -1599,21 +1599,21 @@ def test_seed_from_env_respects_openrouter_suppression(tmp_path, monkeypatch):
 # =============================================================================
 
 
-def test_seed_from_singletons_respects_nous_suppression(tmp_path, monkeypatch):
-    """nous device_code must not re-seed from auth.json when suppressed."""
+def test_seed_from_singletons_respects_acme_suppression(tmp_path, monkeypatch):
+    """acme device_code must not re-seed from auth.json when suppressed."""
     jettstui_home = tmp_path / "jettstui"
     jettstui_home.mkdir(parents=True, exist_ok=True)
     monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
     (jettstui_home / "auth.json").write_text(json.dumps({
         "version": 1,
-        "providers": {"nous": {"access_token": "tok", "refresh_token": "r", "expires_at": 9999999999}},
-        "suppressed_sources": {"nous": ["device_code"]},
+        "providers": {"acme": {"access_token": "tok", "refresh_token": "r", "expires_at": 9999999999}},
+        "suppressed_sources": {"acme": ["device_code"]},
     }))
 
     from agent.credential_pool import _seed_from_singletons
     entries = []
-    changed, active = _seed_from_singletons("nous", entries)
+    changed, active = _seed_from_singletons("acme", entries)
     assert changed is False
     assert entries == []
     assert active == set()

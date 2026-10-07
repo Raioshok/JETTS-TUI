@@ -79,7 +79,7 @@ class TestResolveRuntimeAgentKwargsAuthFallback:
             "  - provider: openrouter\n"
             "    model: anthropic/claude-sonnet-4.6\n"
             "fallback_model:\n"
-            "  provider: nous\n"
+            "  provider: acme\n"
             "  model: JettsTUI-4\n"
         )
 
@@ -93,9 +93,9 @@ class TestResolveRuntimeAgentKwargsAuthFallback:
             if requested == "openrouter":
                 raise RuntimeError("openrouter unavailable")
             return {
-                "api_key": "nous-key",
+                "api_key": "acme-key",
                 "base_url": "https://portal.jettstui.dev/v1",
-                "provider": "nous",
+                "provider": "acme",
                 "api_mode": "chat_completions",
                 "command": None,
                 "args": None,
@@ -110,6 +110,6 @@ class TestResolveRuntimeAgentKwargsAuthFallback:
 
             result = _try_resolve_fallback_provider()
 
-        assert calls == ["openrouter", "nous"]
-        assert result["provider"] == "nous"
+        assert calls == ["openrouter", "acme"]
+        assert result["provider"] == "acme"
         assert result["model"] == "JettsTUI-4"

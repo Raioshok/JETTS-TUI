@@ -130,10 +130,7 @@ function OAuthPicker({
   const { t } = useI18n()
   const p = t.settings.providers
 
-  const ordered = useMemo(
-    () => sortProviders(providers.filter(p => p.id !== 'nous' || p.status?.logged_in)),
-    [providers]
-  )
+  const ordered = useMemo(() => sortProviders(providers), [providers])
 
   if (ordered.length === 0) {
     return null

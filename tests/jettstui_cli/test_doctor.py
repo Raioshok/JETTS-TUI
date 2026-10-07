@@ -1127,7 +1127,7 @@ class TestDoctorXaiOAuthStatus:
     """The ◆ Auth Providers section must show xAI OAuth login state.
 
     xAI OAuth is checked in a *separate* try/except block so that an import
-    failure (or runtime exception) cannot silence the Nous / Codex / Gemini /
+    failure (or runtime exception) cannot silence the Acme / Codex / Gemini /
     MiniMax rows that were already printed above it.
     """
 

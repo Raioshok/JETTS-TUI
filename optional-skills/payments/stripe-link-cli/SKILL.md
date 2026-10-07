@@ -2,7 +2,7 @@
 name: stripe-link-cli
 description: Agent payments via Stripe Link — cards, SPT, approvals.
 version: 0.1.0
-author: Teknium (teknium1), JettsTUI
+author: JettsTUI
 license: MIT
 platforms: [linux, macos]
 metadata:

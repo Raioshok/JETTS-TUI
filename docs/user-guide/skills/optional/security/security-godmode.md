@@ -17,7 +17,7 @@ Jailbreak LLMs: Parseltongue, GODMODE, ULTRAPLINIAN.
 | Source | Optional — install with `jettstui skills install official/security/godmode` |
 | Path | `optional-skills/security/godmode` |
 | Version | `1.0.0` |
-| Author | JettsTUI + Teknium |
+| Author | JettsTUI |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `jailbreak`, `red-teaming`, `G0DM0D3`, `Parseltongue`, `GODMODE`, `uncensoring`, `safety-bypass`, `prompt-engineering`, `L1B3RT4S` |
@@ -346,7 +346,6 @@ print(response.choices[0].message.content)
 | GPT-4/4o (OpenAI) | OG GODMODE l33t + prefill | Responds to the classic divider format |
 | Gemini (Google) | Refusal inversion + rebel persona | Gemini's refusal can be semantically inverted |
 | Grok (xAI) | Unfiltered liberated + GODMODE divider | Grok is already less filtered; light prompting works |
-| JettsTUI (Nous) | No jailbreak needed | Already uncensored — use directly |
 | DeepSeek | Parseltongue + multi-attempt | Input classifiers are keyword-based; obfuscation effective |
 | Llama (Meta) | Prefill + simple system prompt | Open models respond well to prefill engineering |
 

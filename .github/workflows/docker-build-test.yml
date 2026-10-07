@@ -67,6 +67,5 @@ jobs:
           JETTSTUI_TEST_IMAGE: ${{ env.IMAGE_NAME }}:test
           OPENROUTER_API_KEY: ""
           OPENAI_API_KEY: ""
-          NOUS_API_KEY: ""
         run: |
           scripts/run_tests.sh tests/docker/ --file-timeout 600

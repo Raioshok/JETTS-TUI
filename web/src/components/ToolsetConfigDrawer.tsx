@@ -7,14 +7,14 @@ import type {
   ToolsetInfo,
   ToolsetProvider,
 } from "@/lib/api";
-import { useToast } from "@nous-research/ui/hooks/use-toast";
-import { Button } from "@nous-research/ui/ui/components/button";
-import { Input } from "@nous-research/ui/ui/components/input";
-import { Label } from "@nous-research/ui/ui/components/label";
-import { Badge } from "@nous-research/ui/ui/components/badge";
-import { Switch } from "@nous-research/ui/ui/components/switch";
-import { Spinner } from "@nous-research/ui/ui/components/spinner";
-import { Toast } from "@nous-research/ui/ui/components/toast";
+import { useToast } from "@jettstui/ui/hooks/use-toast";
+import { Button } from "@jettstui/ui/ui/components/button";
+import { Input } from "@jettstui/ui/ui/components/input";
+import { Label } from "@jettstui/ui/ui/components/label";
+import { Badge } from "@jettstui/ui/ui/components/badge";
+import { Switch } from "@jettstui/ui/ui/components/switch";
+import { Spinner } from "@jettstui/ui/ui/components/spinner";
+import { Toast } from "@jettstui/ui/ui/components/toast";
 import { cn, themedBody } from "@/lib/utils";
 
 interface Props {

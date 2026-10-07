@@ -26,7 +26,7 @@ async function probeWindowsRemote(ssh, explicitJettsTUIPath = '') {
     '$ErrorActionPreference="Stop"',
     `$explicit=${explicit}`,
     '$jettstuiHome=$env:JETTSTUI_HOME',
-    'if(-not $jettstuiHome){$newHome=Join-Path $env:LOCALAPPDATA "jettstui";$oldHome=Join-Path $env:LOCALAPPDATA "freeide";$jettstuiHome=if(Test-Path -LiteralPath $newHome){$newHome}elseif(Test-Path -LiteralPath $oldHome){$oldHome}else{$newHome}}',
+    'if(-not $jettstuiHome){$jettstuiHome=Join-Path $env:LOCALAPPDATA "jettstui"}',
     '$candidates=@()',
     'if($explicit){$candidates+=$explicit}',
     '$cmd=Get-Command jetts-tui.exe -ErrorAction SilentlyContinue',

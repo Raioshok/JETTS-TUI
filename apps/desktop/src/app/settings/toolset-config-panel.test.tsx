@@ -86,7 +86,6 @@ function config(overrides: Partial<ToolsetConfig> = {}): ToolsetConfig {
         tag: 'No API key needed',
         env_vars: [],
         post_setup: null,
-        requires_nous_auth: false,
         is_active: false
       },
       {
@@ -97,7 +96,6 @@ function config(overrides: Partial<ToolsetConfig> = {}): ToolsetConfig {
           { key: 'ELEVENLABS_API_KEY', prompt: 'ElevenLabs API key', url: 'https://x', default: null, is_set: false }
         ],
         post_setup: null,
-        requires_nous_auth: false,
         is_active: false
       }
     ],
@@ -160,7 +158,6 @@ describe('ToolsetConfigPanel', () => {
               { key: 'VOICE_TOOLS_OPENAI_KEY', prompt: 'OpenAI API key', url: 'https://x', default: null, is_set: true }
             ],
             post_setup: null,
-            requires_nous_auth: false,
             is_active: true,
             tts_provider: 'openai'
           }
@@ -248,7 +245,6 @@ describe('ToolsetConfigPanel', () => {
             tag: 'Multi-model image generation',
             env_vars: [],
             post_setup: null,
-            requires_nous_auth: false,
             is_active: true
           }
         ]
@@ -324,7 +320,6 @@ describe('ToolsetConfigPanel', () => {
             tag: 'No API key needed',
             env_vars: [],
             post_setup: null,
-            requires_nous_auth: false,
             is_active: false
           },
           {
@@ -341,7 +336,6 @@ describe('ToolsetConfigPanel', () => {
               }
             ],
             post_setup: null,
-            requires_nous_auth: false,
             is_active: true
           }
         ]
@@ -371,7 +365,6 @@ describe('ToolsetConfigPanel', () => {
             tag: 'Stealth local browser',
             env_vars: [],
             post_setup: 'camofox',
-            requires_nous_auth: false,
             is_active: true
           }
         ]
@@ -420,7 +413,6 @@ describe('ToolsetConfigPanel', () => {
             tag: 'Stealth local browser',
             env_vars: [],
             post_setup: 'camofox',
-            requires_nous_auth: false,
             is_active: true
           }
         ]
@@ -452,7 +444,6 @@ describe('ToolsetConfigPanel', () => {
             tag: 'Stealth local browser',
             env_vars: [],
             post_setup: 'camofox',
-            requires_nous_auth: false,
             is_active: true
           }
         ]
@@ -498,7 +489,6 @@ describe('ToolsetConfigPanel', () => {
             tag: 'Stealth local browser',
             env_vars: [],
             post_setup: 'camofox',
-            requires_nous_auth: false,
             is_active: true,
             status: 'ready'
           }
@@ -532,7 +522,6 @@ describe('ToolsetConfigPanel', () => {
               tag: 'No API key needed',
               env_vars: [],
               post_setup: null,
-              requires_nous_auth: false,
               is_active: true,
               status: 'ready'
             },
@@ -542,7 +531,6 @@ describe('ToolsetConfigPanel', () => {
               tag: 'Managed OpenAI TTS',
               env_vars: [],
               post_setup: null,
-              requires_nous_auth: true,
               is_active: false,
               status: 'needs_auth'
             },
@@ -552,7 +540,6 @@ describe('ToolsetConfigPanel', () => {
               tag: 'Lightweight local ONNX TTS',
               env_vars: [],
               post_setup: 'kittentts',
-              requires_nous_auth: false,
               is_active: false,
               status: 'needs_setup'
             }
@@ -588,7 +575,6 @@ describe('ToolsetConfigPanel', () => {
                 }
               ],
               post_setup: null,
-              requires_nous_auth: false,
               is_active: false,
               status: 'needs_keys'
             }
@@ -639,7 +625,6 @@ describe('ToolsetConfigPanel', () => {
                 }
               ],
               post_setup: null,
-              requires_nous_auth: false,
               is_active: true,
               status: 'needs_keys'
             }
@@ -682,7 +667,6 @@ describe('ToolsetConfigPanel', () => {
               tag: 'Headless Chromium, no API key needed',
               env_vars: [],
               post_setup: 'agent_browser',
-              requires_nous_auth: false,
               is_active: true,
               status: 'ready'
             }
@@ -711,7 +695,6 @@ describe('ToolsetConfigPanel', () => {
               tag: 'Headless Chromium, no API key needed',
               env_vars: [],
               post_setup: 'agent_browser',
-              requires_nous_auth: false,
               is_active: true,
               status: 'ready'
             }
@@ -747,7 +730,6 @@ describe('ToolsetConfigPanel', () => {
               tag: 'Headless Chromium, no API key needed',
               env_vars: [],
               post_setup: 'agent_browser',
-              requires_nous_auth: false,
               is_active: true,
               status: 'needs_setup'
             }
@@ -764,38 +746,6 @@ describe('ToolsetConfigPanel', () => {
       // raced the auto-expand effect and flaked under the RQ provider).
       expect(await screen.findByRole('button', { name: /Run setup/ })).toBeTruthy()
       expect(screen.queryByText('Installed')).toBeNull()
-    })
-  })
-
-  describe('legacy hosted provider response', () => {
-    it('does not claim an unavailable provider is active', async () => {
-      const { notify } = await import('@/store/notifications')
-      getToolsetConfig.mockResolvedValue(
-        config({
-          active_provider: null,
-          providers: [
-            {
-              name: 'Legacy hosted provider',
-              badge: 'subscription',
-              tag: 'Legacy',
-              env_vars: [],
-              post_setup: null,
-              requires_nous_auth: true,
-              is_active: false,
-              status: 'needs_auth'
-            }
-          ]
-        })
-      )
-      selectToolsetProvider.mockResolvedValue({ ok: true, needs_nous_auth: true })
-
-      const { ToolsetConfigPanel } = await import('./toolset-config-panel')
-      render(<ToolsetConfigPanel onConfiguredChange={vi.fn()} toolset="browser" />)
-      fireEvent.click(await screen.findByRole('button', { name: /Legacy hosted provider/ }))
-
-      await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ kind: 'warning' })))
-      expect(screen.queryByText('In use')).toBeNull()
-      expect(startOAuthLogin).not.toHaveBeenCalled()
     })
   })
 
@@ -819,7 +769,6 @@ describe('ToolsetConfigPanel', () => {
                 }
               ],
               post_setup: null,
-              requires_nous_auth: false,
               is_active: true,
               status: 'ready'
             }
@@ -873,7 +822,6 @@ describe('ToolsetConfigPanel', () => {
             tag: 'Free metasearch',
             env_vars: [],
             post_setup: null,
-            requires_nous_auth: false,
             is_active: true,
             status: 'ready',
             web_backend: 'searxng',
@@ -885,7 +833,6 @@ describe('ToolsetConfigPanel', () => {
             tag: 'Full search + extract',
             env_vars: [],
             post_setup: null,
-            requires_nous_auth: false,
             is_active: false,
             status: 'ready',
             web_backend: 'firecrawl',

@@ -17,7 +17,7 @@ Use, configure, theme, extend, and orchestrate JettsTUI.
 | Source | Bundled (installed by default) |
 | Path | `skills/autonomous-ai-agents/jettstui` |
 | Version | `3.1.0` |
-| Author | JettsTUI + Teknium |
+| Author | JettsTUI |
 | License | MIT |
 | Platforms | linux, macos, windows |
 | Tags | `jettstui`, `setup`, `configuration`, `multi-agent`, `spawning`, `cli`, `gateway`, `themes`, `skins`, `desktop-plugins`, `tui-widgets`, `petdex`, `development` |

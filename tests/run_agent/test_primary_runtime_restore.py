@@ -5,7 +5,7 @@ Verifies that:
 2. The fallback chain index resets so all fallbacks are available again
 3. Context compressor state is restored alongside the runtime
 4. Transient transport errors get one recovery cycle before fallback
-5. Recovery is skipped for aggregator providers (OpenRouter, Nous)
+5. Recovery is skipped for aggregator providers (OpenRouter, Acme)
 6. Non-transport errors don't trigger recovery
 """
 
@@ -518,10 +518,10 @@ class TestTryRecoverPrimaryTransport:
         )
         assert result is False
 
-    def test_allowed_for_nous_anthropic_messages(self):
+    def test_allowed_for_acme_anthropic_messages(self):
         """Portal Claude holds a local Anthropic SDK client — rebuild it."""
         agent = _make_agent(
-            provider="nous",
+            provider="acme",
             base_url="https://inference-api.jettstui.dev/v1",
         )
         agent.api_mode = "anthropic_messages"
@@ -529,7 +529,7 @@ class TestTryRecoverPrimaryTransport:
         agent._primary_runtime.update({
             "api_mode": "anthropic_messages",
             "model": "anthropic/claude-opus-4.8",
-            "provider": "nous",
+            "provider": "acme",
             "anthropic_api_key": "portal-jwt",
             "anthropic_base_url": "https://inference-api.jettstui.dev/v1",
             "is_anthropic_oauth": False,

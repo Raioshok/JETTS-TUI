@@ -1059,7 +1059,7 @@ def test_create_default_child_does_not_implicitly_share_worker_dir(
     from tools import kanban_tools as kt
     from jettstui import kanban_db as kb
 
-    proj = "/home/teknium/myproject"
+    proj = "/home/user/myproject"
     conn = kb.connect()
     try:
         self_tid = kb.create_task(
@@ -1088,7 +1088,7 @@ def test_create_explicit_dir_workspace_shares_parent_path(monkeypatch, worker_en
     from tools import kanban_tools as kt
     from jettstui import kanban_db as kb
 
-    proj = "/home/teknium/proj"
+    proj = "/home/user/proj"
     conn = kb.connect()
     try:
         self_tid = kb.create_task(
@@ -1134,7 +1134,7 @@ def test_create_explicit_scratch_beats_parent_workspace(monkeypatch, worker_env)
     try:
         self_tid = kb.create_task(
             conn, title="dir worker", assignee="test-worker",
-            workspace_kind="dir", workspace_path="/home/teknium/proj",
+            workspace_kind="dir", workspace_path="/home/user/proj",
         )
         kb.claim_task(conn, self_tid)
     finally:

@@ -408,7 +408,7 @@ export function Picker({ ctx }: { ctx: OnboardingContext }) {
     setOnboardingMode('apikey')
   }
 
-  const ordered = useMemo(() => (providers ? sortProviders(providers.filter(p => p.id !== 'nous')) : []), [providers])
+  const ordered = useMemo(() => (providers ? sortProviders(providers) : []), [providers])
   const hasOauth = ordered.length > 0
   const apiKeyOptions = useApiKeyCatalog()
 

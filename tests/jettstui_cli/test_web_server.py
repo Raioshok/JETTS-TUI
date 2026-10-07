@@ -3193,7 +3193,7 @@ class TestWebServerEndpoints:
             "/api/model/set",
             json={
                 "scope": "main",
-                "provider": "nous",
+                "provider": "acme",
                 "model": "openai/gpt-5.5-pro",
             },
         )
@@ -3208,7 +3208,7 @@ class TestWebServerEndpoints:
             "/api/model/set",
             json={
                 "scope": "main",
-                "provider": "nous",
+                "provider": "acme",
                 "model": "openai/gpt-5.5-pro",
                 "confirm_expensive_model": True,
             },
@@ -4524,10 +4524,10 @@ class TestWebServerEndpoints:
         from jettstui.config import load_config, save_config
 
         cfg = load_config()
-        cfg["model"] = {"provider": "nous", "default": "jettstui-4"}
+        cfg["model"] = {"provider": "acme", "default": "jettstui-4"}
         cfg["auxiliary"] = {
-            # Pinned to nous — same as the OLD main, becomes stale after switch.
-            "compression": {"provider": "nous", "model": "anthropic/claude-sonnet-4.6"},
+            # Pinned to acme — same as the OLD main, becomes stale after switch.
+            "compression": {"provider": "acme", "model": "anthropic/claude-sonnet-4.6"},
             # Auto — follows main, never stale.
             "vision": {"provider": "auto", "model": ""},
             # Pinned to a third provider — also stale vs the new main.
@@ -4547,7 +4547,7 @@ class TestWebServerEndpoints:
         assert "vision" not in stale_tasks
         # Provider/model echoed back for the UI label.
         comp = next(e for e in stale if e["task"] == "compression")
-        assert comp["provider"] == "nous"
+        assert comp["provider"] == "acme"
         assert comp["model"] == "anthropic/claude-sonnet-4.6"
 
     def test_set_model_main_no_stale_when_aux_matches_new_provider(self):
@@ -4555,7 +4555,7 @@ class TestWebServerEndpoints:
         from jettstui.config import load_config, save_config
 
         cfg = load_config()
-        cfg["model"] = {"provider": "nous", "default": "jettstui-4"}
+        cfg["model"] = {"provider": "acme", "default": "jettstui-4"}
         cfg["auxiliary"] = {
             "compression": {"provider": "openrouter", "model": "google/gemini-2.5-flash"},
             "vision": {"provider": "auto", "model": ""},
@@ -5123,7 +5123,7 @@ class TestWebServerEndpoints:
         from jettstui.config import load_config, save_config
 
         save_config({
-            "model": {"provider": "nous", "default": "jettstui-4"},
+            "model": {"provider": "acme", "default": "jettstui-4"},
             "providers": {
                 "axet-proxy": {
                     "name": "Axet Proxy",
@@ -6471,7 +6471,7 @@ class TestNewEndpoints:
         )
         assert resp.status_code == 400
 
-    def test_select_unmanaged_provider_has_no_nous_auth_field(self):
+    def test_select_unmanaged_provider_has_no_acme_auth_field(self):
         """Non-managed rows never carry the entitlement fields."""
         resp = self.client.put(
             "/api/tools/toolsets/web/provider",
@@ -6480,7 +6480,7 @@ class TestNewEndpoints:
         assert resp.status_code == 200
         data = resp.json()
         assert data["ok"] is True
-        assert "needs_nous_auth" not in data
+        assert "needs_acme_auth" not in data
         assert "feature" not in data
 
     def test_select_toolset_provider_unknown_toolset_returns_400(self):

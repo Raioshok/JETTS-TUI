@@ -1237,7 +1237,7 @@ class TestCompactionDiscoveryBothLayers:
 
 
 # =========================================================================
-# Teknium review round 2: rewind exclusion + delegation-under-compression
+# Alice review round 2: rewind exclusion + delegation-under-compression
 # =========================================================================
 
 class TestRewindExclusion:

@@ -11,23 +11,6 @@ import sys
 from contextvars import ContextVar, Token
 from pathlib import Path
 
-from jettstui_home import default_home_paths, migrate_default_home
-
-
-def _bridge_legacy_env() -> None:
-    """Expose pre-rename ``FREEIDE_*`` variables under ``JETTSTUI_*``.
-
-    Existing shells, service units and ``.env`` files keep working; an
-    explicitly set new-name variable always wins.
-    """
-    for key, value in list(os.environ.items()):
-        if key.startswith("FREEIDE_"):
-            os.environ.setdefault("JETTSTUI_" + key[len("FREEIDE_"):], value)
-
-
-_bridge_legacy_env()
-
-
 _profile_fallback_warned: bool = False
 _UNSET = object()
 _JETTSTUI_HOME_OVERRIDE: ContextVar[str | object] = ContextVar(
@@ -59,20 +42,15 @@ def get_jettstui_home_override() -> str | None:
 
 
 def _get_platform_default_jettstui_home() -> Path:
-    """Return the branded default, migrating legacy data without overwrites.
+    """Return the platform-native default home.
 
-    Keep an alias at the previous location so older launchers and a managed
-    runtime installed beneath that directory continue working after the move.
-    Explicit ``JETTSTUI_HOME``/profile overrides never reach this migration.
+    ``%LOCALAPPDATA%\\jettstui`` on native Windows, ``~/.jettstui`` elsewhere.
     """
-    new, old = default_home_paths(
-        platform=sys.platform,
-        home=Path.home(),
-        local_appdata=os.environ.get("LOCALAPPDATA", ""),
-    )
-    if sys.platform == "win32" and not new.exists() and not old.exists():
-        old = Path.home() / ".jettstui"
-    return migrate_default_home(new, old, platform=sys.platform)
+    if sys.platform == "win32":
+        local_appdata = os.environ.get("LOCALAPPDATA", "").strip()
+        base = Path(local_appdata) if local_appdata else Path.home() / "AppData" / "Local"
+        return base / "jettstui"
+    return Path.home() / ".jettstui"
 
 
 def _jettstui_home_from_env() -> Path:
@@ -86,15 +64,6 @@ def _jettstui_home_from_env() -> Path:
     """
     val = os.environ.get("JETTSTUI_HOME", "").strip()
     if val:
-        new, old = default_home_paths(
-            platform=sys.platform,
-            home=Path.home(),
-            local_appdata=os.environ.get("LOCALAPPDATA", ""),
-        )
-        # Older Windows installers persisted their *default* as JETTSTUI_HOME.
-        # This exact default is not a custom profile; migrate it as well.
-        if os.path.normcase(os.path.abspath(val)) == os.path.normcase(os.path.abspath(old)):
-            return migrate_default_home(new, old, platform=sys.platform)
         return Path(val)
     return _get_platform_default_jettstui_home()
 
@@ -201,16 +170,7 @@ def get_default_jettstui_root() -> Path:
     Import-safe — no dependencies beyond stdlib.
     """
     env_home = os.environ.get("JETTSTUI_HOME", "")
-    if env_home:
-        # An explicit profile/home path must not trigger a default-home move.
-        new_default, old_default = default_home_paths(
-            platform=sys.platform,
-            home=Path.home(),
-            local_appdata=os.environ.get("LOCALAPPDATA", ""),
-        )
-        native_home = new_default if new_default.exists() or not old_default.exists() else old_default
-    else:
-        native_home = _get_platform_default_jettstui_home()
+    native_home = _get_platform_default_jettstui_home()
     if not env_home:
         return native_home
     env_path = Path(env_home)

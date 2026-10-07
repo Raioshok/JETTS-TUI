@@ -76,12 +76,12 @@ class TestParseModelInput:
         assert model == "gpt-5.4"
 
     def test_removed_provider_prefix_does_not_switch_provider(self):
-        # "nous" was removed as a provider (fea9d55..dbe611f). An unknown or
+        # "acme" was removed as a provider (fea9d55..dbe611f). An unknown or
         # removed prefix must not switch the provider: the input falls
         # through as a model name and the current provider is kept.
-        provider, model = parse_model_input("nous:jettstui-3", "openrouter")
+        provider, model = parse_model_input("acme:jettstui-3", "openrouter")
         assert provider == "openrouter"
-        assert model == "nous:jettstui-3"
+        assert model == "acme:jettstui-3"
 
     def test_empty_model_after_colon_keeps_current(self):
         provider, model = parse_model_input("openrouter:", "stepfun")

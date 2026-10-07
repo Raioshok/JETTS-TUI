@@ -244,28 +244,28 @@ def test_provider_auth_state_falls_back_to_global_when_profile_has_none(profile_
     from jettstui.auth import get_provider_auth_state
 
     _write(profile_env["global"] / "auth.json", _make_auth_store(providers={
-        "nous": {"access_token": "nous-global", "refresh_token": "rt-global"},
+        "acme": {"access_token": "acme-global", "refresh_token": "rt-global"},
     }))
     _write(profile_env["profile"] / "auth.json", _make_auth_store(providers={}))
 
-    state = get_provider_auth_state("nous")
+    state = get_provider_auth_state("acme")
     assert state is not None
-    assert state["access_token"] == "nous-global"
+    assert state["access_token"] == "acme-global"
 
 
 def test_provider_auth_state_profile_wins_when_present(profile_env):
     from jettstui.auth import get_provider_auth_state
 
     _write(profile_env["global"] / "auth.json", _make_auth_store(providers={
-        "nous": {"access_token": "nous-global"},
+        "acme": {"access_token": "acme-global"},
     }))
     _write(profile_env["profile"] / "auth.json", _make_auth_store(providers={
-        "nous": {"access_token": "nous-profile"},
+        "acme": {"access_token": "acme-profile"},
     }))
 
-    state = get_provider_auth_state("nous")
+    state = get_provider_auth_state("acme")
     assert state is not None
-    assert state["access_token"] == "nous-profile"
+    assert state["access_token"] == "acme-profile"
 
 
 def test_provider_auth_state_returns_none_when_neither_has_it(profile_env):
@@ -274,18 +274,18 @@ def test_provider_auth_state_returns_none_when_neither_has_it(profile_env):
     _write(profile_env["global"] / "auth.json", _make_auth_store(providers={}))
     _write(profile_env["profile"] / "auth.json", _make_auth_store(providers={}))
 
-    assert get_provider_auth_state("nous") is None
+    assert get_provider_auth_state("acme") is None
 
 
 # ---------------------------------------------------------------------------
 # _load_provider_state — internal global fallback (issue #18594 follow-up)
 #
-# Several runtime helpers (notably ``resolve_nous_runtime_credentials`` and
-# ``resolve_nous_access_token``) call ``_load_provider_state`` directly with
+# Several runtime helpers (notably ``resolve_acme_runtime_credentials`` and
+# ``resolve_acme_access_token``) call ``_load_provider_state`` directly with
 # a profile-loaded auth store rather than going through
 # ``get_provider_auth_state``. Without the fallback wired into
 # ``_load_provider_state`` itself, those helpers raise ``"JettsTUI is not
-# logged into JettsTUI Portal"`` even though the user has a valid global Nous
+# logged into JettsTUI Portal"`` even though the user has a valid global Acme
 # login. These tests pin the per-provider shadowing into the helper.
 # ---------------------------------------------------------------------------
 
@@ -295,28 +295,28 @@ def test_load_provider_state_falls_back_to_global(profile_env):
     from jettstui.auth import _load_auth_store, _load_provider_state
 
     _write(profile_env["global"] / "auth.json", _make_auth_store(providers={
-        "nous": {"access_token": "global-nous-token", "refresh_token": "rt"},
+        "acme": {"access_token": "global-acme-token", "refresh_token": "rt"},
     }))
     _write(profile_env["profile"] / "auth.json", _make_auth_store(providers={}))
 
     auth_store = _load_auth_store()
-    state = _load_provider_state(auth_store, "nous")
+    state = _load_provider_state(auth_store, "acme")
     assert state is not None
-    assert state["access_token"] == "global-nous-token"
+    assert state["access_token"] == "global-acme-token"
 
 
 def test_load_provider_state_profile_wins_over_global(profile_env):
     from jettstui.auth import _load_auth_store, _load_provider_state
 
     _write(profile_env["global"] / "auth.json", _make_auth_store(providers={
-        "nous": {"access_token": "global-token"},
+        "acme": {"access_token": "global-token"},
     }))
     _write(profile_env["profile"] / "auth.json", _make_auth_store(providers={
-        "nous": {"access_token": "profile-token"},
+        "acme": {"access_token": "profile-token"},
     }))
 
     auth_store = _load_auth_store()
-    state = _load_provider_state(auth_store, "nous")
+    state = _load_provider_state(auth_store, "acme")
     assert state is not None
     assert state["access_token"] == "profile-token"
 
@@ -328,7 +328,7 @@ def test_load_provider_state_returns_none_when_neither_has_it(profile_env):
     _write(profile_env["profile"] / "auth.json", _make_auth_store(providers={}))
 
     auth_store = _load_auth_store()
-    assert _load_provider_state(auth_store, "nous") is None
+    assert _load_provider_state(auth_store, "acme") is None
 
 
 def test_load_provider_state_classic_mode_no_fallback(tmp_path, monkeypatch):
@@ -341,13 +341,13 @@ def test_load_provider_state_classic_mode_no_fallback(tmp_path, monkeypatch):
     monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
     _write(jettstui_home / "auth.json", _make_auth_store(providers={
-        "nous": {"access_token": "classic-token"},
+        "acme": {"access_token": "classic-token"},
     }))
 
     from jettstui.auth import _load_auth_store, _load_provider_state
 
     auth_store = _load_auth_store()
-    state = _load_provider_state(auth_store, "nous")
+    state = _load_provider_state(auth_store, "acme")
     assert state is not None
     assert state["access_token"] == "classic-token"
     # Absent providers still return None.
@@ -358,13 +358,13 @@ def test_load_provider_state_malformed_global_does_not_break_profile(profile_env
     """A corrupt global auth.json must not break profile reads."""
     (profile_env["global"] / "auth.json").write_text("{not valid json")
     _write(profile_env["profile"] / "auth.json", _make_auth_store(providers={
-        "nous": {"access_token": "profile-token"},
+        "acme": {"access_token": "profile-token"},
     }))
 
     from jettstui.auth import _load_auth_store, _load_provider_state
 
     auth_store = _load_auth_store()
-    state = _load_provider_state(auth_store, "nous")
+    state = _load_provider_state(auth_store, "acme")
     assert state is not None
     assert state["access_token"] == "profile-token"
 
@@ -463,7 +463,7 @@ def test_provider_state_transaction_locks_global_fallback_before_use(
 
     _write(
         profile_env["global"] / "auth.json",
-        _make_auth_store(providers={"nous": {"access_token": "global-token"}}),
+        _make_auth_store(providers={"acme": {"access_token": "global-token"}}),
     )
     _write(profile_env["profile"] / "auth.json", _make_auth_store(providers={}))
 
@@ -483,7 +483,7 @@ def test_provider_state_transaction_locks_global_fallback_before_use(
 
     monkeypatch.setattr(auth, "_file_lock", recording_file_lock)
 
-    with auth._provider_state_transaction("nous") as (_store, state, source):
+    with auth._provider_state_transaction("acme") as (_store, state, source):
         assert state == {"access_token": "global-token"}
         assert source == profile_env["global"] / "auth.json"
 

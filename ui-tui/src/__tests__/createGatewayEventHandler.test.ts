@@ -94,7 +94,7 @@ describe('createGatewayEventHandler', () => {
     expect(getTurnState().todos).toEqual([])
   })
 
-  it('opens a billing confirm dialog routing Nous to /topup', () => {
+  it('opens a billing confirm dialog that switches provider when there is no billing URL', () => {
     const appended: Msg[] = []
     const ctx = buildCtx(appended)
     const onEvent = createGatewayEventHandler(ctx)
@@ -103,11 +103,10 @@ describe('createGatewayEventHandler', () => {
       payload: {
         billing: {
           billing_url: null,
-          is_nous: true,
           message: 'out of credits',
           model: 'm',
-          provider: 'nous',
-          provider_label: 'JettsTUI Portal'
+          provider: 'custom',
+          provider_label: 'Custom endpoint'
         },
         text: 'Billing or credits exhausted: ...'
       },
@@ -115,11 +114,11 @@ describe('createGatewayEventHandler', () => {
     } as any)
 
     const { confirm } = getOverlayState()
-    expect(confirm?.title).toContain('Nous')
-    expect(confirm?.confirmLabel).toBe('Top up')
+    expect(confirm?.title).toContain('Custom endpoint')
+    expect(confirm?.confirmLabel).toBe('Switch provider')
 
     confirm!.onConfirm()
-    expect(ctx.submission.submitRef.current).toHaveBeenCalledWith('/topup')
+    expect(ctx.submission.submitRef.current).toHaveBeenCalledWith('/model')
   })
 
   it('deep-links a third-party provider billing page from the confirm dialog', () => {
@@ -132,7 +131,6 @@ describe('createGatewayEventHandler', () => {
       payload: {
         billing: {
           billing_url: 'https://openrouter.ai/settings/credits',
-          is_nous: false,
           message: 'out of credits',
           model: 'm',
           provider: 'openrouter',

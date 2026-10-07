@@ -166,7 +166,7 @@ SCENARIOS: list[tuple[str, str, dict[str, str]]] = [
         "",
         {
             "TOOL_GATEWAY_DOMAIN": "jettstui.dev",
-            "TOOL_GATEWAY_USER_TOKEN": "nous-token",
+            "TOOL_GATEWAY_USER_TOKEN": "acme-token",
         },
     ),
 ]

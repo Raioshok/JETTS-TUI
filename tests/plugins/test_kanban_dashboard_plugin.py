@@ -692,7 +692,7 @@ def test_add_comment(client):
     t = client.post("/api/plugins/kanban/tasks", json={"title": "x"}).json()["task"]
     r = client.post(
         f"/api/plugins/kanban/tasks/{t['id']}/comments",
-        json={"body": "how's progress?", "author": "teknium"},
+        json={"body": "how's progress?", "author": "alice"},
     )
     assert r.status_code == 200
 
@@ -700,7 +700,7 @@ def test_add_comment(client):
     comments = r.json()["comments"]
     assert len(comments) == 1
     assert comments[0]["body"] == "how's progress?"
-    assert comments[0]["author"] == "teknium"
+    assert comments[0]["author"] == "alice"
 
 
 def test_add_comment_empty_rejected(client):

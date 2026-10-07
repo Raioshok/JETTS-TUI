@@ -222,7 +222,6 @@ export interface Translations {
   }
 
   billingBlock: {
-    titleNous: string
     titleProvider: (provider: string) => string
     fallbackMessage: string
     openBilling: string
@@ -753,7 +752,6 @@ export interface Translations {
       needsSignIn: string
       needsSetup: string
       noApiKeyRequired: string
-      legacyHostedUnavailable: string
       postSetupHint: (step: string) => string
       postSetupInstalledHint: string
       postSetupRun: string

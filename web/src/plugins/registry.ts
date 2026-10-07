@@ -19,15 +19,15 @@ import React, {
 } from "react";
 import { api, fetchJSON, authedFetch, buildWsUrl, buildWsAuthParam } from "@/lib/api";
 import { cn, timeAgo, isoTimeAgo } from "@/lib/utils";
-import { Badge } from "@nous-research/ui/ui/components/badge";
-import { Button } from "@nous-research/ui/ui/components/button";
-import { Checkbox } from "@nous-research/ui/ui/components/checkbox";
-import { Select, SelectOption } from "@nous-research/ui/ui/components/select";
-import { Card, CardHeader, CardTitle, CardContent } from "@nous-research/ui/ui/components/card";
-import { Input } from "@nous-research/ui/ui/components/input";
-import { Label } from "@nous-research/ui/ui/components/label";
-import { Separator } from "@nous-research/ui/ui/components/separator";
-import { Tabs, TabsList, TabsTrigger } from "@nous-research/ui/ui/components/tabs";
+import { Badge } from "@jettstui/ui/ui/components/badge";
+import { Button } from "@jettstui/ui/ui/components/button";
+import { Checkbox } from "@jettstui/ui/ui/components/checkbox";
+import { Select, SelectOption } from "@jettstui/ui/ui/components/select";
+import { Card, CardHeader, CardTitle, CardContent } from "@jettstui/ui/ui/components/card";
+import { Input } from "@jettstui/ui/ui/components/input";
+import { Label } from "@jettstui/ui/ui/components/label";
+import { Separator } from "@jettstui/ui/ui/components/separator";
+import { Tabs, TabsList, TabsTrigger } from "@jettstui/ui/ui/components/tabs";
 import { useI18n } from "@/i18n";
 import { registerSlot, PluginSlot } from "./slots";
 
@@ -139,7 +139,7 @@ export function exposePluginSDK() {
     // plugins that need to build the WS URL themselves.
     buildWsAuthParam,
 
-    // UI components — Nous DS where available, shadcn/ui primitives elsewhere.
+    // UI components — the @jettstui/ui design system where available, shadcn/ui primitives elsewhere.
     components: {
       Card,
       CardHeader,

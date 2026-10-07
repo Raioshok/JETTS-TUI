@@ -561,16 +561,6 @@ export function ToolsetConfigPanel({ toolset, onConfiguredChange }: ToolsetConfi
     try {
       const result = await selectToolsetProvider(toolset, provider.name)
 
-      if (result.needs_nous_auth) {
-        notify({
-          kind: 'warning',
-          title: copy.failedSelect(provider.name),
-          message: copy.legacyHostedUnavailable
-        })
-
-        return
-      }
-
       // Mirror the backend write locally so dependent UI (model catalog
       // enablement) tracks the new active backend without a refetch.
       setCfg(current =>

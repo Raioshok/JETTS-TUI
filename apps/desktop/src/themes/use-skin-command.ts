@@ -5,10 +5,8 @@ import { useTheme } from './context'
 // Retired skin names land on the canonical Prism skin so old muscle memory works.
 const ALIASES: Record<string, string> = {
   ares: 'ember',
-  cobalt: 'nous',
   default: 'jettstui',
   gold: 'jettstui',
-  'nous-light': 'nous',
   prism: 'jettstui'
 }
 

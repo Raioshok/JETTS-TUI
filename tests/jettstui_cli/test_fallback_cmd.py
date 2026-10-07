@@ -46,12 +46,12 @@ class TestReadChain:
         cfg = {
             "fallback_providers": [
                 {"provider": "openrouter", "model": "anthropic/claude-sonnet-4.6"},
-                {"provider": "nous", "model": "JettsTUI-4-Llama-3.1-405B"},
+                {"provider": "acme", "model": "JettsTUI-4-Llama-3.1-405B"},
             ]
         }
         assert _read_chain(cfg) == [
             {"provider": "openrouter", "model": "anthropic/claude-sonnet-4.6"},
-            {"provider": "nous", "model": "JettsTUI-4-Llama-3.1-405B"},
+            {"provider": "acme", "model": "JettsTUI-4-Llama-3.1-405B"},
         ]
 
     def test_merges_new_and_legacy_formats(self):
@@ -60,11 +60,11 @@ class TestReadChain:
             "fallback_providers": [
                 {"provider": "openrouter", "model": "anthropic/claude-sonnet-4.6"},
             ],
-            "fallback_model": {"provider": "nous", "model": "JettsTUI-4"},
+            "fallback_model": {"provider": "acme", "model": "JettsTUI-4"},
         }
         assert _read_chain(cfg) == [
             {"provider": "openrouter", "model": "anthropic/claude-sonnet-4.6"},
-            {"provider": "nous", "model": "JettsTUI-4"},
+            {"provider": "acme", "model": "JettsTUI-4"},
         ]
 
     def test_legacy_duplicate_is_deduplicated_after_merge(self):
@@ -90,18 +90,18 @@ class TestReadChain:
             "fallback_providers": [
                 {"provider": "openrouter"},            # missing model
                 {"model": "gpt-5.4"},                  # missing provider
-                {"provider": "nous", "model": "foo"},  # valid
+                {"provider": "acme", "model": "foo"},  # valid
                 "not-a-dict",                          # noise
             ]
         }
-        assert _read_chain(cfg) == [{"provider": "nous", "model": "foo"}]
+        assert _read_chain(cfg) == [{"provider": "acme", "model": "foo"}]
 
     def test_returns_copies_not_aliases(self):
         from jettstui.fallback_cmd import _read_chain
-        cfg = {"fallback_providers": [{"provider": "nous", "model": "foo"}]}
+        cfg = {"fallback_providers": [{"provider": "acme", "model": "foo"}]}
         result = _read_chain(cfg)
         result[0]["provider"] = "mutated"
-        assert cfg["fallback_providers"][0]["provider"] == "nous"
+        assert cfg["fallback_providers"][0]["provider"] == "acme"
 
 
 # ---------------------------------------------------------------------------
@@ -164,7 +164,7 @@ class TestListCommand:
             "model": {"provider": "anthropic", "default": "claude-sonnet-4-6"},
             "fallback_providers": [
                 {"provider": "openrouter", "model": "anthropic/claude-sonnet-4.6"},
-                {"provider": "nous", "model": "JettsTUI-4"},
+                {"provider": "acme", "model": "JettsTUI-4"},
             ],
         })
         from jettstui.fallback_cmd import cmd_fallback_list
@@ -372,12 +372,12 @@ class TestRemoveCommand:
         _write_config(isolated_home, {
             "fallback_providers": [
                 {"provider": "openrouter", "model": "gpt-5.4"},
-                {"provider": "nous", "model": "JettsTUI-4"},
+                {"provider": "acme", "model": "JettsTUI-4"},
                 {"provider": "anthropic", "model": "claude-sonnet-4-6"},
             ],
         })
 
-        # Picker returns index 1 (the middle entry, "nous / JettsTUI-4")
+        # Picker returns index 1 (the middle entry, "acme / JettsTUI-4")
         with patch("jettstui.setup._curses_prompt_choice", return_value=1):
             from jettstui.fallback_cmd import cmd_fallback_remove
             cmd_fallback_remove(types.SimpleNamespace())
@@ -423,7 +423,7 @@ class TestClearCommand:
         _write_config(isolated_home, {
             "fallback_providers": [
                 {"provider": "openrouter", "model": "gpt-5.4"},
-                {"provider": "nous", "model": "JettsTUI-4"},
+                {"provider": "acme", "model": "JettsTUI-4"},
             ],
         })
         monkeypatch.setattr("builtins.input", lambda *a, **kw: "y")

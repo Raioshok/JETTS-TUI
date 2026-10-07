@@ -2854,7 +2854,7 @@ class TestLegacyJettsTUIUnitDetection:
     def test_ignores_profile_unit_jettstui_gateway_coder(self, tmp_path, monkeypatch):
         """CRITICAL: profile units must NOT be flagged as legacy.
 
-        Teknium's concern — ``jettstui-gateway-coder.service`` is our standard
+        Alice's concern — ``jettstui-gateway-coder.service`` is our standard
         naming for the ``coder`` profile. The legacy detector is an explicit
         allowlist, not a glob, so profile units are safe.
         """
@@ -3097,7 +3097,7 @@ class TestRemoveLegacyJettsTUIUnits:
     def test_does_not_touch_profile_units_during_migration(
         self, tmp_path, monkeypatch, capsys
     ):
-        """Teknium's constraint: profile units (jettstui-gateway-coder.service)
+        """Alice's constraint: profile units (jettstui-gateway-coder.service)
         must survive a migration call, even if we somehow include them in the
         search dir."""
         user_dir, _, _ = self._setup(tmp_path, monkeypatch, as_root=True)

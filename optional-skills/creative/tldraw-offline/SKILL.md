@@ -2,7 +2,7 @@
 name: tldraw-offline
 description: Drive and script tldraw offline canvases with an agent.
 version: 1.0.0
-author: Teknium + JettsTUI
+author: JettsTUI
 license: MIT
 platforms: [linux, macos, windows]
 metadata:

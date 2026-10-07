@@ -117,7 +117,7 @@ def test_merged_into_tail_summary_suffix_not_harvested_prefix_content_ignored(tm
 
 
 def test_merged_into_tail_preserves_genuine_pre_delimiter_preference(tmp_path):
-    """#57690 review: teknium1 noted the ENTIRE merged row was being skipped,
+    """#57690 review: octocat noted the ENTIRE merged row was being skipped,
     discarding genuine pre-delimiter user content (context_compressor.py
     ~3163-3190 retains real prior tail text before the summary). The fix must
     extract and harvest that segment while still excluding the summary

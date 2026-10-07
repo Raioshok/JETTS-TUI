@@ -55,12 +55,6 @@ export function requestBillingSettings(): void {
  * their own billing page; otherwise users can select another provider.
  */
 export function runBillingRecovery(block: BillingBlock): void {
-  if (block.is_nous) {
-    requestBillingSettings()
-
-    return
-  }
-
   if (block.billing_url) {
     openExternalLink(block.billing_url)
 
@@ -71,5 +65,5 @@ export function runBillingRecovery(block: BillingBlock): void {
 }
 
 export function billingCtaLabel(block: BillingBlock, copy: { addCredits: string; openBilling: string }): string {
-  return block.is_nous ? 'Choose provider' : copy.addCredits
+  return copy.addCredits
 }

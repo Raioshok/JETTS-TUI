@@ -2040,7 +2040,7 @@ class TestVerifyOnStopMigration:
             assert raw["agent"]["verify_on_stop"] is False
 
     def test_v31_literal_true_flipped_to_false(self, tmp_path):
-        # Teknium's case: a v30 install that already ran the v31 migration kept
+        # Alice's case: a v30 install that already ran the v31 migration kept
         # its baked-in literal `true` (v31 preserved explicit bools). v32 flips
         # it off.
         with patch.dict(os.environ, {"JETTSTUI_HOME": str(tmp_path)}):

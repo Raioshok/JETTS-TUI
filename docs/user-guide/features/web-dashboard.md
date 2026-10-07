@@ -999,7 +999,7 @@ Built-in themes:
 |-------|-----------|
 | **JettsTUI Teal** (`default`) | Dark teal + cream, system fonts, comfortable spacing |
 | **JettsTUI Teal (Large)** (`default-large`) | Same as default with 18px text and roomier spacing |
-| **JettsTUI Blue** (`nous-blue`) | JettsTUI-branded blue accents with airy spacing |
+| **Cobalt Blue** (`cobalt-blue`) | JettsTUI-branded blue accents with airy spacing |
 | **Midnight** (`midnight`) | Deep blue-violet, Inter + JetBrains Mono |
 | **Ember** (`ember`) | Warm crimson + bronze, Spectral serif + IBM Plex Mono |
 | **Mono** (`mono`) | Grayscale, IBM Plex, compact |

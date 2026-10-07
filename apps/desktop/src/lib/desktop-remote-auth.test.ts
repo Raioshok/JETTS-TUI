@@ -25,7 +25,7 @@ describe('deriveRemoteAuthProviderShape', () => {
 
   it('keeps OAuth copy for redirect providers and mixed deployments', () => {
     expect(
-      deriveRemoteAuthProviderShape([{ name: 'nous', displayName: 'JettsTUI', supportsPassword: false }])
+      deriveRemoteAuthProviderShape([{ name: 'acme', displayName: 'JettsTUI', supportsPassword: false }])
     ).toEqual({
       isPassword: false,
       providerLabel: 'JettsTUI'
@@ -34,7 +34,7 @@ describe('deriveRemoteAuthProviderShape', () => {
     expect(
       deriveRemoteAuthProviderShape([
         { name: 'basic', displayName: 'Username & Password', supportsPassword: true },
-        { name: 'nous', displayName: 'JettsTUI', supportsPassword: false }
+        { name: 'acme', displayName: 'JettsTUI', supportsPassword: false }
       ])
     ).toEqual({
       isPassword: false,

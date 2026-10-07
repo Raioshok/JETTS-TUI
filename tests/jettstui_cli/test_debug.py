@@ -503,7 +503,7 @@ class TestRunDebugShare:
         args.lines = 50
         args.expire = 7
         args.local = False
-        args.nous = False
+        args.acme = False
 
         with patch("jettstui.dump.run_dump"), \
              patch("jettstui.debug._sweep_expired_pastes", return_value=(0, 0)) as mock_sweep, \
@@ -522,7 +522,7 @@ class TestRunDebugShare:
         args.lines = 50
         args.expire = 7
         args.local = False
-        args.nous = False
+        args.acme = False
 
         with patch("jettstui.dump.run_dump"), \
              patch(
@@ -543,7 +543,7 @@ class TestRunDebugShare:
         args.lines = 50
         args.expire = 7
         args.local = True
-        args.nous = False
+        args.acme = False
 
         with patch("jettstui.dump.run_dump"):
             run_debug_share(args)
@@ -561,7 +561,7 @@ class TestRunDebugShare:
         args.lines = 50
         args.expire = 7
         args.local = False
-        args.nous = False
+        args.acme = False
 
         call_count = [0]
         uploaded_content = []
@@ -620,7 +620,7 @@ class TestRunDebugShare:
         args.lines = 50
         args.expire = 7
         args.local = False
-        args.nous = False
+        args.acme = False
 
         uploaded_content = []
 
@@ -666,7 +666,7 @@ class TestRunDebugShare:
         args.lines = 50
         args.expire = 7
         args.local = False
-        args.nous = False
+        args.acme = False
 
         call_count = [0]
         def _mock_upload(content, expiry_days=7):
@@ -691,7 +691,7 @@ class TestRunDebugShare:
         args.lines = 50
         args.expire = 7
         args.local = False
-        args.nous = False
+        args.acme = False
 
         call_count = [0]
         def _mock_upload(content, expiry_days=7):
@@ -718,7 +718,7 @@ class TestRunDebugShare:
         args.lines = 50
         args.expire = 7
         args.local = False
-        args.nous = False
+        args.acme = False
 
         with patch("jettstui.dump.run_dump"), \
              patch("jettstui.debug.upload_to_pastebin",
@@ -767,7 +767,7 @@ class TestRunDebugShareRedaction:
         args.lines = 50
         args.expire = 7
         args.local = False
-        args.nous = False
+        args.acme = False
         args.no_redact = False
 
         captured: list[str] = []
@@ -798,7 +798,7 @@ class TestRunDebugShareRedaction:
         args.lines = 50
         args.expire = 7
         args.local = False
-        args.nous = False
+        args.acme = False
         args.no_redact = False
 
         captured: list[str] = []
@@ -827,7 +827,7 @@ class TestRunDebugShareRedaction:
         args.lines = 50
         args.expire = 7
         args.local = False
-        args.nous = False
+        args.acme = False
         args.no_redact = True
 
         captured: list[str] = []
@@ -878,7 +878,7 @@ class TestRunDebug:
         args.lines = 200
         args.expire = 7
         args.local = True
-        args.nous = False
+        args.acme = False
 
         with patch("jettstui.dump.run_dump"):
             run_debug(args)
@@ -1257,7 +1257,7 @@ class TestShareIncludesAutoDelete:
         args.lines = 50
         args.expire = 7
         args.local = False
-        args.nous = False
+        args.acme = False
 
         with patch("jettstui.dump.run_dump"), \
              patch("jettstui.debug.upload_to_pastebin",
@@ -1280,7 +1280,7 @@ class TestShareIncludesAutoDelete:
         args.lines = 50
         args.expire = 7
         args.local = False
-        args.nous = False
+        args.acme = False
 
         with patch("jettstui.dump.run_dump"), \
              patch("jettstui.debug.upload_to_pastebin",
@@ -1299,7 +1299,7 @@ class TestShareIncludesAutoDelete:
         args.lines = 50
         args.expire = 7
         args.local = True
-        args.nous = False
+        args.acme = False
 
         with patch("jettstui.dump.run_dump"):
             run_debug_share(args)
@@ -1416,7 +1416,7 @@ class TestBuildDebugShare:
 
 
 # ---------------------------------------------------------------------------
-# Shared bundle collection + Nous-S3 path
+# Shared bundle collection + Acme-S3 path
 # ---------------------------------------------------------------------------
 
 class TestCollectShareBundle:

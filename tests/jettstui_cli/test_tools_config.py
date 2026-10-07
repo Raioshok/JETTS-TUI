@@ -735,12 +735,12 @@ def test_local_browser_provider_is_saved_explicitly(monkeypatch):
     assert config["browser"]["cloud_provider"] == "local"
 
 
-def test_fresh_install_browser_default_is_free_local_not_paid_nous():
+def test_fresh_install_browser_default_is_free_local_not_paid_acme():
     """On a fresh install the browser picker must default to the free local
-    backend, never the paid Nous Subscription gateway.
+    backend, never the paid Acme Subscription gateway.
 
-    Regression: the Nous row used to sort first, so the menu cursor defaulted
-    to index 0 (Nous) and pressing Enter walked users straight into a Nous
+    Regression: the Acme row used to sort first, so the menu cursor defaulted
+    to index 0 (Acme) and pressing Enter walked users straight into a Acme
     Portal login for a paid offering (Javier's bug, June 2026).
     """
     from jettstui.tools_config import _detect_active_provider_index
@@ -752,7 +752,7 @@ def test_fresh_install_browser_default_is_free_local_not_paid_nous():
     assert _detect_active_provider_index(providers, {}) == 0
 
 
-def test_fresh_install_tts_default_is_free_edge_not_paid_nous():
+def test_fresh_install_tts_default_is_free_edge_not_paid_acme():
     """TTS picker defaults to the free Edge backend on a fresh install."""
     from jettstui.tools_config import _detect_active_provider_index
 
@@ -1064,7 +1064,7 @@ class TestImagegenBackendRegistry:
         assert "fal-ai/flux-2-pro" in catalog
 
     def test_image_gen_providers_tagged_with_fal_backend(self):
-        """Both Nous Subscription and FAL.ai providers must carry the
+        """Both Acme Subscription and FAL.ai providers must carry the
         imagegen_backend tag so _configure_provider fires the picker."""
         from jettstui.tools_config import TOOL_CATEGORIES
         providers = TOOL_CATEGORIES["image_gen"]["providers"]
@@ -1633,7 +1633,7 @@ def test_save_platform_tools_disabling_a_toolset_does_not_touch_disabled_toolset
 # ─── provider_readiness_status ────────────────────────────────────────────────
 #
 # Server-side truth for the GUI "Ready" pill (issue: Capabilities tab showed
-# Ready for every zero-env-var provider row, including logged-out Nous
+# Ready for every zero-env-var provider row, including logged-out Acme
 # Subscription rows and never-installed KittenTTS/Piper).
 
 
@@ -1648,7 +1648,7 @@ def test_provider_readiness_env_vars_gate_keys(monkeypatch):
 
 
 def test_provider_readiness_keyless_ungated_row_is_ready():
-    # Edge TTS: no env vars, no post_setup, no nous auth → genuinely free.
+    # Edge TTS: no env vars, no post_setup, no acme auth → genuinely free.
     provider = {"name": "Microsoft Edge TTS", "env_vars": [], "tts_provider": "edge"}
     assert provider_readiness_status(provider, {}) == "ready"
 

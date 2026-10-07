@@ -4915,7 +4915,7 @@ class TestCronDeliveryMirror:
         mirror_mock.assert_called_once()
         assert mirror_mock.call_args.kwargs.get("user_id") == "U42"
 
-    # --- continuable cron: thread-preferred (Teknium's interface) ---
+    # --- continuable cron: thread-preferred (Alice's interface) ---
 
     def test_open_thread_returns_id_on_thread_platform(self):
         """On a thread-capable adapter, _open_continuable_cron_thread returns

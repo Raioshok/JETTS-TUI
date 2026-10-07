@@ -62,7 +62,7 @@ def _clean_env(monkeypatch):
     """Strip provider env vars so each test starts clean."""
     for key in (
         "OPENROUTER_API_KEY", "OPENAI_BASE_URL", "OPENAI_API_KEY",
-        "OPENAI_MODEL", "LLM_MODEL", "NOUS_INFERENCE_BASE_URL",
+        "OPENAI_MODEL", "LLM_MODEL", "ACME_INFERENCE_BASE_URL",
         "ANTHROPIC_API_KEY", "ANTHROPIC_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN",
     ):
         monkeypatch.delenv(key, raising=False)
@@ -245,10 +245,10 @@ class TestResolveTaskProviderModel:
         with patch("agent.auxiliary_client._get_auxiliary_task_config", return_value=task_config):
             resolved_provider, model, base_url, api_key, api_mode = _resolve_task_provider_model(
                 task="vision",
-                provider="nous",
+                provider="acme",
             )
 
-        assert resolved_provider == "nous"
+        assert resolved_provider == "acme"
         assert base_url is None
         assert api_key is None
 
@@ -337,7 +337,7 @@ class TestResolveTaskProviderModel:
         default_preset when name is falsy; this just confirms the call site
         doesn't force a preset name where none was configured."""
         preset = {
-            "aggregator": {"provider": "nous", "model": "jettstui-4-405b"},
+            "aggregator": {"provider": "acme", "model": "jettstui-4-405b"},
         }
 
         def fake_resolve(cfg, name):
@@ -355,7 +355,7 @@ class TestResolveTaskProviderModel:
             task="title_generation",
         )
 
-        assert resolved_provider == "nous"
+        assert resolved_provider == "acme"
         assert model == "jettstui-4-405b"
 
     def test_provider_moa_falls_back_to_literal_when_preset_resolution_fails(self, monkeypatch):
@@ -470,13 +470,13 @@ class TestMoaAggregatorSharedResolution:
                                     "model": "anthropic/claude-opus-4.8",
                                 },
                             },
-                            "nous-mix": {
+                            "acme-mix": {
                                 "enabled": True,
                                 "reference_models": [
-                                    {"provider": "nous", "model": "jettstui-4-70b"}
+                                    {"provider": "acme", "model": "jettstui-4-70b"}
                                 ],
                                 "aggregator": {
-                                    "provider": "nous",
+                                    "provider": "acme",
                                     "model": "jettstui-4-405b",
                                 },
                             },
@@ -511,7 +511,7 @@ class TestMoaAggregatorSharedResolution:
         """provider: moa with no model resolves the default preset's aggregator."""
         import yaml
 
-        home = self._write_moa_config(tmp_path, monkeypatch, default_preset="nous-mix")
+        home = self._write_moa_config(tmp_path, monkeypatch, default_preset="acme-mix")
         cfg = yaml.safe_load((home / "config.yaml").read_text())
         cfg["auxiliary"] = {"compression": {"provider": "moa"}}
         (home / "config.yaml").write_text(yaml.safe_dump(cfg))
@@ -520,7 +520,7 @@ class TestMoaAggregatorSharedResolution:
             task="compression",
         )
 
-        assert resolved_provider == "nous"
+        assert resolved_provider == "acme"
         assert model == "jettstui-4-405b"
 
     def test_read_main_model_for_aux_unwraps_preset_name(self, tmp_path, monkeypatch):
@@ -1186,7 +1186,7 @@ class TestResolveProviderClientUniversalModelFallback:
     ``(None, None)`` on an empty model — both lack a catalog default
     because their accepted-model lists drift on the backend.  That
     silent failure caused ``_resolve_auto`` to drop to its Step-2
-    fallback chain (OpenRouter / Nous / etc.), so aux tasks billed
+    fallback chain (OpenRouter / Acme / etc.), so aux tasks billed
     against the wrong subscription.
     """
 
@@ -1247,7 +1247,7 @@ class TestResolveProviderClientUniversalModelFallback:
         assert mock_build.call_args.args[0] == "gpt-5.4"
 
     def test_empty_model_for_catalog_provider_uses_catalog_default(self):
-        """anthropic / nous / openrouter / etc.: catalog default wins
+        """anthropic / acme / openrouter / etc.: catalog default wins
         over main model when no explicit model is passed.
 
         This preserves the original \"cheap aux model for direct API
@@ -1872,9 +1872,9 @@ class TestIsModelNotFoundError:
     """_is_model_not_found_error detects stale/invalid model 404s, distinct
     from payment errors."""
 
-    def test_nous_openrouter_catalog_404(self):
+    def test_acme_openrouter_catalog_404(self):
         """The exact incident error: a Portal-recommended model dropped from
-        the Nous → OpenRouter catalog."""
+        the Acme → OpenRouter catalog."""
         exc = Exception(
             "Model 'gpt-5.4-mini' not found. The requested model does not "
             "exist in our configuration or OpenRouter catalog."
@@ -1991,7 +1991,7 @@ class TestIsRateLimitError:
         assert _is_rate_limit_error(exc) is True
 
     def test_429_with_resets_in_message(self):
-        """Nous-style 429: 'resets in 3508s'."""
+        """Acme-style 429: 'resets in 3508s'."""
         exc = Exception("Hold up for a bit, you've exceeded the rate limit on your API key")
         exc.status_code = 429
         assert _is_rate_limit_error(exc) is True
@@ -2110,7 +2110,7 @@ class TestTryPaymentFallback:
     def test_codex_not_in_fallback_chain(self):
         """Codex is deliberately NOT a fallback rung (shifting model allow-list).
 
-        When OR/Nous/custom/api-key all fail, payment-fallback returns None —
+        When OR/Acme/custom/api-key all fail, payment-fallback returns None —
         Codex is never tried with a guessed model.
         """
         with patch("agent.auxiliary_client._try_openrouter", return_value=(None, None)), \
@@ -4825,7 +4825,7 @@ class TestVisionAutoSkipsKimiCoding:
         def fake_strict(provider, model=None):
             if provider == "openrouter":
                 return fake_or_client, "google/gemini-3-flash-preview"
-            if provider == "nous":
+            if provider == "acme":
                 return None, None
             raise AssertionError(
                 f"strict vision backend should not be called for {provider!r} "
@@ -5757,17 +5757,17 @@ class TestAuxUnhealthyCache:
         err.status_code = 402
         primary_client.chat.completions.create.side_effect = err
 
-        nous_client = MagicMock()
-        nous_resp = MagicMock()
-        nous_resp.choices = [MagicMock(message=MagicMock(content="ok"))]
-        nous_client.chat.completions.create.return_value = nous_resp
+        acme_client = MagicMock()
+        acme_resp = MagicMock()
+        acme_resp.choices = [MagicMock(message=MagicMock(content="ok"))]
+        acme_client.chat.completions.create.return_value = acme_resp
 
         with patch("agent.auxiliary_client._get_cached_client",
                     return_value=(primary_client, "google/gemini-3-flash-preview")), \
              patch("agent.auxiliary_client._resolve_task_provider_model",
                     return_value=("auto", "google/gemini-3-flash-preview", None, None, None)), \
              patch("agent.auxiliary_client._try_payment_fallback",
-                    return_value=(nous_client, "n-model", "nous")), \
+                    return_value=(acme_client, "n-model", "acme")), \
              patch("agent.auxiliary_client._build_call_kwargs",
                     return_value={"model": "n-model", "messages": [{"role": "user", "content": "hi"}]}):
             assert _is_provider_unhealthy("openrouter") is False

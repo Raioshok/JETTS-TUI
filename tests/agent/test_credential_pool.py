@@ -2445,9 +2445,9 @@ def test_is_terminal_xai_oauth_refresh_error():
     assert not _is_terminal_xai_oauth_refresh_error(
         AuthError("Rate limit", provider="xai-oauth", code="xai_refresh_failed", relogin_required=False)
     )
-    # Nous error does not trigger xAI check
+    # Acme error does not trigger xAI check
     assert not _is_terminal_xai_oauth_refresh_error(
-        AuthError("Revoked", provider="nous", code="invalid_grant", relogin_required=True)
+        AuthError("Revoked", provider="acme", code="invalid_grant", relogin_required=True)
     )
     # Generic exception
     assert not _is_terminal_xai_oauth_refresh_error(ValueError("oops"))

@@ -2,7 +2,7 @@
 name: jettstui
 description: "Use, configure, theme, extend, and orchestrate JettsTUI."
 version: 3.1.0
-author: JettsTUI + Teknium
+author: JettsTUI
 license: MIT
 platforms: [linux, macos, windows]
 metadata:

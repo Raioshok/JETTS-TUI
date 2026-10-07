@@ -35,7 +35,7 @@ const PROFILE_MODES_KEY = 'jettstui-desktop-profile-modes-v1'
 // Last active profile, recorded so the boot-time paint can pick that profile's
 // theme before the gateway reports which profile actually launched.
 const LAST_PROFILE_KEY = 'jettstui-desktop-active-profile-v1'
-const RETIRED_SKINS = new Set(['nous-light', 'default', 'gold'])
+const RETIRED_SKINS = new Set(['default', 'gold'])
 
 export type ThemeMode = 'light' | 'dark' | 'system'
 

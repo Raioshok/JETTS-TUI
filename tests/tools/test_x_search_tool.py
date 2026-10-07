@@ -333,7 +333,7 @@ def test_x_search_uses_api_key_when_only_xai_api_key_set(monkeypatch):
 
 
 def test_x_search_prefers_oauth_when_both_available(monkeypatch):
-    """Both credentials present: OAuth wins (matches Teknium's billing preference).
+    """Both credentials present: OAuth wins (matches Alice's billing preference).
 
     The real ordering is implemented in ``tools.xai_http.resolve_xai_http_credentials``
     — OAuth runtime first, fallback OAuth resolver second, ``XAI_API_KEY`` third.

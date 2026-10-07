@@ -919,7 +919,7 @@ class TestGitBashPathNormalization:
         """Must NOT mutate paths on Linux/macOS."""
         from cli import _normalize_git_bash_path
         if sys.platform != "win32":
-            assert _normalize_git_bash_path("/home/teknium/foo") == "/home/teknium/foo"
+            assert _normalize_git_bash_path("/home/user/foo") == "/home/user/foo"
             assert _normalize_git_bash_path("/c/Users/foo") == "/c/Users/foo"
             assert _normalize_git_bash_path("C:/Users/foo") == "C:/Users/foo"
             assert _normalize_git_bash_path(None) is None

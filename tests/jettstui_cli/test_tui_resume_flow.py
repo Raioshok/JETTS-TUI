@@ -1666,14 +1666,14 @@ def test_launch_tui_exports_model_provider_and_toolsets(monkeypatch, main_mod):
 
     with pytest.raises(SystemExit):
         main_mod._launch_tui(
-            model="nous/jettstui-test", provider="nous", toolsets="web, terminal"
+            model="acme/jettstui-test", provider="acme", toolsets="web, terminal"
         )
 
     env = captured["env"]
-    assert env["JETTSTUI_MODEL"] == "nous/jettstui-test"
-    assert env["JETTSTUI_INFERENCE_MODEL"] == "nous/jettstui-test"
-    assert env["JETTSTUI_TUI_PROVIDER"] == "nous"
-    assert env["JETTSTUI_INFERENCE_PROVIDER"] == "nous"
+    assert env["JETTSTUI_MODEL"] == "acme/jettstui-test"
+    assert env["JETTSTUI_INFERENCE_MODEL"] == "acme/jettstui-test"
+    assert env["JETTSTUI_TUI_PROVIDER"] == "acme"
+    assert env["JETTSTUI_INFERENCE_PROVIDER"] == "acme"
     assert env["JETTSTUI_TUI_TOOLSETS"] == "web,terminal"
     active_path = Path(env["JETTSTUI_TUI_ACTIVE_SESSION_FILE"])
     assert active_path.name.startswith("jettstui-tui-active-session-")

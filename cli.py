@@ -13379,14 +13379,11 @@ class JettsTUICLI(CLIAgentSetupMixin, CLICommandsMixin):
                 if result and result.get("failure_reason") == "billing":
                     _bb = result.get("billing_block") or {}
                     _prov_label = _bb.get("provider_label") or "your provider"
-                    if _bb.get("is_nous"):
-                        _cta_lines = ["Select a provider with your own API key using [bold]jettstui model[/]."]
-                    else:
-                        _url = _bb.get("billing_url")
-                        _cta_lines = [
-                            f"Add credits with {_prov_label}"
-                            + (f": [bold]{_url}[/]" if _url else ".")
-                        ]
+                    _url = _bb.get("billing_url")
+                    _cta_lines = [
+                        f"Add credits with {_prov_label}"
+                        + (f": [bold]{_url}[/]" if _url else ".")
+                    ]
                     _cta_lines.append(
                         "Or switch providers with "
                         "[bold]/model <model> --provider <provider>[/]."

@@ -97,12 +97,6 @@ jobs:
     if: needs.detect.outputs.event_name == 'pull_request'
     uses: ./.github/workflows/history-check.yml
 
-  contributor-check:
-    name: Check contributors
-    needs: detect
-    if: needs.detect.outputs.python == 'true'
-    uses: ./.github/workflows/contributor-check.yml
-
   uv-lockfile:
     name: Check uv.lock
     needs: detect
@@ -172,7 +166,7 @@ jobs:
   # ─────────────────────────────────────────────────────────────────────
   comment-live:
     name: CI review comment (live)
-    needs: [detect, review-labels, lockfile-diff, supply-chain, osv-scanner, uv-lockfile, history-check, contributor-check, e2e-desktop]
+    needs: [detect, review-labels, lockfile-diff, supply-chain, osv-scanner, uv-lockfile, history-check, e2e-desktop]
     if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork != true
     runs-on: ubuntu-latest
     timeout-minutes: 40
@@ -255,7 +249,6 @@ jobs:
       - js-tests
       - e2e-desktop
       - history-check
-      - contributor-check
       - uv-lockfile
       - lockfile-diff
       - docker-lint

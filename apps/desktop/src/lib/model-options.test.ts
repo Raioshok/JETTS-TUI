@@ -4,7 +4,7 @@ import { getGlobalModelOptions } from '@/jettstui'
 
 import { manualPickRemoved, modelOptionsQueryKey, requestModelOptions } from './model-options'
 
-const globalOptions = { model: 'jettstui-4', provider: 'nous', providers: [] }
+const globalOptions = { model: 'jettstui-4', provider: 'acme', providers: [] }
 
 vi.mock('@/jettstui', () => ({
   getGlobalModelOptions: vi.fn(() => Promise.resolve(globalOptions))
@@ -64,7 +64,7 @@ describe('modelOptionsQueryKey', () => {
 describe('manualPickRemoved', () => {
   const providers = [
     { name: 'OpenRouter', slug: 'openrouter', models: ['owl-alpha', 'gpt-5.5'] },
-    { name: 'Nous', slug: 'nous', models: [] } // present but unconfigured / re-auth
+    { name: 'Acme', slug: 'acme', models: [] } // present but unconfigured / re-auth
   ]
 
   it('flags a pick whose model was dropped from a populated provider', () => {
@@ -85,7 +85,7 @@ describe('manualPickRemoved', () => {
   })
 
   it('never clobbers when the provider has an empty model list (re-auth)', () => {
-    expect(manualPickRemoved(providers, 'nous', 'jettstui-4')).toBe(false)
+    expect(manualPickRemoved(providers, 'acme', 'jettstui-4')).toBe(false)
   })
 
   it('never clobbers on a not-yet-loaded or empty catalog', () => {

@@ -200,16 +200,14 @@ function installedAgentInstallScript(jettstuiHome) {
     return null
   }
 
-  for (const checkout of ['jettstui', 'freeide-agent']) {
-    const candidate = path.join(jettstuiHome, checkout, 'scripts', installScriptName())
+  const candidate = path.join(jettstuiHome, 'jettstui', 'scripts', installScriptName())
 
-    try {
-      fs.accessSync(candidate, fs.constants.R_OK)
+  try {
+    fs.accessSync(candidate, fs.constants.R_OK)
 
-      return candidate
-    } catch {
-      // Existing installations may retain the legacy checkout name.
-    }
+    return candidate
+  } catch {
+    // No managed checkout yet.
   }
 
   return null

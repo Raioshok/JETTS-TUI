@@ -25,7 +25,7 @@ def memory_env(tmp_path, monkeypatch):
         encoding="utf-8",
     )
     (memories / "USER.md").write_text(
-        "§\nUser is Teknium\n§\nTimezone: US Pacific",
+        "§\nUser is Alice\n§\nTimezone: US Pacific",
         encoding="utf-8",
     )
     return jettstui_home, memories

@@ -278,7 +278,7 @@ def test_e2e_login_then_supervised_gateway_can_read_auth(
     Pre-shim: ``docker exec <c> jettstui login`` (root) wrote
     /opt/data/auth.json as root:root 0600. The supervised gateway (UID
     10000) couldn't read it, _load_auth_store swallowed PermissionError
-    as a parse failure, and resolve_nous_runtime_credentials raised
+    as a parse failure, and resolve_acme_runtime_credentials raised
     "JettsTUI is not logged into JettsTUI Portal" on every message.
 
     We can't do a real OAuth login in a unit test, but we can stand in

@@ -170,7 +170,7 @@ def test_decompose_records_audit_comment_and_event(kanban_home):
 
 def test_decompose_children_inherit_dir_workspace(kanban_home):
     """Fan-out children inherit the root's dir workspace, not scratch."""
-    proj = "/home/teknium/myproject"
+    proj = "/home/user/myproject"
     with kb.connect() as conn:
         tid = kb.create_task(
             conn, title="codegen root", assignee="worker",
@@ -208,7 +208,7 @@ def test_decompose_children_stay_scratch_when_root_scratch(kanban_home):
 
 def test_decompose_per_child_workspace_override(kanban_home):
     """An explicit per-child workspace beats inheritance."""
-    proj = "/home/teknium/myproject"
+    proj = "/home/user/myproject"
     with kb.connect() as conn:
         tid = kb.create_task(
             conn, title="root", assignee="worker",

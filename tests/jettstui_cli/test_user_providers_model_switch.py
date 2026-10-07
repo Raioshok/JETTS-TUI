@@ -1301,7 +1301,7 @@ def test_current_custom_model_not_leaked_into_other_provider_rows(monkeypatch):
     monkeypatch.setattr("agent.models_dev.fetch_models_dev", lambda: {})
     monkeypatch.setattr("jettstui.providers.JETTSTUI_OVERLAYS", {})
     monkeypatch.setenv("OPENROUTER_API_KEY", "sk-test")
-    monkeypatch.setenv("NOUS_API_KEY", "sk-test")
+    monkeypatch.setenv("ACME_API_KEY", "sk-test")
     monkeypatch.setattr(
         "jettstui.models.cached_provider_model_ids",
         lambda slug, **kw: ["curated/one"],

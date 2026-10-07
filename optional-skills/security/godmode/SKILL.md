@@ -2,7 +2,7 @@
 name: godmode
 description: "Jailbreak LLMs: Parseltongue, GODMODE, ULTRAPLINIAN."
 version: 1.0.0
-author: JettsTUI + Teknium
+author: JettsTUI
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
@@ -328,7 +328,6 @@ print(response.choices[0].message.content)
 | GPT-4/4o (OpenAI) | OG GODMODE l33t + prefill | Responds to the classic divider format |
 | Gemini (Google) | Refusal inversion + rebel persona | Gemini's refusal can be semantically inverted |
 | Grok (xAI) | Unfiltered liberated + GODMODE divider | Grok is already less filtered; light prompting works |
-| JettsTUI (Nous) | No jailbreak needed | Already uncensored — use directly |
 | DeepSeek | Parseltongue + multi-attempt | Input classifiers are keyword-based; obfuscation effective |
 | Llama (Meta) | Prefill + simple system prompt | Open models respond well to prefill engineering |
 

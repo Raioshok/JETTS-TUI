@@ -702,7 +702,7 @@ class TestChatCompletionsKimi:
         assert kw["extra_body"]["thinking"] == {"type": "disabled"}
 
     def test_moonshot_tool_schemas_are_sanitized_by_model_name(self, transport):
-        """Aggregator routes (Nous, OpenRouter) hit Moonshot by model name, not base URL."""
+        """Aggregator routes (Acme, OpenRouter) hit Moonshot by model name, not base URL."""
         tools = [
             {
                 "type": "function",

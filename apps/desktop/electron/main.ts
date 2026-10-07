@@ -123,7 +123,6 @@ import {
   resolveTimeoutMs,
   TEXT_PREVIEW_SOURCE_MAX_BYTES
 } from './hardening'
-import { managedCheckoutRoot, migrateDefaultHome } from './home-migration'
 import { createLinkTitleWindow, guardLinkTitleSession, readLinkTitleWindowTitle } from './link-title-window'
 import { ensureMainWindow } from './main-window-lifecycle'
 import {
@@ -504,9 +503,6 @@ if (INSTALL_STAMP) {
 //   Windows: %LOCALAPPDATA%\jettstui
 //   macOS / Linux: ~/.jettstui
 //
-// The default-home migration keeps an alias at the legacy path so older
-// managed launchers continue to see the same config and sessions.
-//
 // JETTSTUI_DESKTOP_USER_DATA_DIR (used by test:desktop:fresh) puts the sandbox
 // JETTSTUI_HOME beneath the throwaway userData dir so a fresh-install run never
 // touches the user's real ~/.jettstui / %LOCALAPPDATA%\jettstui.
@@ -514,18 +510,8 @@ function resolveJettsTUIHome() {
   const defaultBase = IS_WINDOWS
     ? process.env.LOCALAPPDATA || path.join(app.getPath('home'), 'AppData', 'Local')
     : app.getPath('home')
-  const brandedDefault = path.join(defaultBase, IS_WINDOWS ? 'jettstui' : '.jettstui')
-  // Pre-rename default home; migrated once, then kept as a compatibility alias.
-  const legacyDefault = path.join(defaultBase, IS_WINDOWS ? 'freeide' : '.freeide')
-  const resolveOverride = (value: string) => {
-    const requested = normalizeJettsTUIHomeRoot(value)
-    // The Windows installer historically persisted the default as an env var.
-    // Treat only that exact path as migratable; custom homes stay untouched.
-    if (path.resolve(requested).toLowerCase() === path.resolve(legacyDefault).toLowerCase()) {
-      return migrateDefaultHome(brandedDefault, legacyDefault)
-    }
-    return requested
-  }
+  const defaultHome = path.join(defaultBase, IS_WINDOWS ? 'jettstui' : '.jettstui')
+  const resolveOverride = (value: string) => normalizeJettsTUIHomeRoot(value)
 
   if (process.env.JETTSTUI_HOME) {
     return resolveOverride(process.env.JETTSTUI_HOME)
@@ -549,15 +535,7 @@ function resolveJettsTUIHome() {
     }
   }
 
-  if (IS_WINDOWS) {
-    if (directoryExists(brandedDefault) || directoryExists(legacyDefault)) {
-      return migrateDefaultHome(brandedDefault, legacyDefault)
-    }
-    const olderHome = path.join(app.getPath('home'), '.jettstui')
-    return migrateDefaultHome(brandedDefault, olderHome)
-  }
-
-  return migrateDefaultHome(brandedDefault, legacyDefault)
+  return defaultHome
 }
 
 const JETTSTUI_HOME = resolveJettsTUIHome()
@@ -580,7 +558,7 @@ function pathWithJettsTUIManagedNode(...entries) {
 // ACTIVE_JETTSTUI_ROOT — the canonical mutable JettsTUI install. Same path
 // install.ps1 / install.sh use, so a desktop-only user and a CLI-only user end
 // up with identical layouts and can share one install.
-const ACTIVE_JETTSTUI_ROOT = managedCheckoutRoot(JETTSTUI_HOME)
+const ACTIVE_JETTSTUI_ROOT = path.join(JETTSTUI_HOME, 'jettstui')
 // VENV_ROOT — venv lives inside the repo, exactly like install.ps1 does it.
 const VENV_ROOT = path.join(ACTIVE_JETTSTUI_ROOT, 'venv')
 // BOOTSTRAP_COMPLETE_MARKER — written by the first-launch bootstrap runner

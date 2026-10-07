@@ -180,7 +180,6 @@ export const en: Translations = {
   },
 
   billingBlock: {
-    titleNous: 'Out of Portal credits',
     titleProvider: provider => `Out of credits — ${provider}`,
     fallbackMessage: 'Your account is out of credits. Add credits to keep going.',
     openBilling: 'Open billing',
@@ -871,7 +870,6 @@ export const en: Translations = {
       needsSignIn: 'Needs sign-in',
       needsSetup: 'Needs setup',
       noApiKeyRequired: 'No API key required.',
-      legacyHostedUnavailable: 'This hosted provider is no longer available. Choose a provider with your own API key.',
       postSetupHint: step =>
         `This backend needs a one-time install (${step}). Runs on this machine — may take a few minutes.`,
       postSetupInstalledHint: 'Installed. Re-run setup only if something is broken.',

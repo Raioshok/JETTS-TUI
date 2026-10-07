@@ -61,15 +61,8 @@ param(
 
 $ErrorActionPreference = "Stop"
 
-# Preserve an existing managed checkout until the runtime can move its whole
-# default home and leave a compatibility junction. Fresh installs use jettstui.
 if (-not $PSBoundParameters.ContainsKey('InstallDir')) {
-    $legacyCheckout = Join-Path $JettsTUIHome 'jettstui'
-    $InstallDir = if (Test-Path -LiteralPath (Join-Path $legacyCheckout '.git')) {
-        $legacyCheckout
-    } else {
-        Join-Path $JettsTUIHome 'jettstui'
-    }
+    $InstallDir = Join-Path $JettsTUIHome 'jettstui'
 }
 
 # Suppress Invoke-WebRequest's per-chunk progress bar.  Windows PowerShell

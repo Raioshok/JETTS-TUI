@@ -62,13 +62,8 @@ test('installedAgentInstallScript resolves the installer in the agent checkout',
     fs.writeFileSync(scriptPath, '#!/bin/sh\necho hi\n')
 
     assert.equal(installedAgentInstallScript(home), scriptPath)
-    const legacyDir = path.join(home, 'freeide-agent', 'scripts')
-    fs.mkdirSync(legacyDir, { recursive: true })
-    const legacyScript = path.join(legacyDir, SCRIPT_NAME)
-    fs.writeFileSync(legacyScript, '#!/bin/sh\necho legacy\n')
-    assert.equal(installedAgentInstallScript(home), scriptPath, 'prefer the branded checkout')
     fs.rmSync(scriptPath)
-    assert.equal(installedAgentInstallScript(home), legacyScript, 'retain legacy checkout support')
+    assert.equal(installedAgentInstallScript(home), null, 'removed checkout -> null')
     assert.equal(installedAgentInstallScript(null), null, 'null home -> null')
   } finally {
     fs.rmSync(home, { recursive: true, force: true })

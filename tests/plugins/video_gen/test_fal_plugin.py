@@ -29,7 +29,7 @@ def test_fal_provider_registers():
 
 def test_fal_family_catalog():
     """Each family declares both endpoints. The catalog covers the
-    cheap + premium tiers Teknium listed."""
+    cheap + premium tiers Alice listed."""
     from plugins.video_gen.fal import FAL_FAMILIES
 
     expected = {

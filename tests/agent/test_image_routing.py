@@ -923,7 +923,7 @@ class TestCustomProviderVisionAlias:
         assert _supports_vision_override(cfg, "my-vllm", "m") is True
 
     def test_named_custom_provider_bare_custom_runtime_vision_alias(self):
-        """Teknium's requested regression case.
+        """Alice's requested regression case.
 
         A named custom provider (``model.provider: my-vllm``) is rewritten to
         the runtime value ``provider="custom"`` by
