@@ -15,11 +15,13 @@
 ---
 
 <p align="center">
-  <img src="docs/assets/screenshots/desktop-chat.png" alt="JettsTUI desktop app" width="100%">
+  <img src="docs/assets/screenshots/tui-chat.png" alt="JettsTUI terminal UI: a planning conversation with the sessions and comms sidebars" width="100%">
+  <br><sub>The full-screen terminal UI</sub>
 </p>
 
 <p align="center">
-  <img src="docs/assets/screenshots/tui-chat.png" alt="JettsTUI terminal UI" width="100%">
+  <img src="docs/assets/screenshots/desktop-home.png" alt="JettsTUI desktop app: the new-session screen in the dark Prism theme" width="100%">
+  <br><sub>The desktop app</sub>
 </p>
 
 ## Why JettsTUI
@@ -91,6 +93,10 @@ Configuration lives in `~/.jettstui/config.yaml` (`%LOCALAPPDATA%\jettstui` on W
 ## Desktop app
 
 The desktop app lives in [`apps/desktop`](apps/desktop). It starts a headless `jettstui serve` backend and talks to it over JSON-RPC, so it shares sessions, skills, and memory with the TUI.
+
+<p align="center">
+  <img src="docs/assets/screenshots/desktop-chat.png" alt="JettsTUI desktop app: a conversation in the light Prism theme" width="100%">
+</p>
 
 ```bash
 npm ci                     # from the repository root
