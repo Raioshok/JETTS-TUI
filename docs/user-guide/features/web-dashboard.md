@@ -185,8 +185,7 @@ If `/api/status` shows the gate is on with the `"basic"` provider and Desktop *s
 
 A form-based editor for `config.yaml`. All 150+ configuration fields are auto-discovered from `DEFAULT_CONFIG` and organized into tabbed categories:
 
-![Config admin page — section filters on the left, auto-discovered fields on the right](../../assets/img/dashboard/admin-config.png)
-
+![Config admin page — section filters on the left, auto-discovered fields on the right](../../assets/screenshots/dashboard/config.png)
 
 - **model** — default model, provider, base URL, reasoning settings
 - **terminal** — backend (local/docker/ssh/modal), timeout, shell preferences
@@ -241,8 +240,6 @@ Browse and inspect all agent sessions. Each row shows the session title, source 
 - **Prune** — the header "Prune old sessions" button deletes ended sessions older than N days.
 - **Delete** — remove a session and its message history with the trash icon.
 
-![Sessions admin page — stats bar, prune, and per-row rename / export / delete](../../assets/img/dashboard/admin-sessions.png)
-
 ### Logs
 
 View agent, gateway, and error log files with filtering and live tailing.
@@ -295,7 +292,7 @@ Browse, search, and toggle installed skills and toolsets, and install new ones f
 - **Toolsets** — a separate view shows built-in toolsets (file operations, web browsing, etc.) with their active/inactive status, setup requirements, and list of included tools
 - **Browse hub** — a third view searches the skill hub across all sources (the same as `jettstui skills search`), installs any result by identifier with a live install log, and offers an "Update all" button to refresh installed skills.
 
-![Skills admin page — the Browse hub view: search, install, and update](../../assets/img/dashboard/admin-skills-hub.png)
+![Skills admin page — the Browse hub view: search, install, and update](../../assets/screenshots/dashboard/skills.png)
 
 ### MCP
 
@@ -315,7 +312,7 @@ catalog) and install any of them with one click. Entries that need API keys
 prompt for them inline; the values go to `.env`. This is the same catalog
 `jettstui mcp catalog` / `jettstui mcp install` use.
 
-![MCP admin page — your servers with enable/disable toggles, plus the install catalog](../../assets/img/dashboard/admin-mcp.png)
+![MCP admin page — your servers with enable/disable toggles, plus the install catalog](../../assets/screenshots/dashboard/mcp.png)
 
 ### Webhooks
 
@@ -328,7 +325,7 @@ hint when it isn't.
 - **List** — each subscription shows its URL, events, and delivery target
 - **Delete** — remove a subscription
 
-![Webhooks admin page — subscriptions with enable/disable toggles](../../assets/img/dashboard/admin-webhooks.png)
+![Webhooks admin page — subscriptions with enable/disable toggles](../../assets/screenshots/dashboard/webhooks.png)
 
 ### Pairing
 
@@ -339,8 +336,6 @@ onboards Telegram/Discord/etc. users to a paired gateway. Full parity with
 - **Pending requests** — each shows platform, code, user, and age, with an Approve button
 - **Approved users** — each shows platform and user, with a Revoke button
 - **Clear pending** — drop all outstanding pairing codes
-
-![Pairing admin page](../../assets/img/dashboard/admin-pairing.png)
 
 ### Channels
 
@@ -355,7 +350,7 @@ the API server and webhook endpoints) with its live connection status.
 - **Test** — check whether the channel is configured, enabled, and reporting a live connection from the gateway.
 - **Restart gateway** — credentials are written to `~/.jettstui/.env` and the enabled flag to `config.yaml`; the gateway connects each enabled channel on its next restart, which you can trigger right from the page.
 
-![Channels admin page — every messaging platform with status, enable toggles, and per-platform setup forms](../../assets/img/dashboard/admin-channels.png)
+![Channels admin page — every messaging platform with status, enable toggles, and per-platform setup forms](../../assets/screenshots/dashboard/channels.png)
 
 ### System
 
@@ -370,15 +365,9 @@ A consolidated administration panel for installation-wide operations:
 - **Checkpoints** — see the `/rollback` shadow store size and prune it
 - **Shell hooks** — list configured hooks with their consent + executable status, **create** a hook (event, command, matcher, timeout, with an opt-in consent grant), and remove one. Hooks run arbitrary commands, so the create form carries a security warning and the hook only fires after consent is granted.
 
-![System admin page — host stats](../../assets/img/dashboard/admin-system-top.png)
-
-![System admin page — skill curator, gateway, memory, and credential pool](../../assets/img/dashboard/admin-system-curator.png)
-
-![System admin page — operations, checkpoints, and shell hooks](../../assets/img/dashboard/admin-system-ops.png)
+![System admin page — host stats](../../assets/screenshots/dashboard/system.png)
 
 Creating a shell hook (note the consent checkbox and the run-arbitrary-commands warning):
-
-![New shell hook modal](../../assets/img/dashboard/admin-hook-create.png)
 
 :::warning Security
 The web dashboard reads and writes your `.env` file, which contains API keys and secrets. It binds to `127.0.0.1` by default — only accessible from your local machine. If you bind to `0.0.0.0`, anyone on your network can view and modify your credentials. The dashboard has no authentication of its own.

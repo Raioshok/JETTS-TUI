@@ -56,13 +56,12 @@ want.
 ```bash
 jettstui mcp                # interactive picker (default)
 jettstui mcp catalog        # plain-text list, scriptable
-jettstui mcp install n8n    # install a catalog entry by name
+jettstui mcp install blender    # install a catalog entry by name
 ```
 
 The picker shows each entry with its current status:
 
 ```
-n8n          available              Manage and inspect n8n workflows from JettsTUI
 linear       enabled                Linear issue/project management (remote OAuth)
 github       installed (disabled)   GitHub repo + PR tools
 ```

@@ -18,7 +18,7 @@ Throughout the tutorial, **code blocks labelled `bash` are commands *you* run.**
 
 ## The board at a glance
 
-![Kanban board overview](../../assets/img/kanban-tutorial/01-board-overview.png)
+![Kanban board overview](../../assets/screenshots/dashboard/kanban.png)
 
 Six columns, left to right:
 
@@ -34,8 +34,6 @@ The top bar has filters for search, tenant, and assignee, plus a `Lanes by profi
 ### Flat view
 
 If the profile lanes are noisy, toggle "Lanes by profile" off and the In Progress column collapses to a single flat list ordered by claim time:
-
-![Board with lanes by profile off](../../assets/img/kanban-tutorial/02-board-flat.png)
 
 ## Story 1 — Solo dev shipping a feature
 
@@ -90,8 +88,6 @@ When `SCHEMA` hits `done`, the dependency engine promotes `API` to `ready` autom
 
 Click the completed schema task on the board and the drawer shows everything:
 
-![Solo dev — completed schema task drawer](../../assets/img/kanban-tutorial/03-drawer-schema-task.png)
-
 The Run History section at the bottom is the key addition. One attempt: outcome `completed`, worker `@backend-dev`, duration, timestamp, and the handoff summary in full. The metadata blob (`changed_files`, `decisions`) is stored on the run too and surfaced to any downstream worker that reads this parent.
 
 You can inspect the same data from your terminal at any time — these commands are **you** peeking at the board, not the worker:
@@ -135,8 +131,6 @@ jettstui gateway start
 
 Now filter the board to `content-ops` (or just search for "Transcribe") and you get this:
 
-![Fleet view filtered to transcribe tasks](../../assets/img/kanban-tutorial/07-fleet-transcribes.png)
-
 Two transcribes done, one running, two ready waiting for the next dispatcher tick. The In Progress column is grouped by profile (the "Lanes by profile" default) so you see each worker's active task without scanning a mixed list. The dispatcher will promote the next ready task to running as soon as the current one completes. With three daemons working on three assignee pools in parallel, the whole content queue drains without further human input.
 
 **Everything Story 1 said about structured handoff still applies here.** A translator worker completing a call emits `kanban_complete(summary="translated 4 pages, style matched existing marketing voice", metadata={"duration_seconds": 720, "tokens_used": 2100})` — useful for analytics and for any downstream task that depends on this one.
@@ -146,8 +140,6 @@ Two transcribes done, one running, two ready waiting for the next dispatcher tic
 This is where Kanban earns its keep over a flat TODO list. A PM writes a spec. An engineer implements it. A reviewer rejects the first attempt. The engineer tries again with changes. The reviewer approves.
 
 The dashboard view, filtered by `auth-project`:
-
-![Pipeline view for a multi-role feature](../../assets/img/kanban-tutorial/08-pipeline-auth.png)
 
 Three-stage chain visible at once: `Spec: password reset flow` (DONE, pm), `Implement password reset flow` (DONE, backend-dev), `Review password reset PR` (READY, reviewer). Each has its parent in green at the bottom and children as dependencies.
 
@@ -213,16 +205,12 @@ kanban_complete(
 
 Click the implementation task. The drawer shows **two attempts**:
 
-![Implementation task with two runs — blocked then completed](../../assets/img/kanban-tutorial/04b-drawer-retry-history-scrolled.png)
-
 - **Run 1** — `blocked` by `@backend-dev`. The review feedback sits right under the outcome: "password strength check missing, reset link isn't single-use (can be replayed within 30min)".
 - **Run 2** — `completed` by `@backend-dev`. Fresh summary, fresh metadata.
 
 Each run is a row in `task_runs` with its own outcome, summary, and metadata. Retry history is not a conceptual afterthought layered on top of a "latest state" task — it's the primary representation. When a retrying worker opens the task, `build_worker_context` shows it the prior attempts, so the second-pass worker sees why the first pass was blocked and addresses those specific findings instead of re-running from scratch.
 
 The reviewer picks up next. When they open `Review password reset PR`, they see:
-
-![Reviewer's drawer view of the pipeline](../../assets/img/kanban-tutorial/09-drawer-pipeline-review.png)
 
 The parent link is the completed implementation. When the reviewer's worker spawns on `Review password reset PR` and calls `kanban_show()`, the returned `worker_context` includes the parent's most-recent-completed-run summary + metadata — so the reviewer reads "added zxcvbn strength check, reset tokens are now single-use" and has the list of changed files in hand before looking at a diff.
 
@@ -243,8 +231,6 @@ jettstui kanban create "Deploy to staging (missing creds)" \
 The dispatcher tries to spawn the worker. Spawn fails (`RuntimeError: AWS_ACCESS_KEY_ID not set`). The dispatcher releases the claim, increments a failure counter, and tries again next tick. Because this example sets `--max-retries 3`, the circuit trips after three consecutive failures: the task goes to `blocked` with outcome `gave_up`. If you omit the flag, JettsTUI uses `kanban.failure_limit` (default: 2). No more retries until a human unblocks it.
 
 Click the blocked task:
-
-![Circuit breaker — 2 spawn_failed + 1 gave_up](../../assets/img/kanban-tutorial/11-drawer-gave-up.png)
 
 Three runs, all with the same error on the `error` field. The first two are `spawn_failed` (retryable), the third is `gave_up` (terminal). The event log above shows the full sequence: `created → claimed → spawn_failed → claimed → spawn_failed → claimed → gave_up`.
 
@@ -277,8 +263,6 @@ The example in the seed data is a migration that was running out of memory:
 
 The drawer shows the full two-attempt history:
 
-![Crash and recovery — 1 crashed + 1 completed](../../assets/img/kanban-tutorial/06-drawer-crash-recovery.png)
-
 Run 1 — `crashed`, with the error `OOM kill at row 2.3M (process 99999 gone)`. Run 2 — `completed`, with `"strategy": "chunked with LIMIT + WHERE id > last_id"` in its metadata. The retrying worker saw the crash of run 1 in its context and picked a safer strategy; the metadata makes it obvious to a future observer (or postmortem writer) what changed.
 
 ## Structured handoff — why `summary` and `metadata` matter
@@ -297,8 +281,6 @@ The bulk-close guard exists because this data is per-run. `jettstui kanban compl
 ## Inspecting a task currently running
 
 For completeness — here's the drawer of a task still in flight (the API implementation from Story 1, claimed by `backend-dev` but not yet complete):
-
-![Claimed, in-flight task](../../assets/img/kanban-tutorial/10-drawer-in-flight.png)
 
 Status is `Running`. The active run appears in the Run History section with outcome `active` and no `ended_at`. If this worker dies or times out, the dispatcher closes this run with the appropriate outcome and opens a new one on the next claim — the attempt row never disappears.
 

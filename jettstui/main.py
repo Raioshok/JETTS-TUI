@@ -8273,6 +8273,61 @@ def _stash_apply_failed_only_on_existing_untracked(stderr: str) -> bool:
     return saw_untracked_error
 
 
+def _has_work_outside_stash(
+    git_cmd: list[str], cwd: Path, stash_ref: str, porcelain: str
+) -> bool:
+    """True when ``git status`` shows work that the autostash does not hold.
+
+    Untracked files that ``_stash_local_changes_if_needed`` could not delete
+    (permission denied) are still on disk, but they are also saved in the
+    stash's untracked tree.  Those identical leftovers are not new work; any
+    tracked change, or an untracked file missing from or different in the
+    stash, is.
+    """
+    lines = [ln for ln in porcelain.splitlines() if ln.strip()]
+    if not lines:
+        return False
+    if any(not ln.startswith("?? ") for ln in lines):
+        return True
+    # Only untracked entries: list them per file (plain porcelain collapses
+    # untracked directories) and compare each with the stash's copy.
+    listing = subprocess.run(
+        git_cmd + ["status", "--porcelain", "--untracked-files=all"],
+        cwd=cwd,
+        capture_output=True,
+        text=True, encoding="utf-8", errors="replace",
+    )
+    if listing.returncode != 0:
+        return True
+    leftovers = []
+    for line in listing.stdout.splitlines():
+        if not line.strip():
+            continue
+        if not line.startswith("?? "):
+            return True
+        leftovers.append(line[3:].strip().strip('"'))
+    for path in leftovers:
+        stashed = subprocess.run(
+            git_cmd + ["rev-parse", "--verify", "--quiet", f"{stash_ref}^3:{path}"],
+            cwd=cwd,
+            capture_output=True,
+            text=True, encoding="utf-8", errors="replace",
+        )
+        on_disk = subprocess.run(
+            git_cmd + ["hash-object", "--", path],
+            cwd=cwd,
+            capture_output=True,
+            text=True, encoding="utf-8", errors="replace",
+        )
+        if (
+            stashed.returncode != 0
+            or on_disk.returncode != 0
+            or stashed.stdout.strip() != on_disk.stdout.strip()
+        ):
+            return True
+    return False
+
+
 def _restore_stashed_changes(
     git_cmd: list[str],
     cwd: Path,
@@ -8307,7 +8362,9 @@ def _restore_stashed_changes(
         capture_output=True,
         text=True, encoding="utf-8", errors="replace",
     )
-    if before_restore.returncode != 0 or before_restore.stdout.strip():
+    if before_restore.returncode != 0 or _has_work_outside_stash(
+        git_cmd, cwd, stash_ref, before_restore.stdout
+    ):
         print("⚠ Working tree changed during update; stash restore skipped for safety.")
         print(f"Your changes remain in git stash ({stash_ref}).")
         print("Review `git status` before restoring them manually.")

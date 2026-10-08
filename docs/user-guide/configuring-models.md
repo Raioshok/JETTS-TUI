@@ -26,15 +26,13 @@ Open the dashboard and click **Models** in the sidebar. You get two sections:
 1. **Model Settings** — the top panel, where you assign models to slots.
 2. **Usage analytics** — ranked cards showing every model that ran a session in the selected period, with token counts, cost, and capability badges.
 
-![Models page overview](../assets/img/docs/dashboard-models/overview.png)
+![Models page overview](../assets/screenshots/dashboard/models.png)
 
 The top card is the **Model Settings** panel. The main row always shows what the agent will spin up for new sessions. Click **Change** to open the picker.
 
 ## Setting the main model
 
 Click **Change** on the Main model row:
-
-![Model picker dialog](../assets/img/docs/dashboard-models/picker-dialog.png)
 
 The picker has two columns:
 
@@ -56,8 +54,6 @@ Prompt caches are keyed to the model serving the request, so any mid-conversatio
 ## Setting auxiliary models
 
 Click **Show auxiliary** to reveal the 11 task slots:
-
-![Auxiliary panel expanded](../assets/img/docs/dashboard-models/auxiliary-expanded.png)
 
 Every auxiliary task defaults to `auto` — meaning JettsTUI tries your main model for that job too. If that route is unavailable or hits a capacity-style failure, `auto` follows any task-specific `auxiliary.<task>.fallback_chain`, then the main `fallback_providers` / `fallback_model` chain, then JettsTUI' built-in auxiliary discovery chain. Override a specific task when you want a cheaper or faster model for a side-job.
 
@@ -88,8 +84,6 @@ If you've over-tuned and want to start over, click **Reset all to auto** at the 
 ## The "Use as" shortcut
 
 Every model card on the page has a **Use as** dropdown. This is the fast path — pick a model you see in your analytics, click **Use as**, and assign it to the main slot or any specific auxiliary task in one click:
-
-![Use as dropdown](../assets/img/docs/dashboard-models/use-as-dropdown.png)
 
 The dropdown has:
 

@@ -1306,7 +1306,7 @@ Manage MCP (Model Context Protocol) server configurations and run JettsTUI as an
 |------------|-------------|
 | *(none)* or `picker` | Interactive catalog picker — browse curated MCPs and install/enable/disable. |
 | `catalog` | List curated MCPs (plain text, scriptable). |
-| `install <name>` | Install a catalog entry (e.g. `jettstui mcp install n8n`). |
+| `install <name>` | Install a catalog entry (e.g. `jettstui mcp install blender`). |
 | `serve [-v\|--verbose]` | Run JettsTUI as an MCP server — expose conversations to other agents. |
 | `add <name> [--url URL] [--command CMD] [--auth oauth\|header] [--args ...]` | Add a custom MCP server with automatic tool discovery. `--args` passes the remaining argv to the stdio command, so put it last. |
 | `remove <name>` (alias: `rm`) | Remove an MCP server from config. |
