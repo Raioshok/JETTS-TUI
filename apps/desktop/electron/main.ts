@@ -4011,7 +4011,28 @@ async function ensureRuntime(backend) {
 
     // Re-resolve now that the install exists. The new resolution lands in
     // step 3 (bootstrap-complete marker) and we recurse to wire venvPython.
-    return ensureRuntime(resolveJettsTUIBackend(backend.args))
+    // Never re-run the installer from here: if it reported success but left
+    // nothing launchable at ACTIVE_JETTSTUI_ROOT (e.g. an installer fetched
+    // from a ref that installs elsewhere), recursing would reinstall forever.
+    const resolved = resolveJettsTUIBackend(backend.args)
+
+    if (resolved.kind === 'bootstrap-needed') {
+      const unusableError = new Error(
+        `JettsTUI setup finished, but no usable install was found at ${ACTIVE_JETTSTUI_ROOT}. ` +
+          `Check ${path.join(JETTSTUI_HOME, 'logs', 'desktop.log')} and the latest bootstrap log, ` +
+          'then use "Reload and retry" or run scripts/install.ps1 manually.'
+      ) as any
+
+      unusableError.isBootstrapFailure = true
+      unusableError.failedStage = 'verify'
+      rememberLog(`[bootstrap] ${unusableError.message}`)
+      // Latch like any other bootstrap failure so the next startJettsTUI()
+      // call surfaces this error instead of starting another install.
+      bootstrapFailure = unusableError
+      throw unusableError
+    }
+
+    return ensureRuntime(resolved)
   }
 
   // bootstrap=true with a real backend (createActiveBackend path) means we

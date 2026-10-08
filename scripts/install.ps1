@@ -1500,7 +1500,11 @@ function Install-Repository {
                     git -c windows.appendAtomically=false stash push --include-untracked -m "$stashName"
                     if ($LASTEXITCODE -eq 0) { $autostashRef = "stash@{0}" }
                 }
-                git -c windows.appendAtomically=false fetch origin $Branch
+                # Explicit refspec: a bare `fetch origin $Branch` only updates
+                # FETCH_HEAD, so on a single-branch clone of another branch the
+                # `checkout $Branch` / `reset --hard origin/$Branch` below has
+                # no origin/$Branch ref to resolve and fails.
+                git -c windows.appendAtomically=false fetch origin "+refs/heads/${Branch}:refs/remotes/origin/${Branch}"
                 if ($LASTEXITCODE -ne 0) { throw "git fetch failed (exit $LASTEXITCODE)" }
                 # Precedence: Commit > Tag > Branch.  Commit and Tag check
                 # out as detached HEAD intentionally -- they're meant to be
@@ -1516,7 +1520,14 @@ function Install-Repository {
                     git -c windows.appendAtomically=false checkout --detach "refs/tags/$Tag"
                     if ($LASTEXITCODE -ne 0) { throw "git checkout tag $Tag failed (exit $LASTEXITCODE)" }
                 } else {
-                    git -c windows.appendAtomically=false checkout $Branch
+                    # A single-branch clone can't DWIM a branch outside its
+                    # configured refspec, so create it from origin/$Branch.
+                    $null = & git -c windows.appendAtomically=false rev-parse --verify --quiet "refs/heads/$Branch"
+                    if ($LASTEXITCODE -eq 0) {
+                        git -c windows.appendAtomically=false checkout $Branch
+                    } else {
+                        git -c windows.appendAtomically=false checkout -b $Branch "origin/$Branch"
+                    }
                     if ($LASTEXITCODE -ne 0) { throw "git checkout $Branch failed (exit $LASTEXITCODE)" }
                     # Managed installs should follow origin/$Branch exactly. If
                     # the checkout has diverged (or has local-only commits),
