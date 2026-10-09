@@ -240,7 +240,8 @@ function ctxBar(pct: number | undefined, w = 10) {
   const p = Math.max(0, Math.min(100, pct ?? 0))
   const filled = Math.round((p / 100) * w)
 
-  return '█'.repeat(filled) + '░'.repeat(w - filled)
+  // A thin track reads as empty at 0% (the old ░ fill looked full).
+  return { used: '━'.repeat(filled), free: '─'.repeat(w - filled) }
 }
 
 // `minLeftContent` is the display width of the high-priority left segments
@@ -352,7 +353,7 @@ function SpawnHud({ t }: { t: Theme }) {
 
   return (
     <Text color={color}>
-      {atCap ? ' │ ⚠ ' : ' │ '}
+      {atCap ? ' · ⚠ ' : ' · '}
       {pieces.join(' ')}
     </Text>
   )
@@ -470,20 +471,20 @@ export function StatusRule({
       ? `${fmtK(usage.total)} tok`
       : ''
 
-  const bar = !segs.compactCtx && usage.context_max ? ctxBar(pct) : ''
+  const bar = !segs.compactCtx && usage.context_max ? ctxBar(pct) : null
   const modelText = modelLabel(model, modelReasoningEffort, modelFast)
   const workModeText = workMode === 'plan' ? '◇ plan' : workMode === 'accept-edits' ? '✎ edits' : ''
   const showFocus = !!focusView
 
   const pinnedBadgeWidth =
-    (workModeText ? stringWidth(' │ ') + stringWidth(workModeText) : 0) +
-    (showFocus ? stringWidth(' │ ◉ focus') : 0)
+    (workModeText ? stringWidth(' · ') + stringWidth(workModeText) : 0) +
+    (showFocus ? stringWidth(' · ◉ focus') : 0)
 
   // Battery read-out — the first (pinned) status-bar element when enabled.
   const showBattery = !!battery && battery.available && battery.percent != null
   const batteryText = showBattery ? batteryLabel(battery!) : ''
   const batteryColorVal = showBattery ? batteryColor(battery!, t) : ''
-  const batteryWidth = showBattery ? stringWidth(`${batteryText} │ `) : 0
+  const batteryWidth = showBattery ? stringWidth(`${batteryText} · `) : 0
 
   // A credits notice replaces the status/verb slot, but only when idle —
   // while busy the FaceTicker always wins (R1 render priority). The notice
@@ -512,9 +513,9 @@ export function StatusRule({
     stringWidth('─ ') +
     batteryWidth +
     slotWidth +
-    stringWidth(' │ ') +
+    stringWidth(' · ') +
     stringWidth(modelText) +
-    (ctxLabel ? stringWidth(' │ ') + stringWidth(ctxLabel) : 0) +
+    (ctxLabel ? stringWidth(' · ') + stringWidth(ctxLabel) : 0) +
     pinnedBadgeWidth
 
   const { leftWidth, rightWidth, separatorWidth } = statusRuleWidths(cols, cwdLabel, essentialWidth)
@@ -524,7 +525,7 @@ export function StatusRule({
   // descending priority order — bar, duration, compressions, voice, session
   // count, bg, cost. Lower-priority segments drop first and nothing truncates
   // mid-segment, so status/model/context are never crushed.
-  const SEP = stringWidth(' │ ')
+  const SEP = stringWidth(' · ')
   let tailBudget = Math.max(0, leftWidth - essentialWidth)
 
   const fits = (w: number) => {
@@ -549,7 +550,7 @@ export function StatusRule({
       ? `Δ ${(usage.dev_credits_spent_micros / 10000).toFixed(1)}¢`
       : ''
 
-  const showBar = !!bar && fits(SEP + stringWidth(`[${bar}] ${pct != null ? `${pct}%` : ''}`))
+  const showBar = !!bar && fits(SEP + stringWidth(`${bar.used}${bar.free} ${pct != null ? `${pct}%` : ''}`))
   const showDuration = segs.duration && !!sessionStartedAt && fits(SEP + MAX_DURATION_WIDTH)
 
   // Idle clock — time since the last final agent response. Hidden while busy
@@ -586,10 +587,10 @@ export function StatusRule({
 
   const sessionCountNode = onSessionCountClick ? (
     <Box flexShrink={0} onClick={handleSessionCountClick}>
-      <Text color={t.color.accent}> │ {sessionCountText}</Text>
+      <Text color={t.color.accent}> · {sessionCountText}</Text>
     </Box>
   ) : (
-    <Text color={t.color.muted}> │ {sessionCountText}</Text>
+    <Text color={t.color.muted}> · {sessionCountText}</Text>
   )
 
   return (
@@ -604,7 +605,7 @@ export function StatusRule({
           {showBattery ? (
             <Text color={batteryColorVal}>
               {batteryText}
-              <Text color={t.color.muted}>{' │ '}</Text>
+              <Text color={t.color.muted}>{' · '}</Text>
             </Text>
           ) : null}
           {busy ? (
@@ -633,49 +634,50 @@ export function StatusRule({
             </Text>
           ) : null}
           <Text color={t.color.muted} wrap="truncate-end">
-            {' │ '}
+            {' · '}
             {modelText}
           </Text>
           {ctxLabel ? (
             <Text color={t.color.muted} wrap="truncate-end">
-              {' │ '}
+              {' · '}
               {ctxLabel}
             </Text>
           ) : null}
         </Box>
         {workModeText ? (
           <Box flexDirection="row" flexShrink={0}>
-            <Text color={t.color.muted}>{' │ '}</Text>
+            <Text color={t.color.muted}>{' · '}</Text>
             <Text color={workMode === 'plan' ? t.color.warn : t.color.accent}>{workModeText}</Text>
           </Box>
         ) : null}
         {showFocus ? (
           <Box flexDirection="row" flexShrink={0}>
-            <Text color={t.color.muted}>{' │ '}</Text>
+            <Text color={t.color.muted}>{' · '}</Text>
             <Text color={t.color.warn}>◉ focus</Text>
           </Box>
         ) : null}
         {showBar ? (
           <Text color={t.color.muted} wrap="truncate-end">
-            {' │ '}
-            <Text color={barColor}>[{bar}]</Text> <Text color={barColor}>{pct != null ? `${pct}%` : ''}</Text>
+            {' · '}
+            <Text color={barColor}>{bar!.used}</Text>
+            <Text color={t.color.border}>{bar!.free}</Text> <Text color={barColor}>{pct != null ? `${pct}%` : ''}</Text>
           </Text>
         ) : null}
         {showDuration ? (
           <Text color={t.color.muted} wrap="truncate-end">
-            {' │ '}
+            {' · '}
             <SessionDuration startedAt={sessionStartedAt!} />
           </Text>
         ) : null}
         {showIdle ? (
           <Text color={t.color.muted} wrap="truncate-end">
-            {' │ '}
+            {' · '}
             <IdleSince endedAt={lastTurnEndedAt!} />
           </Text>
         ) : null}
         {showCompressions ? (
           <Text color={t.color.muted} wrap="truncate-end">
-            {' │ '}
+            {' · '}
             <Text color={compressions >= 10 ? t.color.error : compressions >= 5 ? t.color.warn : t.color.muted}>
               cmp {compressions}
             </Text>
@@ -688,31 +690,31 @@ export function StatusRule({
             }
             wrap="truncate-end"
           >
-            {' │ '}
+            {' · '}
             {voiceLabel}
           </Text>
         ) : null}
         {showSessionCount ? sessionCountNode : null}
         {showBg ? (
           <Text color={t.color.muted} wrap="truncate-end">
-            {' │ '}
+            {' · '}
             {bgCount} bg
           </Text>
         ) : null}
         {showSubagents ? (
           <Text color={t.color.muted} wrap="truncate-end">
-            {' │ '}⛓ {subagentCount}
+            {' · '}⛓ {subagentCount}
           </Text>
         ) : null}
         {showResumeHint ? (
           <Text color={t.color.muted} dim wrap="truncate-end">
-            {' │ '}
+            {' · '}
             {resumeHintText}
           </Text>
         ) : null}
         {showDevCredits ? (
           <Text color={t.color.accent} wrap="truncate-end">
-            {' │ '}
+            {' · '}
             {devCreditsText}
           </Text>
         ) : null}

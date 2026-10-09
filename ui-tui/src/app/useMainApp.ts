@@ -1224,7 +1224,11 @@ export function useMainApp(gw: GatewayClient) {
         ? '● REC'
         : voiceProcessing
           ? '◉ STT'
-          : `voice ${voiceEnabled ? 'on' : 'off'}${voiceTts ? ' [tts]' : ''}`
+          : voiceEnabled
+            ? `voice on${voiceTts ? ' [tts]' : ''}`
+            : voiceTts
+              ? 'tts on'
+              : ''
     }),
     [
       cwd,

@@ -37,7 +37,7 @@ describe('WorkspaceHeader responsive hierarchy', () => {
     expect(frame).toContain('JettsTUI')
     expect(frame).toContain('jettstui')
     expect(frame).toContain('gpt 5.6 sol')
-    expect(frame).toContain('DEFAULT')
+    expect(frame).toContain('Default')
   })
 
   it('keeps identity while progressively hiding secondary context', () => {
@@ -45,14 +45,14 @@ describe('WorkspaceHeader responsive hierarchy', () => {
 
     expect(frame).toContain('JettsTUI')
     expect(frame).not.toContain('gpt 5.6 sol')
-    expect(frame).not.toContain('DEFAULT')
+    expect(frame).not.toContain('Default')
   })
 
   it('reflects active work and plan mode without changing layout structure', () => {
     const frame = textContent(WorkspaceHeader({ ...base, busy: true, cols: 80, mode: 'plan' }))
 
     expect(frame).toContain('◆')
-    expect(frame).toContain('PLAN')
+    expect(frame).toContain('Plan')
   })
 })
 
@@ -62,7 +62,7 @@ describe('ComposerToolbar disclosure', () => {
       ComposerToolbar({ busy: false, cols: 100, mode: 'accept-edits', queueCount: 0, t: DEFAULT_THEME })
     )
 
-    expect(frame).toContain('NEW MESSAGE')
+    expect(frame).toContain('New message')
     expect(frame).toContain('Enter send')
     expect(frame).toContain('Shift+Enter newline')
     expect(frame).toContain('Shift+Tab mode')
@@ -71,8 +71,8 @@ describe('ComposerToolbar disclosure', () => {
   it('prioritizes state over hotkey help when space is tight', () => {
     const frame = textContent(ComposerToolbar({ busy: true, cols: 34, mode: 'plan', queueCount: 2, t: DEFAULT_THEME }))
 
-    expect(frame).toContain('STEER AGENT')
-    expect(frame).toContain('PLAN')
+    expect(frame).toContain('Steer the agent')
+    expect(frame).toContain('Plan')
     expect(frame).not.toContain('Shift+Enter')
   })
 
@@ -81,7 +81,7 @@ describe('ComposerToolbar disclosure', () => {
       ComposerToolbar({ busy: false, cols: 60, mode: 'default', queueCount: 3, t: DEFAULT_THEME })
     )
 
-    expect(frame).toContain('3 QUEUED')
+    expect(frame).toContain('3 queued')
   })
 
   it('uses a compact state label instead of overflowing tiny terminals', () => {
@@ -89,8 +89,8 @@ describe('ComposerToolbar disclosure', () => {
       ComposerToolbar({ busy: false, cols: 18, mode: 'default', queueCount: 0, t: DEFAULT_THEME })
     )
 
-    expect(frame).toContain('MESSAGE')
-    expect(frame).not.toContain('NEW MESSAGE')
+    expect(frame).toContain('Message')
+    expect(frame).not.toContain('New message')
     expect(frame).not.toContain('Enter send')
   })
 })
