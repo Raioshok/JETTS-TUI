@@ -155,7 +155,7 @@ from jettstui.colors import Colors, color
 def print_header(title: str):
     """Print a section header."""
     print()
-    print(color(f"◆ {title}", Colors.CYAN, Colors.BOLD))
+    print(color(f"◆ {title}", Colors.BRAND, Colors.BOLD))
 
 
 from jettstui.cli_output import (  # noqa: E402
@@ -181,7 +181,7 @@ def is_interactive_stdin() -> bool:
 def print_noninteractive_setup_guidance(reason: str | None = None) -> None:
     """Print guidance for headless/non-interactive setup flows."""
     print()
-    print(color("◆ JettsTUI Setup — Non-interactive mode", Colors.CYAN, Colors.BOLD))
+    print(color("◆ JettsTUI setup — non-interactive mode", Colors.BRAND, Colors.BOLD))
     print()
     if reason:
         print_info(reason)
@@ -2629,19 +2629,7 @@ def run_setup_wizard(args):
         for key, label, func in SETUP_SECTIONS:
             if key == section:
                 print()
-                print(
-                    color(
-                        "┌─────────────────────────────────────────────────────────┐",
-                        Colors.MAGENTA,
-                    )
-                )
-                print(color(f"│     ◆ JettsTUI Setup — {label:<34s} │", Colors.MAGENTA))
-                print(
-                    color(
-                        "└─────────────────────────────────────────────────────────┘",
-                        Colors.MAGENTA,
-                    )
-                )
+                print(color(f"◆ JettsTUI setup · {label}", Colors.BRAND, Colors.BOLD))
                 func(config)
                 save_config(config)
                 print()
@@ -2665,7 +2653,7 @@ def run_setup_wizard(args):
     # Rounded, self-aligning banner — content is centered programmatically so a
     # copy edit can never knock the borders out of alignment again.
     _bw = 58
-    _bc = Colors.MAGENTA
+    _bc = Colors.BRAND
 
     def _band(text: str = "", *, rule: bool = False) -> None:
         if rule:
@@ -2675,11 +2663,11 @@ def run_setup_wizard(args):
 
     print()
     print(color("╭" + "─" * _bw + "╮", _bc))
-    _band("◆  J E T T S - T U I")
-    _band("your AI workspace")
+    _band("◆  JettsTUI setup")
+    _band("Your terminal-first AI workspace")
     _band(rule=True)
-    _band("Let's get you a working agent — takes about a minute.")
-    _band("Ctrl+C anytime to bail.")
+    _band("Connect a model and pick your tools — about a minute.")
+    _band("Press Enter to keep a default · Ctrl+C to stop anytime")
     print(color("╰" + "─" * _bw + "╯", _bc))
 
     migration_ran = False

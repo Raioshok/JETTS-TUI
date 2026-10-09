@@ -19,6 +19,15 @@ def should_use_color() -> bool:
     return True
 
 
+def _supports_truecolor() -> bool:
+    """True when the terminal advertises 24-bit color support."""
+    if os.environ.get("COLORTERM", "").lower() in ("truecolor", "24bit"):
+        return True
+    if os.environ.get("WT_SESSION"):  # Windows Terminal
+        return True
+    return os.environ.get("TERM_PROGRAM", "") in ("vscode", "iTerm.app", "WezTerm")
+
+
 class Colors:
     RESET = "\033[0m"
     BOLD = "\033[1m"
@@ -29,6 +38,9 @@ class Colors:
     BLUE = "\033[34m"
     MAGENTA = "\033[35m"
     CYAN = "\033[36m"
+    # Prism violet accent (desktop/dashboard #9583FF); nearest 256-color
+    # violet when the terminal doesn't advertise truecolor.
+    BRAND = "\033[38;2;149;131;255m" if _supports_truecolor() else "\033[38;5;141m"
 
 
 def color(text: str, *codes) -> str:
