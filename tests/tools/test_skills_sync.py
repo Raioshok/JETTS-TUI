@@ -537,6 +537,58 @@ class TestRenamedBundledSkillRecovery:
         assert "moved-skill" not in result["copied"]
         assert "moved-skill" not in result.get("relocated", [])
 
+    def _retired_setup(self, tmp_path):
+        """A skill sync placed earlier that upstream no longer bundles."""
+        bundled = tmp_path / "bundled"
+        skills_dir = tmp_path / "user_skills"
+        manifest_file = skills_dir / ".bundled_manifest"
+        # Upstream still bundles something else (renamed successor).
+        self._skill(bundled, "cat/moved-skill")
+        old = skills_dir / "cat" / "old-name"
+        old.mkdir(parents=True)
+        (old / "SKILL.md").write_text("---\nname: old-name\n---\n# Old docs\n")
+        manifest_file.write_text(f"old-name:{_dir_hash(old)}\n")
+        return bundled, skills_dir, manifest_file, old
+
+    def test_retired_unmodified_copy_is_archived(self, tmp_path):
+        """A dropped bundled skill must not keep loading stale instructions."""
+        bundled, skills_dir, manifest_file, old = self._retired_setup(tmp_path)
+
+        with self._patches(bundled, skills_dir, manifest_file):
+            result = sync_skills(quiet=True)
+            manifest = _read_manifest()
+
+        assert not old.exists(), "retired bundled copy left active"
+        archived = skills_dir / ".archive" / "old-name"
+        assert "Old docs" in (archived / "SKILL.md").read_text(), "must be restorable"
+        assert "old-name" in result["retired"]
+        assert "old-name" in result["cleaned"]
+        assert "old-name" not in manifest
+
+    def test_retired_user_modified_copy_is_kept(self, tmp_path):
+        bundled, skills_dir, manifest_file, old = self._retired_setup(tmp_path)
+        (old / "SKILL.md").write_text("---\nname: old-name\n---\n# MY EDITS\n")
+
+        with self._patches(bundled, skills_dir, manifest_file):
+            result = sync_skills(quiet=True)
+
+        assert "MY EDITS" in (old / "SKILL.md").read_text()
+        assert "old-name" not in result["retired"]
+
+    def test_retired_hub_installed_copy_is_kept(self, tmp_path):
+        bundled, skills_dir, manifest_file, old = self._retired_setup(tmp_path)
+        lock = skills_dir / ".hub" / "lock.json"
+        lock.parent.mkdir(parents=True, exist_ok=True)
+        lock.write_text(
+            json.dumps({"version": 1, "installed": {"old-name": {"install_path": "cat/old-name"}}})
+        )
+
+        with self._patches(bundled, skills_dir, manifest_file):
+            result = sync_skills(quiet=True)
+
+        assert old.exists(), "hub owns this path"
+        assert "old-name" not in result["retired"]
+
 
 class TestSyncSkills:
     def _setup_bundled(self, tmp_path):

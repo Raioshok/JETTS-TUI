@@ -672,6 +672,51 @@ def _recover_renamed_skill(
     return None
 
 
+def _archive_retired_skill(
+    skill_name: str,
+    origin_hash: str,
+    active_index: Dict[str, List[Path]],
+    hub_paths: Set[str],
+    quiet: bool,
+) -> bool:
+    """Archive the stale copy of a bundled skill that upstream retired.
+
+    Only a copy byte-identical to ``origin_hash`` (what sync last wrote) is
+    moved, so user edits and same-named custom or hub skills are never
+    touched. The copy goes to ``.archive/<dir>/`` — the curator's flat,
+    restorable layout — rather than being deleted.
+    """
+    if not origin_hash:
+        return False
+    for candidate in active_index.get(skill_name, []):
+        if not candidate.is_dir():
+            continue
+        try:
+            rel = candidate.relative_to(SKILLS_DIR).as_posix()
+        except ValueError:
+            continue
+        if rel in hub_paths or _dir_hash(candidate) != origin_hash:
+            continue
+        archive_root = SKILLS_DIR / ".archive"
+        dest = archive_root / candidate.name
+        if dest.exists():
+            stamp = datetime.now(timezone.utc).strftime("%Y%m%d%H%M%S")
+            dest = archive_root / f"{candidate.name}-{stamp}"
+        try:
+            archive_root.mkdir(parents=True, exist_ok=True)
+            shutil.move(str(candidate), str(dest))
+        except (OSError, IOError):
+            logger.warning(
+                "Could not archive retired bundled skill %s", candidate, exc_info=True
+            )
+            return False
+        logger.info("Archived retired bundled skill: %s -> %s", candidate, dest)
+        if not quiet:
+            print(f"  - {skill_name} (no longer bundled; archived {rel} → .archive/{dest.name})")
+        return True
+    return False
+
+
 def sync_skills(quiet: bool = False) -> dict:
     """
     Sync bundled skills into ~/.jettstui/skills/ using the manifest.
@@ -915,8 +960,21 @@ def sync_skills(quiet: bool = False) -> dict:
             # ── In manifest but not on disk — user deleted it ──
             skipped += 1
 
-    # Clean stale manifest entries (skills removed from bundled dir)
+    # Clean stale manifest entries (skills removed from bundled dir). A skill
+    # that upstream removed or renamed (new frontmatter name) would otherwise
+    # leave its old copy loaded forever with outdated instructions; archive
+    # the copies we provably placed (unmodified, not hub-owned).
     cleaned = sorted(set(manifest.keys()) - bundled_names)
+    retired: List[str] = []
+    if cleaned:
+        if active_index is None:
+            active_index = _index_active_skills()
+            hub_paths = _read_hub_install_paths()
+        for name in cleaned:
+            if _archive_retired_skill(
+                name, manifest.get(name, ""), active_index, hub_paths or set(), quiet
+            ):
+                retired.append(name)
     for name in cleaned:
         del manifest[name]
 
@@ -942,6 +1000,7 @@ def sync_skills(quiet: bool = False) -> dict:
         "cleaned": cleaned,
         "suppressed": suppressed_skipped,
         "relocated": relocated,
+        "retired": retired,
         "total_bundled": len(bundled_skills),
         "optional_provenance_backfilled": optional_provenance_backfilled,
         "shadowed_by_external": shadowed_by_external,

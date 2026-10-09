@@ -162,6 +162,25 @@ _SUSPICIOUS_LOCAL_REF_RE = re.compile(
 )
 
 
+# Many community skills keep companion docs beside SKILL.md and link them as
+# `[Typography](typography.md)`. Those are fetched too, but only as explicit
+# markdown links to a single root-level file with a document/data extension —
+# never executables — and a link with no matching file is skipped, not fatal.
+_SIBLING_DOC_EXTENSIONS = frozenset({".md", ".mdx", ".txt", ".json", ".yaml", ".yml", ".csv"})
+_SIBLING_LINK_RE = re.compile(r"\]\(\s*(?:\./)?([A-Za-z0-9][\w.-]*)(?:#[^)\s]*)?\s*\)")
+
+
+def _referenced_sibling_docs(skill_md: str) -> set[str]:
+    """Root-level companion docs linked from SKILL.md (optional bundle files)."""
+    found: set[str] = set()
+    for match in _SIBLING_LINK_RE.finditer(skill_md.replace("\\", "/")):
+        name = match.group(1)
+        suffix = PurePosixPath(name).suffix.lower()
+        if suffix in _SIBLING_DOC_EXTENSIONS and name.upper() != "SKILL.MD":
+            found.add(name)
+    return found
+
+
 def _referenced_support_paths(skill_md: str) -> Optional[set[str]]:
     """Extract safe referenced paths; return None on a traversal attempt."""
     normalized = skill_md.replace("\\", "/")
@@ -658,6 +677,7 @@ class GitHubSource(SkillSource):
         referenced = _referenced_support_paths(skill_md)
         if referenced is None:
             return None
+        siblings = _referenced_sibling_docs(skill_md)
 
         files: Dict[str, Union[str, bytes]] = {"SKILL.md": skill_md}
         tree = self._get_repo_tree(repo)
@@ -678,6 +698,14 @@ class GitHubSource(SkillSource):
                 if content is None:
                     return None
                 files[rel_path] = content
+            for rel_path in sorted(siblings):
+                item = entries_by_path.get(f"{prefix}{rel_path}")
+                # Optional: absent or non-regular siblings are simply skipped.
+                if item is None or item.get("type") != "blob" or item.get("mode") == "120000":
+                    continue
+                content = self._fetch_file_bytes(repo, f"{prefix}{rel_path}")
+                if content is not None:
+                    files[rel_path] = content
             revision = self._tree_revisions.get(repo) or branch
         else:
             for rel_path in referenced:
@@ -685,6 +713,10 @@ class GitHubSource(SkillSource):
                 if content is None:
                     return None
                 files[rel_path] = content
+            for rel_path in sorted(siblings):
+                content = self._fetch_file_bytes(repo, f"{skill_path.rstrip('/')}/{rel_path}")
+                if content is not None:
+                    files[rel_path] = content
             revision = ""
 
         skill_name = skill_path.rstrip("/").split("/")[-1]
