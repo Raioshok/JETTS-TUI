@@ -27,8 +27,9 @@
  */
 @import '../../desktop/src/styles.css';
 
-/* Installer-only additions: a fade-in animation and a warm radial glow
-   for the welcome screen. Everything else inherits from the desktop. */
+/* Installer-only additions. Everything else inherits from the desktop.
+   `.jt-rise` stages the screen's chunks ~100ms apart (set `--i` per chunk):
+   setup is a one-time moment, so a short ordered entrance helps read it. */
 @keyframes jettstui-fade-in {
   from {
     opacity: 0;
@@ -44,12 +45,39 @@
   animation: jettstui-fade-in 0.45s ease-out both;
 }
 
-.jettstui-glow {
-  background: radial-gradient(
-    ellipse at center,
-    color-mix(in srgb, var(--ui-warm) 18%, transparent) 0%,
-    transparent 60%
-  );
+@keyframes jt-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.jt-rise {
+  animation: jt-rise 0.5s cubic-bezier(0.2, 0, 0, 1) both;
+  animation-delay: calc(var(--i, 0) * 100ms);
+}
+
+/* Tactile press on primary actions; only `scale` is added to the transition. */
+.jt-press {
+  transition-property: color, background-color, box-shadow, opacity, scale;
+  transition-duration: 150ms;
+}
+.jt-press:not(:disabled):active {
+  scale: 0.96;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jettstui-fade-in,
+  .jt-rise {
+    animation: none;
+  }
+  .jt-press:active {
+    scale: none;
+  }
 }
 
 /*
