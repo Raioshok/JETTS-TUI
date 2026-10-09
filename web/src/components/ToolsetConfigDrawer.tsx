@@ -347,7 +347,7 @@ export function ToolsetConfigDrawer({ toolset, profile, onClose, onChanged }: Pr
                           <Input
                             id={`env-${ev.key}`}
                             type="password"
-                            className="h-8 rounded-none text-xs font-mono"
+                            className="h-8 rounded-md text-xs font-mono"
                             placeholder={
                               isSet[ev.key]
                                 ? "•••••••• (saved — leave blank to keep)"

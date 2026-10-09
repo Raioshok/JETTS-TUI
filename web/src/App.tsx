@@ -61,6 +61,8 @@ import { SelectionSwitcher } from "@jettstui/ui/ui/components/selection-switcher
 import { Spinner } from "@jettstui/ui/ui/components/spinner";
 import { Typography } from "@jettstui/ui/ui/components/typography/index";
 import { ConfirmDialog } from "@jettstui/ui/ui/components/confirm-dialog";
+import { PageEnter } from "@/components/PageEnter";
+import { PrismMark } from "@/components/PrismMark";
 import { cn } from "@/lib/utils";
 import { SidebarFooter } from "@/components/SidebarFooter";
 import { SidebarStatusStrip, gatewayLine } from "@/components/SidebarStatusStrip";
@@ -527,11 +529,14 @@ export default function App() {
         className={cn(
           "lg:hidden fixed top-0 left-0 right-0 z-40 min-h-14",
           "flex items-center gap-2 px-4 py-2",
-          "border-b border-current/20",
-          "bg-background-base",
+          "border-b border-border",
+          "backdrop-blur-md",
         )}
         style={{
-          background: "var(--component-header-background)",
+          // Fallback required: an undefined var() makes the whole declaration
+          // invalid, which resolves to a transparent background.
+          background:
+            "var(--component-header-background, color-mix(in srgb, var(--background-base) 90%, transparent))",
           borderImage: "var(--component-header-border-image)",
           clipPath: "var(--component-header-clip-path)",
         }}
@@ -548,20 +553,21 @@ export default function App() {
           <Menu />
         </Button>
 
-        <Typography className="font-bold text-[0.95rem] leading-[0.95] tracking-[0.05em] text-midground">
-          {t.app.brand}
-        </Typography>
+        <span className="flex items-center gap-2">
+          <PrismMark className="h-5 w-5 shrink-0" />
+          <Typography className="text-[0.95rem] font-semibold leading-none text-text-primary">
+            {t.app.brand}
+          </Typography>
+        </span>
       </header>
 
       {mobileOpen && (
-        <Button
-          ghost
+        <button
           aria-label={t.app.closeNavigation}
+          className="lg:hidden fixed inset-0 z-40 cursor-default bg-black/60 backdrop-blur-[2px] animate-[fade-in_150ms_ease-out]"
+          data-static
           onClick={closeMobile}
-          className={cn(
-            "lg:hidden fixed inset-0 z-40 p-0 block",
-            "bg-black/70",
-          )}
+          type="button"
         />
       )}
 
@@ -575,8 +581,7 @@ export default function App() {
             aria-label={t.app.navigation}
             className={cn(
               "fixed top-0 left-0 z-50 flex h-dvh max-h-dvh w-64 min-h-0 flex-col font-sans",
-              "border-r border-current/20",
-              "bg-background-base",
+              "border-r border-border",
               "transition-[transform] duration-200 ease-[cubic-bezier(0.23,1,0.32,1)]",
               mobileOpen ? "translate-x-0" : "-translate-x-full",
               "lg:sticky lg:top-0 lg:translate-x-0 lg:shrink-0 lg:overflow-hidden",
@@ -584,7 +589,10 @@ export default function App() {
               collapsed && "lg:w-14",
             )}
             style={{
-              background: "var(--component-sidebar-background)",
+              // Fallback required (see the mobile header): without it the
+              // drawer renders transparent over the page.
+              background:
+                "var(--component-sidebar-background, color-mix(in srgb, var(--midground-base) 2.5%, var(--background-base)))",
               clipPath: "var(--component-sidebar-clip-path)",
               borderImage: "var(--component-sidebar-border-image)",
             }}
@@ -592,7 +600,6 @@ export default function App() {
             <div
               className={cn(
                 "flex h-14 shrink-0 items-center gap-2",
-                "border-b border-current/20",
                 collapsed ? "lg:justify-center lg:px-0" : "px-4 justify-between",
               )}
             >
@@ -604,11 +611,16 @@ export default function App() {
               >
                 <PluginSlot name="header-left" />
 
-                <Typography className="font-bold text-[1.125rem] leading-[0.95] tracking-[0.0525rem] text-midground uppercase">
-                  JettsTUI
-                  <br />
-                  Workspace
-                </Typography>
+                <PrismMark className="h-6 w-6 shrink-0" />
+
+                <span className="flex min-w-0 flex-col">
+                  <Typography className="text-[0.95rem] font-semibold leading-tight text-text-primary">
+                    JettsTUI
+                  </Typography>
+                  <span className="text-xs leading-tight text-text-tertiary">
+                    Workspace
+                  </span>
+                </span>
               </div>
 
               <Button
@@ -641,10 +653,10 @@ export default function App() {
             <ProfileSwitcher collapsed={isDesktopCollapsed} />
 
             <nav
-              className="min-h-0 w-full flex-1 overflow-y-auto overflow-x-hidden border-t border-current/10 py-2"
+              className="min-h-0 w-full flex-1 overflow-y-auto overflow-x-hidden border-t border-border px-2 py-2"
               aria-label={t.app.navigation}
             >
-              <ul className="flex flex-col">
+              <ul className="flex flex-col gap-0.5">
                 {sidebarNav.coreItems.map((item) => (
                   <SidebarNavLink
                     closeMobile={closeMobile}
@@ -660,13 +672,13 @@ export default function App() {
               {sidebarNav.pluginItems.length > 0 && (
                 <div
                   aria-labelledby="jettstui-sidebar-plugin-nav-heading"
-                  className="flex flex-col border-t border-current/10 pb-2"
+                  className="mt-2 flex flex-col border-t border-border pt-1 pb-2"
                   role="group"
                 >
                   <span
                     className={cn(
-                      "px-5 pt-2.5 pb-1",
-                      "font-sans text-display text-xs tracking-[0.12em] text-text-tertiary",
+                      "px-3 pt-2.5 pb-1",
+                      "text-[0.6875rem] font-medium text-text-tertiary",
                       isDesktopCollapsed && "lg:hidden",
                     )}
                     id="jettstui-sidebar-plugin-nav-heading"
@@ -674,7 +686,7 @@ export default function App() {
                     {t.app.pluginNavSection}
                   </span>
 
-                  <ul className="flex flex-col">
+                  <ul className="flex flex-col gap-0.5">
                     {sidebarNav.pluginItems.map((item) => (
                       <SidebarNavLink
                         closeMobile={closeMobile}
@@ -701,7 +713,7 @@ export default function App() {
               className={cn(
                 "flex shrink-0 items-center gap-2",
                 "px-3 py-2",
-                "border-t border-current/20",
+                "border-t border-border",
                 isDesktopCollapsed
                   ? "lg:flex-col lg:items-start lg:gap-3 lg:py-3"
                   : "justify-between",
@@ -769,7 +781,11 @@ export default function App() {
                   <Suspense fallback={<RouteFallback />}>
                     <Routes>
                       {routes.map(({ key, path, element }) => (
-                        <Route key={key} path={path} element={element} />
+                        <Route
+                          key={key}
+                          path={path}
+                          element={<PageEnter>{element}</PageEnter>}
+                        />
                       ))}
                       <Route
                         path="*"
@@ -874,14 +890,14 @@ function SidebarNavLink({
         onBlur={collapsed ? hideTooltip : undefined}
         className={({ isActive }) =>
           cn(
-            "group/nav relative flex items-center gap-3",
-            "px-5 py-2.5",
-            "font-sans text-display uppercase text-sm tracking-[0.12em]",
-            "whitespace-nowrap transition-colors cursor-pointer",
-            "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-midground",
+            "group/nav relative flex h-10 items-center gap-3 rounded-lg px-3",
+            "font-sans text-sm font-medium",
+            "whitespace-nowrap cursor-pointer",
+            "transition-[background-color,color] duration-150 ease-out",
+            "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/70",
             isActive
-              ? "text-midground"
-              : "text-text-secondary hover:text-midground",
+              ? "bg-brand/12 text-text-primary"
+              : "text-text-secondary hover:bg-midground/[0.06] hover:text-text-primary",
           )
         }
         style={{
@@ -890,7 +906,12 @@ function SidebarNavLink({
       >
         {({ isActive }) => (
           <>
-            <Icon className="h-3.5 w-3.5 shrink-0" />
+            <Icon
+              className={cn(
+                "h-4 w-4 shrink-0 stroke-[1.75] transition-colors duration-150",
+                isActive ? "text-brand" : "text-current",
+              )}
+            />
 
             <span
               className={cn(
@@ -901,15 +922,10 @@ function SidebarNavLink({
               {navLabel}
             </span>
 
-            <span
-              aria-hidden
-              className="absolute inset-y-0.5 left-1.5 right-1.5 bg-midground opacity-0 pointer-events-none transition-opacity duration-200 group-hover/nav:opacity-5"
-            />
-
             {isActive && (
               <span
                 aria-hidden
-                className="absolute left-0 top-0 bottom-0 w-px bg-midground"
+                className="absolute -left-2 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-r-full bg-brand"
               />
             )}
           </>
@@ -1029,14 +1045,14 @@ function SidebarSystemActions({
     <div
       className={cn(
         "shrink-0 flex flex-col",
-        "border-t border-current/10",
-        "py-1",
+        "border-t border-border",
+        "px-2 py-1.5",
       )}
     >
       <span
         className={cn(
-          "px-5 pt-0.5 pb-0.5",
-          "font-sans text-display text-xs tracking-[0.12em] text-text-tertiary",
+          "px-3 pt-1 pb-0.5",
+          "text-[0.6875rem] font-medium text-text-tertiary",
           collapsed && "lg:hidden",
         )}
       >
@@ -1049,7 +1065,7 @@ function SidebarSystemActions({
 
       <GatewayDot collapsed={collapsed} status={status} tooltipWarmRef={tooltipWarmRef} />
 
-      <ul className="flex flex-col">
+      <ul className="flex flex-col gap-0.5">
         {items.map((item) => (
           <SystemActionButton
             key={item.action}
@@ -1130,18 +1146,19 @@ function SystemActionButton({
         disabled={disabled}
         aria-busy={busy}
         aria-label={collapsed ? displayLabel : undefined}
+        data-static
         onFocus={collapsed ? showTooltip : undefined}
         onBlur={collapsed ? hideTooltip : undefined}
         type="button"
         className={cn(
-          "group/action relative flex w-full items-center gap-3",
-          "px-5 py-2.5",
-          "font-sans text-display text-xs tracking-[0.1em]",
-          "whitespace-nowrap transition-colors cursor-pointer",
-          "focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-midground",
+          "group/action relative flex h-10 w-full items-center gap-3 rounded-lg px-3",
+          "font-sans text-sm font-medium",
+          "whitespace-nowrap cursor-pointer",
+          "transition-[background-color,color] duration-150 ease-out",
+          "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand/70",
           busy
-            ? "text-midground"
-            : "text-text-secondary hover:text-midground",
+            ? "bg-brand/12 text-text-primary"
+            : "text-text-secondary hover:bg-midground/[0.06] hover:text-text-primary",
           "disabled:text-text-disabled disabled:cursor-not-allowed",
         )}
       >
@@ -1152,7 +1169,7 @@ function SystemActionButton({
         ) : (
           <Icon
             className={cn(
-              "h-3.5 w-3.5 shrink-0",
+              "h-4 w-4 shrink-0 stroke-[1.75]",
               isActionRunning && !spin && "animate-pulse",
             )}
           />
@@ -1165,15 +1182,10 @@ function SystemActionButton({
           {displayLabel}
         </span>
 
-        <span
-          aria-hidden
-          className="absolute inset-y-0.5 left-1.5 right-1.5 bg-midground opacity-0 pointer-events-none transition-opacity duration-200 group-hover/action:opacity-5"
-        />
-
         {busy && (
           <span
             aria-hidden
-            className="absolute left-0 top-0 bottom-0 w-px bg-midground"
+            className="absolute -left-2 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-r-full bg-brand"
           />
         )}
       </button>
@@ -1216,7 +1228,7 @@ function SidebarIconWithTooltip({
       {collapsed && (
         <span
           aria-hidden
-          className="absolute inset-y-0 inset-x-[-0.375rem] bg-midground opacity-0 pointer-events-none transition-opacity duration-200 group-hover/icon:opacity-5 hidden lg:block"
+          className="absolute inset-y-0 inset-x-[-0.375rem] rounded-md bg-midground opacity-0 pointer-events-none transition-opacity duration-150 group-hover/icon:opacity-[0.06] hidden lg:block"
         />
       )}
 
@@ -1262,7 +1274,7 @@ function GatewayDot({ collapsed, status, tooltipWarmRef }: GatewayDotProps) {
   return (
     <div
       className={cn(
-        "hidden lg:flex py-3 pl-[1.625rem] transition-opacity duration-300",
+        "hidden lg:flex py-3 pl-[1.375rem] transition-opacity duration-300",
         collapsed ? "lg:opacity-100" : "lg:opacity-0 lg:h-0 lg:py-0 lg:overflow-hidden",
       )}
       role="status"
@@ -1308,9 +1320,9 @@ function SidebarTooltip({ anchor, label, warmRef }: SidebarTooltipProps) {
     <span
       className={cn(
         "fixed z-[100] pointer-events-none",
-        "px-2 py-1",
-        "bg-background-base border border-current/20 shadow-lg",
-        "font-sans text-display text-xs tracking-[0.1em] text-midground uppercase",
+        "rounded-md px-2 py-1",
+        "bg-popover border border-border shadow-lg shadow-black/40",
+        "font-sans text-xs font-medium text-text-primary",
       )}
       style={{
         top: rect.top + rect.height / 2,

@@ -998,7 +998,7 @@ function PluginRowCard(props: PluginRowCardProps) {
 
               <Link
                 className={cn(
-                  "inline-flex items-center rounded-none px-3 py-1.5",
+                  "inline-flex items-center rounded-md px-3 py-1.5",
                   "border border-current/25 hover:bg-current/10",
                   "font-mondwest text-display text-xs tracking-[0.1em]",
                 )}

@@ -574,7 +574,7 @@ export default function ConfigPage() {
                           setSearchQuery("");
                           setActiveCategory(cat);
                         }}
-                        className="rounded-none whitespace-nowrap px-2 py-1 text-xs"
+                        className="rounded-md whitespace-nowrap px-2 py-1 text-xs"
                       >
                         <CategoryIcon
                           category={cat}

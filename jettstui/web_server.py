@@ -18283,7 +18283,7 @@ def _render_active_theme_bootstrap_css() -> str:
     ``ThemeProvider.applyTheme()`` installs once the
     ``/api/dashboard/themes`` round-trip completes.  The goal is to
     eliminate the green flash where the first paint shows the bundle's
-    default JettsTUI Teal canvas before the SPA flips the configured user
+    default Prism canvas before the SPA flips the configured user
     theme into place.
 
     Built-in themes return an empty string — their full definitions live
@@ -18435,7 +18435,7 @@ def mount_spa(application: FastAPI):
         # Theme flash mitigation: when the active theme is a user theme
         # (``JETTSTUI_HOME/dashboard-themes/<name>.yaml``), inject a minimal
         # critical-CSS block so the first paint uses the target palette.
-        # Without this the SPA paints the default JettsTUI Teal canvas, then
+        # Without this the SPA paints the default Prism canvas, then
         # ``ThemeProvider`` flips the CSS variables once
         # ``/api/dashboard/themes`` resolves.  Built-in themes are already
         # in the bundle's ``presets.ts`` so no shim is needed for them.
@@ -18506,8 +18506,8 @@ def mount_spa(application: FastAPI):
 # Built-in dashboard themes — label + description only.  The actual color
 # definitions live in the frontend (web/src/themes/presets.ts).
 _BUILTIN_DASHBOARD_THEMES = [
-    {"name": "default",       "label": "JettsTUI Teal",         "description": "Classic dark teal — the canonical JettsTUI look"},
-    {"name": "default-large", "label": "JettsTUI Teal (Large)", "description": "JettsTUI Teal with bigger fonts and roomier spacing"},
+    {"name": "default",       "label": "Prism",                 "description": "Ink neutrals with a violet prism accent — the JettsTUI look"},
+    {"name": "default-large", "label": "Prism (Large)",         "description": "Prism with bigger fonts and roomier spacing"},
     {"name": "midnight",      "label": "Midnight",            "description": "Deep blue-violet with cool accents"},
     {"name": "ember",     "label": "Ember",          "description": "Warm crimson and bronze — forge vibes"},
     {"name": "mono",      "label": "Mono",           "description": "Clean grayscale — minimal and focused"},

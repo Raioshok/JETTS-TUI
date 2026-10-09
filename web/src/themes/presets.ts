@@ -15,22 +15,23 @@ import type { DashboardTheme, ThemeTypography, ThemeLayout } from "./types";
 // Shared typography / layout presets
 // ---------------------------------------------------------------------------
 
-/** Default system stack — neutral, safe fallback for every platform. */
+/** Default stack — matches the desktop app's Prism typography (Inter when
+ *  installed, then each platform's native UI face). */
 const SYSTEM_SANS =
-  'system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif';
+  '"Inter Variable", Inter, "Segoe UI Variable Text", "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, Roboto, "Helvetica Neue", Arial, sans-serif';
 const SYSTEM_MONO =
-  'ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace';
+  '"Cascadia Code", "JetBrains Mono", ui-monospace, "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace';
 
 const DEFAULT_TYPOGRAPHY: ThemeTypography = {
   fontSans: SYSTEM_SANS,
   fontMono: SYSTEM_MONO,
   baseSize: "15px",
   lineHeight: "1.55",
-  letterSpacing: "0",
+  letterSpacing: "-0.005em",
 };
 
 const DEFAULT_LAYOUT: ThemeLayout = {
-  radius: "0.5rem",
+  radius: "0.625rem",
   density: "comfortable",
 };
 
@@ -38,20 +39,55 @@ const DEFAULT_LAYOUT: ThemeLayout = {
 // Themes
 // ---------------------------------------------------------------------------
 
+/** Prism accent — same violet the desktop app uses in dark mode. */
+const PRISM_VIOLET = "#9583FF";
+
 export const defaultTheme: DashboardTheme = {
   name: "default",
-  label: "Jetts Teal",
-  description: "Classic dark teal JettsTUI theme",
+  label: "Prism",
+  description: "Ink neutrals with a violet prism accent — the JettsTUI look",
   palette: {
-    background: { hex: "#041c1c", alpha: 1 },
-    midground: { hex: "#ffe6cb", alpha: 1 },
+    background: { hex: "#0B0B11", alpha: 1 },
+    midground: { hex: "#ECECF3", alpha: 1 },
     foreground: { hex: "#ffffff", alpha: 0 },
-    warmGlow: "rgba(255, 189, 56, 0.35)",
-    noiseOpacity: 1,
+    warmGlow: "rgba(149, 131, 255, 0.25)",
+    noiseOpacity: 0,
   },
   typography: DEFAULT_TYPOGRAPHY,
   layout: DEFAULT_LAYOUT,
-  terminalBackground: "#000000",
+  colorOverrides: {
+    card: "#12121A",
+    cardForeground: "#ECECF3",
+    popover: "#15151E",
+    popoverForeground: "#ECECF3",
+    primary: PRISM_VIOLET,
+    primaryForeground: "#0B0B11",
+    secondary: "#1C1B28",
+    secondaryForeground: "#D7D6E6",
+    muted: "#191922",
+    mutedForeground: "#A3A3B8",
+    accent: "#211E35",
+    accentForeground: "#E9E5FF",
+    destructive: "#F0577A",
+    success: "#4ADE80",
+    warning: "#FBBF4D",
+    border: "rgb(255 255 255 / 0.09)",
+    input: "rgb(255 255 255 / 0.12)",
+    ring: PRISM_VIOLET,
+  },
+  componentStyles: {
+    card: {
+      // Elevation via layered shadows; the card's own border stays as structure.
+      boxShadow: "0 1px 2px rgb(0 0 0 / 0.35), 0 12px 32px -16px rgb(0 0 0 / 0.55)",
+    },
+  },
+  seriesColors: {
+    inputTokenAccent: PRISM_VIOLET,
+    outputTokenAccent: "#34D399",
+  },
+  swatchColors: ["#0B0B11", "#ECECF3", PRISM_VIOLET],
+  terminalBackground: "#08080D",
+  terminalForeground: "#ECECF3",
 };
 
 export const midnightTheme: DashboardTheme = {
@@ -213,10 +249,10 @@ export const cobaltBlueTheme: DashboardTheme = {
  * dashboard scales up. For users who find the default 15px UI too dense.
  */
 export const defaultLargeTheme: DashboardTheme = {
+  ...defaultTheme,
   name: "default-large",
-  label: "Jetts Teal (Large)",
-  description: "Jetts Teal with bigger fonts and roomier spacing",
-  palette: defaultTheme.palette,
+  label: "Prism (Large)",
+  description: "Prism with bigger fonts and roomier spacing",
   typography: {
     ...DEFAULT_TYPOGRAPHY,
     baseSize: "18px",
