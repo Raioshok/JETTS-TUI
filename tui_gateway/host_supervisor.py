@@ -22,8 +22,8 @@ from collections.abc import Callable
 from pathlib import Path
 from typing import Any
 
-from freeide_constants import get_freeide_home
-from tools.environments.local import freeide_subprocess_env
+from jettstui_constants import get_jettstui_home
+from tools.environments.local import jettstui_subprocess_env
 
 logger = logging.getLogger(__name__)
 _Thread = threading.Thread
@@ -47,6 +47,7 @@ MUTATOR_ROUTE_TABLE: dict[str, str] = {
 _REGISTRY_NAME = "dashboard-compute-host.json"
 _RESPAWN_WINDOW_SECS = 300.0
 _SHUTDOWN_TIMEOUT_SECS = 10.0
+_append_log_lock = threading.Lock()
 
 
 def append_log_record(path: str | Path, record: str) -> None:
@@ -55,11 +56,14 @@ def append_log_record(path: str | Path, record: str) -> None:
     p.parent.mkdir(parents=True, exist_ok=True)
     text = record if record.endswith("\n") else f"{record}\n"
     data = text.encode("utf-8", errors="replace")
-    fd = os.open(str(p), os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
-    try:
-        os.write(fd, data)
-    finally:
-        os.close(fd)
+    # Windows O_APPEND does not serialize separate open/write pairs across
+    # threads. Keep each record intact within this supervisor process.
+    with _append_log_lock:
+        fd = os.open(str(p), os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+        try:
+            os.write(fd, data)
+        finally:
+            os.close(fd)
 
 
 def _repo_root() -> Path:
@@ -82,26 +86,30 @@ def _build_sha() -> str:
 
 
 def _default_registry_path() -> Path:
-    return get_freeide_home() / "state" / _REGISTRY_NAME
+    return get_jettstui_home() / "state" / _REGISTRY_NAME
 
 
 def _pid_alive(pid: int) -> bool:
     if pid <= 0:
         return False
-    try:
-        os.kill(pid, 0)
-        return True
-    except ProcessLookupError:
-        return False
-    except PermissionError:
-        return True
-    except Exception:
-        return False
+    # os.kill(pid, 0) sends a console Ctrl+C on Windows. Use the shared
+    # cross-platform probe so reconciling a stale registry cannot interrupt
+    # the dashboard (or another process in its console group).
+    from gateway.status import _pid_exists
+
+    return _pid_exists(pid)
 
 
 def _pid_command(pid: int) -> str:
     if pid <= 0:
         return ""
+    if os.name == "nt":
+        try:
+            import psutil
+
+            return " ".join(psutil.Process(pid).cmdline())
+        except (psutil.Error, OSError):
+            return ""
     # Linux fast path.
     proc_cmdline = Path("/proc") / str(pid) / "cmdline"
     try:
@@ -142,7 +150,7 @@ class HostSupervisor:
         respawn_max: int = 3,
         heartbeat_secs: int = 15,
         expected_build_sha: str | None = None,
-        expected_freeide_home: str | None = None,
+        expected_jettstui_home: str | None = None,
         autostart: bool = True,
     ) -> None:
         self.registry_path = Path(registry_path) if registry_path is not None else _default_registry_path()
@@ -153,7 +161,7 @@ class HostSupervisor:
         self.respawn_max = max(0, int(respawn_max))
         self.heartbeat_secs = max(1, int(heartbeat_secs))
         self.expected_build_sha = expected_build_sha if expected_build_sha is not None else _build_sha()
-        self.expected_freeide_home = expected_freeide_home if expected_freeide_home is not None else str(get_freeide_home())
+        self.expected_jettstui_home = expected_jettstui_home if expected_jettstui_home is not None else str(get_jettstui_home())
 
         self._lock = threading.RLock()
         self._proc: subprocess.Popen[str] | None = None
@@ -315,11 +323,11 @@ class HostSupervisor:
             raise RuntimeError("compute host respawn disabled after crash loop")
         self._hello_event.clear()
         self._hello = {}
-        env = freeide_subprocess_env(inherit_credentials=True)
+        env = jettstui_subprocess_env(inherit_credentials=True)
         env.update(os.environ)
         if self.env:
             env.update(self.env)
-        env["FREEIDE_COMPUTE_HOST_HEARTBEAT_SECS"] = str(self.heartbeat_secs)
+        env["JETTSTUI_COMPUTE_HOST_HEARTBEAT_SECS"] = str(self.heartbeat_secs)
         env.setdefault("PYTHONPATH", str(_repo_root()))
         if str(_repo_root()) not in env["PYTHONPATH"].split(os.pathsep):
             env["PYTHONPATH"] = str(_repo_root()) + os.pathsep + env["PYTHONPATH"]
@@ -357,9 +365,9 @@ class HostSupervisor:
         hello = self._hello
         if not hello:
             raise RuntimeError("compute host missing hello")
-        got_home = str(hello.get("freeide_home") or "")
-        if got_home and got_home != self.expected_freeide_home:
-            raise RuntimeError(f"compute host FREEIDE_HOME mismatch: {got_home} != {self.expected_freeide_home}")
+        got_home = str(hello.get("jettstui_home") or "")
+        if got_home and got_home != self.expected_jettstui_home:
+            raise RuntimeError(f"compute host JETTSTUI_HOME mismatch: {got_home} != {self.expected_jettstui_home}")
         got_sha = str(hello.get("build_sha") or "")
         if self.expected_build_sha != "unknown" and got_sha not in {"", "unknown", self.expected_build_sha}:
             raise RuntimeError(f"compute host build mismatch: {got_sha} != {self.expected_build_sha}")
@@ -531,6 +539,25 @@ class HostSupervisor:
         return is_compute_host_identity(pid)
 
     def _terminate_pid(self, pid: int, *, timeout: float = _SHUTDOWN_TIMEOUT_SECS) -> None:
+        if os.name == "nt":
+            # An orphan is not our Popen child, but psutil can still wait for
+            # and terminate it safely after reconcile_startup_orphan verified
+            # its command line. Windows has no SIGKILL signal constant.
+            import psutil
+
+            try:
+                proc = psutil.Process(pid)
+                proc.terminate()
+                try:
+                    proc.wait(timeout=timeout)
+                except psutil.TimeoutExpired:
+                    proc.kill()
+                    proc.wait(timeout=2)
+            except psutil.NoSuchProcess:
+                pass
+            except (psutil.AccessDenied, OSError):
+                logger.debug("failed to terminate compute host pid=%s", pid, exc_info=True)
+            return
         try:
             os.kill(pid, signal.SIGTERM)
         except ProcessLookupError:

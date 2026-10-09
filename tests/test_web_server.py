@@ -9,7 +9,7 @@ import contextlib
 
 import uvicorn
 
-from freeide_cli import web_server
+from jettstui import web_server
 
 
 def _stub_uvicorn(monkeypatch):

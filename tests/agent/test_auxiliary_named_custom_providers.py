@@ -7,18 +7,18 @@ import pytest
 
 @pytest.fixture(autouse=True)
 def _isolate(tmp_path, monkeypatch):
-    """Redirect FREEIDE_HOME and clear module caches."""
-    freeide_home = tmp_path / ".freeide"
-    freeide_home.mkdir()
-    monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+    """Redirect JETTSTUI_HOME and clear module caches."""
+    jettstui_home = tmp_path / ".jettstui"
+    jettstui_home.mkdir()
+    monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
     # Write a minimal config so load_config doesn't fail
-    (freeide_home / "config.yaml").write_text("model:\n  default: test-model\n")
+    (jettstui_home / "config.yaml").write_text("model:\n  default: test-model\n")
 
 
 def _write_config(tmp_path, config_dict):
-    """Write a config.yaml to the test FREEIDE_HOME."""
+    """Write a config.yaml to the test JETTSTUI_HOME."""
     import yaml
-    config_path = tmp_path / ".freeide" / "config.yaml"
+    config_path = tmp_path / ".jettstui" / "config.yaml"
     config_path.write_text(yaml.dump(config_dict))
 
 
@@ -104,7 +104,7 @@ class TestResolveProviderClientMainAlias:
             "model": {"default": "gpt-5.4", "provider": "github-copilot"},
         })
         with (
-            patch("freeide_cli.auth.resolve_api_key_provider_credentials", return_value={
+            patch("jettstui.auth.resolve_api_key_provider_credentials", return_value={
                 "api_key": "ghu_test_token",
                 "base_url": "https://api.githubcopilot.com",
             }),
@@ -182,7 +182,7 @@ class TestResolveProviderClientModelNormalization:
             "model": {"default": "zai/glm-5.1", "provider": "zai"},
         })
         with (
-            patch("freeide_cli.auth.resolve_api_key_provider_credentials", return_value={
+            patch("jettstui.auth.resolve_api_key_provider_credentials", return_value={
                 "api_key": "glm-key",
                 "base_url": "https://api.z.ai/api/paas/v4",
             }),
@@ -201,7 +201,7 @@ class TestResolveProviderClientModelNormalization:
             "model": {"default": "zai/glm-5.1", "provider": "zai"},
         })
         with (
-            patch("freeide_cli.auth.resolve_api_key_provider_credentials", return_value={
+            patch("jettstui.auth.resolve_api_key_provider_credentials", return_value={
                 "api_key": "glm-key",
                 "base_url": "https://api.z.ai/api/paas/v4",
             }),
@@ -237,8 +237,7 @@ class TestResolveVisionProviderClientModelNormalization:
             "model": {"default": "zai/glm-5.1", "provider": "zai"},
         })
         with (
-            patch("agent.auxiliary_client._read_nous_auth", return_value=None),
-            patch("freeide_cli.auth.resolve_api_key_provider_credentials", return_value={
+            patch("jettstui.auth.resolve_api_key_provider_credentials", return_value={
                 "api_key": "glm-key",
                 "base_url": "https://api.z.ai/api/paas/v4",
             }),
@@ -299,7 +298,7 @@ class TestProvidersDictApiModeAnthropicMessages:
                 },
             },
         })
-        from freeide_cli.runtime_provider import _get_named_custom_provider
+        from jettstui.runtime_provider import _get_named_custom_provider
         entry = _get_named_custom_provider("myrelay")
         assert entry is not None
         assert entry.get("api_mode") == "anthropic_messages"
@@ -317,7 +316,7 @@ class TestProvidersDictApiModeAnthropicMessages:
                 },
             },
         })
-        from freeide_cli.runtime_provider import _get_named_custom_provider
+        from jettstui.runtime_provider import _get_named_custom_provider
         entry = _get_named_custom_provider("weird")
         assert entry is not None
         assert "api_mode" not in entry
@@ -333,7 +332,7 @@ class TestProvidersDictApiModeAnthropicMessages:
                 },
             },
         })
-        from freeide_cli.runtime_provider import _get_named_custom_provider
+        from jettstui.runtime_provider import _get_named_custom_provider
         entry = _get_named_custom_provider("localchat")
         assert entry is not None
         assert "api_mode" not in entry

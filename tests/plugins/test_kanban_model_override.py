@@ -17,7 +17,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from freeide_cli import kanban_db as kb
+from jettstui import kanban_db as kb
 
 
 # ---------------------------------------------------------------------------
@@ -27,9 +27,9 @@ from freeide_cli import kanban_db as kb
 
 @pytest.fixture
 def kanban_home(tmp_path, monkeypatch):
-    home = tmp_path / ".freeide"
+    home = tmp_path / ".jettstui"
     home.mkdir()
-    monkeypatch.setenv("FREEIDE_HOME", str(home))
+    monkeypatch.setenv("JETTSTUI_HOME", str(home))
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
     kb.init_db()
     return home
@@ -47,7 +47,7 @@ def _load_plugin_router():
     plugin_file = repo_root / "plugins" / "kanban" / "dashboard" / "plugin_api.py"
     assert plugin_file.exists(), f"plugin file missing: {plugin_file}"
     spec = importlib.util.spec_from_file_location(
-        "freeide_dashboard_plugin_kanban_model_override_test", plugin_file,
+        "jettstui_dashboard_plugin_kanban_model_override_test", plugin_file,
     )
     assert spec is not None and spec.loader is not None
     mod = importlib.util.module_from_spec(spec)
@@ -120,11 +120,11 @@ def test_set_model_override_allowed_on_running(conn):
     tid = kb.create_task(conn, title="t", assignee="worker")
     claimed = kb.claim_task(conn, tid, claimer="worker")
     assert claimed is not None
-    assert kb.set_model_override(conn, tid, "fallback-model", provider="nous")
+    assert kb.set_model_override(conn, tid, "fallback-model", provider="acme")
     t = kb.get_task(conn, tid)
     assert t.status == "running"
     assert t.model_override == "fallback-model"
-    assert t.provider_override == "nous"
+    assert t.provider_override == "acme"
 
 
 def test_create_task_with_model_and_provider(conn):
@@ -153,7 +153,7 @@ def test_migration_adds_provider_override_column(conn):
 
 
 def _spawn_and_capture(monkeypatch, tmp_path, task):
-    monkeypatch.setattr(kb, "_resolve_freeide_argv", lambda: ["freeide"])
+    monkeypatch.setattr(kb, "_resolve_jettstui_argv", lambda: ["jettstui"])
     captured = {}
 
     class FakeProc:
@@ -267,7 +267,7 @@ def test_bulk_model_override(client):
         json={
             "ids": [t1["id"], t2["id"]],
             "model_override": "fallback-model",
-            "provider_override": "nous",
+            "provider_override": "acme",
         },
     )
     assert r.status_code == 200, r.text
@@ -275,7 +275,7 @@ def test_bulk_model_override(client):
     for tid in (t1["id"], t2["id"]):
         got = client.get(f"/api/plugins/kanban/tasks/{tid}").json()["task"]
         assert got["model_override"] == "fallback-model"
-        assert got["provider_override"] == "nous"
+        assert got["provider_override"] == "acme"
 
 
 def test_model_options_endpoint_shape(client, monkeypatch):

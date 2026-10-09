@@ -10,13 +10,13 @@ from unittest.mock import MagicMock
 
 
 def _make_cli():
-    """Bare FreeIDECLI suitable for process_command() tests.
+    """Bare JettsTUICLI suitable for process_command() tests.
 
     Uses ``__new__`` to skip the heavy __init__; only sets the attributes
     the /exit branch touches.
     """
-    from cli import FreeIDECLI
-    cli = FreeIDECLI.__new__(FreeIDECLI)
+    from cli import JettsTUICLI
+    cli = JettsTUICLI.__new__(JettsTUICLI)
     cli.config = {}
     cli.console = MagicMock()
     cli.agent = None
@@ -106,13 +106,13 @@ class TestCommandRegistry:
     def test_quit_command_advertises_delete_flag(self):
         """The CommandDef args_hint should surface `--delete` in /help and
         CLI autocomplete."""
-        from freeide_cli.commands import resolve_command
+        from jettstui.commands import resolve_command
         cmd = resolve_command("quit")
         assert cmd is not None
         assert cmd.args_hint == "[--delete]"
 
     def test_exit_alias_resolves_to_quit_with_hint(self):
-        from freeide_cli.commands import resolve_command
+        from jettstui.commands import resolve_command
         cmd = resolve_command("exit")
         assert cmd is not None
         assert cmd.name == "quit"

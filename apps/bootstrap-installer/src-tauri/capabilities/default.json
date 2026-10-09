@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2/capability",
   "identifier": "default",
-  "description": "Capabilities required by FreeIDE Setup. Narrowly scoped: we don't write user files outside FREEIDE_HOME, we don't read arbitrary paths, and the only external network call goes through reqwest (Rust side, not exposed to the webview).",
+  "description": "Capabilities required by JettsTUI Setup. Narrowly scoped: we don't write user files outside JETTSTUI_HOME, we don't read arbitrary paths, and the only external network call goes through reqwest (Rust side, not exposed to the webview).",
   "windows": ["main"],
   "permissions": [
     "core:default",

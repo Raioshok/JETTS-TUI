@@ -26,6 +26,7 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { type Translations, useI18n } from '@/i18n'
 import {
   type AutomationBlueprint,
   createCronJob,
@@ -42,8 +43,7 @@ import {
   type SessionInfo,
   triggerCronJob,
   updateCronJob
-} from '@/freeide'
-import { type Translations, useI18n } from '@/i18n'
+} from '@/jettstui'
 import { AlertTriangle } from '@/lib/icons'
 import { requestModelOptions } from '@/lib/model-options'
 import { asText } from '@/lib/text'

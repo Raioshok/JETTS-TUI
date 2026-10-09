@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest'
 
-import type { FreeIDEReviewFile } from '@/global'
+import type { JettsTUIReviewFile } from '@/global'
 
 import { buildReviewTree } from './tree-data'
 
-const file = (path: string, added = 1, removed = 0): FreeIDEReviewFile => ({
+const file = (path: string, added = 1, removed = 0): JettsTUIReviewFile => ({
   path,
   added,
   removed,

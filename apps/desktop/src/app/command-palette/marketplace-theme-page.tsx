@@ -51,7 +51,7 @@ export function MarketplaceThemePage({ search, onPickTheme }: MarketplaceThemePa
 
   const query = useQuery({
     queryKey: ['marketplace-themes', debouncedSearch],
-    queryFn: () => window.freeideDesktop?.themes?.searchMarketplace(debouncedSearch) ?? Promise.resolve([]),
+    queryFn: () => window.jettstuiDesktop?.themes?.searchMarketplace(debouncedSearch) ?? Promise.resolve([]),
     staleTime: 5 * 60 * 1000
   })
 

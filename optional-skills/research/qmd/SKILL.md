@@ -2,13 +2,13 @@
 name: qmd
 description: Hybrid local search over notes, docs, and transcripts.
 version: 1.0.0
-author: FreeIDE Agent + Teknium
+author: JettsTUI
 license: MIT
 platforms: [macos, linux]
 metadata:
-  freeide:
+  jettstui:
     tags: [Search, Knowledge-Base, RAG, Notes, MCP, Local-AI]
-    related_skills: [obsidian, freeide-agent, arxiv]
+    related_skills: [obsidian, jettstui, arxiv]
 ---
 
 # QMD — Query Markup Documents
@@ -220,13 +220,13 @@ qmd multi-get "journals/*.md" --json  # Batch retrieve by glob
 ## MCP Integration (Recommended)
 
 qmd exposes an MCP server that provides search tools directly to
-FreeIDE Agent via the native MCP client. This is the preferred
+JettsTUI via the native MCP client. This is the preferred
 integration — once configured, the agent gets qmd tools automatically
 without needing to load this skill.
 
 ### Option A: Stdio Mode (Simple)
 
-Add to `~/.freeide/config.yaml`:
+Add to `~/.jettstui/config.yaml`:
 
 ```yaml
 mcp_servers:
@@ -254,7 +254,7 @@ qmd mcp --http --daemon
 # Runs on http://localhost:8181 by default
 ```
 
-Then configure FreeIDE Agent to connect via HTTP:
+Then configure JettsTUI to connect via HTTP:
 
 ```yaml
 mcp_servers:

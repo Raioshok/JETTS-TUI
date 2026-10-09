@@ -12,7 +12,7 @@ import time
 
 import pytest
 
-from freeide_state import SessionDB
+from jettstui_state import SessionDB
 from tools.session_search_tool import (
     SESSION_SEARCH_SCHEMA,
     _HIDDEN_SESSION_SOURCES,
@@ -591,7 +591,7 @@ class TestSessionLink:
 
     def test_link_falls_back_to_a_bare_id_when_the_profile_is_unknown(self, monkeypatch):
         monkeypatch.setattr(
-            "freeide_cli.profiles.get_active_profile_name",
+            "jettstui.profiles.get_active_profile_name",
             lambda: "custom",
         )
 
@@ -601,7 +601,7 @@ class TestSessionLink:
         def boom():
             raise RuntimeError("no profile")
 
-        monkeypatch.setattr("freeide_cli.profiles.get_active_profile_name", boom)
+        monkeypatch.setattr("jettstui.profiles.get_active_profile_name", boom)
 
         assert _session_link("s_oldest") == "@session:s_oldest"
 
@@ -642,7 +642,7 @@ class TestSessionLink:
 
 class TestCrossProfileRead:
     def _patch_profiles(self, monkeypatch, home, exists=True):
-        from freeide_cli import profiles as profiles_mod
+        from jettstui import profiles as profiles_mod
         monkeypatch.setattr(profiles_mod, "normalize_profile_name", lambda n: n)
         monkeypatch.setattr(profiles_mod, "validate_profile_name", lambda n: None)
         monkeypatch.setattr(profiles_mod, "profile_exists", lambda n: exists)
@@ -678,7 +678,7 @@ class TestCrossProfileRead:
         other._conn.commit()
 
         from collections import namedtuple
-        from freeide_cli import profiles as profiles_mod
+        from jettstui import profiles as profiles_mod
         Info = namedtuple("Info", "name path")
         monkeypatch.setattr(profiles_mod, "get_profile_dir", lambda n: tmp_path / "default_home")
         monkeypatch.setattr(profiles_mod, "list_profiles", lambda: [Info("asdf", other_home)])
@@ -1237,7 +1237,7 @@ class TestCompactionDiscoveryBothLayers:
 
 
 # =========================================================================
-# Teknium review round 2: rewind exclusion + delegation-under-compression
+# Alice review round 2: rewind exclusion + delegation-under-compression
 # =========================================================================
 
 class TestRewindExclusion:

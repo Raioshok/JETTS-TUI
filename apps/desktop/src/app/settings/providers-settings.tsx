@@ -4,8 +4,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 
 import { runInTerminal } from '@/app/right-sidebar/store'
 import {
-  FEATURED_ID,
-  FeaturedProviderRow,
   FireworksProviderRow,
   OpenRouterProviderRow,
   ProviderRow,
@@ -15,14 +13,13 @@ import {
 import { Button } from '@/components/ui/button'
 import { RowButton } from '@/components/ui/row-button'
 import { SearchField } from '@/components/ui/search-field'
-import { disconnectOAuthProvider, listOAuthProviders } from '@/freeide'
 import { useI18n } from '@/i18n'
-import { Check, ChevronDown, ChevronRight, KeyRound, Loader2, Terminal, Trash2 } from '@/lib/icons'
+import { disconnectOAuthProvider, listOAuthProviders } from '@/jettstui'
+import { Check, ChevronRight, KeyRound, Loader2, Terminal, Trash2 } from '@/lib/icons'
 import { normalize } from '@/lib/text'
-import { cn } from '@/lib/utils'
 import { notify, notifyError } from '@/store/notifications'
 import { $desktopOnboarding, startManualLocalEndpoint, startManualProviderOAuth } from '@/store/onboarding'
-import type { EnvVarInfo, OAuthProvider } from '@/types/freeide'
+import type { EnvVarInfo, OAuthProvider } from '@/types/jettstui'
 
 import { isKeyVar, ProviderKeyRows } from './credential-key-ui'
 import { CustomEndpointsSettings } from './custom-endpoints-settings'
@@ -32,7 +29,7 @@ import { SettingsContent, SettingsSkeleton } from './primitives'
 
 // The embedded terminal (and thus the "run disconnect command" path) only
 // exists in the Electron desktop shell, not the web dashboard.
-const canRunInTerminal = () => typeof window !== 'undefined' && Boolean(window.freeideDesktop?.terminal)
+const canRunInTerminal = () => typeof window !== 'undefined' && Boolean(window.jettstuiDesktop?.terminal)
 
 // Parallel group headers ("Connected", "Other providers") so the expanded list
 // reads as its own section instead of bleeding into the connected group.
@@ -55,8 +52,8 @@ export type ProviderView = (typeof PROVIDER_VIEWS)[number]
 //
 // Grouping key precedence:
 //   1. Backend `provider_label` / `provider` (from the unified provider catalog
-//      in freeide_cli/provider_catalog.py) — the SAME provider identity
-//      `freeide model` uses. This is authoritative: a provider tagged by the
+//      in jettstui/provider_catalog.py) — the SAME provider identity
+//      `jettstui model` uses. This is authoritative: a provider tagged by the
 //      backend always renders a card, even with no PROVIDER_GROUPS row.
 //   2. Desktop prefix match (`providerGroup`) — legacy fallback for provider
 //      env vars that predate the backend tagging.
@@ -114,15 +111,9 @@ function buildProviderKeyGroups(vars: Record<string, EnvVarInfo>): ProviderKeyGr
   return groups.sort((a, b) => a.priority - b.priority || a.name.localeCompare(b.name))
 }
 
-// Deliberately a near-1:1 replica of the first-run onboarding picker
-// (`Picker` in desktop-onboarding-overlay): same recommended card, same
-// Fireworks #2 quick-key row, same provider rows, same "Other providers"
-// disclosure, same OpenRouter quick-key row, and the same bottom-right
-// "I have an API key" affordance. The leaf cards are the exact shared
-// components, so the two surfaces stay visually identical. Selecting a
-// provider hands off to the shared onboarding overlay, which runs that
-// provider's real sign-in flow; the key affordances open the API-key
-// catalog below.
+// Shares the first-run picker's provider rows. Connected legacy accounts stay
+// visible here so users can disconnect them, but retired providers cannot be
+// selected for a new sign-in.
 function OAuthPicker({
   disconnecting,
   onDisconnect,
@@ -138,7 +129,7 @@ function OAuthPicker({
 }) {
   const { t } = useI18n()
   const p = t.settings.providers
-  const [showAll, setShowAll] = useState(false)
+
   const ordered = useMemo(() => sortProviders(providers), [providers])
 
   if (ordered.length === 0) {
@@ -147,15 +138,8 @@ function OAuthPicker({
 
   const select = (p: OAuthProvider) => startManualProviderOAuth(p.id)
 
-  const featured = ordered.find(p => p.id === FEATURED_ID && !p.status?.logged_in) ?? null
-  const rest = featured ? ordered.filter(p => p.id !== FEATURED_ID) : ordered
-  // Keep connected accounts grouped and always visible; only the unconnected
-  // providers hide behind the disclosure, so the page leads with what's set up.
-  // Both lists preserve `sortProviders` order (curated priority, then name).
-  const connected = rest.filter(p => p.status?.logged_in)
-  const others = rest.filter(p => !p.status?.logged_in)
-  const collapsible = others.length > 0
-  const showOthers = !collapsible || showAll
+  const connected = ordered.filter(p => p.status?.logged_in)
+  const others = ordered.filter(p => !p.status?.logged_in)
 
   return (
     <section className="mb-5 grid gap-2">
@@ -174,9 +158,8 @@ function OAuthPicker({
       <p className="-mt-2 mb-1 text-[length:var(--conversation-caption-font-size)] leading-(--conversation-caption-line-height) text-(--ui-text-tertiary)">
         {p.intro}
       </p>
-      {featured && <FeaturedProviderRow onSelect={select} provider={featured} />}
-      {/* Slot #2 — always visible, matching onboarding / CANONICAL_PROVIDERS. */}
       <FireworksProviderRow onClick={onWantApiKey} />
+      <OpenRouterProviderRow onClick={onWantApiKey} />
       {connected.length > 0 && (
         <>
           <GroupLabel>{p.connected}</GroupLabel>
@@ -192,26 +175,13 @@ function OAuthPicker({
           ))}
         </>
       )}
-      {showOthers && (
+      {others.length > 0 && (
         <>
           {connected.length > 0 && <GroupLabel>{p.otherProviders}</GroupLabel>}
           {others.map(p => (
             <ProviderRow key={p.id} onSelect={select} provider={p} />
           ))}
-          <OpenRouterProviderRow onClick={onWantApiKey} />
         </>
-      )}
-      {collapsible && (
-        <Button
-          className="py-1 text-[length:var(--conversation-caption-font-size)]"
-          onClick={() => setShowAll(v => !v)}
-          size="inline"
-          type="button"
-          variant="text"
-        >
-          {showAll ? p.collapse : connected.length > 0 ? p.connectAnother : p.otherProviders}
-          <ChevronDown className={cn('size-3.5 transition', showAll && 'rotate-180')} />
-        </Button>
       )}
     </section>
   )
@@ -234,9 +204,9 @@ function ConnectedProviderRow({
   const copy = t.settings.providers
   const title = providerTitle(provider)
   const Trail = provider.flow === 'external' ? Terminal : ChevronRight
-  // FreeIDE can clear this provider's creds via the API.
+  // JettsTUI can clear this provider's creds via the API.
   const canDisconnect = provider.disconnectable ?? provider.flow !== 'external'
-  // External (CLI-managed) provider FreeIDE can't clear via the API, but ships a
+  // External (CLI-managed) provider JettsTUI can't clear via the API, but ships a
   // command we can run in the embedded terminal (Electron shell only).
   const terminalDisconnect = !canDisconnect && Boolean(provider.disconnect_command) && canRunInTerminal()
   // Only fall back to a static "remove it elsewhere" hint when we offer no button.
@@ -379,7 +349,7 @@ export function ProvidersSettings({
   }, [onboardingActive])
 
   // External (CLI-managed) providers can't be cleared via the API by design —
-  // FreeIDE never deletes creds another tool owns behind a silent API call.
+  // JettsTUI never deletes creds another tool owns behind a silent API call.
   // Instead we run the documented removal command in the embedded terminal so
   // the user sees exactly what executes, then return them to chat to watch it.
   function handleTerminalDisconnect(provider: OAuthProvider) {

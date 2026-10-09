@@ -192,7 +192,7 @@ class TestInterruptedReplayFiltering:
                         "id": "call_1",
                         "function": {
                             "name": "terminal",
-                            "arguments": '{"command": "docker restart freeide-agent"}',
+                            "arguments": '{"command": "docker restart jettstui"}',
                         },
                     },
                 ],
@@ -232,7 +232,7 @@ class TestInterruptedReplayFiltering:
                         "id": "call_2",
                         "function": {
                             "name": "terminal",
-                            "arguments": '{"command": "systemctl restart freeide"}',
+                            "arguments": '{"command": "systemctl restart jettstui"}',
                         },
                     },
                 ],

@@ -1,14 +1,14 @@
 # Photon sidecar
 
-Small Node helper that bridges FreeIDE Agent to Photon's Spectrum SDK
-(`spectrum-ts`).  FreeIDE is Python; Photon has no public HTTP
+Small Node helper that bridges JettsTUI to Photon's Spectrum SDK
+(`spectrum-ts`).  JettsTUI is Python; Photon has no public HTTP
 send-message endpoint today; replies therefore go through this sidecar.
 
 The sidecar:
 
 - runs `Spectrum({ projectId, projectSecret, providers: [imessage.config()] })`
 - exposes a loopback-only HTTP control channel for the Python adapter
-  to push send/typing requests (auth via `X-FreeIDE-Sidecar-Token`)
+  to push send/typing requests (auth via `X-JettsTUI-Sidecar-Token`)
 - drains the inbound message stream so `spectrum-ts` keeps its
   reconnect/heartbeat machinery alive (real inbound delivery is via
   Photon's signed webhook hitting our Python aiohttp server)
@@ -20,7 +20,7 @@ cd plugins/platforms/photon/sidecar
 npm install
 ```
 
-The FreeIDE plugin's `freeide photon setup` command runs `npm install`
+The JettsTUI plugin's `jettstui photon setup` command runs `npm install`
 here automatically.
 
 ## Run standalone

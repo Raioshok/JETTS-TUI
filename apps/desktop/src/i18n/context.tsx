@@ -1,6 +1,6 @@
 import { createContext, type ReactNode, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
-import { type FreeIDEConfigRecord, getFreeIDEConfigRecord, saveFreeIDEConfig } from '@/freeide'
+import { getJettsTUIConfigRecord, type JettsTUIConfigRecord, saveJettsTUIConfig } from '@/jettstui'
 
 import { TRANSLATIONS } from './catalog'
 import { DEFAULT_LOCALE, localeConfigValue, normalizeLocale } from './languages'
@@ -10,24 +10,24 @@ import type { Locale, Translations } from './types'
 export { LOCALE_META } from './languages'
 
 export interface I18nConfigClient {
-  getConfig: () => Promise<FreeIDEConfigRecord>
-  saveConfig: (config: FreeIDEConfigRecord) => Promise<{ ok: boolean }>
+  getConfig: () => Promise<JettsTUIConfigRecord>
+  saveConfig: (config: JettsTUIConfigRecord) => Promise<{ ok: boolean }>
 }
 
 const defaultConfigClient: I18nConfigClient = {
   getConfig: () => {
-    if (typeof window === 'undefined' || !window.freeideDesktop?.api) {
+    if (typeof window === 'undefined' || !window.jettstuiDesktop?.api) {
       return Promise.resolve({})
     }
 
-    return getFreeIDEConfigRecord()
+    return getJettsTUIConfigRecord()
   },
   saveConfig: config => {
-    if (typeof window === 'undefined' || !window.freeideDesktop?.api) {
+    if (typeof window === 'undefined' || !window.jettstuiDesktop?.api) {
       return Promise.resolve({ ok: true })
     }
 
-    return saveFreeIDEConfig(config)
+    return saveJettsTUIConfig(config)
   }
 }
 
@@ -35,11 +35,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
 }
 
-export function getConfigDisplayLanguage(config: FreeIDEConfigRecord): unknown {
+export function getConfigDisplayLanguage(config: JettsTUIConfigRecord): unknown {
   return isRecord(config.display) ? config.display.language : undefined
 }
 
-export function withConfigDisplayLanguage(config: FreeIDEConfigRecord, locale: Locale): FreeIDEConfigRecord {
+export function withConfigDisplayLanguage(config: JettsTUIConfigRecord, locale: Locale): JettsTUIConfigRecord {
   const display = isRecord(config.display) ? config.display : {}
 
   return {

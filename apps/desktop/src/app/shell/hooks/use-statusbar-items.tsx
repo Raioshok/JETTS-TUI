@@ -42,7 +42,7 @@ import {
   $updateStatus,
   openUpdateOverlayFor
 } from '@/store/updates'
-import type { StatusResponse, UsageStats } from '@/types/freeide'
+import type { StatusResponse, UsageStats } from '@/types/jettstui'
 
 import { CRON_ROUTE, SETTINGS_ROUTE, WEBHOOKS_ROUTE } from '../../routes'
 import type { StatusbarItem } from '../statusbar-controls'
@@ -326,7 +326,6 @@ export function useStatusbarItems({
     }
 
     const ssh = connection.remoteKind === 'ssh'
-    const cloud = connection.remoteKind === 'cloud'
 
     return {
       className: cn(
@@ -335,11 +334,7 @@ export function useStatusbarItems({
       ),
       icon: <Terminal className="size-3" />,
       id: 'connection',
-      label: ssh
-        ? copy.connectionSsh(connection.remoteHost)
-        : cloud
-          ? copy.connectionCloud(connection.remoteHost)
-          : copy.connectionRemote(connection.remoteHost),
+      label: ssh ? copy.connectionSsh(connection.remoteHost) : copy.connectionRemote(connection.remoteHost),
       // Label already names the host — no "click to manage" tip lecture.
       to: `${SETTINGS_ROUTE}?tab=gateway`
     }

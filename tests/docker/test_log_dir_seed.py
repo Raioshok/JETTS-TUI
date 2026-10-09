@@ -1,11 +1,11 @@
-"""Runtime smoke test for Docker $FREEIDE_HOME/logs/gateways seeding.
+"""Runtime smoke test for Docker $JETTSTUI_HOME/logs/gateways seeding.
 
 Build the real image and verify logs/ and logs/gateways/ exist and are
-owned by the freeide user after container boot.
+owned by the jettstui user after container boot.
 
 Regression guard for #45258: if the first gateway log service runs in
 root context, logs/gateways/ is created root-owned; every profile
-registered later runs its log service as the dropped freeide user and
+registered later runs its log service as the dropped jettstui user and
 s6-log crash-loops on mkdir: Permission denied.
 """
 from __future__ import annotations
@@ -17,10 +17,10 @@ from tests.docker.conftest import (
 )
 
 
-def test_logs_gateways_seeded_and_freeide_owned(
+def test_logs_gateways_seeded_and_jettstui_owned(
     built_image: str, container_name: str,
 ) -> None:
-    """logs/ and logs/gateways/ must exist and be owned by freeide after boot."""
+    """logs/ and logs/gateways/ must exist and be owned by jettstui after boot."""
     start_container(built_image, container_name)
 
     # Both directories must exist
@@ -35,7 +35,7 @@ def test_logs_gateways_seeded_and_freeide_owned(
         f"logs/ or logs/gateways/ not seeded: {r.stdout}"
     )
 
-    # Both must be owned by freeide
+    # Both must be owned by jettstui
     r = docker_exec_sh(
         container_name,
         'logs_owner=$(stat -c "%U" /opt/data/logs); '
@@ -43,11 +43,11 @@ def test_logs_gateways_seeded_and_freeide_owned(
         'echo "logs=$logs_owner gateways=$gateways_owner"',
         timeout=10,
     )
-    assert "logs=freeide" in r.stdout, (
-        f"logs/ not owned by freeide: {r.stdout}"
+    assert "logs=jettstui" in r.stdout, (
+        f"logs/ not owned by jettstui: {r.stdout}"
     )
-    assert "gateways=freeide" in r.stdout, (
-        f"logs/gateways/ not owned by freeide: {r.stdout}"
+    assert "gateways=jettstui" in r.stdout, (
+        f"logs/gateways/ not owned by jettstui: {r.stdout}"
     )
 
 
@@ -56,7 +56,7 @@ def test_logs_gateways_healed_when_parent_root_owned(
 ) -> None:
     """Warm-boot stage2 must heal root-owned logs/gateways (#45258).
 
-    Mimics a poisoned volume: FREEIDE_HOME already freeide-owned (so the
+    Mimics a poisoned volume: JETTSTUI_HOME already jettstui-owned (so the
     bulk data-volume chown is skipped) while logs/gateways is root-owned.
     Restartable log/run no longer root-chowns that path (symlink TOCTOU),
     so stage2 must repair the parent on every boot.
@@ -73,7 +73,7 @@ def test_logs_gateways_healed_when_parent_root_owned(
         timeout=10,
     )
     assert poison.returncode == 0, (poison.stdout, poison.stderr)
-    assert "home=freeide" in poison.stdout, poison.stdout
+    assert "home=jettstui" in poison.stdout, poison.stdout
     assert "gateways=root" in poison.stdout, poison.stdout
 
     denied = docker_exec_sh(
@@ -94,5 +94,5 @@ def test_logs_gateways_healed_when_parent_root_owned(
         timeout=10,
     )
     assert healed.returncode == 0, (healed.stdout, healed.stderr)
-    assert "gateways=freeide" in healed.stdout, healed.stdout
+    assert "gateways=jettstui" in healed.stdout, healed.stdout
     assert "MKDIR_OK" in healed.stdout, healed.stdout

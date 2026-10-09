@@ -235,7 +235,7 @@ export const StreamStallIndicator: FC = () => {
   }
 
   return (
-    <StatusRow data-slot="aui_stream-stall" label={hint || 'FreeIDE is thinking'}>
+    <StatusRow data-slot="aui_stream-stall" label={hint || 'JettsTUI is thinking'}>
       <span aria-hidden="true" className="dither inline-block size-3 rounded-[2px] text-midground/80 animate-pulse" />
       {hint && <HintText>{hint}</HintText>}
       <ActivityTimerText seconds={elapsed} />

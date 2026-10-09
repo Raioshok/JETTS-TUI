@@ -7,23 +7,23 @@ import {
   appendUniquePathEntries,
   buildDesktopBackendEnv,
   buildDesktopBackendPath,
-  normalizeFreeIDEHomeRoot,
+  normalizeJettsTUIHomeRoot,
   pathEnvKey,
   POSIX_SANE_PATH_ENTRIES
 } from './backend-env'
 
-test('desktop backend PATH adds FreeIDE-managed bins and missing POSIX sane entries', () => {
+test('desktop backend PATH adds JettsTUI-managed bins and missing POSIX sane entries', () => {
   const result = buildDesktopBackendPath({
-    freeideHome: '/Users/test/.freeide',
-    venvRoot: '/Users/test/.freeide/freeide-agent/venv',
+    jettstuiHome: '/Users/test/.jettstui',
+    venvRoot: '/Users/test/.jettstui/jettstui/venv',
     currentPath: '/usr/bin:/bin:/usr/sbin:/sbin:/usr/local/bin',
     platform: 'darwin',
     pathModule: path.posix
   })
 
   const entries = result.split(':')
-  assert.equal(entries[0], '/Users/test/.freeide/node/bin')
-  assert.equal(entries[1], '/Users/test/.freeide/freeide-agent/venv/bin')
+  assert.equal(entries[0], '/Users/test/.jettstui/node/bin')
+  assert.equal(entries[1], '/Users/test/.jettstui/jettstui/venv/bin')
   assert.ok(entries.includes('/opt/homebrew/bin'), 'Apple Silicon Homebrew bin is added')
   assert.ok(entries.includes('/opt/homebrew/sbin'), 'Apple Silicon Homebrew sbin is added')
   assert.ok(entries.includes('/usr/local/sbin'), 'missing standard sbin is added')
@@ -35,8 +35,8 @@ test('desktop backend PATH adds FreeIDE-managed bins and missing POSIX sane entr
 
 test('desktop backend PATH preserves first occurrence and avoids duplicates', () => {
   const result = buildDesktopBackendPath({
-    freeideHome: '/Users/test/.freeide',
-    venvRoot: '/Users/test/.freeide/freeide-agent/venv',
+    jettstuiHome: '/Users/test/.jettstui',
+    venvRoot: '/Users/test/.jettstui/jettstui/venv',
     currentPath: '/opt/homebrew/bin:/usr/bin:/opt/homebrew/bin:/bin',
     platform: 'darwin',
     pathModule: path.posix
@@ -52,9 +52,9 @@ test('desktop backend PATH preserves first occurrence and avoids duplicates', ()
 
 test('buildDesktopBackendEnv extends PYTHONPATH and backend PATH together', () => {
   const env = buildDesktopBackendEnv({
-    freeideHome: '/Users/test/.freeide',
-    pythonPathEntries: ['/repo/freeide-agent'],
-    venvRoot: '/Users/test/.freeide/freeide-agent/venv',
+    jettstuiHome: '/Users/test/.jettstui',
+    pythonPathEntries: ['/repo/jettstui'],
+    venvRoot: '/Users/test/.jettstui/jettstui/venv',
     currentEnv: {
       PATH: '/usr/bin:/bin',
       PYTHONPATH: '/existing/pythonpath'
@@ -63,14 +63,14 @@ test('buildDesktopBackendEnv extends PYTHONPATH and backend PATH together', () =
     pathModule: path.posix
   })
 
-  assert.equal(env.PYTHONPATH, '/repo/freeide-agent:/existing/pythonpath')
-  assert.ok(env.PATH.startsWith('/Users/test/.freeide/node/bin:/Users/test/.freeide/freeide-agent/venv/bin:'))
+  assert.equal(env.PYTHONPATH, '/repo/jettstui:/existing/pythonpath')
+  assert.ok(env.PATH.startsWith('/Users/test/.jettstui/node/bin:/Users/test/.jettstui/jettstui/venv/bin:'))
   assert.ok(env.PATH.includes('/opt/homebrew/bin'))
 })
 
 test('buildDesktopBackendEnv forces PYTHONUTF8 unless the user set it explicitly', () => {
   const defaulted = buildDesktopBackendEnv({
-    freeideHome: '/Users/test/.freeide',
+    jettstuiHome: '/Users/test/.jettstui',
     currentEnv: { PATH: '/usr/bin' },
     platform: 'darwin',
     pathModule: path.posix
@@ -79,7 +79,7 @@ test('buildDesktopBackendEnv forces PYTHONUTF8 unless the user set it explicitly
   assert.equal(defaulted.PYTHONUTF8, '1')
 
   const optedOut = buildDesktopBackendEnv({
-    freeideHome: '/Users/test/.freeide',
+    jettstuiHome: '/Users/test/.jettstui',
     currentEnv: { PATH: '/usr/bin', PYTHONUTF8: '0' },
     platform: 'darwin',
     pathModule: path.posix
@@ -88,23 +88,23 @@ test('buildDesktopBackendEnv forces PYTHONUTF8 unless the user set it explicitly
   assert.equal(optedOut.PYTHONUTF8, '0')
 })
 
-test('normalizeFreeIDEHomeRoot maps profile homes back to the global FreeIDE root', () => {
+test('normalizeJettsTUIHomeRoot maps profile homes back to the global JettsTUI root', () => {
   assert.equal(
-    normalizeFreeIDEHomeRoot('/Users/test/.freeide/profiles/oracle', { pathModule: path.posix }),
-    '/Users/test/.freeide'
+    normalizeJettsTUIHomeRoot('/Users/test/.jettstui/profiles/oracle', { pathModule: path.posix }),
+    '/Users/test/.jettstui'
   )
   assert.equal(
-    normalizeFreeIDEHomeRoot('C:\\Users\\test\\AppData\\Local\\freeide\\profiles\\oracle', { pathModule: path.win32 }),
-    'C:\\Users\\test\\AppData\\Local\\freeide'
+    normalizeJettsTUIHomeRoot('C:\\Users\\test\\AppData\\Local\\jettstui\\profiles\\oracle', { pathModule: path.win32 }),
+    'C:\\Users\\test\\AppData\\Local\\jettstui'
   )
-  assert.equal(normalizeFreeIDEHomeRoot('/Users/test/.freeide', { pathModule: path.posix }), '/Users/test/.freeide')
+  assert.equal(normalizeJettsTUIHomeRoot('/Users/test/.jettstui', { pathModule: path.posix }), '/Users/test/.jettstui')
 })
 
 test('Windows PATH casing and delimiter are preserved without POSIX sane entries', () => {
   const env = buildDesktopBackendEnv({
-    freeideHome: 'C:\\Users\\test\\AppData\\Local\\freeide',
-    pythonPathEntries: ['C:\\repo\\freeide-agent'],
-    venvRoot: 'C:\\Users\\test\\AppData\\Local\\freeide\\freeide-agent\\venv',
+    jettstuiHome: 'C:\\Users\\test\\AppData\\Local\\jettstui',
+    pythonPathEntries: ['C:\\repo\\jettstui'],
+    venvRoot: 'C:\\Users\\test\\AppData\\Local\\jettstui\\jettstui\\venv',
     currentEnv: {
       Path: 'C:\\Windows\\System32;C:\\Windows',
       PYTHONPATH: 'C:\\existing\\pythonpath'
@@ -115,7 +115,7 @@ test('Windows PATH casing and delimiter are preserved without POSIX sane entries
 
   assert.equal(pathEnvKey({ Path: 'x' }, 'win32'), 'Path')
   assert.equal(env.PATH, undefined)
-  assert.ok(env.Path.startsWith('C:\\Users\\test\\AppData\\Local\\freeide\\node\\bin;'))
+  assert.ok(env.Path.startsWith('C:\\Users\\test\\AppData\\Local\\jettstui\\node\\bin;'))
   assert.ok(env.Path.includes('\\venv\\Scripts;'))
   assert.ok(env.Path.includes(';C:\\Windows\\System32;C:\\Windows'))
   assert.equal(env.Path.includes('/opt/homebrew/bin'), false)

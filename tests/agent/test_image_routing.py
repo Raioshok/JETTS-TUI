@@ -567,6 +567,7 @@ class TestExtractImageRefs:
     def test_finds_home_relative_path(self, tmp_path: Path, monkeypatch):
         # Simulate ~/foo.png by pointing HOME at tmp_path and creating the file
         monkeypatch.setenv("HOME", str(tmp_path))
+        monkeypatch.setenv("USERPROFILE", str(tmp_path))
         img = tmp_path / "foo.png"
         img.write_bytes(_png_bytes())
         paths, urls = extract_image_refs("see ~/foo.png please")
@@ -922,11 +923,11 @@ class TestCustomProviderVisionAlias:
         assert _supports_vision_override(cfg, "my-vllm", "m") is True
 
     def test_named_custom_provider_bare_custom_runtime_vision_alias(self):
-        """Teknium's requested regression case.
+        """Alice's requested regression case.
 
         A named custom provider (``model.provider: my-vllm``) is rewritten to
         the runtime value ``provider="custom"`` by
-        ``freeide_cli/runtime_provider.py``. The resolver must still match the
+        ``jettstui/runtime_provider.py``. The resolver must still match the
         ``my-vllm`` entry via the ``model.provider`` candidate and honour the
         ``vision`` alias.
         """

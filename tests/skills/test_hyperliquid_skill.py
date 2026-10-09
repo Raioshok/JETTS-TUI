@@ -208,7 +208,7 @@ def test_resolve_user_uses_env_fallback(monkeypatch):
 def test_resolve_user_errors_when_missing(monkeypatch, tmp_path):
     mod = load_module()
     monkeypatch.chdir(tmp_path)
-    monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / ".freeide"))
+    monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / ".jettstui"))
     monkeypatch.delenv("HYPERLIQUID_USER_ADDRESS", raising=False)
 
     try:
@@ -240,15 +240,15 @@ def test_main_state_json_uses_env_fallback(monkeypatch, capsys):
     assert mock_post.call_args[0][0]["user"] == "0xenv999"
 
 
-def test_env_lookup_reads_freeide_dotenv(tmp_path, monkeypatch):
+def test_env_lookup_reads_jettstui_dotenv(tmp_path, monkeypatch):
     mod = load_module()
-    freeide_home = tmp_path / ".freeide"
-    freeide_home.mkdir(parents=True)
-    (freeide_home / ".env").write_text(
+    jettstui_home = tmp_path / ".jettstui"
+    jettstui_home.mkdir(parents=True)
+    (jettstui_home / ".env").write_text(
         "HYPERLIQUID_USER_ADDRESS=0xdotenv123\nHYPERLIQUID_API_URL=https://api.hyperliquid-testnet.xyz\n",
         encoding="utf-8",
     )
-    monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+    monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
     monkeypatch.delenv("HYPERLIQUID_USER_ADDRESS", raising=False)
     monkeypatch.delenv("HYPERLIQUID_API_URL", raising=False)
 
@@ -263,12 +263,12 @@ def test_user_dotenv_overrides_project_dotenv(tmp_path, monkeypatch):
     project_dir.mkdir()
     (project_dir / ".env").write_text("HYPERLIQUID_USER_ADDRESS=0xproject\n", encoding="utf-8")
 
-    freeide_home = tmp_path / ".freeide"
-    freeide_home.mkdir()
-    (freeide_home / ".env").write_text("HYPERLIQUID_USER_ADDRESS=0xuserhome\n", encoding="utf-8")
+    jettstui_home = tmp_path / ".jettstui"
+    jettstui_home.mkdir()
+    (jettstui_home / ".env").write_text("HYPERLIQUID_USER_ADDRESS=0xuserhome\n", encoding="utf-8")
 
     monkeypatch.chdir(project_dir)
-    monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+    monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
     monkeypatch.delenv("HYPERLIQUID_USER_ADDRESS", raising=False)
 
     assert mod._env_lookup("HYPERLIQUID_USER_ADDRESS") == "0xuserhome"

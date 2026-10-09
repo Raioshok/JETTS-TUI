@@ -12,25 +12,25 @@ import type {
   MemoryProviderSetupResult,
   PluginsHubResponse,
 } from "@/lib/api";
-import { Button } from "@nous-research/ui/ui/components/button";
-import { Badge } from "@nous-research/ui/ui/components/badge";
-import { Select, SelectOption } from "@nous-research/ui/ui/components/select";
-import { Switch } from "@nous-research/ui/ui/components/switch";
-import { Spinner } from "@nous-research/ui/ui/components/spinner";
-import { CommandBlock, CopyButton } from "@nous-research/ui/ui/components/command-block";
-import { Card, CardContent, CardHeader, CardTitle } from "@nous-research/ui/ui/components/card";
-import { ConfirmDialog } from "@nous-research/ui/ui/components/confirm-dialog";
-import { Input } from "@nous-research/ui/ui/components/input";
-import { Label } from "@nous-research/ui/ui/components/label";
-import { useToast } from "@nous-research/ui/hooks/use-toast";
-import { Toast } from "@nous-research/ui/ui/components/toast";
+import { Button } from "@jettstui/ui/ui/components/button";
+import { Badge } from "@jettstui/ui/ui/components/badge";
+import { Select, SelectOption } from "@jettstui/ui/ui/components/select";
+import { Switch } from "@jettstui/ui/ui/components/switch";
+import { Spinner } from "@jettstui/ui/ui/components/spinner";
+import { CommandBlock, CopyButton } from "@jettstui/ui/ui/components/command-block";
+import { Card, CardContent, CardHeader, CardTitle } from "@jettstui/ui/ui/components/card";
+import { ConfirmDialog } from "@jettstui/ui/ui/components/confirm-dialog";
+import { Input } from "@jettstui/ui/ui/components/input";
+import { Label } from "@jettstui/ui/ui/components/label";
+import { useToast } from "@jettstui/ui/hooks/use-toast";
+import { Toast } from "@jettstui/ui/ui/components/toast";
 import { useI18n } from "@/i18n";
 import { PluginSlot } from "@/plugins";
 import { cn } from "@/lib/utils";
 import { usePageHeader } from "@/contexts/usePageHeader";
 
 /** Select value for built-in memory (`config` uses empty string). Never use `""` — UI Select maps empty value to an empty label. */
-const MEMORY_PROVIDER_BUILTIN = "__freeide_memory_builtin__";
+const MEMORY_PROVIDER_BUILTIN = "__jettstui_memory_builtin__";
 
 type MemoryFormValue = string | boolean;
 
@@ -177,7 +177,7 @@ function MemoryProviderSetupHint({
   if (!hasDetails || !setup) {
     return (
       <p className="border border-destructive/50 px-3 py-2 text-xs text-destructive">
-        This provider is installed but unavailable. It may need local dependencies or a manual setup step before FreeIDE can activate it.
+        This provider is installed but unavailable. It may need local dependencies or a manual setup step before JettsTUI can activate it.
       </p>
     );
   }
@@ -191,7 +191,7 @@ function MemoryProviderSetupHint({
     >
       <p className={isBlocked ? "text-destructive" : "text-muted-foreground"}>
         {needsDependencySetup
-          ? "Finish these setup steps before FreeIDE can activate this provider."
+          ? "Finish these setup steps before JettsTUI can activate this provider."
           : "Provider dependency setup completed."}
       </p>
 
@@ -260,7 +260,7 @@ function MemoryProviderSetupHint({
       {setup.required_env.length && needsDependencySetup ? (
         <div className="grid gap-2">
           <p className="text-muted-foreground">
-            Required environment values. Fill the matching fields below, or set them in the FreeIDE environment.
+            Required environment values. Fill the matching fields below, or set them in the JettsTUI environment.
           </p>
           <div className="flex flex-wrap gap-2">
             {setup.required_env.map((envKey) => (
@@ -570,7 +570,7 @@ export default function PluginsPage() {
 
                   {!selectedMemoryName && (
                     <p className="text-xs text-muted-foreground">
-                      FreeIDE will use the built-in MEMORY.md and USER.md files.
+                      JettsTUI will use the built-in MEMORY.md and USER.md files.
                     </p>
                   )}
 
@@ -998,7 +998,7 @@ function PluginRowCard(props: PluginRowCardProps) {
 
               <Link
                 className={cn(
-                  "inline-flex items-center rounded-none px-3 py-1.5",
+                  "inline-flex items-center rounded-md px-3 py-1.5",
                   "border border-current/25 hover:bg-current/10",
                   "font-mondwest text-display text-xs tracking-[0.1em]",
                 )}

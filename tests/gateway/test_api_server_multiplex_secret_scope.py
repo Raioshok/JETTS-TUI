@@ -48,7 +48,7 @@ class TestProfileScopeDefaultFallback:
             encoding="utf-8",
         )
         monkeypatch.setattr(
-            "freeide_constants.get_freeide_home",
+            "jettstui_constants.get_jettstui_home",
             lambda: tmp_path,
         )
         monkeypatch.setenv("OPENROUTER_BASE_URL", "https://leak.example/v1")
@@ -72,7 +72,7 @@ class TestProfileScopeDefaultFallback:
             "OPENROUTER_BASE_URL=https://worker.example/v1\n", encoding="utf-8"
         )
         monkeypatch.setattr(
-            "freeide_cli.profiles.get_profile_dir", lambda name: profile_home
+            "jettstui.profiles.get_profile_dir", lambda name: profile_home
         )
         ss.set_multiplex_active(True)
 

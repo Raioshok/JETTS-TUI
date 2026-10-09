@@ -1,15 +1,15 @@
-"""ACP auth helpers — detect and advertise FreeIDE authentication methods."""
+"""ACP auth helpers — detect and advertise JettsTUI authentication methods."""
 
 from __future__ import annotations
 
 from typing import Any, Optional
 
 
-TERMINAL_SETUP_AUTH_METHOD_ID = "freeide-setup"
+TERMINAL_SETUP_AUTH_METHOD_ID = "jettstui-setup"
 
 
 def detect_provider() -> Optional[str]:
-    """Resolve the active FreeIDE runtime provider, or None if unavailable.
+    """Resolve the active JettsTUI runtime provider, or None if unavailable.
 
     Treats a ``Callable`` ``api_key`` (Azure Foundry Entra ID bearer
     token provider — see :mod:`agent.azure_identity_adapter`) as a valid
@@ -18,7 +18,7 @@ def detect_provider() -> Optional[str]:
     handshake rejects the legitimate provider.
     """
     try:
-        from freeide_cli.runtime_provider import resolve_runtime_provider
+        from jettstui.runtime_provider import resolve_runtime_provider
         runtime = resolve_runtime_provider()
         api_key = runtime.get("api_key")
         provider = runtime.get("provider")
@@ -34,16 +34,16 @@ def detect_provider() -> Optional[str]:
 
 
 def has_provider() -> bool:
-    """Return True if FreeIDE can resolve any runtime provider credentials."""
+    """Return True if JettsTUI can resolve any runtime provider credentials."""
     return detect_provider() is not None
 
 
 def build_auth_methods() -> list[Any]:
-    """Return registry-compatible ACP auth methods for FreeIDE.
+    """Return registry-compatible ACP auth methods for JettsTUI.
 
     The official ACP registry validates that agents advertise at least one
     usable auth method during the initial handshake. A fresh Zed install may
-    not have FreeIDE provider credentials configured yet, so FreeIDE always
+    not have JettsTUI provider credentials configured yet, so JettsTUI always
     advertises a terminal setup method. When credentials are already present,
     it also advertises the resolved provider as the default agent-managed
     runtime credential method.
@@ -58,7 +58,7 @@ def build_auth_methods() -> list[Any]:
                 id=provider,
                 name=f"{provider} runtime credentials",
                 description=(
-                    "Authenticate FreeIDE using the currently configured "
+                    "Authenticate JettsTUI using the currently configured "
                     f"{provider} runtime credentials."
                 ),
             )
@@ -67,10 +67,10 @@ def build_auth_methods() -> list[Any]:
     methods.append(
         TerminalAuthMethod(
             id=TERMINAL_SETUP_AUTH_METHOD_ID,
-            name="Configure FreeIDE provider",
+            name="Configure JettsTUI provider",
             description=(
-                "Open FreeIDE' interactive model/provider setup in a terminal. "
-                "Use this when FreeIDE has not been configured on this machine yet."
+                "Open JettsTUI' interactive model/provider setup in a terminal. "
+                "Use this when JettsTUI has not been configured on this machine yet."
             ),
             type="terminal",
             args=["--setup"],

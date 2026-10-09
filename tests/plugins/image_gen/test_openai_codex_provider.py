@@ -34,8 +34,8 @@ def _b64_png() -> str:
 
 
 @pytest.fixture(autouse=True)
-def _tmp_freeide_home(tmp_path, monkeypatch):
-    monkeypatch.setenv("FREEIDE_HOME", str(tmp_path))
+def _tmp_jettstui_home(tmp_path, monkeypatch):
+    monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path))
     yield tmp_path
 
 

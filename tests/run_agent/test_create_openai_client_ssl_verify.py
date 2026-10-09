@@ -9,7 +9,7 @@ import pytest
 from agent.ssl_verify import resolve_httpx_verify
 from run_agent import AIAgent
 
-_CA_ENV_VARS = ("FREEIDE_CA_BUNDLE", "SSL_CERT_FILE", "REQUESTS_CA_BUNDLE", "HTTPS_PROXY")
+_CA_ENV_VARS = ("JETTSTUI_CA_BUNDLE", "SSL_CERT_FILE", "REQUESTS_CA_BUNDLE", "HTTPS_PROXY")
 
 
 @pytest.fixture
@@ -18,8 +18,8 @@ def clean_tls_env(monkeypatch):
         monkeypatch.delenv(var, raising=False)
 
 
-def test_build_keepalive_http_client_uses_freeide_ca_bundle(clean_tls_env, monkeypatch):
-    monkeypatch.setenv("FREEIDE_CA_BUNDLE", certifi.where())
+def test_build_keepalive_http_client_uses_jettstui_ca_bundle(clean_tls_env, monkeypatch):
+    monkeypatch.setenv("JETTSTUI_CA_BUNDLE", certifi.where())
     verify = resolve_httpx_verify()
     client = AIAgent._build_keepalive_http_client(
         "https://ollama.example.com/v1", verify=verify,

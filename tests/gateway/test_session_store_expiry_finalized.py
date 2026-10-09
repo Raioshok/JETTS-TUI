@@ -18,7 +18,7 @@ from pathlib import Path
 
 import pytest
 
-from freeide_state import SessionDB
+from jettstui_state import SessionDB
 
 
 @pytest.fixture

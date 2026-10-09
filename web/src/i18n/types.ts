@@ -149,11 +149,11 @@ export interface Translations {
     starting: string;
     startedInBackground: string;
     stopped: string;
-    updateFreeIDE: string;
-    updateFreeIDEConfirmMessage?: string;
-    updateFreeIDEConfirmNow?: string;
-    updateFreeIDEConfirmTitle?: string;
-    updatingFreeIDE: string;
+    updateJettsTUI: string;
+    updateJettsTUIConfirmMessage?: string;
+    updateJettsTUIConfirmNow?: string;
+    updateJettsTUIConfirmTitle?: string;
+    updatingJettsTUI: string;
     waitingForOutput: string;
   };
 
@@ -577,7 +577,7 @@ export interface Translations {
     fontMono?: string;
   };
 
-  // ── Achievements plugin (plugins/freeide-achievements) ──
+  // ── Achievements plugin (plugins/jettstui-achievements) ──
   achievements: {
     hero: {
       kicker: string;

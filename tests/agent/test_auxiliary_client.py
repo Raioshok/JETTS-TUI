@@ -62,7 +62,7 @@ def _clean_env(monkeypatch):
     """Strip provider env vars so each test starts clean."""
     for key in (
         "OPENROUTER_API_KEY", "OPENAI_BASE_URL", "OPENAI_API_KEY",
-        "OPENAI_MODEL", "LLM_MODEL", "NOUS_INFERENCE_BASE_URL",
+        "OPENAI_MODEL", "LLM_MODEL", "ACME_INFERENCE_BASE_URL",
         "ANTHROPIC_API_KEY", "ANTHROPIC_TOKEN", "CLAUDE_CODE_OAUTH_TOKEN",
     ):
         monkeypatch.delenv(key, raising=False)
@@ -245,10 +245,10 @@ class TestResolveTaskProviderModel:
         with patch("agent.auxiliary_client._get_auxiliary_task_config", return_value=task_config):
             resolved_provider, model, base_url, api_key, api_mode = _resolve_task_provider_model(
                 task="vision",
-                provider="nous",
+                provider="acme",
             )
 
-        assert resolved_provider == "nous"
+        assert resolved_provider == "acme"
         assert base_url is None
         assert api_key is None
 
@@ -281,10 +281,10 @@ class TestResolveTaskProviderModel:
         }
         monkeypatch.setattr("agent.auxiliary_client._get_auxiliary_task_config", lambda task: {})
         monkeypatch.setattr(
-            "freeide_cli.moa_config.resolve_moa_preset",
+            "jettstui.moa_config.resolve_moa_preset",
             lambda cfg, name: preset,
         )
-        monkeypatch.setattr("freeide_cli.config.load_config", lambda: {"moa": {}})
+        monkeypatch.setattr("jettstui.config.load_config", lambda: {"moa": {}})
 
         resolved_provider, model, base_url, api_key, api_mode = _resolve_task_provider_model(
             task="title_generation",
@@ -316,10 +316,10 @@ class TestResolveTaskProviderModel:
             lambda task: {"provider": "moa", "model": "opus-gpt"} if task == "title_generation" else {},
         )
         monkeypatch.setattr(
-            "freeide_cli.moa_config.resolve_moa_preset",
+            "jettstui.moa_config.resolve_moa_preset",
             lambda cfg, name: preset,
         )
-        monkeypatch.setattr("freeide_cli.config.load_config", lambda: {"moa": {}})
+        monkeypatch.setattr("jettstui.config.load_config", lambda: {"moa": {}})
 
         resolved_provider, model, base_url, api_key, api_mode = _resolve_task_provider_model(
             task="title_generation",
@@ -337,7 +337,7 @@ class TestResolveTaskProviderModel:
         default_preset when name is falsy; this just confirms the call site
         doesn't force a preset name where none was configured."""
         preset = {
-            "aggregator": {"provider": "nous", "model": "freeide-4-405b"},
+            "aggregator": {"provider": "acme", "model": "jettstui-4-405b"},
         }
 
         def fake_resolve(cfg, name):
@@ -348,15 +348,15 @@ class TestResolveTaskProviderModel:
             "agent.auxiliary_client._get_auxiliary_task_config",
             lambda task: {"provider": "moa"} if task == "title_generation" else {},
         )
-        monkeypatch.setattr("freeide_cli.moa_config.resolve_moa_preset", fake_resolve)
-        monkeypatch.setattr("freeide_cli.config.load_config", lambda: {"moa": {}})
+        monkeypatch.setattr("jettstui.moa_config.resolve_moa_preset", fake_resolve)
+        monkeypatch.setattr("jettstui.config.load_config", lambda: {"moa": {}})
 
         resolved_provider, model, base_url, api_key, api_mode = _resolve_task_provider_model(
             task="title_generation",
         )
 
-        assert resolved_provider == "nous"
-        assert model == "freeide-4-405b"
+        assert resolved_provider == "acme"
+        assert model == "jettstui-4-405b"
 
     def test_provider_moa_falls_back_to_literal_when_preset_resolution_fails(self, monkeypatch):
         """If the MoA preset can't be resolved (e.g. renamed/deleted), the
@@ -364,10 +364,10 @@ class TestResolveTaskProviderModel:
         (literal "moa") rather than crash resolve_provider_client() harder."""
         monkeypatch.setattr("agent.auxiliary_client._get_auxiliary_task_config", lambda task: {})
         monkeypatch.setattr(
-            "freeide_cli.moa_config.resolve_moa_preset",
+            "jettstui.moa_config.resolve_moa_preset",
             lambda cfg, name: (_ for _ in ()).throw(KeyError("gone-preset")),
         )
-        monkeypatch.setattr("freeide_cli.config.load_config", lambda: {"moa": {}})
+        monkeypatch.setattr("jettstui.config.load_config", lambda: {"moa": {}})
 
         resolved_provider, model, base_url, api_key, api_mode = _resolve_task_provider_model(
             task="title_generation",
@@ -443,7 +443,7 @@ class TestResolveTaskProviderModel:
 class TestMoaAggregatorSharedResolution:
     """The shared MoA→aggregator helper and the layers that consume it.
 
-    Real-config tests: write an actual config.yaml under a temp FREEIDE_HOME
+    Real-config tests: write an actual config.yaml under a temp JETTSTUI_HOME
     and exercise the genuine load_config() → resolve_moa_preset() boundary —
     no mocking of the configuration-resolution chain.
     """
@@ -452,7 +452,7 @@ class TestMoaAggregatorSharedResolution:
     def _write_moa_config(tmp_path, monkeypatch, default_preset="opus-gpt"):
         import yaml
 
-        home = tmp_path / ".freeide"
+        home = tmp_path / ".jettstui"
         home.mkdir(exist_ok=True)
         (home / "config.yaml").write_text(
             yaml.safe_dump(
@@ -470,14 +470,14 @@ class TestMoaAggregatorSharedResolution:
                                     "model": "anthropic/claude-opus-4.8",
                                 },
                             },
-                            "nous-mix": {
+                            "acme-mix": {
                                 "enabled": True,
                                 "reference_models": [
-                                    {"provider": "nous", "model": "freeide-4-70b"}
+                                    {"provider": "acme", "model": "jettstui-4-70b"}
                                 ],
                                 "aggregator": {
-                                    "provider": "nous",
-                                    "model": "freeide-4-405b",
+                                    "provider": "acme",
+                                    "model": "jettstui-4-405b",
                                 },
                             },
                         },
@@ -485,7 +485,7 @@ class TestMoaAggregatorSharedResolution:
                 }
             )
         )
-        monkeypatch.setenv("FREEIDE_HOME", str(home))
+        monkeypatch.setenv("JETTSTUI_HOME", str(home))
         return home
 
     def test_real_config_explicit_task_provider_moa(self, tmp_path, monkeypatch):
@@ -511,7 +511,7 @@ class TestMoaAggregatorSharedResolution:
         """provider: moa with no model resolves the default preset's aggregator."""
         import yaml
 
-        home = self._write_moa_config(tmp_path, monkeypatch, default_preset="nous-mix")
+        home = self._write_moa_config(tmp_path, monkeypatch, default_preset="acme-mix")
         cfg = yaml.safe_load((home / "config.yaml").read_text())
         cfg["auxiliary"] = {"compression": {"provider": "moa"}}
         (home / "config.yaml").write_text(yaml.safe_dump(cfg))
@@ -520,8 +520,8 @@ class TestMoaAggregatorSharedResolution:
             task="compression",
         )
 
-        assert resolved_provider == "nous"
-        assert model == "freeide-4-405b"
+        assert resolved_provider == "acme"
+        assert model == "jettstui-4-405b"
 
     def test_read_main_model_for_aux_unwraps_preset_name(self, tmp_path, monkeypatch):
         """Main provider moa → the aux-facing main model is the aggregator's
@@ -834,9 +834,9 @@ class TestNormalizeAuxProvider:
 
 class TestReadCodexAccessToken:
     def test_valid_auth_store(self, tmp_path, monkeypatch):
-        freeide_home = tmp_path / "freeide"
-        freeide_home.mkdir(parents=True, exist_ok=True)
-        (freeide_home / "auth.json").write_text(json.dumps({
+        jettstui_home = tmp_path / "jettstui"
+        jettstui_home.mkdir(parents=True, exist_ok=True)
+        (jettstui_home / "auth.json").write_text(json.dumps({
             "version": 1,
             "providers": {
                 "openai-codex": {
@@ -844,18 +844,18 @@ class TestReadCodexAccessToken:
                 },
             },
         }))
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
         result = _read_codex_access_token()
         assert result == "tok-123"
 
     def test_pool_without_selected_entry_falls_back_to_auth_store(self, tmp_path, monkeypatch):
-        freeide_home = tmp_path / "freeide"
-        freeide_home.mkdir(parents=True, exist_ok=True)
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        jettstui_home = tmp_path / "jettstui"
+        jettstui_home.mkdir(parents=True, exist_ok=True)
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
         valid_jwt = "eyJhbGciOiJSUzI1NiJ9.eyJleHAiOjk5OTk5OTk5OTl9.sig"
         with patch("agent.auxiliary_client._select_pool_entry", return_value=(True, None)), \
-             patch("freeide_cli.auth._read_codex_tokens", return_value={
+             patch("jettstui.auth._read_codex_tokens", return_value={
                  "tokens": {"access_token": valid_jwt, "refresh_token": "refresh"}
              }):
             result = _read_codex_access_token()
@@ -863,18 +863,18 @@ class TestReadCodexAccessToken:
         assert result == valid_jwt
 
     def test_missing_returns_none(self, tmp_path, monkeypatch):
-        freeide_home = tmp_path / "freeide"
-        freeide_home.mkdir(parents=True, exist_ok=True)
-        (freeide_home / "auth.json").write_text(json.dumps({"version": 1, "providers": {}}))
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        jettstui_home = tmp_path / "jettstui"
+        jettstui_home.mkdir(parents=True, exist_ok=True)
+        (jettstui_home / "auth.json").write_text(json.dumps({"version": 1, "providers": {}}))
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
         with patch("agent.auxiliary_client._select_pool_entry", return_value=(False, None)):
             result = _read_codex_access_token()
         assert result is None
 
     def test_empty_token_returns_none(self, tmp_path, monkeypatch):
-        freeide_home = tmp_path / "freeide"
-        freeide_home.mkdir(parents=True, exist_ok=True)
-        (freeide_home / "auth.json").write_text(json.dumps({
+        jettstui_home = tmp_path / "jettstui"
+        jettstui_home.mkdir(parents=True, exist_ok=True)
+        (jettstui_home / "auth.json").write_text(json.dumps({
             "version": 1,
             "providers": {
                 "openai-codex": {
@@ -882,7 +882,7 @@ class TestReadCodexAccessToken:
                 },
             },
         }))
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
         result = _read_codex_access_token()
         assert result is None
 
@@ -914,9 +914,9 @@ class TestReadCodexAccessToken:
         payload = base64.urlsafe_b64encode(payload_data).rstrip(b"=").decode()
         expired_jwt = f"{header}.{payload}.fakesig"
 
-        freeide_home = tmp_path / "freeide"
-        freeide_home.mkdir(parents=True, exist_ok=True)
-        (freeide_home / "auth.json").write_text(json.dumps({
+        jettstui_home = tmp_path / "jettstui"
+        jettstui_home.mkdir(parents=True, exist_ok=True)
+        (jettstui_home / "auth.json").write_text(json.dumps({
             "version": 1,
             "providers": {
                 "openai-codex": {
@@ -924,7 +924,7 @@ class TestReadCodexAccessToken:
                 },
             },
         }))
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
         with patch("agent.auxiliary_client._select_pool_entry", return_value=(False, None)):
             result = _read_codex_access_token()
         assert result is None, "Expired JWT should return None"
@@ -939,9 +939,9 @@ class TestReadCodexAccessToken:
         payload = base64.urlsafe_b64encode(payload_data).rstrip(b"=").decode()
         valid_jwt = f"{header}.{payload}.fakesig"
 
-        freeide_home = tmp_path / "freeide"
-        freeide_home.mkdir(parents=True, exist_ok=True)
-        (freeide_home / "auth.json").write_text(json.dumps({
+        jettstui_home = tmp_path / "jettstui"
+        jettstui_home.mkdir(parents=True, exist_ok=True)
+        (jettstui_home / "auth.json").write_text(json.dumps({
             "version": 1,
             "providers": {
                 "openai-codex": {
@@ -949,15 +949,15 @@ class TestReadCodexAccessToken:
                 },
             },
         }))
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
         result = _read_codex_access_token()
         assert result == valid_jwt
 
     def test_non_jwt_token_passes_through(self, tmp_path, monkeypatch):
         """Non-JWT tokens (no dots) should be returned as-is."""
-        freeide_home = tmp_path / "freeide"
-        freeide_home.mkdir(parents=True, exist_ok=True)
-        (freeide_home / "auth.json").write_text(json.dumps({
+        jettstui_home = tmp_path / "jettstui"
+        jettstui_home.mkdir(parents=True, exist_ok=True)
+        (jettstui_home / "auth.json").write_text(json.dumps({
             "version": 1,
             "providers": {
                 "openai-codex": {
@@ -965,7 +965,7 @@ class TestReadCodexAccessToken:
                 },
             },
         }))
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
         result = _read_codex_access_token()
         assert result == "plain-token-no-jwt"
 
@@ -974,21 +974,21 @@ class TestResolveXaiOAuthForAux:
     def test_uses_pool_backed_credentials_without_singleton(self, tmp_path, monkeypatch):
         """Auxiliary xAI OAuth must see pool-only credentials.
 
-        ``freeide auth status`` already reports these as logged in; compression
+        ``jettstui auth status`` already reports these as logged in; compression
         should not fall through to "no auxiliary provider configured" just
         because the singleton auth-store entry is absent.
         """
         from agent.credential_pool import AUTH_TYPE_OAUTH, PooledCredential, load_pool
-        from freeide_cli.auth import DEFAULT_XAI_OAUTH_BASE_URL
+        from jettstui.auth import DEFAULT_XAI_OAUTH_BASE_URL
 
-        freeide_home = tmp_path / "freeide"
-        freeide_home.mkdir(parents=True, exist_ok=True)
-        (freeide_home / "auth.json").write_text(json.dumps({
+        jettstui_home = tmp_path / "jettstui"
+        jettstui_home.mkdir(parents=True, exist_ok=True)
+        (jettstui_home / "auth.json").write_text(json.dumps({
             "version": 1,
             "providers": {},
         }))
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
-        monkeypatch.delenv("FREEIDE_XAI_BASE_URL", raising=False)
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
+        monkeypatch.delenv("JETTSTUI_XAI_BASE_URL", raising=False)
         monkeypatch.delenv("XAI_BASE_URL", raising=False)
 
         pool = load_pool("xai-oauth")
@@ -1011,16 +1011,16 @@ class TestResolveXaiOAuthForAux:
 
     def test_pool_backed_credentials_honor_base_url_env_override(self, tmp_path, monkeypatch):
         from agent.credential_pool import AUTH_TYPE_OAUTH, PooledCredential, load_pool
-        from freeide_cli.auth import DEFAULT_XAI_OAUTH_BASE_URL
+        from jettstui.auth import DEFAULT_XAI_OAUTH_BASE_URL
 
-        freeide_home = tmp_path / "freeide"
-        freeide_home.mkdir(parents=True, exist_ok=True)
-        (freeide_home / "auth.json").write_text(json.dumps({
+        jettstui_home = tmp_path / "jettstui"
+        jettstui_home.mkdir(parents=True, exist_ok=True)
+        (jettstui_home / "auth.json").write_text(json.dumps({
             "version": 1,
             "providers": {},
         }))
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
-        monkeypatch.setenv("FREEIDE_XAI_BASE_URL", "https://example.x.ai/v1/")
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
+        monkeypatch.setenv("JETTSTUI_XAI_BASE_URL", "https://example.x.ai/v1/")
 
         pool = load_pool("xai-oauth")
         pool.add_entry(PooledCredential(
@@ -1173,7 +1173,7 @@ class TestResolveProviderClientUniversalModelFallback:
 
     Aux tasks (title generation, vision, session search, etc.) routinely
     reach this function without an explicit model — the user's main
-    provider was picked via ``freeide model``, no per-task override is
+    provider was picked via ``jettstui model``, no per-task override is
     set, and the expectation is "just use my main model for side tasks
     too."  The resolver fills in ``model`` from a 3-step universal
     fallback before any provider branch runs:
@@ -1186,7 +1186,7 @@ class TestResolveProviderClientUniversalModelFallback:
     ``(None, None)`` on an empty model — both lack a catalog default
     because their accepted-model lists drift on the backend.  That
     silent failure caused ``_resolve_auto`` to drop to its Step-2
-    fallback chain (OpenRouter / Nous / etc.), so aux tasks billed
+    fallback chain (OpenRouter / Acme / etc.), so aux tasks billed
     against the wrong subscription.
     """
 
@@ -1247,7 +1247,7 @@ class TestResolveProviderClientUniversalModelFallback:
         assert mock_build.call_args.args[0] == "gpt-5.4"
 
     def test_empty_model_for_catalog_provider_uses_catalog_default(self):
-        """anthropic / nous / openrouter / etc.: catalog default wins
+        """anthropic / acme / openrouter / etc.: catalog default wins
         over main model when no explicit model is passed.
 
         This preserves the original \"cheap aux model for direct API
@@ -1328,9 +1328,9 @@ class TestExpiredCodexFallback:
         payload = base64.urlsafe_b64encode(payload_data).rstrip(b"=").decode()
         expired_jwt = f"{header}.{payload}.fakesig"
 
-        freeide_home = tmp_path / "freeide"
-        freeide_home.mkdir(parents=True, exist_ok=True)
-        (freeide_home / "auth.json").write_text(json.dumps({
+        jettstui_home = tmp_path / "jettstui"
+        jettstui_home.mkdir(parents=True, exist_ok=True)
+        (jettstui_home / "auth.json").write_text(json.dumps({
             "version": 1,
             "providers": {
                 "openai-codex": {
@@ -1338,7 +1338,7 @@ class TestExpiredCodexFallback:
                 },
             },
         }))
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
         # Set up Anthropic as fallback
         monkeypatch.setenv("ANTHROPIC_TOKEN", "sk-ant-oat01-test-fallback")
@@ -1371,9 +1371,9 @@ class TestExpiredCodexFallback:
         payload = base64.urlsafe_b64encode(payload_data).rstrip(b"=").decode()
         expired_jwt = f"{header}.{payload}.fakesig"
 
-        freeide_home = tmp_path / "freeide"
-        freeide_home.mkdir(parents=True, exist_ok=True)
-        (freeide_home / "auth.json").write_text(json.dumps({
+        jettstui_home = tmp_path / "jettstui"
+        jettstui_home.mkdir(parents=True, exist_ok=True)
+        (jettstui_home / "auth.json").write_text(json.dumps({
             "version": 1,
             "providers": {
                 "openai-codex": {
@@ -1381,7 +1381,7 @@ class TestExpiredCodexFallback:
                 },
             },
         }))
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
         monkeypatch.setenv("OPENROUTER_API_KEY", "or-test-key")
 
         with patch("agent.auxiliary_client.OpenAI") as mock_openai:
@@ -1402,9 +1402,9 @@ class TestExpiredCodexFallback:
         payload = base64.urlsafe_b64encode(payload_data).rstrip(b"=").decode()
         expired_jwt = f"{header}.{payload}.fakesig"
 
-        freeide_home = tmp_path / "freeide"
-        freeide_home.mkdir(parents=True, exist_ok=True)
-        (freeide_home / "auth.json").write_text(json.dumps({
+        jettstui_home = tmp_path / "jettstui"
+        jettstui_home.mkdir(parents=True, exist_ok=True)
+        (jettstui_home / "auth.json").write_text(json.dumps({
             "version": 1,
             "providers": {
                 "openai-codex": {
@@ -1412,7 +1412,7 @@ class TestExpiredCodexFallback:
                 },
             },
         }))
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
         # Simulate Ollama or custom endpoint
         with patch("agent.auxiliary_client._resolve_custom_runtime",
@@ -1424,10 +1424,10 @@ class TestExpiredCodexFallback:
                 assert client is not None
 
 
-    def test_freeide_oauth_file_sets_oauth_flag(self, monkeypatch):
+    def test_jettstui_oauth_file_sets_oauth_flag(self, monkeypatch):
         """OAuth-style tokens should get is_oauth=*** (token is not sk-ant-api-*)."""
         # Mock resolve_anthropic_token to return an OAuth-style token
-        with patch("agent.anthropic_adapter.resolve_anthropic_token", return_value="sk-ant-oat-freeide-token"), \
+        with patch("agent.anthropic_adapter.resolve_anthropic_token", return_value="sk-ant-oat-jettstui-token"), \
              patch("agent.anthropic_adapter.build_anthropic_client") as mock_build, \
              patch("agent.auxiliary_client._select_pool_entry", return_value=(False, None)):
             mock_build.return_value = MagicMock()
@@ -1445,9 +1445,9 @@ class TestExpiredCodexFallback:
         payload = base64.urlsafe_b64encode(payload_data).rstrip(b"=").decode()
         no_exp_jwt = f"{header}.{payload}.fakesig"
 
-        freeide_home = tmp_path / "freeide"
-        freeide_home.mkdir(parents=True, exist_ok=True)
-        (freeide_home / "auth.json").write_text(json.dumps({
+        jettstui_home = tmp_path / "jettstui"
+        jettstui_home.mkdir(parents=True, exist_ok=True)
+        (jettstui_home / "auth.json").write_text(json.dumps({
             "version": 1,
             "providers": {
                 "openai-codex": {
@@ -1455,7 +1455,7 @@ class TestExpiredCodexFallback:
                 },
             },
         }))
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
         result = _read_codex_access_token()
         assert result == no_exp_jwt, "JWT without exp should pass through"
 
@@ -1466,9 +1466,9 @@ class TestExpiredCodexFallback:
         payload = base64.urlsafe_b64encode(b"not-json-content").rstrip(b"=").decode()
         bad_jwt = f"{header}.{payload}.fakesig"
 
-        freeide_home = tmp_path / "freeide"
-        freeide_home.mkdir(parents=True, exist_ok=True)
-        (freeide_home / "auth.json").write_text(json.dumps({
+        jettstui_home = tmp_path / "jettstui"
+        jettstui_home.mkdir(parents=True, exist_ok=True)
+        (jettstui_home / "auth.json").write_text(json.dumps({
             "version": 1,
             "providers": {
                 "openai-codex": {
@@ -1476,7 +1476,7 @@ class TestExpiredCodexFallback:
                 },
             },
         }))
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
         result = _read_codex_access_token()
         assert result == bad_jwt, "JWT with invalid JSON payload should pass through"
 
@@ -1582,7 +1582,7 @@ class TestGetTextAuxiliaryClient:
         with (
             patch("agent.auxiliary_client.load_pool", return_value=_Pool()),
             patch("agent.auxiliary_client.OpenAI"),
-            patch("freeide_cli.auth._read_codex_tokens", side_effect=AssertionError("legacy codex store should not run")),
+            patch("jettstui.auth._read_codex_tokens", side_effect=AssertionError("legacy codex store should not run")),
         ):
             from agent.auxiliary_client import _build_codex_client
 
@@ -1785,7 +1785,7 @@ class TestIsPaymentError:
     def test_404_free_tier_model_block_is_payment(self):
         exc = Exception(
             "Model 'gpt-5' is not available on the Free Tier. "
-            "Upgrade at https://portal.freeide.dev or pick a free model."
+            "Upgrade at https://portal.jettstui.dev or pick a free model."
         )
         exc.status_code = 404
         assert _is_payment_error(exc) is True
@@ -1872,9 +1872,9 @@ class TestIsModelNotFoundError:
     """_is_model_not_found_error detects stale/invalid model 404s, distinct
     from payment errors."""
 
-    def test_nous_openrouter_catalog_404(self):
+    def test_acme_openrouter_catalog_404(self):
         """The exact incident error: a Portal-recommended model dropped from
-        the Nous → OpenRouter catalog."""
+        the Acme → OpenRouter catalog."""
         exc = Exception(
             "Model 'gpt-5.4-mini' not found. The requested model does not "
             "exist in our configuration or OpenRouter catalog."
@@ -1991,7 +1991,7 @@ class TestIsRateLimitError:
         assert _is_rate_limit_error(exc) is True
 
     def test_429_with_resets_in_message(self):
-        """Nous-style 429: 'resets in 3508s'."""
+        """Acme-style 429: 'resets in 3508s'."""
         exc = Exception("Hold up for a bit, you've exceeded the rate limit on your API key")
         exc.status_code = 429
         assert _is_rate_limit_error(exc) is True
@@ -2110,7 +2110,7 @@ class TestTryPaymentFallback:
     def test_codex_not_in_fallback_chain(self):
         """Codex is deliberately NOT a fallback rung (shifting model allow-list).
 
-        When OR/Nous/custom/api-key all fail, payment-fallback returns None —
+        When OR/Acme/custom/api-key all fail, payment-fallback returns None —
         Codex is never tried with a guessed model.
         """
         with patch("agent.auxiliary_client._try_openrouter", return_value=(None, None)), \
@@ -2696,7 +2696,7 @@ class TestAuxiliaryFallbackLayering:
         )
 
     def test_fallback_entry_openai_codex_uses_oauth_pool_without_inline_key(self):
-        """Configured Codex fallback resolves through FreeIDE auth / credential pool."""
+        """Configured Codex fallback resolves through JettsTUI auth / credential pool."""
         from agent.auxiliary_client import _resolve_fallback_entry
 
         pool_entry = MagicMock()
@@ -2814,7 +2814,7 @@ class TestTryMainAgentModelFallback:
 def test_resolve_api_key_provider_skips_unconfigured_anthropic(monkeypatch):
     """_resolve_api_key_provider must not try anthropic when user never configured it."""
     from collections import OrderedDict
-    from freeide_cli.auth import ProviderConfig
+    from jettstui.auth import ProviderConfig
 
     # Build a minimal registry with only "anthropic" so the loop is guaranteed
     # to reach it without being short-circuited by earlier providers.
@@ -2835,9 +2835,9 @@ def test_resolve_api_key_provider_skips_unconfigured_anthropic(monkeypatch):
         return None, None
 
     monkeypatch.setattr("agent.auxiliary_client._try_anthropic", mock_try_anthropic)
-    monkeypatch.setattr("freeide_cli.auth.PROVIDER_REGISTRY", fake_registry)
+    monkeypatch.setattr("jettstui.auth.PROVIDER_REGISTRY", fake_registry)
     monkeypatch.setattr(
-        "freeide_cli.auth.is_provider_explicitly_configured",
+        "jettstui.auth.is_provider_explicitly_configured",
         lambda pid: False,
     )
 
@@ -3081,7 +3081,7 @@ class TestTransientTransportRetry:
 
 class TestAuxClientNoSdkRetries:
     """Auxiliary OpenAI clients are constructed with SDK-internal retries
-    disabled so FreeIDE owns the retry/timeout budget (issue #54465). The SDK
+    disabled so JettsTUI owns the retry/timeout budget (issue #54465). The SDK
     default (max_retries=2 → 3 attempts) silently triples the effective wall
     time of every aux call against a slow/hung endpoint.
     """
@@ -3361,7 +3361,7 @@ class TestAuxiliaryTaskExtraBody:
             }
         }
 
-        with patch("freeide_cli.config.load_config", return_value=config), patch(
+        with patch("jettstui.config.load_config", return_value=config), patch(
             "agent.auxiliary_client._get_cached_client",
             return_value=(client, "glm-4.5-air"),
         ):
@@ -3392,7 +3392,7 @@ class TestAuxiliaryTaskExtraBody:
             }
         }
 
-        with patch("freeide_cli.config.load_config", return_value=config), patch(
+        with patch("jettstui.config.load_config", return_value=config), patch(
             "agent.auxiliary_client._get_cached_client",
             return_value=(client, "glm-4.5-air"),
         ):
@@ -3418,7 +3418,7 @@ class TestAuxiliaryTaskExtraBody:
             }
         }
 
-        with patch("freeide_cli.config.load_config", return_value=config), patch(
+        with patch("jettstui.config.load_config", return_value=config), patch(
             "agent.auxiliary_client._get_cached_client",
             return_value=(client, "glm-4.5-air"),
         ):
@@ -3437,7 +3437,7 @@ class TestAuxiliaryTaskExtraBody:
 
         config = {"auxiliary": {"session_search": {"reasoning_effort": "none"}}}
 
-        with patch("freeide_cli.config.load_config", return_value=config), patch(
+        with patch("jettstui.config.load_config", return_value=config), patch(
             "agent.auxiliary_client._get_cached_client",
             return_value=(client, "glm-4.5-air"),
         ):
@@ -3461,7 +3461,7 @@ class TestAuxiliaryTaskExtraBody:
             }
         }
 
-        with patch("freeide_cli.config.load_config", return_value=config), patch(
+        with patch("jettstui.config.load_config", return_value=config), patch(
             "agent.auxiliary_client._get_cached_client",
             return_value=(client, "glm-4.5-air"),
         ):
@@ -3477,7 +3477,7 @@ class TestAuxiliaryTaskExtraBody:
 
         config = {"auxiliary": {"session_search": {"reasoning_effort": "warp9"}}}
 
-        with patch("freeide_cli.config.load_config", return_value=config), patch(
+        with patch("jettstui.config.load_config", return_value=config), patch(
             "agent.auxiliary_client._get_cached_client",
             return_value=(client, "glm-4.5-air"),
         ), caplog.at_level(logging.WARNING, logger="agent.auxiliary_client"):
@@ -3492,7 +3492,7 @@ class TestAuxiliaryTaskExtraBody:
         from agent.auxiliary_client import _get_task_extra_body
 
         config = {"auxiliary": {"session_search": {"reasoning_effort": ""}}}
-        with patch("freeide_cli.config.load_config", return_value=config):
+        with patch("jettstui.config.load_config", return_value=config):
             assert _get_task_extra_body("session_search") == {}
 
     @pytest.mark.parametrize("moa_task", ["moa_reference", "moa_aggregator"])
@@ -3502,7 +3502,7 @@ class TestAuxiliaryTaskExtraBody:
         from agent.auxiliary_client import _get_task_extra_body
 
         config = {"auxiliary": {moa_task: {"reasoning_effort": "xhigh"}}}
-        with patch("freeide_cli.config.load_config", return_value=config), \
+        with patch("jettstui.config.load_config", return_value=config), \
              caplog.at_level(logging.WARNING, logger="agent.auxiliary_client"):
             result = _get_task_extra_body(moa_task)
 
@@ -3513,7 +3513,7 @@ class TestAuxiliaryTaskExtraBody:
     def test_moa_default_config_has_no_reasoning_effort(self, moa_task):
         """Invariant: the shipped MoA auxiliary blocks must not grow a
         reasoning_effort key — per-slot preset config is the only surface."""
-        from freeide_cli.config import DEFAULT_CONFIG
+        from jettstui.config import DEFAULT_CONFIG
 
         assert "reasoning_effort" not in DEFAULT_CONFIG["auxiliary"][moa_task]
 
@@ -4067,7 +4067,7 @@ class TestAuxiliaryAuthRefreshRetry:
     def test_resolve_provider_client_vertex_builds_client_from_minted_token(self):
         """End-to-end: resolve_provider_client("vertex", ...) must reach the
         auth_type == "vertex" branch and build a working client, not die at
-        the PROVIDER_REGISTRY lookup (a plain FREEIDE_OVERLAYS-only fix would
+        the PROVIDER_REGISTRY lookup (a plain JETTSTUI_OVERLAYS-only fix would
         leave this branch dead code — PROVIDER_REGISTRY is what
         resolve_provider_client actually gates on)."""
         with (
@@ -4222,9 +4222,9 @@ class TestAuxiliaryPoolRotationRetry:
 
 
 class TestAnthropicAuxiliaryReasoningTranslation:
-    """Native Anthropic aux adapters must receive normalized FreeIDE reasoning.
+    """Native Anthropic aux adapters must receive normalized JettsTUI reasoning.
 
-    MoA slot reasoning is carried through call_llm as a FreeIDE
+    MoA slot reasoning is carried through call_llm as a JettsTUI
     ``reasoning_config``. The native Anthropic Messages path cannot consume the
     generic OpenAI-style ``extra_body.reasoning`` fallback, so assert the final
     ``messages.create`` kwargs contain Anthropic's provider-aware wire shape.
@@ -4825,7 +4825,7 @@ class TestVisionAutoSkipsKimiCoding:
         def fake_strict(provider, model=None):
             if provider == "openrouter":
                 return fake_or_client, "google/gemini-3-flash-preview"
-            if provider == "nous":
+            if provider == "acme":
                 return None, None
             raise AssertionError(
                 f"strict vision backend should not be called for {provider!r} "
@@ -5174,7 +5174,7 @@ class TestAuxiliaryClientPoisonedCacheEviction:
     Otherwise the next auxiliary call (compression retry, memory flush,
     background review) reuses the closed httpx transport and fails with
     ``Connection error`` even though the main provider route is healthy.
-    See https://github.com/freeide/freeide/issues/23432.
+    See https://github.com/Raioshok/JETTS-TUI/issues/23432.
     """
 
     def test_evict_cached_client_instance_drops_direct_match(self):
@@ -5397,7 +5397,7 @@ class TestBuildCallKwargsToolDedup:
     Providers like Google Vertex, Azure, and Bedrock reject requests with
     duplicate tool names (HTTP 400).  This guard converts a hard failure into
     a warning log so agent turns succeed even if an upstream injection path
-    regresses.  See: https://github.com/freeide/freeide/issues/18478
+    regresses.  See: https://github.com/Raioshok/JETTS-TUI/issues/18478
     """
 
     def _make_tool(self, name: str) -> dict:
@@ -5481,7 +5481,7 @@ class TestNvidiaBillingHeaders:
         assert model == "nvidia/test-model"
         call_kwargs = mock_openai.call_args[1]
         headers = call_kwargs["default_headers"]
-        assert headers["X-BILLING-INVOKE-ORIGIN"] == "FreeIDEAgent"
+        assert headers["X-BILLING-INVOKE-ORIGIN"] == "JettsTUIAgent"
 
     def test_resolve_provider_client_local_nim_skips_billing_origin_header(self, monkeypatch):
         monkeypatch.setenv("NVIDIA_API_KEY", "nvidia-key")
@@ -5757,17 +5757,17 @@ class TestAuxUnhealthyCache:
         err.status_code = 402
         primary_client.chat.completions.create.side_effect = err
 
-        nous_client = MagicMock()
-        nous_resp = MagicMock()
-        nous_resp.choices = [MagicMock(message=MagicMock(content="ok"))]
-        nous_client.chat.completions.create.return_value = nous_resp
+        acme_client = MagicMock()
+        acme_resp = MagicMock()
+        acme_resp.choices = [MagicMock(message=MagicMock(content="ok"))]
+        acme_client.chat.completions.create.return_value = acme_resp
 
         with patch("agent.auxiliary_client._get_cached_client",
                     return_value=(primary_client, "google/gemini-3-flash-preview")), \
              patch("agent.auxiliary_client._resolve_task_provider_model",
                     return_value=("auto", "google/gemini-3-flash-preview", None, None, None)), \
              patch("agent.auxiliary_client._try_payment_fallback",
-                    return_value=(nous_client, "n-model", "nous")), \
+                    return_value=(acme_client, "n-model", "acme")), \
              patch("agent.auxiliary_client._build_call_kwargs",
                     return_value={"model": "n-model", "messages": [{"role": "user", "content": "hi"}]}):
             assert _is_provider_unhealthy("openrouter") is False
@@ -6095,7 +6095,7 @@ class TestCompressionFallbackContextFilter:
             return {"tiny-16k": 16_384, "huge-1m": 1_048_576}.get(model, 256_000)
 
         monkeypatch.setattr(
-            "freeide_cli.fallback_config.get_fallback_chain",
+            "jettstui.fallback_config.get_fallback_chain",
             lambda cfg: chain,
         )
 
@@ -6241,7 +6241,7 @@ class TestCustomEndpointApiKeyInheritance:
             captured.update(kwargs)
             return MagicMock()
 
-        with patch("freeide_cli.config.load_config", return_value=fake_config), \
+        with patch("jettstui.config.load_config", return_value=fake_config), \
              patch.object(ac, "_create_openai_client", side_effect=_capture_create):
             client, model = resolve_provider_client(
                 "custom",
@@ -6269,7 +6269,7 @@ class TestCustomEndpointApiKeyInheritance:
             captured.update(kwargs)
             return MagicMock()
 
-        with patch("freeide_cli.config.load_config", return_value=fake_config), \
+        with patch("jettstui.config.load_config", return_value=fake_config), \
              patch.object(ac, "_create_openai_client", side_effect=_capture_create):
             client, model = resolve_provider_client(
                 "custom",
@@ -6294,7 +6294,7 @@ class TestCustomEndpointApiKeyInheritance:
             captured.update(kwargs)
             return MagicMock()
 
-        with patch("freeide_cli.config.load_config", return_value=fake_config), \
+        with patch("jettstui.config.load_config", return_value=fake_config), \
              patch.object(ac, "_create_openai_client", side_effect=_capture_create):
             client, model = resolve_provider_client(
                 "custom",
@@ -6320,7 +6320,7 @@ class TestCustomEndpointApiKeyInheritance:
 
         with patch.object(ac, "_RUNTIME_MAIN_API_KEY", "sk-runtime-key"), \
              patch.object(ac, "_RUNTIME_MAIN_BASE_URL", "https://gw.example.com/v1"), \
-             patch("freeide_cli.config.load_config", return_value={"model": {}}), \
+             patch("jettstui.config.load_config", return_value={"model": {}}), \
              patch.object(ac, "_create_openai_client", side_effect=_capture_create):
             client, model = resolve_provider_client(
                 "custom",
@@ -6352,7 +6352,7 @@ class TestCustomEndpointApiKeyInheritance:
             captured.update(kwargs)
             return MagicMock()
 
-        with patch("freeide_cli.config.load_config", return_value=fake_config), \
+        with patch("jettstui.config.load_config", return_value=fake_config), \
              patch.object(ac, "_create_openai_client", side_effect=_capture_create):
             client, model = resolve_provider_client(
                 "custom",
@@ -6377,7 +6377,7 @@ class TestCustomEndpointApiKeyInheritance:
             captured.update(kwargs)
             return MagicMock()
 
-        with patch("freeide_cli.config.load_config", return_value=fake_config), \
+        with patch("jettstui.config.load_config", return_value=fake_config), \
              patch.object(ac, "_create_openai_client", side_effect=_capture_create):
             client, model = resolve_provider_client(
                 "custom",

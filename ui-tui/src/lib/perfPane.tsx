@@ -4,9 +4,9 @@
 //   logFrameEvent (ink.onFrame) → yoga / renderer / diff / optimize / write
 //                                 phases + yoga counters + scroll fast-path
 //
-// Both gate on FREEIDE_DEV_PERF=1 and dump JSON-lines (default ~/.freeide/perf.log,
-// override FREEIDE_DEV_PERF_LOG). Tagged { src: 'react' | 'frame' } for jq.
-// FREEIDE_DEV_PERF_MS (default 2) skips sub-ms idle frames; set 0 to capture all.
+// Both gate on JETTSTUI_DEV_PERF=1 and dump JSON-lines (default ~/.jettstui/perf.log,
+// override JETTSTUI_DEV_PERF_LOG). Tagged { src: 'react' | 'frame' } for jq.
+// JETTSTUI_DEV_PERF_MS (default 2) skips sub-ms idle frames; set 0 to capture all.
 //
 // Zero cost when unset: PerfPane returns children directly, logFrameEvent is
 // undefined so ink doesn't pay the timing cost.
@@ -19,9 +19,9 @@ import type { FrameEvent } from '@jetts-tui/ink'
 import { scrollFastPathStats } from '@jetts-tui/ink'
 import { Profiler, type ProfilerOnRenderCallback, type ReactNode } from 'react'
 
-const ENABLED = /^(?:1|true|yes|on)$/i.test((process.env.FREEIDE_DEV_PERF ?? '').trim())
-const THRESHOLD_MS = Number(process.env.FREEIDE_DEV_PERF_MS ?? '2') || 0
-const LOG_PATH = process.env.FREEIDE_DEV_PERF_LOG?.trim() || join(homedir(), '.freeide', 'perf.log')
+const ENABLED = /^(?:1|true|yes|on)$/i.test((process.env.JETTSTUI_DEV_PERF ?? '').trim())
+const THRESHOLD_MS = Number(process.env.JETTSTUI_DEV_PERF_MS ?? '2') || 0
+const LOG_PATH = process.env.JETTSTUI_DEV_PERF_LOG?.trim() || join(homedir(), '.jettstui', 'perf.log')
 
 let logReady = false
 

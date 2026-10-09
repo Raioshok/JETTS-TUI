@@ -46,7 +46,7 @@ def clean_registry():
 
 
 class _MockPluginContext:
-    """Minimal mock of freeide_cli.plugins.PluginContext.
+    """Minimal mock of jettstui.plugins.PluginContext.
 
     Only implements register_platform so we can exercise the plugin's
     register() entrypoint without importing the real plugin system.

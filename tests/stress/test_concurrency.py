@@ -33,18 +33,18 @@ WORKER_TIMEOUT_S = 60
 WT = str(Path(__file__).resolve().parents[2])
 
 
-def worker_loop(worker_id: int, freeide_home: str, result_file: str) -> None:
+def worker_loop(worker_id: int, jettstui_home: str, result_file: str) -> None:
     """One worker's inner loop. Runs in a fresh Python process.
 
     Tries to claim a ready task, marks it done with a per-worker summary,
     repeats until the ready pool is empty. Records every claim + complete
     into its own JSON result file for later aggregation.
     """
-    os.environ["FREEIDE_HOME"] = freeide_home
-    os.environ["HOME"] = freeide_home
+    os.environ["JETTSTUI_HOME"] = jettstui_home
+    os.environ["HOME"] = jettstui_home
     sys.path.insert(0, WT)
 
-    from freeide_cli import kanban_db as kb
+    from jettstui import kanban_db as kb
 
     events = []
     empty_polls = 0
@@ -117,14 +117,14 @@ def worker_loop(worker_id: int, freeide_home: str, result_file: str) -> None:
 
 
 def main():
-    home = tempfile.mkdtemp(prefix="freeide_concurrency_")
-    print(f"FREEIDE_HOME = {home}")
+    home = tempfile.mkdtemp(prefix="jettstui_concurrency_")
+    print(f"JETTSTUI_HOME = {home}")
 
     # Seed.
-    os.environ["FREEIDE_HOME"] = home
+    os.environ["JETTSTUI_HOME"] = home
     os.environ["HOME"] = home
     sys.path.insert(0, WT)
-    from freeide_cli import kanban_db as kb
+    from jettstui import kanban_db as kb
 
     kb.init_db()
     conn = kb.connect()

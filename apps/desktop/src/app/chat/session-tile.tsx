@@ -30,8 +30,8 @@ import { findGroupOfPane } from '@/components/pane-shell/tree/model'
 import { $layoutTree, moveTreePane, setTreeGroupHeaderHidden } from '@/components/pane-shell/tree/store'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
-import { transcribeAudio } from '@/freeide'
 import { useI18n } from '@/i18n'
+import { transcribeAudio } from '@/jettstui'
 import type { ChatMessage } from '@/lib/chat-messages'
 import { sessionTitle } from '@/lib/chat-runtime'
 import { createComposerAttachmentScope } from '@/store/composer'
@@ -55,7 +55,7 @@ import {
   type SessionTile,
   sessionTileDelegate
 } from '@/store/session-states'
-import type { SessionInfo } from '@/types/freeide'
+import type { SessionInfo } from '@/types/jettstui'
 
 import type { SessionDragPayload } from './composer/inline-refs'
 import { type ComposerScope, ComposerScopeProvider } from './composer/scope'

@@ -1,8 +1,8 @@
 """Gateway lifecycle guard for cron job creation (#30719).
 
 An agent running inside a gateway can schedule a cron job that calls
-``freeide gateway restart`` (or ``launchctl kickstart ai.freeide.gateway``
-or ``systemctl restart freeide-gateway``).  When the cron fires, the
+``jettstui gateway restart`` (or ``launchctl kickstart ai.jettstui.gateway``
+or ``systemctl restart jettstui-gateway``).  When the cron fires, the
 gateway dies, the supervisor (launchd KeepAlive / systemd Restart=)
 revives it, auto-resume picks up the offending session, and the resumed
 turn re-runs the same logic — a SIGTERM-respawn loop every ~10 seconds
@@ -11,12 +11,12 @@ until manually broken.
 This module rejects cron job specs whose prompt or script contains a
 direct shell-level gateway-lifecycle command.  It is enforced at
 ``cron.jobs.create_job`` so it fires on every job-creation path: the
-``freeide cron create`` CLI subcommand AND the agent's ``cronjob`` model
+``jettstui cron create`` CLI subcommand AND the agent's ``cronjob`` model
 tool (which calls ``create_job`` directly, bypassing the CLI layer).
 
 The pattern is intentionally command-shaped: it anchors on a concrete
-command identifier (``freeide gateway``, ``launchctl ... freeide-gateway``,
-``systemctl ... freeide-gateway``, ``pkill`` against the gateway) so it
+command identifier (``jettstui gateway``, ``launchctl ... jettstui-gateway``,
+``systemctl ... jettstui-gateway``, ``pkill`` against the gateway) so it
 cannot fire on prose.  A cron ``prompt`` is fed to a future LLM, not a
 shell, so an over-broad substring match on English ("Kong API gateway
 autoscaling and restart behavior") would produce a high false-positive
@@ -24,8 +24,8 @@ rate without preventing the actual foot-gun, which requires a real
 command shape.
 
 This is a defence-in-depth layer.  ``tools/terminal_tool.py`` already
-blocks these commands at *execution* time when ``_FREEIDE_GATEWAY=1``, and
-``freeide gateway stop|restart`` refuse to self-target from inside the
+blocks these commands at *execution* time when ``_JETTSTUI_GATEWAY=1``, and
+``jettstui gateway stop|restart`` refuse to self-target from inside the
 gateway.  Blocking at *creation* time as well means the agent gets an
 immediate, informative rejection instead of scheduling a job that will
 only fail (silently) when it fires.
@@ -47,22 +47,22 @@ class GatewayLifecycleBlocked(ValueError):
 # actual shell-command-shaped strings, not on prose.
 _GATEWAY_LIFECYCLE_PATTERN = re.compile(
     r"(?i)"
-    # Branch A: `freeide gateway restart|stop` — the canonical foot-gun.
+    # Branch A: branded and legacy gateway restart/stop commands.
     # `start` is intentionally excluded: starting a gateway from inside a
     # gateway is benign (a no-op or "already running" error), and a
     # legitimate cron job might start a sibling profile's gateway.
-    r"(?:freeide\s+gateway\s+(?:restart|stop))"
-    # Branch B: launchctl ops on a freeide-gateway label. macOS launchd
-    # labels look like `ai.freeide.gateway` / `freeide-gateway`. Requiring the
-    # gateway identifier prevents blocking unrelated freeide services (e.g.
-    # `launchctl unload ai.freeide.update-checker.plist`).
-    r"|(?:launchctl\s+(?:kickstart|unload|load|stop|restart)\b[^\n]*\bfreeide[.\-]?gateway)"
-    # Branch C: systemctl ops on a freeide-gateway unit.
-    r"|(?:systemctl\s+(?:-\S+\s+)*(?:restart|stop|start)\b[^\n]*\bfreeide[.\-]?gateway)"
-    # Branch D: pkill / kill targeting the freeide gateway process. Both
+    r"(?:(?:jetts-tui|jettstui)\s+gateway\s+(?:restart|stop))"
+    # Branch B: launchctl ops on a jettstui-gateway label. macOS launchd
+    # labels look like `ai.jettstui.gateway` / `jettstui-gateway`. Requiring the
+    # gateway identifier prevents blocking unrelated jettstui services (e.g.
+    # `launchctl unload ai.jettstui.update-checker.plist`).
+    r"|(?:launchctl\s+(?:kickstart|unload|load|stop|restart)\b[^\n]*\b(?:jettstui|jettstui)[.\-]?gateway)"
+    # Branch C: systemctl ops on a jettstui-gateway unit.
+    r"|(?:systemctl\s+(?:-\S+\s+)*(?:restart|stop|start)\b[^\n]*\b(?:jettstui|jettstui)[.\-]?gateway)"
+    # Branch D: pkill / kill targeting the jettstui gateway process. Both
     # token orders because real reproductions show both.
-    r"|(?:p?kill\b[^\n]*\bfreeide\b[^\n]*\bgateway)"
-    r"|(?:p?kill\b[^\n]*\bgateway\b[^\n]*\bfreeide)"
+    r"|(?:p?kill\b[^\n]*\b(?:jettstui|jettstui)\b[^\n]*\bgateway)"
+    r"|(?:p?kill\b[^\n]*\bgateway\b[^\n]*\b(?:jettstui|jettstui))"
 )
 
 
@@ -77,19 +77,19 @@ def _resolve_script_path(script_path: str) -> Path:
     """Resolve a cron ``script`` value the same way the scheduler does.
 
     The scheduler (``cron.scheduler``) resolves a bare/relative script path
-    under ``<FREEIDE_HOME>/scripts/`` and only accepts absolute paths as-is.
+    under ``<JETTSTUI_HOME>/scripts/`` and only accepts absolute paths as-is.
     We MUST mirror that here so the guard scans the file that will actually
     run — otherwise a job whose script lives at the scheduler's real location
-    (``~/.freeide/scripts/restart.sh``) but is passed as the bare name
+    (``~/.jettstui/scripts/restart.sh``) but is passed as the bare name
     ``restart.sh`` would read as a nonexistent relative path and silently
     scan prompt-only content, letting the command through.
     """
-    from freeide_constants import get_freeide_home
+    from jettstui_constants import get_jettstui_home
 
     raw = Path(script_path).expanduser()
     if raw.is_absolute():
         return raw
-    return get_freeide_home() / "scripts" / raw
+    return get_jettstui_home() / "scripts" / raw
 
 
 def _read_script_for_scanning(script_path: str) -> str:
@@ -136,6 +136,6 @@ def check_gateway_lifecycle(
             "Blocked: cron job contains a gateway lifecycle command "
             "(restart/stop/kill). This is blocked to prevent agent-driven "
             "SIGTERM-respawn loops under launchd/systemd supervision "
-            "(#30719). Run `freeide gateway restart` from a shell outside "
+            "(#30719). Run `jettstui gateway restart` from a shell outside "
             "the running gateway instead."
         )

@@ -2,7 +2,7 @@ import { isGatewayReauthRequired, resolveGatewayWsUrl } from '@jetts-tui/shared'
 import { useStore } from '@nanostores/react'
 import { useCallback, useEffect, useRef } from 'react'
 
-import type { FreeIDEGateway } from '@/freeide'
+import type { JettsTUIGateway } from '@/jettstui'
 import { $gateway, ensureActiveGatewayOpen, isActivePrimary } from '@/store/gateway'
 import { $activeGatewayProfile } from '@/store/profile'
 import { $gatewayState, setConnection } from '@/store/session'
@@ -16,15 +16,15 @@ export function useGatewayRequest() {
   // null on mount, and if the connection state doesn't happen to flip
   // afterwards it never re-renders to pick the instance up. Anything that needs
   // the gateway as a render-time VALUE (props, memo deps) must use this.
-  const gateway = useStore($gateway) as FreeIDEGateway | null
-  const gatewayRef = useRef<FreeIDEGateway | null>(null)
+  const gateway = useStore($gateway) as JettsTUIGateway | null
+  const gatewayRef = useRef<JettsTUIGateway | null>(null)
 
-  const connectionRef = useRef<Awaited<ReturnType<NonNullable<typeof window.freeideDesktop>['getConnection']>> | null>(
+  const connectionRef = useRef<Awaited<ReturnType<NonNullable<typeof window.jettstuiDesktop>['getConnection']>> | null>(
     null
   )
 
   const gatewayStateRef = useRef(gatewayState)
-  const reconnectingRef = useRef<Promise<FreeIDEGateway | null> | null>(null)
+  const reconnectingRef = useRef<Promise<JettsTUIGateway | null> | null>(null)
   // Holds the reauth error from the most recent failed reconnect so
   // requestGateway can surface the gateway's "session expired, sign in again"
   // message instead of the opaque "connection closed" that triggered the retry.
@@ -40,7 +40,7 @@ export function useGatewayRequest() {
   useEffect(
     () =>
       $gateway.subscribe(gateway => {
-        gatewayRef.current = gateway as FreeIDEGateway | null
+        gatewayRef.current = gateway as JettsTUIGateway | null
       }),
     []
   )
@@ -61,7 +61,7 @@ export function useGatewayRequest() {
     }
 
     reconnectingRef.current = (async () => {
-      const desktop = window.freeideDesktop
+      const desktop = window.jettstuiDesktop
 
       if (!desktop) {
         return null
@@ -108,7 +108,7 @@ export function useGatewayRequest() {
       const gateway = gatewayRef.current
 
       if (!gateway) {
-        throw new Error('FreeIDE gateway unavailable')
+        throw new Error('JettsTUI gateway unavailable')
       }
 
       try {

@@ -885,7 +885,7 @@ class TestChatMessagesToResponsesInputMessageItems:
         assert items == [{"role": "assistant", "content": "fallback text"}]
 
 
-# ── Chat completions response handling (OpenRouter/Nous) ─────────────────────
+# ── Chat completions response handling (OpenRouter/Acme) ─────────────────────
 
 class TestBuildAssistantMessage:
     """Verify _build_assistant_message works for all provider response formats."""
@@ -974,8 +974,8 @@ class TestAuxiliaryClientProviderPriority:
         assert model == "google/gemini-3-flash-preview"
         assert "openrouter" in str(mock.call_args.kwargs["base_url"]).lower()
 
-    def test_custom_endpoint_when_no_nous(self, monkeypatch):
-        """Custom endpoint is used when no OpenRouter/Nous keys are available.
+    def test_custom_endpoint_when_no_acme(self, monkeypatch):
+        """Custom endpoint is used when no OpenRouter/Acme keys are available.
 
         Since the March 2026 config refactor, OPENAI_BASE_URL env var is no
         longer consulted — base_url comes from config.yaml via

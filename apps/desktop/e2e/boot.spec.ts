@@ -2,10 +2,10 @@
  * E2E smoke tests for the dev-mode desktop app.
  *
  * These tests launch the Electron app from the built dist/ (not the
- * packaged binary) with a real `freeide serve` backend pointed at a mock
+ * packaged binary) with a real `jettstui serve` backend pointed at a mock
  * inference server. The full chain is exercised:
  *
- *   electron → freeide serve (python) → mock provider → renderer
+ *   electron → jettstui serve (python) → mock provider → renderer
  *
  * Prerequisite: `npm run build` must have been run so dist/ exists.
  * Run from the nix devshell:
@@ -32,9 +32,9 @@ test.afterAll(async () => {
 })
 
 test.describe('dev-mode boot with mock backend', () => {
-  test('window opens with Jetts-TUI title', async () => {
+  test('window opens with JettsTUI title', async () => {
     const title = await fixture!.page.title()
-    expect(title).toContain('Jetts-TUI')
+    expect(title).toContain('JettsTUI')
   })
 
   test('renderer mounts and shows DOM content', async () => {
@@ -52,7 +52,7 @@ test.describe('dev-mode boot with mock backend', () => {
 
   test('backend boots and app becomes ready', async () => {
     // This is the big one — wait for the full boot chain to complete:
-    // electron starts → freeide serve is spawned → WS connects → config
+    // electron starts → jettstui serve is spawned → WS connects → config
     // loaded → sessions loaded → boot overlay dismissed → composer visible.
     await waitForAppReady(fixture!, 120_000)
   })

@@ -1,10 +1,10 @@
-"""Tests for slash command prefix matching in FreeIDECLI.process_command."""
+"""Tests for slash command prefix matching in JettsTUICLI.process_command."""
 from unittest.mock import MagicMock, patch
-from cli import FreeIDECLI
+from cli import JettsTUICLI
 
 
 def _make_cli():
-    cli_obj = FreeIDECLI.__new__(FreeIDECLI)
+    cli_obj = JettsTUICLI.__new__(JettsTUICLI)
     cli_obj.config = {}
     cli_obj.console = MagicMock()
     cli_obj.agent = None
@@ -16,14 +16,14 @@ def _make_cli():
 
 class TestSlashCommandPrefixMatching:
     def test_unique_prefix_dispatches_command(self):
-        """/con should dispatch to /config when it uniquely matches."""
+        """/sta should dispatch to the visible /status command."""
         cli_obj = _make_cli()
-        with patch.object(cli_obj, 'show_config') as mock_config:
-            cli_obj.process_command("/con")
-        mock_config.assert_called_once()
+        with patch.object(cli_obj, '_show_session_status') as mock_status:
+            cli_obj.process_command("/sta")
+        mock_status.assert_called_once()
 
     def test_unique_prefix_with_args_does_not_recurse(self):
-        """/con set key value should expand to /config set key value without infinite recursion."""
+        """/sta with args expands to /status without infinite recursion."""
         cli_obj = _make_cli()
         dispatched = []
 
@@ -35,15 +35,15 @@ class TestSlashCommandPrefixMatching:
                 raise RecursionError("process_command called too many times")
             return original(self_inner, cmd)
 
-        # Mock show_config since the test is about recursion, not config display
+        # Mock status display since the test is about recursion, not its output.
         with patch.object(type(cli_obj), 'process_command', counting_process_command), \
-             patch.object(cli_obj, 'show_config'):
+             patch.object(cli_obj, '_show_session_status'):
             try:
-                cli_obj.process_command("/con set key value")
+                cli_obj.process_command("/sta extra")
             except RecursionError:
                 assert False, "process_command recursed infinitely"
 
-        # Should have been called at most twice: once for /con set..., once for /config set...
+        # Should be called at most twice: once for /sta, once for /status.
         assert len(dispatched) <= 2
 
     def test_exact_command_with_args_does_not_recurse(self):
@@ -51,7 +51,7 @@ class TestSlashCommandPrefixMatching:
         cli_obj = _make_cli()
         call_count = [0]
 
-        original_pc = FreeIDECLI.process_command
+        original_pc = JettsTUICLI.process_command
 
         def guarded(self_inner, cmd):
             call_count[0] += 1
@@ -60,7 +60,7 @@ class TestSlashCommandPrefixMatching:
             return original_pc(self_inner, cmd)
 
         # Mock show_config since the test is about recursion, not config display
-        with patch.object(FreeIDECLI, 'process_command', guarded), \
+        with patch.object(JettsTUICLI, 'process_command', guarded), \
              patch.object(cli_obj, 'show_config'):
             try:
                 cli_obj.process_command("/config set key value")
@@ -70,10 +70,10 @@ class TestSlashCommandPrefixMatching:
         assert call_count[0] <= 3
 
     def test_ambiguous_prefix_shows_suggestions(self):
-        """/re matches multiple commands — should show ambiguous message."""
+        """/s matches multiple equally short visible commands."""
         cli_obj = _make_cli()
         with patch("cli._cprint") as mock_cprint:
-            cli_obj.process_command("/re")
+            cli_obj.process_command("/s")
             printed = " ".join(str(c) for c in mock_cprint.call_args_list)
         assert "Ambiguous" in printed or "Did you mean" in printed
 
@@ -138,12 +138,12 @@ class TestSlashCommandPrefixMatching:
         assert "Ambiguous" not in printed
 
     def test_tied_shortest_matches_still_ambiguous(self):
-        """/re matches /reset and /retry (both 6 chars) — no unique shortest, stays ambiguous."""
+        """/s matches /save and /spec (both 5 chars), so it stays ambiguous."""
         cli_obj = _make_cli()
         printed = []
         import cli as cli_mod
         with patch.object(cli_mod, '_cprint', side_effect=lambda t: printed.append(t)):
-            cli_obj.process_command("/re")
+            cli_obj.process_command("/s")
         combined = " ".join(printed)
         assert "Ambiguous" in combined or "Did you mean" in combined
 

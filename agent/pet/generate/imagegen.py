@@ -39,11 +39,11 @@ _PROVIDER_LABELS: dict[str, str] = {
 def _forced_provider_from_env() -> str | None:
     """Optional QA override to force a pet-gen backend.
 
-    `FREEIDE_PET_IMAGE_PROVIDER=<name>` (e.g. `openrouter`) bypasses the normal
+    `JETTSTUI_PET_IMAGE_PROVIDER=<name>` (e.g. `openrouter`) bypasses the normal
     active/default provider resolution for pet generation only. Unknown values are
     ignored so existing users are unaffected.
     """
-    forced = os.environ.get("FREEIDE_PET_IMAGE_PROVIDER", "").strip().lower()
+    forced = os.environ.get("JETTSTUI_PET_IMAGE_PROVIDER", "").strip().lower()
     return forced if forced in _REF_CAPABLE else None
 
 
@@ -62,7 +62,7 @@ class SpriteProvider:
 
 def _discover() -> None:
     try:
-        from freeide_cli.plugins import _ensure_plugins_discovered
+        from jettstui.plugins import _ensure_plugins_discovered
 
         _ensure_plugins_discovered()
     except Exception as exc:  # noqa: BLE001 - discovery is best-effort
@@ -120,8 +120,8 @@ def resolve_provider(*, require_references: bool = True, prefer: str | None = No
 
     raise GenerationError(
         "Pet generation needs an image backend that supports reference images. "
-        "Open `freeide tools` → Image Generation and configure FreeIDE Portal, "
-        "OpenRouter, or OpenAI (gpt-image-2) with an API key."
+        "Open `jettstui tools` → Image Generation and configure OpenRouter "
+        "or OpenAI (gpt-image-2) with an API key."
     )
 
 
@@ -210,7 +210,7 @@ def generate(
     def _run(extra: dict) -> tuple[Path | None, str]:
         kwargs: dict = {"aspect_ratio": aspect_ratio, **extra}
         if refs:
-            # Providers disagree on the ref kwarg name: our OpenRouter/FreeIDE
+            # Providers disagree on the ref kwarg name: our OpenRouter/JettsTUI
             # backends read ``reference_images``, OpenAI's gpt-image-2 reads
             # ``reference_image_urls``. Send both; each ignores the other.
             kwargs["reference_images"] = refs

@@ -12,14 +12,14 @@ class TestSaveConfigValueAtomic:
     @pytest.fixture
     def config_env(self, tmp_path, monkeypatch):
         """Isolated config environment with a writable config.yaml."""
-        freeide_home = tmp_path / ".freeide"
-        freeide_home.mkdir()
-        config_path = freeide_home / "config.yaml"
+        jettstui_home = tmp_path / ".jettstui"
+        jettstui_home.mkdir()
+        config_path = jettstui_home / "config.yaml"
         config_path.write_text(yaml.dump({
             "model": {"default": "test-model", "provider": "openrouter"},
             "display": {"skin": "default"},
         }))
-        monkeypatch.setattr("cli._freeide_home", freeide_home)
+        monkeypatch.setattr("cli._jettstui_home", jettstui_home)
         return config_path
 
     def test_calls_roundtrip_yaml_update(self, config_env, monkeypatch):

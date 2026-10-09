@@ -1,4 +1,4 @@
-"""Shared utility functions for freeide-agent."""
+"""Shared utility functions for jettstui."""
 
 import errno
 import json
@@ -7,6 +7,7 @@ import os
 import shutil
 import stat
 import tempfile
+import time
 from pathlib import Path
 from typing import Any, Union
 from urllib.parse import urlparse
@@ -95,7 +96,7 @@ def atomic_replace(tmp_path: Union[str, Path], target: Union[str, Path]) -> str:
     ``target``.  When ``target`` is a symlink, the symlink itself is
     replaced with a regular file — silently detaching managed deployments
     that symlink ``config.yaml`` / ``SOUL.md`` / ``auth.json`` etc. from
-    ``~/.freeide/`` to a git-tracked profile package or dotfiles repo
+    ``~/.jettstui/`` to a git-tracked profile package or dotfiles repo
     (GitHub #16743).
 
     This helper resolves the symlink first so ``os.replace`` writes to
@@ -112,7 +113,17 @@ def atomic_replace(tmp_path: Union[str, Path], target: Union[str, Path]) -> str:
     real_path = os.path.realpath(target_str) if os.path.islink(target_str) else target_str
     tmp_str = str(tmp_path)
     try:
-        os.replace(tmp_str, real_path)
+        # Windows can briefly reject a replace while another writer is
+        # stat-ing or opening the current target. Retrying the atomic rename
+        # preserves the old-or-new guarantee; copying over it would not.
+        for attempt in range(10):
+            try:
+                os.replace(tmp_str, real_path)
+                break
+            except PermissionError as exc:
+                if os.name != "nt" or getattr(exc, "winerror", None) not in (5, 32) or attempt == 9:
+                    raise
+                time.sleep(0.005 * (attempt + 1))
     except OSError as exc:
         if exc.errno not in (errno.EXDEV, errno.EBUSY):
             raise
@@ -216,7 +227,7 @@ def warn_if_credential_file_broadly_readable(
 ) -> bool:
     """Warn (once per call) when a credential file is group/world-readable.
 
-    Secret-bearing files that users create by hand (or that older FreeIDE
+    Secret-bearing files that users create by hand (or that older JettsTUI
     versions wrote without an explicit mode) commonly end up 0o644 under the
     default umask. This helper is the shared read-time check for that class:
     call it before loading any token/credential file so the owner gets a

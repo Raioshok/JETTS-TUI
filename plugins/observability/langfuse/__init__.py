@@ -1,24 +1,24 @@
-"""langfuse — FreeIDE plugin for Langfuse observability.
+"""langfuse — JettsTUI plugin for Langfuse observability.
 
-Traces FreeIDE conversations, LLM calls, and tool usage to Langfuse.
+Traces JettsTUI conversations, LLM calls, and tool usage to Langfuse.
 
-Activation is handled by the FreeIDE plugin system — standalone plugins only
-load when listed in ``plugins.enabled`` (via ``freeide plugins enable
-observability/langfuse`` or ``freeide tools → Langfuse Observability``). At
+Activation is handled by the JettsTUI plugin system — standalone plugins only
+load when listed in ``plugins.enabled`` (via ``jettstui plugins enable
+observability/langfuse`` or ``jettstui tools → Langfuse Observability``). At
 runtime the plugin also requires the ``langfuse`` SDK and credentials; if
 either is missing the hooks are inert.
 
-Required env vars (set via ``freeide tools`` or ~/.freeide/.env):
-  FREEIDE_LANGFUSE_PUBLIC_KEY  - Langfuse project public key (pk-lf-...)
-  FREEIDE_LANGFUSE_SECRET_KEY  - Langfuse project secret key (sk-lf-...)
-  FREEIDE_LANGFUSE_BASE_URL    - Langfuse server URL (default: https://cloud.langfuse.com)
+Required env vars (set via ``jettstui tools`` or ~/.jettstui/.env):
+  JETTSTUI_LANGFUSE_PUBLIC_KEY  - Langfuse project public key (pk-lf-...)
+  JETTSTUI_LANGFUSE_SECRET_KEY  - Langfuse project secret key (sk-lf-...)
+  JETTSTUI_LANGFUSE_BASE_URL    - Langfuse server URL (default: https://cloud.langfuse.com)
 
 Optional env vars:
-  FREEIDE_LANGFUSE_ENV         - environment tag (e.g. "production", "local")
-  FREEIDE_LANGFUSE_RELEASE     - release/version tag
-  FREEIDE_LANGFUSE_SAMPLE_RATE - sampling rate 0.0–1.0 (default: 1.0)
-  FREEIDE_LANGFUSE_MAX_CHARS   - max chars per field (default: 12000)
-  FREEIDE_LANGFUSE_DEBUG       - set to "true" for verbose logging
+  JETTSTUI_LANGFUSE_ENV         - environment tag (e.g. "production", "local")
+  JETTSTUI_LANGFUSE_RELEASE     - release/version tag
+  JETTSTUI_LANGFUSE_SAMPLE_RATE - sampling rate 0.0–1.0 (default: 1.0)
+  JETTSTUI_LANGFUSE_MAX_CHARS   - max chars per field (default: 12000)
+  JETTSTUI_LANGFUSE_DEBUG       - set to "true" for verbose logging
 """
 from __future__ import annotations
 
@@ -75,8 +75,8 @@ _READ_FILE_TAIL_LINES = 15
 # credentials at construction time but drop every trace at flush time.
 # See #23823 — the silent-failure bug this guard fixes.
 _LANGFUSE_KEY_PREFIXES: Dict[str, str] = {
-    "FREEIDE_LANGFUSE_PUBLIC_KEY": "pk-lf-",
-    "FREEIDE_LANGFUSE_SECRET_KEY": "sk-lf-",
+    "JETTSTUI_LANGFUSE_PUBLIC_KEY": "pk-lf-",
+    "JETTSTUI_LANGFUSE_SECRET_KEY": "sk-lf-",
 }
 
 
@@ -93,7 +93,7 @@ def _env_bool(*names: str) -> bool:
 
 
 def _debug_enabled() -> bool:
-    return _env_bool("FREEIDE_LANGFUSE_DEBUG")
+    return _env_bool("JETTSTUI_LANGFUSE_DEBUG")
 
 
 def _debug(message: str) -> None:
@@ -149,7 +149,7 @@ def _validate_langfuse_key(env_name: str, value: str) -> Optional[str]:
 def _get_langfuse() -> Optional[Langfuse]:
     """Return a cached Langfuse client, or ``None`` if unavailable.
 
-    Activation of this plugin is controlled by the FreeIDE plugin system —
+    Activation of this plugin is controlled by the JettsTUI plugin system —
     this function only handles the runtime-availability gate (SDK installed
     + credentials present). The result is cached: on the first call we try
     to construct a client, and every subsequent call returns that client
@@ -165,8 +165,8 @@ def _get_langfuse() -> Optional[Langfuse]:
         _LANGFUSE_CLIENT = _INIT_FAILED
         return None
 
-    public_key = _env("FREEIDE_LANGFUSE_PUBLIC_KEY") or _env("LANGFUSE_PUBLIC_KEY")
-    secret_key = _env("FREEIDE_LANGFUSE_SECRET_KEY") or _env("LANGFUSE_SECRET_KEY")
+    public_key = _env("JETTSTUI_LANGFUSE_PUBLIC_KEY") or _env("LANGFUSE_PUBLIC_KEY")
+    secret_key = _env("JETTSTUI_LANGFUSE_SECRET_KEY") or _env("LANGFUSE_SECRET_KEY")
     if not (public_key and secret_key):
         _LANGFUSE_CLIENT = _INIT_FAILED
         return None
@@ -182,8 +182,8 @@ def _get_langfuse() -> Optional[Langfuse]:
     placeholder_issues = [
         msg
         for msg in (
-            _validate_langfuse_key("FREEIDE_LANGFUSE_PUBLIC_KEY", public_key),
-            _validate_langfuse_key("FREEIDE_LANGFUSE_SECRET_KEY", secret_key),
+            _validate_langfuse_key("JETTSTUI_LANGFUSE_PUBLIC_KEY", public_key),
+            _validate_langfuse_key("JETTSTUI_LANGFUSE_SECRET_KEY", secret_key),
         )
         if msg
     ]
@@ -191,17 +191,17 @@ def _get_langfuse() -> Optional[Langfuse]:
         logger.warning(
             "Langfuse plugin: credentials look like placeholders, traces will "
             "NOT be emitted (%s). Set real Langfuse keys (pk-lf-... / sk-lf-...) "
-            "or unset FREEIDE_LANGFUSE_PUBLIC_KEY / FREEIDE_LANGFUSE_SECRET_KEY to "
+            "or unset JETTSTUI_LANGFUSE_PUBLIC_KEY / JETTSTUI_LANGFUSE_SECRET_KEY to "
             "silence this warning.",
             "; ".join(placeholder_issues),
         )
         _LANGFUSE_CLIENT = _INIT_FAILED
         return None
 
-    base_url = _env("FREEIDE_LANGFUSE_BASE_URL") or _env("LANGFUSE_BASE_URL") or "https://cloud.langfuse.com"
-    environment = _env("FREEIDE_LANGFUSE_ENV") or _env("LANGFUSE_ENV")
-    release = _env("FREEIDE_LANGFUSE_RELEASE") or _env("LANGFUSE_RELEASE")
-    sample_rate = _env("FREEIDE_LANGFUSE_SAMPLE_RATE")
+    base_url = _env("JETTSTUI_LANGFUSE_BASE_URL") or _env("LANGFUSE_BASE_URL") or "https://cloud.langfuse.com"
+    environment = _env("JETTSTUI_LANGFUSE_ENV") or _env("LANGFUSE_ENV")
+    release = _env("JETTSTUI_LANGFUSE_RELEASE") or _env("LANGFUSE_RELEASE")
+    sample_rate = _env("JETTSTUI_LANGFUSE_SAMPLE_RATE")
 
     kwargs: Dict[str, Any] = {
         "public_key": public_key,
@@ -216,7 +216,7 @@ def _get_langfuse() -> Optional[Langfuse]:
         try:
             kwargs["sample_rate"] = float(sample_rate)
         except ValueError:
-            logger.warning("Invalid FREEIDE_LANGFUSE_SAMPLE_RATE=%r", sample_rate)
+            logger.warning("Invalid JETTSTUI_LANGFUSE_SAMPLE_RATE=%r", sample_rate)
 
     try:
         _LANGFUSE_CLIENT = Langfuse(**kwargs)
@@ -246,7 +246,7 @@ def _trace_key(
 ) -> str:
     """Build a stable in-process trace scope key for one agent turn.
 
-    Older FreeIDE paths only expose ``task_id``/``session_id``. Newer paths
+    Older JettsTUI paths only expose ``task_id``/``session_id``. Newer paths
     pass ``turn_id`` and ``api_request_id`` in LLM/tool hooks; when present,
     they must scope trace state so concurrent requests sharing one task/session
     never collide. ``turn_id`` is preferred over ``api_request_id`` so the
@@ -424,7 +424,7 @@ def _normalize_payload(value: Any, *, tool_name: str = "", args: Any = None) -> 
 
 def _safe_value(value: Any, *, max_chars: Optional[int] = None, depth: int = 0,
                 parse_json_strings: bool = False) -> Any:
-    max_chars = max_chars if max_chars is not None else int(_env("FREEIDE_LANGFUSE_MAX_CHARS", "12000") or "12000")
+    max_chars = max_chars if max_chars is not None else int(_env("JETTSTUI_LANGFUSE_MAX_CHARS", "12000") or "12000")
     if depth > 4:
         return "<max-depth>"
     if value is None or isinstance(value, (int, float, bool)):
@@ -606,7 +606,7 @@ def _start_root_trace(task_key: str, *, task_id: str, session_id: str, platform:
     trace_id = client.create_trace_id(seed=f"{session_id or 'sessionless'}::{task_id or task_key}")
     trace_input = _extract_last_user_message(messages)
     metadata = {
-        "source": "freeide",
+        "source": "jettstui",
         "task_id": task_id,
         "turn_id": turn_id,
         "api_request_id": api_request_id,
@@ -625,12 +625,12 @@ def _start_root_trace(task_key: str, *, task_id: str, session_id: str, platform:
         try:
             with propagate_attributes(
                 session_id=session_id or task_key,
-                trace_name="FreeIDE turn",
-                tags=["freeide", "langfuse"],
+                trace_name="JettsTUI turn",
+                tags=["jettstui", "langfuse"],
             ):
                 root_ctx = client.start_as_current_observation(
                     trace_context=trace_ctx,
-                    name="FreeIDE turn",
+                    name="JettsTUI turn",
                     as_type="chain",
                     input=trace_input,
                     metadata=metadata,
@@ -640,7 +640,7 @@ def _start_root_trace(task_key: str, *, task_id: str, session_id: str, platform:
         except Exception:
             root_ctx = client.start_as_current_observation(
                 trace_context=trace_ctx,
-                name="FreeIDE turn",
+                name="JettsTUI turn",
                 as_type="chain",
                 input=trace_input,
                 metadata=metadata,
@@ -650,7 +650,7 @@ def _start_root_trace(task_key: str, *, task_id: str, session_id: str, platform:
     else:
         root_ctx = client.start_as_current_observation(
             trace_context=trace_ctx,
-            name="FreeIDE turn",
+            name="JettsTUI turn",
             as_type="chain",
             input=trace_input,
             metadata=metadata,
@@ -779,8 +779,8 @@ def on_pre_llm_call(*, task_id: str = "", session_id: str = "", platform: str = 
                     api_call_count: int = 0, messages: Any = None, turn_type: str = "user",
                     conversation_history: Any = None, user_message: Any = None,
                     turn_id: str = "", api_request_id: str = "", **_: Any) -> None:
-    # Older FreeIDE branches used pre_llm_call for request-scoped tracing and
-    # passed the actual API messages. Current FreeIDE also has a turn-scoped
+    # Older JettsTUI branches used pre_llm_call for request-scoped tracing and
+    # passed the actual API messages. Current JettsTUI also has a turn-scoped
     # pre_llm_call used for context injection; tracing that hook creates an
     # extra orphan/root trace before the real request trace. Only trace the
     # legacy request-shaped call here.
@@ -791,8 +791,8 @@ def on_pre_llm_call(*, task_id: str = "", session_id: str = "", platform: str = 
     if client is None:
         return
 
-    # messages is a list only for legacy FreeIDE branches that fired
-    # pre_llm_call with API messages directly. Current FreeIDE fires
+    # messages is a list only for legacy JettsTUI branches that fired
+    # pre_llm_call with API messages directly. Current JettsTUI fires
     # pre_llm_call for context injection (conversation_history/user_message,
     # no messages list) — tracing that would create orphan traces.
     task_key = _trace_key(
@@ -1127,7 +1127,7 @@ def on_post_tool_call(*, tool_name: str = "", args: Any = None, result: Any = No
 
 def register(ctx) -> None:
     # Register for both hook name variants so the plugin works across
-    # FreeIDE versions.  pre_api_request / post_api_request fire per API
+    # JettsTUI versions.  pre_api_request / post_api_request fire per API
     # call (preferred); pre_llm_call / post_llm_call fire once per turn.
     ctx.register_hook("pre_api_request", on_pre_llm_request)
     ctx.register_hook("post_api_request", on_post_llm_call)

@@ -1,5 +1,5 @@
 """
-LINE Messaging API platform adapter for FreeIDE Agent.
+LINE Messaging API platform adapter for JettsTUI.
 
 A bundled platform plugin that runs an aiohttp webhook server, accepts LINE
 webhook events (signature-verified), and relays messages to/from the agent
@@ -41,7 +41,7 @@ Synthesis credits
 -----------------
 
 This file is a synthesis of seven open community PRs adding LINE support
-to FreeIDE Agent. It deliberately ports the *strongest* idea from each into
+to JettsTUI. It deliberately ports the *strongest* idea from each into
 a single plugin-form module that requires zero core edits:
 
 * PR #18153 (leepoweii)   — Template Buttons postback cache state machine,
@@ -1279,7 +1279,7 @@ class LineAdapter(BasePlatformAdapter):
         from trusted internal code, we recheck the resolved path against
         an allowed-roots set before serving. Sources allowed:
         ``tempfile.gettempdir()``, ``/tmp`` (which resolves to
-        ``/private/tmp`` on macOS), and ``FREEIDE_HOME``. PR #8398.
+        ``/private/tmp`` on macOS), and ``JETTSTUI_HOME``. PR #8398.
         """
         from aiohttp import web
 
@@ -1298,15 +1298,15 @@ class LineAdapter(BasePlatformAdapter):
             return web.Response(status=404, text="not found")
 
         try:
-            from freeide_constants import get_freeide_home
-            freeide_home = Path(get_freeide_home()).resolve()
+            from jettstui_constants import get_jettstui_home
+            jettstui_home = Path(get_jettstui_home()).resolve()
         except Exception:
-            freeide_home = Path.home().joinpath(".freeide").resolve()
+            jettstui_home = Path.home().joinpath(".jettstui").resolve()
 
         allowed_roots = {
             Path(tempfile.gettempdir()).resolve(),
             Path("/tmp").resolve(),  # → /private/tmp on macOS
-            freeide_home,
+            jettstui_home,
         }
         resolved = path.resolve()
         if not any(_is_relative_to(resolved, r) for r in allowed_roots):
@@ -1504,14 +1504,14 @@ def validate_config(config) -> bool:
 
 
 def is_connected(config) -> bool:
-    """Surface in ``freeide status`` even before the adapter is instantiated."""
+    """Surface in ``jettstui status`` even before the adapter is instantiated."""
     return validate_config(config)
 
 
 def _env_enablement() -> Optional[Dict[str, Any]]:
     """Auto-seed PlatformConfig.extra from env-only setups.
 
-    Lets ``freeide status`` reflect a LINE configuration that lives entirely
+    Lets ``jettstui status`` reflect a LINE configuration that lives entirely
     in ``.env`` without a ``platforms.line`` block in ``config.yaml``.
     Mirrors the IRC plugin's pattern.
     """
@@ -1578,10 +1578,10 @@ async def _standalone_send(
 
 
 def interactive_setup() -> None:
-    """Minimal stdin wizard for ``freeide setup line``.
+    """Minimal stdin wizard for ``jettstui setup line``.
 
     Mirrors the irc/teams style: prompts for the two required vars, plus
-    one optional public URL. Writes to ``~/.freeide/.env`` via ``freeide_cli.config``.
+    one optional public URL. Writes to ``~/.jettstui/.env`` via ``jettstui.config``.
     """
     print()
     print("LINE Messaging API setup")
@@ -1591,9 +1591,9 @@ def interactive_setup() -> None:
     print()
 
     try:
-        from freeide_cli.config import get_env_var, set_env_var
+        from jettstui.config import get_env_var, set_env_var
     except ImportError:
-        print("freeide_cli.config not available; set LINE_* vars manually in ~/.freeide/.env")
+        print("jettstui.config not available; set LINE_* vars manually in ~/.jettstui/.env")
         return
 
     def _prompt(var: str, prompt: str, *, secret: bool = False) -> None:
@@ -1601,7 +1601,7 @@ def interactive_setup() -> None:
         suffix = " [keep current]" if existing else ""
         try:
             if secret:
-                from freeide_cli.secret_prompt import masked_secret_prompt
+                from jettstui.secret_prompt import masked_secret_prompt
                 value = masked_secret_prompt(f"{prompt}{suffix}: ")
             else:
                 value = input(f"{prompt}{suffix}: ").strip()
@@ -1620,7 +1620,7 @@ def interactive_setup() -> None:
 
 
 def register(ctx) -> None:
-    """Plugin entry point — called by the FreeIDE plugin system at startup."""
+    """Plugin entry point — called by the JettsTUI plugin system at startup."""
     ctx.register_platform(
         name="line",
         label="LINE",

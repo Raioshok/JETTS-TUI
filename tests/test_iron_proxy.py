@@ -31,12 +31,12 @@ from agent.proxy_sources import iron_proxy as ip
 
 
 @pytest.fixture
-def freeide_home(tmp_path, monkeypatch):
-    """Point FREEIDE_HOME at a temp dir so install paths don't touch the real $HOME."""
+def jettstui_home(tmp_path, monkeypatch):
+    """Point JETTSTUI_HOME at a temp dir so install paths don't touch the real $HOME."""
 
-    home = tmp_path / "freeide"
+    home = tmp_path / "jettstui"
     home.mkdir()
-    monkeypatch.setenv("FREEIDE_HOME", str(home))
+    monkeypatch.setenv("JETTSTUI_HOME", str(home))
     # Make sure no stale provider keys influence discovery.
     for key in list(os.environ):
         if key.endswith("_API_KEY"):
@@ -61,7 +61,7 @@ def test_mint_proxy_token_is_random():
     assert a != b
 
 
-def test_discover_provider_mappings_from_env(freeide_home, monkeypatch):
+def test_discover_provider_mappings_from_env(jettstui_home, monkeypatch):
     monkeypatch.setenv("OPENROUTER_API_KEY", "sk-or-real-1")
     monkeypatch.setenv("OPENAI_API_KEY", "sk-openai-real-2")
     monkeypatch.delenv("MISTRAL_API_KEY", raising=False)
@@ -72,7 +72,7 @@ def test_discover_provider_mappings_from_env(freeide_home, monkeypatch):
     assert "MISTRAL_API_KEY" not in names
 
 
-def test_discover_provider_mappings_explicit_names(freeide_home):
+def test_discover_provider_mappings_explicit_names(jettstui_home):
     ms = ip.discover_provider_mappings(
         available_env_names=["OPENROUTER_API_KEY", "GROQ_API_KEY", "UNKNOWN_KEY"]
     )
@@ -81,7 +81,7 @@ def test_discover_provider_mappings_explicit_names(freeide_home):
     # Unknown providers (no entry in _BEARER_PROVIDERS) are skipped, not warned.
 
 
-def test_discover_provider_mappings_empty(freeide_home):
+def test_discover_provider_mappings_empty(jettstui_home):
     ms = ip.discover_provider_mappings(available_env_names=[])
     assert ms == []
 
@@ -188,7 +188,7 @@ def test_explicit_empty_deny_cidrs_disables_default(tmp_path):
     assert cfg["proxy"]["upstream_deny_cidrs"] == []
 
 
-def test_wizard_rendered_yaml_contains_deny_list(freeide_home, tmp_path):
+def test_wizard_rendered_yaml_contains_deny_list(jettstui_home, tmp_path):
     """End-to-end: cmd_setup writes proxy.yaml; the rendered file must
     contain the deny list because the wizard now passes the operator's
     config-level setting (None → default) through to build_proxy_config."""
@@ -358,7 +358,7 @@ def test_audit_log_omitted_when_caller_passes_none(tmp_path):
     assert "audit_path" not in cfg["log"]
 
 
-def test_write_and_load_mappings_roundtrip(freeide_home):
+def test_write_and_load_mappings_roundtrip(jettstui_home):
     ms = [_sample_mapping("OPENROUTER_API_KEY"), _sample_mapping("OPENAI_API_KEY")]
     path = ip.write_mappings(ms)
     assert path.exists()
@@ -369,17 +369,17 @@ def test_write_and_load_mappings_roundtrip(freeide_home):
     assert loaded[0].proxy_token == ms[0].proxy_token
 
 
-def test_load_mappings_handles_missing_file(freeide_home):
+def test_load_mappings_handles_missing_file(jettstui_home):
     assert ip.load_mappings() == []
 
 
-def test_load_mappings_handles_corrupt_json(freeide_home):
+def test_load_mappings_handles_corrupt_json(jettstui_home):
     state = ip._proxy_state_dir()
     (state / "mappings.json").write_text("{not json", encoding="utf-8")
     assert ip.load_mappings() == []
 
 
-def test_write_proxy_config_serializes_yaml(freeide_home, tmp_path):
+def test_write_proxy_config_serializes_yaml(jettstui_home, tmp_path):
     ca_crt = tmp_path / "ca.crt"
     ca_key = tmp_path / "ca.key"
     cfg = ip.build_proxy_config(
@@ -416,7 +416,7 @@ def test_merge_mappings_preserves_existing_tokens():
 
     existing = [
         ip.TokenMapping(
-            proxy_token="freeide-proxy-original-12345",
+            proxy_token="jettstui-proxy-original-12345",
             real_env_name="OPENROUTER_API_KEY",
             upstream_hosts=("openrouter.ai",),
         ),
@@ -427,9 +427,9 @@ def test_merge_mappings_preserves_existing_tokens():
     merged = ip.merge_mappings(existing=existing, discovered=discovered)
     by_name = {m.real_env_name: m for m in merged}
     # Original token preserved.
-    assert by_name["OPENROUTER_API_KEY"].proxy_token == "freeide-proxy-original-12345"
+    assert by_name["OPENROUTER_API_KEY"].proxy_token == "jettstui-proxy-original-12345"
     # New provider got a fresh token.
-    assert by_name["OPENAI_API_KEY"].proxy_token != "freeide-proxy-original-12345"
+    assert by_name["OPENAI_API_KEY"].proxy_token != "jettstui-proxy-original-12345"
     # Both providers in the result.
     assert set(by_name) == {"OPENROUTER_API_KEY", "OPENAI_API_KEY"}
 
@@ -458,7 +458,7 @@ def test_merge_mappings_rotate_mints_fresh_tokens():
 
     existing = [
         ip.TokenMapping(
-            proxy_token="freeide-proxy-original-12345",
+            proxy_token="jettstui-proxy-original-12345",
             real_env_name="OPENROUTER_API_KEY",
             upstream_hosts=("openrouter.ai",),
         ),
@@ -467,7 +467,7 @@ def test_merge_mappings_rotate_mints_fresh_tokens():
         available_env_names=["OPENROUTER_API_KEY"]
     )
     merged = ip.merge_mappings(existing=existing, discovered=discovered, rotate=True)
-    assert merged[0].proxy_token != "freeide-proxy-original-12345"
+    assert merged[0].proxy_token != "jettstui-proxy-original-12345"
 
 
 # ---------------------------------------------------------------------------
@@ -475,7 +475,7 @@ def test_merge_mappings_rotate_mints_fresh_tokens():
 # ---------------------------------------------------------------------------
 
 
-def test_uncovered_providers_detects_aws_gcp_appdefault(freeide_home, monkeypatch):
+def test_uncovered_providers_detects_aws_gcp_appdefault(jettstui_home, monkeypatch):
     monkeypatch.setenv("AWS_ACCESS_KEY_ID", "AKIAEXAMPLE")
     monkeypatch.setenv("GOOGLE_APPLICATION_CREDENTIALS", "/etc/gcp.json")
     uncovered = ip.discover_uncovered_providers()
@@ -487,7 +487,7 @@ def test_uncovered_providers_explicit_names_empty():
     assert ip.discover_uncovered_providers(available_env_names=[]) == []
 
 
-def test_uncovered_providers_skips_bearer_providers(freeide_home, monkeypatch):
+def test_uncovered_providers_skips_bearer_providers(jettstui_home, monkeypatch):
     """OPENROUTER_API_KEY etc. are bearer providers — they should NOT
     appear in the uncovered list."""
 
@@ -496,7 +496,7 @@ def test_uncovered_providers_skips_bearer_providers(freeide_home, monkeypatch):
     assert "OPENROUTER_API_KEY" not in uncovered
 
 
-def test_uncovered_providers_skips_header_auth_providers(freeide_home, monkeypatch):
+def test_uncovered_providers_skips_header_auth_providers(jettstui_home, monkeypatch):
     """Anthropic / Azure / Gemini moved from 'uncovered' to first-class
     header-auth swapped providers — they must no longer be reported as
     uncovered."""
@@ -517,13 +517,13 @@ def test_uncovered_providers_skips_header_auth_providers(freeide_home, monkeypat
 # ---------------------------------------------------------------------------
 
 
-def test_find_iron_proxy_returns_none_when_missing(freeide_home, monkeypatch):
+def test_find_iron_proxy_returns_none_when_missing(jettstui_home, monkeypatch):
     monkeypatch.setattr("shutil.which", lambda name: None)
     assert ip.find_iron_proxy(install_if_missing=False) is None
 
 
-def test_find_iron_proxy_returns_managed_first(freeide_home, monkeypatch):
-    managed = ip._freeide_bin_dir() / ip._platform_binary_name()
+def test_find_iron_proxy_returns_managed_first(jettstui_home, monkeypatch):
+    managed = ip._jettstui_bin_dir() / ip._platform_binary_name()
     managed.parent.mkdir(parents=True, exist_ok=True)
     managed.write_bytes(b"#!/bin/sh\necho ok\n")
     managed.chmod(0o755)
@@ -544,7 +544,7 @@ def _make_fake_tar(binary_name: str, payload: bytes = b"#!/bin/sh\necho ok\n") -
     return buf.getvalue()
 
 
-def test_install_iron_proxy_verifies_checksum_and_extracts(freeide_home, monkeypatch):
+def test_install_iron_proxy_verifies_checksum_and_extracts(jettstui_home, monkeypatch):
     fake_payload = _make_fake_tar(ip._platform_binary_name())
     import hashlib
 
@@ -566,7 +566,7 @@ def test_install_iron_proxy_verifies_checksum_and_extracts(freeide_home, monkeyp
     assert os.access(target, os.X_OK)
 
 
-def test_install_iron_proxy_rejects_bad_checksum(freeide_home, monkeypatch):
+def test_install_iron_proxy_rejects_bad_checksum(jettstui_home, monkeypatch):
     fake_payload = _make_fake_tar(ip._platform_binary_name())
     asset_name = ip._platform_asset_name()
     bad_text = f"deadbeef  {asset_name}\n"
@@ -582,7 +582,7 @@ def test_install_iron_proxy_rejects_bad_checksum(freeide_home, monkeypatch):
         ip.install_iron_proxy()
 
 
-def test_install_iron_proxy_rejects_missing_checksum_entry(freeide_home, monkeypatch):
+def test_install_iron_proxy_rejects_missing_checksum_entry(jettstui_home, monkeypatch):
     fake_payload = _make_fake_tar(ip._platform_binary_name())
 
     def fake_download(url: str, dest: Path) -> None:
@@ -598,7 +598,7 @@ def test_install_iron_proxy_rejects_missing_checksum_entry(freeide_home, monkeyp
 
 # ── GPG release-signature verification (maxpetrusenko P1) ────────────────────
 
-def test_verify_checksums_signature_skips_without_gpg(freeide_home, monkeypatch, tmp_path):
+def test_verify_checksums_signature_skips_without_gpg(jettstui_home, monkeypatch, tmp_path):
     """No gpg on PATH → degrade gracefully (return False), do not raise."""
     monkeypatch.setattr(ip.shutil, "which", lambda name: None)
     cks = tmp_path / "checksums.txt"
@@ -606,7 +606,7 @@ def test_verify_checksums_signature_skips_without_gpg(freeide_home, monkeypatch,
     assert ip._verify_checksums_signature(tmp_path, cks) is False
 
 
-def test_verify_checksums_signature_skips_when_sig_assets_missing(freeide_home, monkeypatch, tmp_path):
+def test_verify_checksums_signature_skips_when_sig_assets_missing(jettstui_home, monkeypatch, tmp_path):
     """gpg present but the release ships no .asc assets → degrade, don't raise."""
     monkeypatch.setattr(ip.shutil, "which", lambda name: "/usr/bin/gpg" if name == "gpg" else None)
 
@@ -618,7 +618,7 @@ def test_verify_checksums_signature_skips_when_sig_assets_missing(freeide_home, 
     assert ip._verify_checksums_signature(tmp_path, cks) is False
 
 
-def test_verify_checksums_signature_raises_on_bad_signature(freeide_home, monkeypatch, tmp_path):
+def test_verify_checksums_signature_raises_on_bad_signature(jettstui_home, monkeypatch, tmp_path):
     """A present-but-INVALID signature is a tamper signal → must raise."""
     monkeypatch.setattr(ip.shutil, "which", lambda name: "/usr/bin/gpg" if name == "gpg" else None)
     monkeypatch.setattr(ip, "_http_download", lambda url, dest: dest.write_bytes(b"asc"))
@@ -636,7 +636,7 @@ def test_verify_checksums_signature_raises_on_bad_signature(freeide_home, monkey
         ip._verify_checksums_signature(tmp_path, cks)
 
 
-def test_verify_checksums_signature_passes_on_good_signature(freeide_home, monkeypatch, tmp_path):
+def test_verify_checksums_signature_passes_on_good_signature(jettstui_home, monkeypatch, tmp_path):
     """Valid signature → returns True."""
     monkeypatch.setattr(ip.shutil, "which", lambda name: "/usr/bin/gpg" if name == "gpg" else None)
     monkeypatch.setattr(ip, "_http_download", lambda url, dest: dest.write_bytes(b"asc"))
@@ -650,7 +650,7 @@ def test_verify_checksums_signature_passes_on_good_signature(freeide_home, monke
     assert ip._verify_checksums_signature(tmp_path, cks) is True
 
 
-def test_install_aborts_on_bad_release_signature(freeide_home, monkeypatch):
+def test_install_aborts_on_bad_release_signature(jettstui_home, monkeypatch):
     """End-to-end: a tampered (bad-signature) release must abort install."""
     fake_payload = _make_fake_tar(ip._platform_binary_name())
     import hashlib
@@ -696,7 +696,7 @@ def test_pick_tar_member_rejects_path_traversal():
 # ---------------------------------------------------------------------------
 
 
-def test_get_status_when_nothing_configured(freeide_home):
+def test_get_status_when_nothing_configured(jettstui_home):
     status = ip.get_status()
     assert status.binary_path is None
     assert status.config_path is None
@@ -707,9 +707,9 @@ def test_get_status_when_nothing_configured(freeide_home):
     assert not status.configured
 
 
-def test_get_status_with_config_present(freeide_home, monkeypatch):
+def test_get_status_with_config_present(jettstui_home, monkeypatch):
     # Materialize binary, config, and ca cert.
-    bin_path = ip._freeide_bin_dir() / ip._platform_binary_name()
+    bin_path = ip._jettstui_bin_dir() / ip._platform_binary_name()
     bin_path.parent.mkdir(parents=True, exist_ok=True)
     bin_path.write_bytes(b"")
     bin_path.chmod(0o755)
@@ -731,12 +731,12 @@ def test_get_status_with_config_present(freeide_home, monkeypatch):
     assert "test" in (status.binary_version or "")
 
 
-def test_stop_proxy_handles_missing_pidfile(freeide_home):
+def test_stop_proxy_handles_missing_pidfile(jettstui_home):
     # No pidfile → stop returns False, doesn't raise.
     assert ip.stop_proxy() is False
 
 
-def test_stop_proxy_cleans_stale_pidfile(freeide_home, monkeypatch):
+def test_stop_proxy_cleans_stale_pidfile(jettstui_home, monkeypatch):
     pid_file = ip._proxy_state_dir() / "iron-proxy.pid"
     pid_file.write_text("999999999")
     monkeypatch.setattr(ip, "_pid_alive", lambda pid: False)
@@ -744,7 +744,7 @@ def test_stop_proxy_cleans_stale_pidfile(freeide_home, monkeypatch):
     assert not pid_file.exists()
 
 
-def test_start_proxy_refuses_without_binary(freeide_home, monkeypatch):
+def test_start_proxy_refuses_without_binary(jettstui_home, monkeypatch):
     # No binary, auto_install fails → RuntimeError surfaces.
     monkeypatch.setattr(ip, "find_iron_proxy", lambda **kwargs: None)
     state = ip._proxy_state_dir()
@@ -753,8 +753,8 @@ def test_start_proxy_refuses_without_binary(freeide_home, monkeypatch):
         ip.start_proxy()
 
 
-def test_start_proxy_refuses_without_config(freeide_home, monkeypatch):
-    binary = ip._freeide_bin_dir() / ip._platform_binary_name()
+def test_start_proxy_refuses_without_config(jettstui_home, monkeypatch):
+    binary = ip._jettstui_bin_dir() / ip._platform_binary_name()
     binary.parent.mkdir(parents=True, exist_ok=True)
     binary.write_bytes(b"")
     binary.chmod(0o755)
@@ -763,8 +763,8 @@ def test_start_proxy_refuses_without_config(freeide_home, monkeypatch):
         ip.start_proxy()
 
 
-def test_start_proxy_writes_pidfile_when_alive(freeide_home, monkeypatch):
-    binary = ip._freeide_bin_dir() / ip._platform_binary_name()
+def test_start_proxy_writes_pidfile_when_alive(jettstui_home, monkeypatch):
+    binary = ip._jettstui_bin_dir() / ip._platform_binary_name()
     binary.parent.mkdir(parents=True, exist_ok=True)
     binary.write_bytes(b"")
     binary.chmod(0o755)
@@ -795,8 +795,8 @@ def test_start_proxy_writes_pidfile_when_alive(freeide_home, monkeypatch):
     assert status.pid == 4242
 
 
-def test_start_proxy_raises_when_immediate_exit(freeide_home, monkeypatch):
-    binary = ip._freeide_bin_dir() / ip._platform_binary_name()
+def test_start_proxy_raises_when_immediate_exit(jettstui_home, monkeypatch):
+    binary = ip._jettstui_bin_dir() / ip._platform_binary_name()
     binary.parent.mkdir(parents=True, exist_ok=True)
     binary.write_bytes(b"")
     binary.chmod(0o755)
@@ -816,7 +816,7 @@ def test_start_proxy_raises_when_immediate_exit(freeide_home, monkeypatch):
             ip.start_proxy()
 
 
-def test_start_proxy_idempotent_when_already_running(freeide_home, monkeypatch):
+def test_start_proxy_idempotent_when_already_running(jettstui_home, monkeypatch):
     state = ip._proxy_state_dir()
     pid_file = state / "iron-proxy.pid"
     pid_file.write_text("12345")
@@ -838,7 +838,7 @@ def test_start_proxy_idempotent_when_already_running(freeide_home, monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def test_docker_egress_args_empty_when_disabled(freeide_home, monkeypatch):
+def test_docker_egress_args_empty_when_disabled(jettstui_home, monkeypatch):
     from tools.environments.docker import _egress_proxy_args_for_docker
 
     # Default config has proxy.enabled=False; helper should return all empties.
@@ -848,9 +848,9 @@ def test_docker_egress_args_empty_when_disabled(freeide_home, monkeypatch):
     assert host == []
 
 
-def test_docker_egress_args_when_enabled_but_unconfigured_raises(freeide_home, monkeypatch):
+def test_docker_egress_args_when_enabled_but_unconfigured_raises(jettstui_home, monkeypatch):
     from tools.environments.docker import _egress_proxy_args_for_docker
-    from freeide_cli.config import load_config, save_config
+    from jettstui.config import load_config, save_config
 
     cfg = load_config()
     cfg.setdefault("proxy", {})["enabled"] = True
@@ -862,9 +862,9 @@ def test_docker_egress_args_when_enabled_but_unconfigured_raises(freeide_home, m
         _egress_proxy_args_for_docker()
 
 
-def test_docker_egress_args_when_unconfigured_no_enforce(freeide_home, monkeypatch):
+def test_docker_egress_args_when_unconfigured_no_enforce(jettstui_home, monkeypatch):
     from tools.environments.docker import _egress_proxy_args_for_docker
-    from freeide_cli.config import load_config, save_config
+    from jettstui.config import load_config, save_config
 
     cfg = load_config()
     cfg.setdefault("proxy", {})["enabled"] = True
@@ -878,12 +878,12 @@ def test_docker_egress_args_when_unconfigured_no_enforce(freeide_home, monkeypat
     assert host == []
 
 
-def test_docker_egress_args_full_path(freeide_home, monkeypatch):
+def test_docker_egress_args_full_path(jettstui_home, monkeypatch):
     """Wire up everything (config, CA, mappings, fake running proxy) and
     verify the docker helper emits the right mounts and env."""
 
     from tools.environments.docker import _egress_proxy_args_for_docker
-    from freeide_cli.config import load_config, save_config
+    from jettstui.config import load_config, save_config
 
     # Materialize config, CA, mappings.
     state = ip._proxy_state_dir()
@@ -910,11 +910,11 @@ def test_docker_egress_args_full_path(freeide_home, monkeypatch):
     vol, env, host = _egress_proxy_args_for_docker()
     # CA mount present and in -v form
     assert "-v" in vol
-    assert any("freeide-egress-ca.crt" in arg for arg in vol)
+    assert any("jettstui-egress-ca.crt" in arg for arg in vol)
     # Env contains both casings of HTTPS_PROXY and the CA env vars
     assert env["HTTPS_PROXY"].endswith(":9090")
     assert env["https_proxy"] == env["HTTPS_PROXY"]
-    assert env["REQUESTS_CA_BUNDLE"].endswith("freeide-egress-ca.crt")
+    assert env["REQUESTS_CA_BUNDLE"].endswith("jettstui-egress-ca.crt")
     assert env["NODE_EXTRA_CA_CERTS"] == env["REQUESTS_CA_BUNDLE"]
     # NO_PROXY excludes loopback
     assert "127.0.0.1" in env["NO_PROXY"]
@@ -922,12 +922,12 @@ def test_docker_egress_args_full_path(freeide_home, monkeypatch):
     # name (so existing SDKs work without egress-specific code) and the
     # introspection name.
     assert env["OPENROUTER_API_KEY"] == mapping.proxy_token
-    assert env["FREEIDE_PROXY_TOKEN_OPENROUTER_API_KEY"] == mapping.proxy_token
+    assert env["JETTSTUI_PROXY_TOKEN_OPENROUTER_API_KEY"] == mapping.proxy_token
     # Linux host-gateway mapping
     assert host == ["--add-host", "host.docker.internal:host-gateway"]
 
 
-def test_docker_egress_fingerprint_changes_with_tokens(freeide_home, monkeypatch):
+def test_docker_egress_fingerprint_changes_with_tokens(jettstui_home, monkeypatch):
     """Persistent Docker container reuse must not attach to a container that
     was created before egress, before a token rotation, or with a different CA
     mount.  The label hash is what forces a fresh container in those cases."""
@@ -935,12 +935,12 @@ def test_docker_egress_fingerprint_changes_with_tokens(freeide_home, monkeypatch
     from tools.environments.docker import _egress_reuse_fingerprint
 
     first = _egress_reuse_fingerprint(
-        ["-v", "/tmp/ca:/etc/ssl/certs/freeide-egress-ca.crt:ro"],
+        ["-v", "/tmp/ca:/etc/ssl/certs/jettstui-egress-ca.crt:ro"],
         {"OPENROUTER_API_KEY": "token-a", "HTTPS_PROXY": "http://h:9090"},
         ["--add-host", "host.docker.internal:host-gateway"],
     )
     second = _egress_reuse_fingerprint(
-        ["-v", "/tmp/ca:/etc/ssl/certs/freeide-egress-ca.crt:ro"],
+        ["-v", "/tmp/ca:/etc/ssl/certs/jettstui-egress-ca.crt:ro"],
         {"OPENROUTER_API_KEY": "token-b", "HTTPS_PROXY": "http://h:9090"},
         ["--add-host", "host.docker.internal:host-gateway"],
     )
@@ -982,7 +982,7 @@ def test_platform_asset_name_rejects_windows(monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def test_subprocess_env_strips_unrelated_secrets(freeide_home, monkeypatch):
+def test_subprocess_env_strips_unrelated_secrets(jettstui_home, monkeypatch):
     """``_build_proxy_subprocess_env`` must NOT carry every host secret
     over to the proxy.  /proc/<pid>/environ on the proxy would otherwise
     expose all of them to same-uid local processes."""
@@ -1002,7 +1002,7 @@ def test_subprocess_env_strips_unrelated_secrets(freeide_home, monkeypatch):
     assert env.get("OPENROUTER_API_KEY") == "sk-or-real"
 
 
-def test_subprocess_env_strips_proxy_recursion_vars(freeide_home, monkeypatch):
+def test_subprocess_env_strips_proxy_recursion_vars(jettstui_home, monkeypatch):
     """HTTPS_PROXY etc. in the parent env would otherwise recurse iron-proxy
     through itself (or send its traffic through a corporate proxy)."""
 
@@ -1016,7 +1016,7 @@ def test_subprocess_env_strips_proxy_recursion_vars(freeide_home, monkeypatch):
     assert "ALL_PROXY" not in env
 
 
-def test_subprocess_env_keeps_infrastructure_vars(freeide_home, monkeypatch):
+def test_subprocess_env_keeps_infrastructure_vars(jettstui_home, monkeypatch):
     """PATH / HOME / locale must propagate or the child can't even find
     its libs."""
 
@@ -1034,7 +1034,7 @@ def test_subprocess_env_keeps_infrastructure_vars(freeide_home, monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def test_ca_key_created_with_0o600(freeide_home, monkeypatch):
+def test_ca_key_created_with_0o600(jettstui_home, monkeypatch):
     """The CA private key must NEVER exist on disk with default umask
     permissions, even transiently.  Fix: open with explicit mode=0o600
     so the very first byte is written under tight perms."""
@@ -1069,7 +1069,7 @@ def test_ca_key_created_with_0o600(freeide_home, monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def test_ensure_audit_log_creates_with_0o600(freeide_home, tmp_path):
+def test_ensure_audit_log_creates_with_0o600(jettstui_home, tmp_path):
     audit = tmp_path / "audit.log"
     ip.ensure_audit_log(audit)
     assert audit.exists()
@@ -1077,7 +1077,7 @@ def test_ensure_audit_log_creates_with_0o600(freeide_home, tmp_path):
     assert mode == 0o600
 
 
-def test_ensure_audit_log_tightens_existing_perms(freeide_home, tmp_path):
+def test_ensure_audit_log_tightens_existing_perms(jettstui_home, tmp_path):
     audit = tmp_path / "audit.log"
     audit.write_text("preexisting content\n")
     os.chmod(audit, 0o644)
@@ -1091,16 +1091,16 @@ def test_ensure_audit_log_tightens_existing_perms(freeide_home, tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def test_proxy_state_dir_is_0o700(freeide_home):
+def test_proxy_state_dir_is_0o700(jettstui_home):
     state = ip._proxy_state_dir()
     mode = state.stat().st_mode & 0o777
     assert mode == 0o700
 
 
-def test_proxy_state_dir_ro_does_not_create(freeide_home):
+def test_proxy_state_dir_ro_does_not_create(jettstui_home):
     """_proxy_state_dir_ro is for read-only callers — it must NOT
     materialize the dir.  Pure-status code paths shouldn't have the
-    side-effect of creating ~/.freeide/proxy/."""
+    side-effect of creating ~/.jettstui/proxy/."""
 
     # Sanity: rw path creates it.
     rw = ip._proxy_state_dir()
@@ -1120,13 +1120,13 @@ def test_proxy_state_dir_ro_does_not_create(freeide_home):
 # ---------------------------------------------------------------------------
 
 
-def test_docker_egress_args_raises_on_empty_mappings(freeide_home, monkeypatch):
+def test_docker_egress_args_raises_on_empty_mappings(jettstui_home, monkeypatch):
     """If mappings.json is missing / corrupt / empty AND
     enforce_on_docker is true, refuse to start the sandbox rather than
     silently mounting an unusable proxy config."""
 
     from tools.environments.docker import _egress_proxy_args_for_docker
-    from freeide_cli.config import load_config, save_config
+    from jettstui.config import load_config, save_config
 
     state = ip._proxy_state_dir()
     (state / "ca.crt").write_text("fake-ca")
@@ -1157,13 +1157,13 @@ def test_docker_egress_args_raises_on_empty_mappings(freeide_home, monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def test_docker_egress_args_raises_when_ca_vanishes(freeide_home, monkeypatch):
+def test_docker_egress_args_raises_when_ca_vanishes(jettstui_home, monkeypatch):
     """status.configured was True at check time but the CA file
     disappeared between then and now (e.g. operator manually deleted
-    ~/.freeide/proxy/ca.crt).  enforce_on_docker=True must refuse."""
+    ~/.jettstui/proxy/ca.crt).  enforce_on_docker=True must refuse."""
 
     from tools.environments.docker import _egress_proxy_args_for_docker
-    from freeide_cli.config import load_config, save_config
+    from jettstui.config import load_config, save_config
 
     state = ip._proxy_state_dir()
     ca = state / "ca.crt"
@@ -1234,13 +1234,13 @@ def test_docker_egress_args_raises_when_ca_vanishes(freeide_home, monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def test_docker_env_collision_with_proxy_raises_when_enforce(freeide_home, monkeypatch):
+def test_docker_env_collision_with_proxy_raises_when_enforce(jettstui_home, monkeypatch):
     """Setting docker_env: {HTTPS_PROXY: ''} in config.yaml with
     enforce_on_docker=true must fail-loud rather than silently inverting
     the egress isolation."""
 
     from tools.environments.docker import DockerEnvironment
-    from freeide_cli.config import load_config, save_config
+    from jettstui.config import load_config, save_config
 
     # Set up a fully-running proxy.
     state = ip._proxy_state_dir()
@@ -1377,7 +1377,7 @@ def test_default_deny_includes_ipv4_mapped_v6(tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def test_header_auth_providers_discovered(freeide_home, monkeypatch):
+def test_header_auth_providers_discovered(jettstui_home, monkeypatch):
     """Anthropic / Azure / Gemini mint mappings with their native auth
     headers instead of landing in the uncovered list."""
 
@@ -1402,7 +1402,7 @@ def test_header_auth_providers_discovered(freeide_home, monkeypatch):
     assert "GOOGLE_API_KEY" in gem.alias_env_names
 
 
-def test_gemini_alias_collapses_to_single_mapping(freeide_home, monkeypatch):
+def test_gemini_alias_collapses_to_single_mapping(jettstui_home, monkeypatch):
     """GEMINI_API_KEY + GOOGLE_API_KEY are the same upstream credential —
     two require-rules on the same host would reject each other's requests,
     so exactly ONE mapping must be minted regardless of which names are
@@ -1416,7 +1416,7 @@ def test_gemini_alias_collapses_to_single_mapping(freeide_home, monkeypatch):
     assert ms[0].real_env_name == "GEMINI_API_KEY"
 
 
-def test_gemini_alias_only_still_mints_mapping(freeide_home, monkeypatch):
+def test_gemini_alias_only_still_mints_mapping(jettstui_home, monkeypatch):
     """An operator with ONLY GOOGLE_API_KEY set still gets Gemini coverage
     (mapping keyed on the canonical name)."""
 
@@ -1454,7 +1454,7 @@ def test_build_proxy_config_emits_per_provider_match_headers(tmp_path):
     assert "api.anthropic.com" in cfg["transforms"][0]["config"]["domains"]
 
 
-def test_mappings_roundtrip_preserves_headers_and_aliases(freeide_home):
+def test_mappings_roundtrip_preserves_headers_and_aliases(jettstui_home):
     m = ip.TokenMapping(
         proxy_token=ip.mint_proxy_token("gemini"),
         real_env_name="GEMINI_API_KEY",
@@ -1468,7 +1468,7 @@ def test_mappings_roundtrip_preserves_headers_and_aliases(freeide_home):
     assert loaded[0].alias_env_names == ("GOOGLE_API_KEY",)
 
 
-def test_load_mappings_legacy_entries_default_to_bearer(freeide_home):
+def test_load_mappings_legacy_entries_default_to_bearer(jettstui_home):
     """mappings.json written before the match_headers/alias fields must
     load with the Authorization default (same behavior as at write time)."""
 
@@ -1487,7 +1487,7 @@ def test_load_mappings_legacy_entries_default_to_bearer(freeide_home):
     assert loaded[0].alias_env_names == ()
 
 
-def test_subprocess_env_mirrors_alias_into_canonical(freeide_home, monkeypatch):
+def test_subprocess_env_mirrors_alias_into_canonical(jettstui_home, monkeypatch):
     """When only the alias (GOOGLE_API_KEY) is exported, the proxy child
     env must still carry the canonical name the secrets rule reads."""
 
@@ -1505,7 +1505,7 @@ def test_subprocess_env_mirrors_alias_into_canonical(freeide_home, monkeypatch):
     assert env.get("GEMINI_API_KEY") == "g-real-secret"
 
 
-def test_subprocess_env_canonical_wins_over_alias(freeide_home, monkeypatch):
+def test_subprocess_env_canonical_wins_over_alias(jettstui_home, monkeypatch):
     m = ip.TokenMapping(
         proxy_token=ip.mint_proxy_token("gemini"),
         real_env_name="GEMINI_API_KEY",
@@ -1539,29 +1539,29 @@ def test_build_proxy_config_enables_management_listener(tmp_path):
     assert mgmt["api_key_env"] == ip._MGMT_API_KEY_ENV
 
 
-def test_ensure_management_token_persists_and_is_stable(freeide_home):
+def test_ensure_management_token_persists_and_is_stable(jettstui_home):
     t1 = ip.ensure_management_token()
     t2 = ip.ensure_management_token()
     assert t1 == t2
-    assert t1.startswith("freeide-mgmt-")
+    assert t1.startswith("jettstui-mgmt-")
     p = ip._proxy_state_dir() / "management.token"
     assert p.exists()
     assert (p.stat().st_mode & 0o777) == 0o600
 
 
-def test_ensure_management_token_force_rotates(freeide_home):
+def test_ensure_management_token_force_rotates(jettstui_home):
     t1 = ip.ensure_management_token()
     t2 = ip.ensure_management_token(force=True)
     assert t1 != t2
 
 
-def test_reload_proxy_refuses_when_not_running(freeide_home, monkeypatch):
+def test_reload_proxy_refuses_when_not_running(jettstui_home, monkeypatch):
     monkeypatch.setattr(ip, "_read_pid", lambda: None)
     with pytest.raises(RuntimeError, match="not running"):
         ip.reload_proxy()
 
 
-def test_reload_proxy_refuses_on_pre_management_config(freeide_home, monkeypatch):
+def test_reload_proxy_refuses_on_pre_management_config(jettstui_home, monkeypatch):
     """A config written before management support has no listener — the
     error must tell the operator to re-setup + restart once."""
 
@@ -1572,7 +1572,7 @@ def test_reload_proxy_refuses_on_pre_management_config(freeide_home, monkeypatch
         ip.reload_proxy()
 
 
-def test_reload_proxy_posts_bearer_to_management_endpoint(freeide_home, monkeypatch):
+def test_reload_proxy_posts_bearer_to_management_endpoint(jettstui_home, monkeypatch):
     monkeypatch.setattr(ip, "_read_pid", lambda: 4242)
     monkeypatch.setattr(ip, "_pid_alive", lambda pid: True)
     monkeypatch.setattr(
@@ -1606,7 +1606,7 @@ def test_reload_proxy_posts_bearer_to_management_endpoint(freeide_home, monkeypa
     assert captured["auth"] == f"Bearer {token}"
 
 
-def test_start_proxy_injects_management_key_env(freeide_home, monkeypatch):
+def test_start_proxy_injects_management_key_env(jettstui_home, monkeypatch):
     """When the generated config has a management listener, start_proxy
     must inject the bearer key env var — v0.39 refuses to start when
     api_key_env is empty."""
@@ -1614,13 +1614,13 @@ def test_start_proxy_injects_management_key_env(freeide_home, monkeypatch):
     cfg_path = ip._proxy_state_dir() / "proxy.yaml"
     cfg = ip.build_proxy_config(
         mappings=[_sample_mapping()],
-        ca_cert=freeide_home / "ca.crt",
-        ca_key=freeide_home / "ca.key",
+        ca_cert=jettstui_home / "ca.crt",
+        ca_key=jettstui_home / "ca.key",
         http_listen=["127.0.0.1:9090"],
     )
     ip.write_proxy_config(cfg)
-    (freeide_home / "bin").mkdir(parents=True, exist_ok=True)
-    fake_bin = freeide_home / "bin" / "iron-proxy"
+    (jettstui_home / "bin").mkdir(parents=True, exist_ok=True)
+    fake_bin = jettstui_home / "bin" / "iron-proxy"
     fake_bin.write_text("#!/bin/sh\nsleep 60\n")
     fake_bin.chmod(0o755)
 
@@ -1642,7 +1642,7 @@ def test_start_proxy_injects_management_key_env(freeide_home, monkeypatch):
 
     ip.start_proxy(binary=fake_bin, config_path=cfg_path, install_if_missing=False)
     assert captured_env.get(ip._MGMT_API_KEY_ENV)
-    assert captured_env[ip._MGMT_API_KEY_ENV].startswith("freeide-mgmt-")
+    assert captured_env[ip._MGMT_API_KEY_ENV].startswith("jettstui-mgmt-")
 
 
 # ---------------------------------------------------------------------------
@@ -1702,7 +1702,7 @@ def test_pid_proc_starttime_returns_none_on_missing_proc(monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def test_stop_proxy_suppresses_sigkill_on_pid_recycle(freeide_home, monkeypatch):
+def test_stop_proxy_suppresses_sigkill_on_pid_recycle(jettstui_home, monkeypatch):
     """When _pid_proc_starttime returns different values before and
     after the SIGTERM grace window, stop_proxy must NOT issue SIGKILL —
     the original pid was recycled to an unrelated process."""
@@ -1798,14 +1798,14 @@ def test_iron_proxy_version_does_not_cache_empty_output(monkeypatch, tmp_path):
 # ---------------------------------------------------------------------------
 
 
-def test_docker_egress_node_options_uses_sentinel(freeide_home, monkeypatch):
+def test_docker_egress_node_options_uses_sentinel(jettstui_home, monkeypatch):
     """``_egress_proxy_args_for_docker`` should NOT put NODE_OPTIONS in
     env_overrides directly; it uses a sentinel key
-    ``_FREEIDE_EGRESS_NODE_OPTIONS_APPEND`` so DockerEnvironment can
+    ``_JETTSTUI_EGRESS_NODE_OPTIONS_APPEND`` so DockerEnvironment can
     append-merge with the operator's existing NODE_OPTIONS."""
 
     from tools.environments.docker import _egress_proxy_args_for_docker
-    from freeide_cli.config import load_config, save_config
+    from jettstui.config import load_config, save_config
 
     state = ip._proxy_state_dir()
     ca = state / "ca.crt"
@@ -1829,7 +1829,7 @@ def test_docker_egress_node_options_uses_sentinel(freeide_home, monkeypatch):
 
     _, env, _ = _egress_proxy_args_for_docker()
     # The egress dict should contain the sentinel, NOT a raw NODE_OPTIONS.
-    assert env.get("_FREEIDE_EGRESS_NODE_OPTIONS_APPEND") == "--use-openssl-ca"
+    assert env.get("_JETTSTUI_EGRESS_NODE_OPTIONS_APPEND") == "--use-openssl-ca"
     assert "NODE_OPTIONS" not in env, (
         "NODE_OPTIONS in egress env_overrides would clobber the operator's "
         "docker_env NODE_OPTIONS — that's exactly the bug arshkumarsingh "
@@ -1859,7 +1859,7 @@ def test_ensure_audit_log_raises_on_immutable_parent(tmp_path, monkeypatch):
 # ---------------------------------------------------------------------------
 
 
-def test_persisted_nonce_roundtrip(freeide_home, monkeypatch):
+def test_persisted_nonce_roundtrip(jettstui_home, monkeypatch):
     """Write the nonce next to the pidfile (simulating one CLI invocation
     finishing start_proxy), then verify a fresh _read_persisted_nonce
     can pick it up — that's what cross-process _pid_alive uses."""
@@ -1870,7 +1870,7 @@ def test_persisted_nonce_roundtrip(freeide_home, monkeypatch):
     assert ip._read_persisted_nonce() == "test-nonce-abc123"
 
 
-def test_persisted_nonce_returns_none_when_missing(freeide_home):
+def test_persisted_nonce_returns_none_when_missing(jettstui_home):
     """No nonce file → None, callers fall back to argv0 basename."""
     assert ip._read_persisted_nonce() is None
 
@@ -1881,7 +1881,7 @@ def test_persisted_nonce_returns_none_when_missing(freeide_home):
 # ---------------------------------------------------------------------------
 
 
-def test_read_http_listen_from_config_returns_host_and_port(freeide_home):
+def test_read_http_listen_from_config_returns_host_and_port(jettstui_home):
     """_read_http_listen_from_config must surface the BIND HOST, not just
     the port — on Linux the daemon binds the docker bridge gateway and a
     hardcoded loopback probe would report a healthy daemon as dead."""
@@ -1894,11 +1894,11 @@ def test_read_http_listen_from_config_returns_host_and_port(freeide_home):
     assert ip._read_tunnel_port_from_config() == 9090
 
 
-def test_read_http_listen_from_config_missing_file(freeide_home):
+def test_read_http_listen_from_config_missing_file(jettstui_home):
     assert ip._read_http_listen_from_config() is None
 
 
-def test_get_status_probes_configured_bind_host(freeide_home, monkeypatch):
+def test_get_status_probes_configured_bind_host(jettstui_home, monkeypatch):
     """get_status must probe the configured bind host (e.g. the docker
     bridge IP), not loopback unconditionally."""
 
@@ -1926,7 +1926,7 @@ def test_get_status_probes_configured_bind_host(freeide_home, monkeypatch):
 
 
 def test_partial_bitwarden_secrets_honor_allow_env_fallback(
-    freeide_home, monkeypatch,
+    jettstui_home, monkeypatch,
 ):
     """The missing-secret branch's own error message tells operators to
     set proxy.allow_env_fallback — so the flag must actually work there
@@ -1954,7 +1954,7 @@ def test_partial_bitwarden_secrets_honor_allow_env_fallback(
 
 
 def test_partial_bitwarden_secrets_raise_without_fallback(
-    freeide_home, monkeypatch,
+    jettstui_home, monkeypatch,
 ):
     """Strict default: missing BWS secrets raise."""
 
@@ -1975,7 +1975,7 @@ def test_partial_bitwarden_secrets_raise_without_fallback(
 
 
 def test_bitwarden_importerror_raise_without_fallback(
-    freeide_home, monkeypatch,
+    jettstui_home, monkeypatch,
 ):
     """Strict default: ImportError on BWS module raises when
     allow_env_fallback is unset, matching the sibling branches."""
@@ -2017,7 +2017,7 @@ def test_bitwarden_importerror_raise_without_fallback(
 
 
 def test_bitwarden_importerror_honor_allow_env_fallback(
-    freeide_home, monkeypatch,
+    jettstui_home, monkeypatch,
 ):
     """With allow_env_fallback, an ImportError falls through to host env
     instead of raising."""

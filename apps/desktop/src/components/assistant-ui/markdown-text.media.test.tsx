@@ -17,12 +17,12 @@ describe('MarkdownTextContent remote images', () => {
     throw new Error(`unexpected path ${path}`)
   })
 
-  let originalDesktop: typeof window.freeideDesktop
+  let originalDesktop: typeof window.jettstuiDesktop
 
   beforeEach(() => {
     api.mockClear()
-    originalDesktop = window.freeideDesktop
-    Object.defineProperty(window, 'freeideDesktop', {
+    originalDesktop = window.jettstuiDesktop
+    Object.defineProperty(window, 'jettstuiDesktop', {
       configurable: true,
       value: { api }
     })
@@ -32,7 +32,7 @@ describe('MarkdownTextContent remote images', () => {
   afterEach(() => {
     cleanup()
     $connection.set(null)
-    Object.defineProperty(window, 'freeideDesktop', {
+    Object.defineProperty(window, 'jettstuiDesktop', {
       configurable: true,
       value: originalDesktop
     })

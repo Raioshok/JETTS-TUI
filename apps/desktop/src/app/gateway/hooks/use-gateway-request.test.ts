@@ -1,12 +1,12 @@
 import { act, renderHook } from '@testing-library/react'
 import { afterEach, describe, expect, it } from 'vitest'
 
-import type { FreeIDEGateway } from '@/freeide'
+import type { JettsTUIGateway } from '@/jettstui'
 import { $gateway } from '@/store/gateway'
 
 import { useGatewayRequest } from './use-gateway-request'
 
-const fakeGateway = { connectionState: 'open' } as unknown as FreeIDEGateway
+const fakeGateway = { connectionState: 'open' } as unknown as JettsTUIGateway
 
 afterEach(() => {
   $gateway.set(null)

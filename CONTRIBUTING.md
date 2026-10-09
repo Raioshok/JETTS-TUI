@@ -1,6 +1,6 @@
-# Contributing to Jetts-TUI
+# Contributing to JettsTUI
 
-Thank you for contributing to Jetts-TUI! This guide covers everything you need: setting up your dev environment, understanding the architecture, deciding what to build, and getting your PR merged.
+Thank you for contributing to JettsTUI! This guide covers everything you need: setting up your dev environment, understanding the architecture, deciding what to build, and getting your PR merged.
 
 ---
 
@@ -9,7 +9,7 @@ Thank you for contributing to Jetts-TUI! This guide covers everything you need: 
 We value contributions in this order:
 
 1. **Bug fixes** — crashes, incorrect behavior, data loss. Always top priority.
-2. **Cross-platform compatibility** — macOS, different Linux distros, and WSL2 on Windows. We want Jetts-TUI to work everywhere.
+2. **Cross-platform compatibility** — macOS, different Linux distros, and WSL2 on Windows. We want JettsTUI to work everywhere.
 3. **Security hardening** — shell injection, prompt injection, path traversal, privilege escalation. See [Security](#security-considerations).
 4. **Performance and robustness** — retry logic, error handling, graceful degradation.
 5. **New skills** — but only broadly useful ones. See [Should it be a Skill or a Tool?](#should-it-be-a-skill-or-a-tool)
@@ -32,7 +32,7 @@ A quick search before you build saves your time and keeps the PR queue clean —
 - **If an open PR already addresses it**, consider reviewing or improving that one instead of opening a competing duplicate.
 - **For larger work**, comment on the issue to signal you're working on it, so others don't start the same thing.
 
-Related: #38284 covers the agent-side analog — FreeIDE itself checking existing issues and PRs before deep self-troubleshooting. This section is the human-contributor complement.
+Related: #38284 covers the agent-side analog — JettsTUI itself checking existing issues and PRs before deep self-troubleshooting. This section is the human-contributor complement.
 
 ---
 
@@ -56,26 +56,26 @@ This is the most common question for new contributors. The answer is almost alwa
 
 ### Should the Skill be bundled?
 
-Bundled skills (in `skills/`) ship with every FreeIDE install. They should be **broadly useful to most users**:
+Bundled skills (in `skills/`) ship with every JettsTUI install. They should be **broadly useful to most users**:
 
 - Document handling, web research, common dev workflows, system administration
 - Used regularly by a wide range of people
 
-If your skill is official and useful but not universally needed (e.g., a paid service integration, a heavyweight dependency), put it in **`optional-skills/`** — it ships with the repo but isn't activated by default. Users can discover it via `freeide skills browse` (labeled "official") and install it with `freeide skills install` (no third-party warning, built-in trust).
+If your skill is official and useful but not universally needed (e.g., a paid service integration, a heavyweight dependency), put it in **`optional-skills/`** — it ships with the repo but isn't activated by default. Users can discover it via `jettstui skills browse` (labeled "official") and install it with `jettstui skills install` (no third-party warning, built-in trust).
 
-If your skill is specialized, community-contributed, or niche, it's better suited for a **Skills Hub** — upload it to a skills registry and share it in the [FreeIDE Discord](https://discord.gg/freeide). Users can install it with `freeide skills install`.
+If your skill is specialized, community-contributed, or niche, it's better suited for a **Skills Hub** — upload it to a skills registry and share it in [GitHub Discussions](https://github.com/Raioshok/JETTS-TUI/discussions). Users can install it with `jettstui skills install`.
 
 ---
 
 ## Memory Providers: Ship as a Standalone Plugin
 
-**We are no longer accepting new memory providers into this repo.** The set of built-in providers under `plugins/memory/` (honcho, mem0, supermemory, byterover, hindsight, holographic, openviking, retaindb) is closed. If you want to add a new memory backend, publish it as a **standalone plugin repo** that users install into `~/.freeide/plugins/` (or via a pip entry point).
+**We are no longer accepting new memory providers into this repo.** The set of built-in providers under `plugins/memory/` (honcho, mem0, supermemory, byterover, hindsight, holographic, openviking, retaindb) is closed. If you want to add a new memory backend, publish it as a **standalone plugin repo** that users install into `~/.jettstui/plugins/` (or via a pip entry point).
 
 Standalone memory plugins:
 
-- Implement the same `MemoryProvider` ABC (`agent/memory_provider.py`) — `sync_turn`, `prefetch`, `shutdown`, and optionally `post_setup(freeide_home, config)` for setup-wizard integration
+- Implement the same `MemoryProvider` ABC (`agent/memory_provider.py`) — `sync_turn`, `prefetch`, `shutdown`, and optionally `post_setup(jettstui_home, config)` for setup-wizard integration
 - Use the same discovery system — `discover_memory_providers()` picks them up from user/project plugin directories and pip entry points
-- Integrate with `freeide memory setup` via `post_setup()` — no need to touch core code
+- Integrate with `jettstui memory setup` via `post_setup()` — no need to touch core code
 - Can register their own CLI subcommands via `register_cli(subparser)` in a `cli.py` file
 - Get all the same lifecycle hooks and config plumbing as in-tree providers
 
@@ -89,14 +89,14 @@ This isn't a quality bar — it's a coupling-and-maintenance decision. Memory pr
 
 The same rule extends to **any plugin that integrates someone else's product or project** — observability/metrics backends, vendor SaaS connectors, analytics dashboards, paid-service tie-ins, and similar third-party integrations. **These do not land in this repo.**
 
-The reason is maintenance load, not quality. Every external product absorbed into the core tree becomes ours to keep working against a fast-moving codebase, for a backend we don't own and can't control. FreeIDE ships a lot and the core moves quickly; coupling third-party products into it creates an open-ended burden on the maintainers.
+The reason is maintenance load, not quality. Every external product absorbed into the core tree becomes ours to keep working against a fast-moving codebase, for a backend we don't own and can't control. JettsTUI ships a lot and the core moves quickly; coupling third-party products into it creates an open-ended burden on the maintainers.
 
 Publish these as a **standalone plugin repo** instead:
 
-- Implement the relevant ABC and use the existing plugin discovery path (`~/.freeide/plugins/`, project `.freeide/plugins/`, or a pip entry point) — see [Build a FreeIDE Plugin](https://freeide-agent.freeide.dev/docs/guides/build-a-freeide-plugin)
+- Implement the relevant ABC and use the existing plugin discovery path (`~/.jettstui/plugins/`, project `.jettstui/plugins/`, or a pip entry point) — see [Build a Plugin](docs/developer-guide/plugins/index.md)
 - Register lifecycle hooks (`pre_tool_call`, `post_tool_call`, `pre_llm_call`, `post_llm_call`, `on_session_start`, `on_session_end`), tools (`ctx.register_tool`), and CLI subcommands (`ctx.register_cli_command`) through the surface we already expose — no core changes needed
 - If your plugin needs a capability the framework doesn't expose, that's a feature request to **widen the generic plugin surface** (a new hook or `ctx` method) — never special-case your plugin in core
-- Promote it in the [FreeIDE Discord](https://discord.gg/freeide) `#plugins-skills-and-skins` channel so users can find and install it
+- Announce it in [GitHub Discussions](https://github.com/Raioshok/JETTS-TUI/discussions) so users can find and install it
 
 A well-built third-party-product plugin can clear automated review and still be closed for this reason — it's a placement decision, not a verdict on the code. PRs that add such a directory under `plugins/` will be closed with a pointer to publish it as its own repo.
 
@@ -117,20 +117,20 @@ A well-built third-party-product plugin can clear automated review and still be 
 
 For most contributors, the best development bootstrap is the same path users
 take: run the standard installer, then work inside the repository it cloned.
-The installer creates the FreeIDE venv, wires the `freeide` command, stamps the
-install method for `freeide update`, and clones the full git project into
-`$FREEIDE_HOME/freeide-agent` (usually `~/.freeide/freeide-agent`). That keeps your
+The installer creates the JettsTUI venv, wires the `jettstui` command, stamps the
+install method for `jettstui update`, and clones the full git project into
+`$JETTSTUI_HOME/jettstui` (usually `~/.jettstui/jettstui`). That keeps your
 development environment on the same layout the CLI, updater, lazy dependency
 installer, gateway, and docs assume.
 
 ```bash
 curl -fsSL https://raw.githubusercontent.com/Raioshok/JETTS-TUI/main/scripts/install.sh | bash
-cd "${FREEIDE_HOME:-$HOME/.freeide}/freeide-agent"
+cd "${JETTSTUI_HOME:-$HOME/.jettstui}/jettstui"
 
 # Add dev/test extras on top of the standard install.
 uv pip install -e ".[all,dev]"
 
-# Optional: browser tools / docs site dependencies.
+# Optional: JavaScript workspace dependencies.
 npm install
 ```
 
@@ -143,10 +143,10 @@ scripts/run_tests.sh
 
 ### Manual clone fallback
 
-Use this only if you intentionally do not want Jetts-TUI's managed install layout
+Use this only if you intentionally do not want JettsTUI's managed install layout
 (for example, a throwaway clone inside a container or CI job). If you install
-this way, make sure you run the `freeide` entrypoint from this venv; running the
-system `python3 -m freeide_cli.main` can pick up unrelated system Python
+this way, make sure you run the `jettstui` entrypoint from this venv; running the
+system `python3 -m jettstui.main` can pick up unrelated system Python
 packages.
 
 Create the venv **outside** the cloned source tree. A venv that lives inside
@@ -160,8 +160,8 @@ git clone https://github.com/Raioshok/JETTS-TUI.git
 cd JETTS-TUI
 
 # Create venv with Python 3.11, OUTSIDE the source tree
-uv venv ~/.freeide/venvs/freeide-dev --python 3.11
-export VIRTUAL_ENV="$HOME/.freeide/venvs/freeide-dev"
+uv venv ~/.jettstui/venvs/jettstui-dev --python 3.11
+export VIRTUAL_ENV="$HOME/.jettstui/venvs/jettstui-dev"
 export PATH="$VIRTUAL_ENV/bin:$PATH"
 
 # Install with all extras (messaging, cron, CLI menus, dev tools)
@@ -174,28 +174,28 @@ npm install
 ### Configure for development
 
 ```bash
-mkdir -p ~/.freeide/{cron,sessions,logs,memories,skills}
-cp cli-config.yaml.example ~/.freeide/config.yaml
-touch ~/.freeide/.env
+mkdir -p ~/.jettstui/{cron,sessions,logs,memories,skills}
+cp cli-config.yaml.example ~/.jettstui/config.yaml
+touch ~/.jettstui/.env
 
 # Add at minimum an LLM provider key:
-echo "OPENROUTER_API_KEY=***" >> ~/.freeide/.env
+echo "OPENROUTER_API_KEY=***" >> ~/.jettstui/.env
 ```
 
 ### Run
 
 ```bash
-# The standard installer already put `freeide` on PATH.
-freeide doctor
-freeide chat -q "Hello"
+# The standard installer already put `jettstui` on PATH.
+jettstui doctor
+jettstui chat -q "Hello"
 ```
 
-If you used the manual clone fallback, run `./freeide` from the checkout or
+If you used the manual clone fallback, run `./jettstui` from the checkout or
 symlink this clone's venv explicitly:
 
 ```bash
 mkdir -p ~/.local/bin
-ln -sf "$(pwd)/venv/bin/freeide" ~/.local/bin/freeide
+ln -sf "$(pwd)/venv/bin/jettstui" ~/.local/bin/jettstui
 ```
 
 ### Run tests
@@ -214,12 +214,12 @@ pytest tests/ -v
 ## Project Structure
 
 ```
-freeide-agent/
+jettstui/
 ├── run_agent.py              # AIAgent class — core conversation loop, tool dispatch, session persistence
-├── cli.py                    # FreeIDECLI class — interactive TUI, prompt_toolkit integration
+├── cli.py                    # JettsTUICLI class — interactive TUI, prompt_toolkit integration
 ├── model_tools.py            # Tool orchestration (thin layer over tools/registry.py)
-├── toolsets.py               # Tool groupings and presets (freeide-cli, freeide-telegram, etc.)
-├── freeide_state.py           # SQLite session database with FTS5 full-text search, session titles
+├── toolsets.py               # Tool groupings and presets (jettstui-cli, jettstui-telegram, etc.)
+├── jettstui_state.py           # SQLite session database with FTS5 full-text search, session titles
 ├── batch_runner.py           # Parallel batch processing for trajectory generation
 │
 ├── agent/                    # Agent internals (extracted modules)
@@ -230,11 +230,11 @@ freeide-agent/
 │   ├── model_metadata.py         # Model context lengths, token estimation
 │   └── trajectory.py             # Trajectory saving helpers
 │
-├── freeide_cli/               # CLI command implementations
+├── jettstui/               # CLI command implementations
 │   ├── main.py                   # Entry point, argument parsing, command dispatch
 │   ├── config.py                 # Config management, migration, env var definitions
 │   ├── setup.py                  # Interactive setup wizard
-│   ├── auth.py                   # Provider resolution, OAuth, FreeIDE Portal
+│   ├── auth.py                   # Provider resolution and OAuth
 │   ├── models.py                 # OpenRouter model selection lists
 │   ├── banner.py                 # Welcome banner, ASCII art
 │   ├── commands.py               # Central slash command registry (CommandDef), autocomplete, gateway helpers
@@ -271,28 +271,28 @@ freeide-agent/
 │   ├── install.ps1               # Windows PowerShell installer
 │   └── whatsapp-bridge/          # Node.js WhatsApp bridge (Baileys)
 │
-├── skills/                   # Bundled skills (copied to ~/.freeide/skills/ on install)
+├── skills/                   # Bundled skills (copied to ~/.jettstui/skills/ on install)
 ├── optional-skills/          # Official optional skills (discoverable via hub, not activated by default)
 ├── tests/                    # Test suite
-├── website/                  # Documentation site (freeide-agent.freeide.dev)
+├── docs/                     # Repository Markdown documentation
 │
-├── cli-config.yaml.example   # Example configuration (copied to ~/.freeide/config.yaml)
+├── cli-config.yaml.example   # Example configuration (copied to ~/.jettstui/config.yaml)
 └── AGENTS.md                 # Development guide for AI coding assistants
 ```
 
-### User configuration (stored in `~/.freeide/`)
+### User configuration (stored in `~/.jettstui/`)
 
 | Path | Purpose |
 |------|---------|
-| `~/.freeide/config.yaml` | Settings (model, terminal, toolsets, compression, etc.) |
-| `~/.freeide/.env` | API keys and secrets |
-| `~/.freeide/auth.json` | OAuth credentials (FreeIDE Portal) |
-| `~/.freeide/skills/` | All active skills (bundled + hub-installed + agent-created) |
-| `~/.freeide/memories/` | Persistent memory (MEMORY.md, USER.md) |
-| `~/.freeide/state.db` | SQLite session database |
-| `~/.freeide/sessions/` | Gateway routing index (`sessions.json`), request-dump breadcrumbs, gateway `*.jsonl` transcripts, and (optionally) per-session JSON snapshots when `sessions.write_json_snapshots: true` is set. The per-session snapshots are off by default; state.db is canonical. |
-| `~/.freeide/cron/` | Scheduled job data |
-| `~/.freeide/whatsapp/session/` | WhatsApp bridge credentials |
+| `~/.jettstui/config.yaml` | Settings (model, terminal, toolsets, compression, etc.) |
+| `~/.jettstui/.env` | API keys and secrets |
+| `~/.jettstui/auth.json` | Legacy OAuth credential state, if present |
+| `~/.jettstui/skills/` | All active skills (bundled + hub-installed + agent-created) |
+| `~/.jettstui/memories/` | Persistent memory (MEMORY.md, USER.md) |
+| `~/.jettstui/state.db` | SQLite session database |
+| `~/.jettstui/sessions/` | Gateway routing index (`sessions.json`), request-dump breadcrumbs, gateway `*.jsonl` transcripts, and (optionally) per-session JSON snapshots when `sessions.write_json_snapshots: true` is set. The per-session snapshots are off by default; state.db is canonical. |
+| `~/.jettstui/cron/` | Scheduled job data |
+| `~/.jettstui/whatsapp/session/` | WhatsApp bridge credentials |
 
 ---
 
@@ -319,9 +319,9 @@ User message → AIAgent._run_agent_loop()
 
 - **Self-registering tools**: Each tool file calls `registry.register()` at import time. `model_tools.py` triggers discovery by importing all tool modules.
 - **Toolset grouping**: Tools are grouped into toolsets (`web`, `terminal`, `file`, `browser`, etc.) that can be enabled/disabled per platform.
-- **Session persistence**: All conversations are stored in SQLite (`freeide_state.py`) with full-text search and unique session titles. Per-session JSON snapshots in `~/.freeide/sessions/` were superseded by the SQLite store and are off by default; opt back in with `sessions.write_json_snapshots: true` if you have external tooling that consumes the JSON files directly.
+- **Session persistence**: All conversations are stored in SQLite (`jettstui_state.py`) with full-text search and unique session titles. Per-session JSON snapshots in `~/.jettstui/sessions/` were superseded by the SQLite store and are off by default; opt back in with `sessions.write_json_snapshots: true` if you have external tooling that consumes the JSON files directly.
 - **Ephemeral injection**: System prompts and prefill messages are injected at API call time, never persisted to the database or logs.
-- **Provider abstraction**: The agent works with any OpenAI-compatible API. Provider resolution happens at init time (FreeIDE Portal OAuth, OpenRouter API key, or custom endpoint).
+- **Provider abstraction**: The agent works with OpenAI-compatible APIs. Provider resolution happens at init time from a configured API key or custom endpoint.
 - **Provider routing**: When using OpenRouter, `provider_routing` in config.yaml controls provider selection (sort by throughput/latency/price, allow/ignore specific providers, data retention policies). These are injected as `extra_body.provider` in API requests.
 
 ---
@@ -391,7 +391,7 @@ imported by `discover_builtin_tools()` in `tools/registry.py` when `model_tools`
 loads. There is **no** manual import list in `model_tools.py` to maintain.
 
 You must still add the tool name to the appropriate list in `toolsets.py`
-(for example `_FREEIDE_CORE_TOOLS` or a dedicated toolset); otherwise the tool
+(for example `_JETTSTUI_CORE_TOOLS` or a dedicated toolset); otherwise the tool
 registers but is never exposed to the agent. If you introduce a new toolset,
 add it in `toolsets.py` and wire it into the relevant platform presets.
 
@@ -440,7 +440,7 @@ prerequisites:                     # Optional legacy runtime requirements
   env_vars: [MY_API_KEY]           #   Backward-compatible alias for required env vars
   commands: [curl, jq]             #   Advisory only; does not hide the skill
 metadata:
-  freeide:
+  jettstui:
     tags: [Category, Subcategory, Keywords]
     related_skills: [other-skill-name]
     fallback_for_toolsets: [web]       # Optional — show only when toolset is unavailable
@@ -489,11 +489,11 @@ If the field is omitted or empty, the skill loads on all platforms (backward com
 
 Skills can declare conditions that control when they appear in the system prompt, based on which tools and toolsets are available in the current session. This is primarily used for **fallback skills** — alternatives that should only be shown when a primary tool is unavailable.
 
-Four fields are supported under `metadata.freeide`:
+Four fields are supported under `metadata.jettstui`:
 
 ```yaml
 metadata:
-  freeide:
+  jettstui:
     fallback_for_toolsets: [web]      # Show ONLY when these toolsets are unavailable
     requires_toolsets: [terminal]     # Show ONLY when these toolsets are available
     fallback_for_tools: [web_search]  # Show ONLY when these specific tools are unavailable
@@ -511,17 +511,17 @@ metadata:
 ```yaml
 # DuckDuckGo search — shown when Firecrawl (web toolset) is unavailable
 metadata:
-  freeide:
+  jettstui:
     fallback_for_toolsets: [web]
 
 # Smart home skill — only useful when terminal is available
 metadata:
-  freeide:
+  jettstui:
     requires_toolsets: [terminal]
 
 # Local browser fallback — shown when Browserbase is unavailable
 metadata:
-  freeide:
+  jettstui:
     fallback_for_toolsets: [browser]
 ```
 
@@ -539,7 +539,7 @@ required_environment_variables:
     required_for: full functionality
 ```
 
-The user may skip setup and keep loading the skill. FreeIDE only exposes metadata (`stored_as`, `skipped`, `validated`) to the model — never the secret value.
+The user may skip setup and keep loading the skill. JettsTUI only exposes metadata (`stored_as`, `skipped`, `validated`) to the model — never the secret value.
 
 Legacy `prerequisites.env_vars` remains supported and is normalized into the new representation.
 
@@ -549,7 +549,7 @@ prerequisites:
   commands: [curl, jq]            # Advisory CLI checks
 ```
 
-Gateway and messaging sessions never collect secrets in-band; they instruct the user to run `freeide setup` or update `~/.freeide/.env` locally.
+Gateway and messaging sessions never collect secrets in-band; they instruct the user to run `jettstui setup` or update `~/.jettstui/.env` locally.
 
 **When to declare required environment variables:**
 - The skill uses an API key or token that should be collected securely at load time
@@ -577,7 +577,7 @@ Every new or modernized skill — bundled, optional, or contributed — must mee
    Good: `Search arXiv papers by keyword, author, category, or ID.`
    Bad: `A powerful and comprehensive skill that allows the agent to search arXiv for relevant academic papers using various criteria including keywords, authors, and categories.`
 
-2. **Tools referenced in SKILL.md prose must be native FreeIDE tools or MCP servers the skill explicitly expects.** When the skill needs a capability, point at the proper tool by name in backticks: `` `terminal` ``, `` `web_extract` ``, `` `web_search` ``, `` `read_file` ``, `` `write_file` ``, `` `patch` ``, `` `search_files` ``, `` `vision_analyze` ``, `` `browser_navigate` ``, `` `delegate_task` ``, `` `image_generate` ``, `` `text_to_speech` ``, `` `cronjob` ``, `` `memory` ``, `` `skill_view` ``, `` `todo` ``, `` `execute_code` ``.
+2. **Tools referenced in SKILL.md prose must be native JettsTUI tools or MCP servers the skill explicitly expects.** When the skill needs a capability, point at the proper tool by name in backticks: `` `terminal` ``, `` `web_extract` ``, `` `web_search` ``, `` `read_file` ``, `` `write_file` ``, `` `patch` ``, `` `search_files` ``, `` `vision_analyze` ``, `` `browser_navigate` ``, `` `delegate_task` ``, `` `image_generate` ``, `` `text_to_speech` ``, `` `cronjob` ``, `` `memory` ``, `` `skill_view` ``, `` `todo` ``, `` `execute_code` ``.
 
    Do NOT name shell utilities the agent already has wrapped:
 
@@ -594,7 +594,7 @@ Every new or modernized skill — bundled, optional, or contributed — must mee
 
 3. **`platforms:` gating audited against actual script imports.** Skills that use POSIX-only primitives (`fcntl`, `termios`, `os.setsid`, `os.kill(pid, 0)` for liveness, `/proc`, hardcoded `/tmp` paths, `signal.SIGKILL`, bash heredocs, `osascript`, `apt`, `systemctl`) must declare their supported platforms via the `platforms:` frontmatter. Default posture is to fix it cross-platform first — `tempfile.gettempdir()`, `pathlib.Path`, `psutil.pid_exists()`, Python-level filtering instead of `grep`. Gate to a narrower set only when the dependency is genuinely platform-bound (e.g. `osascript` is macOS-only, `/proc` is Linux-only).
 
-4. **`author` credits the human contributor first.** For external contributions, the contributor's real name + GitHub handle goes first (`Jane Doe (jane-doe)`); "FreeIDE Agent" is the secondary collaborator. If the contributor's commit shows "FreeIDE Agent" as author because they used FreeIDE to draft the skill, replace it with their actual name — credit the human, not the tool.
+4. **`author` credits the human contributor first.** For external contributions, the contributor's real name + GitHub handle goes first (`Jane Doe (jane-doe)`); "JettsTUI" is the secondary collaborator. If the contributor's commit shows "JettsTUI" as author because they used JettsTUI to draft the skill, replace it with their actual name — credit the human, not the tool.
 
 5. **SKILL.md body uses the modern section order.** `# <Skill> Skill` title, 2-3 sentence intro stating what it does and what it doesn't do, then:
    - `## When to Use` — trigger conditions
@@ -615,20 +615,20 @@ Every new or modernized skill — bundled, optional, or contributed — must mee
 
 ### Skill guidelines
 
-- **No external dependencies unless absolutely necessary.** Prefer stdlib Python, curl, and existing FreeIDE tools (`web_extract`, `terminal`, `read_file`).
+- **No external dependencies unless absolutely necessary.** Prefer stdlib Python, curl, and existing JettsTUI tools (`web_extract`, `terminal`, `read_file`).
 - **Progressive disclosure.** Put the most common workflow first. Edge cases and advanced usage go at the bottom.
 - **Include helper scripts** for XML/JSON parsing or complex logic — don't expect the LLM to write parsers inline every time.
-- **Test it.** Run `freeide --toolsets skills -q "Use the X skill to do Y"` and verify the agent follows the instructions correctly.
+- **Test it.** Run `jettstui --toolsets skills -q "Use the X skill to do Y"` and verify the agent follows the instructions correctly.
 
 ---
 
 ## Adding a Skin / Theme
 
-FreeIDE uses a data-driven skin system — no code changes needed to add a new skin.
+JettsTUI uses a data-driven skin system — no code changes needed to add a new skin.
 
 **Option A: User skin (YAML file)**
 
-Create `~/.freeide/skins/<name>.yaml`:
+Create `~/.jettstui/skins/<name>.yaml`:
 
 ```yaml
 name: mytheme
@@ -662,19 +662,19 @@ All fields are optional — missing values inherit from the default skin.
 
 **Option B: Built-in skin**
 
-Add to `_BUILTIN_SKINS` dict in `freeide_cli/skin_engine.py`. Use the same schema as above but as a Python dict. Built-in skins ship with the package and are always available.
+Add to `_BUILTIN_SKINS` dict in `jettstui/skin_engine.py`. Use the same schema as above but as a Python dict. Built-in skins ship with the package and are always available.
 
 **Activating:**
 - CLI: `/skin mytheme` or set `display.skin: mytheme` in config.yaml
 - Config: `display: { skin: mytheme }`
 
-See `freeide_cli/skin_engine.py` for the full schema and existing skins as examples.
+See `jettstui/skin_engine.py` for the full schema and existing skins as examples.
 
 ---
 
 ## Cross-Platform Compatibility
 
-FreeIDE runs on Linux, macOS, and native Windows (plus WSL2). When writing code
+JettsTUI runs on Linux, macOS, and native Windows (plus WSL2). When writing code
 that touches the OS, assume *any* platform can hit your code path.
 
 > **Before you PR:** run `scripts/check-windows-footguns.py` to catch the
@@ -702,7 +702,7 @@ that touches the OS, assume *any* platform can hit your code path.
        ...
    ```
 
-   If you specifically need the freeide wrapper (it has a stdlib fallback
+   If you specifically need the jettstui wrapper (it has a stdlib fallback
    for scaffold-phase imports before pip install finishes), use
    `gateway.status._pid_exists(pid)`. It calls `psutil.pid_exists` first
    and falls back to a hand-rolled `OpenProcess + WaitForSingleObject`
@@ -721,7 +721,7 @@ that touches the OS, assume *any* platform can hit your code path.
 
    For process enumeration: PowerShell's `Get-CimInstance Win32_Process` is
    the modern replacement for `wmic process`. See
-   `freeide_cli/gateway.py::_scan_gateway_pids` for the pattern.
+   `jettstui/gateway.py::_scan_gateway_pids` for the pattern.
 
 3. **`termios` and `fcntl` are Unix-only.** Always catch both `ImportError`
    and `NotImplementedError`:
@@ -801,7 +801,7 @@ that touches the OS, assume *any* platform can hit your code path.
     process. `pythonw.exe` is the no-console variant. Combine with
     `CREATE_NO_WINDOW | DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP |
     CREATE_BREAKAWAY_FROM_JOB` in `subprocess.Popen(creationflags=...)`.
-    See `freeide_cli/gateway_windows.py::_spawn_detached` for the reference
+    See `jettstui/gateway_windows.py::_spawn_detached` for the reference
     implementation.
 
 11. **`subprocess.Popen` with `.cmd` or `.bat` shims needs `shutil.which`
@@ -839,7 +839,7 @@ that touches the OS, assume *any* platform can hit your code path.
     (["schtasks", "/TR", some_cmd])` → schtasks itself parses `/TR`, AND
     the `some_cmd` string is re-parsed by `cmd.exe` when the task fires.
     Different parsers, different escape rules. Use two separate quoting
-    helpers and never cross them. See `freeide_cli/gateway_windows.py::
+    helpers and never cross them. See `jettstui/gateway_windows.py::
     _quote_cmd_script_arg` and `_quote_schtasks_arg` for the reference
     pair.
 
@@ -862,7 +862,7 @@ through the wrong branch on a Windows runner.
 
 ## Security Considerations
 
-FreeIDE has terminal access. Security matters.
+JettsTUI has terminal access. Security matters.
 
 ### Existing protections
 
@@ -944,7 +944,7 @@ refactor/description   # Code restructuring
 ### Before submitting
 
 1. **Run tests**: `scripts/run_tests.sh` (recommended; same as CI) or `pytest tests/ -v` with the project venv activated
-2. **Test manually**: Run `freeide` and exercise the code path you changed
+2. **Test manually**: Run `jettstui` and exercise the code path you changed
 3. **Check cross-platform impact**: If you touch file I/O, process management, or terminal handling, consider macOS, Linux, and WSL2
 4. **Keep PRs focused**: One logical change per PR. Don't mix a bug fix with a refactor with a new feature.
 
@@ -988,7 +988,7 @@ test(tools): add unit tests for file_operations
 ## Reporting Issues
 
 - Use [GitHub Issues](https://github.com/Raioshok/JETTS-TUI/issues)
-- Include: OS, Python version, FreeIDE version (`freeide version`), full error traceback
+- Include: OS, Python version, JettsTUI version (`jettstui version`), full error traceback
 - Include steps to reproduce
 - Check existing issues before creating duplicates
 - For security vulnerabilities, please report privately
@@ -997,7 +997,7 @@ test(tools): add unit tests for file_operations
 
 ## Community
 
-- **Discord**: [discord.gg/freeide](https://discord.gg/freeide) — for questions, showcasing projects, and sharing skills
+- **Discussions**: [GitHub Discussions](https://github.com/Raioshok/JETTS-TUI/discussions) — for questions, showcasing projects, and sharing skills
 - **GitHub Discussions**: For design proposals and architecture discussions
 - **Skills Hub**: Upload specialized skills to a registry and share them with the community
 

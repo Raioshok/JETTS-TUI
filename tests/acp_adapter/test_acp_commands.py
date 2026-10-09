@@ -4,7 +4,7 @@ from types import ModuleType, SimpleNamespace
 import pytest
 from acp.schema import TextContentBlock
 
-from acp_adapter.server import FreeIDEACPAgent
+from acp_adapter.server import JettsTUIACPAgent
 from acp_adapter.session import SessionManager
 
 
@@ -12,7 +12,7 @@ class FakeAgent:
     def __init__(self):
         self.model = "fake-model"
         self.provider = "fake-provider"
-        self.enabled_toolsets = ["freeide-acp"]
+        self.enabled_toolsets = ["jettstui-acp"]
         self.disabled_toolsets = []
         self.tools = []
         self.valid_tool_names = set()
@@ -66,7 +66,7 @@ class NoopDb:
 def make_agent_and_state():
     fake = FakeAgent()
     manager = SessionManager(agent_factory=lambda **kwargs: fake, db=NoopDb())
-    acp_agent = FreeIDEACPAgent(session_manager=manager)
+    acp_agent = JettsTUIACPAgent(session_manager=manager)
     state = manager.create_session(cwd=".")
     conn = CaptureConn()
     acp_agent.on_connect(conn)
@@ -92,14 +92,14 @@ def test_acp_real_agent_gets_session_db_for_recall(monkeypatch):
     monkeypatch.setitem(sys.modules, "run_agent", mod("run_agent", AIAgent=CapturingAgent))
     monkeypatch.setitem(
         sys.modules,
-        "freeide_cli.config",
-        mod("freeide_cli.config", load_config=lambda: {"model": {"default": "m", "provider": "p"}}),
+        "jettstui.config",
+        mod("jettstui.config", load_config=lambda: {"model": {"default": "m", "provider": "p"}}),
     )
     monkeypatch.setitem(
         sys.modules,
-        "freeide_cli.runtime_provider",
+        "jettstui.runtime_provider",
         mod(
-            "freeide_cli.runtime_provider",
+            "jettstui.runtime_provider",
             resolve_runtime_provider=lambda **_kwargs: {
                 "provider": "p",
                 "api_mode": "chat_completions",

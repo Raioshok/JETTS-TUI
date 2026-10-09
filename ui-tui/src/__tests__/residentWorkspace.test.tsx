@@ -92,8 +92,8 @@ describe('resident workspace surfaces', () => {
       })
     )
 
-    expect(frame).toContain('SESSIONS')
-    expect(frame).toContain('COMMS')
+    expect(frame).toContain('Sessions')
+    expect(frame).toContain('Comms')
     expect(frame).toContain('Research')
     expect(frame).toContain('Build')
     expect(frame).toContain('Alt+1…9 target')
@@ -126,8 +126,9 @@ describe('resident workspace surfaces', () => {
       ResidentInputTarget({ currentSessionId: 'build', sessions, t: DEFAULT_THEME })
     )
 
-    expect(frame).toContain('INPUT → Build')
-    expect(frame).toContain('Ctrl+X sessions')
+    expect(frame).toContain('To Build')
+    // Switching hints live once, in the sidebar beside the session list.
+    expect(frame).not.toContain('Ctrl+X')
   })
 
   it('renders a compact live pane for a background session', () => {

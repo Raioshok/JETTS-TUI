@@ -1,12 +1,12 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
-import { getTerminalBackends, selectTerminalBackend } from '@/freeide'
 import { useI18n } from '@/i18n'
+import { getTerminalBackends, selectTerminalBackend } from '@/jettstui'
 import { AlertTriangle, Check, Loader2, RefreshCw } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { notify, notifyError } from '@/store/notifications'
-import type { TerminalBackendInfo, TerminalBackendsResponse } from '@/types/freeide'
+import type { TerminalBackendInfo, TerminalBackendsResponse } from '@/types/jettstui'
 
 import { Pill } from './primitives'
 

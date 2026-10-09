@@ -268,7 +268,7 @@ export function useComposerState({
   )
 
   const openEditor = useCallback(async () => {
-    const dir = mkdtempSync(join(tmpdir(), 'freeide-'))
+    const dir = mkdtempSync(join(tmpdir(), 'jettstui-'))
     const file = join(dir, 'prompt.md')
     const [cmd, ...args] = resolveEditor()
 

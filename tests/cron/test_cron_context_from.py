@@ -11,20 +11,20 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 @pytest.fixture
 def cron_env(tmp_path, monkeypatch):
-    """Isolated cron environment with temp FREEIDE_HOME."""
-    freeide_home = tmp_path / ".freeide"
-    freeide_home.mkdir()
-    (freeide_home / "cron").mkdir()
-    (freeide_home / "cron" / "output").mkdir()
-    monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+    """Isolated cron environment with temp JETTSTUI_HOME."""
+    jettstui_home = tmp_path / ".jettstui"
+    jettstui_home.mkdir()
+    (jettstui_home / "cron").mkdir()
+    (jettstui_home / "cron" / "output").mkdir()
+    monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
     import cron.jobs as jobs_mod
-    monkeypatch.setattr(jobs_mod, "FREEIDE_DIR", freeide_home)
-    monkeypatch.setattr(jobs_mod, "CRON_DIR", freeide_home / "cron")
-    monkeypatch.setattr(jobs_mod, "JOBS_FILE", freeide_home / "cron" / "jobs.json")
-    monkeypatch.setattr(jobs_mod, "OUTPUT_DIR", freeide_home / "cron" / "output")
+    monkeypatch.setattr(jobs_mod, "JETTSTUI_DIR", jettstui_home)
+    monkeypatch.setattr(jobs_mod, "CRON_DIR", jettstui_home / "cron")
+    monkeypatch.setattr(jobs_mod, "JOBS_FILE", jettstui_home / "cron" / "jobs.json")
+    monkeypatch.setattr(jobs_mod, "OUTPUT_DIR", jettstui_home / "cron" / "output")
 
-    return freeide_home
+    return jettstui_home
 
 
 class TestJobContextFromField:

@@ -2,13 +2,12 @@ import { useCallback } from 'react'
 
 import { useTheme } from './context'
 
-// Retired skin names land on the canonical Nous skin so old muscle memory works.
+// Retired skin names land on the canonical Prism skin so old muscle memory works.
 const ALIASES: Record<string, string> = {
   ares: 'ember',
-  default: 'nous',
-  gold: 'nous',
-  freeide: 'nous',
-  'nous-light': 'nous'
+  default: 'jettstui',
+  gold: 'jettstui',
+  prism: 'jettstui'
 }
 
 export function useSkinCommand() {

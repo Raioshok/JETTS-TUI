@@ -3,21 +3,21 @@ import { useCallback, useEffect, useState } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Tip } from '@/components/ui/tooltip'
+import { useI18n } from '@/i18n'
 import {
   deleteSession,
-  getFreeIDEConfigRecord,
+  getJettsTUIConfigRecord,
   listAllProfileSessions,
-  saveFreeIDEConfig,
+  saveJettsTUIConfig,
   setSessionArchived
-} from '@/freeide'
-import { useI18n } from '@/i18n'
+} from '@/jettstui'
 import { sessionTitle } from '@/lib/chat-runtime'
 import { triggerHaptic } from '@/lib/haptics'
 import { Archive, ArchiveOff, FolderOpen, Loader2, Trash2 } from '@/lib/icons'
 import { notify, notifyError } from '@/store/notifications'
 import { untombstoneSessions } from '@/store/projects'
 import { applyConfiguredDefaultProjectDir, ensureDefaultWorkspaceCwd, setSessions } from '@/store/session'
-import type { FreeIDEConfigRecord, SessionInfo } from '@/types/freeide'
+import type { JettsTUIConfigRecord, SessionInfo } from '@/types/jettstui'
 
 import { EmptyState, ListRow, SectionHeading, SettingsContent, SettingsSkeleton, ToggleRow } from './primitives'
 import { useDeepLinkHighlight } from './use-deep-link-highlight'
@@ -193,20 +193,20 @@ export function SessionsSettings() {
 function AutoArchiveSetting() {
   const { t } = useI18n()
   const s = t.settings.sessions
-  const [config, setConfig] = useState<FreeIDEConfigRecord | null>(null)
+  const [config, setConfig] = useState<JettsTUIConfigRecord | null>(null)
   const [enabled, setEnabled] = useState(false)
   const [days, setDays] = useState(DEFAULT_AUTO_ARCHIVE_DAYS)
 
   useEffect(() => {
     // Config REST is only reachable through the Electron bridge; skip in
     // non-Electron contexts (tests/storybook) rather than throwing.
-    if (!window.freeideDesktop) {
+    if (!window.jettstuiDesktop) {
       return
     }
 
     let alive = true
 
-    void getFreeIDEConfigRecord()
+    void getJettsTUIConfigRecord()
       .then(record => {
         if (!alive) {
           return
@@ -243,7 +243,7 @@ function AutoArchiveSetting() {
       setConfig(updated)
 
       try {
-        await saveFreeIDEConfig(updated)
+        await saveJettsTUIConfig(updated)
       } catch (err) {
         notifyError(err, s.autoArchiveFailed)
       }
@@ -293,7 +293,7 @@ function AutoArchiveSetting() {
 
 // Lets the user pin the default cwd for new sessions. Without this, packaged
 // builds on Windows used to spawn sessions in the install dir (`win-unpacked`
-// / Program Files), which buried any files FreeIDE wrote there.
+// / Program Files), which buried any files JettsTUI wrote there.
 function DefaultProjectDirSetting() {
   const { t } = useI18n()
   const s = t.settings.sessions
@@ -303,11 +303,11 @@ function DefaultProjectDirSetting() {
 
   useEffect(() => {
     // The bridge is only present when running inside Electron. In a Vitest
-    // / Storybook / non-Electron context `window.freeideDesktop` is
+    // / Storybook / non-Electron context `window.jettstuiDesktop` is
     // undefined, so guard the WHOLE call chain rather than chaining
     // `?.settings.getDefaultProjectDir().then(...)` (the latter would
     // short-circuit to `undefined.then(...)` and throw at runtime).
-    const settings = window.freeideDesktop?.settings
+    const settings = window.jettstuiDesktop?.settings
 
     if (!settings) {
       return
@@ -331,7 +331,7 @@ function DefaultProjectDirSetting() {
   }, [])
 
   const choose = useCallback(async () => {
-    const settings = window.freeideDesktop?.settings
+    const settings = window.jettstuiDesktop?.settings
 
     if (!settings) {
       return
@@ -358,7 +358,7 @@ function DefaultProjectDirSetting() {
   }, [s])
 
   const clear = useCallback(async () => {
-    const settings = window.freeideDesktop?.settings
+    const settings = window.jettstuiDesktop?.settings
 
     if (!settings) {
       return

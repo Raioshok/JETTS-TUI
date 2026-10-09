@@ -7,14 +7,14 @@ import type {
   ToolsetInfo,
   ToolsetProvider,
 } from "@/lib/api";
-import { useToast } from "@nous-research/ui/hooks/use-toast";
-import { Button } from "@nous-research/ui/ui/components/button";
-import { Input } from "@nous-research/ui/ui/components/input";
-import { Label } from "@nous-research/ui/ui/components/label";
-import { Badge } from "@nous-research/ui/ui/components/badge";
-import { Switch } from "@nous-research/ui/ui/components/switch";
-import { Spinner } from "@nous-research/ui/ui/components/spinner";
-import { Toast } from "@nous-research/ui/ui/components/toast";
+import { useToast } from "@jettstui/ui/hooks/use-toast";
+import { Button } from "@jettstui/ui/ui/components/button";
+import { Input } from "@jettstui/ui/ui/components/input";
+import { Label } from "@jettstui/ui/ui/components/label";
+import { Badge } from "@jettstui/ui/ui/components/badge";
+import { Switch } from "@jettstui/ui/ui/components/switch";
+import { Spinner } from "@jettstui/ui/ui/components/spinner";
+import { Toast } from "@jettstui/ui/ui/components/toast";
 import { cn, themedBody } from "@/lib/utils";
 
 interface Props {
@@ -30,7 +30,7 @@ interface Props {
 
 /**
  * Full configuration surface for a single toolset's backends — the dashboard
- * equivalent of selecting a toolset in the `freeide tools` curses UI: toggle
+ * equivalent of selecting a toolset in the `jettstui tools` curses UI: toggle
  * the toolset on/off, pick a provider, enter API keys, and run a provider's
  * post-setup install hook (npm/pip/binary) with a live log tail.
  */
@@ -300,11 +300,6 @@ export function ToolsetConfigDrawer({ toolset, profile, onClose, onChanged }: Pr
                           {provider.badge}
                         </Badge>
                       )}
-                      {provider.requires_nous_auth && (
-                        <Badge tone="outline" className="text-xs">
-                          FreeIDE Portal
-                        </Badge>
-                      )}
                     </div>
                     {isActive ? (
                       <Badge tone="success" className="text-xs shrink-0">
@@ -352,7 +347,7 @@ export function ToolsetConfigDrawer({ toolset, profile, onClose, onChanged }: Pr
                           <Input
                             id={`env-${ev.key}`}
                             type="password"
-                            className="h-8 rounded-none text-xs font-mono"
+                            className="h-8 rounded-md text-xs font-mono"
                             placeholder={
                               isSet[ev.key]
                                 ? "•••••••• (saved — leave blank to keep)"

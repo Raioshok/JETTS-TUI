@@ -1,13 +1,13 @@
 """Tests for /compress --preview/--dry-run/--aggressive flags and the
 /compact alias (PR #3243 salvage).
 
-Covers the pure helpers in ``freeide_cli.partial_compress`` plus alias
+Covers the pure helpers in ``jettstui.partial_compress`` plus alias
 resolution in the command registry. The CLI and gateway surfaces both
 route through these helpers, so the flag semantics are pinned here once.
 """
 
-from freeide_cli.commands import COMMANDS, resolve_command
-from freeide_cli.partial_compress import (
+from jettstui.commands import COMMANDS, resolve_command
+from jettstui.partial_compress import (
     DEFAULT_KEEP_LAST,
     extract_compress_flags,
     parse_partial_compress_args,
@@ -39,8 +39,9 @@ def test_compact_alias_with_slash():
 
 
 def test_compact_listed_in_flat_commands():
-    assert "/compact" in COMMANDS
-    assert "alias for /compress" in COMMANDS["/compact"]
+    assert "/compress" in COMMANDS
+    assert "/compact" not in COMMANDS
+    assert resolve_command("compact").name == "compress"
 
 
 def test_compress_args_hint_documents_preview():

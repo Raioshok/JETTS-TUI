@@ -1,7 +1,7 @@
 """Regression test: set_runtime_main() must pass base_url/api_key/api_mode
 so that _resolve_auto() can route custom: providers in Step 1.
 
-Fixes https://github.com/freeide/freeide/issues/34777
+Fixes https://github.com/Raioshok/JETTS-TUI/issues/34777
 """
 import pytest
 from unittest.mock import patch, MagicMock
@@ -156,18 +156,18 @@ class TestResolveAutoCustomEndToEnd:
         import agent.auxiliary_client as mod
 
         # Hermetic: no aggregator creds, no stale OPENAI_BASE_URL.
-        for var in ("OPENROUTER_API_KEY", "NOUS_API_KEY", "OPENAI_API_KEY",
+        for var in ("OPENROUTER_API_KEY", "ACME_API_KEY", "OPENAI_API_KEY",
                     "OPENAI_BASE_URL"):
             monkeypatch.delenv(var, raising=False)
-        freeide_home = tmp_path / ".freeide"
-        freeide_home.mkdir()
-        (freeide_home / "config.yaml").write_text(
+        jettstui_home = tmp_path / ".jettstui"
+        jettstui_home.mkdir()
+        (jettstui_home / "config.yaml").write_text(
             "model:\n"
             "  default: glm-5.1\n"
             "  provider: 'custom:ephemeral'\n"
             "  base_url: ''\n"
         )
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
         mod.clear_runtime_main()
         try:
@@ -195,12 +195,12 @@ class TestResolveAutoCustomEndToEnd:
         broke the named-custom branch and returned None here."""
         import agent.auxiliary_client as mod
 
-        for var in ("OPENROUTER_API_KEY", "NOUS_API_KEY", "OPENAI_API_KEY",
+        for var in ("OPENROUTER_API_KEY", "ACME_API_KEY", "OPENAI_API_KEY",
                     "OPENAI_BASE_URL"):
             monkeypatch.delenv(var, raising=False)
-        freeide_home = tmp_path / ".freeide"
-        freeide_home.mkdir()
-        (freeide_home / "config.yaml").write_text(
+        jettstui_home = tmp_path / ".jettstui"
+        jettstui_home.mkdir()
+        (jettstui_home / "config.yaml").write_text(
             "model:\n"
             "  default: glm-5.1\n"
             "  provider: 'custom:openclaw'\n"
@@ -211,7 +211,7 @@ class TestResolveAutoCustomEndToEnd:
             "    model: glm-5.1\n"
             "    api_key: cfg-key\n"
         )
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
         # No live base_url carried — resolution must come from config alone,
         # via the named-custom branch in resolve_provider_client.
@@ -236,13 +236,13 @@ class TestResolveAutoCustomEndToEnd:
         AnthropicAuxiliaryClient pointed at the ORIGINAL /anthropic URL."""
         import agent.auxiliary_client as mod
 
-        for var in ("OPENROUTER_API_KEY", "NOUS_API_KEY", "OPENAI_API_KEY",
+        for var in ("OPENROUTER_API_KEY", "ACME_API_KEY", "OPENAI_API_KEY",
                     "OPENAI_BASE_URL"):
             monkeypatch.delenv(var, raising=False)
-        freeide_home = tmp_path / ".freeide"
-        freeide_home.mkdir()
+        jettstui_home = tmp_path / ".jettstui"
+        jettstui_home.mkdir()
         proxy_base = "https://acme.palantirfoundry.com/api/v2/llm/proxy/anthropic"
-        (freeide_home / "config.yaml").write_text(
+        (jettstui_home / "config.yaml").write_text(
             "model:\n"
             "  default: claude-4-6-opus\n"
             "  provider: 'custom:palantir'\n"
@@ -254,7 +254,7 @@ class TestResolveAutoCustomEndToEnd:
             "    api_key: foundry-token\n"
             "    api_mode: anthropic_messages\n"
         )
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
         mod.clear_runtime_main()
         try:

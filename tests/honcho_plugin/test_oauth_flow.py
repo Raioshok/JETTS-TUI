@@ -123,7 +123,7 @@ class _FakeAS(BaseHTTPRequestHandler):
             body["config"] = {
                 "peerName": "lyra",
                 "environment": "production",
-                "hosts": {"freeide": {"saveMessages": True, "recallMode": "hybrid"}},
+                "hosts": {"jettstui": {"saveMessages": True, "recallMode": "hybrid"}},
             }
         payload = json.dumps(body).encode()
         self.send_response(200)
@@ -148,7 +148,7 @@ def fake_as(monkeypatch):
     base = f"http://127.0.0.1:{port}"
     monkeypatch.setenv("HONCHO_OAUTH_AUTHORIZE_URL", f"{base}/authorize")
     monkeypatch.setenv("HONCHO_OAUTH_TOKEN_URL", f"{base}/oauth/token")
-    monkeypatch.setenv("HONCHO_OAUTH_CLIENT_ID", "freeide-desktop")
+    monkeypatch.setenv("HONCHO_OAUTH_CLIENT_ID", "jettstui-desktop")
     try:
         yield base
     finally:
@@ -178,7 +178,7 @@ def test_full_loopback_flow_then_refresh(tmp_path, fake_as):
 
     cred = oauth_flow.authorize_via_loopback(
         config_path=config_path,
-        host="freeide",
+        host="jettstui",
         open_url=lambda url: _browser_driver(url),
         timeout=10,
     )
@@ -186,19 +186,19 @@ def test_full_loopback_flow_then_refresh(tmp_path, fake_as):
     # Grant installed: token stored, config deep-merged, other host preserved.
     assert cred.access_token == "hch-at-1"
     saved = json.loads(config_path.read_text())
-    assert saved["hosts"]["freeide"]["apiKey"] == "hch-at-1"
-    assert saved["hosts"]["freeide"]["oauth"]["refreshToken"] == "hch-rt-1"
-    assert saved["hosts"]["freeide"]["recallMode"] == "hybrid"
+    assert saved["hosts"]["jettstui"]["apiKey"] == "hch-at-1"
+    assert saved["hosts"]["jettstui"]["oauth"]["refreshToken"] == "hch-rt-1"
+    assert saved["hosts"]["jettstui"]["recallMode"] == "hybrid"
     assert saved["environment"] == "production"
     assert saved["hosts"]["obsidian"] == {"workspace": "obsidian"}
 
     # Force expiry; ensure_fresh_token refreshes against the same AS and rotates.
     token, refreshed = oauth.ensure_fresh_token(
-        config_path, "freeide", now=saved["hosts"]["freeide"]["oauth"]["expiresAt"] + 10
+        config_path, "jettstui", now=saved["hosts"]["jettstui"]["oauth"]["expiresAt"] + 10
     )
     assert refreshed is True
     assert token == "hch-at-2"
-    rotated = json.loads(config_path.read_text())["hosts"]["freeide"]["oauth"]
+    rotated = json.loads(config_path.read_text())["hosts"]["jettstui"]["oauth"]
     assert rotated["refreshToken"] == "hch-rt-2"
 
 
@@ -208,51 +208,51 @@ def test_state_mismatch_is_rejected(fake_as, tmp_path):
     with pytest.raises(ValueError, match="unknown or expired"):
         oauth_flow.complete_authorization(
             endpoints, "code", "not-the-real-state",
-            config_path=tmp_path / "honcho.json", host="freeide",
+            config_path=tmp_path / "honcho.json", host="jettstui",
         )
 
 
 def test_source_tags_the_authorize_link(fake_as):
     endpoints = oauth_flow.resolve_endpoints()
-    url, _ = oauth_flow.begin_authorization(endpoints, source="freeide-cli")
-    assert "source=freeide-cli" in url
+    url, _ = oauth_flow.begin_authorization(endpoints, source="jettstui-cli")
+    assert "source=jettstui-cli" in url
     untagged, _ = oauth_flow.begin_authorization(endpoints)
     assert "source=" not in untagged
 
 
-def test_client_id_defaults_to_freeide_agent(monkeypatch):
+def test_client_id_defaults_to_jettstui_agent(monkeypatch):
     # One client for every surface; the env var overrides for unusual deployments.
     monkeypatch.delenv("HONCHO_OAUTH_CLIENT_ID", raising=False)
     common = {"environment": "production", "base_url": "https://api.honcho.dev"}
-    assert oauth_flow.resolve_endpoints(**common).client_id == "freeide-agent"
+    assert oauth_flow.resolve_endpoints(**common).client_id == "jettstui"
     monkeypatch.setenv("HONCHO_OAUTH_CLIENT_ID", "custom-id")
     assert oauth_flow.resolve_endpoints(**common).client_id == "custom-id"
 
 
 def test_grant_persists_default_client_id(tmp_path, fake_as, monkeypatch):
     # Drop the fixture's override so the default takes effect; the grant must
-    # store client_id=freeide-agent so refresh reuses the right client.
+    # store client_id=jettstui so refresh reuses the right client.
     monkeypatch.delenv("HONCHO_OAUTH_CLIENT_ID", raising=False)
     config_path = tmp_path / "honcho.json"
     config_path.write_text(json.dumps({"hosts": {}}))
 
     oauth_flow.authorize_via_loopback(
         config_path=config_path,
-        host="freeide",
-        source="freeide-cli",
+        host="jettstui",
+        source="jettstui-cli",
         apply_config=False,
         open_url=lambda url: _browser_driver(url),
         timeout=10,
     )
     saved = json.loads(config_path.read_text())
-    assert saved["hosts"]["freeide"]["oauth"]["clientId"] == "freeide-agent"
+    assert saved["hosts"]["jettstui"]["oauth"]["clientId"] == "jettstui"
 
 
 def test_config_path_rides_the_authorize_link(fake_as):
     endpoints = oauth_flow.resolve_endpoints()
-    url, _ = oauth_flow.begin_authorization(endpoints, config_path="~/.freeide/honcho.json")
+    url, _ = oauth_flow.begin_authorization(endpoints, config_path="~/.jettstui/honcho.json")
     q = parse_qs(urlparse(url).query)
-    assert q["config_path"][0] == "~/.freeide/honcho.json"
+    assert q["config_path"][0] == "~/.jettstui/honcho.json"
     bare, _ = oauth_flow.begin_authorization(endpoints)
     assert "config_path=" not in bare
 
@@ -261,27 +261,27 @@ def test_display_config_path_never_leaks_absolute_path():
     from pathlib import Path
 
     # Under home → collapsed to ~/…; outside home → bare filename only.
-    under_home = Path.home() / ".freeide" / "profiles" / "work" / "honcho.json"
-    assert oauth_flow._display_config_path(under_home) == "~/.freeide/profiles/work/honcho.json"
+    under_home = Path.home() / ".jettstui" / "profiles" / "work" / "honcho.json"
+    assert oauth_flow._display_config_path(under_home) == "~/.jettstui/profiles/work/honcho.json"
     assert oauth_flow._display_config_path("/var/folders/tmp/honcho.json") == "honcho.json"
 
 
 def test_cli_flow_stores_tokens_without_applying_config(tmp_path, fake_as):
     # apply_config=False (the CLI path): grant config must NOT touch settings.
     config_path = tmp_path / "honcho.json"
-    config_path.write_text(json.dumps({"hosts": {"freeide": {"saveMessages": False}}}))
+    config_path.write_text(json.dumps({"hosts": {"jettstui": {"saveMessages": False}}}))
 
     cred = oauth_flow.authorize_via_loopback(
         config_path=config_path,
-        host="freeide",
-        source="freeide-cli",
+        host="jettstui",
+        source="jettstui-cli",
         apply_config=False,
         open_url=lambda url: _browser_driver(url),
         timeout=10,
     )
 
     saved = json.loads(config_path.read_text())
-    host = saved["hosts"]["freeide"]
+    host = saved["hosts"]["jettstui"]
     assert host["apiKey"] == cred.access_token
     assert host["oauth"]["refreshToken"] == cred.refresh_token
     # Wizard-owned setting untouched; grant config keys absent.
@@ -334,7 +334,7 @@ def test_supports_device_login_from_metadata(fake_as):
     dead = oauth_flow.OAuthEndpoints(
         authorize_url="http://127.0.0.1:1/authorize",
         token_url="http://127.0.0.1:1/oauth/token",
-        client_id="freeide-agent",
+        client_id="jettstui",
         scope="write",
     )
     assert oauth_flow.supports_device_login(dead, timeout=0.2) is False
@@ -342,15 +342,15 @@ def test_supports_device_login_from_metadata(fake_as):
 
 def test_request_device_code_parses_response_and_sends_identity(fake_as):
     endpoints = oauth_flow.resolve_endpoints()
-    device = oauth_flow.request_device_code(endpoints, source="freeide-cli")
+    device = oauth_flow.request_device_code(endpoints, source="jettstui-cli")
     assert device.device_code == "dev-code-1"
     assert device.user_code == "ABCD-EFGH"
     assert device.verification_uri.endswith("/device")
     assert device.verification_uri_complete.endswith("?user_code=ABCD-EFGH")
     assert (device.expires_in, device.interval) == (600, 0)
-    assert _FakeAS.last_device_form["client_id"] == "freeide-desktop"
+    assert _FakeAS.last_device_form["client_id"] == "jettstui-desktop"
     assert _FakeAS.last_device_form["scope"] == "write"
-    assert _FakeAS.last_device_form["source"] == "freeide-cli"
+    assert _FakeAS.last_device_form["source"] == "jettstui-cli"
 
 
 def test_request_device_code_defaults_interval_when_omitted(monkeypatch):
@@ -374,22 +374,22 @@ def test_request_device_code_defaults_interval_when_omitted(monkeypatch):
 def test_full_device_flow_pending_then_approved(tmp_path, fake_as):
     _FakeAS.device_responses = ["authorization_pending", "authorization_pending", "ok"]
     config_path = tmp_path / "honcho.json"
-    config_path.write_text(json.dumps({"hosts": {"freeide": {"saveMessages": False}}}))
+    config_path.write_text(json.dumps({"hosts": {"jettstui": {"saveMessages": False}}}))
 
     clock = _FakeClock()
     cred = oauth_flow.authorize_via_device_code(
         config_path=config_path,
-        host="freeide",
-        source="freeide-cli",
+        host="jettstui",
+        source="jettstui-cli",
         apply_config=False,
         sleep=clock.sleep,
     )
 
     saved = json.loads(config_path.read_text())
-    host = saved["hosts"]["freeide"]
+    host = saved["hosts"]["jettstui"]
     assert host["apiKey"] == cred.access_token == "hch-at-1"
     assert host["oauth"]["refreshToken"] == "hch-rt-1"
-    assert host["oauth"]["clientId"] == "freeide-desktop"
+    assert host["oauth"]["clientId"] == "jettstui-desktop"
     assert host["oauth"]["tokenEndpoint"] == oauth_flow.resolve_endpoints().token_url
     # Wizard-owned settings untouched; consent peer name still surfaced.
     assert host["saveMessages"] is False
@@ -459,7 +459,7 @@ def test_device_flow_browser_open_is_caller_opt_in(tmp_path, fake_as):
     shown: list[oauth_flow.DeviceCode] = []
 
     oauth_flow.authorize_via_device_code(
-        config_path=config_path, host="freeide",
+        config_path=config_path, host="jettstui",
         display=shown.append, open_url=opened.append, sleep=lambda s: None,
     )
     assert opened == [shown[0].verification_uri_complete]
@@ -467,7 +467,7 @@ def test_device_flow_browser_open_is_caller_opt_in(tmp_path, fake_as):
     # No open_url → nothing opened; the flow still completes.
     config_path.write_text(json.dumps({"hosts": {}}))
     cred = oauth_flow.authorize_via_device_code(
-        config_path=config_path, host="freeide", sleep=lambda s: None,
+        config_path=config_path, host="jettstui", sleep=lambda s: None,
     )
     assert cred.access_token
 
@@ -531,10 +531,10 @@ def test_launcher_runs_flow_in_background_and_reports_connected(monkeypatch, res
     monkeypatch.setattr(oauth_flow, "authorize_via_loopback", fake)
     monkeypatch.setattr(oauth_flow, "_detect_connection", lambda: (True, "oauth"))
 
-    st = oauth_flow.start_loopback_flow_background(config_path=Path("/t/honcho.json"), host="freeide")
+    st = oauth_flow.start_loopback_flow_background(config_path=Path("/t/honcho.json"), host="jettstui")
     assert st["state"] == "pending"  # returns immediately, before the flow finishes
-    assert _wait_until(lambda: seen.get("source") == "freeide-desktop")  # default source tag
-    assert seen["host"] == "freeide"
+    assert _wait_until(lambda: seen.get("source") == "jettstui-desktop")  # default source tag
+    assert seen["host"] == "jettstui"
     gate.set()
     assert _wait_until(lambda: oauth_flow.get_flow_status()["state"] == "connected")
 
@@ -546,7 +546,7 @@ def test_launcher_reports_error_on_flow_failure(monkeypatch, reset_flow):
     monkeypatch.setattr(oauth_flow, "authorize_via_loopback", boom)
     monkeypatch.setattr(oauth_flow, "_detect_connection", lambda: (False, None))
 
-    oauth_flow.start_loopback_flow_background(config_path=Path("/t/honcho.json"), host="freeide")
+    oauth_flow.start_loopback_flow_background(config_path=Path("/t/honcho.json"), host="jettstui")
     assert _wait_until(lambda: oauth_flow.get_flow_status()["state"] == "error")
     assert "loopback bind failed" in oauth_flow.get_flow_status()["detail"]
 
@@ -562,9 +562,9 @@ def test_launcher_is_idempotent_while_pending(monkeypatch, reset_flow):
     monkeypatch.setattr(oauth_flow, "authorize_via_loopback", fake)
     monkeypatch.setattr(oauth_flow, "_detect_connection", lambda: (False, None))
 
-    s1 = oauth_flow.start_loopback_flow_background(config_path=Path("/t/h.json"), host="freeide")
+    s1 = oauth_flow.start_loopback_flow_background(config_path=Path("/t/h.json"), host="jettstui")
     assert _wait_until(lambda: len(calls) == 1)  # first flow is running
-    s2 = oauth_flow.start_loopback_flow_background(config_path=Path("/t/h.json"), host="freeide")
+    s2 = oauth_flow.start_loopback_flow_background(config_path=Path("/t/h.json"), host="jettstui")
     block.set()
     assert s1["state"] == "pending" and s2["state"] == "pending"
     assert _wait_until(lambda: oauth_flow.get_flow_status()["state"] == "connected")
@@ -576,20 +576,20 @@ def test_get_flow_status_reports_stored_connection(tmp_path, monkeypatch, reset_
 
     cfgfile = tmp_path / "honcho.json"
     monkeypatch.setattr(honcho_client, "resolve_config_path", lambda: cfgfile)
-    monkeypatch.setattr(honcho_client, "resolve_active_host", lambda: "freeide")
+    monkeypatch.setattr(honcho_client, "resolve_active_host", lambda: "jettstui")
     monkeypatch.delenv("HONCHO_API_KEY", raising=False)
 
-    cfgfile.write_text(json.dumps({"hosts": {"freeide": {}}}))
+    cfgfile.write_text(json.dumps({"hosts": {"jettstui": {}}}))
     assert oauth_flow.get_flow_status()["connected"] is False
 
-    cfgfile.write_text(json.dumps({"hosts": {"freeide": {"apiKey": "hch-v3-static"}}}))
+    cfgfile.write_text(json.dumps({"hosts": {"jettstui": {"apiKey": "hch-v3-static"}}}))
     s = oauth_flow.get_flow_status()
     assert s["connected"] is True and s["auth"] == "apikey"
 
-    cfgfile.write_text(json.dumps({"hosts": {"freeide": {
+    cfgfile.write_text(json.dumps({"hosts": {"jettstui": {
         "apiKey": "hch-at-tok",
         "oauth": {"refreshToken": "hch-rt-x", "expiresAt": 9_999_999_999,
-                  "clientId": "freeide-desktop", "tokenEndpoint": "http://x/oauth/token"},
+                  "clientId": "jettstui-desktop", "tokenEndpoint": "http://x/oauth/token"},
     }}}))
     s = oauth_flow.get_flow_status()
     assert s["connected"] is True and s["auth"] == "oauth"
@@ -599,7 +599,7 @@ def test_memory_oauth_router_dispatches_by_provider_convention():
     # The generic seam behind the two routes: provider → plugins.memory.<p>.oauth_flow.
     from fastapi import HTTPException
 
-    from freeide_cli.memory_oauth import _resolve_flow
+    from jettstui.memory_oauth import _resolve_flow
 
     mod = _resolve_flow("honcho")
     assert hasattr(mod, "start_loopback_flow_background") and hasattr(mod, "get_flow_status")

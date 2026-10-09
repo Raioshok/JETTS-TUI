@@ -16,7 +16,7 @@ only with ``--global`` (or ``model.persist_switch_by_default: true``).
 These tests drive the real ``_handle_model_command`` with a fake picker-capable
 adapter that captures the ``on_model_selected`` callback, then invoke that
 callback and assert ``config.yaml`` is (or isn't) updated — exercising the exact
-closure the PR changed, against a real temp ``FREEIDE_HOME``.
+closure the PR changed, against a real temp ``JETTSTUI_HOME``.
 """
 
 import types
@@ -66,7 +66,7 @@ def _make_event(text):
 
 def _fake_switch_result():
     """A successful ModelSwitchResult that bypasses real provider resolution."""
-    from freeide_cli.model_switch import ModelSwitchResult
+    from jettstui.model_switch import ModelSwitchResult
 
     return ModelSwitchResult(
         success=True,
@@ -84,15 +84,15 @@ def _fake_switch_result():
 def _stub_picker_dependencies(monkeypatch):
     monkeypatch.setattr("agent.models_dev.fetch_models_dev", lambda: {})
     monkeypatch.setattr(
-        "freeide_cli.model_switch.list_picker_providers",
+        "jettstui.model_switch.list_picker_providers",
         lambda **kw: [{"slug": "openrouter", "name": "OpenRouter", "models": ["gpt-5.5"]}],
     )
     monkeypatch.setattr(
-        "freeide_cli.model_switch.switch_model",
+        "jettstui.model_switch.switch_model",
         lambda **kw: _fake_switch_result(),
     )
     monkeypatch.setattr(
-        "freeide_cli.model_switch.resolve_display_context_length",
+        "jettstui.model_switch.resolve_display_context_length",
         lambda *a, **k: 272000,
     )
 
@@ -101,19 +101,19 @@ def _setup_isolated_home(tmp_path, monkeypatch, model_yaml_value):
     """Write a config.yaml with the given ``model:`` value and stub heavy bits."""
     import gateway.run as gateway_run
 
-    freeide_home = tmp_path / ".freeide"
-    freeide_home.mkdir()
-    cfg_path = freeide_home / "config.yaml"
+    jettstui_home = tmp_path / ".jettstui"
+    jettstui_home.mkdir()
+    cfg_path = jettstui_home / "config.yaml"
     cfg_path.write_text(
         yaml.safe_dump({"model": model_yaml_value, "providers": {}}),
         encoding="utf-8",
     )
 
-    monkeypatch.setattr(gateway_run, "_freeide_home", freeide_home)
+    monkeypatch.setattr(gateway_run, "_jettstui_home", jettstui_home)
     _stub_picker_dependencies(monkeypatch)
-    # save_config writes to ``get_freeide_home() / config.yaml`` — point it here.
-    monkeypatch.setattr("freeide_constants.get_freeide_home", lambda: freeide_home)
-    monkeypatch.setattr("freeide_cli.config.get_freeide_home", lambda: freeide_home)
+    # save_config writes to ``get_jettstui_home() / config.yaml`` — point it here.
+    monkeypatch.setattr("jettstui_constants.get_jettstui_home", lambda: jettstui_home)
+    monkeypatch.setattr("jettstui.config.get_jettstui_home", lambda: jettstui_home)
     return cfg_path
 
 
@@ -280,7 +280,7 @@ async def test_multiplex_picker_keeps_profile_adapter_and_callback_scope(
         resolved.append(get_secret("PROFILE_MODEL_KEY"))
         return _fake_switch_result()
 
-    monkeypatch.setattr("freeide_cli.model_switch.switch_model", _profile_switch)
+    monkeypatch.setattr("jettstui.model_switch.switch_model", _profile_switch)
     event = _named_event("--session")
 
     set_multiplex_active(True)
@@ -332,7 +332,7 @@ async def test_multiplex_picker_global_persists_only_named_profile(
     default_adapter = _FakePickerAdapter()
     named_adapter = _FakePickerAdapter()
     runner = _make_named_runner(monkeypatch, default_adapter, named_adapter, named_home)
-    monkeypatch.setattr(gateway_run, "_freeide_home", default_home)
+    monkeypatch.setattr(gateway_run, "_jettstui_home", default_home)
     _stub_picker_dependencies(monkeypatch)
     event = _named_event("--global")
 

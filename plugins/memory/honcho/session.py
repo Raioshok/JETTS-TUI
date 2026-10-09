@@ -72,7 +72,7 @@ class HonchoSessionManager:
     """
     Manages conversation sessions using Honcho.
 
-    Runs alongside freeide' existing SQLite state and file-based memory,
+    Runs alongside jettstui' existing SQLite state and file-based memory,
     adding persistent cross-session user modeling via Honcho's AI-native memory.
     """
 
@@ -385,7 +385,7 @@ class HonchoSessionManager:
         user_peer_id = self._resolve_user_peer_id(key)
 
         assistant_peer_id = self._sanitize_id(
-            self._config.ai_peer if self._config else "freeide-assistant"
+            self._config.ai_peer if self._config else "jettstui-assistant"
         )
 
         # All expensive I/O outside the lock — Honcho's persistence is source of truth
@@ -659,7 +659,7 @@ class HonchoSessionManager:
                 target_peer = self._get_or_create_peer(target_peer_id)
                 result = target_peer.chat(query, reasoning_level=level) or ""
 
-            # Only automatic injection uses the FreeIDE-side character cap.
+            # Only automatic injection uses the JettsTUI-side character cap.
             if (
                 apply_injection_cap
                 and result
@@ -749,7 +749,7 @@ class HonchoSessionManager:
         except Exception as e:
             logger.warning("Failed to fetch user context from Honcho: %s", e)
 
-        # Also fetch AI peer's own representation so FreeIDE knows itself.
+        # Also fetch AI peer's own representation so JettsTUI knows itself.
         try:
             ai_ctx = self._fetch_peer_context(session.assistant_peer_id, target=session.assistant_peer_id)
             result["ai_representation"] = ai_ctx["representation"]
@@ -840,7 +840,7 @@ class HonchoSessionManager:
 
         Args:
             session_key: The session key to associate files with.
-            memory_dir: Path to the memories directory (~/.freeide/memories/).
+            memory_dir: Path to the memories directory (~/.jettstui/memories/).
 
         Returns:
             True if at least one file was uploaded, False otherwise.

@@ -1,6 +1,6 @@
 """Session adapter for codex app-server runtime.
 
-Owns one Codex thread per FreeIDE session. Drives `turn/start`, consumes
+Owns one Codex thread per JettsTUI session. Drives `turn/start`, consumes
 streaming notifications via CodexEventProjector, handles server-initiated
 approval requests (apply_patch, exec command), translates cancellation,
 and returns a clean turn result that AIAgent.run_conversation() can splice
@@ -50,9 +50,9 @@ _STDERR_TAIL_LINES = 12
 
 
 # Permission profile mapping mirrors the docstring in PR proposal:
-# FreeIDE' tools.terminal.security_mode → Codex's permissions profile id.
+# JettsTUI' tools.terminal.security_mode → Codex's permissions profile id.
 # Defaults if config is missing → workspace-write (matches Codex's own default).
-_FREEIDE_TO_CODEX_PERMISSION_PROFILE = {
+_JETTSTUI_TO_CODEX_PERMISSION_PROFILE = {
     "auto": "workspace-write",
     "approval-required": "read-only-with-approval",
     "unrestricted": "full-access",
@@ -166,7 +166,7 @@ def _notification_belongs_to_turn(
 
 
 def _coerce_turn_input_text(user_input: Any) -> str:
-    """Collapse FreeIDE/OpenAI rich content into app-server text input.
+    """Collapse JettsTUI/OpenAI rich content into app-server text input.
 
     The current `turn/start` path sends text items only. TUI image attachment
     can hand us OpenAI-style content parts, so keep the text/path hints and
@@ -263,7 +263,7 @@ class _ServerRequestRouting:
 
 
 class CodexAppServerSession:
-    """One Codex thread per FreeIDE session, lifetime owned by AIAgent.
+    """One Codex thread per JettsTUI session, lifetime owned by AIAgent.
 
     Not thread-safe — one caller drives it at a time, matching how AIAgent's
     run_conversation() loop is structured today. The codex client itself can
@@ -287,8 +287,8 @@ class CodexAppServerSession:
         self._codex_bin = codex_bin
         self._codex_home = codex_home
         self._permission_profile = (
-            permission_profile or _FREEIDE_TO_CODEX_PERMISSION_PROFILE.get(
-                os.environ.get("FREEIDE_TERMINAL_SECURITY_MODE", "auto"),
+            permission_profile or _JETTSTUI_TO_CODEX_PERMISSION_PROFILE.get(
+                os.environ.get("JETTSTUI_TERMINAL_SECURITY_MODE", "auto"),
                 "workspace-write",
             )
         )
@@ -323,9 +323,9 @@ class CodexAppServerSession:
                 codex_bin=self._codex_bin, codex_home=self._codex_home
             )
         self._client.initialize(
-            client_name="freeide",
-            client_title="FreeIDE Agent",
-            client_version=_get_freeide_version(),
+            client_name="jettstui",
+            client_title="JettsTUI",
+            client_version=_get_jettstui_version(),
         )
         # Permission selection is intentionally NOT sent on thread/start.
         # Two reasons (live-tested against codex 0.130.0):
@@ -477,7 +477,7 @@ class CodexAppServerSession:
     ) -> TurnResult:
         """Send a user message and block until turn/completed, while
         forwarding server-initiated approval requests and projecting items
-        into FreeIDE' messages shape.
+        into JettsTUI' messages shape.
 
         post_tool_quiet_timeout: if codex emits a tool completion and then
         goes quiet for this many seconds without emitting another item or
@@ -517,7 +517,7 @@ class CodexAppServerSession:
         user_input_text = _coerce_turn_input_text(user_input)
 
         # Send turn/start with the user input. Text-only for now (codex
-        # supports rich content but FreeIDE' text path is the common case).
+        # supports rich content but JettsTUI' text path is the common case).
         try:
             ts = self._client.request(
                 "turn/start",
@@ -996,7 +996,7 @@ class CodexAppServerSession:
             logger.warning("turn/interrupt timed out")
 
     def _handle_server_request(self, req: dict) -> None:
-        """Translate a codex server request (approval) into FreeIDE' approval
+        """Translate a codex server request (approval) into JettsTUI' approval
         flow, then send the response.
 
         Method names verified live against codex 0.130.0 (Apr 2026):
@@ -1028,14 +1028,14 @@ class CodexAppServerSession:
         elif method == "mcpServer/elicitation/request":
             # Codex's MCP layer asks the user for structured input on
             # behalf of an MCP server (e.g. tool-call confirmation,
-            # OAuth, form data). For our own freeide-tools callback we
-            # auto-accept — the user already approved FreeIDE' tools
+            # OAuth, form data). For our own jettstui-tools callback we
+            # auto-accept — the user already approved JettsTUI' tools
             # by enabling the runtime, and we never expose anything
             # codex's built-in shell can't already do. For other MCP
             # servers we decline so the user explicitly opts in via
             # codex's own auth flow.
             server_name = params.get("serverName") or ""
-            if server_name == "freeide-tools":
+            if server_name == "jettstui-tools":
                 self._client.respond(
                     rid,
                     {"action": "accept", "content": None, "_meta": None},
@@ -1224,10 +1224,10 @@ def _apply_compaction_notification(result: TurnResult, note: dict) -> None:
 
 
 def _approval_choice_to_codex_decision(choice: str) -> str:
-    """Map FreeIDE approval choices onto codex's CommandExecutionApprovalDecision
+    """Map JettsTUI approval choices onto codex's CommandExecutionApprovalDecision
     / FileChangeApprovalDecision wire values.
 
-    FreeIDE returns 'once', 'session', 'always', or 'deny'.
+    JettsTUI returns 'once', 'session', 'always', or 'deny'.
     Codex expects 'accept', 'acceptForSession', 'decline', or 'cancel'
     (verified against codex-rs/app-server-protocol/src/protocol/v2/item.rs
     on codex 0.130.0).
@@ -1257,11 +1257,11 @@ def _has_turn_aborted_marker(text: str) -> bool:
     return False
 
 
-def _get_freeide_version() -> str:
-    """Best-effort FreeIDE version string for codex's userAgent line."""
+def _get_jettstui_version() -> str:
+    """Best-effort JettsTUI version string for codex's userAgent line."""
     try:
         from importlib.metadata import version
 
-        return version("freeide-agent")
+        return version("jettstui")
     except Exception:  # pragma: no cover
         return "0.0.0"

@@ -40,7 +40,7 @@ interface MessageStreamOptions {
     runtimeSessionId?: string | null
   ) => Promise<void>
   queryClient: QueryClient
-  refreshFreeIDEConfig: () => Promise<void>
+  refreshJettsTUIConfig: () => Promise<void>
   refreshSessions: () => Promise<void>
   sessionStateByRuntimeIdRef: MutableRefObject<Map<string, ClientSessionState>>
   updateSessionState: (
@@ -67,7 +67,7 @@ export function useMessageStream({
   activeSessionIdRef,
   hydrateFromStoredSession,
   queryClient,
-  refreshFreeIDEConfig,
+  refreshJettsTUIConfig,
   refreshSessions,
   sessionStateByRuntimeIdRef,
   updateSessionState
@@ -245,7 +245,7 @@ export function useMessageStream({
     // last-block markdown re-parse cost is roughly linear in current block
     // length. With this floor, slower streams still coalesce ~2 tokens per
     // commit and the synthetic harness shows longtask counts drop from ~5/5s
-    // to ~1/5s on big sessions (see scripts/profile-typing-lag.md).
+    // to ~1/5s on big sessions.
     //
     // ADAPTIVE: the floor scales with what the last flush actually cost.
     // With several sessions streaming at once (split tiles), one flush carries
@@ -623,7 +623,7 @@ export function useMessageStream({
         const streamId = state.streamId ?? `assistant-error-${Date.now()}`
         const groupId = state.pendingBranchGroup ?? undefined
         const prev = state.messages
-        const error = errorMessage.trim() || 'FreeIDE reported an error'
+        const error = errorMessage.trim() || 'JettsTUI reported an error'
 
         const nextMessages = prev.some(m => m.id === streamId)
           ? prev.map(message =>
@@ -677,7 +677,7 @@ export function useMessageStream({
     flushQueuedDeltas,
     finalizeInterimAssistantMessage,
     queryClient,
-    refreshFreeIDEConfig,
+    refreshJettsTUIConfig,
     sessionInterrupted,
     sessionStateByRuntimeIdRef,
     updateSessionState,

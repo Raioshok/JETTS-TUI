@@ -3,7 +3,7 @@
 Mounted at /api/plugins/kanban/ by the dashboard plugin system.
 
 This layer is intentionally thin: every handler is a small wrapper around
-``freeide_cli.kanban_db`` or a direct SQL query. Writes use the same code
+``jettstui.kanban_db`` or a direct SQL query. Writes use the same code
 paths the CLI and gateway ``/kanban`` command use, so the three surfaces
 cannot drift.
 
@@ -18,15 +18,15 @@ Plugin HTTP routes go through the dashboard's session-token auth middleware
 ``/api/plugins/...`` request must present the session bearer token (or the
 session cookie set when you load the dashboard HTML). The token is the
 random per-process ``_SESSION_TOKEN`` printed at startup; the dashboard's
-own pages inject it via ``window.__FREEIDE_SESSION_TOKEN__`` so logged-in
+own pages inject it via ``window.__JETTSTUI_SESSION_TOKEN__`` so logged-in
 browsers don't have to handle it manually.
 
 For the ``/events`` WebSocket we still require the session token as a
 ``?token=`` query parameter (browsers cannot set the ``Authorization``
 header on an upgrade request), matching the established pattern used by
-the in-browser PTY bridge in ``freeide_cli/web_server.py``.
+the in-browser PTY bridge in ``jettstui/web_server.py``.
 
-This means ``freeide dashboard --host 0.0.0.0`` is safe to run on a LAN:
+This means ``jettstui dashboard --host 0.0.0.0`` is safe to run on a LAN:
 plugin routes are no longer an unauthenticated exception. The auth still
 isn't multi-user — anyone who can read the printed URL+token gets full
 dashboard access — but they can't ride along just because they can reach
@@ -48,8 +48,8 @@ from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile, Web
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from freeide_cli import kanban_db
-from freeide_cli import kanban_diagnostics as kd
+from jettstui import kanban_db
+from jettstui import kanban_diagnostics as kd
 
 log = logging.getLogger(__name__)
 
@@ -63,7 +63,7 @@ router = APIRouter()
 
 def _ws_upgrade_authorized(ws: "WebSocket") -> bool:
     """Authorize a WebSocket upgrade by delegating to the dashboard's canonical
-    WS auth gate (``freeide_cli.web_server._ws_auth_ok``).
+    WS auth gate (``jettstui.web_server._ws_auth_ok``).
 
     Delegating (rather than re-implementing a ``_SESSION_TOKEN``-only check)
     means this endpoint transparently accepts whatever the core gate accepts
@@ -85,7 +85,7 @@ def _ws_upgrade_authorized(ws: "WebSocket") -> bool:
     the prior behaviour.
     """
     try:
-        from freeide_cli import web_server as _ws
+        from jettstui import web_server as _ws
     except Exception:
         # No dashboard context (tests). Accept so the tail loop is still
         # testable; in production the dashboard module always imports
@@ -253,11 +253,11 @@ def _compute_task_diagnostics(
     and return ``{task_id: [diagnostic_dict, ...]}``.
 
     Tasks with no active diagnostics are omitted from the result.
-    Uses ``freeide_cli.kanban_diagnostics`` — see that module for the
+    Uses ``jettstui.kanban_diagnostics`` — see that module for the
     rule definitions.
     """
-    from freeide_cli import kanban_diagnostics as kd
-    from freeide_cli.config import load_config
+    from jettstui import kanban_diagnostics as kd
+    from jettstui.config import load_config
 
     diag_config = kd.config_from_runtime_config(load_config())
 
@@ -325,7 +325,7 @@ def _warnings_summary_from_diagnostics(
     """
     if not diagnostics:
         return None
-    from freeide_cli.kanban_diagnostics import SEVERITY_ORDER
+    from jettstui.kanban_diagnostics import SEVERITY_ORDER
 
     kinds: dict[str, int] = {}
     latest = 0
@@ -393,7 +393,7 @@ def get_board(
     install doesn't surface a "failed to load" error on the plugin tab.
 
     ``board`` selects which board to read from. Omitting it falls
-    through to the active board (``FREEIDE_KANBAN_BOARD`` env → on-disk
+    through to the active board (``JETTSTUI_KANBAN_BOARD`` env → on-disk
     ``current`` pointer → ``default``).
     """
     board = _resolve_board(board)
@@ -646,15 +646,15 @@ def create_task(payload: CreateTaskBody, board: Optional[str] = Query(None)):
         # and unassigned tasks can't be dispatched regardless.
         if task and task.status == "ready" and task.assignee:
             try:
-                from freeide_cli.kanban import _check_dispatcher_presence
-                from freeide_constants import get_freeide_home
+                from jettstui.kanban import _check_dispatcher_presence
+                from jettstui_constants import get_jettstui_home
 
                 # Scope the probe to the request's active home. The dashboard
-                # backend can run under a different FREEIDE_HOME than the
+                # backend can run under a different JETTSTUI_HOME than the
                 # profile this board belongs to, which otherwise warned "no
                 # gateway is running" against a live profile gateway (#71211).
                 running, message = _check_dispatcher_presence(
-                    freeide_home=get_freeide_home()
+                    jettstui_home=get_jettstui_home()
                 )
                 if not running and message:
                     body["warning"] = message
@@ -677,7 +677,7 @@ def create_task(payload: CreateTaskBody, board: Optional[str] = Query(None)):
 # implementation and cannot drift. ``_safe_attachment_name`` raises a plain
 # ``ValueError`` there; the upload handler's ``except ValueError`` below maps
 # it to a 400, preserving the previous response.
-from freeide_cli.kanban_db import (  # noqa: E402
+from jettstui.kanban_db import (  # noqa: E402
     KANBAN_ATTACHMENT_MAX_BYTES,
     _collision_free_path,
     _safe_attachment_name,
@@ -823,7 +823,7 @@ class UpdateTaskBody(BaseModel):
     result: Optional[str] = None
     block_reason: Optional[str] = None
     # Structured handoff fields — forwarded to complete_task when status
-    # transitions to 'done'. Dashboard parity with ``freeide kanban
+    # transitions to 'done'. Dashboard parity with ``jettstui kanban
     # complete --summary ... --metadata ...``.
     summary: Optional[str] = None
     metadata: Optional[dict] = None
@@ -1309,7 +1309,7 @@ def bulk_update(payload: BulkTaskBody, board: Optional[str] = Query(None)):
 
 # ---------------------------------------------------------------------------
 # Diagnostics — fleet-wide distress signals (hallucinations, crashes,
-# spawn failures, stuck-blocked). See freeide_cli.kanban_diagnostics for
+# spawn failures, stuck-blocked). See jettstui.kanban_diagnostics for
 # the rule engine.
 # ---------------------------------------------------------------------------
 
@@ -1327,7 +1327,7 @@ def list_diagnostics(
 
     Severity-filterable so the UI can render "just the critical ones"
     or the CLI can grep. Useful for the board-header attention strip
-    AND for ``freeide kanban diagnostics`` which shells to this
+    AND for ``jettstui kanban diagnostics`` which shells to this
     endpoint when the dashboard's running, or invokes the engine
     directly when it isn't.
     """
@@ -1372,7 +1372,7 @@ def list_diagnostics(
                 "diagnostics": dl,
             })
         # Sort: highest severity first, then most recent.
-        from freeide_cli.kanban_diagnostics import SEVERITY_ORDER
+        from jettstui.kanban_diagnostics import SEVERITY_ORDER
         sev_idx = {s: i for i, s in enumerate(SEVERITY_ORDER)}
         def _sort_key(row):
             top = row["diagnostics"][0]
@@ -1623,7 +1623,7 @@ def reclaim_task_endpoint(
     Used by the dashboard recovery popover when an operator wants to
     abort a stuck worker (e.g. one that keeps hallucinating card ids)
     without waiting for the claim TTL. Maps 1:1 to
-    ``freeide kanban reclaim <task_id> --reason ...``.
+    ``jettstui kanban reclaim <task_id> --reason ...``.
     """
     board = _resolve_board(board)
     conn = _conn(board=board)
@@ -1657,7 +1657,7 @@ def specify_task_endpoint(
     board: Optional[str] = Query(None),
 ):
     """Flesh out a triage-column task via the auxiliary LLM and promote
-    it to ``todo``. Maps 1:1 to ``freeide kanban specify <task_id>``.
+    it to ``todo``. Maps 1:1 to ``jettstui kanban specify <task_id>``.
 
     Returns the outcome shape used by the CLI: ``{ok, task_id, reason,
     new_title}``. A non-OK outcome is NOT an HTTP error — the UI renders
@@ -1673,13 +1673,13 @@ def specify_task_endpoint(
     # Pin the board for the duration of this call so the specifier module
     # (which calls ``kb.connect()`` with no args) hits the right DB. Use a
     # context-local override rather than mutating the process-global
-    # FREEIDE_KANBAN_BOARD env var — this endpoint runs in FastAPI's
+    # JETTSTUI_KANBAN_BOARD env var — this endpoint runs in FastAPI's
     # threadpool, so two concurrent requests for different boards would
     # otherwise race on the shared env var and cross-write (issue #38323).
     with kanban_db.scoped_current_board(board or kanban_db.DEFAULT_BOARD):
         # Import lazily so a missing auxiliary client at import time
         # doesn't break plugin load.
-        from freeide_cli import kanban_specify  # noqa: WPS433 (intentional)
+        from jettstui import kanban_specify  # noqa: WPS433 (intentional)
 
         outcome = kanban_specify.specify_task(
             task_id,
@@ -1711,7 +1711,7 @@ def reassign_task_endpoint(
     Used by the dashboard recovery popover when an operator wants to
     retry a task with a different worker profile (e.g. switch to a
     smarter model after the assigned profile keeps hallucinating).
-    Maps 1:1 to ``freeide kanban reassign <task_id> <profile> [--reclaim]``.
+    Maps 1:1 to ``jettstui kanban reassign <task_id> <profile> [--reclaim]``.
     """
     board = _resolve_board(board)
     conn = _conn(board=board)
@@ -1741,14 +1741,14 @@ def reassign_task_endpoint(
 
 @router.get("/config")
 def get_config():
-    """Return kanban dashboard preferences from ~/.freeide/config.yaml.
+    """Return kanban dashboard preferences from ~/.jettstui/config.yaml.
 
     Reads the ``dashboard.kanban`` section if present; defaults otherwise.
     Used by the UI to pre-select tenant filters, toggle markdown rendering,
     or set column-width preferences without a round-trip per page load.
     """
     try:
-        from freeide_cli.config import load_config
+        from jettstui.config import load_config
         cfg = load_config() or {}
     except Exception:
         cfg = {}
@@ -1811,9 +1811,9 @@ def _configured_home_channels() -> list[dict]:
 
 
 def _active_profile_name() -> str:
-    """Return the current FreeIDE profile name for notify-sub ownership."""
+    """Return the current JettsTUI profile name for notify-sub ownership."""
     try:
-        from freeide_cli.profiles import get_active_profile_name
+        from jettstui.profiles import get_active_profile_name
         return get_active_profile_name() or "default"
     except Exception:
         return "default"
@@ -1946,7 +1946,7 @@ def get_stats(board: Optional[str] = Query(None)):
 def get_assignees(board: Optional[str] = Query(None)):
     """Known profiles + per-profile task counts.
 
-    Returns the union of ``~/.freeide/profiles/*`` on disk and every
+    Returns the union of ``~/.jettstui/profiles/*`` on disk and every
     distinct assignee currently used on the board. The dashboard uses
     this to populate its assignee dropdown so a freshly-created profile
     appears in the picker before it's been given any task.
@@ -2033,15 +2033,15 @@ def model_options():
     """Authenticated providers + curated model lists for the task drawer's
     model-override dropdown.
 
-    Thin wrapper around ``freeide_cli.inventory.build_models_payload`` — the
+    Thin wrapper around ``jettstui.inventory.build_models_payload`` — the
     same substrate the dashboard Models page and the TUI picker use, so the
-    dropdown can never offer a model/provider pair the rest of FreeIDE
+    dropdown can never offer a model/provider pair the rest of JettsTUI
     wouldn't accept. Deliberately skips pricing/capability enrichment and
     custom-provider probes: the dropdown needs names fast, not $/Mtok
     columns (a slow/offline local endpoint must not hang the drawer).
     """
     try:
-        from freeide_cli.inventory import build_models_payload, load_picker_context
+        from jettstui.inventory import build_models_payload, load_picker_context
 
         payload = build_models_payload(
             load_picker_context(),
@@ -2266,7 +2266,7 @@ def list_profile_roster():
     just less precisely.
     """
     try:
-        from freeide_cli import profiles as profiles_mod
+        from jettstui import profiles as profiles_mod
         profiles = profiles_mod.list_profiles()
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"failed to list profiles: {exc}")
@@ -2296,12 +2296,12 @@ def update_profile_description(profile_name: str, payload: DescribeBody):
     ``--overwrite``.
     """
     try:
-        from freeide_cli import profiles as profiles_mod
+        from jettstui import profiles as profiles_mod
         canon = profiles_mod.normalize_profile_name(profile_name)
         if canon == "default":
-            from freeide_constants import get_freeide_home  # type: ignore
+            from jettstui_constants import get_jettstui_home  # type: ignore
             from pathlib import Path as _Path
-            profile_dir = _Path(get_freeide_home())
+            profile_dir = _Path(get_jettstui_home())
         else:
             profile_dir = profiles_mod.get_profile_dir(canon)
         if not profile_dir.is_dir():
@@ -2326,13 +2326,13 @@ def auto_describe_profile(profile_name: str, payload: DescribeAutoBody):
     ``description_auto: true`` so the dashboard can surface a "review"
     badge.
 
-    Maps 1:1 to ``freeide profile describe <name> --auto``. Non-OK
+    Maps 1:1 to ``jettstui profile describe <name> --auto``. Non-OK
     outcomes are NOT HTTP errors — the UI renders the reason inline
     (e.g. "no auxiliary client configured") so the operator can fix
     config and retry without a page reload.
     """
     try:
-        from freeide_cli import profile_describer  # noqa: WPS433 (intentional)
+        from jettstui import profile_describer  # noqa: WPS433 (intentional)
         outcome = profile_describer.describe_profile(
             profile_name,
             overwrite=bool(payload.overwrite),
@@ -2363,7 +2363,7 @@ def decompose_task_endpoint(
 ):
     """Fan a triage-column task out into a graph of child tasks via the
     auxiliary LLM, routed to specialist profiles by description. Maps
-    1:1 to ``freeide kanban decompose <task_id>``.
+    1:1 to ``jettstui kanban decompose <task_id>``.
 
     Returns the outcome shape used by the CLI: ``{ok, task_id, reason,
     fanout, child_ids, new_title}``. A non-OK outcome is NOT an HTTP
@@ -2375,10 +2375,10 @@ def decompose_task_endpoint(
     board = _resolve_board(board)
     # Context-local board pin (see specify endpoint above): this sync
     # endpoint runs in FastAPI's threadpool, so mutating the process-global
-    # FREEIDE_KANBAN_BOARD env var would let concurrent requests for
+    # JETTSTUI_KANBAN_BOARD env var would let concurrent requests for
     # different boards race and cross-write (issue #38323).
     with kanban_db.scoped_current_board(board or kanban_db.DEFAULT_BOARD):
-        from freeide_cli import kanban_decompose  # noqa: WPS433 (intentional)
+        from jettstui import kanban_decompose  # noqa: WPS433 (intentional)
         outcome = kanban_decompose.decompose_task(
             task_id,
             author=(payload.author or None),
@@ -2411,7 +2411,7 @@ def get_orchestration_settings():
     """Return the current kanban orchestration knobs from config.yaml
     plus the resolved effective values (filling in fallbacks)."""
     try:
-        from freeide_cli.config import load_config
+        from jettstui.config import load_config
         cfg = load_config() or {}
     except Exception:
         cfg = {}
@@ -2425,7 +2425,7 @@ def get_orchestration_settings():
     resolved_orch = explicit_orch
     resolved_default = explicit_default
     try:
-        from freeide_cli import profiles as profiles_mod
+        from jettstui import profiles as profiles_mod
         active_default = profiles_mod.get_active_profile_name() or "default"
         if not resolved_orch or not profiles_mod.profile_exists(resolved_orch):
             resolved_orch = active_default
@@ -2451,7 +2451,7 @@ def get_orchestration_settings():
 
 @router.put("/orchestration")
 def set_orchestration_settings(payload: OrchestrationSettingsBody):
-    """Update the kanban orchestration knobs in ~/.freeide/config.yaml.
+    """Update the kanban orchestration knobs in ~/.jettstui/config.yaml.
 
     Each field is optional — only fields explicitly passed are
     written. ``orchestrator_profile`` / ``default_assignee`` accept
@@ -2459,7 +2459,7 @@ def set_orchestration_settings(payload: OrchestrationSettingsBody):
     profile.
     """
     try:
-        from freeide_cli.config import load_config, save_config
+        from jettstui.config import load_config, save_config
         cfg = load_config() or {}
     except Exception as exc:
         raise HTTPException(status_code=500, detail=f"failed to load config: {exc}")
@@ -2471,7 +2471,7 @@ def set_orchestration_settings(payload: OrchestrationSettingsBody):
 
     # Validate any non-empty profile names exist before saving.
     try:
-        from freeide_cli import profiles as profiles_mod
+        from jettstui import profiles as profiles_mod
     except Exception:
         profiles_mod = None  # type: ignore
 

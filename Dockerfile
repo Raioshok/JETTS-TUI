@@ -52,22 +52,22 @@ FROM node:22-bookworm-slim@sha256:7af03b14a13c8cdd38e45058fd957bf00a72bbe17feac4
 FROM debian:13.4
 
 # Disable Python stdout buffering to ensure logs are printed immediately.
-# Do not write .pyc files at runtime: /opt/freeide is immutable in the
+# Do not write .pyc files at runtime: /opt/jettstui is immutable in the
 # published container and writable state belongs under /opt/data.
 ENV PYTHONUNBUFFERED=1
 ENV PYTHONDONTWRITEBYTECODE=1
 
 # Store Playwright browsers outside the volume mount so the build-time
 # install survives the /opt/data volume overlay at runtime.
-ENV PLAYWRIGHT_BROWSERS_PATH=/opt/freeide/.playwright
+ENV PLAYWRIGHT_BROWSERS_PATH=/opt/jettstui/.playwright
 
 # Install system dependencies in one layer, clear APT cache.
 # tini was previously PID 1 to reap orphaned zombie processes (MCP stdio
-# subprocesses, git, bun, etc.) that would otherwise accumulate when freeide
+# subprocesses, git, bun, etc.) that would otherwise accumulate when jettstui
 # ran as PID 1. See #15012. Phase 2 of the s6-overlay supervision plan
 # replaces tini with s6-overlay's /init (PID 1 = s6-svscan), which reaps
 # zombies non-blockingly on SIGCHLD and additionally supervises the main
-# freeide process, the dashboard, and per-profile gateways.
+# jettstui process, the dashboard, and per-profile gateways.
 RUN apt-get -o Acquire::Retries=3 update && \
     apt-get -o Acquire::Retries=3 install -y --no-install-recommends \
     ca-certificates curl iputils-ping python3 python-is-python3 ripgrep ffmpeg gcc g++ make cmake python3-dev python3-venv libffi-dev libolm-dev procps git openssh-client docker-cli xz-utils && \
@@ -86,12 +86,12 @@ v = sqlite3.sqlite_version_info; \
 sys.exit(f'linked SQLite {sqlite3.sqlite_version} still has the WAL-reset bug') if v < (3, 51, 3) else None; \
 db = sqlite3.connect(':memory:'); \
 db.execute(\"CREATE VIRTUAL TABLE docs USING fts5(content, tokenize='trigram')\"); \
-db.execute(\"INSERT INTO docs VALUES ('freeide')\"); \
-sys.exit('SQLite FTS5 trigram self-test failed') if db.execute(\"SELECT count(*) FROM docs WHERE docs MATCH 'erm'\").fetchone()[0] != 1 else None; \
+db.execute(\"INSERT INTO docs VALUES ('jettstui')\"); \
+sys.exit('SQLite FTS5 trigram self-test failed') if db.execute(\"SELECT count(*) FROM docs WHERE docs MATCH 'jet'\").fetchone()[0] != 1 else None; \
 db.close()"
 
 # ---------- s6-overlay install ----------
-# s6-overlay provides supervision for the main freeide process, the dashboard,
+# s6-overlay provides supervision for the main jettstui process, the dashboard,
 # and per-profile gateways. /init becomes PID 1 below — see ENTRYPOINT.
 #
 # Multi-arch: BuildKit auto-populates TARGETARCH (amd64 / arm64). s6-overlay
@@ -136,7 +136,7 @@ RUN set -eu; \
 
 # #34192 / #66679: backward-compat shim for orchestration templates that
 # still reference the legacy /usr/bin/tini entrypoint (Hostinger's
-# 'FreeIDE WebUI' catalog, NAS compose projects that preserve an old
+# 'JettsTUI WebUI' catalog, NAS compose projects that preserve an old
 # entrypoint on image update, etc.). A plain symlink to /init made the
 # path exist, but forwarded tini flags like `-g` into s6-overlay's
 # rc.init as the container CMD (`rc.init: 91: -g: not found`) and
@@ -146,8 +146,8 @@ RUN set -eu; \
 # updated.
 COPY --chmod=0755 docker/tini-shim.sh /usr/bin/tini
 
-# Non-root user for runtime; UID can be overridden via FREEIDE_UID at runtime
-RUN useradd -u 10000 -m -d /opt/data freeide
+# Non-root user for runtime; UID can be overridden via JETTSTUI_UID at runtime
+RUN useradd -u 10000 -m -d /opt/data jettstui
 
 COPY --chmod=0755 --from=uv_source /usr/local/bin/uv /usr/local/bin/uvx /usr/local/bin/
 
@@ -163,7 +163,7 @@ RUN ln -sf /usr/local/lib/node_modules/npm/bin/npm-cli.js /usr/local/bin/npm && 
     ln -sf /usr/local/lib/node_modules/npm/bin/npx-cli.js /usr/local/bin/npx && \
     ln -sf /usr/local/lib/node_modules/corepack/dist/corepack.js /usr/local/bin/corepack
 
-WORKDIR /opt/freeide
+WORKDIR /opt/jettstui
 
 # ---------- Layer-cached dependency install ----------
 # Copy only package manifests first so npm install + Playwright are cached
@@ -225,7 +225,7 @@ RUN npm install --prefer-offline --no-audit --fetch-retries=5 && \
 # lazy-install access to PyPI (often blocked in containerized envs).
 #
 # The hindsight memory provider's client (hindsight-client) is baked in
-# for the same reason: it lazy-installs into /opt/freeide/.venv at first
+# for the same reason: it lazy-installs into /opt/jettstui/.venv at first
 # use, which lives inside the (immutable) image layer rather than the
 # mounted /opt/data volume, so it is lost on every container recreate /
 # image update and recall/retain then fails with
@@ -258,46 +258,47 @@ RUN cd web && npm run build && \
 # the final read-only permissions at copy time so we skip the separate
 # `chmod -R` pass that previously walked ~30k files across the venv +
 # node_modules + source (21s amd64 / 222s arm64 — #49113).  `a+rX,go-w`
-# gives the non-root freeide user read + traverse but no write; root retains
+# gives the non-root jettstui user read + traverse but no write; root retains
 # write so the build steps below don't need chmod u+w dances.
 COPY --link --chmod=a+rX,go-w . .
 
 # ---------- Permissions ----------
-# Link freeide-agent itself (editable). Deps are already installed in the
+# Link jettstui-agent itself (editable). Deps are already installed in the
 # cached layer above; `--no-deps` makes this a fast egg-link creation with no
 # resolution or downloads.
 RUN uv pip install --no-cache-dir --no-deps -e "."
 
-# Wire the exec shim and install-method stamp.  Files under /opt/freeide are
+# Wire the exec shim and install-method stamp.  Files under /opt/jettstui are
 # already root-owned (COPY, uv sync, npm install all run as root) and
-# read-only for the freeide user (go-w from the --chmod above).
+# read-only for the jettstui user (go-w from the --chmod above).
 
 USER root
-RUN mkdir -p /opt/freeide/bin && \
-    cp /opt/freeide/docker/freeide-exec-shim.sh /opt/freeide/bin/freeide && \
-    chmod 0755 /opt/freeide/bin/freeide && \
-    printf 'docker\n' > /opt/freeide/.install_method
+RUN mkdir -p /opt/jettstui/bin && \
+    cp /opt/jettstui/docker/jetts-tui-exec-shim.sh /opt/jettstui/bin/jettstui && \
+    chmod 0755 /opt/jettstui/bin/jettstui && \
+    ln -sf jettstui /opt/jettstui/bin/jetts-tui && \
+    printf 'docker\n' > /opt/jettstui/.install_method
 # The ``.install_method`` stamp is baked next to the running code (the install
-# tree), NOT into $FREEIDE_HOME. $FREEIDE_HOME (/opt/data) is a shared data
+# tree), NOT into $JETTSTUI_HOME. $JETTSTUI_HOME (/opt/data) is a shared data
 # volume that is commonly bind-mounted from the host and even shared with a
 # host-side Desktop/CLI install; stamping it at boot used to clobber that
-# host install's marker and wrongly block its ``freeide update``. A code-scoped
+# host install's marker and wrongly block its ``jettstui update``. A code-scoped
 # stamp is read first by detect_install_method() and is immune to the share.
 # Start as root so the s6-overlay stage2 hook can usermod/groupmod and chown
-# the data volume. Each supervised service then drops to the freeide user via
-# `s6-setuidgid freeide` in its run script. If FREEIDE_UID is unset, services
-# run as the default freeide user (UID 10000).
+# the data volume. Each supervised service then drops to the jettstui user via
+# `s6-setuidgid jettstui` in its run script. If JETTSTUI_UID is unset, services
+# run as the default jettstui user (UID 10000).
 
 # ---------- Bake build-time git revision ----------
 # .dockerignore excludes .git, so `git rev-parse HEAD` from inside the
-# container always returns nothing — meaning `freeide dump` reports
+# container always returns nothing — meaning `jettstui dump` reports
 # "(unknown)" and the startup banner drops its `· upstream <sha>` suffix.
 # That makes support triage from container bug reports impossible:
 # we can't tell which commit the user is actually running.
 #
-# Fix: write the commit SHA passed via the FREEIDE_GIT_SHA build-arg to
-# /opt/freeide/.freeide_build_sha at build time, and have
-# freeide_cli/build_info.py read it at runtime.  Both `freeide dump` and
+# Fix: write the commit SHA passed via the JETTSTUI_GIT_SHA build-arg to
+# /opt/jettstui/.jettstui_build_sha at build time, and have
+# jettstui/build_info.py read it at runtime.  Both `jettstui dump` and
 # banner.get_git_banner_state() try the baked SHA first, then fall back
 # to live `git rev-parse` for source installs (unchanged behaviour).
 #
@@ -305,13 +306,13 @@ RUN mkdir -p /opt/freeide/bin && \
 # omits the file, and the runtime falls back to live-git lookup.  CI
 # (.github/workflows/docker.yml) passes ${{ github.sha }} so
 # every published image has it.
-ARG FREEIDE_GIT_SHA=
-RUN if [ -n "${FREEIDE_GIT_SHA}" ]; then \
-        printf '%s\n' "${FREEIDE_GIT_SHA}" > /opt/freeide/.freeide_build_sha; \
+ARG JETTSTUI_GIT_SHA=
+RUN if [ -n "${JETTSTUI_GIT_SHA}" ]; then \
+        printf '%s\n' "${JETTSTUI_GIT_SHA}" > /opt/jettstui/.jettstui_build_sha; \
     fi
 
 # ---------- s6-overlay service wiring ----------
-# Static services declared at build time: main-freeide + dashboard.
+# Static services declared at build time: main-jettstui + dashboard.
 # Per-profile gateway services are registered dynamically at runtime by
 # the profile create/delete hooks (Phase 4); they live under
 # /run/service/ (tmpfs) and are reconciled on container restart by
@@ -320,24 +321,24 @@ COPY docker/s6-rc.d/ /etc/s6-overlay/s6-rc.d/
 
 # stage2-hook handles UID/GID remap, volume chown, config seeding,
 # skills sync — all the work the old entrypoint.sh did before
-# `exec freeide`. Wired in as cont-init.d/01- so it
+# `exec jettstui`. Wired in as cont-init.d/01- so it
 # runs before user services start.
 #
 # 02-reconcile-profiles re-creates per-profile gateway s6 service
-# slots from $FREEIDE_HOME/profiles/<name>/ after a container restart
+# slots from $JETTSTUI_HOME/profiles/<name>/ after a container restart
 # (the /run/service/ scandir is tmpfs and wiped on restart). Phase 4.
 RUN mkdir -p /etc/cont-init.d && \
-    printf '#!/command/with-contenv sh\nexec /opt/freeide/docker/stage2-hook.sh\n' \
-        > /etc/cont-init.d/01-freeide-setup && \
-    chmod +x /etc/cont-init.d/01-freeide-setup
+    printf '#!/command/with-contenv sh\nexec /opt/jettstui/docker/stage2-hook.sh\n' \
+        > /etc/cont-init.d/01-jettstui-setup && \
+    chmod +x /etc/cont-init.d/01-jettstui-setup
 COPY --chmod=0755 docker/cont-init.d/015-supervise-perms /etc/cont-init.d/015-supervise-perms
 COPY --chmod=0755 docker/cont-init.d/02-reconcile-profiles /etc/cont-init.d/02-reconcile-profiles
 
 # ---------- Runtime ----------
-ENV FREEIDE_WEB_DIST=/opt/freeide/freeide_cli/web_dist
+ENV JETTSTUI_WEB_DIST=/opt/jettstui/jettstui/web_dist
 # Point the TUI launcher at the prebuilt bundle baked at build time (Layer 8:
 # `ui-tui && npm run build`). This makes _make_tui_argv take the prebuilt-bundle
-# fast path (`node --expose-gc /opt/freeide/ui-tui/dist/entry.js`) and skip the
+# fast path (`node --expose-gc /opt/jettstui/ui-tui/dist/entry.js`) and skip the
 # _tui_need_npm_install / runtime `npm install` branch entirely — exactly the
 # nix/packaged-release path the launcher was designed for.
 #
@@ -351,11 +352,11 @@ ENV FREEIDE_WEB_DIST=/opt/freeide/freeide_cli/web_dist
 # embedded-chat (/api/pty) connections → ENOTEMPTY → the chat tab dies with a
 # 502 / "[session ended]". Pointing at the prebuilt bundle sidesteps the whole
 # check. (A separate launcher hardening is tracked independently.)
-ENV FREEIDE_TUI_DIR=/opt/freeide/ui-tui
-ENV FREEIDE_HOME=/opt/data
-ENV FREEIDE_WRITE_SAFE_ROOT=/opt/data
-ENV FREEIDE_DISABLE_LAZY_INSTALLS=1
-# The published image seals /opt/freeide (root-owned, read-only) so a runtime
+ENV JETTSTUI_TUI_DIR=/opt/jettstui/ui-tui
+ENV JETTSTUI_HOME=/opt/data
+ENV JETTSTUI_WRITE_SAFE_ROOT=/opt/data
+ENV JETTSTUI_DISABLE_LAZY_INSTALLS=1
+# The published image seals /opt/jettstui (root-owned, read-only) so a runtime
 # lazy install can't mutate the agent's own venv and brick it. But opt-in
 # backends (Firecrawl web search, Exa, Feishu, …) keep their SDKs in
 # tools/lazy_deps.py — deliberately NOT baked into [all] (see pyproject.toml
@@ -364,35 +365,35 @@ ENV FREEIDE_DISABLE_LAZY_INSTALLS=1
 # lazy_deps appends this dir to the END of sys.path, so a package installed
 # here can only ADD modules — it can never shadow or downgrade a core module,
 # so the sealed-venv guarantee holds even with installs re-enabled. The dir
-# is seeded + chowned to the freeide user by docker/stage2-hook.sh and lives
+# is seeded + chowned to the jettstui user by docker/stage2-hook.sh and lives
 # on the /opt/data volume, so it persists across container recreates / image
 # updates (an ABI stamp invalidates it if a rebuild bumps the interpreter).
-ENV FREEIDE_LAZY_INSTALL_TARGET=/opt/data/lazy-packages
+ENV JETTSTUI_LAZY_INSTALL_TARGET=/opt/data/lazy-packages
 
 # `docker exec` privilege-drop shim. When operators run
-# `docker exec <c> freeide ...` they default to root, and any file the
-# command writes under $FREEIDE_HOME (auth.json, .env, config.yaml) ends
+# `docker exec <c> jettstui ...` they default to root, and any file the
+# command writes under $JETTSTUI_HOME (auth.json, .env, config.yaml) ends
 # up root-owned and unreadable to the supervised gateway (UID 10000).
-# The shim lives at /opt/freeide/bin/freeide, sits earliest on PATH, and
-# transparently re-exec's the real venv binary via `s6-setuidgid freeide`
+# The shim lives at /opt/jettstui/bin/jettstui (linked as jetts-tui), sits earliest on PATH, and
+# transparently re-exec's the real venv binary via `s6-setuidgid jettstui`
 # when invoked as root. Non-root callers (supervised processes,
-# `--user freeide`, etc.) hit the short-circuit path with no overhead.
+# `--user jettstui`, etc.) hit the short-circuit path with no overhead.
 # Recursion is impossible because the shim exec's the venv binary by
-# absolute path (/opt/freeide/.venv/bin/freeide). See the shim source for
-# the opt-out env var (FREEIDE_DOCKER_EXEC_AS_ROOT=1).
+# absolute path (/opt/jettstui/.venv/bin/jettstui). See the shim source for
+# the opt-out env var (JETTSTUI_DOCKER_EXEC_AS_ROOT=1).
 
 # Pre-s6 entrypoint.sh did `source .venv/bin/activate` which exported
 # the venv bin onto PATH; Architecture B's main-wrapper.sh does the
 # same for the container's main process, but `docker exec` and our
 # cont-init.d scripts don't pass through the wrapper. Expose the venv
-# bin globally so `docker exec <container> freeide ...` and any
-# subprocess that doesn't activate the venv first still find freeide.
+# bin globally so `docker exec <container> jettstui ...` and any
+# subprocess that doesn't activate the venv first still find jetts-tui.
 #
-# /opt/freeide/bin is prepended ahead of the venv so the privilege-drop
+# /opt/jettstui/bin is prepended ahead of the venv so the privilege-drop
 # shim wins PATH resolution. The shim's last act is to exec the venv
 # binary by absolute path, so this PATH ordering is transparent to
 # every other consumer.
-ENV PATH="/opt/freeide/bin:/opt/freeide/.venv/bin:/opt/data/.local/bin:${PATH}"
+ENV PATH="/opt/jettstui/bin:/opt/jettstui/.venv/bin:/opt/data/.local/bin:${PATH}"
 RUN mkdir -p /opt/data
 VOLUME [ "/opt/data" ]
 
@@ -413,10 +414,10 @@ VOLUME [ "/opt/data" ]
 #   docker run <image> sleep infinity   → /init main-wrapper.sh sleep infinity
 #   docker run <image> --tui            → /init main-wrapper.sh --tui
 #
-# main-wrapper.sh handles arg routing (bare-exec vs. freeide
-# subcommand vs. no-args), drops to the freeide user via s6-setuidgid,
+# main-wrapper.sh handles arg routing (bare-exec vs. jettstui
+# subcommand vs. no-args), drops to the jettstui user via s6-setuidgid,
 # and exec's the final program so its exit code becomes the container
 # exit code. Without the wrapper-as-ENTRYPOINT, leading-dash args
 # like `--version` would be intercepted by /init's POSIX shell.
-ENTRYPOINT [ "/init", "/opt/freeide/docker/main-wrapper.sh" ]
+ENTRYPOINT [ "/init", "/opt/jettstui/docker/main-wrapper.sh" ]
 CMD [ ]

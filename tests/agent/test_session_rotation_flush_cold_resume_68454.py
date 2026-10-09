@@ -16,7 +16,7 @@ from __future__ import annotations
 from pathlib import Path
 from types import SimpleNamespace
 
-from freeide_state import SessionDB
+from jettstui_state import SessionDB
 from run_agent import AIAgent
 
 

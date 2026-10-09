@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import * as notifications from '@/store/notifications'
-import type { OAuthProvider } from '@/types/freeide'
+import type { OAuthProvider } from '@/types/jettstui'
 
 import {
   $desktopOnboarding,
@@ -9,13 +9,14 @@ import {
   type OnboardingContext,
   refreshOnboarding,
   requestDesktopOnboarding,
+  saveOnboardingApiKey,
   saveOnboardingLocalEndpoint,
   submitOnboardingCode
 } from './onboarding'
 
 function provider(id: string, name = id): OAuthProvider {
   return {
-    cli_command: `freeide login ${id}`,
+    cli_command: `jettstui login ${id}`,
     docs_url: `https://example.com/${id}`,
     flow: 'pkce',
     id,
@@ -40,7 +41,7 @@ function baseState(overrides: Partial<DesktopOnboardingState> = {}): DesktopOnbo
 }
 
 function installApiMock(api: (request: { path: string }) => Promise<unknown>) {
-  Object.defineProperty(window, 'freeideDesktop', {
+  Object.defineProperty(window, 'jettstuiDesktop', {
     configurable: true,
     value: { api }
   })
@@ -152,7 +153,7 @@ describe('refreshOnboarding', () => {
 
     installApiMock(api)
     // Simulate a returning user: cache is set and store is configured.
-    window.localStorage.setItem('freeide-desktop-onboarded-v1', '1')
+    window.localStorage.setItem('jettstui-desktop-onboarded-v1', '1')
     $desktopOnboarding.set(
       baseState({
         configured: true,
@@ -169,7 +170,7 @@ describe('refreshOnboarding', () => {
     expect($desktopOnboarding.get().configured).toBe(true)
     expect($desktopOnboarding.get().reason).toBeNull()
     // The cache must survive the refresh — proving we didn't downgrade.
-    expect(window.localStorage.getItem('freeide-desktop-onboarded-v1')).toBe('1')
+    expect(window.localStorage.getItem('jettstui-desktop-onboarded-v1')).toBe('1')
   })
 
   it('shows a non-blocking notification when preserving configured on fallback', async () => {
@@ -198,7 +199,7 @@ describe('refreshOnboarding', () => {
 
   it('enters setup when the selected OpenRouter credential is genuinely empty', async () => {
     installApiMock(vi.fn())
-    window.localStorage.setItem('freeide-desktop-onboarded-v1', '1')
+    window.localStorage.setItem('jettstui-desktop-onboarded-v1', '1')
     $desktopOnboarding.set(
       baseState({
         configured: true,
@@ -213,7 +214,7 @@ describe('refreshOnboarding', () => {
     expect(ready).toBe(false)
     expect($desktopOnboarding.get().configured).toBe(false)
     expect($desktopOnboarding.get().reason).toContain('No usable credentials found for openrouter.')
-    expect(window.localStorage.getItem('freeide-desktop-onboarded-v1')).toBeNull()
+    expect(window.localStorage.getItem('jettstui-desktop-onboarded-v1')).toBeNull()
   })
 
   it('keeps a keyless custom runtime out of setup', async () => {
@@ -324,6 +325,107 @@ describe('OAuth onboarding', () => {
     vi.restoreAllMocks()
   })
 
+  it('does not switch to an unrelated provider when the newly connected provider is absent from model options', async () => {
+    const calls: string[] = []
+
+    installApiMock(async ({ path }: { path: string }) => {
+      calls.push(path)
+
+      if (path === '/api/env') {
+        return { ok: true }
+      }
+
+      if (path.startsWith('/api/model/options')) {
+        return { providers: [{ name: 'Anthropic', slug: 'anthropic', models: ['claude-example'] }] }
+      }
+
+      throw new Error(`unexpected api path: ${path}`)
+    })
+
+    const requestGateway: OnboardingContext['requestGateway'] = async method => {
+      if (method === 'reload.env') {
+        return {} as never
+      }
+
+      if (method === 'setup.status') {
+        return { provider_configured: true } as never
+      }
+
+      if (method === 'setup.runtime_check') {
+        return { ok: true } as never
+      }
+
+      throw new Error(`unexpected gateway method: ${method}`)
+    }
+
+    const result = await saveOnboardingApiKey(
+      'OPENROUTER_API_KEY',
+      'test-key',
+      'OpenRouter',
+      onboardingContext(requestGateway)
+    )
+
+    expect(result.ok).toBe(true)
+    expect(calls).not.toContain('/api/model/set')
+    expect($desktopOnboarding.get().configured).toBe(true)
+  })
+
+  it('uses the picker provider slug when it differs from the API-key environment name', async () => {
+    const model = 'special/model'
+    const calls: string[] = []
+
+    installApiMock(async ({ path }: { path: string }) => {
+      calls.push(path)
+
+      if (path === '/api/env' || path === '/api/model/set') {
+        return { ok: true }
+      }
+
+      if (path.startsWith('/api/model/options')) {
+        return { providers: [{ name: 'Special', slug: 'backend-special', models: [model] }] }
+      }
+
+      if (path.startsWith('/api/model/recommended-default')) {
+        return { provider: 'backend-special', model }
+      }
+
+      throw new Error(`unexpected api path: ${path}`)
+    })
+
+    const requestGateway: OnboardingContext['requestGateway'] = async method => {
+      if (method === 'reload.env') {
+        return {} as never
+      }
+
+      if (method === 'setup.status') {
+        return { provider_configured: true } as never
+      }
+
+      if (method === 'setup.runtime_check') {
+        return { ok: true } as never
+      }
+
+      throw new Error(`unexpected gateway method: ${method}`)
+    }
+
+    const result = await saveOnboardingApiKey(
+      'SPECIAL_API_KEY',
+      'test-key',
+      'Special',
+      onboardingContext(requestGateway),
+      undefined,
+      'backend-special'
+    )
+
+    expect(result.ok).toBe(true)
+    expect(calls).toContain('/api/model/set')
+    expect($desktopOnboarding.get().flow).toMatchObject({
+      status: 'confirming_model',
+      providerSlug: 'backend-special',
+      currentModel: model
+    })
+  })
+
   it('clears stale readiness errors after OAuth succeeds and model confirmation is shown', async () => {
     const model = 'anthropic/claude-opus-4.8'
     const calls: { body?: unknown; path: string }[] = []
@@ -331,7 +433,7 @@ describe('OAuth onboarding', () => {
     installApiMock(async ({ body, path }: { body?: unknown; path: string }) => {
       calls.push({ body, path })
 
-      if (path === '/api/providers/oauth/nous/submit') {
+      if (path === '/api/providers/oauth/example-oauth/submit') {
         return { ok: true, status: 'approved' }
       }
 
@@ -339,8 +441,8 @@ describe('OAuth onboarding', () => {
         return {
           providers: [
             {
-              name: 'FreeIDE Portal',
-              slug: 'nous',
+              name: 'Example OAuth',
+              slug: 'example-oauth',
               models: [model]
             }
           ]
@@ -348,11 +450,11 @@ describe('OAuth onboarding', () => {
       }
 
       if (path.startsWith('/api/model/recommended-default?')) {
-        return { provider: 'nous', model, free_tier: false }
+        return { provider: 'example-oauth', model }
       }
 
       if (path === '/api/model/set') {
-        return { ok: true, provider: 'nous', model, gateway_tools: [] }
+        return { ok: true, provider: 'example-oauth', model }
       }
 
       throw new Error(`unexpected api path: ${path}`)
@@ -368,7 +470,7 @@ describe('OAuth onboarding', () => {
       }
 
       if (method === 'setup.runtime_check') {
-        expect(params).toEqual({ provider: 'nous' })
+        expect(params).toEqual({ provider: 'example-oauth' })
 
         return { ok: true } as never
       }
@@ -380,17 +482,17 @@ describe('OAuth onboarding', () => {
       baseState({
         flow: {
           status: 'awaiting_user',
-          provider: provider('nous', 'FreeIDE Portal'),
+          provider: provider('example-oauth', 'Example OAuth'),
           start: {
-            auth_url: 'https://portal.example/auth',
+            auth_url: 'https://login.example/auth',
             expires_in: 600,
             flow: 'pkce',
-            session_id: 'portal-session'
+            session_id: 'example-session'
           },
           code: 'fresh-code'
         },
         reason:
-          'No access token found for FreeIDE Portal login. setup.status reports configured credentials, but runtime resolution still failed.',
+          'No access token found for Example OAuth login. setup.status reports configured credentials, but runtime resolution still failed.',
         requested: true
       })
     )
@@ -402,7 +504,7 @@ describe('OAuth onboarding', () => {
     expect(state.flow.status).toBe('confirming_model')
 
     if (state.flow.status === 'confirming_model') {
-      expect(state.flow.label).toBe('FreeIDE Portal')
+      expect(state.flow.label).toBe('Example OAuth')
       expect(state.flow.currentModel).toBe(model)
     }
 

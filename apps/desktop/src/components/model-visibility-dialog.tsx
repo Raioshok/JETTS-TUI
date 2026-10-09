@@ -8,8 +8,8 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { DisclosureCaret } from '@/components/ui/disclosure-caret'
 import { GlyphSpinner } from '@/components/ui/glyph-spinner'
 import { Switch } from '@/components/ui/switch'
-import type { FreeIDEGateway } from '@/freeide'
 import { useI18n } from '@/i18n'
+import type { JettsTUIGateway } from '@/jettstui'
 import { Search } from '@/lib/icons'
 import { modelOptionsQueryKey, requestModelOptions } from '@/lib/model-options'
 import { displayModelName, modelDisplayParts } from '@/lib/model-status-label'
@@ -24,10 +24,10 @@ import {
   toggleModelVisibility
 } from '@/store/model-visibility'
 import { $collapsedProviders, toggleCollapsedProvider } from '@/store/provider-collapse'
-import type { ModelOptionProvider, ModelOptionsResponse } from '@/types/freeide'
+import type { ModelOptionProvider, ModelOptionsResponse } from '@/types/jettstui'
 
 interface ModelVisibilityDialogProps {
-  gw?: FreeIDEGateway
+  gw?: JettsTUIGateway
   onOpenChange: (open: boolean) => void
   onOpenProviders: () => void
   open: boolean

@@ -1,6 +1,6 @@
 """xAI (Grok) provider profile."""
 
-from freeide_cli import __version__ as _FREEIDE_VERSION
+from jettstui import __version__ as _JETTSTUI_VERSION
 from providers import register_provider
 from providers.base import ProviderProfile
 
@@ -11,7 +11,7 @@ xai = ProviderProfile(
     env_vars=("XAI_API_KEY",),
     base_url="https://api.x.ai/v1",
     auth_type="api_key",
-    default_headers={"User-Agent": f"FreeIDE-Agent/{_FREEIDE_VERSION}"},
+    default_headers={"User-Agent": f"JettsTUI-Agent/{_JETTSTUI_VERSION}"},
 )
 
 register_provider(xai)

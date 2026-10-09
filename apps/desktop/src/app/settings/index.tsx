@@ -3,12 +3,11 @@ import { useLocation, useNavigate } from 'react-router-dom'
 
 import { codiconIcon } from '@/components/ui/codicon'
 import { Tip } from '@/components/ui/tooltip'
-import { getFreeIDEConfigDefaults, getFreeIDEConfigRecord, saveFreeIDEConfig } from '@/freeide'
 import { useI18n } from '@/i18n'
+import { getJettsTUIConfigDefaults, getJettsTUIConfigRecord, saveJettsTUIConfig } from '@/jettstui'
 import { triggerHaptic } from '@/lib/haptics'
 import {
   Archive,
-  BarChart3,
   Bell,
   Download,
   Globe,
@@ -32,7 +31,6 @@ import { SKILLS_ROUTE } from '../routes'
 
 import { AboutSettings } from './about-settings'
 import { AppearanceSettings } from './appearance-settings'
-import { BillingSettings } from './billing'
 import { ConfigSettings } from './config-settings'
 import { SECTIONS } from './constants'
 import { GatewaySettings } from './gateway-settings'
@@ -51,7 +49,6 @@ const SETTINGS_VIEWS: readonly SettingsViewId[] = [
   'keybinds',
   'keys',
   'notifications',
-  'billing',
   'plugins',
   'sessions',
   'about'
@@ -106,12 +103,12 @@ export function SettingsView({ onClose, onConfigSaved, onMainModelChanged }: Set
 
   const exportConfig = async () => {
     try {
-      const cfg = await getFreeIDEConfigRecord()
+      const cfg = await getJettsTUIConfigRecord()
       const blob = new Blob([JSON.stringify(cfg, null, 2)], { type: 'application/json' })
       const url = URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = 'freeide-config.json'
+      a.download = 'jettstui-config.json'
       a.click()
       URL.revokeObjectURL(url)
       triggerHaptic('success')
@@ -126,7 +123,7 @@ export function SettingsView({ onClose, onConfigSaved, onMainModelChanged }: Set
     }
 
     try {
-      await saveFreeIDEConfig(await getFreeIDEConfigDefaults())
+      await saveJettsTUIConfig(await getJettsTUIConfigDefaults())
       triggerHaptic('success')
       onConfigSaved?.()
     } catch (err) {
@@ -152,13 +149,6 @@ export function SettingsView({ onClose, onConfigSaved, onMainModelChanged }: Set
       id: 'notifications',
       label: t.settings.nav.notifications,
       onSelect: () => setActiveView('notifications')
-    },
-    {
-      active: activeView === 'billing',
-      icon: BarChart3,
-      id: 'billing',
-      label: t.settings.nav.billing,
-      onSelect: () => setActiveView('billing')
     },
     {
       active: activeView === 'providers',
@@ -316,8 +306,6 @@ export function SettingsView({ onClose, onConfigSaved, onMainModelChanged }: Set
             <KeysSettings view={keysView} />
           ) : activeView === 'notifications' ? (
             <NotificationsSettings />
-          ) : activeView === 'billing' ? (
-            <BillingSettings />
           ) : activeView === 'plugins' ? (
             <PluginsSettings />
           ) : (

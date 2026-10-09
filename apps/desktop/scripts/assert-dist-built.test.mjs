@@ -7,7 +7,7 @@ import { test } from 'vitest'
 import { checkDistBuilt } from '../scripts/assert-dist-built.mjs'
 
 function makeDist(extra) {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'freeide-assert-dist-'))
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'jettstui-assert-dist-'))
   const distDir = path.join(tempRoot, 'dist')
   fs.mkdirSync(distDir, { recursive: true })
   if (extra) extra(distDir)
@@ -28,7 +28,7 @@ test('checkDistBuilt passes when index.html + an assets JS bundle exist', () => 
 })
 
 test('checkDistBuilt fails when the dist directory is absent', () => {
-  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'freeide-assert-dist-'))
+  const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'jettstui-assert-dist-'))
   try {
     const result = checkDistBuilt(path.join(tempRoot, 'dist'))
     assert.equal(result.ok, false)
@@ -78,6 +78,39 @@ test('checkDistBuilt fails when assets/ has no JS bundle', () => {
     const result = checkDistBuilt(distDir)
     assert.equal(result.ok, false)
     assert.match(result.error, /no built JS bundle/)
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test('checkDistBuilt rejects CSS assets missing from the packaged renderer', () => {
+  const { tempRoot, distDir } = makeDist(d => {
+    fs.writeFileSync(path.join(d, 'index.html'), '<!doctype html>', 'utf8')
+    fs.mkdirSync(path.join(d, 'assets'))
+    fs.writeFileSync(path.join(d, 'assets', 'index.js'), 'console.log(1)', 'utf8')
+    fs.writeFileSync(path.join(d, 'assets', 'index.css'),
+      '@font-face{src:url(../../../node_modules/ui/fonts/display.woff2)}', 'utf8')
+  })
+  try {
+    const result = checkDistBuilt(distDir)
+    assert.equal(result.ok, false)
+    assert.match(result.error, /CSS asset is missing from dist/)
+  } finally {
+    fs.rmSync(tempRoot, { recursive: true, force: true })
+  }
+})
+
+test('checkDistBuilt accepts CSS assets emitted beside the bundle', () => {
+  const { tempRoot, distDir } = makeDist(d => {
+    fs.writeFileSync(path.join(d, 'index.html'), '<!doctype html>', 'utf8')
+    fs.mkdirSync(path.join(d, 'assets'))
+    fs.writeFileSync(path.join(d, 'assets', 'index.js'), 'console.log(1)', 'utf8')
+    fs.writeFileSync(path.join(d, 'assets', 'display.woff2'), 'font bytes', 'utf8')
+    fs.writeFileSync(path.join(d, 'assets', 'index.css'),
+      '@font-face{src:url(./display.woff2)}', 'utf8')
+  })
+  try {
+    assert.deepEqual(checkDistBuilt(distDir), { ok: true })
   } finally {
     fs.rmSync(tempRoot, { recursive: true, force: true })
   }

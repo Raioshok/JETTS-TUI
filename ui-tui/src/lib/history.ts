@@ -3,8 +3,8 @@ import { homedir } from 'node:os'
 import { join } from 'node:path'
 
 const MAX = 1000
-const dir = process.env.FREEIDE_HOME ?? join(homedir(), '.freeide')
-const file = join(dir, '.freeide_history')
+const dir = process.env.JETTSTUI_HOME ?? join(homedir(), '.jettstui')
+const file = join(dir, '.jettstui_history')
 
 let cache: string[] | null = null
 

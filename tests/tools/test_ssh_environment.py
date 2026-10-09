@@ -109,7 +109,7 @@ class TestControlSocketPath:
 
         env = SSHEnvironment(
             host="9373:9b91:4480:558d:708e:e601:24e8:d8d0",
-            user="freeide",
+            user="jettstui",
             port=22,
         )
 
@@ -231,8 +231,8 @@ class TestOneShotSSH:
         assert r["exit_code"] == 42
 
     def test_state_does_not_persist(self):
-        _run("export FREEIDE_ONESHOT_TEST=yes")
-        r = _run("echo $FREEIDE_ONESHOT_TEST")
+        _run("export JETTSTUI_ONESHOT_TEST=yes")
+        r = _run("echo $JETTSTUI_ONESHOT_TEST")
         assert r["output"].strip() == ""
 
 
@@ -251,8 +251,8 @@ class TestPersistentSSH:
         assert "hello-persistent" in r["output"]
 
     def test_env_var_persists(self):
-        _run("export FREEIDE_PERSIST_TEST=works")
-        r = _run("echo $FREEIDE_PERSIST_TEST")
+        _run("export JETTSTUI_PERSIST_TEST=works")
+        r = _run("echo $JETTSTUI_PERSIST_TEST")
         assert r["output"].strip() == "works"
 
     def test_cwd_persists(self):

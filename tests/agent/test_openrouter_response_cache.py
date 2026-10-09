@@ -13,14 +13,14 @@ import pytest
 class TestBuildOrHeaders:
     """Test the build_or_headers() helper in agent/auxiliary_client.py."""
 
-    def test_base_attribution_always_present(self):
-        """Attribution headers must always be included regardless of cache setting."""
+    def test_no_unconfigured_attribution(self):
+        """Do not send product identity headers without user opt-in."""
         from agent.auxiliary_client import build_or_headers
 
         headers = build_or_headers(or_config={"response_cache": False})
-        assert headers["HTTP-Referer"] == "https://freeide-agent.freeide.dev"
-        assert headers["X-Title"] == "FreeIDE Agent"
-        assert headers["X-OpenRouter-Categories"] == "productivity,cli-agent"
+        assert "HTTP-Referer" not in headers
+        assert "X-Title" not in headers
+        assert "X-OpenRouter-Categories" not in headers
 
     def test_cache_enabled(self):
         """When response_cache is True, X-OpenRouter-Cache header is set."""
@@ -119,20 +119,18 @@ class TestBuildOrHeaders:
         fake_cfg = {
             "openrouter": {"response_cache": True, "response_cache_ttl": 900},
         }
-        with patch("freeide_cli.config.load_config", return_value=fake_cfg):
+        with patch("jettstui.config.load_config", return_value=fake_cfg):
             headers = build_or_headers(or_config=None)
         assert headers["X-OpenRouter-Cache"] == "true"
         assert headers["X-OpenRouter-Cache-TTL"] == "900"
 
     def test_none_config_load_config_fails_gracefully(self):
-        """When load_config() fails, build_or_headers still returns base headers."""
+        """When load_config() fails, no optional headers are sent."""
         from agent.auxiliary_client import build_or_headers
 
-        with patch("freeide_cli.config.load_config", side_effect=RuntimeError("boom")):
+        with patch("jettstui.config.load_config", side_effect=RuntimeError("boom")):
             headers = build_or_headers(or_config=None)
-        # Should have base attribution but no cache headers
-        assert "HTTP-Referer" in headers
-        assert "X-OpenRouter-Cache" not in headers
+        assert headers == {}
 
 
 # ---------------------------------------------------------------------------
@@ -143,18 +141,18 @@ class TestEnvVarOverrides:
     """Test env var precedence over config.yaml for response caching."""
 
     def test_env_enables_cache(self, monkeypatch):
-        """FREEIDE_OPENROUTER_CACHE=true enables cache even when config disables it."""
+        """JETTSTUI_OPENROUTER_CACHE=true enables cache even when config disables it."""
         from agent.auxiliary_client import build_or_headers
 
-        monkeypatch.setenv("FREEIDE_OPENROUTER_CACHE", "true")
+        monkeypatch.setenv("JETTSTUI_OPENROUTER_CACHE", "true")
         headers = build_or_headers(or_config={"response_cache": False})
         assert headers["X-OpenRouter-Cache"] == "true"
 
     def test_env_disables_cache(self, monkeypatch):
-        """FREEIDE_OPENROUTER_CACHE=false disables cache even when config enables it."""
+        """JETTSTUI_OPENROUTER_CACHE=false disables cache even when config enables it."""
         from agent.auxiliary_client import build_or_headers
 
-        monkeypatch.setenv("FREEIDE_OPENROUTER_CACHE", "false")
+        monkeypatch.setenv("JETTSTUI_OPENROUTER_CACHE", "false")
         headers = build_or_headers(or_config={"response_cache": True})
         assert "X-OpenRouter-Cache" not in headers
 
@@ -163,7 +161,7 @@ class TestEnvVarOverrides:
         """Various truthy strings enable caching."""
         from agent.auxiliary_client import build_or_headers
 
-        monkeypatch.setenv("FREEIDE_OPENROUTER_CACHE", value)
+        monkeypatch.setenv("JETTSTUI_OPENROUTER_CACHE", value)
         headers = build_or_headers(or_config={})
         assert headers["X-OpenRouter-Cache"] == "true"
 
@@ -172,7 +170,7 @@ class TestEnvVarOverrides:
         """Non-truthy strings do not enable caching (empty falls through to config)."""
         from agent.auxiliary_client import build_or_headers
 
-        monkeypatch.setenv("FREEIDE_OPENROUTER_CACHE", value)
+        monkeypatch.setenv("JETTSTUI_OPENROUTER_CACHE", value)
         # Empty string falls through to config; others are explicitly non-truthy
         if value == "":
             # Empty env var falls through to config default (False)
@@ -182,11 +180,11 @@ class TestEnvVarOverrides:
         assert "X-OpenRouter-Cache" not in headers
 
     def test_env_ttl_overrides_config(self, monkeypatch):
-        """FREEIDE_OPENROUTER_CACHE_TTL overrides config TTL."""
+        """JETTSTUI_OPENROUTER_CACHE_TTL overrides config TTL."""
         from agent.auxiliary_client import build_or_headers
 
-        monkeypatch.setenv("FREEIDE_OPENROUTER_CACHE", "true")
-        monkeypatch.setenv("FREEIDE_OPENROUTER_CACHE_TTL", "1800")
+        monkeypatch.setenv("JETTSTUI_OPENROUTER_CACHE", "true")
+        monkeypatch.setenv("JETTSTUI_OPENROUTER_CACHE_TTL", "1800")
         headers = build_or_headers(or_config={"response_cache_ttl": 300})
         assert headers["X-OpenRouter-Cache-TTL"] == "1800"
 
@@ -195,8 +193,8 @@ class TestEnvVarOverrides:
         """Invalid TTL env values are ignored; cache still enabled without TTL."""
         from agent.auxiliary_client import build_or_headers
 
-        monkeypatch.setenv("FREEIDE_OPENROUTER_CACHE", "1")
-        monkeypatch.setenv("FREEIDE_OPENROUTER_CACHE_TTL", ttl)
+        monkeypatch.setenv("JETTSTUI_OPENROUTER_CACHE", "1")
+        monkeypatch.setenv("JETTSTUI_OPENROUTER_CACHE_TTL", ttl)
         headers = build_or_headers(or_config={})
         assert headers["X-OpenRouter-Cache"] == "true"
         assert "X-OpenRouter-Cache-TTL" not in headers
@@ -206,16 +204,16 @@ class TestEnvVarOverrides:
         """Boundary TTL values (1, 300, 86400) are accepted."""
         from agent.auxiliary_client import build_or_headers
 
-        monkeypatch.setenv("FREEIDE_OPENROUTER_CACHE", "yes")
-        monkeypatch.setenv("FREEIDE_OPENROUTER_CACHE_TTL", ttl)
+        monkeypatch.setenv("JETTSTUI_OPENROUTER_CACHE", "yes")
+        monkeypatch.setenv("JETTSTUI_OPENROUTER_CACHE_TTL", ttl)
         assert build_or_headers(or_config={})["X-OpenRouter-Cache-TTL"] == ttl
 
     def test_no_env_vars_falls_through_to_config(self, monkeypatch):
         """Without env vars, config.yaml controls behavior."""
         from agent.auxiliary_client import build_or_headers
 
-        monkeypatch.delenv("FREEIDE_OPENROUTER_CACHE", raising=False)
-        monkeypatch.delenv("FREEIDE_OPENROUTER_CACHE_TTL", raising=False)
+        monkeypatch.delenv("JETTSTUI_OPENROUTER_CACHE", raising=False)
+        monkeypatch.delenv("JETTSTUI_OPENROUTER_CACHE_TTL", raising=False)
         headers = build_or_headers(or_config={"response_cache": True, "response_cache_ttl": 600})
         assert headers["X-OpenRouter-Cache"] == "true"
         assert headers["X-OpenRouter-Cache-TTL"] == "600"
@@ -224,7 +222,7 @@ class TestDefaultConfig:
     """Verify the openrouter config section is in DEFAULT_CONFIG."""
 
     def test_openrouter_section_exists(self):
-        from freeide_cli.config import DEFAULT_CONFIG
+        from jettstui.config import DEFAULT_CONFIG
 
         assert "openrouter" in DEFAULT_CONFIG
         or_cfg = DEFAULT_CONFIG["openrouter"]

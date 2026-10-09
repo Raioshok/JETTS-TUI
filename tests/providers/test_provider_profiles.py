@@ -207,7 +207,7 @@ class TestOpenRouterProfile:
         assert eb["reasoning"] == {"enabled": True, "effort": "high"}
 
     def test_reasoning_disabled_still_passes(self):
-        """OpenRouter passes disabled reasoning through (unlike Nous)."""
+        """OpenRouter passes disabled reasoning through (unlike Acme)."""
         p = get_provider_profile("openrouter")
         eb, _ = p.build_api_kwargs_extras(
             reasoning_config={"enabled": False},
@@ -359,7 +359,7 @@ class TestOpenRouterProfile:
         and NO reasoning field in extra_body.
 
         Covers the full real config range produced by
-        ``freeide_constants.parse_reasoning_effort`` —
+        ``jettstui_constants.parse_reasoning_effort`` —
         ``VALID_REASONING_EFFORTS`` (including max and ultra).
         """
         p = get_provider_profile("openrouter")

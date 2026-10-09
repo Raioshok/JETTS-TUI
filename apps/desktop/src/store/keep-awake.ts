@@ -13,7 +13,7 @@ import { atom } from 'nanostores'
 
 import { persistBoolean, storedBoolean } from '@/lib/storage'
 
-const KEY = 'freeide.desktop.keepAwake.v1'
+const KEY = 'jettstui.desktop.keepAwake.v1'
 
 export const $keepAwake = atom<boolean>(typeof window === 'undefined' ? false : storedBoolean(KEY, false))
 
@@ -24,6 +24,6 @@ export function setKeepAwake(on: boolean): void {
 if (typeof window !== 'undefined') {
   $keepAwake.subscribe(on => {
     persistBoolean(KEY, on)
-    window.freeideDesktop?.setKeepAwake?.(on)
+    window.jettstuiDesktop?.setKeepAwake?.(on)
   })
 }

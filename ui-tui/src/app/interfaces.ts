@@ -285,7 +285,6 @@ export interface OverlayState {
   agents: boolean
   agentsInitialHistoryIndex: number
   approval: ApprovalReq | null
-  billing: BillingOverlayState | null
   clarify: ClarifyReq | null
   confirm: ConfirmReq | null
   /** Ambient widget apps — glanceable dock, non-blocking (never in $isBlocked). */
@@ -300,7 +299,6 @@ export interface OverlayState {
   secret: null | SecretReq
   sessions: boolean
   skillsHub: boolean
-  subscription: SubscriptionOverlayState | null
   sudo: null | SudoReq
 }
 

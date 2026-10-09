@@ -200,7 +200,7 @@ def _clamp_duration(family: Dict[str, Any], duration: Optional[int]) -> Optional
 
 def _load_video_gen_section() -> Dict[str, Any]:
     try:
-        from freeide_cli.config import load_config
+        from jettstui.config import load_config
 
         cfg = load_config()
         section = cfg.get("video_gen") if isinstance(cfg, dict) else None
@@ -427,7 +427,7 @@ class FALVideoGenProvider(VideoGenProvider):
             return error_response(
                 error=(
                     "No FAL backend available. Set FAL_KEY "
-                    "(run `freeide tools` → Video Generation → FAL to configure)."
+                    "(run `jettstui tools` → Video Generation → FAL to configure)."
                 ),
                 error_type="auth_required",
                 provider="fal",
@@ -457,7 +457,7 @@ class FALVideoGenProvider(VideoGenProvider):
                     error=(
                         f"FAL family {family_id} has no image-to-video "
                         f"endpoint. Pick a family with image-to-video support "
-                        f"via `freeide tools` → Video Generation."
+                        f"via `jettstui tools` → Video Generation."
                     ),
                     error_type="modality_unsupported",
                     provider="fal", model=family_id, prompt=prompt,

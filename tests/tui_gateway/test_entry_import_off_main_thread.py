@@ -24,7 +24,10 @@ thread, so an in-process import would not reproduce the bug).
 """
 
 import subprocess
+import signal
 import sys
+
+import pytest
 
 REPO_ROOT = "."
 
@@ -49,8 +52,8 @@ def _spawn_worker_import_entry():
         "if errs:\n"
         "    sys.stdout.write('IMPORT_FAILED: ' + errs[0] + '\\n')\n"
         "    sys.exit(2)\n"
-        "# main thread of this process still installs SIGPIPE handler\n"
-        "h = signal.getsignal(signal.SIGPIPE)\n"
+        "# SIGPIPE is POSIX-only; Windows must still import cleanly.\n"
+        "h = signal.getsignal(signal.SIGPIPE) if hasattr(signal, 'SIGPIPE') else None\n"
         "sys.stdout.write('OK handler_installed=' + str(h is signal.SIG_IGN or callable(h)) + '\\n')\n"
         "sys.exit(0)\n"
     )
@@ -74,6 +77,7 @@ def test_entry_imports_cleanly_from_worker_thread():
     assert "OK" in combined, f"unexpected output: {out!r} / {err!r}"
 
 
+@pytest.mark.skipif(not hasattr(signal, "SIGPIPE"), reason="SIGPIPE is unavailable on Windows")
 def test_entry_installs_sigpipe_handler_in_main_thread():
     """Even though it can be imported off-thread, the main-thread path still
     installs the SIGPIPE handler (process-global, so it applies everywhere)."""

@@ -279,7 +279,7 @@ registry.registerMany([
       run: toggleLayoutEditMode
     } satisfies PaletteContribution
   },
-  // The agent's write -> see loop: rescan <freeide home>/desktop-plugins
+  // The agent's write -> see loop: rescan <jettstui home>/desktop-plugins
   // without relaunching (same-id reloads dispose the previous incarnation).
   {
     id: 'plugins.reload',
@@ -324,7 +324,7 @@ registry.registerMany([
       id: 'keybinds.panel',
       label: 'Keyboard shortcuts',
       keywords: ['keybinds', 'shortcuts', 'hotkeys', 'keyboard'],
-      run: () => window.dispatchEvent(new CustomEvent('freeide:open-keybinds'))
+      run: () => window.dispatchEvent(new CustomEvent('jettstui:open-keybinds'))
     } satisfies PaletteContribution
   }
 ])
@@ -591,7 +591,7 @@ const $previewVisible = computed($previewTabs, tabs => tabs.length > 0)
 bindPaneVisibility('preview', $previewVisible, closeRightRail)
 
 // Logs are optional chrome: off by default, toggled from ⌘K, persisted.
-const $logsOpen = persistentAtom('freeide.desktop.logsOpen', false, Codecs.bool)
+const $logsOpen = persistentAtom('jettstui.desktop.logsOpen', false, Codecs.bool)
 
 bindPaneCollapse(
   'logs',

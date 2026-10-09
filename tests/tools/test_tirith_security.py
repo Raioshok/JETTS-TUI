@@ -309,7 +309,7 @@ class TestEnsureInstalled:
                                  "tirith_timeout": 5, "tirith_fail_open": True}
         _tirith_mod._resolved_path = None
         with patch("tools.tirith_security.shutil.which", return_value=None), \
-             patch("tools.tirith_security._freeide_bin_dir", return_value="/nonexistent"), \
+             patch("tools.tirith_security._jettstui_bin_dir", return_value="/nonexistent"), \
              patch("tools.tirith_security._is_install_failed_on_disk", return_value=False), \
              patch("tools.tirith_security.threading.Thread") as MockThread:
             mock_thread = MagicMock()
@@ -326,7 +326,7 @@ class TestEnsureInstalled:
                                  "tirith_timeout": 5, "tirith_fail_open": True}
         _tirith_mod._resolved_path = None
         with patch("tools.tirith_security.shutil.which", return_value=None), \
-             patch("tools.tirith_security._freeide_bin_dir", return_value="/nonexistent"), \
+             patch("tools.tirith_security._jettstui_bin_dir", return_value="/nonexistent"), \
              patch("tools.tirith_security._is_install_failed_on_disk", return_value=False), \
              patch("tools.tirith_security.threading.Thread") as MockThread:
             mock_thread = MagicMock()
@@ -766,14 +766,14 @@ class TestInstallArchiveMemberValidation:
         member.size = len(payload)
         archive, checksums = self._write_archive(tmp_path, member, payload)
 
-        freeide_home = tmp_path / "freeide-home"
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        jettstui_home = tmp_path / "jettstui-home"
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
         with patch("tools.tirith_security._download_file",
                    side_effect=self._download_side_effect(archive, checksums)):
             path, reason = _install_tirith(log_failures=False)
 
         assert reason == ""
-        assert path == str(freeide_home / "bin" / "tirith")
+        assert path == str(jettstui_home / "bin" / "tirith")
         assert os.path.isfile(path)
         assert not os.path.islink(path)
         with open(path, "rb") as f:
@@ -793,15 +793,15 @@ class TestInstallArchiveMemberValidation:
         member.linkname = "/bin/sh"
         archive, checksums = self._write_archive(tmp_path, member)
 
-        freeide_home = tmp_path / "freeide-home"
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        jettstui_home = tmp_path / "jettstui-home"
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
         with patch("tools.tirith_security._download_file",
                    side_effect=self._download_side_effect(archive, checksums)):
             path, reason = _install_tirith(log_failures=False)
 
         assert path is None
         assert reason == "binary_not_regular_file"
-        assert not os.path.lexists(freeide_home / "bin" / "tirith")
+        assert not os.path.lexists(jettstui_home / "bin" / "tirith")
 
 
 # ---------------------------------------------------------------------------
@@ -817,7 +817,7 @@ class TestBackgroundInstall:
                    return_value={"tirith_enabled": True, "tirith_path": "tirith",
                                  "tirith_timeout": 5, "tirith_fail_open": True}), \
              patch("tools.tirith_security.shutil.which", return_value=None), \
-             patch("tools.tirith_security._freeide_bin_dir", return_value="/nonexistent"), \
+             patch("tools.tirith_security._jettstui_bin_dir", return_value="/nonexistent"), \
              patch("tools.tirith_security._is_install_failed_on_disk", return_value=False), \
              patch("tools.tirith_security.threading.Thread") as MockThread:
             mock_thread = MagicMock()
@@ -839,7 +839,7 @@ class TestBackgroundInstall:
                    return_value={"tirith_enabled": True, "tirith_path": "tirith",
                                  "tirith_timeout": 5, "tirith_fail_open": True}), \
              patch("tools.tirith_security.shutil.which", return_value=None), \
-             patch("tools.tirith_security._freeide_bin_dir", return_value="/nonexistent"), \
+             patch("tools.tirith_security._jettstui_bin_dir", return_value="/nonexistent"), \
              patch("tools.tirith_security._read_failure_reason", return_value="download_failed"), \
              patch("tools.tirith_security._is_install_failed_on_disk", return_value=True):
 
@@ -859,7 +859,7 @@ class TestBackgroundInstall:
         _tirith_mod._install_thread = mock_thread
 
         with patch("tools.tirith_security.shutil.which", return_value=None), \
-             patch("tools.tirith_security._freeide_bin_dir", return_value="/nonexistent"):
+             patch("tools.tirith_security._jettstui_bin_dir", return_value="/nonexistent"):
             result = _resolve_tirith_path("tirith")
             assert result == "tirith"  # returns configured default, doesn't block
 
@@ -987,7 +987,7 @@ class TestDiskFailureMarker:
         _tirith_mod._resolved_path = None
 
         with patch("tools.tirith_security.shutil.which", return_value=None), \
-             patch("tools.tirith_security._freeide_bin_dir", return_value="/nonexistent"), \
+             patch("tools.tirith_security._jettstui_bin_dir", return_value="/nonexistent"), \
              patch("tools.tirith_security._read_failure_reason", return_value="download_failed"), \
              patch("tools.tirith_security._is_install_failed_on_disk", return_value=True), \
              patch("tools.tirith_security._install_tirith") as mock_install:
@@ -1012,25 +1012,25 @@ class TestDiskFailureMarker:
 
         _tirith_mod._resolved_path = None
 
-    def test_install_failed_recovers_from_freeide_bin(self):
-        """After _INSTALL_FAILED, manual install in FREEIDE_HOME/bin is picked up."""
+    def test_install_failed_recovers_from_jettstui_bin(self):
+        """After _INSTALL_FAILED, manual install in JETTSTUI_HOME/bin is picked up."""
         from tools.tirith_security import _resolve_tirith_path, _INSTALL_FAILED
         import tempfile
         tmpdir = tempfile.mkdtemp()
-        freeide_bin = os.path.join(tmpdir, "tirith")
+        jettstui_bin = os.path.join(tmpdir, "tirith")
         # Create a fake executable
-        with open(freeide_bin, "w") as f:
+        with open(jettstui_bin, "w") as f:
             f.write("#!/bin/sh\n")
-        os.chmod(freeide_bin, 0o755)
+        os.chmod(jettstui_bin, 0o755)
 
         _tirith_mod._resolved_path = _INSTALL_FAILED
 
         with patch("tools.tirith_security.shutil.which", return_value=None), \
-             patch("tools.tirith_security._freeide_bin_dir", return_value=tmpdir), \
+             patch("tools.tirith_security._jettstui_bin_dir", return_value=tmpdir), \
              patch("tools.tirith_security._clear_install_failed") as mock_clear:
             result = _resolve_tirith_path("tirith")
-            assert result == freeide_bin
-            assert _tirith_mod._resolved_path == freeide_bin
+            assert result == jettstui_bin
+            assert _tirith_mod._resolved_path == jettstui_bin
             mock_clear.assert_called_once()
 
         _tirith_mod._resolved_path = None
@@ -1041,7 +1041,7 @@ class TestDiskFailureMarker:
         _tirith_mod._resolved_path = _INSTALL_FAILED
 
         with patch("tools.tirith_security.shutil.which", return_value=None), \
-             patch("tools.tirith_security._freeide_bin_dir", return_value="/nonexistent"), \
+             patch("tools.tirith_security._jettstui_bin_dir", return_value="/nonexistent"), \
              patch("tools.tirith_security._install_tirith") as mock_install:
             result = _resolve_tirith_path("tirith")
             assert result == "tirith"  # fallback to configured path
@@ -1056,7 +1056,7 @@ class TestDiskFailureMarker:
 
         # _is_install_failed_on_disk sees "cosign_missing" + cosign on PATH → returns False
         with patch("tools.tirith_security.shutil.which", return_value=None), \
-             patch("tools.tirith_security._freeide_bin_dir", return_value="/nonexistent"), \
+             patch("tools.tirith_security._jettstui_bin_dir", return_value="/nonexistent"), \
              patch("tools.tirith_security._is_install_failed_on_disk", return_value=False), \
              patch("tools.tirith_security._install_tirith", return_value=("/new/tirith", "")) as mock_install, \
              patch("tools.tirith_security._clear_install_failed"):
@@ -1080,7 +1080,7 @@ class TestDiskFailureMarker:
             return None
 
         with patch("tools.tirith_security.shutil.which", side_effect=_which_side_effect), \
-             patch("tools.tirith_security._freeide_bin_dir", return_value="/nonexistent"), \
+             patch("tools.tirith_security._jettstui_bin_dir", return_value="/nonexistent"), \
              patch("tools.tirith_security._is_install_failed_on_disk", return_value=False), \
              patch("tools.tirith_security._install_tirith", return_value=("/new/tirith", "")) as mock_install, \
              patch("tools.tirith_security._clear_install_failed"):
@@ -1097,7 +1097,7 @@ class TestDiskFailureMarker:
         _tirith_mod._install_failure_reason = "cosign_exec_failed"
 
         with patch("tools.tirith_security.shutil.which", return_value=None), \
-             patch("tools.tirith_security._freeide_bin_dir", return_value="/nonexistent"), \
+             patch("tools.tirith_security._jettstui_bin_dir", return_value="/nonexistent"), \
              patch("tools.tirith_security._install_tirith") as mock_install:
             result = _resolve_tirith_path("tirith")
             assert result == "tirith"  # fallback
@@ -1112,7 +1112,7 @@ class TestDiskFailureMarker:
         _tirith_mod._install_failure_reason = "cosign_missing"
 
         with patch("tools.tirith_security.shutil.which", return_value=None), \
-             patch("tools.tirith_security._freeide_bin_dir", return_value="/nonexistent"), \
+             patch("tools.tirith_security._jettstui_bin_dir", return_value="/nonexistent"), \
              patch("tools.tirith_security._install_tirith") as mock_install:
             result = _resolve_tirith_path("tirith")
             assert result == "tirith"  # fallback
@@ -1127,7 +1127,7 @@ class TestDiskFailureMarker:
 
         # First call: disk marker with cosign_missing is active, cosign still absent
         with patch("tools.tirith_security.shutil.which", return_value=None), \
-             patch("tools.tirith_security._freeide_bin_dir", return_value="/nonexistent"), \
+             patch("tools.tirith_security._jettstui_bin_dir", return_value="/nonexistent"), \
              patch("tools.tirith_security._read_failure_reason", return_value="cosign_missing"), \
              patch("tools.tirith_security._is_install_failed_on_disk", return_value=True):
             _resolve_tirith_path("tirith")
@@ -1143,7 +1143,7 @@ class TestDiskFailureMarker:
             return None
 
         with patch("tools.tirith_security.shutil.which", side_effect=_which_side_effect), \
-             patch("tools.tirith_security._freeide_bin_dir", return_value="/nonexistent"), \
+             patch("tools.tirith_security._jettstui_bin_dir", return_value="/nonexistent"), \
              patch("tools.tirith_security._is_install_failed_on_disk", return_value=False), \
              patch("tools.tirith_security._install_tirith", return_value=("/new/tirith", "")) as mock_install, \
              patch("tools.tirith_security._clear_install_failed"):
@@ -1155,43 +1155,43 @@ class TestDiskFailureMarker:
 
 
 # ---------------------------------------------------------------------------
-# FREEIDE_HOME isolation
+# JETTSTUI_HOME isolation
 # ---------------------------------------------------------------------------
 
-class TestFreeIDEHomeIsolation:
-    def test_freeide_bin_dir_respects_freeide_home(self):
-        """_freeide_bin_dir must use FREEIDE_HOME, not hardcoded ~/.freeide."""
-        from tools.tirith_security import _freeide_bin_dir
+class TestJettsTUIHomeIsolation:
+    def test_jettstui_bin_dir_respects_jettstui_home(self):
+        """_jettstui_bin_dir must use JETTSTUI_HOME, not hardcoded ~/.jettstui."""
+        from tools.tirith_security import _jettstui_bin_dir
         import tempfile
         tmpdir = tempfile.mkdtemp()
-        with patch.dict(os.environ, {"FREEIDE_HOME": tmpdir}):
-            result = _freeide_bin_dir()
+        with patch.dict(os.environ, {"JETTSTUI_HOME": tmpdir}):
+            result = _jettstui_bin_dir()
         assert result == os.path.join(tmpdir, "bin")
         assert os.path.isdir(result)
 
-    def test_failure_marker_respects_freeide_home(self):
-        """_failure_marker_path must use FREEIDE_HOME, not hardcoded ~/.freeide."""
+    def test_failure_marker_respects_jettstui_home(self):
+        """_failure_marker_path must use JETTSTUI_HOME, not hardcoded ~/.jettstui."""
         from tools.tirith_security import _failure_marker_path
-        with patch.dict(os.environ, {"FREEIDE_HOME": "/custom/freeide"}):
+        with patch.dict(os.environ, {"JETTSTUI_HOME": "/custom/jettstui"}):
             result = _failure_marker_path()
-        assert result == "/custom/freeide/.tirith-install-failed"
+        assert result == "/custom/jettstui/.tirith-install-failed"
 
     def test_conftest_isolation_prevents_real_home_writes(self):
-        """The conftest autouse fixture sets FREEIDE_HOME; verify it's active."""
-        freeide_home = os.getenv("FREEIDE_HOME")
-        assert freeide_home is not None, "FREEIDE_HOME should be set by conftest"
-        assert "freeide_test" in freeide_home, "Should point to test temp dir"
+        """The conftest autouse fixture sets JETTSTUI_HOME; verify it's active."""
+        jettstui_home = os.getenv("JETTSTUI_HOME")
+        assert jettstui_home is not None, "JETTSTUI_HOME should be set by conftest"
+        assert "jettstui_test" in jettstui_home, "Should point to test temp dir"
 
-    def test_get_freeide_home_fallback(self):
-        """Without FREEIDE_HOME set, falls back to the active OS home."""
-        from tools.tirith_security import _get_freeide_home
-        with patch.dict(os.environ, {}, clear=True):
-            # Remove FREEIDE_HOME entirely. With HOME also absent, expanduser
-            # falls back to the account database; compute expected under the
-            # same environment instead of after patch.dict restores HOME.
-            os.environ.pop("FREEIDE_HOME", None)
-            expected = os.path.join(os.path.expanduser("~"), ".freeide")
-            result = _get_freeide_home()
+    def test_get_jettstui_home_fallback(self):
+        """Without JETTSTUI_HOME set, falls back to the active OS home."""
+        from jettstui_constants import get_process_jettstui_home
+        from tools.tirith_security import _get_jettstui_home
+        with patch.dict(os.environ, {"JETTSTUI_HOME": ""}):
+            # Preserve OS home variables; Windows cannot resolve Path.home()
+            # if USERPROFILE is cleared with the rest of the environment.
+            os.environ.pop("JETTSTUI_HOME", None)
+            expected = str(get_process_jettstui_home())
+            result = _get_jettstui_home()
         assert result == expected
 
 
@@ -1484,7 +1484,7 @@ class TestMkdtempOSErrorNoSpace:
                    side_effect=OSError(28, "No space left on device")), \
              patch("tools.tirith_security.shutil.which",
                    return_value=None), \
-             patch("tools.tirith_security._freeide_bin_dir",
+             patch("tools.tirith_security._jettstui_bin_dir",
                    return_value="/nonexistent"), \
              patch("tools.tirith_security._is_install_failed_on_disk",
                    return_value=False), \

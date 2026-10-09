@@ -160,7 +160,7 @@ async function fallbackRootFor(cwd: string): Promise<string | null> {
     return null
   }
 
-  const sanitize = window.freeideDesktop?.sanitizeWorkspaceCwd
+  const sanitize = window.jettstuiDesktop?.sanitizeWorkspaceCwd
 
   if (!sanitize) {
     return null

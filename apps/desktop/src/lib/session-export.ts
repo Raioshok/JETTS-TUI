@@ -1,6 +1,6 @@
-import type { SessionInfo } from '@/freeide'
-import { getSessionMessages } from '@/freeide'
 import { translateNow } from '@/i18n'
+import type { SessionInfo } from '@/jettstui'
+import { getSessionMessages } from '@/jettstui'
 import { notify, notifyError } from '@/store/notifications'
 
 interface ExportSessionParams {

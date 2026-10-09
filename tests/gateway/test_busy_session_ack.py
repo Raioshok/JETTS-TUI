@@ -127,7 +127,7 @@ class TestBusySessionAck:
         """Rapid Telegram text follow-ups in queue mode must not merge."""
         from gateway.run import GatewayRunner
 
-        monkeypatch.setenv("FREEIDE_TELEGRAM_FOLLOWUP_GRACE_SECONDS", "3.0")
+        monkeypatch.setenv("JETTSTUI_TELEGRAM_FOLLOWUP_GRACE_SECONDS", "3.0")
 
         runner, _sentinel = _make_runner()
         runner._busy_input_mode = "queue"
@@ -318,7 +318,7 @@ class TestBusySessionAck:
         """busy_input_mode='steer' injects via agent.steer() and skips queueing."""
         import gateway.run as _gr
 
-        monkeypatch.delenv("FREEIDE_GATEWAY_BUSY_STEER_ACK_ENABLED", raising=False)
+        monkeypatch.delenv("JETTSTUI_GATEWAY_BUSY_STEER_ACK_ENABLED", raising=False)
         monkeypatch.setattr(_gr, "_load_gateway_config", lambda: {})
         runner, sentinel = _make_runner()
         runner._busy_input_mode = "steer"
@@ -354,7 +354,7 @@ class TestBusySessionAck:
         """busy_steer_ack_enabled=false keeps steering but drops the echo bubble."""
         import gateway.run as _gr
 
-        monkeypatch.delenv("FREEIDE_GATEWAY_BUSY_STEER_ACK_ENABLED", raising=False)
+        monkeypatch.delenv("JETTSTUI_GATEWAY_BUSY_STEER_ACK_ENABLED", raising=False)
         monkeypatch.setattr(
             _gr,
             "_load_gateway_config",
@@ -385,7 +385,7 @@ class TestBusySessionAck:
         """Env override supports process-level suppression for gateway services."""
         import gateway.run as _gr
 
-        monkeypatch.setenv("FREEIDE_GATEWAY_BUSY_STEER_ACK_ENABLED", "false")
+        monkeypatch.setenv("JETTSTUI_GATEWAY_BUSY_STEER_ACK_ENABLED", "false")
         monkeypatch.setattr(
             _gr,
             "_load_gateway_config",
@@ -418,7 +418,7 @@ class TestBusySessionAck:
         def _boom():
             raise AssertionError("config should not be loaded inside ack cooldown")
 
-        monkeypatch.delenv("FREEIDE_GATEWAY_BUSY_STEER_ACK_ENABLED", raising=False)
+        monkeypatch.delenv("JETTSTUI_GATEWAY_BUSY_STEER_ACK_ENABLED", raising=False)
         monkeypatch.setattr(_gr, "_load_gateway_config", _boom)
 
         runner, sentinel = _make_runner()
@@ -750,9 +750,9 @@ class TestBusySessionOnboardingHint:
         """First busy-while-running message gets an extra hint about /busy."""
         import gateway.run as _gr
 
-        monkeypatch.setattr(_gr, "_freeide_home", tmp_path)
+        monkeypatch.setattr(_gr, "_jettstui_home", tmp_path)
         # mark_seen imports utils.atomic_yaml_write; make sure it resolves
-        # against a writable dir by pointing _freeide_home at tmp_path.
+        # against a writable dir by pointing _jettstui_home at tmp_path.
         monkeypatch.setattr(_gr, "_load_gateway_config", lambda: {})
 
         runner, _sentinel = _make_runner()
@@ -794,7 +794,7 @@ class TestBusySessionOnboardingHint:
         import gateway.run as _gr
         import yaml
 
-        monkeypatch.setattr(_gr, "_freeide_home", tmp_path)
+        monkeypatch.setattr(_gr, "_jettstui_home", tmp_path)
         # Pre-populate the config so is_seen() returns True from the start.
         (tmp_path / "config.yaml").write_text(yaml.safe_dump({
             "onboarding": {"seen": {"busy_input_prompt": True}},
@@ -835,7 +835,7 @@ class TestBusySessionOnboardingHint:
         """In queue mode the hint should suggest /busy interrupt, not /busy queue."""
         import gateway.run as _gr
 
-        monkeypatch.setattr(_gr, "_freeide_home", tmp_path)
+        monkeypatch.setattr(_gr, "_jettstui_home", tmp_path)
         monkeypatch.setattr(_gr, "_load_gateway_config", lambda: {})
 
         runner, _sentinel = _make_runner()

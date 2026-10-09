@@ -1,12 +1,12 @@
-# FreeIDE Agent - Development Guide
+# JettsTUI - Development Guide
 
-Instructions for AI coding assistants and developers working on the freeide-agent codebase.
+Instructions for AI coding assistants and developers working on the jettstui codebase.
 
 **Never give up on the right solution.**
 
-## What FreeIDE Is
+## What JettsTUI Is
 
-FreeIDE is a personal AI agent that runs the same agent core across a CLI, a
+JettsTUI is a personal AI agent that runs the same agent core across a CLI, a
 messaging gateway (Telegram, Discord, Slack, and ~20 other platforms), a TUI,
 and an Electron desktop app. It learns across sessions (memory + skills),
 delegates to subagents, runs scheduled jobs, and drives a real terminal and
@@ -47,7 +47,7 @@ in this repository:
 - Keep unused plugins and toolsets disabled. Enable one only for a concrete
   task, and prefer service-gated or skill-based capabilities over core tools.
 - For work expected to exceed 12 model/tool turns or survive a handoff, maintain
-  `.freeide-progress.md` with the objective, constraints, completed work, next
+  `.jettstui-progress.md` with the objective, constraints, completed work, next
   step, and verification. Remove it when the task is complete unless the user
   asks to retain it.
 - Keep final answers concise: outcome, important verification, and blockers.
@@ -68,7 +68,7 @@ This is the project's intent layer. Use it two ways:
    job here is to recognize design intent and *avoid wrongly closing a
    legitimate contribution*, not to make the won't-implement call itself.
 
-Read the balance right: FreeIDE ships a **lot** — most merges are bug fixes to
+Read the balance right: JettsTUI ships a **lot** — most merges are bug fixes to
 real reported behavior, and the product surface (platforms, channels,
 providers, models, desktop/TUI features) expands aggressively and on purpose.
 The restraint below is aimed squarely at the **core agent + the model tool
@@ -88,7 +88,7 @@ conservative at the waist.
   including large ones (a new messaging channel, a session-cap feature, a
   Windows PTY bridge). Breadth in the product is a goal, not a footprint
   concern — as long as it integrates with the existing setup/config UX
-  (`freeide tools`, `freeide setup`, auto-install) rather than bolting on a raw
+  (`jettstui tools`, `jettstui setup`, auto-install) rather than bolting on a raw
   env var.
 - **Refactor god-files into clean modules.** Extracting a multi-thousand-line
   cluster out of `cli.py` / `run_agent.py` / `gateway/run.py` into a focused
@@ -112,7 +112,7 @@ conservative at the waist.
 - **E2E validation, not just green unit mocks.** For anything touching
   resolution chains, config propagation, security boundaries, remote
   backends, or file/network I/O, exercise the real path with real imports
-  against a temp `FREEIDE_HOME`. Mocks hide integration bugs.
+  against a temp `JETTSTUI_HOME`. Mocks hide integration bugs.
 - **Cache-, alternation-, and invariant-safe.** Preserve prompt caching, strict
   message role alternation (never two same-role messages in a row; never a
   synthetic user message injected mid-loop), and a system prompt that is
@@ -127,7 +127,7 @@ conservative at the waist.
   concrete consumer. Adding a hook is easy; removing one after plugins depend
   on it is hard. A hook is NOT speculative if a contributor has a real, stated
   use case — even if the consumer ships separately.
-- **New `FREEIDE_*` env vars for non-secret config.** `.env` is for secrets
+- **New `JETTSTUI_*` env vars for non-secret config.** `.env` is for secrets
   only (API keys, tokens, passwords). All behavioral settings — timeouts,
   thresholds, feature flags, display prefs — go in `config.yaml`. Bridge to an
   internal env var if the mechanism needs one, but user-facing docs point to
@@ -145,7 +145,7 @@ conservative at the waist.
   feature.
 - **Outbound telemetry / usage attribution without opt-in gating.** No new
   analytics, third-party identifier tagging, or attribution tags until a
-  generic user-facing opt-in (config gate + setup prompt + `freeide tools`
+  generic user-facing opt-in (config gate + setup prompt + `jettstui tools`
   toggle) exists. Park behind a label, do not merge.
 - **Change-detector tests, cache-breaking mid-conversation, dead code wired in
   without E2E proof, and plugins that touch core files.** Plugins live in their
@@ -156,9 +156,9 @@ conservative at the waist.
   and similar "someone else's product" plugins do NOT land under `plugins/` in
   this repo. They place an ongoing maintenance burden on us to keep them working
   against a fast-moving core, for a backend we don't own. Ship them as a
-  **standalone plugin repo** users install into `~/.freeide/plugins/` (or via a
-  pip entry point), and promote them in the FreeIDE Discord
-  (`#plugins-skills-and-skins`). This is a coupling-and-maintenance decision, not
+  **standalone plugin repo** users install into `~/.jettstui/plugins/` (or via a
+  pip entry point), and announce them in GitHub Discussions.
+  This is a coupling-and-maintenance decision, not
   a quality bar — the plugin can be excellent and still be a close. PRs that add
   such a directory to the tree are closed with a pointer to publish it as its own
   repo.
@@ -215,14 +215,14 @@ Each rung adds more permanent surface than the one above. Choose the highest
 1. **Extend existing code** — the capability is a variation of something that
    already exists. Zero new surface.
 2. **CLI command + skill** — manages config/state/infra expressible as shell
-   commands. The agent runs `freeide <subcommand>` guided by a skill. Zero
+   commands. The agent runs `jettstui <subcommand>` guided by a skill. Zero
    model-tool footprint. Default choice for subscriptions, scheduled tasks,
-   service setup. Examples: `freeide webhook`, `freeide cron`, `freeide tools`.
+   service setup. Examples: `jettstui webhook`, `jettstui cron`, `jettstui tools`.
 3. **Service-gated tool (`check_fn`)** — needs structured params/returns AND
    only appears when a prerequisite is configured. Zero footprint otherwise.
    Examples: Home Assistant tools (gated on token), memory-provider tools.
 4. **Plugin** — third-party/niche/user-specific capability that doesn't ship in
-   core. Lives in `~/.freeide/plugins/` or a pip package, discovered at runtime.
+   core. Lives in `~/.jettstui/plugins/` or a pip package, discovered at runtime.
 5. **MCP server (in the catalog)** — if the capability genuinely needs to be a
    tool (structured I/O the agent invokes) but isn't core-fundamental, prefer
    building it as an MCP server and adding it to the MCP catalog over growing
@@ -246,7 +246,7 @@ source .venv/bin/activate   # or: source venv/bin/activate
 ```
 
 `scripts/run_tests.sh` probes `.venv` first, then `venv`, then
-`$HOME/.freeide/freeide-agent/venv` (for worktrees that share a venv with the
+`$HOME/.jettstui/jettstui/venv` (for worktrees that share a venv with the
 main checkout).
 
 ## Project Structure
@@ -256,17 +256,17 @@ The canonical source is the filesystem. The notes call out the load-bearing
 entry points you'll actually edit.
 
 ```
-freeide-agent/
+jettstui/
 ├── run_agent.py          # AIAgent class — core conversation loop (~12k LOC)
 ├── model_tools.py        # Tool orchestration, discover_builtin_tools(), handle_function_call()
-├── toolsets.py           # Toolset definitions, _FREEIDE_CORE_TOOLS list
-├── cli.py                # FreeIDECLI class — interactive CLI orchestrator (~11k LOC)
-├── freeide_state.py       # SessionDB — SQLite session store (FTS5 search)
-├── freeide_constants.py   # get_freeide_home(), display_freeide_home() — profile-aware paths
-├── freeide_logging.py     # setup_logging() — agent.log / errors.log / gateway.log (profile-aware)
+├── toolsets.py           # Toolset definitions, _JETTSTUI_CORE_TOOLS list
+├── cli.py                # JettsTUICLI class — interactive CLI orchestrator (~11k LOC)
+├── jettstui_state.py       # SessionDB — SQLite session store (FTS5 search)
+├── jettstui_constants.py   # get_jettstui_home(), display_jettstui_home() — profile-aware paths
+├── jettstui_logging.py     # setup_logging() — agent.log / errors.log / gateway.log (profile-aware)
 ├── batch_runner.py       # Parallel batch processing
 ├── agent/                # Agent internals (provider adapters, memory, caching, compression, etc.)
-├── freeide_cli/           # CLI subcommands, setup wizard, plugins loader, skin engine
+├── jettstui/           # CLI subcommands, setup wizard, plugins loader, skin engine
 ├── tools/                # Tool implementations — auto-discovered via tools/registry.py
 │   └── environments/     # Terminal backends (local, docker, ssh, modal, daytona, singularity)
 ├── gateway/              # Messaging gateway — run.py + session.py + platforms/
@@ -280,14 +280,14 @@ freeide-agent/
 │   ├── context_engine/   # Context-engine plugins
 │   ├── model-providers/  # Inference backend plugins (openrouter, anthropic, gmi, ...)
 │   ├── kanban/           # Multi-agent board dispatcher + worker plugin
-│   ├── freeide-achievements/  # Gamified achievement tracking
+│   ├── jettstui-achievements/  # Gamified achievement tracking
 │   ├── observability/    # Metrics / traces / logs plugin
 │   ├── image_gen/        # Image-generation providers
 │   └── <others>/         # disk-cleanup, google_meet, platforms, spotify,
 │                         #   strike-freedom-cockpit, ...
 ├── optional-skills/      # Heavier/niche skills shipped but NOT active by default
 ├── skills/               # Built-in skills bundled with the repo
-├── ui-tui/               # Ink (React) terminal UI — `freeide --tui`
+├── ui-tui/               # Ink (React) terminal UI — `jettstui --tui`
 │   └── src/              # entry.tsx, app.tsx, gatewayClient.ts + app/components/hooks/lib
 ├── tui_gateway/          # Python JSON-RPC backend for the TUI
 ├── acp_adapter/          # ACP server (VS Code / Zed / JetBrains integration)
@@ -297,14 +297,14 @@ freeide-agent/
 └── tests/                # Pytest suite (~17k tests across ~900 files as of May 2026)
 ```
 
-**User config:** `~/.freeide/config.yaml` (settings), `~/.freeide/.env` (API keys only).
-**Logs:** `~/.freeide/logs/` — `agent.log` (INFO+), `errors.log` (WARNING+),
-`gateway.log` when running the gateway. Profile-aware via `get_freeide_home()`.
-Browse with `freeide logs [--follow] [--level ...] [--session ...]`.
+**User config:** `~/.jettstui/config.yaml` (settings), `~/.jettstui/.env` (API keys only).
+**Logs:** `~/.jettstui/logs/` — `agent.log` (INFO+), `errors.log` (WARNING+),
+`gateway.log` when running the gateway. Profile-aware via `get_jettstui_home()`.
+Browse with `jettstui logs [--follow] [--level ...] [--session ...]`.
 
 ## TypeScript Style
 
-Applies to TypeScript across FreeIDE: desktop, TUI, website, and future TS packages.
+Applies to TypeScript across JettsTUI: desktop, TUI, website, and future TS packages.
 
 - Prefer small nanostores over component state when state is shared, reused, or read by distant UI.
 - Let each feature own its atoms. Chat state belongs near chat, shell state near shell, shared state in `src/store`.
@@ -404,11 +404,11 @@ Reasoning content is stored in `assistant_msg["reasoning"]`.
 - **Rich** for banner/panels, **prompt_toolkit** for input with autocomplete
 - **KawaiiSpinner** (`agent/display.py`) — animated faces during API calls, `┊` activity feed for tool results
 - `load_cli_config()` in cli.py merges hardcoded defaults + user config YAML
-- **Skin engine** (`freeide_cli/skin_engine.py`) — data-driven CLI theming; initialized from `display.skin` config key at startup; skins customize banner colors, spinner faces/verbs/wings, tool prefix, response box, branding text
-- `process_command()` is a method on `FreeIDECLI` — dispatches on canonical command name resolved via `resolve_command()` from the central registry
-- Skill slash commands: `agent/skill_commands.py` scans `~/.freeide/skills/`, injects as **user message** (not system prompt) to preserve prompt caching
+- **Skin engine** (`jettstui/skin_engine.py`) — data-driven CLI theming; initialized from `display.skin` config key at startup; skins customize banner colors, spinner faces/verbs/wings, tool prefix, response box, branding text
+- `process_command()` is a method on `JettsTUICLI` — dispatches on canonical command name resolved via `resolve_command()` from the central registry
+- Skill slash commands: `agent/skill_commands.py` scans `~/.jettstui/skills/`, injects as **user message** (not system prompt) to preserve prompt caching
 
-### Slash Command Registry (`freeide_cli/commands.py`)
+### Slash Command Registry (`jettstui/commands.py`)
 
 All slash commands are defined in a central `COMMAND_REGISTRY` list of `CommandDef` objects. Every downstream consumer derives from this registry automatically:
 
@@ -416,18 +416,18 @@ All slash commands are defined in a central `COMMAND_REGISTRY` list of `CommandD
 - **Gateway** — `GATEWAY_KNOWN_COMMANDS` frozenset for hook emission, `resolve_command()` for dispatch
 - **Gateway help** — `gateway_help_lines()` generates `/help` output
 - **Telegram** — `telegram_bot_commands()` generates the BotCommand menu
-- **Slack** — `slack_subcommand_map()` generates `/freeide` subcommand routing
+- **Slack** — `slack_subcommand_map()` generates `/jettstui` subcommand routing
 - **Autocomplete** — `COMMANDS` flat dict feeds `SlashCommandCompleter`
 - **CLI help** — `COMMANDS_BY_CATEGORY` dict feeds `show_help()`
 
 ### Adding a Slash Command
 
-1. Add a `CommandDef` entry to `COMMAND_REGISTRY` in `freeide_cli/commands.py`:
+1. Add a `CommandDef` entry to `COMMAND_REGISTRY` in `jettstui/commands.py`:
 ```python
 CommandDef("mycommand", "Description of what it does", "Session",
            aliases=("mc",), args_hint="[arg]"),
 ```
-2. Add handler in `FreeIDECLI.process_command()` in `cli.py`:
+2. Add handler in `JettsTUICLI.process_command()` in `cli.py`:
 ```python
 elif canonical == "mycommand":
     self._handle_mycommand(cmd_original)
@@ -455,12 +455,12 @@ if canonical == "mycommand":
 
 ## TUI Architecture (ui-tui + tui_gateway)
 
-The TUI is a full replacement for the classic (prompt_toolkit) CLI, activated via `freeide --tui` or `FREEIDE_TUI=1`.
+The TUI is a full replacement for the classic (prompt_toolkit) CLI, activated via `jettstui --tui` or `JETTSTUI_TUI=1`.
 
 ### Process Model
 
 ```
-freeide --tui
+jettstui --tui
   └─ Node (Ink)  ──stdio JSON-RPC──  Python (tui_gateway)
        │                                  └─ AIAgent + tools + sessions
        └─ renders transcript, composer, prompts, activity
@@ -504,22 +504,22 @@ npm run fmt       # prettier
 npm test          # vitest
 ```
 
-### TUI in the Dashboard (`freeide dashboard` → `/chat`)
+### TUI in the Dashboard (`jettstui dashboard` → `/chat`)
 
-The dashboard embeds the real `freeide --tui` — **not** a rewrite.  See `freeide_cli/pty_bridge.py` + the `@app.websocket("/api/pty")` endpoint in `freeide_cli/web_server.py`.
+The dashboard embeds the real `jettstui --tui` — **not** a rewrite.  See `jettstui/pty_bridge.py` + the `@app.websocket("/api/pty")` endpoint in `jettstui/web_server.py`.
 
 - Browser loads `web/src/pages/ChatPage.tsx`, which mounts xterm.js's `Terminal` with the WebGL renderer, `@xterm/addon-fit` for container-driven resize, and `@xterm/addon-unicode11` for modern wide-character widths.
 - `/api/pty?token=…` upgrades to a WebSocket; auth uses the same ephemeral `_SESSION_TOKEN` as REST, via query param (browsers can't set `Authorization` on WS upgrade).
-- The server spawns whatever `freeide --tui` would spawn, through `ptyprocess` (POSIX PTY — WSL works, native Windows does not).
+- The server spawns whatever `jettstui --tui` would spawn, through `ptyprocess` (POSIX PTY — WSL works, native Windows does not).
 - Frames: raw PTY bytes each direction; resize via `\x1b[RESIZE:<cols>;<rows>]` intercepted on the server and applied with `TIOCSWINSZ`.
 
-**Do not re-implement the primary chat experience in React.** The main transcript, composer/input flow (including slash-command behavior), and PTY-backed terminal belong to the embedded `freeide --tui` — anything new you add to Ink shows up in the dashboard automatically. If you find yourself rebuilding the transcript or composer for the dashboard, stop and extend Ink instead.
+**Do not re-implement the primary chat experience in React.** The main transcript, composer/input flow (including slash-command behavior), and PTY-backed terminal belong to the embedded `jettstui --tui` — anything new you add to Ink shows up in the dashboard automatically. If you find yourself rebuilding the transcript or composer for the dashboard, stop and extend Ink instead.
 
 **Structured React UI around the TUI is allowed when it is not a second chat surface.** Sidebar widgets, inspectors, summaries, status panels, and similar supporting views (e.g. `ChatSidebar`, `ModelPickerDialog`, `ToolCall`) are fine when they complement the embedded TUI rather than replacing the transcript / composer / terminal. Keep their state independent of the PTY child's session and surface their failures non-destructively so the terminal pane keeps working unimpaired.
 
 ### Electron Desktop Chat App (`apps/desktop/`)
 
-A **separate** chat surface from both the classic CLI and the dashboard's embedded TUI. It is an Electron + React + nanostore renderer (`@assistant-ui/react`) that talks to a `tui_gateway` backend over JSON-RPC (`requestGateway(method, params)`). The WebSocket/JSON-RPC transport lives in the framework-agnostic `apps/shared` package (`@jetts-tui/shared` — `JsonRpcGatewayClient` + WS URL helpers), which the web dashboard (`web/`) also consumes; **desktop has no build/runtime dependency on the dashboard frontend** — it spawns a headless `freeide serve` backend server (the same gateway `dashboard` serves, minus the browser UI entirely: `serve` sets `headless_backend=True`, so `cmd_dashboard` skips `_build_web_ui` AND exports `FREEIDE_SERVE_HEADLESS=1` so `mount_spa()` disables the SPA even if a stray `web_dist/` exists — only the JSON-RPC/WS/API surface is reachable). `dashboard` and `serve` share `cmd_dashboard`/`start_server` but are independent surfaces — neither launches the other. The one exception is a backward-compat *fallback*: `serve` is newer, so the desktop spawn (`electron/backend-command.ts` + `backendSupportsServe()` in `electron/main.ts`) detects whether the resolved runtime registers `serve` and, only when it does not (an older managed install / PATH `freeide` the app hasn't updated yet), rewrites the argv to the legacy `dashboard --no-open`. Without that, a new app against an un-upgraded runtime would crash on an unknown subcommand and brick every mid-upgrade user. It does NOT embed `freeide --tui` — it has its own composer, transcript, and slash-command pipeline. For scoped Desktop architecture, state, resolver, transport, and testing rules, read `apps/desktop/AGENTS.md`.
+A **separate** chat surface from both the classic CLI and the dashboard's embedded TUI. It is an Electron + React + nanostore renderer (`@assistant-ui/react`) that talks to a `tui_gateway` backend over JSON-RPC (`requestGateway(method, params)`). The WebSocket/JSON-RPC transport lives in the framework-agnostic `apps/shared` package (`@jetts-tui/shared` — `JsonRpcGatewayClient` + WS URL helpers), which the web dashboard (`web/`) also consumes; **desktop has no build/runtime dependency on the dashboard frontend** — it spawns a headless `jettstui serve` backend server (the same gateway `dashboard` serves, minus the browser UI entirely: `serve` sets `headless_backend=True`, so `cmd_dashboard` skips `_build_web_ui` AND exports `JETTSTUI_SERVE_HEADLESS=1` so `mount_spa()` disables the SPA even if a stray `web_dist/` exists — only the JSON-RPC/WS/API surface is reachable). `dashboard` and `serve` share `cmd_dashboard`/`start_server` but are independent surfaces — neither launches the other. The one exception is a backward-compat *fallback*: `serve` is newer, so the desktop spawn (`electron/backend-command.ts` + `backendSupportsServe()` in `electron/main.ts`) detects whether the resolved runtime registers `serve` and, only when it does not (an older managed install / PATH `jettstui` the app hasn't updated yet), rewrites the argv to the legacy `dashboard --no-open`. Without that, a new app against an un-upgraded runtime would crash on an unknown subcommand and brick every mid-upgrade user. It does NOT embed `jettstui --tui` — it has its own composer, transcript, and slash-command pipeline. For scoped Desktop architecture, state, resolver, transport, and testing rules, read `apps/desktop/AGENTS.md`.
 
 **Slash commands in the desktop app are curated client-side, then dispatched to the backend.** The pipeline:
 
@@ -527,7 +527,7 @@ A **separate** chat surface from both the classic CLI and the dashboard's embedd
 - **The renderer curates via `apps/desktop/src/lib/desktop-slash-commands.ts`.** This is the load-bearing file. It holds `DESKTOP_COMMAND_SPECS` (the built-ins and their Desktop surfaces) plus `NO_DESKTOP_SURFACE` block-lists for terminal-only / messaging-only / picker-owned / settings-owned / advanced commands that should NOT clutter the desktop popover.
   - `isDesktopSlashCommand(name)` — gates **execution**. Returns true for built-ins AND for any non-built-in (skill / quick command), so typed extension commands run.
   - `isDesktopSlashSuggestion(name)` — gates **discovery/completion**. Used by BOTH completion paths in `app/chat/composer/hooks/use-slash-completions.ts` (empty-query catalog filter + typed-query `complete.slash` filter) and by `filterDesktopCommandsCatalog`.
-  - `isDesktopSlashExtensionCommand(name)` — true when the command is NOT a known FreeIDE built-in (i.e. a skill or user quick command). Both suggestion and catalog-filter paths allow extensions through so skill commands surface in the palette. (Added when fixing "skill commands missing from the desktop slash palette" — the curated allow-list was silently dropping every skill/quick command from completions even though they executed fine when typed.)
+  - `isDesktopSlashExtensionCommand(name)` — true when the command is NOT a known JettsTUI built-in (i.e. a skill or user quick command). Both suggestion and catalog-filter paths allow extensions through so skill commands surface in the palette. (Added when fixing "skill commands missing from the desktop slash palette" — the curated allow-list was silently dropping every skill/quick command from completions even though they executed fine when typed.)
 - **Dispatch** lives in `app/session/hooks/use-prompt-actions/slash.ts` (`runSlash`): built-ins that the desktop owns (`/skin`, `/help`, `/new`, …) are handled locally or via `commands.catalog`; everything else goes to `slash.exec`, falling back to `command.dispatch` (which the gateway resolves into skill / alias / exec directives). A skill command resolves to `{type: "skill", message}` and is submitted as a normal prompt.
 
 **Rule:** the desktop slash palette's curation is about hiding noise (terminal-only / messaging-only built-ins), NOT about hiding user-activated extensions. Skill commands and `quick_commands` are extensions the backend surfaces — they belong in completions. If you tighten `desktop-slash-commands.ts`, keep `isDesktopSlashExtensionCommand` flowing into both the suggestion and catalog-filter paths. Tests: from `apps/desktop`, run `npx vitest run src/lib/desktop-slash-commands.test.ts` (workspace dependencies are installed at the repo root).
@@ -538,14 +538,14 @@ A **separate** chat surface from both the classic CLI and the dashboard's embedd
 
 Before adding any tool, settle the footprint question first (see "The
 Footprint Ladder" in the Contribution Rubric): most capabilities should NOT
-be core tools. For custom or local-only tools, do **not** edit FreeIDE core.
-Use the plugin route instead: create `~/.freeide/plugins/<name>/plugin.yaml`
-and `~/.freeide/plugins/<name>/__init__.py`, then register tools with
+be core tools. For custom or local-only tools, do **not** edit JettsTUI core.
+Use the plugin route instead: create `~/.jettstui/plugins/<name>/plugin.yaml`
+and `~/.jettstui/plugins/<name>/__init__.py`, then register tools with
 `ctx.register_tool(...)`. Plugin toolsets are discovered automatically and can be
 enabled or disabled without touching `tools/` or `toolsets.py`.
 
 Use the built-in route below only when the user is explicitly contributing a new
-core FreeIDE tool that should ship in the base system.
+core JettsTUI tool that should ship in the base system.
 
 Built-in/core tools require changes in **2 files**:
 
@@ -570,15 +570,15 @@ registry.register(
 )
 ```
 
-**2. Add to `toolsets.py`** — either `_FREEIDE_CORE_TOOLS` (all platforms) or a new toolset. **This step is required:** auto-discovery imports the tool and registers its schema, but the tool is only *exposed to an agent* if its name appears in a toolset. `_FREEIDE_CORE_TOOLS` is not dead code — it's the default bundle every platform's base toolset inherits from.
+**2. Add to `toolsets.py`** — either `_JETTSTUI_CORE_TOOLS` (all platforms) or a new toolset. **This step is required:** auto-discovery imports the tool and registers its schema, but the tool is only *exposed to an agent* if its name appears in a toolset. `_JETTSTUI_CORE_TOOLS` is not dead code — it's the default bundle every platform's base toolset inherits from.
 
 Auto-discovery: any `tools/*.py` file with a top-level `registry.register()` call is imported automatically — no manual import list to maintain. Wiring into a toolset is still a deliberate, manual step.
 
 The registry handles schema collection, dispatch, availability checking, and error wrapping. All handlers MUST return a JSON string.
 
-**Path references in tool schemas**: If the schema description mentions file paths (e.g. default output directories), use `display_freeide_home()` to make them profile-aware. The schema is generated at import time, which is after `_apply_profile_override()` sets `FREEIDE_HOME`.
+**Path references in tool schemas**: If the schema description mentions file paths (e.g. default output directories), use `display_jettstui_home()` to make them profile-aware. The schema is generated at import time, which is after `_apply_profile_override()` sets `JETTSTUI_HOME`.
 
-**State files**: If a tool stores persistent state (caches, logs, checkpoints), use `get_freeide_home()` for the base directory — never `Path.home() / ".freeide"`. This ensures each profile gets its own state.
+**State files**: If a tool stores persistent state (caches, logs, checkpoints), use `get_jettstui_home()` for the base directory — never `Path.home() / ".jettstui"`. This ensures each profile gets its own state.
 
 **Agent-level tools** (todo, memory): intercepted by `run_agent.py` before `handle_function_call()`. See `tools/todo_tool.py` for the pattern.
 
@@ -610,7 +610,7 @@ Reference: #2810 (bounds pass), #9801 (SHA pinning + audit CI).
 ## Adding Configuration
 
 ### config.yaml options:
-1. Add to `DEFAULT_CONFIG` in `freeide_cli/config.py`
+1. Add to `DEFAULT_CONFIG` in `jettstui/config.py`
 2. Bump `_config_version` (check the current value at the top of `DEFAULT_CONFIG`)
    ONLY if you need to actively migrate/transform existing user config
    (renaming keys, changing structure). Adding a new key to an existing
@@ -634,7 +634,7 @@ its own provider/model/base_url/max_tokens/reasoning_effort. See
 `archive_after_days`, `backup` (nested).
 
 ### .env variables (SECRETS ONLY — API keys, tokens, passwords):
-1. Add to `OPTIONAL_ENV_VARS` in `freeide_cli/config.py` with metadata:
+1. Add to `OPTIONAL_ENV_VARS` in `jettstui/config.py` with metadata:
 ```python
 "NEW_API_KEY": {
     "description": "What it's for",
@@ -655,7 +655,7 @@ the env var in code (see `gateway_timeout`, `terminal.cwd` → `TERMINAL_CWD`).
 | Loader | Used by | Location |
 |--------|---------|----------|
 | `load_cli_config()` | CLI mode | `cli.py` — merges CLI-specific defaults + user YAML |
-| `load_config()` | `freeide tools`, `freeide setup`, most CLI subcommands | `freeide_cli/config.py` — merges `DEFAULT_CONFIG` + user YAML |
+| `load_config()` | `jettstui tools`, `jettstui setup`, most CLI subcommands | `jettstui/config.py` — merges `DEFAULT_CONFIG` + user YAML |
 | Direct YAML load | Gateway runtime | `gateway/run.py` + `gateway/config.py` — reads user YAML raw |
 
 If you add a new key and the CLI sees it but the gateway doesn't (or vice
@@ -673,13 +673,13 @@ versa), you're on the wrong loader. Check `DEFAULT_CONFIG` coverage.
 
 ## Skin/Theme System
 
-The skin engine (`freeide_cli/skin_engine.py`) provides data-driven CLI visual customization. Skins are **pure data** — no code changes needed to add a new skin.
+The skin engine (`jettstui/skin_engine.py`) provides data-driven CLI visual customization. Skins are **pure data** — no code changes needed to add a new skin.
 
 ### Architecture
 
 ```
-freeide_cli/skin_engine.py    # SkinConfig dataclass, built-in skins, YAML loader
-~/.freeide/skins/*.yaml       # User-installed custom skins (drop-in)
+jettstui/skin_engine.py    # SkinConfig dataclass, built-in skins, YAML loader
+~/.jettstui/skins/*.yaml       # User-installed custom skins (drop-in)
 ```
 
 - `init_skin_from_config()` — called at CLI startup, reads `display.skin` from config
@@ -711,14 +711,14 @@ freeide_cli/skin_engine.py    # SkinConfig dataclass, built-in skins, YAML loade
 
 ### Built-in skins
 
-- `default` — Classic FreeIDE gold/kawaii (the current look)
+- `default` — Classic JettsTUI gold/kawaii (the current look)
 - `ares` — Crimson/bronze war-god theme with custom spinner wings
 - `mono` — Clean grayscale monochrome
 - `slate` — Cool blue developer-focused theme
 
 ### Adding a built-in skin
 
-Add to `_BUILTIN_SKINS` dict in `freeide_cli/skin_engine.py`:
+Add to `_BUILTIN_SKINS` dict in `jettstui/skin_engine.py`:
 
 ```python
 "mytheme": {
@@ -733,7 +733,7 @@ Add to `_BUILTIN_SKINS` dict in `freeide_cli/skin_engine.py`:
 
 ### User skins (YAML)
 
-Users create `~/.freeide/skins/<name>.yaml`:
+Users create `~/.jettstui/skins/<name>.yaml`:
 
 ```yaml
 name: cyberpunk
@@ -762,13 +762,13 @@ Activate with `/skin cyberpunk` or `display.skin: cyberpunk` in config.yaml.
 
 ## Plugins
 
-FreeIDE has two plugin surfaces. Both live under `plugins/` in the repo so
+JettsTUI has two plugin surfaces. Both live under `plugins/` in the repo so
 repo-shipped plugins can be discovered alongside user-installed ones in
-`~/.freeide/plugins/` and pip-installed entry points.
+`~/.jettstui/plugins/` and pip-installed entry points.
 
-### General plugins (`freeide_cli/plugins.py` + `plugins/<name>/`)
+### General plugins (`jettstui/plugins.py` + `plugins/<name>/`)
 
-`PluginManager` discovers plugins from `~/.freeide/plugins/`, `./.freeide/plugins/`,
+`PluginManager` discovers plugins from `~/.jettstui/plugins/`, `./.jettstui/plugins/`,
 and pip entry points. Each plugin exposes a `register(ctx)` function that
 can:
 
@@ -777,8 +777,8 @@ can:
   `on_session_start`, `on_session_end`
 - Register new tools via `ctx.register_tool(...)`
 - Register CLI subcommands via `ctx.register_cli_command(...)` — the
-  plugin's argparse tree is wired into `freeide` at startup so
-  `freeide <pluginname> <subcmd>` works with no change to `main.py`
+  plugin's argparse tree is wired into `jettstui` at startup so
+  `jettstui <pluginname> <subcmd>` works with no change to `main.py`
 
 Hooks are invoked from `model_tools.py` (pre/post tool) and `run_agent.py`
 (lifecycle). **Discovery timing pitfall:** `discover_plugins()` only runs
@@ -795,17 +795,17 @@ holographic, openviking, retaindb**.
 Each provider implements the `MemoryProvider` ABC (see `agent/memory_provider.py`)
 and is orchestrated by `agent/memory_manager.py`. Lifecycle hooks include
 `sync_turn(turn_messages)`, `prefetch(query)`, `shutdown()`, and optional
-`post_setup(freeide_home, config)` for setup-wizard integration.
+`post_setup(jettstui_home, config)` for setup-wizard integration.
 
 **CLI commands via `plugins/memory/<name>/cli.py`:** if a memory plugin
 defines `register_cli(subparser)`, `discover_plugin_cli_commands()` finds
-it at argparse setup time and wires it into `freeide <plugin>`. The
+it at argparse setup time and wires it into `jettstui <plugin>`. The
 framework only exposes CLI commands for the **currently active** memory
 provider (read from `memory.provider` in config.yaml), so disabled
-providers don't clutter `freeide --help`.
+providers don't clutter `jettstui --help`.
 
-**Rule (Teknium, May 2026):** plugins MUST NOT modify core files
-(`run_agent.py`, `cli.py`, `gateway/run.py`, `freeide_cli/main.py`, etc.).
+**Rule (May 2026):** plugins MUST NOT modify core files
+(`run_agent.py`, `cli.py`, `gateway/run.py`, `jettstui/main.py`, etc.).
 If a plugin needs a capability the framework doesn't expose, expand the
 generic plugin surface (new hook, new ctx method) — never hardcode
 plugin-specific logic into core. PR #5295 removed 95 lines of hardcoded
@@ -814,9 +814,9 @@ honcho argparse from `main.py` for exactly this reason.
 **No new in-tree memory providers (policy, May 2026):** the set of
 built-in memory providers under `plugins/memory/` is closed. New memory
 backends must ship as **standalone plugin repos** that users install
-into `~/.freeide/plugins/` (or via pip entry points) — they implement
+into `~/.jettstui/plugins/` (or via pip entry points) — they implement
 the same `MemoryProvider` ABC, register through the same discovery
-path, and integrate via `freeide memory setup` / `post_setup()` without
+path, and integrate via `jettstui memory setup` / `post_setup()` without
 landing in this tree. PRs that add a new directory under
 `plugins/memory/` will be closed with a pointer to publish the
 provider as its own repo. Existing in-tree providers stay; bug fixes
@@ -827,13 +827,13 @@ same rule applies beyond memory providers. Plugins that integrate
 someone else's product or project — observability/metrics backends,
 vendor SaaS connectors, analytics dashboards, paid-service tie-ins —
 must ship as **standalone plugin repos** that users install into
-`~/.freeide/plugins/` (or via pip entry points). They register through
+`~/.jettstui/plugins/` (or via pip entry points). They register through
 the existing plugin discovery path and use the ABCs/hooks/ctx surface
 we expose; nothing special is needed in core. The reason is
 maintenance load: every product we absorb into the tree becomes our
 burden to keep working against a fast-moving core, for a backend we
-don't own. Promote standalone plugins in the FreeIDE Discord
-(`#plugins-skills-and-skins`). PRs that add such a directory under
+don't own. Announce standalone plugins in GitHub Discussions.
+PRs that add such a directory under
 `plugins/` are closed with a pointer to publish it as its own repo —
 this is a coupling decision, not a quality judgment. (The
 `observability/`, `kanban/`, `disk-cleanup/`, etc. directories already
@@ -851,7 +851,7 @@ discovery system** — scanned on first `get_provider_profile()` or
 
 Scan order:
 1. Bundled: `<repo>/plugins/model-providers/<name>/`
-2. User: `$FREEIDE_HOME/plugins/model-providers/<name>/`
+2. User: `$JETTSTUI_HOME/plugins/model-providers/<name>/`
 3. Legacy: `<repo>/providers/<name>.py` (back-compat)
 
 User plugins of the same name override bundled ones — `register_provider()`
@@ -873,7 +873,7 @@ plug into `agent/context_engine.py`; image-gen providers into
 `agent/image_gen_provider.py`. Reference / docs-companion plugins
 (`example-dashboard`, `strike-freedom-cockpit`, `plugin-llm-example`,
 `plugin-llm-async-example`) live in the
-[`freeide-example-plugins`](https://github.com/freeide/freeide-example-plugins)
+[`jettstui-example-plugins`](https://github.com/jettstui/jettstui-example-plugins)
 companion repo, not in this tree.
 
 ---
@@ -886,7 +886,7 @@ Two parallel surfaces:
   Organized by category directories (e.g. `skills/github/`, `skills/mlops/`).
 - **`optional-skills/`** — heavier or niche skills shipped with the repo but
   NOT active by default. Installed explicitly via
-  `freeide skills install official/<category>/<skill>`. Adapter lives in
+  `jettstui skills install official/<category>/<skill>`. Adapter lives in
   `tools/skills_hub.py` (`OptionalSkillSource`). Categories include
   `autonomous-ai-agents`, `blockchain`, `communication`, `creative`,
   `devops`, `email`, `health`, `mcp`, `migration`, `mlops`, `productivity`,
@@ -899,13 +899,13 @@ niche skills belong in `optional-skills/`.
 
 Standard fields: `name`, `description`, `version`, `author`, `license`,
 `platforms` (OS-gating list: `[macos]`, `[linux, macos]`, ...),
-`metadata.freeide.tags`, `metadata.freeide.category`,
-`metadata.freeide.related_skills`, `metadata.freeide.config` (config.yaml
+`metadata.jettstui.tags`, `metadata.jettstui.category`,
+`metadata.jettstui.related_skills`, `metadata.jettstui.config` (config.yaml
 settings the skill needs — stored under `skills.config.<key>`, prompted
 during setup, injected at load time).
 
 Top-level `tags:` and `category:` are also accepted and mirrored from
-`metadata.freeide.*` by the loader.
+`metadata.jettstui.*` by the loader.
 
 ### Skill authoring standards (HARDLINE)
 
@@ -927,7 +927,7 @@ violate them.
    assert len(m.group(1)) <= 60, len(m.group(1))
    ```
 
-2. **Tools referenced in SKILL.md prose must be native FreeIDE tools or
+2. **Tools referenced in SKILL.md prose must be native JettsTUI tools or
    MCP servers the skill explicitly expects.** When the skill needs a
    capability, point at the proper tool by name in backticks
    (`` `terminal` ``, `` `web_extract` ``, `` `read_file` ``,
@@ -953,9 +953,9 @@ violate them.
 
 4. **`author` credits the human contributor first.** For external
    contributions, the contributor's real name + GitHub handle goes
-   first; "FreeIDE Agent" is the secondary collaborator. If the
-   contributor's commit shows "FreeIDE Agent" as author (because they
-   used FreeIDE to draft the skill), replace it with their actual name
+   first; "JettsTUI" is the secondary collaborator. If the
+   contributor's commit shows "JettsTUI" as author (because they
+   used JettsTUI to draft the skill), replace it with their actual name
    — credit the human, not the tool.
 
 5. **SKILL.md body uses the modern section order.** `# <Skill> Skill`
@@ -983,7 +983,7 @@ violate them.
    skill's own block must be dropped during salvage.
 
 The full salvage / modernization checklist for external skill PRs
-lives in the `freeide-agent-dev` skill at
+lives in the `jettstui-dev` skill at
 `references/new-skill-pr-salvage.md` — load it before polishing
 contributor skill PRs.
 
@@ -993,7 +993,7 @@ contributor skill PRs.
 
 All toolsets are defined in `toolsets.py` as a single `TOOLSETS` dict.
 Each platform's adapter picks a base toolset (e.g. Telegram uses
-`"messaging"`); `_FREEIDE_CORE_TOOLS` is the default bundle most
+`"messaging"`); `_JETTSTUI_CORE_TOOLS` is the default bundle most
 platforms inherit from.
 
 Current toolset keys: `browser`, `clarify`, `code_execution`, `cronjob`,
@@ -1002,7 +1002,7 @@ Current toolset keys: `browser`, `clarify`, `code_execution`, `cronjob`,
 `messaging`, `moa`, `rl`, `safe`, `search`, `session_search`, `skills`,
 `spotify`, `terminal`, `todo`, `tts`, `video`, `vision`, `web`, `yuanbao`.
 
-Enable/disable per platform via `freeide tools` (the curses UI) or the
+Enable/disable per platform via `jettstui tools` (the curses UI) or the
 `tools.<platform>.enabled` / `tools.<platform>.disabled` lists in
 `config.yaml`.
 
@@ -1013,7 +1013,7 @@ Enable/disable per platform via `freeide tools` (the curses UI) or the
 `tools/delegate_tool.py` spawns a subagent with an isolated
 context + terminal session. By default the parent waits for the
 child's summary before continuing its own loop. With `background=true`,
-FreeIDE returns a delegation id immediately and the result re-enters the
+JettsTUI returns a delegation id immediately and the result re-enters the
 conversation later through the async-delegation completion queue.
 
 Two shapes:
@@ -1047,15 +1047,15 @@ turn but still process-local. For work that must survive process restart, use
 
 Background skill-maintenance system that tracks usage on agent-created
 skills and auto-archives stale ones. Users never lose skills; archives
-go to `~/.freeide/skills/.archive/` and are restorable.
+go to `~/.jettstui/skills/.archive/` and are restorable.
 
 - **Core:** `agent/curator.py` (review loop, auto-transitions, LLM review
   prompt) + `agent/curator_backup.py` (pre-run tar.gz snapshots).
-- **CLI:** `freeide_cli/curator.py` wires `freeide curator <verb>` where
+- **CLI:** `jettstui/curator.py` wires `jettstui curator <verb>` where
   verbs are: `status`, `run`, `pause`, `resume`, `pin`, `unpin`,
   `archive`, `restore`, `prune`, `backup`, `rollback`.
 - **Telemetry:** `tools/skill_usage.py` owns the sidecar
-  `~/.freeide/skills/.usage.json` — per-skill `use_count`, `view_count`,
+  `~/.jettstui/skills/.usage.json` — per-skill `use_count`, `view_count`,
   `patch_count`, `last_activity_at`, `state` (active / stale /
   archived), `pinned`.
 
@@ -1080,7 +1080,7 @@ Full user-facing docs: `website/docs/user-guide/features/curator.md`.
 ## Cron (scheduled jobs)
 
 `cron/jobs.py` (job store) + `cron/scheduler.py` (tick loop). Agents
-schedule jobs via the `cronjob` tool; users via `freeide cron <verb>`
+schedule jobs via the `cronjob` tool; users via `jettstui cron <verb>`
 (`list`, `add`, `edit`, `pause`, `resume`, `run`, `remove`) or the
 `/cron` slash command.
 
@@ -1102,7 +1102,7 @@ Hardening invariants:
   cannot monopolize the scheduler.
 - Catchup window: half the job's period, clamped to 120s–2h.
 - Grace window: 120s for one-shot jobs whose fire time was missed.
-- File lock at `~/.freeide/cron/.tick.lock` prevents duplicate ticks
+- File lock at `~/.jettstui/cron/.tick.lock` prevents duplicate ticks
   across processes.
 - Cron sessions pass `skip_memory=True` by default; memory providers
   intentionally do not run during cron.
@@ -1116,12 +1116,12 @@ main conversation's message-role alternation stays intact.
 ## Kanban (multi-agent work queue)
 
 Durable SQLite-backed board that lets multiple profiles / workers
-collaborate on shared tasks. Users drive it via `freeide kanban <verb>`;
+collaborate on shared tasks. Users drive it via `jettstui kanban <verb>`;
 workers spawned by the dispatcher drive it via a dedicated `kanban_*`
 toolset so their schema footprint is zero when they're not inside a
 kanban task.
 
-- **CLI:** `freeide_cli/kanban.py` wires `freeide kanban` with verbs
+- **CLI:** `jettstui/kanban.py` wires `jettstui kanban` with verbs
   `init`, `create`, `list` (alias `ls`), `show`, `assign`, `link`,
   `unlink`, `comment`, `attach`, `attachments`, `attach-rm`, `complete`,
   `block`, `unblock`, `archive`, `tail`, plus less-commonly-used `watch`,
@@ -1138,12 +1138,12 @@ kanban task.
   assigned profiles. Runs **inside the gateway** by default via
   `kanban.dispatch_in_gateway: true`.
 - **Plugin assets:** `plugins/kanban/dashboard/` (web UI) +
-  `plugins/kanban/systemd/` (`freeide-kanban-dispatcher.service` for
+  `plugins/kanban/systemd/` (`jettstui-kanban-dispatcher.service` for
   standalone dispatcher deployment).
 
 Isolation model:
 - **Board** is the hard boundary — workers are spawned with
-  `FREEIDE_KANBAN_BOARD` pinned in their env so they can't see other
+  `JETTSTUI_KANBAN_BOARD` pinned in their env so they can't see other
   boards.
 - **Tenant** is a soft namespace *within* a board — one specialist
   fleet can serve multiple businesses with workspace-path + memory-key
@@ -1160,7 +1160,7 @@ Full user-facing docs: `website/docs/user-guide/features/kanban.md`.
 
 ### Prompt Caching Must Not Break
 
-FreeIDE-Agent ensures caching remains valid throughout a conversation. **Do NOT implement changes that would:**
+JettsTUI-Agent ensures caching remains valid throughout a conversation. **Do NOT implement changes that would:**
 - Alter past context mid-conversation
 - Change toolsets mid-conversation
 - Reload memories or rebuild system prompts mid-conversation
@@ -1177,7 +1177,7 @@ invalidation. See `/skills install --now` for the canonical pattern.
 When `terminal(background=true, notify_on_complete=true)` is used, the gateway runs a watcher that
 detects process completion and triggers a new agent turn. Control verbosity of background process
 messages with `display.background_process_notifications`
-in config.yaml (or `FREEIDE_BACKGROUND_NOTIFICATIONS` env var):
+in config.yaml (or `JETTSTUI_BACKGROUND_NOTIFICATIONS` env var):
 
 - `all` — running-output updates + final message (default)
 - `result` — only the final completion message
@@ -1188,46 +1188,46 @@ in config.yaml (or `FREEIDE_BACKGROUND_NOTIFICATIONS` env var):
 
 ## Profiles: Multi-Instance Support
 
-FreeIDE supports **profiles** — multiple fully isolated instances, each with its own
-`FREEIDE_HOME` directory (config, API keys, memory, sessions, skills, gateway, etc.).
+JettsTUI supports **profiles** — multiple fully isolated instances, each with its own
+`JETTSTUI_HOME` directory (config, API keys, memory, sessions, skills, gateway, etc.).
 
-The core mechanism: `_apply_profile_override()` in `freeide_cli/main.py` sets
-`FREEIDE_HOME` before any module imports. All `get_freeide_home()` references
+The core mechanism: `_apply_profile_override()` in `jettstui/main.py` sets
+`JETTSTUI_HOME` before any module imports. All `get_jettstui_home()` references
 automatically scope to the active profile.
 
 ### Rules for profile-safe code
 
-1. **Use `get_freeide_home()` for all FREEIDE_HOME paths.** Import from `freeide_constants`.
-   NEVER hardcode `~/.freeide` or `Path.home() / ".freeide"` in code that reads/writes state.
+1. **Use `get_jettstui_home()` for all JETTSTUI_HOME paths.** Import from `jettstui_constants`.
+   NEVER hardcode `~/.jettstui` or `Path.home() / ".jettstui"` in code that reads/writes state.
    ```python
    # GOOD
-   from freeide_constants import get_freeide_home
-   config_path = get_freeide_home() / "config.yaml"
+   from jettstui_constants import get_jettstui_home
+   config_path = get_jettstui_home() / "config.yaml"
 
    # BAD — breaks profiles
-   config_path = Path.home() / ".freeide" / "config.yaml"
+   config_path = Path.home() / ".jettstui" / "config.yaml"
    ```
 
-2. **Use `display_freeide_home()` for user-facing messages.** Import from `freeide_constants`.
-   This returns `~/.freeide` for default or `~/.freeide/profiles/<name>` for profiles.
+2. **Use `display_jettstui_home()` for user-facing messages.** Import from `jettstui_constants`.
+   This returns `~/.jettstui` for default or `~/.jettstui/profiles/<name>` for profiles.
    ```python
    # GOOD
-   from freeide_constants import display_freeide_home
-   print(f"Config saved to {display_freeide_home()}/config.yaml")
+   from jettstui_constants import display_jettstui_home
+   print(f"Config saved to {display_jettstui_home()}/config.yaml")
 
    # BAD — shows wrong path for profiles
-   print("Config saved to ~/.freeide/config.yaml")
+   print("Config saved to ~/.jettstui/config.yaml")
    ```
 
-3. **Module-level constants are fine** — they cache `get_freeide_home()` at import time,
-   which is AFTER `_apply_profile_override()` sets the env var. Just use `get_freeide_home()`,
-   not `Path.home() / ".freeide"`.
+3. **Module-level constants are fine** — they cache `get_jettstui_home()` at import time,
+   which is AFTER `_apply_profile_override()` sets the env var. Just use `get_jettstui_home()`,
+   not `Path.home() / ".jettstui"`.
 
-4. **Tests that mock `Path.home()` must also set `FREEIDE_HOME`** — since code now uses
-   `get_freeide_home()` (reads env var), not `Path.home() / ".freeide"`:
+4. **Tests that mock `Path.home()` must also set `JETTSTUI_HOME`** — since code now uses
+   `get_jettstui_home()` (reads env var), not `Path.home() / ".jettstui"`:
    ```python
    with patch.object(Path, "home", return_value=tmp_path), \
-        patch.dict(os.environ, {"FREEIDE_HOME": str(tmp_path / ".freeide")}):
+        patch.dict(os.environ, {"JETTSTUI_HOME": str(tmp_path / ".jettstui")}):
        ...
    ```
 
@@ -1237,24 +1237,24 @@ automatically scope to the active profile.
    `disconnect()`/`stop()`. This prevents two profiles from using the same credential.
    See `plugins/platforms/irc/adapter.py` for the canonical pattern.
 
-6. **Profile operations are HOME-anchored, not FREEIDE_HOME-anchored** — `_get_profiles_root()`
-   returns `Path.home() / ".freeide" / "profiles"`, NOT `get_freeide_home() / "profiles"`.
-   This is intentional — it lets `freeide -p coder profile list` see all profiles regardless
+6. **Profile operations are HOME-anchored, not JETTSTUI_HOME-anchored** — `_get_profiles_root()`
+   returns `Path.home() / ".jettstui" / "profiles"`, NOT `get_jettstui_home() / "profiles"`.
+   This is intentional — it lets `jettstui -p coder profile list` see all profiles regardless
    of which one is active.
 
 ## Known Pitfalls
 
-### DO NOT hardcode `~/.freeide` paths
-Use `get_freeide_home()` from `freeide_constants` for code paths. Use `display_freeide_home()`
-for user-facing print/log messages. Hardcoding `~/.freeide` breaks profiles — each profile
-has its own `FREEIDE_HOME` directory. This was the source of 5 bugs fixed in PR #3575.
+### DO NOT hardcode `~/.jettstui` paths
+Use `get_jettstui_home()` from `jettstui_constants` for code paths. Use `display_jettstui_home()`
+for user-facing print/log messages. Hardcoding `~/.jettstui` breaks profiles — each profile
+has its own `JETTSTUI_HOME` directory. This was the source of 5 bugs fixed in PR #3575.
 
 ### DO NOT introduce new `simple_term_menu` usage
-Existing call sites in `freeide_cli/main.py` remain for legacy fallback only;
+Existing call sites in `jettstui/main.py` remain for legacy fallback only;
 the preferred UI is curses (stdlib) because `simple_term_menu` has
 ghost-duplication rendering bugs in tmux/iTerm2 with arrow keys. New
-interactive menus must use `freeide_cli/curses_ui.py` — see
-`freeide_cli/tools_config.py` for the canonical pattern.
+interactive menus must use `jettstui/curses_ui.py` — see
+`jettstui/tools_config.py` for the canonical pattern.
 
 ### DO NOT use `\033[K` (ANSI erase-to-EOL) in spinner/display code
 Leaks as literal `?[K` text under `prompt_toolkit`'s `patch_stdout`. Use space-padding: `f"\r{line}{' ' * pad}"`.
@@ -1287,21 +1287,21 @@ red flag.
 ### Don't wire in dead code without E2E validation
 Unused code that was never shipped was dead for a reason. Before wiring an
 unused module into a live code path, E2E test the real resolution chain
-with actual imports (not mocks) against a temp `FREEIDE_HOME`.
+with actual imports (not mocks) against a temp `JETTSTUI_HOME`.
 
-### Tests must not write to `~/.freeide/`
-The `_isolate_freeide_home` autouse fixture in `tests/conftest.py` redirects `FREEIDE_HOME` to a temp dir. Never hardcode `~/.freeide/` paths in tests.
+### Tests must not write to `~/.jettstui/`
+The `_isolate_jettstui_home` autouse fixture in `tests/conftest.py` redirects `JETTSTUI_HOME` to a temp dir. Never hardcode `~/.jettstui/` paths in tests.
 
 **Profile tests**: When testing profile features, also mock `Path.home()` so that
-`_get_profiles_root()` and `_get_default_freeide_home()` resolve within the temp dir.
-Use the pattern from `tests/freeide_cli/test_profiles.py`:
+`_get_profiles_root()` and `_get_default_jettstui_home()` resolve within the temp dir.
+Use the pattern from `tests/jettstui_cli/test_profiles.py`:
 ```python
 @pytest.fixture
 def profile_env(tmp_path, monkeypatch):
-    home = tmp_path / ".freeide"
+    home = tmp_path / ".jettstui"
     home.mkdir()
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
-    monkeypatch.setenv("FREEIDE_HOME", str(home))
+    monkeypatch.setenv("JETTSTUI_HOME", str(home))
     return home
 ```
 
@@ -1324,7 +1324,7 @@ scripts/run_tests.sh -v --tb=long                     # pass-through pytest flag
 ```
 
 **Flake policy:** the runner auto-retries a failing test FILE once in a fresh
-subprocess (`--file-retries`, default 1; `FREEIDE_TEST_FILE_RETRIES=0` to
+subprocess (`--file-retries`, default 1; `JETTSTUI_TEST_FILE_RETRIES=0` to
 disable). Pass-on-retry counts as green but is printed in a `⚠ FLAKY` summary
 section with both attempts' output. A FLAKY report is a bug to fix, not noise
 to ignore — timing-sensitive tests must not assume a quiet runner (loose
@@ -1341,7 +1341,7 @@ ContextVars from one test file cannot leak into the next.
 |                     | Without wrapper                             | With wrapper                              |
 | ------------------- | ------------------------------------------- | ----------------------------------------- |
 | Provider API keys   | Whatever is in your env (auto-detects pool) | All env vars except a specific few unset. |
-| HOME / `~/.freeide/` | Your real config+auth.json                  | Temp dir per test                         |
+| HOME / `~/.jettstui/` | Your real config+auth.json                  | Temp dir per test                         |
 | Timezone            | Local TZ (PDT etc.)                         | UTC                                       |
 | Locale              | Whatever is set                             | C.UTF-8                                   |
 

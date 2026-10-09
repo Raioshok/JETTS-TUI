@@ -6,7 +6,7 @@
  * the familiar `kimi-…` naming of sibling models.
  *
  * Keep in sync with ui-tui/src/lib/model-search-text.ts,
- * web/src/lib/model-search-text.ts, and freeide_cli/model_search.py.
+ * web/src/lib/model-search-text.ts, and jettstui/model_search.py.
  */
 const MODEL_SEARCH_ALIASES: Record<string, readonly string[]> = {
   k3: ['kimi-k3', 'kimi']

@@ -2,4 +2,4 @@ name: githubmodels-provider
 kind: model-provider
 version: 1.0.0
 description: GitHub Models
-author: FreeIDE
+author: JettsTUI

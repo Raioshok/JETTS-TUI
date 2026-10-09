@@ -2,11 +2,11 @@
 name: cloudflare-temporary-deploy
 description: Deploy a Worker live, no account, via wrangler --temporary.
 version: 1.0.0
-author: FreeIDE Agent
+author: JettsTUI
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
-  freeide:
+  jettstui:
     tags: [cloudflare, workers, wrangler, deploy, temporary, agent, serverless, web-development]
     category: web-development
 ---

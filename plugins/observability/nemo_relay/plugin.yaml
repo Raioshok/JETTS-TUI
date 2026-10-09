@@ -1,7 +1,7 @@
 name: nemo_relay
 version: "0.1.0"
-description: "Optional NeMo Relay observability for FreeIDE. Opt in with `freeide plugins enable observability/nemo_relay`; FREEIDE_NEMO_RELAY_* env vars configure exports after the plugin is enabled."
-author: freeide
+description: "Optional NeMo Relay observability for JettsTUI. Opt in with `jettstui plugins enable observability/nemo_relay`; JETTSTUI_NEMO_RELAY_* env vars configure exports after the plugin is enabled."
+author: jettstui
 hooks:
   - on_session_start
   - on_session_end

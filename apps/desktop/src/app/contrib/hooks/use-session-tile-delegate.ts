@@ -1,9 +1,9 @@
 import { useEffect } from 'react'
 
-import { getSessionMessages, PROMPT_SUBMIT_REQUEST_TIMEOUT_MS } from '@/freeide'
+import { getSessionMessages, PROMPT_SUBMIT_REQUEST_TIMEOUT_MS } from '@/jettstui'
 import { toChatMessages } from '@/lib/chat-messages'
 import { publishSessionState, setSessionTileDelegate } from '@/store/session-states'
-import type { SessionResumeResponse } from '@/types/freeide'
+import type { SessionResumeResponse } from '@/types/jettstui'
 
 import type { usePromptActions } from '../../session/hooks/use-prompt-actions'
 import { resolveSessionProfile } from '../../session/hooks/use-session-actions/utils'

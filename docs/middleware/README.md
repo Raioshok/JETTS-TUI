@@ -1,23 +1,23 @@
-# FreeIDE Middleware
+# JettsTUI Middleware
 
-FreeIDE middleware is the behavior-changing companion to observer hooks.
+JettsTUI middleware is the behavior-changing companion to observer hooks.
 Observer hooks report what happened. Middleware can change what happens by
 rewriting a request before execution or by wrapping the execution callback
 itself.
 
 This contract is intentionally backend-neutral. A plugin can use it for local
 policy, request shaping, tracing, adaptive routing, cache control, sandbox
-selection, or handoff to runtimes such as NeMo Relay without changing FreeIDE'
+selection, or handoff to runtimes such as NeMo Relay without changing JettsTUI'
 planner, model provider adapters, tool registry, memory, or CLI UX.
 
 With middleware enabled, plugins can:
 
-- Rewrite LLM provider request kwargs before FreeIDE calls the provider.
+- Rewrite LLM provider request kwargs before JettsTUI calls the provider.
 - Rewrite tool arguments before guardrails, approval checks, hooks, and tool
   execution see them.
-- Wrap the actual LLM execution callback while preserving FreeIDE retry,
+- Wrap the actual LLM execution callback while preserving JettsTUI retry,
   streaming, interrupt, and hook behavior.
-- Wrap the actual tool execution callback while preserving FreeIDE guardrails,
+- Wrap the actual tool execution callback while preserving JettsTUI guardrails,
   approval, post-tool hooks, and tool-result transformation.
 
 ## Contract
@@ -34,8 +34,8 @@ def register(ctx):
 
 Every middleware callback receives:
 
-- `telemetry_schema_version`: currently `freeide.observer.v1`
-- `middleware_schema_version`: currently `freeide.middleware.v1`
+- `telemetry_schema_version`: currently `jettstui.observer.v1`
+- `middleware_schema_version`: currently `jettstui.middleware.v1`
 - Runtime context such as `session_id`, `task_id`, `turn_id`,
   `api_request_id`, `provider`, `model`, `api_mode`, `tool_name`, and
   `tool_call_id` when applicable.
@@ -59,7 +59,7 @@ return {
 }
 ```
 
-FreeIDE stores those trace entries in later observer hook payloads as
+JettsTUI stores those trace entries in later observer hook payloads as
 `middleware_trace`.
 
 Execution middleware receives a `next_call` callback. Call it to continue the
@@ -71,16 +71,16 @@ def on_tool_execution(**kwargs):
     return result
 ```
 
-If multiple plugins register the same execution middleware kind, FreeIDE runs
+If multiple plugins register the same execution middleware kind, JettsTUI runs
 them as a nested chain in registration order. Middleware failures are fail-open:
-FreeIDE logs a warning and continues with the next middleware or the base
+JettsTUI logs a warning and continues with the next middleware or the base
 runtime path.
 
 ## Execution Order
 
 ### LLM Calls
 
-For each provider request, FreeIDE applies middleware in this order:
+For each provider request, JettsTUI applies middleware in this order:
 
 1. Build provider kwargs from the current conversation.
 2. Apply `llm_request` middleware.
@@ -95,11 +95,11 @@ request plus `next_call`.
 
 ### Tool Calls
 
-For each tool call, FreeIDE applies middleware in this order:
+For each tool call, JettsTUI applies middleware in this order:
 
 1. Parse and coerce model-provided tool arguments.
 2. Apply `tool_request` middleware.
-3. Run the normal FreeIDE pre-execution path against the effective arguments:
+3. Run the normal JettsTUI pre-execution path against the effective arguments:
    tool availability checks, observer block directives, guardrails, and
    approval checks.
 4. Run tool execution through `tool_execution` middleware.
@@ -115,17 +115,17 @@ rewritten path, command, or URL is the value downstream policy will evaluate.
 Middleware only runs for enabled plugins. For a bundled plugin:
 
 ```bash
-freeide plugins enable <plugin-name>
+jettstui plugins enable <plugin-name>
 ```
 
-For isolated local testing, use one `FREEIDE_HOME` for plugin enablement and the
+For isolated local testing, use one `JETTSTUI_HOME` for plugin enablement and the
 agent run:
 
 ```bash
-export FREEIDE_HOME=/tmp/freeide-middleware-test
-mkdir -p "$FREEIDE_HOME"
-freeide plugins enable <plugin-name>
-freeide chat --query 'Reply exactly ok'
+export JETTSTUI_HOME=/tmp/jettstui-middleware-test
+mkdir -p "$JETTSTUI_HOME"
+jettstui plugins enable <plugin-name>
+jettstui chat --query 'Reply exactly ok'
 ```
 
 For source checkouts, prefer the source command so the runtime sees plugins and
@@ -133,8 +133,8 @@ middleware from the working tree:
 
 ```bash
 uv sync
-uv run freeide plugins enable <plugin-name>
-uv run freeide chat --query 'Reply exactly ok'
+uv run jettstui plugins enable <plugin-name>
+uv run jettstui chat --query 'Reply exactly ok'
 ```
 
 ## Generic Plugin Examples
@@ -154,7 +154,7 @@ def register(ctx):
 def tag_llm_request(**kwargs):
     request = dict(kwargs["request"])
     extra_body = dict(request.get("extra_body") or {})
-    extra_body.setdefault("metadata", {})["freeide_middleware_demo"] = True
+    extra_body.setdefault("metadata", {})["jettstui_middleware_demo"] = True
     request["extra_body"] = extra_body
     return {
         "request": request,
@@ -179,7 +179,7 @@ def normalize_terminal_workdir(**kwargs):
     if kwargs.get("tool_name") != "terminal":
         return None
     args = dict(kwargs["args"])
-    args.setdefault("workdir", "/tmp/freeide-middleware-demo")
+    args.setdefault("workdir", "/tmp/jettstui-middleware-demo")
     return {
         "args": args,
         "source": "middleware-demo",
@@ -210,7 +210,7 @@ def time_llm_execution(**kwargs):
     return response
 ```
 
-Return the same response shape FreeIDE expects from the provider adapter. Do not
+Return the same response shape JettsTUI expects from the provider adapter. Do not
 wrap the response in a plugin-specific envelope unless the rest of the runtime
 expects that envelope.
 
@@ -244,14 +244,14 @@ For NeMo Relay adaptive execution middleware, see
   patches.
 - Execution middleware should call `next_call(...)` exactly once unless it is
   intentionally short-circuiting execution.
-- If execution middleware raises before calling `next_call(...)`, FreeIDE treats
+- If execution middleware raises before calling `next_call(...)`, JettsTUI treats
   that as middleware failure and continues with the remaining middleware chain
   and base execution.
 - If execution middleware calls `next_call(...)` successfully and then raises
-  during post-processing, FreeIDE preserves the downstream result and does not
+  during post-processing, JettsTUI preserves the downstream result and does not
   run the provider or tool a second time.
 - If downstream provider or tool execution fails, middleware may let that error
-  propagate or translate it deliberately. FreeIDE does not convert downstream
+  propagate or translate it deliberately. JettsTUI does not convert downstream
   failure into a successful `None` result.
 - Tool request middleware runs before approvals. If it mutates file paths,
   commands, URLs, or arguments, the mutated values are what guardrails and

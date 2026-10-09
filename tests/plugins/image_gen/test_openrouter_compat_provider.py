@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Tests for the OpenRouter-compatible image gen provider (OpenRouter + Nous)."""
+"""Tests for the OpenRouter-compatible image gen provider (OpenRouter + Acme)."""
 
 from __future__ import annotations
 
@@ -9,7 +9,7 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-_RUNTIME = "freeide_cli.runtime_provider.resolve_runtime_provider"
+_RUNTIME = "jettstui.runtime_provider.resolve_runtime_provider"
 _PNG_DATA_URI = "data:image/png;base64,dGVzdC1pbWFnZS1kYXRh"  # "test-image-data"
 
 
@@ -68,14 +68,13 @@ class TestProviderClass:
         from plugins.image_gen.openrouter import _build_providers
 
         names = {p.name for p in _build_providers()}
-        assert names == {"openrouter", "nous"}
+        assert names == {"openrouter"}
 
     def test_display_names(self):
         from plugins.image_gen.openrouter import _build_providers
 
         by_name = {p.name: p for p in _build_providers()}
         assert by_name["openrouter"].display_name == "OpenRouter"
-        assert by_name["nous"].display_name == "FreeIDE Portal"
 
     def test_capabilities_support_image_input(self):
         caps = _openrouter().capabilities()
@@ -126,14 +125,6 @@ class TestProviderClass:
         with patch("plugins.image_gen.openrouter._load_image_gen_config", return_value=cfg):
             assert _openrouter()._resolve_model_chain() == ["openai/gpt-image-2"]
 
-    def test_nous_honors_top_level_model(self):
-        from plugins.image_gen.openrouter import _build_providers
-
-        cfg = {"model": "openai/gpt-image-2"}
-        nous = {p.name: p for p in _build_providers()}["nous"]
-        with patch("plugins.image_gen.openrouter._load_image_gen_config", return_value=cfg):
-            assert nous._resolve_model_chain() == ["openai/gpt-image-2"]
-
     def test_explicit_model_kwarg_wins_over_config(self):
         cfg = {"model": "openai/gpt-image-2"}
         with patch("plugins.image_gen.openrouter._load_image_gen_config", return_value=cfg):
@@ -172,11 +163,11 @@ class TestHelpers:
     def test_to_image_url_part_blocks_credential_store(self, tmp_path, monkeypatch):
         from plugins.image_gen.openrouter import _to_image_url_part
 
-        freeide_home = tmp_path / ".freeide"
-        freeide_home.mkdir()
-        auth_json = freeide_home / "auth.json"
+        jettstui_home = tmp_path / ".jettstui"
+        jettstui_home.mkdir()
+        auth_json = jettstui_home / "auth.json"
         auth_json.write_text('{"api_key":"sk-secret"}', encoding="utf-8")
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
         with pytest.raises(ValueError, match="credential store"):
             _to_image_url_part(str(auth_json))
@@ -188,11 +179,11 @@ class TestHelpers:
 
         from plugins.image_gen.openrouter import _to_image_url_part
 
-        freeide_home = tmp_path / ".freeide"
-        freeide_home.mkdir()
-        auth_json = freeide_home / "auth.json"
+        jettstui_home = tmp_path / ".jettstui"
+        jettstui_home.mkdir()
+        auth_json = jettstui_home / "auth.json"
         auth_json.write_text('{"api_key":"sk-secret"}', encoding="utf-8")
-        monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+        monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
 
         real_read_bytes = _P.read_bytes
         read: list = []
@@ -336,22 +327,19 @@ class TestGenerate:
         assert mock_post.call_args.kwargs["json"]["model"] == "openai/gpt-image-2"
 
     def test_posts_to_resolved_base_url(self):
-        """Nous routes to its own base URL — proves the same code serves both."""
-        nous_runtime = _runtime_ok(
-            provider="nous", base_url="https://inference.freeide.dev/v1", api_key="nous-tok"
+        """Requests go to the runtime-resolved base URL, not a hardcoded host."""
+        runtime = _runtime_ok(
+            provider="openrouter", base_url="https://proxy.example/api/v1", api_key="or-tok"
         )
-        with patch(_RUNTIME, return_value=nous_runtime), \
+        with patch(_RUNTIME, return_value=runtime), \
              patch("requests.post", return_value=_mock_chat_response([_PNG_DATA_URI])) as mock_post, \
              patch("plugins.image_gen.openrouter.save_b64_image", return_value=Path("/tmp/x.png")):
-            from plugins.image_gen.openrouter import _build_providers
-
-            nous = {p.name: p for p in _build_providers()}["nous"]
-            result = nous.generate(prompt="a pet")
+            result = _openrouter().generate(prompt="a pet")
 
         assert result["success"] is True
-        assert result["provider"] == "nous"
+        assert result["provider"] == "openrouter"
         url = mock_post.call_args[0][0]
-        assert url == "https://inference.freeide.dev/v1/chat/completions"
+        assert url == "https://proxy.example/api/v1/chat/completions"
 
     def test_api_error(self):
         import requests as req_lib
@@ -440,10 +428,9 @@ class TestRegistration:
         ctx = MagicMock()
         register(ctx)
         registered = [c.args[0].name for c in ctx.register_image_gen_provider.call_args_list]
-        assert set(registered) == {"openrouter", "nous"}
+        assert set(registered) == {"openrouter"}
 
-    def test_both_are_reference_capable_for_pets(self):
+    def test_openrouter_is_reference_capable_for_pets(self):
         from agent.pet.generate.imagegen import _REF_CAPABLE
 
         assert "openrouter" in _REF_CAPABLE
-        assert "nous" in _REF_CAPABLE

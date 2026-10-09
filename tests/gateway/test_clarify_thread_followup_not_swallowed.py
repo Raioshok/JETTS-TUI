@@ -103,7 +103,7 @@ async def _dispatch(runner, event):
     def _tripwire(_key):
         raise _FellThroughIntercept()
 
-    with patch("freeide_cli.plugins.invoke_hook", return_value=[]), \
+    with patch("jettstui.plugins.invoke_hook", return_value=[]), \
             patch.object(slash_confirm_mod, "get_pending", _tripwire):
         return await runner._handle_message(event)
 
@@ -203,12 +203,12 @@ async def test_prose_still_accepted_for_open_ended_clarify():
     runner = _make_runner(adapter)
     cm.register("cl-open", SESSION_KEY, "What should I name it?", None)
 
-    result = await _dispatch(runner, _event("call it freeide-ux"))
+    result = await _dispatch(runner, _event("call it jettstui-ux"))
 
     assert result == ""
     with cm._lock:
         entry = cm._entries.get("cl-open")
     assert entry is not None
     assert entry.event.is_set()
-    assert entry.response == "call it freeide-ux"
+    assert entry.response == "call it jettstui-ux"
     _clear_clarify_state()

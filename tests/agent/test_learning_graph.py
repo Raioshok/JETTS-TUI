@@ -9,7 +9,7 @@ change-detector.
 from __future__ import annotations
 
 from agent import learning_graph
-from freeide_constants import reset_freeide_home_override, set_freeide_home_override
+from jettstui_constants import reset_jettstui_home_override, set_jettstui_home_override
 
 
 def _node(name: str, category: str, related=None):
@@ -67,17 +67,17 @@ def test_skill_node_timestamp_uses_iso_usage_activity(tmp_path, monkeypatch):
 
 
 def test_memory_is_cards_split_on_separator(tmp_path):
-    home = tmp_path / ".freeide"
+    home = tmp_path / ".jettstui"
     (home / "memories").mkdir(parents=True)
     (home / "memories" / "MEMORY.md").write_text(
         "Project uses pytest with xdist\n§\nUser prefers concise responses",
         encoding="utf-8",
     )
-    token = set_freeide_home_override(home)
+    token = set_jettstui_home_override(home)
     try:
         graph = learning_graph.build_learning_graph()
     finally:
-        reset_freeide_home_override(token)
+        reset_jettstui_home_override(token)
 
     titles = [c["title"] for c in graph["memory"]]
     assert "Project uses pytest with xdist" in titles
@@ -106,20 +106,20 @@ def test_malformed_frontmatter_metadata_does_not_crash(tmp_path):
     assert node.related == []
 
 
-def test_freeide_meta_tolerates_non_dict():
-    assert learning_graph._freeide_meta({"metadata": "junk"}) == {}
-    assert learning_graph._freeide_meta({"metadata": {"freeide": "junk"}}) == {}
-    assert learning_graph._freeide_meta({"metadata": {"freeide": {"category": "x"}}}) == {"category": "x"}
+def test_jettstui_meta_tolerates_non_dict():
+    assert learning_graph._jettstui_meta({"metadata": "junk"}) == {}
+    assert learning_graph._jettstui_meta({"metadata": {"jettstui": "junk"}}) == {}
+    assert learning_graph._jettstui_meta({"metadata": {"jettstui": {"category": "x"}}}) == {"category": "x"}
 
 
 def test_full_payload_shape_and_edge_integrity(tmp_path):
-    home = tmp_path / ".freeide"
+    home = tmp_path / ".jettstui"
     home.mkdir()
-    token = set_freeide_home_override(home)
+    token = set_jettstui_home_override(home)
     try:
         graph = learning_graph.build_learning_graph()
     finally:
-        reset_freeide_home_override(token)
+        reset_jettstui_home_override(token)
 
     ids = {n["id"] for n in graph["nodes"]}
     assert all(e["source"] in ids and e["target"] in ids for e in graph["edges"])

@@ -31,8 +31,8 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '
 import { Popover, PopoverAnchor, PopoverContent } from '@/components/ui/popover'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tip, Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip'
-import { getProfileSoul, updateProfileSoul } from '@/freeide'
 import { useI18n } from '@/i18n'
+import { getProfileSoul, updateProfileSoul } from '@/jettstui'
 import { triggerHaptic } from '@/lib/haptics'
 import { PROFILE_SWATCHES, profileColorSoft, resolveProfileColor } from '@/lib/profile-color'
 import {
@@ -59,7 +59,7 @@ import {
   setShowAllProfiles,
   sortByProfileOrder
 } from '@/store/profile'
-import type { ProfileInfo } from '@/types/freeide'
+import type { ProfileInfo } from '@/types/jettstui'
 
 import { CreateProfileDialog } from '../../profiles/create-profile-dialog'
 import { DeleteProfileDialog } from '../../profiles/delete-profile-dialog'

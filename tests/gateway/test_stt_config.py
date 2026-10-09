@@ -17,14 +17,14 @@ def test_gateway_config_stt_disabled_from_dict_nested():
 
 
 def test_load_gateway_config_bridges_stt_enabled_from_config_yaml(tmp_path, monkeypatch):
-    freeide_home = tmp_path / ".freeide"
-    freeide_home.mkdir()
-    (freeide_home / "config.yaml").write_text(
+    jettstui_home = tmp_path / ".jettstui"
+    jettstui_home.mkdir()
+    (jettstui_home / "config.yaml").write_text(
         yaml.dump({"stt": {"enabled": False}}),
         encoding="utf-8",
     )
 
-    monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+    monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
     config = load_gateway_config()

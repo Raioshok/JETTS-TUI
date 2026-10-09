@@ -162,12 +162,12 @@ def test_run_job_releases_cwd_lock_when_body_raises(tmp_path):
             raise RuntimeError("boom")
         return real_info(msg, *args, **kwargs)
 
-    with patch("cron.scheduler._freeide_home", tmp_path), \
+    with patch("cron.scheduler._jettstui_home", tmp_path), \
          patch("cron.scheduler._resolve_origin", return_value=None), \
-         patch("freeide_cli.env_loader.load_freeide_dotenv"), \
-         patch("freeide_cli.env_loader.reset_secret_source_cache"), \
+         patch("jettstui.env_loader.load_jettstui_dotenv"), \
+         patch("jettstui.env_loader.reset_secret_source_cache"), \
          patch.object(sched.logger, "info", side_effect=_raise_on_workdir_log), \
-         patch("freeide_state.SessionDB", return_value=MagicMock()):
+         patch("jettstui_state.SessionDB", return_value=MagicMock()):
         # run_job catches its own body exceptions and returns (False, ...);
         # it must not propagate, and it must release the lock either way.
         success, _out, _final, _err = sched.run_job(job)

@@ -12,6 +12,8 @@ from tui_gateway.compute_host import ComputeHost, _default_workers
 from tui_gateway.host_supervisor import (
     MUTATOR_ROUTE_TABLE,
     HostSupervisor,
+    _pid_alive,
+    _pid_command,
     append_log_record,
 )
 
@@ -35,15 +37,15 @@ def _wait_for_frame(out: io.StringIO, predicate, timeout: float = 2.0) -> dict:
 
 
 def test_compute_host_workers_inherit_tui_pool_env_or_8(monkeypatch):
-    monkeypatch.delenv("FREEIDE_TUI_RPC_POOL_WORKERS", raising=False)
-    monkeypatch.delenv("FREEIDE_COMPUTE_HOST_WORKERS", raising=False)
+    monkeypatch.delenv("JETTSTUI_TUI_RPC_POOL_WORKERS", raising=False)
+    monkeypatch.delenv("JETTSTUI_COMPUTE_HOST_WORKERS", raising=False)
     assert _default_workers() == 8
 
-    monkeypatch.setenv("FREEIDE_TUI_RPC_POOL_WORKERS", "11")
+    monkeypatch.setenv("JETTSTUI_TUI_RPC_POOL_WORKERS", "11")
     assert _default_workers() == 11
 
     # Dead-RC tombstone: malformed env falls back to 8, not the old except-branch 4.
-    monkeypatch.setenv("FREEIDE_TUI_RPC_POOL_WORKERS", "not-an-int")
+    monkeypatch.setenv("JETTSTUI_TUI_RPC_POOL_WORKERS", "not-an-int")
     assert _default_workers() == 8
 
 
@@ -212,7 +214,7 @@ def test_compute_host_compress_control_runs_identity_guard_in_host(monkeypatch):
         sess["session_key"] = "after-key"
 
     server._sessions["sid"] = session
-    monkeypatch.setenv("FREEIDE_COMPUTE_HOST_CHILD", "1")
+    monkeypatch.setenv("JETTSTUI_COMPUTE_HOST_CHILD", "1")
     monkeypatch.setattr(server, "_compress_session_history", _compress)
     monkeypatch.setattr(server, "_sync_session_key_after_compress", _sync)
     monkeypatch.setattr(server, "_emit", lambda *_args, **_kwargs: None)
@@ -342,12 +344,35 @@ def test_supervisor_startup_reconcile_pid_reuse_guard(tmp_path, monkeypatch):
     assert not registry.exists()
 
 
+def test_supervisor_pid_probe_never_signals_target(monkeypatch):
+    from gateway import status
+
+    monkeypatch.setattr(status, "_pid_exists", lambda pid: pid == os.getpid())
+    monkeypatch.setattr(os, "kill", lambda *_args: pytest.fail("PID probe sent a signal"))
+
+    assert _pid_alive(os.getpid()) is True
+    assert _pid_alive(0) is False
+    assert _pid_alive(99999999) is False
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows process command-line lookup")
+def test_supervisor_windows_pid_identity_uses_process_command(monkeypatch):
+    import psutil
+
+    class FakeProcess:
+        def cmdline(self):
+            return [sys.executable, "-m", "tui_gateway.compute_host"]
+
+    monkeypatch.setattr(psutil, "Process", lambda _pid: FakeProcess())
+    assert "tui_gateway.compute_host" in _pid_command(12345)
+
+
 def test_supervisor_crash_emits_turn_error_and_respawns(tmp_path):
     script = tmp_path / "fake_host.py"
     script.write_text(
         """
 import json, os, sys
-print(json.dumps({'type':'hello','host_pid':os.getpid(),'boot_id':'boot-1','build_sha':'test','freeide_home':os.environ.get('FREEIDE_HOME','')}), flush=True)
+print(json.dumps({'type':'hello','host_pid':os.getpid(),'boot_id':'boot-1','build_sha':'test','jettstui_home':os.environ.get('JETTSTUI_HOME','')}), flush=True)
 for raw in sys.stdin:
     frame=json.loads(raw)
     if frame.get('type') == 'shutdown':
@@ -457,7 +482,7 @@ def test_compute_host_compress_control_notifies_engine_after_commit(monkeypatch)
         sess["session_key"] = "after-key"
 
     server._sessions["sid"] = session
-    monkeypatch.setenv("FREEIDE_COMPUTE_HOST_CHILD", "1")
+    monkeypatch.setenv("JETTSTUI_COMPUTE_HOST_CHILD", "1")
     monkeypatch.setattr(server, "_compress_session_history", _compress)
     monkeypatch.setattr(server, "_sync_session_key_after_compress", _sync)
     monkeypatch.setattr(server, "_emit", lambda *_args, **_kwargs: None)
@@ -523,7 +548,7 @@ def test_compute_host_compress_control_failure_discards_notification(monkeypatch
         raise RuntimeError("synthetic host commit failure")
 
     server._sessions["sid"] = session
-    monkeypatch.setenv("FREEIDE_COMPUTE_HOST_CHILD", "1")
+    monkeypatch.setenv("JETTSTUI_COMPUTE_HOST_CHILD", "1")
     monkeypatch.setattr(server, "_compress_session_history", _compress)
     monkeypatch.setattr(server, "_sync_session_key_after_compress", _boom)
     monkeypatch.setattr(server, "_emit", lambda *_args, **_kwargs: None)
@@ -587,7 +612,7 @@ def test_compute_host_compact_alias_routes_to_compress_mirror(monkeypatch):
         )
 
     server._sessions["sid"] = session
-    monkeypatch.setenv("FREEIDE_COMPUTE_HOST_CHILD", "1")
+    monkeypatch.setenv("JETTSTUI_COMPUTE_HOST_CHILD", "1")
     monkeypatch.setattr(server, "_compress_session_history", _compress)
     monkeypatch.setattr(
         server, "_sync_session_key_after_compress", lambda *_a: events.append("sync")

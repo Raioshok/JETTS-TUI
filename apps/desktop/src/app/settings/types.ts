@@ -1,12 +1,11 @@
 import type { Dispatch, SetStateAction } from 'react'
 
-import type { FreeIDEGateway } from '@/freeide'
+import type { JettsTUIGateway } from '@/jettstui'
 import type { IconComponent } from '@/lib/icons'
-import type { EnvVarInfo } from '@/types/freeide'
+import type { EnvVarInfo } from '@/types/jettstui'
 
 export type SettingsView =
   | 'about'
-  | 'billing'
   | 'gateway'
   | 'keybinds'
   | 'keys'
@@ -18,7 +17,7 @@ export type SettingsView =
 export type EnvPatch = Partial<Pick<EnvVarInfo, 'is_set' | 'redacted_value'>>
 
 export interface SettingsPageProps {
-  gateway?: FreeIDEGateway | null
+  gateway?: JettsTUIGateway | null
   onClose: () => void
   onConfigSaved?: () => void
   onMainModelChanged?: (provider: string, model: string) => void

@@ -34,8 +34,8 @@ class TestAgentConfigSignature:
 
         runtime = {"api_key": "sk-test12345678", "base_url": "https://openrouter.ai/api/v1",
                     "provider": "openrouter", "api_mode": "chat_completions"}
-        sig1 = GatewayRunner._agent_config_signature("claude-sonnet-4", runtime, ["freeide-telegram"], "")
-        sig2 = GatewayRunner._agent_config_signature("claude-sonnet-4", runtime, ["freeide-telegram"], "")
+        sig1 = GatewayRunner._agent_config_signature("claude-sonnet-4", runtime, ["jettstui-telegram"], "")
+        sig2 = GatewayRunner._agent_config_signature("claude-sonnet-4", runtime, ["jettstui-telegram"], "")
         assert sig1 == sig2
 
     def test_model_change_different_signature(self):
@@ -43,8 +43,8 @@ class TestAgentConfigSignature:
 
         runtime = {"api_key": "sk-test12345678", "base_url": "https://openrouter.ai/api/v1",
                     "provider": "openrouter"}
-        sig1 = GatewayRunner._agent_config_signature("claude-sonnet-4", runtime, ["freeide-telegram"], "")
-        sig2 = GatewayRunner._agent_config_signature("claude-opus-4.6", runtime, ["freeide-telegram"], "")
+        sig1 = GatewayRunner._agent_config_signature("claude-sonnet-4", runtime, ["jettstui-telegram"], "")
+        sig2 = GatewayRunner._agent_config_signature("claude-opus-4.6", runtime, ["jettstui-telegram"], "")
         assert sig1 != sig2
 
     def test_same_token_prefix_different_full_token_changes_signature(self):
@@ -65,8 +65,8 @@ class TestAgentConfigSignature:
         }
 
         assert rt1["api_key"][:8] == rt2["api_key"][:8]
-        sig1 = GatewayRunner._agent_config_signature("gpt-5.3-codex", rt1, ["freeide-telegram"], "")
-        sig2 = GatewayRunner._agent_config_signature("gpt-5.3-codex", rt2, ["freeide-telegram"], "")
+        sig1 = GatewayRunner._agent_config_signature("gpt-5.3-codex", rt1, ["jettstui-telegram"], "")
+        sig2 = GatewayRunner._agent_config_signature("gpt-5.3-codex", rt2, ["jettstui-telegram"], "")
         assert sig1 != sig2
 
     def test_provider_change_different_signature(self):
@@ -74,8 +74,8 @@ class TestAgentConfigSignature:
 
         rt1 = {"api_key": "sk-test12345678", "base_url": "https://openrouter.ai/api/v1", "provider": "openrouter"}
         rt2 = {"api_key": "sk-test12345678", "base_url": "https://api.anthropic.com", "provider": "anthropic"}
-        sig1 = GatewayRunner._agent_config_signature("claude-sonnet-4", rt1, ["freeide-telegram"], "")
-        sig2 = GatewayRunner._agent_config_signature("claude-sonnet-4", rt2, ["freeide-telegram"], "")
+        sig1 = GatewayRunner._agent_config_signature("claude-sonnet-4", rt1, ["jettstui-telegram"], "")
+        sig2 = GatewayRunner._agent_config_signature("claude-sonnet-4", rt2, ["jettstui-telegram"], "")
         assert sig1 != sig2
 
     def test_requested_provider_change_different_signature(self):
@@ -99,8 +99,8 @@ class TestAgentConfigSignature:
         from gateway.run import GatewayRunner
 
         runtime = {"api_key": "sk-test12345678", "base_url": "https://openrouter.ai/api/v1", "provider": "openrouter"}
-        sig1 = GatewayRunner._agent_config_signature("claude-sonnet-4", runtime, ["freeide-telegram"], "")
-        sig2 = GatewayRunner._agent_config_signature("claude-sonnet-4", runtime, ["freeide-discord"], "")
+        sig1 = GatewayRunner._agent_config_signature("claude-sonnet-4", runtime, ["jettstui-telegram"], "")
+        sig2 = GatewayRunner._agent_config_signature("claude-sonnet-4", runtime, ["jettstui-discord"], "")
         assert sig1 != sig2
 
     def test_reasoning_not_in_signature(self):
@@ -110,8 +110,8 @@ class TestAgentConfigSignature:
         runtime = {"api_key": "sk-test12345678", "base_url": "https://openrouter.ai/api/v1", "provider": "openrouter"}
         # Same config — signature should be identical regardless of what
         # reasoning_config the caller might have (it's not passed in)
-        sig1 = GatewayRunner._agent_config_signature("claude-sonnet-4", runtime, ["freeide-telegram"], "")
-        sig2 = GatewayRunner._agent_config_signature("claude-sonnet-4", runtime, ["freeide-telegram"], "")
+        sig1 = GatewayRunner._agent_config_signature("claude-sonnet-4", runtime, ["jettstui-telegram"], "")
+        sig2 = GatewayRunner._agent_config_signature("claude-sonnet-4", runtime, ["jettstui-telegram"], "")
         assert sig1 == sig2
 
     # ---------------------------------------------------------------
@@ -248,7 +248,7 @@ class TestExtractCacheBustingConfig:
                     "codex_gpt55_autoraise": False,
                     "target_ratio": 0.3,
                     "protect_last_n": 25,
-                    "codex_app_server_auto": "freeide",
+                    "codex_app_server_auto": "jettstui",
                     "some_other_key": "ignored",
                 }
             }
@@ -258,7 +258,7 @@ class TestExtractCacheBustingConfig:
         assert out["compression.codex_gpt55_autoraise"] is False
         assert out["compression.target_ratio"] == 0.3
         assert out["compression.protect_last_n"] == 25
-        assert out["compression.codex_app_server_auto"] == "freeide"
+        assert out["compression.codex_app_server_auto"] == "jettstui"
 
     def test_reads_checkpoint_subkeys(self):
         from gateway.run import GatewayRunner
@@ -354,7 +354,7 @@ class TestExtractCacheBustingConfig:
             calls.append(True)
             return {
                 "honcho.peer_name": "eri",
-                "honcho.ai_peer": "freeide",
+                "honcho.ai_peer": "jettstui",
                 "honcho.pin_peer_name": True,
                 "honcho.runtime_peer_prefix": "tg_",
                 "honcho.user_peer_aliases": [("123", "eri")],
@@ -400,7 +400,7 @@ class TestExtractCacheBustingConfig:
 
         class FakeConfig:
             peer_name = "eri"
-            ai_peer = "freeide"
+            ai_peer = "jettstui"
             pin_peer_name = False
             runtime_peer_prefix = "tg_"
             user_peer_aliases = {"123": "eri"}
@@ -470,7 +470,7 @@ class TestAgentCacheLifecycle:
         session_key = "telegram:12345"
         runtime = {"api_key": "test", "base_url": "https://openrouter.ai/api/v1",
                     "provider": "openrouter", "api_mode": "chat_completions"}
-        sig = runner._agent_config_signature("anthropic/claude-sonnet-4", runtime, ["freeide-telegram"], "")
+        sig = runner._agent_config_signature("anthropic/claude-sonnet-4", runtime, ["jettstui-telegram"], "")
 
         # First message — create and cache
         agent1 = AIAgent(
@@ -498,7 +498,7 @@ class TestAgentCacheLifecycle:
         runtime = {"api_key": "test", "base_url": "https://openrouter.ai/api/v1",
                     "provider": "openrouter", "api_mode": "chat_completions"}
 
-        old_sig = runner._agent_config_signature("anthropic/claude-sonnet-4", runtime, ["freeide-telegram"], "")
+        old_sig = runner._agent_config_signature("anthropic/claude-sonnet-4", runtime, ["jettstui-telegram"], "")
         agent1 = AIAgent(
             model="anthropic/claude-sonnet-4", api_key="test",
             base_url="https://openrouter.ai/api/v1", provider="openrouter",
@@ -509,7 +509,7 @@ class TestAgentCacheLifecycle:
             runner._agent_cache[session_key] = (agent1, old_sig)
 
         # New model → different signature
-        new_sig = runner._agent_config_signature("anthropic/claude-opus-4.6", runtime, ["freeide-telegram"], "")
+        new_sig = runner._agent_config_signature("anthropic/claude-opus-4.6", runtime, ["jettstui-telegram"], "")
         assert new_sig != old_sig
 
         with runner._agent_cache_lock:
@@ -1762,10 +1762,10 @@ class TestAgentConfigSignatureUserId:
         from gateway.run import GatewayRunner
         runtime = {"provider": "anthropic", "api_key": "k", "base_url": "", "api_mode": "chat_completions"}
         sig_a = GatewayRunner._agent_config_signature(
-            "claude-sonnet-4", runtime, ["freeide-telegram"], "", user_id="7654321"
+            "claude-sonnet-4", runtime, ["jettstui-telegram"], "", user_id="7654321"
         )
         sig_b = GatewayRunner._agent_config_signature(
-            "claude-sonnet-4", runtime, ["freeide-telegram"], "", user_id="491827364"
+            "claude-sonnet-4", runtime, ["jettstui-telegram"], "", user_id="491827364"
         )
         assert sig_a != sig_b
 
@@ -1773,10 +1773,10 @@ class TestAgentConfigSignatureUserId:
         from gateway.run import GatewayRunner
         runtime = {"provider": "anthropic", "api_key": "k", "base_url": "", "api_mode": "chat_completions"}
         sig_1 = GatewayRunner._agent_config_signature(
-            "claude-sonnet-4", runtime, ["freeide-telegram"], "", user_id="7654321"
+            "claude-sonnet-4", runtime, ["jettstui-telegram"], "", user_id="7654321"
         )
         sig_2 = GatewayRunner._agent_config_signature(
-            "claude-sonnet-4", runtime, ["freeide-telegram"], "", user_id="7654321"
+            "claude-sonnet-4", runtime, ["jettstui-telegram"], "", user_id="7654321"
         )
         assert sig_1 == sig_2
 
@@ -1784,11 +1784,11 @@ class TestAgentConfigSignatureUserId:
         from gateway.run import GatewayRunner
         runtime = {"provider": "anthropic", "api_key": "k", "base_url": "", "api_mode": "chat_completions"}
         sig_a = GatewayRunner._agent_config_signature(
-            "claude-sonnet-4", runtime, ["freeide-telegram"], "",
+            "claude-sonnet-4", runtime, ["jettstui-telegram"], "",
             user_id="7654321", user_id_alt="@igor_tg",
         )
         sig_b = GatewayRunner._agent_config_signature(
-            "claude-sonnet-4", runtime, ["freeide-telegram"], "",
+            "claude-sonnet-4", runtime, ["jettstui-telegram"], "",
             user_id="7654321", user_id_alt="@erosika_tg",
         )
         assert sig_a != sig_b
@@ -1803,10 +1803,10 @@ class TestAgentConfigSignatureUserId:
         from gateway.run import GatewayRunner
         runtime = {"provider": "anthropic", "api_key": "k", "base_url": "", "api_mode": "chat_completions"}
         sig_implicit = GatewayRunner._agent_config_signature(
-            "claude-sonnet-4", runtime, ["freeide-telegram"], "",
+            "claude-sonnet-4", runtime, ["jettstui-telegram"], "",
         )
         sig_explicit_none = GatewayRunner._agent_config_signature(
-            "claude-sonnet-4", runtime, ["freeide-telegram"], "",
+            "claude-sonnet-4", runtime, ["jettstui-telegram"], "",
             user_id=None, user_id_alt=None,
         )
         assert sig_implicit == sig_explicit_none
@@ -1829,7 +1829,7 @@ class TestAgentCacheMessageCountRebaseline:
     """
 
     def _runner_with_db(self, db):
-        from freeide_state import AsyncSessionDB
+        from jettstui_state import AsyncSessionDB
 
         runner = _make_runner()
         # The gateway holds the async facade; the production refresh awaits it.
@@ -1867,7 +1867,7 @@ class TestAgentCacheMessageCountRebaseline:
         writes), turn appends its own rows, then the post-turn re-baseline
         runs — so the NEXT turn's guard sees no external change and reuses.
         """
-        from freeide_state import SessionDB
+        from jettstui_state import SessionDB
 
         db = SessionDB(db_path=tmp_path / "sessions.db")
         db.create_session("s1", source="telegram")
@@ -1903,7 +1903,7 @@ class TestAgentCacheMessageCountRebaseline:
         """After the re-baseline, a DIFFERENT process appending to the same
         session must still flip the guard to rebuild (the #45966 fix holds).
         """
-        from freeide_state import SessionDB
+        from jettstui_state import SessionDB
 
         db = SessionDB(db_path=tmp_path / "sessions.db")
         db.create_session("s1", source="telegram")
@@ -1933,7 +1933,7 @@ class TestAgentCacheMessageCountRebaseline:
     async def test_rebaseline_is_fail_safe_and_skips_legacy_and_pending(self, tmp_path):
         """Re-baseline must never crash and must leave legacy 2-tuples and
         pending-sentinel entries untouched."""
-        from freeide_state import AsyncSessionDB, SessionDB
+        from jettstui_state import AsyncSessionDB, SessionDB
         from gateway.run import _AGENT_PENDING_SENTINEL
 
         db = SessionDB(db_path=tmp_path / "sessions.db")
@@ -1996,7 +1996,7 @@ class TestAgentCacheMessageCountRebaseline:
         cache-hit guard, which reads ``get_session(session_id)`` with the same
         ``session_id`` the recursive ``_run_agent`` call is given.
         """
-        from freeide_state import SessionDB
+        from jettstui_state import SessionDB
 
         db = SessionDB(db_path=tmp_path / "sessions.db")
         db.create_session("s1", source="telegram")

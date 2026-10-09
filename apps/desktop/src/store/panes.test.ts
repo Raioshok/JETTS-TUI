@@ -12,7 +12,7 @@ import {
   togglePane
 } from './panes'
 
-const STORAGE_KEY = 'freeide.desktop.paneStates.v1'
+const STORAGE_KEY = 'jettstui.desktop.paneStates.v1'
 
 describe('panes store', () => {
   beforeEach(() => {

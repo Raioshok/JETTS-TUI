@@ -148,7 +148,7 @@ class TestPersistence:
         env = make_env(get_side_effect=lambda name: existing, persistent=True,
                        task_id="mytask")
         existing.start.assert_called_once()
-        env._mock_client.get.assert_called_once_with("freeide-mytask")
+        env._mock_client.get.assert_called_once_with("jettstui-mytask")
         env._mock_client.create.assert_not_called()
 
     def test_persistent_resumes_legacy_via_list(self, make_env, daytona_sdk):
@@ -162,7 +162,7 @@ class TestPersistence:
         )
         legacy.start.assert_called_once()
         env._mock_client.list.assert_called_once_with(
-            labels={"freeide_task_id": "mytask"}, limit=1)
+            labels={"jettstui_task_id": "mytask"}, limit=1)
         env._mock_client.create.assert_not_called()
 
     def test_persistent_creates_new_when_none_found(self, make_env, daytona_sdk):
@@ -174,9 +174,9 @@ class TestPersistence:
         env._mock_client.create.assert_called_once()
         # Verify the name and labels were passed to CreateSandboxFromImageParams
         # by checking get() was called with the right sandbox name
-        env._mock_client.get.assert_called_with("freeide-mytask")
+        env._mock_client.get.assert_called_with("jettstui-mytask")
         env._mock_client.list.assert_called_with(
-            labels={"freeide_task_id": "mytask"}, limit=1)
+            labels={"jettstui_task_id": "mytask"}, limit=1)
 
     def test_non_persistent_skips_lookup(self, make_env):
         env = make_env(persistent=False)
@@ -292,10 +292,10 @@ class TestExecute:
 
         env.execute("python3", stdin_data="print('hi')")
         # Check that the command passed to exec contains heredoc markers
-        # Base class uses FREEIDE_STDIN_ prefix for heredoc delimiters
+        # Base class uses JETTSTUI_STDIN_ prefix for heredoc delimiters
         call_args = sb.process.exec.call_args_list[-1]
         cmd = call_args[0][0]
-        assert "FREEIDE_STDIN_" in cmd
+        assert "JETTSTUI_STDIN_" in cmd
         assert "print" in cmd
         assert "hi" in cmd
 
@@ -427,7 +427,7 @@ class TestSyncSafety:
 
         host_file = tmp_path / "token.txt"
         host_file.write_text("secret", encoding="utf-8")
-        remote_path = "/root/.freeide/skills/evil; touch /tmp/daytona-owned/file.txt"
+        remote_path = "/root/.jettstui/skills/evil; touch /tmp/daytona-owned/file.txt"
 
         env._daytona_upload(str(host_file), remote_path)
 
@@ -435,8 +435,8 @@ class TestSyncSafety:
         # The whole parent dir is a single quoted argument — the ';' cannot
         # break out into a second command.
         assert mkdir_cmd == (
-            "mkdir -p '/root/.freeide/skills/evil; touch /tmp/daytona-owned'"
+            "mkdir -p '/root/.jettstui/skills/evil; touch /tmp/daytona-owned'"
         )
         assert "; touch" not in mkdir_cmd.replace(
-            "'/root/.freeide/skills/evil; touch /tmp/daytona-owned'", ""
+            "'/root/.jettstui/skills/evil; touch /tmp/daytona-owned'", ""
         )

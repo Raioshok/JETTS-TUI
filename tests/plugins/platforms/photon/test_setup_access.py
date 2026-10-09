@@ -1,8 +1,8 @@
-"""Tests for `freeide photon setup`'s access auto-configuration.
+"""Tests for `jettstui photon setup`'s access auto-configuration.
 
 `_autoconfigure_access` allowlists the operator and points the cron home
-channel at their DM, writing to the per-test ~/.freeide/.env (the hermetic
-FREEIDE_HOME fixture isolates this). It must fill only unset keys so a re-run
+channel at their DM, writing to the per-test ~/.jettstui/.env (the hermetic
+JETTSTUI_HOME fixture isolates this). It must fill only unset keys so a re-run
 never clobbers a hand-tuned allowlist.
 """
 from __future__ import annotations
@@ -11,7 +11,7 @@ import argparse
 
 import pytest
 
-from freeide_cli.config import get_env_value, save_env_value
+from jettstui.config import get_env_value, save_env_value
 from plugins.platforms.photon.adapter import _env_enablement
 from plugins.platforms.photon import cli
 
@@ -106,5 +106,5 @@ def test_setup_hint_uses_gateway_service_command(monkeypatch: pytest.MonkeyPatch
 
     assert rc == 0
     out = capsys.readouterr().out
-    assert "Start the gateway:  freeide gateway start" in out
+    assert "Start the gateway:  jettstui gateway start" in out
     assert "--platform photon" not in out

@@ -107,7 +107,7 @@ class BrowserUseBrowserProvider(BrowserProvider):
             )
 
         session_data = response.json()
-        session_name = f"freeide_{task_id}_{uuid.uuid4().hex[:8]}"
+        session_name = f"jettstui_{task_id}_{uuid.uuid4().hex[:8]}"
 
         logger.info("Created Browser Use session %s", session_name)
 

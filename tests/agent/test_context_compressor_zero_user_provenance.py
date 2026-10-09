@@ -19,7 +19,7 @@ from agent.conversation_compression import (
     _ensure_compressed_has_user_turn,
     compress_context,
 )
-from freeide_state import SessionDB
+from jettstui_state import SessionDB
 from tools.todo_tool import TODO_INJECTION_HEADER
 
 
@@ -220,8 +220,8 @@ def test_zero_user_provenance_survives_iterative_compaction(compressor):
 def test_compress_context_todo_snapshot_stays_synthetic_across_two_boundaries(
     tmp_path, monkeypatch
 ):
-    freeide_home = tmp_path / "freeide-home"
-    monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+    jettstui_home = tmp_path / "jettstui-home"
+    monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
     db = SessionDB(db_path=tmp_path / "state.db")
     session_id = "zero-user-todo-lifecycle"
     db.create_session(session_id, source="cron", model="test/model")

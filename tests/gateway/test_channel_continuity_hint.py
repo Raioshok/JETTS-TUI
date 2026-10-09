@@ -24,10 +24,10 @@ from gateway.session import (
 
 @pytest.fixture()
 def _isolated_db(tmp_path, monkeypatch):
-    import freeide_state
+    import jettstui_state
 
-    monkeypatch.setattr(freeide_state, "DEFAULT_DB_PATH", tmp_path / "state.db")
-    monkeypatch.setenv("FREEIDE_HOME", str(tmp_path))
+    monkeypatch.setattr(jettstui_state, "DEFAULT_DB_PATH", tmp_path / "state.db")
+    monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path))
     return tmp_path
 
 

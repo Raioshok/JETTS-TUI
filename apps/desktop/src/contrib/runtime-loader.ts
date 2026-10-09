@@ -4,14 +4,14 @@
  *
  *   source (plain ESM js) -> [integrity check] -> bare-specifier rewrite
  *   (`@jetts-tui/plugin-sdk` / `react*` -> live shim blobs, see sdk/runtime.ts)
- *   -> blob `import()` -> validate default FreeIDEPlugin -> register(ctx)
+ *   -> blob `import()` -> validate default JettsTUIPlugin -> register(ctx)
  *
  * Loading the same plugin id again disposes the previous registrations first
  * (agent rewrites a plugin file -> clean reload). Failures toast + log; a
  * broken plugin can never take the app down.
  *
  * Sources today: the in-repo runtime example (`?raw`, proves the pipeline)
- * and `<freeide home>/desktop-plugins/<name>/plugin.js` on disk — the door the
+ * and `<jettstui home>/desktop-plugins/<name>/plugin.js` on disk — the door the
  * agent writes through.
  *
  * SECURITY — this is NOT a capability boundary. A loaded plugin is evaluated
@@ -27,11 +27,11 @@
  * trust seam.
  */
 
-import { getStatus } from '@/freeide'
+import { getStatus } from '@/jettstui'
 import { installPluginSdk, sdkImportMap } from '@/sdk/runtime'
 import { notifyError } from '@/store/notifications'
 
-import { createPluginContext, type FreeIDEPlugin } from './plugin'
+import { createPluginContext, type JettsTUIPlugin } from './plugin'
 import { dropPlugin, pluginActive, type PluginKind, publishPlugin } from './plugins-store'
 
 interface LoadOptions {
@@ -123,7 +123,7 @@ export async function loadRuntimePlugin(
 
     const url = URL.createObjectURL(new Blob([rewriteSpecifiers(source)], { type: 'text/javascript' }))
 
-    let mod: { default?: FreeIDEPlugin }
+    let mod: { default?: JettsTUIPlugin }
 
     try {
       mod = await import(/* @vite-ignore */ url)
@@ -134,7 +134,7 @@ export async function loadRuntimePlugin(
     const plugin = mod.default
 
     if (!plugin?.id || typeof plugin.register !== 'function') {
-      throw new Error(`${origin} has no valid default FreeIDEPlugin export`)
+      throw new Error(`${origin} has no valid default JettsTUIPlugin export`)
     }
 
     const record = {
@@ -179,7 +179,7 @@ export async function loadRuntimePlugin(
 }
 
 // ---------------------------------------------------------------------------
-// The on-disk plugin door: `<freeide home>/desktop-plugins/<name>/plugin.js`
+// The on-disk plugin door: `<jettstui home>/desktop-plugins/<name>/plugin.js`
 // (agent- or user-written). SELF-MAINTAINING — no reload ceremony:
 //  - each plugin.js is fs-watched (the preview watcher IPC, debounced in
 //    main): saving the file hot-reloads the plugin in place;
@@ -204,7 +204,7 @@ let watching = false
 let scanning = false
 
 async function loadDiskPlugin(name: string, file: string): Promise<void> {
-  const desktop = window.freeideDesktop!
+  const desktop = window.jettstuiDesktop!
   const entry = disk.get(name)
   const prevId = entry?.id
 
@@ -235,7 +235,7 @@ async function loadDiskPlugin(name: string, file: string): Promise<void> {
 }
 
 async function scanDiskPlugins(): Promise<void> {
-  const desktop = window.freeideDesktop
+  const desktop = window.jettstuiDesktop
 
   // Re-entrancy guard: the 5s poll must not overlap a slow in-flight scan
   // (reads/loads can exceed the interval).
@@ -246,8 +246,8 @@ async function scanDiskPlugins(): Promise<void> {
   scanning = true
 
   try {
-    const { freeide_home } = await getStatus()
-    const { entries } = await desktop.readDir(`${freeide_home}/desktop-plugins`)
+    const { jettstui_home } = await getStatus()
+    const { entries } = await desktop.readDir(`${jettstui_home}/desktop-plugins`)
     const seen = new Set<string>()
 
     for (const dir of entries.filter(e => e.isDirectory)) {
@@ -309,7 +309,7 @@ export const discoverRuntimePlugins = scanDiskPlugins
 /** Start the self-maintaining disk door: initial scan, per-file hot reload,
  *  slow folder reconciliation while the window is visible. Idempotent. */
 export function watchRuntimePlugins(): void {
-  const desktop = window.freeideDesktop
+  const desktop = window.jettstuiDesktop
 
   if (watching || !desktop) {
     return

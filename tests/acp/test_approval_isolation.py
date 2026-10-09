@@ -1,14 +1,14 @@
 """Tests for GHSA-96vc-wcxf-jjff and GHSA-qg5c-hvr5-hjgr.
 
 Two related ACP approval-flow issues:
-- 96vc: ACP didn't set FREEIDE_EXEC_ASK, so `check_all_command_guards`
+- 96vc: ACP didn't set JETTSTUI_EXEC_ASK, so `check_all_command_guards`
   took the non-interactive auto-approve path and never consulted the
   ACP-supplied callback.
 - qg5c: `_approval_callback` was a module-global in terminal_tool;
   overlapping ACP sessions overwrote each other's callback slot.
 
 Both fixed together by:
-1. Setting FREEIDE_EXEC_ASK inside _run_agent (wraps the agent call).
+1. Setting JETTSTUI_EXEC_ASK inside _run_agent (wraps the agent call).
 2. Storing the callback in thread-local state so concurrent executor
    threads don't collide.
 """
@@ -142,7 +142,7 @@ class TestThreadLocalApprovalCallback:
         """ACP's ThreadPoolExecutor reuses threads. Two ACP sessions that land
         on the same reused thread must not share the interactive sudo password
         cache. The fix wraps each session in contextvars.copy_context() and
-        binds FREEIDE_SESSION_KEY per session, so the cache scope key differs
+        binds JETTSTUI_SESSION_KEY per session, so the cache scope key differs
         across sessions even when the underlying thread is identical.
         """
         import contextvars
@@ -193,23 +193,23 @@ class TestThreadLocalApprovalCallback:
 
 
 class TestAcpExecAskGate:
-    """GHSA-96vc-wcxf-jjff: ACP's _run_agent must set FREEIDE_INTERACTIVE so
+    """GHSA-96vc-wcxf-jjff: ACP's _run_agent must set JETTSTUI_INTERACTIVE so
     that tools.approval.check_all_command_guards takes the CLI-interactive
     path (consults the registered callback via prompt_dangerous_approval)
     instead of the non-interactive auto-approve shortcut.
 
-    (FREEIDE_EXEC_ASK takes the gateway-queue path which requires a
+    (JETTSTUI_EXEC_ASK takes the gateway-queue path which requires a
     notify_cb registered in _gateway_notify_cbs — not applicable to ACP,
     which uses a direct callback shape.)"""
 
     def test_interactive_env_var_routes_to_callback(self, monkeypatch):
-        """When FREEIDE_INTERACTIVE is set and an approval callback is
+        """When JETTSTUI_INTERACTIVE is set and an approval callback is
         registered, a dangerous command must route through the callback."""
         # Clean env
-        monkeypatch.delenv("FREEIDE_INTERACTIVE", raising=False)
-        monkeypatch.delenv("FREEIDE_GATEWAY_SESSION", raising=False)
-        monkeypatch.delenv("FREEIDE_EXEC_ASK", raising=False)
-        monkeypatch.delenv("FREEIDE_YOLO_MODE", raising=False)
+        monkeypatch.delenv("JETTSTUI_INTERACTIVE", raising=False)
+        monkeypatch.delenv("JETTSTUI_GATEWAY_SESSION", raising=False)
+        monkeypatch.delenv("JETTSTUI_EXEC_ASK", raising=False)
+        monkeypatch.delenv("JETTSTUI_YOLO_MODE", raising=False)
 
         from tools.approval import check_all_command_guards
 
@@ -219,24 +219,24 @@ class TestAcpExecAskGate:
             called_with.append((command, description))
             return "once"
 
-        # Without FREEIDE_INTERACTIVE: takes auto-approve path, callback NOT called
+        # Without JETTSTUI_INTERACTIVE: takes auto-approve path, callback NOT called
         result = check_all_command_guards(
             "rm -rf /tmp/test-exec-ask", "local", approval_callback=fake_cb,
         )
         assert result["approved"] is True
         assert called_with == [], (
-            "without FREEIDE_INTERACTIVE the non-interactive auto-approve "
+            "without JETTSTUI_INTERACTIVE the non-interactive auto-approve "
             "path should fire without consulting the callback"
         )
 
-        # With FREEIDE_INTERACTIVE: callback IS called, approval flows through it
-        monkeypatch.setenv("FREEIDE_INTERACTIVE", "1")
+        # With JETTSTUI_INTERACTIVE: callback IS called, approval flows through it
+        monkeypatch.setenv("JETTSTUI_INTERACTIVE", "1")
         called_with.clear()
         result = check_all_command_guards(
             "rm -rf /tmp/test-exec-ask", "local", approval_callback=fake_cb,
         )
         assert called_with, (
-            "with FREEIDE_INTERACTIVE the approval path should consult the "
+            "with JETTSTUI_INTERACTIVE the approval path should consult the "
             "registered callback — this was the ACP bypass in "
             "GHSA-96vc-wcxf-jjff"
         )
@@ -252,15 +252,15 @@ class TestAcpExecAskGate:
         var — one session can no longer clobber another's flag mid-run
         (GHSA-96vc-wcxf-jjff).
         """
-        monkeypatch.delenv("FREEIDE_INTERACTIVE", raising=False)
-        monkeypatch.delenv("FREEIDE_GATEWAY_SESSION", raising=False)
-        monkeypatch.delenv("FREEIDE_EXEC_ASK", raising=False)
-        monkeypatch.delenv("FREEIDE_YOLO_MODE", raising=False)
+        monkeypatch.delenv("JETTSTUI_INTERACTIVE", raising=False)
+        monkeypatch.delenv("JETTSTUI_GATEWAY_SESSION", raising=False)
+        monkeypatch.delenv("JETTSTUI_EXEC_ASK", raising=False)
+        monkeypatch.delenv("JETTSTUI_YOLO_MODE", raising=False)
 
         from tools.approval import (
             check_all_command_guards,
-            reset_freeide_interactive_context,
-            set_freeide_interactive_context,
+            reset_jettstui_interactive_context,
+            set_jettstui_interactive_context,
         )
 
         called_with = []
@@ -269,7 +269,7 @@ class TestAcpExecAskGate:
             called_with.append((command, description))
             return "once"
 
-        tok = set_freeide_interactive_context(True)
+        tok = set_jettstui_interactive_context(True)
         try:
             result = check_all_command_guards(
                 "rm -rf /tmp/test-context-interactive",
@@ -277,10 +277,10 @@ class TestAcpExecAskGate:
                 approval_callback=fake_cb,
             )
         finally:
-            reset_freeide_interactive_context(tok)
+            reset_jettstui_interactive_context(tok)
 
         assert called_with, (
-            "set_freeide_interactive_context(True) should route dangerous "
-            "commands through the callback without FREEIDE_INTERACTIVE in env"
+            "set_jettstui_interactive_context(True) should route dangerous "
+            "commands through the callback without JETTSTUI_INTERACTIVE in env"
         )
         assert result["approved"] is True

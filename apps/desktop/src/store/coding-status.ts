@@ -1,6 +1,6 @@
 import { atom, computed } from 'nanostores'
 
-import type { FreeIDEGitWorktree, FreeIDERepoStatus } from '@/global'
+import type { JettsTUIGitWorktree, JettsTUIRepoStatus } from '@/global'
 import { desktopGit } from '@/lib/desktop-git'
 
 import { $worktreeRefreshToken } from './projects'
@@ -14,12 +14,12 @@ import { $workspaceChangeTick } from './workspace-events'
 // change, turn settle, window focus, worktree mutation), never per-token and
 // never touching the conversation/system-prompt cache.
 
-export const $repoStatus = atom<FreeIDERepoStatus | null>(null)
+export const $repoStatus = atom<JettsTUIRepoStatus | null>(null)
 export const $repoStatusLoading = atom(false)
 
 // The repo's real worktrees (for the coding rail's "jump to a worktree" menu).
 // Refreshed on the same edges as the status probe; empty off a repo.
-export const $repoWorktrees = atom<FreeIDEGitWorktree[]>([])
+export const $repoWorktrees = atom<JettsTUIGitWorktree[]>([])
 const REPO_STATUS_REFRESH_DEBOUNCE_MS = 100
 
 export type RepoChangeKind = 'added' | 'conflicted' | 'modified'
@@ -67,7 +67,7 @@ async function loadWorktrees(target: string): Promise<void> {
 }
 
 interface RepoStatusRefreshRequest {
-  probe: (cwd: string) => Promise<FreeIDERepoStatus | null>
+  probe: (cwd: string) => Promise<JettsTUIRepoStatus | null>
   seq: number
   target: string
 }

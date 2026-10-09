@@ -78,7 +78,7 @@ from gateway.platforms.yuanbao_proto import (
     _parse_fields,
     WS_HEARTBEAT_RUNNING,
     WS_HEARTBEAT_FINISH,
-    FREEIDE_INSTANCE_ID,
+    JETTSTUI_INSTANCE_ID,
     decode_conn_msg,
     decode_inbound_push,
     decode_forward_msg_data,
@@ -103,13 +103,13 @@ logger = logging.getLogger(__name__)
 # Version / platform constants (used in AUTH_BIND and sign-token headers)
 # ---------------------------------------------------------------------------
 try:
-    from freeide_cli import __version__ as _FREEIDE_VERSION
+    from jettstui import __version__ as _JETTSTUI_VERSION
 except ImportError:
-    _FREEIDE_VERSION = "0.0.0"
+    _JETTSTUI_VERSION = "0.0.0"
 
-_APP_VERSION = _FREEIDE_VERSION
-_BOT_VERSION = _FREEIDE_VERSION
-_YUANBAO_INSTANCE_ID = str(FREEIDE_INSTANCE_ID)  # single source: yuanbao_proto.FREEIDE_INSTANCE_ID
+_APP_VERSION = _JETTSTUI_VERSION
+_BOT_VERSION = _JETTSTUI_VERSION
+_YUANBAO_INSTANCE_ID = str(JETTSTUI_INSTANCE_ID)  # single source: yuanbao_proto.JETTSTUI_INSTANCE_ID
 _OPERATION_SYSTEM = sys.platform
 
 # ---------------------------------------------------------------------------
@@ -1659,11 +1659,11 @@ class AutoSetHomeMiddleware(InboundMiddleware):
                 adapter._auto_sethome_done = True  # DM seen — no further upgrades needed
             if _should_set:
                 try:
-                    from freeide_constants import get_freeide_home
-                    from freeide_cli.config import atomic_config_write
+                    from jettstui_constants import get_jettstui_home
+                    from jettstui.config import atomic_config_write
                     import yaml
 
-                    _home = get_freeide_home()
+                    _home = get_jettstui_home()
                     config_path = _home / "config.yaml"
                     user_config: dict = {}
                     if config_path.exists():

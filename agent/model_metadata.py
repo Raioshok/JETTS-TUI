@@ -21,7 +21,7 @@ import yaml
 
 from utils import atomic_json_write, base_url_host_matches, base_url_hostname
 
-from freeide_constants import OPENROUTER_MODELS_URL
+from jettstui_constants import OPENROUTER_MODELS_URL
 
 logger = logging.getLogger(__name__)
 
@@ -30,7 +30,7 @@ def _resolve_requests_verify() -> bool | str:
     """Resolve SSL verify setting for `requests` calls from env vars.
 
     The `requests` library only honours REQUESTS_CA_BUNDLE / CURL_CA_BUNDLE
-    by default. FreeIDE also honours FREEIDE_CA_BUNDLE (its own convention)
+    by default. JettsTUI also honours JETTSTUI_CA_BUNDLE (its own convention)
     and SSL_CERT_FILE (used by the stdlib `ssl` module and by httpx), so
     that a single env var can cover both `requests` and `httpx` callsites
     inside the same process.
@@ -38,7 +38,7 @@ def _resolve_requests_verify() -> bool | str:
     Returns either a filesystem path to a CA bundle, or True to defer to
     the requests default (certifi).
     """
-    for env_var in ("FREEIDE_CA_BUNDLE", "REQUESTS_CA_BUNDLE", "SSL_CERT_FILE"):
+    for env_var in ("JETTSTUI_CA_BUNDLE", "REQUESTS_CA_BUNDLE", "SSL_CERT_FILE"):
         val = os.getenv(env_var)
         if val and os.path.isfile(val):
             return val
@@ -126,8 +126,8 @@ _endpoint_probe_path_cache: Dict[str, tuple] = {}
 
 def _get_model_metadata_cache_path() -> Path:
     """Return path to the OpenRouter model metadata disk cache."""
-    from freeide_constants import get_freeide_home
-    return get_freeide_home() / "cache" / "openrouter_model_metadata.json"
+    from jettstui_constants import get_jettstui_home
+    return get_jettstui_home() / "cache" / "openrouter_model_metadata.json"
 
 
 def _model_metadata_disk_cache_age_seconds() -> Optional[float]:
@@ -190,7 +190,7 @@ CONTEXT_PROBE_TIERS = [
 # Default context length when no detection method succeeds.
 DEFAULT_FALLBACK_CONTEXT = CONTEXT_PROBE_TIERS[0]
 
-# Minimum context length required to run FreeIDE Agent.  Models with fewer
+# Minimum context length required to run JettsTUI.  Models with fewer
 # tokens cannot maintain enough working memory for tool-calling workflows.
 # Sessions, model switches, and cron jobs should reject models below this.
 MINIMUM_CONTEXT_LENGTH = 64_000
@@ -308,7 +308,7 @@ DEFAULT_CONTEXT_LENGTHS = {
     # MiniMax — M3 is 1M context (max output 512K); M2.x series is 204,800.
     # Keys use substring matching (longest-first), so "minimax-m3" wins over
     # the generic "minimax" catch-all for the M3 slug on every surface
-    # (native MiniMax-M3, OpenRouter/FreeIDE minimax/minimax-m3).
+    # (native MiniMax-M3, OpenRouter/JettsTUI minimax/minimax-m3).
     # https://platform.minimax.io/docs/api-reference/text-chat-openai
     "minimax-m3": 1048576,
     "minimax": 204800,
@@ -321,7 +321,7 @@ DEFAULT_CONTEXT_LENGTHS = {
     "glm-5.2": 1_048_576,
     "glm": 202752,
     # xAI Grok — xAI /v1/models does not return context_length metadata,
-    # so these hardcoded fallbacks prevent FreeIDE from probing-down to
+    # so these hardcoded fallbacks prevent JettsTUI from probing-down to
     # the default 128k when the user points at https://api.x.ai/v1
     # via a custom provider. Values sourced from models.dev (2026-04).
     # Keys use substring matching (longest-first), so e.g. "grok-4.20"
@@ -519,7 +519,7 @@ _URL_TO_PROVIDER: Dict[str, str] = {
     "models.github.ai": "copilot",
     # GitHub Models free tier (Azure-hosted prototyping endpoint) — same
     # canonical provider as the Copilot API.  Hard per-request token cap
-    # (often 8K) makes it unusable for FreeIDE' system prompt, but mapping
+    # (often 8K) makes it unusable for JettsTUI' system prompt, but mapping
     # it here lets us recognize the endpoint and emit a targeted hint
     # instead of falling through the unknown-custom-endpoint path.
     "models.inference.ai.azure.com": "copilot",
@@ -627,7 +627,7 @@ def _maybe_cache_local_context_length(
     base_url: str,
     length: int,
 ) -> None:
-    """Persist a locally probed context length only when it meets FreeIDE minimum.
+    """Persist a locally probed context length only when it meets JettsTUI minimum.
 
     Sub-minimum live windows (e.g. vLLM ``--max-model-len 32768``) are still
     returned to callers so ``agent_init`` can fail with the existing
@@ -1167,8 +1167,8 @@ def _resolve_endpoint_context_length(
 
 def _get_context_cache_path() -> Path:
     """Return path to the persistent context length cache file."""
-    from freeide_constants import get_freeide_home
-    return get_freeide_home() / "context_length_cache.yaml"
+    from jettstui_constants import get_jettstui_home
+    return get_jettstui_home() / "context_length_cache.yaml"
 
 
 def _load_context_cache() -> Dict[str, int]:
@@ -1346,7 +1346,7 @@ def parse_available_output_tokens_from_error(error_msg: str) -> Optional[int]:
         "max_tokens" in error_lower
         and ("available_tokens" in error_lower or "available tokens" in error_lower)
     ) or (
-        # OpenRouter/FreeIDE phrasing of the same condition.
+        # OpenRouter/JettsTUI phrasing of the same condition.
         "in the output" in error_lower
         and "maximum context length" in error_lower
     ) or (
@@ -1397,7 +1397,7 @@ def parse_available_output_tokens_from_error(error_msg: str) -> Optional[int]:
             if tokens >= 1:
                 return tokens
 
-    # OpenRouter/FreeIDE format: "maximum context length is N … (A of text input,
+    # OpenRouter/JettsTUI format: "maximum context length is N … (A of text input,
     # B of tool input, C in the output)". Available output = ctx - text - tool.
     _m_ctx = re.search(r'maximum context length is (\d+)', error_lower)
     _m_parts = re.search(
@@ -1483,7 +1483,7 @@ def is_output_cap_error(error_msg: str) -> bool:
         "range of max_tokens should be" in error_lower      # DashScope / Alibaba
         or "available_tokens" in error_lower                # Anthropic
         or "available tokens" in error_lower
-        or ("in the output" in error_lower                  # OpenRouter / FreeIDE
+        or ("in the output" in error_lower                  # OpenRouter / JettsTUI
             and "maximum context length" in error_lower)
         or ("requested" in error_lower                      # LM Studio / llama.cpp
             and "output tokens" in error_lower)
@@ -1735,7 +1735,7 @@ def _model_name_suggests_minimax_m3(model: str) -> bool:
     """Return True if the model name looks like MiniMax M3.
 
     Catches ``MiniMax-M3``, ``minimax/minimax-m3``, and similar variants
-    across surfaces (native MiniMax-M3, OpenRouter/FreeIDE minimax/minimax-m3).
+    across surfaces (native MiniMax-M3, OpenRouter/JettsTUI minimax/minimax-m3).
     Used as a guard against stale cache entries seeded by pre-catalog builds
     that resolved M3 via the generic ``minimax`` catch-all (204,800) before
     the ``minimax-m3`` (1M) entry existed in DEFAULT_CONTEXT_LENGTHS.
@@ -1821,7 +1821,7 @@ def _query_local_context_length_uncached(model: str, base_url: str, api_key: str
                     # the *runtime* context Ollama will actually allocate KV cache
                     # for. The GGUF model_info.context_length is the training max,
                     # which can be larger than num_ctx — using it here would let
-                    # FreeIDE grow conversations past the runtime limit and Ollama
+                    # JettsTUI grow conversations past the runtime limit and Ollama
                     # would silently truncate. Matches query_ollama_num_ctx().
                     params = data.get("parameters", "")
                     if "num_ctx" in params:
@@ -1887,7 +1887,7 @@ def _query_local_context_length_uncached(model: str, base_url: str, api_key: str
 def _normalize_model_version(model: str) -> str:
     """Normalize version separators for matching.
 
-    FreeIDE uses dashes: claude-opus-4-6, claude-sonnet-4-5
+    JettsTUI uses dashes: claude-opus-4-6, claude-sonnet-4-5
     OpenRouter uses dots: claude-opus-4.6, claude-sonnet-4.5
     Normalize both to dashes for comparison.
     """
@@ -2125,22 +2125,19 @@ def get_model_context_length(
     Resolution order:
     0. Explicit config override (model.context_length or custom_providers per-model)
     0c. Endpoint-scoped metadata for models validated on one multiplexed endpoint
-    1. Persistent cache (previously discovered via probing).  FreeIDE URLs,
-       LM Studio, and Codex OAuth bypass the cache here so their provider
-       metadata can be reconciled against the authoritative live source.
+    1. Persistent cache (previously discovered via probing). LM Studio and
+       Codex OAuth bypass the cache here so their provider metadata can be
+       reconciled against the authoritative live source.
     1b. AWS Bedrock static table (must precede custom-endpoint probe)
     2. Active endpoint metadata (/models for explicit custom endpoints)
     3. Local server query (for local endpoints)
     4. Anthropic /v1/models API (API-key users only, not OAuth)
     5. Provider-aware lookups (before generic OpenRouter cache):
        a. Copilot live /models API
-       b. FreeIDE: live /v1/models probe first (authoritative), then OR
-          cache fallback with suffix/version normalisation.  Only
-          portal-derived values are persisted to disk.
-       c. Codex OAuth /models probe
-       d. GMI /models endpoint
-       e. Ollama native /api/show probe (any base_url, provider-agnostic)
-       f. models.dev registry lookup (with :cloud/-cloud suffix fallback)
+       b. Codex OAuth /models probe
+       c. GMI /models endpoint
+       d. Ollama native /api/show probe (any base_url, provider-agnostic)
+       e. models.dev registry lookup (with :cloud/-cloud suffix fallback)
     6. OpenRouter live API metadata (Kimi-family 32k guard)
     7. Local server query (before hardcoded defaults for local endpoints)
     8. Hardcoded defaults (broad family patterns, longest-key-first)
@@ -2157,12 +2154,12 @@ def get_model_context_length(
     # acting context, so they're ignored here.
     if (provider or "").strip().lower() == "moa":
         try:
-            from freeide_cli.config import (
+            from jettstui.config import (
                 get_compatible_custom_providers,
                 load_config,
             )
-            from freeide_cli.moa_config import resolve_moa_preset
-            from freeide_cli.runtime_provider import resolve_runtime_provider
+            from jettstui.moa_config import resolve_moa_preset
+            from jettstui.runtime_provider import resolve_runtime_provider
 
             config = load_config()
             effective_custom_providers = custom_providers
@@ -2191,7 +2188,7 @@ def get_model_context_length(
     # See #15779.
     if custom_providers and base_url and model:
         try:
-            from freeide_cli.config import get_custom_provider_context_length
+            from jettstui.config import get_custom_provider_context_length
             cp_ctx = get_custom_provider_context_length(
                 model=model,
                 base_url=base_url,
@@ -2441,7 +2438,7 @@ def get_model_context_length(
     # returns the provider-enforced limit which is what users can actually use.
     if effective_provider in {"copilot", "copilot-acp", "github-copilot"}:
         try:
-            from freeide_cli.models import get_copilot_model_context
+            from jettstui.models import get_copilot_model_context
             ctx = get_copilot_model_context(model, api_key=api_key)
             if ctx:
                 return ctx
@@ -2500,7 +2497,7 @@ def get_model_context_length(
     # brand-new slugs and (b) skipped the step-6 OR fallback (gated on `not
     # effective_provider`), so a fresh slug like claude-fable-5 fell through to
     # the generic "claude": 200K entry and under-reported a 1M window. Mirrors
-    # the dedicated FreeIDE/Copilot/GMI branches above.
+    # the dedicated JettsTUI/Copilot/GMI branches above.
     if effective_provider == "openrouter":
         metadata = fetch_model_metadata()
         entry = metadata.get(model)
@@ -2549,7 +2546,7 @@ def get_model_context_length(
                 return or_ctx
 
     # 7. Query local server before hardcoded defaults — model names like
-    # ``FreeIDE-3-Llama-3.1-70B`` substring-match ``llama`` (131072) even when
+    # ``JettsTUI-3-Llama-3.1-70B`` substring-match ``llama`` (131072) even when
     # vLLM is running at a lower ``--max-model-len`` (e.g. 32768 on limited VRAM).
     if base_url and is_local_endpoint(base_url):
         local_ctx = _query_local_context_length(model, base_url, api_key=api_key)
@@ -2772,7 +2769,7 @@ def estimate_request_tokens_rough(
 ) -> int:
     """Rough token estimate for a full chat-completions request.
 
-    Includes the major payload buckets FreeIDE sends to providers:
+    Includes the major payload buckets JettsTUI sends to providers:
     system prompt, conversation messages, and tool schemas.  With 50+
     tools enabled, schemas alone can add 20-30K tokens — a significant
     blind spot when only counting messages. Image content is counted

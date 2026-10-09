@@ -1,6 +1,6 @@
 import { forceCollide, forceLink, forceManyBody, forceRadial, forceSimulation, type Simulation } from 'd3-force'
 
-import type { StarmapGraph, StarmapNode } from '@/types/freeide'
+import type { StarmapGraph, StarmapNode } from '@/types/jettstui'
 
 import { RING_STEPS } from './constants'
 import { clamp, hash, nodeRadius, radiusForRecency } from './geometry'

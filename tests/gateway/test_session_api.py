@@ -8,7 +8,7 @@ from aiohttp.test_utils import TestClient, TestServer
 
 from gateway.config import PlatformConfig
 from gateway.platforms.api_server import APIServerAdapter
-from freeide_state import SessionDB
+from jettstui_state import SessionDB
 
 
 @pytest.fixture
@@ -78,7 +78,7 @@ async def test_capabilities_advertises_session_control_surface(adapter):
 @pytest.mark.asyncio
 async def test_run_agent_binds_api_session_context_for_tool_env(adapter, monkeypatch):
     """API-server request sessions should reach tools and terminal subprocess env."""
-    monkeypatch.setenv("FREEIDE_SESSION_ID", "stale-session")
+    monkeypatch.setenv("JETTSTUI_SESSION_ID", "stale-session")
     observed = {}
 
     class FakeAgent:
@@ -94,10 +94,10 @@ async def test_run_agent_binds_api_session_context_for_tool_env(adapter, monkeyp
             from tools.environments.local import _make_run_env
 
             observed["task_id"] = task_id
-            observed["context_session_id"] = get_session_env("FREEIDE_SESSION_ID")
-            observed["context_platform"] = get_session_env("FREEIDE_SESSION_PLATFORM")
-            observed["context_session_key"] = get_session_env("FREEIDE_SESSION_KEY")
-            observed["child_session_id"] = _make_run_env({}).get("FREEIDE_SESSION_ID")
+            observed["context_session_id"] = get_session_env("JETTSTUI_SESSION_ID")
+            observed["context_platform"] = get_session_env("JETTSTUI_SESSION_PLATFORM")
+            observed["context_session_key"] = get_session_env("JETTSTUI_SESSION_KEY")
+            observed["child_session_id"] = _make_run_env({}).get("JETTSTUI_SESSION_ID")
             return {"final_response": "ok"}
 
     def fake_create_agent(**kwargs):
@@ -134,11 +134,11 @@ async def test_session_crud_and_message_history(adapter, session_db):
         assert create_resp.status == 201
         created = await create_resp.json()
         session_id = created["session"]["id"]
-        assert created["object"] == "freeide.session"
+        assert created["object"] == "jettstui.session"
         assert created["session"]["title"] == "Mobile chat"
 
         session_db.append_message(session_id, "user", "hello from phone")
-        session_db.append_message(session_id, "assistant", "hello from freeide")
+        session_db.append_message(session_id, "assistant", "hello from jettstui")
 
         list_resp = await cli.get("/api/sessions?limit=10&offset=0")
         assert list_resp.status == 200
@@ -168,7 +168,7 @@ async def test_session_crud_and_message_history(adapter, session_db):
         delete_resp = await cli.delete(f"/api/sessions/{session_id}")
         assert delete_resp.status == 200
         deleted = await delete_resp.json()
-        assert deleted == {"object": "freeide.session.deleted", "id": session_id, "deleted": True}
+        assert deleted == {"object": "jettstui.session.deleted", "id": session_id, "deleted": True}
         assert session_db.get_session(session_id) is None
 
 
@@ -209,7 +209,7 @@ async def test_session_fork_uses_current_sessiondb_branch_primitives(adapter, se
         payload = await resp.json()
 
     fork = payload["session"]
-    assert payload["object"] == "freeide.session"
+    assert payload["object"] == "jettstui.session"
     assert fork["id"] != source_id
     assert fork["parent_session_id"] == source_id
     assert fork["title"] == "Alternative"
@@ -231,14 +231,14 @@ async def test_session_chat_loads_history_and_preserves_session_headers(auth_ada
             resp = await cli.post(
                 f"/api/sessions/{session_id}/chat",
                 json={"message": "next", "system_message": "stay focused"},
-                headers={"Authorization": "Bearer sk-test", "X-FreeIDE-Session-Key": "client-42"},
+                headers={"Authorization": "Bearer sk-test", "X-JettsTUI-Session-Key": "client-42"},
             )
             assert resp.status == 200
             payload = await resp.json()
 
-    assert resp.headers["X-FreeIDE-Session-Id"] == session_id
-    assert resp.headers["X-FreeIDE-Session-Key"] == "client-42"
-    assert payload["object"] == "freeide.session.chat.completion"
+    assert resp.headers["X-JettsTUI-Session-Id"] == session_id
+    assert resp.headers["X-JettsTUI-Session-Key"] == "client-42"
+    assert payload["object"] == "jettstui.session.chat.completion"
     assert payload["session_id"] == session_id
     assert payload["message"]["role"] == "assistant"
     assert payload["message"]["content"] == "fresh answer"
@@ -439,11 +439,11 @@ async def test_session_header_rejected_without_api_key(adapter, session_db):
         resp = await cli.post(
             f"/api/sessions/{session_id}/chat",
             json={"message": "hello"},
-            headers={"X-FreeIDE-Session-Key": "client-42"},
+            headers={"X-JettsTUI-Session-Key": "client-42"},
         )
         assert resp.status == 403
         data = await resp.json()
-        assert "X-FreeIDE-Session-Key requires API key" in data["error"]["message"]
+        assert "X-JettsTUI-Session-Key requires API key" in data["error"]["message"]
 
 
 # ---------------------------------------------------------------------------
@@ -537,7 +537,7 @@ async def test_run_agent_returns_controlled_response_on_provider_auth_failure(ad
     monkeypatch.setattr(
         "gateway.run._resolve_runtime_agent_kwargs",
         lambda: (_ for _ in ()).throw(
-            RuntimeError("No credentials found for provider 'nous' — run `freeide auth add nous`")
+            RuntimeError("No credentials found for provider 'acme' — run `jettstui auth add acme`")
         ),
     )
 
@@ -548,7 +548,7 @@ async def test_run_agent_returns_controlled_response_on_provider_auth_failure(ad
     )
 
     assert result == {
-        "final_response": "⚠️ Provider authentication failed: No credentials found for provider 'nous' — run `freeide auth add nous`",
+        "final_response": "⚠️ Provider authentication failed: No credentials found for provider 'acme' — run `jettstui auth add acme`",
         "messages": [],
         "api_calls": 0,
         "tools": [],
@@ -648,7 +648,7 @@ def _patch_api_server_runtime(monkeypatch):
         staticmethod(lambda: None),
     )
     monkeypatch.setattr("gateway.run._current_max_iterations", lambda: 90)
-    monkeypatch.setattr("freeide_cli.tools_config._get_platform_tools", lambda *_: set())
+    monkeypatch.setattr("jettstui.tools_config._get_platform_tools", lambda *_: set())
     monkeypatch.setattr(
         "gateway.run._resolve_runtime_agent_kwargs_for_provider",
         lambda provider: {
@@ -668,9 +668,9 @@ async def test_session_chat_builds_raw_provider_model_route_when_alias_missing(a
             {
                 "final_response": "ok",
                 "session_id": session_id,
-                "runtime": {"provider": "nous", "model": "x-ai/grok-4.5", "route_source": "raw_request"},
+                "runtime": {"provider": "acme", "model": "x-ai/grok-4.5", "route_source": "raw_request"},
             },
-            {"total_tokens": 2, "runtime": {"provider": "nous", "model": "x-ai/grok-4.5"}},
+            {"total_tokens": 2, "runtime": {"provider": "acme", "model": "x-ai/grok-4.5"}},
         )
     )
     app = _create_session_app(adapter)
@@ -680,7 +680,7 @@ async def test_session_chat_builds_raw_provider_model_route_when_alias_missing(a
                 f"/api/sessions/{session_id}/chat",
                 json={
                     "message": "hello",
-                    "provider": "nous",
+                    "provider": "acme",
                     "model": "x-ai/grok-4.5",
                     "require_model_lock": True,
                 },
@@ -689,8 +689,8 @@ async def test_session_chat_builds_raw_provider_model_route_when_alias_missing(a
             payload = await resp.json()
 
     kwargs = mock_run.call_args.kwargs
-    assert kwargs["route"] == {"provider": "nous", "model": "x-ai/grok-4.5"}
-    assert payload["runtime"]["provider"] == "nous"
+    assert kwargs["route"] == {"provider": "acme", "model": "x-ai/grok-4.5"}
+    assert payload["runtime"]["provider"] == "acme"
     assert payload["runtime"]["model"] == "x-ai/grok-4.5"
     assert payload["runtime"]["requested"]["model"] == "x-ai/grok-4.5"
 
@@ -706,7 +706,7 @@ async def test_session_chat_passes_runtime_options_to_run_agent(adapter, session
                 f"/api/sessions/{session_id}/chat",
                 json={
                     "message": "hello",
-                    "provider": "nous",
+                    "provider": "acme",
                     "model": "x-ai/grok-4.5",
                     "model_options": {
                         "reasoning": {"enabled": True, "effort": "xhigh"},
@@ -741,18 +741,18 @@ async def test_session_chat_stream_uses_same_runtime_lock(adapter, session_db):
                 "final_response": "hi",
                 "session_id": session_id,
                 "runtime": {
-                    "provider": "nous",
+                    "provider": "acme",
                     "model": "x-ai/grok-4.5",
-                    "requested": {"provider": "nous", "model": "x-ai/grok-4.5"},
+                    "requested": {"provider": "acme", "model": "x-ai/grok-4.5"},
                     "route_source": "raw_request",
                 },
             },
             {
                 "total_tokens": 1,
                 "runtime": {
-                    "provider": "nous",
+                    "provider": "acme",
                     "model": "x-ai/grok-4.5",
-                    "requested": {"provider": "nous", "model": "x-ai/grok-4.5"},
+                    "requested": {"provider": "acme", "model": "x-ai/grok-4.5"},
                 },
             },
         )
@@ -764,7 +764,7 @@ async def test_session_chat_stream_uses_same_runtime_lock(adapter, session_db):
                 f"/api/sessions/{session_id}/chat/stream",
                 json={
                     "message": "stream",
-                    "provider": "nous",
+                    "provider": "acme",
                     "model": "x-ai/grok-4.5",
                     "model_options": {"reasoning": {"enabled": False}},
                     "require_model_lock": True,
@@ -773,7 +773,7 @@ async def test_session_chat_stream_uses_same_runtime_lock(adapter, session_db):
             assert resp.status == 200, await resp.text()
             body = await resp.text()
 
-    assert captured["route"] == {"provider": "nous", "model": "x-ai/grok-4.5"}
+    assert captured["route"] == {"provider": "acme", "model": "x-ai/grok-4.5"}
     assert captured["model_options"] == {"reasoning": {"enabled": False}}
     assert captured["confirmed_runtime_lock"] is True
     assert "x-ai/grok-4.5" in body
@@ -788,8 +788,8 @@ async def test_create_session_respects_browser_source_and_model_lock(adapter, se
             "/api/sessions",
             json={
                 "id": "browser-lock-session",
-                "source": "freeide_browser",
-                "provider": "nous",
+                "source": "jettstui_browser",
+                "provider": "acme",
                 "model": "x-ai/grok-4.5",
                 "require_model_lock": True,
                 "title": "Browser lock",
@@ -799,16 +799,16 @@ async def test_create_session_respects_browser_source_and_model_lock(adapter, se
         assert resp.status == 201, await resp.text()
         payload = await resp.json()
 
-    assert payload["session"]["source"] == "freeide_browser"
+    assert payload["session"]["source"] == "jettstui_browser"
     assert payload["session"]["model"] == "x-ai/grok-4.5"
     row = session_db.get_session("browser-lock-session")
-    assert row["source"] == "freeide_browser"
+    assert row["source"] == "jettstui_browser"
     assert row["model"] == "x-ai/grok-4.5"
     import json as _json
     model_config = row.get("model_config")
     if isinstance(model_config, str):
         model_config = _json.loads(model_config)
-    assert model_config["browser_model_lock"]["provider"] == "nous"
+    assert model_config["browser_model_lock"]["provider"] == "acme"
     assert model_config["browser_model_lock"]["model"] == "x-ai/grok-4.5"
     assert model_config["browser_model_lock"]["confirmed"] is True
 
@@ -829,7 +829,7 @@ async def test_session_model_lock_endpoint_persists_and_invalidates_prompt(adapt
             resp = await cli.post(
                 f"/api/sessions/{session_id}/model",
                 json={
-                    "provider": "nous",
+                    "provider": "acme",
                     "model": "x-ai/grok-4.5",
                     "model_options": {"reasoning": {"enabled": True, "effort": "high"}},
                     "require_model_lock": True,
@@ -838,8 +838,8 @@ async def test_session_model_lock_endpoint_persists_and_invalidates_prompt(adapt
             assert resp.status == 200, await resp.text()
             payload = await resp.json()
 
-    assert payload["object"] == "freeide.session.model_lock"
-    assert payload["runtime"]["requested"]["provider"] == "nous"
+    assert payload["object"] == "jettstui.session.model_lock"
+    assert payload["runtime"]["requested"]["provider"] == "acme"
     assert payload["runtime"]["model"] == "x-ai/grok-4.5"
     assert payload["runtime"]["model_lock"] in {"accepted", "confirmed"}
     row = session_db.get_session(session_id)
@@ -850,7 +850,7 @@ async def test_session_model_lock_endpoint_persists_and_invalidates_prompt(adapt
     if isinstance(model_config, str):
         model_config = _json.loads(model_config)
     assert model_config["_branched_from"] == "parent-session"
-    assert model_config["browser_model_lock"]["provider"] == "nous"
+    assert model_config["browser_model_lock"]["provider"] == "acme"
 
 
 @pytest.mark.asyncio
@@ -902,7 +902,7 @@ async def test_session_model_lock_endpoint_then_chat_reuses_persisted_lock_and_p
             lock_resp = await cli.post(
                 f"/api/sessions/{session_id}/model",
                 json={
-                    "provider": "nous",
+                    "provider": "acme",
                     "model": "x-ai/grok-4.5",
                     "require_model_lock": True,
                 },
@@ -916,14 +916,14 @@ async def test_session_model_lock_endpoint_then_chat_reuses_persisted_lock_and_p
             assert resp.status == 200, await resp.text()
             payload = await resp.json()
 
-    assert captured["provider"] == "nous"
+    assert captured["provider"] == "acme"
     assert captured["model"] == "x-ai/grok-4.5"
-    assert captured["api_key"] == "sk-nous"
-    assert captured["base_url"] == "https://nous.example/v1"
-    assert payload["runtime"]["provider"] == "nous"
+    assert captured["api_key"] == "sk-acme"
+    assert captured["base_url"] == "https://acme.example/v1"
+    assert payload["runtime"]["provider"] == "acme"
     assert payload["runtime"]["model"] == "x-ai/grok-4.5"
     assert payload["runtime"]["requested"] == {
-        "provider": "nous",
+        "provider": "acme",
         "model": "x-ai/grok-4.5",
     }
     assert payload["runtime"]["route_source"] == "session_model_lock"
@@ -945,18 +945,18 @@ async def test_session_model_lock_endpoint_then_chat_stream_reuses_persisted_loc
                 "final_response": "hi",
                 "session_id": session_id,
                 "runtime": {
-                    "provider": "nous",
+                    "provider": "acme",
                     "model": "x-ai/grok-4.5",
-                    "requested": {"provider": "nous", "model": "x-ai/grok-4.5"},
+                    "requested": {"provider": "acme", "model": "x-ai/grok-4.5"},
                     "route_source": "session_model_lock",
                 },
             },
             {
                 "total_tokens": 1,
                 "runtime": {
-                    "provider": "nous",
+                    "provider": "acme",
                     "model": "x-ai/grok-4.5",
-                    "requested": {"provider": "nous", "model": "x-ai/grok-4.5"},
+                    "requested": {"provider": "acme", "model": "x-ai/grok-4.5"},
                     "route_source": "session_model_lock",
                 },
             },
@@ -973,7 +973,7 @@ async def test_session_model_lock_endpoint_then_chat_stream_reuses_persisted_loc
             lock_resp = await cli.post(
                 f"/api/sessions/{session_id}/model",
                 json={
-                    "provider": "nous",
+                    "provider": "acme",
                     "model": "x-ai/grok-4.5",
                     "require_model_lock": True,
                 },
@@ -987,8 +987,8 @@ async def test_session_model_lock_endpoint_then_chat_stream_reuses_persisted_loc
             assert resp.status == 200, await resp.text()
             body = await resp.text()
 
-    assert captured["route"] == {"provider": "nous", "model": "x-ai/grok-4.5"}
-    assert captured["requested_runtime"]["provider"] == "nous"
+    assert captured["route"] == {"provider": "acme", "model": "x-ai/grok-4.5"}
+    assert captured["requested_runtime"]["provider"] == "acme"
     assert captured["requested_runtime"]["model"] == "x-ai/grok-4.5"
     assert captured["route_source"] == "session_model_lock"
     assert "x-ai/grok-4.5" in body
@@ -1005,7 +1005,7 @@ async def test_run_agent_reports_actual_agent_runtime_not_requested_metadata(ada
             self.session_id = "runtime-session"
             self.provider = "actual-provider"
             self.model = "actual-model"
-            self._freeide_api_runtime = {
+            self._jettstui_api_runtime = {
                 "provider": "requested-provider",
                 "model": "requested-model",
                 "route_source": "raw_request",
@@ -1058,8 +1058,8 @@ async def test_confirmed_runtime_lock_rejects_actual_runtime_mismatch(adapter, m
             user_message="hello",
             conversation_history=[],
             session_id="mismatch-session",
-            route={"provider": "nous", "model": "x-ai/grok-4.5"},
-            requested_runtime={"provider": "nous", "model": "x-ai/grok-4.5"},
+            route={"provider": "acme", "model": "x-ai/grok-4.5"},
+            requested_runtime={"provider": "acme", "model": "x-ai/grok-4.5"},
             route_source="session_model_lock",
             confirmed_runtime_lock=True,
         )
@@ -1071,7 +1071,7 @@ def test_confirmed_runtime_lock_fails_closed_on_provider_resolution_error(adapte
     # gateway fallback) — a confirmed lock must propagate the failure
     # instead of constructing an agent on the previous global credentials.
     monkeypatch.setattr(
-        "freeide_cli.runtime_provider.resolve_runtime_provider",
+        "jettstui.runtime_provider.resolve_runtime_provider",
         lambda **_kwargs: (_ for _ in ()).throw(RuntimeError("provider unavailable")),
     )
     monkeypatch.setattr(
@@ -1083,7 +1083,7 @@ def test_confirmed_runtime_lock_fails_closed_on_provider_resolution_error(adapte
         with pytest.raises(RuntimeError, match="provider unavailable"):
             adapter._create_agent(
                 session_id="locked-session",
-                route={"provider": "nous", "model": "x-ai/grok-4.5"},
+                route={"provider": "acme", "model": "x-ai/grok-4.5"},
                 confirmed_runtime_lock=True,
             )
     mocked_agent.assert_not_called()
@@ -1098,7 +1098,7 @@ def test_confirmed_runtime_lock_disables_global_fallback_model(adapter, monkeypa
     captured = {}
 
     class FakeAgent:
-        provider = "nous"
+        provider = "acme"
         model = "x-ai/grok-4.5"
 
         def __init__(self, **kwargs):
@@ -1108,7 +1108,7 @@ def test_confirmed_runtime_lock_disables_global_fallback_model(adapter, monkeypa
 
     adapter._create_agent(
         session_id="locked-session",
-        route={"provider": "nous", "model": "x-ai/grok-4.5"},
+        route={"provider": "acme", "model": "x-ai/grok-4.5"},
         confirmed_runtime_lock=True,
     )
 
@@ -1120,7 +1120,7 @@ async def test_unconfirmed_request_does_not_replace_confirmed_session_lock(adapt
     session_id = session_db.create_session("one-off-override", "api_server")
     session_db.update_session_runtime_lock(
         session_id,
-        provider="nous",
+        provider="acme",
         model="x-ai/grok-4.5",
         route_source="raw_request",
         confirmed=True,
@@ -1158,7 +1158,7 @@ async def test_unconfirmed_request_does_not_replace_confirmed_session_lock(adapt
     config = row["model_config"]
     if isinstance(config, str):
         config = _json.loads(config)
-    assert config["browser_model_lock"]["provider"] == "nous"
+    assert config["browser_model_lock"]["provider"] == "acme"
     assert config["browser_model_lock"]["model"] == "x-ai/grok-4.5"
     assert config["browser_model_lock"]["confirmed"] is True
 
@@ -1175,7 +1175,7 @@ async def test_require_model_lock_hard_fails_when_global_default_would_be_used(a
                 f"/api/sessions/{session_id}/chat",
                 json={
                     "message": "hello",
-                    "provider": "nous",
+                    "provider": "acme",
                     "model": "",
                     "require_model_lock": True,
                 },

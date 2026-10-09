@@ -4,7 +4,7 @@ import { useEffect } from 'react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { noteActiveTreeGroup, revealTreePane } from '@/components/pane-shell/tree/store'
-import { getSession, getSessionMessages, type SessionInfo } from '@/freeide'
+import { getSession, getSessionMessages, type SessionInfo } from '@/jettstui'
 import { createClientSessionState } from '@/lib/chat-runtime'
 import { clearSessionDraft, stashSessionDraft, takeSessionDraft } from '@/store/composer'
 import { $activeGatewayProfile, $newChatProfile, ensureGatewayProfile } from '@/store/profile'
@@ -41,7 +41,7 @@ import type { ClientSessionState } from '../../types'
 
 import { useSessionActions } from './use-session-actions'
 
-vi.mock('@/freeide', async importOriginal => ({
+vi.mock('@/jettstui', async importOriginal => ({
   ...(await importOriginal<Record<string, unknown>>()),
   deleteSession: vi.fn(),
   getSession: vi.fn(),

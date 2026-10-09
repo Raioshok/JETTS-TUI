@@ -152,6 +152,45 @@ def test_github_source_fetches_only_exact_references_and_records_tree_revision(m
     assert bundle.metadata["source_revision"] == "deadbeef"
 
 
+def test_github_source_includes_linked_sibling_docs_but_never_scripts(monkeypatch):
+    """Companion docs linked from SKILL.md ship with it; missing links don't
+    fail the install, and only document/data extensions are ever pulled."""
+    source = GitHubSource(GitHubAuth())
+    skill = (
+        "---\nname: demo\ndescription: demo\n---\n"
+        "[Typography](typography.md) [Anim](./animations.md#easing)\n"
+        "[License](LICENSE.md) [run](setup.sh) [data](data.json)\n"
+    )
+    fetched = []
+    monkeypatch.setattr(
+        source, "_fetch_file_content", lambda _repo, path: skill if path.endswith("SKILL.md") else None
+    )
+
+    def _fetch_bytes(_repo, path):
+        fetched.append(path)
+        return path.encode()
+
+    monkeypatch.setattr(source, "_fetch_file_bytes", _fetch_bytes, raising=False)
+    source._tree_cache["owner/repo"] = (
+        "main",
+        [
+            {"path": "skill/SKILL.md", "type": "blob", "mode": "100644"},
+            {"path": "skill/typography.md", "type": "blob", "mode": "100644"},
+            {"path": "skill/animations.md", "type": "blob", "mode": "100644"},
+            {"path": "skill/data.json", "type": "blob", "mode": "120000"},  # symlink
+            {"path": "skill/setup.sh", "type": "blob", "mode": "100755"},
+            {"path": "skill/unlinked.md", "type": "blob", "mode": "100644"},
+        ],
+    )
+
+    bundle = source.fetch("owner/repo/skill")
+
+    assert bundle is not None, "a dangling sibling link (LICENSE.md) must not abort the install"
+    assert set(bundle.files) == {"SKILL.md", "typography.md", "animations.md"}
+    assert "skill/setup.sh" not in fetched, "executables are never pulled as sibling docs"
+    assert "skill/unlinked.md" not in fetched, "only explicitly linked files are fetched"
+
+
 def test_scan_cache_records_full_provenance_and_hash_change_forces_rescan(tmp_path):
     skill = tmp_path / "skill"
     skill.mkdir()
@@ -222,12 +261,12 @@ def test_lock_file_persists_scan_provenance(tmp_path):
 
 
 def test_real_temp_repo_and_home_install_e2e(served_repo, monkeypatch, tmp_path):
-    from freeide_cli.skills_hub import do_install
+    from jettstui.skills_hub import do_install
     import tools.skills_hub as hub
 
     _repo, url = served_repo
     home = tmp_path / "home"
-    monkeypatch.setenv("FREEIDE_HOME", str(home))
+    monkeypatch.setenv("JETTSTUI_HOME", str(home))
     monkeypatch.setattr("tools.skills_hub.is_safe_url", lambda _url: True)
     monkeypatch.setattr("tools.skills_hub.check_website_access", lambda _url: None)
     monkeypatch.setattr(hub, "create_source_router", lambda auth=None: [UrlSource()])

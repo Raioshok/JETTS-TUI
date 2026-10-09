@@ -18,10 +18,10 @@ import pytest
 
 @pytest.fixture(autouse=True)
 def _isolate_home(tmp_path, monkeypatch):
-    freeide_home = tmp_path / ".freeide"
-    freeide_home.mkdir()
-    monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
-    yield freeide_home
+    jettstui_home = tmp_path / ".jettstui"
+    jettstui_home.mkdir()
+    monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
+    yield jettstui_home
 
 
 # ---------------------------------------------------------------------------
@@ -211,14 +211,14 @@ def test_registry_resolve_by_name(tmp_path):
     assert r.resolve("ghost") is None
 
 
-def test_registry_defaults_to_freeide_home(tmp_path, monkeypatch):
+def test_registry_defaults_to_jettstui_home(tmp_path, monkeypatch):
     from plugins.google_meet.node.registry import NodeRegistry
 
-    # _isolate_home already set FREEIDE_HOME to tmp_path/.freeide; the
+    # _isolate_home already set JETTSTUI_HOME to tmp_path/.jettstui; the
     # registry default path must live inside that tree.
     r = NodeRegistry()
     r.add("x", "ws://x", "t")
-    expected = Path(tmp_path) / ".freeide" / "workspace" / "meetings" / "nodes.json"
+    expected = Path(tmp_path) / ".jettstui" / "workspace" / "meetings" / "nodes.json"
     assert expected.is_file()
 
 
@@ -629,7 +629,7 @@ def test_cli_status_pings_via_node_client(capsys, monkeypatch):
             assert token == "tok"
 
         def ping(self):
-            return {"type": "pong", "display_name": "freeide-meet-node"}
+            return {"type": "pong", "display_name": "jettstui-meet-node"}
 
     monkeypatch.setattr(node_cli, "NodeClient", _FakeClient)
 

@@ -112,6 +112,19 @@ class TestSubdirectoryHintTracker:
         assert result is not None
         assert "Backend-specific instructions" in result
 
+    def test_terminal_quoted_path_with_spaces(self, project):
+        folder = project / "feature with spaces"
+        folder.mkdir()
+        (folder / "AGENTS.md").write_text("Quoted path rules", encoding="utf-8")
+        target = folder / "main.py"
+        target.write_text("pass\n", encoding="utf-8")
+
+        tracker = SubdirectoryHintTracker(working_dir=str(project))
+        result = tracker.check_tool_call("terminal", {"command": f'cat "{target}"'})
+
+        assert result is not None
+        assert "Quoted path rules" in result
+
     def test_relative_path(self, project):
         """Relative paths resolved against working_dir."""
         tracker = SubdirectoryHintTracker(working_dir=str(project))

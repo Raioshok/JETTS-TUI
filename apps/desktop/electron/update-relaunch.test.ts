@@ -10,7 +10,7 @@
  *      relaunch/claim a GUI update; AppImage/.deb/.rpm/dev/unresolved paths land
  *      on the guiSkew terminal state and do NOT claim the GUI was updated.
  *   2. Launch context is replayed on re-exec (args filtered of Electron
- *      internals; FREEIDE_HOME / FREEIDE_DESKTOP_* env + cwd preserved) and is
+ *      internals; JETTSTUI_HOME / JETTSTUI_DESKTOP_* env + cwd preserved) and is
  *      safely shell-quoted.
  *   3. The sandbox preflight: chrome-sandbox must be root-owned + setuid to be
  *      launchable; otherwise the decision degrades to a manual terminal state
@@ -37,8 +37,13 @@ import {
   unpackedDirName
 } from './update-relaunch'
 
-const ROOT = '/home/u/.freeide/freeide-agent'
+// resolveUnpackedRelease uses the host path module, so fixtures need a native
+// absolute root even when exercising its Linux release-directory contract.
+const ROOT = path.resolve(os.tmpdir(), 'jetts-tui-update-relaunch-fixture')
 const UNPACKED = path.join(ROOT, 'apps', 'desktop', 'release', 'linux-unpacked')
+const BASH = process.platform === 'win32'
+  ? path.join(process.env.ProgramFiles || 'C:\\Program Files', 'Git', 'bin', 'bash.exe')
+  : 'bash'
 
 // ---------------------------------------------------------------------------
 // 1) The execPath split — the heart of the GUI/backend skew guard.
@@ -50,7 +55,7 @@ test('unpackedDirName maps platform to the electron-builder dir', () => {
 })
 
 test('resolveUnpackedRelease returns the dir for a binary UNDER release/<plat>-unpacked', () => {
-  const exec = path.join(UNPACKED, 'freeide')
+  const exec = path.join(UNPACKED, 'jettstui')
   assert.equal(resolveUnpackedRelease(exec, ROOT, 'linux'), UNPACKED)
   // The unpacked dir itself also counts.
   assert.equal(resolveUnpackedRelease(UNPACKED, ROOT, 'linux'), UNPACKED)
@@ -58,23 +63,23 @@ test('resolveUnpackedRelease returns the dir for a binary UNDER release/<plat>-u
 
 test('resolveUnpackedRelease is null for AppImage / .deb / .rpm / dev / unresolved paths', () => {
   // AppImage mount
-  assert.equal(resolveUnpackedRelease('/tmp/.mount_FreeIDE12345/AppRun', ROOT, 'linux'), null)
+  assert.equal(resolveUnpackedRelease('/tmp/.mount_JettsTUI12345/AppRun', ROOT, 'linux'), null)
   // .deb / .rpm system install
-  assert.equal(resolveUnpackedRelease('/usr/lib/freeide/freeide', ROOT, 'linux'), null)
-  assert.equal(resolveUnpackedRelease('/opt/FreeIDE/freeide', ROOT, 'linux'), null)
+  assert.equal(resolveUnpackedRelease('/usr/lib/jettstui/jettstui', ROOT, 'linux'), null)
+  assert.equal(resolveUnpackedRelease('/opt/JettsTUI/jettstui', ROOT, 'linux'), null)
   // dev electron
   assert.equal(
-    resolveUnpackedRelease('/home/u/.freeide/freeide-agent/node_modules/electron/dist/electron', ROOT, 'linux'),
+    resolveUnpackedRelease('/home/u/.jettstui/jettstui/node_modules/electron/dist/electron', ROOT, 'linux'),
     null
   )
   // empty / missing
   assert.equal(resolveUnpackedRelease('', ROOT, 'linux'), null)
-  assert.equal(resolveUnpackedRelease(path.join(UNPACKED, 'freeide'), '', 'linux'), null)
+  assert.equal(resolveUnpackedRelease(path.join(UNPACKED, 'jettstui'), '', 'linux'), null)
 })
 
 test('resolveUnpackedRelease is not fooled by a sibling prefix dir', () => {
   // `.../release/linux-unpacked-evil` must NOT match `.../release/linux-unpacked`.
-  const sneaky = path.join(ROOT, 'apps', 'desktop', 'release', 'linux-unpacked-evil', 'freeide')
+  const sneaky = path.join(ROOT, 'apps', 'desktop', 'release', 'linux-unpacked-evil', 'jettstui')
   assert.equal(resolveUnpackedRelease(sneaky, ROOT, 'linux'), null)
 })
 
@@ -148,22 +153,22 @@ test('collectRelaunchArgs drops Electron internals, keeps user/launcher args', (
     '--field-trial-handle=123',
     '--no-sandbox', // sandbox opt-out — KEEP (user/env intent + relaunch fallback)
     '--lang=en-US',
-    'freeide://open/agent/42', // deep link — keep
+    'jettstui://open/agent/42', // deep link — keep
     '--profile=work', // app flag — keep
     '--remote-debugging-port=9222' // internal — drop
   ]
 
-  assert.deepEqual(collectRelaunchArgs(argv), ['--no-sandbox', 'freeide://open/agent/42', '--profile=work'])
+  assert.deepEqual(collectRelaunchArgs(argv), ['--no-sandbox', 'jettstui://open/agent/42', '--profile=work'])
   assert.deepEqual(collectRelaunchArgs(undefined), [])
 })
 
-test('collectRelaunchEnv preserves FREEIDE_HOME + FREEIDE_DESKTOP_* + sandbox opt-out only', () => {
+test('collectRelaunchEnv preserves JETTSTUI_HOME + JETTSTUI_DESKTOP_* + sandbox opt-out only', () => {
   const env = {
-    FREEIDE_HOME: '/home/u/.freeide',
-    FREEIDE_DESKTOP_REMOTE_URL: 'http://box:9119',
-    FREEIDE_DESKTOP_REMOTE_TOKEN: 'secret',
-    FREEIDE_DESKTOP_FREEIDE_ROOT: '/home/u/dev/freeide',
-    FREEIDE_DESKTOP_APP_NAME: 'FreeIDESandbox',
+    JETTSTUI_HOME: '/home/u/.jettstui',
+    JETTSTUI_DESKTOP_REMOTE_URL: 'http://box:9119',
+    JETTSTUI_DESKTOP_REMOTE_TOKEN: 'secret',
+    JETTSTUI_DESKTOP_JETTSTUI_ROOT: '/home/u/dev/jettstui',
+    JETTSTUI_DESKTOP_APP_NAME: 'JettsTUISandbox',
     ELECTRON_DISABLE_SANDBOX: '1', // sandbox opt-out — preserved
     PATH: '/usr/bin', // not preserved
     HOME: '/home/u', // not preserved
@@ -171,11 +176,11 @@ test('collectRelaunchEnv preserves FREEIDE_HOME + FREEIDE_DESKTOP_* + sandbox op
   }
 
   assert.deepEqual(collectRelaunchEnv(env), {
-    FREEIDE_HOME: '/home/u/.freeide',
-    FREEIDE_DESKTOP_REMOTE_URL: 'http://box:9119',
-    FREEIDE_DESKTOP_REMOTE_TOKEN: 'secret',
-    FREEIDE_DESKTOP_FREEIDE_ROOT: '/home/u/dev/freeide',
-    FREEIDE_DESKTOP_APP_NAME: 'FreeIDESandbox',
+    JETTSTUI_HOME: '/home/u/.jettstui',
+    JETTSTUI_DESKTOP_REMOTE_URL: 'http://box:9119',
+    JETTSTUI_DESKTOP_REMOTE_TOKEN: 'secret',
+    JETTSTUI_DESKTOP_JETTSTUI_ROOT: '/home/u/dev/jettstui',
+    JETTSTUI_DESKTOP_APP_NAME: 'JettsTUISandbox',
     ELECTRON_DISABLE_SANDBOX: '1'
   })
   assert.deepEqual(collectRelaunchEnv(null), {})
@@ -190,12 +195,12 @@ test('shellQuote neutralizes single quotes and metacharacters', () => {
   assert.equal(shellQuote('$(rm -rf /)'), `'$(rm -rf /)'`)
 })
 
-test('buildRelaunchScript embeds pid/exec/args/env/cwd and is valid bash', () => {
+test.skipIf(process.platform === 'win32' && !fs.existsSync(BASH))('buildRelaunchScript embeds pid/exec/args/env/cwd and is valid bash', () => {
   const script = buildRelaunchScript({
     pid: 4242,
-    execPath: '/home/u/.freeide/freeide-agent/apps/desktop/release/linux-unpacked/FreeIDE',
-    args: ['freeide://open/agent/42', "--note=it's fine"],
-    env: { FREEIDE_HOME: '/home/u/.freeide', FREEIDE_DESKTOP_REMOTE_URL: 'http://box:9119' },
+    execPath: '/home/u/.jettstui/jettstui/apps/desktop/release/linux-unpacked/JettsTUI',
+    args: ['jettstui://open/agent/42', "--note=it's fine"],
+    env: { JETTSTUI_HOME: '/home/u/.jettstui', JETTSTUI_DESKTOP_REMOTE_URL: 'http://box:9119' },
     cwd: '/home/u/work dir'
   })
 
@@ -205,40 +210,26 @@ test('buildRelaunchScript embeds pid/exec/args/env/cwd and is valid bash', () =>
   assert.match(script, /kill -9 "\$APP_PID"/)
   assert.match(script, /rm -f -- "\$0"/)
   // env exports + cwd restore + args replay are present and quoted.
-  assert.match(script, /export FREEIDE_HOME='\/home\/u\/\.freeide'/)
-  assert.match(script, /export FREEIDE_DESKTOP_REMOTE_URL='http:\/\/box:9119'/)
+  assert.match(script, /export JETTSTUI_HOME='\/home\/u\/\.jettstui'/)
+  assert.match(script, /export JETTSTUI_DESKTOP_REMOTE_URL='http:\/\/box:9119'/)
   assert.match(script, /cd '\/home\/u\/work dir'/)
-  assert.match(script, /exec '.*\/linux-unpacked\/FreeIDE' 'freeide:\/\/open\/agent\/42' '--note=it'\\''s fine'/)
+  assert.match(script, /exec '.*\/linux-unpacked\/JettsTUI' 'jettstui:\/\/open\/agent\/42' '--note=it'\\''s fine'/)
 
-  // It must be syntactically valid bash (`bash -n`). Write to a temp file and lint.
-  const tmp = path.join(os.tmpdir(), `freeide-relaunch-test-${Date.now()}.sh`)
-  fs.writeFileSync(tmp, script)
-
-  try {
-    execFileSync('bash', ['-n', tmp], { stdio: 'pipe' })
-  } finally {
-    fs.rmSync(tmp, { force: true })
-  }
+  // Lint via stdin so a native Windows path need not be translated for Bash.
+  execFileSync(BASH, ['-n'], { input: script, stdio: 'pipe' })
 })
 
-test('buildRelaunchScript with no args/env still lints clean', () => {
+test.skipIf(process.platform === 'win32' && !fs.existsSync(BASH))('buildRelaunchScript with no args/env still lints clean', () => {
   const script = buildRelaunchScript({
     pid: 1,
-    execPath: '/opt/FreeIDE/FreeIDE',
+    execPath: '/opt/JettsTUI/JettsTUI',
     args: [],
     env: {},
     cwd: ''
   })
 
-  const tmp = path.join(os.tmpdir(), `freeide-relaunch-test2-${Date.now()}.sh`)
-  fs.writeFileSync(tmp, script)
-
-  try {
-    execFileSync('bash', ['-n', tmp], { stdio: 'pipe' })
-  } finally {
-    fs.rmSync(tmp, { force: true })
-  }
+  execFileSync(BASH, ['-n'], { input: script, stdio: 'pipe' })
 
   // exec line has no trailing args.
-  assert.match(script, /exec '\/opt\/FreeIDE\/FreeIDE'\n/)
+  assert.match(script, /exec '\/opt\/JettsTUI\/JettsTUI'\n/)
 })

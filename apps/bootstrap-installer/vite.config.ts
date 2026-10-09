@@ -1,9 +1,10 @@
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-import tailwindcss from '@tailwindcss/vite'
 import path from 'node:path'
 
-// FreeIDE Setup — Tauri-targeted Vite config.
+import tailwindcss from '@tailwindcss/vite'
+import react from '@vitejs/plugin-react'
+import { defineConfig } from 'vite'
+
+// JettsTUI Setup — Tauri-targeted Vite config.
 //
 // Port 5175 keeps us out of the way of:
 //   web       (vite default 5173)

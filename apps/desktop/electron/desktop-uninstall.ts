@@ -2,7 +2,7 @@
  * desktop-uninstall.ts
  *
  * Pure, electron-free helpers for the desktop Chat GUI uninstaller. These map
- * the three user-facing uninstall modes to the `freeide uninstall` CLI flags,
+ * the three user-facing uninstall modes to the `jettstui uninstall` CLI flags,
  * resolve the running app bundle/exe so a detached cleanup script can remove
  * it after the app quits, and build that cleanup script for each OS.
  *
@@ -12,14 +12,14 @@
  *
  * The three modes mirror the CLI's options exactly:
  *   - 'gui'  → remove ONLY the Chat GUI, keep the agent + all user data.
- *              `freeide uninstall --gui --yes`
+ *              `jettstui uninstall --gui --yes`
  *   - 'lite' → remove the GUI + agent code, KEEP user data (config / sessions
- *              / .env) for a future reinstall. `freeide uninstall --yes`
+ *              / .env) for a future reinstall. `jettstui uninstall --yes`
  *   - 'full' → remove everything: GUI + agent + all user data.
- *              `freeide uninstall --full --yes`
+ *              `jettstui uninstall --full --yes`
  *
  * Why a detached cleanup script: 'lite'/'full' delete the very venv the
- * `freeide` command runs from, and every mode may need to delete the running
+ * `jettstui` command runs from, and every mode may need to delete the running
  * app bundle (locked on macOS/Windows while the process is alive). So we hand
  * the work to a detached child that waits for this app's PID to exit, runs the
  * Python uninstall, then removes the app bundle — then the app quits. Same
@@ -31,9 +31,9 @@ import path from 'node:path'
 const UNINSTALL_MODES = ['gui', 'lite', 'full']
 
 /**
- * Map an uninstall mode to the `python -m freeide_cli.uninstall` argv (after the
+ * Map an uninstall mode to the `python -m jettstui.uninstall` argv (after the
  * python executable). Uses the dedicated lightweight module entrypoint (not
- * `freeide_cli.main`) so it can run under a system Python OUTSIDE the venv that
+ * `jettstui.main`) so it can run under a system Python OUTSIDE the venv that
  * lite/full delete — see the Finding-3 note in buildWindowsCleanupScript.
  * Throws on an unknown mode so a typo can't silently become a full wipe.
  */
@@ -42,7 +42,7 @@ function uninstallArgsForMode(mode) {
     throw new Error(`Unknown uninstall mode: ${mode}`)
   }
 
-  return ['-m', 'freeide_cli.uninstall', '--mode', mode]
+  return ['-m', 'jettstui.uninstall', '--mode', mode]
 }
 
 /** True when `mode` removes the agent (lite/full), false for gui-only. */
@@ -59,8 +59,8 @@ function modeRemovesUserData(mode) {
  * Resolve the on-disk app bundle/dir to remove for the running desktop app,
  * given the path to the running executable (`process.execPath`) and platform.
  *
- *   macOS:   …/FreeIDE.app/Contents/MacOS/FreeIDE  → …/FreeIDE.app
- *   Windows: …\FreeIDE\FreeIDE.exe                 → …\FreeIDE  (install dir)
+ *   macOS:   …/JettsTUI.app/Contents/MacOS/JettsTUI  → …/JettsTUI.app
+ *   Windows: …\JettsTUI\JettsTUI.exe                 → …\JettsTUI  (install dir)
  *   Linux:   AppImage → the APPIMAGE env path; unpacked → the *-unpacked dir
  *
  * Returns null when we can't confidently identify a removable bundle (e.g.
@@ -79,10 +79,10 @@ function resolveRemovableAppPath(execPath, platform, env: any = {}) {
   const p = platform === 'win32' ? path.win32 : path.posix
 
   if (platform === 'darwin') {
-    // …/FreeIDE.app/Contents/MacOS/FreeIDE → strip 3 segments to the .app
+    // …/JettsTUI.app/Contents/MacOS/JettsTUI → strip 3 segments to the .app
     const macOsDir = p.dirname(exe) // …/Contents/MacOS
     const contents = p.dirname(macOsDir) // …/Contents
-    const appBundle = p.dirname(contents) // …/FreeIDE.app
+    const appBundle = p.dirname(contents) // …/JettsTUI.app
 
     if (appBundle.endsWith('.app')) {
       return appBundle
@@ -92,10 +92,10 @@ function resolveRemovableAppPath(execPath, platform, env: any = {}) {
   }
 
   if (platform === 'win32') {
-    // NSIS per-user installs FreeIDE.exe directly in the install dir.
+    // NSIS per-user installs JettsTUI.exe directly in the install dir.
     const dir = p.dirname(exe)
 
-    if (/[\\/]FreeIDE$/i.test(dir) || /[\\/]freeide-desktop$/i.test(dir)) {
+    if (/[\\/]JettsTUI$/i.test(dir) || /[\\/]jettstui-desktop$/i.test(dir)) {
       return dir
     }
 
@@ -107,7 +107,7 @@ function resolveRemovableAppPath(execPath, platform, env: any = {}) {
     return env.APPIMAGE
   }
 
-  // Unpacked electron-builder tree: …/linux-unpacked/freeide
+  // Unpacked electron-builder tree: …/linux-unpacked/jettstui
   const dir = p.dirname(exe)
 
   if (/-unpacked$/.test(dir)) {
@@ -134,11 +134,11 @@ function shouldRemoveAppBundle(isPackaged, appPath) {
  *   3. removes the app bundle if one was resolved.
  *
  * `pythonExe` should be a Python OUTSIDE the venv for lite/full (the venv is
- * being deleted); `pythonPath` is prepended to PYTHONPATH so `import freeide_cli`
+ * being deleted); `pythonPath` is prepended to PYTHONPATH so `import jettstui`
  * resolves from the agent source. `q()` single-quote-escapes for the shell
  * (closes-escapes-reopens any embedded apostrophe), defending against spaces.
  */
-function buildPosixCleanupScript({ desktopPid, pythonExe, pythonPath, agentRoot, uninstallArgs, appPath, freeideHome }) {
+function buildPosixCleanupScript({ desktopPid, pythonExe, pythonPath, agentRoot, uninstallArgs, appPath, jettstuiHome }) {
   const q = s => `'${String(s).replace(/'/g, `'\\''`)}'`
 
   const lines = [
@@ -153,7 +153,7 @@ function buildPosixCleanupScript({ desktopPid, pythonExe, pythonPath, agentRoot,
     '    sleep 0.5',
     '  done',
     'fi',
-    `export FREEIDE_HOME=${q(freeideHome)}`
+    `export JETTSTUI_HOME=${q(jettstuiHome)}`
   ]
 
   if (pythonPath) {
@@ -180,7 +180,7 @@ function buildPosixCleanupScript({ desktopPid, pythonExe, pythonPath, agentRoot,
  * the venv that contains `python.exe`. A running .exe is mandatory-locked on
  * Windows, so running the uninstall from the venv's OWN python half-fails. The
  * desktop passes a system Python (findSystemPython) as `pythonExe` for those
- * modes + `pythonPath`=agentRoot so `import freeide_cli` resolves from source
+ * modes + `pythonPath`=agentRoot so `import jettstui` resolves from source
  * while the venv is torn down. gui-only doesn't touch the venv, so it can use
  * either interpreter.
  *
@@ -198,18 +198,18 @@ function buildWindowsCleanupScript({
   agentRoot,
   uninstallArgs,
   appPath,
-  freeideHome
+  jettstuiHome
 }) {
   const pid = Number(desktopPid) || 0
   // cmd.exe has no string escaping inside quotes; strip embedded quotes (paths
   // under %LOCALAPPDATA% never contain them). `&`/`^` in a path would still be
-  // a problem, but FreeIDE install paths don't use them.
+  // a problem, but JettsTUI install paths don't use them.
   const q = s => `"${String(s).replace(/"/g, '')}"`
 
   const lines = [
     '@echo off',
     'setlocal enableextensions',
-    `set "FREEIDE_HOME=${String(freeideHome).replace(/"/g, '')}"`,
+    `set "JETTSTUI_HOME=${String(jettstuiHome).replace(/"/g, '')}"`,
     `set "PID=${pid}"`
   ]
 

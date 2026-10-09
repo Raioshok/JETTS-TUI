@@ -106,8 +106,8 @@ export interface PetGenProvider {
   default: boolean
 }
 
-const PROVIDER_KEY = 'freeide.desktop.petgen.provider'
-const REMIX_CONFIRMED_KEY = 'freeide.desktop.petgen.remixConfirmed'
+const PROVIDER_KEY = 'jettstui.desktop.petgen.provider'
+const REMIX_CONFIRMED_KEY = 'jettstui.desktop.petgen.remixConfirmed'
 
 /** Reference-capable providers available to pick (from `pet.generate.status`). */
 export const $petGenProviders = atom<PetGenProvider[]>([])

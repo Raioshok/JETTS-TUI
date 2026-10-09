@@ -17,7 +17,7 @@ export interface RunExternalSetupOptions {
 export async function runExternalSetup({ args, ctx, done, launcher, suspend }: RunExternalSetupOptions) {
   const { gateway, session, transcript } = ctx
 
-  transcript.sys(`launching \`jetts-tui ${args.join(' ')}\`…`)
+  transcript.sys(`launching \`jettstui ${args.join(' ')}\`…`)
   patchUiState({ status: 'setup running…' })
 
   let result: LaunchResult = { code: null }
@@ -34,7 +34,7 @@ export async function runExternalSetup({ args, ctx, done, launcher, suspend }: R
   }
 
   if (result.code !== 0) {
-    transcript.sys(`jetts-tui ${args[0]} exited with code ${result.code}`)
+    transcript.sys(`jettstui ${args[0]} exited with code ${result.code}`)
     patchUiState({ status: 'setup required' })
 
     return

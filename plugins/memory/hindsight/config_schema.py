@@ -18,7 +18,7 @@ CONFIG_SCHEMA = ProviderConfigSchema(
             label="Mode",
             kind=KIND_SELECT,
             default="cloud",
-            description="How FreeIDE connects to Hindsight.",
+            description="How JettsTUI connects to Hindsight.",
             options=(
                 ProviderFieldOption(
                     "cloud",
@@ -55,7 +55,7 @@ CONFIG_SCHEMA = ProviderConfigSchema(
             key="bank_id",
             label="Bank ID",
             kind=KIND_TEXT,
-            default="freeide",
+            default="jettstui",
             aliases=("bankId",),
             inline=True,
         ),

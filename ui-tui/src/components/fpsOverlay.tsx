@@ -1,4 +1,4 @@
-// FPS counter overlay (FREEIDE_TUI_FPS=1). Zero-cost when disabled.
+// FPS counter overlay (JETTSTUI_TUI_FPS=1). Zero-cost when disabled.
 
 import { Text } from '@jetts-tui/ink'
 import { useStore } from '@nanostores/react'

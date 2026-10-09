@@ -5,9 +5,9 @@ import {
   NO_PROJECT_ID,
   type SidebarProjectTree
 } from '@/app/chat/sidebar/projects/workspace-groups'
-import { type FreeIDEGateway, getFreeIDEConfig } from '@/freeide'
-import type { FreeIDEGitBaseBranch, FreeIDEGitBranch } from '@/global'
+import type { JettsTUIGitBaseBranch, JettsTUIGitBranch } from '@/global'
 import { translateNow } from '@/i18n'
+import { getJettsTUIConfig, type JettsTUIGateway } from '@/jettstui'
 import { desktopDefaultCwd, isDesktopFsRemoteMode, selectDesktopPaths, writeDesktopFileText } from '@/lib/desktop-fs'
 import { desktopGit } from '@/lib/desktop-git'
 import { isMissingRpcMethod } from '@/lib/gateway-rpc'
@@ -17,7 +17,7 @@ import { setSidebarAgentsGrouped } from '@/store/layout'
 import { notify } from '@/store/notifications'
 import { $activeGatewayProfile, requestFreshSession } from '@/store/profile'
 import { $selectedStoredSessionId, $sessions, sessionMatchesStoredId, workspaceCwdForNewSession } from '@/store/session'
-import type { ProjectInfo, ProjectsPayload } from '@/types/freeide'
+import type { ProjectInfo, ProjectsPayload } from '@/types/jettstui'
 
 // First-class, per-profile Projects (named, multi-folder workspaces). State is
 // served by the live gateway's `projects.*` JSON-RPC methods, which wrap the
@@ -136,7 +136,7 @@ export const $reposScanning = atom(false)
 // chats land there, exactly as selecting a profile does.
 export const ALL_PROJECTS = '__all_projects__'
 
-const PROJECT_SCOPE_KEY = 'freeide.desktop.projectScope'
+const PROJECT_SCOPE_KEY = 'jettstui.desktop.projectScope'
 
 export const $projectScope = persistentAtom<string>(PROJECT_SCOPE_KEY, ALL_PROJECTS, {
   decode: raw => raw || ALL_PROJECTS,
@@ -296,14 +296,14 @@ async function gatewayRequest<T>(method: string, params: Record<string, unknown>
   }
 
   if (!gateway) {
-    throw new Error('FreeIDE gateway is not connected')
+    throw new Error('JettsTUI gateway is not connected')
   }
 
   return gateway.request<T>(method, params)
 }
 
 async function gatewayRequestOn<T>(
-  gateway: FreeIDEGateway,
+  gateway: JettsTUIGateway,
   method: string,
   params: Record<string, unknown> = {}
 ): Promise<T> {
@@ -311,7 +311,7 @@ async function gatewayRequestOn<T>(
 }
 
 interface ActiveProjectsContext {
-  gateway: FreeIDEGateway
+  gateway: JettsTUIGateway
   profile: string
 }
 
@@ -324,7 +324,7 @@ async function activeProjectsContext(): Promise<ActiveProjectsContext> {
   }
 
   if (!gateway || gateway !== activeGateway() || profile !== ($activeGatewayProfile.get() || 'default')) {
-    throw new Error('Active FreeIDE profile changed while connecting')
+    throw new Error('Active JettsTUI profile changed while connecting')
   }
 
   return { gateway, profile }
@@ -355,7 +355,7 @@ interface ProjectTreePayload {
 
 let projectTreeRefreshGeneration = 0
 
-async function refreshProjectTreeOn(gateway: FreeIDEGateway): Promise<void> {
+async function refreshProjectTreeOn(gateway: JettsTUIGateway): Promise<void> {
   const generation = ++projectTreeRefreshGeneration
 
   if (activeGateway() === gateway) {
@@ -466,8 +466,8 @@ interface RepoScanState {
   runningSignature?: string
 }
 
-const repoScanStates = new WeakMap<FreeIDEGateway, RepoScanState>()
-const scanningGatewayGenerations = new WeakMap<FreeIDEGateway, number>()
+const repoScanStates = new WeakMap<JettsTUIGateway, RepoScanState>()
+const scanningGatewayGenerations = new WeakMap<JettsTUIGateway, number>()
 
 function syncReposScanning(): void {
   const gateway = activeGateway()
@@ -500,7 +500,7 @@ export async function scanAndRecordRepos(force = false): Promise<void> {
   let generation: number | undefined
 
   try {
-    const policy = repoDiscoveryPolicyFromConfig(await getFreeIDEConfig(context.profile))
+    const policy = repoDiscoveryPolicyFromConfig(await getJettsTUIConfig(context.profile))
     const signature = repoDiscoveryPolicySignature(policy)
 
     if (!force && (state.completedSignature === signature || state.runningSignature === signature)) {
@@ -935,7 +935,7 @@ export function refreshWorktrees(): void {
 }
 
 // Spin up a fresh worktree the lightest way (`git worktree add -b`) under the
-// repo, returning where FreeIDE should start working. Git is the source of
+// repo, returning where JettsTUI should start working. Git is the source of
 // truth; the caller starts a session in the returned path.
 export async function startWorkInRepo(
   repoPath: string,
@@ -955,7 +955,7 @@ export async function startWorkInRepo(
 
 // Local branches for the composer's "convert a branch into a worktree" picker.
 // Empty on a remote backend / non-repo (the Electron probe can't run).
-export async function listRepoBranches(repoPath: string): Promise<FreeIDEGitBranch[]> {
+export async function listRepoBranches(repoPath: string): Promise<JettsTUIGitBranch[]> {
   const git = desktopGit()
 
   if (!git?.branchList || !repoPath) {
@@ -968,7 +968,7 @@ export async function listRepoBranches(repoPath: string): Promise<FreeIDEGitBran
 // Local + remote-tracking branches for the base-branch picker in the
 // new-worktree dialog. The remote default (origin/HEAD) is flagged so the
 // UI can preselect it. Empty on a remote backend / non-repo.
-export async function listBaseBranches(repoPath: string): Promise<FreeIDEGitBaseBranch[]> {
+export async function listBaseBranches(repoPath: string): Promise<JettsTUIGitBaseBranch[]> {
   const git = desktopGit()
 
   if (!git?.baseBranchList || !repoPath) {
@@ -1045,14 +1045,14 @@ export async function removeWorktreePath(
 // Reveal a project/worktree path in the OS file manager (git-GUI standard).
 export async function revealPath(path: null | string): Promise<void> {
   if (path) {
-    await window.freeideDesktop?.revealPath?.(path)
+    await window.jettstuiDesktop?.revealPath?.(path)
   }
 }
 
 // Copy a path to the clipboard (git-GUI standard).
 export async function copyPath(path: null | string): Promise<void> {
   if (path) {
-    await window.freeideDesktop?.writeClipboard?.(path)
+    await window.jettstuiDesktop?.writeClipboard?.(path)
   }
 }
 

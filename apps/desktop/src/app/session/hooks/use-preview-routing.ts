@@ -12,7 +12,7 @@ import {
 } from '@/store/preview'
 import { $currentCwd } from '@/store/session'
 import { $focusedRuntimeId } from '@/store/session-states'
-import type { RpcEvent } from '@/types/freeide'
+import type { RpcEvent } from '@/types/jettstui'
 
 type EventHandler = (event: RpcEvent) => void
 

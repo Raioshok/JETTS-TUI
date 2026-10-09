@@ -9,21 +9,21 @@ None — uses SQLite (always available). NumPy optional for HRR algebra.
 ## Setup
 
 ```bash
-freeide memory setup    # select "holographic"
+jettstui memory setup    # select "holographic"
 ```
 
 Or manually:
 ```bash
-freeide config set memory.provider holographic
+jettstui config set memory.provider holographic
 ```
 
 ## Config
 
-Config in `config.yaml` under `plugins.freeide-memory-store`:
+Config in `config.yaml` under `plugins.jettstui-memory-store`:
 
 | Key | Default | Description |
 |-----|---------|-------------|
-| `db_path` | `$FREEIDE_HOME/memory_store.db` | SQLite database path |
+| `db_path` | `$JETTSTUI_HOME/memory_store.db` | SQLite database path |
 | `auto_extract` | `false` | Auto-extract facts at session end |
 | `default_trust` | `0.5` | Default trust score for new facts |
 | `hrr_dim` | `1024` | HRR vector dimensions |

@@ -1,5 +1,5 @@
 name: "🔧 Setup / Installation Help"
-description: Having trouble installing or configuring FreeIDE? Ask here.
+description: Having trouble installing or configuring JettsTUI? Ask here.
 title: "[Setup]: "
 labels: ["setup"]
 body:
@@ -9,11 +9,10 @@ body:
         Sorry you're having trouble! Please fill out the details below so we can help.
 
         **Quick checks first:**
-        - Run `freeide debug share` and paste the links in the Debug Report section below
+        - Run `jettstui doctor` and paste the relevant output below (remove secrets first)
         - If you're in a chat session, you can use `/debug` instead — it does the same thing
-        - Try `freeide update` to get the latest version
-        - Check the [README troubleshooting section](https://github.com/freeide/freeide#troubleshooting)
-        - For general questions, consider the [FreeIDE Discord](https://discord.gg/freeide) for faster help
+        - Try `jettstui update` to get the latest version
+        - Check the [README troubleshooting section](https://github.com/Raioshok/JETTS-TUI#troubleshooting)
 
   - type: textarea
     id: description
@@ -21,8 +20,8 @@ body:
       label: What's Going Wrong?
       description: Describe what you're trying to do and where it fails.
       placeholder: |
-        I ran `freeide setup` and selected FreeIDE Portal, but when I try to
-        start the gateway I get...
+        I ran `jettstui setup` and selected OpenRouter, but when I try to
+        start the TUI I get...
     validations:
       required: true
 
@@ -33,9 +32,9 @@ body:
       description: What did you do? Include the exact commands you ran.
       placeholder: |
         1. Ran the install script: `curl -fsSL ... | bash`
-        2. Ran `freeide setup` and chose "Quick setup"
+        2. Ran `jettstui setup` and chose "Quick setup"
         3. Selected OpenRouter, entered API key
-        4. Ran `freeide chat` and got error...
+        4. Ran `jettstui` and got error...
     validations:
       required: true
 
@@ -68,10 +67,10 @@ body:
       placeholder: "3.11.9"
 
   - type: input
-    id: freeide-version
+    id: jetts-version
     attributes:
-      label: FreeIDE Version
-      description: Output of `freeide version` (if install got that far)
+      label: JettsTUI Version
+      description: Output of `jettstui version` (if install got that far)
       placeholder: "2.1.0"
 
   - type: textarea
@@ -79,13 +78,13 @@ body:
     attributes:
       label: Debug Report
       description: |
-        Run `freeide debug share` from your terminal and paste the links it prints here.
+        Run `jettstui debug share` from your terminal and paste the links it prints here.
         This uploads your system info, config, and recent logs to a paste service automatically.
 
         If you're in an interactive chat session, you can also use the `/debug` slash command — it does the same thing.
 
-        If the upload fails or install didn't get that far, run `freeide debug share --local` and paste the output directly.
-        If even that doesn't work, run `freeide doctor` and paste that output instead.
+        If the upload fails or install didn't get that far, run `jettstui debug share --local` and paste the output directly.
+        If even that doesn't work, run `jettstui doctor` and paste that output instead.
       placeholder: |
         Report   https://paste.rs/abc123
         agent.log   https://paste.rs/def456
@@ -107,6 +106,6 @@ body:
       label: What I've Already Tried
       description: List any fixes or workarounds you've already attempted.
       placeholder: |
-        - Ran `freeide update`
+        - Ran `jettstui update`
         - Tried reinstalling with `pip install -e ".[all]"`
-        - Checked that OPENROUTER_API_KEY is set in ~/.freeide/.env
+        - Checked that OPENROUTER_API_KEY is set in the JettsTUI home `.env`

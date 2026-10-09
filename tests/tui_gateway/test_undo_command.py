@@ -20,25 +20,25 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
-from freeide_state import SessionDB
+from jettstui_state import SessionDB
 
 
 @pytest.fixture()
-def freeide_home(tmp_path, monkeypatch):
-    home = tmp_path / ".freeide"
+def jettstui_home(tmp_path, monkeypatch):
+    home = tmp_path / ".jettstui"
     home.mkdir()
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
-    monkeypatch.setenv("FREEIDE_HOME", str(home))
+    monkeypatch.setenv("JETTSTUI_HOME", str(home))
     yield home
 
 
 @pytest.fixture()
-def server(freeide_home):
+def server(jettstui_home):
     with patch.dict(
         "sys.modules",
         {
-            "freeide_cli.env_loader": MagicMock(),
-            "freeide_cli.banner": MagicMock(),
+            "jettstui.env_loader": MagicMock(),
+            "jettstui.banner": MagicMock(),
         },
     ):
         mod = importlib.import_module("tui_gateway.server")
@@ -56,8 +56,8 @@ def server(freeide_home):
 
 
 @pytest.fixture()
-def db(freeide_home):
-    return SessionDB(db_path=freeide_home / "state.db")
+def db(jettstui_home):
+    return SessionDB(db_path=jettstui_home / "state.db")
 
 
 @pytest.fixture()

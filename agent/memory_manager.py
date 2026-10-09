@@ -434,9 +434,9 @@ class MemoryManager:
         # (#40466). Reject it here, at the door, so it never enters the routing
         # table at all — matching the built-ins-always-win invariant used by
         # the TTS/browser/search provider registries.
-        from toolsets import _FREEIDE_CORE_TOOLS
+        from toolsets import _JETTSTUI_CORE_TOOLS
 
-        _core_tool_names = set(_FREEIDE_CORE_TOOLS)
+        _core_tool_names = set(_JETTSTUI_CORE_TOOLS)
 
         # Index tool names → provider for routing
         for raw_schema in provider.get_tool_schemas():
@@ -508,7 +508,7 @@ class MemoryManager:
     def _strip_skill_scaffolding(text: str) -> Optional[str]:
         """Return memory-worthy user text, or None to skip the turn.
 
-        When a user invokes a /skill or /bundle, FreeIDE expands the turn into
+        When a user invokes a /skill or /bundle, JettsTUI expands the turn into
         a model-facing message that embeds the entire skill body. Feeding that
         verbatim to memory providers pollutes their stores/embeddings with
         prompt scaffolding instead of what the user actually asked. We recover
@@ -789,9 +789,9 @@ class MemoryManager:
         :meth:`add_provider`, so the manager must not advertise a schema it
         will never route. Built-ins always win (#40466).
         """
-        from toolsets import _FREEIDE_CORE_TOOLS
+        from toolsets import _JETTSTUI_CORE_TOOLS
 
-        _core_tool_names = set(_FREEIDE_CORE_TOOLS)
+        _core_tool_names = set(_JETTSTUI_CORE_TOOLS)
         schemas = []
         seen = set()
         for provider in self._providers:
@@ -1224,13 +1224,13 @@ class MemoryManager:
     def initialize_all(self, session_id: str, **kwargs) -> None:
         """Initialize all providers.
 
-        Automatically injects ``freeide_home`` into *kwargs* so that every
+        Automatically injects ``jettstui_home`` into *kwargs* so that every
         provider can resolve profile-scoped storage paths without importing
-        ``get_freeide_home()`` themselves.
+        ``get_jettstui_home()`` themselves.
         """
-        if "freeide_home" not in kwargs:
-            from freeide_constants import get_freeide_home
-            kwargs["freeide_home"] = str(get_freeide_home())
+        if "jettstui_home" not in kwargs:
+            from jettstui_constants import get_jettstui_home
+            kwargs["jettstui_home"] = str(get_jettstui_home())
         for provider in self._providers:
             try:
                 provider.initialize(session_id=session_id, **kwargs)

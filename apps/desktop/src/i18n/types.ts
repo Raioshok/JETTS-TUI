@@ -115,7 +115,7 @@ export interface Translations {
       loadingSettings: string
       loadingSessions: string
       startingDesktopConnection: string
-      startingFreeIDEDesktop: string
+      startingJettsTUIDesktop: string
     }
     errors: {
       backgroundExited: string
@@ -167,7 +167,7 @@ export interface Translations {
     backendOutOfDateTitle: string
     backendOutOfDateMessage: string
     installMethodUnsupportedTitle: string
-    updateFreeIDE: string
+    updateJettsTUI: string
     updateReadyTitle: string
     updateReadyMessage: (count: number) => string
     seeWhatsNew: string
@@ -222,7 +222,6 @@ export interface Translations {
   }
 
   billingBlock: {
-    titleNous: string
     titleProvider: (provider: string) => string
     fallbackMessage: string
     openBilling: string
@@ -505,33 +504,6 @@ export interface Translations {
       remoteTitle: string
       remoteDesc: string
       remoteAuthHint: string
-      cloudTitle: string
-      cloudDesc: string
-      cloudSignInTitle: string
-      cloudSignIn: string
-      cloudSignedIn: string
-      cloudNeedsSignIn: string
-      cloudSignedInDesc: string
-      cloudAgentsTitle: string
-      cloudOrgPickerTitle: string
-      cloudOrgSelect: string
-      cloudOrgChange: string
-      cloudOrgRole: (role: string) => string
-      cloudLoadingAgents: string
-      cloudNoAgents: { before: string; linkText: string; after: string }
-      cloudRefresh: string
-      cloudConnect: string
-      cloudConnecting: string
-      cloudDiscoverFailed: string
-      cloudConnectFailed: string
-      cloudSignInFailed: string
-      cloudSignedOutTitle: string
-      cloudSignedOutMessage: string
-      cloudConnectedTitle: string
-      cloudConnectedPill: string
-      cloudConnectedTo: (name: string) => string
-      cloudAgentProvisioning: string
-      cloudStatusLabel: (status: string) => string
       remoteUrlTitle: string
       remoteUrlDesc: string
       probing: string
@@ -592,9 +564,9 @@ export interface Translations {
       sshPortDesc: string
       sshKeyTitle: string
       sshKeyDesc: string
-      sshFreeIDEPathTitle: string
-      sshFreeIDEPathDesc: string
-      sshFreeIDEPathPlaceholder: string
+      sshJettsTUIPathTitle: string
+      sshJettsTUIPathDesc: string
+      sshJettsTUIPathPlaceholder: string
       sshTestConnection: string
       sshConnect: string
       sshButtonsHint: string
@@ -779,13 +751,6 @@ export interface Translations {
       ready: string
       needsSignIn: string
       needsSetup: string
-      nousIncluded: string
-      nousAuthNeededTitle: string
-      nousAuthNeededMessage: (provider: string) => string
-      nousAuthSignIn: string
-      nousAuthDoneTitle: string
-      nousAuthDoneMessage: string
-      nousAuthFailed: string
       noApiKeyRequired: string
       postSetupHint: (step: string) => string
       postSetupInstalledHint: string
@@ -1077,10 +1042,10 @@ export interface Translations {
     noSessions: string
     gatewayRunning: string
     gatewayStopped: string
-    freeideActiveSessions: (version: string, count: number) => string
+    jettstuiActiveSessions: (version: string, count: number) => string
     restartGateway: string
     gatewayRestartFailed: string
-    updateFreeIDE: string
+    updateJettsTUI: string
     actionRunning: string
     actionDone: string
     actionFailed: string
@@ -1876,7 +1841,6 @@ export interface Translations {
     chooseLater: string
     recommended: string
     connected: string
-    featuredPitch: string
     fireworksPitch: string
     openRouterPitch: string
     apiKeyOptions: Record<string, { short: string; description: string }>
@@ -2006,8 +1970,6 @@ export interface Translations {
       clientLabel: (version: string) => string
       connectionSsh: (host: string) => string
       connectionRemote: (host: string) => string
-      connectionCloud: (host: string) => string
-      connectionCloudTooltip: (host: string) => string
       connectionSshTooltip: (host: string) => string
       connectionRemoteTooltip: (host: string) => string
       backendLabel: (version: string) => string

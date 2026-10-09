@@ -54,11 +54,11 @@ def seed_tasks(conn, kb, n, assignee="bench-worker", with_parents=False):
 
 
 def main():
-    home = tempfile.mkdtemp(prefix="freeide_bench_")
-    os.environ["FREEIDE_HOME"] = home
+    home = tempfile.mkdtemp(prefix="jettstui_bench_")
+    os.environ["JETTSTUI_HOME"] = home
     os.environ["HOME"] = home
     sys.path.insert(0, WT)
-    from freeide_cli import kanban_db as kb
+    from jettstui import kanban_db as kb
 
     kb.init_db()
 

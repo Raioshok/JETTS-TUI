@@ -11,7 +11,6 @@ Lanes:
 * ``python``      — pytest / ruff / ty / footguns.
 * ``docker_meta`` — Dockerfiles etc.
 * ``frontend``    — TS typecheck matrix + desktop build.
-* ``site``        — Docusaurus + generated skill docs.
 * ``scan``        — supply-chain scan (Python files, .pth, setup hooks).
 * ``deps``        — pyproject.toml dependency bounds check.
 * ``npm_lock``    — semantic package-lock.json diff PR comment.
@@ -39,9 +38,8 @@ import sys
 _FRONTEND = ("ui-tui/", "web/", "apps/")  # TS typecheck-matrix packages
 _ROOT_NPM = {"package.json", "package-lock.json"}  # shifts every package's tree
 _DOCKER_META = ("docker/", ".hadolint.yml", "Dockerfile") # docker setup
-_SITE = ("website/", "skills/", "optional-skills/")  # docs site + skill pages
 # Prose/frontend trees that can't touch Python. skills/ is excluded on purpose.
-_PY_SKIP = ("docs/", "website/") + _FRONTEND
+_PY_SKIP = ("docs/",) + _FRONTEND
 
 # CI-sensitive files: eslint config, workflow files, composite actions.
 # Changes here can influence what code the autofix job executes and pushes to
@@ -62,7 +60,7 @@ _SCAN_FILES = {"setup.cfg", "pyproject.toml"}
 
 # MCP catalog files that require explicit security review.
 _MCP_CATALOG_PATHS = ("optional-mcps/",)
-_MCP_CATALOG_FILES = {"freeide_cli/mcp_catalog.py"}
+_MCP_CATALOG_FILES = {"jettstui/mcp_catalog.py", "jettstui/mcp_catalog.py"}
 
 def _is_docs(p: str) -> bool:
     if p.startswith(("skills/", "optional-skills/")):
@@ -102,7 +100,6 @@ def classify(files: list[str]) -> dict[str, bool]:
         "python": any(not _py_irrelevant(f) for f in files),
         "docker_meta":  any(f.startswith(_DOCKER_META) for f in files),
         "frontend": any(f.startswith(_FRONTEND) or f in _ROOT_NPM for f in files),
-        "site": any(f.startswith(_SITE) for f in files),
         "scan": any(_is_scan(f) for f in files),
         "deps": any(f == "pyproject.toml" for f in files),
         "npm_lock": any(f.split("/")[-1] == "package-lock.json" for f in files),
@@ -113,7 +110,6 @@ def classify(files: list[str]) -> dict[str, bool]:
         ret["python"] = True
         ret["docker_meta"] = True
         ret["frontend"] = True
-        ret["site"] = True
         ret["scan"] = True
         ret["deps"] = True
         ret["npm_lock"] = True

@@ -13,8 +13,8 @@ from rich.console import Console
 from rich.terminal_theme import TerminalTheme
 from rich.text import Text
 
-from freeide_cli.skin_engine import load_skin
-from freeide_cli.studio import activity_line, composer_hint, welcome_panel
+from jettstui.skin_engine import load_skin
+from jettstui.studio import activity_line, composer_hint, welcome_panel
 
 
 def main():
@@ -46,7 +46,7 @@ def main():
     rgb = lambda value: tuple(int(value[i:i+2], 16) for i in (1, 3, 5))
     theme = TerminalTheme(rgb(skin.colors["background"]), rgb(skin.colors["banner_text"]),
                           [(0, 0, 0)] * 8)
-    console.save_svg(str(args.output), title="FreeIDE / Studio", theme=theme)
+    console.save_svg(str(args.output), title="JettsTUI / Studio", theme=theme)
 
 
 if __name__ == "__main__":

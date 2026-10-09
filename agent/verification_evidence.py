@@ -19,7 +19,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Iterator, Optional
 
-from freeide_constants import get_freeide_home
+from jettstui_constants import get_jettstui_home
 
 
 _DB_LOCK = threading.Lock()
@@ -27,7 +27,7 @@ _MAX_OUTPUT_SUMMARY_CHARS = 2000
 _MAX_EVIDENCE_AGE_DAYS = 30
 _MAX_EVENTS_PER_SESSION_ROOT = 100
 _MAX_TOTAL_UNREFERENCED_EVENTS = 10_000
-_AD_HOC_SCRIPT_NAME_PREFIXES = ("freeide-verify-", "freeide-ad-hoc-")
+_AD_HOC_SCRIPT_NAME_PREFIXES = ("jettstui-verify-", "jettstui-ad-hoc-")
 _VERIFY_SCHEMA_VERSION = 1
 _SHELL_SPLIT_RE = re.compile(r"\s*(?:&&|\|\||;)\s*")
 
@@ -57,11 +57,11 @@ def _retention_cutoff() -> str:
 
 
 def _db_path() -> Path:
-    return get_freeide_home() / "verification_evidence.db"
+    return get_jettstui_home() / "verification_evidence.db"
 
 
 def _connect() -> sqlite3.Connection:
-    from freeide_state import apply_wal_with_fallback
+    from jettstui_state import apply_wal_with_fallback
 
     path = _db_path()
     path.parent.mkdir(parents=True, exist_ok=True)

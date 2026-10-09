@@ -11,7 +11,7 @@
  * stays the source of truth there.
  */
 
-import { setSessionPinnedRemote } from '@/freeide'
+import { setSessionPinnedRemote } from '@/jettstui'
 import { $pinnedSessionIds } from '@/store/layout'
 import { $sessions, sessionMatchesStoredId } from '@/store/session'
 
@@ -26,7 +26,7 @@ function profileFor(pinId: string): null | string | undefined {
 
 function reconcile(): void {
   // Config/session REST is only reachable through the Electron bridge.
-  if (!window.freeideDesktop) {
+  if (!window.jettstuiDesktop) {
     return
   }
 

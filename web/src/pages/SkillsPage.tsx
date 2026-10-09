@@ -42,23 +42,23 @@ import type {
 import { useProfileScope } from "@/contexts/useProfileScope";
 import { ToolsetConfigDrawer } from "@/components/ToolsetConfigDrawer";
 import { SkillEditorDialog } from "@/components/SkillEditorDialog";
-import { useToast } from "@nous-research/ui/hooks/use-toast";
-import { Toast } from "@nous-research/ui/ui/components/toast";
-import { Card, CardContent, CardHeader, CardTitle } from "@nous-research/ui/ui/components/card";
-import { Badge } from "@nous-research/ui/ui/components/badge";
-import { Button } from "@nous-research/ui/ui/components/button";
-import { ListItem } from "@nous-research/ui/ui/components/list-item";
-import { Spinner } from "@nous-research/ui/ui/components/spinner";
-import { Switch } from "@nous-research/ui/ui/components/switch";
+import { useToast } from "@jettstui/ui/hooks/use-toast";
+import { Toast } from "@jettstui/ui/ui/components/toast";
+import { Card, CardContent, CardHeader, CardTitle } from "@jettstui/ui/ui/components/card";
+import { Badge } from "@jettstui/ui/ui/components/badge";
+import { Button } from "@jettstui/ui/ui/components/button";
+import { ListItem } from "@jettstui/ui/ui/components/list-item";
+import { Spinner } from "@jettstui/ui/ui/components/spinner";
+import { Switch } from "@jettstui/ui/ui/components/switch";
 import {
   Dialog,
   DialogContent,
   DialogDescription,
   DialogHeader,
   DialogTitle,
-} from "@nous-research/ui/ui/components/dialog";
+} from "@jettstui/ui/ui/components/dialog";
 import { cn } from "@/lib/utils";
-import { Input } from "@nous-research/ui/ui/components/input";
+import { Input } from "@jettstui/ui/ui/components/input";
 import { useI18n } from "@/i18n";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { PluginSlot } from "@/plugins";
@@ -326,7 +326,7 @@ export default function SkillsPage() {
       <div className="relative w-full min-w-0 sm:max-w-xs">
         <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground" />
         <Input
-          className="h-8 rounded-none pl-8 pr-7 text-xs"
+          className="h-8 rounded-md pl-8 pr-7 text-xs"
           placeholder={t.common.search}
           value={search}
           onChange={(e) => setSearch(e.target.value)}
@@ -385,7 +385,7 @@ export default function SkillsPage() {
       <div className="flex flex-col sm:flex-row sm:items-start gap-4">
         <aside aria-label={t.skills.title} className="sm:w-56 sm:shrink-0">
           <div className="sm:sticky sm:top-0">
-            <div className="flex flex-col rounded-none border border-border bg-muted/20">
+            <div className="flex flex-col rounded-xl border border-border bg-muted/20">
               <div className="hidden sm:flex items-center gap-2 px-3 py-2 border-b border-border">
                 <Filter className="h-3 w-3 text-text-tertiary" />
                 <span className="font-mondwest text-display text-xs tracking-[0.12em] text-text-secondary">
@@ -442,7 +442,7 @@ export default function SkillsPage() {
                             onClick={() =>
                               setActiveCategory(isActive ? null : key)
                             }
-                            className="rounded-none px-2 py-1 text-xs"
+                            className="rounded-md px-2 py-1 text-xs"
                           >
                             <span className="flex-1 truncate">{name}</span>
                             <span
@@ -466,7 +466,7 @@ export default function SkillsPage() {
 
         <div className="flex-1 min-w-0">
           {isSearching ? (
-            <Card className="rounded-none">
+            <Card className="rounded-md">
               <CardHeader className="py-3 px-4">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm flex items-center gap-2">
@@ -506,7 +506,7 @@ export default function SkillsPage() {
             </Card>
           ) : view === "skills" ? (
             /* Skills list */
-            <Card className="rounded-none">
+            <Card className="rounded-md">
               <CardHeader className="py-3 px-4">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-sm flex items-center gap-2">
@@ -570,7 +570,7 @@ export default function SkillsPage() {
             /* Toolsets grid */
             <>
               {filteredToolsets.length === 0 ? (
-                <Card className="rounded-none">
+                <Card className="rounded-md">
                   <CardContent className="py-8 text-center text-sm text-muted-foreground">
                     {t.skills.noToolsetsMatch}
                   </CardContent>
@@ -582,7 +582,7 @@ export default function SkillsPage() {
                     const labelText = ts.label.trim() || ts.name;
 
                     return (
-                      <Card key={ts.name} className="relative rounded-none">
+                      <Card key={ts.name} className="relative rounded-md">
                         <CardContent className="py-4">
                           <div className="flex items-start gap-3">
                             <TsIcon className="h-5 w-5 text-muted-foreground shrink-0 mt-0.5" />
@@ -675,7 +675,7 @@ export default function SkillsPage() {
           <DialogHeader>
             <DialogTitle>Learn a skill</DialogTitle>
             <DialogDescription>
-              Point FreeIDE at anything and it will distill a reusable skill —
+              Point JettsTUI at anything and it will distill a reusable skill —
               following the house authoring standards. Fill in any combination
               below; the agent gathers the sources and writes the skill in chat.
             </DialogDescription>
@@ -783,7 +783,7 @@ function PanelItem({ active, icon: Icon, label, onClick }: PanelItemProps) {
       active={active}
       onClick={onClick}
       className={cn(
-        "rounded-none whitespace-nowrap px-2.5 py-1.5",
+        "rounded-md whitespace-nowrap px-2.5 py-1.5",
         "font-mondwest text-[0.7rem] tracking-[0.08em] uppercase",
         active && "bg-foreground/90 text-background hover:text-background",
       )}
@@ -1002,7 +1002,7 @@ function HubBrowser({
   return (
     <div className="flex flex-col gap-3">
       {/* ── Search bar ── */}
-      <Card className="rounded-none">
+      <Card className="rounded-md">
         <CardContent className="py-4 flex flex-col gap-3">
           <div className="flex items-center gap-2">
             <div className="relative flex-1">
@@ -1042,7 +1042,7 @@ function HubBrowser({
 
       {/* ── Install/update action log ── */}
       {action && (
-        <Card className="rounded-none">
+        <Card className="rounded-md">
           <CardContent className="py-3">
             <div className="flex items-center gap-2 mb-2">
               <Download className="h-3.5 w-3.5 text-muted-foreground" />
@@ -1086,7 +1086,7 @@ function HubBrowser({
                   Featured skills
                 </span>
                 <span className="text-xs text-text-tertiary">
-                  from the FreeIDE index — search above for thousands more
+                  from the JettsTUI index — search above for thousands more
                 </span>
               </div>
               {featured.map((r) => (
@@ -1100,7 +1100,7 @@ function HubBrowser({
               ))}
             </div>
           ) : (
-            <Card className="rounded-none">
+            <Card className="rounded-md">
               <CardContent className="py-10 text-center text-sm text-muted-foreground">
                 Search the hub above to browse installable skills from the
                 connected sources.
@@ -1127,7 +1127,7 @@ function HubBrowser({
             ms={searchMs}
           />
           {results.length === 0 ? (
-            <Card className="rounded-none">
+            <Card className="rounded-md">
               <CardContent className="py-8 text-center text-sm text-muted-foreground">
                 No matching skills found in the hub.
               </CardContent>
@@ -1177,7 +1177,7 @@ function ConnectedHubs({
     return (
       <p className="text-xs text-muted-foreground">
         Results come from the same sources as{" "}
-        <span className="font-mono">freeide skills search</span>.
+        <span className="font-mono">jettstui skills search</span>.
       </p>
     );
   }
@@ -1189,7 +1189,7 @@ function ConnectedHubs({
       </span>
       {sources.map((s) => {
         const down =
-          (s.id === "freeide-index" && s.available === false) ||
+          (s.id === "jettstui-index" && s.available === false) ||
           (s.id === "github" && s.rate_limited === true);
         return (
           <Badge
@@ -1199,7 +1199,7 @@ function ConnectedHubs({
             title={
               s.id === "github" && s.rate_limited
                 ? "GitHub API rate-limited — set GITHUB_TOKEN to raise the limit"
-                : s.id === "freeide-index" && s.available === false
+                : s.id === "jettstui-index" && s.available === false
                   ? "Centralized index unavailable — falling back to live sources"
                   : undefined
             }
@@ -1265,7 +1265,7 @@ function HubResultCard({
 }) {
   const trust = trustVisual(result.trust_level);
   return (
-    <Card className="rounded-none transition-colors hover:bg-muted/30">
+    <Card className="rounded-md transition-colors hover:bg-muted/30">
       <CardContent className="py-3 flex items-start gap-3">
         <button
           type="button"
@@ -1385,7 +1385,7 @@ function SkillDetailDialog({
 
   return (
     <Dialog open onOpenChange={(o: boolean) => !o && onClose()}>
-      <DialogContent className="max-w-3xl rounded-none">
+      <DialogContent className="max-w-3xl rounded-md">
         <DialogHeader>
           <DialogTitle className="flex flex-wrap items-center gap-2 text-sm">
             <Package className="h-4 w-4" />

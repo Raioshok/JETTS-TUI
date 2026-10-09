@@ -38,14 +38,14 @@ class TestCleanForDisplay:
 
     def test_media_tag_stripped(self):
         """Basic MEDIA:<path> tag is removed."""
-        text = "Here is the image\nMEDIA:/tmp/freeide/image.png"
+        text = "Here is the image\nMEDIA:/tmp/jettstui/image.png"
         result = GatewayStreamConsumer._clean_for_display(text)
         assert "MEDIA:" not in result
         assert "Here is the image" in result
 
     def test_media_tag_with_space(self):
         """MEDIA: tag with space after colon is removed."""
-        text = "Audio generated\nMEDIA: /home/user/.freeide/audio_cache/voice.mp3"
+        text = "Audio generated\nMEDIA: /home/user/.jettstui/audio_cache/voice.mp3"
         result = GatewayStreamConsumer._clean_for_display(text)
         assert "MEDIA:" not in result
         assert "Audio generated" in result
@@ -387,7 +387,7 @@ class TestStreamRunMediaStripping:
 
         # Feed deltas
         consumer.on_delta("Here is your generated image\n")
-        consumer.on_delta("MEDIA:/home/user/.freeide/cache/images/abc123.png")
+        consumer.on_delta("MEDIA:/home/user/.jettstui/cache/images/abc123.png")
         consumer.finish()
 
         await consumer.run()
@@ -2134,7 +2134,7 @@ class TestUtf16OverflowDetection:
 
         # The fix: stream consumer detects UTF-16 overflow using the adapter's
         # length function.  Without that, len() would return 2200 (under the
-        # limit) and FreeIDE would attempt a single over-limit Telegram send.
+        # limit) and JettsTUI would attempt a single over-limit Telegram send.
         sent_texts = [call.kwargs["content"] for call in adapter.send.call_args_list]
         assert len(sent_texts) == 2, (
             "UTF-16 overflow not detected — emoji text bypassed split path"

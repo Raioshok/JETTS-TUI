@@ -42,5 +42,7 @@ def test_non_anthropic_billing_guidance_unaffected():
         model="anthropic/claude-opus-4.7",
     )
     assert "claude.ai/settings/usage" not in msg
-    # Generic path still surfaces the OpenRouter credits link.
-    assert "openrouter.ai/settings/credits" in msg
+    # Generic path stays provider-neutral rather than assuming a billing URL.
+    assert "openrouter reported" in msg
+    assert "Add credits or update billing with that provider" in msg
+    assert "/model <model> --provider <provider>" in msg

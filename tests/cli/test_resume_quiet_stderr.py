@@ -1,7 +1,7 @@
 """Tests for /resume status lines going to stderr in quiet mode (#11793).
 
 The fix in cli._init_agent routes three messages to stderr when
-``tool_progress_mode == "off"`` (set by ``freeide chat --quiet``):
+``tool_progress_mode == "off"`` (set by ``jettstui chat --quiet``):
 
   * "Session not found: ..."
   * "↻ Resumed session ... (N user messages, M total messages)"
@@ -14,14 +14,14 @@ from datetime import datetime
 from unittest.mock import MagicMock, patch
 
 
-from cli import FreeIDECLI
+from cli import JettsTUICLI
 
 
 def _make_cli(quiet=False, session_id="20260524_111111_xyz", db=None):
-    """Build a minimal FreeIDECLI bound to only what _init_agent needs for
+    """Build a minimal JettsTUICLI bound to only what _init_agent needs for
     the resume code path: _resumed, _session_db, conversation_history,
     session_id, and tool_progress_mode."""
-    cli = FreeIDECLI.__new__(FreeIDECLI)
+    cli = JettsTUICLI.__new__(JettsTUICLI)
     cli.session_id = session_id
     cli._resumed = True
     cli.conversation_history = []
@@ -56,14 +56,15 @@ class TestResumeQuietStderr:
         assert "Session not found" not in captured.out
         # the resume status goes to stderr
         assert "Session not found" in captured.err
-        assert "freeide sessions list" in captured.err
+        assert "jettstui sessions list" in captured.err
 
     def test_session_not_found_goes_to_stdout_in_full_mode(self, capsys):
         db = MagicMock()
         db.get_session.return_value = None
         cli = _make_cli(quiet=False, db=db)
 
-        with patch("cli._prepare_deferred_agent_startup"):
+        with patch("cli._prepare_deferred_agent_startup"), \
+             patch("cli._cprint", side_effect=lambda text: print(text)):
             result = cli._init_agent()
 
         captured = capsys.readouterr()

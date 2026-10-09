@@ -4,8 +4,8 @@ import { useRef } from 'react'
 import { Codicon } from '@/components/ui/codicon'
 import { DisclosureCaret } from '@/components/ui/disclosure-caret'
 import { Tip } from '@/components/ui/tooltip'
-import type { SessionInfo } from '@/freeide'
 import { useI18n } from '@/i18n'
+import type { SessionInfo } from '@/jettstui'
 import { cn } from '@/lib/utils'
 
 import {

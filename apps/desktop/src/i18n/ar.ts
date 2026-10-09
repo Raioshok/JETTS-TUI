@@ -55,18 +55,18 @@ export const ar = defineLocale({
     pathCopied: 'تم نسخ المسار'
   },
   boot: {
-    ready: 'Jetts-TUI Desktop جاهز',
+    ready: 'JettsTUI Desktop جاهز',
     desktopBootFailedWithMessage: message => `فشل تشغيل سطح المكتب: ${message}`,
     steps: {
       connectingGateway: 'جار الاتصال ببوابة سطح المكتب',
-      loadingSettings: 'جار تحميل إعدادات Jetts-TUI',
+      loadingSettings: 'جار تحميل إعدادات JettsTUI',
       loadingSessions: 'جار تحميل الجلسات الأخيرة',
       startingDesktopConnection: 'جار بدء اتصال سطح المكتب',
-      startingFreeIDEDesktop: 'جار تشغيل Jetts-TUI Desktop...'
+      startingJettsTUIDesktop: 'جار تشغيل JettsTUI Desktop...'
     },
     errors: {
-      backgroundExited: 'خرجت عملية Jetts-TUI الخلفية.',
-      backgroundExitedDuringStartup: 'خرجت عملية Jetts-TUI الخلفية أثناء بدء التشغيل.',
+      backgroundExited: 'خرجت عملية JettsTUI الخلفية.',
+      backgroundExitedDuringStartup: 'خرجت عملية JettsTUI الخلفية أثناء بدء التشغيل.',
       backendStopped: 'توقف الخلفية',
       desktopBootFailed: 'فشل تشغيل سطح المكتب',
       gatewayConnectionLost: 'انقطع الاتصال بالبوابة',
@@ -74,7 +74,7 @@ export const ar = defineLocale({
       ipcBridgeUnavailable: 'جسر IPC لسطح المكتب غير متاح.'
     },
     failure: {
-      title: 'تعذر تشغيل Jetts-TUI',
+      title: 'تعذر تشغيل JettsTUI',
       description: 'لم تعمل البوابة الخلفية. جرب إحدى خطوات الاسترداد أدناه. لن يحذف ذلك محادثاتك أو إعداداتك.',
       remoteTitle: 'تسجيل الدخول للبوابة البعيدة مطلوب',
       remoteDescription: 'انتهت جلسة البوابة البعيدة. سجل الدخول مرة أخرى لإعادة الاتصال.',
@@ -109,15 +109,15 @@ export const ar = defineLocale({
     copyDetail: 'نسخ التفاصيل',
     copyDetailFailed: 'تعذر نسخ تفاصيل الإشعار',
     backendOutOfDateTitle: 'الخلفية قديمة',
-    backendOutOfDateMessage: 'خلفية Jetts-TUI أقدم من إصدار سطح المكتب الحالي وقد لا تعمل كما يجب. حدثهما ليتوافقا.',
-    updateFreeIDE: 'تحديث Jetts-TUI',
+    backendOutOfDateMessage: 'خلفية JettsTUI أقدم من إصدار سطح المكتب الحالي وقد لا تعمل كما يجب. حدثهما ليتوافقا.',
+    updateJettsTUI: 'تحديث JettsTUI',
     updateReadyTitle: 'التحديث جاهز',
     updateReadyMessage: count => `${count} تغيير جديد متاح.`,
     seeWhatsNew: 'عرض الجديد',
     errors: {
       elevenLabsNeedsKey: 'يتطلب ElevenLabs STT المفتاح ELEVENLABS_API_KEY.',
       elevenLabsRejectedKey: 'رفض ElevenLabs مفتاح API (401).',
-      methodNotAllowed: 'رفضت خلفية سطح المكتب هذا الطلب (405 Method Not Allowed). جرب إعادة تشغيل Jetts-TUI Desktop.',
+      methodNotAllowed: 'رفضت خلفية سطح المكتب هذا الطلب (405 Method Not Allowed). جرب إعادة تشغيل JettsTUI Desktop.',
       microphonePermission: 'تم رفض إذن الميكروفون.',
       openaiRejectedApiKey: 'رفض OpenAI مفتاح API.',
       openaiRejectedApiKeyWithStatus: status => `رفض OpenAI مفتاح API (${status} invalid_api_key).`,
@@ -147,8 +147,8 @@ export const ar = defineLocale({
       approveAction: 'موافقة',
       rejectAction: 'رفض',
       inputTitle: 'مطلوب إدخال',
-      inputBody: 'ينتظر Jetts-TUI ردّك.',
-      turnDoneTitle: 'أنهى Jetts-TUI',
+      inputBody: 'ينتظر JettsTUI ردّك.',
+      turnDoneTitle: 'أنهى JettsTUI',
       turnDoneBody: '',
       turnErrorTitle: 'فشلت الجولة',
       backgroundDoneTitle: 'انتهت المهمة في الخلفية',
@@ -281,7 +281,7 @@ export const ar = defineLocale({
     exportConfig: 'تصدير الإعدادات',
     importConfig: 'استيراد الإعدادات',
     resetToDefaults: 'إعادة الافتراضيات',
-    resetConfirm: 'هل تريد إعادة كل الإعدادات إلى افتراضيات Jetts-TUI؟',
+    resetConfirm: 'هل تريد إعادة كل الإعدادات إلى افتراضيات JettsTUI؟',
     exportFailed: 'فشل التصدير',
     resetFailed: 'فشلت إعادة الضبط',
     nav: {
@@ -302,7 +302,7 @@ export const ar = defineLocale({
     plugins: {
       title: 'إضافات سطح المكتب',
       blurb:
-        'امتدادات واجهة تُحمّل داخل هذا التطبيق — إما مضمّنة مع البناء، أو موضوعة في مجلد desktop-plugins (بما فيها التي يكتبها Jetts-TUI). تعطيل الإضافة يفرغها مباشرة ويبقى بعد إعادة التشغيل.',
+        'امتدادات واجهة تُحمّل داخل هذا التطبيق — إما مضمّنة مع البناء، أو موضوعة في مجلد desktop-plugins (بما فيها التي يكتبها JettsTUI). تعطيل الإضافة يفرغها مباشرة ويبقى بعد إعادة التشغيل.',
       count: n => `${n} مثبتة`,
       openFolder: 'فتح مجلد الإضافات',
       rescan: 'إعادة الفحص',
@@ -319,7 +319,7 @@ export const ar = defineLocale({
         'إشعارات سطح المكتب الأصلية، منفصلة عن التنبيهات داخل التطبيق. هذه محلية على الجهاز — كل حاسوب يحتفظ بإعداداته الخاصة.',
       enableAll: 'تفعيل الإشعارات',
       enableAllDesc: 'إيقافه يصمت كل الإشعارات أدناه.',
-      focusedHint: 'تنبيهات الاكتمال تظهر فقط عندما يكون Jetts-TUI في الخلفية.',
+      focusedHint: 'تنبيهات الاكتمال تظهر فقط عندما يكون JettsTUI في الخلفية.',
       kinds: {
         approval: {
           label: 'يلزم الموافقة',
@@ -327,11 +327,11 @@ export const ar = defineLocale({
         },
         input: {
           label: 'يلزم إدخال',
-          description: 'طرح Jetts-TUI سؤالا أو يحتاج إلى كلمة مرور أو سر.'
+          description: 'طرح JettsTUI سؤالا أو يحتاج إلى كلمة مرور أو سر.'
         },
         turnDone: {
           label: 'الرد جاهز',
-          description: 'انتهى دور بينما كان Jetts-TUI في الخلفية.'
+          description: 'انتهى دور بينما كان JettsTUI في الخلفية.'
         },
         turnError: {
           label: 'فشل الدور',
@@ -343,7 +343,7 @@ export const ar = defineLocale({
         }
       },
       test: 'إرسال إشعار تجريبي',
-      testTitle: 'Jetts-TUI',
+      testTitle: 'JettsTUI',
       testBody: 'الإشعارات تعمل.',
       testSent: 'تم إرسال التجربة. إذا لم يظهر شيء، تحقق من أذونات الإشعارات في نظام التشغيل ووضع التركيز/عدم الإزعاج.',
       testUnsupported: 'هذا النظام لا يدعم الإشعارات الأصلية.',
@@ -362,7 +362,7 @@ export const ar = defineLocale({
       advanced: 'متقدم'
     },
     searchPlaceholder: {
-      about: 'حول Jetts-TUI Desktop',
+      about: 'حول JettsTUI Desktop',
       config: 'ابحث في الإعدادات...',
       gateway: 'اتصال البوابة...',
       keys: 'ابحث في مفاتيح API...',
@@ -385,7 +385,7 @@ export const ar = defineLocale({
     },
     appearance: {
       title: 'المظهر',
-      intro: 'خصص مظهر Jetts-TUI Desktop.',
+      intro: 'خصص مظهر JettsTUI Desktop.',
       colorMode: 'نمط الألوان',
       colorModeDesc: 'اختر الوضع الفاتح أو الداكن أو اتبع النظام.',
       toolViewTitle: 'عرض الأدوات',
@@ -393,7 +393,7 @@ export const ar = defineLocale({
       translucencyTitle: 'شفافية النافذة',
       translucencyDesc: 'إظهار سطح المكتب من خلال النافذة بالكامل. متاح على macOS وWindows فقط.',
       backdropTitle: 'خلفية النافذة',
-      backdropDesc: 'اختيار مقدار مزج خلفية سطح المكتب مع سطح Jetts-TUI.',
+      backdropDesc: 'توهج خفيف بلون التمييز وشبكة نقاط خلف المحادثة.',
       embedsTitle: 'التضمينات المضمّنة',
       embedsDesc:
         'تُحمّل المعاينات الغنية من مواقع طرف ثالث (YouTube، X، …). "اسأل" يعرض عنصرا نائبا حتى تسمح لكل واحد؛ "دائما" يحمّلها تلقائيا؛ "إيقاف" يبقي الروابط عادية.',
@@ -420,9 +420,9 @@ export const ar = defineLocale({
       pet: {
         title: 'حيوان أليف',
         intro:
-          'تبنَّ تعويذة petdex متحركة تطفو فوق التطبيق وتتفاعل مع ما يفعله Jetts-TUI — تجري أثناء تنفيذ الأدوات، وتحتفل عند النجاح، وتعبس عند الأخطاء.',
+          'تبنَّ تعويذة petdex متحركة تطفو فوق التطبيق وتتفاعل مع ما يفعله JettsTUI — تجري أثناء تنفيذ الأدوات، وتحتفل عند النجاح، وتعبس عند الأخطاء.',
         restartHint:
-          'تحتاج الحيوانات الأليفة إلى إعادة تشغيل سريعة — بدأ التطبيق العامل قبل إضافة هذه الميزة. أغلق Jetts-TUI وأعد فتحه، ثم ارجع إلى هنا.',
+          'تحتاج الحيوانات الأليفة إلى إعادة تشغيل سريعة — بدأ التطبيق العامل قبل إضافة هذه الميزة. أغلق JettsTUI وأعد فتحه، ثم ارجع إلى هنا.',
         on: 'تشغيل',
         off: 'إيقاف',
         scaleTitle: 'الحجم',
@@ -549,9 +549,9 @@ export const ar = defineLocale({
       fallbackProviders: 'إدخالات احتياطية بصيغة provider:model لتجربتها إذا فشل النموذج الافتراضي.',
       'display.personality': 'أسلوب المساعد الافتراضي للجلسات الجديدة.',
       'display.showReasoning': 'يعرض أقسام التفكير عندما توفرها الخلفية.',
-      timezone: 'تستخدم عندما يحتاج Jetts-TUI إلى سياق الوقت المحلي. اتركها فارغة لاستخدام منطقة النظام.',
+      timezone: 'تستخدم عندما يحتاج JettsTUI إلى سياق الوقت المحلي. اتركها فارغة لاستخدام منطقة النظام.',
       'agent.imageInputMode': 'يتحكم في طريقة إرسال مرفقات الصور إلى النموذج.',
-      'agent.maxTurns': 'الحد الأعلى لدورات استدعاء الأدوات قبل أن يوقف Jetts-TUI التشغيل.',
+      'agent.maxTurns': 'الحد الأعلى لدورات استدعاء الأدوات قبل أن يوقف JettsTUI التشغيل.',
       'terminal.cwd': 'مجلد المشروع الافتراضي لعمل الأدوات والطرفية.',
       'terminal.persistentShell': 'يحافظ على حالة الصدفة بين الأوامر عندما تدعمها الخلفية.',
       'terminal.envPassthrough': 'متغيرات البيئة التي تمرر إلى تنفيذ الأدوات.',
@@ -560,8 +560,8 @@ export const ar = defineLocale({
       'terminal.modalImage': 'الصورة المستخدمة عند اختيار Modal.',
       'terminal.daytonaImage': 'الصورة المستخدمة عند اختيار Daytona.',
       'codeExecution.mode': 'مدى تقييد تنفيذ الكود بالمشروع الحالي.',
-      fileReadMaxChars: 'أقصى عدد أحرف يستطيع Jetts-TUI قراءته من ملف واحد في الطلب.',
-      'approvals.mode': 'كيف يتعامل Jetts-TUI مع الأوامر التي تحتاج موافقة صريحة.',
+      fileReadMaxChars: 'أقصى عدد أحرف يستطيع JettsTUI قراءته من ملف واحد في الطلب.',
+      'approvals.mode': 'كيف يتعامل JettsTUI مع الأوامر التي تحتاج موافقة صريحة.',
       'approvals.timeout': 'مدة انتظار طلبات الموافقة قبل انتهاء المهلة.',
       'security.redactSecrets': 'يخفي الأسرار المكتشفة من المحتوى المرئي للنموذج قدر الإمكان.',
       'checkpoints.enabled': 'ينشئ لقطات رجوع قبل تعديلات الملفات.',
@@ -576,10 +576,10 @@ export const ar = defineLocale({
       'stt.enabled': 'يفعل التفريغ الصوتي المحلي أو عبر مزود.',
       'stt.elevenlabs.languageCode': 'رمز لغة ISO-639-3 اختياري. اتركه فارغاً للاكتشاف التلقائي.',
       'updates.nonInteractiveLocalChanges':
-        'عندما يحدّث Jetts-TUI نفسه من التطبيق دون موجه طرفية، احتفظ بتعديلات المصدر المحلية أو تجاهلها.'
+        'عندما يحدّث JettsTUI نفسه من التطبيق دون موجه طرفية، احتفظ بتعديلات المصدر المحلية أو تجاهلها.'
     },
     about: {
-      heading: 'حول Jetts-TUI',
+      heading: 'حول JettsTUI',
       version: value => `الإصدار ${value}`,
       versionUnavailable: 'الإصدار غير متاح',
       updates: 'التحديثات',
@@ -597,7 +597,7 @@ export const ar = defineLocale({
       lastChecked: age => `آخر تحقق ${age}`,
       justNowSuffix: 'الآن',
       automaticUpdates: 'التحديثات التلقائية',
-      automaticUpdatesDesc: 'اسمح لـ Jetts-TUI بالتحقق من التحديثات وتثبيتها.',
+      automaticUpdatesDesc: 'اسمح لـ JettsTUI بالتحقق من التحديثات وتثبيتها.',
       branchCommit: (branch, commit) => `${branch} عند ${commit}`,
       never: 'أبدا',
       justNow: 'الآن',
@@ -610,7 +610,7 @@ export const ar = defineLocale({
       noneParen: '(لا شيء)',
       notSet: 'غير مضبوط',
       commaSeparated: 'قيم مفصولة بفواصل',
-      loading: 'جار تحميل إعدادات Jetts-TUI...',
+      loading: 'جار تحميل إعدادات JettsTUI...',
       emptyTitle: 'لا توجد إعدادات',
       emptyDesc: 'لا يحتوي هذا القسم على إعدادات قابلة للتعديل.',
       failedLoad: 'فشل تحميل الإعدادات',
@@ -620,7 +620,7 @@ export const ar = defineLocale({
     },
     quickEntry: {
       enabledTitle: 'الإدخال السريع',
-      enabledDesc: 'استدعِ محرّرا صغيرا من أي مكان باختصار عام وأرسل طلبا دون فتح Jetts-TUI.',
+      enabledDesc: 'استدعِ محرّرا صغيرا من أي مكان باختصار عام وأرسل طلبا دون فتح JettsTUI.',
       shortcutTitle: 'اختصار الإدخال السريع',
       shortcutDesc: 'يحتاج إلى مفتاح تعديل واحد على الأقل، مثل CommandOrControl+Shift+Space.',
       active: 'الاختصار مفعّل.',
@@ -653,23 +653,23 @@ export const ar = defineLocale({
       title: 'اتصال البوابة',
       envOverride: 'تجاوز من البيئة',
       intro:
-        'يشغّل Jetts-TUI Desktop بوابة محلية خاصة افتراضياً. استخدم بوابة بعيدة عندما تريد أن يتحكم هذا التطبيق بخلفية Jetts-TUI تعمل مسبقاً على جهاز آخر أو خلف وكيل موثوق.',
+        'يشغّل JettsTUI Desktop بوابة محلية خاصة افتراضياً. استخدم بوابة بعيدة عندما تريد أن يتحكم هذا التطبيق بخلفية JettsTUI تعمل مسبقاً على جهاز آخر أو خلف وكيل موثوق.',
       appliesTo: 'ينطبق على',
       allProfiles: 'كل الملفات الشخصية',
       defaultConnection: 'الاتصال الافتراضي لكل ملف شخصي لا يملك تجاوزاً خاصاً.',
       profileConnection: profile =>
         `الاتصال المستخدم فقط عندما يكون "${profile}" هو الملف الشخصي النشط. اختر "استخدام البوابة الافتراضية" لإزالة التجاوز الخاص به.`,
       envOverrideTitle: 'متغيرات البيئة تتحكم في جلسة سطح المكتب هذه.',
-      envOverrideDesc: 'أزل FREEIDE_DESKTOP_REMOTE_URL و FREEIDE_DESKTOP_REMOTE_TOKEN لاستخدام الإعداد المحفوظ أدناه.',
+      envOverrideDesc: 'أزل JETTSTUI_DESKTOP_REMOTE_URL و JETTSTUI_DESKTOP_REMOTE_TOKEN لاستخدام الإعداد المحفوظ أدناه.',
       localTitle: 'بوابة محلية',
-      localDesc: 'تشغيل خلفية Jetts-TUI خاصة على localhost. هذا هو الافتراضي ويعمل دون اتصال.',
+      localDesc: 'تشغيل خلفية JettsTUI خاصة على localhost. هذا هو الافتراضي ويعمل دون اتصال.',
       inheritTitle: 'استخدام البوابة الافتراضية',
       inheritDesc: 'إزالة التجاوز الخاص بهذا الملف الشخصي واستخدام الاتصال الافتراضي.',
       remoteTitle: 'بوابة بعيدة',
       remoteDesc:
-        'صل واجهة سطح المكتب هذه بخلفية Jetts-TUI بعيدة. البوابات المستضافة تستخدم OAuth أو اسم مستخدم وكلمة مرور، والبوابات الذاتية قد تستخدم رمز جلسة.',
+        'صل واجهة سطح المكتب هذه بخلفية JettsTUI بعيدة. البوابات المستضافة تستخدم OAuth أو اسم مستخدم وكلمة مرور، والبوابات الذاتية قد تستخدم رمز جلسة.',
       remoteUrlTitle: 'رابط البوابة البعيدة',
-      remoteUrlDesc: 'الرابط الأساسي لخلفية لوحة التحكم البعيدة. يمكن استخدام بادئات مسار مثل /freeide.',
+      remoteUrlDesc: 'الرابط الأساسي لخلفية لوحة التحكم البعيدة. يمكن استخدام بادئات مسار مثل /jettstui.',
       probing: 'جار فحص طريقة مصادقة هذه البوابة...',
       probeError: 'تعذر الوصول إلى هذه البوابة الآن. تحقق من الرابط وستظهر طريقة المصادقة عند الاستجابة.',
       signedIn: 'تم تسجيل الدخول',
@@ -700,9 +700,9 @@ export const ar = defineLocale({
       enterUrlFirst: 'أدخل رابط البوابة البعيدة أولاً.',
       restartingTitle: 'جار إعادة تشغيل اتصال البوابة',
       savedTitle: 'تم حفظ إعدادات البوابة',
-      restartingMessage: 'سيعيد Jetts-TUI Desktop الاتصال باستخدام الإعدادات المحفوظة.',
+      restartingMessage: 'سيعيد JettsTUI Desktop الاتصال باستخدام الإعدادات المحفوظة.',
       savedMessage: 'تم الحفظ للتشغيل القادم.',
-      connectedTo: (baseUrl, version) => `متصل بـ ${baseUrl}${version ? ` · Jetts-TUI ${version}` : ''}`,
+      connectedTo: (baseUrl, version) => `متصل بـ ${baseUrl}${version ? ` · JettsTUI ${version}` : ''}`,
       reachableTitle: 'البوابة البعيدة قابلة للوصول',
       signedOutTitle: 'تم تسجيل الخروج',
       signedOutMessage: 'تم مسح جلسة البوابة البعيدة.',
@@ -801,7 +801,7 @@ export const ar = defineLocale({
     providers: {
       connectAccount: 'ربط حساب',
       haveApiKey: 'لديك مفتاح API بدلاً من ذلك؟',
-      intro: 'سجل الدخول باشتراكك دون نسخ مفتاح API. يشغّل Jetts-TUI تسجيل الدخول من المتصفح لك داخل التطبيق.',
+      intro: 'سجل الدخول باشتراكك دون نسخ مفتاح API. يشغّل JettsTUI تسجيل الدخول من المتصفح لك داخل التطبيق.',
       connected: 'متصل',
       collapse: 'طي',
       connectAnother: 'ربط مزود آخر',
@@ -871,7 +871,6 @@ export const ar = defineLocale({
       noProviderOptions: 'لا تحتوي مجموعة الأدوات هذه على خيارات مزوّد — فعّلها لتعمل مع إعدادك الحالي.',
       noProviders: 'لا يوجد مزوّدون متاحون لمجموعة الأدوات هذه الآن.',
       ready: 'جاهز',
-      nousIncluded: 'مُضمّن مع اشتراك Jetts-TUI — سجّل الدخول إلى FreeIDE Portal للتفعيل.',
       noApiKeyRequired: 'لا يلزم مفتاح API.',
       postSetupHint: step =>
         `تحتاج هذه الخلفية إلى تثبيت لمرة واحدة (${step}). يعمل على هذا الجهاز — قد يستغرق بضع دقائق.`,
@@ -961,7 +960,7 @@ export const ar = defineLocale({
       placeholder: 'البحث في الحيوانات الأليفة...',
       loading: 'جار تحميل معرض petdex...',
       error: 'تعذّر الوصول إلى معرض petdex.',
-      staleBackend: 'أعد تشغيل Jetts-TUI لاستخدام الحيوانات الأليفة — الخادم الخلفي أقدم من هذه الميزة.',
+      staleBackend: 'أعد تشغيل JettsTUI لاستخدام الحيوانات الأليفة — الخادم الخلفي أقدم من هذه الميزة.',
       empty: 'لا توجد حيوانات أليفة مطابقة.',
       turnOff: 'إيقاف التشغيل',
       turnOn: 'تشغيل',
@@ -988,8 +987,8 @@ export const ar = defineLocale({
       hatchComposing: 'جار تجميع الأجزاء...',
       hatchSaving: 'أوشكنا على الانتهاء...',
       namePlaceholder: 'سمِّ حيوانك الأليف',
-      staleBackend: 'حدّث Jetts-TUI لتوليد الحيوانات الأليفة.',
-      backgroundHint: 'يمكنك إغلاق هذا — سيُعلِمك Jetts-TUI عند الانتهاء.',
+      staleBackend: 'حدّث JettsTUI لتوليد الحيوانات الأليفة.',
+      backgroundHint: 'يمكنك إغلاق هذا — سيُعلِمك JettsTUI عند الانتهاء.',
       slowProviderHint: 'قد يستغرق هذا عدة دقائق',
       remix: 'إعادة مزج',
       remixConfirmTitle: 'إعادة مزج هذا المظهر؟',
@@ -1032,7 +1031,7 @@ export const ar = defineLocale({
       },
       settings: {
         title: 'الإعدادات',
-        detail: 'تكوين Jetts-TUI desktop'
+        detail: 'تكوين JettsTUI desktop'
       },
       skills: {
         title: 'المهارات والأدوات',
@@ -1073,10 +1072,10 @@ export const ar = defineLocale({
     noSessions: 'لا توجد جلسات',
     gatewayRunning: 'البوابة تعمل',
     gatewayStopped: 'البوابة متوقفة',
-    freeideActiveSessions: (version, count) => `Jetts-TUI ${version} لديه ${count} جلسة نشطة`,
+    jettstuiActiveSessions: (version, count) => `JettsTUI ${version} لديه ${count} جلسة نشطة`,
     restartGateway: 'إعادة تشغيل البوابة',
     gatewayRestartFailed: 'فشل إعادة تشغيل البوابة.',
-    updateFreeIDE: 'تحديث Jetts-TUI',
+    updateJettsTUI: 'تحديث JettsTUI',
     actionRunning: 'الإجراء قيد التشغيل',
     actionDone: 'اكتمل الإجراء',
     actionFailed: 'فشل الإجراء',
@@ -1243,7 +1242,7 @@ export const ar = defineLocale({
       },
       MATRIX_USER_ID: {
         label: 'معرّف مستخدم البوت',
-        placeholder: '@freeide:example.org'
+        placeholder: '@jettstui:example.org'
       },
       MATRIX_ALLOWED_USERS: {
         label: 'معرّفات مستخدمي Matrix المسموح بهم',
@@ -1407,7 +1406,7 @@ export const ar = defineLocale({
     topOfHour: 'في بداية كل ساعة',
     everyHourAt: minute => `كل ساعة عند :${minute}`,
     newCron: 'مهمة مجدولة جديدة',
-    emptyDescNew: 'أنشئ مهمة مجدولة لتشغيل Jetts-TUI تلقائيا.',
+    emptyDescNew: 'أنشئ مهمة مجدولة لتشغيل JettsTUI تلقائيا.',
     emptyDescSearch: 'لا توجد مهام تطابق البحث.',
     emptyTitleNew: 'لا توجد مهام مجدولة',
     emptyTitleSearch: 'لا توجد نتائج',
@@ -1444,11 +1443,11 @@ export const ar = defineLocale({
     editTitle: 'تحرير المهمة المجدولة',
     createTitle: 'إنشاء مهمة مجدولة',
     editDesc: 'عدل الجدول والرسالة.',
-    createDesc: 'اضبط مهمة يشغلها Jetts-TUI تلقائيا.',
+    createDesc: 'اضبط مهمة يشغلها JettsTUI تلقائيا.',
     nameLabel: 'الاسم',
     namePlaceholder: 'مثال: الملخص الصباحي',
     promptLabel: 'الرسالة',
-    promptPlaceholder: 'ماذا تريد من Jetts-TUI أن يفعل؟',
+    promptPlaceholder: 'ماذا تريد من JettsTUI أن يفعل؟',
     frequencyLabel: 'التكرار',
     deliverLabel: 'التسليم',
     customScheduleLabel: 'جدول مخصص',
@@ -1574,7 +1573,7 @@ export const ar = defineLocale({
       copyPath: 'نسخ المسار',
       removeFromSidebar: 'إخفاء من الشريط الجانبي',
       createFailed: 'تعذّر إنشاء المشروع',
-      deleteConfirm: 'هذا يزيل المشروع المحفوظ من Jetts-TUI. تبقى الملفات ومستودعات git وأشجار العمل دون تغيير.',
+      deleteConfirm: 'هذا يزيل المشروع المحفوظ من JettsTUI. تبقى الملفات ومستودعات git وأشجار العمل دون تغيير.',
       startWork: 'شجرة عمل جديدة',
       newWorktreeTitle: 'شجرة عمل جديدة',
       newWorktreeDesc: 'سمِّ الفرع لشجرة العمل هذه.',
@@ -1644,10 +1643,10 @@ export const ar = defineLocale({
   composer: {
     message: 'الرسالة',
     wakingProfile: profile => `جار إيقاظ ${profile}`,
-    placeholderStarting: 'جار بدء Jetts-TUI...',
+    placeholderStarting: 'جار بدء JettsTUI...',
     placeholderReconnecting: 'جار إعادة الاتصال...',
     placeholderFollowUp: 'اكتب متابعة...',
-    newSessionPlaceholders: ['اسأل Jetts-TUI عن شيء...', 'اطلب من Jetts-TUI تنفيذ مهمة...', 'ابدأ محادثة جديدة...'],
+    newSessionPlaceholders: ['اسأل JettsTUI عن شيء...', 'اطلب من JettsTUI تنفيذ مهمة...', 'ابدأ محادثة جديدة...'],
     followUpPlaceholders: ['اكتب متابعة...', 'أضف توجيها...', 'اسأل سؤالا آخر...'],
     startVoice: 'بدء الصوت',
     queueMessage: 'إضافة الرسالة للطابور',
@@ -1681,7 +1680,7 @@ export const ar = defineLocale({
       '/resume': 'استئناف جلسة سابقة',
       '/details': 'التحكم في مستوى تفاصيل النص',
       '/copy': 'نسخ التحديد أو آخر رسالة من المساعد',
-      '/quit': 'الخروج من jetts-tui'
+      '/quit': 'الخروج من jettstui'
     },
     hotkeyDescs: {
       'composer.mention': 'الإشارة إلى الملفات والمجلدات والروابط وgit',
@@ -1696,7 +1695,7 @@ export const ar = defineLocale({
     attachUrlTitle: 'إرفاق رابط',
     attachUrlDesc: 'أضف رابطا إلى الرسالة.',
     urlPlaceholder: 'https://example.com',
-    urlHintPre: 'سيقرأ Jetts-TUI الرابط ضمن السياق.',
+    urlHintPre: 'سيقرأ JettsTUI الرابط ضمن السياق.',
     attach: 'إرفاق',
     queued: count => `${count} في الطابور`,
     attachmentOnly: 'إرفاق فقط',
@@ -1798,7 +1797,7 @@ export const ar = defineLocale({
       createPr: 'إنشاء PR',
       openPr: 'فتح PR',
       ghMissing: 'ثبّت GitHub CLI (gh) وسجّل الدخول لفتح طلبات السحب',
-      agentShip: 'اطلب من Jetts-TUI فتح PR',
+      agentShip: 'اطلب من JettsTUI فتح PR',
       agentShipPrompt: 'راجع التغييرات الحالية، وأودعها برسالة إيداع تقليدية واضحة، وادفع الفرع، وافتح طلب سحب.',
       newBranch: 'فرع جديد',
       branchOffFrom: base => `فرع جديد من ${base}`,
@@ -1814,9 +1813,9 @@ export const ar = defineLocale({
       fetch: 'جار التنزيل...',
       pull: 'أوشكنا على الانتهاء...',
       pydeps: 'جار الإنهاء...',
-      update: 'جار تحديث Jetts-TUI...',
+      update: 'جار تحديث JettsTUI...',
       rebuild: 'جار إعادة بناء تطبيق سطح المكتب...',
-      restart: 'جار إعادة تشغيل Jetts-TUI...',
+      restart: 'جار إعادة تشغيل JettsTUI...',
       done: 'اكتمل التحديث',
       manual: 'التحديث من الطرفية',
       guiSkew: 'تحديث تطبيق سطح المكتب',
@@ -1826,33 +1825,33 @@ export const ar = defineLocale({
     checkFailedTitle: 'تعذّر التحقق من التحديثات',
     tryAgain: 'إعادة المحاولة',
     notAvailableTitle: 'التحديث غير متاح',
-    unsupportedMessage: 'لا يمكن لهذا الإصدار من Jetts-TUI تحديث نفسه من داخل التطبيق.',
+    unsupportedMessage: 'لا يمكن لهذا الإصدار من JettsTUI تحديث نفسه من داخل التطبيق.',
     connectionRetry: 'تحقق من اتصالك وأعد المحاولة.',
     latestBody: 'أنت تستخدم أحدث إصدار.',
     latestBodyBackend: 'الواجهة الخلفية تعمل بأحدث إصدار.',
     allSetTitle: 'كل شيء جاهز',
     availableTitle: 'يتوفر تحديث جديد',
-    availableBody: 'إصدار جديد من Jetts-TUI جاهز للتثبيت.',
+    availableBody: 'إصدار جديد من JettsTUI جاهز للتثبيت.',
     availableTitleBackend: 'يتوفر تحديث للواجهة الخلفية',
-    availableBodyBackend: 'إصدار أحدث من واجهة Jetts-TUI الخلفية المتصلة جاهز للتثبيت.',
+    availableBodyBackend: 'إصدار أحدث من واجهة JettsTUI الخلفية المتصلة جاهز للتثبيت.',
     availableBodyNoChangelog: 'إصدار أحدث جاهز. ملاحظات الإصدار غير متاحة لنوع التثبيت هذا.',
     updateNow: 'التحديث الآن',
     maybeLater: 'ربما لاحقا',
     moreChanges: count => `+ ${count} تغيير${count === 1 ? '' : 'ات'} إضافي مُضمَّن.`,
     manualTitle: 'التحديث من الطرفية',
-    manualBody: 'لقد ثبّتت Jetts-TUI من سطر الأوامر، لذا تُجرى التحديثات من هناك أيضا. الصق هذا في طرفيتك:',
-    manualPickedUp: 'سيلتقط Jetts-TUI الإصدار الجديد في المرة التالية التي تشغّله فيها.',
+    manualBody: 'لقد ثبّتت JettsTUI من سطر الأوامر، لذا تُجرى التحديثات من هناك أيضا. الصق هذا في طرفيتك:',
+    manualPickedUp: 'سيلتقط JettsTUI الإصدار الجديد في المرة التالية التي تشغّله فيها.',
     guiSkewTitle: 'تحديث تطبيق سطح المكتب',
     guiSkewBody:
-      'تم تحديث الواجهة الخلفية، لكن حزمة تطبيق سطح المكتب هذه لم تتغير. حدّث أو أعد تثبيت تطبيق Jetts-TUI لسطح المكتب (ملف AppImage / ‎.deb / ‎.rpm) لمطابقته.',
+      'تم تحديث الواجهة الخلفية، لكن حزمة تطبيق سطح المكتب هذه لم تتغير. حدّث أو أعد تثبيت تطبيق JettsTUI لسطح المكتب (ملف AppImage / ‎.deb / ‎.rpm) لمطابقته.',
     copy: 'نسخ',
     copied: 'تم النسخ',
     done: 'تم',
     applyingBody:
-      'يتولّى مُحدِّث Jetts-TUI المهمة في نافذته الخاصة ويعيد فتح Jetts-TUI تلقائيا عند الانتهاء. الرجاء عدم إعادة فتح Jetts-TUI بنفسك أثناء التحديث.',
+      'يتولّى مُحدِّث JettsTUI المهمة في نافذته الخاصة ويعيد فتح JettsTUI تلقائيا عند الانتهاء. الرجاء عدم إعادة فتح JettsTUI بنفسك أثناء التحديث.',
     applyingBodyBackend:
-      'تطبّق الواجهة الخلفية البعيدة التحديث وستعيد التشغيل. يعيد Jetts-TUI الاتصال تلقائيا عند عودتها.',
-    applyingClose: 'ستُغلق هذه النافذة أثناء تشغيل التحديث، ثم يعيد Jetts-TUI فتح نفسه تلقائيا.',
+      'تطبّق الواجهة الخلفية البعيدة التحديث وستعيد التشغيل. يعيد JettsTUI الاتصال تلقائيا عند عودتها.',
+    applyingClose: 'ستُغلق هذه النافذة أثناء تشغيل التحديث، ثم يعيد JettsTUI فتح نفسه تلقائيا.',
     errorTitle: 'لم يكتمل التحديث',
     errorBody: 'لا داعي للقلق — لم يُفقد شيء. يمكنك إعادة المحاولة الآن.',
     notNow: 'ليس الآن',
@@ -1873,7 +1872,7 @@ export const ar = defineLocale({
       skipped: 'تم التخطي',
       failed: 'فشل'
     },
-    oneTimeTitle: 'يحتاج Jetts-TUI إلى تثبيت لمرة واحدة',
+    oneTimeTitle: 'يحتاج JettsTUI إلى تثبيت لمرة واحدة',
     unsupportedDesc: platform =>
       `التثبيت التلقائي عند أول تشغيل غير متاح على ${platform} بعد. افتح الطرفية وشغّل الأمر أدناه، ثم أعد تشغيل هذا التطبيق. ستتخطى عمليات التشغيل اللاحقة هذه الخطوة.`,
     installCommand: 'أمر التثبيت',
@@ -1882,12 +1881,12 @@ export const ar = defineLocale({
     installTo: 'سيتم التثبيت في',
     retryAfterRun: 'لقد شغّلته -- إعادة المحاولة',
     failedTitle: 'فشل التثبيت',
-    settingUpTitle: 'جار إعداد وكيل Jetts-TUI',
+    settingUpTitle: 'جار إعداد وكيل JettsTUI',
     finishingTitle: 'جار الإنهاء',
     failedDesc:
-      'فشلت إحدى خطوات التثبيت. على Windows، قد يحدث هذا إذا كان هناك نسخة أخرى من Jetts-TUI CLI أو تطبيق سطح المكتب قيد التشغيل. أوقف أي نسخ Jetts-TUI قيد التشغيل، ثم أعد المحاولة. تحقق من التفاصيل أدناه أو من سجل سطح المكتب للحصول على النص الكامل.',
+      'فشلت إحدى خطوات التثبيت. على Windows، قد يحدث هذا إذا كان هناك نسخة أخرى من JettsTUI CLI أو تطبيق سطح المكتب قيد التشغيل. أوقف أي نسخ JettsTUI قيد التشغيل، ثم أعد المحاولة. تحقق من التفاصيل أدناه أو من سجل سطح المكتب للحصول على النص الكامل.',
     activeDesc:
-      'هذا إعداد لمرة واحدة. يقوم مثبّت Jetts-TUI بتنزيل التبعيات وتهيئة جهازك. ستتخطى عمليات التشغيل اللاحقة هذه الخطوة.',
+      'هذا إعداد لمرة واحدة. يقوم مثبّت JettsTUI بتنزيل التبعيات وتهيئة جهازك. ستتخطى عمليات التشغيل اللاحقة هذه الخطوة.',
     progress: (completed, total) => `اكتملت ${completed} من ${total} خطوة`,
     currentStage: stage => ` -- الآن: ${stage}`,
     fetchingManifest: 'جار جلب بيان المثبّت...',
@@ -1904,10 +1903,10 @@ export const ar = defineLocale({
     reloadRetry: 'إعادة التحميل وإعادة المحاولة'
   },
   onboarding: {
-    headerTitle: 'لنُعِدّ لك Jetts-TUI',
+    headerTitle: 'لنُعِدّ لك JettsTUI',
     headerDesc: 'اربط مزوّد نماذج لبدء المحادثة. معظم الخيارات تتطلب نقرة واحدة.',
-    preparingInstall: 'يُكمل Jetts-TUI التثبيت. عادة ما يستغرق ذلك أقل من دقيقة في أول تشغيل.',
-    starting: 'جار بدء Jetts-TUI...',
+    preparingInstall: 'يُكمل JettsTUI التثبيت. عادة ما يستغرق ذلك أقل من دقيقة في أول تشغيل.',
+    starting: 'جار بدء JettsTUI...',
     lookingUpProviders: 'جار البحث عن المزوّدين...',
     collapse: 'طي',
     otherProviders: 'مزودون آخرون',
@@ -1915,7 +1914,6 @@ export const ar = defineLocale({
     chooseLater: 'سأختار مزوّدا لاحقا',
     recommended: 'موصى به',
     connected: 'متصل',
-    featuredPitch: 'اشتراك واحد، أكثر من 300 نموذج متقدم — الطريقة الموصى بها لتشغيل Jetts-TUI',
     fireworksPitch: 'نماذج مفتوحة سريعة مع استضافة Fireworks.',
     openRouterPitch: 'مفتاح واحد لمئات النماذج — خيار افتراضي جيد',
     apiKeyOptions: {
@@ -1938,7 +1936,7 @@ export const ar = defineLocale({
       local: {
         short: 'مستضاف ذاتيا',
         description:
-          'وجّه Jetts-TUI إلى نقطة نهاية محلية أو مستضافة ذاتيا متوافقة مع OpenAI (vLLM، llama.cpp، Ollama، إلخ).'
+          'وجّه JettsTUI إلى نقطة نهاية محلية أو مستضافة ذاتيا متوافقة مع OpenAI (vLLM، llama.cpp، Ollama، إلخ).'
       }
     },
     backToSignIn: 'العودة إلى تسجيل الدخول',
@@ -1951,8 +1949,8 @@ export const ar = defineLocale({
     update: 'تحديث',
     flowSubtitles: {
       pkce: 'يفتح المتصفح لتسجيل الدخول ثم يتابع هنا',
-      device_code: 'يفتح صفحة تحقق في المتصفح — يتصل Jetts-TUI تلقائياً',
-      loopback: 'يفتح المتصفح لتسجيل الدخول — يتصل Jetts-TUI تلقائياً',
+      device_code: 'يفتح صفحة تحقق في المتصفح — يتصل JettsTUI تلقائياً',
+      loopback: 'يفتح المتصفح لتسجيل الدخول — يتصل JettsTUI تلقائياً',
       external: 'سجل الدخول مرة واحدة في الطرفية ثم عد إلى المحادثة'
     },
     startingSignIn: provider => `جار بدء تسجيل الدخول لـ ${provider}...`,
@@ -1963,11 +1961,11 @@ export const ar = defineLocale({
     pickDifferentProvider: 'اختر مزوداً آخر',
     signInWith: provider => `تسجيل الدخول عبر ${provider}`,
     openedBrowser: provider => `فتحنا ${provider} في المتصفح.`,
-    authorizeThere: 'صرّح لـ Jetts-TUI هناك.',
+    authorizeThere: 'صرّح لـ JettsTUI هناك.',
     copyAuthCode: 'انسخ رمز التفويض وألصقه أدناه.',
     pasteAuthCode: 'ألصق رمز التفويض',
     reopenAuthPage: 'إعادة فتح صفحة التفويض',
-    autoBrowser: provider => `فتحنا ${provider} في المتصفح. صرّح لـ Jetts-TUI هناك وسيتم الاتصال تلقائياً دون نسخ أو لصق.`,
+    autoBrowser: provider => `فتحنا ${provider} في المتصفح. صرّح لـ JettsTUI هناك وسيتم الاتصال تلقائياً دون نسخ أو لصق.`,
     reopenSignInPage: 'إعادة فتح صفحة تسجيل الدخول',
     waitingAuthorize: 'بانتظار التفويض...',
     externalPending: provider =>
@@ -2146,7 +2144,7 @@ export const ar = defineLocale({
     binaryTitle: 'يبدو هذا ملفا ثنائيا',
     binaryBody: label => `قد تعرض معاينة ${label} نصا غير قابل للقراءة.`,
     largeTitle: 'هذا الملف كبير',
-    largeBody: (label, size) => `حجم ${label} هو ${size}. سيعرض Jetts-TUI أول 512 KB فقط.`,
+    largeBody: (label, size) => `حجم ${label} هو ${size}. سيعرض JettsTUI أول 512 KB فقط.`,
     previewAnyway: 'معاينة على أي حال',
     truncated: 'عرض أول 512 KB.',
     noInlineTitle: 'لا توجد معاينة مضمّنة',
@@ -2184,26 +2182,26 @@ export const ar = defineLocale({
       serverNotFound: 'الخادم غير موجود',
       failedToLoad: 'فشل تحميل المعاينة',
       tryAgain: 'إعادة المحاولة',
-      restarting: 'جار إعادة تشغيل Jetts-TUI...',
-      askRestart: 'اطلب من Jetts-TUI إعادة تشغيل الخادم',
-      lookingRestart: taskId => `يبحث Jetts-TUI عن خادم معاينة لإعادة تشغيله (${taskId})`,
+      restarting: 'جار إعادة تشغيل JettsTUI...',
+      askRestart: 'اطلب من JettsTUI إعادة تشغيل الخادم',
+      lookingRestart: taskId => `يبحث JettsTUI عن خادم معاينة لإعادة تشغيله (${taskId})`,
       restartingTitle: 'جار إعادة تشغيل خادم المعاينة',
-      restartingMessage: 'يعمل Jetts-TUI في الخلفية. راقب كونسول المعاينة لمتابعة التقدم.',
+      restartingMessage: 'يعمل JettsTUI في الخلفية. راقب كونسول المعاينة لمتابعة التقدم.',
       startRestartFailed: message => `تعذّر بدء إعادة تشغيل الخادم: ${message}`,
       restartFailed: 'فشلت إعادة تشغيل الخادم',
       hideConsole: 'إخفاء كونسول المعاينة',
       showConsole: 'إظهار كونسول المعاينة',
       hideDevTools: 'إخفاء DevTools المعاينة',
       openDevTools: 'فتح DevTools المعاينة',
-      finishedRestarting: message => `أنهى Jetts-TUI إعادة تشغيل خادم المعاينة${message ? `: ${message}` : ''}`,
+      finishedRestarting: message => `أنهى JettsTUI إعادة تشغيل خادم المعاينة${message ? `: ${message}` : ''}`,
       failedRestarting: message => `فشلت إعادة تشغيل الخادم: ${message}`,
       unknownError: 'خطأ غير معروف',
       restartedTitle: 'تمت إعادة تشغيل خادم المعاينة',
       reloadingNow: 'جار إعادة تحميل المعاينة الآن.',
       restartFailedTitle: 'فشلت إعادة تشغيل المعاينة',
-      restartFailedMessage: 'تعذّر على Jetts-TUI إعادة تشغيل الخادم.',
+      restartFailedMessage: 'تعذّر على JettsTUI إعادة تشغيل الخادم.',
       stillWorking:
-        'لا يزال Jetts-TUI يعمل، لكن لم تصل نتيجة إعادة التشغيل بعد. قد يكون أمر الخادم قيد التشغيل في المقدمة.',
+        'لا يزال JettsTUI يعمل، لكن لم تصل نتيجة إعادة التشغيل بعد. قد يكون أمر الخادم قيد التشغيل في المقدمة.',
       workspaceReloading: 'تغيّرت مساحة العمل، جار إعادة تحميل المعاينة',
       fileChanged: url => `تغيّر الملف، جار إعادة تحميل المعاينة: ${url}`,
       filesChanged: (count, url) => `${count} تغييرات ملفات، جار إعادة تحميل المعاينة: ${url}`,
@@ -2564,7 +2562,7 @@ export const ar = defineLocale({
       success: platform => `تم التسليم إلى ${platform}. استأنف هنا في أي وقت.`,
       systemNote: platform => `↻ تم التسليم إلى ${platform} — استأنف هنا في أي وقت.`,
       failed: error => `فشل التسليم: ${error}`,
-      timedOut: 'انتهت المهلة في انتظار البوابة. هل `jetts-tui gateway` قيد التشغيل؟'
+      timedOut: 'انتهت المهلة في انتظار البوابة. هل `jettstui gateway` قيد التشغيل؟'
     }
   },
   errors: {

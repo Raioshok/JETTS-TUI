@@ -2,16 +2,16 @@
 
 The journey graph (``agent.learning_graph``) gives every node a stable id:
 
-- **skills** → the skill name (e.g. ``"debugging-freeide-desktop"``)
+- **skills** → the skill name (e.g. ``"debugging-jettstui-desktop"``)
 - **memories** → ``memory:<source>:<index>`` where ``source`` is ``memory``
   (``MEMORY.md``) or ``profile`` (``USER.md``) and ``index`` is the node's
   position in the combined card list (``MEMORY.md`` cards first, then
   ``USER.md``).
 
 This module maps a node id back to its on-disk home and performs the mutation,
-shared by the CLI (``freeide journey delete|edit``), the TUI ``/journey`` overlay
+shared by the CLI (``jettstui journey delete|edit``), the TUI ``/journey`` overlay
 (gateway RPCs), and the desktop GUI (REST). Deleting a skill *archives* it
-(recoverable via ``freeide curator restore``); deleting a memory rewrites its
+(recoverable via ``jettstui curator restore``); deleting a memory rewrites its
 file. Pure stdlib + existing skill/memory helpers.
 """
 
@@ -28,9 +28,9 @@ def parse_node_kind(node_id: str) -> str:
 
 
 def _memories_dir() -> Path:
-    from freeide_constants import get_freeide_home
+    from jettstui_constants import get_jettstui_home
 
-    return get_freeide_home() / "memories"
+    return get_jettstui_home() / "memories"
 
 
 def _parse_memory_id(node_id: str) -> tuple[str, int]:
@@ -132,13 +132,13 @@ def _delete_skill(name: str) -> dict[str, Any]:
     from tools import skill_usage
 
     if skill_usage.get_record(name).get("pinned"):
-        return {"ok": False, "message": f"'{name}' is pinned — unpin it first (freeide curator unpin {name})"}
+        return {"ok": False, "message": f"'{name}' is pinned — unpin it first (jettstui curator unpin {name})"}
 
     ok, message = skill_usage.archive_skill(name)
     if ok:
         _clear_skill_cache()
 
-    return {"ok": ok, "message": f"archived '{name}' — restore with: freeide curator restore {name}" if ok else message}
+    return {"ok": ok, "message": f"archived '{name}' — restore with: jettstui curator restore {name}" if ok else message}
 
 
 def _delete_memory(node_id: str) -> dict[str, Any]:

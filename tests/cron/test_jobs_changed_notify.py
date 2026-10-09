@@ -11,7 +11,7 @@ import pytest
 
 @pytest.fixture
 def temp_home(tmp_path, monkeypatch):
-    monkeypatch.setenv("FREEIDE_HOME", str(tmp_path))
+    monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path))
     yield tmp_path
 
 

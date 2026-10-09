@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Reveal/focus a pane in the FreeIDE desktop GUI.
+"""Reveal/focus a pane in the JettsTUI desktop GUI.
 
-Gated on ``FREEIDE_DESKTOP`` (like the other GUI affordances). Emits
+Gated on ``JETTSTUI_DESKTOP`` (like the other GUI affordances). Emits
 ``pane.reveal`` through the shared ``desktop_ui`` bridge; the renderer runs each
 pane's own reveal path and only acts on the active window (a background turn
 never moves the user's focus). To show a URL/file, use ``open_preview``.
@@ -27,20 +27,20 @@ def focus_pane_tool(pane: str) -> str:
     except Exception as exc:
         return tool_error(f"Failed to focus the {name} pane: {exc}")
     if not ok:
-        return tool_error("Pane focus is only available in the FreeIDE desktop app.")
+        return tool_error("Pane focus is only available in the JettsTUI desktop app.")
 
     return json.dumps({"success": True, "pane": name}, ensure_ascii=False)
 
 
 def check_focus_pane_requirements() -> bool:
-    """Desktop GUI only — FREEIDE_DESKTOP is set on the gateway the app spawns."""
-    return env_var_enabled("FREEIDE_DESKTOP")
+    """Desktop GUI only — JETTSTUI_DESKTOP is set on the gateway the app spawns."""
+    return env_var_enabled("JETTSTUI_DESKTOP")
 
 
 FOCUS_PANE_SCHEMA = {
     "name": "focus_pane",
     "description": (
-        "Reveal and focus a pane in the FreeIDE desktop app when the user asks to "
+        "Reveal and focus a pane in the JettsTUI desktop app when the user asks to "
         "see it — e.g. \"show me the terminal\", \"open the file browser\", \"show "
         "the diff\". Panes: chat (the conversation), files (project file browser), "
         "terminal (embedded shell), review (git diff), sessions (the session list). "

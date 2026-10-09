@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Open a URL, dev server, or file in the FreeIDE desktop GUI's preview pane.
+"""Open a URL, dev server, or file in the JettsTUI desktop GUI's preview pane.
 
-Gated on ``FREEIDE_DESKTOP`` (like ``read_terminal`` / ``close_terminal``) so it
+Gated on ``JETTSTUI_DESKTOP`` (like ``read_terminal`` / ``close_terminal``) so it
 never appears outside the GUI. Emits ``preview.open`` through the shared
 ``desktop_ui`` bridge; the renderer opens the pane beside the chat for the
 window that asked and never steals focus for a background session.
@@ -47,20 +47,20 @@ def open_preview_tool(url: str, label: str = "") -> str:
     except Exception as exc:
         return tool_error(f"Failed to open the preview pane: {exc}")
     if not ok:
-        return tool_error("The preview pane is only available in the FreeIDE desktop app.")
+        return tool_error("The preview pane is only available in the JettsTUI desktop app.")
 
     return json.dumps({"success": True, "url": target, "label": label}, ensure_ascii=False)
 
 
 def check_open_preview_requirements() -> bool:
-    """Desktop GUI only — FREEIDE_DESKTOP is set on the gateway the app spawns."""
-    return env_var_enabled("FREEIDE_DESKTOP")
+    """Desktop GUI only — JETTSTUI_DESKTOP is set on the gateway the app spawns."""
+    return env_var_enabled("JETTSTUI_DESKTOP")
 
 
 OPEN_PREVIEW_SCHEMA = {
     "name": "open_preview",
     "description": (
-        "Open something in the preview pane beside the chat in the FreeIDE desktop "
+        "Open something in the preview pane beside the chat in the JettsTUI desktop "
         "app. Use this when the user asks to see a page, dev server, or file in the "
         "preview pane — e.g. \"open cnn.com in the preview pane\" or \"preview "
         "localhost:3000\". Accepts a web URL (a bare domain like www.cnn.com is fine), "

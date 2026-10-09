@@ -1,4 +1,4 @@
-"""Tests for _setup_feishu() in freeide_cli/gateway.py.
+"""Tests for _setup_feishu() in jettstui/gateway.py.
 
 Verifies that the interactive setup writes env vars that correctly drive the
 Feishu adapter: credentials, connection mode, DM policy, and group policy.
@@ -50,17 +50,17 @@ def _run_setup_feishu(
             return True
         return False
 
-    with patch("freeide_cli.config.save_env_value", side_effect=mock_save), \
-         patch("freeide_cli.config.get_env_value", side_effect=mock_get), \
-         patch("freeide_cli.config.remove_env_value", side_effect=mock_remove), \
-         patch("freeide_cli.cli_output.prompt_yes_no", side_effect=prompt_yes_no_responses), \
-         patch("freeide_cli.setup.prompt_choice", side_effect=prompt_choice_responses), \
-         patch("freeide_cli.cli_output.prompt", side_effect=prompt_responses), \
-         patch("freeide_cli.cli_output.print_header"), \
-         patch("freeide_cli.cli_output.print_info"), \
-         patch("freeide_cli.cli_output.print_success"), \
-         patch("freeide_cli.cli_output.print_warning"), \
-         patch("freeide_cli.cli_output.print_error"), \
+    with patch("jettstui.config.save_env_value", side_effect=mock_save), \
+         patch("jettstui.config.get_env_value", side_effect=mock_get), \
+         patch("jettstui.config.remove_env_value", side_effect=mock_remove), \
+         patch("jettstui.cli_output.prompt_yes_no", side_effect=prompt_yes_no_responses), \
+         patch("jettstui.setup.prompt_choice", side_effect=prompt_choice_responses), \
+         patch("jettstui.cli_output.prompt", side_effect=prompt_responses), \
+         patch("jettstui.cli_output.print_header"), \
+         patch("jettstui.cli_output.print_info"), \
+         patch("jettstui.cli_output.print_success"), \
+         patch("jettstui.cli_output.print_warning"), \
+         patch("jettstui.cli_output.print_error"), \
          patch("plugins.platforms.feishu.adapter.qr_register", return_value=qr_result):
 
         from plugins.platforms.feishu.adapter import interactive_setup

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Check that subprocess calls in TUI-context code specify stdin=.
 
-When FreeIDE runs in TUI mode, the gateway child process communicates with
+When JettsTUI runs in TUI mode, the gateway child process communicates with
 the Node.js parent over a JSON-RPC protocol on stdin. Subprocess calls that
 inherit this fd can cause the gateway to exit with stdin EOF during tool
 execution (issue #14036, PR #39257).
@@ -38,14 +38,14 @@ TUI_CONTEXT_DIRS = [
 ]
 
 # User plugin roots — scanned at runtime if they exist.  Plugins load from
-# ``get_freeide_home() / "plugins"`` (user) and ``./.freeide/plugins/`` (project,
-# gated behind ``FREEIDE_ENABLE_PROJECT_PLUGINS``) — see
-# ``freeide_cli/plugins.py:10-12``.  The guard only checked the bundled
+# ``get_jettstui_home() / "plugins"`` (user) and ``./.jettstui/plugins/`` (project,
+# gated behind ``JETTSTUI_ENABLE_PROJECT_PLUGINS``) — see
+# ``jettstui/plugins.py:10-12``.  The guard only checked the bundled
 # ``plugins/`` dir, missing user-installed code that spawns subprocesses
 # (gap reported in #67639).
 #
 # Import is deferred to ``main()`` (after ``os.chdir(repo_root)``) because
-# this script runs as a standalone subprocess — ``freeide_constants`` isn't
+# this script runs as a standalone subprocess — ``jettstui_constants`` isn't
 # on ``sys.path`` until the repo root is added.
 
 # subprocess and os APIs that inherit stdin by default when called without
@@ -78,7 +78,8 @@ SKIP_DIRS = {
     "scripts/",
     "skills/",
     "optional-skills/",
-    "freeide_cli/",
+    "jettstui/",
+    "jettstui/",
     "gateway/",
     "cron/",
 }
@@ -157,10 +158,10 @@ def main() -> int:
     repo_root = Path(__file__).resolve().parent.parent
     os.chdir(repo_root)
 
-    # Add repo root to sys.path so we can import freeide_constants (this script
+    # Add repo root to sys.path so we can import jettstui_constants (this script
     # runs as a standalone subprocess, not as a module).
     sys.path.insert(0, str(repo_root))
-    from freeide_constants import get_freeide_home
+    from jettstui_constants import get_jettstui_home
 
     all_violations = []
 
@@ -186,12 +187,12 @@ def main() -> int:
             all_violations.extend(violations)
 
     # Scan user plugin directories (Gap 1: guard missed user-installed
-    # plugins in get_freeide_home()/plugins/ and project plugins in
-    # ./.freeide/plugins/, where code like ori/hooks.py can spawn
+    # plugins in get_jettstui_home()/plugins/ and project plugins in
+    # ./.jettstui/plugins/, where code like ori/hooks.py can spawn
     # subprocesses with inherited stdin — #67639).
-    plugin_roots: list[Path] = [get_freeide_home() / "plugins"]
-    if os.environ.get("FREEIDE_ENABLE_PROJECT_PLUGINS"):
-        plugin_roots.append(Path.cwd() / ".freeide" / "plugins")
+    plugin_roots: list[Path] = [get_jettstui_home() / "plugins"]
+    if os.environ.get("JETTSTUI_ENABLE_PROJECT_PLUGINS"):
+        plugin_roots.append(Path.cwd() / ".jettstui" / "plugins")
     seen_roots: set[Path] = set()
     for plugin_root in plugin_roots:
         resolved = plugin_root.resolve()

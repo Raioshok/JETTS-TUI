@@ -10,17 +10,17 @@ import { PageLoader } from '@/components/page-loader'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { CountSkeleton } from '@/components/ui/skeleton'
+import { useI18n } from '@/i18n'
 import {
   editLearningNode,
-  type FreeIDEGateway,
   getLearningNode,
   getSkills,
   getToolsets,
   getUsageAnalytics,
+  type JettsTUIGateway,
   toggleSkill,
   toggleToolset
-} from '@/freeide'
-import { useI18n } from '@/i18n'
+} from '@/jettstui'
 import { isDesktopToolsetVisible } from '@/lib/desktop-toolsets'
 import { compactNumber } from '@/lib/format'
 import { queryClient, writeCache } from '@/lib/query-client'
@@ -29,7 +29,7 @@ import { normalize } from '@/lib/text'
 import { $gateway } from '@/store/gateway'
 import { notify, notifyError } from '@/store/notifications'
 import { $activeGatewayProfile, normalizeProfileKey } from '@/store/profile'
-import type { SkillInfo, ToolsetInfo } from '@/types/freeide'
+import type { SkillInfo, ToolsetInfo } from '@/types/jettstui'
 
 import { useOnProfileSwitch } from '../hooks/use-on-profile-switch'
 import { useRefreshHotkey } from '../hooks/use-refresh-hotkey'
@@ -184,7 +184,7 @@ interface SkillsViewProps extends React.ComponentProps<'section'> {
 
 export function SkillsView({ setStatusbarItemGroup: _setStatusbarItemGroup, ...props }: SkillsViewProps) {
   const { t } = useI18n()
-  const gateway = useStore($gateway) as FreeIDEGateway | null
+  const gateway = useStore($gateway) as JettsTUIGateway | null
   const [mode, setMode] = useRouteEnumParam('tab', SKILLS_MODES, 'skills')
 
   const [query, setQuery] = useState('')
@@ -457,7 +457,7 @@ export function SkillsView({ setStatusbarItemGroup: _setStatusbarItemGroup, ...p
 
   // Learned/local skills are editable + archivable, mirroring the memory
   // graph (same /api/learning/node endpoints — delete archives, restorable
-  // via `freeide curator restore`).
+  // via `jettstui curator restore`).
   const [skillEditor, setSkillEditor] = useState<null | { content: string; name: string }>(null)
   const [skillDraft, setSkillDraft] = useState('')
   const [skillSaving, setSkillSaving] = useState(false)

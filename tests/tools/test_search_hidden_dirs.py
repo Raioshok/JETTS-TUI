@@ -126,11 +126,11 @@ class TestIgnoreFileWritten:
     """_write_index_cache should create .ignore in .hub/ directory."""
 
     def test_write_index_cache_creates_ignore_file(self, tmp_path, monkeypatch):
-        monkeypatch.setenv("FREEIDE_HOME", str(tmp_path))
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path))
 
         # Patch module-level paths
         import tools.skills_hub as hub_mod
-        monkeypatch.setattr(hub_mod, "FREEIDE_HOME", tmp_path)
+        monkeypatch.setattr(hub_mod, "JETTSTUI_HOME", tmp_path)
         monkeypatch.setattr(hub_mod, "SKILLS_DIR", tmp_path / "skills")
         monkeypatch.setattr(hub_mod, "HUB_DIR", tmp_path / "skills" / ".hub")
         monkeypatch.setattr(
@@ -148,10 +148,10 @@ class TestIgnoreFileWritten:
     def test_write_index_cache_does_not_overwrite_existing_ignore(
         self, tmp_path, monkeypatch
     ):
-        monkeypatch.setenv("FREEIDE_HOME", str(tmp_path))
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path))
 
         import tools.skills_hub as hub_mod
-        monkeypatch.setattr(hub_mod, "FREEIDE_HOME", tmp_path)
+        monkeypatch.setattr(hub_mod, "JETTSTUI_HOME", tmp_path)
         monkeypatch.setattr(hub_mod, "SKILLS_DIR", tmp_path / "skills")
         monkeypatch.setattr(hub_mod, "HUB_DIR", tmp_path / "skills" / ".hub")
         monkeypatch.setattr(

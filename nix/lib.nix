@@ -71,7 +71,7 @@ let
   # Python source: everything except JS/TS/docs/infra directories.
   pythonSrc = lib.cleanSourceWith {
     src = repoRoot;
-    name = "freeide-python-source";
+    name = "jettstui-python-source";
     filter =
       path: type:
       let
@@ -101,16 +101,16 @@ let
             "plans"
             # Nix build definitions (Python build doesn't need these)
             "nix"
-            # Skills are shipped via FREEIDE_BUNDLED_SKILLS /
-            # FREEIDE_OPTIONAL_SKILLS (see freeide-agent.nix), not via the
+            # Skills are shipped via JETTSTUI_BUNDLED_SKILLS /
+            # JETTSTUI_OPTIONAL_SKILLS (see jettstui.nix), not via the
             # wheel's data_files — setup.py's _data_file_tree returns []
             # for a missing dir, so the wheel builds fine without them.
             # This keeps SKILL.md edits from rebuilding the Python venv.
             "skills"
             "optional-skills"
             # locales/ and optional-mcps/ are bare data dirs (no
-            # __init__.py) shipped via symlinks + FREEIDE_BUNDLED_LOCALES
-            # / FREEIDE_OPTIONAL_MCPS, not via the wheel. Excluding them
+            # __init__.py) shipped via symlinks + JETTSTUI_BUNDLED_LOCALES
+            # / JETTSTUI_OPTIONAL_MCPS, not via the wheel. Excluding them
             # keeps catalog edits from rebuilding the Python venv.
             "locales"
             "optional-mcps"
@@ -133,7 +133,6 @@ let
           "AGENTS.md"
           "CONTRIBUTING.md"
           "SECURITY.md"
-          "README.zh-CN.md"
           ".gitignore"
           "setup-jetts-tui.sh"
         ];
@@ -229,10 +228,10 @@ in
   # e.g. apps/desktop depends on apps/shared.
   #
   # Usage:
-  #   npm = freeideNpmLib.mkNpmPassthru { dirs = [ "ui-tui" ]; };
-  #   npm = freeideNpmLib.mkNpmPassthru { dirs = [ "apps/desktop" "apps/shared" ]; };
+  #   npm = jettstuiNpmLib.mkNpmPassthru { dirs = [ "ui-tui" ]; };
+  #   npm = jettstuiNpmLib.mkNpmPassthru { dirs = [ "apps/desktop" "apps/shared" ]; };
   #   pkgs.buildNpmPackage (npm // {
-  #     pname = "freeide-tui";
+  #     pname = "jettstui-tui";
   #     inherit version;
   #     buildPhase = '' ... '';
   #     installPhase = '' ... '';

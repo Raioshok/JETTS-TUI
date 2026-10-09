@@ -1,6 +1,6 @@
 """Tests for the ``pinPeerName`` / ``pinUserPeer`` config flag.
 
-Under a gateway (Telegram, Discord, Slack, ...) FreeIDE passes the
+Under a gateway (Telegram, Discord, Slack, ...) JettsTUI passes the
 platform-native user ID as ``runtime_user_peer_name`` into
 ``HonchoSessionManager``.  By default that ID wins over any configured
 ``peer_name`` so multi-user bots scope memory per user.
@@ -41,7 +41,7 @@ class TestPinPeerNameConfigParsing:
             "peerName": "Igor",
             "pinPeerName": True,
         }))
-        monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / "isolated"))
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / "isolated"))
 
         config = HonchoClientConfig.from_global_config(config_path=config_file)
         assert config.pin_peer_name is True
@@ -54,10 +54,10 @@ class TestPinPeerNameConfigParsing:
             "apiKey": "k",
             "peerName": "Igor",
             "hosts": {
-                "freeide": {"pinPeerName": True},
+                "jettstui": {"pinPeerName": True},
             },
         }))
-        monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / "isolated"))
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / "isolated"))
 
         config = HonchoClientConfig.from_global_config(config_path=config_file)
         assert config.pin_peer_name is True
@@ -70,10 +70,10 @@ class TestPinPeerNameConfigParsing:
             "peerName": "Igor",
             "pinPeerName": True,
             "hosts": {
-                "freeide": {"pinPeerName": False},
+                "jettstui": {"pinPeerName": False},
             },
         }))
-        monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / "isolated"))
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / "isolated"))
 
         config = HonchoClientConfig.from_global_config(config_path=config_file)
         assert config.pin_peer_name is False, (
@@ -88,7 +88,7 @@ class TestPinPeerNameConfigParsing:
             "peerName": "Igor",
             "pinPeerName": False,
         }))
-        monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / "isolated"))
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / "isolated"))
 
         config = HonchoClientConfig.from_global_config(config_path=config_file)
         assert config.pin_peer_name is False
@@ -124,7 +124,7 @@ class TestRuntimePeerMappingConfigParsing:
             "apiKey": "k",
             "userPeerAliases": {"root-user": "root-peer"},
             "hosts": {
-                "freeide": {
+                "jettstui": {
                     "userPeerAliases": {"host-user": "host-peer"},
                 },
             },
@@ -140,7 +140,7 @@ class TestRuntimePeerMappingConfigParsing:
             "apiKey": "k",
             "userPeerAliases": {"root-user": "root-peer"},
             "hosts": {
-                "freeide": {
+                "jettstui": {
                     "userPeerAliases": {},
                 },
             },
@@ -156,7 +156,7 @@ class TestRuntimePeerMappingConfigParsing:
             "apiKey": "k",
             "runtimePeerPrefix": "telegram_",
             "hosts": {
-                "freeide": {
+                "jettstui": {
                     "runtimePeerPrefix": "",
                 },
             },
@@ -519,7 +519,7 @@ class TestPeerResolutionOrder:
             api_key="k",
             peer_name="Igor",
             pin_peer_name=True,
-            ai_peer="freeide-assistant",
+            ai_peer="jettstui-assistant",
             enabled=False,
             write_frequency="turn",
         )
@@ -532,11 +532,11 @@ class TestPeerResolutionOrder:
 
         session = mgr.get_or_create("telegram:7654321")
         assert session.user_peer_id == "Igor"
-        assert session.assistant_peer_id == "freeide-assistant"
+        assert session.assistant_peer_id == "jettstui-assistant"
 
 
 class TestCrossPlatformMemoryUnification:
-    """The same physical user talking to FreeIDE via Telegram AND Discord
+    """The same physical user talking to JettsTUI via Telegram AND Discord
     lands on ONE peer when ``pinPeerName`` is opted in.
     """
 
@@ -635,7 +635,7 @@ class TestPinUserPeerAlias:
             "apiKey": "***",
             "peerName": "eri",
             "pinPeerName": False,
-            "hosts": {"freeide": {"pinUserPeer": True}},
+            "hosts": {"jettstui": {"pinUserPeer": True}},
         }))
         config = HonchoClientConfig.from_global_config(config_path=config_file)
         assert config.pin_peer_name is True
@@ -648,7 +648,7 @@ class TestPinUserPeerAlias:
             "apiKey": "***",
             "peerName": "eri",
             "pinPeerName": True,
-            "hosts": {"freeide": {"pinUserPeer": False}},
+            "hosts": {"jettstui": {"pinUserPeer": False}},
         }))
         config = HonchoClientConfig.from_global_config(config_path=config_file)
         assert config.pin_peer_name is False, (
@@ -663,7 +663,7 @@ class TestPinUserPeerAlias:
         config_file.write_text(json.dumps({
             "apiKey": "***",
             "peerName": "eri",
-            "hosts": {"freeide": {"pinPeerName": True}},
+            "hosts": {"jettstui": {"pinPeerName": True}},
         }))
         config = HonchoClientConfig.from_global_config(config_path=config_file)
         assert config.pin_peer_name is True
@@ -742,7 +742,7 @@ class TestPinTransition:
         from gateway.run import GatewayRunner
 
         cfg_path = tmp_path / "honcho.json"
-        monkeypatch.setenv("FREEIDE_HOME", str(tmp_path))
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path))
 
         cfg_path.write_text(json.dumps({"apiKey": "k", "peerName": "Igor", "pinPeerName": True}))
         sig_pinned = GatewayRunner._extract_cache_busting_config({"memory": {"provider": "honcho"}})
@@ -756,7 +756,7 @@ class TestPinTransition:
         from gateway.run import GatewayRunner
 
         cfg_path = tmp_path / "honcho.json"
-        monkeypatch.setenv("FREEIDE_HOME", str(tmp_path))
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path))
 
         cfg_path.write_text(json.dumps({"apiKey": "k", "peerName": "Igor"}))
         sig_no_aliases = GatewayRunner._extract_cache_busting_config({"memory": {"provider": "honcho"}})
@@ -774,7 +774,7 @@ class TestPinTransition:
         from gateway.run import GatewayRunner
 
         cfg_path = tmp_path / "honcho.json"
-        monkeypatch.setenv("FREEIDE_HOME", str(tmp_path))
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path))
 
         cfg_path.write_text(json.dumps({"apiKey": "k", "peerName": "Igor"}))
         sig_no_prefix = GatewayRunner._extract_cache_busting_config({"memory": {"provider": "honcho"}})
@@ -798,12 +798,12 @@ class TestPinTransition:
         from gateway.run import GatewayRunner
 
         cfg_path = tmp_path / "honcho.json"
-        monkeypatch.setenv("FREEIDE_HOME", str(tmp_path))
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path))
 
         cfg_path.write_text(json.dumps({
             "apiKey": "k",
             "peerName": "Igor",
-            "aiPeer": "freeide",
+            "aiPeer": "jettstui",
         }))
         sig_before = GatewayRunner._extract_cache_busting_config({"memory": {"provider": "honcho"}})
 
@@ -818,10 +818,10 @@ class TestPinTransition:
 
 
 class TestProfilePeerUniqueness:
-    """Each FreeIDE profile can pin to its own unique peerName.
+    """Each JettsTUI profile can pin to its own unique peerName.
 
     Profile cloning copies host blocks, but operators routinely diverge them
-    afterwards (e.g. `freeide -p partner` pinned to a different person's peer).
+    afterwards (e.g. `jettstui -p partner` pinned to a different person's peer).
     The resolver must honor host-level ``peerName`` so two profiles in the
     same workspace stay scoped to different Honcho peers.
     """
@@ -868,16 +868,16 @@ class TestProfilePeerUniqueness:
             "apiKey": "k",
             "peerName": "default-user",
             "hosts": {
-                "freeide.partner": {
+                "jettstui.partner": {
                     "peerName": "partner-user",
                     "pinPeerName": True,
                 },
             },
         }))
-        monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / "isolated"))
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / "isolated"))
 
         cfg = HonchoClientConfig.from_global_config(
-            host="freeide.partner", config_path=config_file,
+            host="jettstui.partner", config_path=config_file,
         )
         assert cfg.peer_name == "partner-user"
         assert cfg.pin_peer_name is True

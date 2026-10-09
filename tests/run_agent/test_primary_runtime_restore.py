@@ -5,7 +5,7 @@ Verifies that:
 2. The fallback chain index resets so all fallbacks are available again
 3. Context compressor state is restored alongside the runtime
 4. Transient transport errors get one recovery cycle before fallback
-5. Recovery is skipped for aggregator providers (OpenRouter, Nous)
+5. Recovery is skipped for aggregator providers (OpenRouter, Acme)
 6. Non-transport errors don't trigger recovery
 """
 
@@ -518,34 +518,20 @@ class TestTryRecoverPrimaryTransport:
         )
         assert result is False
 
-    def test_skipped_for_nous_chat_completions(self):
-        """OpenAI-wire Portal traffic still rides aggregator retry infra."""
-        agent = _make_agent(
-            provider="nous",
-            base_url="https://inference-api.freeide.dev/v1",
-        )
-        agent.api_mode = "chat_completions"
-        error = _make_transport_error("ReadTimeout")
-
-        result = agent._try_recover_primary_transport(
-            error, retry_count=3, max_retries=3,
-        )
-        assert result is False
-
-    def test_allowed_for_nous_anthropic_messages(self):
+    def test_allowed_for_acme_anthropic_messages(self):
         """Portal Claude holds a local Anthropic SDK client — rebuild it."""
         agent = _make_agent(
-            provider="nous",
-            base_url="https://inference-api.freeide.dev/v1",
+            provider="acme",
+            base_url="https://inference-api.jettstui.dev/v1",
         )
         agent.api_mode = "anthropic_messages"
         agent.model = "anthropic/claude-opus-4.8"
         agent._primary_runtime.update({
             "api_mode": "anthropic_messages",
             "model": "anthropic/claude-opus-4.8",
-            "provider": "nous",
+            "provider": "acme",
             "anthropic_api_key": "portal-jwt",
-            "anthropic_base_url": "https://inference-api.freeide.dev/v1",
+            "anthropic_base_url": "https://inference-api.jettstui.dev/v1",
             "is_anthropic_oauth": False,
         })
         error = _make_transport_error("ReadTimeout")

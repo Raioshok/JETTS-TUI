@@ -8,7 +8,7 @@ const state = {
   sshUser: 'operator',
   sshPort: 2222,
   sshKeyPath: '/keys/linux',
-  sshRemoteFreeIDEPath: '/opt/freeide'
+  sshRemoteJettsTUIPath: '/opt/jettstui'
 }
 
 describe('selectSshHost', () => {
@@ -19,7 +19,7 @@ describe('selectSshHost', () => {
       sshUser: '',
       sshPort: null,
       sshKeyPath: '',
-      sshRemoteFreeIDEPath: ''
+      sshRemoteJettsTUIPath: ''
     })
   })
 
@@ -33,11 +33,11 @@ describe('selectSshHost', () => {
       enrichSelectedSshHost(selected, 'mac-box', {
         identityFile: '~/.ssh/id_ed25519',
         port: 22,
-        user: 'freeide'
+        user: 'jettstui'
       })
     ).toMatchObject({
       sshHost: 'mac-box',
-      sshUser: 'freeide',
+      sshUser: 'jettstui',
       sshPort: null,
       sshKeyPath: '~/.ssh/id_ed25519'
     })

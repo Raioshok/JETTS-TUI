@@ -23,8 +23,8 @@ import {
 } from '@/components/ui/sidebar'
 import { Tip, TipKeybindLabel } from '@/components/ui/tooltip'
 import { useContributions } from '@/contrib/react/use-contributions'
-import { searchSessions, type SessionInfo, type SessionSearchResult } from '@/freeide'
 import { useI18n } from '@/i18n'
+import { searchSessions, type SessionInfo, type SessionSearchResult } from '@/jettstui'
 import { comboTokens } from '@/lib/keybinds/combo'
 import { profileColor } from '@/lib/profile-color'
 import { sessionMatchesSearch } from '@/lib/session-search'
@@ -360,10 +360,10 @@ export function ChatSidebar({
       timeout = setTimeout(() => setNewSessionKbdFlash(false), 140)
     }
 
-    window.addEventListener('freeide:new-session-shortcut', onShortcut)
+    window.addEventListener('jettstui:new-session-shortcut', onShortcut)
 
     return () => {
-      window.removeEventListener('freeide:new-session-shortcut', onShortcut)
+      window.removeEventListener('jettstui:new-session-shortcut', onShortcut)
       clearTimeout(timeout)
     }
   }, [])
@@ -747,7 +747,7 @@ export function ChatSidebar({
   const [scopedRepoWorktrees] = useRepoWorktreeMap(scopedRepoPaths, inEnteredProject)
 
   // Re-probe worktree lanes on out-of-band git changes the renderer can't see.
-  // A turn can `git worktree add/remove` in the terminal (e.g. you ask FreeIDE to
+  // A turn can `git worktree add/remove` in the terminal (e.g. you ask JettsTUI to
   // "remove that worktree"), and the window never blurs during an in-app chat,
   // so nothing would otherwise re-run the visual probe. Re-sync when a working
   // session settles (its turn finished) or the window refocuses (an external

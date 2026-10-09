@@ -1,7 +1,7 @@
 {
   "name": "jetts-tui",
   "version": "1.0.0",
-  "description": "Jetts-TUI terminal-first AI workspace and agent runtime.",
+  "description": "JettsTUI terminal-first AI workspace and agent runtime.",
   "private": true,
   "repository": {
     "type": "git",
@@ -15,7 +15,6 @@
     "tests-js"
   ],
   "scripts": {
-    "postinstall": "echo '✅ Browser tools ready. Run: python run_agent.py --help'",
     "install:root": "npm install --workspaces=false",
     "install:web": "npm install --workspace web",
     "install:tui": "npm install --workspace ui-tui",

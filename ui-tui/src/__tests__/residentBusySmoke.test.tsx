@@ -82,14 +82,14 @@ describe('busy resident workspace smoke', () => {
     const lines = renderFrame()
     const frame = lines.join('\n')
 
-    expect(frame).toContain('SESSIONS')
+    expect(frame).toContain('Sessions')
     expect(frame).toContain('URL audit')
     expect(frame).toContain('＋ new session')
-    expect(frame).toContain('COMMS')
-    expect(frame).toContain('CHILD AGENTS')
+    expect(frame).toContain('Comms')
+    expect(frame).toContain('Child agents')
     expect(frame).toContain('3 active')
     expect(frame).toContain('Verify source 1')
-    expect(frame).toContain('INPUT → URL audit')
+    expect(frame).toContain('To URL audit')
     expect(frame).toContain('› type while busy')
   })
 
@@ -107,7 +107,7 @@ describe('busy resident workspace smoke', () => {
     function BusyComposer() {
       const [draft, setDraft] = useState('')
 
-      return <Box flexDirection="column" height={3}><Text>● STEER AGENT</Text><TextInput color={DEFAULT_THEME.color.text} columns={80} onChange={setDraft} onSubmit={submitted} value={draft} /></Box>
+      return <Box flexDirection="column" height={3}><Text>● Steer the agent</Text><TextInput color={DEFAULT_THEME.color.text} columns={80} onChange={setDraft} onSubmit={submitted} value={draft} /></Box>
     }
 
     const instance = renderSync(<BusyComposer />, {

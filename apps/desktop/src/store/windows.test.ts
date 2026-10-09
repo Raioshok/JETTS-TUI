@@ -2,8 +2,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { canOpenNewWindow, canOpenSessionWindow, openNewWindow, openSessionInNewWindow } from './windows'
 
-const desktopWindow = window as unknown as { freeideDesktop?: Window['freeideDesktop'] }
-const initialFreeIDEDesktop = desktopWindow.freeideDesktop
+const desktopWindow = window as unknown as { jettstuiDesktop?: Window['jettstuiDesktop'] }
+const initialJettsTUIDesktop = desktopWindow.jettstuiDesktop
 
 const notifyError = vi.fn()
 
@@ -12,13 +12,13 @@ vi.mock('./notifications', () => ({
 }))
 
 function installBridge(
-  openSessionWindow?: Window['freeideDesktop']['openSessionWindow'],
-  openWindow?: Window['freeideDesktop']['openWindow']
+  openSessionWindow?: Window['jettstuiDesktop']['openSessionWindow'],
+  openWindow?: Window['jettstuiDesktop']['openWindow']
 ) {
-  desktopWindow.freeideDesktop = {
+  desktopWindow.jettstuiDesktop = {
     ...(openSessionWindow ? { openSessionWindow } : {}),
     ...(openWindow ? { openWindow } : {})
-  } as unknown as Window['freeideDesktop']
+  } as unknown as Window['jettstuiDesktop']
 }
 
 beforeEach(() => {
@@ -26,16 +26,16 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  if (initialFreeIDEDesktop) {
-    desktopWindow.freeideDesktop = initialFreeIDEDesktop
+  if (initialJettsTUIDesktop) {
+    desktopWindow.jettstuiDesktop = initialJettsTUIDesktop
   } else {
-    delete desktopWindow.freeideDesktop
+    delete desktopWindow.jettstuiDesktop
   }
 })
 
 describe('canOpenSessionWindow', () => {
   it('is false when the desktop bridge is absent', () => {
-    delete desktopWindow.freeideDesktop
+    delete desktopWindow.jettstuiDesktop
     expect(canOpenSessionWindow()).toBe(false)
   })
 
@@ -62,7 +62,7 @@ describe('openSessionInNewWindow', () => {
   })
 
   it('no-ops gracefully when the bridge is absent (web fallback)', async () => {
-    delete desktopWindow.freeideDesktop
+    delete desktopWindow.jettstuiDesktop
 
     await openSessionInNewWindow('s1')
 
@@ -108,7 +108,7 @@ describe('openSessionInNewWindow', () => {
 
 describe('canOpenNewWindow', () => {
   it('is false when the desktop bridge is absent', () => {
-    delete desktopWindow.freeideDesktop
+    delete desktopWindow.jettstuiDesktop
     expect(canOpenNewWindow()).toBe(false)
   })
 
@@ -125,7 +125,7 @@ describe('canOpenNewWindow', () => {
 
 describe('openNewWindow', () => {
   it('no-ops gracefully when the bridge is absent (web fallback)', async () => {
-    delete desktopWindow.freeideDesktop
+    delete desktopWindow.jettstuiDesktop
 
     await openNewWindow()
 

@@ -45,15 +45,15 @@ from utils import base_url_host_matches, base_url_hostname
 import fire
 from rich.progress import Progress, SpinnerColumn, TextColumn, BarColumn, TaskProgressColumn, TimeElapsedColumn, TimeRemainingColumn
 from rich.console import Console
-from freeide_constants import OPENROUTER_BASE_URL, get_freeide_home
+from jettstui_constants import OPENROUTER_BASE_URL, get_jettstui_home
 from agent.retry_utils import jittered_backoff
 
-# Load .env from FREEIDE_HOME first, then project root as a dev fallback.
-from freeide_cli.env_loader import load_freeide_dotenv
+# Load .env from JETTSTUI_HOME first, then project root as a dev fallback.
+from jettstui.env_loader import load_jettstui_dotenv
 
-_freeide_home = get_freeide_home()
+_jettstui_home = get_jettstui_home()
 _project_env = Path(__file__).parent / ".env"
-load_freeide_dotenv(freeide_home=_freeide_home, project_env=_project_env)
+load_jettstui_dotenv(jettstui_home=_jettstui_home, project_env=_project_env)
 
 
 def _effective_temperature_for_model(
@@ -386,7 +386,7 @@ class TrajectoryCompressor:
             if client is None:
                 raise RuntimeError(
                     f"Provider '{provider}' is not configured. "
-                    f"Check your API key or run: freeide setup")
+                    f"Check your API key or run: jettstui setup")
             self.client = None  # Not used directly
             self.async_client = None  # Not used directly
         else:

@@ -15,10 +15,10 @@ import { atom } from 'nanostores'
 export const $zoomPercent = atom<number>(90)
 
 export function setZoomPercent(percent: number): void {
-  window.freeideDesktop?.zoom?.setPercent(percent)
+  window.jettstuiDesktop?.zoom?.setPercent(percent)
 }
 
-if (typeof window !== 'undefined' && window.freeideDesktop?.zoom) {
-  void window.freeideDesktop.zoom.get().then(({ percent }) => $zoomPercent.set(percent))
-  window.freeideDesktop.zoom.onChanged(({ percent }) => $zoomPercent.set(percent))
+if (typeof window !== 'undefined' && window.jettstuiDesktop?.zoom) {
+  void window.jettstuiDesktop.zoom.get().then(({ percent }) => $zoomPercent.set(percent))
+  window.jettstuiDesktop.zoom.onChanged(({ percent }) => $zoomPercent.set(percent))
 }

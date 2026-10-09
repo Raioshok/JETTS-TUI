@@ -1,6 +1,6 @@
 from unittest.mock import MagicMock, patch
 
-from cli import FreeIDECLI
+from cli import JettsTUICLI
 
 
 class _InsightsEngineStub:
@@ -18,10 +18,10 @@ class _InsightsEngineStub:
 
 
 def _run_show_insights(command: str):
-    cli_obj = FreeIDECLI.__new__(FreeIDECLI)
+    cli_obj = JettsTUICLI.__new__(JettsTUICLI)
     db = MagicMock()
     _InsightsEngineStub.calls = []
-    with patch("freeide_state.SessionDB", return_value=db), \
+    with patch("jettstui_state.SessionDB", return_value=db), \
          patch("agent.insights.InsightsEngine", _InsightsEngineStub):
         cli_obj._show_insights(command)
     return _InsightsEngineStub.calls, db

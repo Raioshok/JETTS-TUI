@@ -9,11 +9,11 @@ dispatch so the idle prompt doesn't read as "nothing happened".
 import json
 
 import cli
-from cli import FreeIDECLI
+from cli import JettsTUICLI
 
 
 def _make_cli():
-    cli_obj = FreeIDECLI.__new__(FreeIDECLI)
+    cli_obj = JettsTUICLI.__new__(JettsTUICLI)
     cli_obj._pending_edit_snapshots = {}
     return cli_obj
 

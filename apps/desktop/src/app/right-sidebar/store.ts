@@ -2,7 +2,7 @@ import { atom } from 'nanostores'
 
 import { persistBoolean, storedBoolean } from '@/lib/storage'
 
-const TAKEOVER_KEY = 'freeide.desktop.terminalTakeover'
+const TAKEOVER_KEY = 'jettstui.desktop.terminalTakeover'
 
 export const $terminalTakeover = atom(storedBoolean(TAKEOVER_KEY, false))
 
@@ -16,8 +16,8 @@ export const setTerminalTakeover = (active: boolean) => $terminalTakeover.set(ac
 export const $terminalInjection = atom<null | string>(null)
 
 /** Open the terminal pane and run a command in it. Used to disconnect external
- *  (CLI-managed) providers, which FreeIDE can't clear via the API — the user
- *  sees exactly what runs instead of FreeIDE silently deleting their creds. */
+ *  (CLI-managed) providers, which JettsTUI can't clear via the API — the user
+ *  sees exactly what runs instead of JettsTUI silently deleting their creds. */
 export const runInTerminal = (command: string) => {
   const trimmed = command.trim()
 

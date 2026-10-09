@@ -6,7 +6,7 @@
  * listens.
  */
 
-import type { RpcEvent } from '@/types/freeide'
+import type { RpcEvent } from '@/types/jettstui'
 
 export type GatewayEventListener = (event: RpcEvent) => void
 

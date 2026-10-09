@@ -105,7 +105,7 @@ export function useQuickEntryBridge({ startFreshSessionDraft, submitText }: Quic
       return
     }
 
-    const api = window.freeideDesktop?.quickEntry
+    const api = window.jettstuiDesktop?.quickEntry
 
     if (!api?.pushState) {
       return

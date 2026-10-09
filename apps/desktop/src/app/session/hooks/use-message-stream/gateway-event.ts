@@ -1,5 +1,5 @@
 import type { BillingBlock } from '@jetts-tui/shared'
-import type { FreeIDESkin } from '@jetts-tui/shared/skin'
+import type { JettsTUISkin } from '@jetts-tui/shared/skin'
 import type { QueryClient } from '@tanstack/react-query'
 import { type MutableRefObject, useCallback, useEffect, useRef } from 'react'
 
@@ -57,7 +57,7 @@ import { notifyWorkspaceChanged, toolChangedPath, toolMayMutateFiles } from '@/s
 // Leaf import (not the `@/themes` barrel) to avoid pulling the ThemeProvider
 // module graph into the gateway event hot path.
 import { ingestBackendSkin } from '@/themes/backend-sync'
-import type { RpcEvent } from '@/types/freeide'
+import type { RpcEvent } from '@/types/jettstui'
 
 import type { ClientSessionState } from '../../../types'
 
@@ -71,8 +71,8 @@ function firstBillingLine(text: string): string {
  * A turn failed on a billing wall (out of credits / payment required). The
  * gateway forwards the structured descriptor built by `agent/billing_links.py`;
  * we cache it per-session (drives the in-chat banner) AND raise one sticky,
- * billing-specific toast — never the generic "FreeIDE error" — with a smart CTA
- * (Nous → in-app Settings → Billing, other providers → their billing page).
+ * billing-specific toast — never the generic "JettsTUI error" — with a smart CTA
+ * (in-app billing when the provider supports it, otherwise its billing page).
  */
 function surfaceBillingBlock(sessionId: string, raw: unknown): void {
   if (!raw || typeof raw !== 'object') {
@@ -97,9 +97,7 @@ function surfaceBillingBlock(sessionId: string, raw: unknown): void {
     id: `billing-block:${block.provider}`,
     kind: 'warning',
     icon: 'credit-card',
-    title: block.is_nous
-      ? translateNow('billingBlock.titleNous')
-      : translateNow('billingBlock.titleProvider', block.provider_label),
+    title: translateNow('billingBlock.titleProvider', block.provider_label),
     message: firstBillingLine(block.message) || translateNow('billingBlock.fallbackMessage'),
     // Sticky: a credit wall blocks every turn until resolved.
     durationMs: 0,
@@ -163,7 +161,7 @@ interface GatewayEventDeps {
   flushQueuedDeltas: (sessionId?: string) => void
   finalizeInterimAssistantMessage: (sessionId: string, text: string) => void
   queryClient: QueryClient
-  refreshFreeIDEConfig: () => Promise<void>
+  refreshJettsTUIConfig: () => Promise<void>
   sessionInterrupted: (sessionId: string) => boolean
   sessionStateByRuntimeIdRef: MutableRefObject<Map<string, ClientSessionState>>
   updateSessionState: (
@@ -194,7 +192,7 @@ export function useGatewayEventHandler(deps: GatewayEventDeps) {
     flushQueuedDeltas,
     finalizeInterimAssistantMessage,
     queryClient,
-    refreshFreeIDEConfig,
+    refreshJettsTUIConfig,
     sessionInterrupted,
     sessionStateByRuntimeIdRef,
     updateSessionState,
@@ -205,7 +203,7 @@ export function useGatewayEventHandler(deps: GatewayEventDeps) {
 
   // session.info arrives in bursts (agent build ready + turn end + title /
   // MCP / compress edges within the same second). Each used to fire its own
-  // refreshFreeIDEConfig — two REST calls (config + defaults) per event, per
+  // refreshJettsTUIConfig — two REST calls (config + defaults) per event, per
   // turn, including for BACKGROUND sessions whose values the fetch can't even
   // apply. Coalesce to one trailing fetch per burst; the caller gates on
   // `apply` so background traffic doesn't schedule anything.
@@ -217,16 +215,16 @@ export function useGatewayEventHandler(deps: GatewayEventDeps) {
     }
 
     if (typeof window === 'undefined') {
-      void refreshFreeIDEConfig()
+      void refreshJettsTUIConfig()
 
       return
     }
 
     configRefreshTimerRef.current = window.setTimeout(() => {
       configRefreshTimerRef.current = null
-      void refreshFreeIDEConfig()
+      void refreshJettsTUIConfig()
     }, 300)
-  }, [refreshFreeIDEConfig])
+  }, [refreshJettsTUIConfig])
 
   useEffect(
     () => () => {
@@ -274,17 +272,17 @@ export function useGatewayEventHandler(deps: GatewayEventDeps) {
       if (event.type === 'gateway.ready') {
         // Seed the active skin into the desktop theme registry without applying,
         // so a fresh connect never overrides the user's persisted desktop theme.
-        ingestBackendSkin((payload as { skin?: FreeIDESkin } | undefined)?.skin, { apply: false })
+        ingestBackendSkin((payload as { skin?: JettsTUISkin } | undefined)?.skin, { apply: false })
 
         return
       } else if (event.type === 'skin.changed') {
-        // A runtime skin switch (FreeIDE activating an authored skin, or `/skin`
+        // A runtime skin switch (JettsTUI activating an authored skin, or `/skin`
         // on another surface). Only the active profile's change repaints.
         const fromActiveProfile =
           !event.profile || normalizeProfileKey(event.profile) === normalizeProfileKey($activeGatewayProfile.get())
 
         if (fromActiveProfile) {
-          ingestBackendSkin(payload as FreeIDESkin | undefined, { apply: true })
+          ingestBackendSkin(payload as JettsTUISkin | undefined, { apply: true })
         }
 
         return
@@ -449,7 +447,7 @@ export function useGatewayEventHandler(deps: GatewayEventDeps) {
         if (apply) {
           reportInstallMethodWarning(payload?.install_warning)
           // Config refetch is only meaningful for the foreground context —
-          // everything refreshFreeIDEConfig applies is either active-session
+          // everything refreshJettsTUIConfig applies is either active-session
           // guarded or a composer/global pref. Background sessions' heartbeats
           // used to trigger it too (two REST calls each, every turn).
           scheduleConfigRefresh()
@@ -653,7 +651,7 @@ export function useGatewayEventHandler(deps: GatewayEventDeps) {
         const failure =
           payload?.status === 'error'
             ? {
-                error: coerceGatewayText(payload.error).trim() || finalText || 'FreeIDE reported an error',
+                error: coerceGatewayText(payload.error).trim() || finalText || 'JettsTUI reported an error',
                 partial: Boolean(payload.partial)
               }
             : undefined
@@ -1005,7 +1003,7 @@ export function useGatewayEventHandler(deps: GatewayEventDeps) {
         showAgentNotice(notice)
 
         // The urgent pair (access paused / restored) also breaks through as a
-        // native OS notification when FreeIDE is backgrounded; dispatch is gated
+        // native OS notification when JettsTUI is backgrounded; dispatch is gated
         // by the user's notification prefs + backgrounded check.
         const native = nativeNoticeInput(notice, translateNow('notifications.native.creditsTitle'))
 
@@ -1025,7 +1023,7 @@ export function useGatewayEventHandler(deps: GatewayEventDeps) {
         // straight to dismissNotification(key).
         clearAgentNotice((event.payload as AgentNoticePayload | undefined)?.key)
       } else if (event.type === 'error') {
-        const errorMessage = payload?.message || 'FreeIDE reported an error'
+        const errorMessage = payload?.message || 'JettsTUI reported an error'
         const looksLikeProviderSetup = isProviderSetupErrorMessage(errorMessage)
 
         // A turn that errors out has also ended — drop any open blocking prompt
@@ -1061,7 +1059,7 @@ export function useGatewayEventHandler(deps: GatewayEventDeps) {
           notify({
             id: `gateway-error:${errorMessage}`,
             kind: 'error',
-            title: 'FreeIDE error',
+            title: 'JettsTUI error',
             message: errorMessage
           })
         }

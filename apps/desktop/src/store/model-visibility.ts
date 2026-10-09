@@ -1,9 +1,9 @@
 import { atom } from 'nanostores'
 
 import { persistString, storedString } from '@/lib/storage'
-import type { ModelOptionProvider } from '@/types/freeide'
+import type { ModelOptionProvider } from '@/types/jettstui'
 
-const STORAGE_KEY = 'freeide.desktop.visible-models'
+const STORAGE_KEY = 'jettstui.desktop.visible-models'
 
 /** Models shown per provider in the status-bar dropdown before the user has
  *  customized the list. Backend `models` are already relevance-ordered. */

@@ -1,7 +1,7 @@
 # ComfyUI Workflow-Template Integrity
 
 > **Authored by [@purzbeats](https://github.com/purzbeats)** — adapted from
-> [purzbeats/freeide-agent-comfyui-helper](https://github.com/purzbeats/freeide-agent-comfyui-helper).
+> [purzbeats/jettstui-comfyui-helper](https://github.com/purzbeats/jettstui-comfyui-helper).
 > Use this reference when converting workflows from the official
 > `comfyui-workflow-templates` package (editor format) into API format for
 > submission via `/api/prompt`. The conversion has subtle gotchas that cause

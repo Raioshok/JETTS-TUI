@@ -2,14 +2,14 @@
  * backend-probes.ts
  *
  * Cheap "does this candidate backend actually work" checks used by
- * resolveFreeIDEBackend (main.ts). The resolver walks a ladder of
- * candidates -- bootstrap marker, `freeide` on PATH, system Python with
- * freeide_cli installed -- and historically returned the first candidate
+ * resolveJettsTUIBackend (main.ts). The resolver walks a ladder of
+ * candidates -- bootstrap marker, `jettstui` on PATH, system Python with
+ * jettstui installed -- and historically returned the first candidate
  * whose binary existed on disk. That assumption breaks when a user has
  * a pre-installed Python 3.11-3.13 (so findSystemPython() returns a
- * path) but no freeide_cli in its site-packages: the resolver hands back
+ * path) but no jettstui in its site-packages: the resolver hands back
  * a backend the spawn step can't actually run, and the user gets a
- * dead-on-arrival "ModuleNotFoundError: No module named 'freeide_cli'"
+ * dead-on-arrival "ModuleNotFoundError: No module named 'jettstui'"
  * instead of the first-launch installer.
  *
  * These probes give the resolver a way to verify a candidate before
@@ -23,7 +23,7 @@
  *   - 5s timeout (a hung interpreter beats forever, but we still give
  *     slow disks / cold caches room to breathe)
  *   - stdio ignored (we only care about exit code; stdout/stderr are
- *     not surfaced to the user, just to recentFreeIDELog for forensics
+ *     not surfaced to the user, just to recentJettsTUILog for forensics
  *     via the caller's catch block if it chooses)
  *   - any throw -> false (never propagate -- resolver wants a boolean)
  *
@@ -37,27 +37,27 @@ import { execFileSync } from 'node:child_process'
 const PROBE_TIMEOUT_MS = 5000
 
 /**
- * Return the Python snippet used to verify FreeIDE can import far enough to
+ * Return the Python snippet used to verify JettsTUI can import far enough to
  * launch the CLI. Kept exported for tests so dependency regressions are
  * caught without needing a real broken venv fixture.
  *
  * @returns {string}
  */
-function freeideRuntimeImportProbe() {
-  return 'import yaml; import dotenv; import freeide_cli.config'
+function jettstuiRuntimeImportProbe() {
+  return 'import yaml; import dotenv; import jettstui.config'
 }
 
 /**
- * Return true iff the FreeIDE runtime import probe exits 0.
+ * Return true iff the JettsTUI runtime import probe exits 0.
  *
- * Used to gate the "fallback to system Python with freeide_cli installed"
- * rung of resolveFreeIDEBackend. Without this, a system Python 3.11-3.13
+ * Used to gate the "fallback to system Python with jettstui installed"
+ * rung of resolveJettsTUIBackend. Without this, a system Python 3.11-3.13
  * registered in PEP 514 makes findSystemPython() succeed regardless of
- * whether freeide_cli has actually been pip-installed into its
+ * whether jettstui has actually been pip-installed into its
  * site-packages -- and the resolver returns a backend that immediately
  * dies on spawn.
  *
- * The probe intentionally imports freeide_cli.config, not just the top-level
+ * The probe intentionally imports jettstui.config, not just the top-level
  * package: a broken/empty Windows launcher venv can still see the source tree
  * through PYTHONPATH but lack PyYAML, then die on the first real CLI import.
  *
@@ -65,13 +65,13 @@ function freeideRuntimeImportProbe() {
  * @param {object} [opts.env] - Additional environment for the probe.
  * @returns {boolean}
  */
-function canImportFreeIDECli(pythonPath: string, opts: { env?: Record<string, string> } = {}) {
+function canImportJettsTUICli(pythonPath: string, opts: { env?: Record<string, string> } = {}) {
   if (!pythonPath) {
     return false
   }
 
   try {
-    execFileSync(pythonPath, ['-c', freeideRuntimeImportProbe()], {
+    execFileSync(pythonPath, ['-c', jettstuiRuntimeImportProbe()], {
       env: { ...process.env, ...(opts.env || {}) },
       stdio: 'ignore',
       timeout: PROBE_TIMEOUT_MS,
@@ -85,42 +85,42 @@ function canImportFreeIDECli(pythonPath: string, opts: { env?: Record<string, st
 }
 
 /**
- * Return true iff `<freeideCommand> --version` exits 0.
+ * Return true iff `<jettstuiCommand> --version` exits 0.
  *
- * Used to gate the "existing `freeide` on PATH" rung. Without this, a
- * stale freeide.cmd shim left behind by an uninstalled pip install (or
- * a half-built venv whose `freeide` entry-point points at a deleted
+ * Used to gate the "existing `jettstui` on PATH" rung. Without this, a
+ * stale jettstui.cmd shim left behind by an uninstalled pip install (or
+ * a half-built venv whose `jettstui` entry-point points at a deleted
  * Python) survives findOnPath() and gets selected as the backend.
  *
  * We intentionally avoid invoking the command with the dashboard args
  * here -- `--version` is the cheapest "is this binary alive" smoke
- * test that every freeide_cli entry-point has supported since 0.1.
+ * test that every jettstui entry-point has supported since 0.1.
  *
- * @param {string} freeideCommand - Resolved absolute path to a freeide
+ * @param {string} jettstuiCommand - Resolved absolute path to a jettstui
  *   executable (or an interpreter+script wrapper).
  * @param {boolean} [opts.shell] - Whether to run through a shell. For
  *   .cmd/.bat shims on Windows execFileSync needs shell:true to find
  *   the cmd interpreter; mirrors the same flag isCommandScript() drives
- *   in resolveFreeIDEBackend.
+ *   in resolveJettsTUIBackend.
  * @returns {boolean}
  */
 /**
  * An explicit desktop backend command is a deployment contract, not a PATH
  * discovery candidate. In particular, the Nix desktop wrapper points this at
- * its immutable, matching FreeIDE package; it must never fall through to the
+ * its immutable, matching JettsTUI package; it must never fall through to the
  * mutable install-script bootstrap path if a best-effort probe is slow.
  */
-function shouldTrustFreeIDEOverride(freeideOverride?: string) {
-  return typeof freeideOverride === 'string' && freeideOverride.trim().length > 0
+function shouldTrustJettsTUIOverride(jettstuiOverride?: string) {
+  return typeof jettstuiOverride === 'string' && jettstuiOverride.trim().length > 0
 }
 
-function verifyFreeIDECli(freeideCommand: string, opts?: { shell?: boolean }) {
-  if (!freeideCommand) {
+function verifyJettsTUICli(jettstuiCommand: string, opts?: { shell?: boolean }) {
+  if (!jettstuiCommand) {
     return false
   }
 
   try {
-    execFileSync(freeideCommand, ['--version'], {
+    execFileSync(jettstuiCommand, ['--version'], {
       stdio: 'ignore',
       timeout: PROBE_TIMEOUT_MS,
       shell: Boolean(opts?.shell),
@@ -133,4 +133,4 @@ function verifyFreeIDECli(freeideCommand: string, opts?: { shell?: boolean }) {
   }
 }
 
-export { canImportFreeIDECli, freeideRuntimeImportProbe, PROBE_TIMEOUT_MS, shouldTrustFreeIDEOverride, verifyFreeIDECli }
+export { canImportJettsTUICli, jettstuiRuntimeImportProbe, PROBE_TIMEOUT_MS, shouldTrustJettsTUIOverride, verifyJettsTUICli }

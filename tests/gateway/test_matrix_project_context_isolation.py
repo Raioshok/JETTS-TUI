@@ -12,7 +12,7 @@ import pytest
 
 from gateway.config import GatewayConfig, Platform, PlatformConfig
 from gateway.platforms.base import MessageEvent
-from freeide_state import AsyncSessionDB
+from jettstui_state import AsyncSessionDB
 from gateway.session import (
     SessionContext,
     SessionEntry,
@@ -207,9 +207,9 @@ async def test_matrix_project_context_survives_concurrent_messages():
         try:
             await asyncio.sleep(0)
             return SimpleNamespace(
-                chat_id=get_session_env("FREEIDE_SESSION_CHAT_ID"),
-                chat_name=get_session_env("FREEIDE_SESSION_CHAT_NAME"),
-                session_key=get_session_env("FREEIDE_SESSION_KEY"),
+                chat_id=get_session_env("JETTSTUI_SESSION_CHAT_ID"),
+                chat_name=get_session_env("JETTSTUI_SESSION_CHAT_NAME"),
+                session_key=get_session_env("JETTSTUI_SESSION_KEY"),
             )
         finally:
             runner._clear_session_env(tokens)

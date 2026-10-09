@@ -1,17 +1,17 @@
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { FreeIDEReadDirResult } from '@/global'
+import type { JettsTUIReadDirResult } from '@/global'
 import { $connection, setCurrentCwd } from '@/store/session'
 
 import { resetProjectTreeState } from './files/use-project-tree'
 
 import { RightSidebarPane } from './index'
 
-const readDir = vi.fn<(path: string) => Promise<FreeIDEReadDirResult>>()
+const readDir = vi.fn<(path: string) => Promise<JettsTUIReadDirResult>>()
 
 function installBridge() {
-  ;(window as unknown as { freeideDesktop: { readDir: typeof readDir } }).freeideDesktop = { readDir }
+  ;(window as unknown as { jettstuiDesktop: { readDir: typeof readDir } }).jettstuiDesktop = { readDir }
 }
 
 describe('RightSidebarPane', () => {
@@ -28,7 +28,7 @@ describe('RightSidebarPane', () => {
     $connection.set(null)
     setCurrentCwd('')
     resetProjectTreeState()
-    delete (window as unknown as { freeideDesktop?: unknown }).freeideDesktop
+    delete (window as unknown as { jettstuiDesktop?: unknown }).jettstuiDesktop
   })
 
   it('renders the tree whenever the session has a working dir (repo or not) — no picker', async () => {

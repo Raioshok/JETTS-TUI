@@ -35,23 +35,15 @@ interface ProviderPrefix {
   priority: number
 }
 
-export const EMPTY_SELECT_VALUE = '__freeide_empty__'
+export const EMPTY_SELECT_VALUE = '__jettstui_empty__'
 export const CONTROL_TEXT = 'text-xs'
 
 export const PROVIDER_GROUPS: ProviderPrefix[] = [
-  {
-    prefix: 'NOUS_',
-    name: 'FreeIDE Portal',
-    description: 'Hosted FreeIDE models',
-    docsUrl: 'https://portal.freeide.dev',
-    priority: 0
-  },
   {
     prefix: 'FIREWORKS_',
     name: 'Fireworks AI',
     description: 'OpenAI-compatible direct model API',
     docsUrl: 'https://app.fireworks.ai/settings/users/api-keys',
-    // Slot #2 — mirrors CANONICAL_PROVIDERS (after FreeIDE, ahead of OpenRouter).
     // Same numeric priority as OpenRouter; name sort puts Fireworks first.
     priority: 1
   },
@@ -98,7 +90,7 @@ export const PROVIDER_GROUPS: ProviderPrefix[] = [
     docsUrl: 'https://modelstudio.console.alibabacloud.com/',
     priority: 6
   },
-  { prefix: 'FREEIDE_QWEN_', name: 'DashScope (Qwen)', priority: 6 },
+  { prefix: 'JETTSTUI_QWEN_', name: 'DashScope (Qwen)', priority: 6 },
   {
     prefix: 'GLM_',
     name: 'GLM / Z.AI',
@@ -261,7 +253,7 @@ export const ENUM_OPTIONS: Record<string, string[]> = {
   'stt.elevenlabs.model_id': ['scribe_v2', 'scribe_v1'],
   'stt.local.model': ['tiny', 'base', 'small', 'medium', 'large-v3'],
   // Speech-to-text backends — kept in sync with the stt block in
-  // freeide_cli/config.py (local/groq/openai/mistral/elevenlabs).
+  // jettstui/config.py (local/groq/openai/mistral/elevenlabs).
   'stt.provider': ['local', 'groq', 'openai', 'mistral', 'xai', 'elevenlabs'],
   // gpt-4o-mini-tts voice set (the tts-1 era stopped at shimmer). Free-input
   // field — the list is suggestions, not a gate (see FREE_INPUT_KEYS).
@@ -564,10 +556,10 @@ export const FIELD_DESCRIPTIONS: Record<string, string> = defineFieldCopy({
     repoScanRoots: 'Folders to scan. Leave empty to scan your home directory.',
     repoScanExcludePaths: 'Folders and their descendants to skip during repository discovery.'
   },
-  timezone: 'Used when FreeIDE needs local time context. Blank uses the system timezone.',
+  timezone: 'Used when JettsTUI needs local time context. Blank uses the system timezone.',
   agent: {
     imageInputMode: 'Controls how image attachments are sent to the model.',
-    maxTurns: 'Upper bound for tool-calling turns before FreeIDE stops a run.'
+    maxTurns: 'Upper bound for tool-calling turns before JettsTUI stops a run.'
   },
   terminal: {
     cwd: 'Default project folder for tool and terminal work.',
@@ -581,9 +573,9 @@ export const FIELD_DESCRIPTIONS: Record<string, string> = defineFieldCopy({
   codeExecution: {
     mode: 'How strictly code execution is scoped to the current project.'
   },
-  fileReadMaxChars: 'Maximum characters FreeIDE can read from one file request.',
+  fileReadMaxChars: 'Maximum characters JettsTUI can read from one file request.',
   approvals: {
-    mode: 'How FreeIDE handles commands that need explicit approval.',
+    mode: 'How JettsTUI handles commands that need explicit approval.',
     timeout: 'How long approval prompts wait before timing out.'
   },
   security: {
@@ -628,7 +620,7 @@ export const FIELD_DESCRIPTIONS: Record<string, string> = defineFieldCopy({
   },
   updates: {
     nonInteractiveLocalChanges:
-      'When FreeIDE updates itself from the app (no terminal prompt), keep local source edits (stash) or throw them away (discard). Terminal updates always ask.'
+      'When JettsTUI updates itself from the app (no terminal prompt), keep local source edits (stash) or throw them away (discard). Terminal updates always ask.'
   }
 })
 

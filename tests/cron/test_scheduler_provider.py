@@ -1,7 +1,7 @@
 """Characterization tests for the cron trigger before/after the provider refactor.
 
 These lock the CURRENT in-process-ticker contract (Phase 0 of the pluggable
-CronScheduler plan, .freeide/plans/cron-scheduler-provider-interface.md). They
+CronScheduler plan, .jettstui/plans/cron-scheduler-provider-interface.md). They
 must pass unchanged on `main` now, and after every subsequent phase of the
 refactor — they are the regression harness that proves the built-in firing
 behavior is byte-for-byte preserved when the ticker is moved behind the
@@ -9,7 +9,7 @@ CronScheduler provider interface.
 
 No production code is exercised beyond the two ticker entry points:
   - gateway/run.py::_start_cron_ticker        (production gateway ticker)
-  - freeide_cli/web_server.py::_start_desktop_cron_ticker  (desktop fallback)
+  - jettstui/web_server.py::_start_desktop_cron_ticker  (desktop fallback)
 
 Both call `cron.scheduler.tick(...)` on a loop and exit when their stop_event
 is set. We patch `cron.scheduler.tick` (both tickers import it locally as
@@ -75,7 +75,7 @@ def test_desktop_ticker_calls_tick_then_stops():
     """The desktop dashboard ticker loop calls cron.scheduler.tick and exits
     once the stop_event is set. Desktop has no live adapters, so it ticks with
     no adapters/loop."""
-    from freeide_cli.web_server import _start_desktop_cron_ticker
+    from jettstui.web_server import _start_desktop_cron_ticker
 
     calls = []
     stop = threading.Event()
@@ -212,21 +212,18 @@ def test_inprocess_provider_stop_is_noop():
 
 def test_default_config_cron_provider_is_empty():
     """The new cron.provider key defaults to empty (= built-in)."""
-    from freeide_cli.config import DEFAULT_CONFIG
+    from jettstui.config import DEFAULT_CONFIG
 
     assert DEFAULT_CONFIG["cron"]["provider"] == ""
 
 
 def test_discover_cron_schedulers_returns_list():
-    """Discovery returns bundled non-default providers.
-
-    The built-in is core, not discovered here.
-    """
+    """Discovery remains available without a bundled hosted provider."""
     from plugins.cron_providers import discover_cron_schedulers
 
     result = discover_cron_schedulers()
     assert isinstance(result, list)
-    assert any(name == "chronos" for name, _desc, _available in result)
+    assert all(name != "chronos" for name, _desc, _available in result)
 
 
 def test_load_unknown_cron_scheduler_returns_none():
@@ -256,7 +253,7 @@ def test_cron_provider_package_does_not_shadow_core_cron_package(monkeypatch):
 
 def test_resolve_defaults_to_builtin(monkeypatch):
     """Empty cron.provider → built-in."""
-    import freeide_cli.config as cfg
+    import jettstui.config as cfg
     from cron import scheduler_provider as sp
 
     monkeypatch.setattr(cfg, "load_config", lambda: {"cron": {"provider": ""}})
@@ -266,7 +263,7 @@ def test_resolve_defaults_to_builtin(monkeypatch):
 
 def test_resolve_no_cron_section_falls_back_to_builtin(monkeypatch):
     """Config with no cron section at all → built-in (cfg_get returns default)."""
-    import freeide_cli.config as cfg
+    import jettstui.config as cfg
     from cron import scheduler_provider as sp
 
     monkeypatch.setattr(cfg, "load_config", lambda: {})
@@ -276,7 +273,7 @@ def test_resolve_no_cron_section_falls_back_to_builtin(monkeypatch):
 
 def test_resolve_unknown_provider_falls_back_to_builtin(monkeypatch):
     """A named provider that doesn't exist → built-in (cron never dies)."""
-    import freeide_cli.config as cfg
+    import jettstui.config as cfg
     from cron import scheduler_provider as sp
 
     monkeypatch.setattr(cfg, "load_config", lambda: {"cron": {"provider": "nope-not-real"}})
@@ -286,7 +283,7 @@ def test_resolve_unknown_provider_falls_back_to_builtin(monkeypatch):
 
 def test_resolve_unavailable_provider_falls_back(monkeypatch):
     """A provider that loads but reports is_available()==False → built-in."""
-    import freeide_cli.config as cfg
+    import jettstui.config as cfg
     import plugins.cron_providers as pc
     from cron import scheduler_provider as sp
     from cron.scheduler_provider import CronScheduler
@@ -310,7 +307,7 @@ def test_resolve_unavailable_provider_falls_back(monkeypatch):
 
 def test_resolve_available_provider_is_used(monkeypatch):
     """A provider that loads and is available is returned (not the fallback)."""
-    import freeide_cli.config as cfg
+    import jettstui.config as cfg
     import plugins.cron_providers as pc
     from cron import scheduler_provider as sp
     from cron.scheduler_provider import CronScheduler
@@ -556,9 +553,9 @@ def test_cron_status_reports_alive_but_failing(tmp_path, monkeypatch, capsys):
     """cron_status warns when the ticker is alive (fresh heartbeat) but no tick
     has succeeded recently (#32612: alive-but-failing must not look healthy)."""
     import cron.jobs as jobs
-    from freeide_cli import cron as cron_cli
+    from jettstui import cron as cron_cli
 
-    monkeypatch.setattr("freeide_cli.gateway.find_gateway_pids", lambda: [4321])
+    monkeypatch.setattr("jettstui.gateway.find_gateway_pids", lambda: [4321])
     monkeypatch.setattr(jobs, "get_ticker_heartbeat_age", lambda: 5.0)      # fresh
     monkeypatch.setattr(jobs, "get_ticker_success_age", lambda: 9_999.0)    # stale
     monkeypatch.setattr("cron.jobs.list_jobs", lambda **k: [])
@@ -571,9 +568,9 @@ def test_cron_status_reports_alive_but_failing(tmp_path, monkeypatch, capsys):
 
 def test_cron_status_healthy_when_both_fresh(tmp_path, monkeypatch, capsys):
     import cron.jobs as jobs
-    from freeide_cli import cron as cron_cli
+    from jettstui import cron as cron_cli
 
-    monkeypatch.setattr("freeide_cli.gateway.find_gateway_pids", lambda: [4321])
+    monkeypatch.setattr("jettstui.gateway.find_gateway_pids", lambda: [4321])
     monkeypatch.setattr(jobs, "get_ticker_heartbeat_age", lambda: 5.0)
     monkeypatch.setattr(jobs, "get_ticker_success_age", lambda: 5.0)
     monkeypatch.setattr("cron.jobs.list_jobs", lambda **k: [])
@@ -585,9 +582,9 @@ def test_cron_status_healthy_when_both_fresh(tmp_path, monkeypatch, capsys):
 
 def test_cron_status_reports_stalled_when_no_heartbeat(tmp_path, monkeypatch, capsys):
     import cron.jobs as jobs
-    from freeide_cli import cron as cron_cli
+    from jettstui import cron as cron_cli
 
-    monkeypatch.setattr("freeide_cli.gateway.find_gateway_pids", lambda: [4321])
+    monkeypatch.setattr("jettstui.gateway.find_gateway_pids", lambda: [4321])
     monkeypatch.setattr(jobs, "get_ticker_heartbeat_age", lambda: 9_999.0)  # dead
     monkeypatch.setattr(jobs, "get_ticker_success_age", lambda: 9_999.0)
     monkeypatch.setattr("cron.jobs.list_jobs", lambda **k: [])
@@ -619,7 +616,7 @@ class TestGuardJobCredentialExfil:
 
     def test_named_custom_offhost_is_blocked(self, monkeypatch):
         import pytest
-        import freeide_cli.runtime_provider as rp
+        import jettstui.runtime_provider as rp
         from cron.scheduler import _guard_job_credential_exfil
 
         monkeypatch.setattr(rp, "has_named_custom_provider", lambda n: True)
@@ -634,7 +631,7 @@ class TestGuardJobCredentialExfil:
             _guard_job_credential_exfil(job)
 
     def test_named_custom_matching_host_is_allowed(self, monkeypatch):
-        import freeide_cli.runtime_provider as rp
+        import jettstui.runtime_provider as rp
         from cron.scheduler import _guard_job_credential_exfil
 
         monkeypatch.setattr(rp, "has_named_custom_provider", lambda n: True)
@@ -749,7 +746,7 @@ def test_multiplex_ticker_ticks_each_profile_once(tmp_path, monkeypatch):
 
 def test_multiplex_heartbeat_scoped_per_profile(tmp_path, monkeypatch):
     """record_ticker_heartbeat is scoped to each profile's store under
-    multiplex, so 'freeide cron status' can report liveness per profile."""
+    multiplex, so 'jettstui cron status' can report liveness per profile."""
     from cron.scheduler_provider import InProcessCronScheduler
     from cron.jobs import record_ticker_heartbeat as _real_heartbeat
 

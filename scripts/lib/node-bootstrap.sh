@@ -7,26 +7,26 @@
 #
 # Strategy (first hit wins — respects the user's existing tooling):
 #   1. modern `node` already on PATH
-#   2. ~/.freeide/node/ from a prior FreeIDE-managed install
+#   2. ~/.jettstui/node/ from a prior JettsTUI-managed install
 #   3. fnm, proto, nvm (in that order) if the user already uses a version manager
 #   4. Termux `pkg`, macOS Homebrew
-#   5. pinned nodejs.org tarball into ~/.freeide/node/ (always works, zero shell rc edits)
+#   5. pinned nodejs.org tarball into ~/.jettstui/node/ (always works, zero shell rc edits)
 #
 # Usage:
 #   source scripts/lib/node-bootstrap.sh
 #   ensure_node   # returns 0 on success, non-zero on failure
-#   if [ "$FREEIDE_NODE_AVAILABLE" = true ]; then ...; fi
+#   if [ "$JETTSTUI_NODE_AVAILABLE" = true ]; then ...; fi
 #
 # Env inputs (set before sourcing to override defaults):
-#   FREEIDE_NODE_MIN_VERSION   (default: 20)   — accepted on PATH
-#   FREEIDE_NODE_TARGET_MAJOR  (default: 22)   — installed when we install
-#   FREEIDE_HOME               (default: $HOME/.freeide)
+#   JETTSTUI_NODE_MIN_VERSION   (default: 20)   — accepted on PATH
+#   JETTSTUI_NODE_TARGET_MAJOR  (default: 22)   — installed when we install
+#   JETTSTUI_HOME               (default: $HOME/.jettstui)
 # ============================================================================
 
-FREEIDE_NODE_MIN_VERSION="${FREEIDE_NODE_MIN_VERSION:-20}"
-FREEIDE_NODE_TARGET_MAJOR="${FREEIDE_NODE_TARGET_MAJOR:-22}"
-FREEIDE_HOME="${FREEIDE_HOME:-$HOME/.freeide}"
-FREEIDE_NODE_AVAILABLE=false
+JETTSTUI_NODE_MIN_VERSION="${JETTSTUI_NODE_MIN_VERSION:-20}"
+JETTSTUI_NODE_TARGET_MAJOR="${JETTSTUI_NODE_TARGET_MAJOR:-22}"
+JETTSTUI_HOME="${JETTSTUI_HOME:-$HOME/.jettstui}"
+JETTSTUI_NODE_AVAILABLE=false
 
 # ---------------------------------------------------------------------------
 # Logging — prefer the host script's log_* helpers when present
@@ -57,17 +57,17 @@ _nb_get_link_dir() {
     fi
 }
 
-# Redirect a FreeIDE-managed Node's `npm install -g` to the command link dir
-# (already on PATH) instead of the default $FREEIDE_HOME/node/bin, which is off
+# Redirect a JettsTUI-managed Node's `npm install -g` to the command link dir
+# (already on PATH) instead of the default $JETTSTUI_HOME/node/bin, which is off
 # PATH and wiped on every Node upgrade. Scoped to the managed Node via its
 # prefix-local global npmrc; the user's other Node installs / ~/.npmrc are
 # untouched. Idempotent no-op when there's no managed npm.
 _nb_configure_npm_prefix() {
-    [ -x "$FREEIDE_HOME/node/bin/npm" ] || return 0
+    [ -x "$JETTSTUI_HOME/node/bin/npm" ] || return 0
     local _link_dir
     _link_dir="$(_nb_get_link_dir)"
-    mkdir -p "$FREEIDE_HOME/node/etc"
-    printf 'prefix=%s\n' "$(dirname "$_link_dir")" > "$FREEIDE_HOME/node/etc/npmrc"
+    mkdir -p "$JETTSTUI_HOME/node/etc"
+    printf 'prefix=%s\n' "$(dirname "$_link_dir")" > "$JETTSTUI_HOME/node/etc/npmrc"
 }
 
 _nb_node_major() {
@@ -78,7 +78,7 @@ _nb_node_major() {
 
 _nb_have_modern_node() {
     command -v node >/dev/null 2>&1 || return 1
-    [ "$(_nb_node_major)" -ge "$FREEIDE_NODE_MIN_VERSION" ]
+    [ "$(_nb_node_major)" -ge "$JETTSTUI_NODE_MIN_VERSION" ]
 }
 
 # ---------------------------------------------------------------------------
@@ -87,10 +87,10 @@ _nb_have_modern_node() {
 
 _nb_try_fnm() {
     command -v fnm >/dev/null 2>&1 || return 1
-    _nb_log "fnm detected — installing Node $FREEIDE_NODE_TARGET_MAJOR..."
+    _nb_log "fnm detected — installing Node $JETTSTUI_NODE_TARGET_MAJOR..."
     eval "$(fnm env 2>/dev/null)" || true
-    fnm install "$FREEIDE_NODE_TARGET_MAJOR" >/dev/null 2>&1 || return 1
-    fnm use     "$FREEIDE_NODE_TARGET_MAJOR" >/dev/null 2>&1 || return 1
+    fnm install "$JETTSTUI_NODE_TARGET_MAJOR" >/dev/null 2>&1 || return 1
+    fnm use     "$JETTSTUI_NODE_TARGET_MAJOR" >/dev/null 2>&1 || return 1
     _nb_have_modern_node || return 1
     _nb_ok "Node $(node --version) activated via fnm"
     return 0
@@ -98,8 +98,8 @@ _nb_try_fnm() {
 
 _nb_try_proto() {
     command -v proto >/dev/null 2>&1 || return 1
-    _nb_log "proto detected — installing Node $FREEIDE_NODE_TARGET_MAJOR..."
-    proto install node "$FREEIDE_NODE_TARGET_MAJOR" >/dev/null 2>&1 || return 1
+    _nb_log "proto detected — installing Node $JETTSTUI_NODE_TARGET_MAJOR..."
+    proto install node "$JETTSTUI_NODE_TARGET_MAJOR" >/dev/null 2>&1 || return 1
     _nb_have_modern_node || return 1
     _nb_ok "Node $(node --version) activated via proto"
     return 0
@@ -110,9 +110,9 @@ _nb_try_nvm() {
     [ -s "$nvm_sh" ] || return 1
     # shellcheck source=/dev/null
     \. "$nvm_sh" >/dev/null 2>&1 || return 1
-    _nb_log "nvm detected — installing Node $FREEIDE_NODE_TARGET_MAJOR..."
-    nvm install "$FREEIDE_NODE_TARGET_MAJOR" >/dev/null 2>&1 || return 1
-    nvm use     "$FREEIDE_NODE_TARGET_MAJOR" >/dev/null 2>&1 || return 1
+    _nb_log "nvm detected — installing Node $JETTSTUI_NODE_TARGET_MAJOR..."
+    nvm install "$JETTSTUI_NODE_TARGET_MAJOR" >/dev/null 2>&1 || return 1
+    nvm use     "$JETTSTUI_NODE_TARGET_MAJOR" >/dev/null 2>&1 || return 1
     _nb_have_modern_node || return 1
     _nb_ok "Node $(node --version) activated via nvm"
     return 0
@@ -135,10 +135,10 @@ _nb_try_brew() {
     [ "$(uname -s)" = "Darwin" ] || return 1
     command -v brew >/dev/null 2>&1 || return 1
     _nb_log "Installing Node via Homebrew..."
-    brew install "node@${FREEIDE_NODE_TARGET_MAJOR}" >/dev/null 2>&1 \
+    brew install "node@${JETTSTUI_NODE_TARGET_MAJOR}" >/dev/null 2>&1 \
         || brew install node >/dev/null 2>&1 \
         || return 1
-    brew link --overwrite --force "node@${FREEIDE_NODE_TARGET_MAJOR}" >/dev/null 2>&1 || true
+    brew link --overwrite --force "node@${JETTSTUI_NODE_TARGET_MAJOR}" >/dev/null 2>&1 || true
     _nb_have_modern_node || return 1
     _nb_ok "Node $(node --version) installed via Homebrew"
     return 0
@@ -171,18 +171,18 @@ _nb_install_bundled_node() {
             ;;
     esac
 
-    local index_url="https://nodejs.org/dist/latest-v${FREEIDE_NODE_TARGET_MAJOR}.x/"
+    local index_url="https://nodejs.org/dist/latest-v${JETTSTUI_NODE_TARGET_MAJOR}.x/"
     local tarball
     tarball=$(curl -fsSL "$index_url" \
-        | grep -oE "node-v${FREEIDE_NODE_TARGET_MAJOR}\.[0-9]+\.[0-9]+-${node_os}-${node_arch}\.tar\.xz" \
+        | grep -oE "node-v${JETTSTUI_NODE_TARGET_MAJOR}\.[0-9]+\.[0-9]+-${node_os}-${node_arch}\.tar\.xz" \
         | head -1)
     if [ -z "$tarball" ]; then
         tarball=$(curl -fsSL "$index_url" \
-            | grep -oE "node-v${FREEIDE_NODE_TARGET_MAJOR}\.[0-9]+\.[0-9]+-${node_os}-${node_arch}\.tar\.gz" \
+            | grep -oE "node-v${JETTSTUI_NODE_TARGET_MAJOR}\.[0-9]+\.[0-9]+-${node_os}-${node_arch}\.tar\.gz" \
             | head -1)
     fi
     if [ -z "$tarball" ]; then
-        _nb_warn "Could not resolve Node $FREEIDE_NODE_TARGET_MAJOR binary for $node_os-$node_arch"
+        _nb_warn "Could not resolve Node $JETTSTUI_NODE_TARGET_MAJOR binary for $node_os-$node_arch"
         return 1
     fi
 
@@ -193,7 +193,7 @@ _nb_install_bundled_node() {
         _nb_warn "Download failed"; rm -rf "$tmp"; return 1
     }
 
-    _nb_log "Extracting to $FREEIDE_HOME/node/..."
+    _nb_log "Extracting to $JETTSTUI_HOME/node/..."
     if [[ "$tarball" == *.tar.xz ]]; then
         tar xf  "$tmp/$tarball" -C "$tmp" || { rm -rf "$tmp"; return 1; }
     else
@@ -208,38 +208,38 @@ _nb_install_bundled_node() {
         return 1
     fi
 
-    mkdir -p "$FREEIDE_HOME"
-    rm -rf "$FREEIDE_HOME/node"
-    mv "$extracted" "$FREEIDE_HOME/node"
+    mkdir -p "$JETTSTUI_HOME"
+    rm -rf "$JETTSTUI_HOME/node"
+    mv "$extracted" "$JETTSTUI_HOME/node"
     rm -rf "$tmp"
 
     local _link_dir
     _link_dir="$(_nb_get_link_dir)"
     mkdir -p "$_link_dir"
-    ln -sf "$FREEIDE_HOME/node/bin/node" "$_link_dir/node"
-    ln -sf "$FREEIDE_HOME/node/bin/npm"  "$_link_dir/npm"
-    ln -sf "$FREEIDE_HOME/node/bin/npx"  "$_link_dir/npx"
+    ln -sf "$JETTSTUI_HOME/node/bin/node" "$_link_dir/node"
+    ln -sf "$JETTSTUI_HOME/node/bin/npm"  "$_link_dir/npm"
+    ln -sf "$JETTSTUI_HOME/node/bin/npx"  "$_link_dir/npx"
 
     _nb_configure_npm_prefix
 
-    export PATH="$FREEIDE_HOME/node/bin:$PATH"
+    export PATH="$JETTSTUI_HOME/node/bin:$PATH"
 
     _nb_have_modern_node || return 1
-    _nb_ok "Node $(node --version) installed to $FREEIDE_HOME/node/"
+    _nb_ok "Node $(node --version) installed to $JETTSTUI_HOME/node/"
     return 0
 }
 
 # ---------------------------------------------------------------------------
-# Heal a broken FreeIDE-managed Node tree (partial upgrade / missing lib/)
+# Heal a broken JettsTUI-managed Node tree (partial upgrade / missing lib/)
 # ---------------------------------------------------------------------------
 
 _nb_managed_tool_broken() {
     local tool="$1"
     local probe
     for probe in \
-        "$FREEIDE_HOME/node/bin/$tool" \
-        "$FREEIDE_HOME/node/${tool}.exe" \
-        "$FREEIDE_HOME/node/$tool"; do
+        "$JETTSTUI_HOME/node/bin/$tool" \
+        "$JETTSTUI_HOME/node/${tool}.exe" \
+        "$JETTSTUI_HOME/node/$tool"; do
         if [ -x "$probe" ] || [ -f "$probe" ]; then
             if ! "$probe" --version >/dev/null 2>&1; then
                 return 0
@@ -261,14 +261,14 @@ _nb_managed_node_needs_heal() {
 
 # Redownload the pinned nodejs.org tarball when a managed tree exists but
 # node/npm/npx fail a --version probe. No-op when the tree is healthy or
-# absent. Used by freeide_constants.find_freeide_node_executable() and safe
+# absent. Used by jettstui_constants.find_jettstui_node_executable() and safe
 # to call from install reruns.
 heal_managed_node() {
-    [ -d "$FREEIDE_HOME/node" ] || return 1
+    [ -d "$JETTSTUI_HOME/node" ] || return 1
     if ! _nb_managed_node_needs_heal; then
         return 0
     fi
-    _nb_log "FreeIDE-managed Node is broken — redownloading to $FREEIDE_HOME/node/..."
+    _nb_log "JettsTUI-managed Node is broken — redownloading to $JETTSTUI_HOME/node/..."
     _nb_install_bundled_node
 }
 
@@ -277,7 +277,7 @@ heal_managed_node() {
 # ---------------------------------------------------------------------------
 
 ensure_node() {
-    FREEIDE_NODE_AVAILABLE=false
+    JETTSTUI_NODE_AVAILABLE=false
 
     # Repair pre-existing managed installs where `npm install -g` lands off
     # PATH. No-op when there's no managed Node, so it's safe to run first.
@@ -285,32 +285,32 @@ ensure_node() {
 
     if _nb_have_modern_node; then
         _nb_ok "Node $(node --version) found"
-        FREEIDE_NODE_AVAILABLE=true
+        JETTSTUI_NODE_AVAILABLE=true
         return 0
     fi
 
-    if [ -x "$FREEIDE_HOME/node/bin/node" ]; then
-        export PATH="$FREEIDE_HOME/node/bin:$PATH"
+    if [ -x "$JETTSTUI_HOME/node/bin/node" ]; then
+        export PATH="$JETTSTUI_HOME/node/bin:$PATH"
         if _nb_have_modern_node; then
-            _nb_ok "Node $(node --version) found (FreeIDE-managed)"
-            FREEIDE_NODE_AVAILABLE=true
+            _nb_ok "Node $(node --version) found (JettsTUI-managed)"
+            JETTSTUI_NODE_AVAILABLE=true
             return 0
         fi
     fi
 
     # Version managers first — respect the user's existing setup.
-    _nb_try_fnm   && { FREEIDE_NODE_AVAILABLE=true; return 0; }
-    _nb_try_proto && { FREEIDE_NODE_AVAILABLE=true; return 0; }
-    _nb_try_nvm   && { FREEIDE_NODE_AVAILABLE=true; return 0; }
+    _nb_try_fnm   && { JETTSTUI_NODE_AVAILABLE=true; return 0; }
+    _nb_try_proto && { JETTSTUI_NODE_AVAILABLE=true; return 0; }
+    _nb_try_nvm   && { JETTSTUI_NODE_AVAILABLE=true; return 0; }
 
     # Platform package managers.
-    _nb_try_termux_pkg && { FREEIDE_NODE_AVAILABLE=true; return 0; }
-    _nb_try_brew       && { FREEIDE_NODE_AVAILABLE=true; return 0; }
+    _nb_try_termux_pkg && { JETTSTUI_NODE_AVAILABLE=true; return 0; }
+    _nb_try_brew       && { JETTSTUI_NODE_AVAILABLE=true; return 0; }
 
     # Last resort: pinned nodejs.org tarball.
-    _nb_install_bundled_node && { FREEIDE_NODE_AVAILABLE=true; return 0; }
+    _nb_install_bundled_node && { JETTSTUI_NODE_AVAILABLE=true; return 0; }
 
     _nb_warn "Node.js install failed — TUI and browser tools will be unavailable."
-    _nb_warn "Install manually: https://nodejs.org/en/download/  (or: \`brew install node\`, \`fnm install $FREEIDE_NODE_TARGET_MAJOR\`, etc.)"
+    _nb_warn "Install manually: https://nodejs.org/en/download/  (or: \`brew install node\`, \`fnm install $JETTSTUI_NODE_TARGET_MAJOR\`, etc.)"
     return 1
 }

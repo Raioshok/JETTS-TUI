@@ -10,7 +10,7 @@ from typing import Any
 
 import yaml
 
-from freeide_constants import get_freeide_home
+from jettstui_constants import get_jettstui_home
 
 
 _DISK_DEGRADED_PERCENT = 90.0
@@ -100,7 +100,7 @@ def collect_runtime_readiness(
     status and counts only: never config values, credentials, paths, commands,
     queue payloads, or exception messages.
     """
-    home = get_freeide_home()
+    home = get_jettstui_home()
     runtime = runtime_status if isinstance(runtime_status, dict) else {}
     checks = {
         "state_db": _probe_state_db(home),

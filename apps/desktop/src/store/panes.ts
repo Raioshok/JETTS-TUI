@@ -12,7 +12,7 @@ export interface PaneRegisterDefaults {
   widthOverride?: number
 }
 
-const STORAGE_KEY = 'freeide.desktop.paneStates.v1'
+const STORAGE_KEY = 'jettstui.desktop.paneStates.v1'
 
 function isSnapshot(value: unknown): value is PaneStateSnapshot {
   if (!value || typeof value !== 'object') {

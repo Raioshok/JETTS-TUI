@@ -78,10 +78,10 @@ class TestPyprojectDeclaresYoutubeExtra:
         assert "youtube-transcript-api" in youtube_deps
 
     def test_youtube_extra_included_in_all(self):
-        """[all] extra must include freeide-agent[youtube] (issue #22243)."""
+        """[all] extra must include jettstui[youtube] (issue #22243)."""
         import tomllib
         pyproject_path = Path(__file__).resolve().parents[2] / "pyproject.toml"
         with pyproject_path.open("rb") as f:
             data = tomllib.load(f)
         all_deps = " ".join(data["project"]["optional-dependencies"].get("all", []))
-        assert "youtube" in all_deps, "[all] extra does not include freeide-agent[youtube]"
+        assert "youtube" in all_deps, "[all] extra does not include jettstui[youtube]"

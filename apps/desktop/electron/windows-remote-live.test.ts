@@ -7,16 +7,16 @@ import { connectWindowsRemote } from './windows-remote-lifecycle'
 
 // Live test against a real Windows host over SSH. Opt-in: set the env trio to
 // your test rig; skipped everywhere else (CI, other machines).
-//   FREEIDE_WIN_SSH_HOST   ssh alias/host of the Windows box
-//   FREEIDE_WIN_SSH_USER   remote user
-//   FREEIDE_WIN_SSH_FREEIDE absolute path to the remote freeide.exe under test
-const liveHost = process.env.FREEIDE_WIN_SSH_HOST || ''
-const liveUser = process.env.FREEIDE_WIN_SSH_USER || ''
-const configuredFreeIDE = process.env.FREEIDE_WIN_SSH_FREEIDE || ''
+//   JETTSTUI_WIN_SSH_HOST   ssh alias/host of the Windows box
+//   JETTSTUI_WIN_SSH_USER   remote user
+//   JETTSTUI_WIN_SSH_JETTSTUI absolute path to the remote jettstui.exe under test
+const liveHost = process.env.JETTSTUI_WIN_SSH_HOST || ''
+const liveUser = process.env.JETTSTUI_WIN_SSH_USER || ''
+const configuredJettsTUI = process.env.JETTSTUI_WIN_SSH_JETTSTUI || ''
 const ownershipId = '89abcdef0123456789abcdef01234567'
 
 function fetchJson(url, token, path) {
-  return fetch(`${url}${path}`, { headers: { 'X-FreeIDE-Session-Token': token } }).then(async response => {
+  return fetch(`${url}${path}`, { headers: { 'X-JettsTUI-Session-Token': token } }).then(async response => {
     if (!response.ok) {
       throw new Error(`${response.status}: ${await response.text()}`)
     }
@@ -25,7 +25,7 @@ function fetchJson(url, token, path) {
   })
 }
 
-test.skipIf(!liveHost || !liveUser || !configuredFreeIDE)(
+test.skipIf(!liveHost || !liveUser || !configuredJettsTUI)(
   'live Windows remote lifecycle spawns, authenticates, reuses, and cleans exact ownership',
   async () => {
     const ssh = new SshConnection({ host: liveHost, user: liveUser, port: 22, keyPath: '' }, { mux: true })
@@ -35,11 +35,11 @@ test.skipIf(!liveHost || !liveUser || !configuredFreeIDE)(
       ssh,
       ownershipId,
       profile: '',
-      remoteFreeIDEPath: configuredFreeIDE,
+      remoteJettsTUIPath: configuredJettsTUI,
       pickLocalPort,
       forward: (local, remote) => ssh.forward(local, remote),
       cancelForward: (local, remote) => ssh.cancelForward(local, remote),
-      waitForFreeIDE: async (baseUrl, token) => {
+      waitForJettsTUI: async (baseUrl, token) => {
         for (let i = 0; i < 40; i++) {
           try {
             await fetchJson(baseUrl, token, '/api/status')
@@ -81,21 +81,21 @@ test.skipIf(!liveHost || !liveUser || !configuredFreeIDE)(
         await ssh.cancelForward(second.localPort, second.remotePort)
       }
 
-      const runtimeScript = `& '${configuredFreeIDE.replace('freeide.exe', 'python.exe')}' -m freeide_cli.windows_ssh_runtime read-lock '${ownershipId}'`
+      const runtimeScript = `& '${configuredJettsTUI.replace('jettstui.exe', 'python.exe')}' -m jettstui.windows_ssh_runtime read-lock '${ownershipId}'`
 
       const lock: any = JSON.parse(
         await ssh.exec(`powershell.exe -NoProfile -NonInteractive -Command "${runtimeScript}"`)
       )
 
       if (lock) {
-        const python = configuredFreeIDE.replace('freeide.exe', 'python.exe')
-        const terminate = `& '${python}' -m freeide_cli.windows_ssh_runtime terminate '${lock.pid}' '${lock.creationTimeNs}' '${lock.freeidePath}' '${lock.spawnNonce}'`
+        const python = configuredJettsTUI.replace('jettstui.exe', 'python.exe')
+        const terminate = `& '${python}' -m jettstui.windows_ssh_runtime terminate '${lock.pid}' '${lock.creationTimeNs}' '${lock.jettstuiPath}' '${lock.spawnNonce}'`
         await ssh.exec(`powershell.exe -NoProfile -NonInteractive -Command "${terminate}"`)
         await ssh.exec(
-          `powershell.exe -NoProfile -NonInteractive -Command "& '${python}' -m freeide_cli.windows_ssh_runtime remove-lock '${ownershipId}'"`
+          `powershell.exe -NoProfile -NonInteractive -Command "& '${python}' -m jettstui.windows_ssh_runtime remove-lock '${ownershipId}'"`
         )
         await ssh.exec(
-          `powershell.exe -NoProfile -NonInteractive -Command "& '${python}' -m freeide_cli.windows_ssh_runtime remove-log '${ownershipId}' '${lock.spawnNonce}'"`
+          `powershell.exe -NoProfile -NonInteractive -Command "& '${python}' -m jettstui.windows_ssh_runtime remove-log '${ownershipId}' '${lock.spawnNonce}'"`
         )
       }
 

@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from freeide_state import SessionDB
+from jettstui_state import SessionDB
 
 
 @pytest.fixture()

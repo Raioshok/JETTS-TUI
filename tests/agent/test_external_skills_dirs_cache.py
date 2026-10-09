@@ -24,9 +24,9 @@ from agent.skill_utils import (
 
 
 @pytest.fixture
-def freeide_home_with_config(tmp_path, monkeypatch):
-    """Isolated ``~/.freeide/`` with a config.yaml referencing one external dir."""
-    home = tmp_path / ".freeide"
+def jettstui_home_with_config(tmp_path, monkeypatch):
+    """Isolated ``~/.jettstui/`` with a config.yaml referencing one external dir."""
+    home = tmp_path / ".jettstui"
     home.mkdir()
     external = tmp_path / "external_skills"
     external.mkdir()
@@ -39,22 +39,22 @@ def freeide_home_with_config(tmp_path, monkeypatch):
         encoding="utf-8",
     )
 
-    monkeypatch.setenv("FREEIDE_HOME", str(home))
+    monkeypatch.setenv("JETTSTUI_HOME", str(home))
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
     _external_dirs_cache_clear()
     yield home, external, config
     _external_dirs_cache_clear()
 
 
-def test_returns_configured_external_dir(freeide_home_with_config):
-    _home, external, _cfg = freeide_home_with_config
+def test_returns_configured_external_dir(jettstui_home_with_config):
+    _home, external, _cfg = jettstui_home_with_config
     result = get_external_skills_dirs()
     assert result == [external.resolve()]
 
 
-def test_cache_reuses_result_without_reparsing(freeide_home_with_config):
+def test_cache_reuses_result_without_reparsing(jettstui_home_with_config):
     """Subsequent calls hit the cache and skip YAML parsing entirely."""
-    _home, _external, _cfg = freeide_home_with_config
+    _home, _external, _cfg = jettstui_home_with_config
 
     # Prime cache
     get_external_skills_dirs()
@@ -70,9 +70,9 @@ def test_cache_reuses_result_without_reparsing(freeide_home_with_config):
             get_external_skills_dirs()
 
 
-def test_cache_invalidates_on_mtime_change(freeide_home_with_config):
+def test_cache_invalidates_on_mtime_change(jettstui_home_with_config):
     """A config.yaml edit invalidates the cache on the next call."""
-    _home, external, config = freeide_home_with_config
+    _home, external, config = jettstui_home_with_config
     other = external.parent / "other_skills"
     other.mkdir()
 
@@ -99,16 +99,16 @@ def test_cache_invalidates_on_mtime_change(freeide_home_with_config):
 
 def test_returns_empty_when_config_missing(tmp_path, monkeypatch):
     """No config file → empty list, cached as empty."""
-    home = tmp_path / ".freeide"
+    home = tmp_path / ".jettstui"
     home.mkdir()
-    monkeypatch.setenv("FREEIDE_HOME", str(home))
+    monkeypatch.setenv("JETTSTUI_HOME", str(home))
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
     _external_dirs_cache_clear()
 
     assert get_external_skills_dirs() == []
 
 
-def test_returned_list_is_a_copy(freeide_home_with_config):
+def test_returned_list_is_a_copy(jettstui_home_with_config):
     """Callers can't poison the cache by mutating the returned list."""
     first = get_external_skills_dirs()
     first.append(Path("/tmp/should-not-persist"))
@@ -118,8 +118,8 @@ def test_returned_list_is_a_copy(freeide_home_with_config):
 
 
 def test_cache_key_is_per_config_path(tmp_path, monkeypatch):
-    """Two different FREEIDE_HOMEs keep separate cache entries."""
-    home_a = tmp_path / "home_a" / ".freeide"
+    """Two different JETTSTUI_HOMEs keep separate cache entries."""
+    home_a = tmp_path / "home_a" / ".jettstui"
     home_a.mkdir(parents=True)
     ext_a = tmp_path / "ext_a"
     ext_a.mkdir()
@@ -127,7 +127,7 @@ def test_cache_key_is_per_config_path(tmp_path, monkeypatch):
         f"skills:\n  external_dirs:\n    - {ext_a}\n", encoding="utf-8"
     )
 
-    home_b = tmp_path / "home_b" / ".freeide"
+    home_b = tmp_path / "home_b" / ".jettstui"
     home_b.mkdir(parents=True)
     ext_b = tmp_path / "ext_b"
     ext_b.mkdir()
@@ -137,12 +137,12 @@ def test_cache_key_is_per_config_path(tmp_path, monkeypatch):
 
     _external_dirs_cache_clear()
 
-    monkeypatch.setenv("FREEIDE_HOME", str(home_a))
+    monkeypatch.setenv("JETTSTUI_HOME", str(home_a))
     assert get_external_skills_dirs() == [ext_a.resolve()]
 
-    monkeypatch.setenv("FREEIDE_HOME", str(home_b))
+    monkeypatch.setenv("JETTSTUI_HOME", str(home_b))
     assert get_external_skills_dirs() == [ext_b.resolve()]
 
     # And switching back still works — both entries coexist in the cache.
-    monkeypatch.setenv("FREEIDE_HOME", str(home_a))
+    monkeypatch.setenv("JETTSTUI_HOME", str(home_a))
     assert get_external_skills_dirs() == [ext_a.resolve()]

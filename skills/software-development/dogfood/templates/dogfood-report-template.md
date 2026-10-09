@@ -3,7 +3,7 @@
 **Target:** {target_url}
 **Date:** {date}
 **Scope:** {scope_description}
-**Tester:** FreeIDE Agent (automated exploratory QA)
+**Tester:** JettsTUI (automated exploratory QA)
 
 ---
 

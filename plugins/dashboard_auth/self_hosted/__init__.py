@@ -1,16 +1,16 @@
 """SelfHostedOIDCProvider — generic self-hosted OpenID Connect dashboard auth.
 
-A standards-compliant OpenID Connect Relying Party for the ``freeide dashboard``
+A standards-compliant OpenID Connect Relying Party for the ``jettstui dashboard``
 OAuth gate. This provider speaks **plain OIDC** so it works against any
 conformant self-hosted identity provider:
 
     Authentik · Keycloak · Zitadel · Authelia · Auth0 · Okta · Google · …
 
 It is a pure drop-in plugin: it implements the five
-:class:`~freeide_cli.dashboard_auth.DashboardAuthProvider` methods and touches
+:class:`~jettstui.dashboard_auth.DashboardAuthProvider` methods and touches
 nothing in core auth/runtime/login. The HTTP round trip, cookies, CSRF
 ``state`` check and ``redirect_uri`` reconstruction are all owned by
-``freeide_cli/dashboard_auth/routes.py``; this provider only:
+``jettstui/dashboard_auth/routes.py``; this provider only:
 
   1. discovers the IDP's endpoints from ``{issuer}/.well-known/openid-configuration``,
   2. builds the ``/authorize`` URL with PKCE (S256),
@@ -19,7 +19,7 @@ nothing in core auth/runtime/login. The HTTP round trip, cookies, CSRF
   4. verifies the **ID token** (RS256/ES256) against the discovered
      ``jwks_uri`` with ``iss`` / ``aud`` pinned to the configured issuer /
      client id, and maps standard OIDC claims (``sub``, ``email``, ``name``)
-     onto a :class:`~freeide_cli.dashboard_auth.Session`.
+     onto a :class:`~jettstui.dashboard_auth.Session`.
 
 Why the ID token (not the access token)? OIDC guarantees the ID token is a
 signed JWT carrying identity claims — that is its entire purpose. The access
@@ -47,17 +47,17 @@ provisioned-but-not-populated secret can't shadow a valid config.yaml entry)::
       oauth:
         provider: self-hosted
         self_hosted:
-          issuer: https://auth.example.com/application/o/freeide/   # required
-          client_id: freeide-dashboard                              # required
+          issuer: https://auth.example.com/application/o/jettstui/   # required
+          client_id: jettstui-dashboard                              # required
           scopes: "openid profile email"                           # optional
           # client_secret: set ONLY for a confidential client. It is a
-          # credential — prefer the env var / ~/.freeide/.env over config.yaml.
+          # credential — prefer the env var / ~/.jettstui/.env over config.yaml.
 
     # Environment overrides (Docker/Fly secret injection)
-    FREEIDE_DASHBOARD_OIDC_ISSUER
-    FREEIDE_DASHBOARD_OIDC_CLIENT_ID
-    FREEIDE_DASHBOARD_OIDC_SCOPES        # optional; defaults to "openid profile email"
-    FREEIDE_DASHBOARD_OIDC_CLIENT_SECRET # optional; set for a confidential client
+    JETTSTUI_DASHBOARD_OIDC_ISSUER
+    JETTSTUI_DASHBOARD_OIDC_CLIENT_ID
+    JETTSTUI_DASHBOARD_OIDC_SCOPES        # optional; defaults to "openid profile email"
+    JETTSTUI_DASHBOARD_OIDC_CLIENT_SECRET # optional; set for a confidential client
                                         # (the .env file is the canonical home —
                                         # it's a secret, not a behavioural setting)
 
@@ -81,7 +81,7 @@ from typing import Any, Dict, Optional
 
 import httpx
 
-from freeide_cli.dashboard_auth import (
+from jettstui.dashboard_auth import (
     DashboardAuthProvider,
     InvalidCodeError,
     LoginStart,
@@ -232,7 +232,7 @@ class SelfHostedOIDCProvider(DashboardAuthProvider):
         # Same flat ``state=…;verifier=…`` cookie shape every provider uses;
         # the auth-route layer prepends ``provider=`` and parses it back out.
         cookie_payload = {
-            "freeide_session_pkce": f"state={state};verifier={code_verifier}",
+            "jettstui_session_pkce": f"state={state};verifier={code_verifier}",
         }
         return LoginStart(redirect_url=redirect_url, cookie_payload=cookie_payload)
 
@@ -662,7 +662,7 @@ class SelfHostedOIDCProvider(DashboardAuthProvider):
 
         The verified ID token is stored in ``Session.access_token`` so the
         per-request ``verify_session`` re-verifies a real JWT. The opaque
-        OAuth access token is intentionally NOT stored — FreeIDE does not call
+        OAuth access token is intentionally NOT stored — JettsTUI does not call
         any resource API with it; the dashboard only needs identity.
         """
         user_id = str(claims.get("sub", ""))
@@ -744,7 +744,7 @@ def _load_config_oauth_section() -> dict:
     to ``{}`` so callers can rely on ``.get(...)``.
     """
     try:
-        from freeide_cli.config import cfg_get, load_config
+        from jettstui.config import cfg_get, load_config
 
         cfg = load_config()
     except Exception as exc:  # noqa: BLE001 — broad catch is intentional
@@ -782,7 +782,7 @@ def register(ctx) -> None:
     """Plugin entry — called by the plugin loader at startup.
 
     Registers :class:`SelfHostedOIDCProvider` only when both an issuer and a
-    client_id are configured (via ``FREEIDE_DASHBOARD_OIDC_*`` env vars or the
+    client_id are configured (via ``JETTSTUI_DASHBOARD_OIDC_*`` env vars or the
     ``dashboard.oauth.self_hosted`` block in config.yaml). Operator-owned
     loopback / ``--insecure`` dashboards leave these unset, so the plugin is a
     no-op for them.
@@ -797,30 +797,31 @@ def register(ctx) -> None:
     oidc_cfg = _oidc_subsection(oauth_section)
 
     issuer = _resolve_setting(
-        "FREEIDE_DASHBOARD_OIDC_ISSUER", oidc_cfg.get("issuer")
+        "JETTSTUI_DASHBOARD_OIDC_ISSUER", oidc_cfg.get("issuer")
     )
     client_id = _resolve_setting(
-        "FREEIDE_DASHBOARD_OIDC_CLIENT_ID", oidc_cfg.get("client_id")
+        "JETTSTUI_DASHBOARD_OIDC_CLIENT_ID", oidc_cfg.get("client_id")
     )
     scopes = (
-        _resolve_setting("FREEIDE_DASHBOARD_OIDC_SCOPES", oidc_cfg.get("scopes"))
+        _resolve_setting("JETTSTUI_DASHBOARD_OIDC_SCOPES", oidc_cfg.get("scopes"))
         or _DEFAULT_SCOPES
     )
     # Optional — set only for a confidential client. A credential, so the
-    # canonical home is the env var / ~/.freeide/.env; config.yaml is supported
+    # canonical home is the env var / ~/.jettstui/.env; config.yaml is supported
     # for precedence symmetry. Empty ⇒ public client (unchanged behaviour).
     client_secret = _resolve_setting(
-        "FREEIDE_DASHBOARD_OIDC_CLIENT_SECRET", oidc_cfg.get("client_secret")
+        "JETTSTUI_DASHBOARD_OIDC_CLIENT_SECRET", oidc_cfg.get("client_secret")
     )
 
     if not issuer or not client_id:
         LAST_SKIP_REASON = (
             "Self-hosted OIDC dashboard auth is not configured. Set both an "
             "issuer and a client_id — either as env vars "
-            "(FREEIDE_DASHBOARD_OIDC_ISSUER + FREEIDE_DASHBOARD_OIDC_CLIENT_ID) "
+            "(JETTSTUI_DASHBOARD_OIDC_ISSUER + JETTSTUI_DASHBOARD_OIDC_CLIENT_ID) "
             "or under dashboard.oauth.self_hosted.{issuer,client_id} in "
-            "config.yaml — or pass --insecure to skip the OAuth gate "
-            "entirely. (issuer set: %s; client_id set: %s)"
+            "config.yaml. A public bind requires an auth provider; "
+            "loopback binding needs no OIDC provider. "
+            "(issuer set: %s; client_id set: %s)"
             % (bool(issuer), bool(client_id))
         )
         logger.debug("dashboard-auth-self-hosted: %s", LAST_SKIP_REASON)

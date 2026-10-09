@@ -7,7 +7,7 @@ content parts for grounding, and read the generated images back from
 ``choices[0].message.images[].image_url.url`` (a ``data:image/...;base64`` URI).
 
 Credentials are resolved through the agent's existing
-:func:`~freeide_cli.runtime_provider.resolve_runtime_provider`, which already
+:func:`~jettstui.runtime_provider.resolve_runtime_provider`, which already
 understands OpenRouter's key pool, so this plugin never reinvents auth.
 
 Reference grounding is the reason pet sprite generation cares about this
@@ -44,7 +44,7 @@ logger = logging.getLogger(__name__)
 # is access-gated / unavailable / times out on this endpoint.
 #
 # Explicit override (OPENROUTER_IMAGE_MODEL, image_gen.<provider>.model, or
-# image_gen.model from ``freeide tools``): use exactly that model (no auto
+# image_gen.model from ``jettstui tools``): use exactly that model (no auto
 # fallback), so power users keep full control.
 DEFAULT_MODEL = "openai/gpt-5.4-image-2"
 _FALLBACK_MODEL = "google/gemini-3-pro-image"
@@ -71,7 +71,7 @@ _REQUEST_TIMEOUT = 300.0
 def _load_image_gen_config() -> Dict[str, Any]:
     """Read the ``image_gen`` section from config.yaml (``{}`` on failure)."""
     try:
-        from freeide_cli.config import load_config
+        from jettstui.config import load_config
 
         cfg = load_config()
         section = cfg.get("image_gen") if isinstance(cfg, dict) else None
@@ -204,7 +204,7 @@ class OpenRouterCompatImageProvider(ImageGenProvider):
 
     def _resolve_runtime(self) -> Dict[str, Any]:
         """Resolve ``(base_url, api_key)`` via the shared runtime resolver."""
-        from freeide_cli.runtime_provider import resolve_runtime_provider
+        from jettstui.runtime_provider import resolve_runtime_provider
 
         return resolve_runtime_provider(requested=self._runtime_name)
 
@@ -254,7 +254,7 @@ class OpenRouterCompatImageProvider(ImageGenProvider):
         Precedence: explicit caller override (the ``model`` kwarg) → the
         provider's ``*_IMAGE_MODEL`` env override → scoped
         ``image_gen.<provider>.model`` → top-level ``image_gen.model`` (written
-        by ``freeide tools``) → the quality-first default chain.
+        by ``jettstui tools``) → the quality-first default chain.
 
         Any explicit user/model selection means "use this exact model", so no
         fallback. Only the bare default chain carries a Gemini fallback.
@@ -301,7 +301,7 @@ class OpenRouterCompatImageProvider(ImageGenProvider):
             return error_response(
                 error=(
                     f"No {self._display} credentials found. "
-                    f"Configure {self._display} in `freeide tools` → Image Generation."
+                    f"Configure {self._display} in `jettstui tools` → Image Generation."
                 ),
                 error_type="missing_api_key",
                 provider=self._name,
@@ -333,8 +333,8 @@ class OpenRouterCompatImageProvider(ImageGenProvider):
             "Authorization": f"Bearer {api_key}",
             "Content-Type": "application/json",
             # OpenRouter attribution headers.
-            "HTTP-Referer": "https://github.com/freeide/freeide",
-            "X-Title": "FreeIDE Agent",
+            "HTTP-Referer": "https://github.com/Raioshok/JETTS-TUI",
+            "X-Title": "JettsTUI",
         }
         last_error: Optional[Dict[str, Any]] = None
         for i, model_id in enumerate(model_chain):

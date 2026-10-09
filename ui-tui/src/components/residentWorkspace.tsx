@@ -82,9 +82,9 @@ export function ResidentWorkspaceSidebar({
 
   return (
     <Box flexDirection="column" flexShrink={0} height="100%" marginRight={1} width={RESIDENT_SIDEBAR_COLS}>
-      <Box borderColor={t.color.border} borderStyle="single" flexDirection="column" flexGrow={1} paddingX={1}>
+      <Box borderColor={t.color.border} borderStyle="round" flexDirection="column" flexGrow={1} paddingX={1}>
         <Box justifyContent="space-between">
-          <Text bold color={t.color.label}>SESSIONS</Text>
+          <Text bold color={t.color.label}>Sessions</Text>
           <Text color={t.color.muted}>{sessions.length} live</Text>
         </Box>
 
@@ -96,15 +96,22 @@ export function ResidentWorkspaceSidebar({
           return (
             <Box
               backgroundColor={current ? t.color.completionCurrentBg : undefined}
+              height={1}
               key={session.id}
               onClick={() => onSelect(session.id)}
             >
-              <Text color={current ? t.color.accent : session.status === 'working' ? t.color.ok : t.color.muted}>
-                {statusGlyph(session.status)}{' '}
-              </Text>
-              <Text bold={current} color={current ? t.color.text : t.color.label} wrap="truncate-end">
-                {index + 1} {residentSessionLabel(session, index)}
-              </Text>
+              <Box flexShrink={0}>
+                <Text color={current ? t.color.accent : session.status === 'working' ? t.color.ok : t.color.muted}>
+                  {statusGlyph(session.status)}{' '}
+                </Text>
+                <Text color={t.color.muted}>{index + 1} </Text>
+              </Box>
+              {/* One line per session: long titles truncate instead of wrapping. */}
+              <Box flexGrow={1} flexShrink={1} overflow="hidden">
+                <Text bold={current} color={current ? t.color.text : t.color.label} wrap="truncate-end">
+                  {residentSessionLabel(session, index)}
+                </Text>
+              </Box>
               {(() => {
                 const n = unread.get(session.id) ?? 0
 
@@ -122,7 +129,7 @@ export function ResidentWorkspaceSidebar({
         {subagents.length > 0 ? (
           <Box flexDirection="column" marginTop={1}>
             <Box onClick={onOpenAgents}>
-              <Text bold color={t.color.label}>CHILD AGENTS</Text>
+              <Text bold color={t.color.label}>Child agents</Text>
               <Text color={t.color.muted}> {runningAgents.length} active ›</Text>
             </Box>
             {visibleAgents.slice(0, 4).map(agent => (
@@ -142,9 +149,9 @@ export function ResidentWorkspaceSidebar({
         <Text color={t.color.muted}>Ctrl+X all sessions</Text>
       </Box>
 
-      <Box borderColor={t.color.border} borderStyle="single" flexDirection="column" height={10} marginTop={1} paddingX={1}>
+      <Box borderColor={t.color.border} borderStyle="round" flexDirection="column" height={10} marginTop={1} paddingX={1}>
         <Box justifyContent="space-between">
-          <Text bold color={t.color.label}>COMMS</Text>
+          <Text bold color={t.color.label}>Comms</Text>
           <Text color={t.color.muted}>live</Text>
         </Box>
         {subagents.length > 0 ? visibleAgents.slice(0, 3).map(agent => (
@@ -190,7 +197,7 @@ export function ResidentSessionPreview({ index, onSelect, session, t }: Resident
   return (
     <Box
       borderColor={session.status === 'waiting' ? t.color.warn : t.color.sessionBorder}
-      borderStyle="single"
+      borderStyle="round"
       flexDirection="column"
       flexShrink={0}
       height={6}
@@ -230,9 +237,9 @@ export function ResidentInputTarget({
   if (!target) {return null}
 
   return (
-    <Box justifyContent="space-between">
-      <Text bold color={t.color.accent}>INPUT → {residentSessionLabel(target, index)}</Text>
-      <Text color={t.color.muted}>Alt+1…9 target · Ctrl+X sessions</Text>
+    <Box>
+      <Text color={t.color.muted}>To </Text>
+      <Text bold color={t.color.accent}>{residentSessionLabel(target, index)}</Text>
     </Box>
   )
 }

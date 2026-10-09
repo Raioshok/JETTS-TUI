@@ -5,7 +5,7 @@ import { test } from 'vitest'
 import { createFirstRunSetupGate } from './first-run-setup-gate'
 
 const bootstrapBackend = {
-  activeRoot: '/tmp/freeide-home/freeide-agent',
+  activeRoot: '/tmp/jettstui-home/jettstui',
   kind: 'bootstrap-needed',
   platform: 'linux'
 }

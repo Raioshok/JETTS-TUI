@@ -1,7 +1,7 @@
 //! Resolves and downloads `scripts/install.ps1` (and `install.sh`).
 //!
 //! Resolution order:
-//!   1. Dev shortcut: a sibling repo checkout via $FREEIDE_SETUP_DEV_REPO_ROOT
+//!   1. Dev shortcut: a sibling repo checkout via $JETTSTUI_SETUP_DEV_REPO_ROOT
 //!      env var. Lets devs iterate without re-publishing the script.
 //!   2. Bundled fallback: if the installer was bundled with a script (e.g.
 //!      tauri's `resource` mechanism), serve from there. Not used today.
@@ -10,7 +10,7 @@
 //!
 //! Mirrors `apps/desktop/electron/bootstrap-runner.ts`'s `resolveInstallScript`,
 //! but the dev-checkout resolution is driven by an env var rather than the
-//! Electron app's APP_ROOT/../.. trick, because FreeIDE-Setup.exe is meant
+//! Electron app's APP_ROOT/../.. trick, because JettsTUI-Setup.exe is meant
 //! to live OUTSIDE any repo checkout.
 
 use anyhow::{anyhow, Context, Result};
@@ -95,7 +95,7 @@ pub(crate) fn cache_plan(immutable: bool, cached_exists: bool) -> CachePlan {
 
 /// Resolves the install script to use for this run.
 ///
-/// `pin` is the commit-or-branch from either FreeIDE-Setup's build-time
+/// `pin` is the commit-or-branch from either JettsTUI-Setup's build-time
 /// constant (compiled into the installer) or a runtime override.
 pub async fn resolve(
     kind: ScriptKind,
@@ -103,7 +103,7 @@ pub async fn resolve(
     emit_log: &impl Fn(&str),
 ) -> Result<ResolvedScript> {
     // 1. Dev shortcut.
-    if let Ok(repo_root) = std::env::var("FREEIDE_SETUP_DEV_REPO_ROOT") {
+    if let Ok(repo_root) = std::env::var("JETTSTUI_SETUP_DEV_REPO_ROOT") {
         let candidate = PathBuf::from(repo_root).join("scripts").join(kind.filename());
         if candidate.exists() {
             emit_log(&format!(
@@ -469,7 +469,7 @@ mod tests {
     fn upgrade_cached_script_adds_bom_to_legacy_ps1() {
         // A .ps1 cached by a pre-#67193 installer has no BOM; the Reuse path
         // must upgrade it in place instead of serving the broken bytes forever.
-        let dir = std::env::temp_dir().join(format!("freeide-bom-test-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("jettstui-bom-test-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let cached = dir.join("install-abc1234.ps1");
         std::fs::write(&cached, b"Write-Host legacy\n").unwrap();
@@ -489,7 +489,7 @@ mod tests {
 
     #[test]
     fn upgrade_cached_script_leaves_sh_untouched() {
-        let dir = std::env::temp_dir().join(format!("freeide-bom-sh-test-{}", std::process::id()));
+        let dir = std::env::temp_dir().join(format!("jettstui-bom-sh-test-{}", std::process::id()));
         std::fs::create_dir_all(&dir).unwrap();
         let cached = dir.join("install-main.sh");
         std::fs::write(&cached, b"#!/bin/bash\n").unwrap();

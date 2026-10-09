@@ -35,9 +35,9 @@ import { classifyActiveRuntime } from './active-runtime-state'
 import { stopBackendChild as stopBackendChildImpl } from './backend-child'
 import { dashboardFallbackArgs, sourceDeclaresServe } from './backend-command'
 import { createBackendConnectionState } from './backend-connection-state'
-import { buildDesktopBackendEnv, normalizeFreeIDEHomeRoot } from './backend-env'
-import { isReauthRequiredError, waitForFreeIDEReady } from './backend-health'
-import { canImportFreeIDECli, shouldTrustFreeIDEOverride, verifyFreeIDECli } from './backend-probes'
+import { buildDesktopBackendEnv, normalizeJettsTUIHomeRoot } from './backend-env'
+import { isReauthRequiredError, waitForJettsTUIReady } from './backend-health'
+import { canImportJettsTUICli, shouldTrustJettsTUIOverride, verifyJettsTUICli } from './backend-probes'
 import { waitForDashboardPortAnnouncement } from './backend-ready'
 import { shouldLatchBackendStartFailure, shouldLatchRemoteReauthFailure } from './backend-start-failure'
 import { detectRemoteDisplay, isWindowsBinaryPathInWsl, isWslEnvironment } from './bootstrap-platform'
@@ -49,7 +49,6 @@ import {
   buildGatewayWsUrlWithTicket,
   connectionScopeKey,
   cookiesHaveLiveSession,
-  cookiesHavePrivySession,
   cookiesHaveSession,
   gatewayTicketFailure,
   gatewayWsUrlIpcResult,
@@ -57,6 +56,7 @@ import {
   localProfileEntry,
   modeIsRemoteLike,
   normalizeRemoteBaseUrl,
+  normalizeSavedConnectionMode,
   normalizeSshConfig,
   normAuthMode,
   pathWithGlobalRemoteProfile,
@@ -201,8 +201,8 @@ import {
   buildPathExtCandidates,
   chooseUpdaterArgs,
   getVenvSitePackagesEntries,
-  resolveVenvFreeIDECommand
-} from './windows-freeide-path'
+  resolveVenvJettsTUICommand
+} from './windows-jettstui-path'
 import {
   buildWindowsInteractiveCommand,
   connectWindowsRemote,
@@ -229,7 +229,7 @@ import { isPackagedInstallPath as isPackagedInstallPathUnderRoots } from './work
 import { readWslWindowsClipboardImage } from './wsl-clipboard-image'
 import { resolvePickerDefaultPath } from './wsl-path-bridge'
 
-const USER_DATA_OVERRIDE = process.env.FREEIDE_DESKTOP_USER_DATA_DIR
+const USER_DATA_OVERRIDE = process.env.JETTSTUI_DESKTOP_USER_DATA_DIR
 
 if (USER_DATA_OVERRIDE) {
   const resolvedUserData = path.resolve(USER_DATA_OVERRIDE)
@@ -237,8 +237,8 @@ if (USER_DATA_OVERRIDE) {
   app.setPath('userData', resolvedUserData)
 }
 
-const DEV_SERVER = process.env.FREEIDE_DESKTOP_DEV_SERVER
-const IS_PACKAGED = app.isPackaged || Boolean(process.env.FREEIDE_DESKTOP_IS_PACKAGED)
+const DEV_SERVER = process.env.JETTSTUI_DESKTOP_DEV_SERVER
+const IS_PACKAGED = app.isPackaged || Boolean(process.env.JETTSTUI_DESKTOP_IS_PACKAGED)
 const IS_MAC = process.platform === 'darwin'
 const IS_WINDOWS = process.platform === 'win32'
 const IS_WSL = isWslEnvironment()
@@ -259,7 +259,7 @@ const PRELOAD_PATH = path.join(APP_ROOT, 'dist', 'electron-preload.js')
 // GPU and never see it. Fall back to software rendering when a remote display
 // is detected; it's rock-steady over the wire and the CPU cost is negligible
 // next to the connection's latency. Must run before app `ready` — these
-// switches only apply pre-launch. Override with FREEIDE_DESKTOP_DISABLE_GPU
+// switches only apply pre-launch. Override with JETTSTUI_DESKTOP_DISABLE_GPU
 // (1/true → always disable, 0/false → keep GPU on).
 const REMOTE_DISPLAY_REASON = detectRemoteDisplay()
 
@@ -269,7 +269,7 @@ if (REMOTE_DISPLAY_REASON) {
   // with only --disable-gpu: force compositing onto the CPU too.
   app.commandLine.appendSwitch('disable-gpu-compositing')
   console.log(
-    `[freeide] remote display detected (${REMOTE_DISPLAY_REASON}); disabling GPU hardware acceleration to prevent flicker`
+    `[jettstui] remote display detected (${REMOTE_DISPLAY_REASON}); disabling GPU hardware acceleration to prevent flicker`
   )
 }
 
@@ -285,14 +285,14 @@ if (DEV_CDP.port) {
   // so a future edit can't widen it by omission.
   app.commandLine.appendSwitch('remote-debugging-address', '127.0.0.1')
   console.log(
-    `[freeide] renderer debugging on http://127.0.0.1:${DEV_CDP.port} — anything that can reach it ` +
-      'can run code in the renderer. FREEIDE_DESKTOP_CDP_PORT=off to disable.'
+    `[jettstui] renderer debugging on http://127.0.0.1:${DEV_CDP.port} — anything that can reach it ` +
+      'can run code in the renderer. JETTSTUI_DESKTOP_CDP_PORT=off to disable.'
   )
 } else {
   const why = describeDevCdpDecision(DEV_CDP)
 
   if (why) {
-    console.warn(`[freeide] ${why}`)
+    console.warn(`[jettstui] ${why}`)
   }
 }
 
@@ -303,7 +303,7 @@ if (IS_WSL && !REMOTE_DISPLAY_REASON && fs.existsSync('/dev/dxg')) {
   app.commandLine.appendSwitch('ignore-gpu-blocklist')
   app.commandLine.appendSwitch('enable-gpu-rasterization')
   app.commandLine.appendSwitch('enable-zero-copy')
-  console.log('[freeide] WSL GPU passthrough (/dev/dxg) detected; enabling GPU acceleration')
+  console.log('[jettstui] WSL GPU passthrough (/dev/dxg) detected; enabling GPU acceleration')
 }
 
 // Windows sandbox / GPU breakpoint crash recovery (#38216).
@@ -313,7 +313,7 @@ if (IS_WSL && !REMOTE_DISPLAY_REASON && fs.existsSync('/dev/dxg')) {
 // 0x80000003. After enough GPU deaths the browser process FATAL-exits before the
 // UI is usable. Must run before app `ready` so `--no-sandbox` applies to child
 // processes. The sticky marker recovers Start Menu / shortcut launches that
-// never go through `freeide desktop`; it is version-scoped so an app update
+// never go through `jettstui desktop`; it is version-scoped so an app update
 // re-probes the sandbox instead of degrading forever.
 //
 // `windowsSandboxFallbackActive` = this process runs without the Chromium
@@ -334,15 +334,15 @@ if (IS_WINDOWS) {
   // engaged — icacls /T recurses the whole install tree, so healthy launches
   // skip it (the installer already granted the ACE at install time). Repair
   // targets the install dir only: granting AppContainer read on userData would
-  // expose FreeIDE sessions/config to every packaged app on the machine.
+  // expose JettsTUI sessions/config to every packaged app on the machine.
   if (shouldAttemptAclRepair(priorMarker)) {
     const exeDir = path.dirname(process.execPath)
     const acl = grantAllApplicationPackagesAcl(exeDir, { execFileSync })
 
     if (acl.ok) {
-      console.log(`[freeide] granted ALL APPLICATION PACKAGES RX on ${exeDir} (#38216)`)
+      console.log(`[jettstui] granted ALL APPLICATION PACKAGES RX on ${exeDir} (#38216)`)
     } else if (acl.error && acl.error !== 'missing-target-or-exec') {
-      console.warn(`[freeide] AppContainer ACL grant failed on ${exeDir}: ${acl.error}`)
+      console.warn(`[jettstui] AppContainer ACL grant failed on ${exeDir}: ${acl.error}`)
     }
   }
 
@@ -364,7 +364,7 @@ if (IS_WINDOWS) {
     app.commandLine.appendSwitch('no-sandbox')
     process.env.ELECTRON_DISABLE_SANDBOX = '1'
     console.log(
-      `[freeide] Windows sandbox fallback enabled (${sandboxDecision.reason}); launching with --no-sandbox (#38216)`
+      `[jettstui] Windows sandbox fallback enabled (${sandboxDecision.reason}); launching with --no-sandbox (#38216)`
     )
   }
 
@@ -395,19 +395,19 @@ if (IS_WINDOWS) {
     }
 
     console.warn(
-      `[freeide] Windows GPU sandbox crashed (exit=${details?.exitCode}); relaunching once with --no-sandbox (#38216)`
+      `[jettstui] Windows GPU sandbox crashed (exit=${details?.exitCode}); relaunching once with --no-sandbox (#38216)`
     )
 
     try {
       app.relaunch({ args: buildNoSandboxRelaunchArgs(process.argv.slice(1)) })
       app.exit(0)
     } catch (error) {
-      console.error(`[freeide] --no-sandbox relaunch failed: ${error?.message || error}`)
+      console.error(`[jettstui] --no-sandbox relaunch failed: ${error?.message || error}`)
     }
   })
 }
 
-ipcMain.handle('freeide:get-remote-display-reason', () => REMOTE_DISPLAY_REASON)
+ipcMain.handle('jettstui:get-remote-display-reason', () => REMOTE_DISPLAY_REASON)
 
 // Keep the renderer running at full speed while the window is in the background
 // or occluded. The chat transcript streams to screen through a bounded timer
@@ -457,7 +457,7 @@ function loadInstallStamp() {
       if (parsed && typeof parsed === 'object' && typeof parsed.commit === 'string' && parsed.commit.length >= 7) {
         if (parsed.schemaVersion !== INSTALL_STAMP_SCHEMA_VERSION) {
           console.warn(
-            `[freeide] install-stamp.json schemaVersion ${parsed.schemaVersion} != expected ${INSTALL_STAMP_SCHEMA_VERSION}; ignoring`
+            `[jettstui] install-stamp.json schemaVersion ${parsed.schemaVersion} != expected ${INSTALL_STAMP_SCHEMA_VERSION}; ignoring`
           )
 
           continue
@@ -474,7 +474,7 @@ function loadInstallStamp() {
         })
       }
     } catch (e) {
-      console.warn(`[freeide] install-stamp.json found at ${p} , but parsing failed with ${e}`)
+      console.warn(`[jettstui] install-stamp.json found at ${p} , but parsing failed with ${e}`)
       // Either ENOENT or malformed JSON; try the next candidate
     }
   }
@@ -486,129 +486,117 @@ const INSTALL_STAMP = loadInstallStamp()
 
 if (INSTALL_STAMP) {
   console.log(
-    `[freeide] install stamp: ${INSTALL_STAMP.commit.slice(0, 12)}${INSTALL_STAMP.branch ? ` (${INSTALL_STAMP.branch})` : ''}${INSTALL_STAMP.dirty ? ' [DIRTY]' : ''} from ${INSTALL_STAMP.source || 'unknown'}`
+    `[jettstui] install stamp: ${INSTALL_STAMP.commit.slice(0, 12)}${INSTALL_STAMP.branch ? ` (${INSTALL_STAMP.branch})` : ''}${INSTALL_STAMP.dirty ? ' [DIRTY]' : ''} from ${INSTALL_STAMP.source || 'unknown'}`
   )
 } else if (IS_PACKAGED) {
   // Dev builds without a stamp are normal; packaged builds without one
   // mean the bootstrap won't know what to clone. Surface clearly.
   console.error(
-    '[freeide] WARNING: no install-stamp.json found in packaged build. First-launch bootstrap will not have a pinned ref to install.'
+    '[jettstui] WARNING: no install-stamp.json found in packaged build. First-launch bootstrap will not have a pinned ref to install.'
   )
 }
 
-// FREEIDE_HOME — the user-facing root for everything FreeIDE-related. Mirrors
-// scripts/install.ps1's $FreeIDEHome and scripts/install.sh's $FREEIDE_HOME.
+// JETTSTUI_HOME remains a compatibility override. The default root mirrors
+// scripts/install.ps1 and scripts/install.sh.
 //
 // Defaults:
-//   Windows: %LOCALAPPDATA%\freeide (matches install.ps1)
-//   macOS / Linux: ~/.freeide (matches install.sh)
+//   Windows: %LOCALAPPDATA%\jettstui
+//   macOS / Linux: ~/.jettstui
 //
-// Special case for Windows: if the user has a legacy ~/.freeide directory
-// (e.g., from a prior pip install or a manual setup) AND no
-// %LOCALAPPDATA%\freeide yet, prefer the legacy path so we don't orphan their
-// existing config / sessions / .env. New installs go to %LOCALAPPDATA%.
-//
-// FREEIDE_DESKTOP_USER_DATA_DIR (used by test:desktop:fresh) puts the sandbox
-// FREEIDE_HOME beneath the throwaway userData dir so a fresh-install run never
-// touches the user's real ~/.freeide / %LOCALAPPDATA%\freeide.
-function resolveFreeIDEHome() {
-  if (process.env.FREEIDE_HOME) {
-    return normalizeFreeIDEHomeRoot(process.env.FREEIDE_HOME)
+// JETTSTUI_DESKTOP_USER_DATA_DIR (used by test:desktop:fresh) puts the sandbox
+// JETTSTUI_HOME beneath the throwaway userData dir so a fresh-install run never
+// touches the user's real ~/.jettstui / %LOCALAPPDATA%\jettstui.
+function resolveJettsTUIHome() {
+  const defaultBase = IS_WINDOWS
+    ? process.env.LOCALAPPDATA || path.join(app.getPath('home'), 'AppData', 'Local')
+    : app.getPath('home')
+  const defaultHome = path.join(defaultBase, IS_WINDOWS ? 'jettstui' : '.jettstui')
+  const resolveOverride = (value: string) => normalizeJettsTUIHomeRoot(value)
+
+  if (process.env.JETTSTUI_HOME) {
+    return resolveOverride(process.env.JETTSTUI_HOME)
   }
 
   if (USER_DATA_OVERRIDE) {
-    return path.join(path.resolve(USER_DATA_OVERRIDE), 'freeide-home')
+    return path.join(path.resolve(USER_DATA_OVERRIDE), 'jettstui-home')
   }
 
   if (IS_WINDOWS) {
     // A GUI app launched from Explorer inherits the environment block captured
-    // at login, so a FREEIDE_HOME set via `setx` AFTER login is invisible in
+    // at login, so a JETTSTUI_HOME set via `setx` AFTER login is invisible in
     // process.env even though the CLI (a fresh shell) sees it. Without this the
-    // backend silently falls back to %LOCALAPPDATA%\freeide and reports "No
+    // backend silently falls back to %LOCALAPPDATA%\jettstui and reports "No
     // inference provider configured" despite a valid configured home (#45471).
     // Consult the live User-scoped registry value before the default below.
-    const fromRegistry = readWindowsUserEnvVar('FREEIDE_HOME')
+    const fromRegistry = readWindowsUserEnvVar('JETTSTUI_HOME')
 
     if (fromRegistry) {
-      return normalizeFreeIDEHomeRoot(fromRegistry)
+      return resolveOverride(fromRegistry)
     }
   }
 
-  if (IS_WINDOWS && process.env.LOCALAPPDATA) {
-    const localappdata = path.join(process.env.LOCALAPPDATA, 'freeide')
-    const legacy = path.join(app.getPath('home'), '.freeide')
-
-    // Migrate transparently to LOCALAPPDATA, but honour an existing legacy
-    // ~/.freeide setup (no LOCALAPPDATA install yet) so users don't lose state.
-    if (!directoryExists(localappdata) && directoryExists(legacy)) {
-      return legacy
-    }
-
-    return localappdata
-  }
-
-  return path.join(app.getPath('home'), '.freeide')
+  return defaultHome
 }
 
-const FREEIDE_HOME = resolveFreeIDEHome()
+const JETTSTUI_HOME = resolveJettsTUIHome()
 
-function freeideManagedNodePathEntries() {
-  // NOTE: keep this ordering in sync with iter_freeide_node_dirs() in
-  // freeide_constants.py — this Node main process cannot import the Python
+function jettstuiManagedNodePathEntries() {
+  // NOTE: keep this ordering in sync with iter_jettstui_node_dirs() in
+  // jettstui_constants.py — this Node main process cannot import the Python
   // module, so the platform-ordering rule is mirrored here.
-  const root = path.join(FREEIDE_HOME, 'node')
+  const root = path.join(JETTSTUI_HOME, 'node')
   const bin = path.join(root, 'bin')
   const entries = IS_WINDOWS ? [root, bin] : [bin, root]
 
   return entries.filter(directoryExists)
 }
 
-function pathWithFreeIDEManagedNode(...entries) {
-  return [...freeideManagedNodePathEntries(), ...entries, process.env.PATH].filter(Boolean).join(path.delimiter)
+function pathWithJettsTUIManagedNode(...entries) {
+  return [...jettstuiManagedNodePathEntries(), ...entries, process.env.PATH].filter(Boolean).join(path.delimiter)
 }
 
-// ACTIVE_FREEIDE_ROOT — the canonical mutable FreeIDE install. Same path
+// ACTIVE_JETTSTUI_ROOT — the canonical mutable JettsTUI install. Same path
 // install.ps1 / install.sh use, so a desktop-only user and a CLI-only user end
 // up with identical layouts and can share one install.
-const ACTIVE_FREEIDE_ROOT = path.join(FREEIDE_HOME, 'freeide-agent')
+const ACTIVE_JETTSTUI_ROOT = path.join(JETTSTUI_HOME, 'jettstui')
 // VENV_ROOT — venv lives inside the repo, exactly like install.ps1 does it.
-const VENV_ROOT = path.join(ACTIVE_FREEIDE_ROOT, 'venv')
+const VENV_ROOT = path.join(ACTIVE_JETTSTUI_ROOT, 'venv')
 // BOOTSTRAP_COMPLETE_MARKER — written by the first-launch bootstrap runner
 // (Phase 1D) after install.ps1 has completed all stages and the user has
 // finished initial configuration. Presence of this marker means the install
 // is in a known-good state and we can skip the bootstrap flow on subsequent
-// boots, going straight to `resolveFreeIDEBackend()`. Missing or stale marker
+// boots, going straight to `resolveJettsTUIBackend()`. Missing or stale marker
 // means we re-run the bootstrap; install.ps1's stages are idempotent so a
 // re-run on an already-good install just discovers everything in place.
 //
-// We deliberately put the marker INSIDE ACTIVE_FREEIDE_ROOT (not alongside)
+// We deliberately put the marker INSIDE ACTIVE_JETTSTUI_ROOT (not alongside)
 // so that deleting the checkout to start fresh also deletes the marker --
 // avoids the confusing "marker exists but checkout is gone" state.
-const BOOTSTRAP_COMPLETE_MARKER = path.join(ACTIVE_FREEIDE_ROOT, '.freeide-bootstrap-complete')
+const BOOTSTRAP_COMPLETE_MARKER = path.join(ACTIVE_JETTSTUI_ROOT, '.jettstui-bootstrap-complete')
 const BOOTSTRAP_MARKER_SCHEMA_VERSION = 1
 
 const DESKTOP_CONNECTION_CONFIG_PATH = path.join(app.getPath('userData'), 'connection.json')
 const DESKTOP_INSTALLATION_PATH = path.join(app.getPath('userData'), 'desktop-installation.json')
 const DESKTOP_UPDATE_CONFIG_PATH = path.join(app.getPath('userData'), 'updates.json')
 const DESKTOP_WINDOW_STATE_PATH = path.join(app.getPath('userData'), 'window-state.json')
-// active-profile.json records which FreeIDE profile the desktop launches its
-// local backend as. When set, startFreeIDE() passes `freeide --profile <name>
-// dashboard …`, which deterministically pins FREEIDE_HOME (see
-// _apply_profile_override in freeide_cli/main.py) and bypasses the sticky
-// ~/.freeide/active_profile file. Unset (null) preserves the legacy behavior:
+// active-profile.json records which JettsTUI profile the desktop launches its
+// local backend as. When set, startJettsTUI() passes `jettstui --profile <name>
+// dashboard …`, which deterministically pins JETTSTUI_HOME (see
+// _apply_profile_override in jettstui/main.py) and bypasses the sticky
+// ~/.jettstui/active_profile file. Unset (null) preserves the legacy behavior:
 // no --profile flag, so the backend honors active_profile / default.
 const DESKTOP_PROFILE_CONFIG_PATH = path.join(app.getPath('userData'), 'active-profile.json')
-// Mirrors freeide_cli.profiles._PROFILE_ID_RE so we never hand the backend a
+// Mirrors jettstui.profiles._PROFILE_ID_RE so we never hand the backend a
 // value its profile resolver would reject and exit on.
 const PROFILE_NAME_RE = /^[a-z0-9][a-z0-9_-]{0,63}$/
 // Branch we track for self-update. The GUI work has merged to main, so this
 // tracks main. User can also override at runtime via
-// freeideDesktop.updates.setBranch().
+// jettstuiDesktop.updates.setBranch().
 const DEFAULT_UPDATE_BRANCH = 'main'
-// desktop.log lives under FREEIDE_HOME/logs/ so it sits next to agent.log,
-// errors.log, gateway.log produced by freeide_logging.setup_logging — one log
+// desktop.log lives under JETTSTUI_HOME/logs/ so it sits next to agent.log,
+// errors.log, gateway.log produced by jettstui_logging.setup_logging — one log
 // directory per user, regardless of which UI surface produced the line.
-const DESKTOP_LOG_PATH = path.join(FREEIDE_HOME, 'logs', 'desktop.log')
+const DESKTOP_LOG_PATH = path.join(JETTSTUI_HOME, 'logs', 'desktop.log')
 const DESKTOP_LOG_FLUSH_MS = 120
 const DESKTOP_LOG_BUFFER_MAX_CHARS = 64 * 1024
 // Bound desktop.log on disk. It is an append-only forensic log, so a boot loop
@@ -617,7 +605,7 @@ const DESKTOP_LOG_BUFFER_MAX_CHARS = 64 * 1024
 // bound — we have seen it reach ~326 GB and exhaust the disk, which then breaks
 // update/install (no room for git/venv/npm temp files).
 //
-// Mirror the Python logs (freeide_logging.py RotatingFileHandler, maxBytes x
+// Mirror the Python logs (jettstui_logging.py RotatingFileHandler, maxBytes x
 // backupCount): cascade live -> .1 -> .2 -> .3, drop the oldest. Steady-state
 // stays bounded at ~(backupCount + 1) x cap however hard the app loops.
 //
@@ -630,15 +618,15 @@ const DESKTOP_LOG_MAX_BYTES = 10 * 1024 * 1024
 const DESKTOP_LOG_BACKUP_COUNT = 3
 const DESKTOP_LOG_DISCARD_BYTES = DESKTOP_LOG_MAX_BYTES * 4
 const desktopLogBackupPath = n => `${DESKTOP_LOG_PATH}.${n}`
-const BOOT_FAKE_MODE = process.env.FREEIDE_DESKTOP_BOOT_FAKE === '1'
-const BOOT_FAKE_ERROR = process.env.FREEIDE_DESKTOP_BOOT_FAKE_ERROR || ''
+const BOOT_FAKE_MODE = process.env.JETTSTUI_DESKTOP_BOOT_FAKE === '1'
+const BOOT_FAKE_ERROR = process.env.JETTSTUI_DESKTOP_BOOT_FAKE_ERROR || ''
 // Automated teardown (Playwright's app.close(), harness scripts) quits with
 // nobody to answer a modal, so the active-work confirmation would hang the
 // caller instead of letting the process exit. Force quits set this.
-const SKIP_QUIT_CONFIRM = process.env.FREEIDE_DESKTOP_SKIP_QUIT_CONFIRM === '1'
+const SKIP_QUIT_CONFIRM = process.env.JETTSTUI_DESKTOP_SKIP_QUIT_CONFIRM === '1'
 
 const BOOT_FAKE_STEP_MS = (() => {
-  const raw = Number.parseInt(String(process.env.FREEIDE_DESKTOP_BOOT_FAKE_STEP_MS || ''), 10)
+  const raw = Number.parseInt(String(process.env.JETTSTUI_DESKTOP_BOOT_FAKE_STEP_MS || ''), 10)
 
   if (!Number.isFinite(raw) || raw <= 0) {
     return 650
@@ -647,7 +635,7 @@ const BOOT_FAKE_STEP_MS = (() => {
   return Math.max(120, raw)
 })()
 
-const APP_NAME = process.env.FREEIDE_DESKTOP_APP_NAME || 'Jetts-TUI'
+const APP_NAME = process.env.JETTSTUI_DESKTOP_APP_NAME || 'JettsTUI'
 const TITLEBAR_HEIGHT = 34
 const MACOS_TRAFFIC_LIGHTS_HEIGHT = 14
 
@@ -675,7 +663,7 @@ const terminalSessions = new Map()
 // tracks the window's effective appearance and ignores `backgroundColor` —
 // so a dark-themed app on a light-mode Mac flashes a white material on every
 // new window until the renderer covers it. The renderer reports its mode via
-// 'freeide:native-theme' ('dark' | 'light' | 'system'); we pin
+// 'jettstui:native-theme' ('dark' | 'light' | 'system'); we pin
 // nativeTheme.themeSource to it and persist the value so cold launches paint
 // correctly before the renderer has even loaded.
 const NATIVE_THEME_CONFIG_PATH = path.join(app.getPath('userData'), 'native-theme.json')
@@ -940,7 +928,7 @@ app.setName(APP_NAME)
 // Windows toast notifications silently no-op unless an AppUserModelID is set:
 // `new Notification().show()` returns without error and nothing appears. The
 // AUMID must match the installed Start Menu shortcut's AUMID, which
-// electron-builder derives from the build `appId` (com.freeide.freeide) —
+// electron-builder derives from the build `appId` (com.jettstui.jettstui) —
 // keep this string in sync with package.json `build.appId`. macOS/Linux don't
 // need this, so gate it on Windows. (Fixes: desktop approval/turn notifications
 // never firing on Windows.)
@@ -948,14 +936,14 @@ if (IS_WINDOWS) {
   app.setAppUserModelId('com.jetts.tui')
 }
 
-// Seed the native About panel with the live FreeIDE version. This is refreshed
+// Seed the native About panel with the live JettsTUI version. This is refreshed
 // on every open via the explicit "About" menu handler (refreshAboutPanel), so
-// an in-place `freeide update` mid-session is reflected without an app restart;
+// an in-place `jettstui update` mid-session is reflected without an app restart;
 // the seed here just covers the first open and any non-menu invocation path.
 app.setAboutPanelOptions({
   applicationName: APP_NAME,
-  applicationVersion: resolveFreeIDEVersion(),
-  copyright: 'Copyright © 2026 FreeIDE'
+  applicationVersion: resolveJettsTUIVersion(),
+  copyright: 'Copyright © 2026 JettsTUI'
 })
 
 // Custom scheme for streaming local media (video/audio) into the renderer.
@@ -964,10 +952,10 @@ app.setAboutPanelOptions({
 // so any non-trivial video silently refused to load. Streaming via a protocol
 // handler removes the size cap and gives the <video> element seekable,
 // range-aware playback. Must be registered before the app is ready.
-const MEDIA_PROTOCOL = 'freeide-media'
+const MEDIA_PROTOCOL = 'jettstui-media'
 
 // Only audio/video may be streamed. Without this the handler would read any
-// non-blocklisted local file (no size cap) for any `fetch(freeide-media://…)`.
+// non-blocklisted local file (no size cap) for any `fetch(jettstui-media://…)`.
 const STREAMABLE_MEDIA_EXTS = new Set([
   '.avi',
   '.flac',
@@ -1031,7 +1019,7 @@ const remoteRevalidation = new RemoteRevalidationCoordinator()
 let softRehomeInProgress = false
 // Additional per-profile backends, keyed by profile name. The PRIMARY backend
 // (the desktop's launch profile) stays managed by backendConnectionState +
-// startFreeIDE(); this pool only holds EXTRA profile
+// startJettsTUI(); this pool only holds EXTRA profile
 // backends spawned lazily when a session belongs to a different profile. A user
 // with no named profiles never populates this map, so their experience is
 // byte-for-byte the single-backend behavior.
@@ -1039,8 +1027,8 @@ const backendPool = new Map() // profile -> { process, port, token, connectionPr
 // Keep the pool light: cap concurrent profile backends (LRU eviction) and reap
 // idle ones. A user idles at exactly the primary backend; pool backends only
 // exist while a non-primary profile is actively being chatted through.
-const POOL_MAX_BACKENDS = Math.max(1, Number(process.env.FREEIDE_DESKTOP_POOL_MAX) || 3)
-const POOL_IDLE_MS = Math.max(60_000, Number(process.env.FREEIDE_DESKTOP_POOL_IDLE_MS) || 10 * 60_000)
+const POOL_MAX_BACKENDS = Math.max(1, Number(process.env.JETTSTUI_DESKTOP_POOL_MAX) || 3)
+const POOL_IDLE_MS = Math.max(60_000, Number(process.env.JETTSTUI_DESKTOP_POOL_IDLE_MS) || 10 * 60_000)
 // A backend touched within this window has a live renderer socket (the keepalive
 // pings every 60s for every open profile). LRU eviction must spare these — a
 // concurrent multi-profile session keeps several backends "fresh" at once, and
@@ -1055,13 +1043,13 @@ const RENDERER_RELOAD_WINDOW_MS = 60_000
 const RENDERER_RELOAD_MAX = 3
 let rendererReloadTimes = []
 // Latched bootstrap failure: when the first-launch install fails, we hold
-// onto the error so subsequent startFreeIDE() calls (e.g. the renderer's
+// onto the error so subsequent startJettsTUI() calls (e.g. the renderer's
 // ensureGatewayOpen retrying after the WS won't open) return the same error
 // instead of re-running install.ps1 in a hot loop. Cleared explicitly by
 // the renderer's "Reload and retry" path or by quitting the app.
 let bootstrapFailure = null
 // Latched non-bootstrap backend spawn failure — stops getConnection() from
-// respawning freeide serve backend children in a tight loop while boot is broken.
+// respawning jettstui serve backend children in a tight loop while boot is broken.
 let backendStartFailure = null
 // Latched CONFIRMED remote reauth failure. Remote failures deliberately do not
 // latch via backendStartFailure (they're usually transient and must stay
@@ -1081,7 +1069,7 @@ let bootstrapAbortController = null
 let bootstrapRepairRequested = false
 let connectionConfigCache = null
 let connectionConfigCacheMtime = null
-const freeideLog = []
+const jettstuiLog = []
 const previewWatchers = new Map()
 let previewShortcutActive = false
 let desktopLogBuffer = ''
@@ -1092,7 +1080,7 @@ let nativeThemeListenerInstalled = false
 let bootProgressState = {
   error: null,
   fakeMode: BOOT_FAKE_MODE,
-  message: 'Waiting to start FreeIDE backend',
+  message: 'Waiting to start JettsTUI backend',
   phase: 'idle',
   progress: 0,
   running: false,
@@ -1226,11 +1214,11 @@ function rememberLog(chunk) {
     return
   }
 
-  const lines = text.split(/\r?\n/).map(line => `[freeide] ${line}`)
-  freeideLog.push(...lines)
+  const lines = text.split(/\r?\n/).map(line => `[jettstui] ${line}`)
+  jettstuiLog.push(...lines)
 
-  if (freeideLog.length > 300) {
-    freeideLog.splice(0, freeideLog.length - 300)
+  if (jettstuiLog.length > 300) {
+    jettstuiLog.splice(0, jettstuiLog.length - 300)
   }
 
   desktopLogBuffer += `${lines.join('\n')}\n`
@@ -1386,7 +1374,7 @@ function ensureWslWindowsFonts() {
 
   try {
     const confDir = path.join(app.getPath('home'), '.config', 'fontconfig', 'conf.d')
-    const confPath = path.join(confDir, '99-freeide-wsl-windows-fonts.conf')
+    const confPath = path.join(confDir, '99-jettstui-wsl-windows-fonts.conf')
     let existing = ''
 
     try {
@@ -1439,7 +1427,7 @@ function broadcastBootProgress() {
     return
   }
 
-  webContents.send('freeide:boot-progress', bootProgressState)
+  webContents.send('jettstui:boot-progress', bootProgressState)
 }
 
 // Bootstrap-event broadcast channel + state. The bootstrap runner emits a
@@ -1453,7 +1441,7 @@ function broadcastBootProgress() {
 //   - log:      bounded ring buffer of the last 200 log lines for the
 //               "Show details" affordance in the overlay
 //
-// The snapshot is queryable via the freeide:bootstrap:get IPC handler so a
+// The snapshot is queryable via the jettstui:bootstrap:get IPC handler so a
 // reloaded renderer (e.g. devtools reload during dev) recovers state.
 // Bootstrap log ring: bounded buffer so a long install (npm + playwright
 // downloads can emit thousands of lines) doesn't grow unbounded in memory
@@ -1545,7 +1533,7 @@ function broadcastBootstrapEvent(ev) {
     return
   }
 
-  webContents.send('freeide:bootstrap:event', ev)
+  webContents.send('jettstui:bootstrap:event', ev)
 }
 
 function getBootstrapState() {
@@ -1571,7 +1559,7 @@ function promptFirstRunSetupChoice(backend) {
     type: 'setup-choice',
     active: true,
     platform: backend.platform || process.platform,
-    activeRoot: backend.activeRoot || ACTIVE_FREEIDE_ROOT
+    activeRoot: backend.activeRoot || ACTIVE_JETTSTUI_ROOT
   })
 }
 
@@ -1699,12 +1687,12 @@ function directoryExists(filePath) {
 }
 
 // --- in-app update mutual exclusion (#50238) -------------------------------
-// The Tauri updater writes FREEIDE_HOME/.freeide-update-in-progress for the whole
+// The Tauri updater writes JETTSTUI_HOME/.jettstui-update-in-progress for the whole
 // duration of an `--update` run (see update.rs UpdateMarkerGuard). If the user
 // relaunches the desktop mid-update — because the window vanished with no
 // progress and looks crashed — a fresh instance must NOT spawn its own local
 // backend: that backend re-locks the venv shim, the updater's straggler cleanup
-// (`force_kill_other_freeide`, taskkill /IM freeide.exe) kills it, the launch
+// (`force_kill_other_jettstui`, taskkill /IM jettstui.exe) kills it, the launch
 // fails with the 45s "backend didn't come up" error, and the relaunch/kill
 // cycle loops. Instead the fresh instance parks until the update finishes, then
 // brings the backend up itself (it is the surviving instance — the updater's
@@ -1729,7 +1717,7 @@ const UPDATE_HANDOFF_DWELL_MS = 2500
 // Emits a boot-progress phase so the renderer shows "Update in progress…"
 // rather than a frozen splash. Returns true if it parked at all.
 async function waitForUpdateToFinish() {
-  let marker = readLiveUpdateMarker(FREEIDE_HOME)
+  let marker = readLiveUpdateMarker(JETTSTUI_HOME)
 
   if (!marker) {
     return false
@@ -1741,11 +1729,11 @@ async function waitForUpdateToFinish() {
   while (marker && Date.now() < deadline) {
     await advanceBootProgress(
       'backend.update-wait',
-      'An update is finishing — FreeIDE will start automatically when it completes…',
+      'An update is finishing — JettsTUI will start automatically when it completes…',
       12
     )
     await new Promise(r => setTimeout(r, UPDATE_WAIT_POLL_MS))
-    marker = readLiveUpdateMarker(FREEIDE_HOME)
+    marker = readLiveUpdateMarker(JETTSTUI_HOME)
   }
 
   if (marker) {
@@ -1785,7 +1773,7 @@ function findOnPath(command) {
   // On Windows, try PATHEXT extensions BEFORE the bare (empty-extension) name.
   // A real command must resolve via its .exe/.cmd (Windows command-resolution
   // semantics consult PATHEXT); an extensionless file — e.g. a Git-Bash
-  // shell-script shim named `freeide` — must not shadow `freeide.cmd`/`freeide.exe`.
+  // shell-script shim named `jettstui` — must not shadow `jettstui.cmd`/`jettstui.exe`.
   // The empty entry is kept LAST so callers that already include the extension
   // (py.exe, pwsh.exe, powershell.exe) still resolve.
   const extensions = buildPathExtCandidates(process.env.PATHEXT, IS_WINDOWS)
@@ -1807,17 +1795,17 @@ function isCommandScript(command) {
   return IS_WINDOWS && /\.(cmd|bat)$/i.test(command || '')
 }
 
-function unwrapWindowsVenvFreeIDECommand(command, backendArgs) {
-  return resolveVenvFreeIDECommand(command, backendArgs, {
+function unwrapWindowsVenvJettsTUICommand(command, backendArgs) {
+  return resolveVenvJettsTUICommand(command, backendArgs, {
     isWindows: IS_WINDOWS,
     isCommandScript,
     fileExists,
     directoryExists,
-    canImportFreeIDECli,
+    canImportJettsTUICli,
     getVenvPython,
     getVenvSitePackagesEntries,
     buildDesktopBackendEnv,
-    freeideHome: FREEIDE_HOME,
+    jettstuiHome: JETTSTUI_HOME,
     resolvePath: (...segments) => path.resolve(...segments),
     dirname: p => path.dirname(p),
     basename: p => path.basename(p),
@@ -1826,14 +1814,14 @@ function unwrapWindowsVenvFreeIDECommand(command, backendArgs) {
 }
 
 // Does the resolved runtime understand the `serve` subcommand? The desktop
-// spawns `freeide serve`; runtimes older than serve only have `dashboard`. We
+// spawns `jettstui serve`; runtimes older than serve only have `dashboard`. We
 // detect support so getBackendArgsForRuntime() can route old runtimes through
 // the legacy `dashboard --no-open` form instead of crashing on an unknown
 // subcommand (would brick every user mid-upgrade — #54568 follow-up).
 //
 // Fast path: read the runtime's own dashboard.py (instant, covers managed
 // installs, dev checkouts, and the Windows venv). Fallback: probe the CLI once
-// (covers a bare `freeide` resolved from PATH with no known source root). Result
+// (covers a bare `jettstui` resolved from PATH with no known source root). Result
 // is cached per resolved runtime so we probe at most once per backend.
 const _serveSupportCache = new Map()
 
@@ -1851,11 +1839,14 @@ function backendSupportsServe(backend) {
   let supported = null
 
   if (backend.root) {
-    try {
-      const src = fs.readFileSync(path.join(backend.root, 'freeide_cli', 'subcommands', 'dashboard.py'), 'utf8')
-      supported = sourceDeclaresServe(src)
-    } catch {
-      supported = null // source unreadable — fall through to the probe
+    for (const packageName of ['jettstui']) {
+      try {
+        const src = fs.readFileSync(path.join(backend.root, packageName, 'subcommands', 'dashboard.py'), 'utf8')
+        supported = sourceDeclaresServe(src)
+        break
+      } catch {
+        // Try the legacy package path before probing the command.
+      }
     }
   }
 
@@ -1864,7 +1855,7 @@ function backendSupportsServe(backend) {
       const prefix = backend.args && backend.args[0] === '-m' ? backend.args.slice(0, 2) : []
       execFileSync(backend.command, [...prefix, 'serve', '--help'], {
         cwd: backend.root || undefined,
-        env: { ...process.env, FREEIDE_HOME, ...(backend.env || {}) },
+        env: { ...process.env, JETTSTUI_HOME, ...(backend.env || {}) },
         timeout: 15000,
         stdio: 'ignore',
         windowsHide: true
@@ -1933,12 +1924,15 @@ function looksLikeDesktopAppBinary(commandPath) {
   )
 }
 
-function isFreeIDESourceRoot(root) {
-  return directoryExists(root) && fileExists(path.join(root, 'freeide_cli', 'main.py'))
+function isJettsTUISourceRoot(root) {
+  return directoryExists(root) && (
+    fileExists(path.join(root, 'jettstui', 'main.py')) ||
+    fileExists(path.join(root, 'jettstui', 'main.py'))
+  )
 }
 
 function findPythonForRoot(root) {
-  const override = process.env.FREEIDE_DESKTOP_PYTHON
+  const override = process.env.JETTSTUI_DESKTOP_PYTHON
 
   if (override && fileExists(override)) {
     return override
@@ -1986,7 +1980,7 @@ function findSystemPython() {
   //      miss real Python 3.13 installs (user-reported case).
   //
   // We also restrict ourselves to Python 3.11–3.13. 3.14 is the latest
-  // CPython but several FreeIDE deps (notably pywinpty's Rust-built
+  // CPython but several JettsTUI deps (notably pywinpty's Rust-built
   // windows_x86_64_msvc crate) don't yet publish 3.14 wheels, and
   // `pip install -e .` falls back to source-build, which fails without
   // a Rust toolchain. install.ps1 sidesteps this by pinning to 3.11
@@ -2102,7 +2096,7 @@ function findSystemPython() {
   return null
 }
 
-// findGitBash — locate bash.exe on Windows. Resolves FREEIDE_GIT_BASH_PATH
+// findGitBash — locate bash.exe on Windows. Resolves JETTSTUI_GIT_BASH_PATH
 // first (mirrors tools/environments/local.py:_find_bash), then PortableGit,
 // standard install locations, and finally PATH.
 function findGitBash() {
@@ -2136,7 +2130,7 @@ function getVenvPython(venvRoot) {
 // This makes "no flashing windows" a property of the one backend launch rather
 // than a flag that has to be remembered at every descendant spawn site. Restoring
 // console python also restores stdout, so the backend announces its port on the
-// normal FREEIDE_DASHBOARD_READY stdout line and no ready-file side channel is
+// normal JETTSTUI_DASHBOARD_READY stdout line and no ready-file side channel is
 // needed.
 
 function makeDashboardReadyFile() {
@@ -2147,7 +2141,7 @@ function makeDashboardReadyFile() {
 }
 
 // resolveGitBinary — locate git.exe on Windows. A fresh installer-driven
-// install only has PortableGit under %LOCALAPPDATA%\freeide\git (never on
+// install only has PortableGit under %LOCALAPPDATA%\jettstui\git (never on
 // PATH), so a bare spawn('git') ENOENTs and self-update checks fail with
 // "Couldn't check for updates". Mirror findGitBash: PortableGit first, then
 // standard Git-for-Windows locations, then PATH. Cached after first probe.
@@ -2168,8 +2162,8 @@ function resolveGitBinary() {
   const candidates = []
 
   if (localAppData) {
-    candidates.push(path.join(localAppData, 'freeide', 'git', 'cmd', 'git.exe'))
-    candidates.push(path.join(localAppData, 'freeide', 'git', 'bin', 'git.exe'))
+    candidates.push(path.join(localAppData, 'jettstui', 'git', 'cmd', 'git.exe'))
+    candidates.push(path.join(localAppData, 'jettstui', 'git', 'bin', 'git.exe'))
   }
 
   candidates.push(path.join(process.env['ProgramFiles'] || 'C:\\Program Files', 'Git', 'cmd', 'git.exe'))
@@ -2213,11 +2207,11 @@ function resolveGhBinary() {
   return _ghBinaryCache
 }
 
-function recentFreeIDELog() {
-  return freeideLog.slice(-20).join('\n')
+function recentJettsTUILog() {
+  return jettstuiLog.slice(-20).join('\n')
 }
 
-// ─── Self-update (git-pull against the running backend's freeide root) ──────
+// ─── Self-update (git-pull against the running backend's jettstui root) ──────
 
 function readDesktopUpdateConfig() {
   try {
@@ -2304,16 +2298,16 @@ function writeZoomState(zoomLevel) {
 }
 
 // Match the backend's source resolution but bias toward a real git checkout.
-// Dev → SOURCE_REPO_ROOT. Packaged/CLI install → ACTIVE_FREEIDE_ROOT.
-// FREEIDE_DESKTOP_FREEIDE_ROOT always wins so devs can pin a worktree.
+// Dev → SOURCE_REPO_ROOT. Packaged/CLI install → ACTIVE_JETTSTUI_ROOT.
+// JETTSTUI_DESKTOP_JETTSTUI_ROOT always wins so devs can pin a worktree.
 function resolveUpdateRoot() {
   const candidates = [
-    process.env.FREEIDE_DESKTOP_FREEIDE_ROOT && path.resolve(process.env.FREEIDE_DESKTOP_FREEIDE_ROOT),
-    !IS_PACKAGED && isFreeIDESourceRoot(SOURCE_REPO_ROOT) ? SOURCE_REPO_ROOT : null,
-    isFreeIDESourceRoot(ACTIVE_FREEIDE_ROOT) ? ACTIVE_FREEIDE_ROOT : null
+    process.env.JETTSTUI_DESKTOP_JETTSTUI_ROOT && path.resolve(process.env.JETTSTUI_DESKTOP_JETTSTUI_ROOT),
+    !IS_PACKAGED && isJettsTUISourceRoot(SOURCE_REPO_ROOT) ? SOURCE_REPO_ROOT : null,
+    isJettsTUISourceRoot(ACTIVE_JETTSTUI_ROOT) ? ACTIVE_JETTSTUI_ROOT : null
   ].filter(Boolean)
 
-  return candidates.find(c => directoryExists(path.join(c, '.git'))) || candidates[0] || ACTIVE_FREEIDE_ROOT
+  return candidates.find(c => directoryExists(path.join(c, '.git'))) || candidates[0] || ACTIVE_JETTSTUI_ROOT
 }
 
 function runGit(args, options: any = {}): Promise<{ code: number; stdout: string; stderr: string }> {
@@ -2358,7 +2352,7 @@ function emitUpdateProgress(payload) {
   rememberLog(`[updates] ${merged.stage}: ${merged.message || merged.error || ''}`)
 
   for (const window of BrowserWindow.getAllWindows()) {
-    window.webContents.send('freeide:updates:progress', merged)
+    window.webContents.send('jettstui:updates:progress', merged)
   }
 }
 
@@ -2401,7 +2395,7 @@ async function checkUpdates() {
       supported: false,
       reason: 'not-a-git-checkout',
       message: `${updateRoot} isn't a git checkout — desktop self-update only runs against a source install.`,
-      freeideRoot: updateRoot,
+      jettstuiRoot: updateRoot,
       branch
     }
   }
@@ -2427,7 +2421,7 @@ async function checkUpdates() {
         branch,
         error: 'fetch-failed',
         message: firstLine(target.stderr) || 'git ls-remote failed.',
-        freeideRoot: updateRoot,
+        jettstuiRoot: updateRoot,
         fetchedAt: Date.now()
       }
     }
@@ -2441,7 +2435,7 @@ async function checkUpdates() {
       targetSha,
       commits: [],
       dirty: dirtyStr.length > 0,
-      freeideRoot: updateRoot,
+      jettstuiRoot: updateRoot,
       fetchedAt: Date.now()
     }
   }
@@ -2454,7 +2448,7 @@ async function checkUpdates() {
       branch,
       error: 'fetch-failed',
       message: firstLine(fetched.stderr) || 'git fetch failed.',
-      freeideRoot: updateRoot,
+      jettstuiRoot: updateRoot,
       fetchedAt: Date.now()
     }
   }
@@ -2502,7 +2496,7 @@ async function checkUpdates() {
     targetSha,
     commits,
     dirty: dirtyStr.length > 0,
-    freeideRoot: updateRoot,
+    jettstuiRoot: updateRoot,
     fetchedAt: Date.now()
   }
 }
@@ -2546,21 +2540,21 @@ let quitPromptOpen = false
 let quitConfirmedWithActiveWork = false
 
 // Resolve the staged updater binary. The Tauri installer copies itself to
-// FREEIDE_HOME/jetts-tui-setup.exe on a successful install (see
-// apps/bootstrap-installer paths::copy_self_to_freeide_home). That binary owns
-// ALL repo mutation — running `freeide update` + rebuilding the desktop — so
+// JETTSTUI_HOME/jetts-tui-setup.exe on a successful install (see
+// apps/bootstrap-installer paths::copy_self_to_jettstui_home). That binary owns
+// ALL repo mutation — running `jettstui update` + rebuilding the desktop — so
 // the desktop never touches its own bits while running. Returns null when the
 // updater isn't staged (e.g. a dev/source run that never went through the
 // installer); callers degrade gracefully.
 function resolveUpdaterBinary() {
-  const names = IS_WINDOWS
-    ? ['jetts-tui-setup.exe', 'freeide-setup.exe']
-    : ['jetts-tui-setup', 'freeide-setup']
+  const names = IS_WINDOWS ? ['jetts-tui-setup.exe', 'jettstui-setup.exe'] : ['jetts-tui-setup', 'jettstui-setup']
 
   for (const name of names) {
-    const candidate = path.join(FREEIDE_HOME, name)
+    const candidate = path.join(JETTSTUI_HOME, name)
 
-    if (fileExists(candidate)) {return candidate}
+    if (fileExists(candidate)) {
+      return candidate
+    }
   }
 
   return null
@@ -2594,13 +2588,13 @@ function repairMacUpdaterHelper(updater) {
   }
 }
 
-// Path to the venv shim whose lock decides whether `freeide update` can write
+// Path to the venv shim whose lock decides whether `jettstui update` can write
 // fresh entry points. On Windows this is the file the running backend
-// `freeide.exe` holds open; on POSIX it's never mandatory-locked.
-function venvFreeIDEShimPath(updateRoot) {
+// `jettstui.exe` holds open; on POSIX it's never mandatory-locked.
+function venvJettsTUIShimPath(updateRoot) {
   return IS_WINDOWS
-    ? path.join(updateRoot, 'venv', 'Scripts', 'freeide.exe')
-    : path.join(updateRoot, 'venv', 'bin', 'freeide')
+    ? path.join(updateRoot, 'venv', 'Scripts', 'jettstui.exe')
+    : path.join(updateRoot, 'venv', 'bin', 'jettstui')
 }
 
 // Best-effort lock probe mirroring the Rust updater's is_locked(): a running
@@ -2634,8 +2628,8 @@ function isShimLocked(shimPath) {
 }
 
 // Force-kill the entire process TREE rooted at each PID. Node's child.kill()
-// only signals the direct child, so on Windows a backend `freeide.exe` that
-// spawned its own grandchildren (a `freeide` REPL, a pty terminal session, the
+// only signals the direct child, so on Windows a backend `jettstui.exe` that
+// spawned its own grandchildren (a `jettstui` REPL, a pty terminal session, the
 // gateway) would survive and keep the venv shim locked. taskkill /T /F reaps
 // the whole tree synchronously. Windows-only: this is called solely from the
 // Windows shim-unlock path, and the backend is NOT spawned detached (so it's
@@ -2660,9 +2654,9 @@ function forceKillProcessTree(pid) {
 
 // Before handing off the update on Windows, the desktop MUST stop every backend
 // it spawned and WAIT for the venv shim to actually unlock. The old code did
-// `freeideProcess.kill('SIGTERM')` + `app.quit()` fire-and-forget: SIGTERM on
+// `jettstuiProcess.kill('SIGTERM')` + `app.quit()` fire-and-forget: SIGTERM on
 // Windows doesn't reap the backend's grandchildren, and quit didn't wait for
-// teardown, so the updater raced a still-locked `freeide.exe`, the quarantine
+// teardown, so the updater raced a still-locked `jettstui.exe`, the quarantine
 // rename failed, uv's `pip install` hit "Access is denied", and the git path
 // bailed into a full ZIP re-download that ALSO couldn't write the locked shim —
 // a half-applied install (ryanc's update.log). Here we tree-kill the primary +
@@ -2680,8 +2674,8 @@ async function releaseBackendLockForUpdate(updateRoot) {
 
 // Shared backend teardown + venv-shim unlock wait. Used by BOTH the self-update
 // hand-off and the desktop uninstaller — they have the identical Windows
-// problem: the desktop's backend (and the grandchildren IT spawned — a freeide
-// REPL, a pty terminal, the gateway) keep `freeide.exe` and other files in the
+// problem: the desktop's backend (and the grandchildren IT spawned — a jettstui
+// REPL, a pty terminal, the gateway) keep `jettstui.exe` and other files in the
 // venv mandatory-locked, so any in-place replace/delete of the install tree
 // races a live handle and half-fails (#37532). We tree-kill every backend PID
 // the desktop owns, then poll the shim until it's genuinely writable.
@@ -2695,10 +2689,10 @@ async function releaseBackendLock(updateRoot, tag) {
 
   // Collect every backend PID the desktop owns: primary window backend + pool.
   const pids = []
-  const freeideProcess = backendConnectionState.getProcess()
+  const jettstuiProcess = backendConnectionState.getProcess()
 
-  if (freeideProcess && Number.isInteger(freeideProcess.pid)) {
-    pids.push(freeideProcess.pid)
+  if (jettstuiProcess && Number.isInteger(jettstuiProcess.pid)) {
+    pids.push(jettstuiProcess.pid)
   }
 
   for (const entry of backendPool.values()) {
@@ -2708,9 +2702,9 @@ async function releaseBackendLock(updateRoot, tag) {
   }
 
   // Graceful first (lets Python flush), then tree-kill to catch grandchildren.
-  if (freeideProcess && !freeideProcess.killed) {
+  if (jettstuiProcess && !jettstuiProcess.killed) {
     try {
-      freeideProcess.kill('SIGTERM')
+      jettstuiProcess.kill('SIGTERM')
     } catch {
       void 0
     }
@@ -2722,7 +2716,7 @@ async function releaseBackendLock(updateRoot, tag) {
     forceKillProcessTree(pid)
   }
 
-  const shim = venvFreeIDEShimPath(updateRoot)
+  const shim = venvJettsTUIShimPath(updateRoot)
   const deadlineMs = Date.now() + 15000
 
   while (Date.now() < deadlineMs) {
@@ -2737,10 +2731,10 @@ async function releaseBackendLock(updateRoot, tag) {
     // instead of trusting the initial sweep.
     const stragglers = []
 
-    const currentFreeIDEProcess = backendConnectionState.getProcess()
+    const currentJettsTUIProcess = backendConnectionState.getProcess()
 
-    if (currentFreeIDEProcess && Number.isInteger(currentFreeIDEProcess.pid)) {
-      stragglers.push(currentFreeIDEProcess.pid)
+    if (currentJettsTUIProcess && Number.isInteger(currentJettsTUIProcess.pid)) {
+      stragglers.push(currentJettsTUIProcess.pid)
     }
 
     for (const entry of backendPool.values()) {
@@ -2774,8 +2768,8 @@ async function releaseBackendLock(updateRoot, tag) {
 //
 // The desktop is a pure consumer: it does NOT git pull / pip install / rebuild
 // itself (the old open-coded git dance lived here and drifted from
-// `freeide update`). Instead we spawn the staged FreeIDE-Setup binary with
-// --update and quit, so it can run `freeide update` (which refuses while we
+// `jettstui update`). Instead we spawn the staged JettsTUI-Setup binary with
+// --update and quit, so it can run `jettstui update` (which refuses while we
 // hold the venv shim) and rebuild the desktop with our exe already gone.
 //
 // Detection (checkUpdates / commit changelog / "N behind") stays in the UI;
@@ -2791,10 +2785,10 @@ async function applyUpdates(opts = {}) {
     const updater = resolveUpdaterBinary()
 
     if (!updater && !IS_WINDOWS) {
-      // macOS/Linux drag-install: no staged Tauri freeide-setup. Unlike Windows
+      // macOS/Linux drag-install: no staged Tauri jettstui-setup. Unlike Windows
       // (where a venv-shim file lock forces the quit→hand-off→rebuild dance),
       // there's no mandatory file locking here, so the desktop can drive the
-      // whole update itself: `freeide update` (backend) + `freeide desktop
+      // whole update itself: `jettstui update` (backend) + `jettstui desktop
       // --build-only` (OS-aware GUI rebuild), then swap the running .app bundle
       // with the freshly built one and relaunch.
       return await applyUpdatesPosixInApp(opts)
@@ -2802,16 +2796,16 @@ async function applyUpdates(opts = {}) {
 
     if (!updater) {
       // No staged updater binary — this is a CLI-installed user (they ran
-      // `freeide desktop`, never the Tauri installer that self-copies
-      // freeide-setup.exe into FREEIDE_HOME). They DO have a working `freeide`
+      // `jettstui desktop`, never the Tauri installer that self-copies
+      // jettstui-setup.exe into JETTSTUI_HOME). They DO have a working `jettstui`
       // on PATH / in the venv, so the correct path is the one-liner in their
       // native medium. We show the EXACT command, branch-pinned to the
-      // checkout they're on — bare `freeide update` defaults to main and would
+      // checkout they're on — bare `jettstui update` defaults to main and would
       // silently switch a bb/gui (or any non-main) install off-branch. Mirror
       // the GUI button's contract: append --branch <current> for non-main
       // checkouts, keep it bare for main so the card stays clean.
       const updateRoot = resolveUpdateRoot()
-      let command = 'freeide update'
+      let command = 'jettstui update'
 
       try {
         const head = await runGit(['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: updateRoot })
@@ -2821,23 +2815,23 @@ async function applyUpdates(opts = {}) {
           const branch = await resolveHealedBranch(updateRoot, current)
 
           if (branch !== 'main') {
-            command = `freeide update --branch ${branch}`
+            command = `jettstui update --branch ${branch}`
           }
         }
       } catch {
-        // Best-effort: fall back to bare `freeide update` if branch detection fails.
+        // Best-effort: fall back to bare `jettstui update` if branch detection fails.
       }
 
       rememberLog(`[updates] no staged updater; surfacing manual \`${command}\` for CLI install at ${updateRoot}`)
       emitUpdateProgress({ stage: 'manual', message: command, percent: null })
 
-      return { ok: true, manual: true, command, freeideRoot: updateRoot }
+      return { ok: true, manual: true, command, jettstuiRoot: updateRoot }
     }
 
     emitUpdateProgress({
       stage: 'restart',
       message:
-        'Updating FreeIDE — this window will close and the updater will open. Don’t reopen FreeIDE yourself; it restarts automatically when the update finishes.',
+        'Updating JettsTUI — this window will close and the updater will open. Don’t reopen JettsTUI yourself; it restarts automatically when the update finishes.',
       percent: 100
     })
     repairMacUpdaterHelper(updater)
@@ -2857,38 +2851,38 @@ async function applyUpdates(opts = {}) {
     // ── Pre-flight state.db integrity guard (#68474) ─────────────────
     // Emergency backup and header verification before the update touches
     // anything.  Runs while the backend is still alive.
-    preflightStateDb(FREEIDE_HOME, rememberLog)
+    preflightStateDb(JETTSTUI_HOME, rememberLog)
 
     // Stop our own backend(s) and wait for the venv shim to unlock BEFORE we
     // spawn the updater. Without this the updater races a still-locked
-    // freeide.exe (held by the backend child / its grandchildren) and the update
+    // jettstui.exe (held by the backend child / its grandchildren) and the update
     // bricks. See releaseBackendLockForUpdate for the full failure analysis.
     const lock = await releaseBackendLockForUpdate(updateRoot)
 
     if (!lock.unlocked) {
       // Something OUTSIDE this app holds the venv (a second window, a user
-      // terminal running freeide, an unkillable child). Handing off anyway
+      // terminal running jettstui, an unkillable child). Handing off anyway
       // guarantees a half-updated venv — abort loudly instead and let the
       // user close the holder and retry. Restart our own backend so the app
       // keeps working after the failed attempt.
       const message =
-        'Update aborted: another process is holding the FreeIDE install open ' +
-        '(a second FreeIDE window or a terminal running freeide?). Close it and retry.'
+        'Update aborted: another process is holding the JettsTUI install open ' +
+        '(a second JettsTUI window or a terminal running jettstui?). Close it and retry.'
 
       emitUpdateProgress({ stage: 'error', message, percent: null })
-      startFreeIDE().catch(() => {})
+      startJettsTUI().catch(() => {})
 
       return { ok: false, error: message }
     }
 
     // Detached so the updater outlives this process — it needs us GONE before
-    // `freeide update` will run (the venv shim is locked while we live).
+    // `jettstui update` will run (the venv shim is locked while we live).
     const child = spawnUpdaterProcess(updater, updaterArgs, {
-      cwd: FREEIDE_HOME,
+      cwd: JETTSTUI_HOME,
       env: {
         ...process.env,
-        FREEIDE_HOME,
-        PATH: pathWithFreeIDEManagedNode(venvBin)
+        JETTSTUI_HOME,
+        PATH: pathWithJettsTUIManagedNode(venvBin)
       },
       detached: true,
       stdio: 'ignore'
@@ -2902,7 +2896,7 @@ async function applyUpdates(opts = {}) {
     // waitForUpdateToFinish() gate sees a live update and parks instead.
     // The updater overwrites this with its own PID later; same format.
     if (Number.isInteger(child.pid)) {
-      writeUpdateMarker(FREEIDE_HOME, child.pid)
+      writeUpdateMarker(JETTSTUI_HOME, child.pid)
     }
 
     rememberLog(`[updates] launched updater: ${updater} ${updaterArgs.join(' ')}; exiting desktop to release venv shim`)
@@ -2942,28 +2936,30 @@ async function handOffWindowsBootstrapRecovery(reason) {
     : configuredBranch || DEFAULT_UPDATE_BRANCH
 
   const venvBin = path.join(updateRoot, 'venv', IS_WINDOWS ? 'Scripts' : 'bin')
-  const venvFreeIDE = path.join(venvBin, IS_WINDOWS ? 'freeide.exe' : 'freeide')
+  const venvJettsTUI = path.join(venvBin, IS_WINDOWS ? 'jettstui.exe' : 'jettstui')
   const venvPython = path.join(venvBin, IS_WINDOWS ? 'python.exe' : 'python')
 
   // Choose the gentle in-place --update when ANY real-install signal is present,
-  // not just the `freeide.exe` console-script shim. That shim is generated at the
+  // not just the `jettstui.exe` console-script shim. That shim is generated at the
   // END of venv setup and is absent in exactly the interrupted/quarantined states
   // this recovery exists to heal — gating on it alone forced the destructive
   // --repair (full venv recreate) and drove reinstall loops. The venv interpreter
   // and the bootstrap-complete marker are present earlier and are better signals.
   const haveRealInstall =
-    fileExists(venvPython) || fileExists(venvFreeIDE) || fileExists(path.join(updateRoot, '.freeide-bootstrap-complete'))
+    fileExists(venvPython) ||
+    fileExists(venvJettsTUI) ||
+    fileExists(path.join(updateRoot, '.jettstui-bootstrap-complete'))
 
   const updaterArgs = chooseUpdaterArgs(haveRealInstall, branch)
 
   await releaseBackendLockForUpdate(updateRoot)
 
   const child = spawnUpdaterProcess(updater, updaterArgs, {
-    cwd: FREEIDE_HOME,
+    cwd: JETTSTUI_HOME,
     env: {
       ...process.env,
-      FREEIDE_HOME,
-      PATH: pathWithFreeIDEManagedNode(venvBin)
+      JETTSTUI_HOME,
+      PATH: pathWithJettsTUIManagedNode(venvBin)
     },
     detached: true,
     stdio: 'ignore'
@@ -2973,7 +2969,7 @@ async function handOffWindowsBootstrapRecovery(reason) {
   // hand-off has the same window where the renderer can respawn a backend
   // before the updater writes its own marker.
   if (Number.isInteger(child.pid)) {
-    writeUpdateMarker(FREEIDE_HOME, child.pid)
+    writeUpdateMarker(JETTSTUI_HOME, child.pid)
   }
 
   rememberLog(
@@ -2990,16 +2986,16 @@ async function handOffWindowsBootstrapRecovery(reason) {
   return true
 }
 
-// Resolve the freeide CLI to drive an in-app update: prefer the venv shim in
-// the install we're updating, fall back to `freeide` on PATH.
-function resolveFreeIDECliBinary(updateRoot) {
-  const venvFreeIDE = path.join(updateRoot, 'venv', 'bin', 'freeide')
+// Resolve the jettstui CLI to drive an in-app update: prefer the venv shim in
+// the install we're updating, fall back to `jettstui` on PATH.
+function resolveJettsTUICliBinary(updateRoot) {
+  const venvJettsTUI = path.join(updateRoot, 'venv', 'bin', 'jettstui')
 
-  if (fileExists(venvFreeIDE)) {
-    return venvFreeIDE
+  if (fileExists(venvJettsTUI)) {
+    return venvJettsTUI
   }
 
-  return findOnPath('freeide') || null
+  return findOnPath('jettstui') || null
 }
 
 // Spawn a command and stream each output line to the update progress channel.
@@ -3061,9 +3057,9 @@ function runningAppBundle() {
 // intact before any update process mutates the install.  Runs in the
 // desktop Electron process itself, before the backend is killed and
 // before the updater is spawned — a separate safety net from the
-// Python-level pre-update snapshot inside `freeide update`.
-function preflightStateDb(freeideHome, rememberLog) {
-  const stateDbPath = path.join(freeideHome, 'state.db')
+// Python-level pre-update snapshot inside `jettstui update`.
+function preflightStateDb(jettstuiHome, rememberLog) {
+  const stateDbPath = path.join(jettstuiHome, 'state.db')
 
   if (!fileExists(stateDbPath)) {
     rememberLog('[updates] state.db pre-flight: not found (fresh install?)')
@@ -3099,7 +3095,7 @@ function preflightStateDb(freeideHome, rememberLog) {
       // Emergency timestamped backup, separate from the Python-level snapshot.
       const ts = new Date().toISOString().replace(/[:.]/g, '-')
 
-      const emergencyPath = path.join(freeideHome, `state.db.pre-update-emergency-${ts}.bak`)
+      const emergencyPath = path.join(jettstuiHome, `state.db.pre-update-emergency-${ts}.bak`)
 
       try {
         fs.copyFileSync(stateDbPath, emergencyPath)
@@ -3109,7 +3105,7 @@ function preflightStateDb(freeideHome, rememberLog) {
 
         // Prune to the 2 most recent emergency backups.
         try {
-          const homeDir = fs.readdirSync(freeideHome)
+          const homeDir = fs.readdirSync(jettstuiHome)
 
           const backups = homeDir
             .filter(
@@ -3123,7 +3119,7 @@ function preflightStateDb(freeideHome, rememberLog) {
 
           for (const old of backups.slice(2)) {
             try {
-              fs.unlinkSync(path.join(freeideHome, old))
+              fs.unlinkSync(path.join(jettstuiHome, old))
             } catch {
               void 0
             }
@@ -3146,52 +3142,52 @@ function shellQuote(value) {
   return `'${String(value).replace(/'/g, `'\\''`)}'`
 }
 
-// macOS/Linux in-app update: backend (`freeide update`) + OS-aware GUI rebuild
-// (`freeide desktop --build-only`), then atomically swap the running .app bundle
+// macOS/Linux in-app update: backend (`jettstui update`) + OS-aware GUI rebuild
+// (`jettstui desktop --build-only`), then atomically swap the running .app bundle
 // with the freshly built one and relaunch. Degrades to "backend updated,
 // restart to load the new GUI" if the swap can't be performed.
 async function applyUpdatesPosixInApp(opts: any) {
   const updateRoot = resolveUpdateRoot()
-  const freeide = resolveFreeIDECliBinary(updateRoot)
+  const jettstui = resolveJettsTUICliBinary(updateRoot)
 
-  if (!freeide) {
-    emitUpdateProgress({ stage: 'manual', message: 'freeide update', percent: null })
+  if (!jettstui) {
+    emitUpdateProgress({ stage: 'manual', message: 'jettstui update', percent: null })
 
-    return { ok: true, manual: true, command: 'freeide update', freeideRoot: updateRoot }
+    return { ok: true, manual: true, command: 'jettstui update', jettstuiRoot: updateRoot }
   }
 
   // ── Pre-flight state.db integrity guard (#68474) ──
-  preflightStateDb(FREEIDE_HOME, rememberLog)
+  preflightStateDb(JETTSTUI_HOME, rememberLog)
 
-  // Put the FreeIDE-managed Node and the venv on PATH so `freeide desktop`'s
+  // Put the JettsTUI-managed Node and the venv on PATH so `jettstui desktop`'s
   // npm build can find them on a machine with no system Node. Windows portable
-  // Node lives directly under %LOCALAPPDATA%\\freeide\\node, not node\\bin.
-  // PYTHONUNBUFFERED: `freeide update` writes to a pipe here, so CPython
+  // Node lives directly under %LOCALAPPDATA%\\jettstui\\node, not node\\bin.
+  // PYTHONUNBUFFERED: `jettstui update` writes to a pipe here, so CPython
   // block-buffers stdout and long quiet steps (the pre-update backup can zip
   // multi-GB archives for minutes) stream nothing to the progress UI — users
   // read the silence as a hang and cancel a healthy update.
   const env: Record<string, string> = {
-    FREEIDE_HOME,
+    JETTSTUI_HOME,
     PYTHONUNBUFFERED: '1',
-    PATH: pathWithFreeIDEManagedNode(path.join(updateRoot, 'venv', 'bin'))
+    PATH: pathWithJettsTUIManagedNode(path.join(updateRoot, 'venv', 'bin'))
   }
 
-  // `freeide update` reaps stale `freeide serve` backends (a code update
+  // `jettstui update` reaps stale `jettstui serve` backends (a code update
   // leaves the running process serving old Python against the freshly-updated
   // JS bundle). But OUR backend is one of those processes, and killing it
   // mid-update produces the boot→kill→crash loop in #37532 — the desktop
   // already restarts its own backend via the rebuild+relaunch below, so the
   // reap must spare it. Hand the live backend's PID to the update process;
-  // _kill_stale_dashboard_processes reads FREEIDE_DESKTOP_CHILD_PID and excludes
+  // _kill_stale_dashboard_processes reads JETTSTUI_DESKTOP_CHILD_PID and excludes
   // it while still reaping any genuinely-orphaned backends. (#37532)
   // Exclude every desktop-managed backend (primary + all pool profiles) from
   // the update reaper. _kill_stale_dashboard_processes accepts a comma-separated
   // list (a single int still parses for back-compat).
   const desktopChildPids = []
-  const freeideProcess = backendConnectionState.getProcess()
+  const jettstuiProcess = backendConnectionState.getProcess()
 
-  if (freeideProcess && Number.isInteger(freeideProcess.pid)) {
-    desktopChildPids.push(freeideProcess.pid)
+  if (jettstuiProcess && Number.isInteger(jettstuiProcess.pid)) {
+    desktopChildPids.push(jettstuiProcess.pid)
   }
 
   for (const entry of backendPool.values()) {
@@ -3201,7 +3197,7 @@ async function applyUpdatesPosixInApp(opts: any) {
   }
 
   if (desktopChildPids.length) {
-    env.FREEIDE_DESKTOP_CHILD_PID = desktopChildPids.join(',')
+    env.JETTSTUI_DESKTOP_CHILD_PID = desktopChildPids.join(',')
   }
 
   // Branch-pin so a non-main checkout doesn't get switched to main (and self-heal
@@ -3219,18 +3215,18 @@ async function applyUpdatesPosixInApp(opts: any) {
     // best effort
   }
 
-  emitUpdateProgress({ stage: 'update', message: 'Updating FreeIDE (git + dependencies)…', percent: 10 })
+  emitUpdateProgress({ stage: 'update', message: 'Updating JettsTUI (git + dependencies)…', percent: 10 })
 
-  const updated = (await runStreamedUpdate(freeide, ['update', '--yes', ...branchArgs], {
+  const updated = (await runStreamedUpdate(jettstui, ['update', '--yes', ...branchArgs], {
     cwd: updateRoot,
     env,
     stage: 'update'
   })) as any
 
   if (updated.code !== 0) {
-    emitUpdateProgress({ stage: 'error', message: 'freeide update failed.', error: updated.error || 'update-failed' })
+    emitUpdateProgress({ stage: 'error', message: 'jettstui update failed.', error: updated.error || 'update-failed' })
 
-    return { ok: false, error: 'freeide update failed' }
+    return { ok: false, error: 'jettstui update failed' }
   }
 
   emitUpdateProgress({ stage: 'rebuild', message: 'Rebuilding the desktop app…', percent: 60 })
@@ -3243,20 +3239,20 @@ async function applyUpdatesPosixInApp(opts: any) {
       emitUpdateProgress({ stage: 'rebuild', message: 'Retrying the desktop rebuild…', percent: 60 })
     }
 
-    return runStreamedUpdate(freeide, ['desktop', '--build-only'], { cwd: updateRoot, env, stage: 'rebuild' })
+    return runStreamedUpdate(jettstui, ['desktop', '--build-only'], { cwd: updateRoot, env, stage: 'rebuild' })
   })
 
   if (rebuilt.code !== 0) {
     emitUpdateProgress({
       stage: 'error',
-      message: 'Backend updated, but the desktop rebuild failed. Restart FreeIDE to retry.',
+      message: 'Backend updated, but the desktop rebuild failed. Restart JettsTUI to retry.',
       error: rebuilt.error || 'rebuild-failed'
     })
 
     return { ok: false, backendUpdated: true, error: 'desktop rebuild failed' }
   }
 
-  // Linux in-app update terminal state (#45205). `freeide desktop --build-only`
+  // Linux in-app update terminal state (#45205). `jettstui desktop --build-only`
   // rebuilds the unpacked app in place under apps/desktop/release/<plat>-unpacked.
   // We can only HONESTLY relaunch into the new GUI when the *running* binary IS
   // that rebuilt one — i.e. execPath lives under release/<plat>-unpacked. The
@@ -3296,7 +3292,7 @@ async function applyUpdatesPosixInApp(opts: any) {
     const outcome = decideRelaunchOutcome({ underUnpacked, sandboxOk })
 
     if (outcome === 'relaunch') {
-      emitUpdateProgress({ stage: 'restart', message: 'Restarting FreeIDE…', percent: 100 })
+      emitUpdateProgress({ stage: 'restart', message: 'Restarting JettsTUI…', percent: 100 })
       // Preserve launch context across the re-exec: replay the original args
       // (filtered of Electron internals) and the env/cwd that define which
       // backend/profile/root this instance talks to. Without this the
@@ -3312,7 +3308,7 @@ async function applyUpdatesPosixInApp(opts: any) {
         cwd: process.cwd()
       })
 
-      const scriptPath = path.join(app.getPath('temp'), `freeide-desktop-update-${Date.now()}.sh`)
+      const scriptPath = path.join(app.getPath('temp'), `jettstui-desktop-update-${Date.now()}.sh`)
 
       try {
         fs.writeFileSync(scriptPath, relaunchScript, { mode: 0o755 })
@@ -3334,7 +3330,7 @@ async function applyUpdatesPosixInApp(opts: any) {
           backendUpdated: true,
           guiUpdated: false,
           manualRestart: true,
-          message: 'Backend updated. Quit and reopen FreeIDE to load the new version.'
+          message: 'Backend updated. Quit and reopen JettsTUI to load the new version.'
         }
       }
     }
@@ -3344,7 +3340,7 @@ async function applyUpdatesPosixInApp(opts: any) {
         stage: 'guiSkew',
         message:
           'Backend updated, but the desktop app package was not changed. ' +
-          'Update or reinstall the FreeIDE desktop app to match.',
+          'Update or reinstall the JettsTUI desktop app to match.',
         percent: 100
       })
       rememberLog(
@@ -3370,15 +3366,15 @@ async function applyUpdatesPosixInApp(opts: any) {
       sandboxBlocked: true,
       message:
         'Backend updated. The rebuilt app can’t relaunch automatically ' +
-        '(sandbox helper needs root). Quit and reopen Jetts-TUI to finish.'
+        '(sandbox helper needs root). Quit and reopen JettsTUI to finish.'
     }
   }
 
   const rebuiltApp = [
-    path.join(updateRoot, 'apps', 'desktop', 'release', 'mac-arm64', 'Jetts-TUI.app'),
-    path.join(updateRoot, 'apps', 'desktop', 'release', 'mac', 'Jetts-TUI.app'),
-    path.join(updateRoot, 'apps', 'desktop', 'release', 'mac-arm64', 'FreeIDE.app'),
-    path.join(updateRoot, 'apps', 'desktop', 'release', 'mac', 'FreeIDE.app')
+    path.join(updateRoot, 'apps', 'desktop', 'release', 'mac-arm64', 'JettsTUI.app'),
+    path.join(updateRoot, 'apps', 'desktop', 'release', 'mac', 'JettsTUI.app'),
+    path.join(updateRoot, 'apps', 'desktop', 'release', 'mac-arm64', 'JettsTUI.app'),
+    path.join(updateRoot, 'apps', 'desktop', 'release', 'mac', 'JettsTUI.app')
   ].find(directoryExists)
 
   const targetApp = runningAppBundle()
@@ -3388,7 +3384,7 @@ async function applyUpdatesPosixInApp(opts: any) {
   if (!rebuiltApp || !targetApp) {
     emitUpdateProgress({
       stage: 'done',
-      message: 'Backend updated. Restart FreeIDE to load the new version.',
+      message: 'Backend updated. Restart JettsTUI to load the new version.',
       percent: 100
     })
 
@@ -3409,25 +3405,25 @@ for _ in $(seq 1 240); do
   sleep 0.5
 done
 if [ "$SRC" != "$DST" ]; then
-  if /usr/bin/ditto "$SRC" "$DST.freeide-update-new"; then
-    rm -rf "$DST.freeide-update-old" 2>/dev/null || true
-    mv "$DST" "$DST.freeide-update-old" 2>/dev/null || rm -rf "$DST"
-    mv "$DST.freeide-update-new" "$DST"
-    rm -rf "$DST.freeide-update-old" 2>/dev/null || true
+  if /usr/bin/ditto "$SRC" "$DST.jettstui-update-new"; then
+    rm -rf "$DST.jettstui-update-old" 2>/dev/null || true
+    mv "$DST" "$DST.jettstui-update-old" 2>/dev/null || rm -rf "$DST"
+    mv "$DST.jettstui-update-new" "$DST"
+    rm -rf "$DST.jettstui-update-old" 2>/dev/null || true
   fi
 fi
 /usr/bin/xattr -dr com.apple.quarantine "$DST" 2>/dev/null || true
 /usr/bin/open "$DST"
 `
 
-  const scriptPath = path.join(app.getPath('temp'), `freeide-desktop-update-${Date.now()}.sh`)
+  const scriptPath = path.join(app.getPath('temp'), `jettstui-desktop-update-${Date.now()}.sh`)
 
   try {
     fs.writeFileSync(scriptPath, swapScript, { mode: 0o755 })
   } catch (err) {
     emitUpdateProgress({
       stage: 'done',
-      message: 'Backend + app updated. Restart FreeIDE to load the new version.',
+      message: 'Backend + app updated. Restart JettsTUI to load the new version.',
       percent: 100
     })
     rememberLog(`[updates] could not write swap script: ${err.message}; rebuilt app at ${rebuiltApp}`)
@@ -3471,7 +3467,7 @@ function readBootstrapMarker() {
   return readJson(BOOTSTRAP_COMPLETE_MARKER)
 }
 
-// Marker-independent: is the canonical install at ACTIVE_FREEIDE_ROOT actually
+// Marker-independent: is the canonical install at ACTIVE_JETTSTUI_ROOT actually
 // runnable right now? A complete CLI install (`install.sh --include-desktop`)
 // or a DMG launch over a prior CLI install satisfies this WITHOUT the desktop
 // ever having written the bootstrap marker -- so we must be able to recognise
@@ -3480,11 +3476,11 @@ function isActiveRuntimeUsable() {
   const venvPython = getVenvPython(VENV_ROOT)
 
   return (
-    isFreeIDESourceRoot(ACTIVE_FREEIDE_ROOT) &&
+    isJettsTUISourceRoot(ACTIVE_JETTSTUI_ROOT) &&
     fileExists(venvPython) &&
-    canImportFreeIDECli(venvPython, {
+    canImportJettsTUICli(venvPython, {
       env: {
-        PYTHONPATH: [ACTIVE_FREEIDE_ROOT, process.env.PYTHONPATH].filter(Boolean).join(path.delimiter)
+        PYTHONPATH: [ACTIVE_JETTSTUI_ROOT, process.env.PYTHONPATH].filter(Boolean).join(path.delimiter)
       }
     })
   )
@@ -3492,7 +3488,7 @@ function isActiveRuntimeUsable() {
 
 function activeRuntimeState() {
   // We DELIBERATELY do NOT verify that the checkout is currently at the
-  // pinned commit -- users update via the in-app update path or `freeide
+  // pinned commit -- users update via the in-app update path or `jettstui
   // update`, which moves HEAD legitimately. The marker only attests "a
   // desktop-managed bootstrap ran here at least once"; runtime usability is
   // what decides whether we can actually launch.
@@ -3516,7 +3512,7 @@ function writeBootstrapMarker(payload) {
 }
 
 function resolveWebDist() {
-  const override = process.env.FREEIDE_DESKTOP_WEB_DIST
+  const override = process.env.JETTSTUI_DESKTOP_WEB_DIST
 
   if (override && directoryExists(path.resolve(override))) {
     return path.resolve(override)
@@ -3540,7 +3536,7 @@ function resolveWebDist() {
     rememberLog(
       `[web-dist] dashboard frontend dir resolved to an asar-internal path that ` +
         `is not a real directory: ${fallback}. Static routes will 404. ` +
-        `Ensure dist/** is unpacked (asarUnpack) or set FREEIDE_DESKTOP_WEB_DIST.`
+        `Ensure dist/** is unpacked (asarUnpack) or set JETTSTUI_DESKTOP_WEB_DIST.`
     )
   }
 
@@ -3561,7 +3557,7 @@ function resolveRendererIndex() {
   rememberLog(
     `[renderer] index.html not found — the desktop app was packaged without a ` +
       `renderer bundle. Tried: ${candidates.join(', ')}. ` +
-      `Rebuild with: freeide desktop --force-build`
+      `Rebuild with: jettstui desktop --force-build`
   )
 
   return candidates[0]
@@ -3582,9 +3578,9 @@ function isPackagedInstallPath(dir) {
   })
 }
 
-function resolveFreeIDECwd() {
+function resolveJettsTUICwd() {
   // In a packaged build, `process.cwd()` resolves to the install root (e.g.
-  // `…/win-unpacked` on Windows or `/Applications/FreeIDE.app/Contents/...`
+  // `…/win-unpacked` on Windows or `/Applications/JettsTUI.app/Contents/...`
   // on macOS). Sessions spawned there leave files inside the app bundle
   // and bewilder users when "where did my files go?" is the install dir.
   // The user-configurable default project directory wins over everything,
@@ -3592,7 +3588,7 @@ function resolveFreeIDECwd() {
   // real directory), then the home dir.
   const candidates = [
     readDefaultProjectDir(),
-    process.env.FREEIDE_DESKTOP_CWD,
+    process.env.JETTSTUI_DESKTOP_CWD,
     IS_PACKAGED ? null : process.env.INIT_CWD,
     IS_PACKAGED ? null : process.cwd(),
     !IS_PACKAGED ? SOURCE_REPO_ROOT : null,
@@ -3622,7 +3618,7 @@ function sanitizeWorkspaceCwd(cwd) {
   const trimmed = typeof cwd === 'string' ? cwd.trim() : ''
 
   if (!trimmed || isPackagedInstallPath(trimmed)) {
-    return { cwd: resolveFreeIDECwd(), sanitized: Boolean(trimmed) }
+    return { cwd: resolveJettsTUICwd(), sanitized: Boolean(trimmed) }
   }
 
   try {
@@ -3635,7 +3631,7 @@ function sanitizeWorkspaceCwd(cwd) {
     // Fall through to the resolved default.
   }
 
-  return { cwd: resolveFreeIDECwd(), sanitized: Boolean(trimmed) }
+  return { cwd: resolveJettsTUICwd(), sanitized: Boolean(trimmed) }
 }
 
 // Persisted "Default project directory" — surfaced as a setting in the
@@ -3695,9 +3691,9 @@ function createPythonBackend(root, label, backendArgs, options: any = {}) {
     kind: 'python',
     label,
     command,
-    args: ['-m', 'freeide_cli.main', ...backendArgs],
+    args: ['-m', 'jettstui.main', ...backendArgs],
     env: buildDesktopBackendEnv({
-      freeideHome: FREEIDE_HOME,
+      jettstuiHome: JETTSTUI_HOME,
       pythonPathEntries: [root, ...getVenvSitePackagesEntries(venvRoot)],
       venvRoot
     }),
@@ -3707,7 +3703,7 @@ function createPythonBackend(root, label, backendArgs, options: any = {}) {
   }
 }
 
-// createActiveBackend — build a backend pointing at ACTIVE_FREEIDE_ROOT, the
+// createActiveBackend — build a backend pointing at ACTIVE_JETTSTUI_ROOT, the
 // canonical install location shared with the CLI installer. The venv at
 // VENV_ROOT may not exist yet on first run; bootstrap=true tells
 // ensureRuntime() to create / refresh it before launch.
@@ -3717,27 +3713,28 @@ function createActiveBackend(backendArgs) {
 
   return {
     kind: 'python',
-    label: `FreeIDE at ${ACTIVE_FREEIDE_ROOT}`,
+    label: `JettsTUI at ${ACTIVE_JETTSTUI_ROOT}`,
     command,
-    args: ['-m', 'freeide_cli.main', ...backendArgs],
+    args: ['-m', 'jettstui.main', ...backendArgs],
     env: buildDesktopBackendEnv({
-      freeideHome: FREEIDE_HOME,
-      pythonPathEntries: [ACTIVE_FREEIDE_ROOT, ...getVenvSitePackagesEntries(VENV_ROOT)],
+      jettstuiHome: JETTSTUI_HOME,
+      pythonPathEntries: [ACTIVE_JETTSTUI_ROOT, ...getVenvSitePackagesEntries(VENV_ROOT)],
       venvRoot: VENV_ROOT
     }),
-    root: ACTIVE_FREEIDE_ROOT,
+    root: ACTIVE_JETTSTUI_ROOT,
     bootstrap: true,
     shell: false
   }
 }
 
-function resolveFreeIDEBackend(backendArgs) {
-  // 1. Explicit override -- FREEIDE_DESKTOP_FREEIDE_ROOT points at a developer
+function resolveJettsTUIBackend(backendArgs) {
+  // 1. Explicit override -- JETTSTUI_DESKTOP_JETTSTUI_ROOT points at a developer
   //    checkout. Honour it as-is (no bootstrap; the user is driving).
-  const overrideRoot = process.env.FREEIDE_DESKTOP_FREEIDE_ROOT && path.resolve(process.env.FREEIDE_DESKTOP_FREEIDE_ROOT)
+  const overrideRoot =
+    process.env.JETTSTUI_DESKTOP_JETTSTUI_ROOT && path.resolve(process.env.JETTSTUI_DESKTOP_JETTSTUI_ROOT)
 
-  if (overrideRoot && isFreeIDESourceRoot(overrideRoot)) {
-    const backend = createPythonBackend(overrideRoot, `FreeIDE source at ${overrideRoot}`, backendArgs)
+  if (overrideRoot && isJettsTUISourceRoot(overrideRoot)) {
+    const backend = createPythonBackend(overrideRoot, `JettsTUI source at ${overrideRoot}`, backendArgs)
 
     if (backend) {
       return backend
@@ -3746,18 +3743,18 @@ function resolveFreeIDEBackend(backendArgs) {
 
   // 2. Development source -- when running `npm run dev` from a checkout, the
   //    cloned repo at SOURCE_REPO_ROOT takes precedence over ACTIVE and any
-  //    installed `freeide` on PATH so local Python edits are actually exercised.
-  //    (In dev with no checkout, SOURCE_REPO_ROOT won't pass isFreeIDESourceRoot.)
-  if (!IS_PACKAGED && isFreeIDESourceRoot(SOURCE_REPO_ROOT)) {
-    const backend = createPythonBackend(SOURCE_REPO_ROOT, `FreeIDE source at ${SOURCE_REPO_ROOT}`, backendArgs)
+  //    installed `jettstui` on PATH so local Python edits are actually exercised.
+  //    (In dev with no checkout, SOURCE_REPO_ROOT won't pass isJettsTUISourceRoot.)
+  if (!IS_PACKAGED && isJettsTUISourceRoot(SOURCE_REPO_ROOT)) {
+    const backend = createPythonBackend(SOURCE_REPO_ROOT, `JettsTUI source at ${SOURCE_REPO_ROOT}`, backendArgs)
 
     if (backend) {
       return backend
     }
   }
 
-  // 3. ACTIVE_FREEIDE_ROOT — the canonical install at
-  //    %LOCALAPPDATA%\\freeide\\freeide-agent (Windows) or ~/.freeide/freeide-agent.
+  // 3. ACTIVE_JETTSTUI_ROOT — the canonical install at
+  //    %LOCALAPPDATA%\\jettstui\\jettstui (Windows) or ~/.jettstui/jettstui.
   //    A valid bootstrap marker proves Desktop finished the first-run install
   //    flow, but marker provenance is NOT the same thing as runtime usability:
   //    the CLI can create the exact same repo+venv layout, and older desktop
@@ -3769,7 +3766,7 @@ function resolveFreeIDEBackend(backendArgs) {
   if (activeRuntime.shouldUseActiveRuntime && !bootstrapRepairRequested) {
     if (!activeRuntime.hasValidMarker) {
       rememberLog(
-        `[bootstrap] Active FreeIDE runtime at ${ACTIVE_FREEIDE_ROOT} is usable but the bootstrap marker is missing or stale; skipping first-run bootstrap.`
+        `[bootstrap] Active JettsTUI runtime at ${ACTIVE_JETTSTUI_ROOT} is usable but the bootstrap marker is missing or stale; skipping first-run bootstrap.`
       )
     }
 
@@ -3780,61 +3777,61 @@ function resolveFreeIDEBackend(backendArgs) {
     rememberLog('[bootstrap] repair requested; bypassing the usable active runtime to re-run the installer')
   }
 
-  // 4. Existing `freeide` on PATH -- installed via install.ps1 / install.sh from
+  // 4. Existing `jettstui` on PATH -- installed via install.ps1 / install.sh from
   //    a previous tool-only setup, or pip-installed system-wide. Use it but
   //    do NOT write a bootstrap marker; the user did this themselves and we
   //    don't want to take ownership of an install we didn't perform.
-  //    FREEIDE_DESKTOP_IGNORE_EXISTING=1 forces the bootstrap path for testing.
-  if (process.env.FREEIDE_DESKTOP_IGNORE_EXISTING !== '1') {
-    let freeideCommand = null
-    const freeideOverride = process.env.FREEIDE_DESKTOP_FREEIDE
+  //    JETTSTUI_DESKTOP_IGNORE_EXISTING=1 forces the bootstrap path for testing.
+  if (process.env.JETTSTUI_DESKTOP_IGNORE_EXISTING !== '1') {
+    let jettstuiCommand = null
+    const jettstuiOverride = process.env.JETTSTUI_DESKTOP_JETTSTUI
 
-    if (freeideOverride) {
-      const resolvedOverride = findOnPath(freeideOverride)
+    if (jettstuiOverride) {
+      const resolvedOverride = findOnPath(jettstuiOverride)
 
       if (resolvedOverride) {
-        freeideCommand = resolvedOverride
-      } else if (!isWindowsBinaryPathInWsl(freeideOverride, { isWsl: IS_WSL })) {
-        freeideCommand = freeideOverride
+        jettstuiCommand = resolvedOverride
+      } else if (!isWindowsBinaryPathInWsl(jettstuiOverride, { isWsl: IS_WSL })) {
+        jettstuiCommand = jettstuiOverride
       } else {
-        rememberLog(`Ignoring Windows FreeIDE override under WSL: ${freeideOverride}`)
+        rememberLog(`Ignoring Windows JettsTUI override under WSL: ${jettstuiOverride}`)
       }
     } else {
-      freeideCommand = findOnPath('freeide')
+      jettstuiCommand = findOnPath('jettstui')
     }
 
-    if (freeideCommand) {
-      if (looksLikeDesktopAppBinary(freeideCommand)) {
-        rememberLog(`Ignoring desktop app executable on PATH while resolving FreeIDE CLI: ${freeideCommand}`)
-        freeideCommand = null
+    if (jettstuiCommand) {
+      if (looksLikeDesktopAppBinary(jettstuiCommand)) {
+        rememberLog(`Ignoring desktop app executable on PATH while resolving JettsTUI CLI: ${jettstuiCommand}`)
+        jettstuiCommand = null
       }
     }
 
-    if (freeideCommand) {
-      const unwrapped = unwrapWindowsVenvFreeIDECommand(freeideCommand, backendArgs)
+    if (jettstuiCommand) {
+      const unwrapped = unwrapWindowsVenvJettsTUICommand(jettstuiCommand, backendArgs)
 
       if (unwrapped) {
         return unwrapped
       }
 
-      // Smoke-test the candidate before trusting it. A `freeide` shim
+      // Smoke-test the candidate before trusting it. A `jettstui` shim
       // left behind by a half-uninstalled pip install (or a venv
       // entry-point pointing at a deleted interpreter) still resolves
       // via findOnPath but explodes on spawn -- the user then sees a
       // dead backend instead of the first-launch installer. The cheap
       // `--version` probe (see backend-probes.ts) catches that case
       // and lets the resolver fall through to step 6 / bootstrap.
-      const shellForProbe = isCommandScript(freeideCommand)
+      const shellForProbe = isCommandScript(jettstuiCommand)
 
-      // FREEIDE_DESKTOP_FREEIDE is an explicit deployment override (used by
+      // JETTSTUI_DESKTOP_JETTSTUI is an explicit deployment override (used by
       // the Nix wrapper), not a discovered PATH candidate. It must not fall
       // through to the install-script bootstrap if the optional probe times
       // out under load; the pinned backend is the only valid runtime there.
-      if (shouldTrustFreeIDEOverride(freeideOverride) || verifyFreeIDECli(freeideCommand, { shell: shellForProbe })) {
+      if (shouldTrustJettsTUIOverride(jettstuiOverride) || verifyJettsTUICli(jettstuiCommand, { shell: shellForProbe })) {
         return (
-          unwrapWindowsVenvFreeIDECommand(freeideCommand, backendArgs) || {
-            label: `existing FreeIDE CLI at ${freeideCommand}`,
-            command: freeideCommand,
+          unwrapWindowsVenvJettsTUICommand(jettstuiCommand, backendArgs) || {
+            label: `existing JettsTUI CLI at ${jettstuiCommand}`,
+            command: jettstuiCommand,
             args: backendArgs,
             bootstrap: false,
             env: {},
@@ -3845,12 +3842,12 @@ function resolveFreeIDEBackend(backendArgs) {
       }
 
       rememberLog(
-        `Ignoring existing FreeIDE CLI at ${freeideCommand}: --version probe failed; falling through to bootstrap.`
+        `Ignoring existing JettsTUI CLI at ${jettstuiCommand}: --version probe failed; falling through to bootstrap.`
       )
     }
   }
 
-  // 5. Last-ditch: pip-installed freeide_cli module via system Python.
+  // 5. Last-ditch: pip-installed jettstui module via system Python.
   //    Same rationale as #4 -- the user installed this; we use it but don't
   //    take ownership.
   const python = findSystemPython()
@@ -3858,25 +3855,25 @@ function resolveFreeIDEBackend(backendArgs) {
   if (python) {
     // Same smoke-test rationale as step 4: a system Python in the
     // SUPPORTED_VERSIONS range can be registered (PEP 514) without
-    // having freeide_cli installed -- common on dev boxes that have
+    // having jettstui installed -- common on dev boxes that have
     // a python.org install from prior unrelated work. Returning that
     // backend hands the spawn step a guaranteed ModuleNotFoundError.
     // Verify the import works before trusting the candidate; on
     // failure, fall through to step 6 so the bootstrap runner pulls
-    // a uv-managed 3.11 into %LOCALAPPDATA%\freeide\freeide-agent\venv.
-    if (canImportFreeIDECli(python)) {
+    // a uv-managed 3.11 into %LOCALAPPDATA%\jettstui\jettstui\venv.
+    if (canImportJettsTUICli(python)) {
       return {
         kind: 'python',
-        label: `installed freeide_cli module via ${python}`,
+        label: `installed jettstui module via ${python}`,
         command: python,
-        args: ['-m', 'freeide_cli.main', ...backendArgs],
+        args: ['-m', 'jettstui.main', ...backendArgs],
         bootstrap: false,
         env: {},
         shell: false
       }
     }
 
-    rememberLog(`Ignoring system Python ${python}: freeide_cli is not importable; falling through to bootstrap.`)
+    rememberLog(`Ignoring system Python ${python}: jettstui is not importable; falling through to bootstrap.`)
   }
 
   // 6. Nothing usable yet -- signal the bootstrap runner that we need to
@@ -3886,19 +3883,19 @@ function resolveFreeIDEBackend(backendArgs) {
   //    explaining what's missing.
   //
   //    We deliberately do NOT throw here -- throwing inside
-  //    resolveFreeIDEBackend was the old "no payload" path and forced the
+  //    resolveJettsTUIBackend was the old "no payload" path and forced the
   //    user into a dead end. With the bootstrap protocol, "no install yet"
   //    is a recoverable state the GUI can drive through.
   return {
     kind: 'bootstrap-needed',
-    label: 'Jetts-TUI not installed yet; bootstrap required',
+    label: 'JettsTUI not installed yet; bootstrap required',
     command: null,
     args: backendArgs,
     bootstrap: true,
     env: {},
     shell: false,
     // Hints for the bootstrap runner / UI layer:
-    activeRoot: ACTIVE_FREEIDE_ROOT,
+    activeRoot: ACTIVE_JETTSTUI_ROOT,
     installStamp: INSTALL_STAMP, // may be null in dev
     isPackaged: IS_PACKAGED,
     platform: process.platform
@@ -3912,7 +3909,7 @@ async function ensureRuntime(backend) {
     return backend
   }
 
-  // backend.kind === 'bootstrap-needed' means resolveFreeIDEBackend couldn't
+  // backend.kind === 'bootstrap-needed' means resolveJettsTUIBackend couldn't
   // find anything to spawn. Hand off to the bootstrap runner which drives the
   // platform installer, writes the bootstrap-complete marker on success, then
   // we re-resolve to get the now-installed backend.
@@ -3922,11 +3919,11 @@ async function ensureRuntime(backend) {
   // will rewire startup to spawn the window first and route bootstrap events
   // to a renderer-side install overlay.
   if (backend.kind === 'bootstrap-needed') {
-    rememberLog('[bootstrap] no FreeIDE install found; starting first-launch bootstrap')
+    rememberLog('[bootstrap] no JettsTUI install found; starting first-launch bootstrap')
 
     if (await handOffWindowsBootstrapRecovery('bootstrap-needed')) {
       const handoffError: Error & { isBootstrapFailure?: boolean; bootstrapHandedOff?: boolean } = new Error(
-        'Jetts-TUI recovery was handed off to setup. The desktop will restart when recovery completes.'
+        'JettsTUI recovery was handed off to setup. The desktop will restart when recovery completes.'
       )
 
       handoffError.isBootstrapFailure = true
@@ -3961,8 +3958,8 @@ async function ensureRuntime(backend) {
       installStamp: backend.installStamp,
       activeRoot: backend.activeRoot,
       sourceRepoRoot: SOURCE_REPO_ROOT,
-      freeideHome: FREEIDE_HOME,
-      logRoot: path.join(FREEIDE_HOME, 'logs'),
+      jettstuiHome: JETTSTUI_HOME,
+      logRoot: path.join(JETTSTUI_HOME, 'logs'),
       abortSignal: bootstrapAbortController.signal,
       onEvent: ev => {
         // Tee every bootstrap event to (a) the desktop log for forensics
@@ -3987,7 +3984,7 @@ async function ensureRuntime(backend) {
     bootstrapAbortController = null
 
     if (bootstrapResult.cancelled) {
-      const cancelledError = new Error('Jetts-TUI install was cancelled.') as any
+      const cancelledError = new Error('JettsTUI install was cancelled.') as any
       cancelledError.isBootstrapFailure = true
       cancelledError.bootstrapCancelled = true
       bootstrapFailure = cancelledError
@@ -3996,16 +3993,16 @@ async function ensureRuntime(backend) {
 
     if (!bootstrapResult.ok) {
       const bootstrapError = new Error(
-        `FreeIDE bootstrap failed${bootstrapResult.failedStage ? ` at stage '${bootstrapResult.failedStage}'` : ''}: ` +
+        `JettsTUI bootstrap failed${bootstrapResult.failedStage ? ` at stage '${bootstrapResult.failedStage}'` : ''}: ` +
           `${bootstrapResult.error || 'unknown error'}. ` +
-          `Check ${path.join(FREEIDE_HOME, 'logs', 'desktop.log')} for the full transcript.`
+          `Check ${path.join(JETTSTUI_HOME, 'logs', 'desktop.log')} for the full transcript.`
       ) as any
 
       bootstrapError.isBootstrapFailure = true
       bootstrapError.failedStage = bootstrapResult.failedStage || null
-      // Latch the failure so subsequent startFreeIDE() calls return this
+      // Latch the failure so subsequent startJettsTUI() calls return this
       // same error without re-running install.ps1.  Cleared by the
-      // freeide:bootstrap:reset IPC (renderer's "Reload and retry").
+      // jettstui:bootstrap:reset IPC (renderer's "Reload and retry").
       bootstrapFailure = bootstrapError
       throw bootstrapError
     }
@@ -4014,7 +4011,28 @@ async function ensureRuntime(backend) {
 
     // Re-resolve now that the install exists. The new resolution lands in
     // step 3 (bootstrap-complete marker) and we recurse to wire venvPython.
-    return ensureRuntime(resolveFreeIDEBackend(backend.args))
+    // Never re-run the installer from here: if it reported success but left
+    // nothing launchable at ACTIVE_JETTSTUI_ROOT (e.g. an installer fetched
+    // from a ref that installs elsewhere), recursing would reinstall forever.
+    const resolved = resolveJettsTUIBackend(backend.args)
+
+    if (resolved.kind === 'bootstrap-needed') {
+      const unusableError = new Error(
+        `JettsTUI setup finished, but no usable install was found at ${ACTIVE_JETTSTUI_ROOT}. ` +
+          `Check ${path.join(JETTSTUI_HOME, 'logs', 'desktop.log')} and the latest bootstrap log, ` +
+          'then use "Reload and retry" or run scripts/install.ps1 manually.'
+      ) as any
+
+      unusableError.isBootstrapFailure = true
+      unusableError.failedStage = 'verify'
+      rememberLog(`[bootstrap] ${unusableError.message}`)
+      // Latch like any other bootstrap failure so the next startJettsTUI()
+      // call surfaces this error instead of starting another install.
+      bootstrapFailure = unusableError
+      throw unusableError
+    }
+
+    return ensureRuntime(resolved)
   }
 
   // bootstrap=true with a real backend (createActiveBackend path) means we
@@ -4023,25 +4041,25 @@ async function ensureRuntime(backend) {
   // sync flow exited through, minus all the factory/pip/marker machinery
   // (install.ps1 owns those concerns now and the bootstrap-complete marker
   // attests they ran successfully).
-  if (!isFreeIDESourceRoot(ACTIVE_FREEIDE_ROOT)) {
+  if (!isJettsTUISourceRoot(ACTIVE_JETTSTUI_ROOT)) {
     throw new Error(
-      `FreeIDE install at ${ACTIVE_FREEIDE_ROOT} is missing or incomplete. ` +
+      `JettsTUI install at ${ACTIVE_JETTSTUI_ROOT} is missing or incomplete. ` +
         'Reinstall via the desktop installer or scripts/install.ps1.'
     )
   }
 
-  // On Windows, preflight Git Bash. FreeIDE' terminal tool calls bash.exe
+  // On Windows, preflight Git Bash. JettsTUI' terminal tool calls bash.exe
   // directly (tools/environments/local.py); without it the agent can't run
   // terminal commands. install.ps1's Stage-Git puts PortableGit at
-  // %LOCALAPPDATA%\freeide\git\, which findGitBash() picks up, so for any
+  // %LOCALAPPDATA%\jettstui\git\, which findGitBash() picks up, so for any
   // user who completed the bootstrap this is a no-op. For users who got
-  // here via an external `freeide` on PATH, this check still helps.
+  // here via an external `jettstui` on PATH, this check still helps.
   if (IS_WINDOWS && !findGitBash()) {
     throw new Error(
-      'Git for Windows is required for FreeIDE on Windows (provides Git Bash, ' +
+      'Git for Windows is required for JettsTUI on Windows (provides Git Bash, ' +
         "which the agent's terminal tool uses). Install it from " +
         'https://git-scm.com/download/win or run `winget install -e --id Git.Git`, ' +
-        'then relaunch FreeIDE.'
+        'then relaunch JettsTUI.'
     )
   }
 
@@ -4051,20 +4069,20 @@ async function ensureRuntime(backend) {
     // No venv at the expected location AND no bootstrap-needed sentinel
     // means we have a half-installed checkout: .git exists, source files
     // exist, but venv is missing or broken. This shouldn't happen in
-    // normal flow because activeRuntimeState() requires isFreeIDESourceRoot()
-    // plus an importable freeide_cli before it hands back the active runtime.
+    // normal flow because activeRuntimeState() requires isJettsTUISourceRoot()
+    // plus an importable jettstui before it hands back the active runtime.
     // If we hit this, the user (or a deleted venv) broke the invariant; tell
     // them to re-run the install.
     throw new Error(
-      `FreeIDE venv missing at ${VENV_ROOT}. Re-run the desktop installer or ` + '`scripts/install.ps1` to rebuild it.'
+      `JettsTUI venv missing at ${VENV_ROOT}. Re-run the desktop installer or ` + '`scripts/install.ps1` to rebuild it.'
     )
   }
 
   backend.command = getVenvPython(VENV_ROOT)
-  backend.label = `FreeIDE at ${ACTIVE_FREEIDE_ROOT} (venv: ${VENV_ROOT})`
+  backend.label = `JettsTUI at ${ACTIVE_JETTSTUI_ROOT} (venv: ${VENV_ROOT})`
   updateBootProgress({
     phase: 'runtime.ready',
-    message: 'Jetts-TUI runtime is ready',
+    message: 'JettsTUI runtime is ready',
     progress: 82,
     running: true,
     error: null
@@ -4077,7 +4095,7 @@ async function ensureRuntime(backend) {
 // endpoints, e.g. kanban attachments). Hand-rolled because node's http has no
 // FormData and the payload is one file — a dependency would be overkill.
 function multipartBody(upload) {
-  const boundary = `----freeide-${crypto.randomBytes(12).toString('hex')}`
+  const boundary = `----jettstui-${crypto.randomBytes(12).toString('hex')}`
   const filename = String(upload.filename || 'file').replace(/["\r\n]/g, '_')
 
   const body = Buffer.concat([
@@ -4107,7 +4125,7 @@ function fetchJson(url, token, options: any = {}) {
     const timeoutMs = resolveTimeoutMs(options.timeoutMs, DEFAULT_FETCH_TIMEOUT_MS)
 
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-      reject(new Error(`Unsupported FreeIDE backend URL protocol: ${parsed.protocol}`))
+      reject(new Error(`Unsupported JettsTUI backend URL protocol: ${parsed.protocol}`))
 
       return
     }
@@ -4118,7 +4136,7 @@ function fetchJson(url, token, options: any = {}) {
         method: options.method || 'GET',
         headers: {
           'Content-Type': contentType,
-          'X-FreeIDE-Session-Token': token,
+          'X-JettsTUI-Session-Token': token,
           // RFC 8252 native flow authenticates the gated gateway with a bearer
           // token instead of the loopback session-token header. When
           // ``options.bearer`` is set we send Authorization: Bearer <token>;
@@ -4158,7 +4176,7 @@ function fetchJson(url, token, options: any = {}) {
             reject(
               new Error(
                 `Expected JSON from ${url} but got HTML (status ${res.statusCode}). ` +
-                  'The endpoint is likely missing on the FreeIDE backend.'
+                  'The endpoint is likely missing on the JettsTUI backend.'
               )
             )
 
@@ -4176,7 +4194,7 @@ function fetchJson(url, token, options: any = {}) {
 
     req.on('error', reject)
     req.setTimeout(timeoutMs, () => {
-      req.destroy(new Error(`Timed out connecting to FreeIDE backend after ${timeoutMs}ms`))
+      req.destroy(new Error(`Timed out connecting to JettsTUI backend after ${timeoutMs}ms`))
     })
 
     if (body) {
@@ -4190,7 +4208,7 @@ function fetchJson(url, token, options: any = {}) {
 function fetchPublicJson(url, options: any = {}) {
   // Credential-free JSON GET/POST for public gateway endpoints
   // (``/api/status``, ``/api/auth/providers``). Unlike ``fetchJson`` it sends
-  // NO ``X-FreeIDE-Session-Token`` header — used by the auth-mode probe before
+  // NO ``X-JettsTUI-Session-Token`` header — used by the auth-mode probe before
   // any credentials exist, and any time we must not leak a token to an
   // endpoint that doesn't need one.
   return new Promise((resolve, reject) => {
@@ -4209,7 +4227,7 @@ function fetchPublicJson(url, options: any = {}) {
     const timeoutMs = resolveTimeoutMs(options.timeoutMs, DEFAULT_FETCH_TIMEOUT_MS)
 
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-      reject(new Error(`Unsupported FreeIDE backend URL protocol: ${parsed.protocol}`))
+      reject(new Error(`Unsupported JettsTUI backend URL protocol: ${parsed.protocol}`))
 
       return
     }
@@ -4248,7 +4266,7 @@ function fetchPublicJson(url, options: any = {}) {
             reject(
               new Error(
                 `Expected JSON from ${url} but got HTML (status ${res.statusCode}). ` +
-                  'The endpoint is likely missing on the FreeIDE backend.'
+                  'The endpoint is likely missing on the JettsTUI backend.'
               )
             )
 
@@ -4266,7 +4284,7 @@ function fetchPublicJson(url, options: any = {}) {
 
     req.on('error', reject)
     req.setTimeout(timeoutMs, () => {
-      req.destroy(new Error(`Timed out connecting to FreeIDE backend after ${timeoutMs}ms`))
+      req.destroy(new Error(`Timed out connecting to JettsTUI backend after ${timeoutMs}ms`))
     })
 
     if (body) {
@@ -4469,7 +4487,7 @@ function getLinkTitleSession() {
     return linkTitleSession
   }
 
-  linkTitleSession = session.fromPartition('freeide:link-titles', { cache: false })
+  linkTitleSession = session.fromPartition('jettstui:link-titles', { cache: false })
   linkTitleSession.webRequest.onBeforeRequest((details, callback) => {
     callback({ cancel: RENDER_TITLE_BLOCKED_RESOURCES.has(details.resourceType) })
   })
@@ -4737,7 +4755,7 @@ function expandUserPath(filePath) {
 
 async function previewFileTarget(rawTarget, baseDir) {
   const raw = String(rawTarget || '').trim()
-  const base = baseDir ? path.resolve(expandUserPath(baseDir)) : resolveFreeIDECwd()
+  const base = baseDir ? path.resolve(expandUserPath(baseDir)) : resolveJettsTUICwd()
 
   let resolved = resolveRequestedPathForIpc(/^file:/i.test(raw) ? raw : expandUserPath(raw), {
     baseDir: base,
@@ -4836,7 +4854,7 @@ function sendPreviewFileChanged(payload) {
     return
   }
 
-  webContents.send('freeide:preview-file-changed', payload)
+  webContents.send('jettstui:preview-file-changed', payload)
 }
 
 async function watchPreviewFile(rawUrl) {
@@ -4939,7 +4957,7 @@ async function gatewayAuthProviders(baseUrl) {
 // an anonymous probe 401s forever against a live session, and it can never
 // see the 404 that identifies a backend predating /api/health (the auth gate
 // answers before the SPA catch-all). `probeIsCredentialed` tells
-// waitForFreeIDEReady how to read a 401 — rejected session vs gated route.
+// waitForJettsTUIReady how to read a 401 — rejected session vs gated route.
 async function buildReadinessHealthProbe(baseUrl, authMode, token) {
   const nativeAt = authMode === 'oauth' ? await ensureNativeAccessToken(baseUrl).catch(() => null) : null
   const probeAuth = resolveReadinessProbeAuth(authMode, nativeAt, token)
@@ -4971,10 +4989,10 @@ async function buildReadinessHealthProbe(baseUrl, authMode, token) {
   return { probeHealth: fetchPublicJson, probeIsCredentialed: false }
 }
 
-async function waitForFreeIDE(baseUrl, token, signal?, authMode?) {
+async function waitForJettsTUI(baseUrl, token, signal?, authMode?) {
   const { probeHealth, probeIsCredentialed } = await buildReadinessHealthProbe(baseUrl, authMode, token)
 
-  return waitForFreeIDEReady(baseUrl, {
+  return waitForJettsTUIReady(baseUrl, {
     token,
     signal,
     fetchPublicJson,
@@ -5023,7 +5041,7 @@ function sendBackendExit(payload) {
     return
   }
 
-  webContents.send('freeide:backend-exit', payload)
+  webContents.send('jettstui:backend-exit', payload)
 }
 
 function sendClosePreviewRequested() {
@@ -5037,12 +5055,12 @@ function sendClosePreviewRequested() {
     return
   }
 
-  webContents.send('freeide:close-preview-requested')
+  webContents.send('jettstui:close-preview-requested')
 }
 
 // Tell the renderer the machine just woke. Sleep silently drops the
 // renderer's WebSocket to the local backend; the renderer reconnects on this
-// signal so the chat composer doesn't stay stuck on "Starting FreeIDE...".
+// signal so the chat composer doesn't stay stuck on "Starting JettsTUI...".
 function sendPowerResume() {
   if (!mainWindow || mainWindow.isDestroyed()) {
     return
@@ -5054,7 +5072,7 @@ function sendPowerResume() {
     return
   }
 
-  webContents.send('freeide:power-resume')
+  webContents.send('jettstui:power-resume')
 }
 
 let powerResumeRegistered = false
@@ -5092,7 +5110,7 @@ function sendOpenUpdatesRequested() {
     return
   }
 
-  webContents.send('freeide:open-updates')
+  webContents.send('jettstui:open-updates')
 
   if (!mainWindow.isVisible()) {
     mainWindow.show()
@@ -5121,7 +5139,7 @@ function sendWindowStateChanged(nextIsFullscreen?: boolean, target = mainWindow)
     state.isFullscreen = nextIsFullscreen
   }
 
-  webContents.send('freeide:window-state-changed', state)
+  webContents.send('jettstui:window-state-changed', state)
 }
 
 function buildApplicationMenu() {
@@ -5576,11 +5594,11 @@ function installMediaPermissions() {
 // ---------------------------------------------------------------------------
 // OAuth remote-gateway auth.
 //
-// Hosted FreeIDE gateways gate the dashboard behind an OAuth provider (e.g.
-// FreeIDE) instead of a static session token. The auth model is
+// Hosted JettsTUI gateways gate the dashboard behind an OAuth provider (e.g.
+// JettsTUI) instead of a static session token. The auth model is
 // fundamentally different from the token path:
 //
-//   * REST is authed by HttpOnly session cookies (``freeide_session_at``),
+//   * REST is authed by HttpOnly session cookies (``jettstui_session_at``),
 //     established by a browser redirect round-trip (/login → IDP →
 //     /auth/callback sets cookies). We cannot read the HttpOnly cookie value
 //     in JS — instead we let an Electron BrowserWindow complete the round
@@ -5590,19 +5608,13 @@ function installMediaPermissions() {
 //   * WebSocket upgrades require a single-use ``?ticket=`` minted at
 //     ``POST /api/auth/ws-ticket`` (cookie-authed). The legacy ``?token=``
 //     path is unconditionally rejected by gated gateways.
-//   * FreeIDE Portal now issues a 24h ROTATING, reuse-detected refresh token
-//     alongside the ~15-min access token (Portal NAS #293 / freeide #37247).
-//     Both are set as HttpOnly cookies (``freeide_session_at`` ~15 min,
-//     ``freeide_session_rt`` 24h). When the AT cookie lapses but the RT cookie
-//     is still alive, the gateway middleware transparently rotates a fresh AT
-//     on the next authenticated request — so connectivity must NOT be gated on
-//     the AT cookie alone. We probe liveness by actually minting a ws-ticket
-//     (which triggers that server-side refresh) and treat a real 401 as
-//     "needs re-login"; the AT-or-RT cookie presence check is only a cheap
-//     "is the user signed in at all?" gate / display signal.
+//   * Some gateways issue a rotating refresh-token cookie alongside the
+//     access-token cookie. A live refresh cookie can restore an expired access
+//     token, so connectivity is checked by minting a ws-ticket; cookie
+//     presence alone is only a display hint.
 // ---------------------------------------------------------------------------
 
-const OAUTH_SESSION_PARTITION = 'persist:freeide-remote-oauth'
+const OAUTH_SESSION_PARTITION = 'persist:jettstui-remote-oauth'
 
 function getOauthSession() {
   if (oauthSession || !app.isReady()) {
@@ -5619,8 +5631,8 @@ function getOauthSession() {
 // cookies.get() on a fresh cold start can resolve BEFORE the jar has finished
 // hydrating from disk and return an empty array — even though the user is
 // signed in. That false-negative used to make hasLiveOauthSession() report
-// "not signed in", which on the initial boot path (startFreeIDE → the renderer's
-// single-shot boot() with no retry) surfaced as the "FreeIDE couldn't start"
+// "not signed in", which on the initial boot path (startJettsTUI → the renderer's
+// single-shot boot() with no retry) surfaced as the "JettsTUI couldn't start"
 // OAuth overlay that vanishes the instant the user clicks Retry.
 //
 // We force the store to hydrate once, up front: flushStorageData() then a
@@ -5727,7 +5739,7 @@ async function hasLiveOauthSession(baseUrl) {
 
   // Cold-start false-negative guard. A `persist:` partition's cookie store
   // loads lazily, so the FIRST read on a fresh boot can come back empty even
-  // for a signed-in user — the exact race that produced the transient "FreeIDE
+  // for a signed-in user — the exact race that produced the transient "JettsTUI
   // couldn't start / not signed in" overlay that Retry always cleared. Before
   // trusting a negative, force the store to hydrate and re-read a couple of
   // times with a short backoff. A genuinely signed-out user still resolves
@@ -5773,19 +5785,7 @@ async function clearOauthSession(baseUrl) {
 // /auth/callback, which sets the session cookies on the partition; we poll the
 // cookie jar rather than try to read the HttpOnly value.
 //
-// `silent` selects the URL the window loads, which decides interactive-vs-silent:
-//   - silent=false (default): load ``/login`` — the public interstitial that
-//     renders the "Log in with X" provider chooser. This is the interactive
-//     remote-gateway login the settings UI drives.
-//   - silent=true: load the PROTECTED root ``/`` instead. ``/login`` is a public
-//     route, so loading it NEVER triggers the gate's auto-SSO and always shows
-//     the chooser. Loading a protected page with no session cookie makes the
-//     gate run ``_auto_sso_response``: single registered provider + a live
-//     portal session in this partition → a silent 302 through
-//     ``/auth/login`` → portal ``/oauth/authorize`` (auto-approves org members)
-//     → ``/auth/callback``, which sets the gateway cookie with NO interactive
-//     prompt. This is the per-agent cloud cascade (decisions.md Q5).
-function openOauthLoginWindow(baseUrl, { silent = false } = {}) {
+function openOauthLoginWindow(baseUrl) {
   return new Promise((resolve, reject) => {
     if (!app.isReady()) {
       reject(new Error('Desktop is not ready to start an OAuth login.'))
@@ -5804,7 +5804,6 @@ function openOauthLoginWindow(baseUrl, { silent = false } = {}) {
     let settled = false
     let win = null
     let pollTimer = null
-    let revealTimer = null
 
     const finish = err => {
       if (settled) {
@@ -5815,10 +5814,6 @@ function openOauthLoginWindow(baseUrl, { silent = false } = {}) {
 
       if (pollTimer) {
         clearInterval(pollTimer)
-      }
-
-      if (revealTimer) {
-        clearTimeout(revealTimer)
       }
 
       try {
@@ -5850,14 +5845,8 @@ function openOauthLoginWindow(baseUrl, { silent = false } = {}) {
       win = new BrowserWindow({
         width: 520,
         height: 720,
-        title: silent ? 'Connecting to FreeIDE Cloud agent…' : 'Sign in to FreeIDE gateway',
+        title: 'Sign in to JettsTUI gateway',
         autoHideMenuBar: true,
-        // Silent cascade: start HIDDEN. The auto-SSO 302 chain completes in
-        // well under a second, so the window normally never needs to show. We
-        // only reveal it as a fallback if the cascade DOESN'T complete quickly
-        // (e.g. the portal session lapsed and the gate fell through to the
-        // interactive chooser) — see the reveal timer below.
-        show: !silent,
         webPreferences: {
           contextIsolation: true,
           nodeIntegration: false,
@@ -5880,23 +5869,6 @@ function openOauthLoginWindow(baseUrl, { silent = false } = {}) {
     win.webContents.on('did-frame-navigate', () => void checkCookie())
     pollTimer = setInterval(() => void checkCookie(), 750)
 
-    // Silent-mode reveal fallback: if the cascade hasn't settled shortly, the
-    // auto-SSO didn't go through silently (no portal session, multi-provider,
-    // loop-guard tripped, etc.) and the window is now showing an interactive
-    // page. Reveal it so the user can complete sign-in manually rather than
-    // staring at nothing. Cleared on finish().
-    if (silent && win) {
-      revealTimer = setTimeout(() => {
-        try {
-          if (!settled && win && !win.isDestroyed() && !win.isVisible()) {
-            win.show()
-          }
-        } catch {
-          // window torn down
-        }
-      }, 2500)
-    }
-
     win.on('closed', () => {
       if (!settled) {
         finish(new Error('Login window closed before authentication completed.'))
@@ -5907,11 +5879,8 @@ function openOauthLoginWindow(baseUrl, { silent = false } = {}) {
     // login, which is a valid authenticated page that sets the cookies. We
     // only care that the cookie jar is populated.
     //
-    // silent=true loads the protected root so the gate auto-SSOs (no chooser);
-    // silent=false loads the public ``/login`` chooser for interactive sign-in.
     const normalizedBase = normalizeRemoteBaseUrl(baseUrl)
-    const loginUrl = silent ? `${normalizedBase}/` : `${normalizedBase}/login`
-    win.loadURL(loginUrl).catch(error => {
+    win.loadURL(`${normalizedBase}/login`).catch(error => {
       finish(error instanceof Error ? error : new Error(String(error)))
     })
   })
@@ -5941,7 +5910,7 @@ function fetchJsonViaOauthSession(url, options: any = {}) {
     }
 
     if (parsed.protocol !== 'http:' && parsed.protocol !== 'https:') {
-      reject(new Error(`Unsupported FreeIDE backend URL protocol: ${parsed.protocol}`))
+      reject(new Error(`Unsupported JettsTUI backend URL protocol: ${parsed.protocol}`))
 
       return
     }
@@ -5970,7 +5939,7 @@ function fetchJsonViaOauthSession(url, options: any = {}) {
         // already finished
       }
 
-      reject(new Error(`Timed out connecting to FreeIDE backend after ${timeoutMs}ms`))
+      reject(new Error(`Timed out connecting to JettsTUI backend after ${timeoutMs}ms`))
     }, timeoutMs)
 
     request.on('response', res => {
@@ -6042,7 +6011,7 @@ function fetchJsonViaOauthSession(url, options: any = {}) {
 // involved. Tokens are persisted encrypted at rest via Electron ``safeStorage``
 // (OS keychain) keyed by gateway base URL, and refreshed via
 // ``/auth/native/refresh`` before expiry. This is the desktop half of the
-// feature; the server half lives in freeide_cli/dashboard_auth/native_flow.py.
+// feature; the server half lives in jettstui/dashboard_auth/native_flow.py.
 // ---------------------------------------------------------------------------
 
 // In-memory cache of decrypted native tokens, keyed by normalized base URL.
@@ -6253,312 +6222,6 @@ async function freshGatewayWsUrl(profile) {
   return connection.wsUrl
 }
 
-// --- FreeIDE Cloud discovery + silent per-agent sign-in (cloud-auto-discovery
-// Phase 3) ---------------------------------------------------------------
-//
-// The "cloud" connection mode lets a user sign in to the FreeIDE portal ONCE in
-// the OAuth session partition, then (a) discover their hosted agents and (b)
-// connect to any of them with no second interactive sign-in. Both ride the one
-// portal session cookie living in `persist:freeide-remote-oauth`:
-//   - discovery  → GET {portal}/api/agents over the partition-bound net; the
-//     portal session cookie authenticates it (NAS Phase 2.5 accepts the cookie).
-//   - cascade    → opening an agent's own /login in the same partition hits the
-//     portal's silent auto-approve (org member, existing session) and 302s back
-//     with that agent's session cookie — no prompt. Each agent still completes
-//     its own PKCE exchange; SSO removes the human click, not a security check.
-
-// Canonical FreeIDE portal base URL, overridable for staging/dev. Mirrors the CLI
-// convention (freeide_cli/auth.py DEFAULT_NOUS_PORTAL_URL + the same env names)
-// so a single override flips every FreeIDE surface to the same portal.
-const DEFAULT_NOUS_PORTAL_URL = 'https://portal.freeide.dev'
-
-function resolvePortalBaseUrl() {
-  const raw = process.env.FREEIDE_PORTAL_BASE_URL || process.env.NOUS_PORTAL_BASE_URL || DEFAULT_NOUS_PORTAL_URL
-
-  return String(raw).trim().replace(/\/+$/, '')
-}
-
-// Whether the OAuth partition currently holds a live FreeIDE portal session — the
-// credential that powers both discovery and the silent cascade. The portal
-// authenticates via PRIVY, not the FreeIDE gateway session cookies, so this
-// checks for the `privy-token` cookie on the portal host (NOT
-// hasLiveOauthSession, which looks for freeide_session_at/rt that the portal
-// never sets). See connection-config.ts cookiesHavePrivySession.
-async function hasLivePortalSession() {
-  const sess = getOauthSession()
-
-  if (!sess) {
-    return false
-  }
-
-  const portalBaseUrl = resolvePortalBaseUrl()
-  const parsed = new URL(portalBaseUrl)
-
-  try {
-    const cookies = await sess.cookies.get({ url: portalBaseUrl })
-
-    return cookiesHavePrivySession(cookies)
-  } catch {
-    try {
-      const cookies = await sess.cookies.get({ domain: parsed.hostname })
-
-      return cookiesHavePrivySession(cookies)
-    } catch {
-      return false
-    }
-  }
-}
-
-// Drive a one-time interactive portal sign-in in the OAuth partition. Unlike
-// openOauthLoginWindow (which targets a gateway's /login), this lands on the
-// portal itself so the resulting session cookie is portal-scoped — the cookie
-// that authenticates discovery AND is reused for every silent per-agent
-// cascade. Resolves once the portal session cookie appears.
-function openPortalLoginWindow() {
-  const portalBaseUrl = resolvePortalBaseUrl()
-
-  return new Promise((resolve, reject) => {
-    if (!app.isReady()) {
-      reject(new Error('Desktop is not ready to start a FreeIDE Cloud sign-in.'))
-
-      return
-    }
-
-    const sess = getOauthSession()
-
-    if (!sess) {
-      reject(new Error('OAuth session partition is unavailable.'))
-
-      return
-    }
-
-    let settled = false
-    let win = null
-    let pollTimer = null
-
-    const finish = err => {
-      if (settled) {
-        return
-      }
-
-      settled = true
-
-      if (pollTimer) {
-        clearInterval(pollTimer)
-      }
-
-      try {
-        if (win && !win.isDestroyed()) {
-          win.destroy()
-        }
-      } catch {
-        // window already torn down
-      }
-
-      if (err) {
-        reject(err)
-      } else {
-        resolve({ portalBaseUrl, ok: true })
-      }
-    }
-
-    const checkCookie = async () => {
-      if (settled) {
-        return
-      }
-
-      // A live portal (Privy) session cookie means sign-in completed.
-      if (await hasLivePortalSession()) {
-        finish(null)
-      }
-    }
-
-    try {
-      win = new BrowserWindow({
-        width: 520,
-        height: 720,
-        title: 'Sign in to FreeIDE Cloud',
-        autoHideMenuBar: true,
-        webPreferences: {
-          contextIsolation: true,
-          nodeIntegration: false,
-          sandbox: true,
-          session: sess,
-          webSecurity: true
-        }
-      })
-    } catch (error) {
-      finish(error instanceof Error ? error : new Error(String(error)))
-
-      return
-    }
-
-    win.webContents.on('did-navigate', () => void checkCookie())
-    win.webContents.on('did-redirect-navigation', () => void checkCookie())
-    win.webContents.on('did-frame-navigate', () => void checkCookie())
-    pollTimer = setInterval(() => void checkCookie(), 750)
-
-    win.on('closed', () => {
-      if (!settled) {
-        finish(new Error('Sign-in window closed before authentication completed.'))
-      }
-    })
-
-    // Land on the portal root; any authenticated portal page sets the session
-    // cookie. We only care that the partition cookie jar is populated.
-    win.loadURL(portalBaseUrl).catch(error => {
-      finish(error instanceof Error ? error : new Error(String(error)))
-    })
-  })
-}
-
-// Discover the hosted (FreeIDE Cloud) agents the signed-in user can see. Calls
-// the NAS trimmed-summary endpoint over the partition-bound net, so the portal
-// session cookie is attached automatically (no bearer needed — NAS accepts the
-// cookie). Returns { agents } on success, or { needsOrgSelection: true, orgs }
-// when the user belongs to multiple orgs and hasn't picked one yet (NAS 409
-// org_selection_required). Pass `org` (a slug/id from a prior org list) to
-// scope discovery to that org. Throws a needsCloudLogin-tagged error when no
-// portal session is present.
-async function discoverCloudAgents(org?: string) {
-  const portalBaseUrl = resolvePortalBaseUrl()
-
-  if (!(await hasLivePortalSession())) {
-    const err = new Error(
-      'You are not signed in to FreeIDE Cloud. Open Settings → Gateway, choose FreeIDE Cloud, and sign in.'
-    ) as any
-
-    err.needsCloudLogin = true
-    throw err
-  }
-
-  const orgQuery = org ? `?org=${encodeURIComponent(org)}` : ''
-  let body
-
-  try {
-    body = (await fetchJsonViaOauthSession(`${portalBaseUrl}/api/agents${orgQuery}`, {
-      method: 'GET',
-      timeoutMs: 15_000
-    })) as any
-  } catch (error) {
-    // A 401 means the portal session lapsed between the liveness check and the
-    // call — surface it as a re-login, not a generic failure.
-    if (error && error.statusCode === 401) {
-      const err = new Error('Your FreeIDE Cloud session has expired. Open Settings → Gateway and sign in again.') as any
-      err.needsCloudLogin = true
-      err.cause = error
-      throw err
-    }
-
-    // A 409 means we're a multi-org user who hasn't picked an org. The body
-    // carries the user's org list; surface it so the renderer shows a picker
-    // and re-calls discovery with the chosen org. (fetchJsonViaOauthSession
-    // throws on >=400 with err.statusCode + err.message "409: <json body>".)
-    if (error && error.statusCode === 409) {
-      const orgs = parseOrgSelectionError(error)
-
-      if (orgs) {
-        return { needsOrgSelection: true, orgs }
-      }
-    }
-
-    throw error
-  }
-
-  return { agents: trimCloudAgents(body), org: trimCloudOrg(body?.org) }
-}
-
-// Project a NAS response org ({ id, slug, name, isPersonal }) to the trimmed
-// shape the renderer persists, or null when absent/malformed.
-function trimCloudOrg(org) {
-  if (!org || typeof org !== 'object' || typeof org.id !== 'string') {
-    return null
-  }
-
-  return {
-    id: org.id,
-    slug: typeof org.slug === 'string' ? org.slug : null,
-    name: typeof org.name === 'string' ? org.name : org.id,
-    isPersonal: Boolean(org.isPersonal),
-    role: typeof org.role === 'string' ? org.role : 'MEMBER'
-  }
-}
-
-// Extract the org list from a 409 org_selection_required error body. The error
-// message is "409: <raw json>" (see fetchJsonViaOauthSession); parse defensively
-// and return null if it isn't the shape we expect (caller then rethrows).
-function parseOrgSelectionError(error) {
-  const msg = String(error?.message || '')
-  const jsonStart = msg.indexOf('{')
-
-  if (jsonStart < 0) {
-    return null
-  }
-
-  let parsed
-
-  try {
-    parsed = JSON.parse(msg.slice(jsonStart))
-  } catch {
-    return null
-  }
-
-  if (parsed?.error !== 'org_selection_required' || !Array.isArray(parsed.orgs)) {
-    return null
-  }
-
-  return parsed.orgs
-    .filter(o => o && typeof o === 'object' && typeof o.id === 'string')
-    .map(o => ({
-      id: o.id,
-      slug: typeof o.slug === 'string' ? o.slug : null,
-      name: typeof o.name === 'string' ? o.name : o.id,
-      isPersonal: Boolean(o.isPersonal),
-      role: typeof o.role === 'string' ? o.role : 'MEMBER'
-    }))
-}
-
-// Project NAS's agent rows to the trimmed DTO the renderer consumes.
-function trimCloudAgents(body) {
-  const agents = Array.isArray(body?.agents) ? body.agents : []
-
-  return agents
-    .filter(a => a && typeof a === 'object' && typeof a.id === 'string')
-    .map(a => ({
-      id: a.id,
-      name: typeof a.name === 'string' ? a.name : a.id,
-      status: typeof a.status === 'string' ? a.status : 'unknown',
-      dashboardUrl: typeof a.dashboardUrl === 'string' ? a.dashboardUrl : null,
-      dashboardGatewayState: typeof a.dashboardGatewayState === 'string' ? a.dashboardGatewayState : 'unknown'
-    }))
-}
-
-// Silent per-agent sign-in: open the selected agent dashboard's /login in the
-// SAME OAuth partition. Because the user already holds a live portal session
-// there, the agent's /oauth/authorize auto-approves (org member) and 302s back,
-// setting that agent's gateway session cookie WITHOUT a second interactive
-// prompt. Reuses openOauthLoginWindow — the window self-closes the instant the
-// agent's session cookie lands (a silent flow finishes in well under a second;
-// if the portal session were absent it would fall through to an interactive
-// login, which the discovery gate already prevents). Returns once the agent's
-// gateway session cookie is present.
-async function cloudAgentSilentSignIn(dashboardUrl) {
-  const baseUrl = normalizeRemoteBaseUrl(dashboardUrl)
-
-  // Pre-req: a live portal session must exist, or this would surface an
-  // interactive prompt rather than a silent cascade. Discovery already gates on
-  // this, but a selection can arrive after the session lapsed.
-  if (!(await hasLivePortalSession())) {
-    const err = new Error('Your FreeIDE Cloud session has expired. Sign in to FreeIDE Cloud again.') as any
-    err.needsCloudLogin = true
-    throw err
-  }
-
-  await openOauthLoginWindow(baseUrl, { silent: true })
-
-  return { baseUrl, connected: await hasOauthSessionCookie(baseUrl) }
-}
-
 function encryptDesktopSecret(value) {
   return encryptDesktopSecretStrict(value, safeStorage)
 }
@@ -6626,7 +6289,7 @@ function sanitizeConnectionProfiles(raw: Record<string, any>) {
       org?: string
       savedSsh?: object
     } = {
-      mode: modeIsRemoteLike(entry.mode) ? entry.mode : 'local'
+      mode: normalizeSavedConnectionMode(entry.mode) === 'remote' ? 'remote' : 'local'
     }
 
     if (cleaned.mode === 'local') {
@@ -6647,16 +6310,6 @@ function sanitizeConnectionProfiles(raw: Record<string, any>) {
 
     if ((entry as any).token && typeof entry.token === 'object') {
       cleaned.token = entry.token
-    }
-
-    // Preserve the FreeIDE Cloud org tag on cloud-mode entries so Settings can
-    // reopen into the same org for a per-profile cloud connection.
-    if (cleaned.mode === 'cloud') {
-      const org = String(entry.org || '').trim()
-
-      if (org) {
-        cleaned.org = org
-      }
     }
 
     out[name] = cleaned
@@ -6720,7 +6373,7 @@ function writeDesktopConnectionConfig(config) {
 }
 
 // Returns the desktop's chosen profile name, or null when unset. "default" is
-// a valid stored value (pins the root FREEIDE_HOME explicitly); null means "no
+// a valid stored value (pins the root JETTSTUI_HOME explicitly); null means "no
 // preference" and preserves the legacy launch (no --profile flag).
 function readActiveDesktopProfile() {
   try {
@@ -6760,7 +6413,7 @@ async function sanitizeDesktopConnectionConfig(config = readDesktopConnectionCon
   const scoped = key ? config.profiles?.[key] || null : null
   const block = key ? scoped || {} : config.remote || {}
 
-  const envOverride = key ? false : Boolean(process.env.FREEIDE_DESKTOP_REMOTE_URL)
+  const envOverride = key ? false : Boolean(process.env.JETTSTUI_DESKTOP_REMOTE_URL)
   const savedMode = key ? scoped?.mode : config.mode
   const ssh = savedMode === 'ssh' ? normalizeSshConfig(block) : null
 
@@ -6768,8 +6421,8 @@ async function sanitizeDesktopConnectionConfig(config = readDesktopConnectionCon
 
   const remoteToken = decryptDesktopSecret(block.token)
   const authMode = normAuthMode(block.authMode)
-  const remoteUrl = envOverride ? String(process.env.FREEIDE_DESKTOP_REMOTE_URL || '') : String(block.url || '')
-  const mode = envOverride ? 'remote' : savedMode === 'ssh' ? 'ssh' : modeIsRemoteLike(savedMode) ? savedMode : 'local'
+  const remoteUrl = envOverride ? String(process.env.JETTSTUI_DESKTOP_REMOTE_URL || '') : String(block.url || '')
+  const mode = envOverride ? 'remote' : normalizeSavedConnectionMode(savedMode)
 
   let remoteOauthConnected = false
 
@@ -6794,18 +6447,15 @@ async function sanitizeDesktopConnectionConfig(config = readDesktopConnectionCon
     remoteAuthMode: authMode,
     remoteOauthConnected,
     remoteUrl,
-    // The persisted FreeIDE Cloud org (slug/id) for a cloud connection, or '' for
-    // remote/local. Lets Settings → Gateway reopen into the same org.
-    cloudOrg: mode === 'cloud' ? String(block.org || '') : '',
     remoteTokenPreview: tokenPreview(remoteToken),
     remoteTokenSet: Boolean(remoteToken),
     sshHost: (ssh || savedSsh)?.host || '',
     sshUser: (ssh || savedSsh)?.user || '',
     sshPort: (ssh || savedSsh)?.port || null,
     sshKeyPath: (ssh || savedSsh)?.keyPath || '',
-    sshRemoteFreeIDEPath: (ssh || savedSsh)?.remoteFreeIDEPath || '',
+    sshRemoteJettsTUIPath: (ssh || savedSsh)?.remoteJettsTUIPath || '',
     // The env override only forces the global/primary connection; a per-profile
-    // scope is never overridden by FREEIDE_DESKTOP_REMOTE_URL.
+    // scope is never overridden by JETTSTUI_DESKTOP_REMOTE_URL.
     envOverride
   }
 }
@@ -6813,24 +6463,15 @@ async function sanitizeDesktopConnectionConfig(config = readDesktopConnectionCon
 // Build + validate a `{ url, authMode, token }` remote block. OAuth gateways
 // authenticate via the login-window session cookie (verified at connect time in
 // resolveRemoteBackend), so only token-auth remotes require a saved token.
-// `org` (optional) is the FreeIDE Cloud org slug/id the instance was discovered
-// under — persisted so Settings can reopen into the same org; omitted from the
-// block when empty so plain remote connections stay unchanged.
-function buildRemoteBlock(remoteUrl, authMode, token, org?: string) {
+function buildRemoteBlock(remoteUrl, authMode, token) {
   if (authMode !== 'oauth' && !decryptDesktopSecret(token)) {
     throw new Error('Remote gateway session token is required.')
   }
 
-  const block: { url: string; authMode: string; token: object; org?: string } = {
+  const block: { url: string; authMode: string; token: object } = {
     url: normalizeRemoteBaseUrl(remoteUrl),
     authMode,
     token
-  }
-
-  const orgValue = typeof org === 'string' ? org.trim() : ''
-
-  if (orgValue) {
-    block.org = orgValue
   }
 
   return block
@@ -6839,31 +6480,20 @@ function buildRemoteBlock(remoteUrl, authMode, token, org?: string) {
 function coerceDesktopConnectionConfig(input: any = {}, existing = readDesktopConnectionConfig(), options: any = {}) {
   const persistToken = options.persistToken !== false
   const key = connectionScopeKey(input.profile)
-  // 'cloud' and 'remote' both persist a remote-shaped block; 'cloud' is
-  // remembered as its own provenance (Q6) and resolves to remote downstream.
-  // Anything else collapses to local.
-  const mode = input.mode === 'ssh' ? 'ssh' : modeIsRemoteLike(input.mode) ? input.mode : 'local'
+  // Legacy cloud entries are remote OAuth connections after Portal removal.
+  const mode = normalizeSavedConnectionMode(input.mode)
   const remoteLike = modeIsRemoteLike(mode)
 
   // The block being edited: a per-profile entry or the global remote block.
   const rawExistingBlock = key ? existing.profiles?.[key] || {} : existing.remote || {}
-  // Leaving a CLOUD connection unselects it: a cloud block's url/org/token
-  // describe a discovered FreeIDE Cloud instance, NOT a user-owned remote gateway,
-  // so switching to local or remote must NOT inherit them (otherwise the stale
-  // cloud URL lingers and re-selecting Cloud looks "already connected"). When the
-  // saved block was cloud and the new mode is not cloud, start from an empty
-  // block. (remote↔local toggles still preserve a real remote URL as before.)
+  // Keep the URL and encrypted credential from a legacy cloud entry when the
+  // user opens it as remote. Clearing the block here would strand that user.
   const existingMode = key ? existing.profiles?.[key]?.mode : existing.mode
-  const leavingCloud = existingMode === 'cloud' && mode !== 'cloud'
   const leavingSsh = rawExistingBlock.mode === 'ssh' && mode !== 'ssh' && mode !== 'local'
-  const existingBlock = leavingCloud || leavingSsh ? {} : rawExistingBlock
+  const existingBlock = leavingSsh ? {} : rawExistingBlock
   const remoteUrl = String(input.remoteUrl ?? existingBlock.url ?? '').trim()
   // authMode: explicit input wins; otherwise inherit the saved value, default 'token'.
   const authMode = resolveAuthMode(input.remoteAuthMode, existingBlock.authMode)
-  // Cloud org: only meaningful for 'cloud' mode. Explicit input wins; otherwise
-  // inherit the saved org. A plain 'remote' connection never carries an org
-  // (switching cloud→remote drops it), so it stays unset unless mode is cloud.
-  const cloudOrg = mode === 'cloud' ? String(input.cloudOrg ?? existingBlock.org ?? '').trim() : ''
   const incomingToken = typeof input.remoteToken === 'string' ? input.remoteToken.trim() : ''
 
   const nextToken = incomingToken
@@ -6879,7 +6509,7 @@ function coerceDesktopConnectionConfig(input: any = {}, existing = readDesktopCo
       const profiles = { ...(existing.profiles || {}), [key]: sshBlock }
 
       return {
-        mode: existing.mode === 'ssh' || modeIsRemoteLike(existing.mode) ? existing.mode : 'local',
+        mode: existing.mode === 'ssh' ? 'ssh' : modeIsRemoteLike(existing.mode) ? 'remote' : 'local',
         remote: existing.remote || {},
         profiles
       }
@@ -6889,13 +6519,11 @@ function coerceDesktopConnectionConfig(input: any = {}, existing = readDesktopCo
   }
 
   if (key) {
-    // Per-profile scope: a remote/cloud entry pins this profile to its own
-    // backend; a local entry clears the override so the profile inherits the
-    // default. The mode tag (remote vs cloud) is preserved on the entry.
+    // Per-profile remote entry pins this profile to its own backend.
     const profiles = { ...(existing.profiles || {}) }
 
     if (remoteLike) {
-      profiles[key] = { mode, ...buildRemoteBlock(remoteUrl, authMode, nextToken, cloudOrg) }
+      profiles[key] = { mode, ...buildRemoteBlock(remoteUrl, authMode, nextToken) }
     } else {
       const localEntry = localProfileEntry(rawExistingBlock)
 
@@ -6907,14 +6535,14 @@ function coerceDesktopConnectionConfig(input: any = {}, existing = readDesktopCo
     }
 
     return {
-      mode: existing.mode === 'ssh' || modeIsRemoteLike(existing.mode) ? existing.mode : 'local',
+      mode: existing.mode === 'ssh' ? 'ssh' : modeIsRemoteLike(existing.mode) ? 'remote' : 'local',
       remote: existing.remote || {},
       profiles
     }
   }
 
   const nextRemote = remoteLike
-    ? buildRemoteBlock(remoteUrl, authMode, nextToken, cloudOrg)
+    ? buildRemoteBlock(remoteUrl, authMode, nextToken)
     : existingMode === 'ssh'
       ? rawExistingBlock
       : { url: remoteUrl ? normalizeRemoteBaseUrl(remoteUrl) : remoteUrl, authMode, token: nextToken }
@@ -6936,7 +6564,7 @@ function buildSshBlock(input: any, existingBlock: any = {}) {
     user: input.sshUser ?? existingBlock.user,
     port: input.sshPort ?? existingBlock.port,
     keyPath: input.sshKeyPath ?? existingBlock.keyPath,
-    remoteFreeIDEPath: input.sshRemoteFreeIDEPath ?? existingBlock.remoteFreeIDEPath
+    remoteJettsTUIPath: input.sshRemoteJettsTUIPath ?? existingBlock.remoteJettsTUIPath
   })
 
   if (!merged) {
@@ -6975,11 +6603,8 @@ async function buildRemoteConnection(
   if (authMode === 'oauth') {
     // OAuth gateway: auth comes from EITHER a native bearer token (cookieless
     // RFC 8252 flow) OR the session cookies in the OAuth partition. Liveness is
-    // NOT "is the access-token cookie present?" — Portal issues a 24h rotating
-    // refresh token (freeide #37247), and the gateway middleware transparently
-    // rotates a fresh ~15-min access token from it on the next authenticated
-    // request. So a session with an expired AT cookie but a live RT cookie is
-    // still perfectly connectable. We early-out only when NEITHER a native
+    // NOT "is the access-token cookie present?" — gateways may rotate a fresh
+    // access token from a live refresh cookie. We early-out only when NEITHER a native
     // token NOR any cookie is present, then mint a ws-ticket (which itself
     // prefers the native bearer) as the authoritative liveness check.
     //
@@ -6993,7 +6618,7 @@ async function buildRemoteConnection(
       oauthGuardMayHardFail(await gatewayAuthProviders(baseUrl))
     ) {
       const err = new Error(
-        'Remote FreeIDE gateway uses OAuth, but you are not signed in. ' +
+        'Remote JettsTUI gateway uses OAuth, but you are not signed in. ' +
           'Open Settings → Gateway and click "Sign in", or switch back to Local.'
       ) as any
 
@@ -7009,7 +6634,7 @@ async function buildRemoteConnection(
       throw gatewayTicketFailure(
         error,
         'Your remote gateway session has expired. Open Settings → Gateway and click "Sign in" again.',
-        'Could not reach the remote FreeIDE gateway while refreshing its WebSocket ticket. Try reconnecting.'
+        'Could not reach the remote JettsTUI gateway while refreshing its WebSocket ticket. Try reconnecting.'
       )
     }
 
@@ -7029,7 +6654,7 @@ async function buildRemoteConnection(
 
   if (!token) {
     throw new Error(
-      'Remote FreeIDE gateway is selected, but no session token is saved. ' +
+      'Remote JettsTUI gateway is selected, but no session token is saved. ' +
         'Open Settings → Gateway and save a token, or switch back to Local.'
     )
   }
@@ -7132,7 +6757,7 @@ function activeSshTerminalTarget() {
     return null
   }
 
-  if (process.env.FREEIDE_DESKTOP_REMOTE_URL) {
+  if (process.env.JETTSTUI_DESKTOP_REMOTE_URL) {
     return null
   }
 
@@ -7221,18 +6846,18 @@ async function bootstrapSshConnectionInner(profile, sshConfig, reuseToken, sourc
   let result
 
   try {
-    const platform = await detectRemotePlatform(ssh, sshConfig.remoteFreeIDEPath || '')
+    const platform = await detectRemotePlatform(ssh, sshConfig.remoteJettsTUIPath || '')
     const lifecycle = platform.os === 'Windows' ? connectWindowsRemote : remoteLifecycle.connect
     result = await lifecycle({
       ssh,
       profile: connectionScopeKey(profile) || '',
-      remoteFreeIDEPath: sshConfig.remoteFreeIDEPath || '',
+      remoteJettsTUIPath: sshConfig.remoteJettsTUIPath || '',
       ownershipId: sshOwnershipKey(profile),
       reuseToken: reuseToken || '',
       forward: (localPort, remotePort) => ssh.forward(localPort, remotePort),
       cancelForward: (localPort, remotePort) => ssh.cancelForward(localPort, remotePort),
       pickLocalPort,
-      waitForFreeIDE: (baseUrl, token) => waitForFreeIDE(baseUrl, token, lease.signal, 'token'),
+      waitForJettsTUI: (baseUrl, token) => waitForJettsTUI(baseUrl, token, lease.signal, 'token'),
       probeReuseProof: sshProbeReuseProof,
       adoptServedToken: adoptServedDashboardToken,
       rememberLog: sshRememberLog,
@@ -7277,14 +6902,14 @@ async function bootstrapSshConnectionInner(profile, sshConfig, reuseToken, sourc
     pid: result.pid,
     host: sshConfig.host,
     hostLabel,
-    freeideVersion: result.freeideVersion || '',
+    jettstuiVersion: result.jettstuiVersion || '',
     remotePlatform: result.platform?.os || '',
     reused: result.reused
   })
 
   sshRememberLog(
     `[ssh] connection ${result.reused ? 'REUSED' : 'spawned'} dashboard: ` +
-      `${result.freeideVersion || 'freeide (version unknown)'} at ${result.freeidePath || '?'}`
+      `${result.jettstuiVersion || 'jettstui (version unknown)'} at ${result.jettstuiPath || '?'}`
   )
 
   const connection = await buildRemoteConnection(
@@ -7297,7 +6922,7 @@ async function bootstrapSshConnectionInner(profile, sshConfig, reuseToken, sourc
     result.ownershipId
   )
 
-  return { ...connection, remoteFreeIDEVersion: result.freeideVersion || '' }
+  return { ...connection, remoteJettsTUIVersion: result.jettstuiVersion || '' }
 }
 
 function persistSshConnectionToken(profile, source, token) {
@@ -7324,7 +6949,7 @@ function persistSshConnectionToken(profile, source, token) {
 // Resolve the remote backend for a given profile, or null when that profile
 // should run a LOCAL backend. Precedence:
 //   1. explicit per-profile remote override (connection.json `profiles[name]`)
-//   2. env override (FREEIDE_DESKTOP_REMOTE_URL/_TOKEN) — applies app-wide
+//   2. env override (JETTSTUI_DESKTOP_REMOTE_URL/_TOKEN) — applies app-wide
 //   3. global remote (connection.json `mode: 'remote'`)
 // A null/empty profile resolves the env/global remote, so legacy callers and
 // the connection test (which pass no profile) are unchanged.
@@ -7347,25 +6972,18 @@ async function resolveRemoteBackend(profile) {
   if (override) {
     const token = override.authMode === 'oauth' ? null : decryptDesktopSecret(override.token)
 
-    return buildRemoteConnection(
-      override.url,
-      override.authMode,
-      token,
-      'profile',
-      undefined,
-      config.profiles?.[connectionScopeKey(profile)]?.mode === 'cloud' ? 'cloud' : 'url'
-    )
+    return buildRemoteConnection(override.url, override.authMode, token, 'profile', undefined, 'url')
   }
 
   // 2. Env override (global, token-auth only).
-  const rawEnvUrl = process.env.FREEIDE_DESKTOP_REMOTE_URL
-  const rawEnvToken = process.env.FREEIDE_DESKTOP_REMOTE_TOKEN
+  const rawEnvUrl = process.env.JETTSTUI_DESKTOP_REMOTE_URL
+  const rawEnvToken = process.env.JETTSTUI_DESKTOP_REMOTE_TOKEN
 
   if (rawEnvUrl) {
     if (!rawEnvToken) {
       throw new Error(
-        'FREEIDE_DESKTOP_REMOTE_URL is set but FREEIDE_DESKTOP_REMOTE_TOKEN is not. ' +
-          'Both must be provided to connect to a remote FreeIDE backend.'
+        'JETTSTUI_DESKTOP_REMOTE_URL is set but JETTSTUI_DESKTOP_REMOTE_TOKEN is not. ' +
+          'Both must be provided to connect to a remote JettsTUI backend.'
       )
     }
 
@@ -7385,7 +7003,7 @@ async function resolveRemoteBackend(profile) {
     return bootstrapSshConnection(null, ssh, reuseToken, 'settings')
   }
 
-  // Cloud resolves through the existing URL/OAuth path.
+  // Legacy saved cloud entries resolve through the URL/OAuth path.
   if (!modeIsRemoteLike(config.mode)) {
     return null
   }
@@ -7393,14 +7011,7 @@ async function resolveRemoteBackend(profile) {
   const authMode = normAuthMode(config.remote?.authMode)
   const token = authMode === 'oauth' ? null : decryptDesktopSecret(config.remote?.token)
 
-  return buildRemoteConnection(
-    config.remote?.url,
-    authMode,
-    token,
-    'settings',
-    undefined,
-    config.mode === 'cloud' ? 'cloud' : 'url'
-  )
+  return buildRemoteConnection(config.remote?.url, authMode, token, 'settings', undefined, 'url')
 }
 
 // A remote profile's sessions live on its remote host's state.db, not on a local
@@ -7422,7 +7033,7 @@ function configuredRemoteProfileNames() {
 // profile via ?profile=. Cloud counts — it resolves to a remote backend (Q6).
 // Distinct from per-profile overrides — here there's one host for all.
 function globalRemoteActive() {
-  if (process.env.FREEIDE_DESKTOP_REMOTE_URL) {
+  if (process.env.JETTSTUI_DESKTOP_REMOTE_URL) {
     return true
   }
 
@@ -7434,7 +7045,7 @@ function globalRemoteActive() {
 // True when the PRIMARY profile's backend resolves to a remote/cloud host —
 // i.e. resolveRemoteBackend(primaryProfileKey()) would return a descriptor
 // rather than null. Mirrors that function's precedence (per-profile override →
-// env → global) so a startFreeIDE() failure can be classified as remote (never
+// env → global) so a startJettsTUI() failure can be classified as remote (never
 // latch — transient, must stay retryable) vs local (latch to break install
 // loops) BEFORE the throwing resolve/mint runs.
 function primaryBackendIsRemote() {
@@ -7469,8 +7080,8 @@ async function requestJsonForProfile(profile: string, path: string, method: stri
 
 async function probeRemoteAuthMode(rawUrl) {
   // Determine how a remote gateway expects callers to authenticate, WITHOUT
-  // sending any credentials. ``/api/status`` is public on every FreeIDE
-  // gateway (it backs the portal liveness probe) and reports:
+  // sending any credentials. ``/api/status`` is public on every JettsTUI
+  // gateway and reports:
   //   auth_required: true  → OAuth gate is engaged (cookie + ws-ticket auth)
   //   auth_required: false → loopback/--insecure: legacy session-token auth
   // ``/api/auth/providers`` (also public, only meaningful when gated) gives
@@ -7502,7 +7113,7 @@ async function probeRemoteAuthMode(rawUrl) {
 
   if (authRequired) {
     // Best-effort: a gated gateway exposes the registered providers so the
-    // button can read "Sign in with FreeIDE" instead of a generic
+    // button can read "Sign in with JettsTUI" instead of a generic
     // label, and so a username/password provider can be distinguished from
     // an OAuth-redirect one (``supports_password``). A failure here doesn't
     // change the auth mode, so swallow it.
@@ -7542,7 +7153,7 @@ async function testDesktopConnectionConfig(input: any = {}) {
       user: input.sshUser,
       port: input.sshPort,
       keyPath: input.sshKeyPath,
-      remoteFreeIDEPath: input.sshRemoteFreeIDEPath
+      remoteJettsTUIPath: input.sshRemoteJettsTUIPath
     })
 
     if (!sshConfig) {
@@ -7563,28 +7174,28 @@ async function testDesktopConnectionConfig(input: any = {}) {
       for (;;) {
         try {
           await ssh.open()
-          const platform: any = await detectRemotePlatform(ssh, sshConfig.remoteFreeIDEPath || '')
-          let freeidePath
-          let freeideVersion
+          const platform: any = await detectRemotePlatform(ssh, sshConfig.remoteJettsTUIPath || '')
+          let jettstuiPath
+          let jettstuiVersion
           let supported
 
           if (platform.os === 'Windows') {
             const runtime = platform
-            freeidePath = runtime.freeidePath
-            const inspection = await helper(ssh, runtime, 'inspect', [runtime.freeidePath])
-            freeideVersion = inspection.version
+            jettstuiPath = runtime.jettstuiPath
+            const inspection = await helper(ssh, runtime, 'inspect', [runtime.jettstuiPath])
+            jettstuiVersion = inspection.version
             supported = inspection.supported
           } else {
-            freeidePath = await remoteLifecycle.locateFreeIDE(ssh, sshConfig.remoteFreeIDEPath || '')
-            freeideVersion = await remoteLifecycle.probeFreeIDEVersion(ssh, freeidePath)
-            supported = await remoteLifecycle.remoteSupportsSshOwnership(ssh, freeidePath)
+            jettstuiPath = await remoteLifecycle.locateJettsTUI(ssh, sshConfig.remoteJettsTUIPath || '')
+            jettstuiVersion = await remoteLifecycle.probeJettsTUIVersion(ssh, jettstuiPath)
+            supported = await remoteLifecycle.remoteSupportsSshOwnership(ssh, jettstuiPath)
           }
 
           if (!supported) {
             return {
               reachable: false,
               sshError: 'update-required',
-              error: 'Update FreeIDE on the remote host before connecting with Desktop SSH.'
+              error: 'Update JettsTUI on the remote host before connecting with Desktop SSH.'
             }
           }
 
@@ -7593,8 +7204,8 @@ async function testDesktopConnectionConfig(input: any = {}) {
             sshError: null,
             error: null,
             remotePlatform: `${platform.os}/${platform.arch}`,
-            remoteFreeIDEPath: freeidePath,
-            remoteFreeIDEVersion: freeideVersion,
+            remoteJettsTUIPath: jettstuiPath,
+            remoteJettsTUIVersion: jettstuiVersion,
             host: sshConfig.user ? `${sshConfig.user}@${sshConfig.host}` : sshConfig.host
           }
         } catch (error: any) {
@@ -7644,7 +7255,7 @@ async function testDesktopConnectionConfig(input: any = {}) {
       token = decryptDesktopSecret(block.token)
     }
   } else {
-    const remote = (await resolveRemoteBackend(key)) || (await startFreeIDE())
+    const remote = (await resolveRemoteBackend(key)) || (await startJettsTUI())
     baseUrl = remote.baseUrl
     token = remote.token
     authMode = normAuthMode(remote.authMode)
@@ -7657,7 +7268,7 @@ async function testDesktopConnectionConfig(input: any = {}) {
   // connects — a separate transport with separate server-side guards (Host/
   // Origin, ws-ticket/token auth). Validating only the HTTP side produced a
   // false-positive "reachable" while the real boot still failed with "Could not
-  // connect to FreeIDE gateway". Mirror the renderer's connect here so the test
+  // connect to JettsTUI gateway". Mirror the renderer's connect here so the test
   // reflects the full path the app actually uses.
   const wsUrl = await resolveTestWsUrl(baseUrl, authMode, token, { mintTicket: mintGatewayWsTicket })
 
@@ -7703,12 +7314,12 @@ function stopBackendChild(child) {
 // reloading the renderer. The shell stays up; the renderer wipes session lists
 // (so skeletons retrigger) and re-dials. Distinct from hard re-home (profile
 // switch / crash recovery), which still resets boot progress + reloads.
-function resetFreeIDEConnection({ soft = false } = {}) {
+function resetJettsTUIConnection({ soft = false } = {}) {
   backendStartFailure = null
   remoteReauthFailure = null
   remoteLiveness.clear()
-  const freeideProcess = backendConnectionState.invalidate()
-  stopBackendChild(freeideProcess)
+  const jettstuiProcess = backendConnectionState.invalidate()
+  stopBackendChild(jettstuiProcess)
 
   if (!soft) {
     resetBootProgressForReconnect()
@@ -7717,19 +7328,19 @@ function resetFreeIDEConnection({ soft = false } = {}) {
 
 // Re-home the primary backend: reset connection state, then wait for the live
 // dashboard process to actually exit (SIGKILL after 5s) so the next
-// startFreeIDE() spawns fresh instead of racing the dying one. Shared by the
+// startJettsTUI() spawns fresh instead of racing the dying one. Shared by the
 // connection-config and profile switch flows.
 async function teardownPrimaryBackendAndWait({ soft = false } = {}) {
-  // Capture the reference before resetFreeIDEConnection() invalidates it.
-  const freeideProcess = backendConnectionState.getProcess()
-  const dying = freeideProcess && !freeideProcess.killed ? freeideProcess : null
+  // Capture the reference before resetJettsTUIConnection() invalidates it.
+  const jettstuiProcess = backendConnectionState.getProcess()
+  const dying = jettstuiProcess && !jettstuiProcess.killed ? jettstuiProcess : null
 
   if (soft) {
     softRehomeInProgress = true
   }
 
   try {
-    resetFreeIDEConnection({ soft })
+    resetJettsTUIConnection({ soft })
     await waitForBackendExit(dying)
   } finally {
     if (soft) {
@@ -7749,7 +7360,7 @@ function sendConnectionApplied() {
     return
   }
 
-  webContents.send('freeide:connection:applied')
+  webContents.send('jettstui:connection:applied')
 }
 
 async function waitForBackendExit(child, timeoutMs = 5000) {
@@ -7807,7 +7418,7 @@ async function ensureBackend(profile) {
   const route = resolveProfileBackendRoute(key, profileRouteOptions(key))
 
   if (route.backend === 'primary') {
-    const connection = await startFreeIDE()
+    const connection = await startJettsTUI()
 
     // A shared backend still owes the caller its profile scope, so renderer-side
     // WebSocket, filesystem, and cache routing target the selected profile.
@@ -7915,7 +7526,7 @@ function startPoolIdleReaper() {
 }
 
 // Spawn an additional dashboard backend pinned to a named profile. Mirrors the
-// local-spawn portion of startFreeIDE() but without the boot-progress UI,
+// local-spawn portion of startJettsTUI() but without the boot-progress UI,
 // bootstrap, or remote handling (those belong to the primary backend only).
 async function spawnPoolBackend(profile, entry) {
   // A profile may point at its OWN remote backend (connection.json
@@ -7927,7 +7538,7 @@ async function spawnPoolBackend(profile, entry) {
   const remote = await resolveRemoteBackend(profile)
 
   if (remote) {
-    await waitForFreeIDE(remote.baseUrl, remote.token, undefined, remote.authMode)
+    await waitForJettsTUI(remote.baseUrl, remote.token, undefined, remote.authMode)
 
     // Recorded on the entry so revalidation can probe this descriptor without
     // awaiting connectionPromise, which may still be pending for a sibling.
@@ -7936,44 +7547,44 @@ async function spawnPoolBackend(profile, entry) {
     return {
       ...remote,
       profile,
-      logs: freeideLog.slice(-80),
+      logs: jettstuiLog.slice(-80),
       ...getWindowState()
     }
   }
 
   const token = crypto.randomBytes(32).toString('base64url')
-  // --profile wins over the inherited FREEIDE_HOME env (see _apply_profile_override
-  // step 3 in freeide_cli/main.py), so the child re-homes to this profile.
+  // --profile wins over the inherited JETTSTUI_HOME env (see _apply_profile_override
+  // step 3 in jettstui/main.py), so the child re-homes to this profile.
   // --port 0: the OS assigns an ephemeral port; the child announces it on stdout.
   const backendArgs = ['--profile', profile, 'serve', '--host', '127.0.0.1', '--port', '0']
-  const backend = await ensureRuntime(resolveFreeIDEBackend(backendArgs))
+  const backend = await ensureRuntime(resolveJettsTUIBackend(backendArgs))
   // Route old runtimes (no `serve`) through the legacy `dashboard --no-open`.
   backend.args = getBackendArgsForRuntime(backend)
-  const freeideCwd = resolveFreeIDECwd()
+  const jettstuiCwd = resolveJettsTUICwd()
   const webDist = resolveWebDist()
   const readyFile = backend.readyFile ? makeDashboardReadyFile() : null
 
-  rememberLog(`Starting FreeIDE backend for profile "${profile}" via ${backend.label}`)
+  rememberLog(`Starting JettsTUI backend for profile "${profile}" via ${backend.label}`)
 
   const child = spawn(
     backend.command,
     backend.args,
     hiddenWindowsChildOptions({
-      cwd: freeideCwd,
+      cwd: jettstuiCwd,
       env: {
         ...process.env,
-        FREEIDE_HOME,
+        JETTSTUI_HOME,
         ...backend.env,
         // Pin the gateway's tool/terminal cwd to the same directory we chose for
         // the child process. Inherited TERMINAL_CWD (or a stale config bridge)
         // can still point at the install dir even when spawn cwd is home.
-        TERMINAL_CWD: freeideCwd,
-        FREEIDE_DASHBOARD_SESSION_TOKEN: token,
+        TERMINAL_CWD: jettstuiCwd,
+        JETTSTUI_DASHBOARD_SESSION_TOKEN: token,
         // Marks this dashboard backend as desktop-spawned so it runs the cron
         // scheduler tick loop (the gateway isn't running under the app).
-        FREEIDE_DESKTOP: '1',
-        FREEIDE_WEB_DIST: webDist,
-        ...(readyFile ? { FREEIDE_DESKTOP_READY_FILE: readyFile } : {})
+        JETTSTUI_DESKTOP: '1',
+        JETTSTUI_WEB_DIST: webDist,
+        ...(readyFile ? { JETTSTUI_DESKTOP_READY_FILE: readyFile } : {})
       },
       shell: backend.shell,
       stdio: ['ignore', 'pipe', 'pipe']
@@ -7994,17 +7605,17 @@ async function spawnPoolBackend(profile, entry) {
   })
 
   child.once('error', error => {
-    rememberLog(`FreeIDE backend for profile "${profile}" failed to start: ${error.message}`)
+    rememberLog(`JettsTUI backend for profile "${profile}" failed to start: ${error.message}`)
     backendPool.delete(profile)
     rejectStart?.(error)
   })
   child.once('exit', (code, signal) => {
-    rememberLog(`FreeIDE backend for profile "${profile}" exited (${signal || code})`)
+    rememberLog(`JettsTUI backend for profile "${profile}" exited (${signal || code})`)
     backendPool.delete(profile)
 
     if (!ready) {
       rejectStart?.(
-        new Error(`FreeIDE backend for profile "${profile}" exited before it became ready (${signal || code}).`)
+        new Error(`JettsTUI backend for profile "${profile}" exited before it became ready (${signal || code}).`)
       )
     }
   })
@@ -8019,12 +7630,12 @@ async function spawnPoolBackend(profile, entry) {
   entry.port = port
 
   const baseUrl = `http://127.0.0.1:${port}`
-  await Promise.race([waitForFreeIDE(baseUrl, token), startFailed])
+  await Promise.race([waitForJettsTUI(baseUrl, token), startFailed])
   ready = true
 
   const authToken = await adoptServedDashboardToken(baseUrl, token, {
     childAlive: () => child.exitCode === null && !child.killed,
-    label: `FreeIDE backend for profile "${profile}"`,
+    label: `JettsTUI backend for profile "${profile}"`,
     rememberLog
   })
 
@@ -8038,7 +7649,7 @@ async function spawnPoolBackend(profile, entry) {
     token: authToken,
     profile,
     wsUrl: `ws://127.0.0.1:${port}/api/ws?token=${encodeURIComponent(authToken)}`,
-    logs: freeideLog.slice(-80),
+    logs: jettstuiLog.slice(-80),
     ...getWindowState()
   }
 }
@@ -8077,7 +7688,7 @@ function stopAllPoolBackends() {
 // Returns the profile name whose backend was torn down, or null when the
 // request is not a profile-delete.  The caller uses this to skip ensureBackend
 // for the just-torn-down profile — otherwise ensureBackend respawns a pool
-// backend whose ensure_freeide_home() recreates the deleted profile directory.
+// backend whose ensure_jettstui_home() recreates the deleted profile directory.
 //
 // The routing *decision* (which branch fires, what profile name gets
 // returned) lives in the pure decideProfileDeleteAction() in
@@ -8108,9 +7719,9 @@ async function prepareProfileDeleteRequest(request) {
   return decision.profile
 }
 
-async function startFreeIDE() {
+async function startJettsTUI() {
   // Latched-failure short-circuit: once bootstrap has failed in this
-  // process, every subsequent startFreeIDE() call re-throws the same error
+  // process, every subsequent startJettsTUI() call re-throws the same error
   // without re-running install.ps1. This prevents the renderer's
   // ensureGatewayOpen retries (and any other getConnection callers) from
   // restarting a 5-10 minute install loop while the user is still reading
@@ -8133,7 +7744,7 @@ async function startFreeIDE() {
   // E2E: simulate a boot failure without breaking the real backend. The boot
   // progresses a few steps, then fails with the given error message.
   if (BOOT_FAKE_ERROR) {
-    await advanceBootProgress('backend.resolve', 'Resolving FreeIDE backend', 8)
+    await advanceBootProgress('backend.resolve', 'Resolving JettsTUI backend', 8)
     const error = new Error(BOOT_FAKE_ERROR) as any
     error.isBootstrapFailure = true
     bootstrapFailure = error
@@ -8155,11 +7766,11 @@ async function startFreeIDE() {
 
   const connectionPromise = (async () => {
     const connectRemote = async remote => {
-      await advanceBootProgress('backend.remote', `Connecting to remote FreeIDE backend at ${remote.baseUrl}`, 24)
-      await waitForFreeIDE(remote.baseUrl, remote.token, undefined, remote.authMode)
+      await advanceBootProgress('backend.remote', `Connecting to remote JettsTUI backend at ${remote.baseUrl}`, 24)
+      await waitForJettsTUI(remote.baseUrl, remote.token, undefined, remote.authMode)
       updateBootProgress({
         phase: 'backend.ready',
-        message: 'Remote FreeIDE backend is ready',
+        message: 'Remote JettsTUI backend is ready',
         progress: 94,
         running: true,
         error: null
@@ -8172,23 +7783,23 @@ async function startFreeIDE() {
         authMode: remote.authMode || 'token',
         remoteHost: remote.remoteHost,
         remoteKind: remote.remoteKind,
-        remoteFreeIDEVersion: remote.remoteFreeIDEVersion,
+        remoteJettsTUIVersion: remote.remoteJettsTUIVersion,
         token: remote.token,
         wsUrl: remote.wsUrl,
-        logs: freeideLog.slice(-80),
+        logs: jettstuiLog.slice(-80),
         ...getWindowState()
       }
     }
 
-    await advanceBootProgress('backend.resolve', 'Resolving FreeIDE backend', 8)
+    await advanceBootProgress('backend.resolve', 'Resolving JettsTUI backend', 8)
     // Resolve for the desktop's primary profile so a per-profile remote
     // override on the active profile is honored (falls back to env / global).
     const token = crypto.randomBytes(32).toString('base64url')
     // --port 0: the OS assigns an ephemeral port; the child announces it on stdout.
     const backendArgs = ['serve', '--host', '127.0.0.1', '--port', '0']
     // Pin the desktop's chosen profile via the global --profile flag. This is
-    // deterministic (it wins over the sticky ~/.freeide/active_profile file) and
-    // resolves FREEIDE_HOME the same way `freeide -p <name>` does on the CLI. An
+    // deterministic (it wins over the sticky ~/.jettstui/active_profile file) and
+    // resolves JETTSTUI_HOME the same way `jettstui -p <name>` does on the CLI. An
     // unset preference keeps the legacy launch so existing installs are
     // unaffected.
     const activeProfile = readActiveDesktopProfile()
@@ -8201,9 +7812,9 @@ async function startFreeIDE() {
       connectRemote,
       ensureLocalRuntime: ensureRuntime,
       prepareLocalBackend: async () => {
-        await advanceBootProgress('backend.runtime', 'Resolving FreeIDE runtime', 28)
+        await advanceBootProgress('backend.runtime', 'Resolving JettsTUI runtime', 28)
 
-        return resolveFreeIDEBackend(backendArgs)
+        return resolveJettsTUIBackend(backendArgs)
       },
       resolveRemote: () => {
         // Classify immediately before each throwing resolve. This callback runs
@@ -8225,52 +7836,52 @@ async function startFreeIDE() {
     const backend = setup.backend
     // Route old runtimes (no `serve`) through the legacy `dashboard --no-open`.
     backend.args = getBackendArgsForRuntime(backend)
-    const freeideCwd = resolveFreeIDECwd()
+    const jettstuiCwd = resolveJettsTUICwd()
     const webDist = resolveWebDist()
     const readyFile = backend.readyFile ? makeDashboardReadyFile() : null
 
-    await advanceBootProgress('backend.spawn', `Starting FreeIDE backend via ${backend.label}`, 84)
-    rememberLog(`Starting FreeIDE backend via ${backend.label}`)
+    await advanceBootProgress('backend.spawn', `Starting JettsTUI backend via ${backend.label}`, 84)
+    rememberLog(`Starting JettsTUI backend via ${backend.label}`)
 
-    const freeideProcess = spawn(
+    const jettstuiProcess = spawn(
       backend.command,
       backend.args,
       hiddenWindowsChildOptions({
-        cwd: freeideCwd,
+        cwd: jettstuiCwd,
         env: {
           ...process.env,
-          // Explicitly pin FREEIDE_HOME for the child so Python's get_freeide_home()
-          // resolves to the SAME location our resolveFreeIDEHome() picked. Without
-          // this pin, Python falls back to ~/.freeide on every platform — fine on
+          // Explicitly pin JETTSTUI_HOME for the child so Python's get_jettstui_home()
+          // resolves to the SAME location our resolveJettsTUIHome() picked. Without
+          // this pin, Python falls back to ~/.jettstui on every platform — fine on
           // mac/linux (where our default matches), but on Windows our default is
-          // %LOCALAPPDATA%\freeide, which differs from C:\Users\<u>\.freeide.
+          // %LOCALAPPDATA%\jettstui, which differs from C:\Users\<u>\.jettstui.
           // Mismatch would split config / sessions / .env / logs across two
-          // directories. install.ps1 sets FREEIDE_HOME via setx; the desktop
+          // directories. install.ps1 sets JETTSTUI_HOME via setx; the desktop
           // can't reliably do that, so we set it inline for every spawn.
-          FREEIDE_HOME,
+          JETTSTUI_HOME,
           ...backend.env,
-          TERMINAL_CWD: freeideCwd,
-          FREEIDE_DASHBOARD_SESSION_TOKEN: token,
+          TERMINAL_CWD: jettstuiCwd,
+          JETTSTUI_DASHBOARD_SESSION_TOKEN: token,
           // Marks this dashboard backend as desktop-spawned so it runs the cron
           // scheduler tick loop (the gateway isn't running under the app).
-          FREEIDE_DESKTOP: '1',
-          FREEIDE_WEB_DIST: webDist,
-          ...(readyFile ? { FREEIDE_DESKTOP_READY_FILE: readyFile } : {})
+          JETTSTUI_DESKTOP: '1',
+          JETTSTUI_WEB_DIST: webDist,
+          ...(readyFile ? { JETTSTUI_DESKTOP_READY_FILE: readyFile } : {})
         },
         shell: backend.shell,
         stdio: ['ignore', 'pipe', 'pipe']
       })
     )
 
-    const processOwner = backendConnectionState.attachProcess(connectionAttempt, freeideProcess)
+    const processOwner = backendConnectionState.attachProcess(connectionAttempt, jettstuiProcess)
 
     if (!processOwner) {
-      stopBackendChild(freeideProcess)
-      throw new Error('Jetts-TUI backend start was superseded by a newer connection attempt.')
+      stopBackendChild(jettstuiProcess)
+      throw new Error('JettsTUI backend start was superseded by a newer connection attempt.')
     }
 
-    freeideProcess.stdout.on('data', rememberLog)
-    freeideProcess.stderr.on('data', rememberLog)
+    jettstuiProcess.stdout.on('data', rememberLog)
+    jettstuiProcess.stderr.on('data', rememberLog)
     let backendReady = false
     let rejectBackendStart = null
 
@@ -8278,19 +7889,19 @@ async function startFreeIDE() {
       rejectBackendStart = reject
     })
 
-    freeideProcess.once('error', error => {
+    jettstuiProcess.once('error', error => {
       if (!backendConnectionState.clearForCurrentProcess(processOwner)) {
-        rememberLog(`Ignoring stale FreeIDE backend error: ${error.message}`)
-        rejectBackendStart?.(new Error('Jetts-TUI backend start was superseded by a newer connection attempt.'))
+        rememberLog(`Ignoring stale JettsTUI backend error: ${error.message}`)
+        rejectBackendStart?.(new Error('JettsTUI backend start was superseded by a newer connection attempt.'))
 
         return
       }
 
-      rememberLog(`FreeIDE backend failed to start: ${error.message}`)
+      rememberLog(`JettsTUI backend failed to start: ${error.message}`)
       updateBootProgress(
         {
           error: error.message,
-          message: `FreeIDE backend failed to start: ${error.message}`,
+          message: `JettsTUI backend failed to start: ${error.message}`,
           phase: 'backend.error',
           running: false
         },
@@ -8299,22 +7910,22 @@ async function startFreeIDE() {
       sendBackendExit({ code: null, signal: null, error: error.message })
       rejectBackendStart?.(error)
     })
-    freeideProcess.once('exit', (code, signal) => {
+    jettstuiProcess.once('exit', (code, signal) => {
       if (!backendConnectionState.clearForCurrentProcess(processOwner)) {
-        rememberLog(`Ignoring stale FreeIDE backend exit (${signal || code})`)
+        rememberLog(`Ignoring stale JettsTUI backend exit (${signal || code})`)
 
         if (!backendReady) {
-          rejectBackendStart?.(new Error('Jetts-TUI backend start was superseded by a newer connection attempt.'))
+          rejectBackendStart?.(new Error('JettsTUI backend start was superseded by a newer connection attempt.'))
         }
 
         return
       }
 
-      rememberLog(`FreeIDE backend exited (${signal || code})`)
+      rememberLog(`JettsTUI backend exited (${signal || code})`)
       sendBackendExit({ code, signal })
 
       if (!backendReady) {
-        const message = `FreeIDE backend exited before it became ready (${signal || code}).`
+        const message = `JettsTUI backend exited before it became ready (${signal || code}).`
         updateBootProgress(
           {
             error: message,
@@ -8326,17 +7937,17 @@ async function startFreeIDE() {
         )
         rejectBackendStart?.(
           new Error(
-            `FreeIDE backend exited before it became ready (${signal || code}). Log: ${DESKTOP_LOG_PATH}\n${recentFreeIDELog()}`
+            `JettsTUI backend exited before it became ready (${signal || code}). Log: ${DESKTOP_LOG_PATH}\n${recentJettsTUILog()}`
           )
         )
       }
     })
 
-    await advanceBootProgress('backend.port', 'Waiting for FreeIDE backend to launch', 86)
+    await advanceBootProgress('backend.port', 'Waiting for JettsTUI backend to launch', 86)
 
     // Discover the ephemeral port the child bound to
     const port = await Promise.race([
-      waitForDashboardPortAnnouncement(freeideProcess, { readyFile }),
+      waitForDashboardPortAnnouncement(jettstuiProcess, { readyFile }),
       backendStartFailed
     ])
 
@@ -8345,19 +7956,19 @@ async function startFreeIDE() {
     }
 
     const baseUrl = `http://127.0.0.1:${port}`
-    await advanceBootProgress('backend.wait', 'Waiting for FreeIDE backend to become ready', 90)
-    await Promise.race([waitForFreeIDE(baseUrl, token), backendStartFailed])
+    await advanceBootProgress('backend.wait', 'Waiting for JettsTUI backend to become ready', 90)
+    await Promise.race([waitForJettsTUI(baseUrl, token), backendStartFailed])
     backendReady = true
     backendStartFailure = null
 
     const authToken = await adoptServedDashboardToken(baseUrl, token, {
-      childAlive: () => freeideProcess.exitCode === null && !freeideProcess.killed,
+      childAlive: () => jettstuiProcess.exitCode === null && !jettstuiProcess.killed,
       rememberLog
     })
 
     updateBootProgress({
       phase: 'backend.ready',
-      message: 'Jetts-TUI backend is ready. Finalizing desktop startup',
+      message: 'JettsTUI backend is ready. Finalizing desktop startup',
       progress: 94,
       running: true,
       error: null
@@ -8370,7 +7981,7 @@ async function startFreeIDE() {
       authMode: 'token',
       token: authToken,
       wsUrl: `ws://127.0.0.1:${port}/api/ws?token=${encodeURIComponent(authToken)}`,
-      logs: freeideLog.slice(-80),
+      logs: jettstuiLog.slice(-80),
       ...getWindowState()
     }
   })().catch(error => {
@@ -8490,7 +8101,7 @@ function spawnSecondaryWindow({ sessionId, watch }: { sessionId?: string; watch?
     height: SESSION_WINDOW_MIN_HEIGHT,
     minWidth: SESSION_WINDOW_MIN_WIDTH,
     minHeight: SESSION_WINDOW_MIN_HEIGHT,
-    title: 'Jetts-TUI',
+    title: 'JettsTUI',
     titleBarStyle: 'hidden',
     titleBarOverlay: getTitleBarOverlayOptions(),
     trafficLightPosition: IS_MAC ? WINDOW_BUTTON_POSITION : undefined,
@@ -8575,7 +8186,7 @@ function createInstanceWindow() {
     ...nextInstanceBounds(),
     minWidth: WINDOW_MIN_WIDTH,
     minHeight: WINDOW_MIN_HEIGHT,
-    title: 'Jetts-TUI',
+    title: 'JettsTUI',
     titleBarStyle: 'hidden',
     titleBarOverlay: getTitleBarOverlayOptions(),
     trafficLightPosition: IS_MAC ? WINDOW_BUTTON_POSITION : undefined,
@@ -8617,11 +8228,11 @@ function createInstanceWindow() {
 
 // The pet overlay: a single transparent, frameless, always-on-top window that
 // hosts ONLY the floating mascot. Shift-clicking the in-window pet "pops it out"
-// here so it can leave the app's bounds and stay visible while FreeIDE is
+// here so it can leave the app's bounds and stay visible while JettsTUI is
 // minimized (Codex-style task-completion glance). It carries no gateway
 // connection of its own — the main renderer is the single source of truth and
-// pushes pet state over IPC (freeide:pet-overlay:state); the overlay just renders
-// it. Control flows back (pop-in, composer submit) via freeide:pet-overlay:control.
+// pushes pet state over IPC (jettstui:pet-overlay:state); the overlay just renders
+// it. Control flows back (pop-in, composer submit) via jettstui:pet-overlay:control.
 let petOverlayWindow = null
 
 function petOverlayUrl() {
@@ -8649,7 +8260,7 @@ function spawnPetOverlayWindow(bounds) {
     // taskbar/alt-tab entry. On macOS, cmd-tab is app-level and this can make
     // the whole app look like it vanished when the only newly-created visible
     // window is a frameless overlay. Use NSPanel + Mission Control hiding below
-    // instead, leaving the main FreeIDE app as the Dock/cmd-tab anchor.
+    // instead, leaving the main JettsTUI app as the Dock/cmd-tab anchor.
     skipTaskbar: !IS_MAC,
     hasShadow: false,
     alwaysOnTop: true,
@@ -8659,9 +8270,9 @@ function spawnPetOverlayWindow(bounds) {
     hiddenInMissionControl: IS_MAC,
     // Non-activating: the overlay must never become the app's key/main window,
     // or it (a frameless, taskbar-skipping panel) becomes the app's switcher
-    // anchor and the FreeIDE icon drops out of cmd/alt-tab — especially when the
+    // anchor and the JettsTUI icon drops out of cmd/alt-tab — especially when the
     // main window is minimized. We flip this on only while the composer needs
-    // the keyboard (see freeide:pet-overlay:set-focusable).
+    // the keyboard (see jettstui:pet-overlay:set-focusable).
     focusable: false,
     show: false,
     // Fully transparent — the renderer paints only the sprite + bubble.
@@ -8688,7 +8299,7 @@ function spawnPetOverlayWindow(bounds) {
   try {
     // Electron docs: macOS may transform process type on each
     // setVisibleOnAllWorkspaces() call unless skipTransformProcessType=true,
-    // which briefly hides the Dock/cmd-tab presence. Keep FreeIDE in the normal
+    // which briefly hides the Dock/cmd-tab presence. Keep JettsTUI in the normal
     // ForegroundApplication class so shift-clicking the pet never drops the app
     // out of app switchers.
     win.setVisibleOnAllWorkspaces(
@@ -8718,7 +8329,7 @@ function spawnPetOverlayWindow(bounds) {
     // pop the pet back in so it doesn't stay hidden. Harmless echo when we're
     // the ones who closed it (popInPet already cleared the active flag).
     if (mainWindow && !mainWindow.isDestroyed()) {
-      mainWindow.webContents.send('freeide:pet-overlay:control', { type: 'pop-in' })
+      mainWindow.webContents.send('jettstui:pet-overlay:control', { type: 'pop-in' })
     }
   })
 
@@ -8870,7 +8481,7 @@ function spawnQuickEntryWindow() {
   // renderer already reported a live gateway.
   win.webContents.on('did-finish-load', () => {
     if (!win.isDestroyed() && quickEntryLastState) {
-      win.webContents.send('freeide:quick-entry:state', quickEntryLastState)
+      win.webContents.send('jettstui:quick-entry:state', quickEntryLastState)
     }
   })
 
@@ -8907,7 +8518,7 @@ function showQuickEntryWindow() {
   quickEntryWindow.show()
   quickEntryWindow.focus()
   // Re-summoned: tell the renderer to clear any stale draft and refocus.
-  quickEntryWindow.webContents.send('freeide:quick-entry:shown')
+  quickEntryWindow.webContents.send('jettstui:quick-entry:shown')
 }
 
 function hideQuickEntryWindow() {
@@ -8968,7 +8579,7 @@ function createWindow() {
     ...computeWindowOptions(savedWindowState, screen.getAllDisplays()),
     minWidth: WINDOW_MIN_WIDTH,
     minHeight: WINDOW_MIN_HEIGHT,
-    title: 'Jetts-TUI',
+    title: 'JettsTUI',
     // Frameless title bar on every platform so the renderer can paint the
     // "hide sidebar" button (and other left-side titlebar tools) flush with
     // the top edge — matching the macOS layout where the traffic lights sit
@@ -9177,7 +8788,7 @@ function createWindow() {
   // shared (backendConnectionState), so the renderer's getConnection() joins
   // this in-flight boot instead of duplicating it; early boot-progress events
   // the renderer misses are recovered by its getBootProgress() pull on mount.
-  startFreeIDE().catch(error => rememberLog(error.stack || error.message))
+  startJettsTUI().catch(error => rememberLog(error.stack || error.message))
 
   mainWindow.webContents.once('did-finish-load', () => {
     // Zoom restore is handled by wireCommonWindowHandlers (shared with session
@@ -9187,16 +8798,16 @@ function createWindow() {
   })
 }
 
-ipcMain.handle('freeide:connection', async (_event, profile) => ensureBackend(profile))
+ipcMain.handle('jettstui:connection', async (_event, profile) => ensureBackend(profile))
 // Reconnect-after-wake recovery. A REMOTE primary backend has no child process,
 // so the 'exit'/'error' handlers that would clear a dead connection promise never
 // fire — once the remote becomes unreachable across a sleep/wake the renderer
 // re-dials the same dead descriptor forever and the composer stays stuck on
-// "Starting FreeIDE…". Before the renderer's backoff loop reconnects, it asks us
+// "Starting JettsTUI…". Before the renderer's backoff loop reconnects, it asks us
 // to confirm the cached PRIMARY backend is still reachable; if a remote one is
 // not, we drop the cache so the next getConnection() rebuilds it. Local backends
 // self-heal via their child 'exit' handler, so we never touch them here.
-ipcMain.handle('freeide:connection:revalidate', async () => {
+ipcMain.handle('jettstui:connection:revalidate', async () => {
   const connectionPromise = backendConnectionState.getPromise()
 
   if (!connectionPromise) {
@@ -9215,7 +8826,7 @@ ipcMain.handle('freeide:connection:revalidate', async () => {
         currentConnectionPromise: () => backendConnectionState.getPromise(),
         log: rememberLog,
         probe: fetchPublicJson,
-        resetConnection: resetFreeIDEConnection,
+        resetConnection: resetJettsTUIConnection,
         tracker: remoteLiveness
       }),
       revalidatePool()
@@ -9251,15 +8862,15 @@ function revalidatePool() {
   })
 }
 
-ipcMain.handle('freeide:backend:touch', async (_event, profile) => {
+ipcMain.handle('jettstui:backend:touch', async (_event, profile) => {
   touchPoolBackend(profile)
 
   return { ok: true }
 })
-ipcMain.handle('freeide:gateway:ws-url', async (_event, profile) => {
+ipcMain.handle('jettstui:gateway:ws-url', async (_event, profile) => {
   return gatewayWsUrlIpcResult(() => freshGatewayWsUrl(profile))
 })
-ipcMain.handle('freeide:window:openSession', async (_event, sessionId, opts) => {
+ipcMain.handle('jettstui:window:openSession', async (_event, sessionId, opts) => {
   if (typeof sessionId !== 'string' || !sessionId.trim()) {
     return { ok: false, error: 'invalid-session-id' }
   }
@@ -9268,7 +8879,7 @@ ipcMain.handle('freeide:window:openSession', async (_event, sessionId, opts) => 
 
   return { ok: true }
 })
-ipcMain.handle('freeide:window:openInstance', async () => {
+ipcMain.handle('jettstui:window:openInstance', async () => {
   createInstanceWindow()
 
   return { ok: true }
@@ -9277,15 +8888,14 @@ ipcMain.handle('freeide:window:openInstance', async () => {
 // --- Text size (zoom) -------------------------------------------------------
 // The settings UI drives the same clamped zoom scale as the Ctrl/Cmd
 // shortcuts and the View menu. Reads and writes target the asking window.
-ipcMain.handle('freeide:zoom:get', event => {
+ipcMain.handle('jettstui:zoom:get', event => {
   const window = BrowserWindow.fromWebContents(event.sender)
 
-  const level =
-    window && !window.isDestroyed() ? window.webContents.getZoomLevel() : DEFAULT_ZOOM_LEVEL
+  const level = window && !window.isDestroyed() ? window.webContents.getZoomLevel() : DEFAULT_ZOOM_LEVEL
 
   return { level, percent: zoomLevelToPercent(level) }
 })
-ipcMain.on('freeide:zoom:set-percent', (event, percent) => {
+ipcMain.on('jettstui:zoom:set-percent', (event, percent) => {
   const window = BrowserWindow.fromWebContents(event.sender)
 
   if (!window || window.isDestroyed()) {
@@ -9301,7 +8911,7 @@ ipcMain.on('freeide:zoom:set-percent', (event, percent) => {
 // content origin so the pet lands where it sat in-window. A remembered/dragged
 // spot passes screen-space bounds (screen=true) and is used as-is. We return the
 // resolved screen bounds so the renderer can persist exactly where it opened.
-ipcMain.handle('freeide:pet-overlay:open', async (_event, request) => {
+ipcMain.handle('jettstui:pet-overlay:open', async (_event, request) => {
   const bounds = request && request.bounds ? request.bounds : request
   const isScreen = Boolean(request && request.screen)
   let screenBounds = bounds
@@ -9324,7 +8934,7 @@ ipcMain.handle('freeide:pet-overlay:open', async (_event, request) => {
 
   return { ok: true, bounds: screenBounds }
 })
-ipcMain.handle('freeide:pet-overlay:close', async () => {
+ipcMain.handle('jettstui:pet-overlay:close', async () => {
   closePetOverlay()
 
   return { ok: true }
@@ -9335,7 +8945,7 @@ ipcMain.handle('freeide:pet-overlay:close', async () => {
 // The window is created non-resizable (no stray edge-drag on the transparent
 // frameless panel), which on Windows/Linux also blocks programmatic setBounds
 // sizing — so briefly flip resizable on whenever the size actually changes.
-ipcMain.on('freeide:pet-overlay:set-bounds', (_event, bounds) => {
+ipcMain.on('jettstui:pet-overlay:set-bounds', (_event, bounds) => {
   if (!petOverlayWindow || petOverlayWindow.isDestroyed() || !bounds) {
     return
   }
@@ -9359,7 +8969,7 @@ ipcMain.on('freeide:pet-overlay:set-bounds', (_event, bounds) => {
 // Click-through: the overlay window is a full rectangle but only the pet pixels
 // should be interactive. The renderer toggles this as the cursor enters/leaves
 // the sprite so transparent margins pass clicks to whatever is behind.
-ipcMain.on('freeide:pet-overlay:ignore-mouse', (_event, ignore) => {
+ipcMain.on('jettstui:pet-overlay:ignore-mouse', (_event, ignore) => {
   if (petOverlayWindow && !petOverlayWindow.isDestroyed()) {
     petOverlayWindow.setIgnoreMouseEvents(Boolean(ignore), { forward: true })
   }
@@ -9368,7 +8978,7 @@ ipcMain.on('freeide:pet-overlay:ignore-mouse', (_event, ignore) => {
 // the app's cmd/alt-tab anchor from the main window. But the pop-up composer
 // needs the keyboard, so the renderer asks us to flip it focusable + focus it
 // while the composer is open, then back to non-activating when it closes.
-ipcMain.on('freeide:pet-overlay:set-focusable', (_event, focusable) => {
+ipcMain.on('jettstui:pet-overlay:set-focusable', (_event, focusable) => {
   if (!petOverlayWindow || petOverlayWindow.isDestroyed()) {
     return
   }
@@ -9380,13 +8990,13 @@ ipcMain.on('freeide:pet-overlay:set-focusable', (_event, focusable) => {
   }
 })
 // Main renderer → overlay: forward the latest pet state for the overlay to render.
-ipcMain.on('freeide:pet-overlay:state', (_event, payload) => {
+ipcMain.on('jettstui:pet-overlay:state', (_event, payload) => {
   if (petOverlayWindow && !petOverlayWindow.isDestroyed()) {
-    petOverlayWindow.webContents.send('freeide:pet-overlay:state', payload)
+    petOverlayWindow.webContents.send('jettstui:pet-overlay:state', payload)
   }
 })
 // Overlay → main renderer: control messages (pop back in, composer submit).
-ipcMain.on('freeide:pet-overlay:control', (_event, payload) => {
+ipcMain.on('jettstui:pet-overlay:control', (_event, payload) => {
   if (!mainWindow || mainWindow.isDestroyed()) {
     return
   }
@@ -9416,11 +9026,11 @@ ipcMain.on('freeide:pet-overlay:control', (_event, payload) => {
     mainWindow.focus()
   }
 
-  mainWindow.webContents.send('freeide:pet-overlay:control', payload)
+  mainWindow.webContents.send('jettstui:pet-overlay:control', payload)
 })
-ipcMain.handle('freeide:bootstrap:reset', async () => {
+ipcMain.handle('jettstui:bootstrap:reset', async () => {
   // Renderer's "Reload and retry" path. Clear the latched failure and
-  // reset connection state so the next startFreeIDE() call restarts the
+  // reset connection state so the next startJettsTUI() call restarts the
   // full backend flow (including a fresh runBootstrap pass).
   rememberLog('[bootstrap] reset requested by renderer; clearing latched failure')
   await teardownPrimaryBackendAndWait()
@@ -9432,8 +9042,8 @@ ipcMain.handle('freeide:bootstrap:reset', async () => {
 
   return { ok: true }
 })
-ipcMain.handle('freeide:bootstrap:repair', async () => {
-  // Forceful repair: force the next startFreeIDE() through the full installer
+ipcMain.handle('jettstui:bootstrap:repair', async () => {
+  // Forceful repair: force the next startJettsTUI() through the full installer
   // (refreshing a broken/partial venv) and clear any latched failure + live
   // connection. The renderer reloads afterwards to re-drive the boot flow.
   //
@@ -9448,17 +9058,17 @@ ipcMain.handle('freeide:bootstrap:repair', async () => {
   backendStartFailure = null
   remoteReauthFailure = null
   getFirstRunSetupGate().resetForRepair()
-  resetFreeIDEConnection()
+  resetJettsTUIConnection()
 
   return { ok: true }
 })
-ipcMain.handle('freeide:bootstrap:continue-local', async () => {
+ipcMain.handle('jettstui:bootstrap:continue-local', async () => {
   rememberLog('[bootstrap] local install selected by renderer; continuing first-launch bootstrap')
   continueFirstRunLocalBootstrap()
 
   return { ok: true }
 })
-ipcMain.handle('freeide:bootstrap:cancel', async () => {
+ipcMain.handle('jettstui:bootstrap:cancel', async () => {
   // Renderer's Cancel button during first-launch install. Abort the running
   // install script (SIGTERM via the runner's abortSignal). runBootstrap
   // resolves with { cancelled: true }, which surfaces the recovery overlay.
@@ -9474,13 +9084,13 @@ ipcMain.handle('freeide:bootstrap:cancel', async () => {
 
   return { ok: false, cancelled: false }
 })
-ipcMain.handle('freeide:boot-progress:get', async () => bootProgressState)
-ipcMain.handle('freeide:bootstrap:get', async () => getBootstrapState())
-ipcMain.handle('freeide:connection-config:get', async (_event, profile) =>
+ipcMain.handle('jettstui:boot-progress:get', async () => bootProgressState)
+ipcMain.handle('jettstui:bootstrap:get', async () => getBootstrapState())
+ipcMain.handle('jettstui:connection-config:get', async (_event, profile) =>
   sanitizeDesktopConnectionConfig(readDesktopConnectionConfig(), profile)
 )
-ipcMain.handle('freeide:ssh-config:hosts', async () => ({ hosts: collectSshConfigHosts() }))
-ipcMain.handle('freeide:ssh-config:resolve', async (_event, host) => {
+ipcMain.handle('jettstui:ssh-config:hosts', async () => ({ hosts: collectSshConfigHosts() }))
+ipcMain.handle('jettstui:ssh-config:resolve', async (_event, host) => {
   const value = String(host || '').trim()
 
   if (!value) {
@@ -9523,9 +9133,9 @@ ipcMain.handle('freeide:ssh-config:resolve', async (_event, host) => {
     })
   })
 })
-ipcMain.handle('freeide:connection-config:test', async (_event, payload) => testDesktopConnectionConfig(payload))
-ipcMain.handle('freeide:connection-config:probe', async (_event, rawUrl) => probeRemoteAuthMode(rawUrl))
-ipcMain.handle('freeide:connection-config:oauth-login', async (_event, rawUrl) => {
+ipcMain.handle('jettstui:connection-config:test', async (_event, payload) => testDesktopConnectionConfig(payload))
+ipcMain.handle('jettstui:connection-config:probe', async (_event, rawUrl) => probeRemoteAuthMode(rawUrl))
+ipcMain.handle('jettstui:connection-config:oauth-login', async (_event, rawUrl) => {
   // Capability-gated login (RFC 8252). Probe the gateway's public /api/status:
   //   - advertises "native_pkce" in auth_flows → run the system-browser +
   //     loopback + PKCE flow. No embedded webview, tokens held by the app
@@ -9557,7 +9167,7 @@ ipcMain.handle('freeide:connection-config:oauth-login', async (_event, rawUrl) =
 
       _storeNativeTokens(baseUrl, tokens)
       // Confirmed sign-in — release the reauth latch so the next
-      // startFreeIDE() re-dials instead of replaying the stale rejection.
+      // startJettsTUI() re-dials instead of replaying the stale rejection.
       remoteReauthFailure = null
 
       return { ok: true, baseUrl, connected: true }
@@ -9586,7 +9196,7 @@ ipcMain.handle('freeide:connection-config:oauth-login', async (_event, rawUrl) =
 
   return { ok: true, baseUrl, connected }
 })
-ipcMain.handle('freeide:connection-config:oauth-logout', async (_event, rawUrl) => {
+ipcMain.handle('jettstui:connection-config:oauth-logout', async (_event, rawUrl) => {
   const baseUrl = rawUrl ? normalizeRemoteBaseUrl(rawUrl) : ''
   await clearOauthSession(baseUrl || undefined)
 
@@ -9604,41 +9214,13 @@ ipcMain.handle('freeide:connection-config:oauth-logout', async (_event, rawUrl) 
   return { ok: true, connected }
 })
 
-// --- FreeIDE Cloud (cloud-auto-discovery Phase 3) ---
-// One portal login in the OAuth partition powers both discovery and the silent
-// per-agent cascade. See the discovery/cascade helpers above.
-ipcMain.handle('freeide:cloud:status', async () => ({
-  portalBaseUrl: resolvePortalBaseUrl(),
-  signedIn: await hasLivePortalSession()
-}))
-ipcMain.handle('freeide:cloud:login', async () => {
-  await openPortalLoginWindow()
-
-  return { ok: true, signedIn: await hasLivePortalSession() }
-})
-ipcMain.handle('freeide:cloud:logout', async () => {
-  await clearOauthSession(resolvePortalBaseUrl())
-
-  return { ok: true, signedIn: await hasLivePortalSession() }
-})
-ipcMain.handle('freeide:cloud:discover', async (_event, org) => {
-  // Returns { agents } or { needsOrgSelection: true, orgs }. `org` (optional)
-  // scopes discovery to a chosen org for multi-org users.
-  return discoverCloudAgents(typeof org === 'string' && org ? org : undefined)
-})
-ipcMain.handle('freeide:cloud:agent-sign-in', async (_event, dashboardUrl) => {
-  // Silent per-agent sign-in via the shared portal session. Returns the agent's
-  // gateway baseUrl + whether its session cookie landed; the renderer then
-  // saves a cloud-mode connection pointed at this dashboardUrl.
-  return cloudAgentSilentSignIn(dashboardUrl)
-})
-ipcMain.handle('freeide:connection-config:save', async (_event, payload) => {
+ipcMain.handle('jettstui:connection-config:save', async (_event, payload) => {
   const config = coerceDesktopConnectionConfig(payload)
   writeDesktopConnectionConfig(config)
 
   return sanitizeDesktopConnectionConfig(config, payload?.profile)
 })
-ipcMain.handle('freeide:connection-config:apply', async (_event, payload) => {
+ipcMain.handle('jettstui:connection-config:apply', async (_event, payload) => {
   const config = coerceDesktopConnectionConfig(payload)
   writeDesktopConnectionConfig(config)
 
@@ -9670,12 +9252,12 @@ ipcMain.handle('freeide:connection-config:apply', async (_event, payload) => {
   return sanitizeDesktopConnectionConfig(config, payload?.profile)
 })
 
-ipcMain.handle('freeide:profile:get', async () => ({ profile: readActiveDesktopProfile() }))
-ipcMain.handle('freeide:profile:set', async (_event, name) => {
+ipcMain.handle('jettstui:profile:get', async () => ({ profile: readActiveDesktopProfile() }))
+ipcMain.handle('jettstui:profile:set', async (_event, name) => {
   const next = writeActiveDesktopProfile(name)
 
   // Switching profiles is a backend re-home: relaunch the dashboard under the
-  // new FREEIDE_HOME. Pool backends keep their own homes, so only the primary
+  // new JETTSTUI_HOME. Pool backends keep their own homes, so only the primary
   // is torn down.
   await teardownPrimaryBackendAndWait()
   mainWindow?.reload()
@@ -9683,11 +9265,11 @@ ipcMain.handle('freeide:profile:set', async (_event, name) => {
   return { profile: next }
 })
 
-ipcMain.on('freeide:previewShortcutActive', (_event, active) => {
+ipcMain.on('jettstui:previewShortcutActive', (_event, active) => {
   previewShortcutActive = Boolean(active)
 })
 
-ipcMain.handle('freeide:requestMicrophoneAccess', async () => {
+ipcMain.handle('jettstui:requestMicrophoneAccess', async () => {
   if (!IS_MAC || typeof systemPreferences.askForMediaAccess !== 'function') {
     return true
   }
@@ -9931,7 +9513,7 @@ async function mergeRemoteProfileSessions(searchParams, remoteProfiles) {
   return { ...(base as any), sessions: merged.slice(offset, offset + limit), total, profile_totals: profileTotals }
 }
 
-ipcMain.handle('freeide:api', async (_event, request) => {
+ipcMain.handle('jettstui:api', async (_event, request) => {
   // Remote-profile session requests would otherwise hit the local primary off
   // each profile's on-disk state.db — fine for local profiles, but a remote
   // profile's sessions live on its remote host, so the UI's IDs 404 (or mutations
@@ -9947,7 +9529,7 @@ ipcMain.handle('freeide:api', async (_event, request) => {
   const profile = request?.profile
   // After tearing down a backend for profile deletion, route to the primary
   // backend instead of spawning a fresh pool backend.  A freshly spawned
-  // backend calls ensure_freeide_home() which recreates the profile directory,
+  // backend calls ensure_jettstui_home() which recreates the profile directory,
   // defeating the deletion and leaving a zombie process.
   const routeProfile = resolveRouteProfile(tornDownProfile, profile)
   const connection = await ensureBackend(routeProfile)
@@ -10009,9 +9591,9 @@ const claimedAmbientCue = createEventDeduper()
 
 // A window asks "do I own this ambient cue (turn-end sound / spoken reply)?".
 // The first caller within the window gets true; peers get false and stay quiet.
-ipcMain.handle('freeide:ambient:claim', (_event, key) => !claimedAmbientCue(String(key ?? '')))
+ipcMain.handle('jettstui:ambient:claim', (_event, key) => !claimedAmbientCue(String(key ?? '')))
 
-ipcMain.handle('freeide:notify', (_event, payload) => {
+ipcMain.handle('jettstui:notify', (_event, payload) => {
   if (!Notification.isSupported()) {
     return false
   }
@@ -10029,7 +9611,7 @@ ipcMain.handle('freeide:notify', (_event, payload) => {
   const actions = Array.isArray(payload?.actions) ? payload.actions : []
 
   const notification = new Notification({
-    title: payload?.title || 'Jetts-TUI',
+    title: payload?.title || 'JettsTUI',
     body: payload?.body || '',
     silent: Boolean(payload?.silent),
     actions: actions.map(action => ({ type: 'button', text: String(action?.text || '') }))
@@ -10043,7 +9625,7 @@ ipcMain.handle('freeide:notify', (_event, payload) => {
     focusWindow(mainWindow)
 
     if (payload?.sessionId) {
-      mainWindow.webContents.send('freeide:focus-session', payload.sessionId)
+      mainWindow.webContents.send('jettstui:focus-session', payload.sessionId)
     }
   })
   notification.on('action', (_actionEvent, index) => {
@@ -10054,7 +9636,7 @@ ipcMain.handle('freeide:notify', (_event, payload) => {
     const action = actions[index]
 
     if (action?.id) {
-      mainWindow.webContents.send('freeide:notification-action', { sessionId: payload?.sessionId, actionId: action.id })
+      mainWindow.webContents.send('jettstui:notification-action', { sessionId: payload?.sessionId, actionId: action.id })
     }
   })
   notification.show()
@@ -10062,7 +9644,7 @@ ipcMain.handle('freeide:notify', (_event, payload) => {
   return true
 })
 
-ipcMain.handle('freeide:readFileDataUrl', async (_event, filePath) => {
+ipcMain.handle('jettstui:readFileDataUrl', async (_event, filePath) => {
   const { resolvedPath } = await resolveReadableFileForIpc(filePath, {
     maxBytes: DATA_URL_READ_MAX_BYTES,
     purpose: 'File preview'
@@ -10073,7 +9655,7 @@ ipcMain.handle('freeide:readFileDataUrl', async (_event, filePath) => {
   return `data:${mimeTypeForPath(resolvedPath)};base64,${data.toString('base64')}`
 })
 
-ipcMain.handle('freeide:readFileText', async (_event, filePath) => {
+ipcMain.handle('jettstui:readFileText', async (_event, filePath) => {
   const { resolvedPath, stat } = await resolveReadableFileForIpc(filePath, {
     maxBytes: TEXT_PREVIEW_SOURCE_MAX_BYTES,
     purpose: 'Text preview'
@@ -10101,7 +9683,7 @@ ipcMain.handle('freeide:readFileText', async (_event, filePath) => {
   }
 })
 
-ipcMain.handle('freeide:selectPaths', async (_event, options: any = {}) => {
+ipcMain.handle('jettstui:selectPaths', async (_event, options: any = {}) => {
   const properties = options?.directories ? ['openDirectory'] : ['openFile']
 
   if (options?.multiple !== false) {
@@ -10135,15 +9717,15 @@ ipcMain.handle('freeide:selectPaths', async (_event, options: any = {}) => {
   return result.filePaths
 })
 
-ipcMain.handle('freeide:writeClipboard', (_event, text) => {
+ipcMain.handle('jettstui:writeClipboard', (_event, text) => {
   clipboard.writeText(String(text || ''))
 
   return true
 })
 
-ipcMain.handle('freeide:saveImageFromUrl', (_event, url) => saveImageFromUrl(String(url || '')))
+ipcMain.handle('jettstui:saveImageFromUrl', (_event, url) => saveImageFromUrl(String(url || '')))
 
-ipcMain.handle('freeide:saveImageBuffer', async (_event, payload) => {
+ipcMain.handle('jettstui:saveImageBuffer', async (_event, payload) => {
   const data = payload?.data
 
   if (!data) {
@@ -10155,7 +9737,7 @@ ipcMain.handle('freeide:saveImageBuffer', async (_event, payload) => {
   return writeComposerImage(buffer, payload?.ext || '.png')
 })
 
-ipcMain.handle('freeide:saveClipboardImage', async () => {
+ipcMain.handle('jettstui:saveClipboardImage', async () => {
   const image = clipboard.readImage()
 
   if (image && !image.isEmpty()) {
@@ -10176,19 +9758,19 @@ ipcMain.handle('freeide:saveClipboardImage', async () => {
   return ''
 })
 
-ipcMain.handle('freeide:normalizePreviewTarget', (_event, target, baseDir) =>
+ipcMain.handle('jettstui:normalizePreviewTarget', (_event, target, baseDir) =>
   normalizePreviewTarget(String(target || ''), baseDir ? String(baseDir) : '')
 )
 
-ipcMain.handle('freeide:watchPreviewFile', (_event, url) => watchPreviewFile(String(url || '')))
+ipcMain.handle('jettstui:watchPreviewFile', (_event, url) => watchPreviewFile(String(url || '')))
 
-ipcMain.handle('freeide:stopPreviewFileWatch', (_event, id) => stopPreviewFileWatch(String(id || '')))
+ipcMain.handle('jettstui:stopPreviewFileWatch', (_event, id) => stopPreviewFileWatch(String(id || '')))
 
 // Each renderer reports the turns it has in flight; the quit guard reads the
 // merged picture. Keyed by webContents id so a closed window stops counting.
 const activeWorkByWebContents = new Map<number, ActiveWork>()
 
-ipcMain.on('freeide:active-work', (event, payload) => {
+ipcMain.on('jettstui:active-work', (event, payload) => {
   const id = event.sender.id
 
   if (!activeWorkByWebContents.has(id)) {
@@ -10198,7 +9780,7 @@ ipcMain.on('freeide:active-work', (event, payload) => {
   activeWorkByWebContents.set(id, normalizeActiveWork(payload))
 })
 
-ipcMain.on('freeide:titlebar-theme', (_event, payload) => {
+ipcMain.on('jettstui:titlebar-theme', (_event, payload) => {
   if (!payload || !isHexColor(payload.background) || !isHexColor(payload.foreground)) {
     return
   }
@@ -10217,7 +9799,7 @@ ipcMain.on('freeide:titlebar-theme', (_event, payload) => {
 })
 
 // Pin the native appearance to the app theme (see NATIVE_THEME_CONFIG_PATH).
-ipcMain.on('freeide:native-theme', (_event, mode) => {
+ipcMain.on('jettstui:native-theme', (_event, mode) => {
   if (!THEME_SOURCES.has(mode)) {
     return
   }
@@ -10230,7 +9812,7 @@ ipcMain.on('freeide:native-theme', (_event, mode) => {
 
 // See-through window translucency. Persist + re-apply opacity to every open
 // window at runtime (no recreation, so caching/sessions are untouched).
-ipcMain.on('freeide:translucency', (_event, payload) => {
+ipcMain.on('jettstui:translucency', (_event, payload) => {
   const next = clampIntensity(payload && payload.intensity)
 
   if (next === translucencyIntensity) {
@@ -10260,7 +9842,7 @@ function readPersistedKeepAwake() {
   }
 }
 
-ipcMain.on('freeide:keep-awake', (_event, on) => {
+ipcMain.on('jettstui:keep-awake', (_event, on) => {
   const enabled = Boolean(on)
   keepAwake.set(enabled)
 
@@ -10277,7 +9859,7 @@ ipcMain.on('freeide:keep-awake', (_event, on) => {
 // accelerator — so both handlers return the state that ACTUALLY resulted,
 // including `registered: false` + `error: 'taken'` when another app owns the
 // chord. See electron/quick-entry.ts + store/quick-entry.
-ipcMain.handle('freeide:quick-entry:settings:get', async () => {
+ipcMain.handle('jettstui:quick-entry:settings:get', async () => {
   const settings = readQuickEntrySettings()
   const state = quickEntryShortcut.current()
 
@@ -10291,7 +9873,7 @@ ipcMain.handle('freeide:quick-entry:settings:get', async () => {
   }
 })
 
-ipcMain.handle('freeide:quick-entry:settings:set', async (_event, patch) => {
+ipcMain.handle('jettstui:quick-entry:settings:set', async (_event, patch) => {
   const current = readQuickEntrySettings()
 
   const next = sanitizeQuickEntrySettings({
@@ -10308,7 +9890,7 @@ ipcMain.handle('freeide:quick-entry:settings:set', async (_event, patch) => {
 // owns the one prompt-submit path, and forwarding keeps it that way. The
 // payload is `{ target, text }` — target routing (current chat / a picked
 // session / new) is the renderer's job too.
-ipcMain.on('freeide:quick-entry:submit', (_event, payload) => {
+ipcMain.on('jettstui:quick-entry:submit', (_event, payload) => {
   hideQuickEntryWindow()
 
   const text = typeof payload?.text === 'string' ? payload.text.trim() : ''
@@ -10325,7 +9907,7 @@ ipcMain.on('freeide:quick-entry:submit', (_event, payload) => {
 
   // Deliberately does NOT raise/focus the main window — the user asked to fire
   // a prompt from wherever they were, not to be yanked into the app.
-  mainWindow.webContents.send('freeide:quick-entry:submit', {
+  mainWindow.webContents.send('jettstui:quick-entry:submit', {
     target: typeof payload?.target === 'string' && payload.target ? payload.target : 'current',
     text
   })
@@ -10334,17 +9916,17 @@ ipcMain.on('freeide:quick-entry:submit', (_event, payload) => {
 // Primary renderer → main → quick window: gateway connection state + the
 // recent-session list for the target picker. Cached so a quick window spawned
 // AFTER the last push still boots from truth instead of "disconnected".
-ipcMain.on('freeide:quick-entry:state', (_event, payload) => {
+ipcMain.on('jettstui:quick-entry:state', (_event, payload) => {
   quickEntryLastState = payload ?? null
 
   if (quickEntryWindow && !quickEntryWindow.isDestroyed()) {
-    quickEntryWindow.webContents.send('freeide:quick-entry:state', payload)
+    quickEntryWindow.webContents.send('jettstui:quick-entry:state', payload)
   }
 })
 
-ipcMain.on('freeide:quick-entry:dismiss', () => hideQuickEntryWindow())
+ipcMain.on('jettstui:quick-entry:dismiss', () => hideQuickEntryWindow())
 
-ipcMain.handle('freeide:openExternal', (_event, url) => {
+ipcMain.handle('jettstui:openExternal', (_event, url) => {
   if (!openExternalUrl(url)) {
     throw new Error('Invalid external URL')
   }
@@ -10352,7 +9934,7 @@ ipcMain.handle('freeide:openExternal', (_event, url) => {
 
 // ── Find-in-page (Ctrl/Cmd+F) ─────────────────────────────────────────────
 // The desktop supports multiple BrowserWindows (one primary plus any
-// per-session secondary windows spawned via `freeide:window:openSession`).
+// per-session secondary windows spawned via `jettstui:window:openSession`).
 // Find must run against the requesting window, not a global — otherwise
 // Cmd+F pressed in a secondary session window would search the primary
 // and the match counter would report matches the user can't see. Resolve
@@ -10379,7 +9961,7 @@ function ensureFoundInPageForwarder(sender: Electron.WebContents): void {
   })
 }
 
-ipcMain.handle('freeide:find-in-page', (event, query, options) => {
+ipcMain.handle('jettstui:find-in-page', (event, query, options) => {
   const win = BrowserWindow.fromWebContents(event.sender)
 
   if (!win || win.isDestroyed()) {
@@ -10395,7 +9977,7 @@ ipcMain.handle('freeide:find-in-page', (event, query, options) => {
   return { count: 0 }
 })
 
-ipcMain.handle('freeide:stop-find-in-page', event => {
+ipcMain.handle('jettstui:stop-find-in-page', event => {
   const win = BrowserWindow.fromWebContents(event.sender)
 
   if (!win || win.isDestroyed()) {
@@ -10405,7 +9987,7 @@ ipcMain.handle('freeide:stop-find-in-page', event => {
   stopFind(win.webContents)
 })
 
-ipcMain.handle('freeide:openPreviewInBrowser', async (_event, url) => {
+ipcMain.handle('jettstui:openPreviewInBrowser', async (_event, url) => {
   if (!(await openPreviewInBrowser(url))) {
     throw new Error('Invalid preview URL')
   }
@@ -10413,17 +9995,17 @@ ipcMain.handle('freeide:openPreviewInBrowser', async (_event, url) => {
 
 // User-configurable default project directory. The renderer reads this on
 // settings mount and seeds the value into the picker; writing back persists
-// it via writeDefaultProjectDir so resolveFreeIDECwd picks it up on the next
+// it via writeDefaultProjectDir so resolveJettsTUICwd picks it up on the next
 // session spawn (no app restart needed).
-ipcMain.handle('freeide:setting:defaultProjectDir:get', async () => ({
+ipcMain.handle('jettstui:setting:defaultProjectDir:get', async () => ({
   dir: readDefaultProjectDir(),
   defaultLabel: app.getPath('home'),
-  resolvedCwd: resolveFreeIDECwd()
+  resolvedCwd: resolveJettsTUICwd()
 }))
 
-ipcMain.handle('freeide:workspace:sanitize', async (_event, cwd) => sanitizeWorkspaceCwd(cwd))
+ipcMain.handle('jettstui:workspace:sanitize', async (_event, cwd) => sanitizeWorkspaceCwd(cwd))
 
-ipcMain.handle('freeide:setting:defaultProjectDir:set', async (_event, dir) => {
+ipcMain.handle('jettstui:setting:defaultProjectDir:set', async (_event, dir) => {
   const next = typeof dir === 'string' && dir.trim() ? dir.trim() : null
 
   if (next) {
@@ -10439,7 +10021,7 @@ ipcMain.handle('freeide:setting:defaultProjectDir:set', async (_event, dir) => {
   return { dir: next }
 })
 
-ipcMain.handle('freeide:setting:defaultProjectDir:pick', async () => {
+ipcMain.handle('jettstui:setting:defaultProjectDir:pick', async () => {
   const result = await dialog.showOpenDialog({
     title: 'Choose default project directory',
     properties: ['openDirectory', 'createDirectory'],
@@ -10453,9 +10035,9 @@ ipcMain.handle('freeide:setting:defaultProjectDir:pick', async () => {
   return { canceled: false, dir: result.filePaths[0] }
 })
 
-ipcMain.handle('freeide:fetchLinkTitle', (_event, url) => fetchLinkTitle(url))
+ipcMain.handle('jettstui:fetchLinkTitle', (_event, url) => fetchLinkTitle(url))
 
-ipcMain.handle('freeide:logs:reveal', async () => {
+ipcMain.handle('jettstui:logs:reveal', async () => {
   try {
     await fs.promises.mkdir(path.dirname(DESKTOP_LOG_PATH), { recursive: true })
 
@@ -10471,7 +10053,7 @@ ipcMain.handle('freeide:logs:reveal', async () => {
   }
 })
 
-ipcMain.handle('freeide:logs:recent', async () => ({ path: DESKTOP_LOG_PATH, lines: freeideLog.slice(-200) }))
+ipcMain.handle('jettstui:logs:recent', async () => ({ path: DESKTOP_LOG_PATH, lines: jettstuiLog.slice(-200) }))
 
 function isExecutableFile(filePath) {
   if (!filePath || !path.isAbsolute(filePath)) {
@@ -10533,11 +10115,11 @@ function windowsShellSpec() {
 // Resolve the interactive shell for the embedded terminal: an explicit user
 // override wins, otherwise auto-detect the best one installed for the platform.
 function terminalShellCommand() {
-  // FREEIDE_DESKTOP_SHELL is the cross-platform escape hatch (a path or a bare
+  // JETTSTUI_DESKTOP_SHELL is the cross-platform escape hatch (a path or a bare
   // name on PATH); $SHELL is honored on POSIX, where it's the user's canonical
   // choice, but ignored on Windows, where it's usually a stray MSYS/Git path
   // node-pty can't spawn natively.
-  const override = (process.env.FREEIDE_DESKTOP_SHELL || (IS_WINDOWS ? '' : process.env.SHELL) || '').trim()
+  const override = (process.env.JETTSTUI_DESKTOP_SHELL || (IS_WINDOWS ? '' : process.env.SHELL) || '').trim()
 
   if (override) {
     const resolved = isExecutableFile(override) ? override : findOnPath(override)
@@ -10581,7 +10163,7 @@ function terminalShellEnv() {
 
   // Strip color/theme-detection vars that ride along when Electron is launched
   // from a non-tty agent shell (Cursor's runner sets NO_COLOR/FORCE_COLOR=0
-  // /TERM=dumb; some terminals set COLORFGBG which would flip FreeIDE' TUI into
+  // /TERM=dumb; some terminals set COLORFGBG which would flip JettsTUI' TUI into
   // light-mode). Our PTY is a real xterm-compat terminal — force truecolor.
   delete env.NO_COLOR
   delete env.FORCE_COLOR
@@ -10590,19 +10172,19 @@ function terminalShellEnv() {
   env.COLORTERM = 'truecolor'
   env.LC_CTYPE = env.LC_CTYPE || 'UTF-8'
   env.TERM = 'xterm-256color'
-  env.TERM_PROGRAM = 'Jetts-TUI'
+  env.TERM_PROGRAM = 'JettsTUI'
   env.TERM_PROGRAM_VERSION = app.getVersion()
 
-  // Let a freeide/--tui launched in this pane know it's embedded in the desktop
-  // GUI (build_environment_hints surfaces this). Distinct from FREEIDE_DESKTOP,
+  // Let a jettstui/--tui launched in this pane know it's embedded in the desktop
+  // GUI (build_environment_hints surfaces this). Distinct from JETTSTUI_DESKTOP,
   // which marks the agent *backend* and gates cron/gateway behavior.
-  env.FREEIDE_DESKTOP_TERMINAL = '1'
+  env.JETTSTUI_DESKTOP_TERMINAL = '1'
 
   return env
 }
 
 function terminalChannel(id, suffix) {
-  return `freeide:terminal:${id}:${suffix}`
+  return `jettstui:terminal:${id}:${suffix}`
 }
 
 // Best-effort read of a live PTY child's current working directory so a
@@ -10668,12 +10250,12 @@ function disposeTerminalSession(id) {
   return true
 }
 
-ipcMain.handle('freeide:fs:readDir', async (_event, dirPath) => readDirForIpc(dirPath))
+ipcMain.handle('jettstui:fs:readDir', async (_event, dirPath) => readDirForIpc(dirPath))
 
-ipcMain.handle('freeide:fs:gitRoot', async (_event, startPath) => gitRootForIpc(startPath))
+ipcMain.handle('jettstui:fs:gitRoot', async (_event, startPath) => gitRootForIpc(startPath))
 
 // Reveal a path in the OS file manager (Finder / Explorer / Files).
-ipcMain.handle('freeide:fs:reveal', async (_event, targetPath) => {
+ipcMain.handle('jettstui:fs:reveal', async (_event, targetPath) => {
   const target = String(targetPath || '').trim()
 
   if (!target) {
@@ -10694,7 +10276,7 @@ ipcMain.handle('freeide:fs:reveal', async (_event, targetPath) => {
 // path — the "Open plugins folder" Windows bug), this is for the plugins door,
 // which often doesn't exist on first use. `shell.openPath` returns '' on
 // success or an error string; both mkdir + openPath failures are surfaced.
-ipcMain.handle('freeide:fs:openDir', async (_event, dirPath) => {
+ipcMain.handle('jettstui:fs:openDir', async (_event, dirPath) => {
   const dir = String(dirPath || '').trim()
 
   if (!dir) {
@@ -10714,7 +10296,7 @@ ipcMain.handle('freeide:fs:openDir', async (_event, dirPath) => {
 // Rename a file/folder in place. The renderer passes the existing path + a new
 // base name; the destination is resolved in the SAME parent dir so a rename can
 // never move the item elsewhere or traverse out. Rejects on a name collision.
-ipcMain.handle('freeide:fs:rename', async (_event, targetPath, newName) => {
+ipcMain.handle('jettstui:fs:rename', async (_event, targetPath, newName) => {
   const src = String(targetPath || '').trim()
   const name = String(newName || '').trim()
 
@@ -10741,7 +10323,7 @@ ipcMain.handle('freeide:fs:rename', async (_event, targetPath, newName) => {
 // is hardened (resolveRequestedPathForIpc) and the parent must already exist —
 // this never creates directory trees or escapes the allowed roots, and content
 // is size-capped so it can't be abused as a bulk-write primitive.
-ipcMain.handle('freeide:fs:writeText', async (_event, filePath, content) => {
+ipcMain.handle('jettstui:fs:writeText', async (_event, filePath, content) => {
   const raw = String(filePath || '').trim()
 
   if (!raw) {
@@ -10767,7 +10349,7 @@ ipcMain.handle('freeide:fs:writeText', async (_event, filePath, content) => {
 
 // Move a file/folder to the OS trash (recoverable) — the VS Code "Delete"
 // default. `shell.trashItem` routes to Finder/Explorer/Files trash per platform.
-ipcMain.handle('freeide:fs:trash', async (_event, targetPath) => {
+ipcMain.handle('jettstui:fs:trash', async (_event, targetPath) => {
   const target = String(targetPath || '').trim()
 
   if (!target) {
@@ -10781,69 +10363,69 @@ ipcMain.handle('freeide:fs:trash', async (_event, targetPath) => {
 
 // Git-driven worktree management ("Start work" flow). Errors surface to the
 // renderer as rejected promises so it can toast a friendly message.
-ipcMain.handle('freeide:git:worktreeList', async (_event, repoPath) => listWorktrees(repoPath, resolveGitBinary()))
+ipcMain.handle('jettstui:git:worktreeList', async (_event, repoPath) => listWorktrees(repoPath, resolveGitBinary()))
 
-ipcMain.handle('freeide:git:worktreeAdd', async (_event, repoPath, options) =>
+ipcMain.handle('jettstui:git:worktreeAdd', async (_event, repoPath, options) =>
   addWorktree(repoPath, options || {}, resolveGitBinary())
 )
 
-ipcMain.handle('freeide:git:worktreeRemove', async (_event, repoPath, worktreePath, options) =>
+ipcMain.handle('jettstui:git:worktreeRemove', async (_event, repoPath, worktreePath, options) =>
   removeWorktree(repoPath, worktreePath, options || {}, resolveGitBinary())
 )
 
-ipcMain.handle('freeide:git:branchSwitch', async (_event, repoPath, branch) =>
+ipcMain.handle('jettstui:git:branchSwitch', async (_event, repoPath, branch) =>
   switchBranch(repoPath, branch, resolveGitBinary())
 )
 
-ipcMain.handle('freeide:git:branchList', async (_event, repoPath) => listBranches(repoPath, resolveGitBinary()))
+ipcMain.handle('jettstui:git:branchList', async (_event, repoPath) => listBranches(repoPath, resolveGitBinary()))
 
-ipcMain.handle('freeide:git:baseBranchList', async (_event, repoPath) => listBaseBranches(repoPath, resolveGitBinary()))
+ipcMain.handle('jettstui:git:baseBranchList', async (_event, repoPath) => listBaseBranches(repoPath, resolveGitBinary()))
 
 // Compact repo status (branch, ahead/behind, change counts + files) for the
 // composer coding rail. Returns null on a non-repo / remote backend so the rail
 // hides cleanly rather than erroring.
-ipcMain.handle('freeide:git:repoStatus', async (_event, repoPath) => repoStatus(repoPath, resolveGitBinary()))
+ipcMain.handle('jettstui:git:repoStatus', async (_event, repoPath) => repoStatus(repoPath, resolveGitBinary()))
 
 // Codex-style review pane: list changed files for a scope, fetch one file's
 // unified diff, and stage / unstage / revert. Reads return empty on failure;
 // mutations reject so the renderer can toast.
-ipcMain.handle('freeide:git:review:list', async (_event, repoPath, scope, baseRef) =>
+ipcMain.handle('jettstui:git:review:list', async (_event, repoPath, scope, baseRef) =>
   reviewList(repoPath, scope, baseRef, resolveGitBinary())
 )
-ipcMain.handle('freeide:git:review:diff', async (_event, repoPath, filePath, scope, baseRef, staged) =>
+ipcMain.handle('jettstui:git:review:diff', async (_event, repoPath, filePath, scope, baseRef, staged) =>
   reviewDiff(repoPath, filePath, scope, baseRef, staged, resolveGitBinary())
 )
 // Working-tree-vs-HEAD diff for one file (the preview's "show the diff" view).
-ipcMain.handle('freeide:git:fileDiff', async (_event, repoPath, filePath) =>
+ipcMain.handle('jettstui:git:fileDiff', async (_event, repoPath, filePath) =>
   fileDiffVsHead(repoPath, filePath, resolveGitBinary())
 )
-ipcMain.handle('freeide:git:review:stage', async (_event, repoPath, filePath) =>
+ipcMain.handle('jettstui:git:review:stage', async (_event, repoPath, filePath) =>
   reviewStage(repoPath, filePath ?? null, resolveGitBinary())
 )
-ipcMain.handle('freeide:git:review:unstage', async (_event, repoPath, filePath) =>
+ipcMain.handle('jettstui:git:review:unstage', async (_event, repoPath, filePath) =>
   reviewUnstage(repoPath, filePath ?? null, resolveGitBinary())
 )
-ipcMain.handle('freeide:git:review:revert', async (_event, repoPath, filePath) =>
+ipcMain.handle('jettstui:git:review:revert', async (_event, repoPath, filePath) =>
   reviewRevert(repoPath, filePath ?? null, resolveGitBinary())
 )
-ipcMain.handle('freeide:git:review:revParse', async (_event, repoPath, ref) =>
+ipcMain.handle('jettstui:git:review:revParse', async (_event, repoPath, ref) =>
   reviewRevParse(repoPath, ref, resolveGitBinary())
 )
-ipcMain.handle('freeide:git:review:commit', async (_event, repoPath, message, push) =>
+ipcMain.handle('jettstui:git:review:commit', async (_event, repoPath, message, push) =>
   reviewCommit(repoPath, message, Boolean(push), resolveGitBinary())
 )
-ipcMain.handle('freeide:git:review:commitContext', async (_event, repoPath) =>
+ipcMain.handle('jettstui:git:review:commitContext', async (_event, repoPath) =>
   reviewCommitContext(repoPath, resolveGitBinary())
 )
-ipcMain.handle('freeide:git:review:push', async (_event, repoPath) => reviewPush(repoPath, resolveGitBinary()))
-ipcMain.handle('freeide:git:review:shipInfo', async (_event, repoPath) => reviewShipInfo(repoPath, resolveGhBinary()))
-ipcMain.handle('freeide:git:review:createPr', async (_event, repoPath) =>
+ipcMain.handle('jettstui:git:review:push', async (_event, repoPath) => reviewPush(repoPath, resolveGitBinary()))
+ipcMain.handle('jettstui:git:review:shipInfo', async (_event, repoPath) => reviewShipInfo(repoPath, resolveGhBinary()))
+ipcMain.handle('jettstui:git:review:createPr', async (_event, repoPath) =>
   reviewCreatePr(repoPath, resolveGitBinary(), resolveGhBinary())
 )
 
 // Repo-first project discovery: scan bounded roots for git repos (pure fs walk,
 // no native addon). Never throws to the renderer — failures yield an empty list.
-ipcMain.handle('freeide:git:scanRepos', async (_event, roots, options) => {
+ipcMain.handle('jettstui:git:scanRepos', async (_event, roots, options) => {
   try {
     return await scanGitRepos(roots || [], options || {})
   } catch {
@@ -10881,7 +10463,7 @@ function ensureNodePtySpawnHelper() {
   }
 }
 
-ipcMain.handle('freeide:terminal:start', async (event, payload = {}) => {
+ipcMain.handle('jettstui:terminal:start', async (event, payload = {}) => {
   ensureNodePtySpawnHelper()
 
   const id = crypto.randomUUID()
@@ -10933,7 +10515,7 @@ ipcMain.handle('freeide:terminal:start', async (event, payload = {}) => {
   return { cwd: remote ? null : cwd, id, shell: remote ? 'ssh' : name }
 })
 
-ipcMain.handle('freeide:terminal:write', (_event, id, data) => {
+ipcMain.handle('jettstui:terminal:write', (_event, id, data) => {
   const sessionInfo = terminalSessions.get(String(id || ''))
 
   if (!sessionInfo) {
@@ -10945,7 +10527,7 @@ ipcMain.handle('freeide:terminal:write', (_event, id, data) => {
   return true
 })
 
-ipcMain.handle('freeide:terminal:resize', (_event, id, size = {}) => {
+ipcMain.handle('jettstui:terminal:resize', (_event, id, size = {}) => {
   const sessionInfo = terminalSessions.get(String(id || ''))
 
   if (!sessionInfo) {
@@ -10959,7 +10541,7 @@ ipcMain.handle('freeide:terminal:resize', (_event, id, size = {}) => {
 
   return true
 })
-ipcMain.handle('freeide:terminal:cwd', async (_event, id) => {
+ipcMain.handle('jettstui:terminal:cwd', async (_event, id) => {
   const sessionInfo = terminalSessions.get(String(id || ''))
 
   if (!sessionInfo) {
@@ -10969,9 +10551,9 @@ ipcMain.handle('freeide:terminal:cwd', async (_event, id) => {
   return sessionInfo.sshScope !== undefined ? null : readProcessCwd(sessionInfo.pty.pid)
 })
 
-ipcMain.handle('freeide:terminal:dispose', (_event, id) => disposeTerminalSession(String(id || '')))
+ipcMain.handle('jettstui:terminal:dispose', (_event, id) => disposeTerminalSession(String(id || '')))
 
-ipcMain.handle('freeide:updates:check', async () =>
+ipcMain.handle('jettstui:updates:check', async () =>
   checkUpdates().catch(error => ({
     supported: true,
     branch: readDesktopUpdateConfig().branch,
@@ -10981,7 +10563,7 @@ ipcMain.handle('freeide:updates:check', async () =>
   }))
 )
 
-ipcMain.handle('freeide:updates:apply', async (_event, payload) =>
+ipcMain.handle('jettstui:updates:apply', async (_event, payload) =>
   applyUpdates(payload || {}).catch(error => ({
     ok: false,
     error: 'apply-failed',
@@ -10989,26 +10571,28 @@ ipcMain.handle('freeide:updates:apply', async (_event, payload) =>
   }))
 )
 
-ipcMain.handle('freeide:updates:branch:get', async () => readDesktopUpdateConfig())
+ipcMain.handle('jettstui:updates:branch:get', async () => readDesktopUpdateConfig())
 
-ipcMain.handle('freeide:updates:branch:set', async (_event, name) => {
+ipcMain.handle('jettstui:updates:branch:set', async (_event, name) => {
   const branch = typeof name === 'string' && name.trim() ? name.trim() : DEFAULT_UPDATE_BRANCH
   writeDesktopUpdateConfig({ branch })
 
   return { branch }
 })
 
-// Resolve the canonical FreeIDE version (the one `release.py` bumps in
-// freeide_cli/__init__.py + pyproject.toml) so the desktop About panel shows the
-// real FreeIDE version instead of the Electron app's own package.json version,
+// Resolve the canonical JettsTUI version (the one `release.py` bumps in
+// jettstui/__init__.py + pyproject.toml) so the desktop About panel shows the
+// real JettsTUI version instead of the Electron app's own package.json version,
 // which historically drifted (stuck at 0.0.2). Falls back to app.getVersion()
 // when the source tree can't be read (e.g. a packaged build without the repo).
-function resolveFreeIDEVersion() {
+function resolveJettsTUIVersion() {
   try {
     const root = resolveUpdateRoot()
-    const initPath = path.join(root, 'freeide_cli', '__init__.py')
+    const initPath = ['jettstui']
+      .map(packageName => path.join(root, packageName, '__init__.py'))
+      .find(fileExists)
 
-    if (fileExists(initPath)) {
+    if (initPath) {
       const raw = fs.readFileSync(initPath, 'utf8')
       const match = raw.match(/__version__\s*=\s*["']([^"']+)["']/)
 
@@ -11023,25 +10607,25 @@ function resolveFreeIDEVersion() {
   return app.getVersion()
 }
 
-// Re-resolve the live FreeIDE version and push it into the native About panel
-// just before showing it, so an in-place `freeide update` is reflected without
+// Re-resolve the live JettsTUI version and push it into the native About panel
+// just before showing it, so an in-place `jettstui update` is reflected without
 // an app restart. macOS only — `showAboutPanel()` is a no-op elsewhere, and the
 // other platforms don't use this menu item.
 function showAboutPanelFresh() {
   app.setAboutPanelOptions({
     applicationName: APP_NAME,
-    applicationVersion: resolveFreeIDEVersion(),
-    copyright: 'Copyright © 2026 FreeIDE'
+    applicationVersion: resolveJettsTUIVersion(),
+    copyright: 'Copyright © 2026 JettsTUI'
   })
   app.showAboutPanel()
 }
 
-ipcMain.handle('freeide:version', async () => ({
-  appVersion: resolveFreeIDEVersion(),
+ipcMain.handle('jettstui:version', async () => ({
+  appVersion: resolveJettsTUIVersion(),
   electronVersion: process.versions.electron,
   nodeVersion: process.versions.node,
   platform: process.platform,
-  freeideRoot: resolveUpdateRoot()
+  jettstuiRoot: resolveUpdateRoot()
 }))
 
 // ===========================================================================
@@ -11050,9 +10634,9 @@ ipcMain.handle('freeide:version', async () => ({
 //
 // The renderer's About → Danger Zone surfaces three options that mirror the
 // CLI exactly: GUI only, Lite (keep user data), Full. We ask the agent to do
-// the actual removal via `freeide uninstall …` so the cross-platform PATH /
+// the actual removal via `jettstui uninstall …` so the cross-platform PATH /
 // registry / service / node-symlink cleanup all lives in one place
-// (freeide_cli/uninstall.py + freeide_cli/gui_uninstall.py).
+// (jettstui/uninstall.py + jettstui/gui_uninstall.py).
 //
 // getUninstallSummary() shells out to `--gui-summary` (a fast, no-side-effect
 // JSON probe) so the UI can gate options on what's actually installed — and
@@ -11065,13 +10649,13 @@ function uninstallVenvPython() {
 
 async function getUninstallSummary() {
   const py = uninstallVenvPython()
-  const agentRoot = ACTIVE_FREEIDE_ROOT
+  const agentRoot = ACTIVE_JETTSTUI_ROOT
 
   // Fast JS-side fallback used when the agent venv is gone (lite client) or the
   // probe fails — the renderer still needs *something* to render options from.
   const fallback = () => ({
-    freeide_home: FREEIDE_HOME,
-    agent_installed: isFreeIDESourceRoot(agentRoot) && fileExists(py),
+    jettstui_home: JETTSTUI_HOME,
+    agent_installed: isJettsTUISourceRoot(agentRoot) && fileExists(py),
     gui_installed: true,
     source_built_artifacts: [],
     packaged_app_paths: [],
@@ -11101,10 +10685,10 @@ async function getUninstallSummary() {
     try {
       const child = spawn(
         py,
-        ['-m', 'freeide_cli.main', 'uninstall', '--gui-summary'],
+        ['-m', 'jettstui.main', 'uninstall', '--gui-summary'],
         hiddenWindowsChildOptions({
           cwd: agentRoot,
-          env: { ...process.env, FREEIDE_HOME, NO_COLOR: '1' },
+          env: { ...process.env, JETTSTUI_HOME, NO_COLOR: '1' },
           stdio: ['ignore', 'pipe', 'ignore']
         })
       )
@@ -11152,14 +10736,14 @@ async function runDesktopUninstall(mode) {
     return {
       ok: false,
       error: 'agent-missing',
-      message: `Can't run the uninstaller: no FreeIDE agent venv at ${VENV_ROOT}.`
+      message: `Can't run the uninstaller: no JettsTUI agent venv at ${VENV_ROOT}.`
     }
   }
 
   // Interpreter choice (Finding 3): lite/full rmtree the venv that holds the
   // running python.exe. On Windows a running .exe is mandatory-locked, so the
   // rmtree must NOT be driven by the venv's own interpreter — use a system
-  // Python with PYTHONPATH=<agentRoot> so `import freeide_cli` resolves from
+  // Python with PYTHONPATH=<agentRoot> so `import jettstui` resolves from
   // source while the venv is torn down. gui-only doesn't touch the venv, so the
   // venv python is fine there. If no system Python exists (the Windows edge
   // case), fall back to the venv python — gui-only is unaffected; lite/full may
@@ -11172,7 +10756,7 @@ async function runDesktopUninstall(mode) {
 
     if (sysPy) {
       py = sysPy
-      pythonPath = ACTIVE_FREEIDE_ROOT
+      pythonPath = ACTIVE_JETTSTUI_ROOT
     } else if (IS_WINDOWS) {
       rememberLog(
         '[uninstall] no system Python found for lite/full on Windows; falling back ' +
@@ -11192,7 +10776,7 @@ async function runDesktopUninstall(mode) {
   // lock would make the script's rmdir half-fail (#37532 for the update path).
   // Reuses the incident-hardened update teardown; no-op on macOS/Linux.
   try {
-    await releaseBackendLock(ACTIVE_FREEIDE_ROOT, 'uninstall')
+    await releaseBackendLock(ACTIVE_JETTSTUI_ROOT, 'uninstall')
   } catch (error) {
     rememberLog(`[uninstall] backend teardown errored (continuing): ${error.message}`)
   }
@@ -11201,10 +10785,10 @@ async function runDesktopUninstall(mode) {
     desktopPid: process.pid,
     pythonExe: py,
     pythonPath,
-    agentRoot: ACTIVE_FREEIDE_ROOT,
+    agentRoot: ACTIVE_JETTSTUI_ROOT,
     uninstallArgs,
     appPath: removeBundle,
-    freeideHome: FREEIDE_HOME
+    jettstuiHome: JETTSTUI_HOME
   }
 
   let scriptPath
@@ -11213,12 +10797,12 @@ async function runDesktopUninstall(mode) {
 
   try {
     if (IS_WINDOWS) {
-      scriptPath = path.join(app.getPath('temp'), `freeide-uninstall-${Date.now()}.cmd`)
+      scriptPath = path.join(app.getPath('temp'), `jettstui-uninstall-${Date.now()}.cmd`)
       fs.writeFileSync(scriptPath, buildWindowsCleanupScript(scriptArgs))
       runner = process.env.ComSpec || 'cmd.exe'
       runnerArgs = ['/c', scriptPath]
     } else {
-      scriptPath = path.join(app.getPath('temp'), `freeide-uninstall-${Date.now()}.sh`)
+      scriptPath = path.join(app.getPath('temp'), `jettstui-uninstall-${Date.now()}.sh`)
       fs.writeFileSync(scriptPath, buildPosixCleanupScript(scriptArgs), { mode: 0o755 })
       runner = '/bin/bash'
       runnerArgs = [scriptPath]
@@ -11252,8 +10836,8 @@ async function runDesktopUninstall(mode) {
   return { ok: true, mode, willRemoveAppBundle: Boolean(removeBundle), scriptPath }
 }
 
-ipcMain.handle('freeide:uninstall:summary', async () => getUninstallSummary())
-ipcMain.handle('freeide:uninstall:run', async (_event, payload) => {
+ipcMain.handle('jettstui:uninstall:summary', async () => getUninstallSummary())
+ipcMain.handle('jettstui:uninstall:run', async (_event, payload) => {
   const mode = payload && typeof payload === 'object' ? payload.mode : payload
 
   return runDesktopUninstall(String(mode || ''))
@@ -11261,19 +10845,19 @@ ipcMain.handle('freeide:uninstall:run', async (_event, payload) => {
 
 // Download a VS Code Marketplace extension and return the raw color-theme JSON
 // it contributes. No theme code is executed — we only read JSON from the .vsix.
-ipcMain.handle('freeide:vscode-theme:fetch', async (_event, id) => fetchMarketplaceThemes(String(id || '')))
+ipcMain.handle('jettstui:vscode-theme:fetch', async (_event, id) => fetchMarketplaceThemes(String(id || '')))
 
 // Search the Marketplace for color-theme extensions (empty query = top installs).
-ipcMain.handle('freeide:vscode-theme:search', async (_event, query) => searchMarketplaceThemes(String(query || ''), 20))
+ipcMain.handle('jettstui:vscode-theme:search', async (_event, query) => searchMarketplaceThemes(String(query || ''), 20))
 
 // ---------------------------------------------------------------------------
-// freeide:// deep links (e.g. freeide://blueprint/morning-brief?time=08:00).
+// jettstui:// deep links (e.g. jettstui://blueprint/morning-brief?time=08:00).
 // A docs/dashboard "Send to App" button opens this URL; we route it into the
 // running app's chat composer. Three delivery paths: macOS 'open-url',
 // Win/Linux running-app 'second-instance' (argv), Win/Linux cold-start argv.
 // ---------------------------------------------------------------------------
-const FREEIDE_PROTOCOL = 'jetts-tui'
-const LEGACY_PROTOCOL = 'freeide'
+const JETTSTUI_PROTOCOL = 'jetts-tui'
+const LEGACY_PROTOCOL = 'jettstui'
 let _pendingDeepLink = null
 let _rendererReadyForDeepLink = false
 
@@ -11282,9 +10866,11 @@ function _extractDeepLink(argv) {
     return null
   }
 
-  return argv.find(a => typeof a === 'string' && (
-    a.startsWith(`${FREEIDE_PROTOCOL}://`) || a.startsWith(`${LEGACY_PROTOCOL}://`)
-  )) || null
+  return (
+    argv.find(
+      a => typeof a === 'string' && (a.startsWith(`${JETTSTUI_PROTOCOL}://`) || a.startsWith(`${LEGACY_PROTOCOL}://`))
+    ) || null
+  )
 }
 
 function handleDeepLink(url) {
@@ -11302,7 +10888,7 @@ function handleDeepLink(url) {
     return
   }
 
-  // freeide://blueprint/<key>?slot=val  -> host="blueprint", path="/<key>"
+  // jettstui://blueprint/<key>?slot=val  -> host="blueprint", path="/<key>"
   const kind = parsed.hostname || ''
   const name = decodeURIComponent((parsed.pathname || '').replace(/^\//, ''))
   const params = {}
@@ -11323,7 +10909,7 @@ function handleDeepLink(url) {
     }
 
     mainWindow.focus()
-    mainWindow.webContents.send('freeide:deep-link', payload)
+    mainWindow.webContents.send('jettstui:deep-link', payload)
     rememberLog(`[deeplink] delivered ${kind}/${name}`)
   } catch (err) {
     rememberLog(`[deeplink] delivery failed: ${err.message}`)
@@ -11332,14 +10918,14 @@ function handleDeepLink(url) {
 
 // Renderer calls this (via IPC) once it has mounted its deep-link listener, so
 // a link that arrived during boot/install is flushed exactly once.
-ipcMain.handle('freeide:deep-link-ready', () => {
+ipcMain.handle('jettstui:deep-link-ready', () => {
   _rendererReadyForDeepLink = true
 
   if (_pendingDeepLink) {
     const queued = _pendingDeepLink
     _pendingDeepLink = null
     handleDeepLink(
-      `${FREEIDE_PROTOCOL}://${queued.kind}/${encodeURIComponent(queued.name)}` +
+      `${JETTSTUI_PROTOCOL}://${queued.kind}/${encodeURIComponent(queued.name)}` +
         (Object.keys(queued.params).length ? '?' + new URLSearchParams(queued.params).toString() : '')
     )
   }
@@ -11349,7 +10935,7 @@ ipcMain.handle('freeide:deep-link-ready', () => {
 
 function registerDeepLinkProtocol() {
   try {
-    for (const scheme of [FREEIDE_PROTOCOL, LEGACY_PROTOCOL]) {
+    for (const scheme of [JETTSTUI_PROTOCOL, LEGACY_PROTOCOL]) {
       if (process.defaultApp && process.argv.length >= 2) {
         // Dev: register with the electron exec path + entry script so the OS can
         // relaunch us with the URL.
@@ -11364,7 +10950,7 @@ function registerDeepLinkProtocol() {
 }
 
 // Single-instance lock: deep links on a running app (Win/Linux) arrive as a
-// second-instance argv. Without the lock a second `freeide://` launch spawns a
+// second-instance argv. Without the lock a second `jettstui://` launch spawns a
 // whole new app instead of routing into the running one.
 const _gotSingleInstanceLock = app.requestSingleInstanceLock()
 
@@ -11426,7 +11012,7 @@ app.whenReady().then(() => {
   applyQuickEntrySettings(readQuickEntrySettings())
   createWindow()
 
-  // Win/Linux cold start: the launching freeide:// URL is in our own argv.
+  // Win/Linux cold start: the launching jettstui:// URL is in our own argv.
   const _coldStartLink = _extractDeepLink(process.argv)
 
   if (_coldStartLink) {
@@ -11554,7 +11140,7 @@ app.on('before-quit', event => {
   closePetOverlay()
 
   // Same for the Quick Entry composer — and release its global accelerator so a
-  // quitting FreeIDE never keeps another app's chord hostage.
+  // quitting JettsTUI never keeps another app's chord hostage.
   closeQuickEntryWindow()
 
   // Quitting mid-install should stop the installer, not orphan it.

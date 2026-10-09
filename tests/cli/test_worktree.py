@@ -118,8 +118,8 @@ def _setup_worktree(repo_root):
     """Test version of _setup_worktree — creates a worktree."""
     import uuid
     short_id = uuid.uuid4().hex[:8]
-    wt_name = f"freeide-{short_id}"
-    branch_name = f"freeide/{wt_name}"
+    wt_name = f"jettstui-{short_id}"
+    branch_name = f"jettstui/{wt_name}"
 
     worktrees_dir = Path(repo_root) / ".worktrees"
     worktrees_dir.mkdir(parents=True, exist_ok=True)
@@ -223,7 +223,7 @@ class TestWorktreeCreation:
         info = _setup_worktree(str(git_repo))
         assert info is not None
         assert Path(info["path"]).exists()
-        assert info["branch"].startswith("freeide/freeide-")
+        assert info["branch"].startswith("jettstui/jettstui-")
         assert info["repo_root"] == str(git_repo)
 
         # Verify it's a valid git worktree
@@ -364,7 +364,7 @@ class TestWorktreeCleanup:
         """Cleanup should handle already-removed worktrees gracefully."""
         info = {
             "path": str(git_repo / ".worktrees" / "nonexistent"),
-            "branch": "freeide/nonexistent",
+            "branch": "jettstui/nonexistent",
             "repo_root": str(git_repo),
         }
         # Should not raise
@@ -537,7 +537,12 @@ class TestWorktreeDirectorySymlink:
         # Manually symlink (mirrors cli.py logic)
         if not dst.exists():
             dst.parent.mkdir(parents=True, exist_ok=True)
-            os.symlink(str(src.resolve()), str(dst))
+            try:
+                os.symlink(str(src.resolve()), str(dst))
+            except OSError as exc:
+                if getattr(exc, "winerror", None) == 1314:
+                    pytest.skip("Windows symlink privilege is unavailable")
+                raise
 
         assert dst.is_symlink()
         assert (dst / "lib" / "marker.txt").read_text() == "venv marker"
@@ -563,7 +568,7 @@ class TestStaleWorktreePruning:
         cutoff = time.time() - (24 * 3600)
 
         for entry in worktrees_dir.iterdir():
-            if not entry.is_dir() or not entry.name.startswith("freeide-"):
+            if not entry.is_dir() or not entry.name.startswith("jettstui-"):
                 continue
             try:
                 mtime = entry.stat().st_mtime
@@ -609,7 +614,7 @@ class TestStaleWorktreePruning:
 
         pruned = False
         for entry in worktrees_dir.iterdir():
-            if not entry.is_dir() or not entry.name.startswith("freeide-"):
+            if not entry.is_dir() or not entry.name.startswith("jettstui-"):
                 continue
             mtime = entry.stat().st_mtime
             if mtime > cutoff:
@@ -658,7 +663,7 @@ class TestStaleWorktreePruning:
         cutoff = time.time() - (24 * 3600)
 
         for entry in worktrees_dir.iterdir():
-            if not entry.is_dir() or not entry.name.startswith("freeide-"):
+            if not entry.is_dir() or not entry.name.startswith("jettstui-"):
                 continue
             mtime = entry.stat().st_mtime
             if mtime > cutoff:
@@ -700,7 +705,7 @@ class TestStaleWorktreePruning:
         cutoff = time.time() - (24 * 3600)
 
         for entry in worktrees_dir.iterdir():
-            if not entry.is_dir() or not entry.name.startswith("freeide-"):
+            if not entry.is_dir() or not entry.name.startswith("jettstui-"):
                 continue
             mtime = entry.stat().st_mtime
             if mtime > cutoff:
@@ -863,22 +868,22 @@ class TestTerminalCWDIntegration:
 
 
 class TestOrphanedBranchPruning:
-    """Test cleanup of orphaned freeide/* and pr-* branches."""
+    """Test cleanup of orphaned jettstui/* and pr-* branches."""
 
-    def test_prunes_orphaned_freeide_branch(self, git_repo):
-        """freeide/freeide-* branches with no worktree should be deleted."""
+    def test_prunes_orphaned_jettstui_branch(self, git_repo):
+        """jettstui/jettstui-* branches with no worktree should be deleted."""
         # Create a branch that looks like a worktree branch but has no worktree
         subprocess.run(
-            ["git", "branch", "freeide/freeide-deadbeef", "HEAD"],
+            ["git", "branch", "jettstui/jettstui-deadbeef", "HEAD"],
             cwd=str(git_repo), capture_output=True,
         )
 
         # Verify it exists
         result = subprocess.run(
-            ["git", "branch", "--list", "freeide/freeide-deadbeef"],
+            ["git", "branch", "--list", "jettstui/jettstui-deadbeef"],
             capture_output=True, text=True, cwd=str(git_repo),
         )
-        assert "freeide/freeide-deadbeef" in result.stdout
+        assert "jettstui/jettstui-deadbeef" in result.stdout
 
         # Simulate _prune_orphaned_branches logic
         result = subprocess.run(
@@ -899,9 +904,9 @@ class TestOrphanedBranchPruning:
         orphaned = [
             b for b in all_branches
             if b not in active_branches
-            and (b.startswith("freeide/freeide-") or b.startswith("pr-"))
+            and (b.startswith("jettstui/jettstui-") or b.startswith("pr-"))
         ]
-        assert "freeide/freeide-deadbeef" in orphaned
+        assert "jettstui/jettstui-deadbeef" in orphaned
 
         # Delete them
         if orphaned:
@@ -912,10 +917,10 @@ class TestOrphanedBranchPruning:
 
         # Verify gone
         result = subprocess.run(
-            ["git", "branch", "--list", "freeide/freeide-deadbeef"],
+            ["git", "branch", "--list", "jettstui/jettstui-deadbeef"],
             capture_output=True, text=True, cwd=str(git_repo),
         )
-        assert "freeide/freeide-deadbeef" not in result.stdout
+        assert "jettstui/jettstui-deadbeef" not in result.stdout
 
     def test_prunes_orphaned_pr_branch(self, git_repo):
         """pr-* branches should be deleted during pruning."""
@@ -984,7 +989,7 @@ class TestOrphanedBranchPruning:
         orphaned = [
             b for b in all_branches
             if b not in active_branches
-            and (b.startswith("freeide/freeide-") or b.startswith("pr-"))
+            and (b.startswith("jettstui/jettstui-") or b.startswith("pr-"))
         ]
         assert "main" not in orphaned
 
@@ -1039,12 +1044,12 @@ class TestWorktreeLockReaping:
         p = repo / ".worktrees" / name
         (repo / ".worktrees").mkdir(exist_ok=True)
         subprocess.run(
-            ["git", "worktree", "add", str(p), "-b", f"freeide/{name}", "HEAD"],
+            ["git", "worktree", "add", str(p), "-b", f"jettstui/{name}", "HEAD"],
             cwd=repo, capture_output=True,
         )
         if pid is not None:
             subprocess.run(
-                ["git", "worktree", "lock", "--reason", f"freeide pid={pid}", str(p)],
+                ["git", "worktree", "lock", "--reason", f"jettstui pid={pid}", str(p)],
                 cwd=repo, capture_output=True,
             )
         if unpushed:
@@ -1058,13 +1063,13 @@ class TestWorktreeLockReaping:
 
     def test_live_locked_survives_at_any_age(self, git_repo):
         import cli
-        wt = self._mk(cli, git_repo, "freeide-live", pid=os.getpid())
+        wt = self._mk(cli, git_repo, "jettstui-live", pid=os.getpid())
         cli._prune_stale_worktrees(str(git_repo))
         assert wt.exists(), "live-locked worktree (this pid) must never be reaped"
 
     def test_dead_locked_clean_is_reaped(self, git_repo):
         import cli
-        wt = self._mk(cli, git_repo, "freeide-dead", pid=999999)
+        wt = self._mk(cli, git_repo, "jettstui-dead", pid=999999)
         # sanity: this is the accumulation bug — remove --force alone can't do it
         assert cli._worktree_lock_is_live(str(git_repo), str(wt)) == "dead"
         cli._prune_stale_worktrees(str(git_repo))
@@ -1072,31 +1077,31 @@ class TestWorktreeLockReaping:
 
     def test_dead_locked_dirty_survives(self, git_repo):
         import cli
-        wt = self._mk(cli, git_repo, "freeide-deaddirty", pid=999999, dirty=True)
+        wt = self._mk(cli, git_repo, "jettstui-deaddirty", pid=999999, dirty=True)
         cli._prune_stale_worktrees(str(git_repo))
         assert wt.exists(), "dead-locked worktree with uncommitted work must survive"
 
     def test_dead_locked_unpushed_survives(self, git_repo):
         import cli
-        wt = self._mk(cli, git_repo, "freeide-deadunp", pid=999999, unpushed=True)
+        wt = self._mk(cli, git_repo, "jettstui-deadunp", pid=999999, unpushed=True)
         cli._prune_stale_worktrees(str(git_repo))
         assert wt.exists(), "dead-locked worktree with unpushed commits must survive"
 
     def test_unlocked_clean_stale_is_reaped(self, git_repo):
         import cli
-        wt = self._mk(cli, git_repo, "freeide-nolock", pid=None)
+        wt = self._mk(cli, git_repo, "jettstui-nolock", pid=None)
         cli._prune_stale_worktrees(str(git_repo))
         assert not wt.exists(), "clean unlocked stale worktree should be reaped"
 
     def test_dirty_survives_over_72h(self, git_repo):
         import cli
-        wt = self._mk(cli, git_repo, "freeide-dirty72", pid=None, dirty=True, age_h=100)
+        wt = self._mk(cli, git_repo, "jettstui-dirty72", pid=None, dirty=True, age_h=100)
         cli._prune_stale_worktrees(str(git_repo))
         assert wt.exists(), "dirty worktree must survive even past the 72h tier"
 
     def test_recent_worktree_untouched(self, git_repo):
         import cli
-        wt = self._mk(cli, git_repo, "freeide-fresh", pid=None, age_h=1)
+        wt = self._mk(cli, git_repo, "jettstui-fresh", pid=None, age_h=1)
         cli._prune_stale_worktrees(str(git_repo))
         assert wt.exists(), "worktree under 24h must never be pruned"
 
@@ -1108,7 +1113,7 @@ class TestWorktreeLockPredicate:
         p = repo / ".worktrees" / name
         (repo / ".worktrees").mkdir(exist_ok=True)
         subprocess.run(
-            ["git", "worktree", "add", str(p), "-b", f"freeide/{name}", "HEAD"],
+            ["git", "worktree", "add", str(p), "-b", f"jettstui/{name}", "HEAD"],
             cwd=repo, capture_output=True,
         )
         subprocess.run(
@@ -1119,27 +1124,27 @@ class TestWorktreeLockPredicate:
 
     def test_unlocked_returns_none(self, git_repo):
         import cli
-        p = git_repo / ".worktrees" / "freeide-x"
+        p = git_repo / ".worktrees" / "jettstui-x"
         (git_repo / ".worktrees").mkdir(exist_ok=True)
         subprocess.run(
-            ["git", "worktree", "add", str(p), "-b", "freeide/freeide-x", "HEAD"],
+            ["git", "worktree", "add", str(p), "-b", "jettstui/jettstui-x", "HEAD"],
             cwd=git_repo, capture_output=True,
         )
         assert cli._worktree_lock_is_live(str(git_repo), str(p)) is None
 
     def test_live_pid_returns_live(self, git_repo):
         import cli
-        p = self._mk_locked(git_repo, "freeide-live", f"freeide pid={os.getpid()}")
+        p = self._mk_locked(git_repo, "jettstui-live", f"jettstui pid={os.getpid()}")
         assert cli._worktree_lock_is_live(str(git_repo), str(p)) == "live"
 
     def test_dead_pid_returns_dead(self, git_repo):
         import cli
-        p = self._mk_locked(git_repo, "freeide-dead", "freeide pid=999999")
+        p = self._mk_locked(git_repo, "jettstui-dead", "jettstui pid=999999")
         assert cli._worktree_lock_is_live(str(git_repo), str(p)) == "dead"
 
     def test_foreign_lock_reason_returns_dead(self, git_repo):
         import cli
-        p = self._mk_locked(git_repo, "freeide-foreign", "some other tool")
+        p = self._mk_locked(git_repo, "jettstui-foreign", "some other tool")
         assert cli._worktree_lock_is_live(str(git_repo), str(p)) == "dead"
 
     def test_bad_repo_root_fails_safe_to_live(self, tmp_path):
@@ -1152,7 +1157,7 @@ class TestWidenedPruner:
     """Behavior contracts for the widened pruner (#all-.worktrees coverage,
     squash-merge escape hatch, kanban exclusion, preserved-work warning).
 
-    Previously only ``freeide-*`` directories were considered, so salvage/
+    Previously only ``jettstui-*`` directories were considered, so salvage/
     review/port lanes created with raw ``git worktree add`` accumulated
     forever (real incident: 117 dirs / 26 GB). And squash-merged branches'
     local commits are unreachable from refs/remotes/* forever, so the
@@ -1208,7 +1213,7 @@ class TestWidenedPruner:
             cwd=repo, capture_output=True,
         )
 
-    # -- named (non freeide-*) directories are now covered ------------------
+    # -- named (non jettstui-*) directories are now covered ------------------
 
     def test_named_clean_stale_tree_is_reaped(self, git_repo):
         import cli
@@ -1244,7 +1249,7 @@ class TestWidenedPruner:
 
     def test_squash_merged_tree_is_reaped(self, git_repo):
         import cli
-        wt, sha = self._mk(git_repo, "freeide-merged", commit=True, age_h=100)
+        wt, sha = self._mk(git_repo, "jettstui-merged", commit=True, age_h=100)
         self._merge_upstream(git_repo, sha)
         assert cli._worktree_has_unpushed_commits(str(wt)), (
             "precondition: commit unreachable from remotes (the leak this fixes)"
@@ -1257,7 +1262,7 @@ class TestWidenedPruner:
 
     def test_partially_merged_tree_survives(self, git_repo):
         import cli
-        wt, sha = self._mk(git_repo, "freeide-partial", commit=True, age_h=100)
+        wt, sha = self._mk(git_repo, "jettstui-partial", commit=True, age_h=100)
         self._merge_upstream(git_repo, sha)
         # add a second, unmerged commit on top
         (wt / "extra.txt").write_text("unique work\n")
@@ -1271,24 +1276,24 @@ class TestWidenedPruner:
 
     def test_merged_predicate_true_on_patch_equivalence(self, git_repo):
         import cli
-        wt, sha = self._mk(git_repo, "freeide-eq", commit=True)
+        wt, sha = self._mk(git_repo, "jettstui-eq", commit=True)
         self._merge_upstream(git_repo, sha)
         assert cli._worktree_commits_all_merged_upstream(str(wt)) is True
 
     def test_merged_predicate_false_on_unique_work(self, git_repo):
         import cli
-        wt, _ = self._mk(git_repo, "freeide-uniq", commit=True)
+        wt, _ = self._mk(git_repo, "jettstui-uniq", commit=True)
         assert cli._worktree_commits_all_merged_upstream(str(wt)) is False
 
     def test_merged_predicate_true_at_zero_ahead(self, git_repo):
         import cli
-        wt, _ = self._mk(git_repo, "freeide-zero")
+        wt, _ = self._mk(git_repo, "jettstui-zero")
         assert cli._worktree_commits_all_merged_upstream(str(wt)) is True
 
     def test_merged_predicate_fails_safe_without_upstream(self, git_repo_no_remote):
         import cli
         repo = git_repo_no_remote
-        p = repo / ".worktrees" / "freeide-noremote"
+        p = repo / ".worktrees" / "jettstui-noremote"
         (repo / ".worktrees").mkdir(exist_ok=True)
         subprocess.run(
             ["git", "worktree", "add", str(p), "-b", "wt/noremote", "HEAD"],
@@ -1298,7 +1303,7 @@ class TestWidenedPruner:
 
     def test_merged_predicate_fails_safe_on_stale_base(self, git_repo):
         import cli
-        wt, _ = self._mk(git_repo, "freeide-manyahead", commit=True)
+        wt, _ = self._mk(git_repo, "jettstui-manyahead", commit=True)
         assert cli._worktree_commits_all_merged_upstream(str(wt), max_ahead=0) is False
 
     # -- preserved-work warning ----------------------------------------------
@@ -1328,7 +1333,7 @@ class TestWidenedPruner:
 
 class TestMergeVerdictCache:
     """The ``git cherry`` patch-equivalence probe is memoized on disk because it
-    dominates ``freeide -w`` startup (~0.2-1.0s per worktree, re-run on every
+    dominates ``jettstui -w`` startup (~0.2-1.0s per worktree, re-run on every
     launch for every tree preserved as unpushed).
 
     The invariant that makes caching safe: the verdict is a pure function of the
@@ -1344,7 +1349,7 @@ class TestMergeVerdictCache:
     def test_cache_hit_matches_uncached_verdict(self, git_repo):
         """A cached verdict must equal what the real git call returns."""
         import cli
-        wt, sha = self._mk(git_repo, "freeide-cachehit", commit=True)
+        wt, sha = self._mk(git_repo, "jettstui-cachehit", commit=True)
         self._merge_upstream(git_repo, sha)
 
         uncached = cli._worktree_commits_all_merged_upstream(str(wt))
@@ -1357,7 +1362,7 @@ class TestMergeVerdictCache:
 
     def test_cache_records_negative_verdicts_too(self, git_repo):
         import cli
-        wt, _ = self._mk(git_repo, "freeide-cacheneg", commit=True)
+        wt, _ = self._mk(git_repo, "jettstui-cacheneg", commit=True)
         cache = {}
         assert cli._worktree_commits_all_merged_upstream(str(wt), cache=cache) is False
         assert cli._worktree_commits_all_merged_upstream(str(wt), cache=cache) is False
@@ -1370,7 +1375,7 @@ class TestMergeVerdictCache:
         into a stale approval to delete a tree that has since gained real work.
         """
         import cli
-        wt, sha = self._mk(git_repo, "freeide-moves", commit=True)
+        wt, sha = self._mk(git_repo, "jettstui-moves", commit=True)
         self._merge_upstream(git_repo, sha)
 
         cache = {}
@@ -1388,7 +1393,7 @@ class TestMergeVerdictCache:
     def test_cached_tree_with_new_work_is_still_preserved(self, git_repo):
         """End-to-end: a warm cache must never let the pruner delete new work."""
         import cli
-        wt, sha = self._mk(git_repo, "freeide-warmsafe", commit=True)
+        wt, sha = self._mk(git_repo, "jettstui-warmsafe", commit=True)
         self._merge_upstream(git_repo, sha)
 
         # Warm the on-disk cache with the 'fully merged' verdict.
@@ -1396,7 +1401,7 @@ class TestMergeVerdictCache:
         assert not wt.exists(), "merged tree should be reaped on the cold pass"
 
         # Recreate the same-named tree, now carrying unmerged work.
-        wt2, _ = self._mk(git_repo, "freeide-warmsafe", commit=True)
+        wt2, _ = self._mk(git_repo, "jettstui-warmsafe", commit=True)
         (wt2 / "precious.txt").write_text("do not delete\n")
         subprocess.run(["git", "add", "precious.txt"], cwd=wt2, capture_output=True)
         subprocess.run(["git", "commit", "-m", "precious"], cwd=wt2, capture_output=True)
@@ -1418,7 +1423,7 @@ class TestMergeVerdictCache:
         bad.write_text(json.dumps({"version": 1, "verdicts": {"a..b:20": "yes"}}))
         assert cli._load_worktree_merge_cache() == {}
 
-        wt, _ = self._mk(git_repo, "freeide-corrupt", commit=True)
+        wt, _ = self._mk(git_repo, "jettstui-corrupt", commit=True)
         cli._prune_stale_worktrees(str(git_repo))
         assert wt.exists(), "unmerged work survives a corrupt cache"
 
@@ -1446,19 +1451,19 @@ class TestPruneParallelEquivalence:
         """A board covering every verdict branch: reapable, dirty, unpushed."""
         names = {}
         for i in range(3):
-            n = f"freeide-merged{tag}{i}"
+            n = f"jettstui-merged{tag}{i}"
             wt, sha = self._mk(git_repo, n, commit=True)
             self._merge_upstream(git_repo, sha)
             names[n] = wt
         for i in range(3):
-            n = f"freeide-unpushed{tag}{i}"
+            n = f"jettstui-unpushed{tag}{i}"
             wt, _ = self._mk(git_repo, n, commit=True)
             names[n] = wt
         for i in range(2):
-            n = f"freeide-dirty{tag}{i}"
+            n = f"jettstui-dirty{tag}{i}"
             wt, _ = self._mk(git_repo, n, dirty=True)
             names[n] = wt
-        n = f"freeide-fresh{tag}"
+        n = f"jettstui-fresh{tag}"
         wt, _ = self._mk(git_repo, n, commit=True, age_h=1)
         names[n] = wt
         # Every tree must really exist, otherwise the survivor comparison below
@@ -1473,7 +1478,7 @@ class TestPruneParallelEquivalence:
         out = set()
         for n in survivors:
             for kind in ("merged", "unpushed", "dirty", "fresh"):
-                if n.startswith(f"freeide-{kind}"):
+                if n.startswith(f"jettstui-{kind}"):
                     out.add(kind)
         return out
 
@@ -1508,7 +1513,7 @@ class TestPruneParallelEquivalence:
         """A ThreadPoolExecutor failure must not block startup."""
         import cli
 
-        wt, sha = self._mk(git_repo, "freeide-poolfail", commit=True)
+        wt, sha = self._mk(git_repo, "jettstui-poolfail", commit=True)
         self._merge_upstream(git_repo, sha)
 
         class _Boom:

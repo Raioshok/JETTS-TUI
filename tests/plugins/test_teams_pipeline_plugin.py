@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from freeide_cli.plugins import PluginContext, PluginManager, PluginManifest
+from jettstui.plugins import PluginContext, PluginManager, PluginManifest
 from gateway.config import GatewayConfig, Platform, PlatformConfig
 from plugins.teams_pipeline import register
 from plugins.teams_pipeline.pipeline import TeamsMeetingPipeline

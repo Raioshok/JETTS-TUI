@@ -7,7 +7,7 @@ import type { ClientSessionState } from '@/app/types'
 import { createClientSessionState } from '@/lib/chat-runtime'
 import { modelOptionsQueryKey } from '@/lib/model-options'
 import { setCurrentModel, setCurrentProvider } from '@/store/session'
-import type { RpcEvent } from '@/types/freeide'
+import type { RpcEvent } from '@/types/jettstui'
 
 import { useMessageStream } from './index'
 
@@ -19,7 +19,7 @@ import { useMessageStream } from './index'
 const ACTIVE_SID = 'session-active'
 const ACTIVE_PROFILE = 'compass'
 let handleEvent: ((event: RpcEvent) => void) | null = null
-let refreshFreeIDEConfig: ReturnType<typeof vi.fn<() => Promise<void>>>
+let refreshJettsTUIConfig: ReturnType<typeof vi.fn<() => Promise<void>>>
 let refreshSessions: ReturnType<typeof vi.fn<() => Promise<void>>>
 let queryClient: QueryClient
 
@@ -32,7 +32,7 @@ function Harness() {
     activeSessionIdRef,
     hydrateFromStoredSession: vi.fn(async () => undefined),
     queryClient,
-    refreshFreeIDEConfig,
+    refreshJettsTUIConfig,
     refreshSessions,
     sessionStateByRuntimeIdRef,
     updateSessionState: (sessionId, updater) => {
@@ -61,7 +61,7 @@ const sessionInfo = (sessionId: string, payload: Record<string, unknown>) =>
 
 beforeEach(() => {
   handleEvent = null
-  refreshFreeIDEConfig = vi.fn<() => Promise<void>>(async () => undefined)
+  refreshJettsTUIConfig = vi.fn<() => Promise<void>>(async () => undefined)
   refreshSessions = vi.fn<() => Promise<void>>(async () => undefined)
   queryClient = new QueryClient()
   setCurrentModel('')
@@ -86,13 +86,13 @@ describe('session.info config refetch gating', () => {
     sessionInfo(ACTIVE_SID, { model: 'm1', running: false })
     sessionInfo(ACTIVE_SID, { model: 'm1', title: 't' })
 
-    expect(refreshFreeIDEConfig).not.toHaveBeenCalled()
+    expect(refreshJettsTUIConfig).not.toHaveBeenCalled()
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(400)
     })
 
-    expect(refreshFreeIDEConfig).toHaveBeenCalledTimes(1)
+    expect(refreshJettsTUIConfig).toHaveBeenCalledTimes(1)
   })
 
   it('never fetches config for a background session heartbeat', async () => {
@@ -106,7 +106,7 @@ describe('session.info config refetch gating', () => {
       await vi.advanceTimersByTimeAsync(400)
     })
 
-    expect(refreshFreeIDEConfig).not.toHaveBeenCalled()
+    expect(refreshJettsTUIConfig).not.toHaveBeenCalled()
   })
 })
 

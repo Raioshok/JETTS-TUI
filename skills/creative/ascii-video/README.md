@@ -2,7 +2,7 @@
 
 Renders any content as colored ASCII character video. Audio, video, images, text, or pure math in, MP4/GIF/PNG sequence out. Full RGB color per character cell, 1080p 24fps default. No GPU.
 
-Built for [FreeIDE Agent](https://github.com/freeide/freeide). Usable in any coding agent. Canonical source lives here; synced to [`freeide/freeide/skills/creative/ascii-video`](https://github.com/freeide/freeide/tree/main/skills/creative/ascii-video) via PR.
+Built for [JettsTUI](https://github.com/Raioshok/JETTS-TUI). Usable in any coding agent. Canonical source lives here; synced to [`jettstui/jettstui/skills/creative/ascii-video`](https://github.com/Raioshok/JETTS-TUI/tree/main/skills/creative/ascii-video) via PR.
 
 ## What this is
 

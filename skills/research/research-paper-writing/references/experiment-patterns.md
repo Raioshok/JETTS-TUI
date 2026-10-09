@@ -1,6 +1,6 @@
 # Experiment Design Patterns
 
-Patterns and best practices distilled from running research experiments at scale with the FreeIDE agent. These cover experiment infrastructure, evaluation protocols, monitoring, and failure recovery.
+Patterns and best practices distilled from running research experiments at scale with the JettsTUI agent. These cover experiment infrastructure, evaluation protocols, monitoring, and failure recovery.
 
 ---
 

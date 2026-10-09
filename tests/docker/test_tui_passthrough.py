@@ -34,7 +34,7 @@ def test_tty_passthrough_to_container(built_image: str) -> None:
     # 0 from the boot log and flips the assertion (assert 0 > 0) whenever
     # boot output shifts (e.g. a new bundled dep changes the skills-sync
     # counts). Parse only the value tagged with our marker.
-    marker = "FREEIDE_TTY_COLS"
+    marker = "JETTSTUI_TTY_COLS"
     probe = (
         f'if [ -t 1 ]; then echo "{marker}=$(tput cols)"; else echo "{marker}=NO_TTY"; fi'
     )
@@ -44,7 +44,7 @@ def test_tty_passthrough_to_container(built_image: str) -> None:
     )
     r = subprocess.run(
         ["script", "-qc", cmd, "/dev/null"],
-        capture_output=True, text=True, timeout=120,
+        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120,
     )
     output = r.stdout
     matches = re.findall(rf"{marker}=(\S+)", output)
@@ -60,6 +60,6 @@ def test_tui_flag_recognized(built_image: str) -> None:
     cmd = f"docker run --rm -t {built_image} --help"
     r = subprocess.run(
         ["script", "-qc", cmd, "/dev/null"],
-        capture_output=True, text=True, timeout=60,
+        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60,
     )
     assert r.returncode == 0

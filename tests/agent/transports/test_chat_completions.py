@@ -178,7 +178,7 @@ class TestChatCompletionsBasic:
         assert transport.convert_messages(msgs) is msgs
 
     def test_convert_messages_strips_internal_scaffolding_markers(self, transport):
-        """FreeIDE-internal ``_``-prefixed markers must never reach the wire.
+        """JettsTUI-internal ``_``-prefixed markers must never reach the wire.
 
         The empty-response recovery path appends synthetic messages tagged
         with ``_empty_recovery_synthetic``; permissive providers ignore the
@@ -522,7 +522,7 @@ class TestChatCompletionsBuildKwargs:
     def test_gemma_does_not_receive_thinking_config(self, transport):
         # The `gemini` provider also serves Gemma (e.g. `gemma-4-31b-it`),
         # but Gemma rejects `thinking_config` with HTTP 400 (#17426). Even
-        # when FreeIDE has reasoning enabled, the field must be omitted for
+        # when JettsTUI has reasoning enabled, the field must be omitted for
         # non-Gemini models on this provider.
         msgs = [{"role": "user", "content": "Hi"}]
         kw = transport.build_kwargs(
@@ -702,7 +702,7 @@ class TestChatCompletionsKimi:
         assert kw["extra_body"]["thinking"] == {"type": "disabled"}
 
     def test_moonshot_tool_schemas_are_sanitized_by_model_name(self, transport):
-        """Aggregator routes (Nous, OpenRouter) hit Moonshot by model name, not base URL."""
+        """Aggregator routes (Acme, OpenRouter) hit Moonshot by model name, not base URL."""
         tools = [
             {
                 "type": "function",
@@ -976,7 +976,7 @@ class TestChatCompletionsNormalize:
         assert nr.provider_data == {"reasoning_content": "model-extra scratchpad"}
 
     def test_refusal_field_promoted_to_content_filter(self, transport):
-        """OpenAI-compatible proxies (e.g. FreeIDE Portal fronting Anthropic) can
+        """OpenAI-compatible proxies (e.g. JettsTUI Portal fronting Anthropic) can
         surface a Claude refusal via ``message.refusal`` with empty content and
         ``finish_reason="stop"``. Promote it to content + a ``content_filter``
         finish reason so the agent loop's refusal handler surfaces it instead

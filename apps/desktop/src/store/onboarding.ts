@@ -11,11 +11,11 @@ import {
   startOAuthLogin,
   submitOAuthCode,
   validateProviderCredential
-} from '@/freeide'
+} from '@/jettstui'
 import { isProviderSetupErrorMessage } from '@/lib/provider-setup-errors'
 import { evaluateRuntimeReadiness, type RuntimeReadinessResult } from '@/lib/runtime-readiness'
 import { notify, notifyError } from '@/store/notifications'
-import type { ModelOptionProvider, OAuthProvider, OAuthStartResponse } from '@/types/freeide'
+import type { ModelOptionProvider, OAuthProvider, OAuthStartResponse } from '@/types/jettstui'
 
 type PkceStart = Extract<OAuthStartResponse, { flow: 'pkce' }>
 type DeviceStart = Extract<OAuthStartResponse, { flow: 'device_code' }>
@@ -81,8 +81,8 @@ export interface OnboardingContext {
   requestGateway: <T = unknown>(method: string, params?: Record<string, unknown>) => Promise<T>
 }
 
-const CONFIGURED_CACHE_KEY = 'freeide-desktop-onboarded-v1'
-const SKIP_CACHE_KEY = 'freeide-onboarding-skipped-v1'
+const CONFIGURED_CACHE_KEY = 'jettstui-desktop-onboarded-v1'
+const SKIP_CACHE_KEY = 'jettstui-onboarding-skipped-v1'
 const POLL_MS = 2000
 const COPY_FLASH_MS = 1500
 export const DEFAULT_ONBOARDING_REASON = 'No inference provider is configured.'
@@ -192,38 +192,9 @@ function shouldPreserveConfiguredOnFallback(runtime: RuntimeReadinessResult, sta
 }
 
 function notifyReady(provider: string) {
-  notify({ kind: 'success', title: 'FreeIDE is ready', message: `${provider} connected.` })
+  notify({ kind: 'success', title: 'JettsTUI is ready', message: `${provider} connected.` })
 }
 
-// Human-friendly labels for tools auto-routed through the Nous Tool Gateway,
-// mirroring freeide_cli/nous_subscription._GATEWAY_TOOL_LABELS so the GUI and
-// CLI describe the same thing.
-const GATEWAY_TOOL_LABELS: Record<string, string> = {
-  browser: 'browser automation',
-  image_gen: 'image generation',
-  tts: 'text-to-speech',
-  video_gen: 'video generation',
-  web: 'web search & extract'
-}
-
-// When switching to Nous auto-routes unconfigured tools through the Tool
-// Gateway, tell the user which ones — same information the CLI prints. Silent
-// when nothing changed (subscriber already configured, has own keys, etc.).
-function notifyGatewayTools(tools: string[] | undefined) {
-  if (!tools || tools.length === 0) {
-    return
-  }
-
-  const labels = tools.map(t => GATEWAY_TOOL_LABELS[t] ?? t)
-  const list = labels.length === 1 ? labels[0] : `${labels.slice(0, -1).join(', ')} and ${labels[labels.length - 1]}`
-
-  notify({
-    durationMs: 8000,
-    kind: 'info',
-    message: `${list} now run through your Nous subscription — no separate API keys needed.`,
-    title: 'Tool Gateway enabled'
-  })
-}
 
 // After credentials are persisted, ask the backend which provider+models
 // are now authenticated. Pick the first curated model for the matching
@@ -251,13 +222,14 @@ async function fetchProviderDefaultModel(
     return null
   }
 
-  // Try each preferred slug (lowercased), fall back to the first provider
-  // returned (model.options orders by recency / authenticated state, so
-  // the just-authenticated provider is usually first anyway).
+  // Only assign a model from the provider the user just connected. The
+  // options endpoint can include an older configured provider first.
   const lower = preferredSlugs.map(s => s.toLowerCase())
+  const matched = providers.find((p: ModelOptionProvider) => lower.includes(String(p.slug).toLowerCase()))
 
-  const matched =
-    providers.find((p: ModelOptionProvider) => lower.includes(String(p.slug).toLowerCase())) ?? providers[0]
+  if (!matched) {
+    return null
+  }
 
   const models = matched.models ?? []
 
@@ -265,10 +237,8 @@ async function fetchProviderDefaultModel(
     return null
   }
 
-  // Prefer the backend's recommended default — it mirrors the curation
-  // `freeide model` does (for Nous it honors the user's free/paid tier, so a
-  // free user gets a free model rather than a paid default like opus). Fall
-  // back to the first curated model if the endpoint can't resolve one.
+  // Prefer the backend's recommended default. Fall back to the first
+  // discovered model if the recommendation endpoint cannot resolve one.
   let defaultModel = String(models[0])
 
   try {
@@ -277,8 +247,7 @@ async function fetchProviderDefaultModel(
     if (recommended.model && models.map(String).includes(recommended.model)) {
       defaultModel = recommended.model
     } else if (recommended.model) {
-      // Recommended model isn't in the curated options list (e.g. a Portal
-      // free-recommendation the picker list didn't include); trust it anyway.
+      // The recommendation may be newer than the options list.
       defaultModel = recommended.model
     }
   } catch {
@@ -318,13 +287,12 @@ async function completeWithModelConfirm(
     // config provider (e.g. anthropic from a prior failed setup) cannot make
     // setup.runtime_check validate the wrong backend after a fresh OAuth login.
     try {
-      const res = await setModelAssignment({
+      await setModelAssignment({
         scope: 'main',
         provider: defaults.providerSlug,
         model: defaults.defaultModel
       })
 
-      notifyGatewayTools(res.gateway_tools)
     } catch {
       // Persistence failed — still run the scoped runtime check below and
       // show the confirm card so the user can pick something explicitly.
@@ -361,8 +329,8 @@ function providerResolutionFailure(reason: null | string) {
   const detail = reason?.trim()
 
   return detail
-    ? `Connected, but FreeIDE still cannot resolve a usable provider. ${detail}`
-    : 'Connected, but FreeIDE still cannot resolve a usable provider.'
+    ? `Connected, but JettsTUI still cannot resolve a usable provider. ${detail}`
+    : 'Connected, but JettsTUI still cannot resolve a usable provider.'
 }
 
 async function refreshProviders() {
@@ -537,7 +505,7 @@ export async function refreshOnboarding(ctx: OnboardingContext) {
       kind: 'error',
       title: 'Runtime not ready',
       message:
-        'Jetts-TUI Desktop could not verify the running backend on startup. Some features may be unavailable until the gateway is reachable.'
+        'JettsTUI Desktop could not verify the running backend on startup. Some features may be unavailable until the gateway is reachable.'
     })
 
     return false
@@ -562,9 +530,9 @@ export async function refreshOnboarding(ctx: OnboardingContext) {
 // the flow never silently stalls in a waiting state. Mirrors the pattern in
 // apps/desktop/src/app/artifacts/index.tsx.
 async function openSignInUrl(url: string) {
-  if (window.freeideDesktop?.openExternal) {
+  if (window.jettstuiDesktop?.openExternal) {
     try {
-      await window.freeideDesktop.openExternal(url)
+      await window.jettstuiDesktop.openExternal(url)
 
       return
     } catch {
@@ -739,7 +707,7 @@ export async function recheckExternalSignin(ctx: OnboardingContext) {
       provider,
       message:
         reason?.trim() ||
-        `FreeIDE still cannot reach ${provider.name}. Run \`${provider.cli_command}\` in a terminal first.`
+        `JettsTUI still cannot reach ${provider.name}. Run \`${provider.cli_command}\` in a terminal first.`
     })
   )
 }
@@ -752,7 +720,8 @@ export async function saveOnboardingApiKey(
   // Optional endpoint key — only meaningful for the "Local / custom endpoint"
   // option, whose primary `value` is the base URL. Ignored for plain API-key
   // providers (their key IS `value`).
-  endpointApiKey?: string
+  endpointApiKey?: string,
+  providerSlug?: string
 ) {
   const trimmed = value.trim()
 
@@ -775,13 +744,13 @@ export async function saveOnboardingApiKey(
   // let the user proceed; an actually-bad key surfaces later at chat time.
   try {
     await setEnvVar(envKey, trimmed)
-    // For API-key flows we don't have a definitive provider id (the
-    // user picked which API key they're entering, but the corresponding
-    // backend slug — e.g. OPENROUTER_API_KEY → "openrouter" — is the
-    // env-key prefix stripped). Pass a couple of likely candidates;
-    // fetchProviderDefaultModel falls back to the first authenticated
-    // provider returned by /api/model/options if none match.
-    const slugCandidates = [envKey.replace(/_API_KEY$/, '').toLowerCase(), label.toLowerCase()]
+
+    // The provider picker carries the backend's exact slug. Env-key and
+    // label guesses are only compatibility fallbacks for older callers.
+    const slugCandidates = [providerSlug, envKey.replace(/_API_KEY$/, '').toLowerCase(), label.toLowerCase()].filter(
+      (slug): slug is string => Boolean(slug)
+    )
+
     // ignoreRuntimeGate=true: never block onboarding on the runtime check.
     await completeWithModelConfirm(ctx, label, slugCandidates, () => undefined, true)
 
@@ -854,7 +823,7 @@ export async function saveOnboardingLocalEndpoint(baseUrl: string, apiKey: strin
     if (!runtime.ready) {
       const detail = (runtime.reason ?? '').trim()
 
-      return { ok: false, message: detail || `Saved, but FreeIDE still cannot reach ${url}.` }
+      return { ok: false, message: detail || `Saved, but JettsTUI still cannot reach ${url}.` }
     }
 
     notifyReady('Local / custom endpoint')

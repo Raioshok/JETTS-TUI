@@ -12,8 +12,8 @@ from plugins.memory.query_rewrite import (
     _normalize_rewrite,
     rewrite_memory_query,
 )
-from freeide_cli.config import DEFAULT_CONFIG
-from freeide_cli.main import _AUX_TASKS
+from jettstui.config import DEFAULT_CONFIG
+from jettstui.main import _AUX_TASKS
 
 
 def _response(text: str):
@@ -206,7 +206,7 @@ def test_first_user_message_is_not_shadowed_by_generic_dialectic_prewarm():
             "plugins.memory.honcho.session.HonchoSessionManager",
             return_value=manager,
         ),
-        patch("freeide_constants.get_freeide_home", return_value=MagicMock()),
+        patch("jettstui_constants.get_jettstui_home", return_value=MagicMock()),
     ):
         provider.initialize(session_id="test-query-aware-first-turn")
 

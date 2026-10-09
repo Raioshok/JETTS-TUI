@@ -131,13 +131,13 @@ pub type CancelRx = mpsc::Receiver<()>;
 
 /// Spawns install.ps1 / install.sh with the given args and streams output.
 ///
-/// `freeide_home_override` propagates to the child as $FREEIDE_HOME so the
+/// `jettstui_home_override` propagates to the child as $JETTSTUI_HOME so the
 /// install script writes to the same directory the installer is reading from.
 pub async fn run_script(
     script_path: &Path,
     args: &[String],
     sink: StreamSink,
-    freeide_home_override: Option<&str>,
+    jettstui_home_override: Option<&str>,
     mut cancel_rx: Option<CancelRx>,
 ) -> Result<ScriptResult> {
     let mut cmd = build_command(script_path, args);
@@ -146,12 +146,12 @@ pub async fn run_script(
     // during self-update. Pin child scripts to a stable directory so bash/zsh
     // never starts from a deleted cwd and emits getcwd/job-working-directory
     // errors at the end of an otherwise successful install.
-    if let Some(cwd) = stable_script_cwd(script_path, freeide_home_override) {
+    if let Some(cwd) = stable_script_cwd(script_path, jettstui_home_override) {
         cmd.current_dir(cwd);
     }
 
-    if let Some(home) = freeide_home_override {
-        cmd.env("FREEIDE_HOME", home);
+    if let Some(home) = jettstui_home_override {
+        cmd.env("JETTSTUI_HOME", home);
     }
 
     cmd.stdin(Stdio::null())
@@ -256,8 +256,8 @@ pub async fn run_script(
     })
 }
 
-fn stable_script_cwd<'a>(script_path: &'a Path, freeide_home_override: Option<&'a str>) -> Option<&'a Path> {
-    if let Some(home) = freeide_home_override {
+fn stable_script_cwd<'a>(script_path: &'a Path, jettstui_home_override: Option<&'a str>) -> Option<&'a Path> {
+    if let Some(home) = jettstui_home_override {
         let path = Path::new(home);
         if path.is_dir() {
             return Some(path);
@@ -441,7 +441,7 @@ info line
     }
 
     #[test]
-    fn stable_script_cwd_prefers_existing_freeide_home() {
+    fn stable_script_cwd_prefers_existing_jettstui_home() {
         let script = Path::new("/tmp/install.sh");
         let cwd = stable_script_cwd(script, Some("/"));
         assert_eq!(cwd, Some(Path::new("/")));

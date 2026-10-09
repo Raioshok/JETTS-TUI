@@ -1,8 +1,8 @@
 """Regression coverage for #58720 / #55924 — cron scheduling races
 interpreter finalization.
 
-When the gateway tears down (SIGTERM from ``freeide update`` /
-``freeide gateway stop`` / systemd restart, or an OOM-kill), a cron tick can
+When the gateway tears down (SIGTERM from ``jettstui update`` /
+``jettstui gateway stop`` / systemd restart, or an OOM-kill), a cron tick can
 still fire. Once the Python interpreter is finalizing, ``concurrent.futures``
 refuses new work with ``RuntimeError: cannot schedule new futures after
 interpreter shutdown`` and asyncio's default executor is gone. The cron
@@ -16,6 +16,7 @@ sites so they skip gracefully with a warning instead of raising.
 from __future__ import annotations
 
 import sys
+import inspect
 from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
@@ -104,6 +105,42 @@ class TestStandaloneDeliverySkipsDuringShutdown:
 
         send_mock.assert_called_once()
         assert result is None
+
+    def test_rejected_fallback_closes_unscheduled_coroutine(self):
+        """A thread-pool rejection must not leak its unscheduled async send."""
+        from cron.scheduler import _deliver_result
+
+        created = []
+
+        async def send(*args, **kwargs):
+            return {"success": True}
+
+        def make_send(*args, **kwargs):
+            coro = send(*args, **kwargs)
+            created.append(coro)
+            return coro
+
+        pool = MagicMock()
+        pool.submit.side_effect = RuntimeError(
+            "cannot schedule new futures after interpreter shutdown"
+        )
+        job = {
+            "id": "gov-job",
+            "name": "model-governor",
+            "deliver": "origin",
+            "origin": {"platform": "telegram", "chat_id": "123"},
+        }
+        with patch("gateway.config.load_gateway_config", return_value=self._telegram_cfg()), \
+             patch("tools.send_message_tool._send_to_platform", new=make_send), \
+             patch("cron.scheduler.asyncio.run", side_effect=RuntimeError("loop running")), \
+             patch("cron.scheduler.concurrent.futures.ThreadPoolExecutor", return_value=pool), \
+             patch("sys.is_finalizing", return_value=False):
+            result = _deliver_result(job, "daily report body")
+
+        assert "shutting down" in result
+        assert len(created) == 2
+        assert all(inspect.getcoroutinestate(coro) == inspect.CORO_CLOSED for coro in created)
+        pool.shutdown.assert_called_once_with(wait=False)
 
 
 class TestSourceGuardrail:

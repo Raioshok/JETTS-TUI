@@ -12,7 +12,7 @@ def clean_env(monkeypatch):
         "OPENAI_API_KEY",
         "MINIMAX_API_KEY",
         "MINIMAX_GROUP_ID",
-        "FREEIDE_SESSION_PLATFORM",
+        "JETTSTUI_SESSION_PLATFORM",
     ):
         monkeypatch.delenv(key, raising=False)
 

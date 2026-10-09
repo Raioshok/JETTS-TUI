@@ -14,7 +14,7 @@ two groups rather than filtered down to one:
 
 Nothing is deleted. Every provider still resolves by name, so `--provider
 bedrock` and any existing config keep working — curation only decides what the
-picker OFFERS. FREEIDE_ALL_PROVIDERS=1 restores the full list.
+picker OFFERS. JETTSTUI_ALL_PROVIDERS=1 restores the full list.
 """
 
 from __future__ import annotations
@@ -131,7 +131,7 @@ EXCLUDED: dict[str, str] = {
 
 def show_all() -> bool:
     """True when the user has asked to see every registered provider."""
-    return os.environ.get("FREEIDE_ALL_PROVIDERS", "").strip().lower() in {"1", "true", "yes"}
+    return os.environ.get("JETTSTUI_ALL_PROVIDERS", "").strip().lower() in {"1", "true", "yes"}
 
 
 def is_curated(name: str) -> bool:

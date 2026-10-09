@@ -1,7 +1,7 @@
 """Consent-flow tests for the shell-hook allowlist.
 
 Covers the prompt/non-prompt decision tree: TTY vs non-TTY, and the
-three accept-hooks channels (--accept-hooks, FREEIDE_ACCEPT_HOOKS env,
+three accept-hooks channels (--accept-hooks, JETTSTUI_ACCEPT_HOOKS env,
 hooks_auto_accept: config key).
 """
 
@@ -17,8 +17,8 @@ from agent import shell_hooks
 
 @pytest.fixture(autouse=True)
 def _isolated_home(tmp_path, monkeypatch):
-    monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / "freeide_home"))
-    monkeypatch.delenv("FREEIDE_ACCEPT_HOOKS", raising=False)
+    monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / "jettstui_home"))
+    monkeypatch.delenv("JETTSTUI_ACCEPT_HOOKS", raising=False)
     shell_hooks.reset_for_tests()
     yield
     shell_hooks.reset_for_tests()
@@ -36,7 +36,7 @@ def _write_hook_script(tmp_path: Path) -> Path:
 
 class TestTTYPromptFlow:
     def test_first_use_prompts_and_approves(self, tmp_path):
-        from freeide_cli import plugins
+        from jettstui import plugins
 
         script = _write_hook_script(tmp_path)
         plugins._plugin_manager = plugins.PluginManager()
@@ -55,7 +55,7 @@ class TestTTYPromptFlow:
         assert entry["command"] == str(script)
 
     def test_first_use_prompts_and_rejects(self, tmp_path):
-        from freeide_cli import plugins
+        from jettstui import plugins
 
         script = _write_hook_script(tmp_path)
         plugins._plugin_manager = plugins.PluginManager()
@@ -73,7 +73,7 @@ class TestTTYPromptFlow:
 
     def test_subsequent_use_does_not_prompt(self, tmp_path):
         """After the first approval, re-registration must be silent."""
-        from freeide_cli import plugins
+        from jettstui import plugins
 
         script = _write_hook_script(tmp_path)
         plugins._plugin_manager = plugins.PluginManager()
@@ -106,7 +106,7 @@ class TestTTYPromptFlow:
 
 class TestNonTTYFlow:
     def test_no_tty_no_flag_skips_registration(self, tmp_path):
-        from freeide_cli import plugins
+        from jettstui import plugins
 
         script = _write_hook_script(tmp_path)
         plugins._plugin_manager = plugins.PluginManager()
@@ -120,7 +120,7 @@ class TestNonTTYFlow:
         assert registered == []
 
     def test_no_tty_with_argument_flag_accepts(self, tmp_path):
-        from freeide_cli import plugins
+        from jettstui import plugins
 
         script = _write_hook_script(tmp_path)
         plugins._plugin_manager = plugins.PluginManager()
@@ -134,11 +134,11 @@ class TestNonTTYFlow:
         assert len(registered) == 1
 
     def test_no_tty_with_env_accepts(self, tmp_path, monkeypatch):
-        from freeide_cli import plugins
+        from jettstui import plugins
 
         script = _write_hook_script(tmp_path)
         plugins._plugin_manager = plugins.PluginManager()
-        monkeypatch.setenv("FREEIDE_ACCEPT_HOOKS", "1")
+        monkeypatch.setenv("JETTSTUI_ACCEPT_HOOKS", "1")
 
         with patch("sys.stdin") as mock_stdin:
             mock_stdin.isatty.return_value = False
@@ -149,7 +149,7 @@ class TestNonTTYFlow:
         assert len(registered) == 1
 
     def test_no_tty_with_config_accepts(self, tmp_path):
-        from freeide_cli import plugins
+        from jettstui import plugins
 
         script = _write_hook_script(tmp_path)
         plugins._plugin_manager = plugins.PluginManager()
@@ -201,6 +201,7 @@ class TestAllowlistOps:
     def test_tilde_path_approval_records_resolvable_mtime(self, tmp_path, monkeypatch):
         """If the command uses ~ the approval must still find the file."""
         monkeypatch.setenv("HOME", str(tmp_path))
+        monkeypatch.setenv("USERPROFILE", str(tmp_path))
         target = tmp_path / "hook.sh"
         target.write_text("#!/usr/bin/env bash\n")
         target.chmod(0o755)
@@ -211,6 +212,17 @@ class TestAllowlistOps:
         )
         assert entry is not None
         # Must not be None — the tilde was expanded before stat().
+        assert entry["script_mtime_at_approval"] is not None
+
+    def test_quoted_script_path_with_spaces_records_mtime(self, tmp_path):
+        script = tmp_path / "hook with spaces.sh"
+        script.write_text("#!/usr/bin/env bash\n", encoding="utf-8")
+        command = f'"{script}"'
+
+        shell_hooks._record_approval("on_session_start", command)
+        entry = shell_hooks.allowlist_entry_for("on_session_start", command)
+
+        assert entry is not None
         assert entry["script_mtime_at_approval"] is not None
 
     def test_duplicate_approval_replaces_mtime(self, tmp_path):

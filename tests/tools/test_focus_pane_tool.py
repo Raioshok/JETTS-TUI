@@ -15,10 +15,10 @@ def _reset_emitter():
 
 
 def test_gated_on_desktop(monkeypatch):
-    monkeypatch.delenv("FREEIDE_DESKTOP", raising=False)
+    monkeypatch.delenv("JETTSTUI_DESKTOP", raising=False)
     assert fp.check_focus_pane_requirements() is False
 
-    monkeypatch.setenv("FREEIDE_DESKTOP", "1")
+    monkeypatch.setenv("JETTSTUI_DESKTOP", "1")
     assert fp.check_focus_pane_requirements() is True
 
 

@@ -1,49 +1,49 @@
-# nix/nixosModules.nix — NixOS module for freeide-agent
+# nix/nixosModules.nix — NixOS module for jettstui
 #
 # Two modes:
 #   container.enable = false (default) → native systemd service
 #   container.enable = true            → OCI container (persistent writable layer)
 #
-# Container mode: freeide runs from /nix/store bind-mounted read-only into a
+# Container mode: jettstui runs from /nix/store bind-mounted read-only into a
 # plain Ubuntu container. The writable layer (apt/pip/npm installs) persists
 # across restarts and agent updates. Only image/volume/options changes trigger
-# container recreation. Environment variables are written to $FREEIDE_HOME/.env
-# and read by freeide at startup — no container recreation needed for env changes.
+# container recreation. Environment variables are written to $JETTSTUI_HOME/.env
+# and read by jettstui at startup — no container recreation needed for env changes.
 #
-# Tool resolution: the freeide wrapper uses --suffix PATH for nix store tools,
+# Tool resolution: the jettstui wrapper uses --suffix PATH for nix store tools,
 # so apt/uv-installed versions take priority. The container entrypoint provisions
 # extensible tools on first boot: nodejs/npm via apt, uv via curl, and a Python
 # 3.11 venv (bootstrapped entirely by uv) at ~/.venv with pip seeded. Agents get
 # writable tool prefixes for npm i -g, pip install, uv tool install, etc.
 #
 # Usage:
-#   services.freeide-agent = {
+#   services.jettstui = {
 #     enable = true;
 #     settings.model = "anthropic/claude-sonnet-4";
-#     environmentFiles = [ config.sops.secrets."freeide/env".path ];
+#     environmentFiles = [ config.sops.secrets."jettstui/env".path ];
 #   };
 #
 { inputs, ... }: {
   flake.nixosModules.default = { config, lib, pkgs, ... }:
 
   let
-    cfg = config.services.freeide-agent;
+    cfg = config.services.jettstui;
     effectivePackage =
       if cfg.extraPythonPackages == [ ] && cfg.extraDependencyGroups == [ ]
       then cfg.package
       else cfg.package.override { inherit (cfg) extraPythonPackages extraDependencyGroups; };
-    freeide-agent = inputs.self.packages.${pkgs.stdenv.hostPlatform.system}.default;
+    jettstui = inputs.self.packages.${pkgs.stdenv.hostPlatform.system}.default;
 
-    # Deep-merge config type (from 0xrsydn/nix-freeide-agent)
+    # Deep-merge config type (from 0xrsydn/nix-jettstui)
     deepConfigType = lib.types.mkOptionType {
-      name = "freeide-config-attrs";
-      description = "FreeIDE YAML config (attrset), merged deeply via lib.recursiveUpdate.";
+      name = "jettstui-config-attrs";
+      description = "JettsTUI YAML config (attrset), merged deeply via lib.recursiveUpdate.";
       check = builtins.isAttrs;
       merge = _loc: defs: lib.foldl' lib.recursiveUpdate { } (map (d: d.value) defs);
     };
 
     # Generate config.yaml from Nix attrset (YAML is a superset of JSON).
-    # terminal.cwd replaces the deprecated MESSAGING_CWD env var — freeide
+    # terminal.cwd replaces the deprecated MESSAGING_CWD env var — jettstui
     # reads it from config.yaml and bridges it to TERMINAL_CWD internally.
     # recursiveUpdate: cfg.settings wins, so an explicit
     # settings.terminal.cwd overrides the workingDirectory default.
@@ -52,13 +52,13 @@
     configJson = builtins.toJSON (
       lib.recursiveUpdate { terminal.cwd = effectiveWorkDir; } cfg.settings
     );
-    generatedConfigFile = pkgs.writeText "freeide-config.yaml" configJson;
+    generatedConfigFile = pkgs.writeText "jettstui-config.yaml" configJson;
     configFile = if cfg.configFile != null then cfg.configFile else generatedConfigFile;
 
     configMergeScript = pkgs.callPackage ./configMergeScript.nix { };
 
     # config.yaml mode: group-writable (0660) when interactive users share this
-    # FREEIDE_HOME via addToSystemPackages, so they can save settings through the
+    # JETTSTUI_HOME via addToSystemPackages, so they can save settings through the
     # CLI/TUI without hitting EACCES; otherwise group-read-only (0640). Secrets
     # (.env) stay 0640 regardless — see below.
     configYamlMode = if cfg.addToSystemPackages then "0660" else "0640";
@@ -68,21 +68,21 @@
       lib.mapAttrsToList (k: v: "${k}=${v}") cfg.environment
     );
     # Build documents derivation (from 0xrsydn)
-    documentDerivation = pkgs.runCommand "freeide-documents" { } (
+    documentDerivation = pkgs.runCommand "jettstui-documents" { } (
       ''
         mkdir -p $out
       '' + lib.concatStringsSep "\n" (
         lib.mapAttrsToList (name: value:
           if builtins.isPath value || lib.isStorePath value
           then "cp ${value} $out/${name}"
-          else "cat > $out/${name} <<'FREEIDE_DOC_EOF'\n${value}\nFREEIDE_DOC_EOF"
+          else "cat > $out/${name} <<'JETTSTUI_DOC_EOF'\n${value}\nJETTSTUI_DOC_EOF"
         ) cfg.documents
       )
     );
 
-    containerName = "freeide-agent";
+    containerName = "jettstui";
     containerDataDir = "/data";     # stateDir mount point inside container
-    containerHomeDir = "/home/freeide";
+    containerHomeDir = "/home/jettstui";
 
     # ── Container mode helpers ──────────────────────────────────────────
     containerBin = if cfg.container.backend == "docker"
@@ -90,54 +90,54 @@
       else "${pkgs.podman}/bin/podman";
 
     # Runs as root inside the container on every start. Provisions the
-    # freeide user + sudo on first boot (writable layer persists), then
+    # jettstui user + sudo on first boot (writable layer persists), then
     # drops privileges. Supports arbitrary base images (Debian, Alpine, etc).
-    containerEntrypoint = pkgs.writeShellScript "freeide-container-entrypoint" ''
+    containerEntrypoint = pkgs.writeShellScript "jettstui-container-entrypoint" ''
       set -eu
 
-      FREEIDE_UID="''${FREEIDE_UID:?FREEIDE_UID must be set}"
-      FREEIDE_GID="''${FREEIDE_GID:?FREEIDE_GID must be set}"
+      JETTSTUI_UID="''${JETTSTUI_UID:?JETTSTUI_UID must be set}"
+      JETTSTUI_GID="''${JETTSTUI_GID:?JETTSTUI_GID must be set}"
 
-      # ── Group: ensure a group with GID=$FREEIDE_GID exists ──
+      # ── Group: ensure a group with GID=$JETTSTUI_GID exists ──
       # Check by GID (not name) to avoid collisions with pre-existing groups
       # (e.g. GID 100 = "users" on Ubuntu)
-      EXISTING_GROUP=$(getent group "$FREEIDE_GID" 2>/dev/null | cut -d: -f1 || true)
+      EXISTING_GROUP=$(getent group "$JETTSTUI_GID" 2>/dev/null | cut -d: -f1 || true)
       if [ -n "$EXISTING_GROUP" ]; then
         GROUP_NAME="$EXISTING_GROUP"
       else
-        GROUP_NAME="freeide"
+        GROUP_NAME="jettstui"
         if command -v groupadd >/dev/null 2>&1; then
-          groupadd -g "$FREEIDE_GID" "$GROUP_NAME"
+          groupadd -g "$JETTSTUI_GID" "$GROUP_NAME"
         elif command -v addgroup >/dev/null 2>&1; then
-          addgroup -g "$FREEIDE_GID" "$GROUP_NAME" 2>/dev/null || true
+          addgroup -g "$JETTSTUI_GID" "$GROUP_NAME" 2>/dev/null || true
         fi
       fi
 
-      # ── User: ensure a user with UID=$FREEIDE_UID exists ──
-      PASSWD_ENTRY=$(getent passwd "$FREEIDE_UID" 2>/dev/null || true)
+      # ── User: ensure a user with UID=$JETTSTUI_UID exists ──
+      PASSWD_ENTRY=$(getent passwd "$JETTSTUI_UID" 2>/dev/null || true)
       if [ -n "$PASSWD_ENTRY" ]; then
         TARGET_USER=$(echo "$PASSWD_ENTRY" | cut -d: -f1)
         TARGET_HOME=$(echo "$PASSWD_ENTRY" | cut -d: -f6)
       else
-        TARGET_USER="freeide"
-        TARGET_HOME="/home/freeide"
+        TARGET_USER="jettstui"
+        TARGET_HOME="/home/jettstui"
         if command -v useradd >/dev/null 2>&1; then
-          useradd -u "$FREEIDE_UID" -g "$FREEIDE_GID" -m -d "$TARGET_HOME" -s /bin/bash "$TARGET_USER"
+          useradd -u "$JETTSTUI_UID" -g "$JETTSTUI_GID" -m -d "$TARGET_HOME" -s /bin/bash "$TARGET_USER"
         elif command -v adduser >/dev/null 2>&1; then
-          adduser -u "$FREEIDE_UID" -D -h "$TARGET_HOME" -s /bin/sh -G "$GROUP_NAME" "$TARGET_USER" 2>/dev/null || true
+          adduser -u "$JETTSTUI_UID" -D -h "$TARGET_HOME" -s /bin/sh -G "$GROUP_NAME" "$TARGET_USER" 2>/dev/null || true
         fi
       fi
       mkdir -p "$TARGET_HOME"
-      chown "$FREEIDE_UID:$FREEIDE_GID" "$TARGET_HOME"
+      chown "$JETTSTUI_UID:$JETTSTUI_GID" "$TARGET_HOME"
       chmod 0750 "$TARGET_HOME"
 
-      # Ensure FREEIDE_HOME is owned by the target user.
+      # Ensure JETTSTUI_HOME is owned by the target user.
       # Use find instead of chown -R: chown strips the setgid bit (kernel
       # behavior), destroying the 2770 permissions the NixOS activation
       # script sets for group access by hostUsers.  Only touch files with
       # wrong ownership so correctly-owned dirs keep their permission bits.
-      if [ -n "''${FREEIDE_HOME:-}" ] && [ -d "$FREEIDE_HOME" ]; then
-        find "$FREEIDE_HOME" \! -user "$FREEIDE_UID" -exec chown "$FREEIDE_UID:$FREEIDE_GID" {} +
+      if [ -n "''${JETTSTUI_HOME:-}" ] && [ -d "$JETTSTUI_HOME" ]; then
+        find "$JETTSTUI_HOME" \! -user "$JETTSTUI_UID" -exec chown "$JETTSTUI_UID:$JETTSTUI_GID" {} +
       fi
 
       # ── Provision apt packages (first boot only, cached in writable layer) ──
@@ -145,7 +145,7 @@
       # nodejs/npm: writable node so npm i -g works (nix store copies are read-only)
       #   Node 22 via NodeSource — Ubuntu 24.04 ships Node 18 which is EOL.
       # curl: needed for uv installer + NodeSource setup
-      if [ ! -f /var/lib/freeide-tools-provisioned ] && command -v apt-get >/dev/null 2>&1; then
+      if [ ! -f /var/lib/jettstui-tools-provisioned ] && command -v apt-get >/dev/null 2>&1; then
         echo "First boot: provisioning agent tools..."
         apt-get update -qq
         apt-get install -y -qq sudo curl ca-certificates gnupg
@@ -156,13 +156,13 @@
           > /etc/apt/sources.list.d/nodesource.list
         apt-get update -qq
         apt-get install -y -qq nodejs
-        touch /var/lib/freeide-tools-provisioned
+        touch /var/lib/jettstui-tools-provisioned
       fi
 
-      if command -v sudo >/dev/null 2>&1 && [ ! -f /etc/sudoers.d/freeide ]; then
+      if command -v sudo >/dev/null 2>&1 && [ ! -f /etc/sudoers.d/jettstui ]; then
         mkdir -p /etc/sudoers.d
-        echo "$TARGET_USER ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/freeide
-        chmod 0440 /etc/sudoers.d/freeide
+        echo "$TARGET_USER ALL=(ALL) NOPASSWD:ALL" > /etc/sudoers.d/jettstui
+        chmod 0440 /etc/sudoers.d/jettstui
       fi
 
       # uv (Python manager) — not in Ubuntu repos, retry-safe outside the sentinel
@@ -187,7 +187,7 @@
       fi
 
       if command -v setpriv >/dev/null 2>&1; then
-        exec setpriv --reuid="$FREEIDE_UID" --regid="$FREEIDE_GID" --init-groups "$@"
+        exec setpriv --reuid="$JETTSTUI_UID" --regid="$JETTSTUI_GID" --init-groups "$@"
       elif command -v su >/dev/null 2>&1; then
         exec su -s /bin/sh "$TARGET_USER" -c 'exec "$0" "$@"' -- "$@"
       else
@@ -198,7 +198,7 @@
 
     # Identity hash — only recreate container when structural config changes.
     # Package and entrypoint use stable symlinks (current-package, current-entrypoint)
-    # so they can update without recreation. Env vars go through $FREEIDE_HOME/.env.
+    # so they can update without recreation. Env vars go through $JETTSTUI_HOME/.env.
     containerIdentity = builtins.hashString "sha256" (builtins.toJSON {
       schema = 4; # bump when identity inputs change (4: Node 18→22 via NodeSource)
       image = cfg.container.image;
@@ -208,7 +208,7 @@
 
     identityFile = "${cfg.stateDir}/.container-identity";
 
-    # Default: /var/lib/freeide/workspace → /data/workspace.
+    # Default: /var/lib/jettstui/workspace → /data/workspace.
     # Custom paths outside stateDir pass through unchanged (user must add extraVolumes).
     containerWorkDir =
       if lib.hasPrefix "${cfg.stateDir}/" cfg.workingDirectory
@@ -216,26 +216,26 @@
       else cfg.workingDirectory;
 
   in {
-    options.services.freeide-agent = with lib; {
-      enable = mkEnableOption "FreeIDE Agent gateway service";
+    options.services.jettstui = with lib; {
+      enable = mkEnableOption "JettsTUI gateway service";
 
       # ── Package ──────────────────────────────────────────────────────────
       package = mkOption {
         type = types.package;
-        default = freeide-agent;
-        description = "The freeide-agent package to use.";
+        default = jettstui;
+        description = "The jettstui package to use.";
       };
 
       # ── Service identity ─────────────────────────────────────────────────
       user = mkOption {
         type = types.str;
-        default = "freeide";
+        default = "jettstui";
         description = "System user running the gateway.";
       };
 
       group = mkOption {
         type = types.str;
-        default = "freeide";
+        default = "jettstui";
         description = "System group running the gateway.";
       };
 
@@ -248,8 +248,8 @@
       # ── Directories ──────────────────────────────────────────────────────
       stateDir = mkOption {
         type = types.str;
-        default = "/var/lib/freeide";
-        description = "State directory. Contains .freeide/ subdir (FREEIDE_HOME).";
+        default = "/var/lib/jettstui";
+        description = "State directory. Contains .jettstui/ subdir (JETTSTUI_HOME).";
       };
 
       workingDirectory = mkOption {
@@ -273,7 +273,7 @@
         type = deepConfigType;
         default = { };
         description = ''
-          Declarative FreeIDE config (attrset). Deep-merged across module
+          Declarative JettsTUI config (attrset). Deep-merged across module
           definitions and rendered as config.yaml.
         '';
         example = literalExpression ''
@@ -292,8 +292,8 @@
         default = [ ];
         description = ''
           Paths to environment files containing secrets (API keys, tokens).
-          Contents are merged into $FREEIDE_HOME/.env at activation time.
-          FreeIDE reads this file on every startup via load_freeide_dotenv().
+          Contents are merged into $JETTSTUI_HOME/.env at activation time.
+          JettsTUI reads this file on every startup via load_jettstui_dotenv().
         '';
       };
 
@@ -301,7 +301,7 @@
         type = types.attrsOf types.str;
         default = { };
         description = ''
-          Non-secret environment variables. Merged into $FREEIDE_HOME/.env
+          Non-secret environment variables. Merged into $JETTSTUI_HOME/.env
           at activation time. Do NOT put secrets here — use environmentFiles.
         '';
       };
@@ -376,7 +376,7 @@
               default = null;
               description = ''
                 Authentication method. Set to "oauth" for OAuth 2.1 PKCE flow
-                (remote MCP servers). Tokens are stored in $FREEIDE_HOME/mcp-tokens/.
+                (remote MCP servers). Tokens are stored in $JETTSTUI_HOME/mcp-tokens/.
               '';
             };
 
@@ -469,7 +469,7 @@
       extraArgs = mkOption {
         type = types.listOf types.str;
         default = [ ];
-        description = "Extra command-line arguments for `freeide gateway`.";
+        description = "Extra command-line arguments for `jettstui gateway`.";
       };
 
       extraPackages = mkOption {
@@ -479,7 +479,7 @@
           Extra packages available to the agent — terminal commands, skills,
           cron jobs, and the service process all see them.
 
-          Implemented via the freeide user's per-user profile
+          Implemented via the jettstui user's per-user profile
           (`/etc/profiles/per-user/${cfg.user}/bin`), which NixOS includes
           in PATH for login shells.  The packages are also added to the
           systemd service PATH for direct process access.
@@ -490,16 +490,16 @@
         type = types.listOf types.package;
         default = [ ];
         description = ''
-          Directory-based plugin packages to symlink into the freeide plugins
+          Directory-based plugin packages to symlink into the jettstui plugins
           directory. Each package should contain a plugin.yaml and __init__.py
-          at its root. FreeIDE discovers these automatically on startup.
+          at its root. JettsTUI discovers these automatically on startup.
         '';
         example = literalExpression ''
           [
             (pkgs.fetchFromGitHub {
               owner = "stephenschoettler";
-              repo = "freeide-lcm";
-              name = "freeide-lcm";
+              repo = "jettstui-lcm";
+              name = "jettstui-lcm";
               rev = "v0.7.0";
               hash = "sha256-...";
             })
@@ -513,17 +513,17 @@
         description = ''
           Python packages to add to PYTHONPATH for entry-point plugin discovery.
           These are pip-packaged plugins that register via the
-          freeide_agent.plugins entry-point group. Each package must be built
-          with the same Python interpreter as freeide (python312).
+          jettstui_agent.plugins entry-point group. Each package must be built
+          with the same Python interpreter as jettstui (python312).
         '';
         example = literalExpression ''
           [
             (pkgs.python312Packages.buildPythonPackage {
-              pname = "rtk-freeide";
+              pname = "rtk-jettstui";
               version = "1.0.0";
               src = pkgs.fetchFromGitHub {
                 owner = "ogallotti";
-                repo = "rtk-freeide";
+                repo = "rtk-jettstui";
                 rev = "main";
                 hash = "sha256-...";
               };
@@ -540,7 +540,7 @@
           the sealed Python venv. These are resolved by uv alongside core
           dependencies — no PYTHONPATH patching or collision risk.
 
-          Use this for optional extras already declared in freeide-agent's
+          Use this for optional extras already declared in jettstui's
           pyproject.toml (e.g. "hindsight", "honcho", "voice").
           Use extraPythonPackages for external packages not in pyproject.toml.
         '';
@@ -563,8 +563,8 @@
         type = types.bool;
         default = false;
         description = ''
-          Add the freeide CLI to environment.systemPackages and export
-          FREEIDE_HOME system-wide (via environment.variables) so interactive
+          Add the jettstui CLI to environment.systemPackages and export
+          JETTSTUI_HOME system-wide (via environment.variables) so interactive
           shells share state with the gateway service.
         '';
       };
@@ -602,8 +602,8 @@
           type = types.listOf types.str;
           default = [ ];
           description = ''
-            Interactive users who get a ~/.freeide symlink to the service
-            stateDir. These users are automatically added to the freeide group.
+            Interactive users who get a ~/.jettstui symlink to the service
+            stateDir. These users are automatically added to the jettstui group.
           '';
           example = [ "sidbin" ];
         };
@@ -614,7 +614,7 @@
 
       # ── Merge MCP servers into settings ────────────────────────────────
       (lib.mkIf (cfg.mcpServers != { }) {
-        services.freeide-agent.settings.mcp_servers = lib.mapAttrs (_name: srv:
+        services.jettstui.settings.mcp_servers = lib.mapAttrs (_name: srv:
           # Stdio transport
           lib.optionalAttrs (srv.command != null) { inherit (srv) command args; }
           // lib.optionalAttrs (srv.env != { }) { inherit (srv) env; }
@@ -657,12 +657,12 @@
       })
 
       # ── Host CLI ──────────────────────────────────────────────────────
-      # Add the freeide CLI to system PATH and export FREEIDE_HOME system-wide
+      # Add the jettstui CLI to system PATH and export JETTSTUI_HOME system-wide
       # so interactive shells share state (sessions, skills, cron) with the
-      # gateway service instead of creating a separate ~/.freeide/.
+      # gateway service instead of creating a separate ~/.jettstui/.
       (lib.mkIf cfg.addToSystemPackages {
         environment.systemPackages = [ effectivePackage ];
-        environment.variables.FREEIDE_HOME = "${cfg.stateDir}/.freeide";
+        environment.variables.JETTSTUI_HOME = "${cfg.stateDir}/.jettstui";
       })
 
       # ── Host user group membership ─────────────────────────────────────
@@ -678,13 +678,13 @@
           names = map lib.getName cfg.extraPlugins;
         in [{
           assertion = (lib.length names) == (lib.length (lib.unique names));
-          message = "services.freeide-agent.extraPlugins: duplicate plugin names detected: ${toString names}. If using fetchFromGitHub, set name = \"plugin-name\" to disambiguate.";
+          message = "services.jettstui.extraPlugins: duplicate plugin names detected: ${toString names}. If using fetchFromGitHub, set name = \"plugin-name\" to disambiguate.";
         }];
       }
 
       # ── Warnings ──────────────────────────────────────────────────────
       # ── Per-user profile for extraPackages ───────────────────────────
-      # Wire extraPackages into the freeide user's per-user profile so the
+      # Wire extraPackages into the jettstui user's per-user profile so the
       # login-shell snapshot (which rebuilds PATH from NixOS profiles) sees
       # them.  The systemd service PATH also includes them for direct access.
       (lib.mkIf (cfg.extraPackages != []) {
@@ -697,10 +697,10 @@
       (lib.mkIf (cfg.container.enable && !cfg.addToSystemPackages && cfg.container.hostUsers != []) {
         warnings = [
           ''
-            services.freeide-agent: container.enable is true and container.hostUsers
-            is set, but addToSystemPackages is false. Without a host-installed freeide
+            services.jettstui: container.enable is true and container.hostUsers
+            is set, but addToSystemPackages is false. Without a host-installed jettstui
             binary, container routing will not work for interactive users.
-            Set addToSystemPackages = true or ensure freeide is on PATH.
+            Set addToSystemPackages = true or ensure jettstui is on PATH.
           ''
         ];
       })
@@ -709,12 +709,12 @@
       {
         systemd.tmpfiles.rules = [
           "d ${cfg.stateDir}                2770 ${cfg.user} ${cfg.group} - -"
-          "d ${cfg.stateDir}/.freeide        2770 ${cfg.user} ${cfg.group} - -"
-          "d ${cfg.stateDir}/.freeide/cron   2770 ${cfg.user} ${cfg.group} - -"
-          "d ${cfg.stateDir}/.freeide/sessions 2770 ${cfg.user} ${cfg.group} - -"
-          "d ${cfg.stateDir}/.freeide/logs   2770 ${cfg.user} ${cfg.group} - -"
-          "d ${cfg.stateDir}/.freeide/memories 2770 ${cfg.user} ${cfg.group} - -"
-          "d ${cfg.stateDir}/.freeide/plugins 2770 ${cfg.user} ${cfg.group} - -"
+          "d ${cfg.stateDir}/.jettstui        2770 ${cfg.user} ${cfg.group} - -"
+          "d ${cfg.stateDir}/.jettstui/cron   2770 ${cfg.user} ${cfg.group} - -"
+          "d ${cfg.stateDir}/.jettstui/sessions 2770 ${cfg.user} ${cfg.group} - -"
+          "d ${cfg.stateDir}/.jettstui/logs   2770 ${cfg.user} ${cfg.group} - -"
+          "d ${cfg.stateDir}/.jettstui/memories 2770 ${cfg.user} ${cfg.group} - -"
+          "d ${cfg.stateDir}/.jettstui/plugins 2770 ${cfg.user} ${cfg.group} - -"
           "d ${cfg.stateDir}/home           0750 ${cfg.user} ${cfg.group} - -"
           "d ${cfg.workingDirectory}         2770 ${cfg.user} ${cfg.group} - -"
         ];
@@ -722,26 +722,26 @@
 
       # ── Activation: link config + auth + documents ────────────────────
       {
-        system.activationScripts."freeide-agent-setup" = lib.stringAfter ([ "users" ] ++ lib.optional (config.system.activationScripts ? setupSecrets) "setupSecrets") ''
+        system.activationScripts."jettstui-setup" = lib.stringAfter ([ "users" ] ++ lib.optional (config.system.activationScripts ? setupSecrets) "setupSecrets") ''
           # Ensure directories exist (activation runs before tmpfiles)
-          mkdir -p ${cfg.stateDir}/.freeide
+          mkdir -p ${cfg.stateDir}/.jettstui
           mkdir -p ${cfg.stateDir}/home
           mkdir -p ${cfg.workingDirectory}
-          chown ${cfg.user}:${cfg.group} ${cfg.stateDir} ${cfg.stateDir}/.freeide ${cfg.stateDir}/home ${cfg.workingDirectory}
-          chmod 2770 ${cfg.stateDir} ${cfg.stateDir}/.freeide ${cfg.workingDirectory}
+          chown ${cfg.user}:${cfg.group} ${cfg.stateDir} ${cfg.stateDir}/.jettstui ${cfg.stateDir}/home ${cfg.workingDirectory}
+          chmod 2770 ${cfg.stateDir} ${cfg.stateDir}/.jettstui ${cfg.workingDirectory}
           chmod 0750 ${cfg.stateDir}/home
 
           # Create subdirs, set setgid + group-writable, migrate existing files.
           # Nix-managed .env/.managed stay 0640/0644; config.yaml uses
           # configYamlMode (0660 under addToSystemPackages, else 0640).
-          find ${cfg.stateDir}/.freeide -maxdepth 1 \
+          find ${cfg.stateDir}/.jettstui -maxdepth 1 \
             \( -name "*.db" -o -name "*.db-wal" -o -name "*.db-shm" -o -name "SOUL.md" \) \
             -exec chmod g+rw {} + 2>/dev/null || true
           for _subdir in cron sessions logs memories plugins; do
-            mkdir -p "${cfg.stateDir}/.freeide/$_subdir"
-            chown ${cfg.user}:${cfg.group} "${cfg.stateDir}/.freeide/$_subdir"
-            chmod 2770 "${cfg.stateDir}/.freeide/$_subdir"
-            find "${cfg.stateDir}/.freeide/$_subdir" -type f \
+            mkdir -p "${cfg.stateDir}/.jettstui/$_subdir"
+            chown ${cfg.user}:${cfg.group} "${cfg.stateDir}/.jettstui/$_subdir"
+            chmod 2770 "${cfg.stateDir}/.jettstui/$_subdir"
+            find "${cfg.stateDir}/.jettstui/$_subdir" -type f \
               -exec chmod g+rw {} + 2>/dev/null || true
           done
 
@@ -749,65 +749,65 @@
           # Preserves user-added keys (skills, streaming, etc.); Nix keys win.
           # If configFile is user-provided (not generated), overwrite instead of merge.
           # Mode is configYamlMode (0660 under addToSystemPackages so interactive
-          # freeide-group users can save settings via the CLI/TUI, else 0640).
+          # jettstui-group users can save settings via the CLI/TUI, else 0640).
           ${if cfg.configFile != null then ''
-            install -o ${cfg.user} -g ${cfg.group} -m ${configYamlMode} -D ${configFile} ${cfg.stateDir}/.freeide/config.yaml
+            install -o ${cfg.user} -g ${cfg.group} -m ${configYamlMode} -D ${configFile} ${cfg.stateDir}/.jettstui/config.yaml
           '' else ''
-            ${configMergeScript} ${generatedConfigFile} ${cfg.stateDir}/.freeide/config.yaml
-            chown ${cfg.user}:${cfg.group} ${cfg.stateDir}/.freeide/config.yaml
-            chmod ${configYamlMode} ${cfg.stateDir}/.freeide/config.yaml
+            ${configMergeScript} ${generatedConfigFile} ${cfg.stateDir}/.jettstui/config.yaml
+            chown ${cfg.user}:${cfg.group} ${cfg.stateDir}/.jettstui/config.yaml
+            chmod ${configYamlMode} ${cfg.stateDir}/.jettstui/config.yaml
           ''}
 
           # Managed mode marker (so interactive shells also detect NixOS management)
-          touch ${cfg.stateDir}/.freeide/.managed
-          chown ${cfg.user}:${cfg.group} ${cfg.stateDir}/.freeide/.managed
-          chmod 0644 ${cfg.stateDir}/.freeide/.managed
+          touch ${cfg.stateDir}/.jettstui/.managed
+          chown ${cfg.user}:${cfg.group} ${cfg.stateDir}/.jettstui/.managed
+          chmod 0644 ${cfg.stateDir}/.jettstui/.managed
 
           # Container mode metadata — tells the host CLI to exec into the
           # container instead of running locally. Removed when container mode
           # is disabled so the host CLI falls back to native execution.
           ${if cfg.container.enable then ''
-            cat > ${cfg.stateDir}/.freeide/.container-mode <<'FREEIDE_CONTAINER_MODE_EOF'
+            cat > ${cfg.stateDir}/.jettstui/.container-mode <<'JETTSTUI_CONTAINER_MODE_EOF'
     # Written by NixOS activation script. Do not edit manually.
     backend=${cfg.container.backend}
     container_name=${containerName}
     exec_user=${cfg.user}
-    freeide_bin=${containerDataDir}/current-package/bin/freeide
-    FREEIDE_CONTAINER_MODE_EOF
-            chown ${cfg.user}:${cfg.group} ${cfg.stateDir}/.freeide/.container-mode
-            chmod 0644 ${cfg.stateDir}/.freeide/.container-mode
+    jettstui_bin=${containerDataDir}/current-package/bin/jettstui
+    JETTSTUI_CONTAINER_MODE_EOF
+            chown ${cfg.user}:${cfg.group} ${cfg.stateDir}/.jettstui/.container-mode
+            chmod 0644 ${cfg.stateDir}/.jettstui/.container-mode
           '' else ''
-            rm -f ${cfg.stateDir}/.freeide/.container-mode
+            rm -f ${cfg.stateDir}/.jettstui/.container-mode
 
             # Remove symlink bridge for hostUsers
             ${lib.concatStringsSep "\n" (map (user:
               let
                 userHome = config.users.users.${user}.home;
-                symlinkPath = "${userHome}/.freeide";
+                symlinkPath = "${userHome}/.jettstui";
               in ''
-                if [ -L "${symlinkPath}" ] && [ "$(readlink "${symlinkPath}")" = "${cfg.stateDir}/.freeide" ]; then
+                if [ -L "${symlinkPath}" ] && [ "$(readlink "${symlinkPath}")" = "${cfg.stateDir}/.jettstui" ]; then
                   rm -f "${symlinkPath}"
-                  echo "freeide-agent: removed symlink ${symlinkPath}"
+                  echo "jettstui: removed symlink ${symlinkPath}"
                 fi
               '') cfg.container.hostUsers)}
           ''}
 
           # ── Symlink bridge for interactive users ───────────────────────
-          # Create ~/.freeide -> stateDir/.freeide for each hostUser so the
+          # Create ~/.jettstui -> stateDir/.jettstui for each hostUser so the
           # host CLI shares state with the container service.
           # Only runs when container mode is enabled.
           ${lib.optionalString cfg.container.enable
             (lib.concatStringsSep "\n" (map (user:
               let
                 userHome = config.users.users.${user}.home;
-                symlinkPath = "${userHome}/.freeide";
-                target = "${cfg.stateDir}/.freeide";
+                symlinkPath = "${userHome}/.jettstui";
+                target = "${cfg.stateDir}/.jettstui";
               in ''
                 if [ -d "${symlinkPath}" ] && [ ! -L "${symlinkPath}" ]; then
                   # Real directory — back it up, then create symlink.
                   # (ln -sfn cannot atomically replace a directory.)
                   _backup="${symlinkPath}.bak.$(date +%s)"
-                  echo "freeide-agent: backing up existing ${symlinkPath} to $_backup"
+                  echo "jettstui: backing up existing ${symlinkPath} to $_backup"
                   mv "${symlinkPath}" "$_backup"
                 fi
                 # For everything else (existing symlink, doesn't exist, etc.)
@@ -819,23 +819,23 @@
           # Seed auth file if provided
           ${lib.optionalString (cfg.authFile != null) ''
             ${if cfg.authFileForceOverwrite then ''
-              install -o ${cfg.user} -g ${cfg.group} -m 0600 ${cfg.authFile} ${cfg.stateDir}/.freeide/auth.json
+              install -o ${cfg.user} -g ${cfg.group} -m 0600 ${cfg.authFile} ${cfg.stateDir}/.jettstui/auth.json
             '' else ''
-              if [ ! -f ${cfg.stateDir}/.freeide/auth.json ]; then
-                install -o ${cfg.user} -g ${cfg.group} -m 0600 ${cfg.authFile} ${cfg.stateDir}/.freeide/auth.json
+              if [ ! -f ${cfg.stateDir}/.jettstui/auth.json ]; then
+                install -o ${cfg.user} -g ${cfg.group} -m 0600 ${cfg.authFile} ${cfg.stateDir}/.jettstui/auth.json
               fi
             ''}
           ''}
 
           # Seed .env from Nix-declared environment + environmentFiles.
-          # FreeIDE reads $FREEIDE_HOME/.env at startup via load_freeide_dotenv(),
+          # JettsTUI reads $JETTSTUI_HOME/.env at startup via load_jettstui_dotenv(),
           # so this is the single source of truth for both native and container mode.
           ${lib.optionalString (cfg.environment != {} || cfg.environmentFiles != []) ''
-            ENV_FILE="${cfg.stateDir}/.freeide/.env"
+            ENV_FILE="${cfg.stateDir}/.jettstui/.env"
             install -o ${cfg.user} -g ${cfg.group} -m 0640 /dev/null "$ENV_FILE"
-            cat > "$ENV_FILE" <<'FREEIDE_NIX_ENV_EOF'
+            cat > "$ENV_FILE" <<'JETTSTUI_NIX_ENV_EOF'
     ${envFileContent}
-    FREEIDE_NIX_ENV_EOF
+    JETTSTUI_NIX_ENV_EOF
             ${lib.concatStringsSep "\n" (map (f: ''
               if [ -f "${f}" ]; then
                 echo "" >> "$ENV_FILE"
@@ -851,7 +851,7 @@
 
         # ── Declarative plugins ─────────────────────────────────────────
         # Remove stale managed symlinks (plugins removed from config)
-        find ${cfg.stateDir}/.freeide/plugins -maxdepth 1 -type l -name 'nix-managed-*' -delete 2>/dev/null || true
+        find ${cfg.stateDir}/.jettstui/plugins -maxdepth 1 -type l -name 'nix-managed-*' -delete 2>/dev/null || true
 
         ${lib.concatStringsSep "\n" (map (plugin:
           let
@@ -861,8 +861,8 @@
               echo "ERROR: extraPlugins entry '${plugin}' has no plugin.yaml" >&2
               exit 1
             fi
-            ln -sfn ${plugin} ${cfg.stateDir}/.freeide/plugins/nix-managed-${name}
-            chown -h ${cfg.user}:${cfg.group} ${cfg.stateDir}/.freeide/plugins/nix-managed-${name}
+            ln -sfn ${plugin} ${cfg.stateDir}/.jettstui/plugins/nix-managed-${name}
+            chown -h ${cfg.user}:${cfg.group} ${cfg.stateDir}/.jettstui/plugins/nix-managed-${name}
           '') cfg.extraPlugins)}
         '';
       }
@@ -871,16 +871,16 @@
       # MODE A: Native systemd service (default)
       # ══════════════════════════════════════════════════════════════════
       (lib.mkIf (!cfg.container.enable) {
-        systemd.services.freeide-agent = {
-          description = "FreeIDE Agent Gateway";
+        systemd.services.jettstui = {
+          description = "JettsTUI Gateway";
           wantedBy = [ "multi-user.target" ];
           after = [ "network-online.target" ];
           wants = [ "network-online.target" ];
 
           environment = {
             HOME = cfg.stateDir;
-            FREEIDE_HOME = "${cfg.stateDir}/.freeide";
-            FREEIDE_MANAGED = "true";
+            JETTSTUI_HOME = "${cfg.stateDir}/.jettstui";
+            JETTSTUI_MANAGED = "true";
             # Working directory is declared via terminal.cwd in the merged
             # config.yaml (see configJson above) — MESSAGING_CWD is deprecated.
           };
@@ -891,11 +891,11 @@
             WorkingDirectory = cfg.workingDirectory;
 
             # cfg.environment and cfg.environmentFiles are written to
-            # $FREEIDE_HOME/.env by the activation script. load_freeide_dotenv()
+            # $JETTSTUI_HOME/.env by the activation script. load_jettstui_dotenv()
             # reads them at Python startup — no systemd EnvironmentFile needed.
 
             ExecStart = lib.concatStringsSep " " ([
-              "${effectivePackage}/bin/freeide"
+              "${effectivePackage}/bin/jettstui"
               "gateway"
             ] ++ cfg.extraArgs);
 
@@ -903,7 +903,7 @@
             RestartSec = cfg.restartSec;
 
             # Shared-state: files created by the gateway should be group-writable
-            # so interactive users in the freeide group can read/write them.
+            # so interactive users in the jettstui group can read/write them.
             UMask = "0007";
 
             # Hardening
@@ -933,8 +933,8 @@
         # Ensure the container runtime is available
         virtualisation.docker.enable = lib.mkDefault (cfg.container.backend == "docker");
 
-        systemd.services.freeide-agent = {
-          description = "FreeIDE Agent Gateway (container)";
+        systemd.services.jettstui = {
+          description = "JettsTUI Gateway (container)";
           wantedBy = [ "multi-user.target" ];
           after = [ "network-online.target" ]
             ++ lib.optional (cfg.container.backend == "docker") "docker.service";
@@ -962,8 +962,8 @@
 
             if [ "$NEED_CREATE" = "true" ]; then
               # Resolve numeric UID/GID — passed to entrypoint for in-container user setup
-              FREEIDE_UID=$(${pkgs.coreutils}/bin/id -u ${cfg.user})
-              FREEIDE_GID=$(${pkgs.coreutils}/bin/id -g ${cfg.user})
+              JETTSTUI_UID=$(${pkgs.coreutils}/bin/id -u ${cfg.user})
+              JETTSTUI_GID=$(${pkgs.coreutils}/bin/id -g ${cfg.user})
 
               echo "Creating container..."
               ${containerBin} create \
@@ -974,14 +974,14 @@
                 --volume ${cfg.stateDir}:${containerDataDir} \
                 --volume ${cfg.stateDir}/home:${containerHomeDir} \
                 ${lib.concatStringsSep " " (map (v: "--volume ${v}") cfg.container.extraVolumes)} \
-                --env FREEIDE_UID="$FREEIDE_UID" \
-                --env FREEIDE_GID="$FREEIDE_GID" \
-                --env FREEIDE_HOME=${containerDataDir}/.freeide \
-                --env FREEIDE_MANAGED=true \
+                --env JETTSTUI_UID="$JETTSTUI_UID" \
+                --env JETTSTUI_GID="$JETTSTUI_GID" \
+                --env JETTSTUI_HOME=${containerDataDir}/.jettstui \
+                --env JETTSTUI_MANAGED=true \
                 --env HOME=${containerHomeDir} \
                 ${lib.concatStringsSep " " cfg.container.extraOptions} \
                 ${cfg.container.image} \
-                ${containerDataDir}/current-package/bin/freeide gateway run --replace ${lib.concatStringsSep " " cfg.extraArgs}
+                ${containerDataDir}/current-package/bin/jettstui gateway run --replace ${lib.concatStringsSep " " cfg.extraArgs}
 
               echo "${containerIdentity}" > ${identityFile}
             fi

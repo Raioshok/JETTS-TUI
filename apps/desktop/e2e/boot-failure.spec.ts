@@ -2,7 +2,7 @@
  * E2E boot-failure tests — verify the app shows an error overlay when the
  * backend can't start.
  *
- * Injects a fake boot error (FREEIDE_DESKTOP_BOOT_FAKE_ERROR) so the backend
+ * Injects a fake boot error (JETTSTUI_DESKTOP_BOOT_FAKE_ERROR) so the backend
  * resolution fails with a controlled error message. The app should show the
  * BootFailureOverlay with retry/repair actions.
  *

@@ -8,3 +8,5 @@ web/package-lock.json linguist-generated=true
 Dockerfile  text eol=lf
 *.dockerfile text eol=lf
 docker/entrypoint.sh text eol=lf
+docker/s6-rc.d/** text eol=lf
+docker/cont-init.d/** text eol=lf

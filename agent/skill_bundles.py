@@ -7,8 +7,8 @@ referenced skill's full content into a single user message, the same way
 
 Storage
 -------
-Bundles live in ``~/.freeide/skill-bundles/*.yaml`` (and the equivalent
-profile-aware directory under ``FREEIDE_HOME``). Each file looks like::
+Bundles live in ``~/.jettstui/skill-bundles/*.yaml`` (and the equivalent
+profile-aware directory under ``JETTSTUI_HOME``). Each file looks like::
 
     name: backend-dev
     description: Backend feature work — code review, testing, PR workflow.
@@ -36,7 +36,7 @@ Public API
 - :func:`resolve_bundle_command_key` — map a user-typed command to its slug
 - :func:`build_bundle_invocation_message` — produce the full user message
 - :func:`reload_bundles` — re-scan disk and return a diff
-- :func:`list_bundles` — return rich info for display (``freeide bundles``)
+- :func:`list_bundles` — return rich info for display (``jettstui bundles``)
 - :func:`save_bundle` / :func:`delete_bundle` — file-level operations
 """
 
@@ -50,7 +50,7 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import yaml
 
-from freeide_constants import get_freeide_home
+from jettstui_constants import get_jettstui_home
 
 logger = logging.getLogger(__name__)
 
@@ -64,15 +64,15 @@ _bundles_cache_mtime: Optional[float] = None
 
 
 def _bundles_dir() -> Path:
-    """Return the canonical bundles directory under FREEIDE_HOME.
+    """Return the canonical bundles directory under JETTSTUI_HOME.
 
-    Honors ``FREEIDE_BUNDLES_DIR`` for tests; falls back to
-    ``<FREEIDE_HOME>/skill-bundles``.
+    Honors ``JETTSTUI_BUNDLES_DIR`` for tests; falls back to
+    ``<JETTSTUI_HOME>/skill-bundles``.
     """
-    override = os.environ.get("FREEIDE_BUNDLES_DIR")
+    override = os.environ.get("JETTSTUI_BUNDLES_DIR")
     if override:
         return Path(override).expanduser()
-    return get_freeide_home() / "skill-bundles"
+    return get_jettstui_home() / "skill-bundles"
 
 
 def _slugify(name: str) -> str:
@@ -369,7 +369,7 @@ def build_bundle_invocation_message(
 
 
 # ---------------------------------------------------------------------------
-# File-level CRUD helpers — used by `freeide bundles` CLI subcommand.
+# File-level CRUD helpers — used by `jettstui bundles` CLI subcommand.
 # ---------------------------------------------------------------------------
 
 

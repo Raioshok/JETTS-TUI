@@ -54,8 +54,8 @@ vi.mock('@/store/gateway', () => ({
 
 vi.mock('@/lib/desktop-git', () => ({ desktopGit: vi.fn() }))
 
-vi.mock('@/freeide', () => ({
-  getFreeIDEConfig: vi.fn(),
+vi.mock('@/jettstui', () => ({
+  getJettsTUIConfig: vi.fn(),
   getProfiles: vi.fn(),
   setApiRequestProfile: vi.fn(),
   STARTUP_REQUEST_TIMEOUT_MS: 1000
@@ -73,8 +73,8 @@ const gatewayAtom = gw.$gateway
 const git = await import('@/lib/desktop-git')
 const desktopGit = vi.mocked(git.desktopGit)
 
-const freeide = await import('@/freeide')
-const getFreeIDEConfig = vi.mocked(freeide.getFreeIDEConfig)
+const jettstui = await import('@/jettstui')
+const getJettsTUIConfig = vi.mocked(jettstui.getJettsTUIConfig)
 const notifications = await import('@/store/notifications')
 const notify = vi.mocked(notifications.notify)
 
@@ -108,7 +108,7 @@ describe('project scope', () => {
 
   it('persists the scope to localStorage', () => {
     enterProject('p_abc')
-    expect(window.localStorage.getItem('freeide.desktop.projectScope')).toBe('p_abc')
+    expect(window.localStorage.getItem('jettstui.desktop.projectScope')).toBe('p_abc')
   })
 })
 
@@ -337,7 +337,7 @@ describe('repository discovery policy', () => {
     gatewayWith(request)
     const scanRepos = vi.fn()
     desktopGit.mockReturnValue({ scanRepos } as never)
-    getFreeIDEConfig.mockResolvedValue({
+    getJettsTUIConfig.mockResolvedValue({
       desktop: {
         repo_scan_enabled: false,
         repo_scan_exclude_paths: [],
@@ -364,7 +364,7 @@ describe('repository discovery policy', () => {
     gatewayWith(request)
     const scanRepos = vi.fn().mockResolvedValue([{ label: 'repo', root: '/work/repo' }])
     desktopGit.mockReturnValue({ scanRepos } as never)
-    getFreeIDEConfig.mockResolvedValue({
+    getJettsTUIConfig.mockResolvedValue({
       desktop: {
         repo_scan_enabled: true,
         repo_scan_exclude_paths: ['/work/vendor'],
@@ -374,7 +374,7 @@ describe('repository discovery policy', () => {
 
     await scanAndRecordRepos()
 
-    expect(getFreeIDEConfig).toHaveBeenCalledWith('default')
+    expect(getJettsTUIConfig).toHaveBeenCalledWith('default')
     expect(scanRepos).toHaveBeenCalledWith(['/work'], {
       enabled: true,
       excludePaths: ['/work/vendor']
@@ -397,7 +397,7 @@ describe('repository discovery policy', () => {
     await scanAndRecordRepos(true)
 
     expect(scanRepos).not.toHaveBeenCalled()
-    expect(getFreeIDEConfig).not.toHaveBeenCalled()
+    expect(getJettsTUIConfig).not.toHaveBeenCalled()
   })
 })
 

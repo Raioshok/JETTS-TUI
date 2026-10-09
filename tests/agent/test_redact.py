@@ -9,8 +9,8 @@ from agent.redact import redact_cdp_url, redact_sensitive_text, RedactingFormatt
 
 @pytest.fixture(autouse=True)
 def _ensure_redaction_enabled(monkeypatch):
-    """Ensure FREEIDE_REDACT_SECRETS is not disabled by prior test imports."""
-    monkeypatch.delenv("FREEIDE_REDACT_SECRETS", raising=False)
+    """Ensure JETTSTUI_REDACT_SECRETS is not disabled by prior test imports."""
+    monkeypatch.delenv("JETTSTUI_REDACT_SECRETS", raising=False)
     # Also patch the module-level snapshot so it reflects the cleared env var
     monkeypatch.setattr("agent.redact._REDACT_ENABLED", True)
 
@@ -373,7 +373,7 @@ OPENROUTER_API_KEY=sk-or-v1-reallyLongSecretKeyValue12345678
 FIRECRAWL_API_KEY=fc-shortkey123456789012
 TELEGRAM_BOT_TOKEN=bot987654321:ABCDEfghij-KLMNopqrst_UVWXyz12345
 SHELL=/bin/bash
-USER=teknium"""
+USER=alice"""
         result = redact_sensitive_text(env_dump)
         # Secrets should be masked
         assert "abc123def456" not in result
@@ -382,7 +382,7 @@ USER=teknium"""
         # Non-secrets should survive
         assert "HOME=/home/user" in result
         assert "SHELL=/bin/bash" in result
-        assert "USER=teknium" in result
+        assert "USER=alice" in result
 
 
 class TestSecretCapturePayloadRedaction:

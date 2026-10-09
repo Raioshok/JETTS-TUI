@@ -22,22 +22,24 @@ def _restore_stdout():
 @pytest.fixture()
 def server():
     with patch.dict("sys.modules", {
-        "freeide_constants": MagicMock(get_freeide_home=MagicMock(return_value="/tmp/freeide_test")),
-        "freeide_cli.env_loader": MagicMock(),
-        "freeide_cli.banner": MagicMock(),
-        "freeide_state": MagicMock(),
+        "jettstui_constants": MagicMock(get_jettstui_home=MagicMock(return_value="/tmp/jettstui_test")),
+        "jettstui.env_loader": MagicMock(),
+        "jettstui.banner": MagicMock(),
+        "jettstui_state": MagicMock(),
     }):
         import importlib
         mod = importlib.import_module("tui_gateway.server")
+        methods_before = mod._methods.copy()
         yield mod
         # Reset module-level session state without re-importing. importlib.reload
         # would re-register the module's atexit hooks (ThreadPoolExecutor
         # shutdown, _shutdown_sessions); the duplicates race the stderr
         # buffer at interpreter shutdown and surface as Fatal Python error:
         # _enter_buffered_busy. Clearing the per-session dicts gives the
-        # next test a clean slate; _methods is NOT cleared because it's
-        # populated at module import time and re-registration only happens
-        # via reload (which we don't do).
+        # next test a clean slate. Restore any test-specific handler overrides
+        # while retaining the import-time method registration.
+        mod._methods.clear()
+        mod._methods.update(methods_before)
         mod._sessions.clear()
         mod._pending.clear()
         mod._answers.clear()
@@ -200,21 +202,21 @@ def test_write_json_skips_flush_when_disable_flush_true(monkeypatch):
 
 
 def test_disable_flush_env_var_actually_wires_to_module_constant(monkeypatch):
-    """End-to-end: setting `FREEIDE_TUI_GATEWAY_NO_FLUSH=1` and importing
+    """End-to-end: setting `JETTSTUI_TUI_GATEWAY_NO_FLUSH=1` and importing
     `tui_gateway.transport` fresh actually flips `_DISABLE_FLUSH` true.
 
     Reloads only the transport module — server.py is untouched so its
     atexit hooks/worker pool stay intact."""
     import importlib
 
-    monkeypatch.setenv("FREEIDE_TUI_GATEWAY_NO_FLUSH", "1")
+    monkeypatch.setenv("JETTSTUI_TUI_GATEWAY_NO_FLUSH", "1")
     transport_mod = importlib.reload(importlib.import_module("tui_gateway.transport"))
 
     try:
         assert transport_mod._DISABLE_FLUSH is True
     finally:
         # Restore the env-disabled state so other tests see the default.
-        monkeypatch.delenv("FREEIDE_TUI_GATEWAY_NO_FLUSH", raising=False)
+        monkeypatch.delenv("JETTSTUI_TUI_GATEWAY_NO_FLUSH", raising=False)
         importlib.reload(transport_mod)
 
 
@@ -1037,10 +1039,10 @@ def test_session_resume_reuses_live_agent_after_compression_rotation(server, mon
 def test_sync_session_key_after_compress_reanchors_active_session_lease(
     server, monkeypatch, tmp_path
 ):
-    home = tmp_path / ".freeide"
-    monkeypatch.setenv("FREEIDE_HOME", str(home))
+    home = tmp_path / ".jettstui"
+    monkeypatch.setenv("JETTSTUI_HOME", str(home))
 
-    from freeide_cli.active_sessions import (
+    from jettstui.active_sessions import (
         active_session_registry_snapshot,
         try_acquire_active_session,
     )
@@ -1464,7 +1466,7 @@ def test_make_agent_accepts_list_system_prompt(server, monkeypatch):
     monkeypatch.setitem(sys.modules, "run_agent", types.SimpleNamespace(AIAgent=_Agent))
     monkeypatch.setitem(
         sys.modules,
-        "freeide_cli.runtime_provider",
+        "jettstui.runtime_provider",
         types.SimpleNamespace(
             resolve_runtime_provider=lambda **_kwargs: {
                 "provider": "test",
@@ -1487,12 +1489,12 @@ def test_make_agent_accepts_list_system_prompt(server, monkeypatch):
 
 
 def test_config_load_missing(server, tmp_path):
-    server._freeide_home = tmp_path
+    server._jettstui_home = tmp_path
     assert server._load_cfg() == {}
 
 
 def test_config_roundtrip(server, tmp_path):
-    server._freeide_home = tmp_path
+    server._jettstui_home = tmp_path
     server._save_cfg({"model": "test/model"})
     assert server._load_cfg()["model"] == "test/model"
 
@@ -1522,6 +1524,56 @@ def test_cli_exec_allowed(server, argv):
 # ── slash.exec skill command interception ────────────────────────────
 
 
+@pytest.mark.parametrize(
+    ("command", "expected_params", "title_result", "expected_output"),
+    [
+        ("title", {"session_id": "title01"}, {"title": "Current", "session_key": "stored01"}, "Session ID: stored01\nTitle: Current"),
+        ("title New name", {"session_id": "title01", "title": "New name"}, {"title": "New name", "pending": False}, "Session title set: New name"),
+        ("title Draft", {"session_id": "title01", "title": "Draft"}, {"title": "Draft", "pending": True}, "Session title set: Draft (queued while session initializes)"),
+    ],
+)
+def test_slash_title_uses_live_session_rpc_without_worker(
+    server, monkeypatch, command, expected_params, title_result, expected_output
+):
+    sid = "title01"
+    server._sessions[sid] = {"session_key": "stored01", "agent": None, "slash_worker": None}
+    calls = []
+
+    def title_rpc(rid, params):
+        calls.append((rid, params))
+        return server._ok(rid, title_result)
+
+    monkeypatch.setitem(server._methods, "session.title", title_rpc)
+    monkeypatch.setattr(server, "_SlashWorker", lambda *_args, **_kwargs: pytest.fail("slash worker started"))
+
+    response = server.handle_request(
+        {"id": "rename", "method": "slash.exec", "params": {"session_id": sid, "command": command}}
+    )
+
+    assert response["result"]["output"] == expected_output
+    assert calls == [("rename", expected_params)]
+
+
+@pytest.mark.parametrize("command", ["model openai/test", "personality concise"])
+def test_busy_slash_mutation_rejected_before_worker(server, monkeypatch, command):
+    sid = "busy01"
+    server._sessions[sid] = {
+        "session_key": sid,
+        "agent": types.SimpleNamespace(model="old/model"),
+        "running": True,
+        "slash_worker": None,
+    }
+    monkeypatch.setattr(server, "_SlashWorker", lambda *_args, **_kwargs: pytest.fail("slash worker started"))
+    monkeypatch.setattr(server, "_session_uses_compute_host", lambda _session: False)
+
+    response = server.handle_request(
+        {"id": "busy", "method": "slash.exec", "params": {"session_id": sid, "command": command}}
+    )
+
+    assert response["error"]["code"] == 4009
+    assert "session busy" in response["error"]["message"]
+
+
 def test_slash_exec_rejects_skill_commands(server):
     """slash.exec must reject skill commands so the TUI falls through to command.dispatch."""
     # Register a mock session
@@ -1529,13 +1581,13 @@ def test_slash_exec_rejects_skill_commands(server):
     server._sessions[sid] = {"session_key": sid, "agent": None}
 
     # Mock scan_skill_commands to return a known skill
-    fake_skills = {"/freeide-agent-dev": {"name": "freeide-agent-dev", "description": "Dev workflow"}}
+    fake_skills = {"/jettstui-dev": {"name": "jettstui-dev", "description": "Dev workflow"}}
 
     with patch("agent.skill_commands.get_skill_commands", return_value=fake_skills):
         resp = server.handle_request({
             "id": "r1",
             "method": "slash.exec",
-            "params": {"command": "freeide-agent-dev", "session_id": sid},
+            "params": {"command": "jettstui-dev", "session_id": sid},
         })
 
     # Should return an error so the TUI's .catch() fires command.dispatch
@@ -1614,7 +1666,7 @@ def test_slash_exec_handles_plugin_commands_in_live_gateway(server):
     server._sessions[sid] = {"session_key": sid, "agent": None, "slash_worker": worker}
 
     with patch(
-        "freeide_cli.plugins.get_plugin_command_handler",
+        "jettstui.plugins.get_plugin_command_handler",
         lambda name: (lambda arg: f"plugin:{arg}") if name == "plugin-cmd" else None,
     ):
         resp = server.handle_request({
@@ -1644,7 +1696,7 @@ def test_slash_exec_plugin_lookup_failure_falls_back_to_worker(server):
     server._sessions[sid] = {"session_key": sid, "agent": None, "slash_worker": worker}
 
     with patch(
-        "freeide_cli.plugins.get_plugin_command_handler",
+        "jettstui.plugins.get_plugin_command_handler",
         side_effect=RuntimeError("discovery boom"),
     ):
         resp = server.handle_request({
@@ -1677,7 +1729,7 @@ def test_slash_exec_plugin_handler_error_returns_output(server):
     server._sessions[sid] = {"session_key": sid, "agent": None, "slash_worker": worker}
 
     with patch(
-        "freeide_cli.plugins.get_plugin_command_handler",
+        "jettstui.plugins.get_plugin_command_handler",
         lambda name: handler if name == "plugin-cmd" else None,
     ):
         resp = server.handle_request({
@@ -1964,7 +2016,7 @@ def test_command_dispatch_returns_skill_payload(server):
     sid = "test-session"
     server._sessions[sid] = {"session_key": sid}
 
-    fake_skills = {"/freeide-agent-dev": {"name": "freeide-agent-dev", "description": "Dev workflow"}}
+    fake_skills = {"/jettstui-dev": {"name": "jettstui-dev", "description": "Dev workflow"}}
     fake_msg = "Loaded skill content here"
 
     with patch("agent.skill_commands.scan_skill_commands", return_value=fake_skills), \
@@ -1972,14 +2024,14 @@ def test_command_dispatch_returns_skill_payload(server):
         resp = server.handle_request({
             "id": "r2",
             "method": "command.dispatch",
-            "params": {"name": "freeide-agent-dev", "session_id": sid},
+            "params": {"name": "jettstui-dev", "session_id": sid},
         })
 
     assert "error" not in resp
     result = resp["result"]
     assert result["type"] == "skill"
     assert result["message"] == fake_msg
-    assert result["name"] == "freeide-agent-dev"
+    assert result["name"] == "jettstui-dev"
 
 
 def test_command_dispatch_returns_custom_bundle_payload(server):
@@ -2037,7 +2089,7 @@ def test_command_dispatch_awaits_async_plugin_handler(server):
         return f"async:{arg}"
 
     with patch(
-        "freeide_cli.plugins.get_plugin_command_handler",
+        "jettstui.plugins.get_plugin_command_handler",
         lambda name: _handler if name == "async-cmd" else None,
     ):
         resp = server.handle_request({
@@ -2186,17 +2238,17 @@ def test_slow_completion_does_not_block_fast_handler(completion_method, server):
 
 
 def test_skin_live_switch_end_to_end(server, tmp_path, monkeypatch):
-    """Real config + skin files: activating a skin (as `freeide config set` does)
+    """Real config + skin files: activating a skin (as `jettstui config set` does)
     makes the per-tool reconcile broadcast skin.changed with the resolved palette.
     Exercises _load_cfg → _skin_sig → resolve_skin → _emit with no mocks in between."""
-    import freeide_cli.skin_engine as skin_engine
+    import jettstui.skin_engine as skin_engine
 
     (tmp_path / "skins").mkdir()
     (tmp_path / "skins" / "midnight.yaml").write_text(
         "name: midnight\ndescription: t\ncolors:\n  banner_title: '#00ffcc'\n  background: '#001010'\n"
     )
-    monkeypatch.setattr(skin_engine, "get_freeide_home", lambda: tmp_path)
-    monkeypatch.setattr(server, "_freeide_home", tmp_path)
+    monkeypatch.setattr(skin_engine, "get_jettstui_home", lambda: tmp_path)
+    monkeypatch.setattr(server, "_jettstui_home", tmp_path)
     monkeypatch.setattr(server, "_last_skin_sig", None, raising=False)
     server._cfg_cache = server._cfg_mtime = server._cfg_path = None
 
@@ -2208,7 +2260,7 @@ def test_skin_live_switch_end_to_end(server, tmp_path, monkeypatch):
     server._broadcast_skin_if_changed()
     emitted.clear()
 
-    # Activate midnight, as `freeide config set display.skin midnight` would.
+    # Activate midnight, as `jettstui config set display.skin midnight` would.
     time.sleep(0.01)  # ensure the config mtime moves
     (tmp_path / "config.yaml").write_text("display:\n  skin: midnight\n")
     server._broadcast_skin_if_changed()

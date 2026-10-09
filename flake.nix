@@ -1,5 +1,5 @@
 {
-  description = "FreeIDE Agent - AI agent framework by FreeIDE";
+  description = "JettsTUI - AI agent framework by JettsTUI";
 
   inputs = {
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";

@@ -12,7 +12,7 @@
 import type { AppendMessage, ThreadMessage } from '@assistant-ui/react'
 
 import type { ClientSessionState } from '@/app/types'
-import { PROMPT_SUBMIT_REQUEST_TIMEOUT_MS } from '@/freeide'
+import { PROMPT_SUBMIT_REQUEST_TIMEOUT_MS } from '@/jettstui'
 import { branchGroupForUser, type ChatMessage, chatMessageText, textPart } from '@/lib/chat-messages'
 
 import {

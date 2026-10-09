@@ -5,9 +5,9 @@ import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
 import { Input } from '@/components/ui/input'
 import { Progress } from '@/components/ui/progress'
-import { getGlobalModelOptions } from '@/freeide'
 import { useI18n } from '@/i18n'
-import { Check, ChevronDown, ChevronLeft, KeyRound, Loader2 } from '@/lib/icons'
+import { getGlobalModelOptions } from '@/jettstui'
+import { Check, ChevronLeft, KeyRound, Loader2 } from '@/lib/icons'
 import { isProviderSetupErrorMessage } from '@/lib/provider-setup-errors'
 import { cn } from '@/lib/utils'
 import { $desktopBoot, type DesktopBootState } from '@/store/boot'
@@ -26,11 +26,10 @@ import {
   setOnboardingMode,
   startProviderOAuth
 } from '@/store/onboarding'
-import type { ModelOptionProvider, OAuthProvider } from '@/types/freeide'
+import type { ModelOptionProvider, OAuthProvider } from '@/types/jettstui'
 
 import { DocsLink, FlowPanel, Status } from './flow'
 import {
-  FeaturedProviderRow,
   FireworksProviderRow,
   OpenRouterProviderRow,
   ProviderRow,
@@ -38,7 +37,6 @@ import {
 } from './providers'
 
 export {
-  FeaturedProviderRow,
   FireworksProviderRow,
   KeyProviderRow,
   OpenRouterProviderRow,
@@ -64,8 +62,7 @@ export interface ApiKeyOption {
   short?: string
 }
 
-// Curated order mirrors CANONICAL_PROVIDERS: Fireworks sits #2 overall (after
-// FreeIDE Portal OAuth), ahead of OpenRouter and the rest of the key catalog.
+// Curated key providers remain visible alongside available OAuth providers.
 const API_KEY_OPTIONS: ApiKeyOption[] = [
   {
     id: 'fireworks',
@@ -101,13 +98,13 @@ const API_KEY_OPTIONS: ApiKeyOption[] = [
     id: 'local',
     name: 'Local / custom endpoint',
     envKey: 'OPENAI_BASE_URL',
-    docsUrl: 'https://github.com/freeide/freeide#bring-your-own-endpoint',
+    docsUrl: 'https://github.com/Raioshok/JETTS-TUI/blob/main/docs/integrations/providers.md',
     placeholder: 'http://127.0.0.1:8000/v1'
   }
 ]
 
 // Build the FULL API-key provider catalog from the backend model options so the
-// onboarding / Providers key form lists every `api_key` provider `freeide model`
+// onboarding / Providers key form lists every `api_key` provider `jettstui model`
 // knows about — not just the hand-curated five. Curated entries keep their
 // richer copy + placeholders and float to the top (recommended defaults); every
 // other api_key provider is appended with a generic "paste {KEY}" affordance.
@@ -314,7 +311,7 @@ export function DesktopOnboardingOverlay({
           'relative w-full max-w-[45rem] transition-all duration-500 ease-out',
           bare
             ? ''
-            : 'overflow-hidden rounded-xl border border-(--stroke-nous) bg-(--ui-chat-bubble-background) shadow-nous',
+            : 'overflow-hidden rounded-xl border border-(--stroke-float) bg-(--ui-chat-bubble-background) shadow-float',
           // Bare confirm screen orchestrates its own per-element exit; the
           // carded states use the simple lift/blur dissolve.
           leaving && !bare
@@ -399,31 +396,9 @@ function Header() {
   )
 }
 
-export const FEATURED_ID = 'nous'
-const SHOW_ALL_KEY = 'freeide-onboarding-show-all-v1'
-
-const readShowAll = () => {
-  try {
-    return window.localStorage.getItem(SHOW_ALL_KEY) === '1'
-  } catch {
-    return false
-  }
-}
-
-const persistShowAll = (value: boolean) => {
-  try {
-    window.localStorage.setItem(SHOW_ALL_KEY, value ? '1' : '0')
-  } catch {
-    // localStorage unavailable — degrade silently.
-  }
-
-  return value
-}
-
 export function Picker({ ctx }: { ctx: OnboardingContext }) {
   const { t } = useI18n()
   const { localEndpoint, manual, mode, providers } = useStore($desktopOnboarding)
-  const [showAll, setShowAll] = useState(readShowAll)
   // Which key-form option to preselect when we flip to 'apikey' mode. The
   // OpenRouter row selects its key; the generic link lands on the first option.
   const [apiKeyInitialEnv, setApiKeyInitialEnv] = useState<string | undefined>(undefined)
@@ -448,7 +423,9 @@ export function Picker({ ctx }: { ctx: OnboardingContext }) {
           canGoBack={hasOauth && !localEndpoint}
           initialEnvKey={localEndpoint ? 'OPENAI_BASE_URL' : apiKeyInitialEnv}
           onBack={() => setOnboardingMode('oauth')}
-          onSave={(envKey, value, name, apiKey) => saveOnboardingApiKey(envKey, value, name, ctx, apiKey)}
+          onSave={(envKey, value, name, providerSlug, apiKey) =>
+            saveOnboardingApiKey(envKey, value, name, ctx, apiKey, providerSlug)
+          }
           options={apiKeyOptions}
         />
         {manual ? null : (
@@ -465,40 +442,16 @@ export function Picker({ ctx }: { ctx: OnboardingContext }) {
   }
 
   const select = (p: OAuthProvider) => void startProviderOAuth(p, ctx)
-  const featured = ordered.find(p => p.id === FEATURED_ID) ?? null
-  const rest = featured ? ordered.filter(p => p.id !== FEATURED_ID) : ordered
-  // Collapse the secondary providers behind a disclosure only when FreeIDE
-  // Portal is present to anchor the choice — otherwise show the full list.
-  const collapsible = Boolean(featured) && rest.length > 0
-  const showRest = !collapsible || showAll
 
   return (
     <div className="grid gap-2">
       <div className="grid max-h-[60dvh] gap-2 overflow-y-auto p-1">
-        {featured ? <FeaturedProviderRow onSelect={select} provider={featured} /> : null}
-        {/* Slot #2 — always visible, matching CANONICAL_PROVIDERS (FreeIDE → Fireworks). */}
         <FireworksProviderRow onClick={() => openKeyForm('FIREWORKS_API_KEY')} />
-        {showRest ? (
-          <>
-            {rest.map(p => (
-              <ProviderRow key={p.id} onSelect={select} provider={p} />
-            ))}
-            <OpenRouterProviderRow onClick={() => openKeyForm('OPENROUTER_API_KEY')} />
-          </>
-        ) : null}
+        <OpenRouterProviderRow onClick={() => openKeyForm('OPENROUTER_API_KEY')} />
+        {ordered.map(p => (
+          <ProviderRow key={p.id} onSelect={select} provider={p} />
+        ))}
       </div>
-      {collapsible ? (
-        <Button
-          className="mt-1 self-center font-medium"
-          onClick={() => setShowAll(persistShowAll(!showAll))}
-          size="xs"
-          type="button"
-          variant="text"
-        >
-          {showAll ? t.onboarding.collapse : t.onboarding.otherProviders}
-          <ChevronDown className={cn('size-3.5 transition', showAll && 'rotate-180')} />
-        </Button>
-      ) : null}
       <div className="flex items-center justify-between gap-3 pt-1">
         {/* First run only: let the user defer the choice and land in the app.
             In manual mode the overlay already has a close affordance, so the
@@ -547,7 +500,13 @@ export function ApiKeyForm({
   isSet?: (envKey: string) => boolean
   onBack: () => void
   onClear?: (envKey: string) => void
-  onSave: (envKey: string, value: string, name: string, apiKey?: string) => Promise<{ message?: string; ok: boolean }>
+  onSave: (
+    envKey: string,
+    value: string,
+    name: string,
+    providerSlug: string,
+    apiKey?: string
+  ) => Promise<{ message?: string; ok: boolean }>
   options?: ApiKeyOption[]
   redactedValue?: (envKey: string) => null | string | undefined
 }) {
@@ -606,7 +565,7 @@ export function ApiKeyForm({
 
     setSaving(true)
     setError(null)
-    const result = await onSave(option.envKey, value, option.name, isLocal ? localKey : undefined)
+    const result = await onSave(option.envKey, value, option.name, option.id, isLocal ? localKey : undefined)
 
     if (result.ok) {
       setValue('')

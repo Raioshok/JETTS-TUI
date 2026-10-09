@@ -11,7 +11,7 @@ import pytest
 def test_slash_worker_accepts_profile_home():
     """_SlashWorker.__init__ accepts profile_home parameter."""
     with patch.dict("sys.modules", {
-        "freeide_constants": MagicMock(get_freeide_home=MagicMock(return_value="/tmp/freeide_test")),
+        "jettstui_constants": MagicMock(get_jettstui_home=MagicMock(return_value="/tmp/jettstui_test")),
     }):
         with patch("subprocess.Popen") as mock_popen:
             mock_popen.return_value.stdout = MagicMock()
@@ -23,22 +23,22 @@ def test_slash_worker_accepts_profile_home():
             worker = _SlashWorker(
                 session_key="test_key",
                 model="test-model",
-                profile_home="/home/luke/.freeide/profiles/work"
+                profile_home="/home/luke/.jettstui/profiles/work"
             )
             
             # Verify Popen was called
             assert mock_popen.called
             
-            # Check that FREEIDE_HOME was set in the environment
+            # Check that JETTSTUI_HOME was set in the environment
             call_kwargs = mock_popen.call_args[1]
             assert "env" in call_kwargs
-            assert call_kwargs["env"]["FREEIDE_HOME"] == "/home/luke/.freeide/profiles/work"
+            assert call_kwargs["env"]["JETTSTUI_HOME"] == "/home/luke/.jettstui/profiles/work"
 
 
 def test_slash_worker_without_profile_home():
     """_SlashWorker works without profile_home parameter (backward compatible)."""
     with patch.dict("sys.modules", {
-        "freeide_constants": MagicMock(get_freeide_home=MagicMock(return_value="/tmp/freeide_test")),
+        "jettstui_constants": MagicMock(get_jettstui_home=MagicMock(return_value="/tmp/jettstui_test")),
     }):
         with patch("subprocess.Popen") as mock_popen:
             mock_popen.return_value.stdout = MagicMock()
@@ -55,10 +55,10 @@ def test_slash_worker_without_profile_home():
             # Verify Popen was called
             assert mock_popen.called
             
-            # Check that FREEIDE_HOME was NOT overridden
+            # Check that JETTSTUI_HOME was NOT overridden
             call_kwargs = mock_popen.call_args[1]
             assert "env" in call_kwargs
-            # FREEIDE_HOME should be from parent env or undefined (inherited from os.environ)
+            # JETTSTUI_HOME should be from parent env or undefined (inherited from os.environ)
             # The key is that it's not explicitly set when profile_home is None
             env = call_kwargs["env"]
             # Verify env is a copy of os.environ
@@ -68,7 +68,7 @@ def test_slash_worker_without_profile_home():
 def test_slash_worker_with_none_profile_home():
     """_SlashWorker with explicit profile_home=None works."""
     with patch.dict("sys.modules", {
-        "freeide_constants": MagicMock(get_freeide_home=MagicMock(return_value="/tmp/freeide_test")),
+        "jettstui_constants": MagicMock(get_jettstui_home=MagicMock(return_value="/tmp/jettstui_test")),
     }):
         with patch("subprocess.Popen") as mock_popen:
             mock_popen.return_value.stdout = MagicMock()
@@ -86,11 +86,11 @@ def test_slash_worker_with_none_profile_home():
             # Verify Popen was called
             assert mock_popen.called
             
-            # Check that FREEIDE_HOME was NOT set
+            # Check that JETTSTUI_HOME was NOT set
             call_kwargs = mock_popen.call_args[1]
             env = call_kwargs["env"]
-            # When profile_home is None, FREEIDE_HOME should come from parent env only
-            if "FREEIDE_HOME" in env:
+            # When profile_home is None, JETTSTUI_HOME should come from parent env only
+            if "JETTSTUI_HOME" in env:
                 # This is from os.environ at test time, not from our code
                 pass
 
@@ -98,7 +98,7 @@ def test_slash_worker_with_none_profile_home():
 def test_slash_worker_inherits_argv_correctly():
     """_SlashWorker passes correct argv to Popen."""
     with patch.dict("sys.modules", {
-        "freeide_constants": MagicMock(get_freeide_home=MagicMock(return_value="/tmp/freeide_test")),
+        "jettstui_constants": MagicMock(get_jettstui_home=MagicMock(return_value="/tmp/jettstui_test")),
     }):
         with patch("subprocess.Popen") as mock_popen:
             mock_popen.return_value.stdout = MagicMock()

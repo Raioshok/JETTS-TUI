@@ -3,12 +3,12 @@ label: Matrix
 kind: platform
 version: 1.0.0
 description: >
-  Matrix gateway adapter for FreeIDE Agent.
+  Matrix gateway adapter for JettsTUI.
   Connects to a Matrix homeserver via mautrix (with optional E2EE) and relays
-  messages between Matrix rooms/DMs and the FreeIDE agent. Supports threads,
+  messages between Matrix rooms/DMs and the JettsTUI agent. Supports threads,
   HTML/markdown rendering, native media uploads, mention gating, free-response
   rooms, and per-room allowlists.
-author: freeide
+author: jettstui
 requires_env:
   - name: MATRIX_HOMESERVER
     description: "Matrix homeserver URL (e.g. https://matrix.org)"

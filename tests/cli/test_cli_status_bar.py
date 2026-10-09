@@ -4,11 +4,11 @@ from types import SimpleNamespace
 from unittest.mock import MagicMock, patch
 
 import cli as cli_mod
-from cli import FreeIDECLI
+from cli import JettsTUICLI
 
 
 def _make_cli(model: str = "anthropic/claude-sonnet-4-20250514"):
-    cli_obj = FreeIDECLI.__new__(FreeIDECLI)
+    cli_obj = JettsTUICLI.__new__(JettsTUICLI)
     cli_obj.model = model
     cli_obj.session_start = datetime.now() - timedelta(minutes=14, seconds=32)
     cli_obj.conversation_history = [{"role": "user", "content": "hi"}]
@@ -151,7 +151,7 @@ class TestCLIStatusBar:
 
         text = cli_obj._build_status_bar_text(width=60)
 
-        assert "⚕" in text
+        assert "claude-sonnet-4-20250514" in text
         assert "$0.06" not in text  # cost hidden by default
         assert "15m" in text
         assert "200K" not in text
@@ -161,7 +161,6 @@ class TestCLIStatusBar:
 
         text = cli_obj._build_status_bar_text(width=100)
 
-        assert "⚕" in text
         assert "claude-sonnet-4-20250514" in text
 
     def test_compression_count_shown_in_wide_status_bar(self):
@@ -238,7 +237,9 @@ class TestCLIStatusBar:
         assert cli_obj._compression_count_style(10) == "class:status-bar-bad"
         assert cli_obj._compression_count_style(25) == "class:status-bar-bad"
 
-    def test_compression_count_in_wide_fragments(self):
+    def test_compression_count_in_wide_fragments(self, monkeypatch):
+        # Flat bar under test; the default skin's powerline bar folds meta into one segment.
+        monkeypatch.setenv("JETTSTUI_POWERLINE", "0")
         cli_obj = _attach_agent(
             _make_cli(),
             prompt_tokens=10_230,
@@ -359,17 +360,17 @@ class TestCLIStatusBar:
         already printed Panel borders — that's a cosmetic artifact of
         stamped scrollback history, not a live-render bug.
         """
-        from cli import FreeIDECLI
+        from cli import JettsTUICLI
 
         # Floor at 32 — narrow terminals still get something usable
         # (avoids negative ``'─' * (w - 2)`` math).
-        assert FreeIDECLI._scrollback_box_width(20) == 32
-        assert FreeIDECLI._scrollback_box_width(32) == 32
+        assert JettsTUICLI._scrollback_box_width(20) == 32
+        assert JettsTUICLI._scrollback_box_width(32) == 32
         # Above the floor, return the actual viewport width — no cap.
-        assert FreeIDECLI._scrollback_box_width(48) == 48
-        assert FreeIDECLI._scrollback_box_width(80) == 80
-        assert FreeIDECLI._scrollback_box_width(120) == 120
-        assert FreeIDECLI._scrollback_box_width(200) == 200
+        assert JettsTUICLI._scrollback_box_width(48) == 48
+        assert JettsTUICLI._scrollback_box_width(80) == 80
+        assert JettsTUICLI._scrollback_box_width(120) == 120
+        assert JettsTUICLI._scrollback_box_width(200) == 200
 
     def test_agent_spacer_reclaimed_on_narrow_terminals(self):
         cli_obj = _make_cli()
@@ -406,7 +407,8 @@ class TestCLIStatusBar:
         # time went negative, the (t0 > 0) guard in _render_spinner_text
         # dropped the "(elapsed)" suffix entirely, and the split below hit an
         # IndexError. A fixed clock keeps both elapsed paths deterministic.
-        with patch.object(cli_mod.time, "monotonic", return_value=1000.0):
+        with patch.object(cli_mod.time, "monotonic", return_value=1000.0), \
+             patch.object(JettsTUICLI, "_studio_activity_enabled", return_value=False):
             # <60s path
             cli_obj._tool_start_time = 1000.0 - 9.2
             short = cli_obj._render_spinner_text()
@@ -633,18 +635,18 @@ class TestIdleSinceLastTurn:
     """Time-since-last-final-agent-response read-out on the status bar."""
 
     def test_hidden_before_first_turn(self):
-        assert FreeIDECLI._format_idle_since(None, turn_live=False) == ""
+        assert JettsTUICLI._format_idle_since(None, turn_live=False) == ""
 
     def test_hidden_while_turn_is_live(self):
-        assert FreeIDECLI._format_idle_since(time.time() - 30, turn_live=True) == ""
+        assert JettsTUICLI._format_idle_since(time.time() - 30, turn_live=True) == ""
 
     def test_shows_compact_idle_time_after_turn(self):
-        label = FreeIDECLI._format_idle_since(time.time() - 42, turn_live=False)
+        label = JettsTUICLI._format_idle_since(time.time() - 42, turn_live=False)
         assert label.startswith("✓ ")
         assert label == "✓ 42s"
 
     def test_scales_to_minutes(self):
-        label = FreeIDECLI._format_idle_since(time.time() - 3 * 60, turn_live=False)
+        label = JettsTUICLI._format_idle_since(time.time() - 3 * 60, turn_live=False)
         assert label == "✓ 3m"
 
     def test_snapshot_carries_idle_since(self):

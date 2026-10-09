@@ -1,6 +1,6 @@
 """Tests for the strict gateway command-line matcher.
 
-Regression guard for the Windows ``freeide gateway restart`` silent-outage bug:
+Regression guard for the Windows ``jettstui gateway restart`` silent-outage bug:
 the previous loose substring match (``"... gateway" in cmdline``) false-matched
 ``gateway status``/``dashboard`` siblings and unrelated processes such as
 ``python -m tui_gateway``, which let ``restart()`` race a still-draining old
@@ -18,35 +18,35 @@ from gateway.status import (
 
 
 ACCEPT = [
-    "pythonw.exe -m freeide_cli.main gateway run",
-    r"C:\Users\me\freeide\venv\Scripts\pythonw.exe -m freeide_cli.main gateway run",
-    "python -m freeide_cli.main --profile work gateway run",
-    "python -m freeide_cli.main gateway run --replace",
-    "python -m freeide_cli/main.py gateway run",
+    "pythonw.exe -m jettstui.main gateway run",
+    r"C:\Users\me\jettstui\venv\Scripts\pythonw.exe -m jettstui.main gateway run",
+    "python -m jettstui.main --profile work gateway run",
+    "python -m jettstui.main gateway run --replace",
+    "python -m jettstui/main.py gateway run",
     "python gateway/run.py",
-    "freeide-gateway.exe",
-    "freeide gateway",          # bare `freeide gateway` defaults to run
-    "freeide gateway run",
+    "jettstui-gateway.exe",
+    "jettstui gateway",          # bare `jettstui gateway` defaults to run
+    "jettstui gateway run",
     # profile selector AFTER the `gateway` token (argv is profile-position
     # agnostic — _apply_profile_override strips --profile/-p anywhere)
-    "freeide gateway --profile work run",
-    "python -m freeide_cli.main gateway -p work run",
-    "freeide gateway --profile=work run",
+    "jettstui gateway --profile work run",
+    "python -m jettstui.main gateway -p work run",
+    "jettstui gateway --profile=work run",
     # a profile literally NAMED "gateway"
-    "freeide -p gateway gateway run",
-    "python -m freeide_cli.main --profile gateway gateway run",
+    "jettstui -p gateway gateway run",
+    "python -m jettstui.main --profile gateway gateway run",
     # quoted Windows paths with spaces (shlex-aware tokenization)
-    r'"C:\Program Files\FreeIDE\freeide-gateway.exe"',
-    r'"C:\Program Files\FreeIDE\gateway\run.py" run',
-    r'"C:\Program Files\Py\pythonw.exe" -m freeide_cli.main gateway run',
+    r'"C:\Program Files\JettsTUI\jettstui-gateway.exe"',
+    r'"C:\Program Files\JettsTUI\gateway\run.py" run',
+    r'"C:\Program Files\Py\pythonw.exe" -m jettstui.main gateway run',
 ]
 
 REJECT = [
     "python -m tui_gateway",                              # unrelated module
-    "python -m freeide_cli.main gateway status",           # other subcommand
-    "python -m freeide_cli.main gateway restart",
-    "python -m freeide_cli.main gateway stop",
-    "python -m freeide_cli.main --profile x dashboard",    # non-gateway subcommand
+    "python -m jettstui.main gateway status",           # other subcommand
+    "python -m jettstui.main gateway restart",
+    "python -m jettstui.main gateway stop",
+    "python -m jettstui.main --profile x dashboard",    # non-gateway subcommand
     "some random python -m mygateway thing",
     "",
     None,
@@ -64,6 +64,6 @@ def test_rejects_non_gateway_run(cmd):
 
 
 def test_runtime_matcher_accepts_no_supervisor_restart_process():
-    assert matches("python -m freeide_cli.main gateway restart") is False
-    assert matches_runtime("python -m freeide_cli.main gateway restart") is True
-    assert matches_runtime("python -m freeide_cli.main gateway status") is False
+    assert matches("python -m jettstui.main gateway restart") is False
+    assert matches_runtime("python -m jettstui.main gateway restart") is True
+    assert matches_runtime("python -m jettstui.main gateway status") is False

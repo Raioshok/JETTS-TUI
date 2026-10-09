@@ -2,4 +2,4 @@ name: cerebras-provider
 kind: model-provider
 version: 1.0.0
 description: Cerebras
-author: FreeIDE
+author: JettsTUI

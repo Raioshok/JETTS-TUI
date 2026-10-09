@@ -1,4 +1,4 @@
-"""Tests for the ``/reload-skills`` CLI slash command (``FreeIDECLI._reload_skills``).
+"""Tests for the ``/reload-skills`` CLI slash command (``JettsTUICLI._reload_skills``).
 
 The CLI handler prints the diff (name + description) for the user and —
 when any skills were added or removed — queues a one-shot note on
@@ -12,10 +12,10 @@ from unittest.mock import patch
 
 
 def _make_cli():
-    """Build a minimal FreeIDECLI shell exposing ``_reload_skills``."""
+    """Build a minimal JettsTUICLI shell exposing ``_reload_skills``."""
     import cli as cli_mod
 
-    obj = object.__new__(cli_mod.FreeIDECLI)
+    obj = object.__new__(cli_mod.JettsTUICLI)
     obj._command_running = False
     obj.conversation_history = []
     obj.agent = None

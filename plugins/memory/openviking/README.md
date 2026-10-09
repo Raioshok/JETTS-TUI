@@ -7,7 +7,7 @@ Context database by Volcengine (ByteDance) with filesystem-style knowledge hiera
 - OpenViking installed with the `openviking-server` command available
 - OpenViking server config initialized and validated (`openviking-server init`,
   then `openviking-server doctor`)
-- OpenViking server running and reachable from FreeIDE
+- OpenViking server running and reachable from JettsTUI
 
 ## Setup
 
@@ -19,37 +19,37 @@ openviking-server doctor
 openviking-server
 ```
 
-Then configure FreeIDE:
+Then configure JettsTUI:
 
 ```bash
-freeide memory setup    # select "openviking"
+jettstui memory setup    # select "openviking"
 ```
 
 The setup can link to an existing `~/.openviking/ovcli.conf`, copy its current
-connection values into FreeIDE, or create a minimal `ovcli.conf` when one does
+connection values into JettsTUI, or create a minimal `ovcli.conf` when one does
 not exist.
 
 Or manually:
 
 ```bash
-freeide config set memory.provider openviking
+jettstui config set memory.provider openviking
 ```
 
 Add the connection settings to the active profile's `.env` file. For the
-default profile that is `~/.freeide/.env`; for a named profile use
-`~/.freeide/profiles/<profile>/.env`.
+default profile that is `~/.jettstui/.env`; for a named profile use
+`~/.jettstui/profiles/<profile>/.env`.
 
 ```text
 OPENVIKING_ENDPOINT=http://127.0.0.1:1933
 # OPENVIKING_API_KEY=...
 # OPENVIKING_ACCOUNT=default
 # OPENVIKING_USER=default
-# OPENVIKING_AGENT=freeide
+# OPENVIKING_AGENT=jettstui
 ```
 
 ## Config
 
-OpenViking's server config is separate from FreeIDE:
+OpenViking's server config is separate from JettsTUI:
 
 - `ov.conf` configures OpenViking storage, embedding/VLM models, auth, and
   server behavior. OpenViking reads it from `--config`,
@@ -58,7 +58,7 @@ OpenViking's server config is separate from FreeIDE:
   `account`, and `user`. It is read from `OPENVIKING_CLI_CONFIG_FILE` or
   `~/.openviking/ovcli.conf`.
 
-FreeIDE-side provider config is read from environment variables in the active
+JettsTUI-side provider config is read from environment variables in the active
 profile's `.env`:
 
 | Env Var | Default | Description |
@@ -67,11 +67,11 @@ profile's `.env`:
 | `OPENVIKING_API_KEY` | (none) | User/admin API key for authenticated servers |
 | `OPENVIKING_ACCOUNT` | `default` | Tenant account for local/trusted mode |
 | `OPENVIKING_USER` | `default` | Tenant user for local/trusted mode |
-| `OPENVIKING_AGENT` | `freeide` | FreeIDE peer ID in OpenViking, used for peer-scoped memories |
+| `OPENVIKING_AGENT` | `jettstui` | JettsTUI peer ID in OpenViking, used for peer-scoped memories |
 
-When `OPENVIKING_API_KEY` is set, FreeIDE lets OpenViking derive account/user
+When `OPENVIKING_API_KEY` is set, JettsTUI lets OpenViking derive account/user
 identity from the key. In local or trusted deployments without an API key,
-FreeIDE sends `OPENVIKING_ACCOUNT` and `OPENVIKING_USER` as identity headers.
+JettsTUI sends `OPENVIKING_ACCOUNT` and `OPENVIKING_USER` as identity headers.
 
 ## Tools
 
@@ -93,22 +93,22 @@ canonical user-scoped form such as
 `viking://user/default/peers/${OPENVIKING_AGENT}/memories/...` in API-key mode.
 Explicit remembers do not depend on session commit extraction.
 
-FreeIDE built-in `memory` tool additions are mirrored to OpenViking after the
+JettsTUI built-in `memory` tool additions are mirrored to OpenViking after the
 local memory operation succeeds:
 
-| FreeIDE action | OpenViking operation |
+| JettsTUI action | OpenViking operation |
 |---------------|----------------------|
 | `add` | `content/write` with `mode=create` under the configured peer memory namespace |
 
-Built-in `replace` and `remove` operations are not mirrored because FreeIDE
+Built-in `replace` and `remove` operations are not mirrored because JettsTUI
 native memory entries do not yet carry stable OpenViking file URIs. Use
 `viking_forget` when the user explicitly asks to delete a specific OpenViking
 memory URI.
 
 `viking_forget` is intentionally narrow. It only accepts concrete user memory
 file URIs, such as
-`viking://user/peers/freeide/memories/preferences/mem_abc123.md` or the canonical
-`viking://user/default/peers/freeide/memories/preferences/mem_abc123.md`. Files
+`viking://user/peers/jettstui/memories/preferences/mem_abc123.md` or the canonical
+`viking://user/default/peers/jettstui/memories/preferences/mem_abc123.md`. Files
 directly under `memories/`, such as `viking://user/default/memories/profile.md`,
 are also allowed because OpenViking supports them. The tool rejects directories,
 resources, skills, sessions, generated summary files, and URIs with query

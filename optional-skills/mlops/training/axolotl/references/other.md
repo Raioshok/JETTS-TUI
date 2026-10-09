@@ -3181,13 +3181,13 @@ axolotl train examples/llama-3/lora-1b.yml
 
 Example 3 (yaml):
 ```yaml
-base_model: freeide/Llama-3.2-1B
+base_model: jettstui/Llama-3.2-1B
 
 load_in_8bit: true
 adapter: lora
 
 datasets:
-  - path: teknium/GPT4-LLM-Cleaned
+  - path: tatsu-lab/alpaca
     type: alpaca
 dataset_prepared_path: last_run_prepared
 val_set_size: 0.1
@@ -3196,7 +3196,7 @@ output_dir: ./outputs/lora-out
 
 Example 4 (yaml):
 ```yaml
-base_model: freeide/Nous-FreeIDE-llama-1b-v1
+base_model: meta-llama/Llama-3.2-1B
 
 load_in_8bit: true
 adapter: lora

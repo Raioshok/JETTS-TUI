@@ -27,7 +27,7 @@ def load_module():
 
 def test_save_twilio_writes_env_and_state(tmp_path: Path, monkeypatch):
     mod = load_module()
-    monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / ".freeide"))
+    monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / ".jettstui"))
 
     result = mod.save_twilio(
         "AC123",
@@ -36,8 +36,8 @@ def test_save_twilio_writes_env_and_state(tmp_path: Path, monkeypatch):
         phone_sid="PN123",
     )
 
-    env_text = (tmp_path / ".freeide" / ".env").read_text(encoding="utf-8")
-    state = json.loads((tmp_path / ".freeide" / "telephony_state.json").read_text(encoding="utf-8"))
+    env_text = (tmp_path / ".jettstui" / ".env").read_text(encoding="utf-8")
+    state = json.loads((tmp_path / ".jettstui" / "telephony_state.json").read_text(encoding="utf-8"))
 
     assert result["success"] is True
     assert "TWILIO_ACCOUNT_SID=AC123" in env_text
@@ -198,8 +198,8 @@ def test_vapi_import_twilio_number_saves_phone_number_id(tmp_path: Path):
 
 def test_diagnose_includes_decision_tree_and_saved_state(tmp_path: Path, monkeypatch):
     mod = load_module()
-    freeide_home = tmp_path / ".freeide"
-    monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
+    jettstui_home = tmp_path / ".jettstui"
+    monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
     mod._save_state(
         {
             "version": 1,
@@ -211,10 +211,10 @@ def test_diagnose_includes_decision_tree_and_saved_state(tmp_path: Path, monkeyp
                 "phone_number_id": "vapi-abc",
             },
         },
-        freeide_home / "telephony_state.json",
+        jettstui_home / "telephony_state.json",
     )
-    (freeide_home / ".env").parent.mkdir(parents=True, exist_ok=True)
-    (freeide_home / ".env").write_text(
+    (jettstui_home / ".env").parent.mkdir(parents=True, exist_ok=True)
+    (jettstui_home / ".env").write_text(
         "TWILIO_ACCOUNT_SID=AC123\nTWILIO_AUTH_TOKEN=token\nBLAND_API_KEY=bland\n",
         encoding="utf-8",
     )

@@ -16,16 +16,14 @@
  *
  * Detection is backend-only (`agent/error_classifier.py` →
  * `FailoverReason.billing`), so every surface renders from this one signal and
- * never re-classifies free-form error text. `is_nous` routes recovery: Nous is
- * the managed route with in-app billing (desktop Settings → Billing, TUI
- * `/topup`), while third-party providers deep-link to `billing_url`.
+ * never re-classifies free-form error text. Providers deep-link to
+ * `billing_url` when they report one; otherwise the UI offers a provider switch.
  */
 export interface BillingBlock {
   provider: string
   provider_label: string
   model: string
   billing_url: string | null
-  is_nous: boolean
   message: string
 }
 

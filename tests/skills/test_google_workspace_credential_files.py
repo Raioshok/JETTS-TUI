@@ -43,10 +43,10 @@ class TestGoogleWorkspaceCredentialFiles:
         )
 
     def test_entries_are_registered_when_files_exist(self, tmp_path):
-        freeide_home = tmp_path / ".freeide"
-        freeide_home.mkdir()
-        (freeide_home / "google_token.json").write_text("{}")
-        (freeide_home / "google_client_secret.json").write_text("{}")
+        jettstui_home = tmp_path / ".jettstui"
+        jettstui_home.mkdir()
+        (jettstui_home / "google_token.json").write_text("{}")
+        (jettstui_home / "google_client_secret.json").write_text("{}")
 
         from tools.credential_files import (
             clear_credential_files,
@@ -60,22 +60,22 @@ class TestGoogleWorkspaceCredentialFiles:
             fm = _parse_frontmatter(content)
             entries = fm.get("required_credential_files", [])
 
-            with patch.dict(os.environ, {"FREEIDE_HOME": str(freeide_home)}):
+            with patch.dict(os.environ, {"JETTSTUI_HOME": str(jettstui_home)}):
                 missing = register_credential_files(entries)
 
             assert missing == [], f"Unexpected missing files: {missing}"
             mounts = get_credential_file_mounts()
             container_paths = {m["container_path"] for m in mounts}
-            assert "/root/.freeide/google_token.json" in container_paths
-            assert "/root/.freeide/google_client_secret.json" in container_paths
+            assert "/root/.jettstui/google_token.json" in container_paths
+            assert "/root/.jettstui/google_client_secret.json" in container_paths
         finally:
             clear_credential_files()
 
     def test_missing_token_is_reported(self, tmp_path):
         """google_token.json absent (first-time setup) — reported as missing, client secret still mounts."""
-        freeide_home = tmp_path / ".freeide"
-        freeide_home.mkdir()
-        (freeide_home / "google_client_secret.json").write_text("{}")
+        jettstui_home = tmp_path / ".jettstui"
+        jettstui_home.mkdir()
+        (jettstui_home / "google_client_secret.json").write_text("{}")
 
         from tools.credential_files import (
             clear_credential_files,
@@ -89,13 +89,13 @@ class TestGoogleWorkspaceCredentialFiles:
             fm = _parse_frontmatter(content)
             entries = fm.get("required_credential_files", [])
 
-            with patch.dict(os.environ, {"FREEIDE_HOME": str(freeide_home)}):
+            with patch.dict(os.environ, {"JETTSTUI_HOME": str(jettstui_home)}):
                 missing = register_credential_files(entries)
 
             assert "google_token.json" in missing
             mounts = get_credential_file_mounts()
             container_paths = {m["container_path"] for m in mounts}
-            assert "/root/.freeide/google_client_secret.json" in container_paths
-            assert "/root/.freeide/google_token.json" not in container_paths
+            assert "/root/.jettstui/google_client_secret.json" in container_paths
+            assert "/root/.jettstui/google_token.json" not in container_paths
         finally:
             clear_credential_files()

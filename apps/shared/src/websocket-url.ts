@@ -42,7 +42,7 @@ export async function resolveGatewayWsUrl(deps: ResolveGatewayWsUrlDeps, conn: G
 
   if (conn.authMode === 'oauth') {
     if (!mint) {
-      throw new Error('This Desktop build cannot refresh OAuth WebSocket tickets. Update FreeIDE Desktop and try again.')
+      throw new Error('This Desktop build cannot refresh OAuth WebSocket tickets. Update JettsTUI Desktop and try again.')
     }
 
     try {
@@ -95,7 +95,7 @@ export async function resolveGatewayWsUrl(deps: ResolveGatewayWsUrlDeps, conn: G
 
 export type WebSocketAuthParam = readonly [name: string, value: string]
 
-export interface FreeIDEWebSocketUrlOptions {
+export interface JettsTUIWebSocketUrlOptions {
   /** Dashboard or gateway-relative endpoint path, e.g. "/api/ws". */
   path: string
   /** Optional URL prefix when the backend is reverse-proxied below a subpath. */
@@ -132,7 +132,7 @@ function normalizeEndpointPath(path: string): string {
   return path.startsWith('/') ? path : `/${path}`
 }
 
-export function buildFreeIDEWebSocketUrl(options: FreeIDEWebSocketUrlOptions): string {
+export function buildJettsTUIWebSocketUrl(options: JettsTUIWebSocketUrlOptions): string {
   const loc = readWindowLocation()
   const protocol = options.protocol ?? loc.protocol
   const host = options.host ?? loc.host

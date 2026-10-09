@@ -13,8 +13,10 @@ and the gateway 404'd at ``send_photo`` time.
 from __future__ import annotations
 
 import http.server
+import os
 import socketserver
 import threading
+from pathlib import Path
 
 import pytest
 
@@ -75,14 +77,14 @@ class _TinyImageHandler(http.server.BaseHTTPRequestHandler):
 
 @pytest.fixture
 def http_server(tmp_path, monkeypatch):
-    """Spin up a localhost HTTP server and isolate FREEIDE_HOME under tmp_path."""
-    monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / ".freeide"))
-    (tmp_path / ".freeide").mkdir()
+    """Spin up a localhost HTTP server and isolate JETTSTUI_HOME under tmp_path."""
+    monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / ".jettstui"))
+    (tmp_path / ".jettstui").mkdir()
 
-    # Force the constants/image cache helpers to re-read FREEIDE_HOME.
+    # Force the constants/image cache helpers to re-read JETTSTUI_HOME.
     import sys
     for mod in list(sys.modules):
-        if mod.startswith("freeide_constants") or mod.startswith("agent.image_gen_provider"):
+        if mod.startswith("jettstui_constants") or mod.startswith("agent.image_gen_provider"):
             sys.modules.pop(mod, None)
 
     httpd = socketserver.TCPServer(("127.0.0.1", 0), _TinyImageHandler)
@@ -94,7 +96,7 @@ def http_server(tmp_path, monkeypatch):
 
 
 class TestSaveUrlImage:
-    def test_writes_real_bytes_to_freeide_home_cache(self, http_server):
+    def test_writes_real_bytes_to_jettstui_home_cache(self, http_server):
         base, _ = http_server
         from agent.image_gen_provider import save_url_image
 
@@ -102,9 +104,9 @@ class TestSaveUrlImage:
 
         assert path.exists()
         assert path.read_bytes() == PNG_1PX
-        # The cache directory must be under FREEIDE_HOME — gateway cleanup
+        # The cache directory must be under JETTSTUI_HOME — gateway cleanup
         # relies on this being the canonical location.
-        assert "cache/images" in str(path)
+        assert path.parent == Path(os.environ["JETTSTUI_HOME"]) / "cache" / "images"
         assert path.suffix == ".png"
 
     def test_extension_inferred_from_content_type(self, http_server):

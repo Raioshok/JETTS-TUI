@@ -8,9 +8,9 @@ import { SearchField } from '@/components/ui/search-field'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import { ResponsiveTabs } from '@/components/ui/tab-dropdown'
 import { Tip } from '@/components/ui/tooltip'
-import { getActionStatus, getLogs, getStatus, getUsageAnalytics, restartGateway, updateFreeIDE } from '@/freeide'
-import type { ActionStatusResponse, AnalyticsResponse, StatusResponse } from '@/freeide'
 import { useI18n } from '@/i18n'
+import { getActionStatus, getLogs, getStatus, getUsageAnalytics, restartGateway, updateJettsTUI } from '@/jettstui'
+import type { ActionStatusResponse, AnalyticsResponse, StatusResponse } from '@/jettstui'
 import { sessionTitle } from '@/lib/chat-runtime'
 import { compactNumber } from '@/lib/format'
 import {
@@ -242,7 +242,7 @@ export function CommandCenterView({ initialSection, onClose, onDeleteSession, on
 
   const sessionListHasResults = filteredSessions.length > 0
 
-  // Client-side substring filter over the fetched tail (matches `freeide logs --search`).
+  // Client-side substring filter over the fetched tail (matches `jettstui logs --search`).
   const visibleLogs = useMemo(() => {
     const needle = logQuery.trim().toLowerCase()
 
@@ -258,7 +258,7 @@ export function CommandCenterView({ initialSection, onClose, onDeleteSession, on
       setSystemError('')
 
       try {
-        const started = kind === 'restart' ? await restartGateway() : await updateFreeIDE()
+        const started = kind === 'restart' ? await restartGateway() : await updateJettsTUI()
         let nextStatus: ActionStatusResponse | null = null
 
         for (let attempt = 0; attempt < 18; attempt += 1) {
@@ -424,7 +424,7 @@ export function CommandCenterView({ initialSection, onClose, onDeleteSession, on
                           </span>
                         </div>
                         <div className="mt-1 text-[length:var(--conversation-caption-font-size)] text-(--ui-text-tertiary)">
-                          {cc.freeideActiveSessions(status.version, status.active_sessions)}
+                          {cc.jettstuiActiveSessions(status.version, status.active_sessions)}
                         </div>
                       </div>
                       <div className="flex shrink-0 flex-wrap items-center gap-x-3 gap-y-1 whitespace-nowrap max-[47.5rem]:whitespace-normal">
@@ -432,7 +432,7 @@ export function CommandCenterView({ initialSection, onClose, onDeleteSession, on
                           {cc.restartGateway}
                         </Button>
                         <Button onClick={() => void runSystemAction('update')} size="xs" variant="textStrong">
-                          {cc.updateFreeIDE}
+                          {cc.updateJettsTUI}
                         </Button>
                       </div>
                     </div>

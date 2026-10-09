@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { PageLoader } from '@/components/page-loader'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { useI18n } from '@/i18n'
 import {
   type ActionResponse,
   type CuratorStatusResponse,
@@ -18,13 +19,12 @@ import {
   runDoctor,
   runSecurityAudit,
   setCuratorPaused
-} from '@/freeide'
-import { useI18n } from '@/i18n'
+} from '@/jettstui'
 import { AlertCircle } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { upsertDesktopActionTask } from '@/store/activity'
 import { notify, notifyError } from '@/store/notifications'
-import type { ActionStatusResponse } from '@/types/freeide'
+import type { ActionStatusResponse } from '@/types/jettstui'
 
 const ACTION_POLL_MS = 1200
 const ACTION_POLL_LIMIT = 240 // ~5 minutes of polling before giving up.
@@ -45,7 +45,7 @@ function formatBytes(size: number): string {
   return `${size} B`
 }
 
-/** Maintenance panel — desktop parity for `freeide doctor` / `security audit` /
+/** Maintenance panel — desktop parity for `jettstui doctor` / `security audit` /
  *  `backup` / `debug share` / `curator` / `memory` (the dashboard System page's
  *  ops section). Spawn-based actions tail their logs inline via the shared
  *  /api/actions status endpoint. */
@@ -236,7 +236,7 @@ export function MaintenancePanel() {
                 </span>
                 <Button
                   onClick={() => {
-                    void window.freeideDesktop.writeClipboard(url)
+                    void window.jettstuiDesktop.writeClipboard(url)
                     notify({ durationMs: 1500, kind: 'success', message: mm.linkCopied })
                   }}
                   size="xs"

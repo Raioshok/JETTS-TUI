@@ -1,6 +1,6 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Jetts-TUI",
+  "productName": "JettsTUI",
   "version": "0.0.1",
   "identifier": "com.jetts.tui.setup",
   "build": {
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Jetts-TUI",
+        "title": "JettsTUI",
         "width": 880,
         "height": 620,
         "minWidth": 720,
@@ -34,10 +34,10 @@
   "bundle": {
     "active": true,
     "category": "DeveloperTool",
-    "shortDescription": "Jetts-TUI",
-    "longDescription": "Installs Jetts-TUI on your machine. Drives scripts/install.ps1 (Windows) and scripts/install.sh (macOS/Linux).",
-    "publisher": "Jetts-TUI",
-    "copyright": "Copyright © 2025 Nous Research",
+    "shortDescription": "JettsTUI",
+    "longDescription": "Installs JettsTUI on your machine. Drives scripts/install.ps1 (Windows) and scripts/install.sh (macOS/Linux).",
+    "publisher": "JettsTUI",
+    "copyright": "Copyright © 2026 JettsTUI contributors",
     "targets": [
       "app",
       "dmg",

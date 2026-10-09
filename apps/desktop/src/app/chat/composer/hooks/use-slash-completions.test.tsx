@@ -2,7 +2,7 @@ import type { Unstable_TriggerItem } from '@assistant-ui/core'
 import { act, cleanup, render } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
-import type { FreeIDEGateway } from '@/freeide'
+import type { JettsTUIGateway } from '@/jettstui'
 import { queryClient } from '@/lib/query-client'
 import { invalidateSlashCompletions } from '@/lib/slash-completion-cache'
 
@@ -18,7 +18,7 @@ const CATALOG = {
   ]
 }
 
-function harness(gateway: FreeIDEGateway) {
+function harness(gateway: JettsTUIGateway) {
   const api: { search?: (query: string) => readonly Unstable_TriggerItem[] } = {}
 
   function Probe() {
@@ -56,7 +56,7 @@ afterEach(() => {
 describe('useSlashCompletions', () => {
   it('serves the bare-slash catalog from cache instead of re-requesting it', async () => {
     const request = vi.fn().mockResolvedValue(CATALOG)
-    const api = harness({ request } as unknown as FreeIDEGateway)
+    const api = harness({ request } as unknown as JettsTUIGateway)
 
     await completions(api, '')
     expect(request).toHaveBeenCalledTimes(1)
@@ -74,7 +74,7 @@ describe('useSlashCompletions', () => {
 
   it('offers skill commands on a bare slash, not just built-ins', async () => {
     const request = vi.fn().mockResolvedValue(CATALOG)
-    const api = harness({ request } as unknown as FreeIDEGateway)
+    const api = harness({ request } as unknown as JettsTUIGateway)
 
     const items = await completions(api, '')
     const work = items.find(item => (item.metadata as { command?: string })?.command === '/work')
@@ -89,7 +89,7 @@ describe('useSlashCompletions', () => {
   // inline popover empty. Asserted through isSkillItem, the real predicate.
   it('leaves only skills for a mid-message slash', async () => {
     const request = vi.fn().mockResolvedValue(CATALOG)
-    const api = harness({ request } as unknown as FreeIDEGateway)
+    const api = harness({ request } as unknown as JettsTUIGateway)
 
     const inline = (await completions(api, '')).filter(isSkillItem)
 

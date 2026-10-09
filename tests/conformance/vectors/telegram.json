@@ -1,7 +1,7 @@
 {
-  "$comment": "GENERATED — do not hand-edit. Regenerate with freeide-agent scripts/generate_conformance_vectors.py; the native renderers are the oracle (executable spec).",
+  "$comment": "GENERATED — do not hand-edit. Regenerate with jettstui scripts/generate_conformance_vectors.py; the native renderers are the oracle (executable spec).",
   "oracle": {
-    "repo": "freeide/freeide",
+    "repo": "jettstui/jettstui",
     "commit": "40eebc7d70f3d8e95c429c8aa482f31ba6c867f6",
     "generator": "scripts/generate_conformance_vectors.py",
     "generator_version": 1
@@ -47,8 +47,8 @@
       "id": "inline-code",
       "category": "grid",
       "expect": "semantic",
-      "input": "Run `pip install freeide` to start.",
-      "native_output": "Run `pip install freeide` to start\\."
+      "input": "Run `pip install jettstui` to start.",
+      "native_output": "Run `pip install jettstui` to start\\."
     },
     {
       "id": "fenced-code",

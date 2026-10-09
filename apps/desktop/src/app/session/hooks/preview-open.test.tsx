@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { assistantTextPart, type ChatMessage } from '@/lib/chat-messages'
 import { $previewTabs, $previewTarget, closeRightRail, type PreviewTarget } from '@/store/preview'
 import { $activeSessionId, $currentCwd, $messages, $selectedStoredSessionId } from '@/store/session'
-import type { RpcEvent } from '@/types/freeide'
+import type { RpcEvent } from '@/types/jettstui'
 
 import { usePreviewRouting } from './use-preview-routing'
 
@@ -54,7 +54,7 @@ describe('open_preview', () => {
     closeRightRail()
     window.localStorage.clear()
 
-    Object.defineProperty(window, 'freeideDesktop', {
+    Object.defineProperty(window, 'jettstuiDesktop', {
       configurable: true,
       value: { normalizePreviewTarget: vi.fn(async (target: string) => fileTarget(target)) }
     })
@@ -153,7 +153,7 @@ describe('open_preview', () => {
     })
 
     expect($previewTabs.get()).toHaveLength(0)
-    expect(window.freeideDesktop.normalizePreviewTarget).not.toHaveBeenCalled()
+    expect(window.jettstuiDesktop.normalizePreviewTarget).not.toHaveBeenCalled()
   })
 
   it('does not open a preview off the back of a tool result', async () => {

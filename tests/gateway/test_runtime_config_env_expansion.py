@@ -15,12 +15,12 @@ def _write_config(home, body: str) -> None:
 
 @pytest.fixture
 def gateway_home(monkeypatch, tmp_path):
-    monkeypatch.setattr(gateway_run, "_freeide_home", tmp_path)
-    monkeypatch.delenv("FREEIDE_PREFILL_MESSAGES_FILE", raising=False)
-    monkeypatch.delenv("FREEIDE_EPHEMERAL_SYSTEM_PROMPT", raising=False)
-    monkeypatch.delenv("FREEIDE_GATEWAY_BUSY_INPUT_MODE", raising=False)
-    monkeypatch.delenv("FREEIDE_RESTART_DRAIN_TIMEOUT", raising=False)
-    monkeypatch.delenv("FREEIDE_BACKGROUND_NOTIFICATIONS", raising=False)
+    monkeypatch.setattr(gateway_run, "_jettstui_home", tmp_path)
+    monkeypatch.delenv("JETTSTUI_PREFILL_MESSAGES_FILE", raising=False)
+    monkeypatch.delenv("JETTSTUI_EPHEMERAL_SYSTEM_PROMPT", raising=False)
+    monkeypatch.delenv("JETTSTUI_GATEWAY_BUSY_INPUT_MODE", raising=False)
+    monkeypatch.delenv("JETTSTUI_RESTART_DRAIN_TIMEOUT", raising=False)
+    monkeypatch.delenv("JETTSTUI_BACKGROUND_NOTIFICATIONS", raising=False)
     return tmp_path
 
 

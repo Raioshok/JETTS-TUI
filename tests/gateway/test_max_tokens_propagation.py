@@ -6,7 +6,7 @@ free models, Ollama Cloud, custom OpenAI-compatible endpoints) truncated long
 generations with `finish_reason="length"`.
 
 Precedence verified here:
-    FREEIDE_MAX_TOKENS env  >  model.max_tokens  >  per-provider
+    JETTSTUI_MAX_TOKENS env  >  model.max_tokens  >  per-provider
     max_output_tokens  >  None
 """
 
@@ -20,30 +20,30 @@ import pytest
 
 @pytest.fixture
 def isolated_home(tmp_path, monkeypatch):
-    """Isolated FREEIDE_HOME with a writable config.yaml and a clean module cache.
+    """Isolated JETTSTUI_HOME with a writable config.yaml and a clean module cache.
 
-    These tests deliberately re-import ``freeide_cli`` / ``gateway`` so each
+    These tests deliberately re-import ``jettstui`` / ``gateway`` so each
     config write is read fresh. To avoid leaking that purge into sibling test
     files in the same worker (which breaks their import-time mocks), we snapshot
     the affected modules and restore them on teardown.
     """
-    freeide_home = tmp_path / ".freeide"
-    freeide_home.mkdir()
-    monkeypatch.setenv("FREEIDE_HOME", str(freeide_home))
-    monkeypatch.delenv("FREEIDE_MAX_TOKENS", raising=False)
+    jettstui_home = tmp_path / ".jettstui"
+    jettstui_home.mkdir()
+    monkeypatch.setenv("JETTSTUI_HOME", str(jettstui_home))
+    monkeypatch.delenv("JETTSTUI_MAX_TOKENS", raising=False)
 
     _saved = {
         k: v
         for k, v in sys.modules.items()
-        if k.startswith(("freeide_cli", "gateway"))
+        if k.startswith(("jettstui", "gateway"))
     }
 
     def write_cfg(body: str) -> None:
-        (freeide_home / "config.yaml").write_text(textwrap.dedent(body))
+        (jettstui_home / "config.yaml").write_text(textwrap.dedent(body))
 
     def fresh_gateway():
         for mod in list(sys.modules.keys()):
-            if mod.startswith(("freeide_cli", "gateway")):
+            if mod.startswith(("jettstui", "gateway")):
                 del sys.modules[mod]
         return importlib.import_module("gateway.run")
 
@@ -53,7 +53,7 @@ def isolated_home(tmp_path, monkeypatch):
         # Drop anything we (re)imported, then restore the pre-test snapshot so
         # the next test file sees the module objects it was loaded with.
         for k in list(sys.modules.keys()):
-            if k.startswith(("freeide_cli", "gateway")):
+            if k.startswith(("jettstui", "gateway")):
                 del sys.modules[k]
         sys.modules.update(_saved)
 
@@ -118,9 +118,9 @@ def test_global_max_tokens_beats_per_provider(isolated_home):
 
 
 def test_env_override_beats_everything(isolated_home, monkeypatch):
-    """FREEIDE_MAX_TOKENS is the internal override mechanism (highest priority)."""
+    """JETTSTUI_MAX_TOKENS is the internal override mechanism (highest priority)."""
     write_cfg, fresh_gateway = isolated_home
-    monkeypatch.setenv("FREEIDE_MAX_TOKENS", "2048")
+    monkeypatch.setenv("JETTSTUI_MAX_TOKENS", "2048")
     write_cfg(
         """
         model:
@@ -160,9 +160,9 @@ def test_lift_helper_accepts_alias_and_rejects_garbage(isolated_home):
     write_cfg, _ = isolated_home
     write_cfg("model:\n  provider: openrouter\n")
     for mod in list(sys.modules.keys()):
-        if mod.startswith("freeide_cli"):
+        if mod.startswith("jettstui"):
             del sys.modules[mod]
-    rp = importlib.import_module("freeide_cli.runtime_provider")
+    rp = importlib.import_module("jettstui.runtime_provider")
 
     out: dict = {}
     rp._lift_max_output_tokens({"max_output_tokens": 8192}, out)

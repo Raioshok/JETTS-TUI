@@ -5,7 +5,7 @@ import { allKeybindActions, defaultBindings, keybindAction, type KeybindBindings
 import { canonicalizeCombo } from '@/lib/keybinds/combo'
 import { arraysEqual, persistString, storedString } from '@/lib/storage'
 
-const STORAGE_KEY = 'freeide.desktop.keybinds'
+const STORAGE_KEY = 'jettstui.desktop.keybinds'
 
 // The user's raw stored overrides. Kept verbatim so an action CONTRIBUTED
 // after module init (plugins register late) still resolves its saved rebind —

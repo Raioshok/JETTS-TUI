@@ -187,7 +187,7 @@ test('shouldAttemptAclRepair only fires on evidence of trouble', () => {
 })
 
 test('sandbox marker round-trips through the userData file', () => {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'freeide-sandbox-marker-'))
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jettstui-sandbox-marker-'))
 
   try {
     assert.equal(sandboxMarkerPath(dir), path.join(dir, WINDOWS_SANDBOX_MARKER_FILENAME))
@@ -215,8 +215,8 @@ test('sandbox marker round-trips through the userData file', () => {
 })
 
 test('buildIcaclsGrantArgs targets ALL APPLICATION PACKAGES with inherited RX', () => {
-  assert.deepEqual(buildIcaclsGrantArgs('C:\\FreeIDE\\win-unpacked'), [
-    'C:\\FreeIDE\\win-unpacked',
+  assert.deepEqual(buildIcaclsGrantArgs('C:\\JettsTUI\\win-unpacked'), [
+    'C:\\JettsTUI\\win-unpacked',
     '/grant',
     `*${ALL_APPLICATION_PACKAGES_SID}:(OI)(CI)(RX)`,
     '/T',
@@ -230,7 +230,7 @@ test('grantAllApplicationPackagesAcl is a no-op off Windows and reports exec fai
 
   const calls: Array<{ file: string; args: readonly string[] }> = []
 
-  const ok = grantAllApplicationPackagesAcl('C:\\FreeIDE', {
+  const ok = grantAllApplicationPackagesAcl('C:\\JettsTUI', {
     platform: 'win32',
     execFileSync(file, args) {
       calls.push({ file, args })
@@ -242,9 +242,9 @@ test('grantAllApplicationPackagesAcl is a no-op off Windows and reports exec fai
   assert.deepEqual(ok, { ok: true })
   assert.equal(calls.length, 1)
   assert.equal(calls[0]?.file, 'icacls')
-  assert.deepEqual(calls[0]?.args, buildIcaclsGrantArgs('C:\\FreeIDE'))
+  assert.deepEqual(calls[0]?.args, buildIcaclsGrantArgs('C:\\JettsTUI'))
 
-  const failed = grantAllApplicationPackagesAcl('C:\\FreeIDE', {
+  const failed = grantAllApplicationPackagesAcl('C:\\JettsTUI', {
     platform: 'win32',
     execFileSync() {
       throw new Error('access denied')
@@ -358,9 +358,9 @@ test('renderer crash-loop relaunch requires the sandbox breakpoint signature', (
 })
 
 test('buildNoSandboxRelaunchArgs appends a single --no-sandbox flag', () => {
-  assert.deepEqual(buildNoSandboxRelaunchArgs(['--foo', '--no-sandbox', 'freeide://x']), [
+  assert.deepEqual(buildNoSandboxRelaunchArgs(['--foo', '--no-sandbox', 'jettstui://x']), [
     '--foo',
-    'freeide://x',
+    'jettstui://x',
     '--no-sandbox'
   ])
 })

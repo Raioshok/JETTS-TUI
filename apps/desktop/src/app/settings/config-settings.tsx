@@ -5,14 +5,14 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 
 import { Button } from '@/components/ui/button'
-import { getElevenLabsVoices, getFreeIDEConfigSchema, saveFreeIDEConfig } from '@/freeide'
 import { useI18n } from '@/i18n'
+import { getElevenLabsVoices, getJettsTUIConfigSchema, saveJettsTUIConfig } from '@/jettstui'
 import { $keepAwake, setKeepAwake } from '@/store/keep-awake'
 import { notify, notifyError } from '@/store/notifications'
 import { repoDiscoveryPolicyFromConfig, repoDiscoveryPolicySignature, scanAndRecordRepos } from '@/store/projects'
-import type { ConfigFieldSchema, FreeIDEConfigRecord } from '@/types/freeide'
+import type { ConfigFieldSchema, JettsTUIConfigRecord } from '@/types/jettstui'
 
-import { setFreeIDEConfigCache, useFreeIDEConfigRecord } from '../hooks/use-config-record'
+import { setJettsTUIConfigCache, useJettsTUIConfigRecord } from '../hooks/use-config-record'
 import { useOnProfileSwitch } from '../hooks/use-on-profile-switch'
 import { PanelEmpty } from '../overlays/panel'
 
@@ -28,7 +28,7 @@ import { QuickEntrySettings } from './quick-entry-settings'
 // provider — otherwise every provider's options render at once (the "totally
 // crazy" wall of ~30 fields). Top-level keys (tts.provider, stt.enabled,
 // voice.*) always show; STT provider fields hide entirely when STT is off.
-export function voiceFieldVisible(key: string, config: FreeIDEConfigRecord): boolean {
+export function voiceFieldVisible(key: string, config: JettsTUIConfigRecord): boolean {
   const match = /^(tts|stt)\.([^.]+)\./.exec(key)
 
   if (!match) {
@@ -61,16 +61,16 @@ export function ConfigSettings({
   // The editable draft is local (debounced autosave watches it), but it's seeded
   // from — and saved back through — the shared config cache, so edits are visible
   // in the MCP/model surfaces and reopening the page doesn't reload-flash.
-  const [config, setConfig] = useState<FreeIDEConfigRecord | null>(null)
-  const { data: loadedConfig, isError: configLoadFailed, refetch: refetchConfig } = useFreeIDEConfigRecord()
+  const [config, setConfig] = useState<JettsTUIConfigRecord | null>(null)
+  const { data: loadedConfig, isError: configLoadFailed, refetch: refetchConfig } = useJettsTUIConfigRecord()
 
   const {
     data: schemaResponse,
     isError: schemaFailed,
     refetch: refetchSchema
   } = useQuery({
-    queryKey: ['freeide-config-schema'],
-    queryFn: getFreeIDEConfigSchema,
+    queryKey: ['jettstui-config-schema'],
+    queryFn: getJettsTUIConfigSchema,
     staleTime: 5 * 60 * 1000
   })
 
@@ -139,7 +139,7 @@ export function ConfigSettings({
     const t = window.setTimeout(() => {
       void (async () => {
         try {
-          const result = await saveFreeIDEConfig(config)
+          const result = await saveJettsTUIConfig(config)
 
           if (!result.ok) {
             throw new Error(c.autosaveFailed)
@@ -147,7 +147,7 @@ export function ConfigSettings({
 
           // Mirror the saved record into the shared cache so MCP/model surfaces
           // reflect the edit without their own refetch.
-          setFreeIDEConfigCache(config)
+          setJettsTUIConfigCache(config)
 
           if (saveVersionRef.current === v) {
             const discoverySignature = repoDiscoveryPolicySignature(repoDiscoveryPolicyFromConfig(config))
@@ -171,7 +171,7 @@ export function ConfigSettings({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- copy is stable; avoid re-scheduling autosave on locale change
   }, [config, onConfigSaved, saveVersion])
 
-  const updateConfig = (next: FreeIDEConfigRecord) => {
+  const updateConfig = (next: JettsTUIConfigRecord) => {
     saveVersionRef.current += 1
     setConfig(next)
     setSaveVersion(saveVersionRef.current)

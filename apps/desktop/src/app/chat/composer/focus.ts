@@ -37,11 +37,11 @@ interface InsertRefsDetail {
   target: ComposerTarget
 }
 
-const FOCUS_EVENT = 'freeide:composer-focus'
-const INSERT_EVENT = 'freeide:composer-insert'
-const INSERT_REFS_EVENT = 'freeide:composer-insert-refs'
-const SUBMIT_EVENT = 'freeide:composer-submit'
-const VOICE_TOGGLE_EVENT = 'freeide:composer-voice-toggle'
+const FOCUS_EVENT = 'jettstui:composer-focus'
+const INSERT_EVENT = 'jettstui:composer-insert'
+const INSERT_REFS_EVENT = 'jettstui:composer-insert-refs'
+const SUBMIT_EVENT = 'jettstui:composer-submit'
+const VOICE_TOGGLE_EVENT = 'jettstui:composer-voice-toggle'
 
 interface SubmitDetail {
   target: ComposerTarget

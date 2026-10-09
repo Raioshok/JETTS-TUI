@@ -43,7 +43,7 @@ _TITLE_PROMPT_PINNED_LANGUAGE = (
 def _title_language() -> str:
     """Return configured title language, or empty string to match the user."""
     try:
-        from freeide_cli.config import load_config
+        from jettstui.config import load_config
 
         return str(
             ((load_config() or {}).get("auxiliary") or {})
@@ -58,9 +58,9 @@ def _auto_title_enabled() -> bool:
     """Return whether automatic session title generation is enabled."""
     try:
         # Lazy imports, matching _title_language(): title_generator is imported
-        # from agent code paths where a module-level freeide_cli import risks
+        # from agent code paths where a module-level jettstui import risks
         # circularity, and the read-only loader avoids config-migration writes.
-        from freeide_cli.config import load_config_readonly
+        from jettstui.config import load_config_readonly
         from utils import is_truthy_value
 
         config = load_config_readonly()
@@ -255,7 +255,7 @@ def auto_title_session(
     Never lets an exception escape: this is a daemon-thread target, and an
     escaping exception would spray a raw traceback into the user's terminal
     via the default threading excepthook. The canonical trigger is the
-    post-``freeide update`` stale-module window, where this function's lazy
+    post-``jettstui update`` stale-module window, where this function's lazy
     imports read NEW source from disk while already-cached modules
     (``agent.client_tags`` etc.) are still the OLD version — the resulting
     ImportError repeats on every auto-title attempt until the long-running
@@ -277,7 +277,7 @@ def auto_title_session(
         # names the likely cause so "restart the process" is discoverable.
         logger.warning(
             "Auto-title failed (harmless; if this started after an update, "
-            "restart the running FreeIDE process): %s",
+            "restart the running JettsTUI process): %s",
             e,
         )
         logger.debug("Auto-title traceback", exc_info=True)
@@ -312,8 +312,8 @@ def _auto_title_session(
 
     # This runs on a bare daemon thread spawned AFTER the turn's ambient
     # conversation context was reset, so publish it here from the session id
-    # we already hold — the title-generation LLM call then carries the same
-    # ``conversation=`` Portal tag as the turn it titles. Root-of-lineage for
+    # we already hold — the title-generation LLM call then uses the same
+    # provider cache-affinity key as the turn it titles. Root-of-lineage for
     # consistency with the agent loop (a no-op on first exchange, where
     # titling happens, but correct if this ever runs on a continuation).
     from agent.aux_accounting import set_accounting_context

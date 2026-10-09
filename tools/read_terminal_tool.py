@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read the in-app terminal pane in the FreeIDE desktop GUI.
+"""Read the in-app terminal pane in the JettsTUI desktop GUI.
 
 The embedded terminal's buffer lives in the desktop renderer (xterm.js), so this
 tool round-trips through the gateway's blocking-prompt bridge — the same one
@@ -23,7 +23,7 @@ def read_terminal_tool(
 ) -> str:
     """Return the in-app terminal's contents (+ line metadata) as a JSON string."""
     if callback is None:
-        return tool_error("read_terminal is only available in the FreeIDE desktop app.")
+        return tool_error("read_terminal is only available in the JettsTUI desktop app.")
 
     try:
         window = {
@@ -50,14 +50,14 @@ def read_terminal_tool(
 
 
 def check_read_terminal_requirements() -> bool:
-    """Desktop GUI only — FREEIDE_DESKTOP is set on the gateway the app spawns."""
-    return env_var_enabled("FREEIDE_DESKTOP")
+    """Desktop GUI only — JETTSTUI_DESKTOP is set on the gateway the app spawns."""
+    return env_var_enabled("JETTSTUI_DESKTOP")
 
 
 READ_TERMINAL_SCHEMA = {
     "name": "read_terminal",
     "description": (
-        "Read what's currently shown in the in-app terminal pane of the FreeIDE "
+        "Read what's currently shown in the in-app terminal pane of the JettsTUI "
         "desktop GUI (the embedded shell beside this chat). Call with no arguments "
         "to get the visible screen plus the total line count (`total_lines`). To "
         "page through scrollback, pass `start_line` (0 = oldest line) and `count`; "

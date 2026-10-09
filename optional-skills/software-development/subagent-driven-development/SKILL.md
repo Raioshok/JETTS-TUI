@@ -2,11 +2,11 @@
 name: subagent-driven-development
 description: "Execute plans via delegate_task subagents (2-stage review)."
 version: 1.1.0
-author: FreeIDE Agent (adapted from obra/superpowers)
+author: JettsTUI (adapted from obra/superpowers)
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
-  freeide:
+  jettstui:
     tags: [delegation, subagent, implementation, workflow, parallel]
     related_skills: [plan, requesting-code-review, test-driven-development]
 ---

@@ -50,16 +50,16 @@ export default function ProgressScreen({ bootstrap }: ProgressProps) {
   }, [bootstrap.status])
 
   const isUpdate = mode === 'update'
-  const title = bootstrap.status === 'completed' ? 'Done' : isUpdate ? 'Updating Jetts-TUI' : 'Setting up Jetts-TUI'
+  const title = bootstrap.status === 'completed' ? 'Done' : isUpdate ? 'Updating JettsTUI' : 'Setting up JettsTUI'
 
   const description = isUpdate
-    ? 'Jetts-TUI is updating to the latest version — this only takes a moment.'
-    : 'This is a one-time setup. The Jetts-TUI installer is downloading dependencies and configuring your machine. Subsequent launches will skip this step.'
+    ? 'JettsTUI is updating to the latest version — this only takes a moment.'
+    : 'This is a one-time setup. The JettsTUI installer is downloading dependencies and configuring your machine. Subsequent launches will skip this step.'
 
   const pct = Math.round(progress.fraction * 100)
 
   return (
-    <div className="freeide-fade-in flex h-full flex-col">
+    <div className="jettstui-fade-in flex h-full flex-col">
       {/* Header: brand + title + description, matching the desktop install overlay. */}
       <div className="flex shrink-0 items-start gap-4 px-6 pt-6 pb-4">
         <BrandMark className="size-11" />
@@ -126,8 +126,8 @@ export default function ProgressScreen({ bootstrap }: ProgressProps) {
         </div>
 
         {showLogs && (
-          <div className="flex w-1/2 flex-col border-l border-(--stroke-nous)">
-            <div className="flex shrink-0 items-center justify-between border-b border-(--stroke-nous) px-3 py-2 text-xs">
+          <div className="flex w-1/2 flex-col border-l border-(--stroke-float)">
+            <div className="flex shrink-0 items-center justify-between border-b border-(--stroke-float) px-3 py-2 text-xs">
               <span className="font-medium text-foreground/80">Live output</span>
               <span className="tabular-nums text-muted-foreground">{bootstrap.logs.length} lines</span>
             </div>
@@ -149,7 +149,7 @@ export default function ProgressScreen({ bootstrap }: ProgressProps) {
         )}
       </div>
 
-      <div className="flex shrink-0 items-center justify-between border-t border-(--stroke-nous) px-6 py-3">
+      <div className="flex shrink-0 items-center justify-between border-t border-(--stroke-float) px-6 py-3">
         <button
           className="inline-flex cursor-pointer items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-foreground"
           onClick={() => setShowLogs((v) => !v)}

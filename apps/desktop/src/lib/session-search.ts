@@ -1,5 +1,5 @@
 import { normalize } from '@/lib/text'
-import type { SessionInfo } from '@/types/freeide'
+import type { SessionInfo } from '@/types/jettstui'
 
 import { sessionTitle } from './chat-runtime'
 import { sessionSourceSearchTerms } from './session-source'

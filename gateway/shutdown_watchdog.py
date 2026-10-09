@@ -12,7 +12,7 @@ This module provides:
    completed within ``restart_drain_timeout + grace``, it dumps all-thread
    stacks via ``faulthandler`` plus a metadata snapshot, then ``os._exit`` so
    the service manager can revive the process.
-2. An event-loop heartbeat file at ``<FREEIDE_HOME>/state/gateway.heartbeat`` so
+2. An event-loop heartbeat file at ``<JETTSTUI_HOME>/state/gateway.heartbeat`` so
    external supervision can distinguish "process alive" from "loop frozen"
    (``gateway_state.json`` alone can't — it only rewrites on transitions/turns).
 3. A lifetime thread watchdog that can still diagnose and hard-exit when the
@@ -36,7 +36,7 @@ from pathlib import Path
 from typing import Any, Callable, Dict, Optional
 
 from gateway.restart import GATEWAY_SERVICE_RESTART_EXIT_CODE
-from freeide_constants import get_freeide_home
+from jettstui_constants import get_jettstui_home
 from utils import atomic_json_write
 
 logger = logging.getLogger(__name__)
@@ -201,23 +201,23 @@ def start_loop_liveness_watchdog(
     return _LoopLivenessWatchdogHandle(stop_event, thread)
 
 
-def _process_freeide_home() -> Path:
-    """FREEIDE_HOME for process-level identity files (ignore profile overrides)."""
-    val = os.environ.get("FREEIDE_HOME", "").strip()
+def _process_jettstui_home() -> Path:
+    """JETTSTUI_HOME for process-level identity files (ignore profile overrides)."""
+    val = os.environ.get("JETTSTUI_HOME", "").strip()
     if val:
         return Path(val)
-    return get_freeide_home()
+    return get_jettstui_home()
 
 
 def get_loop_heartbeat_path(home: Optional[Path] = None) -> Path:
-    """Return ``<FREEIDE_HOME>/state/gateway.heartbeat``."""
-    base = home if home is not None else _process_freeide_home()
+    """Return ``<JETTSTUI_HOME>/state/gateway.heartbeat``."""
+    base = home if home is not None else _process_jettstui_home()
     return base.joinpath(*_HEARTBEAT_RELATIVE)
 
 
 def get_shutdown_watchdog_dump_path(home: Optional[Path] = None) -> Path:
     """Return the faulthandler / metadata dump path for a fired watchdog."""
-    base = home if home is not None else _process_freeide_home()
+    base = home if home is not None else _process_jettstui_home()
     return base.joinpath(*_WATCHDOG_DUMP_RELATIVE)
 
 
@@ -387,7 +387,7 @@ def arm_shutdown_watchdog(
         except Exception:
             pass
         try:
-            from freeide_logging import drain_log_queue
+            from jettstui_logging import drain_log_queue
             drain_log_queue(timeout=1.0)
         except Exception:
             pass

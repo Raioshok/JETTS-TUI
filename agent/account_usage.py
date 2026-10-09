@@ -8,8 +8,8 @@ from typing import Any, Optional
 import httpx
 
 from agent.anthropic_adapter import _is_oauth_token, resolve_anthropic_token
-from freeide_cli.auth import AuthError, _read_codex_tokens, resolve_codex_runtime_credentials
-from freeide_cli.runtime_provider import resolve_runtime_provider
+from jettstui.auth import AuthError, _read_codex_tokens, resolve_codex_runtime_credentials
+from jettstui.runtime_provider import resolve_runtime_provider
 
 logger = logging.getLogger(__name__)
 
@@ -147,7 +147,7 @@ def _resolve_codex_usage_credentials(
     """Resolve Codex quota credentials from the native runtime path.
 
     Prefer explicit live-agent credentials, then the legacy singleton OAuth
-    state, then the credential pool.  FreeIDE's native OAuth setup now stores
+    state, then the credential pool.  JettsTUI's native OAuth setup now stores
     device-code logins in the pool, so quota diagnostics must not depend only
     on the older singleton store.
     """
@@ -307,7 +307,7 @@ def redeem_codex_reset_credit(
     except Exception:
         return CodexResetRedeemResult(
             status="unavailable",
-            message="No Codex credentials available. Run `freeide auth` to sign in with your ChatGPT account.",
+            message="No Codex credentials available. Run `jettstui auth` to sign in with your ChatGPT account.",
         )
     usage_url, _credits_url, consume_url = _codex_backend_urls(resolved_base_url)
     headers = {
@@ -373,7 +373,7 @@ def redeem_codex_reset_credit(
                 message=(
                     "Codex backend rejected the request (HTTP "
                     f"{code}). Reset credits require ChatGPT-account (OAuth) auth — "
-                    "run `freeide auth` and sign in with your ChatGPT account."
+                    "run `jettstui auth` and sign in with your ChatGPT account."
                 ),
             )
         return CodexResetRedeemResult(
@@ -393,10 +393,10 @@ def redeem_codex_reset_credit(
     plural = "s" if remaining != 1 else ""
     if code == "reset":
         # The redeemed reset restores the account's quota upstream — lift any
-        # persisted pool cooldowns so FreeIDE doesn't keep the credential
+        # persisted pool cooldowns so JettsTUI doesn't keep the credential
         # frozen behind the now-stale ``last_error_reset_at`` (issue #43747).
         try:
-            from freeide_cli.auth import clear_codex_pool_quota_cooldowns
+            from jettstui.auth import clear_codex_pool_quota_cooldowns
 
             clear_codex_pool_quota_cooldowns()
         except Exception:

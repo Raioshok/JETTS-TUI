@@ -1,7 +1,7 @@
 import type { Unstable_TriggerAdapter, Unstable_TriggerItem } from '@assistant-ui/core'
 import { type MutableRefObject, type RefObject, useCallback, useEffect, useRef, useState } from 'react'
 
-import { freeideDirectiveFormatter } from '@/components/assistant-ui/directive-text'
+import { jettstuiDirectiveFormatter } from '@/components/assistant-ui/directive-text'
 import { desktopSlashCommandArgumentMode } from '@/lib/desktop-slash-commands'
 
 import {
@@ -234,7 +234,7 @@ export function useComposerTrigger({
       return
     }
 
-    const serialized = freeideDirectiveFormatter.serialize(item)
+    const serialized = jettstuiDirectiveFormatter.serialize(item)
     const starter = serialized.endsWith(':')
 
     // Tab on a folder walks INTO it instead of committing it: re-type the

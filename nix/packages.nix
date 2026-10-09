@@ -1,4 +1,4 @@
-# nix/packages.nix — FreeIDE Agent package built with uv2nix
+# nix/packages.nix — JettsTUI package built with uv2nix
 { inputs, ... }:
 {
   perSystem =
@@ -9,7 +9,7 @@
       ...
     }:
     let
-      minimal = pkgs.callPackage ./freeide-agent.nix {
+      minimal = pkgs.callPackage ./jettstui.nix {
         inherit (inputs) uv2nix pyproject-nix pyproject-build-systems;
         npm-lockfile-fix = inputs'.npm-lockfile-fix.packages.default;
         # Only embed clean revs — dirtyRev doesn't represent any upstream
@@ -55,11 +55,11 @@
           extraDependencyGroups = [ "messaging" ];
         };
 
-        tui = full.freeideTui;
-        web = full.freeideWeb;
-        desktop = full.freeideDesktop;
+        tui = full.jettstuiTui;
+        web = full.jettstuiWeb;
+        desktop = full.jettstuiDesktop;
 
-        update-npm-lockfile = full.freeideNpmLib.updateNpmLockfile;
+        update-npm-lockfile = full.jettstuiNpmLib.updateNpmLockfile;
       };
     };
 }

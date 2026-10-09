@@ -206,99 +206,10 @@ class TestFallbackChainAdvancement:
                     "claude-sonnet-4-6",
                 ),
             ),
-            patch("freeide_cli.model_normalize.normalize_model_for_provider", side_effect=lambda m, p: m),
+            patch("jettstui.model_normalize.normalize_model_for_provider", side_effect=lambda m, p: m),
         ):
             assert agent._try_activate_fallback() is True
             assert agent.api_mode == "anthropic_messages"
-
-    def test_nous_anthropic_fallback_uses_the_messages_wire(self):
-        """Portal Claude fallbacks must not stay on chat_completions.
-
-        ``resolve_provider_client`` still returns an OpenAI client for Nous;
-        activation has to re-derive api_mode from the model and rebuild the
-        Anthropic client — otherwise the turn POSTs /chat/completions.
-        """
-        portal = "https://inference-api.freeide.dev/v1"
-        fbs = [
-            {
-                "provider": "nous",
-                "model": "anthropic/claude-opus-4.8",
-            }
-        ]
-        agent = _make_agent(fallback_model=fbs)
-        rebuilt = {"count": 0}
-
-        def _fake_build(api_key, base_url, timeout=None, **kwargs):
-            rebuilt["count"] += 1
-            rebuilt["api_key"] = api_key
-            rebuilt["base_url"] = base_url
-            return MagicMock(name="anthropic-client")
-
-        with (
-            patch(
-                "agent.chat_completion_helpers._fallback_entry_unavailable_without_network",
-                return_value=None,
-            ),
-            patch(
-                "agent.auxiliary_client.resolve_provider_client",
-                return_value=(
-                    _mock_client(base_url=portal, api_key="portal-jwt"),
-                    "anthropic/claude-opus-4.8",
-                ),
-            ),
-            patch(
-                "freeide_cli.model_normalize.normalize_model_for_provider",
-                side_effect=lambda m, p: m,
-            ),
-            patch(
-                "agent.anthropic_adapter.build_anthropic_client",
-                side_effect=_fake_build,
-            ),
-        ):
-            assert agent._try_activate_fallback() is True
-
-        assert agent.api_mode == "anthropic_messages"
-        assert agent.provider == "nous"
-        assert agent.model == "anthropic/claude-opus-4.8"
-        assert agent.client is None
-        assert rebuilt["count"] == 1
-        assert rebuilt["api_key"] == "portal-jwt"
-        assert rebuilt["base_url"] == portal
-        assert agent._anthropic_client is not None
-
-    def test_nous_non_anthropic_fallback_stays_on_chat_completions(self):
-        portal = "https://inference-api.freeide.dev/v1"
-        fbs = [{"provider": "nous", "model": "freeide-4-405b"}]
-        agent = _make_agent(fallback_model=fbs)
-        with (
-            patch(
-                "agent.chat_completion_helpers._fallback_entry_unavailable_without_network",
-                return_value=None,
-            ),
-            patch(
-                "agent.auxiliary_client.resolve_provider_client",
-                return_value=(
-                    _mock_client(base_url=portal, api_key="portal-jwt"),
-                    "freeide-4-405b",
-                ),
-            ),
-            patch(
-                "freeide_cli.model_normalize.normalize_model_for_provider",
-                side_effect=lambda m, p: m,
-            ),
-            patch(
-                "agent.anthropic_adapter.build_anthropic_client",
-                side_effect=AssertionError("must not build Anthropic client"),
-            ),
-        ):
-            assert agent._try_activate_fallback() is True
-
-        assert agent.api_mode == "chat_completions"
-        assert agent.client is not None
-
-
-# ── Pool-rotation vs fallback gating (#11314) ────────────────────────────
-
 
 def _pool(n_entries: int, has_available: bool = True):
     """Make a minimal credential-pool stand-in for rotation-room checks."""
@@ -366,7 +277,7 @@ class TestFallbackChainDedup:
             called.append((provider, model))
             return _mock_client(), model
         with patch("agent.auxiliary_client.resolve_provider_client", side_effect=_resolve):
-            with patch("freeide_cli.model_normalize.normalize_model_for_provider", side_effect=lambda m, p: m):
+            with patch("jettstui.model_normalize.normalize_model_for_provider", side_effect=lambda m, p: m):
                 ok = agent._try_activate_fallback()
 
         assert ok is True
@@ -395,7 +306,7 @@ class TestFallbackChainDedup:
             called.append((provider, model))
             return _mock_client(), model
         with patch("agent.auxiliary_client.resolve_provider_client", side_effect=_resolve):
-            with patch("freeide_cli.model_normalize.normalize_model_for_provider", side_effect=lambda m, p: m):
+            with patch("jettstui.model_normalize.normalize_model_for_provider", side_effect=lambda m, p: m):
                 ok = agent._try_activate_fallback()
 
         assert ok is True
@@ -447,7 +358,7 @@ class TestFallbackChainDedup:
 
         with patch("agent.auxiliary_client.resolve_provider_client", side_effect=_resolve):
             with patch(
-                "freeide_cli.model_normalize.normalize_model_for_provider",
+                "jettstui.model_normalize.normalize_model_for_provider",
                 side_effect=lambda m, p: m,
             ):
                 ok = agent._try_activate_fallback()

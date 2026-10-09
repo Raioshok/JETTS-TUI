@@ -28,12 +28,12 @@ import {
 } from './ssh-connection'
 
 test('redactSecrets scrubs the spawn-time session token env var', () => {
-  const line = 'setsid env FREEIDE_DASHBOARD_SESSION_TOKEN=abc123deadbeef FREEIDE_DESKTOP=1 freeide dashboard'
+  const line = 'setsid env JETTSTUI_DASHBOARD_SESSION_TOKEN=abc123deadbeef JETTSTUI_DESKTOP=1 jettstui dashboard'
   const out = redactSecrets(line)
   assert.ok(!out.includes('abc123deadbeef'))
-  assert.match(out, /FREEIDE_DASHBOARD_SESSION_TOKEN=<redacted>/)
+  assert.match(out, /JETTSTUI_DASHBOARD_SESSION_TOKEN=<redacted>/)
   // non-secret env vars are preserved
-  assert.match(out, /FREEIDE_DESKTOP=1/)
+  assert.match(out, /JETTSTUI_DESKTOP=1/)
 })
 
 test('redactSecrets scrubs ?token= and ?ticket= URL params', () => {
@@ -43,11 +43,11 @@ test('redactSecrets scrubs ?token= and ?ticket= URL params', () => {
   assert.ok(!redactSecrets('?token=supersecret').includes('supersecret'))
 })
 
-test('redactSecrets scrubs Authorization and X-FreeIDE-Session-Token headers', () => {
+test('redactSecrets scrubs Authorization and X-JettsTUI-Session-Token headers', () => {
   assert.match(redactSecrets('Authorization: Bearer tok_9999'), /Authorization: Bearer <redacted>/)
   assert.ok(!redactSecrets('Authorization: Bearer tok_9999').includes('tok_9999'))
-  assert.match(redactSecrets('X-FreeIDE-Session-Token: hdr_888'), /X-FreeIDE-Session-Token: ?<redacted>/)
-  assert.ok(!redactSecrets('X-FreeIDE-Session-Token: hdr_888').includes('hdr_888'))
+  assert.match(redactSecrets('X-JettsTUI-Session-Token: hdr_888'), /X-JettsTUI-Session-Token: ?<redacted>/)
+  assert.ok(!redactSecrets('X-JettsTUI-Session-Token: hdr_888').includes('hdr_888'))
 })
 
 test('redactSecrets handles null/undefined and non-secret text untouched', () => {
@@ -63,14 +63,14 @@ test('controlSocketPath is stable, short, and host-distinct', () => {
   assert.equal(a, a2, 'same triple → same socket (ControlMaster reuse)')
   assert.notEqual(a, b, 'different host → different socket')
   // 16 hex chars + .sock keeps the basename short for sun_path 104-byte limit
-  assert.match(a, /\/[0-9a-f]{16}\.sock$/)
+  assert.match(a, /[\\/][0-9a-f]{16}\.sock$/)
 })
 
 test('controlSocketPath default base stays under sun_path even with the temp-listener suffix', () => {
   // OpenSSH binds a temporary listener at `<ControlPath>.<16 random chars>` (a
   // 17-byte suffix) while opening the master. The macOS regression was the
   // default base under os.tmpdir() (/var/folders/.../T/) pushing it over 104.
-  const p = controlSocketPath('freeide', 'remote-build-server', 22) // no baseDir → default
+  const p = controlSocketPath('jettstui', 'remote-build-server', 22) // no baseDir → default
   const worstCase = `${p}.0123456789abcdef` // mimic the .<16-char> temp suffix
   assert.ok(
     worstCase.length <= 104,
@@ -107,8 +107,8 @@ test('target builds user@host or bare host', () => {
 
 test('buildExecArgs ends with host then the remote command', () => {
   const conn = { user: 'me', host: 'box', port: 22, keyPath: '', controlPath: '/tmp/x.sock' }
-  const args = buildExecArgs(conn, 'command -v freeide', 15000)
-  assert.equal(args[args.length - 1], 'command -v freeide')
+  const args = buildExecArgs(conn, 'command -v jettstui', 15000)
+  assert.equal(args[args.length - 1], 'command -v jettstui')
   assert.equal(args[args.length - 2], 'me@box')
   assert.ok(args.includes('BatchMode=yes'))
 })
@@ -255,7 +255,7 @@ test('open() establishes the master when not already alive', async () => {
     return { code: 0 }
   })
 
-  const conn = new SshConnection({ host: 'box', user: 'me' }, { spawnFn, controlDir: '/tmp/d' })
+  const conn = new SshConnection({ host: 'box', user: 'me' }, { spawnFn, controlDir: '/tmp/d', mux: true })
   await conn.open()
   assert.deepEqual(ops, ['check', 'master'], 'probes liveness first, then opens the master')
 })
@@ -269,7 +269,7 @@ test('open() is a no-op when the master is already alive and execs verify', asyn
     return { code: 0 } // check succeeds → alive; verify exec succeeds → trusted
   })
 
-  const conn = new SshConnection({ host: 'box', user: 'me' }, { spawnFn, controlDir: '/tmp/d' })
+  const conn = new SshConnection({ host: 'box', user: 'me' }, { spawnFn, controlDir: '/tmp/d', mux: true })
   await conn.open()
   assert.deepEqual(ops, ['check', 'verify'], 'alive master is exec-verified, then trusted without reopening')
 })
@@ -304,7 +304,7 @@ test('open() evicts a wedged master (check passes, exec hangs) and dials fresh',
     return { code: 0 }
   })
 
-  const conn = new SshConnection({ host: 'box', user: 'me' }, { spawnFn, controlDir: '/tmp/d', connectTimeoutMs: 50 })
+  const conn = new SshConnection({ host: 'box', user: 'me' }, { spawnFn, controlDir: '/tmp/d', connectTimeoutMs: 50, mux: true })
 
   await conn.open()
   assert.deepEqual(
@@ -315,7 +315,7 @@ test('open() evicts a wedged master (check passes, exec hangs) and dials fresh',
 })
 
 test('close() removes the control socket when -O exit fails', async () => {
-  const dir = path.join(os.tmpdir(), `freeide-ssh-close-${process.pid}-${Date.now()}`)
+  const dir = path.join(os.tmpdir(), `jettstui-ssh-close-${process.pid}-${Date.now()}`)
   fs.mkdirSync(dir, { recursive: true, mode: 0o700 })
 
   const spawnFn = scriptedSpawn(args => {
@@ -330,7 +330,7 @@ test('close() removes the control socket when -O exit fails', async () => {
     return { code: 255, stderr: 'mux: master gone' } // -O exit fails
   })
 
-  const conn = new SshConnection({ host: 'box', user: 'me' }, { spawnFn, controlDir: dir })
+  const conn = new SshConnection({ host: 'box', user: 'me' }, { spawnFn, controlDir: dir, mux: true })
   await conn.open()
   fs.writeFileSync(conn.controlPath, '') // simulate the lingering socket file
   await conn.close()
@@ -339,10 +339,10 @@ test('close() removes the control socket when -O exit fails', async () => {
 })
 
 test('open() creates the control-socket directory if it does not exist', async () => {
-  const dir = path.join(os.tmpdir(), `freeide-ssh-test-${process.pid}-${Date.now()}`)
+  const dir = path.join(os.tmpdir(), `jettstui-ssh-test-${process.pid}-${Date.now()}`)
   assert.ok(!fs.existsSync(dir), 'precondition: control dir absent')
   const spawnFn = scriptedSpawn(args => (args.includes('check') ? { code: 255 } : { code: 0 }))
-  const conn = new SshConnection({ host: 'box', user: 'me' }, { spawnFn, controlDir: dir })
+  const conn = new SshConnection({ host: 'box', user: 'me' }, { spawnFn, controlDir: dir, mux: true })
 
   try {
     await conn.open()
@@ -409,7 +409,7 @@ test('exec() treats a hung ssh as a timeout (half-open connection)', async () =>
 
 test('forward() issues -O forward with a loopback-bound -L spec', async () => {
   const spawnFn = scriptedSpawn([{ code: 0 }])
-  const conn = new SshConnection({ host: 'box', user: 'me' }, { spawnFn, controlDir: '/tmp/d' })
+  const conn = new SshConnection({ host: 'box', user: 'me' }, { spawnFn, controlDir: '/tmp/d', mux: true })
   await conn.forward(5000, 6000)
   const args = spawnFn.calls[0]
   assert.equal(args[0], '-O')
@@ -423,7 +423,7 @@ test('lifecycle logging passes through redaction', async () => {
 
   const conn = new SshConnection(
     { host: 'box', user: 'me' },
-    { spawnFn, controlDir: '/tmp/d', rememberLog: l => logs.push(l) }
+    { spawnFn, controlDir: '/tmp/d', rememberLog: l => logs.push(l), mux: true }
   )
 
   await conn.open()
@@ -717,14 +717,14 @@ test('runSsh delivers stdinData to the child and does not log it', async () => {
   assert.equal(stdinWritten, 'secret-token-value', 'stdinData must be written to child.stdin')
 })
 
-test('open() rejects a control-dir that is a symlink', async () => {
+test.skipIf(process.platform === 'win32')('open() rejects a control-dir that is a symlink', async () => {
   const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'ssh-test-'))
   const real = path.join(tmp, 'real')
   const link = path.join(tmp, 'link')
   fs.mkdirSync(real, { mode: 0o700 })
   fs.symlinkSync(real, link)
   const spawnFn = scriptedSpawn(args => (args.includes('check') ? { code: 255 } : { code: 0 }))
-  const conn = new SshConnection({ host: 'box', user: 'me' }, { spawnFn, controlDir: link })
+  const conn = new SshConnection({ host: 'box', user: 'me' }, { spawnFn, controlDir: link, mux: true })
   await assert.rejects(conn.open(), /symlink|unsafe/i)
   fs.rmSync(tmp, { recursive: true, force: true })
 })
@@ -805,7 +805,8 @@ test('closing one scope addresses only that scope control master', async () => {
       spawnFn: firstSpawn,
       controlDir: '/tmp/d',
       ownershipId: 'installation',
-      scope: 'first'
+      scope: 'first',
+      mux: true
     }
   )
 
@@ -815,7 +816,8 @@ test('closing one scope addresses only that scope control master', async () => {
       spawnFn: secondSpawn,
       controlDir: '/tmp/d',
       ownershipId: 'installation',
-      scope: 'second'
+      scope: 'second',
+      mux: true
     }
   )
 
@@ -834,7 +836,7 @@ test('failed ControlMaster close disowns the master instead of retrying it', asy
   // contract: a master that refuses -O exit is disowned — socket dropped,
   // connection marked closed — so the next open dials fresh.
   const spawnFn = scriptedSpawn([{ code: 255, stderr: 'master refused exit' }])
-  const conn = new SshConnection({ host: 'box', user: 'me' }, { spawnFn, controlDir: '/tmp/d' })
+  const conn = new SshConnection({ host: 'box', user: 'me' }, { spawnFn, controlDir: '/tmp/d', mux: true })
   conn._opened = true
   await conn.close()
   assert.equal(conn._opened, false)

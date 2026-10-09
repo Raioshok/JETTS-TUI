@@ -1,6 +1,6 @@
 """Runtime smoke tests for the Docker image entrypoint and subcommands.
 
-Converted from the former ``.github/actions/freeide-smoke-test`` composite
+Converted from the former ``.github/actions/jettstui-smoke-test`` composite
 action.  These tests exercise the image's real ENTRYPOINT (``/init`` +
 ``main-wrapper.sh``) via ``docker run --rm <image> --help`` and
 ``docker run --rm <image> dashboard --help`` to catch basic runtime
@@ -15,7 +15,7 @@ from __future__ import annotations
 import subprocess
 
 
-def test_freeide_help(built_image: str) -> None:
+def test_jettstui_help(built_image: str) -> None:
     """``docker run --rm <image> --help`` must exit 0.
 
     Uses the image's real ENTRYPOINT (``/init`` + ``main-wrapper.sh``)
@@ -27,14 +27,14 @@ def test_freeide_help(built_image: str) -> None:
     """
     r = subprocess.run(
         ["docker", "run", "--rm", built_image, "--help"],
-        capture_output=True, text=True, timeout=60,
+        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60,
     )
     assert r.returncode == 0, (
-        f"freeide --help failed (exit {r.returncode}): "
+        f"jettstui --help failed (exit {r.returncode}): "
         f"stdout={r.stdout[-2000:]!r} stderr={r.stderr[-2000:]!r}"
     )
     assert "Traceback" not in r.stderr, (
-        f"freeide --help produced a traceback: {r.stderr[-2000:]!r}"
+        f"jettstui --help produced a traceback: {r.stderr[-2000:]!r}"
     )
 
 
@@ -48,10 +48,10 @@ def test_dashboard_subcommand_present(built_image: str) -> None:
     """
     r = subprocess.run(
         ["docker", "run", "--rm", built_image, "dashboard", "--help"],
-        capture_output=True, text=True, timeout=60,
+        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60,
     )
     assert r.returncode == 0, (
-        f"freeide dashboard --help failed (exit {r.returncode}): "
+        f"jettstui dashboard --help failed (exit {r.returncode}): "
         f"stdout={r.stdout[-2000:]!r} stderr={r.stderr[-2000:]!r}"
     )
     combined = (r.stdout + r.stderr).lower()

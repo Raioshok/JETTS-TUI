@@ -1,17 +1,17 @@
-"""Shared fixtures for the freeide-agent test suite.
+"""Shared fixtures for the jettstui test suite.
 
 Hermetic-test invariants enforced here (see AGENTS.md for rationale):
 
 1. **No credential env vars.** All provider/credential-shaped env vars
    (ending in _API_KEY, _TOKEN, _SECRET, _PASSWORD, _CREDENTIALS, etc.)
    are unset before every test. Local developer keys cannot leak in.
-2. **Isolated FREEIDE_HOME.** FREEIDE_HOME points to a per-test tempdir so
-   code reading ``~/.freeide/*`` via ``get_freeide_home()`` can't see the
+2. **Isolated JETTSTUI_HOME.** JETTSTUI_HOME points to a per-test tempdir so
+   code reading ``~/.jettstui/*`` via ``get_jettstui_home()`` can't see the
    real one. (We do NOT also redirect HOME — that broke subprocesses in
-   CI. Code using ``Path.home() / ".freeide"`` instead of the canonical
-   ``get_freeide_home()`` is a bug to fix at the callsite.)
+   CI. Code using ``Path.home() / ".jettstui"`` instead of the canonical
+   ``get_jettstui_home()`` is a bug to fix at the callsite.)
 3. **Deterministic runtime.** TZ=UTC, LANG=C.UTF-8, PYTHONHASHSEED=0.
-4. **No FREEIDE_SESSION_* inheritance** — the agent's current gateway
+4. **No JETTSTUI_SESSION_* inheritance** — the agent's current gateway
    session must not leak into tests.
 
 These invariants make the local test run match CI closely. Gaps that
@@ -84,7 +84,7 @@ _CREDENTIAL_NAMES = frozenset({
     "GITHUB_TOKEN",
     "OPENAI_API_KEY",
     "OPENROUTER_API_KEY",
-    "NOUS_API_KEY",
+    "ACME_API_KEY",
     "GEMINI_API_KEY",
     "GOOGLE_API_KEY",
     "GROQ_API_KEY",
@@ -167,67 +167,67 @@ def _looks_like_credential(name: str) -> bool:
     return any(name.endswith(suf) for suf in _CREDENTIAL_SUFFIXES)
 
 
-# FREEIDE_* vars that change test behavior by being set. Unset all of these
+# JETTSTUI_* vars that change test behavior by being set. Unset all of these
 # unconditionally — individual tests that need them set do so explicitly.
-_FREEIDE_BEHAVIORAL_VARS = frozenset({
-    "FREEIDE_YOLO_MODE",
-    "FREEIDE_INTERACTIVE",
-    "FREEIDE_QUIET",
-    "FREEIDE_TOOL_PROGRESS",
-    "FREEIDE_TOOL_PROGRESS_MODE",
-    "FREEIDE_MAX_ITERATIONS",
-    "FREEIDE_SESSION_PLATFORM",
-    "FREEIDE_SESSION_CHAT_ID",
-    "FREEIDE_SESSION_CHAT_NAME",
-    "FREEIDE_SESSION_CHAT_TYPE",
-    "FREEIDE_SESSION_THREAD_ID",
-    "FREEIDE_SESSION_SOURCE",
-    "FREEIDE_SESSION_KEY",
-    "FREEIDE_GATEWAY_SESSION",
-    "FREEIDE_CRON_SESSION",
-    "_FREEIDE_GATEWAY",
-    "FREEIDE_PLATFORM",
-    "FREEIDE_MODEL",
-    "FREEIDE_INFERENCE_MODEL",
-    "FREEIDE_INFERENCE_PROVIDER",
-    "FREEIDE_TUI_PROVIDER",
-    "FREEIDE_MANAGED",
-    "FREEIDE_MANAGED_DIR",
-    "FREEIDE_DEV",
-    "FREEIDE_CONTAINER",
-    "FREEIDE_EPHEMERAL_SYSTEM_PROMPT",
-    "FREEIDE_TIMEZONE",
-    "FREEIDE_REDACT_SECRETS",
-    "FREEIDE_BACKGROUND_NOTIFICATIONS",
-    "FREEIDE_EXEC_ASK",
-    "FREEIDE_HOME_MODE",
-    "FREEIDE_AGENT_USE_LEGACY_SESSION_KEYS",
+_JETTSTUI_BEHAVIORAL_VARS = frozenset({
+    "JETTSTUI_YOLO_MODE",
+    "JETTSTUI_INTERACTIVE",
+    "JETTSTUI_QUIET",
+    "JETTSTUI_TOOL_PROGRESS",
+    "JETTSTUI_TOOL_PROGRESS_MODE",
+    "JETTSTUI_MAX_ITERATIONS",
+    "JETTSTUI_SESSION_PLATFORM",
+    "JETTSTUI_SESSION_CHAT_ID",
+    "JETTSTUI_SESSION_CHAT_NAME",
+    "JETTSTUI_SESSION_CHAT_TYPE",
+    "JETTSTUI_SESSION_THREAD_ID",
+    "JETTSTUI_SESSION_SOURCE",
+    "JETTSTUI_SESSION_KEY",
+    "JETTSTUI_GATEWAY_SESSION",
+    "JETTSTUI_CRON_SESSION",
+    "_JETTSTUI_GATEWAY",
+    "JETTSTUI_PLATFORM",
+    "JETTSTUI_MODEL",
+    "JETTSTUI_INFERENCE_MODEL",
+    "JETTSTUI_INFERENCE_PROVIDER",
+    "JETTSTUI_TUI_PROVIDER",
+    "JETTSTUI_MANAGED",
+    "JETTSTUI_MANAGED_DIR",
+    "JETTSTUI_DEV",
+    "JETTSTUI_CONTAINER",
+    "JETTSTUI_EPHEMERAL_SYSTEM_PROMPT",
+    "JETTSTUI_TIMEZONE",
+    "JETTSTUI_REDACT_SECRETS",
+    "JETTSTUI_BACKGROUND_NOTIFICATIONS",
+    "JETTSTUI_EXEC_ASK",
+    "JETTSTUI_HOME_MODE",
+    "JETTSTUI_AGENT_USE_LEGACY_SESSION_KEYS",
     # Kanban path/board pins must never leak from a developer shell or
     # dispatched worker into tests; otherwise tests can write fake tasks to
-    # the real ~/.freeide/kanban.db instead of the per-test FREEIDE_HOME.
-    "FREEIDE_KANBAN_DB",
-    "FREEIDE_KANBAN_BOARD",
-    "FREEIDE_KANBAN_HOME",
-    "FREEIDE_KANBAN_WORKSPACES_ROOT",
-    "FREEIDE_KANBAN_LOGS_ROOT",
-    "FREEIDE_KANBAN_TASK",
-    "FREEIDE_KANBAN_WORKSPACE",
-    "FREEIDE_KANBAN_RUN_ID",
-    "FREEIDE_KANBAN_CLAIM_LOCK",
-    "FREEIDE_KANBAN_DISPATCH_IN_GATEWAY",
-    "FREEIDE_TENANT",
+    # the real ~/.jettstui/kanban.db instead of the per-test JETTSTUI_HOME.
+    "JETTSTUI_KANBAN_DB",
+    "JETTSTUI_KANBAN_BOARD",
+    "JETTSTUI_KANBAN_HOME",
+    "JETTSTUI_KANBAN_WORKSPACES_ROOT",
+    "JETTSTUI_KANBAN_LOGS_ROOT",
+    "JETTSTUI_KANBAN_TASK",
+    "JETTSTUI_KANBAN_WORKSPACE",
+    "JETTSTUI_KANBAN_RUN_ID",
+    "JETTSTUI_KANBAN_CLAIM_LOCK",
+    "JETTSTUI_KANBAN_DISPATCH_IN_GATEWAY",
+    "JETTSTUI_TENANT",
     # Honcho host selection changes which nested config block wins. A local
     # shell override leaked "myhost" into the full suite and flipped 20
-    # otherwise-unrelated config tests away from the default "freeide" host.
-    "FREEIDE_HONCHO_HOST",
+    # otherwise-unrelated config tests away from the default "jettstui" host.
+    "JETTSTUI_HONCHO_HOST",
     # Dashboard OAuth auth gate (PR #30156). When set, the bundled
-    # dashboard-auth `nous` plugin auto-registers itself on plugin discovery,
+    # dashboard-auth `acme` plugin auto-registers itself on plugin discovery,
     # which is triggered by any `/api/status` call. That leaks a provider
     # into the dashboard_auth registry across tests in the same worker and
     # makes assertions like `auth_providers == []` flaky. CI never sets
     # these, so production tests must not see them either.
-    "FREEIDE_DASHBOARD_OAUTH_CLIENT_ID",
-    "FREEIDE_DASHBOARD_PORTAL_URL",
+    "JETTSTUI_DASHBOARD_OAUTH_CLIENT_ID",
+    "JETTSTUI_DASHBOARD_PORTAL_URL",
     "TERMINAL_CWD",
     "TERMINAL_ENV",
     "TERMINAL_CONTAINER_CPU",
@@ -341,8 +341,8 @@ _FREEIDE_BEHAVIORAL_VARS = frozenset({
 def _hermetic_environment(tmp_path, monkeypatch):
     """Blank out all credential/behavioral env vars so local and CI match.
 
-    Also redirects HOME and FREEIDE_HOME to per-test tempdirs so code that
-    reads ``~/.freeide/*`` can't touch the real one, and pins TZ/LANG so
+    Also redirects HOME and JETTSTUI_HOME to per-test tempdirs so code that
+    reads ``~/.jettstui/*`` can't touch the real one, and pins TZ/LANG so
     datetime/locale-sensitive tests are deterministic.
     """
     # 1. Blank every credential-shaped env var that's currently set.
@@ -350,8 +350,8 @@ def _hermetic_environment(tmp_path, monkeypatch):
         if _looks_like_credential(name):
             monkeypatch.delenv(name, raising=False)
 
-    # 2. Blank behavioral FREEIDE_* vars that could change test semantics.
-    for name in _FREEIDE_BEHAVIORAL_VARS:
+    # 2. Blank behavioral JETTSTUI_* vars that could change test semantics.
+    for name in _JETTSTUI_BEHAVIORAL_VARS:
         monkeypatch.delenv(name, raising=False)
 
     # Honcho's fallback host/config resolution legitimately reads the user's
@@ -359,25 +359,25 @@ def _hermetic_environment(tmp_path, monkeypatch):
     # on it), but pin the host so ordinary tests cannot inherit a developer's
     # defaultHost and silently select the wrong nested config block. Tests of
     # custom host resolution override/delete this explicitly.
-    monkeypatch.setenv("FREEIDE_HONCHO_HOST", "freeide")
+    monkeypatch.setenv("JETTSTUI_HONCHO_HOST", "jettstui")
 
-    # 3. Redirect FREEIDE_HOME to a per-test tempdir. Code that reads
-    #    ``~/.freeide/*`` via ``get_freeide_home()`` now gets the tempdir.
+    # 3. Redirect JETTSTUI_HOME to a per-test tempdir. Code that reads
+    #    ``~/.jettstui/*`` via ``get_jettstui_home()`` now gets the tempdir.
     #
     #    NOTE: We do NOT also redirect HOME. Doing so broke CI because
     #    some tests (and their transitive deps) spawn subprocesses that
     #    inherit HOME and expect it to be stable. If a test genuinely
     #    needs HOME isolated, it should set it explicitly in its own
-    #    fixture. Any code in the codebase reading ``~/.freeide/*`` via
-    #    ``Path.home() / ".freeide"`` instead of ``get_freeide_home()``
+    #    fixture. Any code in the codebase reading ``~/.jettstui/*`` via
+    #    ``Path.home() / ".jettstui"`` instead of ``get_jettstui_home()``
     #    is a bug to fix at the callsite.
-    fake_freeide_home = tmp_path / "freeide_test"
-    fake_freeide_home.mkdir()
-    (fake_freeide_home / "sessions").mkdir()
-    (fake_freeide_home / "cron").mkdir()
-    (fake_freeide_home / "memories").mkdir()
-    (fake_freeide_home / "skills").mkdir()
-    monkeypatch.setenv("FREEIDE_HOME", str(fake_freeide_home))
+    fake_jettstui_home = tmp_path / "jettstui_test"
+    fake_jettstui_home.mkdir()
+    (fake_jettstui_home / "sessions").mkdir()
+    (fake_jettstui_home / "cron").mkdir()
+    (fake_jettstui_home / "memories").mkdir()
+    (fake_jettstui_home / "skills").mkdir()
+    monkeypatch.setenv("JETTSTUI_HOME", str(fake_jettstui_home))
 
     # 4. Deterministic locale / timezone / hashseed. CI runs in UTC with
     #    C.UTF-8 locale; local dev often doesn't. Pin everything.
@@ -400,10 +400,10 @@ def _hermetic_environment(tmp_path, monkeypatch):
     monkeypatch.setenv("TIRITH_ENABLED", "false")
 
     # 5. Reset plugin singleton so tests don't leak plugins from
-    #    ~/.freeide/plugins/ (which, per step 3, is now empty — but the
+    #    ~/.jettstui/plugins/ (which, per step 3, is now empty — but the
     #    singleton might still be cached from a previous test).
     try:
-        import freeide_cli.plugins as _plugins_mod
+        import jettstui.plugins as _plugins_mod
         monkeypatch.setattr(_plugins_mod, "_plugin_manager", None)
     except Exception:
         pass
@@ -416,7 +416,7 @@ def _hermetic_environment(tmp_path, monkeypatch):
 # Backward-compat alias — old tests reference this fixture name. Keep it
 # as a no-op wrapper so imports don't break.
 @pytest.fixture(autouse=True)
-def _isolate_freeide_home(_hermetic_environment):
+def _isolate_jettstui_home(_hermetic_environment):
     """Alias preserved for any test that yields this name explicitly."""
     return None
 
@@ -446,7 +446,7 @@ def tmp_dir(tmp_path):
 
 @pytest.fixture()
 def mock_config():
-    """Return a minimal freeide config dict suitable for unit tests."""
+    """Return a minimal jettstui config dict suitable for unit tests."""
     return {
         "model": "test/mock-model",
         "toolsets": ["terminal", "file"],
@@ -519,10 +519,10 @@ def _ensure_current_event_loop(request):
 # (``cmd_update``, ``kill_gateway_processes``, ``stop_profile_gateway``).
 # When a single test forgets to mock either ``os.kill`` or the global
 # ``find_gateway_pids`` helper, the real call leaks out of the hermetic
-# environment and finds the developer's live ``freeide-gateway`` process
+# environment and finds the developer's live ``jettstui-gateway`` process
 # via ``psutil`` — sending it SIGTERM mid-test. The shutdown forensics in
 # PR #23285 caught this happening 5+ times in 3 days, every time
-# correlated with a ``tests/freeide_cli/`` pytest run starting up.
+# correlated with a ``tests/jettstui_cli/`` pytest run starting up.
 #
 # This fixture makes the leak impossible by intercepting the two
 # primitives that actually do damage:
@@ -531,7 +531,7 @@ def _ensure_current_event_loop(request):
 #    a hard ``RuntimeError`` so the offending test gets a stack trace
 #    instead of silently murdering the real gateway.
 #  • ``subprocess.run`` / ``subprocess.Popen`` / ``call`` / ``check_call`` /
-#    ``check_output`` reject any ``systemctl ... <verb> freeide-gateway``
+#    ``check_output`` reject any ``systemctl ... <verb> jettstui-gateway``
 #    invocation that would mutate the live unit. Read-only systemctl
 #    calls (``status``, ``show``, ``list-units``) still pass through.
 #
@@ -547,9 +547,9 @@ _REQUIRES_WAL_MARK = "requires_wal"
 
 
 def _wal_is_usable() -> bool:
-    """True when FreeIDE will actually put a database into WAL mode here.
+    """True when JettsTUI will actually put a database into WAL mode here.
 
-    FreeIDE refuses journal_mode=WAL on SQLite builds carrying the upstream
+    JettsTUI refuses journal_mode=WAL on SQLite builds carrying the upstream
     WAL-reset corruption bug (3.7.0–3.51.2, excluding backports 3.50.7 /
     3.44.6) and falls back to DELETE. On such a build NO ``-wal`` sidecar is
     ever created, so a test asserting on WAL frames, ``-wal`` file size, or
@@ -557,18 +557,16 @@ def _wal_is_usable() -> bool:
     declined to enable, not a regression.
 
     This matters because the interpreter running the tests and the interpreter
-    running FreeIDE can link DIFFERENT SQLite versions: a repo ``.venv`` on
-    3.50.4 (vulnerable → DELETE) alongside a FreeIDE managed runtime on 3.53.1
+    running JettsTUI can link DIFFERENT SQLite versions: a repo ``.venv`` on
+    3.50.4 (vulnerable → DELETE) alongside a JettsTUI managed runtime on 3.53.1
     (fixed → WAL). The same test then passes in one and fails in the other.
 
-    IMPORTANT: this must NOT import ``freeide_state``. That module computes
-    ``DEFAULT_DB_PATH`` from ``get_freeide_home()`` at import time, so importing
-    it during collection — before the per-test ``_isolate_freeide_home`` fixture
-    redirects ``FREEIDE_HOME`` — permanently caches the DEVELOPER'S REAL
-    ``~/.freeide/state.db`` for the whole session. Tests then read live
-    production sessions instead of a tempdir. The version predicate is
-    duplicated from ``freeide_state._is_sqlite_wal_reset_vulnerable`` (upstream
-    fixed ranges, stable) rather than imported, and
+    Keep this gate import-free: collection should not initialize the session
+    store or other state before the per-test home fixture runs. SessionDB now
+    resolves the active home on open, but the WAL predicate can remain
+    independent of runtime imports. It is duplicated from
+    ``jettstui_state._is_sqlite_wal_reset_vulnerable`` (upstream fixed ranges,
+    stable) rather than imported, and
     ``test_conftest_wal_gate.py`` pins the two implementations in agreement.
     """
     info = sqlite3.sqlite_version_info
@@ -594,7 +592,7 @@ def pytest_configure(config):  # noqa: D401 — pytest hook
     config.addinivalue_line(
         "markers",
         f"{_REQUIRES_WAL_MARK}: test needs the runtime to actually enable "
-        "SQLite WAL mode; skipped on builds where FreeIDE falls back to "
+        "SQLite WAL mode; skipped on builds where JettsTUI falls back to "
         "journal_mode=DELETE for the WAL-reset bug.",
     )
 
@@ -618,7 +616,7 @@ def pytest_collection_modifyitems(config, items):  # noqa: D401 — pytest hook
         return
 
     reason = (
-        f"SQLite {sqlite3.sqlite_version} has the WAL-reset bug — FreeIDE uses "
+        f"SQLite {sqlite3.sqlite_version} has the WAL-reset bug — JettsTUI uses "
         "journal_mode=DELETE here, so no -wal sidecar exists to assert on"
     )
     skip_marker = pytest.mark.skip(reason=reason)
@@ -644,10 +642,10 @@ def _live_system_guard(request, monkeypatch):
       • pty.spawn
       • asyncio.create_subprocess_exec / create_subprocess_shell
     Subprocess inspection looks at the WHOLE command string (not just
-    tokens[0]), so ``bash -c "systemctl restart freeide-gateway"``,
+    tokens[0]), so ``bash -c "systemctl restart jettstui-gateway"``,
     ``sudo systemctl ...``, ``env systemctl ...``, ``setsid systemctl ...``
     are all caught. ``pkill``/``killall``/``taskkill`` invocations
-    targeting freeide/python patterns are also blocked.
+    targeting jettstui/python patterns are also blocked.
     """
     if request.node.get_closest_marker(_LIVE_SYSTEM_GUARD_BYPASS_MARK):
         yield
@@ -745,13 +743,13 @@ def _live_system_guard(request, monkeypatch):
         monkeypatch.setattr(_os, "killpg", _guarded_killpg)
 
     # ── Subprocess command-string inspection (whole-line) ──────────
-    _FREEIDE_TOKENS = (
-        "freeide-gateway",
-        "freeide.service",
-        "freeide_cli.main gateway",
-        "freeide_cli/main.py gateway",
+    _JETTSTUI_TOKENS = (
+        "jettstui-gateway",
+        "jettstui.service",
+        "jettstui.main gateway",
+        "jettstui/main.py gateway",
         "gateway/run.py",
-        "freeide gateway",
+        "jettstui gateway",
     )
     _MUTATING_VERBS = (
         "restart", "start", "stop", "kill", "reload",
@@ -777,15 +775,15 @@ def _live_system_guard(request, monkeypatch):
                 return ""
         return str(cmd)
 
-    def _matches_freeide_gateway(cmd_str: str) -> bool:
+    def _matches_jettstui_gateway(cmd_str: str) -> bool:
         low = cmd_str.lower()
-        return any(tok in low for tok in _FREEIDE_TOKENS)
+        return any(tok in low for tok in _JETTSTUI_TOKENS)
 
     def _is_blocked_systemctl(cmd) -> bool:
         cmd_str = _cmd_to_string(cmd)
         if "systemctl" not in cmd_str:
             return False
-        if not _matches_freeide_gateway(cmd_str):
+        if not _matches_jettstui_gateway(cmd_str):
             return False
         try:
             tokens = _shlex.split(cmd_str)
@@ -805,11 +803,11 @@ def _live_system_guard(request, monkeypatch):
             head = tok.rsplit("/", 1)[-1].rsplit("\\", 1)[-1]
             if head in _PROCESS_KILLERS:
                 low = cmd_str.lower()
-                # pkill -f pattern: catch freeide-themed patterns + a
+                # pkill -f pattern: catch jettstui-themed patterns + a
                 # plain "python" -f which would catch the live gateway
-                # whose cmdline contains "python -m freeide_cli.main".
+                # whose cmdline contains "python -m jettstui.main".
                 if (
-                    "freeide" in low
+                    "jettstui" in low
                     or "gateway" in low
                     or ("python" in low and "-f" in tokens)
                 ):
@@ -821,7 +819,7 @@ def _live_system_guard(request, monkeypatch):
             raise RuntimeError(
                 f"tests/conftest.py live-system guard: blocked "
                 f"subprocess.{name}({cmd!r}) — would mutate the "
-                "live freeide-gateway systemd unit. Mock "
+                "live jettstui-gateway systemd unit. Mock "
                 "subprocess.run / _run_systemctl in the test, or "
                 "mark with @pytest.mark.live_system_guard_bypass."
             )
@@ -829,12 +827,12 @@ def _live_system_guard(request, monkeypatch):
             raise RuntimeError(
                 f"tests/conftest.py live-system guard: blocked "
                 f"subprocess.{name}({cmd!r}) — process-killer command "
-                "targeting freeide/python could hit the live gateway. "
+                "targeting jettstui/python could hit the live gateway. "
                 "Mark with @pytest.mark.live_system_guard_bypass if "
                 "intentional."
             )
-        # Block any subprocess that would run `freeide update` (or the
-        # equivalent `python -m freeide_cli.main update`).  These commands
+        # Block any subprocess that would run `jettstui update` (or the
+        # equivalent `python -m jettstui.main update`).  These commands
         # run `git fetch origin + git pull` against the REAL checkout,
         # overwriting files like pyproject.toml mid-test-run and corrupting
         # every subsequent subprocess that reads them.  The corruption is
@@ -846,19 +844,19 @@ def _live_system_guard(request, monkeypatch):
         cmd_str = _cmd_to_string(cmd)
         low = cmd_str.lower()
         if "update" in low and (
-            # freeide update / freeide update --gateway / setsid bash -c ... freeide update
-            ("freeide" in low and "update" in low.split())
+            # jettstui update / jettstui update --gateway / setsid bash -c ... jettstui update
+            ("jettstui" in low and "update" in low.split())
             or
-            # python -m freeide_cli.main update --gateway
-            ("freeide_cli" in low and "update" in low.split())
+            # python -m jettstui.main update --gateway
+            ("jettstui" in low and "update" in low.split())
             or
-            # venv/bin/freeide update  (absolute path variant used in tests)
-            (".venv/bin/freeide" in low and "update" in low)
+            # venv/bin/jettstui update  (absolute path variant used in tests)
+            (".venv/bin/jettstui" in low and "update" in low)
         ):
             raise RuntimeError(
                 f"tests/conftest.py live-system guard: blocked "
                 f"subprocess.{name}({cmd!r}) — this command would run "
-                "`freeide update` against the real checkout, fetching "
+                "`jettstui update` against the real checkout, fetching "
                 "from origin and overwriting repo files (e.g. "
                 "pyproject.toml) mid-test-run. This corrupts every "
                 "subsequent subprocess in the same runner. "

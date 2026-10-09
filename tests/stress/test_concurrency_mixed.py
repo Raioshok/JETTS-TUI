@@ -30,11 +30,11 @@ RUN_DURATION_S = 30
 WT = str(Path(__file__).resolve().parents[2])
 
 
-def worker_loop(worker_id: int, freeide_home: str, result_file: str) -> None:
-    os.environ["FREEIDE_HOME"] = freeide_home
-    os.environ["HOME"] = freeide_home
+def worker_loop(worker_id: int, jettstui_home: str, result_file: str) -> None:
+    os.environ["JETTSTUI_HOME"] = jettstui_home
+    os.environ["HOME"] = jettstui_home
     sys.path.insert(0, WT)
-    from freeide_cli import kanban_db as kb
+    from jettstui import kanban_db as kb
 
     events = []
     start = time.monotonic()
@@ -141,12 +141,12 @@ def worker_loop(worker_id: int, freeide_home: str, result_file: str) -> None:
         json.dump(events, f)
 
 
-def reclaimer_loop(freeide_home: str, result_file: str) -> None:
+def reclaimer_loop(jettstui_home: str, result_file: str) -> None:
     """Background dispatcher-like loop that reclaims stale tasks."""
-    os.environ["FREEIDE_HOME"] = freeide_home
-    os.environ["HOME"] = freeide_home
+    os.environ["JETTSTUI_HOME"] = jettstui_home
+    os.environ["HOME"] = jettstui_home
     sys.path.insert(0, WT)
-    from freeide_cli import kanban_db as kb
+    from jettstui import kanban_db as kb
 
     events = []
     start = time.monotonic()
@@ -170,13 +170,13 @@ def reclaimer_loop(freeide_home: str, result_file: str) -> None:
 
 
 def main():
-    home = tempfile.mkdtemp(prefix="freeide_mixed_stress_")
-    print(f"FREEIDE_HOME = {home}")
+    home = tempfile.mkdtemp(prefix="jettstui_mixed_stress_")
+    print(f"JETTSTUI_HOME = {home}")
 
-    os.environ["FREEIDE_HOME"] = home
+    os.environ["JETTSTUI_HOME"] = home
     os.environ["HOME"] = home
     sys.path.insert(0, WT)
-    from freeide_cli import kanban_db as kb
+    from jettstui import kanban_db as kb
 
     kb.init_db()
     conn = kb.connect()

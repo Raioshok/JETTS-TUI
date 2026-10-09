@@ -19,14 +19,14 @@ import pytest
 
 
 @pytest.fixture()
-def freeide_home(tmp_path, monkeypatch):
-    home = tmp_path / ".freeide"
+def jettstui_home(tmp_path, monkeypatch):
+    home = tmp_path / ".jettstui"
     home.mkdir()
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
-    monkeypatch.setenv("FREEIDE_HOME", str(home))
+    monkeypatch.setenv("JETTSTUI_HOME", str(home))
 
-    # Bust the goal-module DB cache so it re-resolves FREEIDE_HOME.
-    from freeide_cli import goals
+    # Bust the goal-module DB cache so it re-resolves JETTSTUI_HOME.
+    from jettstui import goals
 
     goals._DB_CACHE.clear()
     yield home
@@ -34,12 +34,12 @@ def freeide_home(tmp_path, monkeypatch):
 
 
 @pytest.fixture()
-def server(freeide_home):
+def server(jettstui_home):
     with patch.dict(
         "sys.modules",
         {
-            "freeide_cli.env_loader": MagicMock(),
-            "freeide_cli.banner": MagicMock(),
+            "jettstui.env_loader": MagicMock(),
+            "jettstui.banner": MagicMock(),
         },
     ):
         mod = importlib.import_module("tui_gateway.server")
@@ -114,7 +114,7 @@ def test_goal_set_returns_send_with_notice(server, session):
     assert "20-turn budget" in result["notice"]
 
     # Persisted in SessionDB
-    from freeide_cli.goals import GoalManager
+    from jettstui.goals import GoalManager
 
     mgr = GoalManager(session_key)
     assert mgr.state is not None
@@ -129,7 +129,7 @@ def test_goal_pause_after_set(server, session):
     assert r["result"]["type"] == "exec"
     assert "paused" in r["result"]["output"].lower()
 
-    from freeide_cli.goals import GoalManager
+    from jettstui.goals import GoalManager
 
     assert GoalManager(session_key).state.status == "paused"
 
@@ -142,7 +142,7 @@ def test_goal_resume_reactivates(server, session):
     assert r["result"]["type"] == "exec"
     assert "resumed" in r["result"]["output"].lower()
 
-    from freeide_cli.goals import GoalManager
+    from jettstui.goals import GoalManager
 
     assert GoalManager(session_key).state.status == "active"
 
@@ -154,7 +154,7 @@ def test_goal_clear_removes_active_goal(server, session):
     assert r["result"]["type"] == "exec"
     assert "cleared" in r["result"]["output"].lower()
 
-    from freeide_cli.goals import GoalManager
+    from jettstui.goals import GoalManager
 
     # After clear the row is marked status=cleared (kept for audit);
     # ``has_goal()`` / ``is_active()`` return False so the goal loop
@@ -211,8 +211,8 @@ def _write_moa_config(home, text):
     cfg_path.write_text(text)
 
 
-def test_moa_bare_returns_usage(server, session, freeide_home):
-    _write_moa_config(freeide_home, """
+def test_moa_bare_returns_usage(server, session, jettstui_home):
+    _write_moa_config(jettstui_home, """
 moa:
   default_preset: default
   presets:
@@ -231,10 +231,10 @@ moa:
     assert "model_override" not in s
 
 
-def test_moa_arg_is_always_one_shot(server, session, freeide_home):
+def test_moa_arg_is_always_one_shot(server, session, jettstui_home):
     # Any arg (even a preset name) is a one-shot prompt through the DEFAULT
     # preset; /moa never does a sticky switch anymore.
-    _write_moa_config(freeide_home, """
+    _write_moa_config(jettstui_home, """
 moa:
   default_preset: default
   presets:
@@ -259,8 +259,8 @@ moa:
     assert s["model_override"]["model"] == "default"
 
 
-def test_moa_non_preset_returns_one_shot_send(server, session, freeide_home):
-    _write_moa_config(freeide_home, """
+def test_moa_non_preset_returns_one_shot_send(server, session, jettstui_home):
+    _write_moa_config(jettstui_home, """
 moa:
   default_preset: default
   presets:

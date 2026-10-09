@@ -30,11 +30,11 @@ const buildUiState = (): UiState => ({
   sessionTitle: '',
   showReasoning: false,
   sid: null,
-  status: 'starting Jetts-TUI…',
+  status: 'starting JettsTUI…',
   statusBar: 'top',
   streaming: true,
   // Last session's resolved theme paints frame one (flash-free boot, like
-  // the desktop's freeide-boot-* keys); DEFAULT_THEME only on first launch.
+  // the desktop's jettstui-boot-* keys); DEFAULT_THEME only on first launch.
   theme: bootTheme ?? DEFAULT_THEME,
   usage: ZERO
 })

@@ -1,4 +1,4 @@
-# Termux / Android dependency constraints for FreeIDE Agent.
+# Termux / Android dependency constraints for JettsTUI.
 #
 # Usage:
 #   python -m pip install -e '.[termux]' -c constraints-termux.txt

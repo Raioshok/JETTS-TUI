@@ -13,8 +13,8 @@ class TestLocalTempDir:
             env = LocalEnvironment(cwd=".", timeout=10)
 
         assert env.get_temp_dir() == "/data/data/com.termux/files/usr/tmp"
-        assert env._snapshot_path == f"/data/data/com.termux/files/usr/tmp/freeide-snap-{env._session_id}.sh"
-        assert env._cwd_file == f"/data/data/com.termux/files/usr/tmp/freeide-cwd-{env._session_id}.txt"
+        assert env._snapshot_path == f"/data/data/com.termux/files/usr/tmp/jettstui-snap-{env._session_id}.sh"
+        assert env._cwd_file == f"/data/data/com.termux/files/usr/tmp/jettstui-cwd-{env._session_id}.txt"
 
     def test_prefers_backend_env_tmpdir_override(self, monkeypatch):
         monkeypatch.delenv("TMPDIR", raising=False)
@@ -25,15 +25,15 @@ class TestLocalTempDir:
             env = LocalEnvironment(
                 cwd=".",
                 timeout=10,
-                env={"TMPDIR": "/data/data/com.termux/files/home/.cache/freeide-tmp/"},
+                env={"TMPDIR": "/data/data/com.termux/files/home/.cache/jettstui-tmp/"},
             )
 
-        assert env.get_temp_dir() == "/data/data/com.termux/files/home/.cache/freeide-tmp"
+        assert env.get_temp_dir() == "/data/data/com.termux/files/home/.cache/jettstui-tmp"
         assert env._snapshot_path == (
-            f"/data/data/com.termux/files/home/.cache/freeide-tmp/freeide-snap-{env._session_id}.sh"
+            f"/data/data/com.termux/files/home/.cache/jettstui-tmp/jettstui-snap-{env._session_id}.sh"
         )
         assert env._cwd_file == (
-            f"/data/data/com.termux/files/home/.cache/freeide-tmp/freeide-cwd-{env._session_id}.txt"
+            f"/data/data/com.termux/files/home/.cache/jettstui-tmp/jettstui-cwd-{env._session_id}.txt"
         )
 
     def test_falls_back_to_tempfile_when_tmp_missing(self, monkeypatch):
@@ -47,5 +47,5 @@ class TestLocalTempDir:
              patch.object(LocalEnvironment, "init_session", autospec=True, return_value=None):
             env = LocalEnvironment(cwd=".", timeout=10)
             assert env.get_temp_dir() == "/cache/tmp"
-            assert env._snapshot_path == f"/cache/tmp/freeide-snap-{env._session_id}.sh"
-            assert env._cwd_file == f"/cache/tmp/freeide-cwd-{env._session_id}.txt"
+            assert env._snapshot_path == f"/cache/tmp/jettstui-snap-{env._session_id}.sh"
+            assert env._cwd_file == f"/cache/tmp/jettstui-cwd-{env._session_id}.txt"

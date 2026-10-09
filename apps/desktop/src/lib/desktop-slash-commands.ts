@@ -46,7 +46,7 @@ export type DesktopActionId =
 /** A command fulfilled by opening a desktop overlay picker. */
 export type DesktopPickerId = 'model' | 'session'
 
-/** Why a known FreeIDE command has no desktop UI surface. */
+/** Why a known JettsTUI command has no desktop UI surface. */
 export type DesktopUnavailableReason = 'advanced' | 'messaging' | 'settings' | 'terminal'
 
 /**
@@ -159,7 +159,7 @@ const DESKTOP_COMMAND_SPECS: readonly DesktopCommandSpec[] = [
     surface: action('handoff'),
     argumentMode: 'options'
   },
-  { name: '/profile', description: 'Switch the active FreeIDE profile', surface: action('profile') },
+  { name: '/profile', description: 'Switch the active JettsTUI profile', surface: action('profile') },
   {
     name: '/skin',
     description: 'Switch desktop theme or cycle to the next one',
@@ -332,7 +332,7 @@ const DESKTOP_COMMAND_SPECS: readonly DesktopCommandSpec[] = [
   },
   { name: '/undo', description: 'Remove the last user/assistant exchange', surface: exec() },
   { name: '/usage', description: 'Show token usage for this session', surface: exec() },
-  { name: '/version', description: 'Show Jetts-TUI version', surface: exec() },
+  { name: '/version', description: 'Show JettsTUI version', surface: exec() },
 
   // No desktop surface, but carry an alias (underscore spelling variants).
   { name: '/reload-mcp', aliases: ['/reload_mcp'], surface: unavailable('advanced') },
@@ -424,7 +424,7 @@ export function resolveDesktopCommand(command: string): DesktopCommandSpec | nul
   return SPEC_BY_NAME.get(canonicalDesktopSlashCommand(command)) ?? null
 }
 
-function isKnownFreeIDESlashCommand(command: string): boolean {
+function isKnownJettsTUISlashCommand(command: string): boolean {
   const normalized = normalizeCommand(command)
 
   return SPEC_BY_NAME.has(normalized) || ALIAS_TO_CANONICAL.has(normalized)
@@ -432,7 +432,7 @@ function isKnownFreeIDESlashCommand(command: string): boolean {
 
 /**
  * An "extension" command is anything the backend surfaces that is NOT one of
- * FreeIDE' built-in slash commands — i.e. skill commands (`/gif-search`,
+ * JettsTUI' built-in slash commands — i.e. skill commands (`/gif-search`,
  * `/codex`, …) and user-defined quick commands. These are user-activated, so
  * they appear in the desktop slash palette and execute when typed.
  */
@@ -443,7 +443,7 @@ export function isDesktopSlashExtensionCommand(command: string): boolean {
     return false
   }
 
-  return !isKnownFreeIDESlashCommand(normalized)
+  return !isKnownJettsTUISlashCommand(normalized)
 }
 
 /** Gates execution: true unless the command is a known no-desktop-surface command. */

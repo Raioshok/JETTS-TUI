@@ -2,9 +2,9 @@ import { atom } from 'nanostores'
 
 import { persistBoolean, storedBoolean } from '@/lib/storage'
 
-const KEY = 'freeide.desktop.backdrop.v1'
+const KEY = 'jettstui.desktop.backdrop.v1'
 
-/** Whether the faint statue image renders behind the chat transcript. */
+/** Whether the ambient glow + dot grid renders behind the chat transcript. */
 export const $backdrop = atom(storedBoolean(KEY, true))
 
 $backdrop.subscribe(on => persistBoolean(KEY, on))

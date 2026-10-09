@@ -9,7 +9,7 @@ import { normalizeRepoScanPath, repoScanPathIsWithin, scanGitRepos } from './git
 const tempDirs: string[] = []
 
 function tempDir(): string {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'freeide-repo-scan-'))
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'jettstui-repo-scan-'))
   tempDirs.push(dir)
 
   return dir

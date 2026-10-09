@@ -2,6 +2,8 @@
 dragged/pasted absolute paths from being mistaken for slash commands."""
 
 
+import os
+
 import pytest
 
 from cli import _detect_file_drop
@@ -212,6 +214,8 @@ class TestEscapedSpaces:
         img.parent.mkdir(parents=True, exist_ok=True)
         img.write_bytes(b"\x89PNG\r\n\x1a\n")
         monkeypatch.setenv("HOME", str(home))
+        if os.name == "nt":
+            monkeypatch.setenv("USERPROFILE", str(home))
 
         result = _detect_file_drop("~/storage/shared/Pictures/cat.png what is this?")
 
@@ -243,7 +247,12 @@ class TestEdgeCases:
 
     def test_symlink_to_file(self, tmp_image, tmp_path):
         link = tmp_path / "link.png"
-        link.symlink_to(tmp_image)
+        try:
+            link.symlink_to(tmp_image)
+        except OSError as exc:
+            if os.name == "nt" and getattr(exc, "winerror", None) == 1314:
+                pytest.skip("Windows symlink privilege is unavailable")
+            raise
         result = _detect_file_drop(str(link))
         assert result is not None
         assert result["is_image"] is True

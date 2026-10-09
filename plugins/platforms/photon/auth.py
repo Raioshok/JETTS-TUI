@@ -22,11 +22,11 @@ The ``spectrum-ts`` SDK (run by the Node sidecar) authenticates to Spectrum
 Cloud with ``(id, projectSecret)`` — the same ``id`` used in Dashboard API
 paths — which we persist as ``PHOTON_PROJECT_ID`` for the runtime.
 
-Credential storage mirrors every other FreeIDE channel:
+Credential storage mirrors every other JettsTUI channel:
 
-    * runtime SDK creds  -> ``~/.freeide/.env``  (``PHOTON_PROJECT_ID`` =
+    * runtime SDK creds  -> ``~/.jettstui/.env``  (``PHOTON_PROJECT_ID`` =
       project id, ``PHOTON_PROJECT_SECRET``) via ``save_env_value``
-    * management metadata -> ``~/.freeide/auth.json`` under
+    * management metadata -> ``~/.jettstui/auth.json`` under
       ``credential_pool.photon`` (device token),
       ``credential_pool.photon_project`` (dashboard id, spectrum id, name), and
       ``credential_pool.photon_user`` (operator number + assigned text line)
@@ -48,7 +48,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple
 
 try:
     import httpx
-except ImportError:  # pragma: no cover - httpx is a freeide dependency
+except ImportError:  # pragma: no cover - httpx is a jettstui dependency
     httpx = None  # type: ignore[assignment]
 
 logger = logging.getLogger(__name__)
@@ -64,15 +64,15 @@ class PhotonDashboardAuthError(RuntimeError):
 # endpoint — an unregistered client_id is rejected with
 # `400 {"error":"invalid_client"}`.  Use Photon's published CLI device
 # client (matches `CLI_CLIENT_ID` in photon-hq/cli) until the dashboard API
-# registers FreeIDE as its own client_id.
+# registers JettsTUI as its own client_id.
 DEFAULT_CLIENT_ID = "photon-cli"
 DEFAULT_SCOPE = "openid profile email"
 
 DEFAULT_DASHBOARD_HOST = "https://app.photon.codes"
 DEFAULT_SPECTRUM_HOST = "https://spectrum.photon.codes"
 
-# Default name of the project FreeIDE provisions for the operator.
-DEFAULT_PROJECT_NAME = "FreeIDE Agent"
+# Default name of the project JettsTUI provisions for the operator.
+DEFAULT_PROJECT_NAME = "JettsTUI"
 
 # Polling defaults per RFC 8628.  Photon overrides via `interval` /
 # `expires_in` in the device-code response — those win.
@@ -83,15 +83,15 @@ E164_RE = re.compile(r"^\+[1-9]\d{6,14}$")
 
 
 # ---------------------------------------------------------------------------
-# auth.json helpers — share the file with the rest of freeide-agent.
+# auth.json helpers — share the file with the rest of jettstui.
 
 def _auth_json_path() -> Path:
-    """Resolve ``~/.freeide/auth.json`` honouring the active FreeIDE profile."""
+    """Resolve ``~/.jettstui/auth.json`` honouring the active JettsTUI profile."""
     try:
-        from freeide_constants import get_freeide_home
-        return Path(get_freeide_home()) / "auth.json"
+        from jettstui_constants import get_jettstui_home
+        return Path(get_jettstui_home()) / "auth.json"
     except Exception:
-        return Path(os.path.expanduser("~/.freeide")) / "auth.json"
+        return Path(os.path.expanduser("~/.jettstui")) / "auth.json"
 
 
 def _load_auth() -> Dict[str, Any]:
@@ -146,7 +146,7 @@ def store_photon_token(token: str) -> None:
 def load_project_credentials() -> Tuple[Optional[str], Optional[str]]:
     """Return the runtime SDK creds ``(spectrum_project_id, project_secret)``.
 
-    Precedence: process env (``~/.freeide/.env`` is loaded into the gateway's
+    Precedence: process env (``~/.jettstui/.env`` is loaded into the gateway's
     environment at startup) wins, then ``auth.json`` for offline / status
     use.  This is the pair the Node sidecar feeds to ``spectrum-ts``; the id
     is the unified project id (dashboard id == spectrumProjectId).
@@ -198,7 +198,7 @@ def store_project_credentials(
 ) -> None:
     """Persist project credentials to both .env (runtime) and auth.json (mgmt).
 
-    The runtime SDK creds land in ``~/.freeide/.env`` via the same
+    The runtime SDK creds land in ``~/.jettstui/.env`` via the same
     ``save_env_value`` helper every other channel uses, so the gateway picks
     them up from the environment with zero adapter changes.  A copy of the
     non-secret ids (plus the secret, for offline ``status``) is written to
@@ -245,16 +245,16 @@ def store_user_numbers(
 
 
 def _persist_runtime_env(spectrum_project_id: str, project_secret: str) -> None:
-    """Write the SDK creds to ``~/.freeide/.env`` (canonical runtime store).
+    """Write the SDK creds to ``~/.jettstui/.env`` (canonical runtime store).
 
     Isolated in its own helper so the secret value flows straight into
     ``save_env_value`` without ever being bound to a printable local in a
     caller — same CodeQL-clean-flow rationale as the rest of this module.
     """
     try:
-        from freeide_cli.config import save_env_value
+        from jettstui.config import save_env_value
     except ImportError:
-        logger.warning("photon: freeide_cli.config unavailable — skipping .env write")
+        logger.warning("photon: jettstui.config unavailable — skipping .env write")
         return
     try:
         save_env_value("PHOTON_PROJECT_ID", spectrum_project_id)
@@ -916,7 +916,7 @@ def _configured_operator_phone() -> Optional[str]:
 
 def _get_config_env_value(key: str) -> Optional[str]:
     try:
-        from freeide_cli.config import get_env_value
+        from jettstui.config import get_env_value
     except Exception:
         return os.getenv(key)
     return get_env_value(key)
@@ -986,7 +986,7 @@ def print_credential_summary(emit: Any = print) -> None:
     labels: Dict[str, str] = {}
     labels["device_token"] = (
         "✓ stored" if load_photon_token()
-        else "✗ missing (run `freeide photon setup`)"
+        else "✗ missing (run `jettstui photon setup`)"
     )
     sid, sec = load_project_credentials()
     # Dashboard id and Spectrum id are the same value now (ids unified), so
@@ -995,10 +995,10 @@ def print_credential_summary(emit: Any = print) -> None:
     labels["project_key"] = "✓ stored" if sec else "✗ missing"
     phone, assigned = load_user_numbers()
     labels["phone_number"] = (
-        phone if phone else "✗ missing (run `freeide photon setup --phone ...`)"
+        phone if phone else "✗ missing (run `jettstui photon setup --phone ...`)"
     )
     labels["assigned_phone_number"] = (
-        assigned if assigned else "✗ missing (run `freeide photon setup`)"
+        assigned if assigned else "✗ missing (run `jettstui photon setup`)"
     )
 
     rows = [
@@ -1018,7 +1018,7 @@ def credential_summary() -> Dict[str, str]:
     def _present_token() -> str:
         return (
             "✓ stored" if load_photon_token()
-            else "✗ missing (run `freeide photon setup`)"
+            else "✗ missing (run `jettstui photon setup`)"
         )
 
     def _present_project_id() -> str:
@@ -1031,11 +1031,11 @@ def credential_summary() -> Dict[str, str]:
 
     def _present_phone() -> str:
         phone, _assigned = load_user_numbers()
-        return phone or "✗ missing (run `freeide photon setup --phone ...`)"
+        return phone or "✗ missing (run `jettstui photon setup --phone ...`)"
 
     def _present_assigned_phone() -> str:
         _phone, assigned = load_user_numbers()
-        return assigned or "✗ missing (run `freeide photon setup`)"
+        return assigned or "✗ missing (run `jettstui photon setup`)"
 
     return {
         "device_token": _present_token(),

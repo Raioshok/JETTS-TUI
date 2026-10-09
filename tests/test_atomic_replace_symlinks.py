@@ -2,7 +2,7 @@
 
 ``os.replace(tmp, target)`` replaces whatever exists at ``target`` — including
 symlinks, which it swaps for a regular file.  Managed deployments that
-symlink ``~/.freeide/config.yaml`` (and other state files) to a git-tracked
+symlink ``~/.jettstui/config.yaml`` (and other state files) to a git-tracked
 profile package were silently detached on every config write.
 
 The fix: a shared ``atomic_replace`` helper in ``utils.py`` that resolves the
@@ -150,7 +150,7 @@ def test_atomic_yaml_write_restores_owner_on_real_symlink_target(
     """Config writes through symlinks must restore the real file's owner.
 
     Docker support hit this when a root-run setup wizard rewrote a
-    freeide-owned /opt/data/config.yaml via atomic replace, leaving the new file
+    jettstui-owned /opt/data/config.yaml via atomic replace, leaving the new file
     root-owned. The test forces a preserved uid/gid so it does not need root.
     """
     if os.name != "posix":
@@ -329,7 +329,7 @@ def test_atomic_replace_real_cross_device(tmp_path: Path) -> None:
     import shutil as _shutil
     import uuid as _uuid
 
-    other_fs_dir = shm / f"freeide-exdev-test-{_uuid.uuid4().hex[:8]}"
+    other_fs_dir = shm / f"jettstui-exdev-test-{_uuid.uuid4().hex[:8]}"
     other_fs_dir.mkdir()
     try:
         real = other_fs_dir / "config.yaml"

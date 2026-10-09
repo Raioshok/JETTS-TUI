@@ -32,13 +32,13 @@ import { api } from "@/lib/api";
 
 /** LocalStorage key — pre-applied before the React tree mounts to avoid
  *  a visible flash of the default palette on theme-overridden installs. */
-const STORAGE_KEY = "freeide-dashboard-theme";
+const STORAGE_KEY = "jettstui-dashboard-theme";
 
 /** LocalStorage key for the font override (independent of theme). Holds a
  *  font id from the catalog in `fonts.ts`, or the `THEME_DEFAULT_FONT_ID`
  *  sentinel / absent = "use the active theme's font". Pre-applied before
  *  the React tree mounts (see `main.tsx`) to avoid a font flash. */
-const FONT_STORAGE_KEY = "freeide-dashboard-font";
+const FONT_STORAGE_KEY = "jettstui-dashboard-font";
 
 /** Renames of built-in theme keys we've shipped previously. Without this,
  *  users who saved one of the old names in localStorage (or had it
@@ -47,8 +47,8 @@ const FONT_STORAGE_KEY = "freeide-dashboard-font";
  *  Keep entries here until enough release cycles have passed that we can
  *  reasonably assume nobody still has the old value persisted. */
 const THEME_NAME_ALIASES: Record<string, string> = {
-  // Renamed during the LENS_5I port + Nous-blue rebrand.
-  "lens-5i": "nous-blue",
+  // Renamed theme ids map onto their current names.
+  "lens-5i": "cobalt-blue",
 };
 
 function migrateThemeName(name: string): string {
@@ -113,25 +113,25 @@ function layoutVars(layout: ThemeLayout): Record<string, string> {
 
 /** Map a color-overrides key (camelCase) to its `--color-*` CSS var. */
 const OVERRIDE_KEY_TO_VAR: Record<keyof ThemeColorOverrides, string> = {
-  card: "--color-card",
-  cardForeground: "--color-card-foreground",
-  popover: "--color-popover",
-  popoverForeground: "--color-popover-foreground",
-  primary: "--color-primary",
-  primaryForeground: "--color-primary-foreground",
-  secondary: "--color-secondary",
-  secondaryForeground: "--color-secondary-foreground",
-  muted: "--color-muted",
-  mutedForeground: "--color-muted-foreground",
-  accent: "--color-accent",
-  accentForeground: "--color-accent-foreground",
-  destructive: "--color-destructive",
-  destructiveForeground: "--color-destructive-foreground",
-  success: "--color-success",
-  warning: "--color-warning",
-  border: "--color-border",
-  input: "--color-input",
-  ring: "--color-ring",
+  card: "--theme-color-card",
+  cardForeground: "--theme-color-card-foreground",
+  popover: "--theme-color-popover",
+  popoverForeground: "--theme-color-popover-foreground",
+  primary: "--theme-color-primary",
+  primaryForeground: "--theme-color-primary-foreground",
+  secondary: "--theme-color-secondary",
+  secondaryForeground: "--theme-color-secondary-foreground",
+  muted: "--theme-color-muted",
+  mutedForeground: "--theme-color-muted-foreground",
+  accent: "--theme-color-accent",
+  accentForeground: "--theme-color-accent-foreground",
+  destructive: "--theme-color-destructive",
+  destructiveForeground: "--theme-color-destructive-foreground",
+  success: "--theme-color-success",
+  warning: "--theme-color-warning",
+  border: "--theme-color-border",
+  input: "--theme-color-input",
+  ring: "--theme-color-ring",
 };
 
 /** Keys we might have written on a previous theme — needed to know which
@@ -181,7 +181,7 @@ function seriesColorVars(
 // ---------------------------------------------------------------------------
 
 /** Well-known named asset slots a theme may populate. Kept in sync with
- *  `_THEME_NAMED_ASSET_KEYS` in `freeide_cli/web_server.py`. */
+ *  `_THEME_NAMED_ASSET_KEYS` in `jettstui/web_server.py`. */
 const NAMED_ASSET_KEYS = ["bg", "hero", "logo", "crest", "sidebar", "header"] as const;
 
 /** Component buckets mirrored from the backend's `_THEME_COMPONENT_BUCKETS`.
@@ -257,7 +257,7 @@ let _PREV_DYNAMIC_VAR_KEYS: Set<string> = new Set();
 
 /** ID for the injected <style> tag that carries a theme's customCSS.
  *  A single tag is reused + replaced on every theme switch. */
-const CUSTOM_CSS_STYLE_ID = "freeide-theme-custom-css";
+const CUSTOM_CSS_STYLE_ID = "jettstui-theme-custom-css";
 
 function applyCustomCSS(css: string | undefined) {
   if (typeof document === "undefined") return;
@@ -269,7 +269,7 @@ function applyCustomCSS(css: string | undefined) {
   if (!el) {
     el = document.createElement("style");
     el.id = CUSTOM_CSS_STYLE_ID;
-    el.setAttribute("data-freeide-theme-css", "true");
+    el.setAttribute("data-jettstui-theme-css", "true");
     document.head.appendChild(el);
   }
   el.textContent = css;
@@ -301,7 +301,7 @@ function injectFontStylesheet(url: string | undefined) {
   const link = document.createElement("link");
   link.rel = "stylesheet";
   link.href = url;
-  link.setAttribute("data-freeide-theme-font", "true");
+  link.setAttribute("data-jettstui-theme-font", "true");
   document.head.appendChild(link);
   INJECTED_FONT_URLS.add(url);
 }
@@ -353,7 +353,7 @@ function applyTheme(theme: DashboardTheme) {
     root.style.removeProperty(cssVar);
   }
   // Same clear-then-set for series colors so a theme that defines them
-  // (e.g. Nous Blue) doesn't leave its values behind when the user
+  // (e.g. Cobalt Blue) doesn't leave its values behind when the user
   // switches to a theme that inherits the `:root` defaults.
   for (const cssVar of ALL_SERIES_VARS) {
     root.style.removeProperty(cssVar);

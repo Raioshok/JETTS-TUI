@@ -9,7 +9,7 @@ import { notify } from '@/store/notifications'
 // exact fixed coordinates, which could overlap a real toast.
 export function RemoteDisplayBanner() {
   useEffect(() => {
-    void window.freeideDesktop?.getRemoteDisplayReason?.().then(reason => {
+    void window.jettstuiDesktop?.getRemoteDisplayReason?.().then(reason => {
       if (reason) {
         notify({
           durationMs: 0,

@@ -224,7 +224,7 @@ def test_translate_native_response_surfaces_reasoning_and_tool_calls():
                 "content": {
                     "parts": [
                         {"thought": True, "text": "thinking..."},
-                        {"functionCall": {"name": "search", "args": {"q": "freeide"}}},
+                        {"functionCall": {"name": "search", "args": {"q": "jettstui"}}},
                     ]
                 },
                 "finishReason": "STOP",
@@ -242,7 +242,7 @@ def test_translate_native_response_surfaces_reasoning_and_tool_calls():
     assert choice.finish_reason == "tool_calls"
     assert choice.message.reasoning == "thinking..."
     assert choice.message.tool_calls[0].function.name == "search"
-    assert json.loads(choice.message.tool_calls[0].function.arguments) == {"q": "freeide"}
+    assert json.loads(choice.message.tool_calls[0].function.arguments) == {"q": "jettstui"}
 
 
 def test_native_client_uses_x_goog_api_key_and_native_models_endpoint(monkeypatch):
@@ -480,7 +480,7 @@ def test_max_tokens_none_defaults_to_gemini_output_ceiling():
     """max_tokens=None must send the model's full output ceiling, not omit it.
 
     Gemini's native generateContent applies a low internal default when
-    maxOutputTokens is absent, truncating tool calls mid-stream. FreeIDE passes
+    maxOutputTokens is absent, truncating tool calls mid-stream. JettsTUI passes
     None to mean "unlimited", so the adapter must translate that to the
     published 65,535 ceiling rather than leaving the field unset.
     """
@@ -513,38 +513,38 @@ def test_x_goog_api_client_header_is_set():
     headers = client._headers()
 
     assert "X-Goog-Api-Client" in headers, "X-Goog-Api-Client header missing"
-    assert "freeide-agent/" in headers["X-Goog-Api-Client"], (
-        "freeide-agent not found in X-Goog-Api-Client header"
+    assert "jettstui/" in headers["X-Goog-Api-Client"], (
+        "jettstui not found in X-Goog-Api-Client header"
     )
 
 
 def test_x_goog_api_client_header_format():
-    """Header value should be 'freeide-agent/<version>' matching the package version."""
-    from agent.gemini_native_adapter import GeminiNativeClient, _FREEIDE_VERSION
+    """Header value should be 'jettstui/<version>' matching the package version."""
+    from agent.gemini_native_adapter import GeminiNativeClient, _JETTSTUI_VERSION
 
     client = GeminiNativeClient(api_key="fake-key", model="gemini-2.0-flash")
     headers = client._headers()
 
-    expected = f"freeide-agent/{_FREEIDE_VERSION}"
+    expected = f"jettstui/{_JETTSTUI_VERSION}"
     assert headers["X-Goog-Api-Client"] == expected
 
 
 def test_user_agent_contains_version():
-    """User-Agent should include the freeide-agent version."""
-    from agent.gemini_native_adapter import GeminiNativeClient, _FREEIDE_VERSION
+    """User-Agent should include the jettstui version."""
+    from agent.gemini_native_adapter import GeminiNativeClient, _JETTSTUI_VERSION
 
     client = GeminiNativeClient(api_key="fake-key", model="gemini-2.0-flash")
     headers = client._headers()
 
-    assert f"freeide-agent/{_FREEIDE_VERSION}" in headers["User-Agent"]
+    assert f"jettstui/{_JETTSTUI_VERSION}" in headers["User-Agent"]
 
 
-def test_freeide_version_is_valid():
-    """_FREEIDE_VERSION should be a non-empty string."""
-    from agent.gemini_native_adapter import _FREEIDE_VERSION
+def test_jettstui_version_is_valid():
+    """_JETTSTUI_VERSION should be a non-empty string."""
+    from agent.gemini_native_adapter import _JETTSTUI_VERSION
 
-    assert isinstance(_FREEIDE_VERSION, str)
-    assert len(_FREEIDE_VERSION) > 0
-    assert _FREEIDE_VERSION != "0.0.0", (
-        "Version should resolve from freeide_cli.__version__, not the fallback"
+    assert isinstance(_JETTSTUI_VERSION, str)
+    assert len(_JETTSTUI_VERSION) > 0
+    assert _JETTSTUI_VERSION != "0.0.0", (
+        "Version should resolve from jettstui.__version__, not the fallback"
     )

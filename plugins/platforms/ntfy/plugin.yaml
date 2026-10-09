@@ -3,10 +3,10 @@ label: ntfy
 kind: platform
 version: 1.0.0
 description: >
-  ntfy push-notification gateway adapter for FreeIDE Agent.
+  ntfy push-notification gateway adapter for JettsTUI.
   Subscribes to a topic on ntfy.sh or any self-hosted ntfy server via
   HTTP streaming, and publishes replies via HTTP POST. Lightweight —
-  no external SDK, only httpx (already a FreeIDE dependency).
+  no external SDK, only httpx (already a JettsTUI dependency).
 
   ntfy has no native user-identity primitive; the adapter treats each
   topic as a single trusted channel and never derives user identity
@@ -14,11 +14,11 @@ description: >
   for any real trust boundary.
 author: sprmn24
 # ``requires_env`` and ``optional_env`` entries are surfaced in the
-# ``freeide config`` UI via the platform-plugin env var injector in
-# ``freeide_cli/config.py``.
+# ``jettstui config`` UI via the platform-plugin env var injector in
+# ``jettstui/config.py``.
 requires_env:
   - name: NTFY_TOPIC
-    description: "Topic name to subscribe to (e.g. freeide-in)"
+    description: "Topic name to subscribe to (e.g. jettstui-in)"
     prompt: "ntfy subscribe topic"
     password: false
 optional_env:

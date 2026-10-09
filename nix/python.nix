@@ -111,12 +111,12 @@ let
           buildSystemOverrides
           pythonPackageOverrides
           # ``setup.py`` permits wheel/sdist creation only from the sealed
-          # FreeIDE derivation. This is deliberately a derivation environment
+          # JettsTUI derivation. This is deliberately a derivation environment
           # variable, not a devShell variable: ``nix develop -c uv build``
           # must remain blocked.
           (final: prev: {
-            freeide-agent = prev.freeide-agent.overrideAttrs (_old: {
-              FREEIDE_NIX_BUILD = "1";
+            jettstui = prev.jettstui.overrideAttrs (_old: {
+              JETTSTUI_NIX_BUILD = "1";
             });
           })
         ]
@@ -127,18 +127,18 @@ let
   # computes relative paths via lib.path.splitRoot, which rejects the
   # filtered pythonSrc (a cleanSourceWith set, not a path).  Filtering
   # buys nothing here anyway: the editable install reads from
-  # $FREEIDE_PYTHON_SRC_ROOT at runtime.
+  # $JETTSTUI_PYTHON_SRC_ROOT at runtime.
   workspaceRoot = ./..;
   editableWorkspace = uv2nix.lib.workspace.loadWorkspace { inherit workspaceRoot; };
   editableOverlay = editableWorkspace.mkEditablePyprojectOverlay {
-    root = "$FREEIDE_PYTHON_SRC_ROOT"; # resolved at shellHook time
+    root = "$JETTSTUI_PYTHON_SRC_ROOT"; # resolved at shellHook time
   };
 
   editableSet = pythonSet.overrideScope (
     lib.composeManyExtensions [
       editableOverlay
       (final: prev: {
-        freeide-agent = prev.freeide-agent.overrideAttrs (old: {
+        jettstui = prev.jettstui.overrideAttrs (old: {
           # point straight at the real source instead of the filtered nix store copy
           src = workspaceRoot;
           nativeBuildInputs = old.nativeBuildInputs ++ final.resolveBuildSystem { editables = [ ]; };
@@ -148,10 +148,10 @@ let
   );
 in
 {
-  venv = pythonSet.mkVirtualEnv "freeide-agent-env" {
-    freeide-agent = dependency-groups;
+  venv = pythonSet.mkVirtualEnv "jettstui-env" {
+    jettstui = dependency-groups;
   };
-  editableVenv = editableSet.mkVirtualEnv "freeide-agent-editable-env" {
-    freeide-agent = dependency-groups;
+  editableVenv = editableSet.mkVirtualEnv "jettstui-editable-env" {
+    jettstui = dependency-groups;
   };
 }

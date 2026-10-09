@@ -63,7 +63,7 @@ class PlatformEntry:
     # If None, falls back to ``validate_config`` or ``check_fn``.
     is_connected: Optional[Callable[[Any], bool]] = None
 
-    # Env vars this platform needs (for ``freeide setup`` display).
+    # Env vars this platform needs (for ``jettstui setup`` display).
     required_env: list = field(default_factory=list)
 
     # Hint shown when check_fn returns False.
@@ -79,7 +79,7 @@ class PlatformEntry:
     source: str = "plugin"
 
     # Name of the plugin manifest that registered this entry (empty for
-    # built-ins).  Used by ``freeide gateway setup`` to auto-enable the
+    # built-ins).  Used by ``jettstui gateway setup`` to auto-enable the
     # owning plugin when the user configures its platform.
     plugin_name: str = ""
 
@@ -174,12 +174,12 @@ class PlatformRegistry:
         # Why this exists: platform adapter modules import heavy, platform-
         # specific SDKs at module level (lark_oapi, microsoft_teams, discord.py,
         # slack_bolt, ...). Eagerly loading all ~20 bundled platform plugins at
-        # plugin-discovery time added several seconds to *every* `freeide`
-        # invocation -- including plain `freeide chat`, which never touches any
+        # plugin-discovery time added several seconds to *every* `jettstui`
+        # invocation -- including plain `jettstui chat`, which never touches any
         # gateway platform. Discovery now registers a cheap deferred loader per
         # platform; the real module is imported only when a registry lookup
         # actually asks for that platform (gateway start, cron delivery,
-        # `freeide setup`/`gateway status`, send_message).
+        # `jettstui setup`/`gateway status`, send_message).
         self._deferred: dict[str, Callable[[], None]] = {}
 
     # -- deferred loading ----------------------------------------------------
@@ -219,7 +219,7 @@ class PlatformRegistry:
 
         Used by the iterate-all accessors (``all_entries``/``plugin_entries``),
         which are only called by paths that genuinely need every adapter:
-        gateway startup, ``freeide setup``/``gateway status``, channel
+        gateway startup, ``jettstui setup``/``gateway status``, channel
         directory.  CLI chat never iterates the full set.
         """
         if not self._deferred:

@@ -54,12 +54,12 @@ export function isWatchWindow(): boolean {
 // True when running inside the Electron desktop shell (the preload bridge is
 // present). The "open in new window" affordance is desktop-only.
 export function canOpenSessionWindow(): boolean {
-  return typeof window !== 'undefined' && typeof window.freeideDesktop?.openSessionWindow === 'function'
+  return typeof window !== 'undefined' && typeof window.jettstuiDesktop?.openSessionWindow === 'function'
 }
 
 // True when the shell can open a full peer app window (⌘⇧N / "New Window").
 export function canOpenNewWindow(): boolean {
-  return typeof window !== 'undefined' && typeof window.freeideDesktop?.openWindow === 'function'
+  return typeof window !== 'undefined' && typeof window.jettstuiDesktop?.openWindow === 'function'
 }
 
 type WindowOpenResult = { ok: boolean; error?: string } | undefined
@@ -87,7 +87,7 @@ export async function openSessionInNewWindow(sessionId: string, opts?: { watch?:
   }
 
   await runWindowOpen(
-    () => window.freeideDesktop.openSessionWindow(sessionId, opts),
+    () => window.jettstuiDesktop.openSessionWindow(sessionId, opts),
     'Could not open chat in a new window'
   )
 }
@@ -99,5 +99,5 @@ export async function openNewWindow(): Promise<void> {
     return
   }
 
-  await runWindowOpen(() => window.freeideDesktop.openWindow(), 'Could not open a new window')
+  await runWindowOpen(() => window.jettstuiDesktop.openWindow(), 'Could not open a new window')
 }

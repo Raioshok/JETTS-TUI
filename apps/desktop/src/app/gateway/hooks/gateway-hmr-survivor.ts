@@ -3,18 +3,18 @@
 // self-accept so this module's own reload doesn't reset the cache. Prod strips
 // import.meta.hot → byte-for-byte unchanged live unmount.
 
-import type { FreeIDEGateway } from '@/freeide'
-import type { FreeIDEConnection } from '@/global'
+import type { JettsTUIConnection } from '@/global'
+import type { JettsTUIGateway } from '@/jettstui'
 
 export interface GatewaySurvivor {
-  gateway: FreeIDEGateway
+  gateway: JettsTUIGateway
   profile: string
-  connection: FreeIDEConnection | null
+  connection: JettsTUIConnection | null
 }
 
 // One slot on globalThis, keyed by a process-stable Symbol so repeated imports
 // (across hot reloads) resolve the exact same store.
-const SURVIVOR_KEY = Symbol.for('freeide.desktop.gatewaySurvivor')
+const SURVIVOR_KEY = Symbol.for('jettstui.desktop.gatewaySurvivor')
 
 interface SurvivorGlobal {
   [SURVIVOR_KEY]?: GatewaySurvivor | null

@@ -243,8 +243,8 @@ class ThreadParticipationTracker:
         }
 
     def _state_path(self) -> Path:
-        from freeide_constants import get_freeide_home
-        return get_freeide_home() / f"{self._platform}_threads.json"
+        from jettstui_constants import get_jettstui_home
+        return get_jettstui_home() / f"{self._platform}_threads.json"
 
     def _load(self) -> list[str]:
         path = self._state_path()

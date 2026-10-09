@@ -16,15 +16,15 @@ import {
   X,
 } from "lucide-react";
 import * as QRCode from "qrcode";
-import { Badge } from "@nous-research/ui/ui/components/badge";
-import { Button } from "@nous-research/ui/ui/components/button";
-import { Card, CardContent } from "@nous-research/ui/ui/components/card";
-import { Input } from "@nous-research/ui/ui/components/input";
-import { Label } from "@nous-research/ui/ui/components/label";
-import { Spinner } from "@nous-research/ui/ui/components/spinner";
-import { Switch } from "@nous-research/ui/ui/components/switch";
-import { Toast } from "@nous-research/ui/ui/components/toast";
-import { useToast } from "@nous-research/ui/hooks/use-toast";
+import { Badge } from "@jettstui/ui/ui/components/badge";
+import { Button } from "@jettstui/ui/ui/components/button";
+import { Card, CardContent } from "@jettstui/ui/ui/components/card";
+import { Input } from "@jettstui/ui/ui/components/input";
+import { Label } from "@jettstui/ui/ui/components/label";
+import { Spinner } from "@jettstui/ui/ui/components/spinner";
+import { Switch } from "@jettstui/ui/ui/components/switch";
+import { Toast } from "@jettstui/ui/ui/components/toast";
+import { useToast } from "@jettstui/ui/hooks/use-toast";
 import { api } from "@/lib/api";
 import type {
   MessagingPlatform,
@@ -131,9 +131,9 @@ function normalizeWhatsAppMode(mode: unknown): "bot" | "self-chat" | null {
 
 export default function ChannelsPage() {
   const [platforms, setPlatforms] = useState<MessagingPlatform[]>([]);
-  const [envPath, setEnvPath] = useState("~/.freeide/.env");
+  const [envPath, setEnvPath] = useState("~/.jettstui/.env");
   const [gatewayStartCommand, setGatewayStartCommand] = useState(
-    "freeide gateway start",
+    "jettstui gateway start",
   );
   const [loading, setLoading] = useState(true);
   const { toast, showToast } = useToast();
@@ -163,8 +163,8 @@ export default function ChannelsPage() {
       .getMessagingPlatforms()
       .then((res) => {
         setPlatforms(res.platforms);
-        setEnvPath(res.env_path || "~/.freeide/.env");
-        setGatewayStartCommand(res.gateway_start_command || "freeide gateway start");
+        setEnvPath(res.env_path || "~/.jettstui/.env");
+        setGatewayStartCommand(res.gateway_start_command || "jettstui gateway start");
       })
       .catch((e) => showToast(`Error: ${e}`, "error"));
   }, [showToast]);
@@ -440,7 +440,7 @@ export default function ChannelsPage() {
                     </a>
                   </div>
                   <p className="text-xs">
-                    You can leave allowed users blank. FreeIDE will then send new DM
+                    You can leave allowed users blank. JettsTUI will then send new DM
                     users a code that you approve from the Pairing page.
                   </p>
                 </div>
@@ -847,7 +847,7 @@ function WhatsAppOnboardingPanel({
         : "waiting";
   const setupHelp =
     phase === "connected" || phase === "applying"
-      ? "WhatsApp is linked but FreeIDE is not listening yet. Save and restart the gateway to finish setup."
+      ? "WhatsApp is linked but JettsTUI is not listening yet. Save and restart the gateway to finish setup."
       : setup?.status === "installing"
         ? "Preparing the WhatsApp bridge. The QR code will appear here when it is ready."
         : setup?.status === "starting"
@@ -858,24 +858,24 @@ function WhatsAppOnboardingPanel({
     : setup?.account_name || setup?.account_id || "";
   const linkedAccountDetail =
     setup?.account_phone || setup?.account_id
-      ? "This is the WhatsApp account FreeIDE is now logged into."
-      : "FreeIDE is logged into the WhatsApp account that scanned the QR code.";
+      ? "This is the WhatsApp account JettsTUI is now logged into."
+      : "JettsTUI is logged into the WhatsApp account that scanned the QR code.";
   const linkedAccountChatUrl = setup?.account_phone
     ? `https://wa.me/${setup.account_phone}`
     : "";
   const messageInstruction =
     mode === "self-chat"
-      ? "After the restart, open Message Yourself on the linked account and send FreeIDE a message."
-      : "After the restart, start a chat from another WhatsApp account with the linked account and send FreeIDE a message.";
+      ? "After the restart, open Message Yourself on the linked account and send JettsTUI a message."
+      : "After the restart, start a chat from another WhatsApp account with the linked account and send JettsTUI a message.";
   const hasSavedAllowedUsers = Boolean(platform.whatsapp_setup?.allowed_users_set);
   const pairingInstruction =
     mode === "self-chat" && !allowedUsers.trim()
       ? hasSavedAllowedUsers
-        ? "FreeIDE will keep the saved WhatsApp allowlist."
+        ? "JettsTUI will keep the saved WhatsApp allowlist."
         : "Self-chat mode will allow the linked account automatically when you save."
       : !allowedUsers.trim() && hasSavedAllowedUsers
-        ? "FreeIDE will keep the saved WhatsApp allowlist."
-        : "If no allowed numbers were entered, FreeIDE replies with a pairing code. Approve it from the dashboard Pairing page.";
+        ? "JettsTUI will keep the saved WhatsApp allowlist."
+        : "If no allowed numbers were entered, JettsTUI replies with a pairing code. Approve it from the dashboard Pairing page.";
 
   return (
     <div className="rounded-sm border border-border bg-background/35 p-4">
@@ -957,7 +957,7 @@ function WhatsAppOnboardingPanel({
 
               {phase === "waiting" && (
                 <div className="text-xs text-muted-foreground">
-                  After saving, unknown DMs use FreeIDE pairing codes unless their
+                  After saving, unknown DMs use JettsTUI pairing codes unless their
                   number is already allowed.
                 </div>
               )}
@@ -1148,7 +1148,7 @@ function TelegramOnboardingPanel({
     setDetectedOwnerId(null);
     setNewAllowedId("");
     try {
-      const res = await api.startTelegramOnboarding({ bot_name: "Jetts-TUI" });
+      const res = await api.startTelegramOnboarding({ bot_name: "JettsTUI" });
       const dataUrl = await QRCode.toDataURL(res.qr_payload, {
         errorCorrectionLevel: "M",
         margin: 1,
@@ -1185,7 +1185,7 @@ function TelegramOnboardingPanel({
     setNewAllowedId("");
   };
 
-  // restart_started only means the `freeide gateway restart` child spawned —
+  // restart_started only means the `jettstui gateway restart` child spawned —
   // not that the restart will succeed (e.g. systemd linger missing, service
   // manager failure). Poll the action status briefly and surface a non-zero
   // exit via the manual-restart banner. Note: in no-service installs the
@@ -1266,7 +1266,7 @@ function TelegramOnboardingPanel({
         </span>
         <span className="text-xs text-muted-foreground">
           Both options connect a bot you control and save its credentials only to
-          this FreeIDE installation.
+          this JettsTUI installation.
         </span>
       </div>
 
@@ -1279,7 +1279,7 @@ function TelegramOnboardingPanel({
             <Badge tone="success">recommended</Badge>
           </div>
           <p className="text-xs text-muted-foreground">
-            Scan a QR code and confirm in Telegram. FreeIDE creates the bot and
+            Scan a QR code and confirm in Telegram. JettsTUI creates the bot and
             detects your Telegram user ID automatically.
           </p>
           <Button

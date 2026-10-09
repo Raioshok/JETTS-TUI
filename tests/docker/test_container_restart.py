@@ -3,14 +3,14 @@
 The s6 dynamic scandir at /run/service/ lives on tmpfs and is wiped
 on every container restart. Phase 4 Task 4.0's container_boot module
 + cont-init.d/02-reconcile-profiles regenerate the service slots from
-$FREEIDE_HOME/profiles/<name>/gateway_state.json on every boot and
+$JETTSTUI_HOME/profiles/<name>/gateway_state.json on every boot and
 auto-start only those whose last state was `running`.
 
 These tests stand up a container with a named volume, create profiles
 inside it in various gateway states, restart the container, and
 assert the reconciler did the right thing.
 
-Every ``docker exec`` here runs as the unprivileged ``freeide`` user
+Every ``docker exec`` here runs as the unprivileged ``jettstui`` user
 (via :func:`docker_exec` / :func:`docker_exec_sh` in conftest); see
 the conftest module docstring.
 """
@@ -27,7 +27,7 @@ from tests.docker.conftest import docker_exec, docker_exec_sh, wait_for_path, wa
 def _docker(*args: str, **kw) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         ["docker", *args],
-        capture_output=True, text=True, timeout=kw.pop("timeout", 60),
+        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=kw.pop("timeout", 60),
         **kw,
     )
 
@@ -50,10 +50,10 @@ def _wait_for_reconcile_log_mention(
 @pytest.fixture
 def restart_container(request, built_image: str):
     """A long-running container with a named volume so docker restart
-    preserves $FREEIDE_HOME/profiles/."""
+    preserves $JETTSTUI_HOME/profiles/."""
     safe = request.node.name.replace("[", "_").replace("]", "_")
-    name = f"freeide-restart-{safe}"
-    volume = f"freeide-restart-vol-{safe}"
+    name = f"jettstui-restart-{safe}"
+    volume = f"jettstui-restart-vol-{safe}"
     _docker("rm", "-f", name)
     _docker("volume", "rm", "-f", volume)
     _docker("volume", "create", volume, timeout=10).check_returncode()
@@ -81,10 +81,10 @@ def test_running_gateway_survives_container_restart(restart_container: str) -> N
     # Create the profile + start its gateway. The Phase 4 hooks
     # register the s6 service slot during create and the dispatch
     # path brings it up via s6-svc -u.
-    r = docker_exec(container, "freeide", "profile", "create", "coder")
+    r = docker_exec(container, "jettstui", "profile", "create", "coder")
     assert r.returncode == 0, f"profile create failed: {r.stderr}"
 
-    r = docker_exec(container, "freeide", "-p", "coder", "gateway", "start", timeout=60)
+    r = docker_exec(container, "jettstui", "-p", "coder", "gateway", "start", timeout=60)
     assert r.returncode == 0, f"gateway start failed: {r.stderr}"
 
     # Give the service time to actually come up under supervision.
@@ -124,7 +124,7 @@ def test_running_gateway_survives_container_restart(restart_container: str) -> N
 def test_stopped_gateway_stays_stopped_after_restart(restart_container: str) -> None:
     container = restart_container
 
-    docker_exec(container, "freeide", "profile", "create", "writer").check_returncode()
+    docker_exec(container, "jettstui", "profile", "create", "writer").check_returncode()
 
     # Write 'stopped' directly so we don't have to race against the
     # gateway's own state writes.
@@ -155,7 +155,7 @@ def test_stale_gateway_pid_cleaned_up_on_restart(restart_container: str) -> None
     process-mismatch checks."""
     container = restart_container
 
-    docker_exec(container, "freeide", "profile", "create", "ghost").check_returncode()
+    docker_exec(container, "jettstui", "profile", "create", "ghost").check_returncode()
 
     # Stamp stale runtime files alongside a 'running' state so the
     # reconciler walks this profile.
@@ -197,8 +197,8 @@ def test_live_gateway_autostarts_after_real_restart_without_manual_state_stamp(
     """
     container = restart_container
 
-    docker_exec(container, "freeide", "profile", "create", "live").check_returncode()
-    r = docker_exec(container, "freeide", "-p", "live", "gateway", "start", timeout=60)
+    docker_exec(container, "jettstui", "profile", "create", "live").check_returncode()
+    r = docker_exec(container, "jettstui", "-p", "live", "gateway", "start", timeout=60)
     assert r.returncode == 0, f"gateway start failed: {r.stderr}"
 
     # Wait for the gateway to actually come up under supervision AND write
@@ -214,7 +214,7 @@ def test_live_gateway_autostarts_after_real_restart_without_manual_state_stamp(
 
     # Real restart — Docker sends SIGTERM to PID 1; s6 propagates it to the
     # supervised gateway. No planned-stop marker is written (this is not an
-    # operator `freeide gateway stop`), so the shutdown is signal-initiated.
+    # operator `jettstui gateway stop`), so the shutdown is signal-initiated.
     _docker("restart", container, timeout=60).check_returncode()
 
     log = _wait_for_reconcile_log_mention(container, "live", deadline_s=30.0)

@@ -1,10 +1,8 @@
 #!/usr/bin/env python3
-"""Build the FreeIDE Model Catalog — a centralized JSON manifest of curated models.
+"""Build the JettsTUI fallback model catalog.
 
 This script reads the in-repo hardcoded curated list (``OPENROUTER_MODELS``)
-and writes it to a JSON manifest that the FreeIDE CLI fetches at runtime.
-Publishing the catalog through the docs site
-lets maintainers update model lists without shipping a FreeIDE release.
+and writes it to a JSON manifest that the runtime fetches from the repository.
 
 The runtime fetcher falls back to the same in-repo hardcoded lists if the
 manifest is unreachable, so this script is a convenience for keeping the
@@ -14,10 +12,7 @@ Usage::
 
     python scripts/build_model_catalog.py
 
-Output: ``website/static/api/model-catalog.json``
-
-Live URL (after ``deploy-site.yml`` runs on merge to main):
-``https://freeide-agent.freeide.dev/docs/api/model-catalog.json``
+Output: ``resources/model-catalog.json``
 """
 
 from __future__ import annotations
@@ -30,15 +25,15 @@ from datetime import datetime, timezone
 REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, REPO_ROOT)
 
-# Ensure FREEIDE_HOME is set for imports that touch it at module level.
-os.environ.setdefault("FREEIDE_HOME", os.path.join(os.path.expanduser("~"), ".freeide"))
+# Ensure JETTSTUI_HOME is set for imports that touch it at module level.
+os.environ.setdefault("JETTSTUI_HOME", os.path.join(os.path.expanduser("~"), ".jettstui"))
 
-from freeide_cli.models import (  # noqa: E402
+from jettstui.models import (  # noqa: E402
     OPENROUTER_MODELS,
     PREFERRED_SILENT_DEFAULT_MODEL,
 )
 
-OUTPUT_PATH = os.path.join(REPO_ROOT, "website", "static", "api", "model-catalog.json")
+OUTPUT_PATH = os.path.join(REPO_ROOT, "resources", "model-catalog.json")
 CATALOG_VERSION = 1
 
 
@@ -55,8 +50,8 @@ def build_catalog() -> dict:
         "version": CATALOG_VERSION,
         "updated_at": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"),
         "metadata": {
-            "source": "freeide-agent repo",
-            "docs": "https://freeide-agent.freeide.dev/docs/reference/model-catalog",
+            "source": "JettsTUI repository",
+            "docs": "https://github.com/Raioshok/JETTS-TUI/blob/main/docs/reference/model-catalog.md",
         },
         "providers": {
             "openrouter": {
@@ -65,7 +60,7 @@ def build_catalog() -> dict:
                     "note": (
                         "Descriptions drive picker badges. Live /api/v1/models "
                         "filters curated ids by tool-calling support and free pricing. "
-                        'The entry labeled "default": true is the model FreeIDE '
+                        'The entry labeled "default": true is the model JettsTUI '
                         "silently lands on when the user never picked one."
                     ),
                 },

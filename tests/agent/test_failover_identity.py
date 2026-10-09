@@ -333,7 +333,7 @@ class TestRedecoratePromptCacheOnPolicyChange:
         prompt = "sys"
         guidance = (
             "[Mixture of Agents context — use this as private guidance for the "
-            "normal FreeIDE agent loop.]\nAggregator: agg\n\nadvice"
+            "normal JettsTUI agent loop.]\nAggregator: agg\n\nadvice"
         )
         base = [
             {"role": "system", "content": prompt},

@@ -1,9 +1,9 @@
 <#
 .SYNOPSIS
-Sets up a cloned Jetts-TUI repository on native Windows.
+Sets up a cloned JettsTUI repository on native Windows.
 
 .DESCRIPTION
-Installs uv when needed, creates or updates the local venv, installs Jetts-TUI,
+Installs uv when needed, creates or updates the local venv, installs JettsTUI,
 adds its command to the user PATH, provisions Node.js, syncs bundled skills,
 and starts the provider/model wizard.
 
@@ -62,7 +62,8 @@ function Find-Uv {
     $candidates = @(
         (Join-Path $env:USERPROFILE ".local\bin\uv.exe"),
         (Join-Path $env:LOCALAPPDATA "Programs\uv\uv.exe"),
-        (Join-Path $env:LOCALAPPDATA "freeide\bin\uv.exe")
+        (Join-Path $env:LOCALAPPDATA "jettstui\bin\uv.exe"),
+        (Join-Path $env:LOCALAPPDATA "jettstui\bin\uv.exe")
     )
     foreach ($candidate in $candidates) {
         if (Test-Path -LiteralPath $candidate -PathType Leaf) { return $candidate }
@@ -90,9 +91,9 @@ function Add-UserPath([string]$Directory) {
     if (-not $alreadyPresent) {
         $nextPath = if ($userPath) { "$Directory;$userPath" } else { $Directory }
         [Environment]::SetEnvironmentVariable("Path", $nextPath, "User")
-        Write-Ok "Added the local Jetts-TUI command to your user PATH"
+        Write-Ok "Added the local JettsTUI command to your user PATH"
     } else {
-        Write-Ok "The local Jetts-TUI command is already on your user PATH"
+        Write-Ok "The local JettsTUI command is already on your user PATH"
     }
     if (($env:Path -split ";") -notcontains $Directory) {
         $env:Path = "$Directory;$env:Path"
@@ -102,14 +103,14 @@ function Add-UserPath([string]$Directory) {
 Push-Location $RepoRoot
 try {
     Write-Host ""
-    Write-Host "Jetts-TUI local checkout setup" -ForegroundColor Yellow
+    Write-Host "JettsTUI local checkout setup" -ForegroundColor Yellow
     Write-Host "Repository: $RepoRoot"
     Write-Host ""
 
     $uv = Find-Uv
     if (-not $uv) {
         Write-Step "Installing uv"
-        $installer = Join-Path ([System.IO.Path]::GetTempPath()) "freeide-uv-install.ps1"
+        $installer = Join-Path ([System.IO.Path]::GetTempPath()) "jettstui-uv-install.ps1"
         Invoke-WebRequest "https://astral.sh/uv/install.ps1" -OutFile $installer -UseBasicParsing
         try {
             & powershell.exe -NoProfile -ExecutionPolicy Bypass -File $installer
@@ -137,7 +138,7 @@ try {
         Write-Ok "Reusing existing venv (pass -Recreate to rebuild)"
     }
 
-    Write-Step "Installing Jetts-TUI and its Python dependencies"
+    Write-Step "Installing JettsTUI and its Python dependencies"
     $previousProjectEnvironment = $env:UV_PROJECT_ENVIRONMENT
     $env:UV_PROJECT_ENVIRONMENT = $VenvDir
     try {
@@ -176,15 +177,15 @@ try {
 
     Write-Host ""
     Write-Ok "Setup complete"
-    Write-Host "  Command: $VenvScripts\jetts-tui.exe"
-    Write-Host "  Diagnose: jetts-tui doctor"
+    Write-Host "  Command: $VenvScripts\jettstui.exe"
+    Write-Host "  Diagnose: jettstui doctor"
     Write-Host ""
 
     if (-not $SkipSetup) {
         Write-Step "Starting the provider and model setup wizard"
-        Invoke-Checked $VenvPython "-m" "freeide_cli.main" "setup"
+        Invoke-Checked $VenvPython "-m" "jettstui.main" "setup"
     } else {
-        Write-Host "Finish configuration later with: jetts-tui setup"
+        Write-Host "Finish configuration later with: jettstui setup"
     }
 } finally {
     Pop-Location

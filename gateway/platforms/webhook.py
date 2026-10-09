@@ -473,9 +473,9 @@ class WebhookAdapter(BasePlatformAdapter):
 
     def _reload_dynamic_routes(self) -> None:
         """Reload agent-created subscriptions from disk if the file changed."""
-        from freeide_constants import get_freeide_home
-        freeide_home = get_freeide_home()
-        subs_path = freeide_home / _DYNAMIC_ROUTES_FILENAME
+        from jettstui_constants import get_jettstui_home
+        jettstui_home = get_jettstui_home()
+        subs_path = jettstui_home / _DYNAMIC_ROUTES_FILENAME
         if not subs_path.exists():
             if self._dynamic_routes:
                 self._dynamic_routes = {}
@@ -551,7 +551,7 @@ class WebhookAdapter(BasePlatformAdapter):
             # the single-profile gateway (don't 404 a would-be valid route).
             return None
         try:
-            from freeide_cli.profiles import profiles_to_serve
+            from jettstui.profiles import profiles_to_serve
             served = {name for name, _ in profiles_to_serve(multiplex=True)}
         except Exception:
             return _PROFILE_REJECTED

@@ -5,9 +5,9 @@ import { useMemo } from 'react'
 import { SidebarPanelLabel } from '@/app/shell/sidebar-label'
 import { DisclosureCaret } from '@/components/ui/disclosure-caret'
 import { SidebarGroup, SidebarGroupContent } from '@/components/ui/sidebar'
-import type { SessionInfo } from '@/freeide'
-import type { FreeIDEGitWorktree } from '@/global'
+import type { JettsTUIGitWorktree } from '@/global'
 import { useI18n } from '@/i18n'
+import type { SessionInfo } from '@/jettstui'
 import { flattenSessionsWithBranches } from '@/lib/session-branch-tree'
 import { groupEntriesByRecency, type SidebarListRow, toSessionRows } from '@/lib/session-date-groups'
 import { sessionBucketLabel } from '@/lib/time'
@@ -119,7 +119,7 @@ interface SidebarSessionsSectionProps {
   projectContent?: SidebarProjectTree
   // Live git lanes (`git worktree list`) for repos in the entered project —
   // a VISUAL enhancer only (empty lanes), never session membership.
-  projectRepoWorktrees?: Record<string, FreeIDEGitWorktree[]>
+  projectRepoWorktrees?: Record<string, JettsTUIGitWorktree[]>
   // Live session cache used for optimistic placement inside entered-project lanes.
   liveSessions?: SessionInfo[]
   // Client-side optimistic eviction layer (deleted/archived ids).

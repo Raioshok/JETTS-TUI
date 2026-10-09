@@ -2,18 +2,18 @@
  * Plugin discovery — both delivery modes:
  *
  *  - BUNDLED: every `src/plugins/<name>/plugin.{ts,tsx}` default-exporting a
- *    `FreeIDEPlugin` registers automatically (vite glob — drop a folder in).
+ *    `JettsTUIPlugin` registers automatically (vite glob — drop a folder in).
  *    None ship in-tree today; reference/demo plugins live in the companion
- *    `freeide-example-plugins` repo.
- *  - RUNTIME: the on-disk door (`<freeide home>/desktop-plugins/<name>/plugin.js`)
+ *    `jettstui-example-plugins` repo.
+ *  - RUNTIME: the on-disk door (`<jettstui home>/desktop-plugins/<name>/plugin.js`)
  *    — the agent's/user's door, watched + hot-reloaded by the runtime loader.
  */
 
-import { createPluginContext, type FreeIDEPlugin } from './plugin'
+import { createPluginContext, type JettsTUIPlugin } from './plugin'
 import { pluginActive, publishPlugin } from './plugins-store'
 import { watchRuntimePlugins } from './runtime-loader'
 
-const modules = import.meta.glob<{ default: FreeIDEPlugin }>('../plugins/*/plugin.{ts,tsx}', { eager: true })
+const modules = import.meta.glob<{ default: JettsTUIPlugin }>('../plugins/*/plugin.{ts,tsx}', { eager: true })
 
 // One-shot init guard. Contributions themselves register by id (re-registering
 // is idempotent), but the disk-door watcher setup below (watchRuntimePlugins)
@@ -32,7 +32,7 @@ export function discoverBundledPlugins(): void {
     const plugin = mod.default
 
     if (!plugin?.id || typeof plugin.register !== 'function') {
-      console.warn(`[plugins] ${path} has no valid default FreeIDEPlugin export — skipped`)
+      console.warn(`[plugins] ${path} has no valid default JettsTUIPlugin export — skipped`)
 
       continue
     }

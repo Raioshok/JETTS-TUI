@@ -9,7 +9,7 @@ finally block, so len() reflects truly-running tasks.
 import threading
 from datetime import datetime
 
-from cli import FreeIDECLI
+from cli import JettsTUICLI
 
 
 def _stub_thread() -> threading.Thread:
@@ -18,8 +18,8 @@ def _stub_thread() -> threading.Thread:
 
 
 def _make_cli():
-    """Bare-metal FreeIDECLI for snapshot/build tests (no __init__ side effects)."""
-    cli_obj = FreeIDECLI.__new__(FreeIDECLI)
+    """Bare-metal JettsTUICLI for snapshot/build tests (no __init__ side effects)."""
+    cli_obj = JettsTUICLI.__new__(JettsTUICLI)
     cli_obj.model = "anthropic/claude-opus-4.6"
     cli_obj.agent = None
     cli_obj._background_tasks = {}
@@ -42,8 +42,8 @@ def test_snapshot_counts_live_background_tasks():
 
 
 def test_snapshot_safe_when_background_tasks_attr_missing():
-    """Older FreeIDECLI instances (tests with __new__, etc.) may lack the attr."""
-    cli_obj = FreeIDECLI.__new__(FreeIDECLI)
+    """Older JettsTUICLI instances (tests with __new__, etc.) may lack the attr."""
+    cli_obj = JettsTUICLI.__new__(JettsTUICLI)
     cli_obj.model = "x"
     cli_obj.agent = None
     cli_obj.session_start = datetime.now()

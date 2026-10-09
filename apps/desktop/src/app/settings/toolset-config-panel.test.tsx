@@ -5,7 +5,7 @@ import { MemoryRouter } from 'react-router-dom'
 import type * as ReactRouterDom from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { ToolsetConfig } from '@/types/freeide'
+import type { ToolsetConfig } from '@/types/jettstui'
 
 // EnvVarField navigates to Settings → Keys via useNavigate, so every render
 // needs a router context. The navigate spy asserts the deep-link target.
@@ -39,12 +39,12 @@ const runToolsetPostSetup = vi.fn()
 const getActionStatus = vi.fn()
 const startOAuthLogin = vi.fn()
 const pollOAuthSession = vi.fn()
-const getFreeIDEConfigRecord = vi.fn()
-const getFreeIDEConfigSchema = vi.fn()
-const saveFreeIDEConfig = vi.fn()
+const getJettsTUIConfigRecord = vi.fn()
+const getJettsTUIConfigSchema = vi.fn()
+const saveJettsTUIConfig = vi.fn()
 const getElevenLabsVoices = vi.fn()
 
-vi.mock('@/freeide', () => ({
+vi.mock('@/jettstui', () => ({
   getToolsetConfig: (name: string) => getToolsetConfig(name),
   getToolsetModels: (name: string, provider?: string) => getToolsetModels(name, provider),
   selectToolsetModel: (name: string, model: string, provider?: string) => selectToolsetModel(name, model, provider),
@@ -59,9 +59,9 @@ vi.mock('@/freeide', () => ({
   getActionStatus: (name: string, lines?: number) => getActionStatus(name, lines),
   startOAuthLogin: (providerId: string) => startOAuthLogin(providerId),
   pollOAuthSession: (providerId: string, sessionId: string) => pollOAuthSession(providerId, sessionId),
-  getFreeIDEConfigRecord: () => getFreeIDEConfigRecord(),
-  getFreeIDEConfigSchema: () => getFreeIDEConfigSchema(),
-  saveFreeIDEConfig: (config: unknown) => saveFreeIDEConfig(config),
+  getJettsTUIConfigRecord: () => getJettsTUIConfigRecord(),
+  getJettsTUIConfigSchema: () => getJettsTUIConfigSchema(),
+  saveJettsTUIConfig: (config: unknown) => saveJettsTUIConfig(config),
   getElevenLabsVoices: () => getElevenLabsVoices()
 }))
 
@@ -86,7 +86,6 @@ function config(overrides: Partial<ToolsetConfig> = {}): ToolsetConfig {
         tag: 'No API key needed',
         env_vars: [],
         post_setup: null,
-        requires_nous_auth: false,
         is_active: false
       },
       {
@@ -97,7 +96,6 @@ function config(overrides: Partial<ToolsetConfig> = {}): ToolsetConfig {
           { key: 'ELEVENLABS_API_KEY', prompt: 'ElevenLabs API key', url: 'https://x', default: null, is_set: false }
         ],
         post_setup: null,
-        requires_nous_auth: false,
         is_active: false
       }
     ],
@@ -124,7 +122,7 @@ beforeEach(() => {
   selectToolsetProvider.mockResolvedValue({ ok: true, name: 'tts', provider: 'ElevenLabs' })
   setEnvVar.mockResolvedValue({ ok: true })
   deleteEnvVar.mockResolvedValue({ ok: true })
-  getFreeIDEConfigRecord.mockResolvedValue({
+  getJettsTUIConfigRecord.mockResolvedValue({
     tts: {
       provider: 'edge',
       edge: { voice: 'en-US-AriaNeural' },
@@ -132,8 +130,8 @@ beforeEach(() => {
       elevenlabs: { voice_id: 'pNInz6obpgDQGcFmaJgB', model_id: 'eleven_multilingual_v2' }
     }
   })
-  getFreeIDEConfigSchema.mockResolvedValue({ fields: {}, category_order: [] })
-  saveFreeIDEConfig.mockResolvedValue({ ok: true })
+  getJettsTUIConfigSchema.mockResolvedValue({ fields: {}, category_order: [] })
+  saveJettsTUIConfig.mockResolvedValue({ ok: true })
   getElevenLabsVoices.mockResolvedValue({ available: false, voices: [] })
 })
 
@@ -160,7 +158,6 @@ describe('ToolsetConfigPanel', () => {
               { key: 'VOICE_TOOLS_OPENAI_KEY', prompt: 'OpenAI API key', url: 'https://x', default: null, is_set: true }
             ],
             post_setup: null,
-            requires_nous_auth: false,
             is_active: true,
             tts_provider: 'openai'
           }
@@ -178,8 +175,8 @@ describe('ToolsetConfigPanel', () => {
     // closed Select.
     const voiceInput = screen.getByDisplayValue('alloy')
     fireEvent.change(voiceInput, { target: { value: 'marin' } })
-    await waitFor(() => expect(saveFreeIDEConfig).toHaveBeenCalled(), { timeout: 3000 })
-    const saved = saveFreeIDEConfig.mock.calls.at(-1)?.[0] as Record<string, Record<string, Record<string, string>>>
+    await waitFor(() => expect(saveJettsTUIConfig).toHaveBeenCalled(), { timeout: 3000 })
+    const saved = saveJettsTUIConfig.mock.calls.at(-1)?.[0] as Record<string, Record<string, Record<string, string>>>
     expect(saved.tts.openai.voice).toBe('marin')
   })
 
@@ -248,7 +245,6 @@ describe('ToolsetConfigPanel', () => {
             tag: 'Multi-model image generation',
             env_vars: [],
             post_setup: null,
-            requires_nous_auth: false,
             is_active: true
           }
         ]
@@ -324,7 +320,6 @@ describe('ToolsetConfigPanel', () => {
             tag: 'No API key needed',
             env_vars: [],
             post_setup: null,
-            requires_nous_auth: false,
             is_active: false
           },
           {
@@ -341,7 +336,6 @@ describe('ToolsetConfigPanel', () => {
               }
             ],
             post_setup: null,
-            requires_nous_auth: false,
             is_active: true
           }
         ]
@@ -371,7 +365,6 @@ describe('ToolsetConfigPanel', () => {
             tag: 'Stealth local browser',
             env_vars: [],
             post_setup: 'camofox',
-            requires_nous_auth: false,
             is_active: true
           }
         ]
@@ -420,7 +413,6 @@ describe('ToolsetConfigPanel', () => {
             tag: 'Stealth local browser',
             env_vars: [],
             post_setup: 'camofox',
-            requires_nous_auth: false,
             is_active: true
           }
         ]
@@ -452,7 +444,6 @@ describe('ToolsetConfigPanel', () => {
             tag: 'Stealth local browser',
             env_vars: [],
             post_setup: 'camofox',
-            requires_nous_auth: false,
             is_active: true
           }
         ]
@@ -498,7 +489,6 @@ describe('ToolsetConfigPanel', () => {
             tag: 'Stealth local browser',
             env_vars: [],
             post_setup: 'camofox',
-            requires_nous_auth: false,
             is_active: true,
             status: 'ready'
           }
@@ -519,7 +509,7 @@ describe('ToolsetConfigPanel', () => {
 
   describe('readiness pills', () => {
     it('renders the server status instead of assuming keyless rows are Ready', async () => {
-      // The false-Ready bug: a logged-out FreeIDE Subscription row and a
+      // The false-Ready bug: a logged-out JettsTUI Subscription row and a
       // never-installed local TTS both have zero env vars — the old client
       // heuristic pilled every such row "Ready". The server now sends an
       // honest per-provider status; the pill must follow it.
@@ -532,17 +522,15 @@ describe('ToolsetConfigPanel', () => {
               tag: 'No API key needed',
               env_vars: [],
               post_setup: null,
-              requires_nous_auth: false,
               is_active: true,
               status: 'ready'
             },
             {
-              name: 'FreeIDE Subscription',
+              name: 'JettsTUI Subscription',
               badge: 'subscription',
               tag: 'Managed OpenAI TTS',
               env_vars: [],
               post_setup: null,
-              requires_nous_auth: true,
               is_active: false,
               status: 'needs_auth'
             },
@@ -552,7 +540,6 @@ describe('ToolsetConfigPanel', () => {
               tag: 'Lightweight local ONNX TTS',
               env_vars: [],
               post_setup: 'kittentts',
-              requires_nous_auth: false,
               is_active: false,
               status: 'needs_setup'
             }
@@ -588,7 +575,6 @@ describe('ToolsetConfigPanel', () => {
                 }
               ],
               post_setup: null,
-              requires_nous_auth: false,
               is_active: false,
               status: 'needs_keys'
             }
@@ -639,7 +625,6 @@ describe('ToolsetConfigPanel', () => {
                 }
               ],
               post_setup: null,
-              requires_nous_auth: false,
               is_active: true,
               status: 'needs_keys'
             }
@@ -682,7 +667,6 @@ describe('ToolsetConfigPanel', () => {
               tag: 'Headless Chromium, no API key needed',
               env_vars: [],
               post_setup: 'agent_browser',
-              requires_nous_auth: false,
               is_active: true,
               status: 'ready'
             }
@@ -711,7 +695,6 @@ describe('ToolsetConfigPanel', () => {
               tag: 'Headless Chromium, no API key needed',
               env_vars: [],
               post_setup: 'agent_browser',
-              requires_nous_auth: false,
               is_active: true,
               status: 'ready'
             }
@@ -747,7 +730,6 @@ describe('ToolsetConfigPanel', () => {
               tag: 'Headless Chromium, no API key needed',
               env_vars: [],
               post_setup: 'agent_browser',
-              requires_nous_auth: false,
               is_active: true,
               status: 'needs_setup'
             }
@@ -764,137 +746,6 @@ describe('ToolsetConfigPanel', () => {
       // raced the auto-expand effect and flaked under the RQ provider).
       expect(await screen.findByRole('button', { name: /Run setup/ })).toBeTruthy()
       expect(screen.queryByText('Installed')).toBeNull()
-    })
-  })
-
-  describe('managed FreeIDE provider activation', () => {
-    const nousBrowserConfig = () =>
-      config({
-        name: 'browser',
-        active_provider: null,
-        providers: [
-          {
-            name: 'FreeIDE Subscription (Browser Use cloud)',
-            badge: 'subscription',
-            tag: 'Managed Browser Use billed to your subscription',
-            env_vars: [],
-            post_setup: 'agent_browser',
-            requires_nous_auth: true,
-            is_active: false,
-            status: 'needs_auth'
-          }
-        ]
-      })
-
-    it('surfaces a sign-in notice when the PUT reports needs_nous_auth', async () => {
-      // Regression (Windows 11 Capabilities journey): the GUI wrote
-      // browser.cloud_provider but skipped the Portal entitlement handshake,
-      // so the managed row silently never activated. The endpoint now
-      // reports needs_nous_auth and the panel must surface a sign-in action
-      // instead of the misleading "provider selected" success toast.
-      const { notify } = await import('@/store/notifications')
-
-      getToolsetConfig.mockResolvedValue(nousBrowserConfig())
-      selectToolsetProvider.mockResolvedValue({
-        ok: true,
-        name: 'browser',
-        provider: 'FreeIDE Subscription (Browser Use cloud)',
-        needs_nous_auth: true,
-        feature: 'browser'
-      })
-
-      const { ToolsetConfigPanel } = await import('./toolset-config-panel')
-      render(<ToolsetConfigPanel onConfiguredChange={vi.fn()} toolset="browser" />)
-
-      fireEvent.click(await screen.findByRole('button', { name: /FreeIDE Subscription/ }))
-
-      await waitFor(() =>
-        expect(selectToolsetProvider).toHaveBeenCalledWith('browser', 'FreeIDE Subscription (Browser Use cloud)')
-      )
-      await waitFor(() =>
-        expect(notify).toHaveBeenCalledWith(
-          expect.objectContaining({
-            kind: 'warning',
-            action: expect.objectContaining({ label: expect.any(String) })
-          })
-        )
-      )
-      // No success toast — the row is not active yet.
-      expect(notify).not.toHaveBeenCalledWith(expect.objectContaining({ kind: 'success' }))
-    })
-
-    it('drives the existing FreeIDE OAuth device-code flow from the sign-in action and refetches', async () => {
-      const { notify } = await import('@/store/notifications')
-
-      getToolsetConfig.mockResolvedValue(nousBrowserConfig())
-      selectToolsetProvider.mockResolvedValue({
-        ok: true,
-        name: 'browser',
-        provider: 'FreeIDE Subscription (Browser Use cloud)',
-        needs_nous_auth: true,
-        feature: 'browser'
-      })
-      startOAuthLogin.mockResolvedValue({
-        flow: 'device_code',
-        session_id: 'sess-1',
-        user_code: 'NOUS-1234',
-        verification_url: 'https://portal.freeide.dev/device?user_code=NOUS-1234',
-        poll_interval: 5,
-        expires_in: 600
-      })
-      pollOAuthSession.mockResolvedValue({ session_id: 'sess-1', status: 'approved' })
-      const openSpy = vi.spyOn(window, 'open').mockReturnValue(null)
-
-      try {
-        const { ToolsetConfigPanel } = await import('./toolset-config-panel')
-        render(<ToolsetConfigPanel onConfiguredChange={vi.fn()} toolset="browser" />)
-
-        fireEvent.click(await screen.findByRole('button', { name: /FreeIDE Subscription/ }))
-
-        // Grab the sign-in action off the warning notification and invoke it —
-        // this is the affordance the toast renders as a button.
-        await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ kind: 'warning' })))
-
-        const warning = vi
-          .mocked(notify)
-          .mock.calls.map(call => call[0])
-          .find(input => input.kind === 'warning')
-
-        expect(warning?.action).toBeTruthy()
-        getToolsetConfig.mockClear()
-        warning!.action!.onClick()
-
-        await waitFor(() => expect(startOAuthLogin).toHaveBeenCalledWith('nous'))
-        expect(openSpy).toHaveBeenCalledWith(
-          'https://portal.freeide.dev/device?user_code=NOUS-1234',
-          '_blank',
-          'noopener,noreferrer'
-        )
-        // Approved poll → the panel refetches the config so status flips.
-        await waitFor(() => expect(pollOAuthSession).toHaveBeenCalledWith('nous', 'sess-1'), { timeout: 8000 })
-        await waitFor(() => expect(getToolsetConfig).toHaveBeenCalled(), { timeout: 8000 })
-      } finally {
-        openSpy.mockRestore()
-      }
-    }, 20000)
-
-    it('shows the plain success toast when the managed row is already entitled', async () => {
-      const { notify } = await import('@/store/notifications')
-
-      getToolsetConfig.mockResolvedValue(nousBrowserConfig())
-      selectToolsetProvider.mockResolvedValue({
-        ok: true,
-        name: 'browser',
-        provider: 'FreeIDE Subscription (Browser Use cloud)'
-      })
-
-      const { ToolsetConfigPanel } = await import('./toolset-config-panel')
-      render(<ToolsetConfigPanel onConfiguredChange={vi.fn()} toolset="browser" />)
-
-      fireEvent.click(await screen.findByRole('button', { name: /FreeIDE Subscription/ }))
-
-      await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ kind: 'success' })))
-      expect(startOAuthLogin).not.toHaveBeenCalled()
     })
   })
 
@@ -918,7 +769,6 @@ describe('ToolsetConfigPanel', () => {
                 }
               ],
               post_setup: null,
-              requires_nous_auth: false,
               is_active: true,
               status: 'ready'
             }
@@ -972,7 +822,6 @@ describe('ToolsetConfigPanel', () => {
             tag: 'Free metasearch',
             env_vars: [],
             post_setup: null,
-            requires_nous_auth: false,
             is_active: true,
             status: 'ready',
             web_backend: 'searxng',
@@ -984,7 +833,6 @@ describe('ToolsetConfigPanel', () => {
             tag: 'Full search + extract',
             env_vars: [],
             post_setup: null,
-            requires_nous_auth: false,
             is_active: false,
             status: 'ready',
             web_backend: 'firecrawl',

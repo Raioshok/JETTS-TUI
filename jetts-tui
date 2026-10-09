@@ -1,0 +1,7 @@
+#!/usr/bin/env python3
+"""JettsTUI launcher for source and managed-checkout installs."""
+
+if __name__ == "__main__":
+    from jettstui.main import main
+
+    main()

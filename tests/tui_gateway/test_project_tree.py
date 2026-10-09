@@ -162,7 +162,7 @@ def test_user_worktree_under_dotworktrees_is_its_own_lane_not_kanban():
     )
     sessions = [
         _session("/repo", branch="main"),
-        _session("/repo/.worktrees/test-gui-stuff", branch="freeide/test-gui-stuff"),
+        _session("/repo/.worktrees/test-gui-stuff", branch="jettstui/test-gui-stuff"),
     ]
 
     tree = pt.build_tree([], sessions, [], resolve, hydrate=True)
@@ -422,18 +422,18 @@ def test_nested_project_folders_pick_the_deepest_match():
 
 
 def test_junk_root_never_becomes_an_auto_project():
-    # A session whose git root is FREEIDE_HOME (config/state) must not spawn a
+    # A session whose git root is JETTSTUI_HOME (config/state) must not spawn a
     # phantom project; it lands in the Home bucket. A real repo alongside it
     # still groups normally.
     resolve = _resolver(
         {
-            "/home/me/.freeide": ("/home/me/.freeide", "/home/me/.freeide"),
+            "/home/me/.jettstui": ("/home/me/.jettstui", "/home/me/.jettstui"),
             "/www/app": ("/www/app", "/www/app"),
         }
     )
-    junk = _session("/home/me/.freeide", branch="main")
+    junk = _session("/home/me/.jettstui", branch="main")
     real = _session("/www/app", branch="main")
-    is_junk = lambda root: root == "/home/me/.freeide"
+    is_junk = lambda root: root == "/home/me/.jettstui"
 
     tree = pt.build_tree([], [junk, real], [], resolve, hydrate=True, is_junk_root=is_junk)
 
@@ -443,9 +443,9 @@ def test_junk_root_never_becomes_an_auto_project():
 
 
 def test_junk_root_is_dropped_from_the_discovered_tier():
-    discovered = [{"root": "/home/me/.freeide", "label": ".freeide", "sessions": 0, "last_active": 9}]
+    discovered = [{"root": "/home/me/.jettstui", "label": ".jettstui", "sessions": 0, "last_active": 9}]
 
-    tree = pt.build_tree([], [], discovered, resolve=None, is_junk_root=lambda r: r == "/home/me/.freeide")
+    tree = pt.build_tree([], [], discovered, resolve=None, is_junk_root=lambda r: r == "/home/me/.jettstui")
 
     assert tree["projects"] == []
 
@@ -453,7 +453,7 @@ def test_junk_root_is_dropped_from_the_discovered_tier():
 def test_non_git_cwd_can_group_inside_a_junk_repo_subtree():
     # Repo discovery rejects the full state subtree, but a selected non-git
     # descendant may be an intentional workspace carried over from the old UI.
-    workspace = _session("/home/test/.freeide/workspaces/notes")
+    workspace = _session("/home/test/.jettstui/workspaces/notes")
 
     tree = pt.build_tree(
         [],
@@ -461,16 +461,16 @@ def test_non_git_cwd_can_group_inside_a_junk_repo_subtree():
         [],
         resolve=lambda _cwd: None,
         hydrate=True,
-        is_junk_root=lambda path: path.startswith("/home/test/.freeide"),
-        is_junk_cwd=lambda path: path in {"/home/test", "/home/test/.freeide"},
+        is_junk_root=lambda path: path.startswith("/home/test/.jettstui"),
+        is_junk_cwd=lambda path: path in {"/home/test", "/home/test/.jettstui"},
     )
 
-    assert [p["id"] for p in tree["projects"]] == ["/home/test/.freeide/workspaces/notes"]
+    assert [p["id"] for p in tree["projects"]] == ["/home/test/.jettstui/workspaces/notes"]
     assert tree["scoped_session_ids"] == [workspace["id"]]
 
 
 def test_broad_default_non_git_cwd_stays_unscoped():
-    detached = _session("/home/test/.freeide")
+    detached = _session("/home/test/.jettstui")
 
     tree = pt.build_tree(
         [],
@@ -478,7 +478,7 @@ def test_broad_default_non_git_cwd_stays_unscoped():
         [],
         resolve=lambda _cwd: None,
         hydrate=True,
-        is_junk_cwd=lambda path: path in {"/home/test", "/home/test/.freeide"},
+        is_junk_cwd=lambda path: path in {"/home/test", "/home/test/.jettstui"},
     )
 
     assert _real_project_ids(tree) == []
@@ -489,19 +489,19 @@ def test_deleted_sibling_worktree_folds_into_parent_home_checkout():
     # A deleted <repo>-<suffix> worktree leaves its session with an unresolvable
     # cwd and no persisted root. It joins the parent's trunk lane — no dead-path
     # lane, no phantom project.
-    resolve = _resolver({"/www/freeide-agent": ("/www/freeide-agent", "/www/freeide-agent")})
+    resolve = _resolver({"/www/jettstui": ("/www/jettstui", "/www/jettstui")})
     sessions = [
-        _session("/www/freeide-agent", branch="main"),
-        _session("/www/freeide-agent-session-links"),
+        _session("/www/jettstui", branch="main"),
+        _session("/www/jettstui-session-links"),
     ]
 
     tree = pt.build_tree([], sessions, [], resolve, hydrate=True)
     project = tree["projects"][0]
 
-    assert [p["id"] for p in tree["projects"]] == ["/www/freeide-agent"]
-    assert _lane_ids(project) == ["/www/freeide-agent::branch::main"]
+    assert [p["id"] for p in tree["projects"]] == ["/www/jettstui"]
+    assert _lane_ids(project) == ["/www/jettstui::branch::main"]
     main = project["repos"][0]["groups"][0]
-    assert main["isMain"] and main["path"] == "/www/freeide-agent"
+    assert main["isMain"] and main["path"] == "/www/jettstui"
     assert len(main["sessions"]) == 2
 
 
@@ -510,36 +510,36 @@ def test_deleted_sibling_worktree_subdir_folds_into_parent_home_checkout():
     # (an agent that cd-ed into `<repo>-<suffix>/apps/desktop`). The leaf name
     # ("desktop") shares nothing with the repo, so the sibling probe has to walk
     # the ancestors — otherwise the dead path is minted as its own project.
-    resolve = _resolver({"/www/freeide-agent": ("/www/freeide-agent", "/www/freeide-agent")})
+    resolve = _resolver({"/www/jettstui": ("/www/jettstui", "/www/jettstui")})
     sessions = [
-        _session("/www/freeide-agent", branch="main"),
-        _session("/www/freeide-agent-guiperf/apps/desktop"),
+        _session("/www/jettstui", branch="main"),
+        _session("/www/jettstui-guiperf/apps/desktop"),
     ]
 
     tree = pt.build_tree([], sessions, [], resolve, hydrate=True)
 
-    assert [p["id"] for p in tree["projects"]] == ["/www/freeide-agent"]
+    assert [p["id"] for p in tree["projects"]] == ["/www/jettstui"]
     project = tree["projects"][0]
-    assert _lane_ids(project) == ["/www/freeide-agent::branch::main"]
+    assert _lane_ids(project) == ["/www/jettstui::branch::main"]
     assert len(project["repos"][0]["groups"][0]["sessions"]) == 2
 
 
 def test_deleted_unrelated_workspace_does_not_become_a_project():
-    # A deleted dir the sibling probe can't reach by name (`freeide-salvage-drafts`
-    # shares no prefix with `freeide-agent`; `/tmp/scratch` was never a worktree)
+    # A deleted dir the sibling probe can't reach by name (`salvage-drafts`
+    # shares no prefix with `jettstui`; `/tmp/scratch` was never a worktree)
     # must not be promoted to a phantom project — it can never be opened and can
     # only be dismissed by hand. Those sessions land in the Home bucket.
-    resolve = _resolver({"/www/freeide-agent": ("/www/freeide-agent", "/www/freeide-agent")})
+    resolve = _resolver({"/www/jettstui": ("/www/jettstui", "/www/jettstui")})
     live, salvage, scratch = (
-        _session("/www/freeide-agent", branch="main"),
-        _session("/www/freeide-salvage-drafts/apps/desktop"),
+        _session("/www/jettstui", branch="main"),
+        _session("/www/salvage-drafts/apps/desktop"),
         _session("/tmp/scratch"),
     )
-    on_disk = {"/www/freeide-agent"}
+    on_disk = {"/www/jettstui"}
 
     tree = pt.build_tree([], [live, salvage, scratch], [], resolve, hydrate=True, exists=lambda p: p in on_disk)
 
-    assert _real_project_ids(tree) == ["/www/freeide-agent"]
+    assert _real_project_ids(tree) == ["/www/jettstui"]
     assert set(_home_session_ids(tree)) == {salvage["id"], scratch["id"]}
 
 

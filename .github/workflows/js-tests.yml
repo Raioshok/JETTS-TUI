@@ -67,3 +67,21 @@ jobs:
         with:
           command: npm ci
       - run: npm run --prefix ${{ matrix.package }} ${{ matrix.script }}
+
+  desktop-windows-package:
+    name: Desktop Windows NSIS package
+    runs-on: windows-latest
+    timeout-minutes: 35
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+          cache: npm
+      - uses: ./.github/actions/retry
+        with:
+          command: npm ci
+      # Exercises the platform-specific installer and verifies its Electron,
+      # renderer, install-stamp, and native node-pty payloads. The Linux
+      # workspace matrix cannot prove that Windows packaging works.
+      - run: npm run test:desktop:all --workspace apps/desktop

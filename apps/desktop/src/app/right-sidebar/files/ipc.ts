@@ -1,10 +1,10 @@
 import ignore from 'ignore'
 
-import type { FreeIDEReadDirEntry, FreeIDEReadDirResult } from '@/global'
+import type { JettsTUIReadDirEntry, JettsTUIReadDirResult } from '@/global'
 import { desktopFsCacheKey, desktopGitRoot, readDesktopDir, readDesktopFileDataUrl } from '@/lib/desktop-fs'
 import { ALWAYS_EXCLUDED } from '@/lib/excluded-paths'
 
-export type ProjectTreeEntry = FreeIDEReadDirEntry
+export type ProjectTreeEntry = JettsTUIReadDirEntry
 
 interface GitignoreRule {
   base: string
@@ -105,7 +105,7 @@ async function gitignoreFor(dir: string) {
   return cached
 }
 
-function ignoredBy(rules: GitignoreRule[], entry: FreeIDEReadDirEntry) {
+function ignoredBy(rules: GitignoreRule[], entry: JettsTUIReadDirEntry) {
   return rules.some(rule => {
     const rel = relativeTo(rule.base, entry.path)
 
@@ -117,7 +117,7 @@ function ignoredBy(rules: GitignoreRule[], entry: FreeIDEReadDirEntry) {
   })
 }
 
-async function filterIgnored(entries: FreeIDEReadDirEntry[], rootPath: string, dirPath: string) {
+async function filterIgnored(entries: JettsTUIReadDirEntry[], rootPath: string, dirPath: string) {
   const root = await gitRootFor(rootPath)
 
   if (!root) {
@@ -131,8 +131,8 @@ async function filterIgnored(entries: FreeIDEReadDirEntry[], rootPath: string, d
   return rules.length > 0 ? entries.filter(entry => !ignoredBy(rules, entry)) : entries
 }
 
-export async function readProjectDir(dirPath: string, rootPath = dirPath): Promise<FreeIDEReadDirResult> {
-  if (!window.freeideDesktop) {
+export async function readProjectDir(dirPath: string, rootPath = dirPath): Promise<JettsTUIReadDirResult> {
+  if (!window.jettstuiDesktop) {
     return { entries: [], error: 'no-bridge' }
   }
 

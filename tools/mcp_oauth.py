@@ -11,7 +11,7 @@ which handles discovery, dynamic client registration, PKCE, token exchange,
 refresh, and step-up authorization automatically.
 
 This module provides the glue:
-    - ``FreeIDETokenStorage``: persists tokens/client-info to disk so they
+    - ``JettsTUITokenStorage``: persists tokens/client-info to disk so they
       survive across process restarts.
     - Callback server: ephemeral localhost HTTP server to capture the OAuth
       redirect with the authorization code.
@@ -31,7 +31,7 @@ Configuration in config.yaml::
           redirect_port: 0                      # 0 = auto-pick free port
           redirect_uri: "https://proxy/callback"  # default: loopback callback
           redirect_host: "localhost"            # loopback hostname (WAF-safe)
-          client_name: "My Custom Client"       # default: "FreeIDE Agent"
+          client_name: "My Custom Client"       # default: "JettsTUI"
 """
 
 import asyncio
@@ -52,7 +52,7 @@ from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from typing import Any
 from urllib.parse import parse_qs, urlparse
-from freeide_constants import secure_parent_dir
+from jettstui_constants import secure_parent_dir
 
 logger = logging.getLogger(__name__)
 
@@ -123,7 +123,7 @@ _SKIP_TOKENS = frozenset({"skip", "cancel", "s", "n", "no", "q", "quit"})
 # _wait_for_callback maps this to OAuthNonInteractiveError ("user_skipped")
 # so the MCP setup path treats it as a non-fatal "continue without this
 # server" rather than a hard failure.
-_USER_SKIPPED_SENTINEL = "__freeide_user_skipped__"
+_USER_SKIPPED_SENTINEL = "__jettstui_user_skipped__"
 
 
 # ---------------------------------------------------------------------------
@@ -131,17 +131,17 @@ _USER_SKIPPED_SENTINEL = "__freeide_user_skipped__"
 # ---------------------------------------------------------------------------
 
 
-def _get_token_dir(freeide_home: str | Path | None = None) -> Path:
+def _get_token_dir(jettstui_home: str | Path | None = None) -> Path:
     """Return the directory for MCP OAuth token files.
 
-    Uses FREEIDE_HOME so each profile gets its own OAuth tokens.
-    Layout: ``FREEIDE_HOME/mcp-tokens/``
+    Uses JETTSTUI_HOME so each profile gets its own OAuth tokens.
+    Layout: ``JETTSTUI_HOME/mcp-tokens/``
     """
     try:
-        from freeide_constants import get_freeide_home
-        base = Path(freeide_home) if freeide_home is not None else Path(get_freeide_home())
+        from jettstui_constants import get_jettstui_home
+        base = Path(jettstui_home) if jettstui_home is not None else Path(get_jettstui_home())
     except ImportError:
-        base = Path(os.environ.get("FREEIDE_HOME", str(Path.home() / ".freeide")))
+        base = Path(os.environ.get("JETTSTUI_HOME", str(Path.home() / ".jettstui")))
     return base / "mcp-tokens"
 
 
@@ -194,11 +194,11 @@ def _reserve_callback_port() -> int:
     return port
 
 
-def _cached_redirect_port(storage: "FreeIDETokenStorage | None") -> int | None:
+def _cached_redirect_port(storage: "JettsTUITokenStorage | None") -> int | None:
     """Return the loopback callback port from cached client registration.
 
     OAuth providers bind a dynamically-registered ``client_id`` to the exact
-    redirect URI that was registered with it. If FreeIDE restarts and chooses a
+    redirect URI that was registered with it. If JettsTUI restarts and chooses a
     new random callback port while reusing the stored ``client_id``, providers
     such as Summ reject the authorization request with ``redirect_uri does not
     match any registered URIs``. Reusing the cached redirect port keeps the
@@ -229,7 +229,7 @@ def _cached_redirect_port(storage: "FreeIDETokenStorage | None") -> int | None:
     return None
 
 
-def _cached_redirect_uri(storage: "FreeIDETokenStorage | None") -> str | None:
+def _cached_redirect_uri(storage: "JettsTUITokenStorage | None") -> str | None:
     """Return a cached non-loopback redirect URI, if one was registered."""
     if storage is None:
         return None
@@ -263,13 +263,13 @@ def _raise_if_non_interactive(lead: str) -> None:
     """Raise ``OAuthNonInteractiveError`` unless an interactive session exists.
 
     ``lead`` is the boundary-specific first sentence; this helper appends the
-    shared, actionable ``freeide mcp login`` next-step so the guidance wording
+    shared, actionable ``jettstui mcp login`` next-step so the guidance wording
     lives in one place across every non-interactive OAuth boundary (#57836).
     """
     if not _is_interactive():
         raise OAuthNonInteractiveError(
             f"{lead} "
-            "Run `freeide mcp login <server>` interactively to (re)authorize, "
+            "Run `jettstui mcp login <server>` interactively to (re)authorize, "
             "then restart or reload the gateway."
         )
 
@@ -374,32 +374,32 @@ def _write_json(path: Path, data: dict) -> None:
 
 
 # ---------------------------------------------------------------------------
-# FreeIDETokenStorage -- persistent token/client-info on disk
+# JettsTUITokenStorage -- persistent token/client-info on disk
 # ---------------------------------------------------------------------------
 
 
-class FreeIDETokenStorage:
+class JettsTUITokenStorage:
     """Persist OAuth tokens and client registration to JSON files.
 
     File layout::
 
-        FREEIDE_HOME/mcp-tokens/<server_name>.json         -- tokens
-        FREEIDE_HOME/mcp-tokens/<server_name>.client.json   -- client info
-        FREEIDE_HOME/mcp-tokens/<server_name>.meta.json     -- oauth server metadata
+        JETTSTUI_HOME/mcp-tokens/<server_name>.json         -- tokens
+        JETTSTUI_HOME/mcp-tokens/<server_name>.client.json   -- client info
+        JETTSTUI_HOME/mcp-tokens/<server_name>.meta.json     -- oauth server metadata
     """
 
-    def __init__(self, server_name: str, *, freeide_home: str | Path | None = None):
+    def __init__(self, server_name: str, *, jettstui_home: str | Path | None = None):
         self._server_name = _safe_filename(server_name)
-        self._freeide_home = Path(freeide_home) if freeide_home is not None else None
+        self._jettstui_home = Path(jettstui_home) if jettstui_home is not None else None
 
     def _tokens_path(self) -> Path:
-        return _get_token_dir(self._freeide_home) / f"{self._server_name}.json"
+        return _get_token_dir(self._jettstui_home) / f"{self._server_name}.json"
 
     def _client_info_path(self) -> Path:
-        return _get_token_dir(self._freeide_home) / f"{self._server_name}.client.json"
+        return _get_token_dir(self._jettstui_home) / f"{self._server_name}.client.json"
 
     def _meta_path(self) -> Path:
-        return _get_token_dir(self._freeide_home) / f"{self._server_name}.meta.json"
+        return _get_token_dir(self._jettstui_home) / f"{self._server_name}.meta.json"
 
     # -- tokens ------------------------------------------------------------
 
@@ -407,7 +407,7 @@ class FreeIDETokenStorage:
         data = _read_json(self._tokens_path())
         if data is None:
             return None
-        # FreeIDE records an absolute wall-clock ``expires_at`` alongside the
+        # JettsTUI records an absolute wall-clock ``expires_at`` alongside the
         # SDK's serialized token (see ``set_tokens``). On read we rewrite
         # ``expires_in`` to the remaining seconds so the SDK's downstream
         # ``update_token_expiry`` computes the correct absolute time and
@@ -536,7 +536,7 @@ class FreeIDETokenStorage:
         self.remove()
         if not snapshot:
             return
-        token_dir = _get_token_dir(self._freeide_home)
+        token_dir = _get_token_dir(self._jettstui_home)
         token_dir.mkdir(parents=True, exist_ok=True)
         for fname, data in snapshot.items():
             path = token_dir / fname
@@ -619,7 +619,7 @@ def _make_callback_handler() -> tuple[type, dict]:
 
             body = (
                 "<html><body><h2>Authorization Successful</h2>"
-                "<p>You can close this tab and return to FreeIDE.</p></body></html>"
+                "<p>You can close this tab and return to JettsTUI.</p></body></html>"
             ) if code else (
                 "<html><body><h2>Authorization Failed</h2>"
                 f"<p>Error: {error or 'unknown'}</p></body></html>"
@@ -718,7 +718,7 @@ def _make_redirect_handler(port: int, redirect_uri: str | None = None):
                 f"         ssh -N -L {port}:127.0.0.1:{port} <user>@<this-host>\n"
                 f"       then open the URL above and let it redirect normally.\n"
                 f"\n"
-                f"  See: https://freeide-agent.freeide.dev/docs/guides/oauth-over-ssh\n",
+                f"  See: https://github.com/Raioshok/JETTS-TUI/blob/main/docs/guides/oauth-over-ssh.md\n",
                 file=sys.stderr,
             )
 
@@ -924,7 +924,7 @@ def _paste_callback_reader(result: dict) -> None:
             return
         result["error"] = _USER_SKIPPED_SENTINEL
         print(
-            "  OAuth skipped. Run `freeide mcp login <server>` later to "
+            "  OAuth skipped. Run `jettstui mcp login <server>` later to "
             "authenticate, or set ``enabled: false`` on that server in "
             "config.yaml to disable persistently.",
             file=sys.stderr,
@@ -978,10 +978,10 @@ def _paste_callback_reader(result: dict) -> None:
 def remove_oauth_tokens(
     server_name: str,
     *,
-    freeide_home: str | Path | None = None,
+    jettstui_home: str | Path | None = None,
 ) -> None:
     """Delete stored OAuth tokens and client info for a server."""
-    storage = FreeIDETokenStorage(server_name, freeide_home=freeide_home)
+    storage = JettsTUITokenStorage(server_name, jettstui_home=jettstui_home)
     storage.remove()
     logger.info("OAuth tokens removed for '%s'", server_name)
 
@@ -997,7 +997,7 @@ def remove_oauth_tokens(
 
 def _configure_callback_port(
     cfg: dict,
-    storage: "FreeIDETokenStorage | None" = None,
+    storage: "JettsTUITokenStorage | None" = None,
 ) -> int:
     """Pick or validate the OAuth callback port.
 
@@ -1074,7 +1074,7 @@ def _resolve_redirect_uri(cfg: dict, port: int) -> str:
 # of 2026-07, verified by live call against api.figma.com):
 #   "Claude Code" → 200
 #   "Codex"       → 200
-#   "FreeIDE Agent" / "FreeIDE" / "Cursor" / "VS Code" / … → 403
+#   "JettsTUI" / "JettsTUI" / "Cursor" / "VS Code" / … → 403
 # pi-figma-remote-auth and similar tools work around this the same way — register
 # under an allowlisted name so the browser flow can start. User can still pin a
 # different name via oauth.client_name if Figma ever admits one.
@@ -1141,7 +1141,7 @@ def _build_client_metadata(cfg: dict) -> "OAuthClientMetadata":
         raise ValueError(
             "_configure_callback_port() must be called before _build_client_metadata()"
         )
-    client_name = cfg.get("client_name", "FreeIDE Agent")
+    client_name = cfg.get("client_name", "JettsTUI")
     scope = cfg.get("scope")
     redirect_uri = _resolve_redirect_uri(cfg, port)
 
@@ -1165,7 +1165,7 @@ def _build_client_metadata(cfg: dict) -> "OAuthClientMetadata":
 
 
 def _maybe_preregister_client(
-    storage: "FreeIDETokenStorage",
+    storage: "JettsTUITokenStorage",
     cfg: dict,
     client_metadata: "OAuthClientMetadata",
 ) -> None:
@@ -1206,9 +1206,9 @@ def humanize_oauth_registration_error(
     Returns a humanized message when the error is a registration 403/Forbidden,
     else ``None`` so the caller keeps the original exception text.
 
-    Figma's remote MCP gates DCR on exact ``client_name``. FreeIDE auto-sets
+    Figma's remote MCP gates DCR on exact ``client_name``. JettsTUI auto-sets
     ``Claude Code`` (known-good); this message fires when the user overrode
-    that with something Figma still rejects, or an older FreeIDE is running.
+    that with something Figma still rejects, or an older JettsTUI is running.
     """
     msg = str(exc)
     lowered = msg.lower()
@@ -1229,11 +1229,11 @@ def humanize_oauth_registration_error(
         return (
             f"'{server_name}' is Figma's remote MCP — DCR is allowlisted by "
             f"exact client_name (\"{_FIGMA_DCR_CLIENT_NAME}\" and \"Codex\" "
-            "work; most other names 403). FreeIDE defaults to "
+            "work; most other names 403). JettsTUI defaults to "
             f"client_name: {_FIGMA_DCR_CLIENT_NAME!r} automatically. If you "
             "set oauth.client_name yourself, change it to one of those, or "
             "clear it and re-run:\n"
-            f"  freeide mcp login {server_name}"
+            f"  jettstui mcp login {server_name}"
         )
 
     return (
@@ -1277,14 +1277,14 @@ def build_oauth_auth(
     apply_oauth_provider_defaults(
         cfg, server_name=server_name, server_url=server_url
     )
-    storage = FreeIDETokenStorage(server_name)
+    storage = JettsTUITokenStorage(server_name)
 
     if not _is_interactive() and not storage.has_cached_tokens():
         raise OAuthNonInteractiveError(
             "MCP OAuth for "
             f"'{server_name}': non-interactive environment and no cached tokens "
             "found. The OAuth flow requires browser authorization. Run "
-            f"`freeide mcp login {server_name}` interactively first to complete "
+            f"`jettstui mcp login {server_name}` interactively first to complete "
             "initial authorization, then cached tokens will be reused."
         )
 

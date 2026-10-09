@@ -7,7 +7,7 @@ license: MIT
 dependencies: [openai-whisper, transformers, torch]
 platforms: [linux, macos]
 metadata:
-  freeide:
+  jettstui:
     tags: [Whisper, Speech Recognition, ASR, Multimodal, Multilingual, OpenAI, Speech-To-Text, Transcription, Translation, Audio Processing]
 
 ---

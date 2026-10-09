@@ -1,4 +1,4 @@
-"""Regression coverage for the user-facing macOS FreeIDE launcher."""
+"""Regression coverage for the user-facing macOS JettsTUI launcher."""
 
 from __future__ import annotations
 
@@ -8,6 +8,8 @@ import shutil
 import stat
 import subprocess
 from pathlib import Path
+
+import pytest
 
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -29,8 +31,9 @@ def _setup_path_function() -> str:
     return match.group(0)
 
 
+@pytest.mark.skipif(os.name == "nt", reason="POSIX launcher and symlink test")
 def test_venv_launcher_bypasses_uv_console_script_that_requires_realpath(tmp_path: Path) -> None:
-    """Stock macOS must start FreeIDE even when its uv console script needs realpath."""
+    """Stock macOS must start JettsTUI even when its uv console script needs realpath."""
     install_dir = tmp_path / "install"
     venv_bin = install_dir / "venv" / "bin"
     command_dir = tmp_path / "command"
@@ -47,9 +50,11 @@ def test_venv_launcher_bypasses_uv_console_script_that_requires_realpath(tmp_pat
         venv_bin / "python",
         '#!/bin/sh\nprintf "%s\\n" "$@" > "$LAUNCH_RESULT"\n',
     )
-    (install_dir / "freeide").write_text("# source entrypoint\n", encoding="utf-8")
+    # The checked-in launcher script; `jettstui/` beside it is the package dir.
+    (install_dir / "jettstui").mkdir()
+    (install_dir / "jetts-tui").write_text("# source entrypoint\n", encoding="utf-8")
     _make_executable(
-        venv_bin / "freeide",
+        venv_bin / "jettstui",
         "#!/bin/sh\n"
         f'PATH="{minimal_path}"\n'
         "'''exec' \"$(dirname -- \"$(realpath -- \"$0\")\")\"/'python3' \"$0\" \"$@\"\n"
@@ -76,7 +81,7 @@ def test_venv_launcher_bypasses_uv_console_script_that_requires_realpath(tmp_pat
     subprocess.run(["/bin/bash", "-c", harness], env=env, check=True)
 
     completed = subprocess.run(
-        [command_dir / "freeide", "--version"],
+        [command_dir / "jettstui", "--version"],
         env=os.environ | {"LAUNCH_RESULT": str(result)},
         text=True,
         capture_output=True,
@@ -84,6 +89,18 @@ def test_venv_launcher_bypasses_uv_console_script_that_requires_realpath(tmp_pat
 
     assert completed.returncode == 0, completed.stderr
     assert result.read_text(encoding="utf-8").splitlines() == [
-        str(install_dir / "freeide"),
+        str(install_dir / "jetts-tui"),
+        "--version",
+    ]
+
+    alias = subprocess.run(
+        [command_dir / "jetts-tui", "--version"],
+        env=os.environ | {"LAUNCH_RESULT": str(result)},
+        text=True,
+        capture_output=True,
+    )
+    assert alias.returncode == 0, alias.stderr
+    assert result.read_text(encoding="utf-8").splitlines() == [
+        str(install_dir / "jetts-tui"),
         "--version",
     ]

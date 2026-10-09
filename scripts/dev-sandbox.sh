@@ -1,29 +1,29 @@
 #!/usr/bin/env bash
-# Run a FreeIDE instance in an isolated sandbox — separate FREEIDE_HOME,
+# Run a JettsTUI instance in an isolated sandbox — separate JETTSTUI_HOME,
 # separate Electron userData, and a distinct Desktop app name so it doesn't compete
 # with your main desktop instance's single-instance lock.
 #
 # By default the sandbox is throwaway: a temp dir is created and removed on
 # exit. Use --persistent to keep the sandbox across restarts (stored under
-# .freeide-sandbox/ in the worktree git root).
+# .jettstui-sandbox/ in the worktree git root).
 #
 # Usage:
-#   scripts/dev-sandbox.sh python -m freeide_cli.main
-#   scripts/dev-sandbox.sh freeide desktop
+#   scripts/dev-sandbox.sh python -m jettstui.main
+#   scripts/dev-sandbox.sh jettstui desktop
 #   scripts/dev-sandbox.sh electron .
 #   scripts/dev-sandbox.sh -- npm run dev   # from apps/desktop/
-#   scripts/dev-sandbox.sh --persistent freeide desktop
+#   scripts/dev-sandbox.sh --persistent jettstui desktop
 #   scripts/dev-sandbox.sh --persistent -- npm run dev
 #
-# Seed the sandbox FREEIDE_HOME from an existing directory (e.g. your main
-# ~/.freeide) so config, sessions, skills, etc. are pre-populated:
-#   scripts/dev-sandbox.sh --from ~/.freeide freeide desktop
+# Seed the sandbox JETTSTUI_HOME from an existing directory (e.g. your main
+# ~/.jettstui) so config, sessions, skills, etc. are pre-populated:
+#   scripts/dev-sandbox.sh --from ~/.jettstui jettstui desktop
 #
-# Override the app name (default: FreeIDESandbox):
-#   FREEIDE_DEV_SANDBOX_NAME=Staging scripts/dev-sandbox.sh freeide desktop
+# Override the app name (default: JettsTUISandbox):
+#   JETTSTUI_DEV_SANDBOX_NAME=Staging scripts/dev-sandbox.sh jettstui desktop
 #
-# Override the persistent sandbox dir name (default: .freeide-sandbox):
-#   FREEIDE_DEV_SANDBOX_DIR=.staging-sandbox scripts/dev-sandbox.sh --persistent freeide desktop
+# Override the persistent sandbox dir name (default: .jettstui-sandbox):
+#   JETTSTUI_DEV_SANDBOX_DIR=.staging-sandbox scripts/dev-sandbox.sh --persistent jettstui desktop
 
 set -euo pipefail
 
@@ -33,27 +33,27 @@ print_help() {
   cat <<'EOF'
 Usage: dev-sandbox.sh [--persistent] [--from DIR] [--] <command...>
 
-Run a FreeIDE instance in an isolated sandbox.
+Run a JettsTUI instance in an isolated sandbox.
 
 Options:
   --persistent    Keep the sandbox dir across restarts (under the worktree
-                  git root, in .freeide-sandbox/). Without this flag the
+                  git root, in .jettstui-sandbox/). Without this flag the
                   sandbox is a temp dir that is removed on exit.
-  --from DIR      Copy DIR into the sandbox FREEIDE_HOME as the starting
+  --from DIR      Copy DIR into the sandbox JETTSTUI_HOME as the starting
                   point (config, sessions, skills, etc.).
-                  Ignored if the sandbox FREEIDE_HOME already has content
+                  Ignored if the sandbox JETTSTUI_HOME already has content
                   (e.g. reusing a --persistent sandbox) to avoid clobbering.
-  --delete        Delete the existing persistent sandbox in .freeide-sandbox.
+  --delete        Delete the existing persistent sandbox in .jettstui-sandbox.
   -h, --help      Show this help message.
 
 Environment:
-  FREEIDE_DEV_SANDBOX_NAME  Override the app name (default: FreeIDESandbox)
-  FREEIDE_DEV_SANDBOX_DIR   Override the persistent dir name (default: .freeide-sandbox)
+  JETTSTUI_DEV_SANDBOX_NAME  Override the app name (default: JettsTUISandbox)
+  JETTSTUI_DEV_SANDBOX_DIR   Override the persistent dir name (default: .jettstui-sandbox)
 
 Examples:
-  dev-sandbox.sh freeide desktop
-  dev-sandbox.sh --persistent freeide desktop
-  dev-sandbox.sh --from ~/.freeide freeide desktop
+  dev-sandbox.sh jettstui desktop
+  dev-sandbox.sh --persistent jettstui desktop
+  dev-sandbox.sh --from ~/.jettstui jettstui desktop
   dev-sandbox.sh -- npm run dev
 EOF
 }
@@ -117,7 +117,7 @@ if [ "$#" -eq 0 ]; then
 fi
 
 
-SANDBOX_DIR_NAME="${FREEIDE_DEV_SANDBOX_DIR:-.freeide-sandbox}"
+SANDBOX_DIR_NAME="${JETTSTUI_DEV_SANDBOX_DIR:-.jettstui-sandbox}"
 GIT_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo "$SCRIPT_DIR/..")"
 GIT_ROOT="$(cd "$GIT_ROOT" && pwd)"
 PERSISTENT_SANDBOX_ROOT="$GIT_ROOT/$SANDBOX_DIR_NAME"
@@ -148,36 +148,36 @@ WORKTREE_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || echo "$SCRIPT_DIR/
 WORKTREE_ROOT="$(cd "$WORKTREE_ROOT" && pwd)"
 WORKTREE_HASH="$(printf '%s' "$WORKTREE_ROOT" | cksum | cut -d' ' -f1)"
 WORKTREE_NAME="$(basename "$WORKTREE_ROOT")"
-DEFAULT_SANDBOX_NAME="FreeIDESandbox-${WORKTREE_NAME}-${WORKTREE_HASH}"
+DEFAULT_SANDBOX_NAME="JettsTUISandbox-${WORKTREE_NAME}-${WORKTREE_HASH}"
 
-SANDBOX_NAME="${FREEIDE_DEV_SANDBOX_NAME:-$DEFAULT_SANDBOX_NAME}"
+SANDBOX_NAME="${JETTSTUI_DEV_SANDBOX_NAME:-$DEFAULT_SANDBOX_NAME}"
 
 if [ "$PERSISTENT" = true ]; then
   SANDBOX_ROOT="$PERSISTENT_SANDBOX_ROOT"
 else
-  SANDBOX_ROOT="$(mktemp -d -t freeide-sandbox.XXXXXX)"
+  SANDBOX_ROOT="$(mktemp -d -t jettstui-sandbox.XXXXXX)"
 fi
 
-export FREEIDE_HOME="$SANDBOX_ROOT/freeide-home"
-export FREEIDE_DESKTOP_USER_DATA_DIR="$SANDBOX_ROOT/user-data"
-export FREEIDE_DESKTOP_APP_NAME="$SANDBOX_NAME"
+export JETTSTUI_HOME="$SANDBOX_ROOT/jettstui-home"
+export JETTSTUI_DESKTOP_USER_DATA_DIR="$SANDBOX_ROOT/user-data"
+export JETTSTUI_DESKTOP_APP_NAME="$SANDBOX_NAME"
 
-mkdir -p "$FREEIDE_HOME" "$FREEIDE_DESKTOP_USER_DATA_DIR"
+mkdir -p "$JETTSTUI_HOME" "$JETTSTUI_DESKTOP_USER_DATA_DIR"
 
 if [ -n "$SEED_DIR" ]; then
-  # Only seed when the sandbox FREEIDE_HOME is empty — avoids clobbering an
+  # Only seed when the sandbox JETTSTUI_HOME is empty — avoids clobbering an
   # existing persistent sandbox on re-run.
-  if [ -z "$(ls -A "$FREEIDE_HOME" 2>/dev/null)" ]; then
-    echo "[sandbox] seeding FREEIDE_HOME from $SEED_DIR" >&2
-    cp -a "$SEED_DIR/." "$FREEIDE_HOME/"
+  if [ -z "$(ls -A "$JETTSTUI_HOME" 2>/dev/null)" ]; then
+    echo "[sandbox] seeding JETTSTUI_HOME from $SEED_DIR" >&2
+    cp -a "$SEED_DIR/." "$JETTSTUI_HOME/"
   else
-    echo "[sandbox] --from ignored: $FREEIDE_HOME already has content" >&2
+    echo "[sandbox] --from ignored: $JETTSTUI_HOME already has content" >&2
   fi
 fi
 
-echo "[sandbox] FREEIDE_HOME=$FREEIDE_HOME" >&2
-echo "[sandbox] userData=$FREEIDE_DESKTOP_USER_DATA_DIR" >&2
-echo "[sandbox] appName=$FREEIDE_DESKTOP_APP_NAME" >&2
+echo "[sandbox] JETTSTUI_HOME=$JETTSTUI_HOME" >&2
+echo "[sandbox] userData=$JETTSTUI_DESKTOP_USER_DATA_DIR" >&2
+echo "[sandbox] appName=$JETTSTUI_DESKTOP_APP_NAME" >&2
 if [ "$PERSISTENT" = true ]; then
   echo "[sandbox] persistent: $SANDBOX_ROOT" >&2
 else

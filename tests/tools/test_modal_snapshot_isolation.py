@@ -29,25 +29,25 @@ def _reset_modules(prefixes: tuple[str, ...]):
 
 @pytest.fixture(autouse=True)
 def _restore_tool_modules():
-    original_freeide_home = os.environ.get("FREEIDE_HOME")
+    original_jettstui_home = os.environ.get("JETTSTUI_HOME")
     original_modules = {
         name: module
         for name, module in sys.modules.items()
         if name == "tools"
         or name.startswith("tools.")
-        or name == "freeide_cli"
-        or name.startswith("freeide_cli.")
+        or name == "jettstui"
+        or name.startswith("jettstui.")
         or name == "modal"
         or name.startswith("modal.")
     }
     try:
         yield
     finally:
-        if original_freeide_home is None:
-            os.environ.pop("FREEIDE_HOME", None)
+        if original_jettstui_home is None:
+            os.environ.pop("JETTSTUI_HOME", None)
         else:
-            os.environ["FREEIDE_HOME"] = original_freeide_home
-        _reset_modules(("tools", "freeide_cli", "modal"))
+            os.environ["JETTSTUI_HOME"] = original_jettstui_home
+        _reset_modules(("tools", "jettstui", "modal"))
         sys.modules.update(original_modules)
 
 
@@ -57,15 +57,15 @@ def _install_modal_test_modules(
     fail_on_snapshot_ids: set[str] | None = None,
     snapshot_id: str = "im-fresh",
 ):
-    _reset_modules(("tools", "freeide_cli", "modal"))
+    _reset_modules(("tools", "jettstui", "modal"))
 
-    freeide_cli = types.ModuleType("freeide_cli")
-    freeide_cli.__path__ = []  # type: ignore[attr-defined]
-    sys.modules["freeide_cli"] = freeide_cli
-    freeide_home = tmp_path / "freeide-home"
-    os.environ["FREEIDE_HOME"] = str(freeide_home)
-    sys.modules["freeide_cli.config"] = types.SimpleNamespace(
-        get_freeide_home=lambda: freeide_home,
+    jettstui = types.ModuleType("jettstui")
+    jettstui.__path__ = []  # type: ignore[attr-defined]
+    sys.modules["jettstui"] = jettstui
+    jettstui_home = tmp_path / "jettstui-home"
+    os.environ["JETTSTUI_HOME"] = str(jettstui_home)
+    sys.modules["jettstui.config"] = types.SimpleNamespace(
+        get_jettstui_home=lambda: jettstui_home,
     )
 
     tools_package = types.ModuleType("tools")
@@ -144,7 +144,7 @@ def _install_modal_test_modules(
             return {"kind": "registry", "image": image}
 
     async def _lookup_aio(_name: str, create_if_missing: bool = False):
-        return types.SimpleNamespace(name="freeide-agent", create_if_missing=create_if_missing)
+        return types.SimpleNamespace(name="jettstui", create_if_missing=create_if_missing)
 
     class _FakeSandboxInstance:
         def __init__(self, image):
@@ -190,7 +190,7 @@ def _install_modal_test_modules(
     )
 
     return {
-        "snapshot_store": freeide_home / "modal_snapshots.json",
+        "snapshot_store": jettstui_home / "modal_snapshots.json",
         "create_calls": create_calls,
         "from_id_calls": from_id_calls,
         "registry_calls": registry_calls,

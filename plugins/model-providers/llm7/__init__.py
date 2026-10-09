@@ -11,7 +11,7 @@ from providers.base import ProviderProfile
 
 class _Llm7Profile(ProviderProfile):
     def build_reasoning_kwargs(self, *, reasoning_config=None, **context):
-        """Map FreeIDE's reasoning intent onto what this provider accepts.
+        """Map JettsTUI's reasoning intent onto what this provider accepts.
 
         Returns ({api_kwargs}, {extra_body}). Emits nothing when the mapping is
         not certain — a wrong field is a hard 4xx on strict providers, not a

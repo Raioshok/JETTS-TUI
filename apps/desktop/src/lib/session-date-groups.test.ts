@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { SessionInfo } from '@/types/freeide'
+import type { SessionInfo } from '@/types/jettstui'
 
 import type { SidebarSessionEntry } from './session-branch-tree'
 import { groupEntriesByRecency, toSessionRows } from './session-date-groups'

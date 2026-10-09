@@ -258,7 +258,7 @@ class TestDefaults:
 
 class TestGptQualityPinnedToMedium:
     """GPT-Image quality is baked into the FAL_MODELS defaults at 'medium'
-    and cannot be overridden via config. Pinning keeps FreeIDE Portal billing
+    and cannot be overridden via config. Pinning keeps JettsTUI Portal billing
     predictable across all users."""
 
     def test_gpt_payload_always_has_medium_quality(self, image_tool):
@@ -268,7 +268,7 @@ class TestGptQualityPinnedToMedium:
     def test_config_quality_setting_is_ignored(self, image_tool):
         """Even if a user manually edits config.yaml and adds quality_setting,
         the payload must still use medium. No code path reads that field."""
-        with patch("freeide_cli.config.load_config",
+        with patch("jettstui.config.load_config",
                    return_value={"image_gen": {"quality_setting": "high"}}):
             p = image_tool._build_fal_payload("fal-ai/gpt-image-1.5", "hi", "square")
         assert p["quality"] == "medium"
@@ -307,32 +307,32 @@ class TestGptQualityPinnedToMedium:
 class TestModelResolution:
 
     def test_no_config_falls_back_to_default(self, image_tool):
-        with patch("freeide_cli.config.load_config", return_value={}):
+        with patch("jettstui.config.load_config", return_value={}):
             mid, meta = image_tool._resolve_fal_model()
         assert mid == "fal-ai/flux-2/klein/9b"
 
     def test_valid_config_model_is_used(self, image_tool):
-        with patch("freeide_cli.config.load_config",
+        with patch("jettstui.config.load_config",
                    return_value={"image_gen": {"model": "fal-ai/flux-2-pro"}}):
             mid, meta = image_tool._resolve_fal_model()
         assert mid == "fal-ai/flux-2-pro"
         assert meta["upscale"] is True  # flux-2-pro keeps backward-compat upscaling
 
     def test_unknown_model_falls_back_to_default_with_warning(self, image_tool, caplog):
-        with patch("freeide_cli.config.load_config",
+        with patch("jettstui.config.load_config",
                    return_value={"image_gen": {"model": "fal-ai/nonexistent-9000"}}):
             mid, _ = image_tool._resolve_fal_model()
         assert mid == "fal-ai/flux-2/klein/9b"
 
     def test_env_var_fallback_when_no_config(self, image_tool, monkeypatch):
         monkeypatch.setenv("FAL_IMAGE_MODEL", "fal-ai/z-image/turbo")
-        with patch("freeide_cli.config.load_config", return_value={}):
+        with patch("jettstui.config.load_config", return_value={}):
             mid, _ = image_tool._resolve_fal_model()
         assert mid == "fal-ai/z-image/turbo"
 
     def test_config_wins_over_env_var(self, image_tool, monkeypatch):
         monkeypatch.setenv("FAL_IMAGE_MODEL", "fal-ai/z-image/turbo")
-        with patch("freeide_cli.config.load_config",
+        with patch("jettstui.config.load_config",
                    return_value={"image_gen": {"model": "fal-ai/nano-banana-pro"}}):
             mid, _ = image_tool._resolve_fal_model()
         assert mid == "fal-ai/nano-banana-pro"
@@ -380,7 +380,7 @@ class TestRegistryIntegration:
 
 
 # ---------------------------------------------------------------------------
-# Managed gateway 4xx translation
+# Direct FAL request submission
 # ---------------------------------------------------------------------------
 
 class _MockResponse:
@@ -395,116 +395,35 @@ class _MockHttpxError(Exception):
         self.response = _MockResponse(status_code)
 
 
-class TestExtractHttpStatus:
-    """Status-code extraction should work across exception shapes."""
+class TestDirectFalSubmission:
+    """FAL requests use direct credentials and preserve provider errors."""
 
-    def test_extracts_from_response_attr(self, image_tool):
-        exc = _MockHttpxError(403)
-        assert image_tool._extract_http_status(exc) == 403
-
-    def test_extracts_from_status_code_attr(self, image_tool):
-        exc = Exception("fail")
-        exc.status_code = 404  # type: ignore[attr-defined]
-        assert image_tool._extract_http_status(exc) == 404
-
-    def test_returns_none_for_non_http_exception(self, image_tool):
-        assert image_tool._extract_http_status(ValueError("nope")) is None
-        assert image_tool._extract_http_status(RuntimeError("nope")) is None
-
-    def test_response_attr_without_status_code_returns_none(self, image_tool):
-        class OddResponse:
-            pass
-        exc = Exception("weird")
-        exc.response = OddResponse()  # type: ignore[attr-defined]
-        assert image_tool._extract_http_status(exc) is None
-
-
-class TestManagedGatewayErrorTranslation:
-    """4xx from the Nous managed gateway should be translated to a user-actionable message."""
-
-    def test_4xx_translates_to_value_error_with_remediation(self, image_tool, monkeypatch):
-        """403 from managed gateway → ValueError mentioning FAL_KEY + freeide tools."""
+    def test_provider_error_is_not_rewritten(self, image_tool, monkeypatch):
         from unittest.mock import MagicMock
-
-        # Simulate: managed mode active, managed submit raises 4xx.
-        managed_gateway = MagicMock()
-        managed_gateway.gateway_origin = "https://fal-queue-gateway.example.com"
-        managed_gateway.nous_user_token = "test-token"
-        monkeypatch.setattr(image_tool, "_resolve_managed_fal_gateway",
-                            lambda: managed_gateway)
-
-        bad_request = _MockHttpxError(403, "Forbidden")
-        mock_managed_client = MagicMock()
-        mock_managed_client.submit.side_effect = bad_request
-        monkeypatch.setattr(image_tool, "_get_managed_fal_client",
-                            lambda gw: mock_managed_client)
-
-        with pytest.raises(ValueError) as exc_info:
-            image_tool._submit_fal_request("fal-ai/nano-banana-pro", {"prompt": "x"})
-
-        msg = str(exc_info.value)
-        assert "fal-ai/nano-banana-pro" in msg
-        assert "403" in msg
-        assert "FAL_KEY" in msg
-        assert "freeide tools" in msg
-        # Original exception chained for debugging
-        assert exc_info.value.__cause__ is bad_request
-
-    def test_5xx_is_not_translated(self, image_tool, monkeypatch):
-        """500s are real outages, not model-availability issues — don't rewrite them."""
-        from unittest.mock import MagicMock
-
-        managed_gateway = MagicMock()
-        monkeypatch.setattr(image_tool, "_resolve_managed_fal_gateway",
-                            lambda: managed_gateway)
-
-        server_error = _MockHttpxError(502, "Bad Gateway")
-        mock_managed_client = MagicMock()
-        mock_managed_client.submit.side_effect = server_error
-        monkeypatch.setattr(image_tool, "_get_managed_fal_client",
-                            lambda gw: mock_managed_client)
-
-        with pytest.raises(_MockHttpxError):
-            image_tool._submit_fal_request("fal-ai/flux-2-pro", {"prompt": "x"})
-
-    def test_direct_fal_errors_are_not_translated(self, image_tool, monkeypatch):
-        """When user has direct FAL_KEY (managed gateway returns None), raw
-        errors from fal_client bubble up unchanged — fal_client already
-        provides reasonable error messages for direct usage."""
-        from unittest.mock import MagicMock
-
-        monkeypatch.setattr(image_tool, "_resolve_managed_fal_gateway",
-                            lambda: None)
 
         direct_error = _MockHttpxError(403, "Forbidden")
         fake_fal_client = MagicMock()
         fake_fal_client.submit.side_effect = direct_error
         monkeypatch.setattr(image_tool, "fal_client", fake_fal_client)
 
-        with pytest.raises(_MockHttpxError):
+        with pytest.raises(_MockHttpxError) as exc_info:
             image_tool._submit_fal_request("fal-ai/flux-2-pro", {"prompt": "x"})
+        assert exc_info.value is direct_error
 
-    def test_non_http_exception_from_managed_bubbles_up(self, image_tool, monkeypatch):
-        """Connection errors, timeouts, etc. from managed mode aren't 4xx —
-        they should bubble up unchanged so callers can retry or diagnose."""
+    def test_request_uses_idempotency_header(self, image_tool, monkeypatch):
         from unittest.mock import MagicMock
 
-        managed_gateway = MagicMock()
-        monkeypatch.setattr(image_tool, "_resolve_managed_fal_gateway",
-                            lambda: managed_gateway)
-
-        conn_error = ConnectionError("network down")
-        mock_managed_client = MagicMock()
-        mock_managed_client.submit.side_effect = conn_error
-        monkeypatch.setattr(image_tool, "_get_managed_fal_client",
-                            lambda gw: mock_managed_client)
-
-        with pytest.raises(ConnectionError):
-            image_tool._submit_fal_request("fal-ai/flux-2-pro", {"prompt": "x"})
+        fake_fal_client = MagicMock()
+        monkeypatch.setattr(image_tool, "fal_client", fake_fal_client)
+        image_tool._submit_fal_request("fal-ai/flux-2-pro", {"prompt": "x"})
+        args, kwargs = fake_fal_client.submit.call_args
+        assert args == ("fal-ai/flux-2-pro",)
+        assert kwargs["arguments"] == {"prompt": "x"}
+        assert kwargs["headers"]["x-idempotency-key"]
 
 
 class TestKreaModelNormalization:
-    """Native ``krea-2-*`` detection for managed Krea routing."""
+    """Native ``krea-2-*`` detection for direct Krea routing."""
 
     def test_native_models_detected(self, image_tool):
         for mid in ("krea-2-medium", "krea-2-large", "krea-2-medium-turbo"):
@@ -528,15 +447,15 @@ class TestKreaModelNormalization:
             assert image_tool._normalize_krea_model(mid) is None
 
 
-class TestManagedKreaRouting:
-    """`_maybe_route_managed_krea` only fires for Krea models in managed mode."""
+class TestNativeKreaRouting:
+    """Native Krea IDs use Krea, while FAL-hosted IDs stay on FAL."""
 
     def test_no_route_when_model_not_krea(self, image_tool, monkeypatch):
         monkeypatch.setattr(image_tool, "_read_configured_image_provider", lambda: None)
         monkeypatch.setattr(
             image_tool, "_read_configured_image_model", lambda: "fal-ai/flux-2/klein/9b"
         )
-        assert image_tool._maybe_route_managed_krea("p", "square") is None
+        assert image_tool._maybe_route_native_krea("p", "square") is None
 
     def test_no_route_when_provider_is_krea_plugin(self, image_tool, monkeypatch):
         # provider == "krea" is handled by the normal plugin dispatch instead.
@@ -544,48 +463,30 @@ class TestManagedKreaRouting:
         monkeypatch.setattr(
             image_tool, "_read_configured_image_model", lambda: "krea-2-medium"
         )
-        assert image_tool._maybe_route_managed_krea("p", "square") is None
+        assert image_tool._maybe_route_native_krea("p", "square") is None
 
-    def test_no_route_for_fal_krea_model_in_managed_mode(self, image_tool, monkeypatch):
-        # fal-ai/krea/v2/* stays on FAL even when the Krea gateway is available.
+    def test_no_route_for_fal_krea_model(self, image_tool, monkeypatch):
+        # fal-ai/krea/v2/* stays on FAL.
         monkeypatch.setattr(image_tool, "_read_configured_image_provider", lambda: None)
         monkeypatch.setattr(
             image_tool,
             "_read_configured_image_model",
             lambda: "fal-ai/krea/v2/medium/text-to-image",
         )
-        import plugins.image_gen.krea as krea_mod
-        from types import SimpleNamespace
+        assert image_tool._maybe_route_native_krea("p", "square") is None
 
-        monkeypatch.setattr(
-            krea_mod,
-            "_resolve_managed_krea_gateway",
-            lambda: SimpleNamespace(
-                vendor="krea",
-                gateway_origin="https://krea-gateway.example.com",
-                nous_user_token="tok",
-                managed_mode=True,
-            ),
-        )
-        assert image_tool._maybe_route_managed_krea("p", "square") is None
-
-    def test_no_route_for_krea_model_in_direct_mode(self, image_tool, monkeypatch):
-        # Native krea-2-* selected, but no managed gateway (BYO/direct) → fall through.
-        monkeypatch.setattr(image_tool, "_read_configured_image_provider", lambda: None)
+    def test_explicit_fal_provider_wins(self, image_tool, monkeypatch):
+        monkeypatch.setattr(image_tool, "_read_configured_image_provider", lambda: "fal")
         monkeypatch.setattr(
             image_tool,
             "_read_configured_image_model",
             lambda: "krea-2-medium",
         )
-        import plugins.image_gen.krea as krea_mod
+        assert image_tool._maybe_route_native_krea("p", "square") is None
 
-        monkeypatch.setattr(krea_mod, "_resolve_managed_krea_gateway", lambda: None)
-        assert image_tool._maybe_route_managed_krea("p", "square") is None
-
-    def test_routes_native_krea_model_to_krea_plugin_in_managed_mode(
+    def test_routes_native_krea_model_to_direct_krea_plugin(
         self, image_tool, monkeypatch
     ):
-        from types import SimpleNamespace
         from unittest.mock import MagicMock
         import json as _json
 
@@ -595,35 +496,33 @@ class TestManagedKreaRouting:
             "_read_configured_image_model",
             lambda: "krea-2-large",
         )
-        import plugins.image_gen.krea as krea_mod
-
-        monkeypatch.setattr(
-            krea_mod,
-            "_resolve_managed_krea_gateway",
-            lambda: SimpleNamespace(
-                vendor="krea",
-                gateway_origin="https://krea-gateway.example.com",
-                nous_user_token="tok",
-                managed_mode=True,
-            ),
-        )
-
         fake_provider = MagicMock()
         fake_provider.generate.return_value = {"success": True, "image": "/tmp/x.png"}
         monkeypatch.setattr(
             "agent.image_gen_registry.get_provider", lambda name: fake_provider
         )
         monkeypatch.setattr(
-            "freeide_cli.plugins._ensure_plugins_discovered", lambda *a, **k: None
+            "jettstui.plugins._ensure_plugins_discovered", lambda *a, **k: None
         )
 
-        out = image_tool._maybe_route_managed_krea("a cat", "portrait")
+        out = image_tool._maybe_route_native_krea("a cat", "portrait")
         assert out is not None
         assert _json.loads(out)["success"] is True
         kwargs = fake_provider.generate.call_args.kwargs
         assert kwargs["model"] == "krea-2-large"
         assert kwargs["prompt"] == "a cat"
         assert kwargs["aspect_ratio"] == "portrait"
+
+    def test_missing_krea_provider_never_falls_back_to_fal(self, image_tool, monkeypatch):
+        import json as _json
+
+        monkeypatch.setattr(image_tool, "_read_configured_image_provider", lambda: None)
+        monkeypatch.setattr(image_tool, "_read_configured_image_model", lambda: "krea-2-medium")
+        monkeypatch.setattr("agent.image_gen_registry.get_provider", lambda name: None)
+        monkeypatch.setattr("jettstui.plugins._ensure_plugins_discovered", lambda *a, **k: None)
+        result = _json.loads(image_tool._maybe_route_native_krea("a cat", "square"))
+        assert result["success"] is False
+        assert result["error_type"] == "provider_not_registered"
 
 
 class TestFalKreaCatalog:

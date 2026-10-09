@@ -9,10 +9,10 @@ sys.path.insert(0, os.path.join(os.path.dirname(__file__), "..", ".."))
 
 
 def _make_cli_stub():
-    """Create a minimal FreeIDECLI-like object with stream state."""
-    from cli import FreeIDECLI
+    """Create a minimal JettsTUICLI-like object with stream state."""
+    from cli import JettsTUICLI
 
-    cli = FreeIDECLI.__new__(FreeIDECLI)
+    cli = JettsTUICLI.__new__(JettsTUICLI)
     cli.show_reasoning = False
     cli._stream_buf = ""
     cli._stream_started = False

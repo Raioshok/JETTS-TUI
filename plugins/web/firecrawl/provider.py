@@ -115,7 +115,7 @@ Firecrawl = _FirecrawlProxy()
 
 def _get_direct_firecrawl_config() -> Optional[tuple]:
     """Return explicit direct Firecrawl kwargs + cache key, or None when unset."""
-    from freeide_cli.config import get_env_value
+    from jettstui.config import get_env_value
 
     api_key = (get_env_value("FIRECRAWL_API_KEY") or "").strip()
     api_url = (get_env_value("FIRECRAWL_API_URL") or "").strip().rstrip("/")
@@ -141,7 +141,7 @@ def check_firecrawl_api_key() -> bool:
     """Return True when the direct Firecrawl backend is usable.
 
     Re-exported by :mod:`tools.web_tools` for backward compatibility with
-    existing tests and the ``freeide tools`` setup flow.
+    existing tests and the ``jettstui tools`` setup flow.
     """
     return _has_direct_firecrawl_config()
 

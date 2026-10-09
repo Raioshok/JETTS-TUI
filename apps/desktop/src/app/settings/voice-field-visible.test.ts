@@ -1,15 +1,15 @@
 import { describe, expect, it } from 'vitest'
 
-import type { FreeIDEConfigRecord } from '@/types/freeide'
+import type { JettsTUIConfigRecord } from '@/types/jettstui'
 
 import { voiceFieldVisible } from './config-settings'
 
-const cfg = (over: Record<string, unknown> = {}): FreeIDEConfigRecord =>
+const cfg = (over: Record<string, unknown> = {}): JettsTUIConfigRecord =>
   ({
     tts: { provider: 'edge', edge: {}, openai: {} },
     stt: { enabled: true, provider: 'local', local: {}, groq: {} },
     ...over
-  }) as unknown as FreeIDEConfigRecord
+  }) as unknown as JettsTUIConfigRecord
 
 describe('voiceFieldVisible', () => {
   it('always shows top-level + non-provider keys', () => {

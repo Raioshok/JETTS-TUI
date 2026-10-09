@@ -21,15 +21,13 @@ from run_agent import AIAgent
 # _SKILL_REVIEW_PROMPT
 # ---------------------------------------------------------------------------
 
-def test_skill_review_prompt_biases_toward_active_updates():
-    """Prompt must frame updating as the default stance, not something rare."""
-    prompt = AIAgent._SKILL_REVIEW_PROMPT
-    assert "ACTIVE" in prompt or "active" in prompt.lower(), (
-        "must tell the reviewer to be active"
-    )
-    # "missed learning opportunity" or equivalent framing for not acting
-    assert "missed" in prompt.lower() or "opportunity" in prompt.lower(), (
-        "must frame inaction as a miss, not a neutral outcome"
+def test_skill_review_prompt_is_selective_with_a_valid_no_op():
+    """Routine sessions should not churn the library: writing needs concrete
+    evidence, and an explicit no-op must be an accepted outcome."""
+    lower = AIAgent._SKILL_REVIEW_PROMPT.lower()
+    assert "selective" in lower, "must tell the reviewer to be selective"
+    assert "no-op" in lower or "no durable skill change" in lower, (
+        "must give the reviewer an explicit, legitimate way to do nothing"
     )
 
 

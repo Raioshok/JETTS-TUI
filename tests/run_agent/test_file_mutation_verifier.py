@@ -331,22 +331,22 @@ class TestFormatFooter:
         """Footer paths must be inline-code wrapped so the gateway's bare-path
         media extractor can't auto-attach them (#35584 defense-in-depth)."""
         out = AIAgent._format_file_mutation_failure_footer(
-            {"/home/u/.freeide/config.yaml": {
+            {"/home/u/.jettstui/config.yaml": {
                 "tool": "patch",
                 "error_preview": (
-                    "Write denied: '/home/u/.freeide/config.yaml' is a "
+                    "Write denied: '/home/u/.jettstui/config.yaml' is a "
                     "protected system/credential file."
                 ),
             }},
         )
         # Path still human-readable.
-        assert "/home/u/.freeide/config.yaml" in out
+        assert "/home/u/.jettstui/config.yaml" in out
         # Bullet path is backticked.
-        assert "`/home/u/.freeide/config.yaml`" in out
+        assert "`/home/u/.jettstui/config.yaml`" in out
         # The path echoed inside the preview is ALSO backticked (the real
         # file_operations.py denial message embeds it in single quotes, which
         # do NOT block the gateway extractor's regex).
-        assert "'`/home/u/.freeide/config.yaml`'" in out
+        assert "'`/home/u/.jettstui/config.yaml`'" in out
         # No double-backticking anywhere.
         assert "``" not in out
 
@@ -357,7 +357,7 @@ class TestFormatFooter:
         import tempfile
         from gateway.platforms.base import BasePlatformAdapter
 
-        tmp = tempfile.mkdtemp(prefix="freeide_footer_")
+        tmp = tempfile.mkdtemp(prefix="jettstui_footer_")
         try:
             cfg = os.path.join(tmp, "config.yaml")
             with open(cfg, "w") as fh:
@@ -386,23 +386,23 @@ class TestFormatFooter:
 
 class TestVerifierEnabled:
     def test_default_is_enabled(self, monkeypatch):
-        monkeypatch.delenv("FREEIDE_FILE_MUTATION_VERIFIER", raising=False)
+        monkeypatch.delenv("JETTSTUI_FILE_MUTATION_VERIFIER", raising=False)
         agent = _bare_agent()
         # With no env and no config present, safe default is True.
         # load_config may surface a user config.yaml in some envs — stub it.
-        import freeide_cli.config as _cfg_mod
+        import jettstui.config as _cfg_mod
         monkeypatch.setattr(_cfg_mod, "load_config", lambda: {})
         assert agent._file_mutation_verifier_enabled() is True
 
     @pytest.mark.parametrize("value", ["0", "false", "FALSE", "no", "off"])
     def test_env_disables(self, monkeypatch, value):
-        monkeypatch.setenv("FREEIDE_FILE_MUTATION_VERIFIER", value)
+        monkeypatch.setenv("JETTSTUI_FILE_MUTATION_VERIFIER", value)
         agent = _bare_agent()
         assert agent._file_mutation_verifier_enabled() is False
 
     def test_env_enables_over_config(self, monkeypatch):
-        monkeypatch.setenv("FREEIDE_FILE_MUTATION_VERIFIER", "1")
-        import freeide_cli.config as _cfg_mod
+        monkeypatch.setenv("JETTSTUI_FILE_MUTATION_VERIFIER", "1")
+        import jettstui.config as _cfg_mod
         monkeypatch.setattr(
             _cfg_mod, "load_config",
             lambda: {"display": {"file_mutation_verifier": False}},
@@ -411,8 +411,8 @@ class TestVerifierEnabled:
         assert agent._file_mutation_verifier_enabled() is True
 
     def test_config_disables_when_no_env(self, monkeypatch):
-        monkeypatch.delenv("FREEIDE_FILE_MUTATION_VERIFIER", raising=False)
-        import freeide_cli.config as _cfg_mod
+        monkeypatch.delenv("JETTSTUI_FILE_MUTATION_VERIFIER", raising=False)
+        import jettstui.config as _cfg_mod
         monkeypatch.setattr(
             _cfg_mod, "load_config",
             lambda: {"display": {"file_mutation_verifier": False}},

@@ -131,7 +131,7 @@ export const coreCommands: SlashCommand[] = [
 
   {
     aliases: ['exit'],
-    help: 'exit Jetts-TUI',
+    help: 'exit JettsTUI',
     name: 'quit',
     run: (_arg, ctx) => {
       // In the hosted dashboard chat there is no in-page restart path after
@@ -152,7 +152,7 @@ export const coreCommands: SlashCommand[] = [
   },
 
   {
-    help: 'update Jetts-TUI to the latest version (exits TUI)',
+    help: 'update JettsTUI to the latest version (exits TUI)',
     name: 'update',
     run: (_arg, ctx) => {
       if (DASHBOARD_TUI_MODE) {
@@ -162,7 +162,7 @@ export const coreCommands: SlashCommand[] = [
       }
 
       ctx.transcript.sys('exiting TUI to run update...')
-      // Exit code 42 signals the Python wrapper to exec `freeide update`.
+      // Exit code 42 signals the Python wrapper to exec `jettstui update`.
       // Use dieWithCode for proper cleanup (gateway kill + Ink unmount).
       setTimeout(() => ctx.session.dieWithCode(42), 100)
     }
@@ -379,7 +379,7 @@ export const coreCommands: SlashCommand[] = [
         if (text) {
           return sys(`copied ${text.length} characters`)
         } else {
-          return sys('clipboard copy failed — try FREEIDE_TUI_FORCE_OSC52=1 to force the escape sequence')
+          return sys('clipboard copy failed — try JETTSTUI_TUI_FORCE_OSC52=1 to force the escape sequence')
         }
       }
 
@@ -501,7 +501,7 @@ export const coreCommands: SlashCommand[] = [
       const preview = Math.max(80, parseInt(arg, 10) || 400)
 
       const lines = items.map((m, i) => {
-        const tag = m.role === 'user' ? `You #${i + 1}` : `Jetts-TUI #${i + 1}`
+        const tag = m.role === 'user' ? `You #${i + 1}` : `JettsTUI #${i + 1}`
         const body = m.text.trim() || (m.tools?.length ? `(${m.tools.length} tool calls)` : '(empty)')
         const clipped = body.length > preview ? `${body.slice(0, preview).trimEnd()}…` : body
 

@@ -17,8 +17,8 @@ import {
 } from '@/components/ui/pagination'
 import { RowButton } from '@/components/ui/row-button'
 import { Tip } from '@/components/ui/tooltip'
-import { getSessionMessages, listAllProfileSessions } from '@/freeide'
 import { type Translations, useI18n } from '@/i18n'
+import { getSessionMessages, listAllProfileSessions } from '@/jettstui'
 import { resolveBrandIcon } from '@/lib/brand-icon'
 import {
   ExternalLink,
@@ -256,8 +256,8 @@ export function ArtifactsView({ setStatusbarItemGroup: _setStatusbarItemGroup, .
           return
         }
 
-        if (window.freeideDesktop?.openExternal) {
-          await window.freeideDesktop.openExternal(href)
+        if (window.jettstuiDesktop?.openExternal) {
+          await window.jettstuiDesktop.openExternal(href)
         } else {
           window.open(href, '_blank', 'noopener,noreferrer')
         }

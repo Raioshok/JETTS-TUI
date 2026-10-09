@@ -1,13 +1,13 @@
-"""Progressive tool disclosure ("tool search") for FreeIDE Agent.
+"""Progressive tool disclosure ("tool search") for JettsTUI.
 
 When enabled, MCP and non-core plugin tools are replaced in the model-visible
 tools array by three bridge tools — ``tool_search``, ``tool_describe``,
-``tool_call`` — and surfaced on demand. Core FreeIDE tools never defer.
+``tool_call`` — and surfaced on demand. Core JettsTUI tools never defer.
 
 Design constraints this module is built around (see ``openclaw-tool-search-report``
 for the full rationale):
 
-* Core tools defined in ``toolsets._FREEIDE_CORE_TOOLS`` are *never* deferred.
+* Core tools defined in ``toolsets._JETTSTUI_CORE_TOOLS`` are *never* deferred.
   Always-load means always-load. No exceptions.
 * Tiered disclosure (July 2026 plan): the moment ANY deferrable (MCP/plugin)
   tools are present, they hide behind the bridge. What scales with catalog
@@ -170,7 +170,7 @@ def _safe_float(value: Any, fallback: float) -> float:
 def load_config() -> ToolSearchConfig:
     """Load tool-search config from the user config file."""
     try:
-        from freeide_cli.config import load_config as _load
+        from jettstui.config import load_config as _load
         cfg = _load() or {}
         tools_cfg = cfg.get("tools") if isinstance(cfg.get("tools"), dict) else {}
         if not isinstance(tools_cfg, dict):
@@ -193,8 +193,8 @@ def _core_tool_names() -> frozenset[str]:
     and we don't want a hard cycle.
     """
     try:
-        from toolsets import _FREEIDE_CORE_TOOLS
-        return frozenset(_FREEIDE_CORE_TOOLS)
+        from toolsets import _JETTSTUI_CORE_TOOLS
+        return frozenset(_JETTSTUI_CORE_TOOLS)
     except Exception:
         return frozenset()
 
@@ -203,7 +203,7 @@ def is_deferrable_tool_name(name: str) -> bool:
     """Return True if a tool with this name is *eligible* for deferral.
 
     A tool is deferrable iff it is registered with an MCP toolset prefix
-    OR it is not in ``_FREEIDE_CORE_TOOLS``. Core tools are never deferred
+    OR it is not in ``_JETTSTUI_CORE_TOOLS``. Core tools are never deferred
     even when their toolset is technically plugin-provided (this protects
     against accidental shadowing).
     """

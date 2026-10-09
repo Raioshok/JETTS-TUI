@@ -1,25 +1,25 @@
-# nix/desktop.nix — FreeIDE Desktop (Electron) app build + wrapper
+# nix/desktop.nix — JettsTUI Desktop (Electron) app build + wrapper
 #
-# `freeideAgent` is the fully-built `.#default` package — it ships the
-# `freeide` binary with the venv, runtime PATH, bundled skills/plugins, etc.
+# `jettstuiAgent` is the fully-built `.#default` package — it ships the
+# `jettstui` binary with the venv, runtime PATH, bundled skills/plugins, etc.
 # already wired up.  We point the desktop at it via the existing
-# `FREEIDE_DESKTOP_FREEIDE` override env var, so the desktop's resolver
-# uses our fully wrapped binary at step 4 ("existing FreeIDE CLI").
+# `JETTSTUI_DESKTOP_JETTSTUI` override env var, so the desktop's resolver
+# uses our fully wrapped binary at step 4 ("existing JettsTUI CLI").
 # No reimplementation of the agent resolution in this wrapper.
 {
   pkgs,
   lib,
   stdenv,
   makeWrapper,
-  freeideNpmLib,
+  jettstuiNpmLib,
   electron,
-  freeideAgent,
+  jettstuiAgent,
   ...
 }:
 let
   # apps/shared ships as a file: workspace dep of apps/desktop, so its
   # source must be in the filtered src tree too.
-  npm = freeideNpmLib.mkNpmPassthru {
+  npm = jettstuiNpmLib.mkNpmPassthru {
     dirs = [
       "apps/desktop"
       "apps/shared"
@@ -43,7 +43,7 @@ let
     else if stdenv.hostPlatform.isLinux then
       "linux"
     else
-      throw "freeide-desktop: unsupported host platform for node-pty staging";
+      throw "jettstui-desktop: unsupported host platform for node-pty staging";
 
   targetArch =
     if stdenv.hostPlatform.isAarch64 then
@@ -51,13 +51,13 @@ let
     else if stdenv.hostPlatform.isx86_64 then
       "x64"
     else
-      throw "freeide-desktop: unsupported host arch for node-pty staging";
+      throw "jettstui-desktop: unsupported host arch for node-pty staging";
 
   # Build the renderer (dist/ + electron/ + package.json).
   renderer = pkgs.buildNpmPackage (
     npm
     // {
-      pname = "freeide-desktop-renderer";
+      pname = "jettstui-desktop-renderer";
       inherit version;
       doCheck = true;
 
@@ -145,7 +145,7 @@ in
 
 # Electron wrapper: nixpkgs' electron binary pointed at the renderer dir.
 stdenv.mkDerivation {
-  pname = "freeide-desktop";
+  pname = "jettstui-desktop";
   inherit version;
 
   dontUnpack = true;
@@ -156,24 +156,24 @@ stdenv.mkDerivation {
   installPhase = ''
     runHook preInstall
 
-    mkdir -p $out/share/freeide-desktop $out/bin
-    cp -r ${renderer}/* $out/share/freeide-desktop/
+    mkdir -p $out/share/jettstui-desktop $out/bin
+    cp -r ${renderer}/* $out/share/jettstui-desktop/
 
     # Standard nixpkgs pattern for electron-builder apps: patch process.resourcesPath
     # to point to the app's directory. In Nix, unpackaged electron defaults this
     # to the electron distribution's resources path, breaking extraResources lookups.
-    substituteInPlace $out/share/freeide-desktop/dist/electron-main.mjs \
-      --replace-fail "process.resourcesPath" "'$out/share/freeide-desktop'"
+    substituteInPlace $out/share/jettstui-desktop/dist/electron-main.mjs \
+      --replace-fail "process.resourcesPath" "'$out/share/jettstui-desktop'"
 
     # Wrap the nixpkgs electron binary to launch our app.  Set
-    # FREEIDE_DESKTOP_FREEIDE to the absolute path of the nix-built `freeide`
-    # binary so the desktop's resolver step 4 ("existing FreeIDE CLI on
+    # JETTSTUI_DESKTOP_JETTSTUI to the absolute path of the nix-built `jettstui`
+    # binary so the desktop's resolver step 4 ("existing JettsTUI CLI on
     # PATH") uses our fully wrapped binary — venv with all deps,
     # bundled skills/plugins, runtime PATH (ripgrep/git/ffmpeg/etc).
     # No reimplementation of the agent resolver in the wrapper.
-    makeWrapper ${lib.getExe electron} $out/bin/freeide-desktop \
-      --add-flags "$out/share/freeide-desktop" \
-      --set FREEIDE_DESKTOP_FREEIDE "${lib.getExe freeideAgent}" \
+    makeWrapper ${lib.getExe electron} $out/bin/jettstui-desktop \
+      --add-flags "$out/share/jettstui-desktop" \
+      --set JETTSTUI_DESKTOP_JETTSTUI "${lib.getExe jettstuiAgent}" \
       --set ELECTRON_IS_DEV 0
 
     runHook postInstall
@@ -184,10 +184,10 @@ stdenv.mkDerivation {
   };
 
   meta = with lib; {
-    description = "Native Electron desktop shell for FreeIDE Agent";
-    homepage = "https://github.com/freeide/freeide";
+    description = "Native Electron desktop shell for JettsTUI";
+    homepage = "https://github.com/Raioshok/JETTS-TUI";
     license = licenses.mit;
     platforms = platforms.unix;
-    mainProgram = "freeide-desktop";
+    mainProgram = "jettstui-desktop";
   };
 }

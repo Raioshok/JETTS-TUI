@@ -4,7 +4,7 @@ unicode61 + CJK character bigrams (Lucene CJKAnalyzer semantics). Fixes
 1-2 char Korean/Chinese/Japanese terms falling through to LIKE full-table
 scans in session search.
 
-Build & install to `~/.freeide/lib/`:
+Build & install to `~/.jettstui/lib/`:
 
     ./build.sh
 
@@ -15,10 +15,10 @@ Once the extension is installed, the next `SessionDB` open creates the
 `messages_fts_cjk` index (external-content, tool rows excluded — same v23
 storage discipline as the other indexes). On a populated database, run
 
-    freeide sessions optimize-storage
+    jettstui sessions optimize-storage
 
 to backfill it; new messages are indexed live either way. Set
-`sessions.cjk_fts: false` in `~/.freeide/config.yaml` to disable. Override
-the .so location with `FREEIDE_FTS5_CJK_SO`.
+`sessions.cjk_fts: false` in `~/.jettstui/config.yaml` to disable. Override
+the .so location with `JETTSTUI_FTS5_CJK_SO`.
 
 Contributed by Soju06 (PR #65544).

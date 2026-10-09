@@ -1,9 +1,9 @@
-# Jetts-TUI
+# JettsTUI
 
-React + Ink terminal UI for Jetts-TUI. TypeScript owns the screen. Python owns sessions, tools, model calls, and most command logic.
+React + Ink terminal UI for JettsTUI. TypeScript owns the screen. Python owns sessions, tools, model calls, and most command logic.
 
 ```bash
-jetts-tui
+jettstui
 ```
 
 ## What runs
@@ -16,7 +16,7 @@ The client entrypoint is `src/entry.tsx`. It exits early if `stdin` is not a TTY
 python -m tui_gateway.entry
 ```
 
-Interpreter resolution order is: `FREEIDE_PYTHON` → `PYTHON` → `$VIRTUAL_ENV/bin/python` → `./.venv/bin/python` → `./venv/bin/python` → `python3` (or `python` on Windows).
+Interpreter resolution order is: `JETTSTUI_PYTHON` → `PYTHON` → `$VIRTUAL_ENV/bin/python` → `./.venv/bin/python` → `./venv/bin/python` → `python3` (or `python` on Windows).
 
 The transport is newline-delimited JSON-RPC over stdio:
 
@@ -38,7 +38,7 @@ Malformed stdout lines are treated as protocol noise and surfaced as `gateway.pr
 From the repo root, the normal path is:
 
 ```bash
-jetts-tui
+jettstui
 ```
 
 The CLI expects `ui-tui/dist/entry.js` to exist, or the whole source code available in which to run `npm install` and `npm run dev`.
@@ -87,17 +87,15 @@ npm run test:watch
 - `src/app/inputSelectionStore.ts` — nanostore exposing the active text-input selection handle
 - `src/app/gatewayContext.tsx` — React context for the gateway client
 - `src/app/gatewayRecovery.ts` — pure function that decides whether to respawn and resume after a gateway crash, with a 3-attempt / 60 s budget
-- `src/app/setupHandoff.ts` — launches external `jetts-tui setup`, suspends Ink while it runs, opens a new session on success
+- `src/app/setupHandoff.ts` — launches external `jettstui setup`, suspends Ink while it runs, opens a new session on success
 - `src/app/scroll.ts` — scrolls the viewport while keeping the text selection anchor in sync
 - `src/app/interfaces.ts` — internal interfaces (ComposerActions, GatewayRpc, etc.)
 
 ### Slash command subsystem (`src/app/slash/`)
 
 - `types.ts` — `SlashCommand` interface and `SlashRunCtx` execution context (gateway rpc, transcript helpers, session refs, stale-guard)
-- `registry.ts` — assembles `SLASH_COMMANDS` from all command files in registration order (core → billing → credits → session → ops → setup → debug) and exposes `findSlashCommand(name)` for case-insensitive lookup
+- `registry.ts` — assembles `SLASH_COMMANDS` from all command files in registration order (core → session → ops → setup → debug) and exposes `findSlashCommand(name)` for case-insensitive lookup
 - `commands/core.ts` — general TUI commands
-- `commands/billing.ts` — `/billing`: manage Nous remote spending — buy credits, auto-reload, limits
-- `commands/credits.ts` — `/credits`
 - `commands/session.ts` — session and agent commands
 - `commands/ops.ts` — operations commands
 - `commands/setup.ts` — `/setup`
@@ -195,7 +193,7 @@ Notes:
 - Completion requests are debounced by 60 ms. Input starting with `/` uses `complete.slash`. A trailing token that starts with `./`, `../`, `~/`, `/`, or `@` uses `complete.path`.
 - Text pastes are inserted inline directly into the draft. Nothing is newline-flattened.
 - `Cmd/Ctrl+G` (or `Alt+G` in VSCode/Cursor, which intercept the primary keystroke for Find Next) writes the current draft, including any multiline buffer, to a temp file, suspends Ink, launches `$EDITOR`, then restores the TUI and submits the saved text if the editor exits cleanly.
-- Input history is stored in `~/.freeide/.freeide_history` or under `FREEIDE_HOME`.
+- Input history is stored in `~/.jettstui/.jettstui_history` or under `JETTSTUI_HOME`.
 
 ## Rendering
 
@@ -231,9 +229,6 @@ The following commands are handled directly by the TUI client. Unrecognized comm
 `/save`, `/undo`, `/retry`, `/steer`, `/mouse` (alias `/scroll`),
 `/status`, `/title`, `/fortune`, `/redraw`, `/terminal-setup`
 
-### Billing (`billing.ts`)
-`/billing` — manage Nous remote spending — buy credits, auto-reload, limits
-
 ### Session (`session.ts`)
 `/model`, `/sessions` (aliases `/switch`, `/session`, `/resume`),
 `/background` (aliases `/bg`, `/btw`), `/image`, `/personality`,
@@ -245,11 +240,8 @@ The following commands are handled directly by the TUI client. Unrecognized comm
 `/rollback`, `/agents` (alias `/tasks`), `/replay`, `/replay-diff`,
 `/skills`, `/reload-skills` (alias `/reload_skills`), `/plugins`, `/tools`
 
-### Credits (`credits.ts`)
-`/credits` — Nous credit balance and browser top-up
-
 ### Setup (`setup.ts`)
-`/setup` — launches external `jetts-tui setup` wizard, suspends Ink while it runs
+`/setup` — launches external `jettstui setup` wizard, suspends Ink while it runs
 
 ### Debug (`debug.ts`)
 `/heapdump`, `/mem` — V8 memory diagnostics
@@ -350,7 +342,7 @@ ui-tui/
       interfaces.ts                 internal interfaces (ComposerActions, GatewayRpc, etc.)
       overlayStore.ts               nanostores for overlay state
       scroll.ts                     viewport scroll with text-selection anchor sync
-      setupHandoff.ts               launches external jetts-tui setup, suspends Ink while it runs
+      setupHandoff.ts               launches external jettstui setup, suspends Ink while it runs
       spawnHistoryStore.ts          ring buffer of finished subagent fan-out snapshots
       turnController.ts             stateful turn lifecycle driver (streaming, tools, reasoning)
       turnStore.ts                  nanostore for turn state (streaming, tools, reasoning, subagents)
@@ -367,9 +359,7 @@ ui-tui/
         types.ts                    SlashCommand interface and SlashRunCtx execution context
         registry.ts                 SLASH_COMMANDS assembly and findSlashCommand lookup
         commands/
-          billing.ts                /billing — manage Nous remote spending
           core.ts                   general TUI commands
-          credits.ts                /credits
           debug.ts                  /heapdump, /mem
           ops.ts                    operations commands
           session.ts                session and agent commands
@@ -453,7 +443,7 @@ ui-tui/
       messages.ts                transcript message append helpers
       openExternalUrl.ts         platform-aware URL opener (macOS/Linux/Windows)
       osc52.ts                   OSC 52 terminal clipboard copy sequence
-      parentLog.ts               append-only log to ~/.freeide/tui-parent.log
+      parentLog.ts               append-only log to ~/.jettstui/tui-parent.log
       perfPane.tsx               FPS / render perf overlay pane
       platform.ts                platform-aware keybinding and SSH detection helpers
       precisionWheel.ts          high-precision scroll wheel with sticky-frame budget
@@ -489,5 +479,5 @@ tui_gateway/
   entry.py               stdio entrypoint
   server.py              RPC handlers and session logic
   render.py              optional rich/ANSI bridge
-  slash_worker.py        persistent Jetts-TUICLI subprocess for slash commands
+  slash_worker.py        persistent JettsTUICLI subprocess for slash commands
 ```

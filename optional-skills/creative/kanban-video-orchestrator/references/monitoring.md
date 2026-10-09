@@ -8,26 +8,26 @@ the session) detect problems early and intervene effectively.
 
 ```bash
 # Live event stream — task spawns, status changes, heartbeats, completions
-freeide kanban watch --tenant <project-slug>
+jettstui kanban watch --tenant <project-slug>
 
 # Snapshot of the board
-freeide kanban list --tenant <project-slug>
-freeide kanban list --tenant <project-slug> --json     # machine-readable
+jettstui kanban list --tenant <project-slug>
+jettstui kanban list --tenant <project-slug> --json     # machine-readable
 
 # Per-status counts + oldest-ready age
-freeide kanban stats --tenant <project-slug>
+jettstui kanban stats --tenant <project-slug>
 
 # Visual dashboard (browser)
-freeide dashboard
+jettstui dashboard
 
 # Inspect a specific task (includes comments + events)
-freeide kanban show <task-id>
+jettstui kanban show <task-id>
 
 # Follow a single task's event stream
-freeide kanban tail <task-id>
+jettstui kanban tail <task-id>
 ```
 
-Verify available subcommands with `freeide kanban --help` — the kanban CLI
+Verify available subcommands with `jettstui kanban --help` — the kanban CLI
 ships with `init / create / list / show / assign / link / unlink / claim /
 comment / complete / block / unblock / archive / tail / dispatch / watch /
 stats / heartbeat / log / runs / context / gc`.
@@ -51,13 +51,13 @@ deadlocks).
 
 | Symptom | Likely cause | Action |
 |---------|--------------|--------|
-| Task RUNNING but no heartbeat in 2+ min | Worker stuck, infinite loop, blocked on input | `freeide kanban show <id>` — read the worker's last events. The dispatcher SIGTERMs tasks that exceed their `max-runtime`; if you need to stop one earlier, `freeide kanban block <id>` then `freeide kanban archive <id>`, and create a re-run task. |
-| Same task retried 2+ times | Reproducible failure (missing key, bad spec, broken tool) | `freeide kanban show <id>` to read failure events. Fix root cause before re-running. |
-| RUNNING longer than max_runtime | Task is slow but progressing OR genuinely stuck | Check heartbeats with `freeide kanban tail <id>`. If progressing, the dispatcher will SIGTERM eventually anyway — raise `max-runtime` on a re-created task. |
+| Task RUNNING but no heartbeat in 2+ min | Worker stuck, infinite loop, blocked on input | `jettstui kanban show <id>` — read the worker's last events. The dispatcher SIGTERMs tasks that exceed their `max-runtime`; if you need to stop one earlier, `jettstui kanban block <id>` then `jettstui kanban archive <id>`, and create a re-run task. |
+| Same task retried 2+ times | Reproducible failure (missing key, bad spec, broken tool) | `jettstui kanban show <id>` to read failure events. Fix root cause before re-running. |
+| RUNNING longer than max_runtime | Task is slow but progressing OR genuinely stuck | Check heartbeats with `jettstui kanban tail <id>`. If progressing, the dispatcher will SIGTERM eventually anyway — raise `max-runtime` on a re-created task. |
 | Child task READY but parents still RUNNING for >2× expected | Cascade slow, dependency miswired | Check the dependency graph. Inspect the parent: sometimes it completed but its handoff fields (summary, metadata) were empty so the child has nothing to consume. |
 | New tasks not appearing | Director is hung in decomposition | Inspect director task with `kanban show`. Often a malformed `kanban_create` call. |
 | Specialist tasks completing instantly | Decomposition created tasks without bodies | Director didn't pass enough context. Re-create with explicit body content. |
-| Tasks created but never picked up | Profile not running, or tenant mismatch, or dispatcher not running | Check `freeide profile list` (profile exists?), `freeide status` (gateway/dispatcher up?), and verify tenant. |
+| Tasks created but never picked up | Profile not running, or tenant mismatch, or dispatcher not running | Check `jettstui profile list` (profile exists?), `jettstui status` (gateway/dispatcher up?), and verify tenant. |
 | Specific renderer task fails → review note → renderer redoes → fails again | Brief is asking for the impossible | Pivot the brief, not the renderer. |
 
 ## Intervention recipes
@@ -68,11 +68,11 @@ When a renderer ships a clip that doesn't pass review:
 
 ```bash
 # 1. Comment on the renderer's task with specific feedback
-freeide kanban comment <renderer-task-id> "Scene 3 looks too sparse \
+jettstui kanban comment <renderer-task-id> "Scene 3 looks too sparse \
 — increase visual density. Tighten color palette to brand spec."
 
 # 2. Create a re-render task with the original as parent
-freeide kanban create "Scene 3 — re-render with feedback" \
+jettstui kanban create "Scene 3 — re-render with feedback" \
     --assignee renderer-ascii \
     --parent <renderer-task-id> \
     --workspace dir:"$HOME/projects/video-pipeline/<slug>" \
@@ -88,14 +88,14 @@ file):
 
 ```bash
 # 1. Create the new task and capture its id
-NEW_TASK_ID=$(freeide kanban create "Generate SRT captions from voiceover" \
+NEW_TASK_ID=$(jettstui kanban create "Generate SRT captions from voiceover" \
     --assignee captioner \
     --workspace dir:"$HOME/projects/video-pipeline/<slug>" \
     --tenant <slug> \
     --json | python3 -c "import json,sys;print(json.load(sys.stdin)['id'])")
 
 # 2. Wire it as a parent of the editor's task with `kanban link`
-freeide kanban link "$NEW_TASK_ID" <editor-task-id>
+jettstui kanban link "$NEW_TASK_ID" <editor-task-id>
 ```
 
 `kanban link` takes `parent_id child_id` (parent first). Use `kanban unlink`
@@ -108,13 +108,13 @@ The kanban dispatcher will SIGTERM (then SIGKILL) any task that exceeds its
 
 ```bash
 # Mark blocked so the dispatcher leaves it alone, then archive
-freeide kanban block <task-id>
-freeide kanban archive <task-id>
+jettstui kanban block <task-id>
+jettstui kanban archive <task-id>
 
 # Diagnose what happened
-freeide kanban show <task-id>      # task body, comments, recent events
-freeide kanban tail <task-id>      # follow the live event stream
-freeide kanban log <task-id>       # worker process log
+jettstui kanban show <task-id>      # task body, comments, recent events
+jettstui kanban tail <task-id>      # follow the live event stream
+jettstui kanban log <task-id>       # worker process log
 ```
 
 After stopping, decide: fix root cause + re-create the task, or skip and
@@ -126,7 +126,7 @@ If during execution the user wants something fundamentally different:
 
 1. Cancel the active director task and all RUNNING children
 2. Edit `brief.md` and `TEAM.md`
-3. Re-fire the initial `freeide kanban create` for the director
+3. Re-fire the initial `jettstui kanban create` for the director
 
 Don't try to "edit while running" — the kanban's audit trail makes a clean
 pivot more legible than mid-stream changes.
@@ -138,14 +138,14 @@ A simple polling pattern for hands-off monitoring:
 ```bash
 while true; do
     clear
-    freeide kanban list --tenant <slug>
+    jettstui kanban list --tenant <slug>
     echo "---"
-    freeide kanban stats --tenant <slug>
+    jettstui kanban stats --tenant <slug>
     sleep 30
 done
 ```
 
-For a live event feed, run `freeide kanban watch --tenant <slug>` in a
+For a live event feed, run `jettstui kanban watch --tenant <slug>` in a
 separate terminal — it streams task lifecycle events as they happen.
 
 For automated intervention (auto-restart stuck tasks, auto-create re-render on
@@ -170,7 +170,7 @@ scene without re-running the whole pipeline.
 - **Tenant mismatches.** A task created with the wrong tenant won't appear in
   monitoring. Always pass `--tenant <slug>` consistently.
 - **Profile process not running.** Tasks queue indefinitely in READY if no
-  worker for that profile is online. Check `freeide profile list` and start
+  worker for that profile is online. Check `jettstui profile list` and start
   any missing profiles.
 - **Workspace permissions.** All profiles need read+write to the workspace
   directory. `chmod -R u+rw <workspace>` if any worker reports permission

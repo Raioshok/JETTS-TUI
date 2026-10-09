@@ -9,7 +9,6 @@ import {
   Cpu,
   Database,
   Download,
-  Globe,
   HardDrive,
   KeyRound,
   Link2,
@@ -27,22 +26,22 @@ import {
   Upload,
   X,
 } from "lucide-react";
-import { Badge } from "@nous-research/ui/ui/components/badge";
-import { Button } from "@nous-research/ui/ui/components/button";
-import { Spinner } from "@nous-research/ui/ui/components/spinner";
-import { H2 } from "@nous-research/ui/ui/components/typography/h2";
-import { Card, CardContent } from "@nous-research/ui/ui/components/card";
-import { Checkbox } from "@nous-research/ui/ui/components/checkbox";
-import { Input } from "@nous-research/ui/ui/components/input";
-import { Label } from "@nous-research/ui/ui/components/label";
-import { Select, SelectOption } from "@nous-research/ui/ui/components/select";
-import { Toast } from "@nous-research/ui/ui/components/toast";
-import { useToast } from "@nous-research/ui/hooks/use-toast";
-import { useConfirmDelete } from "@nous-research/ui/hooks/use-confirm-delete";
-import { ConfirmDialog } from "@nous-research/ui/ui/components/confirm-dialog";
+import { Badge } from "@jettstui/ui/ui/components/badge";
+import { Button } from "@jettstui/ui/ui/components/button";
+import { Spinner } from "@jettstui/ui/ui/components/spinner";
+import { H2 } from "@jettstui/ui/ui/components/typography/h2";
+import { Card, CardContent } from "@jettstui/ui/ui/components/card";
+import { Checkbox } from "@jettstui/ui/ui/components/checkbox";
+import { Input } from "@jettstui/ui/ui/components/input";
+import { Label } from "@jettstui/ui/ui/components/label";
+import { Select, SelectOption } from "@jettstui/ui/ui/components/select";
+import { Toast } from "@jettstui/ui/ui/components/toast";
+import { useToast } from "@jettstui/ui/hooks/use-toast";
+import { useConfirmDelete } from "@jettstui/ui/hooks/use-confirm-delete";
+import { ConfirmDialog } from "@jettstui/ui/ui/components/confirm-dialog";
 import { useModalBehavior } from "@/hooks/useModalBehavior";
 import { DeleteConfirmDialog } from "@/components/DeleteConfirmDialog";
-import { FreeIDEConsoleModal } from "@/components/FreeIDEConsoleModal";
+import { JettsTUIConsoleModal } from "@/components/JettsTUIConsoleModal";
 import { cn, themedBody } from "@/lib/utils";
 import { api } from "@/lib/api";
 import type {
@@ -56,7 +55,6 @@ import type {
   SystemStats,
   UpdateCheckResponse,
   CuratorStatus,
-  PortalStatus,
   DebugShareResponse,
 } from "@/lib/api";
 
@@ -201,7 +199,6 @@ export default function SystemPage() {
   );
   const [hooks, setHooks] = useState<HooksResponse | null>(null);
   const [curator, setCurator] = useState<CuratorStatus | null>(null);
-  const [portal, setPortal] = useState<PortalStatus | null>(null);
   const [loading, setLoading] = useState(true);
 
   const [activeAction, setActiveAction] = useState<string | null>(null);
@@ -224,7 +221,7 @@ export default function SystemPage() {
   const [importFile, setImportFile] = useState<File | null>(null);
   const [importPath, setImportPath] = useState("");
   // Restore-from-backup is destructive (overwrites the live config) and the
-  // spawned `freeide import` runs non-interactively (stdin is /dev/null), so
+  // spawned `jettstui import` runs non-interactively (stdin is /dev/null), so
   // its CLI "Continue? [y/N]" prompt would auto-abort. The dashboard owns the
   // consent: confirm here, then call the endpoint with force=true.
   const [importingBackup, setImportingBackup] = useState(false);
@@ -261,12 +258,11 @@ export default function SystemPage() {
       api.getCheckpoints(),
       api.getHooks(),
       api.getCurator(),
-      api.getPortal(),
       // Cached (non-forced) check so the version row shows update status on
       // load without a separate effect / a forced network round-trip.
-      api.checkFreeIDEUpdate(false),
+      api.checkJettsTUIUpdate(false),
     ])
-      .then(([s, st, m, p, c, h, cur, prt, upd]) => {
+      .then(([s, st, m, p, c, h, cur, upd]) => {
         if (s.status === "fulfilled") setStatus(s.value);
         if (st.status === "fulfilled") setStats(st.value);
         if (m.status === "fulfilled") setMemory(m.value);
@@ -274,7 +270,6 @@ export default function SystemPage() {
         if (c.status === "fulfilled") setCheckpoints(c.value);
         if (h.status === "fulfilled") setHooks(h.value);
         if (cur.status === "fulfilled") setCurator(cur.value);
-        if (prt.status === "fulfilled") setPortal(prt.value);
         if (upd.status === "fulfilled") setUpdateInfo(upd.value);
       })
       .finally(() => setLoading(false));
@@ -512,10 +507,10 @@ export default function SystemPage() {
   // ── Update check / apply ───────────────────────────────────────────
   const checkForUpdate = useCallback(
     async (force = false) => {
-      if (status?.can_update_freeide === false) return;
+      if (status?.can_update_jettstui === false) return;
       setCheckingUpdate(true);
       try {
-        const info = await api.checkFreeIDEUpdate(force);
+        const info = await api.checkJettsTUIUpdate(force);
         setUpdateInfo(info);
         if (force) {
           if (info.update_available) {
@@ -537,22 +532,22 @@ export default function SystemPage() {
         setCheckingUpdate(false);
       }
     },
-    [showToast, status?.can_update_freeide],
+    [showToast, status?.can_update_jettstui],
   );
 
   // Auto-check (cached) runs inside loadAll on mount; this is the
   // user-triggered forced re-check from the "Check for updates" button.
   const applyUpdate = async () => {
     setUpdateConfirmOpen(false);
-    if (status?.can_update_freeide === false) {
+    if (status?.can_update_jettstui === false) {
       showToast(
-        "FreeIDE updates are managed outside this dashboard.",
+        "JettsTUI updates are managed outside this dashboard.",
         "success",
       );
       return;
     }
     try {
-      const resp = await api.updateFreeIDE();
+      const resp = await api.updateJettsTUI();
       if (!resp.ok) {
         showToast(
           resp.message ??
@@ -561,7 +556,7 @@ export default function SystemPage() {
         );
         return;
       }
-      setActiveAction(resp.name ?? "freeide-update");
+      setActiveAction(resp.name ?? "jettstui-update");
       showToast("Update started", "success");
     } catch (e) {
       showToast(`Update failed: ${e}`, "error");
@@ -637,7 +632,7 @@ export default function SystemPage() {
   }
 
   const gatewayRunning = status?.gateway_running;
-  const canUpdateFreeIDE = status?.can_update_freeide !== false;
+  const canUpdateJettsTUI = status?.can_update_jettstui !== false;
   const activeMemoryProvider = memory?.active
     ? memory.providers.find((provider) => provider.name === memory.active)
     : null;
@@ -659,14 +654,14 @@ export default function SystemPage() {
       />
 
       <ConfirmDialog
-        open={canUpdateFreeIDE && updateConfirmOpen}
+        open={canUpdateJettsTUI && updateConfirmOpen}
         onCancel={() => setUpdateConfirmOpen(false)}
         onConfirm={() => void applyUpdate()}
-        title="Update FreeIDE?"
+        title="Update JettsTUI?"
         description={
           updateInfo && updateInfo.behind && updateInfo.behind > 0
-            ? `This will run 'freeide update' (${updateInfo.update_command}) and pull ${updateInfo.behind} new commit${updateInfo.behind === 1 ? "" : "s"}. The gateway restarts when the update finishes; the current session keeps its prompt cache until then.`
-            : `This will run 'freeide update' (${updateInfo?.update_command ?? "freeide update"}) and restart the gateway when it finishes.`
+            ? `This will run 'jettstui update' (${updateInfo.update_command}) and pull ${updateInfo.behind} new commit${updateInfo.behind === 1 ? "" : "s"}. The gateway restarts when the update finishes; the current session keeps its prompt cache until then.`
+            : `This will run 'jettstui update' (${updateInfo?.update_command ?? "jettstui update"}) and restart the gateway when it finishes.`
         }
         confirmLabel="Update now"
       />
@@ -703,7 +698,7 @@ export default function SystemPage() {
         description="Remove this hook from config and revoke its consent? It stops firing on the next restart."
         loading={hookDelete.isDeleting}
       />
-      <FreeIDEConsoleModal
+      <JettsTUIConsoleModal
         open={consoleOpen}
         onClose={() => setConsoleOpen(false)}
       />
@@ -846,10 +841,10 @@ export default function SystemPage() {
                 <div>{stats?.python_impl} {stats?.python_version}</div>
               </div>
               <div>
-                <div className="text-xs uppercase tracking-wider text-muted-foreground">FreeIDE</div>
+                <div className="text-xs uppercase tracking-wider text-muted-foreground">JettsTUI</div>
                 <div className="flex items-center gap-2">
-                  <span>v{stats?.freeide_version}</span>
-                  {canUpdateFreeIDE &&
+                  <span>v{stats?.jettstui_version}</span>
+                  {canUpdateJettsTUI &&
                     updateInfo &&
                     (updateInfo.update_available ? (
                       <Badge tone="warning">
@@ -910,7 +905,7 @@ export default function SystemPage() {
                 CPU / memory / disk metrics.
               </p>
             )}
-            {canUpdateFreeIDE && (
+            {canUpdateJettsTUI && (
               <div className="mt-4 flex flex-wrap items-center gap-2 border-t border-border pt-4">
                 <Button
                   size="sm"
@@ -950,53 +945,6 @@ export default function SystemPage() {
                   </span>
                 )}
               </div>
-            )}
-          </CardContent>
-        </Card>
-      </section>
-
-      {/* ── Portal ────────────────────────────────────────────────── */}
-      <section className="flex flex-col gap-3">
-        <H2 variant="sm" className="flex items-center gap-2 text-muted-foreground">
-          <Globe className="h-4 w-4" /> FreeIDE Portal
-        </H2>
-        <Card>
-          <CardContent className="flex flex-col gap-3 py-4">
-            <div className="flex items-center gap-3">
-              <Badge tone={portal?.logged_in ? "success" : "secondary"}>
-                {portal?.logged_in ? "logged in" : "not logged in"}
-              </Badge>
-              {portal?.provider && (
-                <span className="text-sm text-muted-foreground">
-                  inference provider: {portal.provider}
-                </span>
-              )}
-              <a
-                href={portal?.subscription_url || "https://portal.freeide.dev/manage-subscription"}
-                target="_blank"
-                rel="noreferrer"
-                className="ml-auto text-xs text-primary underline"
-              >
-                Manage subscription
-              </a>
-            </div>
-            {portal?.features && portal.features.length > 0 && (
-              <div className="flex flex-col gap-1 border-t border-border pt-3">
-                <span className="text-xs uppercase tracking-wider text-muted-foreground">
-                  Tool Gateway routing
-                </span>
-                {portal.features.map((f) => (
-                  <div key={f.label} className="flex items-center justify-between text-sm">
-                    <span>{f.label}</span>
-                    <span className="text-muted-foreground">{f.state}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-            {!portal?.logged_in && (
-              <p className="text-xs text-muted-foreground">
-                Log in with <span className="font-mono">freeide portal</span>.
-              </p>
             )}
           </CardContent>
         </Card>
@@ -1308,7 +1256,7 @@ export default function SystemPage() {
                   id="import-path"
                   value={importPath}
                   onChange={(e) => setImportPath(e.target.value)}
-                  placeholder="$FREEIDE_HOME/backups/freeide-backup.zip"
+                  placeholder="$JETTSTUI_HOME/backups/jettstui-backup.zip"
                 />
               </div>
               <Button
@@ -1327,8 +1275,8 @@ export default function SystemPage() {
             </div>
             <ConfirmDialog
               open={!!importConfirmTarget}
-              title="Restore full FreeIDE backup?"
-              description={`This will overwrite your current FreeIDE configuration, skills, sessions, and data with the contents of ${backupImportLabel(importConfirmTarget)}. This cannot be undone.`}
+              title="Restore full JettsTUI backup?"
+              description={`This will overwrite your current JettsTUI configuration, skills, sessions, and data with the contents of ${backupImportLabel(importConfirmTarget)}. This cannot be undone.`}
               destructive
               confirmLabel="Restore"
               cancelLabel="Cancel"
@@ -1354,7 +1302,7 @@ export default function SystemPage() {
                   <span className="text-sm font-medium">Share debug report</span>
                   <span className="text-xs text-muted-foreground max-w-prose">
                     Uploads system info + logs to a public paste service and
-                    returns links to send the FreeIDE team. Pastes auto-delete
+                    returns links to send the JettsTUI team. Pastes auto-delete
                     after 6 hours.
                   </span>
                 </div>

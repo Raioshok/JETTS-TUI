@@ -25,12 +25,12 @@ def store(tmp_path, monkeypatch):
     """SessionStore with SQLite — load_transcript reads from DB only.
 
     Pin DEFAULT_DB_PATH to tmp_path so SessionDB() can't write to the real
-    ~/.freeide/state.db. (DEFAULT_DB_PATH is a module-level constant computed
-    at freeide_state import time, before pytest's FREEIDE_HOME monkeypatch
-    fires — the autouse fixture's FREEIDE_HOME override doesn't help here.)
+    ~/.jettstui/state.db. (DEFAULT_DB_PATH is a module-level constant computed
+    at jettstui_state import time, before pytest's JETTSTUI_HOME monkeypatch
+    fires — the autouse fixture's JETTSTUI_HOME override doesn't help here.)
     """
-    import freeide_state
-    monkeypatch.setattr(freeide_state, "DEFAULT_DB_PATH", tmp_path / "state.db")
+    import jettstui_state
+    monkeypatch.setattr(jettstui_state, "DEFAULT_DB_PATH", tmp_path / "state.db")
     config = GatewayConfig()
     s = SessionStore(sessions_dir=tmp_path, config=config)
     return s

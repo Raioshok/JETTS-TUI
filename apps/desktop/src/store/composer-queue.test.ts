@@ -20,7 +20,7 @@ import {
 } from './composer-queue'
 
 const SESSION_KEY = 'session-abc'
-const QUEUE_STORAGE_KEY = 'freeide.desktop.composerQueue.v1'
+const QUEUE_STORAGE_KEY = 'jettstui.desktop.composerQueue.v1'
 
 function attachment(id: string, kind: ComposerAttachment['kind'] = 'file'): ComposerAttachment {
   return {

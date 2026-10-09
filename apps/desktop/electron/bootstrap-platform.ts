@@ -55,7 +55,7 @@ const GPU_OVERRIDE_OFF = new Set(['0', 'false', 'no', 'off'])
  * software rendering when a remote display is detected.
  *
  * Returns a short reason string when GPU acceleration should be disabled, or
- * null to keep it enabled. `FREEIDE_DESKTOP_DISABLE_GPU` overrides detection
+ * null to keep it enabled. `JETTSTUI_DESKTOP_DISABLE_GPU` overrides detection
  * both ways (1/true/yes/on → always disable, 0/false/no/off → never disable).
  *
  * Pure + dependency-free so it can be unit-tested and called before app ready.
@@ -64,12 +64,12 @@ function detectRemoteDisplay(options: { env?: NodeJS.ProcessEnv; platform?: Node
   const env = options.env ?? process.env
   const platform = options.platform ?? process.platform
 
-  const override = String(env.FREEIDE_DESKTOP_DISABLE_GPU || '')
+  const override = String(env.JETTSTUI_DESKTOP_DISABLE_GPU || '')
     .trim()
     .toLowerCase()
 
   if (GPU_OVERRIDE_ON.has(override)) {
-    return 'override (FREEIDE_DESKTOP_DISABLE_GPU)'
+    return 'override (JETTSTUI_DESKTOP_DISABLE_GPU)'
   }
 
   if (GPU_OVERRIDE_OFF.has(override)) {

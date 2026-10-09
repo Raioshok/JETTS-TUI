@@ -24,7 +24,7 @@ import { $newSessionTabAction } from '@/components/pane-shell/tree/store'
 import { FloatingPet } from '@/components/pet/floating-pet'
 import { RemoteDisplayBanner } from '@/components/remote-display-banner'
 import { emitGatewayEvent } from '@/contrib/events'
-import { getSessionMessages, triggerCronJob } from '@/freeide'
+import { getSessionMessages, triggerCronJob } from '@/jettstui'
 import { type ChatMessage, chatMessageText, preserveLocalAssistantErrors, toChatMessages } from '@/lib/chat-messages'
 import { sessionMessagesSignature } from '@/lib/session-signatures'
 import { isMessagingSource } from '@/lib/session-source'
@@ -78,7 +78,7 @@ import { SessionSwitcher } from '../session-switcher'
 import { useBackgroundQueueDrain } from '../session/hooks/use-background-queue-drain'
 import { useContextSuggestions } from '../session/hooks/use-context-suggestions'
 import { useCwdActions } from '../session/hooks/use-cwd-actions'
-import { useFreeIDEConfig } from '../session/hooks/use-freeide-config'
+import { useJettsTUIConfig } from '../session/hooks/use-jettstui-config'
 import { useMessageStream } from '../session/hooks/use-message-stream'
 import { useModelControls } from '../session/hooks/use-model-controls'
 import { usePreviewRouting } from '../session/hooks/use-preview-routing'
@@ -127,7 +127,7 @@ export function ContribWiring({ children }: { children: ReactNode }) {
 
   const busyRef = useRef(false)
   const creatingSessionRef = useRef(false)
-  // Billing recovery routes to Settings → Billing from surfaces without router
+  // Billing recovery routes to provider settings from surfaces without router
   // context (the sticky toast). The shell owns `navigate`, so it consumes the
   // intent counter here; the ref skips the initial mount value.
   const billingSettingsSeenRef = useRef(0)
@@ -150,7 +150,7 @@ export function ContribWiring({ children }: { children: ReactNode }) {
     billingSettingsSeenRef.current = billingSettingsRequest
 
     if (billingSettingsRequest > 0) {
-      navigate(`${SETTINGS_ROUTE}?tab=billing`)
+      navigate(`${SETTINGS_ROUTE}?tab=providers`)
     }
   }, [billingSettingsRequest, navigate])
   const freshDraftReady = useStore($freshDraftReady)
@@ -256,7 +256,7 @@ export function ContribWiring({ children }: { children: ReactNode }) {
     requestGateway
   })
 
-  const { refreshFreeIDEConfig, sttEnabled, voiceMaxRecordingSeconds } = useFreeIDEConfig({ activeSessionIdRef })
+  const { refreshJettsTUIConfig, sttEnabled, voiceMaxRecordingSeconds } = useJettsTUIConfig({ activeSessionIdRef })
 
   const { applySavedMainModel, refreshCurrentModel, selectModel } = useModelControls({
     queryClient,
@@ -269,9 +269,9 @@ export function ContribWiring({ children }: { children: ReactNode }) {
   // don't have router access); listen and navigate to the settings keybinds tab.
   useEffect(() => {
     const onOpenKeybinds = () => navigate(`${SETTINGS_ROUTE}?tab=keybinds`)
-    window.addEventListener('freeide:open-keybinds', onOpenKeybinds)
+    window.addEventListener('jettstui:open-keybinds', onOpenKeybinds)
 
-    return () => window.removeEventListener('freeide:open-keybinds', onOpenKeybinds)
+    return () => window.removeEventListener('jettstui:open-keybinds', onOpenKeybinds)
   }, [navigate])
 
   // Dev-only: install the credit-notice demo trigger (Ctrl+Shift+C / ⌘K palette
@@ -380,7 +380,7 @@ export function ContribWiring({ children }: { children: ReactNode }) {
     activeSessionIdRef,
     hydrateFromStoredSession,
     queryClient,
-    refreshFreeIDEConfig,
+    refreshJettsTUIConfig,
     refreshSessions,
     sessionStateByRuntimeIdRef,
     updateSessionState
@@ -473,9 +473,9 @@ export function ContribWiring({ children }: { children: ReactNode }) {
     // if the composer already shows values from the previous profile. Both
     // refreshes carry an intent token so a picker click made in flight wins.
     void refreshCurrentModel(true)
-    void refreshFreeIDEConfig(true)
+    void refreshJettsTUIConfig(true)
     void refreshActiveProfile()
-  }, [activeGatewayProfile, refreshCurrentModel, refreshFreeIDEConfig])
+  }, [activeGatewayProfile, refreshCurrentModel, refreshJettsTUIConfig])
 
   // New session anchored to a workspace. Seeds cwd + branch from the clicked
   // workspace; an explicit worktree path also drills the sidebar into that
@@ -681,7 +681,7 @@ export function ContribWiring({ children }: { children: ReactNode }) {
     onGatewayReady: g => {
       gatewayRef.current = g
     },
-    refreshFreeIDEConfig,
+    refreshJettsTUIConfig,
     refreshSessions
   })
 
@@ -702,7 +702,7 @@ export function ContribWiring({ children }: { children: ReactNode }) {
     refreshActiveMessagingTranscript,
     refreshCronJobs,
     refreshCurrentModel,
-    refreshFreeIDEConfig,
+    refreshJettsTUIConfig,
     refreshMessagingSessions,
     refreshSessions,
     requestGateway
@@ -941,7 +941,7 @@ export function ContribWiring({ children }: { children: ReactNode }) {
         <DesktopOnboardingOverlay
           enabled={gatewayState === 'open'}
           onCompleted={() => {
-            void refreshFreeIDEConfig()
+            void refreshJettsTUIConfig()
             void refreshCurrentModel()
             void queryClient.invalidateQueries({ queryKey: ['model-options'] })
           }}
@@ -972,7 +972,7 @@ export function ContribWiring({ children }: { children: ReactNode }) {
             gateway={gateway}
             onClose={closeOverlayToPreviousRoute}
             onConfigSaved={() => {
-              void refreshFreeIDEConfig()
+              void refreshJettsTUIConfig()
               void refreshCurrentModel()
               void queryClient.invalidateQueries({ queryKey: ['model-options'] })
             }}

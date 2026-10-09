@@ -1,10 +1,9 @@
-"""The conftest WAL gate must agree with freeide_state, and must not import it.
+"""The conftest WAL gate must agree with jettstui_state, and must not import it.
 
 ``tests/conftest.py::_wal_is_usable`` duplicates the SQLite WAL-reset version
-predicate instead of importing ``freeide_state``. That is deliberate: importing
-``freeide_state`` during collection caches ``DEFAULT_DB_PATH`` from the real
-``~/.freeide`` before the per-test ``FREEIDE_HOME`` redirect, which makes tests
-read the developer's live production database.
+predicate instead of importing ``jettstui_state``. That keeps collection free
+of session-store initialization before the per-test ``JETTSTUI_HOME`` redirect.
+SessionDB itself now resolves the active home when opened.
 
 Duplication needs a guard, so these tests pin the two implementations in
 agreement across the documented upstream boundaries.
@@ -14,7 +13,7 @@ import sqlite3
 
 import pytest
 
-from freeide_state import is_sqlite_wal_reset_vulnerable
+from jettstui_state import is_sqlite_wal_reset_vulnerable
 from tests.conftest import _wal_is_usable
 
 
@@ -34,21 +33,19 @@ from tests.conftest import _wal_is_usable
         (3, 53, 1),   # the managed runtime
     ],
 )
-def test_conftest_gate_agrees_with_freeide_state(version_info, monkeypatch):
+def test_conftest_gate_agrees_with_jettstui_state(version_info, monkeypatch):
     """``_wai_is_usable`` must be the exact inverse of the canonical predicate."""
     monkeypatch.setattr(sqlite3, "sqlite_version_info", version_info)
     assert _wal_is_usable() is not is_sqlite_wal_reset_vulnerable(version_info), (
-        f"conftest gate and freeide_state disagree for SQLite {version_info}"
+        f"conftest gate and jettstui_state disagree for SQLite {version_info}"
     )
 
 
-def test_conftest_does_not_import_freeide_state_at_collection():
-    """The gate must stay import-free of freeide_state.
+def test_conftest_does_not_import_jettstui_state_at_collection():
+    """The gate must stay import-free of jettstui_state.
 
-    Importing it during collection caches DEFAULT_DB_PATH from the real
-    ~/.freeide, so tests read live production sessions instead of a tempdir.
-    Reading the source is not an option here (banned), so assert on behavior:
-    the gate must work with ``freeide_state`` absent from ``sys.modules`` and
+    Collection should remain independent of the runtime store. Assert behavior:
+    the gate must work with ``jettstui_state`` absent from ``sys.modules`` and
     blocked from being imported.
     """
     import builtins
@@ -58,20 +55,19 @@ def test_conftest_does_not_import_freeide_state_at_collection():
     blocked: list[str] = []
 
     def guard(name, *args, **kwargs):
-        if name == "freeide_state" or name.startswith("freeide_state."):
+        if name == "jettstui_state" or name.startswith("jettstui_state."):
             blocked.append(name)
             raise AssertionError(
-                "conftest._wal_is_usable imported freeide_state — this caches "
-                "DEFAULT_DB_PATH from the real ~/.freeide during collection"
+                "conftest._wal_is_usable imported jettstui_state during collection"
             )
         return real_import(name, *args, **kwargs)
 
-    saved = sys.modules.pop("freeide_state", None)
+    saved = sys.modules.pop("jettstui_state", None)
     builtins.__import__ = guard
     try:
         _wal_is_usable()  # must not raise
     finally:
         builtins.__import__ = real_import
         if saved is not None:
-            sys.modules["freeide_state"] = saved
+            sys.modules["jettstui_state"] = saved
     assert not blocked

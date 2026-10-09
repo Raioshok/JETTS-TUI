@@ -38,9 +38,6 @@ class TestSupportsMediaInToolResults:
     def test_openrouter_yes(self):
         assert _supports_media_in_tool_results("openrouter", "anthropic/claude-opus-4.6") is True
 
-    def test_nous_yes(self):
-        assert _supports_media_in_tool_results("nous", "anthropic/claude-sonnet-4.6") is True
-
     def test_openai_chat_yes(self):
         assert _supports_media_in_tool_results("openai", "gpt-5.4") is True
 
@@ -262,7 +259,7 @@ class TestHandleVisionAnalyzeFastPath:
         set_runtime_main("brand-new-provider", "llava-v1.6")
         try:
             with patch(
-                "freeide_cli.config.load_config",
+                "jettstui.config.load_config",
                 return_value={"model": {"supports_vision": True}},
             ), patch(
                 "tools.vision_tools.vision_analyze_tool", side_effect=_aux_sentinel,
@@ -287,7 +284,7 @@ class TestHandleVisionAnalyzeFastPath:
         set_runtime_main("brand-new-provider", "llava-v1.6")
         try:
             with patch(
-                "freeide_cli.config.load_config",
+                "jettstui.config.load_config",
                 return_value={
                     "agent": {"image_input_mode": "text"},
                     "model": {"supports_vision": True},

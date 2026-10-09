@@ -83,8 +83,8 @@ def emits(monkeypatch):
 
 @pytest.fixture()
 def marker_home(monkeypatch, tmp_path):
-    """Point the server's marker storage at a temp FREEIDE_HOME."""
-    monkeypatch.setattr(server, "_freeide_home", tmp_path)
+    """Point the server's marker storage at a temp JETTSTUI_HOME."""
+    monkeypatch.setattr(server, "_jettstui_home", tmp_path)
     return tmp_path
 
 

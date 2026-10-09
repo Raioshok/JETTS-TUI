@@ -21,7 +21,7 @@ const shortPath = (value: string) => {
   return `…/${parts.slice(-2).join('/')}`
 }
 
-const modeLabel = (mode: WorkMode) => (mode === 'plan' ? 'PLAN' : mode === 'accept-edits' ? 'ACCEPT EDITS' : 'DEFAULT')
+const modeLabel = (mode: WorkMode) => (mode === 'plan' ? 'Plan' : mode === 'accept-edits' ? 'Accept edits' : 'Default')
 
 const modeColor = (mode: WorkMode, t: Theme) =>
   mode === 'plan' ? t.color.warn : mode === 'accept-edits' ? t.color.accent : t.color.muted
@@ -91,15 +91,15 @@ export function ComposerToolbar({ busy, cols, mode, queueCount, t }: ComposerToo
   const left =
     width < 22
       ? busy
-        ? 'STEER'
+        ? 'Steer'
         : queueCount > 0
-          ? `${queueCount} QUEUED`
-          : 'MESSAGE'
+          ? `${queueCount} queued`
+          : 'Message'
       : busy
-        ? 'STEER AGENT'
+        ? 'Steer the agent'
         : queueCount > 0
-          ? `MESSAGE · ${queueCount} QUEUED`
-          : 'NEW MESSAGE'
+          ? `Message · ${queueCount} queued`
+          : 'New message'
 
   const hint = wide
     ? 'Enter send  ·  Shift+Enter newline  ·  Shift+Tab mode'

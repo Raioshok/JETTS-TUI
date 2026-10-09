@@ -7,12 +7,12 @@ to prevent spinner/status bar overlap (#2718).
 from unittest.mock import MagicMock, patch
 
 
-from cli import FreeIDECLI
+from cli import JettsTUICLI
 
 
 def _make_cli():
-    """Create a minimal FreeIDECLI instance for testing."""
-    cli_obj = FreeIDECLI.__new__(FreeIDECLI)
+    """Create a minimal JettsTUICLI instance for testing."""
+    cli_obj = JettsTUICLI.__new__(JettsTUICLI)
     cli_obj.model = "test-model"
     cli_obj._background_tasks = {}
     cli_obj._background_task_counter = 0

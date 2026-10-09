@@ -263,15 +263,15 @@ class TestRunBrowserCommandPathConstruction:
             "cdp_url": None,
         }
         fake_json = json.dumps({"success": True})
-        browser_path = "/Users/test/Library/Application Support/freeide/node_modules/.bin/agent-browser"
-        freeide_home = str(tmp_path / "freeide-home")
+        browser_path = "/Users/test/Library/Application Support/jettstui/node_modules/.bin/agent-browser"
+        jettstui_home = str(tmp_path / "jettstui-home")
 
         with patch("tools.browser_tool._find_agent_browser", return_value=browser_path), \
  patch("tools.browser_tool._chromium_installed", return_value=True), \
              patch("tools.browser_tool._get_session_info", return_value=fake_session), \
              patch("tools.browser_tool._socket_safe_tmpdir", return_value=str(tmp_path)), \
              patch("tools.browser_tool._discover_homebrew_node_dirs", return_value=[]), \
-             patch("freeide_constants.Path.home", return_value=tmp_path), \
+             patch("jettstui_constants.Path.home", return_value=tmp_path), \
              patch("subprocess.Popen", side_effect=capture_popen), \
              patch("os.open", return_value=99), \
              patch("os.close"), \
@@ -281,7 +281,7 @@ class TestRunBrowserCommandPathConstruction:
                  {
                      "PATH": "/usr/bin:/bin",
                      "HOME": "/home/test",
-                     "FREEIDE_HOME": freeide_home,
+                     "JETTSTUI_HOME": jettstui_home,
                  },
                  clear=True,
              ):
@@ -316,14 +316,14 @@ class TestRunBrowserCommandPathConstruction:
             "cdp_url": None,
         }
         fake_json = json.dumps({"success": True})
-        freeide_home = str(tmp_path / "freeide-home")
+        jettstui_home = str(tmp_path / "jettstui-home")
 
         with patch("tools.browser_tool._find_agent_browser", return_value="npx agent-browser"), \
  patch("tools.browser_tool._chromium_installed", return_value=True), \
              patch("tools.browser_tool._get_session_info", return_value=fake_session), \
              patch("tools.browser_tool._socket_safe_tmpdir", return_value=str(tmp_path)), \
              patch("tools.browser_tool._discover_homebrew_node_dirs", return_value=[]), \
-             patch("freeide_constants.Path.home", return_value=tmp_path), \
+             patch("jettstui_constants.Path.home", return_value=tmp_path), \
              patch("subprocess.Popen", side_effect=capture_popen), \
              patch("os.open", return_value=99), \
              patch("os.close"), \
@@ -333,7 +333,7 @@ class TestRunBrowserCommandPathConstruction:
                  {
                      "PATH": "/usr/bin:/bin",
                      "HOME": "/home/test",
-                     "FREEIDE_HOME": freeide_home,
+                     "JETTSTUI_HOME": jettstui_home,
                  },
                  clear=True,
              ):

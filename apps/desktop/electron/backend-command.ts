@@ -1,9 +1,9 @@
-// Backend subcommand routing for the desktop-managed FreeIDE process.
+// Backend subcommand routing for the desktop-managed JettsTUI process.
 //
-// The desktop app launches its own headless backend via `freeide serve` — it
+// The desktop app launches its own headless backend via `jettstui serve` — it
 // must NEVER depend on or launch the browser `dashboard`. But `serve` is a
 // newer subcommand: a runtime that predates it (an older managed install the
-// app hasn't updated yet, or an older `freeide` resolved from PATH) only knows
+// app hasn't updated yet, or an older `jettstui` resolved from PATH) only knows
 // `dashboard --no-open`. To avoid bricking those users mid-upgrade we detect
 // whether the resolved runtime understands `serve` and, only when it does not,
 // fall back to the legacy `dashboard --no-open` invocation. Both produce the
@@ -13,7 +13,7 @@
 
 /**
  * Build the canonical headless backend argv (always `serve`).
- * @param {string} [profile] optional FreeIDE profile to pin via `--profile`.
+ * @param {string} [profile] optional JettsTUI profile to pin via `--profile`.
  */
 export function serveBackendArgs(profile?: string) {
   const head = profile ? ['--profile', profile] : []
@@ -24,7 +24,7 @@ export function serveBackendArgs(profile?: string) {
 /**
  * Rewrite a resolved backend argv from `serve` to the legacy
  * `dashboard --no-open` form, preserving every other argument (incl. a leading
- * `-m freeide_cli.main` and any `--profile <name>`). Returns a copy; if there is
+ * `-m jettstui.main` and any `--profile <name>`). Returns a copy; if there is
  * no `serve` token the argv is returned unchanged.
  */
 export function dashboardFallbackArgs(args) {
@@ -38,7 +38,7 @@ export function dashboardFallbackArgs(args) {
 }
 
 /**
- * True when a runtime's `freeide_cli/subcommands/dashboard.py` source registers
+ * True when a runtime's `jettstui/subcommands/dashboard.py` source registers
  * the `serve` subcommand. Matches `add_parser("serve"` / `add_parser('serve'`
  * specifically so the substring "server" (e.g. "start_server", "web server")
  * never produces a false positive.

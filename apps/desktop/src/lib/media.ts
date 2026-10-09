@@ -71,15 +71,15 @@ export async function resolveMediaDisplaySrc(path: string): Promise<string> {
     return path
   }
 
-  if (window.freeideDesktop && isRemoteGateway()) {
+  if (window.jettstuiDesktop && isRemoteGateway()) {
     return gatewayMediaDataUrl(path)
   }
 
-  if (!window.freeideDesktop?.readFileDataUrl) {
+  if (!window.jettstuiDesktop?.readFileDataUrl) {
     return mediaExternalUrl(path)
   }
 
-  return window.freeideDesktop.readFileDataUrl(filePathFromMediaPath(path))
+  return window.jettstuiDesktop.readFileDataUrl(filePathFromMediaPath(path))
 }
 
 // Resolve a media path to a URL the shell can open. Remote mode rewrites
@@ -107,7 +107,7 @@ export function mediaExternalUrl(path: string): string {
 // file with Range support. Used for audio/video so playback bypasses the data
 // URL size cap and supports seeking. `path` may be a plain path or `file://…`.
 export function mediaStreamUrl(path: string): string {
-  return `freeide-media://stream/${encodeURIComponent(filePathFromMediaPath(path))}`
+  return `jettstui-media://stream/${encodeURIComponent(filePathFromMediaPath(path))}`
 }
 
 export function mediaPathFromMarkdownHref(href?: string): string | null {
@@ -142,7 +142,7 @@ export function isRemoteGateway(): boolean {
 
 // Fetch gateway-local media as a data URL via the authenticated desktop FS
 // bridge. Remote Desktop artifacts can live anywhere the gateway can read
-// (workspace, skills, ~/.freeide/cache, etc.); /api/media is intentionally
+// (workspace, skills, ~/.jettstui/cache, etc.); /api/media is intentionally
 // narrower and rejects non-images plus images outside its media roots.
 export async function gatewayMediaDataUrl(path: string): Promise<string> {
   return readDesktopFileDataUrl(filePathFromMediaPath(path))

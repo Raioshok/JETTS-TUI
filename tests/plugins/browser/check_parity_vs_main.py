@@ -13,7 +13,7 @@ which would be a real regression for users on the existing config keys.
 
 Run from the PR worktree:
 
-    cd ~/.freeide/freeide-agent/.worktrees/browser-providers-plugin
+    cd ~/.jettstui/jettstui/.worktrees/browser-providers-plugin
     python tests/plugins/browser/check_parity_vs_main.py
 """
 from __future__ import annotations
@@ -29,14 +29,14 @@ REPO_ROOT = Path(__file__).resolve().parents[3]
 
 # Pin one path to current main, one to the PR worktree.
 # ``REPO_ROOT`` is ``.../.worktrees/browser-providers-plugin``; the main
-# checkout lives two levels up at ``~/.freeide/freeide-agent``.
-MAIN_DIR = REPO_ROOT.parent.parent  # ~/.freeide/freeide-agent
+# checkout lives two levels up at ``~/.jettstui/jettstui``.
+MAIN_DIR = REPO_ROOT.parent.parent  # ~/.jettstui/jettstui
 PR_DIR = REPO_ROOT  # the worktree we're in
 assert (MAIN_DIR / "tools" / "browser_tool.py").exists(), (
-    f"MAIN_DIR={MAIN_DIR} doesn't look like a freeide-agent checkout"
+    f"MAIN_DIR={MAIN_DIR} doesn't look like a jettstui checkout"
 )
 assert (PR_DIR / "tools" / "browser_tool.py").exists(), (
-    f"PR_DIR={PR_DIR} doesn't look like a freeide-agent checkout"
+    f"PR_DIR={PR_DIR} doesn't look like a jettstui checkout"
 )
 
 
@@ -46,9 +46,9 @@ SUBPROCESS_SCRIPT = r"""
 import json, os, sys, tempfile
 sys.path.insert(0, sys.argv[1])
 
-# Isolated FREEIDE_HOME for the config write.
+# Isolated JETTSTUI_HOME for the config write.
 home = tempfile.mkdtemp()
-os.environ["FREEIDE_HOME"] = home
+os.environ["JETTSTUI_HOME"] = home
 
 # Clear every browser-related env var so is_available() is deterministic.
 for k in (

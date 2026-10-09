@@ -9,6 +9,7 @@ covered in ``test_shell_hooks_consent.py``.
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 
 import pytest
@@ -27,7 +28,7 @@ def _write_script(tmp_path: Path, name: str, body: str) -> Path:
 
 
 def _allowlist_pair(monkeypatch, tmp_path, event: str, command: str) -> None:
-    monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / "freeide_home"))
+    monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / "jettstui_home"))
     shell_hooks._record_approval(event, command)
 
 
@@ -257,6 +258,7 @@ class TestMatcher:
 # ── End-to-end subprocess behaviour ───────────────────────────────────────
 
 
+@pytest.mark.skipif(shell_hooks.IS_WINDOWS, reason="POSIX .sh hooks require an explicit Bash interpreter on Windows")
 class TestCallbackSubprocess:
     def test_timeout_returns_none(self, tmp_path):
         # Script that sleeps forever; we set a 1s timeout.
@@ -302,7 +304,7 @@ class TestCallbackSubprocess:
         """v1 schema-bug regression gate.
 
         Shell hook returns the Claude-Code-style payload and the bridge
-        must translate it to the canonical FreeIDE block shape so that
+        must translate it to the canonical JettsTUI block shape so that
         get_pre_tool_call_block_message() surfaces the block.
         """
         script = _write_script(
@@ -323,7 +325,7 @@ class TestCallbackSubprocess:
         """Registering via register_from_config makes
         get_pre_tool_call_block_message surface the block — the real
         end-to-end control flow used by run_agent._invoke_tool."""
-        from freeide_cli import plugins
+        from jettstui import plugins
 
         script = _write_script(
             tmp_path, "block.sh",
@@ -331,8 +333,8 @@ class TestCallbackSubprocess:
             'printf \'{"decision": "block", "reason": "blocked-by-shell"}\\n\'\n',
         )
 
-        monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / "home"))
-        monkeypatch.setenv("FREEIDE_ACCEPT_HOOKS", "1")
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / "home"))
+        monkeypatch.setenv("JETTSTUI_ACCEPT_HOOKS", "1")
 
         # Fresh manager
         plugins._plugin_manager = plugins.PluginManager()
@@ -455,6 +457,23 @@ class TestCallbackSubprocess:
 # ── config parsing ────────────────────────────────────────────────────────
 
 
+@pytest.mark.skipif(not shell_hooks.IS_WINDOWS, reason="Windows subprocess smoke")
+def test_windows_python_hook_runs_with_explicit_interpreter(tmp_path):
+    script = tmp_path / "hook with spaces.py"
+    script.write_text(
+        "import json, sys\n"
+        "payload = json.load(sys.stdin)\n"
+        "print(json.dumps({'decision': 'block', 'reason': payload['tool_name']}))\n",
+        encoding="utf-8",
+    )
+    spec = shell_hooks.ShellHookSpec(
+        event="pre_tool_call", command=f'"{sys.executable}" "{script}"',
+    )
+    assert shell_hooks._make_callback(spec)(tool_name="terminal") == {
+        "action": "block", "message": "terminal",
+    }
+
+
 class TestParseHooksBlock:
     def test_valid_entry(self):
         specs = shell_hooks._parse_hooks_block({
@@ -529,12 +548,12 @@ class TestParseHooksBlock:
 
 class TestIdempotentRegistration:
     def test_double_call_registers_once(self, tmp_path, monkeypatch):
-        from freeide_cli import plugins
+        from jettstui import plugins
 
         script = _write_script(tmp_path, "h.sh",
                                "#!/usr/bin/env bash\nprintf '{}\\n'\n")
-        monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / "home"))
-        monkeypatch.setenv("FREEIDE_ACCEPT_HOOKS", "1")
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / "home"))
+        monkeypatch.setenv("JETTSTUI_ACCEPT_HOOKS", "1")
 
         plugins._plugin_manager = plugins.PluginManager()
 
@@ -553,12 +572,12 @@ class TestIdempotentRegistration:
     ):
         """Same script used for different matchers under one event must
         register both callbacks — dedupe keys on (event, matcher, command)."""
-        from freeide_cli import plugins
+        from jettstui import plugins
 
         script = _write_script(tmp_path, "h.sh",
                                "#!/usr/bin/env bash\nprintf '{}\\n'\n")
-        monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / "home"))
-        monkeypatch.setenv("FREEIDE_ACCEPT_HOOKS", "1")
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / "home"))
+        monkeypatch.setenv("JETTSTUI_ACCEPT_HOOKS", "1")
 
         plugins._plugin_manager = plugins.PluginManager()
 
@@ -590,7 +609,7 @@ class TestAllowlistConcurrency:
     ):
         import threading
 
-        monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / "home"))
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / "home"))
 
         N = 32
         barrier = threading.Barrier(N)
@@ -629,7 +648,7 @@ class TestAllowlistConcurrency:
         import threading
 
         monkeypatch.setattr(shell_hooks, "fcntl", None)
-        monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / "home"))
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / "home"))
 
         completed = threading.Event()
         errors: list = []
@@ -662,9 +681,9 @@ class TestAllowlistConcurrency:
         self, tmp_path, monkeypatch, caplog,
     ):
         """Persistence failures must log the path, errno, and
-        re-prompt consequence so "freeide keeps asking" is debuggable."""
+        re-prompt consequence so "jettstui keeps asking" is debuggable."""
         import logging
-        monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / "home"))
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / "home"))
         monkeypatch.setattr(
             shell_hooks.tempfile, "mkstemp",
             lambda *a, **kw: (_ for _ in ()).throw(OSError(28, "No space")),
@@ -695,14 +714,14 @@ class TestAllowlistConcurrency:
 
         # Flip +x; bare invocation is now runnable too.
         script.chmod(0o755)
-        assert shell_hooks.script_is_executable(str(script))
+        assert shell_hooks.script_is_executable(str(script)) is (not shell_hooks.IS_WINDOWS)
 
     def test_command_script_path_resolution(self):
         """Regression: ``_command_script_path`` used to return the first
         shlex token, which picked the interpreter (``python3``, ``bash``,
         ``/usr/bin/env``) instead of the actual script for any
         interpreter-prefixed command.  That broke
-        ``freeide hooks doctor``'s executability check and silently
+        ``jettstui hooks doctor``'s executability check and silently
         disabled mtime drift detection for such hooks."""
         cases = [
             # bare path
@@ -734,7 +753,7 @@ class TestAllowlistConcurrency:
     def test_save_allowlist_uses_unique_tmp_paths(self, tmp_path, monkeypatch):
         """Two save_allowlist calls in flight must use distinct tmp files
         so the loser's os.replace does not ENOENT on the winner's sweep."""
-        monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / "home"))
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / "home"))
         p = shell_hooks.allowlist_path()
         p.parent.mkdir(parents=True, exist_ok=True)
 

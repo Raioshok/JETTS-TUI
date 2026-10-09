@@ -24,7 +24,7 @@ permissions:
   pull-requests: write # needed by lint (PR comment) + supply-chain review_status
   actions: read # needed by osv-scanner (SARIF upload)
   security-events: write # needed by osv-scanner (SARIF upload)
-  packages: write # needed by docker build
+  packages: read # PR Docker jobs build/test only; publishing runs in docker.yml
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -43,7 +43,6 @@ jobs:
     outputs:
       python: ${{ steps.classify.outputs.python }}
       frontend: ${{ steps.classify.outputs.frontend }}
-      site: ${{ steps.classify.outputs.site }}
       scan: ${{ steps.classify.outputs.scan }}
       deps: ${{ steps.classify.outputs.deps }}
       npm_lock: ${{ steps.classify.outputs.npm_lock }}
@@ -92,23 +91,11 @@ jobs:
     if: needs.detect.outputs.python == 'true' || needs.detect.outputs.frontend == 'true'
     uses: ./.github/workflows/e2e-desktop.yml
 
-  docs-site:
-    name: Docs Site
-    needs: detect
-    if: needs.detect.outputs.site == 'true'
-    uses: ./.github/workflows/docs-site-checks.yml
-
   history-check:
     name: Deny unrelated histories
     needs: detect
     if: needs.detect.outputs.event_name == 'pull_request'
     uses: ./.github/workflows/history-check.yml
-
-  contributor-check:
-    name: Check contributors
-    needs: detect
-    if: needs.detect.outputs.python == 'true'
-    uses: ./.github/workflows/contributor-check.yml
 
   uv-lockfile:
     name: Check uv.lock
@@ -139,7 +126,7 @@ jobs:
     # environment secrets never cross this reusable-workflow call. PR runs
     # remain build/test-only and secret-free.
     if: needs.detect.outputs.event_name == 'pull_request' && (needs.detect.outputs.python == 'true' || needs.detect.outputs.frontend == 'true' || needs.detect.outputs.docker_meta == 'true')
-    uses: ./.github/workflows/docker.yml
+    uses: ./.github/workflows/docker-build-test.yml
 
   supply-chain:
     name: Supply-chain scan
@@ -172,14 +159,14 @@ jobs:
   # A single ``comment-live`` job polls the GitHub Actions API every 15s
   # for job statuses in this run, re-assembles the review comment from
   # whatever results are available, and upserts it via the
-  # ``<!-- freeide-ci-review-bot -->`` marker.
+  # ``<!-- jettstui-ci-review-bot -->`` marker.
   #
   # When the visible job set goes quiet, the poller waits 10 seconds and polls
   # once more so downstream jobs created by an aggregate gate get included.
   # ─────────────────────────────────────────────────────────────────────
   comment-live:
     name: CI review comment (live)
-    needs: [detect, review-labels, lockfile-diff, supply-chain, osv-scanner, uv-lockfile, history-check, contributor-check, e2e-desktop]
+    needs: [detect, review-labels, lockfile-diff, supply-chain, osv-scanner, uv-lockfile, history-check, e2e-desktop]
     if: always() && github.event_name == 'pull_request' && github.event.pull_request.head.repo.fork != true
     runs-on: ubuntu-latest
     timeout-minutes: 40
@@ -261,18 +248,15 @@ jobs:
       - lint
       - js-tests
       - e2e-desktop
-      - docs-site
       - history-check
-      - contributor-check
       - uv-lockfile
       - lockfile-diff
       - docker-lint
+      - docker
       - supply-chain
       - review-labels
       - osv-scanner
       # comment-live is a polling job — it doesn't block the gate.
-      # we don't require docker to pass rn because it's so slow lol
-      # - docker
     if: always()
     runs-on: ubuntu-latest
     timeout-minutes: 10
@@ -292,7 +276,7 @@ jobs:
           print(f'needs-json={json.dumps(compact)}')
           with open('$GITHUB_OUTPUT', 'a') as f:
               f.write(f'needs-json={json.dumps(compact)}\n')
-          failed = [name for name, info in needs.items() if info['result'] == 'failure']
+          failed = [name for name, info in needs.items() if info['result'] in ('failure', 'cancelled')]
           for name, info in sorted(needs.items()):
               result = info['result']
               icon = '✅' if result in ('success', 'skipped') else '❌'

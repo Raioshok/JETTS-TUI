@@ -19,8 +19,8 @@ SCRIPT_DIR = Path(__file__).resolve().parent
 PROJECT_ROOT = SCRIPT_DIR.parent
 sys.path.insert(0, str(PROJECT_ROOT))
 
-FREEIDE_HOME = Path(os.getenv("FREEIDE_HOME", Path.home() / ".freeide"))
-ENV_FILE = FREEIDE_HOME / ".env"
+JETTSTUI_HOME = Path(os.getenv("JETTSTUI_HOME", Path.home() / ".jettstui"))
+ENV_FILE = JETTSTUI_HOME / ".env"
 
 OK = "\033[92m\u2713\033[0m"
 FAIL = "\033[91m\u2717\033[0m"
@@ -176,10 +176,10 @@ def check_env_vars():
 
     # Load .env
     try:
-        from freeide_cli.env_loader import load_freeide_dotenv
+        from jettstui.env_loader import load_jettstui_dotenv
 
-        load_freeide_dotenv(
-            freeide_home=ENV_FILE.parent,
+        load_jettstui_dotenv(
+            jettstui_home=ENV_FILE.parent,
             project_env=PROJECT_ROOT / ".env",
         )
     except ImportError:
@@ -235,10 +235,10 @@ def check_env_vars():
 
 
 def check_config(groq_key, eleven_key):
-    """Check freeide config.yaml."""
+    """Check jettstui config.yaml."""
     section("Configuration")
 
-    config_path = FREEIDE_HOME / "config.yaml"
+    config_path = JETTSTUI_HOME / "config.yaml"
     if config_path.exists():
         try:
             import yaml
@@ -264,7 +264,7 @@ def check_config(groq_key, eleven_key):
         warn("config.yaml", "not found — using defaults")
 
     # Voice mode state
-    voice_mode_path = FREEIDE_HOME / "gateway_voice_mode.json"
+    voice_mode_path = JETTSTUI_HOME / "gateway_voice_mode.json"
     if voice_mode_path.exists():
         try:
             import json

@@ -16,11 +16,11 @@ def _reset_emitter():
 
 
 def test_gated_on_desktop(monkeypatch):
-    """Hidden unless FREEIDE_DESKTOP is set (mirrors read_terminal/close_terminal)."""
-    monkeypatch.delenv("FREEIDE_DESKTOP", raising=False)
+    """Hidden unless JETTSTUI_DESKTOP is set (mirrors read_terminal/close_terminal)."""
+    monkeypatch.delenv("JETTSTUI_DESKTOP", raising=False)
     assert op.check_open_preview_requirements() is False
 
-    monkeypatch.setenv("FREEIDE_DESKTOP", "1")
+    monkeypatch.setenv("JETTSTUI_DESKTOP", "1")
     assert op.check_open_preview_requirements() is True
 
 

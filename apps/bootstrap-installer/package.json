@@ -2,7 +2,7 @@
   "name": "@jetts-tui/bootstrap-installer",
   "private": true,
   "version": "0.0.1",
-  "description": "Jetts-TUI Setup — installer that drives the platform install scripts with a native UI.",
+  "description": "JettsTUI Setup — installer that drives the platform install scripts with a native UI.",
   "type": "module",
   "scripts": {
     "dev": "vite --host 127.0.0.1 --port 5175",
@@ -19,7 +19,7 @@
     "fix": "npm run lint:fix"
   },
   "dependencies": {
-    "@nous-research/ui": "0.16.0",
+    "@jettstui/ui": "npm:@nous-research/ui@0.16.0",
     "@tailwindcss/vite": "^4.2.4",
     "@tailwindcss/typography": "^0.5.19",
     "@tauri-apps/api": "^2.0.0",

@@ -1,6 +1,6 @@
 """Tests for the curator per-run report writer (run.json + REPORT.md).
 
-Reports live under ``~/.freeide/logs/curator/{YYYYMMDD-HHMMSS}/`` alongside
+Reports live under ``~/.jettstui/logs/curator/{YYYYMMDD-HHMMSS}/`` alongside
 the standard log dir, not inside the user's ``skills/`` data directory.
 """
 
@@ -15,17 +15,17 @@ import pytest
 
 @pytest.fixture
 def curator_env(tmp_path, monkeypatch):
-    """Isolated FREEIDE_HOME with a skills/ dir + reset curator module state."""
-    home = tmp_path / ".freeide"
+    """Isolated JETTSTUI_HOME with a skills/ dir + reset curator module state."""
+    home = tmp_path / ".jettstui"
     home.mkdir()
     (home / "skills").mkdir()
     (home / "logs").mkdir()
-    monkeypatch.setenv("FREEIDE_HOME", str(home))
+    monkeypatch.setenv("JETTSTUI_HOME", str(home))
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
 
     import importlib
-    import freeide_constants
-    importlib.reload(freeide_constants)
+    import jettstui_constants
+    importlib.reload(jettstui_constants)
     from agent import curator
     importlib.reload(curator)
     from tools import skill_usage
@@ -171,7 +171,7 @@ def test_report_md_is_human_readable(curator_env):
             ],
         ),
     )
-    md = (run_dir / "REPORT.md").read_text()
+    md = (run_dir / "REPORT.md").read_text(encoding="utf-8")
 
     # Structural checks
     assert "# Curator run" in md
@@ -236,7 +236,7 @@ def test_report_captures_llm_error_and_continues(curator_env):
             summary="error",
         ),
     )
-    md = (run_dir / "REPORT.md").read_text()
+    md = (run_dir / "REPORT.md").read_text(encoding="utf-8")
     assert "HTTP 400" in md
     payload = json.loads((run_dir / "run.json").read_text())
     assert payload["llm_error"] == "HTTP 400: No models provided"
@@ -265,7 +265,7 @@ def test_state_transitions_captured_in_report(curator_env):
     assert payload["state_transitions"] == [
         {"name": "getting-old", "from": "active", "to": "stale"}
     ]
-    md = (run_dir / "REPORT.md").read_text()
+    md = (run_dir / "REPORT.md").read_text(encoding="utf-8")
     assert "State transitions" in md
     assert "getting-old" in md
     assert "active → stale" in md
@@ -294,7 +294,7 @@ def curator_env_with_cron(curator_env, monkeypatch):
     import importlib
     import cron.jobs as jobs_mod
     importlib.reload(jobs_mod)
-    monkeypatch.setattr(jobs_mod, "FREEIDE_DIR", home)
+    monkeypatch.setattr(jobs_mod, "JETTSTUI_DIR", home)
     monkeypatch.setattr(jobs_mod, "CRON_DIR", home / "cron")
     monkeypatch.setattr(jobs_mod, "JOBS_FILE", home / "cron" / "jobs.json")
     monkeypatch.setattr(jobs_mod, "OUTPUT_DIR", home / "cron" / "output")
@@ -365,7 +365,7 @@ def test_curator_rewrites_cron_skills_when_skill_consolidated(curator_env_with_c
     assert detail["jobs_updated"] == 1
 
     # Markdown surfaces the change
-    md = (run_dir / "REPORT.md").read_text()
+    md = (run_dir / "REPORT.md").read_text(encoding="utf-8")
     assert "Cron job skill references rewritten" in md
     assert "foo-watcher" in md
     assert "foo-umbrella" in md
@@ -427,7 +427,7 @@ def test_curator_report_has_no_cron_section_when_nothing_changes(curator_env_wit
 
     # No rewrites → no separate file, no section in md
     assert not (run_dir / "cron_rewrites.json").exists()
-    md = (run_dir / "REPORT.md").read_text()
+    md = (run_dir / "REPORT.md").read_text(encoding="utf-8")
     assert "Cron job skill references rewritten" not in md
 
     payload = json.loads((run_dir / "run.json").read_text())

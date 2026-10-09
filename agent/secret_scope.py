@@ -10,7 +10,7 @@ This module provides a fail-closed, context-local secret scope:
 
 - ``set_secret_scope(mapping)`` installs the active profile's secrets for the
   current task (a contextvar, so it propagates into the agent's worker thread
-  via ``copy_context()`` exactly like the FREEIDE_HOME override).
+  via ``copy_context()`` exactly like the JETTSTUI_HOME override).
 - ``get_secret(name)`` reads from that scope. When multiplexing is **active**
   and no scope is set, it RAISES rather than silently falling back to
   ``os.environ`` — an un-migrated or newly-added call site fails loud at that
@@ -95,20 +95,20 @@ def current_secret_scope() -> Optional[Mapping[str, str]]:
 # Membership test is by exact name OR prefix (see _is_global_env). Keep this
 # list tight: when in doubt a value is a profile secret, not a global.
 _GLOBAL_ENV_EXACT = frozenset({
-    # FreeIDE runtime / deployment
-    "FREEIDE_HOME", "FREEIDE_PROFILE", "FREEIDE_GATEWAY_LOCK_DIR",
-    "FREEIDE_MAX_ITERATIONS", "FREEIDE_MAX_TOKENS", "FREEIDE_API_TIMEOUT",
-    "FREEIDE_REDACT_SECRETS",
-    "_FREEIDE_GATEWAY",
+    # JettsTUI runtime / deployment
+    "JETTSTUI_HOME", "JETTSTUI_PROFILE", "JETTSTUI_GATEWAY_LOCK_DIR",
+    "JETTSTUI_MAX_ITERATIONS", "JETTSTUI_MAX_TOKENS", "JETTSTUI_API_TIMEOUT",
+    "JETTSTUI_REDACT_SECRETS",
+    "_JETTSTUI_GATEWAY",
     # OS / interpreter
     "PATH", "HOME", "USER", "LANG", "LC_ALL", "TZ", "PWD", "SHELL", "TMPDIR",
     "VIRTUAL_ENV", "PYTHONPATH", "SSL_CERT_FILE",
     # Kanban paths (per-board, not per-profile-secret)
-    "FREEIDE_KANBAN_DB", "FREEIDE_KANBAN_WORKSPACES_ROOT", "FREEIDE_KANBAN_BOARD",
+    "JETTSTUI_KANBAN_DB", "JETTSTUI_KANBAN_WORKSPACES_ROOT", "JETTSTUI_KANBAN_BOARD",
 })
 _GLOBAL_ENV_PREFIXES = (
-    "FREEIDE_KANBAN_",
-    "FREEIDE_TELEGRAM_",   # tuning knobs (batch delays, fallback toggles) — NOT the token
+    "JETTSTUI_KANBAN_",
+    "JETTSTUI_TELEGRAM_",   # tuning knobs (batch delays, fallback toggles) — NOT the token
     "TERMINAL_",          # terminal/sandbox backend settings
 )
 
@@ -211,18 +211,18 @@ def load_env_file(env_path: Path) -> Dict[str, str]:
     return secrets
 
 
-def build_profile_secret_scope(freeide_home: Path) -> Dict[str, str]:
+def build_profile_secret_scope(jettstui_home: Path) -> Dict[str, str]:
     """Build a profile's secret mapping from its ``<home>/.env``.
 
     Returns a fresh dict (safe to install via ``set_secret_scope``). Genuinely
     global vars are intentionally NOT copied in — ``get_secret`` reads those
     from ``os.environ`` directly, so the scope holds only profile secrets.
     """
-    home = Path(freeide_home)
+    home = Path(jettstui_home)
     secrets = load_env_file(home / ".env")
 
     try:
-        from freeide_cli.env_loader import get_secret_source_values
+        from jettstui.env_loader import get_secret_source_values
         external_secrets = get_secret_source_values(home)
     except Exception:
         external_secrets = {}

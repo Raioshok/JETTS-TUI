@@ -39,7 +39,7 @@ function trackSleeperPid(pidFile: string): void {
 
 beforeEach(() => {
   sleeperPids = []
-  scriptDir = join(tmpdir(), `freeide-execfile-test-${process.pid}-${Date.now()}`)
+  scriptDir = join(tmpdir(), `jettstui-execfile-test-${process.pid}-${Date.now()}`)
   mkdirSync(scriptDir, { recursive: true })
   daemonScript = join(scriptDir, 'fake-daemonizer.sh')
   // Posix sh: the `sleep 3 &` child inherits stdin/stdout/stderr from the

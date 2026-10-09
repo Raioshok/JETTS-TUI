@@ -12,7 +12,7 @@ the host platform.  We also keep a live Winsock smoke test that only runs
 on a real Windows host.
 
 Also covers the companion Windows bug: the sandbox writes
-``freeide_tools.py`` and ``script.py`` into a temp dir, and those files
+``jettstui_tools.py`` and ``script.py`` into a temp dir, and those files
 must be written as UTF-8 on every platform — the generated stub contains
 em-dash/en-dash characters in docstrings, and the default ``open(path, "w")``
 on Windows uses the system locale (cp1252 typically), corrupting those
@@ -257,7 +257,7 @@ def _legacy_posix_scrubber(source_env, is_passthrough):
     _scrub_child_env's POSIX behavior, used to prove the production helper does
     what we think it does.
 
-    Deliberately updated for #27303 (the broad ``FREEIDE_`` prefix was dropped
+    Deliberately updated for #27303 (the broad ``JETTSTUI_`` prefix was dropped
     in favor of an explicit operational allowlist, and DSN/WEBHOOK were added
     to the secret substrings).  The original docstring said: if POSIX behavior
     legitimately needs to evolve, adjust this oracle on purpose so the churn is
@@ -268,8 +268,8 @@ def _legacy_posix_scrubber(source_env, is_passthrough):
                           "XDG_", "PYTHONPATH", "VIRTUAL_ENV", "CONDA")
     _SECRET_SUBSTRINGS = ("KEY", "TOKEN", "SECRET", "PASSWORD", "CREDENTIAL",
                           "PASSWD", "AUTH", "DSN", "WEBHOOK")
-    _FREEIDE_CHILD_ALLOWED = frozenset({
-        "FREEIDE_HOME", "FREEIDE_PROFILE", "FREEIDE_CONFIG", "FREEIDE_ENV",
+    _JETTSTUI_CHILD_ALLOWED = frozenset({
+        "JETTSTUI_HOME", "JETTSTUI_PROFILE", "JETTSTUI_CONFIG", "JETTSTUI_ENV",
     })
     out = {}
     for k, v in source_env.items():
@@ -281,7 +281,7 @@ def _legacy_posix_scrubber(source_env, is_passthrough):
         if any(k.startswith(p) for p in _SAFE_ENV_PREFIXES):
             out[k] = v
             continue
-        if k in _FREEIDE_CHILD_ALLOWED:
+        if k in _JETTSTUI_CHILD_ALLOWED:
             out[k] = v
     return out
 
@@ -315,13 +315,13 @@ class TestPosixEquivalence:
         "PYTHONPATH": "/opt/lib",
         "VIRTUAL_ENV": "/home/alice/.venv",
         "CONDA_PREFIX": "/opt/conda",
-        # FREEIDE_* handling (#27303): only the operational allowlist passes;
-        # every other FREEIDE_* is dropped (the broad prefix was removed).
-        "FREEIDE_HOME": "/home/alice/.freeide",        # allowlisted → kept
-        "FREEIDE_PROFILE": "default",                 # allowlisted → kept
-        "FREEIDE_INTERACTIVE": "1",                   # not allowlisted → dropped
-        "FREEIDE_BASE_URL": "https://api.internal",   # not allowlisted → dropped
-        "FREEIDE_KANBAN_DB": "postgres://u:p@h/db",   # not allowlisted → dropped
+        # JETTSTUI_* handling (#27303): only the operational allowlist passes;
+        # every other JETTSTUI_* is dropped (the broad prefix was removed).
+        "JETTSTUI_HOME": "/home/alice/.jettstui",        # allowlisted → kept
+        "JETTSTUI_PROFILE": "default",                 # allowlisted → kept
+        "JETTSTUI_INTERACTIVE": "1",                   # not allowlisted → dropped
+        "JETTSTUI_BASE_URL": "https://api.internal",   # not allowlisted → dropped
+        "JETTSTUI_KANBAN_DB": "postgres://u:p@h/db",   # not allowlisted → dropped
         # Secret-substring blocks
         "OPENAI_API_KEY": "sk-xxx",
         "GITHUB_TOKEN": "ghp_xxx",
@@ -426,7 +426,7 @@ class TestPosixEquivalence:
 # ---------------------------------------------------------------------------
 #
 # The sandbox writes two Python files into a temp dir — the generated
-# ``freeide_tools.py`` stub, and the LLM's ``script.py``.  Both contain
+# ``jettstui_tools.py`` stub, and the LLM's ``script.py``.  Both contain
 # non-ASCII characters in practice: the stub has em-dashes in docstrings
 # ("``tcp://host:port`` — the parent falls back..."), and user scripts
 # routinely contain non-ASCII strings, comments, or Unicode identifiers.
@@ -450,7 +450,7 @@ class TestSandboxWritesUtf8:
     context — but the code inspection is deterministic and fast."""
 
     def test_stub_and_script_writes_specify_utf8(self):
-        """Both ``freeide_tools.py`` and ``script.py`` writes in
+        """Both ``jettstui_tools.py`` and ``script.py`` writes in
         ``_execute_local`` must pass ``encoding="utf-8"``."""
         import tools.code_execution_tool as cet
         src = open(cet.__file__, encoding="utf-8").read()
@@ -473,8 +473,8 @@ class TestSandboxWritesUtf8:
         """The file-based RPC transport stub (used by remote backends)
         reads/writes JSON response files.  Those must also specify UTF-8
         so non-ASCII tool results survive the round-trip intact."""
-        from tools.code_execution_tool import generate_freeide_tools_module
-        stub = generate_freeide_tools_module(["terminal"], transport="file")
+        from tools.code_execution_tool import generate_jettstui_tools_module
+        stub = generate_jettstui_tools_module(["terminal"], transport="file")
         # The generated stub should open response + request files as UTF-8.
         assert 'encoding="utf-8"' in stub, (
             "File-based RPC stub does not specify encoding=\"utf-8\" — "
@@ -487,9 +487,9 @@ class TestSandboxWritesUtf8:
         sandbox does, and it must succeed even when the stub contains
         em-dashes (which it does — check the transport-header docstring).
         """
-        from tools.code_execution_tool import generate_freeide_tools_module
+        from tools.code_execution_tool import generate_jettstui_tools_module
         import tempfile, ast
-        stub = generate_freeide_tools_module(
+        stub = generate_jettstui_tools_module(
             ["terminal", "read_file", "write_file"], transport="uds"
         )
         # Sanity: stub actually contains a non-ASCII character, otherwise
@@ -527,10 +527,10 @@ class TestSandboxWritesUtf8:
         test ever starts failing (i.e. default write succeeds), it means
         Python's default encoding has changed and the explicit UTF-8
         requirement may be obsolete — reconsider the fix."""
-        from tools.code_execution_tool import generate_freeide_tools_module
+        from tools.code_execution_tool import generate_jettstui_tools_module
         import tempfile
 
-        stub = generate_freeide_tools_module(["terminal"], transport="uds")
+        stub = generate_jettstui_tools_module(["terminal"], transport="uds")
         # Find a non-ASCII character we can use to prove the corruption.
         non_ascii = [c for c in stub if ord(c) > 127]
         if not non_ascii:
@@ -581,7 +581,7 @@ class TestSandboxWritesUtf8:
 # ---------------------------------------------------------------------------
 #
 # The third Windows-specific sandbox bug: after the UTF-8 file-write fix
-# let the child import freeide_tools, a user script that printed non-ASCII
+# let the child import jettstui_tools, a user script that printed non-ASCII
 # to stdout still crashed with:
 #
 #     UnicodeEncodeError: 'charmap' codec can't encode character '\u2192'

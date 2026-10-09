@@ -20,13 +20,13 @@ Usage:
     python batch_runner.py --dataset_file=data.jsonl --batch_size=10 --run_name=my_run --distribution=image_gen
 """
 
-# IMPORTANT: freeide_bootstrap must be the very first import — UTF-8 stdio
-# on Windows.  No-op on POSIX.  See freeide_bootstrap.py for full rationale.
+# IMPORTANT: jettstui_bootstrap must be the very first import — UTF-8 stdio
+# on Windows.  No-op on POSIX.  See jettstui_bootstrap.py for full rationale.
 try:
-    import freeide_bootstrap  # noqa: F401
+    import jettstui_bootstrap  # noqa: F401
 except ModuleNotFoundError:
-    # Graceful fallback when freeide_bootstrap isn't registered in the venv
-    # yet — happens during partial ``freeide update`` where git-reset landed
+    # Graceful fallback when jettstui_bootstrap isn't registered in the venv
+    # yet — happens during partial ``jettstui update`` where git-reset landed
     # new code but ``uv pip install -e .`` didn't finish.  Missing bootstrap
     # means UTF-8 stdio setup is skipped on Windows; POSIX is unaffected.
     pass

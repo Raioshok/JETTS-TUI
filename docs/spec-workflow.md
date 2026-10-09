@@ -1,10 +1,10 @@
 # Spec-driven development
 
-FreeIDE's interactive CLI supports a Kiro-style, three-document specification
+JettsTUI's interactive CLI supports a Kiro-style, three-document specification
 workflow. Specs live inside the active workspace at:
 
 ```text
-.freeide/specs/<feature>/
+.jettstui/specs/<feature>/
 ├── requirements.md
 ├── design.md
 └── tasks.md
@@ -59,7 +59,7 @@ the next turn.
 
 - `default` uses normal tool behavior.
 - `plan` is enforced read-only. The agent can research and may write only below
-  `.freeide/plans/` and `.freeide/specs/`.
+  `.jettstui/plans/` and `.jettstui/specs/`.
 - `accept-edits` authorizes workspace edits for the requested work without an
   extra confirmation before every file. Dangerous terminal commands and
   external actions retain their existing approval gates.

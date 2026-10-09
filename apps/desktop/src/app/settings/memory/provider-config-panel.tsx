@@ -3,10 +3,10 @@ import { useCallback, useEffect, useState } from 'react'
 import { PageLoader } from '@/components/page-loader'
 import { Button } from '@/components/ui/button'
 import { DisclosureCaret } from '@/components/ui/disclosure-caret'
-import { getMemoryProviderConfig, saveMemoryProviderConfig } from '@/freeide'
+import { getMemoryProviderConfig, saveMemoryProviderConfig } from '@/jettstui'
 import { SlidersHorizontal } from '@/lib/icons'
 import { notifyError } from '@/store/notifications'
-import type { MemoryProviderConfig, MemoryProviderField } from '@/types/freeide'
+import type { MemoryProviderConfig, MemoryProviderField } from '@/types/jettstui'
 
 import { ListRow, Pill } from '../primitives'
 

@@ -38,16 +38,16 @@ import {
 } from "lucide-react";
 import { api } from "@/lib/api";
 import { getNestedValue, setNestedValue } from "@/lib/nested";
-import { useToast } from "@nous-research/ui/hooks/use-toast";
-import { Toast } from "@nous-research/ui/ui/components/toast";
+import { useToast } from "@jettstui/ui/hooks/use-toast";
+import { Toast } from "@jettstui/ui/ui/components/toast";
 import { AutoField } from "@/components/AutoField";
-import { Button } from "@nous-research/ui/ui/components/button";
-import { ListItem } from "@nous-research/ui/ui/components/list-item";
-import { Spinner } from "@nous-research/ui/ui/components/spinner";
-import { Card, CardContent, CardHeader, CardTitle } from "@nous-research/ui/ui/components/card";
-import { ConfirmDialog } from "@nous-research/ui/ui/components/confirm-dialog";
-import { Input } from "@nous-research/ui/ui/components/input";
-import { Badge } from "@nous-research/ui/ui/components/badge";
+import { Button } from "@jettstui/ui/ui/components/button";
+import { ListItem } from "@jettstui/ui/ui/components/list-item";
+import { Spinner } from "@jettstui/ui/ui/components/spinner";
+import { Card, CardContent, CardHeader, CardTitle } from "@jettstui/ui/ui/components/card";
+import { ConfirmDialog } from "@jettstui/ui/ui/components/confirm-dialog";
+import { Input } from "@jettstui/ui/ui/components/input";
+import { Badge } from "@jettstui/ui/ui/components/badge";
 import { useI18n } from "@/i18n";
 import { usePageHeader } from "@/contexts/usePageHeader";
 import { PluginSlot } from "@/plugins";
@@ -345,7 +345,7 @@ export default function ConfigPage() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = "freeide-config.json";
+    a.download = "jettstui-config.json";
     a.click();
     URL.revokeObjectURL(url);
   };
@@ -574,7 +574,7 @@ export default function ConfigPage() {
                           setSearchQuery("");
                           setActiveCategory(cat);
                         }}
-                        className="rounded-none whitespace-nowrap px-2 py-1 text-xs"
+                        className="rounded-md whitespace-nowrap px-2 py-1 text-xs"
                       >
                         <CategoryIcon
                           category={cat}

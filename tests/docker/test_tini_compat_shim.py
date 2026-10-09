@@ -17,7 +17,7 @@ def test_tini_compat_shim_exists(built_image: str) -> None:
     """/usr/bin/tini must be an executable shim script.
 
     Regression for #34192 / #66679: orchestration templates (e.g.
-    Hostinger's 'FreeIDE WebUI' catalog, NAS compose projects that keep
+    Hostinger's 'JettsTUI WebUI' catalog, NAS compose projects that keep
     an old entrypoint across image updates) still pin /usr/bin/tini as
     the entrypoint, often with ``-g --``. The shim must exist *and*
     strip those flags before exec'ing /init.
@@ -32,7 +32,7 @@ def test_tini_compat_shim_exists(built_image: str) -> None:
          '  test "$target" != "/init"; '
          'fi && '
          'head -n1 /usr/bin/tini | grep -q "^#!"'],
-        capture_output=True, text=True, timeout=60,
+        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=60,
     )
     assert r.returncode == 0, (
         f"/usr/bin/tini is not a usable tini shim: "
@@ -49,14 +49,14 @@ def test_entrypoint_is_init_not_tini(built_image: str) -> None:
     r = subprocess.run(
         ["docker", "inspect", built_image,
          "--format", "{{json .Config.Entrypoint}}"],
-        capture_output=True, text=True, timeout=30,
+        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30,
     )
     assert r.returncode == 0, f"docker inspect failed: {r.stderr}"
     entrypoint = r.stdout.strip()
     assert "/init" in entrypoint, (
         f"ENTRYPOINT is not /init: {entrypoint!r}"
     )
-    # The entrypoint array should be ["/init", "/opt/freeide/docker/main-wrapper.sh"]
+    # The entrypoint array should be ["/init", "/opt/jettstui/docker/main-wrapper.sh"]
     # /usr/bin/tini should NOT be in the entrypoint.
     assert "tini" not in entrypoint.lower(), (
         f"ENTRYPOINT references tini instead of /init: {entrypoint!r}"
@@ -69,7 +69,7 @@ def test_legacy_tini_g_entrypoint_does_not_boot_loop(built_image: str) -> None:
     Exact failure from #66679: after update, NAS templates still invoke
     ``/usr/bin/tini -g -- …``. The old symlink turned that into
     ``/init -g -- …``, rc.init tried to exec ``-g``, and the container
-    restart-looped. The shim must strip ``-g`` / ``--`` and reach freeide.
+    restart-looped. The shim must strip ``-g`` / ``--`` and reach jettstui.
     """
     r = subprocess.run(
         [
@@ -78,7 +78,7 @@ def test_legacy_tini_g_entrypoint_does_not_boot_loop(built_image: str) -> None:
             built_image,
             "-g", "--", "--help",
         ],
-        capture_output=True, text=True, timeout=120,
+        capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=120,
     )
     combined = r.stdout + r.stderr
     assert "-g: not found" not in combined, (

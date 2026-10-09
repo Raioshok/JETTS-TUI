@@ -21,7 +21,7 @@ import {
 import { ListRow, SectionHeading, SettingsContent } from './primitives'
 import { UninstallSection } from './uninstall-section'
 
-const RELEASE_NOTES_URL = 'https://github.com/freeide/freeide/releases'
+const RELEASE_NOTES_URL = 'https://github.com/Raioshok/JETTS-TUI/releases'
 
 function relativeTime(ms: number | undefined, a: Translations['settings']['about']) {
   if (!ms) {
@@ -158,7 +158,7 @@ export function AboutSettings() {
                 href={RELEASE_NOTES_URL}
                 onClick={event => {
                   event.preventDefault()
-                  void window.freeideDesktop?.openExternal?.(RELEASE_NOTES_URL)
+                  void window.jettstuiDesktop?.openExternal?.(RELEASE_NOTES_URL)
                 }}
                 rel="noreferrer"
                 target="_blank"

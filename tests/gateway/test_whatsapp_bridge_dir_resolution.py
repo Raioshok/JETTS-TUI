@@ -1,9 +1,9 @@
 """Tests for resolve_whatsapp_bridge_dir() — read-only install tree handling.
 
 Regression coverage for #49561: in the Docker image the install tree
-(/opt/freeide/scripts/whatsapp-bridge) is read-only, so `npm install` fails
+(/opt/jettstui/scripts/whatsapp-bridge) is read-only, so `npm install` fails
 with EACCES. The resolver must detect the read-only install dir and mirror the
-bridge source into a writable FREEIDE_HOME location instead.
+bridge source into a writable JETTSTUI_HOME location instead.
 """
 import importlib
 from pathlib import Path
@@ -26,8 +26,8 @@ def test_writable_install_returns_install_dir(tmp_path, monkeypatch):
     install_bridge = install_root / "scripts" / "whatsapp-bridge"
     _seed_install_tree(install_bridge)
 
-    freeide_home = tmp_path / "freeide_home"
-    freeide_home.mkdir()
+    jettstui_home = tmp_path / "jettstui_home"
+    jettstui_home.mkdir()
 
     # Point the resolver's two anchors at our temp dirs.
     monkeypatch.setattr(
@@ -35,30 +35,30 @@ def test_writable_install_returns_install_dir(tmp_path, monkeypatch):
         str(install_root / "gateway" / "platforms" / "whatsapp_common.py"),
     )
     monkeypatch.setattr(
-        "freeide_constants.get_freeide_home", lambda: freeide_home
+        "jettstui_constants.get_jettstui_home", lambda: jettstui_home
     )
 
     resolved = whatsapp_common.resolve_whatsapp_bridge_dir()
     assert resolved == install_bridge
-    # Nothing mirrored into FREEIDE_HOME.
-    assert not (freeide_home / "scripts" / "whatsapp-bridge").exists()
+    # Nothing mirrored into JETTSTUI_HOME.
+    assert not (jettstui_home / "scripts" / "whatsapp-bridge").exists()
 
 
-def test_readonly_install_mirrors_to_freeide_home(tmp_path, monkeypatch):
-    """A read-only install tree is mirrored into a writable FREEIDE_HOME."""
+def test_readonly_install_mirrors_to_jettstui_home(tmp_path, monkeypatch):
+    """A read-only install tree is mirrored into a writable JETTSTUI_HOME."""
     install_root = tmp_path / "install"
     install_bridge = install_root / "scripts" / "whatsapp-bridge"
     _seed_install_tree(install_bridge)
 
-    freeide_home = tmp_path / "freeide_home"
-    freeide_home.mkdir()
+    jettstui_home = tmp_path / "jettstui_home"
+    jettstui_home.mkdir()
 
     monkeypatch.setattr(
         whatsapp_common, "__file__",
         str(install_root / "gateway" / "platforms" / "whatsapp_common.py"),
     )
     monkeypatch.setattr(
-        "freeide_constants.get_freeide_home", lambda: freeide_home
+        "jettstui_constants.get_jettstui_home", lambda: jettstui_home
     )
 
     # Simulate a read-only install tree. chmod(0o555) is unreliable under
@@ -75,7 +75,7 @@ def test_readonly_install_mirrors_to_freeide_home(tmp_path, monkeypatch):
 
     resolved = whatsapp_common.resolve_whatsapp_bridge_dir()
 
-    expected = freeide_home / "scripts" / "whatsapp-bridge"
+    expected = jettstui_home / "scripts" / "whatsapp-bridge"
     assert resolved == expected
     # Source was mirrored, not symlinked.
     assert (expected / "bridge.js").read_text() == "// bridge\n"
@@ -83,13 +83,13 @@ def test_readonly_install_mirrors_to_freeide_home(tmp_path, monkeypatch):
 
 
 def test_readonly_install_reuses_existing_mirror(tmp_path, monkeypatch):
-    """If the FREEIDE_HOME mirror already exists, return it without re-copying."""
+    """If the JETTSTUI_HOME mirror already exists, return it without re-copying."""
     install_root = tmp_path / "install"
     install_bridge = install_root / "scripts" / "whatsapp-bridge"
     _seed_install_tree(install_bridge)
 
-    freeide_home = tmp_path / "freeide_home"
-    mirror = freeide_home / "scripts" / "whatsapp-bridge"
+    jettstui_home = tmp_path / "jettstui_home"
+    mirror = jettstui_home / "scripts" / "whatsapp-bridge"
     mirror.mkdir(parents=True)
     # A sentinel file proves the resolver returned the EXISTING mirror
     # rather than wiping/recopying it.
@@ -101,7 +101,7 @@ def test_readonly_install_reuses_existing_mirror(tmp_path, monkeypatch):
         str(install_root / "gateway" / "platforms" / "whatsapp_common.py"),
     )
     monkeypatch.setattr(
-        "freeide_constants.get_freeide_home", lambda: freeide_home
+        "jettstui_constants.get_jettstui_home", lambda: jettstui_home
     )
 
     _real_touch = Path.touch

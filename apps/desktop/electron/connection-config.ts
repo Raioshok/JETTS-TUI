@@ -11,7 +11,7 @@
  *
  * Background on the two auth models a remote gateway can use:
  *   - 'token': legacy static dashboard session token. REST uses an
- *     `X-FreeIDE-Session-Token` header; WS uses `?token=`.
+ *     `X-JettsTUI-Session-Token` header; WS uses `?token=`.
  *   - 'oauth': hosted gateways gate behind an OAuth provider. REST is authed
  *     by an HttpOnly session cookie; WS upgrades require a single-use
  *     `?ticket=` minted at POST /api/auth/ws-ticket. The gateway advertises
@@ -21,30 +21,21 @@
 // Bare + prefixed variants of the session cookies the gateway may set,
 // depending on its deploy shape (HTTPS direct → __Host-, behind a path prefix
 // → __Secure-, loopback HTTP → bare). Mirrors
-// freeide_cli/dashboard_auth/cookies.py.
+// jettstui/dashboard_auth/cookies.py.
 //
 // Two cookies are in play (see that module):
-//   - freeide_session_at: the OAuth access token. Short-lived (~15 min); its
+//   - jettstui_session_at: the OAuth access token. Short-lived (~15 min); its
 //     Max-Age tracks the access-token TTL, so the cookie jar drops it the
 //     instant the AT expires.
-//   - freeide_session_rt: the OAuth refresh token. Long-lived (24h rotating,
-//     reuse-detected — Portal NAS #293 / freeide #37247). When the AT cookie
+//   - jettstui_session_rt: the OAuth refresh token. Long-lived (24h rotating,
+//     reuse-detected). When the AT cookie
 //     has lapsed but the RT cookie is still present, the gateway middleware
 //     transparently rotates a fresh AT on the next authenticated request
 //     (POST /api/auth/ws-ticket), so the session is still LIVE even with no
 //     AT cookie. A liveness check that looked only at the AT cookie would
 //     force a needless full re-login every ~15 min — hence cookiesHaveLiveSession.
-const AT_COOKIE_VARIANTS = ['__Host-freeide_session_at', '__Secure-freeide_session_at', 'freeide_session_at']
-const RT_COOKIE_VARIANTS = ['__Host-freeide_session_rt', '__Secure-freeide_session_rt', 'freeide_session_rt']
-
-// The FreeIDE portal (NAS) does NOT use FreeIDE gateway session cookies — it is a
-// Privy-authed Next.js app. NAS `auth()` (src/server/auth/session.ts) reads the
-// `privy-token` access-token cookie (with `privy-id-token` alongside), which is
-// also exactly what the `/api/agents` cookie-auth path validates. So portal
-// sign-in / discovery liveness must look for the Privy cookie, NOT the gateway
-// cookies above. `privy-token` is the access token (the required signal);
-// variants cover the secured-prefix forms and the older `privy-session` name.
-const PRIVY_SESSION_COOKIE_VARIANTS = ['__Host-privy-token', '__Secure-privy-token', 'privy-token', 'privy-session']
+const AT_COOKIE_VARIANTS = ['__Host-jettstui_session_at', '__Secure-jettstui_session_at', 'jettstui_session_at']
+const RT_COOKIE_VARIANTS = ['__Host-jettstui_session_rt', '__Secure-jettstui_session_rt', 'jettstui_session_rt']
 
 function normalizeRemoteBaseUrl(rawUrl) {
   const value = String(rawUrl || '').trim()
@@ -192,15 +183,19 @@ function normAuthMode(mode) {
   return mode === 'oauth' ? 'oauth' : 'token'
 }
 
-// True for connection modes that resolve to a REMOTE backend. 'cloud' is a
-// FreeIDE Cloud connection (cloud-auto-discovery Q3/Q6): it carries a
-// remote-shaped block and reuses the entire remote connect/probe/reconnect
-// path, so every resolution site treats it exactly like 'remote'. The only
-// places that distinguish cloud from remote are the settings UI (which card to
-// show) and config persistence (remembering the provenance). Centralized here
-// so no resolution site forgets the third arm.
+// Legacy saved 'cloud' entries are remote-shaped OAuth connections. Continue
+// resolving them as remote so existing desktop users retain access to their
+// self-hosted gateways after Portal discovery is removed.
 function modeIsRemoteLike(mode) {
   return mode === 'remote' || mode === 'cloud'
+}
+
+function normalizeSavedConnectionMode(mode) {
+  if (mode === 'ssh') {
+    return 'ssh'
+  }
+
+  return modeIsRemoteLike(mode) ? 'remote' : 'local'
 }
 
 function normalizeSshConfig(entry) {
@@ -265,10 +260,10 @@ function normalizeSshConfig(entry) {
     out.keyPath = keyPath
   }
 
-  const remoteFreeIDEPath = String(entry.remoteFreeIDEPath || '').trim()
+  const remoteJettsTUIPath = String(entry.remoteJettsTUIPath || '').trim()
 
-  if (remoteFreeIDEPath) {
-    out.remoteFreeIDEPath = remoteFreeIDEPath
+  if (remoteJettsTUIPath) {
+    out.remoteJettsTUIPath = remoteJettsTUIPath
   }
 
   return out
@@ -329,7 +324,7 @@ function hostLabelFromBaseUrl(baseUrl) {
  * when it has none (so the caller falls back to env → global remote → local).
  *
  * The config may carry a `profiles` map keyed by name; an entry counts as an
- * override only with a remote-like `mode` (remote or cloud) and a non-empty
+ * override only with a remote-like `mode` (including legacy cloud) and a non-empty
  * `url`. Pure: `token` is the raw stored secret; main.ts decrypts it. Returns
  * `{ url, authMode, token } | null`.
  */
@@ -379,7 +374,7 @@ export interface ProfileBackendRoute {
  *  3. A profile inheriting the app-global remote shares the primary backend —
  *     one host serves every profile — so it is scoped per request instead.
  *  4. Any other local profile gets its own pooled backend, spawned with
- *     `--profile`, so its `FREEIDE_HOME` scopes it.
+ *     `--profile`, so its `JETTSTUI_HOME` scopes it.
  *
  * Routing used to be spread across three overlapping predicates that each
  * re-derived part of this table, which is how case 3 ended up registering
@@ -424,7 +419,7 @@ function pathWithGlobalRemoteProfile(path, profile, opts: ProfileRouteOptions = 
   let parsed
 
   try {
-    parsed = new URL(rawPath, 'http://freeide.local')
+    parsed = new URL(rawPath, 'http://jettstui.local')
   } catch {
     return path
   }
@@ -479,7 +474,7 @@ function resolveAuthMode(inputAuthMode, existingAuthMode) {
 }
 
 /**
- * True if any cookie in `cookies` is a freeide session ACCESS-token cookie
+ * True if any cookie in `cookies` is a jettstui session ACCESS-token cookie
  * with a non-empty value. `cookies` is an array of {name, value} (the shape
  * Electron's session.cookies.get returns).
  *
@@ -518,22 +513,6 @@ function cookiesHaveLiveSession(cookies) {
   return cookies.some(c => c && c.value && (AT_COOKIE_VARIANTS.includes(c.name) || RT_COOKIE_VARIANTS.includes(c.name)))
 }
 
-/**
- * True if the cookie jar holds a live FreeIDE PORTAL (Privy) session — a non-empty
- * `privy-token` (access-token) cookie, or a variant. This is the portal
- * analogue of `cookiesHaveLiveSession`: the portal authenticates via Privy, not
- * the FreeIDE gateway session cookies, so cloud sign-in / discovery liveness
- * must check THIS, not the gateway helpers. (NAS `auth()` and the `/api/agents`
- * cookie path both key off `privy-token`.)
- */
-function cookiesHavePrivySession(cookies) {
-  if (!Array.isArray(cookies)) {
-    return false
-  }
-
-  return cookies.some(c => c && c.value && PRIVY_SESSION_COOKIE_VARIANTS.includes(c.name))
-}
-
 export {
   AT_COOKIE_VARIANTS,
   authModeFromStatus,
@@ -541,7 +520,6 @@ export {
   buildGatewayWsUrlWithTicket,
   connectionScopeKey,
   cookiesHaveLiveSession,
-  cookiesHavePrivySession,
   cookiesHaveSession,
   gatewayTicketFailure,
   gatewayWsUrlIpcResult,
@@ -550,10 +528,10 @@ export {
   localProfileEntry,
   modeIsRemoteLike,
   normalizeRemoteBaseUrl,
+  normalizeSavedConnectionMode,
   normalizeSshConfig,
   normAuthMode,
   pathWithGlobalRemoteProfile,
-  PRIVY_SESSION_COOKIE_VARIANTS,
   profileHasRemoteConnection,
   profileRemoteOverride,
   profileSshOverride,

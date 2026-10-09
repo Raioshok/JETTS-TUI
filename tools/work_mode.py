@@ -20,7 +20,7 @@ VALID_MODES = (DEFAULT, PLAN, ACCEPT_EDITS)
 MODE_CYCLE = (DEFAULT, ACCEPT_EDITS, PLAN)
 
 _mode: contextvars.ContextVar[str] = contextvars.ContextVar(
-    "freeide_work_mode", default=DEFAULT
+    "jettstui_work_mode", default=DEFAULT
 )
 
 _PLAN_READ_TOOLS = frozenset({
@@ -64,8 +64,8 @@ def turn_directive(mode: str) -> str:
         return (
             "[WORK MODE: PLAN]\n"
             "Inspect and reason, but do not implement or mutate project files. "
-            "You may write only planning artifacts under .freeide/plans/ or "
-            ".freeide/specs/. Finish with a plan/spec or a concise question."
+            "You may write only planning artifacts under .jettstui/plans/ or "
+            ".jettstui/specs/. Finish with a plan/spec or a concise question."
         )
     if mode == ACCEPT_EDITS:
         return (
@@ -95,7 +95,7 @@ def _planning_path(path_value: Any) -> bool:
     parts = tuple(part.lower() for part in PurePath(normalized).parts)
     if ".." in parts:
         return False
-    for marker in ((".freeide", "plans"), (".freeide", "specs")):
+    for marker in ((".jettstui", "plans"), (".jettstui", "specs")):
         if any(parts[index:index + 2] == marker for index in range(len(parts) - 1)):
             return True
     return False
@@ -118,7 +118,7 @@ def maybe_block_tool(tool_name: str, arguments: Dict[str, Any]) -> Optional[str]
     return json.dumps({
         "error": (
             f"Plan mode blocked '{tool_name}'. Only read/research tools and "
-            "writes under .freeide/plans/ or .freeide/specs/ are allowed. "
+            "writes under .jettstui/plans/ or .jettstui/specs/ are allowed. "
             "Switch with /mode accept-edits when the plan is approved."
         )
     }, ensure_ascii=False)

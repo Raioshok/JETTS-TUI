@@ -12,6 +12,7 @@ import {
   hasExistingGitCheckout,
   installedAgentInstallScript,
   installRefForStamp,
+  installScriptUrl,
   isPinnedCommit,
   resolveInstallScript,
   resolveMarkerPinnedCommit,
@@ -22,7 +23,7 @@ const SCRIPT_NAME = process.platform === 'win32' ? 'install.ps1' : 'install.sh'
 const ZERO_COMMIT = '0000000000000000000000000000000000000000'
 
 function mkTmpHome() {
-  return fs.mkdtempSync(path.join(os.tmpdir(), 'freeide-bootstrap-test-'))
+  return fs.mkdtempSync(path.join(os.tmpdir(), 'jettstui-bootstrap-test-'))
 }
 
 test('runBootstrap bails immediately when the signal is already aborted', async () => {
@@ -33,10 +34,10 @@ test('runBootstrap bails immediately when the signal is already aborted', async 
 
   const result = await runBootstrap({
     installStamp: null,
-    activeRoot: '/tmp/freeide-runner-test',
+    activeRoot: '/tmp/jettstui-runner-test',
     sourceRepoRoot: null,
-    freeideHome: '/tmp/freeide-runner-test',
-    logRoot: '/tmp/freeide-runner-test',
+    jettstuiHome: '/tmp/jettstui-runner-test',
+    logRoot: '/tmp/jettstui-runner-test',
     onEvent: ev => events.push(ev),
     abortSignal: controller.signal
   })
@@ -55,23 +56,37 @@ test('installedAgentInstallScript resolves the installer in the agent checkout',
   try {
     assert.equal(installedAgentInstallScript(home), null, 'absent before the checkout exists')
 
-    const scriptsDir = path.join(home, 'freeide-agent', 'scripts')
+    const scriptsDir = path.join(home, 'jettstui', 'scripts')
     fs.mkdirSync(scriptsDir, { recursive: true })
     const scriptPath = path.join(scriptsDir, SCRIPT_NAME)
     fs.writeFileSync(scriptPath, '#!/bin/sh\necho hi\n')
 
     assert.equal(installedAgentInstallScript(home), scriptPath)
+    fs.rmSync(scriptPath)
+    assert.equal(installedAgentInstallScript(home), null, 'removed checkout -> null')
     assert.equal(installedAgentInstallScript(null), null, 'null home -> null')
   } finally {
     fs.rmSync(home, { recursive: true, force: true })
   }
 })
 
+test('packaged bootstrap fetches the installer from the JettsTUI repository', () => {
+  const commit = 'a'.repeat(40)
+  assert.equal(
+    installScriptUrl(commit),
+    `https://raw.githubusercontent.com/Raioshok/JETTS-TUI/${commit}/scripts/${SCRIPT_NAME}`
+  )
+  assert.equal(
+    installScriptUrl('release/next'),
+    `https://raw.githubusercontent.com/Raioshok/JETTS-TUI/release%2Fnext/scripts/${SCRIPT_NAME}`
+  )
+})
+
 test('existing checkout detection requires git metadata', () => {
   const home = mkTmpHome()
 
   try {
-    const activeRoot = path.join(home, 'freeide-agent')
+    const activeRoot = path.join(home, 'jettstui')
     assert.equal(hasExistingGitCheckout(activeRoot), false)
 
     fs.mkdirSync(path.join(activeRoot, '.git'), { recursive: true })
@@ -88,10 +103,10 @@ test('fresh bootstrap args include the packaged commit pin', () => {
   assert.deepEqual(
     buildPosixPinArgs({
       installStamp,
-      activeRoot: '/tmp/freeide-agent',
-      freeideHome: '/tmp/freeide'
+      activeRoot: '/tmp/jettstui',
+      jettstuiHome: '/tmp/jettstui'
     }),
-    ['--dir', '/tmp/freeide-agent', '--freeide-home', '/tmp/freeide', '--branch', 'main', '--commit', installStamp.commit]
+    ['--dir', '/tmp/jettstui', '--jettstui-home', '/tmp/jettstui', '--branch', 'main', '--commit', installStamp.commit]
   )
 })
 
@@ -102,11 +117,11 @@ test('existing-checkout bootstrap args keep branch but skip the packaged commit 
   assert.deepEqual(
     buildPosixPinArgs({
       installStamp,
-      activeRoot: '/tmp/freeide-agent',
-      freeideHome: '/tmp/freeide',
+      activeRoot: '/tmp/jettstui',
+      jettstuiHome: '/tmp/jettstui',
       pinCommit: false
     }),
-    ['--dir', '/tmp/freeide-agent', '--freeide-home', '/tmp/freeide', '--branch', 'main']
+    ['--dir', '/tmp/jettstui', '--jettstui-home', '/tmp/jettstui', '--branch', 'main']
   )
 })
 
@@ -124,10 +139,10 @@ test('fallback install stamps use an unpinned branch ref', () => {
   assert.deepEqual(
     buildPosixPinArgs({
       installStamp: stamp,
-      activeRoot: '/tmp/freeide',
-      freeideHome: '/tmp/home'
+      activeRoot: '/tmp/jettstui',
+      jettstuiHome: '/tmp/home'
     }),
-    ['--dir', '/tmp/freeide', '--freeide-home', '/tmp/home', '--branch', 'main']
+    ['--dir', '/tmp/jettstui', '--jettstui-home', '/tmp/home', '--branch', 'main']
   )
 })
 
@@ -164,7 +179,7 @@ test('resolveInstallScript downloads fallback stamps by branch instead of zero c
     const result = await resolveInstallScript({
       installStamp: { commit: ZERO_COMMIT, branch: 'main' },
       sourceRepoRoot: null,
-      freeideHome: home,
+      jettstuiHome: home,
       emit: ev => logs.push(ev),
       _download: async (ref, destPath) => {
         refs.push(ref)
@@ -202,7 +217,7 @@ test('resolveInstallScript prefers a cached script without touching the network'
     const result = await resolveInstallScript({
       installStamp: { commit },
       sourceRepoRoot: null,
-      freeideHome: home,
+      jettstuiHome: home,
       emit: ev => logs.push(ev)
     })
 
@@ -219,7 +234,7 @@ test('resolveInstallScript falls back to the installed agent checkout on a 404',
   try {
     const commit = 'a'.repeat(40)
     // Seed the installed agent checkout so the fallback has something to resolve.
-    const scriptsDir = path.join(home, 'freeide-agent', 'scripts')
+    const scriptsDir = path.join(home, 'jettstui', 'scripts')
     fs.mkdirSync(scriptsDir, { recursive: true })
     const installed = path.join(scriptsDir, SCRIPT_NAME)
     fs.writeFileSync(installed, '#!/bin/sh\necho fallback\n')
@@ -229,7 +244,7 @@ test('resolveInstallScript falls back to the installed agent checkout on a 404',
     const result = await resolveInstallScript({
       installStamp: { commit },
       sourceRepoRoot: null,
-      freeideHome: home,
+      jettstuiHome: home,
       emit: ev => logs.push(ev),
       // Simulate GitHub returning a 404 for the pinned commit.
       _download: async () => {
@@ -260,7 +275,7 @@ test('resolveInstallScript rethrows when the 404 fallback is unavailable', async
       resolveInstallScript({
         installStamp: { commit },
         sourceRepoRoot: null,
-        freeideHome: home,
+        jettstuiHome: home,
         emit: () => {},
         _download: async () => {
           throw new Error('Failed to download install.sh: HTTP 404')

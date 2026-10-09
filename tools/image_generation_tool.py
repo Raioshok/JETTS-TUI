@@ -3,7 +3,7 @@
 Image Generation Tools Module
 
 Provides image generation via FAL.ai. Multiple FAL models are supported and
-selectable via ``freeide tools`` → Image Generation; the active model is
+selectable via ``jettstui tools`` → Image Generation; the active model is
 persisted to ``image_gen.model`` in ``config.yaml``.
 
 Architecture:
@@ -455,7 +455,7 @@ def _resolve_fal_model() -> tuple:
     """
     model_id = ""
     try:
-        from freeide_cli.config import load_config
+        from jettstui.config import load_config
         cfg = load_config()
         img_cfg = cfg.get("image_gen") if isinstance(cfg, dict) else None
         if isinstance(img_cfg, dict):
@@ -678,21 +678,21 @@ def _agent_cache_base_for_env(env: Any) -> str | None:
 
         remote_home = getattr(env, "_remote_home", None)
         if remote_home:
-            return f"{str(remote_home).rstrip('/')}/.freeide"
+            return f"{str(remote_home).rstrip('/')}/.jettstui"
 
         env_name = env.__class__.__name__
         if env_name in {"DockerEnvironment", "SingularityEnvironment", "ModalEnvironment"}:
-            return "/root/.freeide"
+            return "/root/.jettstui"
 
     # If no environment has been created yet, only backends with deterministic
-    # FreeIDE cache roots can be translated without side effects. SSH can still
+    # JettsTUI cache roots can be translated without side effects. SSH can still
     # use a shell-visible tilde path; its first environment sync will upload
     # the cache file before the first command runs.
     backend = (os.getenv("TERMINAL_ENV") or "local").strip().lower()
     if backend in {"docker", "singularity", "modal"}:
-        return "/root/.freeide"
+        return "/root/.jettstui"
     if backend == "ssh":
-        return "~/.freeide"
+        return "~/.jettstui"
     return None
 
 
@@ -832,7 +832,7 @@ def image_generate_tool(
                 f"Model '{meta.get('display', model_id)}' ({model_id}) is not "
                 f"capable of image-to-image / editing. Provide a text-only "
                 f"prompt (omit image_url), or switch to an edit-capable model "
-                f"via `freeide tools` → Image Generation."
+                f"via `jettstui tools` → Image Generation."
             )
 
         aspect_lc = (aspect_ratio or DEFAULT_ASPECT_RATIO).lower().strip()
@@ -980,8 +980,8 @@ def _build_no_backend_setup_message() -> str:
         "FAL_KEY=<your-key> (then restart the session)"
     )
     lines.append(
-        "  2. Configure a different image_gen provider via `freeide tools` "
-        "→ Image Generation (run `freeide plugins list` to see installed "
+        "  2. Configure a different image_gen provider via `jettstui tools` "
+        "→ Image Generation (run `jettstui plugins list` to see installed "
         "backends)"
     )
     return "\n".join(lines)
@@ -1008,7 +1008,7 @@ def check_image_generation_requirements() -> bool:
     # provider key must not opt a user into a paid image-generation backend.
     try:
         from agent.image_gen_registry import get_provider
-        from freeide_cli.plugins import _ensure_plugins_discovered
+        from jettstui.plugins import _ensure_plugins_discovered
 
         _ensure_plugins_discovered()
         provider = get_provider(configured)
@@ -1127,7 +1127,7 @@ IMAGE_GENERATE_SCHEMA = {
 def _read_configured_image_model():
     """Return the value of ``image_gen.model`` from config.yaml, or None."""
     try:
-        from freeide_cli.config import load_config
+        from jettstui.config import load_config
         cfg = load_config()
         section = cfg.get("image_gen") if isinstance(cfg, dict) else None
         if isinstance(section, dict):
@@ -1151,7 +1151,7 @@ def _read_configured_image_provider():
     issue #26241).
     """
     try:
-        from freeide_cli.config import load_config
+        from jettstui.config import load_config
         cfg = load_config()
         section = cfg.get("image_gen") if isinstance(cfg, dict) else None
         if isinstance(section, dict):
@@ -1195,7 +1195,7 @@ def _dispatch_to_plugin_provider(
         # Import locally so plugin discovery isn't triggered just by
         # importing this module (tests rely on that).
         from agent.image_gen_registry import get_provider
-        from freeide_cli.plugins import _ensure_plugins_discovered
+        from jettstui.plugins import _ensure_plugins_discovered
 
         _ensure_plugins_discovered()
         provider = get_provider(configured)
@@ -1219,7 +1219,7 @@ def _dispatch_to_plugin_provider(
             "image": None,
             "error": (
                 f"image_gen.provider='{configured}' is set but no plugin "
-                f"registered that name. Run `freeide plugins list` to see "
+                f"registered that name. Run `jettstui plugins list` to see "
                 f"available image gen backends."
             ),
             "error_type": "provider_not_registered",
@@ -1258,7 +1258,7 @@ def _dispatch_to_plugin_provider(
                     f"support image-to-image / editing (its generate() "
                     f"signature is out of date with the image_generate schema). "
                     f"Omit image_url for text-to-image, or pick a backend that "
-                    f"supports editing via `freeide tools` → Image Generation."
+                    f"supports editing via `jettstui tools` → Image Generation."
                 ),
                 "error_type": "modality_unsupported",
             })
@@ -1320,53 +1320,40 @@ def is_krea_model(model_id: Optional[str]) -> bool:
     return _normalize_krea_model(model_id) is not None
 
 
-def _maybe_route_managed_krea(
+def _maybe_route_native_krea(
     prompt: str,
     aspect_ratio: str,
     image_url: Optional[str] = None,
     reference_image_urls: Optional[list] = None,
 ) -> Optional[str]:
-    """Route a native ``krea-2-*`` model to the managed Krea gateway, in managed mode.
+    """Route a legacy native Krea model through the direct Krea plugin.
 
-    Returns a JSON result string when handled by the Krea managed gateway, or
-    ``None`` to fall through to the normal plugin/FAL pipeline. Fires only when
-    all hold:
-      - the configured image model is a native ``krea-2-*`` id, AND
-      - the user isn't already routed to the Krea plugin via
-        ``image_gen.provider`` (that path dispatches normally), AND
-      - the managed Krea gateway is resolvable (managed mode).
-
-    Direct/BYO users (no managed gateway) fall through untouched.
+    An explicit provider always wins. Without one, a native Krea model must
+    never fall through to FAL, which cannot serve that model ID.
     """
-    # ``provider == "krea"`` is already handled by the standard plugin dispatch.
-    if _read_configured_image_provider() == "krea":
+    if _read_configured_image_provider() is not None:
         return None
 
     normalized = _normalize_krea_model(_read_configured_image_model())
     if normalized is None:
         return None
 
-    # Only intercept on the managed path; BYO/direct users keep their pipeline.
-    try:
-        from plugins.image_gen.krea import _resolve_managed_krea_gateway
-
-        if _resolve_managed_krea_gateway() is None:
-            return None
-    except Exception as exc:  # noqa: BLE001
-        logger.debug("Managed Krea routing probe failed: %s", exc)
-        return None
-
     try:
         from agent.image_gen_registry import get_provider
-        from freeide_cli.plugins import _ensure_plugins_discovered
+        from jettstui.plugins import _ensure_plugins_discovered
 
         _ensure_plugins_discovered()
         provider = get_provider("krea")
     except Exception as exc:  # noqa: BLE001
-        logger.debug("Managed Krea routing: provider unavailable: %s", exc)
-        return None
+        logger.debug("Krea routing: provider unavailable: %s", exc)
+        provider = None
     if provider is None:
-        return None
+        return json.dumps({
+            "success": False,
+            "image": None,
+            "error": "Krea provider is unavailable. Run `jettstui tools` to configure image generation.",
+            "error_type": "provider_not_registered",
+        })
 
     kwargs: Dict[str, Any] = {
         "prompt": prompt,
@@ -1385,11 +1372,11 @@ def _maybe_route_managed_krea(
             kwargs["reference_image_urls"] = norm_refs
         result = provider.generate(**kwargs)
     except Exception as exc:  # noqa: BLE001
-        logger.warning("Managed Krea routing failed: %s", exc)
+        logger.warning("Krea routing failed: %s", exc)
         return json.dumps({
             "success": False,
             "image": None,
-            "error": f"Managed Krea generation error: {exc}",
+            "error": f"Krea generation error: {exc}",
             "error_type": "provider_exception",
         })
     if not isinstance(result, dict):
@@ -1422,12 +1409,9 @@ def _handle_image_generate(args, **kw):
     if dispatched is not None:
         return _postprocess_image_generate_result(dispatched, task_id=task_id)
 
-    # Managed-mode Krea routing: when no explicit plugin provider is configured
-    # but the selected model is a native ``krea-2-*`` id, a managed-mode user
-    # routes to the dedicated Krea managed gateway. ``fal-ai/krea/v2/*`` models stay on the
-    # FAL path below. Runs after plugin dispatch (which returns None when no
-    # provider is set) so the BYO/direct FAL path stays untouched.
-    krea_routed = _maybe_route_managed_krea(
+    # Legacy native Krea selection without a provider uses the direct Krea
+    # plugin. FAL-hosted Krea IDs remain on the FAL path below.
+    krea_routed = _maybe_route_native_krea(
         prompt, aspect_ratio,
         image_url=image_url,
         reference_image_urls=reference_image_urls,
@@ -1453,7 +1437,7 @@ def _handle_image_generate(args, **kw):
 # model up front ("the active model is text-to-image only — image_url will be
 # rejected") saves a wasted turn. Memoized by config.yaml mtime in
 # model_tools.get_tool_definitions(), so it rebuilds when the user switches
-# model/provider via `freeide tools` or `/skills`.
+# model/provider via `jettstui tools` or `/skills`.
 
 
 _GENERIC_IMAGE_DESCRIPTION = IMAGE_GENERATE_SCHEMA["description"]
@@ -1475,7 +1459,7 @@ def _active_image_capabilities() -> Dict[str, Any]:
     if configured_provider and configured_provider != "fal":
         try:
             from agent.image_gen_registry import get_provider
-            from freeide_cli.plugins import _ensure_plugins_discovered
+            from jettstui.plugins import _ensure_plugins_discovered
 
             _ensure_plugins_discovered()
             provider = get_provider(configured_provider)

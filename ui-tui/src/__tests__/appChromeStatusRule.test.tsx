@@ -225,7 +225,7 @@ describe('StatusRule session count click target', () => {
       bgCount: 0,
       busy: false,
       cols: 44,
-      cwdLabel: '~/src/freeide-agent/apps/desktop (bb/tui-statusbar-responsive)',
+      cwdLabel: '~/src/jettstui/apps/desktop (bb/tui-statusbar-responsive)',
       liveSessionCount: 3,
       model: 'opus-4.8',
       onSessionCountClick: vi.fn(),

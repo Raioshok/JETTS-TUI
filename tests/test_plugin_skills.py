@@ -2,7 +2,7 @@
 
 Covers:
 - agent/skill_utils namespace helpers
-- freeide_cli/plugins register_skill API + registry
+- jettstui/plugins register_skill API + registry
 - tools/skills_tool qualified name dispatch in skill_view
 """
 
@@ -70,8 +70,8 @@ class TestIsValidNamespace:
 class TestPluginSkillRegistry:
     @pytest.fixture
     def pm(self, monkeypatch):
-        from freeide_cli import plugins as plugins_mod
-        from freeide_cli.plugins import PluginManager
+        from jettstui import plugins as plugins_mod
+        from jettstui.plugins import PluginManager
 
         fresh = PluginManager()
         monkeypatch.setattr(plugins_mod, "_plugin_manager", fresh)
@@ -119,8 +119,8 @@ class TestPluginSkillRegistry:
 class TestPluginContextRegisterSkill:
     @pytest.fixture
     def ctx(self, tmp_path, monkeypatch):
-        from freeide_cli import plugins as plugins_mod
-        from freeide_cli.plugins import PluginContext, PluginManager, PluginManifest
+        from jettstui import plugins as plugins_mod
+        from jettstui.plugins import PluginContext, PluginManager, PluginManifest
 
         pm = PluginManager()
         monkeypatch.setattr(plugins_mod, "_plugin_manager", pm)
@@ -164,8 +164,8 @@ class TestSkillViewQualifiedName:
     @pytest.fixture(autouse=True)
     def _isolate(self, tmp_path, monkeypatch):
         """Fresh plugin manager + empty SKILLS_DIR for each test."""
-        from freeide_cli import plugins as plugins_mod
-        from freeide_cli.plugins import PluginManager
+        from jettstui import plugins as plugins_mod
+        from jettstui.plugins import PluginManager
 
         self.pm = PluginManager()
         monkeypatch.setattr(plugins_mod, "_plugin_manager", self.pm)
@@ -173,7 +173,7 @@ class TestSkillViewQualifiedName:
         empty = tmp_path / "empty-skills"
         empty.mkdir()
         monkeypatch.setattr("tools.skills_tool.SKILLS_DIR", empty)
-        monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / ".freeide"))
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / ".jettstui"))
 
     def _register_skill(self, tmp_path, plugin="superpowers", name="writing-plans", content=None):
         skill_dir = tmp_path / "plugins" / plugin / "skills" / name
@@ -272,15 +272,15 @@ class TestSkillViewPluginGuards:
     def _isolate(self, tmp_path, monkeypatch):
         import sys
 
-        from freeide_cli import plugins as plugins_mod
-        from freeide_cli.plugins import PluginManager
+        from jettstui import plugins as plugins_mod
+        from jettstui.plugins import PluginManager
 
         self.pm = PluginManager()
         monkeypatch.setattr(plugins_mod, "_plugin_manager", self.pm)
         empty = tmp_path / "empty"
         empty.mkdir()
         monkeypatch.setattr("tools.skills_tool.SKILLS_DIR", empty)
-        monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / ".freeide"))
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / ".jettstui"))
         self._platform = sys.platform
 
     def _reg(self, tmp_path, content, plugin="myplugin", name="foo"):
@@ -296,7 +296,7 @@ class TestSkillViewPluginGuards:
         from tools.skills_tool import skill_view
 
         self._reg(tmp_path, "---\nname: foo\n---\nBody.\n")
-        monkeypatch.setattr("freeide_cli.plugins._get_disabled_plugins", lambda: {"myplugin"})
+        monkeypatch.setattr("jettstui.plugins._get_disabled_plugins", lambda: {"myplugin"})
 
         result = json.loads(skill_view("myplugin:foo"))
         assert result["success"] is False
@@ -329,15 +329,15 @@ class TestSkillViewPluginGuards:
 class TestBundleContextBanner:
     @pytest.fixture(autouse=True)
     def _isolate(self, tmp_path, monkeypatch):
-        from freeide_cli import plugins as plugins_mod
-        from freeide_cli.plugins import PluginManager
+        from jettstui import plugins as plugins_mod
+        from jettstui.plugins import PluginManager
 
         self.pm = PluginManager()
         monkeypatch.setattr(plugins_mod, "_plugin_manager", self.pm)
         empty = tmp_path / "empty"
         empty.mkdir()
         monkeypatch.setattr("tools.skills_tool.SKILLS_DIR", empty)
-        monkeypatch.setenv("FREEIDE_HOME", str(tmp_path / ".freeide"))
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path / ".jettstui"))
 
     def _setup_bundle(self, tmp_path, skills=("foo", "bar", "baz")):
         for name in skills:

@@ -1687,13 +1687,13 @@ class TestDefaultInteractionDispatch:
 
     @pytest.mark.asyncio
     async def test_update_prompt_click_writes_response_file(self, tmp_path, monkeypatch):
-        """update_prompt:y click writes 'y' to ~/.freeide/.update_response."""
+        """update_prompt:y click writes 'y' to ~/.jettstui/.update_response."""
         adapter = self._make_adapter()
-        freeide_home = tmp_path / "freeide_home"
-        freeide_home.mkdir()
+        jettstui_home = tmp_path / "jettstui_home"
+        jettstui_home.mkdir()
         monkeypatch.setattr(
-            "freeide_constants.get_freeide_home",
-            lambda: freeide_home,
+            "jettstui_constants.get_jettstui_home",
+            lambda: jettstui_home,
         )
 
         from gateway.platforms.qqbot.keyboards import parse_interaction_event
@@ -1703,18 +1703,18 @@ class TestDefaultInteractionDispatch:
         })
         await adapter._default_interaction_dispatch(event)
 
-        response = freeide_home / ".update_response"
+        response = jettstui_home / ".update_response"
         assert response.exists()
         assert response.read_text() == "y"
 
     @pytest.mark.asyncio
     async def test_update_prompt_click_no_writes_n(self, tmp_path, monkeypatch):
         adapter = self._make_adapter()
-        freeide_home = tmp_path / "freeide_home"
-        freeide_home.mkdir()
+        jettstui_home = tmp_path / "jettstui_home"
+        jettstui_home.mkdir()
         monkeypatch.setattr(
-            "freeide_constants.get_freeide_home",
-            lambda: freeide_home,
+            "jettstui_constants.get_jettstui_home",
+            lambda: jettstui_home,
         )
         from gateway.platforms.qqbot.keyboards import parse_interaction_event
         event = parse_interaction_event({
@@ -1722,7 +1722,7 @@ class TestDefaultInteractionDispatch:
             "data": {"resolved": {"button_data": "update_prompt:n"}},
         })
         await adapter._default_interaction_dispatch(event)
-        response = freeide_home / ".update_response"
+        response = jettstui_home / ".update_response"
         assert response.read_text() == "n"
 
     @pytest.mark.asyncio

@@ -112,7 +112,7 @@ class TestSyncExternalMemoryForTurn:
                 "role": "tool",
                 "name": "terminal",
                 "tool_call_id": "call-1",
-                "content": "final FreeIDE-processed output",
+                "content": "final JettsTUI-processed output",
             }
         ]
 

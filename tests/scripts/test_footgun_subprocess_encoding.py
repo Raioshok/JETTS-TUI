@@ -217,16 +217,16 @@ class TestFullRepoScan:
         # into this branch, this set should be empty. If not, these are
         # the expected matches.
         pr_60741_sites = {
-            "freeide_cli/main.py",
-            "freeide_cli/onepassword_secrets_cli.py",
-            "freeide_cli/setup.py",
+            "jettstui/main.py",
+            "jettstui/onepassword_secrets_cli.py",
+            "jettstui/setup.py",
             "tools/transcription_tools.py",
             "tools/tts_tool.py",
         }
 
         # Run the full scan
         roots = [
-            REPO_ROOT / "freeide_cli",
+            REPO_ROOT / "jettstui",
             REPO_ROOT / "gateway",
             REPO_ROOT / "tools",
             REPO_ROOT / "cron",

@@ -1,7 +1,7 @@
 name: openrouter
 version: 1.0.0
-description: "OpenRouter + FreeIDE Portal image generation (chat-completions image output; reference-grounded). Text-to-image and image-to-image."
-author: FreeIDE Agent
+description: "OpenRouter image generation (chat-completions image output; reference-grounded). Text-to-image and image-to-image."
+author: JettsTUI
 kind: backend
 requires_env:
   - OPENROUTER_API_KEY

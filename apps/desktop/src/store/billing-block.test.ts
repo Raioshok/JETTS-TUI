@@ -18,7 +18,6 @@ import {
 function makeBlock(overrides: Partial<BillingBlock> = {}): BillingBlock {
   return {
     billing_url: 'https://platform.openai.com/settings/organization/billing',
-    is_nous: false,
     message: 'You are out of credits.',
     model: 'gpt-5',
     provider: 'openai',
@@ -54,12 +53,6 @@ test('clearBillingBlock with no arg clears any active block', () => {
   expect($billingBlock.get()).toBeNull()
 })
 
-test('runBillingRecovery routes Nous to in-app Settings, never an external link', () => {
-  runBillingRecovery(makeBlock({ is_nous: true, provider: 'nous', provider_label: 'FreeIDE Portal' }))
-  expect($billingSettingsRequest.get()).toBe(1)
-  expect(openExternalLink).not.toHaveBeenCalled()
-})
-
 test('runBillingRecovery deep-links a third-party provider to its billing page', () => {
   const block = makeBlock({ billing_url: 'https://openrouter.ai/settings/credits', provider: 'openrouter' })
   runBillingRecovery(block)
@@ -79,8 +72,7 @@ test('requestBillingSettings increments the intent counter', () => {
   expect($billingSettingsRequest.get()).toBe(2)
 })
 
-test('billingCtaLabel picks the right verb per route', () => {
+test('billingCtaLabel offers to add credits', () => {
   const copy = { addCredits: 'Add credits', openBilling: 'Open billing' }
-  expect(billingCtaLabel(makeBlock({ is_nous: true }), copy)).toBe('Open billing')
-  expect(billingCtaLabel(makeBlock({ is_nous: false }), copy)).toBe('Add credits')
+  expect(billingCtaLabel(makeBlock(), copy)).toBe('Add credits')
 })

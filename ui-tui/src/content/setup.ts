@@ -4,13 +4,13 @@ export const SETUP_REQUIRED_TITLE = 'Setup Required'
 
 export const buildSetupRequiredSections = (): PanelSection[] => [
   {
-    text: 'Jetts-TUI needs a model provider before the TUI can start a session.'
+    text: 'JettsTUI needs a model provider before the TUI can start a session.'
   },
   {
     rows: [
       ['/model', 'configure provider + model in-place'],
       ['/setup', 'run full first-time setup wizard in-place'],
-      ['Ctrl+C', 'exit and run `jetts-tui setup` manually']
+      ['Ctrl+C', 'exit and run `jettstui setup` manually']
     ],
     title: 'Actions'
   }

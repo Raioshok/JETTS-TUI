@@ -1,7 +1,7 @@
 import { Codecs, persistentAtom } from '@/lib/persisted'
 
-const STATUSBAR_HIDDEN_STORAGE_KEY = 'freeide.desktop.statusbarHidden'
-const STATUSBAR_VISIBLE_STORAGE_KEY = 'freeide.desktop.statusbarVisible'
+const STATUSBAR_HIDDEN_STORAGE_KEY = 'jettstui.desktop.statusbarHidden'
+const STATUSBAR_VISIBLE_STORAGE_KEY = 'jettstui.desktop.statusbarVisible'
 
 // Whole-bar visibility, VS Code's `workbench.statusBar.visible`. Hiding it
 // unmounts the bar (its 15s status poll goes with it), so the way back is the

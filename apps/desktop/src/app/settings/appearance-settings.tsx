@@ -114,7 +114,7 @@ function MarketplaceThemeResults({
 
   const search = useQuery({
     enabled: debounced.length > 0,
-    queryFn: () => window.freeideDesktop?.themes?.searchMarketplace(debounced) ?? Promise.resolve([]),
+    queryFn: () => window.jettstuiDesktop?.themes?.searchMarketplace(debounced) ?? Promise.resolve([]),
     queryKey: ['marketplace-themes-settings', debounced],
     staleTime: 5 * 60 * 1000
   })

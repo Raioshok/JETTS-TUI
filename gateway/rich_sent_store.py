@@ -25,10 +25,10 @@ _MAX_TEXT_CHARS = 2000
 
 
 def _store_path() -> str:
-    # Resolve via get_freeide_home() so the active profile override is honored.
-    from freeide_constants import get_freeide_home
+    # Resolve via get_jettstui_home() so the active profile override is honored.
+    from jettstui_constants import get_jettstui_home
 
-    home = get_freeide_home()
+    home = get_jettstui_home()
     return os.path.join(str(home), "state", "rich_sent_index.json")
 
 

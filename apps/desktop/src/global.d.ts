@@ -12,11 +12,11 @@ export {}
 
 declare global {
   interface Window {
-    freeideDesktop: {
+    jettstuiDesktop: {
       // Resolve a backend connection. Omit `profile` (or pass the primary) for
       // the window's backend; pass a named profile to lazily spawn/reuse that
       // profile's backend from the pool.
-      getConnection: (profile?: string | null) => Promise<FreeIDEConnection>
+      getConnection: (profile?: string | null) => Promise<JettsTUIConnection>
       // Reconnect-after-wake recovery: liveness-probe the cached PRIMARY backend
       // and drop it if a remote one has gone unreachable, so the next
       // getConnection() rebuilds a reachable descriptor instead of the renderer
@@ -94,38 +94,29 @@ declare global {
       probeConnectionConfig: (remoteUrl: string) => Promise<DesktopConnectionProbeResult>
       oauthLoginConnectionConfig: (remoteUrl: string) => Promise<DesktopOauthLoginResult>
       oauthLogoutConnectionConfig: (remoteUrl?: string) => Promise<DesktopOauthLogoutResult>
-      // FreeIDE Cloud: one portal login powers discovery + silent per-agent
-      // sign-in (cloud-auto-discovery Phase 3).
-      cloud: {
-        status: () => Promise<DesktopCloudStatus>
-        login: () => Promise<DesktopCloudStatus & { ok: boolean }>
-        logout: () => Promise<DesktopCloudStatus & { ok: boolean }>
-        discover: (org?: string) => Promise<DesktopCloudDiscoverResult>
-        agentSignIn: (dashboardUrl: string) => Promise<DesktopCloudAgentSignInResult>
-      }
       profile: {
         get: () => Promise<DesktopActiveProfile>
         // Persists the desktop's profile choice and relaunches the local
-        // backend under the new FREEIDE_HOME (reloads the window). Pass null to
+        // backend under the new JETTSTUI_HOME (reloads the window). Pass null to
         // clear the preference.
         set: (name: string | null) => Promise<DesktopActiveProfile>
       }
-      api: <T>(request: FreeIDEApiRequest) => Promise<T>
-      notify: (payload: FreeIDENotification) => Promise<boolean>
+      api: <T>(request: JettsTUIApiRequest) => Promise<T>
+      notify: (payload: JettsTUINotification) => Promise<boolean>
       requestMicrophoneAccess: () => Promise<boolean>
       readFileDataUrl: (filePath: string) => Promise<string>
-      readFileText: (filePath: string) => Promise<FreeIDEReadFileTextResult>
-      selectPaths: (options?: FreeIDESelectPathsOptions) => Promise<string[]>
+      readFileText: (filePath: string) => Promise<JettsTUIReadFileTextResult>
+      selectPaths: (options?: JettsTUISelectPathsOptions) => Promise<string[]>
       writeClipboard: (text: string) => Promise<boolean>
       saveImageFromUrl: (url: string) => Promise<boolean>
       saveImageBuffer: (data: ArrayBuffer | Uint8Array, ext: string) => Promise<string>
       saveClipboardImage: () => Promise<string>
       getPathForFile: (file: File) => string
-      normalizePreviewTarget: (target: string, baseDir?: string) => Promise<FreeIDEPreviewTarget | null>
-      watchPreviewFile: (url: string) => Promise<FreeIDEPreviewWatch>
+      normalizePreviewTarget: (target: string, baseDir?: string) => Promise<JettsTUIPreviewTarget | null>
+      watchPreviewFile: (url: string) => Promise<JettsTUIPreviewWatch>
       stopPreviewFileWatch: (id: string) => Promise<boolean>
-      setActiveWork?: (payload: FreeIDEActiveWork) => void
-      setTitleBarTheme?: (payload: FreeIDETitleBarTheme) => void
+      setActiveWork?: (payload: JettsTUIActiveWork) => void
+      setTitleBarTheme?: (payload: JettsTUITitleBarTheme) => void
       setNativeTheme?: (mode: 'dark' | 'light' | 'system') => void
       setTranslucency?: (payload: { intensity: number }) => void
       setKeepAwake?: (on: boolean) => void
@@ -146,7 +137,7 @@ declare global {
       }
       revealLogs: () => Promise<{ ok: boolean; path: string; error?: string }>
       getRecentLogs: () => Promise<{ path: string; lines: string[] }>
-      readDir: (path: string) => Promise<FreeIDEReadDirResult>
+      readDir: (path: string) => Promise<JettsTUIReadDirResult>
       gitRoot?: (path: string) => Promise<string | null>
       // Reveal a path in the OS file manager (Finder / Explorer).
       revealPath?: (path: string) => Promise<boolean>
@@ -160,7 +151,7 @@ declare global {
       trashPath?: (path: string) => Promise<boolean>
       // Git-driven worktree management for the "Start work" flow.
       git?: {
-        worktreeList: (repoPath: string) => Promise<FreeIDEGitWorktree[]>
+        worktreeList: (repoPath: string) => Promise<JettsTUIGitWorktree[]>
         worktreeAdd: (
           repoPath: string,
           options?: { name?: string; branch?: string; base?: string; existingBranch?: string }
@@ -172,25 +163,25 @@ declare global {
         ) => Promise<{ removed: string }>
         branchSwitch: (repoPath: string, branch: string) => Promise<{ branch: string }>
         // Local branches for the "convert a branch into a worktree" picker.
-        branchList: (repoPath: string) => Promise<FreeIDEGitBranch[]>
+        branchList: (repoPath: string) => Promise<JettsTUIGitBranch[]>
         // Local + remote-tracking branches for the "base branch" picker in the
         // new-worktree dialog. The remote default (origin/HEAD) is flagged so
         // the UI can preselect it.
-        baseBranchList: (repoPath: string) => Promise<FreeIDEGitBaseBranch[]>
+        baseBranchList: (repoPath: string) => Promise<JettsTUIGitBaseBranch[]>
         // Compact working-tree status for the composer coding rail. Null on a
         // non-repo / remote backend (where the Electron probe can't run).
-        repoStatus: (repoPath: string) => Promise<FreeIDERepoStatus | null>
+        repoStatus: (repoPath: string) => Promise<JettsTUIRepoStatus | null>
         // Working-tree-vs-HEAD unified diff for one file (the preview's diff
         // view). Empty string when the file is unchanged or not in a repo.
         fileDiff: (repoPath: string, filePath: string) => Promise<string>
         // Codex-style review pane: changed files per scope, per-file diff, and
         // stage / unstage / revert.
         review: {
-          list: (repoPath: string, scope: FreeIDEReviewScope, baseRef?: null | string) => Promise<FreeIDEReviewList>
+          list: (repoPath: string, scope: JettsTUIReviewScope, baseRef?: null | string) => Promise<JettsTUIReviewList>
           diff: (
             repoPath: string,
             filePath: string,
-            scope: FreeIDEReviewScope,
+            scope: JettsTUIReviewScope,
             baseRef?: null | string,
             staged?: boolean
           ) => Promise<string>
@@ -203,7 +194,7 @@ declare global {
           // commit message. Reads only; empty strings off-repo.
           commitContext: (repoPath: string) => Promise<{ diff: string; recent: string }>
           push: (repoPath: string) => Promise<{ ok: boolean }>
-          shipInfo: (repoPath: string) => Promise<FreeIDEReviewShipInfo>
+          shipInfo: (repoPath: string) => Promise<JettsTUIReviewShipInfo>
           createPr: (repoPath: string) => Promise<{ url: string }>
         }
         // Repo-first discovery: scan bounded roots for git repos (depth-capped).
@@ -219,9 +210,9 @@ declare global {
         cwd: (id: string) => Promise<string | null>
         dispose: (id: string) => Promise<boolean>
         onData: (id: string, callback: (payload: string) => void) => () => void
-        onExit: (id: string, callback: (payload: FreeIDETerminalExit) => void) => () => void
+        onExit: (id: string, callback: (payload: JettsTUITerminalExit) => void) => () => void
         resize: (id: string, size: { cols: number; rows: number }) => Promise<boolean>
-        start: (options?: { cols?: number; cwd?: string; rows?: number }) => Promise<FreeIDETerminalSession>
+        start: (options?: { cols?: number; cwd?: string; rows?: number }) => Promise<JettsTUITerminalSession>
         write: (id: string, data: string) => Promise<boolean>
       }
       onClosePreviewRequested?: (callback: () => void) => () => void
@@ -230,10 +221,10 @@ declare global {
         callback: (payload: { kind: string; name: string; params: Record<string, string> }) => void
       ) => () => void
       signalDeepLinkReady?: () => Promise<{ ok: boolean }>
-      onWindowStateChanged?: (callback: (payload: FreeIDEWindowState) => void) => () => void
+      onWindowStateChanged?: (callback: (payload: JettsTUIWindowState) => void) => () => void
       onFocusSession?: (callback: (sessionId: string) => void) => () => void
       onNotificationAction?: (callback: (payload: { actionId: string; sessionId?: string }) => void) => () => void
-      onPreviewFileChanged: (callback: (payload: FreeIDEPreviewFileChanged) => void) => () => void
+      onPreviewFileChanged: (callback: (payload: JettsTUIPreviewFileChanged) => void) => () => void
       onBackendExit: (callback: (payload: BackendExit) => void) => () => void
       // Soft gateway-mode apply: primary backend was torn down without a window
       // reload. Wipe session lists (skeletons) and re-dial.
@@ -301,13 +292,13 @@ export interface DesktopMarketplaceThemeResult {
   themes: DesktopMarketplaceThemeFile[]
 }
 
-export interface FreeIDETerminalSession {
+export interface JettsTUITerminalSession {
   cwd: string
   id: string
   shell: string
 }
 
-export interface FreeIDETerminalExit {
+export interface JettsTUITerminalExit {
   code: number | null
   signal: string | null
 }
@@ -317,13 +308,13 @@ export interface DesktopVersionInfo {
   electronVersion: string
   nodeVersion: string
   platform: string
-  freeideRoot: string
+  jettstuiRoot: string
 }
 
 export type DesktopUninstallMode = 'full' | 'gui' | 'lite'
 
 export interface DesktopUninstallSummary {
-  freeide_home: string
+  jettstui_home: string
   agent_installed: boolean
   gui_installed: boolean
   source_built_artifacts: string[]
@@ -379,10 +370,10 @@ export interface DesktopUpdateApplyResult {
   error?: string
   message?: string
   /** True when no staged updater exists (CLI install) and the user should run
-   *  `freeide update` themselves. `command` is the exact line to run. */
+   *  `jettstui update` themselves. `command` is the exact line to run. */
   manual?: boolean
   command?: string
-  freeideRoot?: string
+  jettstuiRoot?: string
   /** True when the backend was updated but the GUI couldn't be relaunched in
    *  place (AppImage / dev run): the new version loads on next launch. */
   backendUpdated?: boolean
@@ -431,18 +422,16 @@ export interface DesktopUpdateProgress {
   at: number
 }
 
-export interface FreeIDEConnection {
+export interface JettsTUIConnection {
   baseUrl: string
   isFullscreen: boolean
-  // The live, RESOLVED connection mode. Only ever 'local' or 'remote' — a
-  // 'cloud' saved-config entry resolves to a 'remote' connection under the hood
-  // (cloud-auto-discovery Q3/Q6), so this never carries 'cloud'.
+  // The resolved connection mode is always local or remote.
   mode?: 'local' | 'remote'
   authMode?: 'oauth' | 'token'
   remoteHost?: string
   remoteIdentity?: string
-  remoteKind?: 'cloud' | 'ssh' | 'url'
-  remoteFreeIDEVersion?: string
+  remoteKind?: 'ssh' | 'url'
+  remoteJettsTUIVersion?: string
   nativeOverlayWidth: number
   source?: 'env' | 'local' | 'settings'
   token: string
@@ -454,18 +443,18 @@ export interface FreeIDEConnection {
   windowButtonPosition: { x: number; y: number } | null
 }
 
-export interface FreeIDETitleBarTheme {
+export interface JettsTUITitleBarTheme {
   background: string
   foreground: string
 }
 
 /** Turns in flight, so the main process can confirm before a quit kills them. */
-export interface FreeIDEActiveWork {
+export interface JettsTUIActiveWork {
   count: number
   titles: string[]
 }
 
-export interface FreeIDEWindowState {
+export interface JettsTUIWindowState {
   isFullscreen: boolean
   isMinimized?: boolean
   isVisible?: boolean
@@ -481,12 +470,7 @@ export interface DesktopActiveProfile {
 
 export interface DesktopConnectionConfig {
   envOverride: boolean
-  // The saved connection mode. 'cloud' is a FreeIDE Cloud connection: it carries
-  // a remote-shaped block (remoteUrl = the selected agent's dashboardUrl,
-  // remoteAuthMode 'oauth') but is remembered as cloud so settings reopens into
-  // the cloud picker. Resolution treats cloud exactly as remote
-  // (cloud-auto-discovery Q3/Q6).
-  mode: 'local' | 'remote' | 'cloud' | 'ssh'
+  mode: 'local' | 'remote' | 'ssh'
   // The profile this config describes, or null for the global/default
   // connection. Per-profile entries let a profile point at its own backend.
   profile: null | string
@@ -495,15 +479,11 @@ export interface DesktopConnectionConfig {
   remoteTokenPreview: string | null
   remoteTokenSet: boolean
   remoteUrl: string
-  // For a 'cloud' connection: the persisted FreeIDE Cloud org (slug or id) the
-  // connected instance was discovered under, so Settings → Gateway can reopen
-  // into that org. Empty string for remote/local.
-  cloudOrg: string
   sshHost: string
   sshUser: string
   sshPort: number | null
   sshKeyPath: string
-  sshRemoteFreeIDEPath: string
+  sshRemoteJettsTUIPath: string
 }
 
 export interface DesktopConnectionConfigInput {
@@ -514,14 +494,11 @@ export interface DesktopConnectionConfigInput {
   remoteAuthMode?: 'oauth' | 'token'
   remoteToken?: string
   remoteUrl?: string
-  // For a 'cloud' connection: the selected FreeIDE Cloud org (slug or id) to
-  // persist so Settings can reopen into it. Ignored for remote/local modes.
-  cloudOrg?: string
   sshHost?: string
   sshUser?: string
   sshPort?: number | null
   sshKeyPath?: string
-  sshRemoteFreeIDEPath?: string
+  sshRemoteJettsTUIPath?: string
 }
 
 export interface DesktopConnectionTestResult {
@@ -531,7 +508,7 @@ export interface DesktopConnectionTestResult {
   reachable?: boolean
   sshError?:
     | 'auth-failed'
-    | 'freeide-not-found'
+    | 'jettstui-not-found'
     | 'host-key-changed'
     | 'timeout'
     | 'unreachable'
@@ -541,8 +518,8 @@ export interface DesktopConnectionTestResult {
     | null
   error?: string | null
   host?: string
-  remoteFreeIDEPath?: string
-  remoteFreeIDEVersion?: string
+  remoteJettsTUIPath?: string
+  remoteJettsTUIVersion?: string
   remotePlatform?: string
 }
 
@@ -584,55 +561,6 @@ export interface DesktopOauthLoginResult {
 
 export interface DesktopOauthLogoutResult {
   ok: boolean
-  connected: boolean
-}
-
-// --- FreeIDE Cloud (cloud-auto-discovery Phase 3) ---
-
-export interface DesktopCloudStatus {
-  // The portal base URL the desktop talks to (default or env-overridden).
-  portalBaseUrl: string
-  // Whether the OAuth partition holds a live FreeIDE portal (Privy) session — the
-  // portal authenticates via Privy, so this reflects the privy-token cookie, NOT
-  // the freeide gateway session cookies. See cookiesHavePrivySession.
-  signedIn: boolean
-}
-
-// A discovered FreeIDE Cloud agent — the trimmed DTO from NAS GET /api/agents.
-export interface DesktopCloudAgent {
-  id: string
-  name: string
-  status: string
-  // null until the agent has a provisioned dashboard (show "provisioning…").
-  dashboardUrl: string | null
-  // "active" | "degraded" | "down" | "unknown".
-  dashboardGatewayState: string
-}
-
-// An org the signed-in user belongs to — for the org picker shown when a
-// multi-org user's discovery call needs disambiguation (NAS 409).
-export interface DesktopCloudOrg {
-  id: string
-  slug: string | null
-  name: string
-  isPersonal: boolean
-  // "OWNER" | "MEMBER".
-  role: string
-}
-
-// Discovery result: either the agent list, OR a request to pick an org first
-// (multi-org user, no org chosen yet). The renderer shows a picker on the
-// latter and re-calls discover(org). On the agents branch, `org` echoes the
-// authoritatively-resolved org the list was scoped to (from NAS), so the
-// desktop persists it without relying on transient picker state.
-export type DesktopCloudDiscoverResult =
-  | { agents: DesktopCloudAgent[]; org?: DesktopCloudOrg | null; needsOrgSelection?: false }
-  | { needsOrgSelection: true; orgs: DesktopCloudOrg[] }
-
-export interface DesktopCloudAgentSignInResult {
-  // The agent gateway base URL the silent sign-in targeted.
-  baseUrl: string
-  // Whether the agent's gateway session cookie landed (silent cascade done).
   connected: boolean
 }
 
@@ -719,7 +647,7 @@ export type DesktopBootstrapEvent =
       docsUrl: string
     }
 
-export interface FreeIDEApiRequest {
+export interface JettsTUIApiRequest {
   path: string
   method?: string
   body?: unknown
@@ -734,7 +662,7 @@ export interface FreeIDEApiRequest {
   profile?: string | null
 }
 
-export interface FreeIDENotification {
+export interface JettsTUINotification {
   title?: string
   body?: string
   silent?: boolean
@@ -743,7 +671,7 @@ export interface FreeIDENotification {
   actions?: { id: string; text: string }[]
 }
 
-export interface FreeIDEPreviewTarget {
+export interface JettsTUIPreviewTarget {
   binary?: boolean
   byteSize?: number
   kind: 'file' | 'url'
@@ -758,7 +686,7 @@ export interface FreeIDEPreviewTarget {
   url: string
 }
 
-export interface FreeIDEReadFileTextResult {
+export interface JettsTUIReadFileTextResult {
   binary?: boolean
   byteSize?: number
   language?: string
@@ -768,14 +696,14 @@ export interface FreeIDEReadFileTextResult {
   truncated?: boolean
 }
 
-export interface FreeIDEPreviewWatch {
+export interface JettsTUIPreviewWatch {
   id: string
   path: string
 }
 
 // A real git worktree as reported by `git worktree list` (source of truth for
 // the "Start work" flow), as opposed to the session-cwd-derived grouping above.
-export interface FreeIDEGitWorktree {
+export interface JettsTUIGitWorktree {
   path: string
   branch: null | string
   isMain: boolean
@@ -786,7 +714,7 @@ export interface FreeIDEGitWorktree {
 // A local branch as offered by the "convert a branch into a worktree" picker.
 // `checkedOut` means selecting opens that checkout; `isDefault` means selecting
 // switches the main checkout instead of creating `.worktrees/main`.
-export interface FreeIDEGitBranch {
+export interface JettsTUIGitBranch {
   name: string
   checkedOut: boolean
   isDefault: boolean
@@ -797,7 +725,7 @@ export interface FreeIDEGitBranch {
 // refs. `isRemote` distinguishes `origin/main` from a local `main` (the UI
 // may show a remote glyph); `isDefault` flags origin/HEAD so the dialog can
 // preselect it.
-export interface FreeIDEGitBaseBranch {
+export interface JettsTUIGitBaseBranch {
   name: string
   isRemote: boolean
   isDefault: boolean
@@ -805,7 +733,7 @@ export interface FreeIDEGitBaseBranch {
 
 // A single changed path from `git status --porcelain=v2`, classified by state
 // so the coding rail / switcher can group + open the right diff.
-export interface FreeIDERepoStatusFile {
+export interface JettsTUIRepoStatusFile {
   path: string
   staged: boolean
   unstaged: boolean
@@ -815,7 +743,7 @@ export interface FreeIDERepoStatusFile {
 
 // Compact working-tree status for the composer coding rail (parsed from
 // `git status --porcelain=v2 --branch`).
-export interface FreeIDERepoStatus {
+export interface JettsTUIRepoStatus {
   branch: null | string
   // The repo's trunk ("main" / "master" / …), so the UI can offer "branch off
   // the default" from anywhere. Null when no trunk is detected.
@@ -834,16 +762,16 @@ export interface FreeIDERepoStatus {
   added: number
   removed: number
   // Capped changed-file list (REPO_STATUS_FILE_CAP) for the diff/open actions.
-  files: FreeIDERepoStatusFile[]
+  files: JettsTUIRepoStatusFile[]
 }
 
 // Diff scope for the review pane, mirroring Codex: uncommitted working-tree
 // changes, all changes vs the branch base, or everything since the current
 // turn began.
-export type FreeIDEReviewScope = 'branch' | 'lastTurn' | 'uncommitted'
+export type JettsTUIReviewScope = 'branch' | 'lastTurn' | 'uncommitted'
 
 // One changed file in the review pane (status letter, +/- lines, staged flag).
-export interface FreeIDEReviewFile {
+export interface JettsTUIReviewFile {
   path: string
   added: number
   removed: number
@@ -852,15 +780,15 @@ export interface FreeIDEReviewFile {
   staged: boolean
 }
 
-export interface FreeIDEReviewList {
-  files: FreeIDEReviewFile[]
+export interface JettsTUIReviewList {
+  files: JettsTUIReviewFile[]
   // The resolved base ref the scope diffed against (branch merge-base / turn
   // baseline), or null for the uncommitted scope.
   base: null | string
 }
 
 // The branch's PR (if any) as reported by `gh pr view`.
-export interface FreeIDEReviewPr {
+export interface JettsTUIReviewPr {
   url: string
   state: string
   number: number
@@ -868,29 +796,29 @@ export interface FreeIDEReviewPr {
 
 // gh availability/auth + the current branch's PR — drives the review pane's PR
 // button (disabled when gh isn't ready, "Open PR" vs "Create PR" otherwise).
-export interface FreeIDEReviewShipInfo {
+export interface JettsTUIReviewShipInfo {
   ghReady: boolean
-  pr: FreeIDEReviewPr | null
+  pr: JettsTUIReviewPr | null
 }
 
-export interface FreeIDEReadDirEntry {
+export interface JettsTUIReadDirEntry {
   name: string
   path: string
   isDirectory: boolean
 }
 
-export interface FreeIDEReadDirResult {
-  entries: FreeIDEReadDirEntry[]
+export interface JettsTUIReadDirResult {
+  entries: JettsTUIReadDirEntry[]
   error?: string
 }
 
-export interface FreeIDEPreviewFileChanged {
+export interface JettsTUIPreviewFileChanged {
   id: string
   path: string
   url: string
 }
 
-export interface FreeIDESelectPathsOptions {
+export interface JettsTUISelectPathsOptions {
   title?: string
   defaultPath?: string
   directories?: boolean

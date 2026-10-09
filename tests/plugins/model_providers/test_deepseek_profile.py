@@ -193,18 +193,18 @@ class TestDeepSeekAuxModel:
     system.
     """
 
-    def test_profile_advertises_deepseek_v4_flash(self, deepseek_profile):
-        assert deepseek_profile.default_aux_model == "deepseek-v4-flash"
+    def test_aux_model_is_a_fallback_model(self, deepseek_profile):
+        # Invariant: the aux model must be one the profile can actually fall back to.
+        assert deepseek_profile.default_aux_model in deepseek_profile.fallback_models
 
-    def test_fallback_models_are_v4_only(self, deepseek_profile):
-        assert deepseek_profile.fallback_models == (
-            "deepseek-v4-pro",
-            "deepseek-v4-flash",
-        )
+    def test_fallback_models_avoid_retired_names(self, deepseek_profile):
+        # DeepSeek retired deepseek-v4-flash in favour of deepseek-flash.
+        assert "deepseek-v4-flash" not in deepseek_profile.fallback_models
+        assert deepseek_profile.default_aux_model != "deepseek-v4-flash"
 
-    def test_consumer_api_returns_deepseek_v4_flash(self):
+    def test_consumer_api_matches_profile(self, deepseek_profile):
         from agent.auxiliary_client import _get_aux_model_for_provider
-        assert _get_aux_model_for_provider("deepseek") == "deepseek-v4-flash"
+        assert _get_aux_model_for_provider("deepseek") == deepseek_profile.default_aux_model
 
     def test_consumer_api_returns_non_empty(self):
         from agent.auxiliary_client import _get_aux_model_for_provider

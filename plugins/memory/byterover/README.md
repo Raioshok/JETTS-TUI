@@ -14,14 +14,14 @@ npm install -g byterover-cli
 ## Setup
 
 ```bash
-freeide memory setup    # select "byterover"
+jettstui memory setup    # select "byterover"
 ```
 
 Or manually:
 ```bash
-freeide config set memory.provider byterover
+jettstui config set memory.provider byterover
 # Optional cloud sync:
-echo "BRV_API_KEY=your-key" >> ~/.freeide/.env
+echo "BRV_API_KEY=your-key" >> ~/.jettstui/.env
 ```
 
 ## Config
@@ -30,7 +30,7 @@ echo "BRV_API_KEY=your-key" >> ~/.freeide/.env
 |---------|----------|-------------|
 | `BRV_API_KEY` | No | Cloud sync key (optional, local-first by default) |
 
-Working directory: `$FREEIDE_HOME/byterover/` (profile-scoped).
+Working directory: `$JETTSTUI_HOME/byterover/` (profile-scoped).
 
 ## Tools
 

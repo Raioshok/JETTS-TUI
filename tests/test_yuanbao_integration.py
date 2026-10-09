@@ -14,7 +14,7 @@ test_yuanbao_integration.py - Yuanbao 模块集成测试
 import sys
 import os
 
-# 确保 freeide-agent 根目录在 sys.path 中
+# 确保 jettstui 根目录在 sys.path 中
 _REPO_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 if _REPO_ROOT not in sys.path:
     sys.path.insert(0, _REPO_ROOT)
@@ -112,9 +112,9 @@ class TestGatewayRunnerRegistration:
         # Stub out heavy dependencies if not already present
         stubs = [
             "dotenv",
-            "freeide_cli.env_loader",
-            "freeide_cli.config",
-            "freeide_constants",
+            "jettstui.env_loader",
+            "jettstui.config",
+            "jettstui_constants",
         ]
         _orig = {}
         for mod in stubs:
@@ -285,12 +285,12 @@ class TestMediaModule:
 
 class TestToolset:
     def test_yuanbao_toolset_registered(self):
-        """toolsets.py 中存在 freeide-yuanbao 键"""
+        """toolsets.py 中存在 jettstui-yuanbao 键"""
         import importlib
         ts = importlib.import_module("toolsets")
         assert hasattr(ts, "TOOLSETS") or hasattr(ts, "toolsets")
         toolsets_dict = getattr(ts, "TOOLSETS", getattr(ts, "toolsets", {}))
-        assert "freeide-yuanbao" in toolsets_dict
+        assert "jettstui-yuanbao" in toolsets_dict
 
     def test_tools_import(self):
         from tools.yuanbao_tools import (

@@ -49,7 +49,7 @@ def build_relay_command_manifest() -> List[Dict[str, Any]]:
     """The relay lane's Discord slash-command manifest (native-tree mirror)."""
     return [
         {"name": "new", "description": "Start a new conversation"},
-        {"name": "reset", "description": "Reset your FreeIDE session"},
+        {"name": "reset", "description": "Reset your JettsTUI session"},
         {
             "name": "model",
             "description": "Show or change the model",
@@ -85,9 +85,9 @@ def build_relay_command_manifest() -> List[Dict[str, Any]]:
         },
         {"name": "retry", "description": "Retry your last message"},
         {"name": "undo", "description": "Remove the last exchange"},
-        {"name": "status", "description": "Show FreeIDE session status"},
+        {"name": "status", "description": "Show JettsTUI session status"},
         {"name": "sethome", "description": "Set this chat as the home channel"},
-        {"name": "stop", "description": "Stop the running FreeIDE agent"},
+        {"name": "stop", "description": "Stop the running JettsTUI agent"},
         {
             "name": "steer",
             "description": "Inject a message after the next tool call (no interrupt)",
@@ -113,8 +113,8 @@ def build_relay_command_manifest() -> List[Dict[str, Any]]:
             "description": "Re-scan skills for new or removed entries",
         },
         {"name": "voice", "description": "Toggle voice reply mode"},
-        {"name": "update", "description": "Update FreeIDE Agent to the latest version"},
-        {"name": "restart", "description": "Gracefully restart the FreeIDE gateway"},
+        {"name": "update", "description": "Update JettsTUI to the latest version"},
+        {"name": "restart", "description": "Gracefully restart the JettsTUI gateway"},
         {
             "name": "approve",
             "description": "Approve a pending dangerous command",
@@ -129,7 +129,7 @@ def build_relay_command_manifest() -> List[Dict[str, Any]]:
         },
         {
             "name": "thread",
-            "description": "Create a new thread and start a FreeIDE session in it",
+            "description": "Create a new thread and start a JettsTUI session in it",
             "options": [_opt("name", "Thread name")],
         },
         {

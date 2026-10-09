@@ -1,6 +1,6 @@
 #!/bin/bash
 # ============================================================================
-# Jetts-TUI Setup Script
+# JettsTUI Setup Script
 # ============================================================================
 # Quick setup for developers who cloned the repo manually.
 # Uses uv for desktop/server setup and Python's stdlib venv + pip on Termux.
@@ -15,7 +15,7 @@
 # 2. Creates a Python 3.11 virtual environment
 # 3. Installs the appropriate dependency set for the platform
 # 4. Creates .env from template (if not exists)
-# 5. Symlinks the 'jetts-tui' CLI command into a user-facing bin dir
+# 5. Symlinks the 'jettstui' CLI command into a user-facing bin dir
 # 6. Runs the setup wizard (optional)
 # ============================================================================
 
@@ -41,7 +41,7 @@ RECREATE_VENV=false
 
 usage() {
     cat <<'EOF'
-Jetts-TUI local checkout setup (Linux, macOS, WSL2, and Termux)
+JettsTUI local checkout setup (Linux, macOS, WSL2, and Termux)
 
 Usage: bash setup-jetts-tui.sh [options]
 
@@ -104,7 +104,7 @@ get_command_link_display_dir() {
 }
 
 echo ""
-echo -e "${CYAN}◆ Jetts-TUI Setup${NC}"
+echo -e "${CYAN}◆ JettsTUI Setup${NC}"
 echo ""
 
 # ============================================================================
@@ -135,8 +135,8 @@ else
         # full, etc.) instead of "✗ Failed to install uv" with zero
         # diagnostic.  Two-stage to avoid `curl | sh` masking curl
         # failures (sh exits 0 on empty stdin under no pipefail).
-        _uv_log="$(mktemp 2>/dev/null || echo "/tmp/freeide-uv-install.$$.log")"
-        _uv_installer="$(mktemp 2>/dev/null || echo "/tmp/freeide-uv-installer.$$.sh")"
+        _uv_log="$(mktemp 2>/dev/null || echo "/tmp/jettstui-uv-install.$$.log")"
+        _uv_installer="$(mktemp 2>/dev/null || echo "/tmp/jettstui-uv-installer.$$.sh")"
         if ! curl -LsSf https://astral.sh/uv/install.sh -o "$_uv_installer" 2>"$_uv_log"; then
             echo -e "${RED}✗${NC} Failed to download uv installer."
             sed 's/^/    /' "$_uv_log" >&2
@@ -399,17 +399,18 @@ else
 fi
 
 # ============================================================================
-# PATH setup — symlink jetts-tui into a user-facing bin dir
+# PATH setup — symlink jettstui into a user-facing bin dir
 # ============================================================================
 
-echo -e "${CYAN}→${NC} Setting up jetts-tui command..."
+echo -e "${CYAN}→${NC} Setting up jettstui command..."
 
-FREEIDE_BIN="$VENV_DIR/bin/jetts-tui"
+JETTSTUI_BIN="$VENV_DIR/bin/jetts-tui"
 COMMAND_LINK_DIR="$(get_command_link_dir)"
 COMMAND_LINK_DISPLAY_DIR="$(get_command_link_display_dir)"
 mkdir -p "$COMMAND_LINK_DIR"
-ln -sf "$FREEIDE_BIN" "$COMMAND_LINK_DIR/jetts-tui"
-echo -e "${GREEN}✓${NC} Symlinked jetts-tui → $COMMAND_LINK_DISPLAY_DIR/jetts-tui"
+ln -sf "$JETTSTUI_BIN" "$COMMAND_LINK_DIR/jetts-tui"
+ln -sf "$VENV_DIR/bin/jettstui" "$COMMAND_LINK_DIR/jettstui"
+echo -e "${GREEN}✓${NC} Symlinked jettstui and jetts-tui → $COMMAND_LINK_DISPLAY_DIR/"
 
 if is_termux; then
     export PATH="$COMMAND_LINK_DIR:$PATH"
@@ -444,7 +445,7 @@ else
         if ! echo "$PATH" | tr ':' '\n' | grep -q "^$HOME/.local/bin$"; then
             if ! grep -q '\.local/bin' "$SHELL_CONFIG" 2>/dev/null; then
                 echo "" >> "$SHELL_CONFIG"
-                echo "# Jetts-TUI — ensure ~/.local/bin is on PATH" >> "$SHELL_CONFIG"
+                echo "# JettsTUI — ensure ~/.local/bin is on PATH" >> "$SHELL_CONFIG"
                 echo 'export PATH="$HOME/.local/bin:$PATH"' >> "$SHELL_CONFIG"
                 echo -e "${GREEN}✓${NC} Added ~/.local/bin to PATH in $SHELL_CONFIG"
             else
@@ -457,20 +458,23 @@ else
 fi
 
 # ============================================================================
-# Seed bundled skills into ~/.freeide/skills/
+# Seed bundled skills into the active JettsTUI home.
 # ============================================================================
 
-FREEIDE_SKILLS_DIR="${FREEIDE_HOME:-$HOME/.freeide}/skills"
-mkdir -p "$FREEIDE_SKILLS_DIR"
+# Resolve through Python before creating the directory: that call migrates an
+# existing ~/.jettstui home to ~/.jettstui and preserves its compatibility alias.
+# Pre-creating ~/.jettstui here would suppress the migration on first install.
+JETTSTUI_SKILLS_DIR="$("$SETUP_PYTHON" -c 'from jettstui_constants import get_jettstui_home; print(get_jettstui_home() / "skills")')"
+mkdir -p "$JETTSTUI_SKILLS_DIR"
 
 echo ""
-echo "Syncing bundled skills to ~/.freeide/skills/ ..."
+echo "Syncing bundled skills to $JETTSTUI_SKILLS_DIR/ ..."
 if "$SETUP_PYTHON" "$SCRIPT_DIR/tools/skills_sync.py" 2>/dev/null; then
     echo -e "${GREEN}✓${NC} Skills synced"
 else
     # Fallback: copy if sync script fails (missing deps, etc.)
     if [ -d "$SCRIPT_DIR/skills" ]; then
-        cp -rn "$SCRIPT_DIR/skills/"* "$FREEIDE_SKILLS_DIR/" 2>/dev/null || true
+        cp -rn "$SCRIPT_DIR/skills/"* "$JETTSTUI_SKILLS_DIR/" 2>/dev/null || true
         echo -e "${GREEN}✓${NC} Skills copied"
     fi
 fi
@@ -486,31 +490,31 @@ echo "Next steps:"
 echo ""
 if is_termux; then
     echo "  1. Run the setup wizard to configure API keys:"
-    echo "     jetts-tui setup"
+    echo "     jettstui setup"
     echo ""
     echo "  2. Start chatting:"
-    echo "     jetts-tui"
+    echo "     jettstui"
     echo ""
 else
     echo "  1. Reload your shell:"
     echo "     source $SHELL_CONFIG"
     echo ""
     echo "  2. Run the setup wizard to configure API keys:"
-    echo "     jetts-tui setup"
+    echo "     jettstui setup"
     echo ""
     echo "  3. Start chatting:"
-    echo "     jetts-tui"
+    echo "     jettstui"
     echo ""
 fi
 echo "Other commands:"
-echo "  jetts-tui status        # Check configuration"
+echo "  jettstui status        # Check configuration"
 if is_termux; then
-    echo "  jetts-tui gateway       # Run gateway in foreground"
+    echo "  jettstui gateway       # Run gateway in foreground"
 else
-    echo "  jetts-tui gateway install # Install gateway service (messaging + cron)"
+    echo "  jettstui gateway install # Install gateway service (messaging + cron)"
 fi
-echo "  jetts-tui cron list     # View scheduled jobs"
-echo "  jetts-tui doctor        # Diagnose issues"
+echo "  jettstui cron list     # View scheduled jobs"
+echo "  jettstui doctor        # Diagnose issues"
 echo ""
 
 # Ask if they want to run setup wizard now. Never block a redirected shell.
@@ -520,8 +524,8 @@ if [ "$RUN_SETUP" = true ] && [ -t 0 ]; then
     if [[ ${REPLY:-} =~ ^[Yy]$ ]] || [[ -z ${REPLY:-} ]]; then
         echo ""
         # Run directly with venv Python (no activation needed)
-        "$SETUP_PYTHON" -m freeide_cli.main setup
+        "$SETUP_PYTHON" -m jettstui.main setup
     fi
 elif [ "$RUN_SETUP" = true ]; then
-    echo "Non-interactive shell detected. Finish configuration with: jetts-tui setup"
+    echo "Non-interactive shell detected. Finish configuration with: jettstui setup"
 fi

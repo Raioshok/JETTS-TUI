@@ -11,17 +11,17 @@ test('a first-run bootstrap-needed remote apply connects without ensuring or boo
   const gate = createFirstRunSetupGate({ stuckAfterMs: 0 })
 
   const bootstrapBackend = {
-    activeRoot: '/tmp/freeide-home/freeide-agent',
+    activeRoot: '/tmp/jettstui-home/jettstui',
     kind: 'bootstrap-needed',
     platform: 'linux'
   }
 
   const candidateRemote = {
     authMode: 'token',
-    baseUrl: 'https://gateway.example.com/freeide',
+    baseUrl: 'https://gateway.example.com/jettstui',
     source: 'settings',
     token: 'secret',
-    wsUrl: 'wss://gateway.example.com/freeide/api/ws?token=secret'
+    wsUrl: 'wss://gateway.example.com/jettstui/api/ws?token=secret'
   }
 
   let savedRemote: typeof candidateRemote | null = null
@@ -33,7 +33,7 @@ test('a first-run bootstrap-needed remote apply connects without ensuring or boo
   const ensureLocalRuntime = vi.fn(async backend => {
     await runBootstrap()
 
-    return { ...backend, command: 'freeide' }
+    return { ...backend, command: 'jettstui' }
   })
 
   const teardownPrimaryBackend = vi.fn(async () => {})

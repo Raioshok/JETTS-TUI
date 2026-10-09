@@ -182,7 +182,7 @@ class TestComputeRelativeDest:
         bundled = Path("/repo/skills")
         skill_dir = Path("/repo/skills/mlops/axolotl")
         dest = _compute_relative_dest(skill_dir, bundled)
-        assert str(dest).endswith("mlops/axolotl")
+        assert dest.parts[-2:] == ("mlops", "axolotl")
 
     def test_flat_skill(self):
         bundled = Path("/repo/skills")
@@ -193,14 +193,14 @@ class TestComputeRelativeDest:
 
 class TestRmtreeWritableScopeGuard:
     """``_rmtree_writable`` must refuse to remove anything outside
-    ``FREEIDE_HOME/skills/``.
+    ``JETTSTUI_HOME/skills/``.
 
     The previous implementation called ``shutil.rmtree(path)`` on whatever
     argument the caller passed. If any of the five call sites in
     ``tools/skills_sync.py`` ever computes a path outside the skills
     root — through a bad join, a missing default, a malicious
     bundled-manifest entry, or a stale path in scope after an
-    exception — the result is a silent ``shutil.rmtree(~/.freeide/)``
+    exception — the result is a silent ``shutil.rmtree(~/.jettstui/)``
     that destroys the user's ``.env``, ``MEMORY.md``, ``kanban.db``,
     custom skills, scripts, and the rest of the install in one go
     (#48200).
@@ -220,16 +220,16 @@ class TestRmtreeWritableScopeGuard:
             with pytest.raises(ValueError, match="refusing to rmtree"):
                 _rmtree_writable(Path("/"))
 
-    def test_refuses_freeide_home_itself(self, tmp_path):
-        """``~/.freeide/`` itself is what the #48200 wipe destroyed."""
+    def test_refuses_jettstui_home_itself(self, tmp_path):
+        """``~/.jettstui/`` itself is what the #48200 wipe destroyed."""
         from tools.skills_sync import _rmtree_writable
 
-        freeide = tmp_path / "home"
-        freeide.mkdir()
-        (freeide / "skills").mkdir()
-        with patch("tools.skills_sync.SKILLS_DIR", freeide / "skills"):
+        jettstui = tmp_path / "home"
+        jettstui.mkdir()
+        (jettstui / "skills").mkdir()
+        with patch("tools.skills_sync.SKILLS_DIR", jettstui / "skills"):
             with pytest.raises(ValueError, match="refusing to rmtree"):
-                _rmtree_writable(freeide)
+                _rmtree_writable(jettstui)
 
     def test_refuses_sibling_directory(self, tmp_path):
         """A directory that is a sibling of SKILLS_DIR (e.g. a wrong
@@ -237,11 +237,11 @@ class TestRmtreeWritableScopeGuard:
         """
         from tools.skills_sync import _rmtree_writable
 
-        freeide = tmp_path / "home"
-        freeide.mkdir()
-        skills = freeide / "skills"
+        jettstui = tmp_path / "home"
+        jettstui.mkdir()
+        skills = jettstui / "skills"
         skills.mkdir()
-        not_skills = freeide / "kanban.db"  # any non-skills path
+        not_skills = jettstui / "kanban.db"  # any non-skills path
         not_skills.mkdir()
         with patch("tools.skills_sync.SKILLS_DIR", skills):
             with pytest.raises(ValueError, match="refusing to rmtree"):
@@ -536,6 +536,58 @@ class TestRenamedBundledSkillRecovery:
         assert not (skills_dir / "newcat" / "moved-skill").exists()
         assert "moved-skill" not in result["copied"]
         assert "moved-skill" not in result.get("relocated", [])
+
+    def _retired_setup(self, tmp_path):
+        """A skill sync placed earlier that upstream no longer bundles."""
+        bundled = tmp_path / "bundled"
+        skills_dir = tmp_path / "user_skills"
+        manifest_file = skills_dir / ".bundled_manifest"
+        # Upstream still bundles something else (renamed successor).
+        self._skill(bundled, "cat/moved-skill")
+        old = skills_dir / "cat" / "old-name"
+        old.mkdir(parents=True)
+        (old / "SKILL.md").write_text("---\nname: old-name\n---\n# Old docs\n")
+        manifest_file.write_text(f"old-name:{_dir_hash(old)}\n")
+        return bundled, skills_dir, manifest_file, old
+
+    def test_retired_unmodified_copy_is_archived(self, tmp_path):
+        """A dropped bundled skill must not keep loading stale instructions."""
+        bundled, skills_dir, manifest_file, old = self._retired_setup(tmp_path)
+
+        with self._patches(bundled, skills_dir, manifest_file):
+            result = sync_skills(quiet=True)
+            manifest = _read_manifest()
+
+        assert not old.exists(), "retired bundled copy left active"
+        archived = skills_dir / ".archive" / "old-name"
+        assert "Old docs" in (archived / "SKILL.md").read_text(), "must be restorable"
+        assert "old-name" in result["retired"]
+        assert "old-name" in result["cleaned"]
+        assert "old-name" not in manifest
+
+    def test_retired_user_modified_copy_is_kept(self, tmp_path):
+        bundled, skills_dir, manifest_file, old = self._retired_setup(tmp_path)
+        (old / "SKILL.md").write_text("---\nname: old-name\n---\n# MY EDITS\n")
+
+        with self._patches(bundled, skills_dir, manifest_file):
+            result = sync_skills(quiet=True)
+
+        assert "MY EDITS" in (old / "SKILL.md").read_text()
+        assert "old-name" not in result["retired"]
+
+    def test_retired_hub_installed_copy_is_kept(self, tmp_path):
+        bundled, skills_dir, manifest_file, old = self._retired_setup(tmp_path)
+        lock = skills_dir / ".hub" / "lock.json"
+        lock.parent.mkdir(parents=True, exist_ok=True)
+        lock.write_text(
+            json.dumps({"version": 1, "installed": {"old-name": {"install_path": "cat/old-name"}}})
+        )
+
+        with self._patches(bundled, skills_dir, manifest_file):
+            result = sync_skills(quiet=True)
+
+        assert old.exists(), "hub owns this path"
+        assert "old-name" not in result["retired"]
 
 
 class TestSyncSkills:
@@ -925,7 +977,7 @@ class TestSyncSkills:
 
         captured = capsys.readouterr().out
         assert "new-skill" in captured
-        assert "freeide skills reset new-skill" in captured
+        assert "jettstui skills reset new-skill" in captured
 
     def test_backfills_official_optional_provenance_for_existing_identical_skill(self, tmp_path):
         bundled = self._setup_bundled(tmp_path)
@@ -987,7 +1039,7 @@ class TestSyncSkills:
         When a skill was installed at ``mlops/chroma`` and upstream later moved
         it to ``mlops/vector-databases/chroma``, the repo-derived install path
         no longer exists in the active tree. A path-only lookup skips it
-        forever, so `freeide skills repair-optional` can never fix it. The
+        forever, so `jettstui skills repair-optional` can never fix it. The
         recorded install_path must be the ACTUAL location, not the repo's.
         """
         bundled = self._setup_bundled(tmp_path)
@@ -1284,21 +1336,21 @@ class TestSyncSkills:
 
 class TestGetBundledDir:
     def test_env_var_override(self, tmp_path, monkeypatch):
-        """FREEIDE_BUNDLED_SKILLS env var overrides the default path resolution."""
+        """JETTSTUI_BUNDLED_SKILLS env var overrides the default path resolution."""
         custom_dir = tmp_path / "custom_skills"
         custom_dir.mkdir()
-        monkeypatch.setenv("FREEIDE_BUNDLED_SKILLS", str(custom_dir))
+        monkeypatch.setenv("JETTSTUI_BUNDLED_SKILLS", str(custom_dir))
         assert _get_bundled_dir() == custom_dir
 
     def test_default_without_env_var(self, monkeypatch):
         """Without the env var, falls back to relative path from __file__."""
-        monkeypatch.delenv("FREEIDE_BUNDLED_SKILLS", raising=False)
+        monkeypatch.delenv("JETTSTUI_BUNDLED_SKILLS", raising=False)
         result = _get_bundled_dir()
         assert result.name == "skills"
 
     def test_env_var_empty_string_ignored(self, monkeypatch):
-        """Empty FREEIDE_BUNDLED_SKILLS should fall back to default."""
-        monkeypatch.setenv("FREEIDE_BUNDLED_SKILLS", "")
+        """Empty JETTSTUI_BUNDLED_SKILLS should fall back to default."""
+        monkeypatch.setenv("JETTSTUI_BUNDLED_SKILLS", "")
         result = _get_bundled_dir()
         assert result.name == "skills"
 
@@ -1519,9 +1571,9 @@ class TestResetBundledSkill:
 class TestNoBundledSkillsOptOut:
     """The .no-bundled-skills marker makes sync_skills() a no-op.
 
-    This is what `freeide profile create --no-skills` (named profiles) and the
-    installer's `--no-skills` flag (default ~/.freeide) rely on so bundled
-    skills are never seeded at install time NOR re-injected by `freeide update`.
+    This is what `jettstui profile create --no-skills` (named profiles) and the
+    installer's `--no-skills` flag (default ~/.jettstui) rely on so bundled
+    skills are never seeded at install time NOR re-injected by `jettstui update`.
     """
 
     def _setup_bundled(self, tmp_path):
@@ -1535,14 +1587,14 @@ class TestNoBundledSkillsOptOut:
         bundled = self._setup_bundled(tmp_path)
         skills_dir = tmp_path / "user_skills"
         manifest_file = skills_dir / ".bundled_manifest"
-        freeide_home = tmp_path / "home"
-        freeide_home.mkdir()
-        (freeide_home / ".no-bundled-skills").write_text("opted out\n")
+        jettstui_home = tmp_path / "home"
+        jettstui_home.mkdir()
+        (jettstui_home / ".no-bundled-skills").write_text("opted out\n")
 
         with patch("tools.skills_sync._get_bundled_dir", return_value=bundled), \
              patch("tools.skills_sync.SKILLS_DIR", skills_dir), \
              patch("tools.skills_sync.MANIFEST_FILE", manifest_file), \
-             patch("tools.skills_sync.FREEIDE_HOME", freeide_home):
+             patch("tools.skills_sync.JETTSTUI_HOME", jettstui_home):
             result = sync_skills(quiet=True)
 
         # Opt-out signalled, nothing copied, nothing written to disk.
@@ -1555,15 +1607,15 @@ class TestNoBundledSkillsOptOut:
         bundled = self._setup_bundled(tmp_path)
         skills_dir = tmp_path / "user_skills"
         manifest_file = skills_dir / ".bundled_manifest"
-        freeide_home = tmp_path / "home"
-        freeide_home.mkdir()
+        jettstui_home = tmp_path / "home"
+        jettstui_home.mkdir()
         # No marker written.
 
         with patch("tools.skills_sync._get_bundled_dir", return_value=bundled), \
              patch("tools.skills_sync._get_optional_dir", return_value=bundled.parent / "optional-skills"), \
              patch("tools.skills_sync.SKILLS_DIR", skills_dir), \
              patch("tools.skills_sync.MANIFEST_FILE", manifest_file), \
-             patch("tools.skills_sync.FREEIDE_HOME", freeide_home):
+             patch("tools.skills_sync.JETTSTUI_HOME", jettstui_home):
             result = sync_skills(quiet=True)
 
         assert result.get("skipped_opt_out") is not True
@@ -1572,7 +1624,7 @@ class TestNoBundledSkillsOptOut:
 
 
 class TestOptOutToggleAndRemove:
-    """`freeide skills opt-out/opt-in` core: marker toggle + safe removal."""
+    """`jettstui skills opt-out/opt-in` core: marker toggle + safe removal."""
 
     def _setup_bundled(self, tmp_path):
         bundled = tmp_path / "bundled"
@@ -1588,7 +1640,7 @@ class TestOptOutToggleAndRemove:
         )
         home = tmp_path / "home"
         home.mkdir()
-        with patch("tools.skills_sync.FREEIDE_HOME", home):
+        with patch("tools.skills_sync.JETTSTUI_HOME", home):
             assert is_bundled_skills_opt_out() is False
             r = set_bundled_skills_opt_out(True)
             assert r["ok"] and r["changed"]
@@ -1614,7 +1666,7 @@ class TestOptOutToggleAndRemove:
              patch("tools.skills_sync._get_optional_dir", return_value=bundled.parent / "optional-skills"), \
              patch("tools.skills_sync.SKILLS_DIR", skills_dir), \
              patch("tools.skills_sync.MANIFEST_FILE", manifest_file), \
-             patch("tools.skills_sync.FREEIDE_HOME", home):
+             patch("tools.skills_sync.JETTSTUI_HOME", home):
             sync_skills(quiet=True)
             # User edits 'beta'
             (skills_dir / "beta" / "SKILL.md").write_text("---\nname: beta\n---\nEDITED\n")

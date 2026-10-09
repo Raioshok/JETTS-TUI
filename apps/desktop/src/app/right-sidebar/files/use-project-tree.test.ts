@@ -1,29 +1,29 @@
 import { act, cleanup, renderHook, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import type { FreeIDEReadDirResult } from '@/global'
+import type { JettsTUIReadDirResult } from '@/global'
 import { $connection } from '@/store/session'
 
 import { clearProjectDirCache, readProjectDir } from './ipc'
 import { resetProjectTreeState, useProjectTree } from './use-project-tree'
 
-const readDir = vi.fn<(path: string) => Promise<FreeIDEReadDirResult>>()
+const readDir = vi.fn<(path: string) => Promise<JettsTUIReadDirResult>>()
 
 beforeEach(() => {
   $connection.set(null)
   resetProjectTreeState()
   readDir.mockReset()
-  ;(window as unknown as { freeideDesktop: { readDir: typeof readDir } }).freeideDesktop = { readDir }
+  ;(window as unknown as { jettstuiDesktop: { readDir: typeof readDir } }).jettstuiDesktop = { readDir }
 })
 
 afterEach(() => {
   cleanup()
   $connection.set(null)
   resetProjectTreeState()
-  delete (window as unknown as { freeideDesktop?: unknown }).freeideDesktop
+  delete (window as unknown as { jettstuiDesktop?: unknown }).jettstuiDesktop
 })
 
-function ok(entries: { name: string; path: string; isDirectory: boolean }[]): FreeIDEReadDirResult {
+function ok(entries: { name: string; path: string; isDirectory: boolean }[]): JettsTUIReadDirResult {
   return { entries }
 }
 
@@ -128,7 +128,7 @@ describe('useProjectTree', () => {
 
       throw new Error(`unexpected path ${path}`)
     })
-    ;(window as unknown as { freeideDesktop: unknown }).freeideDesktop = { gitRoot, readDir, readFileDataUrl }
+    ;(window as unknown as { jettstuiDesktop: unknown }).jettstuiDesktop = { gitRoot, readDir, readFileDataUrl }
 
     $connection.set({ baseUrl: 'local-a', mode: 'local' } as never)
     await expect(readProjectDir('/repo/src', '/repo')).resolves.toMatchObject({
@@ -171,10 +171,10 @@ describe('useProjectTree', () => {
   it('dedupes concurrent loadChildren calls for the same id', async () => {
     readDir.mockResolvedValueOnce(ok([{ name: 'src', path: '/p/src', isDirectory: true }]))
 
-    let resolveChildren: ((value: FreeIDEReadDirResult) => void) | undefined
+    let resolveChildren: ((value: JettsTUIReadDirResult) => void) | undefined
     readDir.mockImplementationOnce(
       () =>
-        new Promise<FreeIDEReadDirResult>(resolve => {
+        new Promise<JettsTUIReadDirResult>(resolve => {
           resolveChildren = resolve
         })
     )
@@ -238,7 +238,7 @@ describe('useProjectTree', () => {
 
       throw new Error(`unexpected path ${path}`)
     })
-    ;(window as unknown as { freeideDesktop: unknown }).freeideDesktop = { readDir, sanitizeWorkspaceCwd }
+    ;(window as unknown as { jettstuiDesktop: unknown }).jettstuiDesktop = { readDir, sanitizeWorkspaceCwd }
 
     const { result } = renderHook(() => useProjectTree('/deleted/worktree'))
 
@@ -253,7 +253,7 @@ describe('useProjectTree', () => {
   it('keeps the root error when sanitize offers no usable fallback', async () => {
     const sanitizeWorkspaceCwd = vi.fn(async () => ({ cwd: '/deleted/worktree', sanitized: false }))
     readDir.mockResolvedValue({ entries: [], error: 'ENOENT' })
-    ;(window as unknown as { freeideDesktop: unknown }).freeideDesktop = { readDir, sanitizeWorkspaceCwd }
+    ;(window as unknown as { jettstuiDesktop: unknown }).jettstuiDesktop = { readDir, sanitizeWorkspaceCwd }
 
     const { result } = renderHook(() => useProjectTree('/deleted/worktree'))
 
@@ -261,8 +261,8 @@ describe('useProjectTree', () => {
     expect(result.current.effectiveCwd).toBe('/deleted/worktree')
   })
 
-  it('returns no-bridge gracefully when window.freeideDesktop is missing', async () => {
-    delete (window as unknown as { freeideDesktop?: unknown }).freeideDesktop
+  it('returns no-bridge gracefully when window.jettstuiDesktop is missing', async () => {
+    delete (window as unknown as { jettstuiDesktop?: unknown }).jettstuiDesktop
 
     const { result } = renderHook(() => useProjectTree('/p'))
 

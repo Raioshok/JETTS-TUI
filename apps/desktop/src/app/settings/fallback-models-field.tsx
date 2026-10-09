@@ -3,8 +3,8 @@ import { useEffect, useRef, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { getGlobalModelOptions } from '@/freeide'
 import { useI18n } from '@/i18n'
+import { getGlobalModelOptions } from '@/jettstui'
 import { Plus, X } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 

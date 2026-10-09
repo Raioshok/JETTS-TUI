@@ -35,11 +35,11 @@ class TestHandleDebugCommand:
         runner = _make_runner()
         event = _make_event()
 
-        with patch("freeide_cli.debug._sweep_expired_pastes", return_value=(0, 0)) as mock_sweep, \
-             patch("freeide_cli.debug._capture_dump", return_value="dump"), \
-             patch("freeide_cli.debug.collect_debug_report", return_value="report"), \
-             patch("freeide_cli.debug.upload_to_pastebin", return_value="https://paste.rs/report"), \
-             patch("freeide_cli.debug._schedule_auto_delete"):
+        with patch("jettstui.debug._sweep_expired_pastes", return_value=(0, 0)) as mock_sweep, \
+             patch("jettstui.debug._capture_dump", return_value="dump"), \
+             patch("jettstui.debug.collect_debug_report", return_value="report"), \
+             patch("jettstui.debug.upload_to_pastebin", return_value="https://paste.rs/report"), \
+             patch("jettstui.debug._schedule_auto_delete"):
             result = await runner._handle_debug_command(event)
 
         mock_sweep.assert_called_once()
@@ -50,11 +50,11 @@ class TestHandleDebugCommand:
         runner = _make_runner()
         event = _make_event()
 
-        with patch("freeide_cli.debug._sweep_expired_pastes", side_effect=RuntimeError("offline")), \
-             patch("freeide_cli.debug._capture_dump", return_value="dump"), \
-             patch("freeide_cli.debug.collect_debug_report", return_value="report"), \
-             patch("freeide_cli.debug.upload_to_pastebin", return_value="https://paste.rs/report"), \
-             patch("freeide_cli.debug._schedule_auto_delete"):
+        with patch("jettstui.debug._sweep_expired_pastes", side_effect=RuntimeError("offline")), \
+             patch("jettstui.debug._capture_dump", return_value="dump"), \
+             patch("jettstui.debug.collect_debug_report", return_value="report"), \
+             patch("jettstui.debug.upload_to_pastebin", return_value="https://paste.rs/report"), \
+             patch("jettstui.debug._schedule_auto_delete"):
             result = await runner._handle_debug_command(event)
 
         assert "https://paste.rs/report" in result

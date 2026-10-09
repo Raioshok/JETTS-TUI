@@ -7,7 +7,7 @@ import {
   DropdownMenuSub,
   DropdownMenuSubTrigger
 } from '@/components/ui/dropdown-menu'
-import type * as FreeIDEApi from '@/freeide'
+import type * as JettsTUIApi from '@/jettstui'
 import { $modelPresets, getModelPreset } from '@/store/model-presets'
 import {
   $activeSessionId,
@@ -21,8 +21,8 @@ import {
 
 import { type FastControl, ModelEditSubmenu } from './model-edit-submenu'
 
-vi.mock('@/freeide', async importOriginal => {
-  const actual = await importOriginal<typeof FreeIDEApi>()
+vi.mock('@/jettstui', async importOriginal => {
+  const actual = await importOriginal<typeof JettsTUIApi>()
 
   return { ...actual, setApiRequestProfile: vi.fn() }
 })

@@ -1,4 +1,4 @@
-"""Base class for all FreeIDE execution environment backends.
+"""Base class for all JettsTUI execution environment backends.
 
 Unified spawn-per-call model: every command spawns a fresh ``bash -c`` process.
 A session snapshot (env vars, functions, aliases) is captured once at init and
@@ -21,17 +21,17 @@ from collections import deque
 from pathlib import Path
 from typing import IO, Callable, Protocol
 
-from freeide_constants import get_freeide_home
-from freeide_cli._subprocess_compat import windows_hide_flags
+from jettstui_constants import get_jettstui_home
+from jettstui._subprocess_compat import windows_hide_flags
 from tools.interrupt import is_interrupted
 
 logger = logging.getLogger(__name__)
 
 # Opt-in debug tracing for the interrupt/activity/poll machinery.  Set
-# FREEIDE_DEBUG_INTERRUPT=1 to log loop entry/exit, periodic heartbeats, and
+# JETTSTUI_DEBUG_INTERRUPT=1 to log loop entry/exit, periodic heartbeats, and
 # every is_interrupted() state change from _wait_for_process.  Off by default
 # to avoid flooding production gateway logs.
-_DEBUG_INTERRUPT = bool(os.getenv("FREEIDE_DEBUG_INTERRUPT"))
+_DEBUG_INTERRUPT = bool(os.getenv("JETTSTUI_DEBUG_INTERRUPT"))
 
 if _DEBUG_INTERRUPT:
     # AIAgent's quiet_mode path (run_agent.py) forces the `tools` logger to
@@ -183,13 +183,13 @@ def get_sandbox_dir() -> Path:
     """Return the host-side root for all sandbox storage (Docker workspaces,
     Singularity overlays/SIF cache, etc.).
 
-    Configurable via TERMINAL_SANDBOX_DIR. Defaults to {FREEIDE_HOME}/sandboxes/.
+    Configurable via TERMINAL_SANDBOX_DIR. Defaults to {JETTSTUI_HOME}/sandboxes/.
     """
     custom = os.getenv("TERMINAL_SANDBOX_DIR")
     if custom:
         p = Path(custom)
     else:
-        p = get_freeide_home() / "sandboxes"
+        p = get_jettstui_home() / "sandboxes"
     p.mkdir(parents=True, exist_ok=True)
     return p
 
@@ -379,7 +379,7 @@ class _ThreadedProcessHandle:
 
 
 def _cwd_marker(session_id: str) -> str:
-    return f"__FREEIDE_CWD_{session_id}__"
+    return f"__JETTSTUI_CWD_{session_id}__"
 
 
 # Per-session variables that the gateway bridges freshly onto every command's
@@ -388,20 +388,20 @@ def _cwd_marker(session_id: str) -> str:
 # the shared bash session snapshot: a single long-lived backend serves many
 # concurrent sessions (the messaging gateway, TUI, desktop/web dashboard all
 # collapse the terminal to one "default" environment), so ``export -p`` dumping
-# the FIRST session's FREEIDE_SESSION_ID into the snapshot makes every LATER
+# the FIRST session's JETTSTUI_SESSION_ID into the snapshot makes every LATER
 # session ``source`` that stale value and see a FOREIGN session's identity —
 # overriding the correct per-command Popen env (issue: cross-session
-# FREEIDE_SESSION_ID leak via the shared snapshot). Stripping them from the
+# JETTSTUI_SESSION_ID leak via the shared snapshot). Stripping them from the
 # snapshot is safe because they are re-injected on every command; a snapshot
 # should only carry the user's own shell state (PATH, functions, exports they
-# set), not FreeIDE' per-turn session identity.
+# set), not JettsTUI' per-turn session identity.
 #
 # Kept in sync with gateway.session_context._VAR_MAP: every bridged name starts
-# with one of these prefixes (or is FREEIDE_UI_SESSION_ID). Used by unit tests
+# with one of these prefixes (or is JETTSTUI_UI_SESSION_ID). Used by unit tests
 # as the Python-side contract for the exclusion set; the dump path unsets by
 # name/prefix instead of grepping declare lines (see below / issue #71296).
 _SNAPSHOT_EXCLUDED_ENV_REGEX = (
-    "^declare -x (FREEIDE_SESSION_|FREEIDE_UI_SESSION_ID|FREEIDE_CRON_AUTO_DELIVER_)"
+    "^declare -x (JETTSTUI_SESSION_|JETTSTUI_UI_SESSION_ID|JETTSTUI_CRON_AUTO_DELIVER_)"
 )
 
 
@@ -413,7 +413,7 @@ def _export_dump_excluding_session_vars(tmp_path: str) -> str:
     ``grep -vE`` filter is unsafe: bash 3.2 prints a value containing a newline
     as a multi-line ``declare -x NAME="…`` block, so only the opener matches the
     regex and continuation lines (e.g. ``curl … | bash #`` smuggled into a
-    Matrix room/display name via ``FREEIDE_SESSION_CHAT_NAME``) land in the
+    Matrix room/display name via ``JETTSTUI_SESSION_CHAT_NAME``) land in the
     snapshot and execute on the next ``source`` (issue #71296). Unsetting first
     means ``export -p`` never emits those vars — including any continuation
     lines. ``|| true`` keeps the success contract for callers that chain on it.
@@ -430,8 +430,8 @@ def _export_dump_excluding_session_vars(tmp_path: str) -> str:
     # because ``unset`` with only missing names is ignored under 2>/dev/null.
     return (
         "{ ( "
-        "unset ${!FREEIDE_SESSION_*} ${!FREEIDE_CRON_AUTO_DELIVER_*} "
-        "FREEIDE_UI_SESSION_ID 2>/dev/null; "
+        "unset ${!JETTSTUI_SESSION_*} ${!JETTSTUI_CRON_AUTO_DELIVER_*} "
+        "JETTSTUI_UI_SESSION_ID 2>/dev/null; "
         "export -p; "
         ") || true; } "
         f"> {tmp_path}"
@@ -444,7 +444,7 @@ def _export_dump_excluding_session_vars(tmp_path: str) -> str:
 
 
 class BaseEnvironment(ABC):
-    """Common interface and unified execution flow for all FreeIDE backends.
+    """Common interface and unified execution flow for all JettsTUI backends.
 
     Subclasses implement ``_run_bash()`` and ``cleanup()``.  The base class
     provides ``execute()`` with session snapshot sourcing, CWD tracking,
@@ -473,8 +473,8 @@ class BaseEnvironment(ABC):
 
         self._session_id = uuid.uuid4().hex[:12]
         temp_dir = self.get_temp_dir().rstrip("/") or "/"
-        self._snapshot_path = f"{temp_dir}/freeide-snap-{self._session_id}.sh"
-        self._cwd_file = f"{temp_dir}/freeide-cwd-{self._session_id}.txt"
+        self._snapshot_path = f"{temp_dir}/jettstui-snap-{self._session_id}.sh"
+        self._cwd_file = f"{temp_dir}/jettstui-cwd-{self._session_id}.txt"
         self._cwd_marker = _cwd_marker(self._session_id)
         self._snapshot_ready = False
         # When True, login bash is unusable (e.g. broken Git-for-Windows
@@ -567,8 +567,8 @@ class BaseEnvironment(ABC):
             # ``declare -f`` with no name args dumps ALL functions, so an empty
             # name list (only private funcs present) would otherwise leak the
             # very functions we meant to drop.
-            f"__freeide_fns=$(declare -F | awk '{{print $3}}' | grep -vE '^_[^_]') || true\n"
-            f"[ -n \"$__freeide_fns\" ] && declare -f $__freeide_fns "
+            f"__jettstui_fns=$(declare -F | awk '{{print $3}}' | grep -vE '^_[^_]') || true\n"
+            f"[ -n \"$__jettstui_fns\" ] && declare -f $__jettstui_fns "
             f">> {_snap_tmp} 2>/dev/null || true\n"
             f"alias -p >> {_snap_tmp}\n"
             f"echo 'shopt -s expand_aliases' >> {_snap_tmp}\n"
@@ -689,8 +689,8 @@ class BaseEnvironment(ABC):
 
         # Run the actual command
         parts.append(f"eval '{escaped}'")
-        parts.append("__freeide_ec=$?")
-        # Restrict FreeIDE metadata files without changing the user's command
+        parts.append("__jettstui_ec=$?")
+        # Restrict JettsTUI metadata files without changing the user's command
         # umask. Snapshot files may contain env-carried secrets.
         parts.append("umask 077")
 
@@ -719,7 +719,7 @@ class BaseEnvironment(ABC):
         parts.append(
             f"printf '\\n{self._cwd_marker}%s{self._cwd_marker}\\n' \"$(pwd -P)\""
         )
-        parts.append("exit $__freeide_ec")
+        parts.append("exit $__jettstui_ec")
 
         return "\n".join(parts)
 
@@ -730,7 +730,7 @@ class BaseEnvironment(ABC):
     @staticmethod
     def _embed_stdin_heredoc(command: str, stdin_data: str) -> str:
         """Append stdin_data as a shell heredoc to the command string."""
-        delimiter = f"FREEIDE_STDIN_{uuid.uuid4().hex[:12]}"
+        delimiter = f"JETTSTUI_STDIN_{uuid.uuid4().hex[:12]}"
         return f"{command} << '{delimiter}'\n{stdin_data}\n{delimiter}"
 
     # ------------------------------------------------------------------
@@ -910,7 +910,7 @@ class BaseEnvironment(ABC):
             "start": _now,
         }
 
-        # --- Debug tracing (opt-in via FREEIDE_DEBUG_INTERRUPT=1) -------------
+        # --- Debug tracing (opt-in via JETTSTUI_DEBUG_INTERRUPT=1) -------------
         # Captures loop entry/exit, interrupt state changes, and periodic
         # heartbeats so we can diagnose "agent never sees the interrupt"
         # reports without reproducing locally.
@@ -1053,7 +1053,7 @@ class BaseEnvironment(ABC):
         self._extract_cwd_from_output(result)
 
     def _extract_cwd_from_output(self, result: dict):
-        """Parse the __FREEIDE_CWD_{session}__ marker from stdout output.
+        """Parse the __JETTSTUI_CWD_{session}__ marker from stdout output.
 
         Updates self.cwd and strips the marker from result["output"].
         Used by remote backends (Docker, SSH, Modal, Daytona, Singularity).

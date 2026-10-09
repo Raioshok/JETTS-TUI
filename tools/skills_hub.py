@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Skills Hub — Source adapters and hub state management for the FreeIDE Skills Hub.
+Skills Hub — Source adapters and hub state management for the JettsTUI Skills Hub.
 
 This is a library module (not an agent tool). It provides:
   - GitHubAuth: Shared GitHub API authentication (PAT, gh CLI, GitHub App)
@@ -10,7 +10,7 @@ This is a library module (not an agent tool). It provides:
   - HubLockFile: Track provenance of installed hub skills
   - Hub state directory management (quarantine, audit log, taps, index cache)
 
-Used by freeide_cli/skills_hub.py for CLI commands and the /skills slash command.
+Used by jettstui/skills_hub.py for CLI commands and the /skills slash command.
 """
 
 import hashlib
@@ -25,8 +25,8 @@ from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path, PurePosixPath
-from freeide_constants import get_freeide_home
-from freeide_cli._subprocess_compat import windows_hide_flags
+from jettstui_constants import get_jettstui_home
+from jettstui._subprocess_compat import windows_hide_flags
 from agent.skill_utils import is_excluded_skill_path
 from typing import Any, Dict, List, Optional, Tuple, Union
 from urllib.parse import unquote, urljoin, urlparse, urlsplit, urlunparse
@@ -60,13 +60,13 @@ def _override(name: str):
     return globals().get(name)
 
 
-def _freeide_home() -> Path:
-    return get_freeide_home()
+def _jettstui_home() -> Path:
+    return get_jettstui_home()
 
 
 def _skills_dir() -> Path:
     forced = _override("SKILLS_DIR")
-    return Path(forced) if forced is not None else _freeide_home() / "skills"
+    return Path(forced) if forced is not None else _jettstui_home() / "skills"
 
 
 def _hub_dir() -> Path:
@@ -100,7 +100,7 @@ def _index_cache_dir() -> Path:
 
 
 _DYNAMIC_PATH_RESOLVERS = {
-    "FREEIDE_HOME": _freeide_home,
+    "JETTSTUI_HOME": _jettstui_home,
     "SKILLS_DIR": _skills_dir,
     "HUB_DIR": _hub_dir,
     "LOCK_FILE": _lock_file,
@@ -160,6 +160,25 @@ _LOCAL_LINK_RE = re.compile(
 _SUSPICIOUS_LOCAL_REF_RE = re.compile(
     r"(?:references|templates|scripts|assets|examples)/(?:[^\s)`\"'<>]*/)?\.\.(?:/|$)"
 )
+
+
+# Many community skills keep companion docs beside SKILL.md and link them as
+# `[Typography](typography.md)`. Those are fetched too, but only as explicit
+# markdown links to a single root-level file with a document/data extension —
+# never executables — and a link with no matching file is skipped, not fatal.
+_SIBLING_DOC_EXTENSIONS = frozenset({".md", ".mdx", ".txt", ".json", ".yaml", ".yml", ".csv"})
+_SIBLING_LINK_RE = re.compile(r"\]\(\s*(?:\./)?([A-Za-z0-9][\w.-]*)(?:#[^)\s]*)?\s*\)")
+
+
+def _referenced_sibling_docs(skill_md: str) -> set[str]:
+    """Root-level companion docs linked from SKILL.md (optional bundle files)."""
+    found: set[str] = set()
+    for match in _SIBLING_LINK_RE.finditer(skill_md.replace("\\", "/")):
+        name = match.group(1)
+        suffix = PurePosixPath(name).suffix.lower()
+        if suffix in _SIBLING_DOC_EXTENSIONS and name.upper() != "SKILL.MD":
+            found.add(name)
+    return found
 
 
 def _referenced_support_paths(skill_md: str) -> Optional[set[str]]:
@@ -658,6 +677,7 @@ class GitHubSource(SkillSource):
         referenced = _referenced_support_paths(skill_md)
         if referenced is None:
             return None
+        siblings = _referenced_sibling_docs(skill_md)
 
         files: Dict[str, Union[str, bytes]] = {"SKILL.md": skill_md}
         tree = self._get_repo_tree(repo)
@@ -678,6 +698,14 @@ class GitHubSource(SkillSource):
                 if content is None:
                     return None
                 files[rel_path] = content
+            for rel_path in sorted(siblings):
+                item = entries_by_path.get(f"{prefix}{rel_path}")
+                # Optional: absent or non-regular siblings are simply skipped.
+                if item is None or item.get("type") != "blob" or item.get("mode") == "120000":
+                    continue
+                content = self._fetch_file_bytes(repo, f"{prefix}{rel_path}")
+                if content is not None:
+                    files[rel_path] = content
             revision = self._tree_revisions.get(repo) or branch
         else:
             for rel_path in referenced:
@@ -685,6 +713,10 @@ class GitHubSource(SkillSource):
                 if content is None:
                     return None
                 files[rel_path] = content
+            for rel_path in sorted(siblings):
+                content = self._fetch_file_bytes(repo, f"{skill_path.rstrip('/')}/{rel_path}")
+                if content is not None:
+                    files[rel_path] = content
             revision = ""
 
         skill_name = skill_path.rstrip("/").split("/")[-1]
@@ -726,9 +758,9 @@ class GitHubSource(SkillSource):
         tags = []
         metadata = fm.get("metadata", {})
         if isinstance(metadata, dict):
-            freeide_meta = metadata.get("freeide", {})
-            if isinstance(freeide_meta, dict):
-                tags = freeide_meta.get("tags", [])
+            jettstui_meta = metadata.get("jettstui", {})
+            if isinstance(jettstui_meta, dict):
+                tags = jettstui_meta.get("tags", [])
         if not tags:
             raw_tags = fm.get("tags", [])
             tags = raw_tags if isinstance(raw_tags, list) else []
@@ -1479,9 +1511,9 @@ class UrlSource(SkillSource):
         tags: List[str] = []
         metadata = fm.get("metadata", {})
         if isinstance(metadata, dict):
-            freeide_meta = metadata.get("freeide", {})
-            if isinstance(freeide_meta, dict):
-                raw_tags = freeide_meta.get("tags", [])
+            jettstui_meta = metadata.get("jettstui", {})
+            if isinstance(jettstui_meta, dict):
+                raw_tags = jettstui_meta.get("tags", [])
                 if isinstance(raw_tags, list):
                     tags = [str(t) for t in raw_tags]
         return SkillMeta(
@@ -2967,7 +2999,7 @@ class LobeHubSource(SkillSource):
             f"name: {identifier}",
             f"description: {description[:500]}",
             "metadata:",
-            "  freeide:",
+            "  jettstui:",
             f"    tags: [{', '.join(str(t) for t in tag_list)}]",
             "  lobehub:",
             "    source: lobehub",
@@ -3170,16 +3202,16 @@ class OptionalSkillSource(SkillSource):
     """
     Fetch skills from the optional-skills/ directory shipped with the repo.
 
-    These skills are official (maintained by FreeIDE) but not activated
+    These skills are official (maintained by JettsTUI) but not activated
     by default — they don't appear in the system prompt and aren't copied to
-    ~/.freeide/skills/ during setup.  They are discoverable via the Skills Hub
+    ~/.jettstui/skills/ during setup.  They are discoverable via the Skills Hub
     (search / install / inspect) and labelled "official" with "builtin" trust.
     """
 
-    OFFICIAL_REPO = "freeide/freeide"
+    OFFICIAL_REPO = "jettstui/jettstui"
 
     def __init__(self):
-        from freeide_constants import get_optional_skills_dir
+        from jettstui_constants import get_optional_skills_dir
 
         self._optional_dir = get_optional_skills_dir(
             Path(__file__).parent.parent / "optional-skills"
@@ -3309,9 +3341,9 @@ class OptionalSkillSource(SkillSource):
             tags = []
             meta_block = fm.get("metadata", {})
             if isinstance(meta_block, dict):
-                freeide_meta = meta_block.get("freeide", {})
-                if isinstance(freeide_meta, dict):
-                    tags = freeide_meta.get("tags", [])
+                jettstui_meta = meta_block.get("jettstui", {})
+                if isinstance(jettstui_meta, dict):
+                    tags = jettstui_meta.get("tags", [])
 
             rel_path = parent.relative_to(self._optional_dir).as_posix()
 
@@ -3798,31 +3830,31 @@ def check_for_skill_updates(
 
 
 # ---------------------------------------------------------------------------
-# FreeIDE centralized index source
+# JettsTUI centralized index source
 # ---------------------------------------------------------------------------
 
-FREEIDE_INDEX_URL = "https://freeide-agent.freeide.dev/docs/api/skills-index.json"
-FREEIDE_INDEX_TTL = 6 * 3600  # 6 hours
+JETTSTUI_INDEX_URL = "https://github.com/Raioshok/JETTS-TUI/tree/main/docs"
+JETTSTUI_INDEX_TTL = 6 * 3600  # 6 hours
 
 
-def _freeide_index_cache_file() -> Path:
-    return _index_cache_dir() / "freeide-index.json"
+def _jettstui_index_cache_file() -> Path:
+    return _index_cache_dir() / "jettstui-index.json"
 
 
-def _load_freeide_index() -> Optional[dict]:
+def _load_jettstui_index() -> Optional[dict]:
     """Fetch the centralized skills index, with local cache.
 
     The index is a JSON file hosted on the docs site, rebuilt daily by CI.
-    We cache it locally for FREEIDE_INDEX_TTL seconds to avoid repeated
+    We cache it locally for JETTSTUI_INDEX_TTL seconds to avoid repeated
     downloads within a session.
     """
     # Check local cache
-    freeide_index_cache_file = _freeide_index_cache_file()
-    if freeide_index_cache_file.exists():
+    jettstui_index_cache_file = _jettstui_index_cache_file()
+    if jettstui_index_cache_file.exists():
         try:
-            age = time.time() - freeide_index_cache_file.stat().st_mtime
-            if age < FREEIDE_INDEX_TTL:
-                return json.loads(freeide_index_cache_file.read_text(encoding="utf-8"))
+            age = time.time() - jettstui_index_cache_file.stat().st_mtime
+            if age < JETTSTUI_INDEX_TTL:
+                return json.loads(jettstui_index_cache_file.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             pass
 
@@ -3843,13 +3875,13 @@ def _load_freeide_index() -> Optional[dict]:
     for accept_encoding in ("gzip, deflate", "identity"):
         try:
             resp = httpx.get(
-                FREEIDE_INDEX_URL,
+                JETTSTUI_INDEX_URL,
                 timeout=15,
                 follow_redirects=True,
                 headers={"Accept-Encoding": accept_encoding},
             )
             if resp.status_code != 200:
-                logger.debug("FreeIDE index fetch returned %d", resp.status_code)
+                logger.debug("JettsTUI index fetch returned %d", resp.status_code)
                 return _load_stale_index_cache()
             data = resp.json()
             break
@@ -3857,13 +3889,13 @@ def _load_freeide_index() -> Optional[dict]:
             # Content-Encoding decode failed — retry once uncompressed before
             # giving up on the network path entirely.
             logger.debug(
-                "FreeIDE index decode failed (Accept-Encoding=%s): %s",
+                "JettsTUI index decode failed (Accept-Encoding=%s): %s",
                 accept_encoding,
                 e,
             )
             continue
         except (httpx.HTTPError, json.JSONDecodeError) as e:
-            logger.debug("FreeIDE index fetch failed: %s", e)
+            logger.debug("JettsTUI index fetch failed: %s", e)
             return _load_stale_index_cache()
 
     if data is None:
@@ -3875,8 +3907,8 @@ def _load_freeide_index() -> Optional[dict]:
 
     # Cache locally
     try:
-        freeide_index_cache_file.parent.mkdir(parents=True, exist_ok=True)
-        freeide_index_cache_file.write_text(json.dumps(data), encoding="utf-8")
+        jettstui_index_cache_file.parent.mkdir(parents=True, exist_ok=True)
+        jettstui_index_cache_file.write_text(json.dumps(data), encoding="utf-8")
     except OSError:
         pass
 
@@ -3885,17 +3917,17 @@ def _load_freeide_index() -> Optional[dict]:
 
 def _load_stale_index_cache() -> Optional[dict]:
     """Fall back to stale cache when the network fetch fails."""
-    freeide_index_cache_file = _freeide_index_cache_file()
-    if freeide_index_cache_file.exists():
+    jettstui_index_cache_file = _jettstui_index_cache_file()
+    if jettstui_index_cache_file.exists():
         try:
-            return json.loads(freeide_index_cache_file.read_text(encoding="utf-8"))
+            return json.loads(jettstui_index_cache_file.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             pass
     return None
 
 
-class FreeIDEIndexSource(SkillSource):
-    """Skill source backed by the centralized FreeIDE Skills Index.
+class JettsTUIIndexSource(SkillSource):
+    """Skill source backed by the centralized JettsTUI Skills Index.
 
     The index is a JSON catalog published to the docs site and rebuilt
     daily by CI.  It contains metadata + resolved GitHub paths for every
@@ -3916,7 +3948,7 @@ class FreeIDEIndexSource(SkillSource):
 
     def _ensure_loaded(self) -> dict:
         if not self._loaded:
-            self._index = _load_freeide_index()
+            self._index = _load_jettstui_index()
             self._loaded = True
         return self._index or {}
 
@@ -3926,7 +3958,7 @@ class FreeIDEIndexSource(SkillSource):
         return self._github
 
     def source_id(self) -> str:
-        return "freeide-index"
+        return "jettstui-index"
 
     @property
     def is_available(self) -> bool:
@@ -4013,7 +4045,7 @@ class FreeIDEIndexSource(SkillSource):
         if resolved:
             bundle = self._get_github().fetch(resolved)
             if bundle:
-                bundle.source = entry.get("source", "freeide-index")
+                bundle.source = entry.get("source", "jettstui-index")
                 bundle.identifier = identifier
                 return bundle
 
@@ -4024,7 +4056,7 @@ class FreeIDEIndexSource(SkillSource):
             github_id = f"{repo}/{path}"
             bundle = self._get_github().fetch(github_id)
             if bundle:
-                bundle.source = entry.get("source", "freeide-index")
+                bundle.source = entry.get("source", "jettstui-index")
                 bundle.identifier = identifier
                 return bundle
 
@@ -4073,7 +4105,7 @@ class FreeIDEIndexSource(SkillSource):
         return SkillMeta(
             name=entry.get("name", ""),
             description=entry.get("description", ""),
-            source=entry.get("source", "freeide-index"),
+            source=entry.get("source", "jettstui-index"),
             identifier=entry.get("identifier", ""),
             trust_level=entry.get("trust_level", "community"),
             repo=entry.get("repo"),
@@ -4096,7 +4128,7 @@ def create_source_router(auth: Optional[GitHubAuth] = None) -> List[SkillSource]
 
     sources: List[SkillSource] = [
         OptionalSkillSource(),        # Official optional skills (highest priority)
-        FreeIDEIndexSource(auth=auth), # Centralized index (search + resolved install paths)
+        JettsTUIIndexSource(auth=auth), # Centralized index (search + resolved install paths)
         SkillsShSource(auth=auth),
         WellKnownSkillSource(),
         UrlSource(),                  # Direct HTTP(S) URL to a SKILL.md file
@@ -4159,7 +4191,7 @@ def parallel_search_sources(
                                   "claude-marketplace", "lobehub", "well-known"})
     if _effective_filter == "all":
         for src in sources:
-            if (src.source_id() == "freeide-index"
+            if (src.source_id() == "jettstui-index"
                     and getattr(src, "is_available", False)):
                 _index_available = True
                 break

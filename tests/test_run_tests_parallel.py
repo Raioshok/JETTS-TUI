@@ -30,11 +30,13 @@ from pathlib import Path
 
 import pytest
 
+from scripts.run_tests_parallel import _split_path_list
+
 
 # Both tests share the same handoff file: the leaker writes here, the
 # verifier reads here. We park it in $TMPDIR with a unique-per-run name
 # so concurrent invocations of the suite don't clobber each other.
-_HANDOFF_DIR = Path(os.environ.get("TMPDIR", "/tmp")) / "freeide-isolation-probe"
+_HANDOFF_DIR = Path(os.environ.get("TMPDIR", "/tmp")) / "jettstui-isolation-probe"
 _HANDOFF_DIR.mkdir(exist_ok=True)
 
 
@@ -147,6 +149,8 @@ def test_grandchild_leak_is_killed_by_runner(tmp_path: Path) -> None:
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         timeout=60,
     )
 
@@ -200,6 +204,35 @@ def test_grandchild_leak_is_killed_by_runner(tmp_path: Path) -> None:
 # positional-path discovery.
 
 
+@pytest.mark.parametrize("help_flag", ["-h", "--help"])
+def test_runner_help_exits_before_discovery(help_flag: str) -> None:
+    """Help belongs to this runner; it must never launch the entire suite."""
+    repo_root = Path(__file__).resolve().parent.parent
+    runner = repo_root / "scripts" / "run_tests_parallel.py"
+    proc = subprocess.run(
+        [sys.executable, str(runner), help_flag],
+        cwd=repo_root,
+        capture_output=True,
+        text=True,
+        timeout=10,
+    )
+    assert proc.returncode == 0, proc.stderr
+    assert "usage:" in proc.stdout.lower()
+    assert "Discovered " not in proc.stdout
+
+
+def test_path_list_preserves_windows_drive_colons() -> None:
+    assert _split_path_list(r"C:\one\a.py:D:\two\b.py", windows=True) == [
+        r"C:\one\a.py", r"D:\two\b.py"
+    ]
+    assert _split_path_list(r"C:\one\a.py;D:\two\b.py", windows=True) == [
+        r"C:\one\a.py", r"D:\two\b.py"
+    ]
+    assert _split_path_list("tests/a.py:tests/b.py", windows=True) == [
+        "tests/a.py", "tests/b.py"
+    ]
+
+
 def _make_probe_dir(tmp_path: Path) -> Path:
     """Two trivial passing tests, one named test_alpha, one test_beta."""
     probe_dir = tmp_path / "probe"
@@ -221,6 +254,8 @@ def _run_runner(probe_dir: Path, *extra: str) -> subprocess.CompletedProcess:
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         timeout=60,
     )
 
@@ -271,7 +306,7 @@ def test_positional_path_not_treated_as_flag(tmp_path: Path) -> None:
         [sys.executable, str(runner), str(probe_dir), "-j", "1",
          "--file-timeout", "30", "-q"],
         cwd=repo_root, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-        text=True, timeout=60,
+        text=True, encoding="utf-8", errors="replace", timeout=60,
     )
     assert proc.returncode == 0, proc.stdout
     # Discovery found the probe file (2 tests), proving the positional path
@@ -317,6 +352,8 @@ def test_file_retry_self_heals_and_prints_both_attempts(tmp_path: Path) -> None:
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         timeout=60,
     )
 
@@ -353,6 +390,8 @@ def test_file_retry_does_not_launder_deterministic_failure(tmp_path: Path) -> No
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         timeout=60,
     )
 
@@ -407,7 +446,7 @@ def test_node_id_selector_runs_the_named_test(tmp_path: Path) -> None:
         [sys.executable, str(repo_root / "scripts" / "run_tests_parallel.py"),
          f"{target}::test_alpha", "-j", "1", "--file-timeout", "30"],
         cwd=repo_root, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-        text=True, timeout=60,
+        text=True, encoding="utf-8", errors="replace", timeout=60,
     )
     assert proc.returncode == 0, proc.stdout
     assert "No test files to run" not in proc.stdout
@@ -426,7 +465,7 @@ def test_explicit_k_wins_over_node_id_inference(tmp_path: Path) -> None:
          f"{target}::test_alpha", "-k", "test_beta",
          "-j", "1", "--file-timeout", "30"],
         cwd=repo_root, stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
-        text=True, timeout=60,
+        text=True, encoding="utf-8", errors="replace", timeout=60,
     )
     # -k test_beta wins: one test ran, and it wasn't filtered to nothing.
     assert proc.returncode == 0, proc.stdout

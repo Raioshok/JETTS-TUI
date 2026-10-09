@@ -2,7 +2,7 @@
 
 Runs as a standalone subprocess spawned by ``process_manager.py``. Reads config
 from env vars, writes status + transcript to files under
-``$FREEIDE_HOME/workspace/meetings/<meeting-id>/``. The main freeide process
+``$JETTSTUI_HOME/workspace/meetings/<meeting-id>/``. The main jettstui process
 reads those files via the ``meet_*`` tools — no IPC beyond filesystem.
 
 The scraping strategy mirrors OpenUtter (sumansid/openutter): we don't parse
@@ -17,9 +17,9 @@ English-biased but it is:
 
 Run standalone for debugging::
 
-    FREEIDE_MEET_URL=https://meet.google.com/abc-defg-hij \\
-    FREEIDE_MEET_OUT_DIR=/tmp/meet-debug \\
-    FREEIDE_MEET_HEADED=1 \\
+    JETTSTUI_MEET_URL=https://meet.google.com/abc-defg-hij \\
+    JETTSTUI_MEET_OUT_DIR=/tmp/meet-debug \\
+    JETTSTUI_MEET_HEADED=1 \\
     python -m plugins.google_meet.meet_bot
 
 No meet.google.com URL → exits non-zero. Any URL that doesn't start with
@@ -49,7 +49,7 @@ MEET_URL_RE = re.compile(
 )
 
 
-# Filenames the bot reads/writes in ``FREEIDE_MEET_OUT_DIR``.
+# Filenames the bot reads/writes in ``JETTSTUI_MEET_OUT_DIR``.
 SAY_QUEUE_FILENAME = "say_queue.jsonl"
 SAY_PCM_FILENAME = "speaker.pcm"
 
@@ -179,13 +179,13 @@ class _BotState:
 
 # JavaScript injected into the Meet tab to observe captions. Captures
 # {speaker, text} tuples via a MutationObserver on the caption container,
-# and exposes ``window.__freeideMeetDrain()`` to pull new entries. This
+# and exposes ``window.__jettstuiMeetDrain()`` to pull new entries. This
 # mirrors the OpenUtter caption scraping approach.
 _CAPTION_OBSERVER_JS = r"""
 (() => {
-  if (window.__freeideMeetInstalled) return;
-  window.__freeideMeetInstalled = true;
-  window.__freeideMeetQueue = [];
+  if (window.__jettstuiMeetInstalled) return;
+  window.__jettstuiMeetInstalled = true;
+  window.__jettstuiMeetQueue = [];
 
   const captionSelector = '[role="region"][aria-label*="aption" i], ' +
                           'div[jsname="YSxPC"], ' +  // legacy
@@ -193,7 +193,7 @@ _CAPTION_OBSERVER_JS = r"""
 
   function pushEntry(speaker, text) {
     if (!text || !text.trim()) return;
-    window.__freeideMeetQueue.push({
+    window.__jettstuiMeetQueue.push({
       ts: Date.now(),
       speaker: (speaker || '').trim(),
       text: text.trim(),
@@ -235,9 +235,9 @@ _CAPTION_OBSERVER_JS = r"""
     const iv = setInterval(() => { if (attach()) clearInterval(iv); }, 1500);
   }
 
-  window.__freeideMeetDrain = () => {
-    const out = window.__freeideMeetQueue.slice();
-    window.__freeideMeetQueue = [];
+  window.__jettstuiMeetDrain = () => {
+    const out = window.__jettstuiMeetQueue.slice();
+    window.__jettstuiMeetQueue = [];
     return out;
   };
 })();
@@ -346,7 +346,7 @@ def _start_realtime_speaker(
     if platform_tag == "linux":
         import subprocess as _sp
 
-        sink = (bridge_info or {}).get("write_target") or "freeide_meet_sink"
+        sink = (bridge_info or {}).get("write_target") or "jettstui_meet_sink"
         try:
             proc = _sp.Popen(
                 [
@@ -445,27 +445,27 @@ def _mac_audio_device_index(device_name: str) -> str:
 
 
 def run_bot() -> int:  # noqa: C901 — orchestration, explicit branches
-    url = os.environ.get("FREEIDE_MEET_URL", "").strip()
-    out_dir_env = os.environ.get("FREEIDE_MEET_OUT_DIR", "").strip()
-    headed = os.environ.get("FREEIDE_MEET_HEADED", "").lower() in {"1", "true", "yes"}
-    auth_state = os.environ.get("FREEIDE_MEET_AUTH_STATE", "").strip()
-    guest_name = os.environ.get("FREEIDE_MEET_GUEST_NAME", "FreeIDE Agent")
-    duration_s = _parse_duration(os.environ.get("FREEIDE_MEET_DURATION", ""))
-    # v2: optional realtime mode. Enabled when FREEIDE_MEET_MODE=realtime.
-    mode = os.environ.get("FREEIDE_MEET_MODE", "transcribe").strip().lower()
-    realtime_model = os.environ.get("FREEIDE_MEET_REALTIME_MODEL", "gpt-realtime")
-    realtime_voice = os.environ.get("FREEIDE_MEET_REALTIME_VOICE", "alloy")
-    realtime_instructions = os.environ.get("FREEIDE_MEET_REALTIME_INSTRUCTIONS", "")
-    realtime_api_key = os.environ.get("FREEIDE_MEET_REALTIME_KEY") or os.environ.get("OPENAI_API_KEY", "")
+    url = os.environ.get("JETTSTUI_MEET_URL", "").strip()
+    out_dir_env = os.environ.get("JETTSTUI_MEET_OUT_DIR", "").strip()
+    headed = os.environ.get("JETTSTUI_MEET_HEADED", "").lower() in {"1", "true", "yes"}
+    auth_state = os.environ.get("JETTSTUI_MEET_AUTH_STATE", "").strip()
+    guest_name = os.environ.get("JETTSTUI_MEET_GUEST_NAME", "JettsTUI")
+    duration_s = _parse_duration(os.environ.get("JETTSTUI_MEET_DURATION", ""))
+    # v2: optional realtime mode. Enabled when JETTSTUI_MEET_MODE=realtime.
+    mode = os.environ.get("JETTSTUI_MEET_MODE", "transcribe").strip().lower()
+    realtime_model = os.environ.get("JETTSTUI_MEET_REALTIME_MODEL", "gpt-realtime")
+    realtime_voice = os.environ.get("JETTSTUI_MEET_REALTIME_VOICE", "alloy")
+    realtime_instructions = os.environ.get("JETTSTUI_MEET_REALTIME_INSTRUCTIONS", "")
+    realtime_api_key = os.environ.get("JETTSTUI_MEET_REALTIME_KEY") or os.environ.get("OPENAI_API_KEY", "")
 
     if not url or not _is_safe_meet_url(url):
         sys.stderr.write(
-            "google_meet bot: refusing to launch — FREEIDE_MEET_URL must be a "
+            "google_meet bot: refusing to launch — JETTSTUI_MEET_URL must be a "
             "meet.google.com URL. got: %r\n" % url
         )
         return 2
     if not out_dir_env:
-        sys.stderr.write("google_meet bot: FREEIDE_MEET_OUT_DIR is required\n")
+        sys.stderr.write("google_meet bot: JETTSTUI_MEET_OUT_DIR is required\n")
         return 2
 
     out_dir = Path(out_dir_env)
@@ -497,7 +497,7 @@ def run_bot() -> int:  # noqa: C901 — orchestration, explicit branches
     }
     if rt["enabled"]:
         if not realtime_api_key:
-            state.set(error="realtime mode requested but no API key in FREEIDE_MEET_REALTIME_KEY/OPENAI_API_KEY — falling back to transcribe")
+            state.set(error="realtime mode requested but no API key in JETTSTUI_MEET_REALTIME_KEY/OPENAI_API_KEY — falling back to transcribe")
             rt["enabled"] = False
         else:
             try:
@@ -616,7 +616,7 @@ def run_bot() -> int:  # noqa: C901 — orchestration, explicit branches
             #   * periodically flushing realtime counters into status.json
             deadline = (time.time() + duration_s) if duration_s else None
             lobby_deadline = time.time() + float(
-                os.environ.get("FREEIDE_MEET_LOBBY_TIMEOUT", "300")
+                os.environ.get("JETTSTUI_MEET_LOBBY_TIMEOUT", "300")
             )
             last_admission_check = 0.0
             while not stop_flag["stop"]:
@@ -652,7 +652,7 @@ def run_bot() -> int:  # noqa: C901 — orchestration, explicit branches
                         break
 
                 try:
-                    queued = page.evaluate("window.__freeideMeetDrain && window.__freeideMeetDrain()")
+                    queued = page.evaluate("window.__jettstuiMeetDrain && window.__jettstuiMeetDrain()")
                     if isinstance(queued, list):
                         for entry in queued:
                             if not isinstance(entry, dict):
@@ -762,7 +762,7 @@ def _detect_admission(page) -> bool:
     (() => {
       const leave = document.querySelector('button[aria-label*="eave call" i]');
       if (leave) return true;
-      if (window.__freeideMeetInstalled) {
+      if (window.__jettstuiMeetInstalled) {
         const caps = document.querySelector(
           '[role="region"][aria-label*="aption" i], ' +
           'div[jsname="YSxPC"], div[jsname="tgaKEf"]'

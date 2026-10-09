@@ -1,5 +1,5 @@
 import { fmtDate } from '@/lib/time'
-import type { StarmapNode } from '@/types/freeide'
+import type { StarmapNode } from '@/types/jettstui'
 
 export function formatDate(ts?: null | number): string {
   if (!ts) {

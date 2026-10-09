@@ -55,13 +55,13 @@ def test_discord_setup_existing_token_warns_fail_closed_not_fail_open(monkeypatc
     def fake_get_env_value(key: str):
         return "token" if key == "DISCORD_BOT_TOKEN" else ""
 
-    monkeypatch.setattr("freeide_cli.config.get_env_value", fake_get_env_value)
-    monkeypatch.setattr("freeide_cli.config.save_env_value", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr("freeide_cli.cli_output.print_header", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr("freeide_cli.cli_output.print_success", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr("freeide_cli.cli_output.print_info", lambda msg="", **_kwargs: info_lines.append(str(msg)))
-    monkeypatch.setattr("freeide_cli.cli_output.prompt", lambda *_args, **_kwargs: "")
-    monkeypatch.setattr("freeide_cli.cli_output.prompt_yes_no", lambda *_args, **_kwargs: next(yes_no_answers))
+    monkeypatch.setattr("jettstui.config.get_env_value", fake_get_env_value)
+    monkeypatch.setattr("jettstui.config.save_env_value", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr("jettstui.cli_output.print_header", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr("jettstui.cli_output.print_success", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr("jettstui.cli_output.print_info", lambda msg="", **_kwargs: info_lines.append(str(msg)))
+    monkeypatch.setattr("jettstui.cli_output.prompt", lambda *_args, **_kwargs: "")
+    monkeypatch.setattr("jettstui.cli_output.prompt_yes_no", lambda *_args, **_kwargs: next(yes_no_answers))
 
     interactive_setup()
 
@@ -75,13 +75,13 @@ def test_discord_setup_new_token_empty_allowlist_warns_denied_until_configured(m
     info_lines: list[str] = []
     prompts = iter(["token", "", ""])
 
-    monkeypatch.setattr("freeide_cli.config.get_env_value", lambda _key: "")
-    monkeypatch.setattr("freeide_cli.config.save_env_value", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr("freeide_cli.cli_output.print_header", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr("freeide_cli.cli_output.print_success", lambda *_args, **_kwargs: None)
-    monkeypatch.setattr("freeide_cli.cli_output.print_info", lambda msg="", **_kwargs: info_lines.append(str(msg)))
-    monkeypatch.setattr("freeide_cli.cli_output.prompt", lambda *_args, **_kwargs: next(prompts))
-    monkeypatch.setattr("freeide_cli.cli_output.prompt_yes_no", lambda *_args, **_kwargs: False)
+    monkeypatch.setattr("jettstui.config.get_env_value", lambda _key: "")
+    monkeypatch.setattr("jettstui.config.save_env_value", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr("jettstui.cli_output.print_header", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr("jettstui.cli_output.print_success", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr("jettstui.cli_output.print_info", lambda msg="", **_kwargs: info_lines.append(str(msg)))
+    monkeypatch.setattr("jettstui.cli_output.prompt", lambda *_args, **_kwargs: next(prompts))
+    monkeypatch.setattr("jettstui.cli_output.prompt_yes_no", lambda *_args, **_kwargs: False)
 
     interactive_setup()
 

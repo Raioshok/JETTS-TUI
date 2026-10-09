@@ -92,8 +92,7 @@ class OpenRouterProfile(ProviderProfile):
         # calls sent NO sticky key at all and each routed independently of the
         # conversation it belonged to (#70820).
         #
-        # Mirrors the FreeIDE Portal profile, which resolves the same way
-        # (f2f4df064d). The ambient value is the session-lineage ROOT, so it
+        # The ambient value is the session-lineage ROOT, so it
         # also stays stable for installs that opt out of the default
         # ``compression.in_place: true`` and across delegate-subagent trees.
         sticky_key = get_conversation_context() or session_id
@@ -153,7 +152,7 @@ class OpenRouterProfile(ProviderProfile):
             #     emit ``thinking: {type: "disabled"}`` → the same 400 on every
             #     turn after the first tool call.
             # The only reliable behavior is to omit ``reasoning`` and let the
-            # model default to adaptive. See freeide-agent#42991 (disable case)
+            # model default to adaptive. See jettstui#42991 (disable case)
             # and the tool-replay follow-up.
             #
             # ``reasoning.effort`` being ignored does NOT mean these models have
@@ -161,7 +160,7 @@ class OpenRouterProfile(ProviderProfile):
             # top-level ``verbosity`` field instead (it maps to Anthropic's
             # ``output_config.effort``; ``reasoning.effort`` is accepted but
             # ignored — confirmed by OpenRouter's Claude migration docs and a
-            # live token-spend probe in freeide-agent#43432). Route the existing
+            # live token-spend probe in jettstui#43432). Route the existing
             # ``reasoning_config["effort"]`` (sourced from
             # ``agent.reasoning_effort``) onto ``verbosity`` so the knob the user
             # already sets keeps working for these models. We still send NO

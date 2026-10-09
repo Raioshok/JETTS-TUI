@@ -1,8 +1,8 @@
 import { skillInvocationText } from '@jetts-tui/shared'
 import { type MutableRefObject, useCallback, useRef } from 'react'
 
-import { getProfiles } from '@/freeide'
 import type { Translations } from '@/i18n'
+import { getProfiles } from '@/jettstui'
 import { type ChatMessage, toChatMessages } from '@/lib/chat-messages'
 import { parseCommandDispatch, parseSlashCommand, sessionTitle } from '@/lib/chat-runtime'
 import {
@@ -58,7 +58,7 @@ import {
 
 // Manual compression is LLM-bound and routinely outlives the desktop's 30s
 // default WS request timeout on large sessions — give it the TUI client's
-// 120s RPC budget (FREEIDE_TUI_RPC_TIMEOUT_MS default) instead.
+// 120s RPC budget (JETTSTUI_TUI_RPC_TIMEOUT_MS default) instead.
 const SESSION_COMPRESS_TIMEOUT_MS = 120_000
 
 /** Everything a slash handler needs about the invocation it's serving. */
@@ -672,11 +672,26 @@ export function useSlashCommand(deps: SlashCommandDeps) {
         },
         // /title <name> renames via the gateway's session.title RPC — the same
         // path the TUI uses, NOT REST renameSession (which 404s on runtime ids)
-        // nor the slash worker (whose DB write can silently fail). Bare /title
-        // shows the current title, which the worker owns, so delegate to exec.
+        // nor the slash worker (whose DB write can silently fail). Both forms
+        // use the same session-scoped RPC, so a read cannot start that worker.
         title: async ctx => {
           if (!ctx.arg) {
-            await runExec(ctx)
+            const resolved = await withSlashOutput(ctx)
+
+            if (!resolved) {
+              return
+            }
+
+            try {
+              const result = await requestGateway<SessionTitleResponse>('session.title', {
+                session_id: resolved.sessionId
+              })
+
+              const current = (result?.title || '').trim()
+              resolved.render(current ? `Title: ${current}` : 'No title set.')
+            } catch (err) {
+              resolved.render(`error: ${err instanceof Error ? err.message : String(err)}`)
+            }
 
             return
           }

@@ -63,7 +63,7 @@ def test_referenced_scripts_exist(name):
 def test_related_skills_resolve(name):
     """related_skills entries must name skills that exist in skills/ or optional-skills/."""
     fm = _frontmatter(_skill_dir(name) / "SKILL.md")
-    related = fm.get("metadata", {}).get("freeide", {}).get("related_skills", [])
+    related = fm.get("metadata", {}).get("jettstui", {}).get("related_skills", [])
     assert related, f"{name}: office skills must cross-link related_skills"
     all_skill_names = {
         p.parent.name
@@ -117,12 +117,12 @@ def test_pdf_reference_docs_exist():
         assert (pdf_dir / doc).exists(), f"pdf: missing linked doc {doc}"
 
 
-def test_docs_pages_generated():
-    """Each bundled office skill has a generated docs-site page."""
-    docs_dir = REPO / "website" / "docs" / "user-guide" / "skills" / "bundled" / "productivity"
+def test_docs_pages_present():
+    """Each bundled office skill retains its repository Markdown page."""
+    docs_dir = REPO / "docs" / "user-guide" / "skills" / "bundled" / "productivity"
     for name in OFFICE_SKILLS:
         assert (docs_dir / f"productivity-{name}.md").exists(), (
-            f"missing generated docs page for {name}; run website/scripts/generate-skill-docs.py"
+            f"missing Markdown docs page for {name}"
         )
 
 

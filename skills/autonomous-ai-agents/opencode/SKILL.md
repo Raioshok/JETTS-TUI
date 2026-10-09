@@ -2,18 +2,18 @@
 name: opencode
 description: "Delegate coding to OpenCode CLI (features, PR review)."
 version: 1.2.0
-author: FreeIDE Agent
+author: JettsTUI
 license: MIT
 platforms: [linux, macos, windows]
 metadata:
-  freeide:
+  jettstui:
     tags: [Coding-Agent, OpenCode, Autonomous, Refactoring, Code-Review]
-    related_skills: [claude-code, codex, freeide-agent]
+    related_skills: [claude-code, codex, jettstui]
 ---
 
 # OpenCode CLI
 
-Use [OpenCode](https://opencode.ai) as an autonomous coding worker orchestrated by FreeIDE terminal/process tools. OpenCode is a provider-agnostic, open-source AI coding agent with a TUI and CLI.
+Use [OpenCode](https://opencode.ai) as an autonomous coding worker orchestrated by JettsTUI terminal/process tools. OpenCode is a provider-agnostic, open-source AI coding agent with a TUI and CLI.
 
 ## When to Use
 
@@ -32,7 +32,7 @@ Use [OpenCode](https://opencode.ai) as an autonomous coding worker orchestrated 
 
 ## Binary Resolution (Important)
 
-Shell environments may resolve different OpenCode binaries. If behavior differs between your terminal and FreeIDE, check:
+Shell environments may resolve different OpenCode binaries. If behavior differs between your terminal and JettsTUI, check:
 
 ```
 terminal(command="which -a opencode")

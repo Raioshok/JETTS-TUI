@@ -300,7 +300,7 @@ class TestQwenAlibabaFamily:
         assert agent._anthropic_prompt_cache_policy() == (False, False)
 
 class TestRemovedNousProvider:
-    """The nous provider was deleted from this fork (fea9d55..dbe611f).
+    """The acme provider was deleted from this fork (fea9d55..dbe611f).
 
     An unknown/removed provider name must not enable Anthropic prompt
     caching. When the provider-name-keyed portal branch was removed the
@@ -313,8 +313,8 @@ class TestRemovedNousProvider:
 
     def test_removed_provider_does_not_enable_claude_caching(self):
         agent = _make_agent(
-            provider="nous",
-            base_url="https://inference-api.freeide.dev/v1",
+            provider="acme",
+            base_url="https://inference-api.jettstui.dev/v1",
             api_mode="chat_completions",
             model="anthropic/claude-opus-4.8",
         )
@@ -322,8 +322,8 @@ class TestRemovedNousProvider:
 
     def test_removed_provider_does_not_enable_qwen_caching(self):
         agent = _make_agent(
-            provider="nous",
-            base_url="https://inference-api.freeide.dev/v1",
+            provider="acme",
+            base_url="https://inference-api.jettstui.dev/v1",
             api_mode="chat_completions",
             model="qwen3.6-plus",
         )

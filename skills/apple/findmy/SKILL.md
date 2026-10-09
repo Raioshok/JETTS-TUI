@@ -2,11 +2,11 @@
 name: findmy
 description: "Track Apple devices/AirTags via FindMy.app on macOS."
 version: 1.0.0
-author: FreeIDE Agent
+author: JettsTUI
 license: MIT
 platforms: [macos]
 metadata:
-  freeide:
+  jettstui:
     tags: [FindMy, AirTag, location, tracking, macOS, Apple]
 ---
 

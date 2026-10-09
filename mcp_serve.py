@@ -1,5 +1,5 @@
 """
-FreeIDE MCP Server — expose messaging conversations as MCP tools.
+JettsTUI MCP Server — expose messaging conversations as MCP tools.
 
 Starts a stdio MCP server that lets any MCP client (Claude Code, Cursor, Codex,
 etc.) list conversations, read message history, send messages, poll for live
@@ -10,17 +10,17 @@ Matches OpenClaw's 9-tool MCP channel bridge surface:
   events_poll, events_wait, messages_send, permissions_list_open,
   permissions_respond
 
-Plus: channels_list (FreeIDE-specific extra)
+Plus: channels_list (JettsTUI-specific extra)
 
 Usage:
-    freeide mcp serve
-    freeide mcp serve --verbose
+    jettstui mcp serve
+    jettstui mcp serve --verbose
 
 MCP client config (e.g. claude_desktop_config.json):
     {
         "mcpServers": {
-            "freeide": {
-                "command": "freeide",
+            "jettstui": {
+                "command": "jettstui",
                 "args": ["mcp", "serve"]
             }
         }
@@ -41,7 +41,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, List, Optional
 
-logger = logging.getLogger("freeide.mcp_serve")
+logger = logging.getLogger("jettstui.mcp_serve")
 
 # ---------------------------------------------------------------------------
 # Lazy MCP SDK import
@@ -61,18 +61,18 @@ except ImportError:
 # ---------------------------------------------------------------------------
 
 def _get_sessions_dir() -> Path:
-    """Return the sessions directory using FREEIDE_HOME."""
+    """Return the sessions directory using JETTSTUI_HOME."""
     try:
-        from freeide_constants import get_freeide_home
-        return get_freeide_home() / "sessions"
+        from jettstui_constants import get_jettstui_home
+        return get_jettstui_home() / "sessions"
     except ImportError:
-        return Path(os.environ.get("FREEIDE_HOME", Path.home() / ".freeide")) / "sessions"
+        return Path(os.environ.get("JETTSTUI_HOME", Path.home() / ".jettstui")) / "sessions"
 
 
 def _get_session_db():
     """Get a SessionDB instance for reading message transcripts."""
     try:
-        from freeide_state import SessionDB
+        from jettstui_state import SessionDB
         return SessionDB()
     except Exception as e:
         logger.debug("SessionDB unavailable: %s", e)
@@ -195,11 +195,11 @@ def _load_sessions_index_from_json() -> dict:
 def _load_channel_directory() -> dict:
     """Load the cached channel directory for available targets."""
     try:
-        from freeide_constants import get_freeide_home
-        directory_file = get_freeide_home() / "channel_directory.json"
+        from jettstui_constants import get_jettstui_home
+        directory_file = get_jettstui_home() / "channel_directory.json"
     except ImportError:
         directory_file = Path(
-            os.environ.get("FREEIDE_HOME", Path.home() / ".freeide")
+            os.environ.get("JETTSTUI_HOME", Path.home() / ".jettstui")
         ) / "channel_directory.json"
 
     if not directory_file.exists():
@@ -302,7 +302,7 @@ class EventBridge:
     """Background poller that watches SessionDB for new messages and
     maintains an in-memory event queue with waiter support.
 
-    This is the FreeIDE equivalent of OpenClaw's WebSocket gateway bridge.
+    This is the JettsTUI equivalent of OpenClaw's WebSocket gateway bridge.
     Instead of WebSocket events, we poll the SQLite database for changes.
     """
 
@@ -451,10 +451,10 @@ class EventBridge:
         could drop brand-new conversations (#8925).
         """
         try:
-            from freeide_constants import get_freeide_home
-            db_file = get_freeide_home() / "state.db"
+            from jettstui_constants import get_jettstui_home
+            db_file = get_jettstui_home() / "state.db"
         except ImportError:
-            db_file = Path(os.environ.get("FREEIDE_HOME", Path.home() / ".freeide")) / "state.db"
+            db_file = Path(os.environ.get("JETTSTUI_HOME", Path.home() / ".jettstui")) / "state.db"
 
         try:
             db_mtime = db_file.stat().st_mtime if db_file.exists() else 0.0
@@ -541,7 +541,7 @@ class EventBridge:
 # ---------------------------------------------------------------------------
 
 def create_mcp_server(event_bridge: Optional[EventBridge] = None) -> "FastMCP":
-    """Create and return the FreeIDE MCP server with all tools registered."""
+    """Create and return the JettsTUI MCP server with all tools registered."""
     if not _MCP_SERVER_AVAILABLE:
         raise ImportError(
             "MCP server requires the 'mcp' package. "
@@ -549,9 +549,9 @@ def create_mcp_server(event_bridge: Optional[EventBridge] = None) -> "FastMCP":
         )
 
     mcp = FastMCP(
-        "freeide",
+        "jettstui",
         instructions=(
-            "FreeIDE Agent messaging bridge. Use these tools to interact with "
+            "JettsTUI messaging bridge. Use these tools to interact with "
             "conversations across Telegram, Discord, Slack, WhatsApp, Signal, "
             "Matrix, and other connected platforms."
         ),
@@ -957,7 +957,7 @@ def create_mcp_server(event_bridge: Optional[EventBridge] = None) -> "FastMCP":
 # ---------------------------------------------------------------------------
 
 def run_mcp_server(verbose: bool = False) -> None:
-    """Start the FreeIDE MCP server on stdio."""
+    """Start the JettsTUI MCP server on stdio."""
     if not _MCP_SERVER_AVAILABLE:
         print(
             "Error: MCP server requires the 'mcp' package.\n"

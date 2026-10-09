@@ -4,7 +4,7 @@ import json
 
 import pytest
 
-from freeide_cli.auth import AuthError
+from jettstui.auth import AuthError
 from plugins.spotify import client as spotify_mod
 from plugins.spotify import tools as spotify_tool
 
@@ -307,7 +307,7 @@ def test_client_wraps_invalid_grant_as_spotify_auth_required_error(
 
     def _raise_invalid_grant(**kwargs):
         raise AuthError(
-            "Spotify refresh token has expired or was revoked. Run `freeide auth spotify` again.",
+            "Spotify refresh token has expired or was revoked. Run `jettstui auth spotify` again.",
             provider="spotify",
             code="spotify_refresh_invalid_grant",
             relogin_required=True,

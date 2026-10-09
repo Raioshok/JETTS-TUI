@@ -11,8 +11,8 @@
 // inherits it. It fails loud and early instead of shipping a broken bundle.
 // See issues #39484 (renderer blank page) and #41327 / #39472 (dashboard 404).
 
-import { existsSync, statSync, readdirSync } from "fs"
-import { join, resolve } from "path"
+import { existsSync, statSync, readdirSync, readFileSync } from "fs"
+import { dirname, isAbsolute, join, relative, resolve, sep } from "path"
 import { isMain } from "./utils.mjs"
 
 // Pure check — returns { ok: true } or { ok: false, error: "..." }.
@@ -39,6 +39,23 @@ export function checkDistBuilt(distDir) {
     readdirSync(assetsDir).some(name => name.endsWith(".js"))
   if (!hasAssets) {
     return { ok: false, error: `dist/assets has no built JS bundle (expected vite output under ${assetsDir})` }
+  }
+
+  // CSS assets must be inside the packaged renderer, not a node_modules path
+  // that happened to exist on the build machine. Vite can warn about an
+  // unresolved url() and still report a successful build.
+  for (const name of readdirSync(assetsDir).filter(name => name.endsWith(".css"))) {
+    const cssPath = join(assetsDir, name)
+    const css = readFileSync(cssPath, "utf8")
+    for (const match of css.matchAll(/url\(\s*['"]?([^'"\)]+)['"]?\s*\)/g)) {
+      const url = match[1].split(/[?#]/, 1)[0]
+      if (!url.startsWith("./") && !url.startsWith("../")) continue
+      const asset = resolve(dirname(cssPath), url)
+      const withinDist = relative(distDir, asset)
+      if (isAbsolute(withinDist) || withinDist === ".." || withinDist.startsWith(`..${sep}`) || !existsSync(asset)) {
+        return { ok: false, error: `CSS asset is missing from dist: ${url} (in ${name})` }
+      }
+    }
   }
 
   return { ok: true }

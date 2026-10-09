@@ -1,5 +1,5 @@
 export function logError(error: unknown): void {
-  if (!process.env.FREEIDE_INK_DEBUG_ERRORS) {
+  if (!process.env.JETTSTUI_INK_DEBUG_ERRORS) {
     return
   }
 

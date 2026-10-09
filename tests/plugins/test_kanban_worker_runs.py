@@ -20,7 +20,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from freeide_cli import kanban_db as kb
+from jettstui import kanban_db as kb
 
 
 # ---------------------------------------------------------------------------
@@ -33,7 +33,7 @@ def _load_plugin_router():
     plugin_file = repo_root / "plugins" / "kanban" / "dashboard" / "plugin_api.py"
     assert plugin_file.exists(), f"plugin file missing: {plugin_file}"
 
-    mod_name = "freeide_dashboard_plugin_kanban_worker_runs_test"
+    mod_name = "jettstui_dashboard_plugin_kanban_worker_runs_test"
     # Re-use a cached module if already loaded to avoid duplicate-router issues.
     if mod_name in sys.modules:
         return sys.modules[mod_name].router
@@ -48,10 +48,10 @@ def _load_plugin_router():
 
 @pytest.fixture
 def kanban_home(tmp_path, monkeypatch):
-    """Isolated FREEIDE_HOME with an empty kanban DB."""
-    home = tmp_path / ".freeide"
+    """Isolated JETTSTUI_HOME with an empty kanban DB."""
+    home = tmp_path / ".jettstui"
     home.mkdir()
-    monkeypatch.setenv("FREEIDE_HOME", str(home))
+    monkeypatch.setenv("JETTSTUI_HOME", str(home))
     monkeypatch.setattr(Path, "home", lambda: tmp_path)
     kb.init_db()
     return home
@@ -239,7 +239,7 @@ def test_inspect_run_dead_pid(client, monkeypatch):
     mock_psutil.Process = _raise_no_such
 
     # Patch the module-level _psutil in the loaded plugin module.
-    plugin_mod_name = "freeide_dashboard_plugin_kanban_worker_runs_test"
+    plugin_mod_name = "jettstui_dashboard_plugin_kanban_worker_runs_test"
     plugin_mod = sys.modules.get(plugin_mod_name)
     if plugin_mod is not None:
         monkeypatch.setattr(plugin_mod, "_psutil", mock_psutil)
@@ -279,12 +279,12 @@ def test_inspect_run_live_pid(client, monkeypatch):
         "num_threads": 4,
         "status": "sleeping",
         "create_time": time.time() - 300,
-        "cmdline": ["python", "-m", "freeide"],
+        "cmdline": ["python", "-m", "jettstui"],
     }
     fake_proc.num_fds.return_value = 12
     mock_psutil.Process.return_value = fake_proc
 
-    plugin_mod_name = "freeide_dashboard_plugin_kanban_worker_runs_test"
+    plugin_mod_name = "jettstui_dashboard_plugin_kanban_worker_runs_test"
     plugin_mod = sys.modules.get(plugin_mod_name)
     if plugin_mod is not None:
         monkeypatch.setattr(plugin_mod, "_psutil", mock_psutil)

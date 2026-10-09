@@ -4,7 +4,7 @@
 scheduler (Chronos) fires a job: across N gateway replicas, exactly ONE wins the
 claim for a given fire. Single-machine deployments always win (unaffected).
 
-These exercise the real store against a temp FREEIDE_HOME (no mocks) per the
+These exercise the real store against a temp JETTSTUI_HOME (no mocks) per the
 E2E-over-mocks discipline for file-touching code.
 """
 import pytest
@@ -12,9 +12,9 @@ import pytest
 
 @pytest.fixture
 def temp_home(tmp_path, monkeypatch):
-    """Isolated FREEIDE_HOME so jobs.json doesn't touch the real store."""
-    monkeypatch.setenv("FREEIDE_HOME", str(tmp_path))
-    # cron.jobs caches no home at import; get_freeide_home() reads the env live.
+    """Isolated JETTSTUI_HOME so jobs.json doesn't touch the real store."""
+    monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path))
+    # cron.jobs caches no home at import; get_jettstui_home() reads the env live.
     yield tmp_path
 
 

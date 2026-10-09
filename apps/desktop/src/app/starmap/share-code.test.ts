@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import type { StarmapGraph } from '@/types/freeide'
+import type { StarmapGraph } from '@/types/jettstui'
 
 import { decodeShareCode, encodeShareCode, ShareCodeError } from './share-code'
 

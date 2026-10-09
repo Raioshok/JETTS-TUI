@@ -63,6 +63,7 @@ def test_write_file_rejection_does_not_mutate_existing_file(tmp_path):
 def test_write_file_approval_mutates_and_request_includes_diff(tmp_path):
     target = tmp_path / "sample.txt"
     target.write_text("before\n", encoding="utf-8")
+    original_newline = b"\r\n" if b"\r\n" in target.read_bytes() else b"\n"
     proposals = []
 
     def approve(proposal):
@@ -79,7 +80,8 @@ def test_write_file_approval_mutates_and_request_includes_diff(tmp_path):
         )
     )
 
-    assert result.get("bytes_written") == len("after\n")
+    assert result.get("bytes_written") == len(b"after" + original_newline)
+    assert target.read_bytes() == b"after" + original_newline
     assert target.read_text(encoding="utf-8") == "after\n"
     assert len(proposals) == 1
     proposal = proposals[0]
@@ -249,7 +251,7 @@ def test_workspace_auto_approval_allows_workspace_and_tmp_but_not_sensitive(tmp_
     # Use tempfile.gettempdir() so this test exercises the same code path on
     # Linux (`/tmp`), macOS (`/private/var/folders/...`) and Windows
     # (`%LOCALAPPDATA%\Temp`). Before the fix this branch only worked on Linux.
-    tmp_file = Path(tempfile.gettempdir()) / "freeide-acp-auto-approve-test.txt"
+    tmp_file = Path(tempfile.gettempdir()) / "jettstui-acp-auto-approve-test.txt"
     env_file = tmp_path / ".env"
 
     assert should_auto_approve_edit(

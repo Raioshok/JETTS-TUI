@@ -1,5 +1,5 @@
 /* Visual self-verification tool: `npm run visual` renders real TUI surfaces
- * across theme x background scenes to <tmpdir>/freeide-tui-visual/tui-visual.html,
+ * across theme x background scenes to <tmpdir>/jettstui-tui-visual/tui-visual.html,
  * then shot.mjs screenshots it to tui-visual.png for eyeball + agent review.
  *
  * Original note: : render real TUI surfaces with ANSI colors intact,
@@ -12,8 +12,6 @@ import '../../src/lib/forceTruecolor.js'
 import { mkdirSync, writeFileSync } from 'fs'
 import { join } from 'path'
 import { PassThrough } from 'stream'
-
-import { visualOutDir } from './paths.mjs'
 
 import { Box, renderSync, Text } from '@jetts-tui/ink'
 import React, { type ReactElement } from 'react'
@@ -32,6 +30,8 @@ import { ComposerToolbar, WorkspaceHeader } from '../../src/components/workspace
 import type { SessionActiveItem } from '../../src/gatewayTypes.js'
 import { fromSkin, type Theme } from '../../src/theme.js'
 import type { SessionInfo } from '../../src/types.js'
+
+import { visualOutDir } from './paths.mjs'
 
 const noop = () => {}
 const pending = () => new Promise<never>(() => {})
@@ -56,7 +56,7 @@ const SLATE = {
   status_bar_text: '#C9D1D9'
 }
 
-// The regenerated slate light_colors block from freeide_cli/skin_engine.py
+// The regenerated slate light_colors block from jettstui/skin_engine.py
 // (relight recipe: vivid hue-preserved accents, airy capped-saturation text,
 // darker calm dims).
 
@@ -277,7 +277,7 @@ interface Scene {
 }
 
 const setup = (bgHex: string) => {
-  process.env.FREEIDE_TUI_BACKGROUND = bgHex
+  process.env.JETTSTUI_TUI_BACKGROUND = bgHex
   resetOverlayState()
   resetUiState()
 }
@@ -312,7 +312,7 @@ for (const scene of scenes) {
         cwd="~/code/jetts-tui"
         mode="accept-edits"
         model={info.model}
-        project="jetts-tui"
+        project="jettstui"
         t={scene.theme}
       />
       <SessionPanel info={info} maxWidth={86} sid="d2a6ecf8" t={scene.theme} />
@@ -370,6 +370,7 @@ for (const scene of scenes) {
 const residentScene = scenes[0]!
 
 setup(residentScene.bg)
+
 const resident = renderAnsi(
   <Box flexDirection="column" height={38} width={120}>
     <Box flexDirection="row" flexGrow={1}>
@@ -392,13 +393,13 @@ const resident = renderAnsi(
           cwd="~/code/jetts-tui"
           mode="accept-edits"
           model={residentSessions[1]!.model ?? ''}
-          project="jetts-tui"
+          project="jettstui"
           t={residentScene.theme}
         />
         <Box flexDirection="column" flexGrow={1} paddingX={1}>
           <Text color={residentScene.theme.color.prompt}>You</Text>
           <Text color={residentScene.theme.color.text}>Rework the TUI into a resident-agent workspace.</Text>
-          <Text color={residentScene.theme.color.accent}>Jetts-TUI</Text>
+          <Text color={residentScene.theme.color.accent}>JettsTUI</Text>
           <Text color={residentScene.theme.color.text}>The layout is responsive and the input target remains explicit.</Text>
         </Box>
       </Box>

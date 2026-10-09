@@ -2,11 +2,11 @@
 
 from unittest.mock import MagicMock, patch
 
-from cli import FreeIDECLI
+from cli import JettsTUICLI
 
 
-def _make_cli() -> FreeIDECLI:
-    cli_obj = FreeIDECLI.__new__(FreeIDECLI)
+def _make_cli() -> JettsTUICLI:
+    cli_obj = JettsTUICLI.__new__(JettsTUICLI)
     cli_obj.config = {}
     cli_obj.console = MagicMock()
     cli_obj.agent = None

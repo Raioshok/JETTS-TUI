@@ -1,12 +1,12 @@
 //! Filesystem paths + logging setup.
 //!
-//! Mirrors `freeide_constants.get_freeide_home()` from the Python CLI:
-//!   Windows: %LOCALAPPDATA%\freeide
-//!   macOS:   ~/.freeide
-//!   Linux:   ~/.freeide  (override via $FREEIDE_HOME)
+//! Mirrors `jettstui_constants.get_jettstui_home()` from the Python CLI:
+//!   Windows: %LOCALAPPDATA%\jettstui
+//!   macOS:   ~/.jettstui
+//!   Linux:   ~/.jettstui  (override via $JETTSTUI_HOME)
 //!
-//! NOTE (macOS): Python's get_freeide_home(), scripts/install.sh, and the
-//! Electron desktop's resolveFreeIDEHome() ALL use ~/.freeide on macOS — there
+//! NOTE (macOS): Python's get_jettstui_home(), scripts/install.sh, and the
+//! Electron desktop's resolveJettsTUIHome() ALL use ~/.jettstui on macOS — there
 //! is no ~/Library/Application Support branch anywhere else. An earlier
 //! version of this file used Application Support, which drifted from every
 //! other component: the installer wrote the install to one dir and the
@@ -21,9 +21,9 @@ use std::path::{Path, PathBuf};
 use std::process::Command;
 use tracing_appender::non_blocking::WorkerGuard;
 
-/// Returns the canonical FreeIDE home directory, respecting $FREEIDE_HOME if set.
-pub fn freeide_home() -> PathBuf {
-    if let Ok(override_path) = std::env::var("FREEIDE_HOME") {
+/// Returns the canonical JettsTUI home directory, respecting $JETTSTUI_HOME if set.
+pub fn jettstui_home() -> PathBuf {
+    if let Ok(override_path) = std::env::var("JETTSTUI_HOME") {
         if !override_path.trim().is_empty() {
             return PathBuf::from(override_path);
         }
@@ -31,25 +31,25 @@ pub fn freeide_home() -> PathBuf {
 
     #[cfg(target_os = "windows")]
     {
-        // %LOCALAPPDATA%\freeide — matches scripts/install.ps1's $FreeIDEHome.
+        // %LOCALAPPDATA%\jettstui — matches scripts/install.ps1's $JettsTUIHome.
         if let Some(local_app_data) = dirs::data_local_dir() {
-            return local_app_data.join("freeide");
+            return local_app_data.join("jettstui");
         }
     }
 
-    // macOS + Linux + fallback: ~/.freeide (matches Python get_freeide_home(),
-    // install.sh, and the Electron desktop's resolveFreeIDEHome()).
+    // macOS + Linux + fallback: ~/.jettstui (matches Python get_jettstui_home(),
+    // install.sh, and the Electron desktop's resolveJettsTUIHome()).
     if let Some(home) = dirs::home_dir() {
-        return home.join(".freeide");
+        return home.join(".jettstui");
     }
 
     // Last resort — current dir, almost certainly wrong but at least
     // doesn't panic.
-    PathBuf::from(".freeide")
+    PathBuf::from(".jettstui")
 }
 
 pub fn log_dir() -> PathBuf {
-    freeide_home().join("logs")
+    jettstui_home().join("logs")
 }
 
 pub fn log_path() -> PathBuf {
@@ -57,16 +57,16 @@ pub fn log_path() -> PathBuf {
 }
 
 pub fn bootstrap_cache_dir() -> PathBuf {
-    freeide_home().join("bootstrap-cache")
+    jettstui_home().join("bootstrap-cache")
 }
 
 /// Stable location the installer copies itself to after a successful install.
 /// The desktop app re-invokes this with `--update`, and the start-menu /
 /// desktop shortcuts can point users back to it. Lives directly under
-/// FREEIDE_HOME so it survives repo checkout deletion (unlike anything under
-/// freeide-agent/).
+/// JETTSTUI_HOME so it survives repo checkout deletion (unlike anything under
+/// jettstui/).
 ///
-/// On Windows this is `%LOCALAPPDATA%\freeide\jetts-tui-setup.exe`; on other
+/// On Windows this is `%LOCALAPPDATA%\jettstui\jetts-tui-setup.exe`; on other
 /// platforms the extension differs but the directory is the same.
 pub fn installer_dest() -> PathBuf {
     let name = if cfg!(target_os = "windows") {
@@ -74,20 +74,20 @@ pub fn installer_dest() -> PathBuf {
     } else {
         "jetts-tui-setup"
     };
-    freeide_home().join(name)
+    jettstui_home().join(name)
 }
 
 /// Marker the updater writes for the duration of an in-app update and removes
 /// when it finishes (see update.rs `UpdateMarkerGuard`). A freshly-launched
 /// desktop checks this before spawning its own local backend: spawning one
-/// mid-update re-locks the venv shim and triggers `force_kill_other_freeide`,
+/// mid-update re-locks the venv shim and triggers `force_kill_other_jettstui`,
 /// which then kills that legitimate backend in a respawn loop (#50238).
 ///
-/// Lives directly under FREEIDE_HOME (same rationale as `installer_dest`) so the
-/// Electron desktop — which resolves FREEIDE_HOME identically and pins it into
+/// Lives directly under JETTSTUI_HOME (same rationale as `installer_dest`) so the
+/// Electron desktop — which resolves JETTSTUI_HOME identically and pins it into
 /// the updater's env — agrees on the exact path.
 pub fn update_in_progress_marker() -> PathBuf {
-    freeide_home().join(".freeide-update-in-progress")
+    jettstui_home().join(".jettstui-update-in-progress")
 }
 
 /// Copy the currently-running installer binary to `installer_dest()` so it's
@@ -98,7 +98,7 @@ pub fn update_in_progress_marker() -> PathBuf {
 /// that path), where copying onto ourselves would be a Windows sharing
 /// violation. Best-effort: a failure here must not fail the install, so the
 /// caller logs and continues.
-pub fn copy_self_to_freeide_home() -> std::io::Result<()> {
+pub fn copy_self_to_jettstui_home() -> std::io::Result<()> {
     let src = std::env::current_exe()?;
     let dest = installer_dest();
 
@@ -119,7 +119,7 @@ pub fn copy_self_to_freeide_home() -> std::io::Result<()> {
     }
     std::fs::copy(&src, &dest)?;
     repair_macos_installer_helper(&dest);
-    tracing::info!(?src, ?dest, "copied installer to FREEIDE_HOME");
+    tracing::info!(?src, ?dest, "copied installer to JETTSTUI_HOME");
     Ok(())
 }
 
@@ -151,14 +151,14 @@ fn repair_macos_installer_helper(_path: &Path) {}
 
 /// Where the bootstrap-complete marker lives (existence-only for the Rust
 /// installer fast path; JSON schema-checked by the Electron app). Per main.ts:
-///   const BOOTSTRAP_COMPLETE_MARKER = path.join(ACTIVE_FREEIDE_ROOT, '.freeide-bootstrap-complete')
-/// We don't always know ACTIVE_FREEIDE_ROOT until install.ps1 reports it, so
+///   const BOOTSTRAP_COMPLETE_MARKER = path.join(ACTIVE_JETTSTUI_ROOT, '.jettstui-bootstrap-complete')
+/// We don't always know ACTIVE_JETTSTUI_ROOT until install.ps1 reports it, so
 /// this is a probe helper, not a definitive path.
 pub fn likely_bootstrap_marker(install_root: &Path) -> PathBuf {
-    install_root.join(".freeide-bootstrap-complete")
+    install_root.join(".jettstui-bootstrap-complete")
 }
 
-/// Initializes tracing to bootstrap-installer.log under FREEIDE_HOME/logs/.
+/// Initializes tracing to bootstrap-installer.log under JETTSTUI_HOME/logs/.
 /// Returns a guard that flushes the appender on drop — keep it alive for
 /// the lifetime of the process.
 pub fn init_logging() -> Option<WorkerGuard> {
@@ -166,14 +166,14 @@ pub fn init_logging() -> Option<WorkerGuard> {
     if let Err(err) = std::fs::create_dir_all(&dir) {
         // No log dir → log to stderr only. Don't panic; the installer
         // should still be usable on an exotic filesystem.
-        eprintln!("[freeide-setup] could not create log dir {dir:?}: {err}");
+        eprintln!("[jettstui-setup] could not create log dir {dir:?}: {err}");
         return None;
     }
 
     let file_appender = tracing_appender::rolling::never(&dir, "bootstrap-installer.log");
     let (non_blocking, guard) = tracing_appender::non_blocking(file_appender);
 
-    let env_filter = tracing_subscriber::EnvFilter::try_from_env("FREEIDE_BOOTSTRAP_LOG")
+    let env_filter = tracing_subscriber::EnvFilter::try_from_env("JETTSTUI_BOOTSTRAP_LOG")
         .unwrap_or_else(|_| tracing_subscriber::EnvFilter::new("info"));
 
     tracing_subscriber::fmt()
@@ -196,8 +196,8 @@ pub fn get_log_path() -> String {
 }
 
 #[tauri::command]
-pub fn get_freeide_home() -> String {
-    freeide_home().to_string_lossy().into_owned()
+pub fn get_jettstui_home() -> String {
+    jettstui_home().to_string_lossy().into_owned()
 }
 
 #[tauri::command]
