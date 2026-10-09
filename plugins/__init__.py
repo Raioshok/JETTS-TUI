@@ -1,0 +1,1 @@
+# JettsTUI plugins package

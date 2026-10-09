@@ -1,0 +1,115 @@
+/*
+ * JettsTUI Setup — defer entirely to the desktop's styles.css.
+ *
+ * Rather than re-implement the JettsTUI design system (and inevitably drift
+ * from it), we import apps/desktop/src/styles.css wholesale. The desktop
+ * is the canonical source of truth for fonts, color tokens, button chrome,
+ * scrollbars, layout utilities, and animations. Any change to the
+ * JettsTUI look propagates here automatically with no copy-paste maintenance.
+ *
+ * Path resolution caveats:
+ *   - Tailwind v4's `@import` resolves relative to this file. The desktop's
+ *     `@source '../../../node_modules/...'` declarations therefore re-resolve
+ *     against apps/bootstrap-installer/src/. Since both apps live two levels
+ *     deep under the same repo root, `../../../node_modules` lands in the
+ *     same place. (Verify if either app ever moves.)
+ *   - The desktop's `@font-face url('../../../node_modules/...')` references
+ *     are baked into the *imported* stylesheet; CSS resolves url()s relative
+ *     to the file that contains them, so they continue to point at the
+ *     correct node_modules path even from here.
+ *
+ * Follows the OS appearance: the installer has no in-app theme switcher, so
+ * src/theme.ts tracks the Tauri window theme and toggles `.dark` on
+ * <html>. The desktop's runtime applyTheme() normally PAINTS the dark seed
+ * colors inline (its imported :root.dark below only flips the per-mode mix
+ * knobs + neutral chrome), so we supply the Prism *dark* seeds ourselves in the
+ * :root.dark block at the end of this file.
+ */
+@import '../../desktop/src/styles.css';
+
+/* Installer-only additions. Everything else inherits from the desktop.
+   `.jt-rise` stages the screen's chunks ~100ms apart (set `--i` per chunk):
+   setup is a one-time moment, so a short ordered entrance helps read it. */
+@keyframes jettstui-fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.jettstui-fade-in {
+  animation: jettstui-fade-in 0.45s ease-out both;
+}
+
+@keyframes jt-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.jt-rise {
+  animation: jt-rise 0.5s cubic-bezier(0.2, 0, 0, 1) both;
+  animation-delay: calc(var(--i, 0) * 100ms);
+}
+
+/* Tactile press on primary actions; only `scale` is added to the transition. */
+.jt-press {
+  transition-property: color, background-color, box-shadow, opacity, scale;
+  transition-duration: 150ms;
+}
+.jt-press:not(:disabled):active {
+  scale: 0.96;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .jettstui-fade-in,
+  .jt-rise {
+    animation: none;
+  }
+  .jt-press:active {
+    scale: none;
+  }
+}
+
+/*
+ * Dark appearance — Prism dark seeds.
+ *
+ * The imported desktop :root.dark only flips the per-mode mix knobs + neutral
+ * chrome; the seed COLORS are normally painted at runtime by the desktop's
+ * applyTheme(). The installer has no theme runtime, so we mirror them here from
+ * apps/desktop/src/themes/presets.ts (jettstuiTheme.darkColors). The whole
+ * --ui-* / --dt-* chain in the imported stylesheet derives from these seeds, so
+ * flipping them is enough — we only additionally override the few tokens
+ * applyTheme() sets inline that DON'T derive from a seed. Unlayered on purpose
+ * so it wins over the imported @layer base :root light seeds. Keep in sync with
+ * jettstuiTheme.darkColors if that palette is retuned.
+ */
+:root.dark {
+  color-scheme: dark;
+
+  --theme-foreground: #ececf3;
+  --theme-primary: #9583ff;
+  --theme-secondary: #1c1b28;
+  --theme-accent-soft: #211e35;
+  --theme-midground: #9583ff;
+  --theme-warm: #9583ff;
+  --theme-background-seed: #0b0b11;
+  --theme-sidebar-seed: #08080d;
+  --theme-card-seed: #12121a;
+  --theme-elevated-seed: #15151e;
+  --theme-bubble-seed: #1b1930;
+
+  /* Non-derived shadcn tokens applyTheme() paints inline (Prism dark values). */
+  --dt-primary-foreground: #0b0b11;
+  --dt-destructive: #f0506e;
+  --dt-destructive-foreground: #0b0b11;
+}

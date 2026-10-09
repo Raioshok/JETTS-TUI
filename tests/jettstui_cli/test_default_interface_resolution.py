@@ -1,0 +1,244 @@
+"""Tests for the single interactive terminal interface.
+
+`jettstui` and `jettstui chat` launch the Ink TUI whenever stdin/stdout are real
+terminals. The Python runner remains available only for headless jobs and
+redirected stdio. Legacy interface flags/config values stay parse-compatible
+but cannot expose a second interactive UI.
+
+The no-TTY gate exists because ambient TUI preferences must never hijack
+non-interactive invocations: kanban workers / cron / pipelines run
+``jettstui … chat -q`` on a pipe, and the TUI's no-TTY bail-out exits 0
+without doing the work (a kanban worker then dies with "protocol
+violation" on every attempt).
+
+These tests pin that precedence at every layer that makes the decision:
+
+  * ``_resolve_use_tui(args)``  — the canonical args-aware resolver used by
+    ``cmd_chat`` and the Termux fast-TUI path.
+  * ``_wants_tui_early(argv)``  — the dependency-free early resolver used by
+    mouse-residue suppression and the Termux fast paths, before argparse and
+    ``jettstui.config`` are importable.
+  * the argument parser   — both ``--cli`` and ``--tui`` parse at the top
+    level and under the ``chat`` subcommand and are relaunch-inherited.
+"""
+
+from __future__ import annotations
+
+import os
+from types import SimpleNamespace
+
+import pytest
+
+from jettstui import main as m
+
+
+@pytest.fixture(autouse=True)
+def _reset_early_cache(monkeypatch):
+    # The early resolver memoizes the config read; clear it so each test sees
+    # a fresh value, and make sure no stray JETTSTUI_TUI leaks in.
+    monkeypatch.setattr(m, "_EARLY_INTERFACE_CACHE", None)
+    monkeypatch.delenv("JETTSTUI_TUI", raising=False)
+    yield
+    monkeypatch.setattr(m, "_EARLY_INTERFACE_CACHE", None)
+
+
+def _args(**kw):
+    kw.setdefault("cli", False)
+    kw.setdefault("tui", False)
+    return SimpleNamespace(**kw)
+
+
+def _fake_tty(monkeypatch, interactive: bool):
+    """Pin stdin/stdout TTY-ness — pytest's capture is never a real TTY."""
+    import sys as _sys
+
+    monkeypatch.setattr(_sys.stdin, "isatty", lambda: interactive, raising=False)
+    monkeypatch.setattr(_sys.stdout, "isatty", lambda: interactive, raising=False)
+
+
+def _patch_config(monkeypatch, interface):
+    import jettstui.config as cfg
+
+    monkeypatch.setattr(
+        cfg, "load_config", lambda: {"display": {"interface": interface}}
+    )
+
+
+# ---------------------------------------------------------------------------
+# _resolve_use_tui — args-aware resolver
+# ---------------------------------------------------------------------------
+class TestResolveUseTui:
+    def test_legacy_cli_flag_does_not_select_another_interactive_ui(self, monkeypatch):
+        _patch_config(monkeypatch, "tui")
+        _fake_tty(monkeypatch, True)
+        assert m._resolve_use_tui(_args(cli=True)) is True
+
+    def test_tui_flag_remains_compatible(self, monkeypatch):
+        _patch_config(monkeypatch, "tui")
+        monkeypatch.setenv("JETTSTUI_TUI", "1")
+        assert m._resolve_use_tui(_args(cli=True, tui=True)) is True
+
+    def test_tui_flag_beats_config_cli(self, monkeypatch):
+        _patch_config(monkeypatch, "cli")
+        assert m._resolve_use_tui(_args(tui=True)) is True
+
+    def test_env_beats_config_cli(self, monkeypatch):
+        _patch_config(monkeypatch, "cli")
+        _fake_tty(monkeypatch, True)
+        monkeypatch.setenv("JETTSTUI_TUI", "1")
+        assert m._resolve_use_tui(_args()) is True
+
+    def test_config_tui_with_no_flags(self, monkeypatch):
+        _patch_config(monkeypatch, "tui")
+        _fake_tty(monkeypatch, True)
+        assert m._resolve_use_tui(_args()) is True
+
+    def test_legacy_config_cli_is_ignored_for_interactive_launches(self, monkeypatch):
+        _patch_config(monkeypatch, "cli")
+        _fake_tty(monkeypatch, True)
+        assert m._resolve_use_tui(_args()) is True
+
+    def test_interface_value_is_case_insensitive(self, monkeypatch):
+        _patch_config(monkeypatch, "TUI")
+        _fake_tty(monkeypatch, True)
+        assert m._resolve_use_tui(_args()) is True
+
+    def test_load_config_failure_still_uses_tui(self, monkeypatch):
+        import jettstui.config as cfg
+
+        def boom():
+            raise RuntimeError("config unreadable")
+
+        monkeypatch.setattr(cfg, "load_config", boom)
+        _fake_tty(monkeypatch, True)
+        assert m._resolve_use_tui(_args()) is True
+
+    # ── the no-TTY gate: ambient prefs never hijack non-interactive runs ────
+    def test_no_tty_blocks_env_tui(self, monkeypatch):
+        _patch_config(monkeypatch, "cli")
+        _fake_tty(monkeypatch, False)
+        monkeypatch.setenv("JETTSTUI_TUI", "1")
+        assert m._resolve_use_tui(_args()) is False
+
+    def test_no_tty_blocks_config_tui(self, monkeypatch):
+        _patch_config(monkeypatch, "tui")
+        _fake_tty(monkeypatch, False)
+        assert m._resolve_use_tui(_args()) is False
+
+    def test_explicit_tui_flag_survives_no_tty(self, monkeypatch):
+        # An explicit --tui is the user's own ask — keep the informative
+        # no-TTY bail-out instead of silently swapping interfaces.
+        _patch_config(monkeypatch, "cli")
+        _fake_tty(monkeypatch, False)
+        assert m._resolve_use_tui(_args(tui=True)) is True
+
+
+# ---------------------------------------------------------------------------
+# _wants_tui_early — dependency-free early resolver
+# ---------------------------------------------------------------------------
+class TestWantsTuiEarly:
+    @pytest.fixture
+    def home_with_interface(self, tmp_path, monkeypatch):
+        def _make(interface):
+            (tmp_path / "config.yaml").write_text(
+                f"display:\n  interface: {interface}\n"
+            )
+            monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path))
+            monkeypatch.setattr(m, "_EARLY_INTERFACE_CACHE", None)
+
+        return _make
+
+    def test_config_tui_bare_argv(self, home_with_interface, monkeypatch):
+        home_with_interface("tui")
+        _fake_tty(monkeypatch, True)  # config-tui only applies on a real TTY
+        assert m._wants_tui_early([]) is True
+
+    def test_no_tty_blocks_config_tui(self, home_with_interface, monkeypatch):
+        # Headless (worker/cron/pipe): ambient config-tui must not boot the
+        # Ink UI in the earliest launch decision — that's the crash the
+        # kanban worker hit before the gate existed.
+        home_with_interface("tui")
+        _fake_tty(monkeypatch, False)
+        assert m._wants_tui_early([]) is False
+
+    def test_explicit_tui_flag_survives_no_tty(self, home_with_interface, monkeypatch):
+        home_with_interface("cli")
+        _fake_tty(monkeypatch, False)
+        assert m._wants_tui_early(["--tui"]) is True
+
+    def test_legacy_cli_flag_is_ignored_on_a_tty(self, home_with_interface, monkeypatch):
+        home_with_interface("tui")
+        _fake_tty(monkeypatch, True)
+        assert m._wants_tui_early(["--cli"]) is True
+
+    def test_tui_flag_with_config_cli(self, home_with_interface):
+        home_with_interface("cli")
+        assert m._wants_tui_early(["--tui"]) is True
+
+    def test_env_with_config_cli(self, home_with_interface, monkeypatch):
+        home_with_interface("cli")
+        monkeypatch.setenv("JETTSTUI_TUI", "1")
+        assert m._wants_tui_early([]) is True
+
+    def test_config_cli_bare_argv_still_uses_tui(self, home_with_interface, monkeypatch):
+        home_with_interface("cli")
+        _fake_tty(monkeypatch, True)
+        assert m._wants_tui_early([]) is True
+
+    def test_missing_config_defaults_to_tui(self, tmp_path, monkeypatch):
+        # JETTSTUI_HOME points at an empty dir — no config.yaml.
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path))
+        monkeypatch.setattr(m, "_EARLY_INTERFACE_CACHE", None)
+        _fake_tty(monkeypatch, True)
+        assert m._wants_tui_early([]) is True
+
+    def test_unreadable_config_defaults_to_tui(self, tmp_path, monkeypatch):
+        # Garbage YAML must not crash the hot path; falls back to cli.
+        (tmp_path / "config.yaml").write_text("this: : : not valid yaml\n")
+        monkeypatch.setenv("JETTSTUI_HOME", str(tmp_path))
+        monkeypatch.setattr(m, "_EARLY_INTERFACE_CACHE", None)
+        _fake_tty(monkeypatch, True)
+        assert m._wants_tui_early([]) is True
+
+
+# ---------------------------------------------------------------------------
+# argument parser — flags exist at both levels and are relaunch-inherited
+# ---------------------------------------------------------------------------
+class TestParserFlags:
+    def _parser(self):
+        from jettstui._parser import build_top_level_parser
+
+        parser, _subparsers, _chat = build_top_level_parser()
+        return parser
+
+    def test_top_level_cli_flag(self):
+        args = self._parser().parse_args(["--cli"])
+        assert args.cli is True and args.tui is False
+
+    def test_top_level_tui_flag(self):
+        args = self._parser().parse_args(["--tui"])
+        assert args.tui is True and args.cli is False
+
+    def test_chat_subcommand_cli_flag(self):
+        args = self._parser().parse_args(["chat", "--cli"])
+        assert args.cli is True
+
+    def test_chat_subcommand_tui_flag(self):
+        args = self._parser().parse_args(["chat", "--tui"])
+        assert args.tui is True
+
+    def test_cli_and_tui_are_relaunch_inherited(self):
+        from jettstui.relaunch import _INHERITED_FLAGS_TABLE
+
+        inherited = {flag for flag, _takes_value in _INHERITED_FLAGS_TABLE}
+        assert "--cli" in inherited
+        assert "--tui" in inherited
+
+
+# ---------------------------------------------------------------------------
+# config default — TUI is the only interactive terminal surface
+# ---------------------------------------------------------------------------
+def test_default_config_interface_is_tui():
+    from jettstui.config import DEFAULT_CONFIG
+
+    assert DEFAULT_CONFIG["display"]["interface"] == "tui"

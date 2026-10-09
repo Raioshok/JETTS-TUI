@@ -1,0 +1,16 @@
+JettsTUI
+========
+
+JettsTUI is a derivative work built on an upstream project released under the
+MIT License. As that license requires, the upstream copyright and permission
+notice are preserved verbatim in the accompanying LICENSE file, and remain the
+authoritative statement of the original authorship.
+
+Modifications in this distribution — the rebrand, the free and paid provider
+plugins, the per-provider reasoning mapping, the provider curation, and the
+interface changes — are Copyright (c) 2026 the JettsTUI contributors and are
+released under the MIT License.
+
+Portions of the bundled security-guidance plugin derive from the
+claude-plugins-official repository by Anthropic, PBC., under the Apache License
+2.0; that attribution is preserved in plugins/security-guidance/NOTICE.

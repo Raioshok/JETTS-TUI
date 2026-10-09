@@ -1,0 +1,463 @@
+@import 'tailwindcss';
+/* `fonts.css` must come BEFORE `globals.css`: as of @jettstui/ui 0.14.x,
+   `globals.css` only declares the `--font-*` CSS variables (Collapse, Rules
+   Compressed/Expanded, Mondwest). The `@font-face` registrations live in
+   `fonts.css`, so without this import the DS variables resolve to font
+   families the browser never loads and components fall back to a system
+   stack (Tabs, Segmented, Typography, Buttons, etc. all look unstyled). */
+@import '@jettstui/ui/styles/fonts.css';
+@import '@jettstui/ui/styles/globals.css';
+
+/* Scan the published design-system bundle so its utility classes survive
+   Tailwind's JIT purge. */
+@source '../node_modules/@jettstui/ui/dist';
+
+/* ------------------------------------------------------------------ */
+/* JetBrains Mono — bundled for the embedded TUI (/chat tab).          */
+/* Gives the terminal a proper monospace font even on systems where    */
+/* the user doesn't have one installed locally; xterm.js picks it up   */
+/* via ChatPage's `fontFamily` option.                                 */
+/* Apache-2.0.                                                         */
+/* ------------------------------------------------------------------ */
+
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts-terminal/JetBrainsMono-Regular.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('/fonts-terminal/JetBrainsMono-Bold.woff2') format('woff2');
+}
+@font-face {
+  font-family: 'JetBrains Mono';
+  font-style: italic;
+  font-weight: 400;
+  font-display: swap;
+  src: url('/fonts-terminal/JetBrainsMono-Italic.woff2') format('woff2');
+}
+
+/* ------------------------------------------------------------------ */
+/* JettsTUI — @jettstui/ui design system with the Prism palette applied
+   statically as the default dashboard theme. */
+/* ------------------------------------------------------------------ */
+
+:root {
+  /* Defaults for the `default` (Prism) dashboard theme so the first paint
+     matches it; ThemeProvider rewrites them as inline styles on theme apply. */
+  --foreground: color-mix(in srgb, #ffffff 0%, transparent);
+  --foreground-base: #ffffff;
+  --foreground-alpha: 0;
+  --midground: color-mix(in srgb, #ececf3 100%, transparent);
+  --midground-base: #ececf3;
+  --midground-alpha: 1;
+  --background: color-mix(in srgb, #0b0b11 100%, transparent);
+  --background-base: #0b0b11;
+  --background-alpha: 1;
+
+  /* Typography tokens — rewritten by ThemeProvider. Defaults match the
+     system stack so themes that don't override look native. */
+  --theme-font-sans: "Inter Variable", Inter, "Segoe UI Variable Text",
+    "Segoe UI", -apple-system, BlinkMacSystemFont, system-ui, Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --theme-font-mono: "Cascadia Code", "JetBrains Mono", ui-monospace,
+    "SF Mono", "Cascadia Mono", Menlo, Consolas, monospace;
+  --theme-font-display: var(--theme-font-sans);
+  --theme-base-size: 15px;
+  --theme-line-height: 1.55;
+  --theme-letter-spacing: -0.005em;
+
+  /* Layout tokens. */
+  --radius: 0.625rem;
+  --theme-radius: 0.625rem;
+  --theme-spacing-mul: 1;
+  --theme-density: comfortable;
+
+  /* Data-series accents — consumed by Analytics + Models pages for the
+     input-vs-output token visualisations (chart bars, table values,
+     legend swatches). Defaults are tuned for Prism: violet input +
+     emerald-400 output read as cool/warm against the ink canvas. Themes override via ThemeProvider, which emits
+     these as `--series-input-token` / `--series-output-token`. */
+  --series-input-token: #9583ff;
+
+
+  /* Design-system brand faces (Collapse, Rules, Mondwest, Courier Prime)
+     route through the theme stacks so DS components match the shell. */
+  --font-sans: var(--theme-font-sans);
+  --font-mono: var(--theme-font-mono);
+  --font-rules-compressed: var(--theme-font-display);
+  --font-rules-expanded: var(--theme-font-display);
+  --font-mondwest: var(--theme-font-display);
+  --series-output-token: #34d399;
+}
+
+/* Theme tokens cascade into the document root so every descendant inherits
+   the font stack, base size, and letter spacing without explicit calls. */
+html {
+  font-family: var(--theme-font-sans);
+  font-size: var(--theme-base-size);
+  line-height: var(--theme-line-height);
+  letter-spacing: var(--theme-letter-spacing);
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+}
+
+body {
+  font-family: var(--theme-font-sans);
+  min-height: 0;
+  height: 100%;
+  margin: 0;
+  overflow: hidden;
+}
+
+code, kbd, pre, samp, .font-mono, .font-mono-ui {
+  font-family: var(--theme-font-mono);
+}
+
+/* Density: scale the shadcn spacing utilities via a multiplier. The DS
+   components use `p-N` / `gap-N` / `space-*` classes which resolve against
+   Tailwind's spacing scale; multiplying `--spacing` at :root scales them
+   all proportionally in Tailwind v4. */
+@theme inline {
+  --spacing: calc(0.25rem * var(--theme-spacing-mul, 1));
+  --font-sans: var(--theme-font-sans);
+  --font-mono: var(--theme-font-mono);
+}
+
+#root {
+  min-height: 0;
+  height: 100%;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+@media (max-width: 768px) {
+  html,
+  body,
+  #root {
+    min-height: 100dvh;
+    height: auto;
+    max-height: none;
+    overflow-x: hidden;
+    overflow-y: auto;
+  }
+}
+
+/* The jettstui layout bumps `small` and `code` to readable
+   dashboard sizes. Keep in sync. */
+small { font-size: 1.0625rem; }
+code { font-size: 0.875rem; }
+
+/* Shadcn-compat tokens.
+   The dashboard's page code predates the design system and uses shadcn-style
+   utility classes (bg-card, text-muted-foreground, border-border, etc.)
+   extensively. Rather than rewrite every call site, we expose those
+   tokens on top of the design-system palette so classes continue to resolve. */
+@theme inline {
+  /* Remap foreground to midground so `text-foreground` / `bg-foreground`
+     stay visible — in LENS_0, `--foreground` itself has alpha 0. */
+  --color-foreground: var(--midground);
+
+  --color-card: var(--theme-color-card, color-mix(in srgb, var(--midground-base) 4%, var(--background-base)));
+  --color-card-foreground: var(--theme-color-card-foreground, var(--midground));
+  --color-primary: var(--theme-color-primary, var(--midground));
+  --color-primary-foreground: var(--theme-color-primary-foreground, var(--background-base));
+  --color-secondary: var(--theme-color-secondary, color-mix(in srgb, var(--midground-base) 6%, var(--background-base)));
+  --color-secondary-foreground: var(--theme-color-secondary-foreground, var(--midground));
+  --color-muted: var(--theme-color-muted, color-mix(in srgb, var(--midground-base) 8%, var(--background-base)));
+  /* Routes the shadcn `muted-foreground` slot through the DS semantic
+     text-secondary token (defaults to midground 80%) so legacy call
+     sites that use `text-muted-foreground` get a readable color
+     instead of the old 55%-transparent default. */
+  --color-muted-foreground: var(--theme-color-muted-foreground, var(--color-text-secondary));
+  --color-accent: var(--theme-color-accent, color-mix(in srgb, var(--midground-base) 10%, var(--background-base)));
+  --color-accent-foreground: var(--theme-color-accent-foreground, var(--midground));
+  --color-destructive: var(--theme-color-destructive, #fb2c36);
+  --color-destructive-foreground: var(--theme-color-destructive-foreground, #ffffff);
+  --color-success: var(--theme-color-success, #4ade80);
+  --color-warning: var(--theme-color-warning, #ffbd38);
+  --color-border: var(--theme-color-border, color-mix(in srgb, var(--midground-base) 15%, transparent));
+  --color-input: var(--theme-color-input, color-mix(in srgb, var(--midground-base) 15%, transparent));
+  --color-ring: var(--theme-color-ring, var(--midground));
+  /* Accent for shell chrome (active nav, focus, selection). Prism sets it
+     violet via its ring override; other themes fall back to midground. */
+  --color-brand: var(--theme-color-ring, var(--midground));
+  --color-popover: var(--theme-color-popover, color-mix(in srgb, var(--midground-base) 4%, var(--background-base)));
+  --color-popover-foreground: var(--theme-color-popover-foreground, var(--midground));
+
+  --radius-sm: calc(var(--theme-radius) - 4px);
+  --radius-md: calc(var(--theme-radius) - 2px);
+  --radius-lg: var(--theme-radius);
+  --radius-xl: calc(var(--theme-radius) + 4px);
+}
+
+
+/* Collapsed sidebar tooltip entrance — skipped when moving between items. */
+@keyframes sidebar-tooltip-in {
+  from { opacity: 0; transform: translateY(-50%) translateX(-4px); }
+  to   { opacity: 1; transform: translateY(-50%) translateX(0); }
+}
+
+/* Toast animations used by `components/Toast.tsx`. */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateX(16px); }
+  to   { opacity: 1; transform: translateX(0); }
+}
+@keyframes toast-out {
+  from { opacity: 1; transform: translateX(0); }
+  to   { opacity: 0; transform: translateX(16px); }
+}
+
+/* Generic fade + dialog entrance used by popovers and confirm dialogs. */
+@keyframes fade-in {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+@keyframes dialog-in {
+  from { opacity: 0; transform: translateY(4px) scale(0.98); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Hide scrollbar utility — used by the header's overflow-x nav row. */
+.scrollbar-none {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar {
+  display: none;
+}
+
+/* System UI-monospace stack — distinct from `font-courier` (Courier
+   Prime), used for dense data readouts where the display font would
+   break the grid. Routes through the theme's mono stack so themes
+   with a different monospace (JetBrains Mono, IBM Plex Mono, etc.)
+   still apply here. */
+.font-mono-ui {
+  font-family: var(--theme-font-mono);
+}
+
+/* Subtle grain overlay for badges. */
+.grain {
+  position: relative;
+}
+.grain::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  opacity: 0.12;
+  pointer-events: none;
+  background: repeating-conic-gradient(currentColor 0% 25%, #0000 0% 50%) 0 0 /
+    2px 2px;
+}
+
+/* RTL support — Arabic and any future right-to-left locale. The i18n provider
+   sets `dir` on <html>; Tailwind v4's logical spacing utilities (ms-/me-,
+   ps-/pe-) and logical properties then flip automatically. Scoped so the
+   default LTR layout is untouched. */
+html[dir="rtl"] {
+  direction: rtl;
+}
+
+
+/* ------------------------------------------------------------------ */
+/* Prism polish — shared interaction and typography details.           */
+/* ------------------------------------------------------------------ */
+
+/* The DS `text-display` utility forces uppercase + wide tracking on chrome.
+   Prism keeps chrome in sentence case at a medium weight. */
+.text-display {
+  text-transform: none;
+  letter-spacing: -0.005em;
+  font-weight: 500;
+}
+
+/* `font-courier` hard-codes Courier New; use the theme's mono stack. */
+.font-courier {
+  font-family: var(--theme-font-mono);
+}
+
+html {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+h1,
+h2,
+h3,
+h4 {
+  text-wrap: balance;
+}
+
+p,
+li,
+dd {
+  text-wrap: pretty;
+}
+
+/* Counters, timestamps, and table figures must not shift as they update. */
+time,
+td,
+[data-numeric] {
+  font-variant-numeric: tabular-nums;
+}
+
+::selection {
+  background: color-mix(in srgb, var(--color-brand) 30%, transparent);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: color-mix(in srgb, var(--midground-base) 18%, transparent)
+    transparent;
+}
+
+@layer base {
+  /* Visible keyboard focus everywhere; components that draw their own ring
+     opt out with `focus-visible:outline-none`. */
+  :where(a, button, summary, [role="button"], [tabindex]):focus-visible {
+    outline: 2px solid var(--color-brand);
+    outline-offset: 2px;
+  }
+
+  /* Tactile press feedback. `data-static` opts out (full-width rows,
+     toggles where motion would distract). Only `scale` is transitioned on
+     top of the color properties — never `transition: all`. */
+  button:not(:disabled):not([data-static]) {
+    transition-property: color, background-color, border-color,
+      text-decoration-color, box-shadow, opacity, scale;
+    transition-duration: 150ms;
+    transition-timing-function: cubic-bezier(0.2, 0, 0, 1);
+  }
+  button:not(:disabled):not([data-static]):active {
+    scale: 0.96;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  button:active {
+    scale: none;
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/* Design-system adaptation — @jettstui/ui ships a brutalist chrome     */
+/* (forced caps, 0.1–0.2em tracking, square bevelled controls). These  */
+/* overrides restyle its classes to Prism without forking the package. */
+/* ------------------------------------------------------------------ */
+
+/* Sentence case and natural tracking everywhere. */
+.uppercase {
+  text-transform: none;
+}
+[class*="tracking-["] {
+  letter-spacing: 0.005em;
+}
+
+/* Controls are chrome, not code: keep them on the UI face. */
+button.font-mono,
+button.font-courier,
+button.font-mondwest,
+button.font-compressed,
+button.font-expanded {
+  font-family: var(--theme-font-sans);
+}
+
+/* DS Button (cva base: `group relative grid cursor-pointer …`). */
+button.group.grid.cursor-pointer {
+  border-radius: calc(var(--theme-radius) - 2px);
+  font-weight: 600;
+  letter-spacing: 0;
+}
+button.group.grid.cursor-pointer[class*="shadow-[inset"] {
+  /* Replace the bevel with a hairline ring; currentColor keeps outlined
+     variants outlined. */
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, currentColor 28%, transparent);
+}
+button.group.grid.cursor-pointer:active {
+  filter: none;
+}
+/* Solid default buttons stay neutral (ink on light); the violet accent is
+   reserved for selection, focus, and navigation so it keeps its meaning. */
+button.group.grid.cursor-pointer.bg-midground {
+  box-shadow: inset 0 0 0 1px rgb(255 255 255 / 0.12),
+    0 1px 2px rgb(0 0 0 / 0.35);
+}
+button.group.grid.cursor-pointer.bg-midground:hover {
+  background-color: color-mix(in srgb, var(--midground-base) 88%, transparent);
+}
+
+/* DS Card surface. */
+.border.border-midground\/15.bg-background-base\/80 {
+  border-radius: calc(var(--theme-radius) + 4px);
+  border-color: var(--color-border);
+  background-color: var(--color-card);
+  box-shadow: var(--component-card-box-shadow, none);
+}
+
+/* Segmented controls / tab strips. */
+.inline-flex.border.border-midground\/15 {
+  border-radius: calc(var(--theme-radius) - 2px);
+  overflow: hidden;
+}
+
+/* Status badges. */
+.border.font-compressed,
+.border.font-mondwest.inline-flex {
+  border-radius: 999px;
+  padding: 0.1875rem 0.5rem;
+  font-size: 0.75rem;
+  line-height: 1;
+  font-weight: 500;
+}
+
+/* Inset rows inside cards and form fields. */
+.border.border-border\/50,
+input:not([type="checkbox"]):not([type="radio"]):not([type="range"]),
+select,
+textarea,
+[role="combobox"] {
+  border-radius: calc(var(--theme-radius) - 4px);
+}
+
+/* DS Switch: pill track, violet when on, no press scale (a toggle's own
+   state change is the feedback). */
+[role="switch"] {
+  border-radius: 999px;
+  padding-inline: 2px;
+}
+[role="switch"] > span {
+  border-radius: 999px;
+}
+[role="switch"][aria-checked="true"] {
+  background-color: var(--color-brand);
+  border-color: transparent;
+}
+[role="switch"][aria-checked="true"] > span {
+  background-color: #fff;
+}
+[role="switch"]:active {
+  scale: none;
+}
+
+/* Inline code reads as a quiet chip, not an inverted block. */
+:not(pre) > code {
+  border-radius: 0.3125rem;
+  padding: 0.0625em 0.375em;
+  background-color: color-mix(in srgb, var(--midground-base) 10%, transparent);
+  color: var(--midground);
+}

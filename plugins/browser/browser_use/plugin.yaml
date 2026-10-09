@@ -1,0 +1,7 @@
+name: browser-browser-use
+version: 1.0.0
+description: "Browser Use (https://browser-use.com) cloud browser backend. Requires BROWSER_USE_API_KEY."
+author: jettstui
+kind: backend
+provides_browser_providers:
+  - browser-use

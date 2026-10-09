@@ -1,0 +1,5 @@
+name: llm7-provider
+kind: model-provider
+version: 1.0.0
+description: LLM7.io
+author: JettsTUI
