@@ -1726,6 +1726,40 @@ class TestCuratorConsolidationDeleteGuard:
 
         _reset_background_review_read_marks()
 
+    def test_read_before_write_protocol_survives_improvement_gate(self, tmp_path, monkeypatch):
+        """With the quality gate on, an unread skill still gets the structured
+        retry signal, and a focused patch after skill_view is not blocked for
+        structure the skill already had."""
+        from tools import skill_improvement_eval
+        from tools.skills_tool import skill_view
+        from tools.skill_manager_tool import _reset_background_review_read_marks
+
+        monkeypatch.setattr(skill_improvement_eval, "enabled", lambda: True)
+        monkeypatch.setattr(skill_improvement_eval, "record_evaluation", lambda _e: None)
+        _reset_background_review_read_marks()
+        with _curator_pass(tmp_path, monkeypatch=monkeypatch):
+            _create_curator_skill("reviewed", _skill_content("reviewed"))
+
+            blocked = json.loads(skill_manage(
+                action="patch",
+                name="reviewed",
+                old_string="Step 1: Do the thing.",
+                new_string="Step 1: Do the thing safely.",
+            ))
+            assert blocked["success"] is False
+            assert blocked.get("_read_before_write_required") is True
+
+            assert json.loads(skill_view("reviewed"))["success"] is True
+            allowed = json.loads(skill_manage(
+                action="patch",
+                name="reviewed",
+                old_string="Step 1: Do the thing.",
+                new_string="Step 1: Do the thing safely.",
+            ))
+            assert allowed["success"] is True, allowed
+
+        _reset_background_review_read_marks()
+
     def test_background_review_support_file_overwrite_requires_that_file_read(self, tmp_path, monkeypatch):
         from tools.skills_tool import skill_view
         from tools.skill_manager_tool import _reset_background_review_read_marks

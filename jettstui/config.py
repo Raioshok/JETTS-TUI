@@ -2586,8 +2586,10 @@ DEFAULT_CONFIG = {
         #                     /skills approve <id> or drop with /skills reject <id>.
         "write_approval": False,
         # Fixed-code evaluator for autonomous SKILL.md proposals. The model
-        # proposing a change cannot grade it. Pair with write_approval=true so
-        # passing proposals still require human review.
+        # proposing a change cannot grade it. Only background-review writes are
+        # checked: weak creates, near-duplicates of existing skills, and edits
+        # that strip quality signals are rejected; passing changes still land.
+        # Pair with write_approval=true so passing proposals also need review.
         "improvement_gate": False,
     },
 

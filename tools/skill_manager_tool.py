@@ -1362,10 +1362,12 @@ def _evaluate_autonomous_skill_change(
             name, target, action, "SKILL.md"
         )
         if read_guard:
-            return {
-                "version": 1, "verdict": "block", "action": action,
-                "skill": name, "reasons": [read_guard["error"]],
-            }
+            # Defer to the write path, which returns the structured
+            # read-before-write response (``_read_before_write_required``)
+            # the reviewer uses to call skill_view and retry. Scoring an
+            # unread skill here would replace that protocol signal with a
+            # generic block.
+            return None
         try:
             before = target.read_text(encoding="utf-8")
         except Exception as exc:
@@ -1385,8 +1387,19 @@ def _evaluate_autonomous_skill_change(
         if error:
             return None
 
+    existing = None
+    if action == "create":
+        try:
+            from tools.skills_tool import _find_all_skills
+            existing = [
+                {"name": s.get("name"), "description": s.get("description")}
+                for s in _find_all_skills(skip_disabled=True)
+            ]
+        except Exception as exc:
+            logger.debug("Duplicate check skipped; could not list skills: %s", exc)
+
     evaluation = quality.evaluate_candidate(
-        action=action, name=name, before=before, candidate=candidate
+        action=action, name=name, before=before, candidate=candidate, existing=existing
     )
     try:
         quality.record_evaluation(evaluation)
