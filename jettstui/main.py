@@ -10921,7 +10921,7 @@ def _print_fetch_permission_hint(stderr: str) -> None:
     print("  Close the desktop app and other JettsTUI windows, then run `jettstui update` again.")
     if sys.platform == "win32":
         print("  If it still fails, run this once from an Administrator PowerShell, then retry:")
-        print(f'    icacls "{PROJECT_ROOT}" /grant "$env:USERNAME:(OI)(CI)F" /T /C /Q')
+        print(f'    icacls "{PROJECT_ROOT}" /grant "${{env:USERNAME}}:(OI)(CI)F" /T /C /Q')
 
 
 def _resolve_update_branch(args) -> str:
