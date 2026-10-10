@@ -47,6 +47,7 @@ import type {
   ProfileSetupCommand,
   ProfileSoul,
   ProfilesResponse,
+  ProviderQuotaResponse,
   SessionInfo,
   SessionMessagesResponse,
   SessionSearchResponse,
@@ -188,6 +189,9 @@ export type {
   ProjectFolder,
   ProjectInfo,
   ProjectsPayload,
+  ProviderQuota,
+  ProviderQuotaResponse,
+  ProviderQuotaWindow,
   RpcEvent,
   SessionCreateResponse,
   SessionInfo,
@@ -1379,6 +1383,13 @@ export function getUsageAnalytics(days = 30): Promise<AnalyticsResponse> {
   })
 }
 
+export function getProviderQuotas(): Promise<ProviderQuotaResponse> {
+  return window.jettstuiDesktop.api<ProviderQuotaResponse>({
+    ...profileScoped(),
+    path: '/api/providers/quota'
+  })
+}
+
 export function getGlobalModelOptions(opts?: {
   refresh?: boolean
   includeUnconfigured?: boolean
@@ -1638,7 +1649,13 @@ export function installMcpCatalogEntry(
   name: string,
   env: Record<string, string> = {}
 ): Promise<{ ok: boolean; name?: string; pid?: number; action?: string; background?: boolean }> {
-  return window.jettstuiDesktop.api<{ ok: boolean; name?: string; pid?: number; action?: string; background?: boolean }>({
+  return window.jettstuiDesktop.api<{
+    ok: boolean
+    name?: string
+    pid?: number
+    action?: string
+    background?: boolean
+  }>({
     ...profileScoped(),
     path: '/api/mcp/catalog/install',
     method: 'POST',

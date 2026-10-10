@@ -572,6 +572,34 @@ def _fetch_openrouter_account_usage(base_url: Optional[str], api_key: Optional[s
     )
 
 
+def _fetch_antigravity_account_usage() -> Optional[AccountUsageSnapshot]:
+    from jettstui.antigravity_auth import (
+        describe_tier,
+        fetch_model_quotas,
+        resolve_antigravity_runtime_credentials,
+    )
+
+    creds = resolve_antigravity_runtime_credentials()
+    quotas = fetch_model_quotas(creds["api_key"], creds["project_id"])
+    windows = tuple(
+        AccountUsageWindow(
+            label=quota["label"],
+            used_percent=round((1.0 - quota["remaining_fraction"]) * 100, 1),
+            reset_at=_parse_dt(quota.get("reset_time")),
+        )
+        for quota in quotas
+    )
+    return AccountUsageSnapshot(
+        provider="antigravity",
+        source="fetch_available_models",
+        fetched_at=_utc_now(),
+        title="Model quota",
+        plan=describe_tier(str(creds.get("tier_id") or "")) if creds.get("tier_id") else None,
+        windows=windows,
+        unavailable_reason=None if windows else "Antigravity did not report quota for this account.",
+    )
+
+
 def fetch_account_usage(
     provider: Optional[str],
     *,
@@ -588,6 +616,8 @@ def fetch_account_usage(
             return _fetch_anthropic_account_usage()
         if normalized == "openrouter":
             return _fetch_openrouter_account_usage(base_url, api_key)
+        if normalized == "antigravity":
+            return _fetch_antigravity_account_usage()
     except Exception:
         return None
     return None

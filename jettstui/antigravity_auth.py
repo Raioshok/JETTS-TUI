@@ -466,13 +466,17 @@ def _onboard_user(
     return ""
 
 
-def fetch_available_models(
+def _fetch_model_entries(
     access_token: str,
     project_id: str,
     *,
     timeout_seconds: float = 15.0,
-) -> List[str]:
-    """Return the model ids the account can use, or ``[]`` when discovery fails."""
+) -> Dict[str, Dict[str, Any]]:
+    """Return ``{model_id: metadata}`` from ``fetchAvailableModels`` (``{}`` on failure).
+
+    Internal routing / tab-completion / image models are dropped: they are
+    not chat models.
+    """
     with httpx.Client(timeout=timeout_seconds) as client:
         for endpoint in ANTIGRAVITY_INFERENCE_ENDPOINTS:
             try:
@@ -487,23 +491,61 @@ def fetch_available_models(
                 models = response.json().get("models")
             except ValueError:
                 continue
+            entries: Dict[str, Dict[str, Any]] = {}
             if isinstance(models, dict):
-                names = [str(name) for name in models.keys() if name]
+                for name, meta in models.items():
+                    entries[str(name)] = meta if isinstance(meta, dict) else {}
             elif isinstance(models, list):
-                names = [
-                    str(m.get("name") or m.get("id") or "") if isinstance(m, dict) else str(m)
-                    for m in models
-                ]
-            else:
-                names = []
-            # Internal routing/tab-completion models are not chat models.
-            names = [
-                n for n in names
-                if n and not n.startswith(("chat_", "tab_")) and "image" not in n
-            ]
-            if names:
-                return sorted(set(names), key=_model_sort_key)
-    return []
+                for item in models:
+                    if isinstance(item, dict):
+                        entries[str(item.get("name") or item.get("id") or "")] = item
+                    else:
+                        entries[str(item)] = {}
+            entries = {
+                name: meta for name, meta in entries.items()
+                if name and not name.startswith(("chat_", "tab_")) and "image" not in name
+            }
+            if entries:
+                return entries
+    return {}
+
+
+def fetch_available_models(
+    access_token: str,
+    project_id: str,
+    *,
+    timeout_seconds: float = 15.0,
+) -> List[str]:
+    """Return the model ids the account can use, or ``[]`` when discovery fails."""
+    entries = _fetch_model_entries(access_token, project_id, timeout_seconds=timeout_seconds)
+    return sorted(entries, key=_model_sort_key)
+
+
+def fetch_model_quotas(
+    access_token: str,
+    project_id: str,
+    *,
+    timeout_seconds: float = 15.0,
+) -> List[Dict[str, Any]]:
+    """Per-model quota: ``[{model, label, remaining_fraction, reset_time}]``.
+
+    Models the backend reports without quota information are omitted.
+    """
+    quotas: List[Dict[str, Any]] = []
+    entries = _fetch_model_entries(access_token, project_id, timeout_seconds=timeout_seconds)
+    for name in sorted(entries, key=_model_sort_key):
+        meta = entries[name]
+        info = meta.get("quotaInfo") if isinstance(meta.get("quotaInfo"), dict) else {}
+        remaining = info.get("remainingFraction")
+        if not isinstance(remaining, (int, float)):
+            continue
+        quotas.append({
+            "model": name,
+            "label": str(meta.get("displayName") or name),
+            "remaining_fraction": max(0.0, min(1.0, float(remaining))),
+            "reset_time": info.get("resetTime"),
+        })
+    return quotas
 
 
 def _model_sort_key(name: str) -> tuple:

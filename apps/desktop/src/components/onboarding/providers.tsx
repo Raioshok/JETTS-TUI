@@ -15,7 +15,7 @@ const PROVIDER_DISPLAY: Record<string, { order: number; title: string }> = {
   'claude-code': { order: 7, title: 'Anthropic OAuth: Required Extra Usage Credits to Use Subscription' }
 }
 
-export const providerTitle = (p: OAuthProvider) => PROVIDER_DISPLAY[p.id]?.title ?? p.name
+export const providerTitle = (p: Pick<OAuthProvider, 'id' | 'name'>) => PROVIDER_DISPLAY[p.id]?.title ?? p.name
 const orderOf = (p: OAuthProvider) => PROVIDER_DISPLAY[p.id]?.order ?? 99
 
 export const sortProviders = (providers: OAuthProvider[]) =>

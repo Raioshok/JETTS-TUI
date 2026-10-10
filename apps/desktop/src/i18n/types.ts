@@ -1059,6 +1059,16 @@ export interface Translations {
     statTokens: string
     statCost: string
     actualCost: (cost: string) => string
+    statCache: string
+    costEstimateNote: string
+    providerQuota: string
+    quotaLoading: string
+    quotaNone: string
+    quotaNotReported: string
+    quotaUnavailable: string
+    quotaUsed: (percent: string) => string
+    quotaResets: (when: string) => string
+    quotaRefresh: string
     loadingUsage: string
     noUsage: (period: number) => string
     retry: string

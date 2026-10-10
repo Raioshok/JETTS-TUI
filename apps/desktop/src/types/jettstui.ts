@@ -647,6 +647,8 @@ export interface AnalyticsDailyEntry {
   actual_cost: number
   api_calls: number
   cache_read_tokens: number
+  /** Absent on older backends. */
+  cache_write_tokens?: null | number
   day: string
   estimated_cost: number
   input_tokens: number
@@ -657,6 +659,8 @@ export interface AnalyticsDailyEntry {
 
 export interface AnalyticsModelEntry {
   api_calls: number
+  /** Absent on older backends. */
+  cache_read_tokens?: null | number
   estimated_cost: number
   input_tokens: number
   model: string
@@ -703,11 +707,39 @@ export interface AnalyticsTotals {
   total_actual_cost: number
   total_api_calls: null | number
   total_cache_read: null | number
+  /** Absent on older backends. */
+  total_cache_write?: null | number
   total_estimated_cost: number
   total_input: null | number
   total_output: null | number
   total_reasoning: null | number
   total_sessions: number
+}
+
+export interface ProviderQuotaWindow {
+  detail: null | string
+  label: string
+  reset_at: null | string
+  used_percent: null | number
+}
+
+export interface ProviderQuota {
+  details?: string[]
+  /** Set when the provider has a quota API but the fetch failed. */
+  error?: string
+  fetched_at?: string
+  id: string
+  name: string
+  plan?: null | string
+  /** False when the provider exposes no quota API. */
+  supported: boolean
+  title?: string
+  unavailable_reason?: null | string
+  windows?: ProviderQuotaWindow[]
+}
+
+export interface ProviderQuotaResponse {
+  providers: ProviderQuota[]
 }
 
 export interface CronJob {

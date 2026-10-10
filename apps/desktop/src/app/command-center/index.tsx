@@ -12,7 +12,7 @@ import { useI18n } from '@/i18n'
 import { getActionStatus, getLogs, getStatus, getUsageAnalytics, restartGateway, updateJettsTUI } from '@/jettstui'
 import type { ActionStatusResponse, AnalyticsResponse, StatusResponse } from '@/jettstui'
 import { sessionTitle } from '@/lib/chat-runtime'
-import { compactNumber } from '@/lib/format'
+import { compactNumber, formatUsd } from '@/lib/format'
 import {
   Activity,
   AlertCircle,
@@ -37,6 +37,7 @@ import { OverlayMain, OverlayNav, OverlaySplitLayout } from '../overlays/overlay
 import { OverlayView } from '../overlays/overlay-view'
 
 import { MaintenancePanel } from './maintenance'
+import { ProviderQuotaSection } from './provider-quota'
 
 export type CommandCenterSection = 'maintenance' | 'sessions' | 'system' | 'usage'
 
@@ -560,7 +561,18 @@ function UsagePanel({ error, loading, onRefresh, period, usage }: UsagePanelProp
           label={cc.statTokens}
           value={`${compactNumber(totals.total_input)} / ${compactNumber(totals.total_output)}`}
         />
+        <UsageStat
+          label={cc.statCache}
+          value={`${compactNumber(totals.total_cache_read)} / ${compactNumber(totals.total_cache_write)}`}
+        />
+        <UsageStat
+          hint={totals.total_actual_cost > 0 ? cc.actualCost(formatUsd(totals.total_actual_cost)) : cc.costEstimateNote}
+          label={cc.statCost}
+          value={formatUsd(totals.total_estimated_cost)}
+        />
       </div>
+
+      <ProviderQuotaSection />
 
       <section>
         <div className="mb-2 flex items-baseline justify-between">
@@ -619,7 +631,7 @@ function UsagePanel({ error, loading, onRefresh, period, usage }: UsagePanelProp
           rows={byModel.slice(0, 6).map(entry => ({
             key: entry.model,
             label: entry.model,
-            value: `${compactNumber((entry.input_tokens || 0) + (entry.output_tokens || 0))}`
+            value: `${compactNumber((entry.input_tokens || 0) + (entry.output_tokens || 0))} · ${formatUsd(entry.estimated_cost)}`
           }))}
           title={cc.topModels}
         />

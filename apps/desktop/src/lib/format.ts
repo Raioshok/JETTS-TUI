@@ -22,3 +22,22 @@ export function compactNumber(value: null | number | undefined): string {
 
   return `${Math.round(num)}`
 }
+
+// Dollar amounts for usage/cost displays: "$0.00", "<$0.01", "$12.34", "$1.2k".
+export function formatUsd(value: null | number | undefined): string {
+  const num = Number(value ?? 0)
+
+  if (!Number.isFinite(num) || num <= 0) {
+    return '$0.00'
+  }
+
+  if (num < 0.01) {
+    return '<$0.01'
+  }
+
+  if (num >= 999.5) {
+    return `$${compactNumber(num)}`
+  }
+
+  return `$${num.toFixed(2)}`
+}

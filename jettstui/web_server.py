@@ -16517,6 +16517,7 @@ def _merge_aux_into_by_model(
                 "model": model,
                 "input_tokens": 0,
                 "output_tokens": 0,
+                "cache_read_tokens": 0,
                 "estimated_cost": 0,
                 "sessions": 0,
                 "api_calls": 0,
@@ -16524,6 +16525,7 @@ def _merge_aux_into_by_model(
             merged[model] = target
         target["input_tokens"] = (target.get("input_tokens") or 0) + (aux.get("input_tokens") or 0)
         target["output_tokens"] = (target.get("output_tokens") or 0) + (aux.get("output_tokens") or 0)
+        target["cache_read_tokens"] = (target.get("cache_read_tokens") or 0) + (aux.get("cache_read_tokens") or 0)
         target["estimated_cost"] = (target.get("estimated_cost") or 0) + (aux.get("estimated_cost") or 0)
         target["api_calls"] = (target.get("api_calls") or 0) + (aux.get("api_calls") or 0)
         tasks = target.setdefault("aux_tasks", [])
@@ -16581,6 +16583,7 @@ def _get_usage_analytics(days: int = 30, profile: Optional[str] = None):
                    SUM(input_tokens) as input_tokens,
                    SUM(output_tokens) as output_tokens,
                    SUM(cache_read_tokens) as cache_read_tokens,
+                   SUM(cache_write_tokens) as cache_write_tokens,
                    SUM(reasoning_tokens) as reasoning_tokens,
                    COALESCE(SUM(estimated_cost_usd), 0) as estimated_cost,
                    COALESCE(SUM(actual_cost_usd), 0) as actual_cost,
@@ -16595,6 +16598,7 @@ def _get_usage_analytics(days: int = 30, profile: Optional[str] = None):
             SELECT model,
                    SUM(input_tokens) as input_tokens,
                    SUM(output_tokens) as output_tokens,
+                   SUM(cache_read_tokens) as cache_read_tokens,
                    COALESCE(SUM(estimated_cost_usd), 0) as estimated_cost,
                    COUNT(*) as sessions,
                    SUM(COALESCE(api_call_count, 0)) as api_calls
@@ -16615,6 +16619,7 @@ def _get_usage_analytics(days: int = 30, profile: Optional[str] = None):
             SELECT SUM(input_tokens) as total_input,
                    SUM(output_tokens) as total_output,
                    SUM(cache_read_tokens) as total_cache_read,
+                   SUM(cache_write_tokens) as total_cache_write,
                    SUM(reasoning_tokens) as total_reasoning,
                    COALESCE(SUM(estimated_cost_usd), 0) as total_estimated_cost,
                    COALESCE(SUM(actual_cost_usd), 0) as total_actual_cost,
@@ -16649,6 +16654,87 @@ def _get_usage_analytics(days: int = 30, profile: Optional[str] = None):
         }
     finally:
         db.close()
+
+
+# OAuth catalog ids whose subscription quota JettsTUI can read, mapped to the
+# agent.account_usage provider that fetches it. Both Anthropic rows share one
+# Claude account.
+_OAUTH_QUOTA_SOURCES = {
+    "openai-codex": "openai-codex",
+    "anthropic": "anthropic",
+    "claude-code": "anthropic",
+    "antigravity": "antigravity",
+}
+
+
+def _account_usage_to_dict(snapshot: Any) -> Dict[str, Any]:
+    return {
+        "title": snapshot.title,
+        "plan": snapshot.plan,
+        "windows": [
+            {
+                "label": window.label,
+                "used_percent": window.used_percent,
+                "reset_at": window.reset_at.isoformat() if window.reset_at else None,
+                "detail": window.detail,
+            }
+            for window in snapshot.windows
+        ],
+        "details": list(snapshot.details),
+        "unavailable_reason": snapshot.unavailable_reason,
+        "fetched_at": snapshot.fetched_at.isoformat(),
+    }
+
+
+def _get_provider_quotas(profile: Optional[str] = None) -> Dict[str, Any]:
+    """Subscription quota for every signed-in OAuth provider.
+
+    Providers with a quota API (ChatGPT/Codex, Claude, Antigravity) are
+    fetched live and in parallel; other signed-in OAuth providers are listed
+    with ``supported: false`` so the UI can say their quota isn't reported.
+    """
+    import contextvars
+    from concurrent.futures import ThreadPoolExecutor
+
+    from agent.account_usage import fetch_account_usage
+
+    with _profile_scope(profile):
+        rows: List[Dict[str, Any]] = []
+        seen: set[str] = set()
+        for entry in _build_oauth_catalog():
+            status = _resolve_provider_status(entry["id"], entry.get("status_fn"))
+            if not status.get("logged_in"):
+                continue
+            source = _OAUTH_QUOTA_SOURCES.get(entry["id"])
+            key = source or entry["id"]
+            if key in seen:
+                continue
+            seen.add(key)
+            rows.append({"id": entry["id"], "name": entry["name"], "source": source})
+
+        def _fetch(row: Dict[str, Any]) -> Dict[str, Any]:
+            result: Dict[str, Any] = {"id": row["id"], "name": row["name"], "supported": bool(row["source"])}
+            if not row["source"]:
+                return result
+            snapshot = fetch_account_usage(row["source"])
+            if snapshot is None:
+                result["error"] = "Could not fetch quota right now."
+            else:
+                result.update(_account_usage_to_dict(snapshot))
+            return result
+
+        if not rows:
+            return {"providers": []}
+        # The profile override is context-local; run each fetch in a copy of
+        # this context so worker threads read the requested profile's auth.
+        with ThreadPoolExecutor(max_workers=len(rows)) as pool:
+            futures = [pool.submit(contextvars.copy_context().run, _fetch, row) for row in rows]
+            return {"providers": [future.result() for future in futures]}
+
+
+@app.get("/api/providers/quota")
+async def get_provider_quotas(profile: Optional[str] = None):
+    return await asyncio.to_thread(_get_provider_quotas, profile)
 
 
 @app.get("/api/analytics/usage")
