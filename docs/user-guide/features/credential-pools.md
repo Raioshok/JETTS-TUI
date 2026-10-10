@@ -16,7 +16,7 @@ Provider-side prompt caches (Anthropic, OpenAI, OpenRouter) are scoped to the ac
 :::
 
 :::tip
-Credential pools are mainly for API-key providers (OpenRouter, Anthropic). Providers with their own OAuth (openai-codex, qwen-oauth, etc.) authenticate through a single account, so most users don't need a pool for those.
+Subscription sign-ins can hold several accounts too: Anthropic, OpenAI Codex, xAI Grok, Qwen, MiniMax, and Google Antigravity. When one account runs out of quota, JettsTUI moves to the next. See [Multiple sign-in accounts](#multiple-sign-in-accounts).
 :::
 
 ## How It Works
@@ -76,6 +76,32 @@ anthropic (3 credentials):
 
 The `←` marks the currently selected credential.
 
+## Multiple Sign-in Accounts
+
+Subscription providers can hold several sign-in accounts: Anthropic, OpenAI Codex, xAI Grok, Qwen, MiniMax, and Google Antigravity. Add each account by signing in again:
+
+```bash
+jettstui auth add openai-codex        # sign in with a second ChatGPT account
+jettstui auth add antigravity         # sign in with a second Google account
+```
+
+Switch accounts when one runs out of quota:
+
+```bash
+jettstui auth use openai-codex        # list the accounts and pick one
+jettstui auth use openai-codex 2      # or name it: number, id, or exact label
+```
+
+The account you pick stays in use until its quota runs out. JettsTUI then moves to the next account on its own, and goes back to your pick once its quota resets. Picking an account that is on cooldown clears the cooldown, so you can retry it right away.
+
+In the desktop app, open **Settings → Providers**. Each connected provider lists its accounts with **Use**, remove, and **Add account** buttons. The **Usage** tab shows the quota of the account in use and has the same quick switcher. Open chats move to the new account on their next message.
+
+For Google Antigravity, JettsTUI reads Google's `QUOTA_EXHAUSTED` errors and switches accounts in the middle of a request. A short burst limit (a retry hint under a minute) does not switch accounts.
+
+:::note
+Switching accounts starts a new provider-side prompt cache, just like key rotation (see the warning above).
+:::
+
 ## Interactive Management
 
 Run `jettstui auth` with no subcommand for an interactive wizard:
@@ -92,7 +118,8 @@ What would you like to do?
   2. Remove a credential
   3. Reset cooldowns for a provider
   4. Set rotation strategy for a provider
-  5. Exit
+  5. Switch which account a provider uses
+  6. Exit
 ```
 
 For providers that support both API keys and OAuth (Anthropic, JettsTUI, Codex), the add flow asks which type:
@@ -116,6 +143,7 @@ Type [1/2]:
 | `jettstui auth add <provider> --type oauth` | Add an OAuth credential via browser login |
 | `jettstui auth remove <provider> <index>` | Remove credential by 1-based index |
 | `jettstui auth reset <provider>` | Clear all cooldowns/exhaustion status |
+| `jettstui auth use <provider> [account]` | Switch the sign-in account a provider uses (lists them when no account is given) |
 
 ## Rotation Strategies
 

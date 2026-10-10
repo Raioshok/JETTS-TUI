@@ -150,6 +150,11 @@ _cfg_lock = threading.Lock()
 _sessions_lock = threading.RLock()  # reentrant: _close_session_by_id may run under callers that already hold it
 _prompt_lock = threading.Lock()
 _cfg_cache: dict | None = None
+# Bumped per provider when the desktop account switcher picks another account
+# (jettstui/oauth_accounts.py). Live agents on that provider re-bind their
+# credential at the start of their next turn, never mid-request.
+_account_switch_generation: dict[str, int] = {}
+_account_switch_lock = threading.Lock()
 _cfg_mtime: float | None = None
 _cfg_path = None
 _session_resume_lock = threading.Lock()
@@ -1436,6 +1441,51 @@ def _apply_compute_host_metadata_mirror(session: dict, frame: dict | None) -> No
         mirror.update(info)
         session["_metadata_mirror"] = mirror
         session["_metadata_mirror_updated_at"] = time.time()
+
+
+def note_account_switch(provider: str) -> None:
+    """Record that *provider* now prefers another account (see ``_rebind_switched_account``)."""
+    key = (provider or "").strip().lower()
+    if not key:
+        return
+    with _account_switch_lock:
+        _account_switch_generation[key] = _account_switch_generation.get(key, 0) + 1
+
+
+def _rebind_switched_account(session: dict, agent: Any) -> None:
+    """Move a live agent onto the account picked since its last turn.
+
+    Pool-backed providers only: the agent keeps the credential it selected
+    at creation, so re-select from a fresh pool (which honours the new pin)
+    and swap the client. Antigravity needs nothing here — its client
+    re-reads the active account on every request.
+    """
+    provider = (getattr(agent, "provider", "") or "").strip().lower()
+    generation = _account_switch_generation.get(provider)
+    if generation is None:
+        return
+    seen = session.setdefault("account_switch_seen", {})
+    if seen.get(provider) == generation:
+        return
+    seen[provider] = generation
+    try:
+        from agent.credential_pool import load_pool
+        from jettstui.oauth_accounts import POOLED_ACCOUNT_PROVIDERS
+
+        if provider not in POOLED_ACCOUNT_PROVIDERS:
+            return
+        pool = load_pool(provider)
+        entry = pool.select()
+        if entry is None:
+            return
+        if getattr(agent, "_credential_pool_entry_id", None) == entry.id:
+            agent._credential_pool = pool
+            return
+        agent._credential_pool = pool
+        agent._swap_credential(entry)
+        logger.info("account switch: %s session now uses %s", provider, entry.label or entry.id)
+    except Exception:
+        logger.debug("account switch re-bind failed for %s", provider, exc_info=True)
 
 
 def _on_compute_host_turn_done(rid: str, sid: str, session: dict, frame: dict) -> None:
@@ -11420,6 +11470,7 @@ def _run_prompt_submit(
             if display_kind and "persist_user_display_kind" in _run_params:
                 run_kwargs["persist_user_display_kind"] = display_kind
                 run_kwargs["persist_user_display_metadata"] = display_metadata
+            _rebind_switched_account(session, agent)
             result = agent.run_conversation(run_message, **run_kwargs)
             if display_kind and isinstance(text, str):
                 db = getattr(agent, "_session_db", None)

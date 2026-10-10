@@ -163,6 +163,82 @@ def test_rate_limit_is_not_retried_on_other_endpoints():
     assert len(calls) == 1
 
 
+QUOTA_EXHAUSTED_BODY = {"error": {"code": 429, "message": "quota", "status": "RESOURCE_EXHAUSTED", "details": [
+    {"@type": "type.googleapis.com/google.rpc.ErrorInfo", "reason": "QUOTA_EXHAUSTED",
+     "metadata": {"quotaResetDelay": "3h2m4.5s"}},
+]}}
+BURST_LIMIT_BODY = {"error": {"code": 429, "message": "slow down", "status": "RESOURCE_EXHAUSTED", "details": [
+    {"@type": "type.googleapis.com/google.rpc.RetryInfo", "retryDelay": "2s"},
+]}}
+
+
+def _switching_accounts():
+    """Credential source + rotator pair backed by a list of account tokens."""
+    state = {"active": 0, "rotations": []}
+    tokens = ["tok-a", "tok-b"]
+
+    def source(force_refresh: bool = False):
+        return {"api_key": tokens[state["active"]], "project_id": f"proj-{state['active']}"}
+
+    def rotator(retry_after):
+        state["rotations"].append(retry_after)
+        if state["active"] + 1 >= len(tokens):
+            return False
+        state["active"] += 1
+        return True
+
+    return source, rotator, state
+
+
+@pytest.mark.parametrize("stream", [False, True])
+def test_drained_quota_switches_to_the_next_saved_account(stream):
+    seen = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request.headers["authorization"])
+        if request.headers["authorization"] == "Bearer tok-a":
+            return httpx.Response(429, json=QUOTA_EXHAUSTED_BODY)
+        if stream:
+            body = f"data: {json.dumps({'response': _gemini_payload([{'text': 'ok'}])})}\n\n"
+            return httpx.Response(200, text=body, headers={"content-type": "text/event-stream"})
+        return httpx.Response(200, json={"response": _gemini_payload([{"text": "ok"}])})
+
+    source, rotator, state = _switching_accounts()
+    result = _client(handler, credential_source=source, account_rotator=rotator).chat.completions.create(
+        model="gemini-3-flash", messages=PARALLEL_HISTORY[:2], stream=stream)
+    if stream:
+        text = "".join(c.choices[0].delta.content or "" for c in result)
+    else:
+        text = result.choices[0].message.content
+    assert text == "ok"
+    assert seen == ["Bearer tok-a", "Bearer tok-b"]
+    assert state["rotations"] == [pytest.approx(3 * 3600 + 2 * 60 + 4.5)]
+
+
+def test_short_burst_limit_does_not_switch_accounts():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(429, json=BURST_LIMIT_BODY)
+
+    source, rotator, state = _switching_accounts()
+    with pytest.raises(GeminiAPIError) as exc_info:
+        _client(handler, credential_source=source, account_rotator=rotator).chat.completions.create(
+            model="gemini-3-flash", messages=PARALLEL_HISTORY[:2])
+    assert exc_info.value.status_code == 429
+    assert state["rotations"] == []
+
+
+def test_every_account_drained_surfaces_the_rate_limit():
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(429, json=QUOTA_EXHAUSTED_BODY)
+
+    source, rotator, state = _switching_accounts()
+    with pytest.raises(GeminiAPIError) as exc_info:
+        _client(handler, credential_source=source, account_rotator=rotator).chat.completions.create(
+            model="gemini-3-flash", messages=PARALLEL_HISTORY[:2])
+    assert exc_info.value.status_code == 429
+    assert len(state["rotations"]) == 2 and state["active"] == 1
+
+
 def test_streaming_unwraps_sse_events():
     def handler(request: httpx.Request) -> httpx.Response:
         assert request.url.path.endswith(":streamGenerateContent")

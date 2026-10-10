@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query'
 import type { ReactNode } from 'react'
 
+import { ProviderAccounts } from '@/app/settings/provider-accounts'
 import { providerTitle } from '@/components/onboarding/providers'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
@@ -68,6 +69,9 @@ function ProviderQuotaCard({ provider }: { provider: ProviderQuota }) {
         </span>
         {provider.plan && <span className="shrink-0 text-[0.65rem] text-(--ui-text-tertiary)">{provider.plan}</span>}
       </div>
+      {provider.account && (provider.account_count ?? 0) > 1 && (
+        <div className="truncate text-[0.65rem] text-(--ui-text-tertiary)">{provider.account}</div>
+      )}
       {note ? (
         <Caption>{note}</Caption>
       ) : (
@@ -80,6 +84,11 @@ function ProviderQuotaCard({ provider }: { provider: ProviderQuota }) {
       {(provider.details ?? []).map(detail => (
         <Caption key={detail}>{detail}</Caption>
       ))}
+      {(provider.account_count ?? 0) > 1 && (
+        <div className="mt-2">
+          <ProviderAccounts compact providerId={provider.id} />
+        </div>
+      )}
     </li>
   )
 }

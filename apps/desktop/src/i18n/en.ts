@@ -809,6 +809,21 @@ export const en: Translations = {
       noProviderKeys: 'No provider API keys available.',
       searchKeys: 'Search providers…',
       noKeysMatch: 'No providers match your search.',
+      accounts: {
+        title: 'Accounts',
+        inUse: 'In use',
+        use: 'Use',
+        add: 'Add account',
+        outOfQuota: 'out of quota',
+        outOfQuotaUntil: when => `out of quota, resets ${when}`,
+        signInAgain: 'sign in again',
+        removeConfirm: account => `Remove ${account}?`,
+        switchedTitle: 'Account switched',
+        switched: account => `Now using ${account}. Open chats switch on their next message.`,
+        failedSwitch: 'Could not switch accounts',
+        failedRemove: 'Could not remove the account',
+        autoSwitchHint: 'When the account in use runs out of quota, JettsTUI moves to the next one automatically.'
+      },
       localEndpoint: {
         title: 'Local / custom endpoint',
         description: 'Point JettsTUI at any OpenAI-compatible endpoint (Zyphra, vLLM, llama.cpp, Ollama, etc).'

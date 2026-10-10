@@ -13,6 +13,7 @@ import contextlib
 from contextlib import asynccontextmanager, contextmanager
 
 import asyncio
+import contextvars
 import atexit
 import base64
 import binascii
@@ -10240,11 +10241,21 @@ async def list_oauth_providers(profile: Optional[str] = None):
     flow/status/cli metadata.
     """
     with _profile_scope(profile):
+        from jettstui.oauth_accounts import list_accounts, supports_accounts
+
         providers = []
         for p in _build_oauth_catalog():
             status = _resolve_provider_status(p["id"], p.get("status_fn"))
             disconnect_hint = _oauth_provider_disconnect_hint(p, status)
+            account_count = 0
+            if supports_accounts(p["id"]) and status.get("logged_in"):
+                try:
+                    account_count = len(list_accounts(p["id"]))
+                except Exception:
+                    _log.debug("list_accounts(%s) failed", p["id"], exc_info=True)
             providers.append({
+                "supports_accounts": supports_accounts(p["id"]),
+                "account_count": account_count,
                 "id": p["id"],
                 "name": p["name"],
                 "flow": p["flow"],
@@ -10442,6 +10453,7 @@ def _save_anthropic_oauth_creds(access_token: str, refresh_token: str, expires_a
 
     Mirrors what auth_commands.add_command does so the dashboard flow leaves
     the system in the same state as ``jettstui auth add anthropic``.
+    Additional accounts go through ``add_account`` instead.
     """
     from agent.anthropic_adapter import _get_jettstui_oauth_file
     oauth_file = _get_jettstui_oauth_file()
@@ -10471,13 +10483,14 @@ def _save_anthropic_oauth_creds(access_token: str, refresh_token: str, expires_a
         )
         import uuid
         pool = load_pool("anthropic")
-        # Avoid duplicate entries: delete any prior dashboard-issued OAuth entry
-        existing = [e for e in pool.entries() if getattr(e, "source", "").startswith(f"{SOURCE_MANUAL}:dashboard_pkce")]
-        for e in existing:
-            try:
-                pool.remove_entry(getattr(e, "id", ""))
-            except Exception:
-                pass
+        # Avoid duplicate entries: drop any prior dashboard-issued OAuth entry.
+        # (CredentialPool has no remove_entry(); the old call raised and was
+        # swallowed, so every dashboard re-login stacked another entry.)
+        for e in list(pool.entries()):
+            if getattr(e, "source", "").startswith(f"{SOURCE_MANUAL}:dashboard_pkce"):
+                index, _matched, _err = pool.resolve_target(e.id)
+                if index is not None:
+                    pool.remove_index(index)
         entry = PooledCredential(
             provider="anthropic",
             id=uuid.uuid4().hex[:6],
@@ -10589,7 +10602,18 @@ def _submit_anthropic_pkce(
     expires_at_ms = int(time.time() * 1000) + (expires_in * 1000)
     try:
         with _profile_scope(_oauth_session_profile(session_id, profile)):
-            _save_anthropic_oauth_creds(access_token, refresh_token, expires_at_ms)
+            if sess.get("add_account"):
+                from jettstui.oauth_accounts import add_pooled_oauth_account
+
+                add_pooled_oauth_account(
+                    "anthropic",
+                    access_token=access_token,
+                    refresh_token=refresh_token,
+                    expires_at_ms=expires_at_ms,
+                    source="manual:jettstui_pkce",
+                )
+            else:
+                _save_anthropic_oauth_creds(access_token, refresh_token, expires_at_ms)
     except Exception as e:
         with _oauth_sessions_lock:
             sess["status"] = "error"
@@ -10834,7 +10858,18 @@ def _minimax_poller(session_id: str) -> None:
             "expires_in": expires_in_s,
         }
         with _profile_scope(_oauth_session_profile(session_id)):
-            _minimax_save_auth_state(auth_state)
+            if sess.get("add_account"):
+                from jettstui.oauth_accounts import add_pooled_oauth_account
+
+                add_pooled_oauth_account(
+                    "minimax-oauth",
+                    access_token=auth_state["access_token"],
+                    refresh_token=auth_state["refresh_token"],
+                    base_url=auth_state["inference_base_url"],
+                    source="manual:minimax_oauth",
+                )
+            else:
+                _minimax_save_auth_state(auth_state)
         with _oauth_sessions_lock:
             sess["status"] = "approved"
         _log.info("oauth/device: minimax login completed (session=%s)", session_id)
@@ -10882,6 +10917,24 @@ def _xai_device_poller(session_id: str) -> None:
             "expires_in": token_data.get("expires_in"),
             "token_type": str(token_data.get("token_type") or "Bearer").strip() or "Bearer",
         }
+        if sess.get("add_account"):
+            from agent.credential_pool import SOURCE_MANUAL_DEVICE_CODE
+            from jettstui.auth import DEFAULT_XAI_OAUTH_BASE_URL
+            from jettstui.oauth_accounts import add_pooled_oauth_account
+
+            with _profile_scope(_oauth_session_profile(session_id)):
+                add_pooled_oauth_account(
+                    "xai-oauth",
+                    access_token=tokens["access_token"],
+                    refresh_token=tokens["refresh_token"] or None,
+                    base_url=DEFAULT_XAI_OAUTH_BASE_URL,
+                    source=SOURCE_MANUAL_DEVICE_CODE,
+                    last_refresh=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+                )
+            with _oauth_sessions_lock:
+                sess["status"] = "approved"
+            _log.info("oauth/device: xai account added (session=%s)", session_id)
+            return
         with _profile_scope(_oauth_session_profile(session_id)):
             _save_xai_oauth_tokens(
                 tokens,
@@ -11060,10 +11113,22 @@ def _codex_full_login_worker(session_id: str) -> None:
         from jettstui.auth import _save_codex_tokens
 
         with _profile_scope(_oauth_session_profile(session_id)):
-            _save_codex_tokens({
-                "access_token": access_token,
-                "refresh_token": refresh_token,
-            })
+            if sess.get("add_account"):
+                from agent.credential_pool import SOURCE_MANUAL_DEVICE_CODE
+                from jettstui.oauth_accounts import add_pooled_oauth_account
+
+                add_pooled_oauth_account(
+                    "openai-codex",
+                    access_token=access_token,
+                    refresh_token=refresh_token,
+                    source=SOURCE_MANUAL_DEVICE_CODE,
+                    last_refresh=datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+                )
+            else:
+                _save_codex_tokens({
+                    "access_token": access_token,
+                    "refresh_token": refresh_token,
+                })
         with _oauth_sessions_lock:
             sess["status"] = "approved"
         _log.info("oauth/device: openai-codex login completed (session=%s)", session_id)
@@ -11171,8 +11236,29 @@ async def start_oauth_login(
     provider_id: str,
     request: Request,
     profile: Optional[str] = None,
+    add_account: bool = False,
 ):
-    """Initiate an OAuth login flow. Token-protected."""
+    """Initiate an OAuth login flow. Token-protected.
+
+    ``add_account=true`` signs in an additional account next to the existing
+    ones (and switches to it) instead of replacing the current sign-in.
+    """
+    if add_account:
+        result = await _start_oauth_login_flow(provider_id, request, profile)
+        sid = result.get("session_id") if isinstance(result, dict) else None
+        with _oauth_sessions_lock:
+            sess = _oauth_sessions.get(sid) if sid else None
+            if sess is not None:
+                sess["add_account"] = True
+        return result
+    return await _start_oauth_login_flow(provider_id, request, profile)
+
+
+async def _start_oauth_login_flow(
+    provider_id: str,
+    request: Request,
+    profile: Optional[str] = None,
+):
     _require_token(request)
     _gc_oauth_sessions()
     _validate_oauth_profile(profile)
@@ -11270,6 +11356,79 @@ async def cancel_oauth_session(
     if sess is None:
         return {"ok": False, "message": "session not found"}
     return {"ok": True, "session_id": session_id}
+
+
+# ---------------------------------------------------------------------------
+# OAuth accounts — several sign-ins per provider, switch between them fast
+# (e.g. when one account's quota runs out). See jettstui/oauth_accounts.py.
+# ---------------------------------------------------------------------------
+
+
+def _accounts_or_400(fn, *args):
+    from jettstui.oauth_accounts import AccountError
+
+    try:
+        return fn(*args)
+    except AccountError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
+
+
+@app.get("/api/providers/oauth/{provider_id}/accounts")
+async def list_oauth_accounts(provider_id: str, profile: Optional[str] = None):
+    from jettstui.oauth_accounts import list_accounts
+
+    with _profile_scope(profile):
+        accounts = await asyncio.get_running_loop().run_in_executor(
+            None, contextvars.copy_context().run, _accounts_or_400, list_accounts, provider_id,
+        )
+    return {"provider": provider_id, "accounts": accounts}
+
+
+@app.post("/api/providers/oauth/{provider_id}/accounts/{account_id}/use")
+async def use_oauth_account(
+    provider_id: str,
+    account_id: str,
+    request: Request,
+    profile: Optional[str] = None,
+):
+    """Switch the account a provider uses. Open chats move over on their next turn."""
+    _require_token(request)
+    from jettstui.oauth_accounts import use_account
+
+    with _profile_scope(profile):
+        account = await asyncio.get_running_loop().run_in_executor(
+            None, contextvars.copy_context().run, _accounts_or_400, use_account, provider_id, account_id,
+        )
+    try:
+        from tui_gateway.server import note_account_switch
+
+        note_account_switch(provider_id)
+    except Exception:
+        _log.debug("note_account_switch unavailable", exc_info=True)
+    return {"ok": True, "provider": provider_id, "account": account}
+
+
+@app.delete("/api/providers/oauth/{provider_id}/accounts/{account_id}")
+async def remove_oauth_account(
+    provider_id: str,
+    account_id: str,
+    request: Request,
+    profile: Optional[str] = None,
+):
+    _require_token(request)
+    from jettstui.oauth_accounts import remove_account
+
+    with _profile_scope(profile):
+        result = await asyncio.get_running_loop().run_in_executor(
+            None, contextvars.copy_context().run, _accounts_or_400, remove_account, provider_id, account_id,
+        )
+    try:
+        from tui_gateway.server import note_account_switch
+
+        note_account_switch(provider_id)
+    except Exception:
+        _log.debug("note_account_switch unavailable", exc_info=True)
+    return {"ok": True, "provider": provider_id, **result}
 
 
 # ---------------------------------------------------------------------------
@@ -16713,10 +16872,33 @@ def _get_provider_quotas(profile: Optional[str] = None) -> Dict[str, Any]:
             rows.append({"id": entry["id"], "name": entry["name"], "source": source})
 
         def _fetch(row: Dict[str, Any]) -> Dict[str, Any]:
+            from jettstui.oauth_accounts import list_accounts, pinned_pool_credential, supports_accounts
+
             result: Dict[str, Any] = {"id": row["id"], "name": row["name"], "supported": bool(row["source"])}
+            if supports_accounts(row["id"]):
+                try:
+                    accounts = list_accounts(row["id"])
+                except Exception:
+                    accounts = []
+                result["account_count"] = len(accounts)
+                result["account"] = next((a["label"] for a in accounts if a["active"]), None)
             if not row["source"]:
                 return result
-            snapshot = fetch_account_usage(row["source"])
+            # With several accounts, report the one in use, not the legacy
+            # singleton login the provider's usage helper would pick.
+            pinned = None
+            try:
+                pinned = pinned_pool_credential(row["source"])
+            except Exception:
+                _log.debug("pinned credential lookup failed for %s", row["source"], exc_info=True)
+            if pinned is not None:
+                snapshot = fetch_account_usage(
+                    row["source"],
+                    base_url=pinned.runtime_base_url,
+                    api_key=pinned.runtime_api_key,
+                )
+            else:
+                snapshot = fetch_account_usage(row["source"])
             if snapshot is None:
                 result["error"] = "Could not fetch quota right now."
             else:

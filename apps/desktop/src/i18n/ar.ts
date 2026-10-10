@@ -820,6 +820,21 @@ export const ar = defineLocale({
       noProviderKeys: 'لا توجد مفاتيح API متاحة للمزودين.',
       searchKeys: 'البحث عن مزوّدين...',
       noKeysMatch: 'لا يوجد مزوّدون يطابقون بحثك.',
+      accounts: {
+        title: 'الحسابات',
+        inUse: 'قيد الاستخدام',
+        use: 'استخدام',
+        add: 'إضافة حساب',
+        outOfQuota: 'نفدت الحصة',
+        outOfQuotaUntil: when => `نفدت الحصة، يُعاد التعيين ${when}`,
+        signInAgain: 'سجّل الدخول مجددًا',
+        removeConfirm: account => `إزالة ${account}؟`,
+        switchedTitle: 'تم تبديل الحساب',
+        switched: account => `يتم الآن استخدام ${account}. تنتقل المحادثات المفتوحة مع رسالتها التالية.`,
+        failedSwitch: 'تعذّر تبديل الحساب',
+        failedRemove: 'تعذّرت إزالة الحساب',
+        autoSwitchHint: 'عندما تنفد حصة الحساب المستخدم، ينتقل JettsTUI تلقائيًا إلى الحساب التالي.'
+      },
       localEndpoint: {
         title: 'نقطة نهاية محلية',
         description: 'استخدم خادما محليا أو نقطة نهاية متوافقة مع OpenAI لهذا المزود.'

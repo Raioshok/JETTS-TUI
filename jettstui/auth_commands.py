@@ -344,6 +344,14 @@ def auth_add_command(args) -> None:
             f"Signed in to Google Antigravity as {state.get('email') or 'your Google account'} "
             f"({describe_tier(state.get('tier_id') or '')})."
         )
+        from jettstui.antigravity_auth import list_accounts as list_antigravity_accounts
+
+        saved = len(list_antigravity_accounts())
+        if saved > 1:
+            print(
+                f"{saved} Google accounts saved; this one is now in use. "
+                "Switch with `jettstui auth use antigravity`."
+            )
         print("Select it with `jettstui model` (Google Gemini → Google Antigravity).")
         return
 
@@ -420,6 +428,65 @@ def auth_list_command(args) -> None:
             source = _display_source(entry.source)
             print(f"  #{idx}  {entry.label:<20} {entry.auth_type:<7} {source}{status} {marker}".rstrip())
         print()
+    if not provider_filter or provider_filter == "antigravity":
+        from jettstui.oauth_accounts import list_accounts
+
+        antigravity = list_accounts("antigravity")
+        if antigravity:
+            print(f"antigravity ({len(antigravity)} accounts):")
+            _print_accounts(antigravity)
+            print()
+
+
+def _format_cooldown(until) -> str:
+    if not until:
+        return ""
+    remaining = max(0, int(math.ceil(until - time.time())))
+    hours, rem = divmod(remaining, 3600)
+    minutes = rem // 60
+    return f" out of quota ({hours}h {minutes}m left)" if hours else f" out of quota ({minutes}m left)"
+
+
+def _print_accounts(accounts: list) -> None:
+    for idx, account in enumerate(accounts, start=1):
+        marker = "← in use" if account["active"] else ""
+        status = " dead (sign in again)" if account["status"] == "dead" else _format_cooldown(account["exhausted_until"])
+        detail = f" {account['detail']}" if account.get("detail") else ""
+        print(f"  #{idx}  {account['label']:<28}{detail}{status} {marker}".rstrip())
+
+
+def auth_use_command(args) -> None:
+    from jettstui.oauth_accounts import AccountError, list_accounts, supports_accounts, use_account
+
+    provider = _normalize_provider(getattr(args, "provider", ""))
+    if not supports_accounts(provider):
+        raise SystemExit(
+            f"{provider} does not support multiple sign-in accounts. "
+            "Use `jettstui auth list` / `jettstui auth remove` for API keys."
+        )
+    accounts = list_accounts(provider)
+    if not accounts:
+        raise SystemExit(f"No {provider} accounts yet. Add one with `jettstui auth add {provider}`.")
+
+    target = (getattr(args, "target", None) or "").strip()
+    if not target:
+        print(f"{provider} accounts:")
+        _print_accounts(accounts)
+        if not sys.stdin.isatty() or len(accounts) < 2:
+            if len(accounts) < 2:
+                print(f"\nAdd another with `jettstui auth add {provider}`.")
+            return
+        try:
+            target = input("\nUse account # (blank to keep the current one): ").strip()
+        except (EOFError, KeyboardInterrupt):
+            return
+        if not target:
+            return
+    try:
+        account = use_account(provider, target)
+    except AccountError as exc:
+        raise SystemExit(str(exc))
+    print(f"{provider} now uses {account['label']}. New sessions pick it up; the desktop app switches open chats too.")
 
 
 def auth_remove_command(args) -> None:
@@ -427,6 +494,15 @@ def auth_remove_command(args) -> None:
     target = getattr(args, "target", None)
     if target is None:
         target = getattr(args, "index", None)
+    if provider == "antigravity":
+        from jettstui.oauth_accounts import AccountError, remove_account
+
+        try:
+            removed_account = remove_account(provider, str(target or ""))
+        except AccountError as exc:
+            raise SystemExit(str(exc))
+        print(f"Removed {provider} account {removed_account['label']}")
+        return
     pool = load_pool(provider)
     index, matched, error = pool.resolve_target(target)
     if matched is None or index is None:
@@ -589,6 +665,7 @@ def _interactive_auth() -> None:
         "Remove a credential",
         "Reset cooldowns for a provider",
         "Set rotation strategy for a provider",
+        "Switch which account a provider uses",
         "Exit",
     ]
     print("What would you like to do?")
@@ -611,6 +688,9 @@ def _interactive_auth() -> None:
         _interactive_reset()
     elif raw == "4":
         _interactive_strategy()
+    elif raw == "5":
+        provider = _pick_provider("Provider to switch accounts for")
+        auth_use_command(SimpleNamespace(provider=provider, target=None))
 
 
 def _pick_provider(prompt: str = "Provider") -> str:
@@ -749,6 +829,9 @@ def auth_command(args) -> None:
         return
     if action == "reset":
         auth_reset_command(args)
+        return
+    if action == "use":
+        auth_use_command(args)
         return
     if action == "status":
         auth_status_command(args)

@@ -45,7 +45,26 @@ export interface OAuthProviderStatus {
   token_preview?: null | string
 }
 
+export interface OAuthAccount {
+  active: boolean
+  /** Plan for Antigravity, credential kind ("oauth" / "api_key") for pooled providers. */
+  detail?: null | string
+  /** Unix seconds when the account's quota cooldown ends. */
+  exhausted_until: null | number
+  id: string
+  label: string
+  source: string
+  status: 'dead' | 'exhausted' | 'ok'
+}
+
+export interface OAuthAccountsResponse {
+  accounts: OAuthAccount[]
+  provider: string
+}
+
 export interface OAuthProvider {
+  /** Saved sign-in accounts (0 when signed out or single-account). */
+  account_count?: number
   cli_command: string
   /** Shell command that clears an external provider's credentials, run in the
    *  embedded terminal. Null when JettsTUI doesn't know how to remove it. */
@@ -57,6 +76,8 @@ export interface OAuthProvider {
   id: string
   name: string
   status: OAuthProviderStatus
+  /** True when the provider can hold several sign-in accounts. */
+  supports_accounts?: boolean
 }
 
 export interface OAuthProvidersResponse {
@@ -724,6 +745,9 @@ export interface ProviderQuotaWindow {
 }
 
 export interface ProviderQuota {
+  /** Label of the account the quota belongs to, for multi-account providers. */
+  account?: null | string
+  account_count?: number
   details?: string[]
   /** Set when the provider has a quota API but the fetch failed. */
   error?: string

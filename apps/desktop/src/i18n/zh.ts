@@ -1011,6 +1011,21 @@ export const zh: Translations = {
       noProviderKeys: '没有可用的提供方 API 密钥。',
       searchKeys: '搜索提供方…',
       noKeysMatch: '没有匹配的提供方。',
+      accounts: {
+        title: '账号',
+        inUse: '使用中',
+        use: '使用',
+        add: '添加账号',
+        outOfQuota: '额度已用完',
+        outOfQuotaUntil: when => `额度已用完，${when} 重置`,
+        signInAgain: '需要重新登录',
+        removeConfirm: account => `移除 ${account}？`,
+        switchedTitle: '已切换账号',
+        switched: account => `现在使用 ${account}。已打开的对话会在下一条消息时切换。`,
+        failedSwitch: '无法切换账号',
+        failedRemove: '无法移除账号',
+        autoSwitchHint: '当前账号额度用完时，JettsTUI 会自动切换到下一个账号。'
+      },
       localEndpoint: {
         title: '本地 / 自定义端点',
         description: '将 JettsTUI 指向任意 OpenAI 兼容端点（Zyphra、vLLM、llama.cpp、Ollama 等）。'

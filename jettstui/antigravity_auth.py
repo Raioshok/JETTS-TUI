@@ -558,6 +558,14 @@ def _model_sort_key(name: str) -> tuple:
 # Persistence
 # ---------------------------------------------------------------------------
 
+ACCOUNTS_KEY = "accounts"
+DEFAULT_QUOTA_COOLDOWN_SECONDS = 60 * 60
+# 429s that ask for a shorter wait than this are treated as transient rate
+# limits (retry the same account) rather than a drained quota (switch accounts).
+QUOTA_ROTATE_MIN_RETRY_SECONDS = 60.0
+_ACCOUNT_ONLY_KEYS = frozenset({"id", "exhausted_until"})
+
+
 def _load_state() -> Optional[Dict[str, Any]]:
     from jettstui.auth import _load_auth_store, _load_provider_state
 
@@ -565,13 +573,195 @@ def _load_state() -> Optional[Dict[str, Any]]:
     return dict(state) if isinstance(state, dict) else None
 
 
-def _save_state(state: Dict[str, Any], *, set_active: bool) -> None:
+def account_id_for(record: Dict[str, Any]) -> str:
+    """Stable short id for a saved account (by email, else by refresh token)."""
+    seed = str(record.get("email") or "").strip().lower() or str(record.get("refresh_token") or "")
+    return hashlib.sha256(seed.encode("utf-8")).hexdigest()[:8]
+
+
+def _active_fields(state: Dict[str, Any]) -> Dict[str, Any]:
+    return {k: v for k, v in state.items() if k != ACCOUNTS_KEY}
+
+
+def _account_to_active(record: Dict[str, Any]) -> Dict[str, Any]:
+    return {k: v for k, v in record.items() if k not in _ACCOUNT_ONLY_KEYS}
+
+
+def _saved_accounts(state: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
+    """Saved accounts, migrating a pre-multi-account state into a one-entry list."""
+    if not state:
+        return []
+    raw = state.get(ACCOUNTS_KEY)
+    if isinstance(raw, list):
+        return [dict(a) for a in raw if isinstance(a, dict) and a.get("refresh_token")]
+    if state.get("refresh_token"):
+        record = _active_fields(state)
+        record["id"] = account_id_for(record)
+        return [record]
+    return []
+
+
+def _upsert_account(accounts: List[Dict[str, Any]], active: Dict[str, Any]) -> List[Dict[str, Any]]:
+    if not active.get("refresh_token"):
+        return accounts
+    record = dict(active)
+    record["id"] = account_id_for(record)
+    out: List[Dict[str, Any]] = []
+    replaced = False
+    for account in accounts:
+        if account.get("id") == record["id"]:
+            # Fresh tokens win; the saved copy keeps its cooldown bookkeeping.
+            out.append({**account, **record})
+            replaced = True
+        else:
+            out.append(account)
+    if not replaced:
+        out.append(record)
+    return out
+
+
+def _write_state(state: Optional[Dict[str, Any]], *, set_active: bool) -> None:
     from jettstui.auth import _auth_store_lock, _load_auth_store, _save_auth_store, _store_provider_state
 
     with _auth_store_lock():
         auth_store = _load_auth_store()
-        _store_provider_state(auth_store, PROVIDER_ID, state, set_active=set_active)
+        if state is None:
+            providers = auth_store.get("providers")
+            if isinstance(providers, dict):
+                providers.pop(PROVIDER_ID, None)
+            if auth_store.get("active_provider") == PROVIDER_ID:
+                auth_store["active_provider"] = None
+        else:
+            _store_provider_state(auth_store, PROVIDER_ID, state, set_active=set_active)
         _save_auth_store(auth_store)
+
+
+def _save_state(state: Dict[str, Any], *, set_active: bool) -> None:
+    """Persist the active account and mirror it into the saved-accounts list.
+
+    Callers pass the active account's fields; the saved list is taken from
+    *state* when it carries one, otherwise from disk, so a fresh login adds an
+    account instead of replacing the others.
+    """
+    from jettstui.auth import _auth_store_lock
+
+    with _auth_store_lock():
+        if ACCOUNTS_KEY in state:
+            accounts = _saved_accounts(state)
+        else:
+            accounts = _saved_accounts(_load_state())
+        active = _active_fields(state)
+        new_state = dict(active)
+        new_state[ACCOUNTS_KEY] = _upsert_account(accounts, active)
+        _write_state(new_state, set_active=set_active)
+
+
+def _cooldown_until(account: Dict[str, Any], now: float) -> Optional[float]:
+    try:
+        until = float(account.get("exhausted_until") or 0)
+    except (TypeError, ValueError):
+        return None
+    return until if until > now else None
+
+
+def list_accounts() -> List[Dict[str, Any]]:
+    """Display-safe list of the saved Google accounts (no tokens)."""
+    state = _load_state()
+    active_id = account_id_for(state) if state and state.get("refresh_token") else ""
+    now = time.time()
+    out = []
+    for account in _saved_accounts(state):
+        account_id = account.get("id") or account_id_for(account)
+        tier_id = str(account.get("tier_id") or "")
+        out.append({
+            "id": account_id,
+            "email": account.get("email") or "",
+            "tier_id": tier_id,
+            "plan": describe_tier(tier_id),
+            "active": account_id == active_id,
+            "exhausted_until": _cooldown_until(account, now),
+        })
+    return out
+
+
+def activate_account(account_id: str) -> Dict[str, Any]:
+    """Make a saved account the active one. Live clients pick it up on their next request."""
+    from jettstui.auth import _auth_store_lock
+
+    with _auth_store_lock():
+        accounts = _saved_accounts(_load_state())
+        record = next((a for a in accounts if a.get("id") == account_id), None)
+        if record is None:
+            raise _auth_error(f"No saved Antigravity account {account_id!r}.", "antigravity_account_missing")
+        # Picking an account is an explicit "try this one": drop its cooldown.
+        accounts = [
+            {k: v for k, v in a.items() if k != "exhausted_until"} if a.get("id") == account_id else a
+            for a in accounts
+        ]
+        active = _account_to_active(record)
+        _write_state({**active, ACCOUNTS_KEY: accounts}, set_active=False)
+        return active
+
+
+def remove_account(account_id: str) -> bool:
+    """Forget a saved account. Removing the active one activates the next saved account."""
+    from jettstui.auth import _auth_store_lock
+
+    with _auth_store_lock():
+        state = _load_state()
+        accounts = _saved_accounts(state)
+        remaining = [a for a in accounts if a.get("id") != account_id]
+        if len(remaining) == len(accounts):
+            return False
+        if not remaining:
+            _write_state(None, set_active=False)
+            return True
+        if state and account_id_for(state) == account_id:
+            active = _account_to_active(remaining[0])
+        else:
+            active = _active_fields(state or {})
+        _write_state({**active, ACCOUNTS_KEY: remaining}, set_active=False)
+        return True
+
+
+def rotate_after_quota_exhausted(retry_after_seconds: Optional[float] = None) -> Optional[Dict[str, Any]]:
+    """Put the active account on cooldown and switch to the next usable one.
+
+    Returns the newly active account's fields, or ``None`` when no other
+    account is usable (the active account is then left untouched).
+    """
+    from jettstui.auth import _auth_store_lock
+
+    cooldown = retry_after_seconds if retry_after_seconds and retry_after_seconds > 0 else DEFAULT_QUOTA_COOLDOWN_SECONDS
+    now = time.time()
+    with _auth_store_lock():
+        state = _load_state()
+        if not state or not state.get("refresh_token"):
+            return None
+        accounts = _saved_accounts(state)
+        active_id = account_id_for(state)
+        ids = [a.get("id") for a in accounts]
+        start = ids.index(active_id) if active_id in ids else -1
+        # Rotate in list order, starting after the drained account.
+        ordered = accounts[start + 1:] + accounts[:start + 1]
+        nxt = next(
+            (a for a in ordered if a.get("id") != active_id and _cooldown_until(a, now) is None),
+            None,
+        )
+        if nxt is None:
+            return None
+        accounts = [
+            {**a, "exhausted_until": now + cooldown} if a.get("id") == active_id else a
+            for a in accounts
+        ]
+        active = _account_to_active(nxt)
+        _write_state({**active, ACCOUNTS_KEY: accounts}, set_active=False)
+    logger.info(
+        "antigravity: quota exhausted for %s, switched to %s",
+        state.get("email") or active_id,
+        nxt.get("email") or nxt.get("id"),
+    )
+    return active
 
 
 def _access_token_is_expiring(state: Dict[str, Any], skew_seconds: int) -> bool:
@@ -652,6 +842,7 @@ def get_antigravity_auth_status() -> Dict[str, Any]:
         "plan": describe_tier(tier_id),
         "expires_at_ms": state.get("expires_at_ms"),
         "last_refresh": state.get("last_refresh"),
+        "account_count": len(_saved_accounts(state)),
     }
 
 

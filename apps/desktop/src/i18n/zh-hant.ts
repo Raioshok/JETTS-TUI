@@ -855,6 +855,21 @@ export const zhHant = defineLocale({
       noProviderKeys: '沒有可用的提供方 API 金鑰。',
       searchKeys: '搜尋提供方…',
       noKeysMatch: '沒有符合的提供方。',
+      accounts: {
+        title: '帳號',
+        inUse: '使用中',
+        use: '使用',
+        add: '新增帳號',
+        outOfQuota: '額度已用完',
+        outOfQuotaUntil: when => `額度已用完，${when} 重設`,
+        signInAgain: '需要重新登入',
+        removeConfirm: account => `移除 ${account}？`,
+        switchedTitle: '已切換帳號',
+        switched: account => `現在使用 ${account}。已開啟的對話會在下一則訊息時切換。`,
+        failedSwitch: '無法切換帳號',
+        failedRemove: '無法移除帳號',
+        autoSwitchHint: '目前帳號額度用完時，JettsTUI 會自動切換到下一個帳號。'
+      },
       localEndpoint: {
         title: '本地 / 自訂端點',
         description: '將 JettsTUI 指向任意 OpenAI 相容端點（Zyphra、vLLM、llama.cpp、Ollama 等）。'

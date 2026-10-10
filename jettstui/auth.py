@@ -1472,6 +1472,7 @@ def write_credential_pool(
     entries: List[Dict[str, Any]],
     *,
     removed_ids: Optional[Iterable[str]] = None,
+    status_reset_ids: Optional[Iterable[str]] = None,
 ) -> Path:
     """Persist one provider's credential pool under auth.json.
 
@@ -1489,9 +1490,13 @@ def write_credential_pool(
     snapshot cannot erase a cooldown/quarantine another process just wrote.
 
     Pass ``removed_ids`` for entries the caller intentionally removed, so the
-    merge does not resurrect them from the on-disk copy.
+    merge does not resurrect them from the on-disk copy, and
+    ``status_reset_ids`` for entries whose cooldown the user deliberately
+    cleared (``jettstui auth reset``, picking an account), so the merge does
+    not put a still-running on-disk cooldown back over the reset.
     """
     removed = {rid for rid in (removed_ids or ()) if rid}
+    status_reset = {rid for rid in (status_reset_ids or ()) if rid}
     with _auth_store_lock():
         auth_store = _load_auth_store()
         pool = auth_store.get("credential_pool")
@@ -1519,7 +1524,7 @@ def write_credential_pool(
             _merge_disk_cooldown_state(
                 entry, existing_by_id.get(entry.get("id")), provider_id
             )
-            if isinstance(entry, dict)
+            if isinstance(entry, dict) and entry.get("id") not in status_reset
             else entry
             for entry in sanitized_entries
         ]
@@ -1575,6 +1580,41 @@ def unsuppress_credential_source(provider_id: str, source: str) -> bool:
             auth_store.pop("suppressed_sources", None)
         _save_auth_store(auth_store)
         return True
+
+
+def get_preferred_pool_entry_id(provider_id: str) -> Optional[str]:
+    """Return the pool entry the user picked with ``jettstui auth use``, if any.
+
+    The preference is a soft pin: ``CredentialPool.select()`` takes it while it
+    is available and falls back to the normal strategy while it is exhausted,
+    so automatic rotation still works when the preferred account runs dry.
+    """
+    try:
+        preferred = _load_auth_store().get("credential_pool_preferred")
+    except Exception:
+        return None
+    if not isinstance(preferred, dict):
+        return None
+    value = preferred.get(provider_id)
+    return value if isinstance(value, str) and value else None
+
+
+def set_preferred_pool_entry_id(provider_id: str, entry_id: Optional[str]) -> None:
+    """Persist (or clear, with ``None``) the preferred pool entry for a provider."""
+    with _auth_store_lock():
+        auth_store = _load_auth_store()
+        preferred = auth_store.get("credential_pool_preferred")
+        if not isinstance(preferred, dict):
+            preferred = {}
+        if entry_id:
+            preferred[provider_id] = entry_id
+        else:
+            preferred.pop(provider_id, None)
+        if preferred:
+            auth_store["credential_pool_preferred"] = preferred
+        else:
+            auth_store.pop("credential_pool_preferred", None)
+        _save_auth_store(auth_store)
 
 
 def get_provider_auth_state(provider_id: str) -> Optional[Dict[str, Any]]:

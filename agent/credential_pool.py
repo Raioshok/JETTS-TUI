@@ -364,6 +364,23 @@ def _exhausted_until(entry: PooledCredential) -> Optional[float]:
     return None
 
 
+def _manually_cleared(entry: PooledCredential) -> PooledCredential:
+    """Return *entry* with its cooldown lifted by an explicit user action.
+
+    Persist it with ``status_reset_ids`` so ``write_credential_pool`` does not
+    merge a still-running on-disk cooldown back over the reset.
+    """
+    return replace(
+        entry,
+        last_status=None,
+        last_status_at=None,
+        last_error_code=None,
+        last_error_reason=None,
+        last_error_message=None,
+        last_error_reset_at=None,
+    )
+
+
 def _normalize_custom_pool_name(name: str) -> str:
     """Normalize a custom provider name for use as a pool key suffix."""
     return name.strip().lower().replace(" ", "-")
@@ -565,6 +582,10 @@ class CredentialPool:
         self._entries = sorted(entries, key=lambda entry: entry.priority)
         self._current_id: Optional[str] = None
         self._strategy = get_pool_strategy(provider)
+        # Account the user pinned with ``jettstui auth use`` / the desktop
+        # account switcher.  Soft pin: taken while available, skipped while in
+        # cooldown so automatic rotation still covers a drained account.
+        self._preferred_id: Optional[str] = auth_mod.get_preferred_pool_entry_id(provider)
         self._lock = threading.Lock()
         self._active_leases: Dict[str, int] = {}
         self._max_concurrent = DEFAULT_MAX_CONCURRENT_PER_CREDENTIAL
@@ -610,6 +631,40 @@ class CredentialPool:
         with self._lock:
             return self._current_unlocked()
 
+    @property
+    def preferred_id(self) -> Optional[str]:
+        return self._preferred_id
+
+    def _preferred_in(self, available: List[PooledCredential]) -> Optional[PooledCredential]:
+        if not self._preferred_id:
+            return None
+        return next((entry for entry in available if entry.id == self._preferred_id), None)
+
+    def set_preferred(self, entry_id: Optional[str]) -> Optional[PooledCredential]:
+        """Pin *entry_id* as the account to use first (``None`` clears the pin).
+
+        Picking an account is an explicit "try this one" signal, so any
+        exhaustion cooldown on it is cleared too: the user may know the quota
+        window already reopened.  Returns the pinned entry, or ``None`` when
+        the pin was cleared or *entry_id* is unknown.
+        """
+        with self._lock:
+            entry = None
+            if entry_id:
+                entry = next((e for e in self._entries if e.id == entry_id), None)
+                if entry is None:
+                    return None
+                if entry.last_status == STATUS_EXHAUSTED:
+                    cleared = _manually_cleared(entry)
+                    self._replace_entry(entry, cleared)
+                    entry = cleared
+                    self._persist(status_reset_ids=[entry.id])
+            self._preferred_id = entry.id if entry is not None else None
+            auth_mod.set_preferred_pool_entry_id(self.provider, self._preferred_id)
+            if entry is not None:
+                self._current_id = entry.id
+            return entry
+
     def entry_id_for_api_key(self, api_key_hint: Any = None) -> Optional[str]:
         """Return the stable id for the runtime credential in use.
 
@@ -639,11 +694,17 @@ class CredentialPool:
                 self._entries[idx] = new
                 return
 
-    def _persist(self, *, removed_ids: Optional[List[str]] = None) -> None:
+    def _persist(
+        self,
+        *,
+        removed_ids: Optional[List[str]] = None,
+        status_reset_ids: Optional[List[str]] = None,
+    ) -> None:
         write_credential_pool(
             self.provider,
             [entry.to_dict() for entry in self._entries],
             removed_ids=removed_ids,
+            status_reset_ids=status_reset_ids,
         )
 
     def _is_terminal_auth_failure(
@@ -1550,6 +1611,11 @@ class CredentialPool:
         # by a window opened during the previous empty stretch.
         self._last_no_entries_log_at = None
 
+        preferred = self._preferred_in(available)
+        if preferred is not None:
+            self._current_id = preferred.id
+            return preferred
+
         if self._strategy == STRATEGY_RANDOM:
             entry = random.choice(available)
             self._current_id = entry.id
@@ -1584,7 +1650,9 @@ class CredentialPool:
             if current is not None:
                 return current
             available = self._available_entries()
-            return available[0] if available else None
+            if not available:
+                return None
+            return self._preferred_in(available) or available[0]
 
     def mark_exhausted_and_rotate(
         self,
@@ -1814,28 +1882,18 @@ class CredentialPool:
 
     def reset_statuses(self) -> int:
         with self._lock:
-            count = 0
+            reset_ids: List[str] = []
             new_entries = []
             for entry in self._entries:
                 if entry.last_status or entry.last_status_at or entry.last_error_code:
-                    new_entries.append(
-                        replace(
-                            entry,
-                            last_status=None,
-                            last_status_at=None,
-                            last_error_code=None,
-                            last_error_reason=None,
-                            last_error_message=None,
-                            last_error_reset_at=None,
-                        )
-                    )
-                    count += 1
+                    new_entries.append(_manually_cleared(entry))
+                    reset_ids.append(entry.id)
                 else:
                     new_entries.append(entry)
-            if count:
+            if reset_ids:
                 self._entries = new_entries
-                self._persist()
-            return count
+                self._persist(status_reset_ids=reset_ids)
+            return len(reset_ids)
 
     def remove_index(self, index: int) -> Optional[PooledCredential]:
         with self._lock:
@@ -1853,6 +1911,9 @@ class CredentialPool:
             )
             if self._current_id == removed.id:
                 self._current_id = None
+            if self._preferred_id == removed.id:
+                self._preferred_id = None
+                auth_mod.set_preferred_pool_entry_id(self.provider, None)
             return removed
 
     def resolve_target(self, target: Any) -> Tuple[Optional[int], Optional[PooledCredential], Optional[str]]:

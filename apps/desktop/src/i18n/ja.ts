@@ -882,6 +882,21 @@ export const ja = defineLocale({
       noProviderKeys: '利用可能なプロバイダー API キーがありません。',
       searchKeys: 'プロバイダーを検索…',
       noKeysMatch: '一致するプロバイダーがありません。',
+      accounts: {
+        title: 'アカウント',
+        inUse: '使用中',
+        use: '使用',
+        add: 'アカウントを追加',
+        outOfQuota: 'クォータ切れ',
+        outOfQuotaUntil: when => `クォータ切れ、${when} にリセット`,
+        signInAgain: '再サインインが必要',
+        removeConfirm: account => `${account} を削除しますか？`,
+        switchedTitle: 'アカウントを切り替えました',
+        switched: account => `${account} を使用中です。開いているチャットは次のメッセージから切り替わります。`,
+        failedSwitch: 'アカウントを切り替えられませんでした',
+        failedRemove: 'アカウントを削除できませんでした',
+        autoSwitchHint: '使用中のアカウントのクォータが切れると、JettsTUI は自動的に次のアカウントに切り替えます。'
+      },
       localEndpoint: {
         title: 'ローカル / カスタムエンドポイント',
         description: 'OpenAI 互換のエンドポイント（Zyphra、vLLM、llama.cpp、Ollama など）を指定します。'

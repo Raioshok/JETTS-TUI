@@ -439,8 +439,8 @@ def redeem_codex_reset_credit(
     )
 
 
-def _fetch_anthropic_account_usage() -> Optional[AccountUsageSnapshot]:
-    token = (resolve_anthropic_token() or "").strip()
+def _fetch_anthropic_account_usage(token: Optional[str] = None) -> Optional[AccountUsageSnapshot]:
+    token = (token or resolve_anthropic_token() or "").strip()
     if not token:
         return None
     if not _is_oauth_token(token):
@@ -613,7 +613,7 @@ def fetch_account_usage(
         if normalized == "openai-codex":
             return _fetch_codex_account_usage(base_url=base_url, api_key=api_key)
         if normalized == "anthropic":
-            return _fetch_anthropic_account_usage()
+            return _fetch_anthropic_account_usage(api_key)
         if normalized == "openrouter":
             return _fetch_openrouter_account_usage(base_url, api_key)
         if normalized == "antigravity":

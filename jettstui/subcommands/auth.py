@@ -56,6 +56,16 @@ def build_auth_parser(subparsers, *, cmd_auth: Callable) -> None:
     auth_remove.add_argument(
         "target", help="Credential index, entry id, or exact label"
     )
+    auth_use = auth_subparsers.add_parser(
+        "use",
+        help="Switch which signed-in account a provider uses (e.g. when one runs out of quota)",
+    )
+    auth_use.add_argument("provider", help="Provider id")
+    auth_use.add_argument(
+        "target",
+        nargs="?",
+        help="Account number, id, or exact label (omit to list the accounts)",
+    )
     auth_reset = auth_subparsers.add_parser(
         "reset", help="Clear exhaustion status for all credentials for a provider"
     )

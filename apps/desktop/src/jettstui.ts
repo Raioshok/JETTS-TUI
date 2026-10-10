@@ -38,6 +38,8 @@ import type {
   ModelAssignmentResponse,
   ModelInfoResponse,
   ModelOptionsResponse,
+  OAuthAccount,
+  OAuthAccountsResponse,
   OAuthPollResponse,
   OAuthProvidersResponse,
   OAuthStartResponse,
@@ -855,12 +857,45 @@ export function disconnectOAuthProvider(providerId: string): Promise<{ ok: boole
   })
 }
 
-export function startOAuthLogin(providerId: string): Promise<OAuthStartResponse> {
+export function startOAuthLogin(
+  providerId: string,
+  options: { addAccount?: boolean } = {}
+): Promise<OAuthStartResponse> {
+  const query = options.addAccount ? '?add_account=true' : ''
+
   return window.jettstuiDesktop.api<OAuthStartResponse>({
     ...profileScoped(),
-    path: `/api/providers/oauth/${encodeURIComponent(providerId)}/start`,
+    path: `/api/providers/oauth/${encodeURIComponent(providerId)}/start${query}`,
     method: 'POST',
     body: {}
+  })
+}
+
+// Several sign-in accounts per OAuth provider (see jettstui/oauth_accounts.py).
+export function listOAuthAccounts(providerId: string): Promise<OAuthAccountsResponse> {
+  return window.jettstuiDesktop.api<OAuthAccountsResponse>({
+    ...profileScoped(),
+    path: `/api/providers/oauth/${encodeURIComponent(providerId)}/accounts`
+  })
+}
+
+export function switchOAuthAccount(
+  providerId: string,
+  accountId: string
+): Promise<{ account: OAuthAccount; ok: boolean; provider: string }> {
+  return window.jettstuiDesktop.api<{ account: OAuthAccount; ok: boolean; provider: string }>({
+    ...profileScoped(),
+    path: `/api/providers/oauth/${encodeURIComponent(providerId)}/accounts/${encodeURIComponent(accountId)}/use`,
+    method: 'POST',
+    body: {}
+  })
+}
+
+export function removeOAuthAccount(providerId: string, accountId: string): Promise<{ label: string; ok: boolean }> {
+  return window.jettstuiDesktop.api<{ label: string; ok: boolean }>({
+    ...profileScoped(),
+    path: `/api/providers/oauth/${encodeURIComponent(providerId)}/accounts/${encodeURIComponent(accountId)}`,
+    method: 'DELETE'
   })
 }
 

@@ -409,10 +409,25 @@ export function startManualLocalEndpoint(reason: null | string = null) {
 // Module-level (not store state) because it's consumed immediately on the next
 // overlay render and never needs to persist or re-render anything itself.
 let pendingProviderOAuthId: null | string = null
+// Provider whose next sign-in adds another account (next to the saved ones)
+// instead of replacing the current sign-in. Consumed by startProviderOAuth.
+let pendingAddAccountId: null | string = null
 
-export function startManualProviderOAuth(providerId: string, reason: null | string = null) {
+export function startManualProviderOAuth(
+  providerId: string,
+  reason: null | string = null,
+  options: { addAccount?: boolean } = {}
+) {
   pendingProviderOAuthId = providerId
+  pendingAddAccountId = options.addAccount ? providerId : null
   startManualOnboarding(reason)
+}
+
+function consumePendingAddAccount(providerId: string): boolean {
+  const addAccount = pendingAddAccountId === providerId
+  pendingAddAccountId = null
+
+  return addAccount
 }
 
 // Read the pending provider id without clearing it. The overlay only clears it
@@ -432,6 +447,7 @@ export function clearPendingProviderOAuth() {
 // first-run flow has no close affordance because the app can't run yet.
 export function closeManualOnboarding() {
   pendingProviderOAuthId = null
+  pendingAddAccountId = null
 
   patch({ manual: false, requested: false, localEndpoint: false, flow: { status: 'idle' } })
 }
@@ -553,9 +569,10 @@ export async function startProviderOAuth(provider: OAuthProvider, ctx: Onboardin
   }
 
   setFlow({ status: 'starting', provider })
+  const addAccount = consumePendingAddAccount(provider.id)
 
   try {
-    const start = await startOAuthLogin(provider.id)
+    const start = await startOAuthLogin(provider.id, { addAccount })
     const browserUrl = start.flow === 'device_code' ? start.verification_url : start.auth_url
     await openSignInUrl(browserUrl)
 

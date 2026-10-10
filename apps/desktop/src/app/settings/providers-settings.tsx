@@ -26,6 +26,7 @@ import { CustomEndpointsSettings } from './custom-endpoints-settings'
 import { SettingsCategoryHeading, useEnvCredentials } from './env-credentials'
 import { providerGroup, providerMeta, providerPriority } from './helpers'
 import { SettingsContent, SettingsSkeleton } from './primitives'
+import { ProviderAccounts } from './provider-accounts'
 
 // The embedded terminal (and thus the "run disconnect command" path) only
 // exists in the Electron desktop shell, not the web dashboard.
@@ -213,50 +214,58 @@ function ConnectedProviderRow({
   const showHint = !canDisconnect && !terminalDisconnect
 
   return (
-    <div className="group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-1 rounded-[6px] transition-colors hover:bg-(--ui-control-hover-background)">
-      <RowButton className="min-w-0 px-3 py-2.5 text-left" onClick={() => onSelect(provider)}>
-        <div className="flex min-w-0 items-center gap-2">
-          <span className="truncate text-[length:var(--conversation-text-font-size)] font-semibold">{title}</span>
-          <span className="inline-flex shrink-0 items-center gap-1 bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
-            <Check className="size-3" />
-            {copy.connected}
-          </span>
+    <div className="rounded-[6px]">
+      <div className="group grid grid-cols-[minmax(0,1fr)_auto] items-center gap-1 rounded-[6px] transition-colors hover:bg-(--ui-control-hover-background)">
+        <RowButton className="min-w-0 px-3 py-2.5 text-left" onClick={() => onSelect(provider)}>
+          <div className="flex min-w-0 items-center gap-2">
+            <span className="truncate text-[length:var(--conversation-text-font-size)] font-semibold">{title}</span>
+            <span className="inline-flex shrink-0 items-center gap-1 bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
+              <Check className="size-3" />
+              {copy.connected}
+            </span>
+          </div>
+          <p className="mt-1 text-xs leading-5 text-muted-foreground">{t.onboarding.flowSubtitles[provider.flow]}</p>
+          {showHint && (
+            <p className="mt-0.5 truncate text-[0.68rem] leading-5 text-muted-foreground/70">
+              {provider.flow === 'external' ? copy.removeExternalGeneric(title) : copy.removeKeyManaged(title)}
+            </p>
+          )}
+        </RowButton>
+        <div className="flex items-center gap-1 pr-2">
+          <Trail className="size-4 text-muted-foreground transition group-hover:text-foreground" />
+          {canDisconnect && (
+            <Button
+              aria-label={`${t.common.remove} ${title}`}
+              disabled={disconnecting}
+              onClick={() => onDisconnect(provider)}
+              size="icon-xs"
+              title={`${t.common.remove} ${title}`}
+              type="button"
+              variant="ghost"
+            >
+              {disconnecting ? <Loader2 className="size-3 animate-spin" /> : <Trash2 className="size-3" />}
+            </Button>
+          )}
+          {terminalDisconnect && (
+            <Button
+              aria-label={`${copy.disconnect} ${title}`}
+              onClick={() => onTerminalDisconnect(provider)}
+              size="icon-xs"
+              title={copy.disconnectInTerminal}
+              type="button"
+              variant="ghost"
+            >
+              <Trash2 className="size-3" />
+            </Button>
+          )}
         </div>
-        <p className="mt-1 text-xs leading-5 text-muted-foreground">{t.onboarding.flowSubtitles[provider.flow]}</p>
-        {showHint && (
-          <p className="mt-0.5 truncate text-[0.68rem] leading-5 text-muted-foreground/70">
-            {provider.flow === 'external' ? copy.removeExternalGeneric(title) : copy.removeKeyManaged(title)}
-          </p>
-        )}
-      </RowButton>
-      <div className="flex items-center gap-1 pr-2">
-        <Trail className="size-4 text-muted-foreground transition group-hover:text-foreground" />
-        {canDisconnect && (
-          <Button
-            aria-label={`${t.common.remove} ${title}`}
-            disabled={disconnecting}
-            onClick={() => onDisconnect(provider)}
-            size="icon-xs"
-            title={`${t.common.remove} ${title}`}
-            type="button"
-            variant="ghost"
-          >
-            {disconnecting ? <Loader2 className="size-3 animate-spin" /> : <Trash2 className="size-3" />}
-          </Button>
-        )}
-        {terminalDisconnect && (
-          <Button
-            aria-label={`${copy.disconnect} ${title}`}
-            onClick={() => onTerminalDisconnect(provider)}
-            size="icon-xs"
-            title={copy.disconnectInTerminal}
-            type="button"
-            variant="ghost"
-          >
-            <Trash2 className="size-3" />
-          </Button>
-        )}
       </div>
+      {provider.supports_accounts && (
+        <ProviderAccounts
+          onAddAccount={() => startManualProviderOAuth(provider.id, null, { addAccount: true })}
+          providerId={provider.id}
+        />
+      )}
     </div>
   )
 }

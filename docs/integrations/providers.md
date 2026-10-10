@@ -426,6 +426,8 @@ jettstui auth add antigravity
 
 In the desktop app, pick **Google Antigravity (AI Pro / Ultra)** in the provider list. Sign-in completes on its own once you approve in the browser.
 
+You can sign in with several Google accounts: run `jettstui auth add antigravity` again, or use **Add account** under the provider in **Settings → Providers**. When an account's quota runs out, JettsTUI switches to the next one in the middle of the request. Switch by hand with `jettstui auth use antigravity` or the account list in the desktop app. See [Multiple sign-in accounts](../user-guide/features/credential-pools.md#multiple-sign-in-accounts).
+
 On SSH and other remote sessions, JettsTUI prints the sign-in URL instead. After you approve, the browser lands on a `localhost:51121` page that won't load: copy that URL from the address bar and paste it back into the terminal.
 
 ```yaml

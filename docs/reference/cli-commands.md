@@ -502,12 +502,13 @@ jettstui auth add openrouter --api-key sk-or-v1-xxx        # Add API key
 jettstui auth add anthropic --type oauth                   # Add OAuth credential
 jettstui auth remove openrouter 2                          # Remove by index
 jettstui auth reset openrouter                             # Clear cooldowns
+jettstui auth use openai-codex 2                           # Switch to another signed-in account
 jettstui auth status anthropic                             # Show auth status for a provider
 jettstui auth logout anthropic                             # Log out and clear stored auth state
 jettstui auth spotify                                      # Authenticate JettsTUI with Spotify via PKCE
 ```
 
-Subcommands: `add`, `list`, `remove`, `reset`, `status`, `logout`, `spotify`. When called with no subcommand, launches the interactive management wizard.
+Subcommands: `add`, `list`, `remove`, `reset`, `use`, `status`, `logout`, `spotify`. When called with no subcommand, launches the interactive management wizard.
 
 ## `jettstui status`
 

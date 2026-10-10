@@ -694,6 +694,21 @@ export interface Translations {
       noProviderKeys: string
       searchKeys: string
       noKeysMatch: string
+      accounts: {
+        title: string
+        inUse: string
+        use: string
+        add: string
+        outOfQuota: string
+        outOfQuotaUntil: (when: string) => string
+        signInAgain: string
+        removeConfirm: (account: string) => string
+        switchedTitle: string
+        switched: (account: string) => string
+        failedSwitch: string
+        failedRemove: string
+        autoSwitchHint: string
+      }
       localEndpoint: {
         title: string
         description: string

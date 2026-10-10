@@ -17,6 +17,7 @@ endpoint fallback, token refresh, and the Claude-on-Gemini-schema fixes.
 from __future__ import annotations
 
 import copy
+import json
 import logging
 import re
 import uuid
@@ -47,6 +48,9 @@ _CLAUDE_EFFORT_BUDGETS = {"minimal": 4096, "low": 8192, "medium": 16384, "high":
 # Endpoint fallback: these statuses mean "this backend can't serve it", not
 # "the request is wrong" — try the next endpoint.
 _FALLBACK_STATUSES = {403, 404, 500, 502, 503, 504}
+# Saved Google accounts tried per request when each one reports a drained quota.
+_MAX_ACCOUNT_ROTATIONS = 4
+_DURATION_PART = re.compile(r"(\d+(?:\.\d+)?)(ms|h|m|s)")
 
 CredentialSource = Callable[..., Dict[str, Any]]
 
@@ -212,6 +216,61 @@ def unwrap_response(payload: Any) -> Dict[str, Any]:
     return payload if isinstance(payload, dict) else {}
 
 
+def _parse_duration_seconds(value: Any) -> Optional[float]:
+    """Parse Google duration strings such as ``"12s"``, ``"1.5s"`` or ``"3h2m4.5s"``."""
+    if isinstance(value, (int, float)):
+        return float(value)
+    parts = _DURATION_PART.findall(str(value or "").strip().lower())
+    if not parts:
+        return None
+    scale = {"h": 3600.0, "m": 60.0, "s": 1.0, "ms": 0.001}
+    return sum(float(num) * scale[unit] for num, unit in parts)
+
+
+def classify_quota_error(body_text: str) -> tuple[bool, Optional[float]]:
+    """Return ``(quota_exhausted, retry_after_seconds)`` for a 429 body.
+
+    Google reports a drained plan quota as ``ErrorInfo.reason ==
+    "QUOTA_EXHAUSTED"`` (with ``quotaResetDelay``) and a short burst limit as
+    ``RATE_LIMIT_EXCEEDED`` with a seconds-scale ``RetryInfo.retryDelay``.
+    Only the former is worth switching accounts for.
+    """
+    from jettstui.antigravity_auth import QUOTA_ROTATE_MIN_RETRY_SECONDS
+
+    try:
+        payload = json.loads(body_text or "")
+    except ValueError:
+        payload = None
+    if isinstance(payload, list) and payload and isinstance(payload[0], dict):
+        payload = payload[0]
+    error = payload.get("error") if isinstance(payload, dict) else None
+    if not isinstance(error, dict):
+        return ("quota" in (body_text or "").lower(), None)
+
+    reason = ""
+    delay: Optional[float] = None
+    for detail in error.get("details") or []:
+        if not isinstance(detail, dict):
+            continue
+        reason = reason or str(detail.get("reason") or "")
+        metadata = detail.get("metadata") if isinstance(detail.get("metadata"), dict) else {}
+        for candidate in (metadata.get("quotaResetDelay"), detail.get("retryDelay")):
+            parsed = _parse_duration_seconds(candidate) if candidate else None
+            if parsed is not None:
+                delay = parsed if delay is None else max(delay, parsed)
+    if reason.upper() == "QUOTA_EXHAUSTED":
+        return True, delay
+    if delay is not None:
+        return delay >= QUOTA_ROTATE_MIN_RETRY_SECONDS, delay
+    return ("quota" in str(error.get("message") or "").lower(), None)
+
+
+def _default_account_rotator(retry_after_seconds: Optional[float]) -> bool:
+    from jettstui.antigravity_auth import rotate_after_quota_exhausted
+
+    return rotate_after_quota_exhausted(retry_after_seconds) is not None
+
+
 def _default_credential_source(**kwargs: Any) -> Dict[str, Any]:
     from jettstui.antigravity_auth import resolve_antigravity_runtime_credentials
 
@@ -236,6 +295,7 @@ class AntigravityClient(GeminiNativeClient):
         timeout: Any = None,
         http_client: Optional[httpx.Client] = None,
         credential_source: Optional[CredentialSource] = None,
+        account_rotator: Optional[Callable[[Optional[float]], bool]] = None,
         **_: Any,
     ) -> None:
         from jettstui.antigravity_auth import ANTIGRAVITY_INFERENCE_ENDPOINTS, DEFAULT_ANTIGRAVITY_BASE_URL
@@ -248,6 +308,7 @@ class AntigravityClient(GeminiNativeClient):
             http_client=http_client,
         )
         self._credential_source = credential_source or _default_credential_source
+        self._account_rotator = account_rotator or _default_account_rotator
         self._project_id = project_id
         self._fallback_token = api_key
         endpoints = [self.base_url] + [e for e in ANTIGRAVITY_INFERENCE_ENDPOINTS if e != self.base_url]
@@ -270,6 +331,20 @@ class AntigravityClient(GeminiNativeClient):
             ) from exc
         self.api_key = str(creds.get("api_key") or "")
         self._project_id = str(creds.get("project_id") or self._project_id or "")
+
+    def _rotate_account(self, body_text: str) -> bool:
+        """On a drained quota, switch to the next saved Google account."""
+        quota_exhausted, retry_after = classify_quota_error(body_text)
+        if not quota_exhausted:
+            return False
+        try:
+            switched = self._account_rotator(retry_after)
+        except Exception as exc:  # pragma: no cover - rotation is best-effort
+            logger.debug("antigravity account rotation failed: %s", exc)
+            return False
+        if switched:
+            self._refresh_credentials()
+        return bool(switched)
 
     def _headers(self) -> Dict[str, str]:
         from jettstui.antigravity_auth import antigravity_headers
@@ -353,24 +428,34 @@ class AntigravityClient(GeminiNativeClient):
         last_response: Optional[httpx.Response] = None
         last_exc: Optional[Exception] = None
         refreshed = False
-        for endpoint in self._endpoints:
-            for _attempt in range(2):
-                url = f"{endpoint}/v1internal:{method}"
-                try:
-                    response = self._http.post(url, json=self._body(model, request), headers=self._headers(), timeout=timeout)
-                except httpx.HTTPError as exc:
-                    last_exc = exc
-                    break
-                if response.status_code == 401 and not refreshed:
-                    refreshed = True
-                    self._refresh_credentials(force=True)
-                    continue
-                if response.status_code == 200:
-                    return response
-                last_response = response
+        rotations = 0
+        index = 0
+        while index < len(self._endpoints):
+            url = f"{self._endpoints[index]}/v1internal:{method}"
+            try:
+                response = self._http.post(url, json=self._body(model, request), headers=self._headers(), timeout=timeout)
+            except httpx.HTTPError as exc:
+                last_exc = exc
+                index += 1
+                continue
+            if response.status_code == 200:
+                return response
+            if response.status_code == 401 and not refreshed:
+                refreshed = True
+                self._refresh_credentials(force=True)
+                continue
+            if (
+                response.status_code == 429
+                and rotations < _MAX_ACCOUNT_ROTATIONS
+                and self._rotate_account(response.text)
+            ):
+                rotations += 1
+                refreshed = False
+                continue
+            last_response = response
+            if response.status_code not in _FALLBACK_STATUSES:
                 break
-            if last_response is not None and last_response.status_code not in _FALLBACK_STATUSES:
-                break
+            index += 1
         if last_response is not None:
             raise gemini_http_error(last_response)
         raise GeminiAPIError(f"Antigravity request failed: {last_exc}", code="gemini_stream_error") from last_exc
@@ -378,6 +463,7 @@ class AntigravityClient(GeminiNativeClient):
     def _stream_completion(self, *, model: str, request: Dict[str, Any], timeout: Any = None) -> Iterator[_GeminiStreamChunk]:
         def _generator() -> Iterator[_GeminiStreamChunk]:
             refreshed = False
+            rotations = 0
             last_error: Optional[Exception] = None
             endpoints = list(self._endpoints)
             index = 0
@@ -392,6 +478,14 @@ class AntigravityClient(GeminiNativeClient):
                             if response.status_code == 401 and not refreshed:
                                 refreshed = True
                                 self._refresh_credentials(force=True)
+                                continue
+                            if (
+                                response.status_code == 429
+                                and rotations < _MAX_ACCOUNT_ROTATIONS
+                                and self._rotate_account(body_text)
+                            ):
+                                rotations += 1
+                                refreshed = False
                                 continue
                             error = gemini_http_error(response, body_text=body_text)
                             if response.status_code in _FALLBACK_STATUSES and index + 1 < len(endpoints):
