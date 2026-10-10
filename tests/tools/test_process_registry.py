@@ -1318,6 +1318,26 @@ class TestProcessToolHandler:
         result = json.loads(_handle_process({"action": "list"}))
         assert "processes" in result
 
+    def test_list_sees_background_process_started_under_turn_task_id(self, tmp_path):
+        """A per-turn task id must list the processes terminal() started.
+
+        terminal(background=true) files processes under the collapsed
+        container key ("default"); list must filter on the same key.
+        """
+        from tools.process_registry import _handle_process, process_registry
+        from tools.terminal_tool import terminal_tool
+
+        turn_task_id = "turn-3f9c2a"
+        started = json.loads(terminal_tool(
+            "sleep 30", background=True, task_id=turn_task_id, workdir=str(tmp_path),
+        ))
+        sid = started["session_id"]
+        try:
+            listed = json.loads(_handle_process({"action": "list"}, task_id=turn_task_id))
+            assert sid in [p["session_id"] for p in listed["processes"]]
+        finally:
+            process_registry.kill_process(sid)
+
     def test_poll_missing_session_id(self):
         from tools.process_registry import _handle_process
         result = json.loads(_handle_process({"action": "poll"}))

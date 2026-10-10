@@ -2385,8 +2385,18 @@ def _handle_process(args, **kw):
             session_key = get_current_session_key(default="") or ""
         except Exception:
             session_key = ""
+        # terminal(background=true) registers processes under the container
+        # key (per-turn task ids collapse to "default"), so filter on the same
+        # key — otherwise the agent never sees its own background processes.
+        list_task_id = task_id
+        if task_id:
+            try:
+                from tools.terminal_tool import _resolve_container_task_id
+                list_task_id = _resolve_container_task_id(task_id)
+            except Exception:
+                pass
         return json.dumps(
-            {"processes": process_registry.list_sessions(task_id=task_id, session_key=session_key or None)},
+            {"processes": process_registry.list_sessions(task_id=list_task_id, session_key=session_key or None)},
             ensure_ascii=False,
         )
     elif action in {"poll", "log", "wait", "kill", "write", "submit", "close"}:
