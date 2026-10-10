@@ -95,8 +95,14 @@ class TestDDGSProviderIsConfigured:
             return orig_import(name, *args, **kwargs)
 
         monkeypatch.setattr(builtins, "__import__", blocked_import)
+        import tools.lazy_deps as lazy_deps
         from plugins.web.ddgs.provider import DDGSWebSearchProvider
+
+        monkeypatch.setattr(lazy_deps, "can_install", lambda feature: False)
         assert DDGSWebSearchProvider().is_available() is False
+        # Installable on demand → advertised so web_search works keyless.
+        monkeypatch.setattr(lazy_deps, "can_install", lambda feature: feature == "search.ddgs")
+        assert DDGSWebSearchProvider().is_available() is True
 
     def test_provider_name(self):
         from plugins.web.ddgs.provider import DDGSWebSearchProvider
@@ -163,11 +169,21 @@ class TestDDGSProviderSearch:
             return orig_import(name, *args, **kwargs)
 
         monkeypatch.setattr(builtins, "__import__", blocked_import)
+        import tools.lazy_deps as lazy_deps
         from plugins.web.ddgs.provider import DDGSWebSearchProvider
 
+        calls = []
+
+        def failing_ensure(feature, prompt=True):
+            calls.append((feature, prompt))
+            raise lazy_deps.FeatureUnavailable(feature, ("ddgs",), "offline")
+
+        monkeypatch.setattr(lazy_deps, "ensure", failing_ensure)
         result = DDGSWebSearchProvider().search("q", limit=5)
+        assert calls == [("search.ddgs", False)]
         assert result["success"] is False
         assert "ddgs" in result["error"].lower()
+        assert "offline" in result["error"]
 
     def test_runtime_error_returns_failure(self, monkeypatch):
         _install_fake_ddgs(monkeypatch, text_raises=RuntimeError("rate limited 202"))

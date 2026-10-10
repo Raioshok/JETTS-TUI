@@ -115,6 +115,9 @@ LAZY_DEPS: dict[str, tuple[str, ...]] = {
     "search.exa": ("exa-py==2.10.2",),
     "search.firecrawl": ("firecrawl-py==4.17.0",),
     "search.parallel": ("parallel-web==0.4.2",),
+    # Keyless DuckDuckGo search — the zero-config fallback that keeps
+    # web_search available on a fresh install with no search API key.
+    "search.ddgs": ("ddgs==9.16.0",),
 
     # ─── TTS providers ─────────────────────────────────────────────────────
     # Pinned to exact versions to match pyproject.toml's no-ranges policy
@@ -857,6 +860,23 @@ def ensure(feature: str, *, prompt: bool = True) -> None:
         )
 
     logger.info("Lazy install complete for feature %r", feature)
+
+
+def can_install(feature: str) -> bool:
+    """Return True if :func:`ensure` would attempt to install ``feature``.
+
+    Cheap, no network: checks the allowlist, platform support, spec safety
+    and the ``security.allow_lazy_installs`` gate. Lets a backend advertise
+    itself as usable before its package is present, deferring the install to
+    first use.
+    """
+    if feature not in LAZY_DEPS:
+        return False
+    if _unsupported_feature_reason(feature):
+        return False
+    if not all(_spec_is_safe(s) for s in LAZY_DEPS[feature]):
+        return False
+    return _allow_lazy_installs()
 
 
 def is_available(feature: str) -> bool:

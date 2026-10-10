@@ -256,6 +256,10 @@ def _get_backend() -> str:
         except Exception as exc:  # noqa: BLE001 — a broken provider is skipped
             logger.debug("web provider %r.is_available() raised: %s", provider.name, exc)
 
+    # Zero-config fallback: keyless DuckDuckGo, installed on first search.
+    if _ddgs_lazy_installable():
+        return "ddgs"
+
     return "firecrawl"  # default (backward compat)
 
 
@@ -327,7 +331,7 @@ def _is_backend_available(backend: str) -> bool:
     if backend == "brave-free":
         return _has_env("BRAVE_SEARCH_API_KEY")
     if backend == "ddgs":
-        return _ddgs_package_importable()
+        return _ddgs_package_importable() or _ddgs_lazy_installable()
     if backend == "xai":
         # Cheap probe — env var OR auth.json has OAuth tokens. Must not
         # call resolve_xai_http_credentials() here because the OAuth path
@@ -355,7 +359,20 @@ def _ddgs_package_importable() -> bool:
     except ImportError:
         return False
 
-# ─── Firecrawl Client ────────────────────────────────────────────────────────
+def _ddgs_lazy_installable() -> bool:
+    """Return True when ``ddgs`` can be lazy-installed on first search.
+
+    Lets ``web_search`` stay available on a fresh install with no search
+    API key. Kept separate from :func:`_ddgs_package_importable` so
+    auto-detect still prefers explicit credentials and plugin providers
+    over an install-on-demand fallback.
+    """
+    try:
+        from tools.lazy_deps import can_install
+
+        return can_install("search.ddgs")
+    except Exception:  # noqa: BLE001 — lazy_deps optional; never fatal
+        return False
 
 # ─── Firecrawl Client ────────────────────────────────────────────────────────
 # After PR #25182, the firecrawl client, lazy SDK proxy, dual-auth config
@@ -1073,6 +1090,29 @@ def check_web_api_key() -> bool:
         return False
 
 
+# Built-in backends whose provider implements extract (the rest are
+# search-only: brave-free, ddgs, searxng, xai).
+_EXTRACT_CAPABLE_WEB_BACKENDS = ("exa", "parallel", "firecrawl", "tavily")
+
+
+def check_web_extract_available() -> bool:
+    """``check_fn`` gate for ``web_extract``: an extract-capable backend exists.
+
+    Narrower than :func:`check_web_api_key` so a search-only setup (e.g. the
+    keyless ddgs fallback) does not advertise a ``web_extract`` tool that can
+    only ever return a "search-only backend" error.
+    """
+    if any(_is_backend_available(b) for b in _EXTRACT_CAPABLE_WEB_BACKENDS):
+        return True
+    try:
+        from agent.web_search_registry import get_active_extract_provider
+
+        return get_active_extract_provider() is not None
+    except Exception as exc:  # noqa: BLE001 — registry optional; never fatal
+        logger.debug("web extract provider availability check failed: %s", exc)
+        return False
+
+
 if __name__ == "__main__":
     """
     Simple test/demo when run directly
@@ -1214,7 +1254,7 @@ registry.register(
         "markdown",
         char_limit=args.get("char_limit"),
     ),
-    check_fn=check_web_api_key,
+    check_fn=check_web_extract_available,
     requires_env=_web_requires_env(),
     is_async=True,
     emoji="📄",

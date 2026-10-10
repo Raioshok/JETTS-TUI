@@ -375,6 +375,8 @@ If no backend is explicitly configured, JettsTUI picks the first available one b
 | `EXA_API_KEY` | exa |
 | `SEARXNG_URL` | searxng |
 
+With none of these set, `web_search` still works out of the box: JettsTUI falls back to DDGS (DuckDuckGo, no key) and installs the `ddgs` package on the first search. Set `security.allow_lazy_installs: false` in `config.yaml` to opt out; `web_search` is then hidden until a backend is configured. `web_extract` is only offered when an extract-capable backend (Firecrawl, Tavily, Exa, Parallel) is available.
+
 xAI Web Search is **not** in the auto-detection chain — having `XAI_API_KEY` set (or being signed in via xAI Grok OAuth) does not automatically route web traffic through xAI, since those credentials are also used for inference / TTS / image gen and the user may want a different backend for web. Opt in explicitly with `web.backend: "xai"`.
 
 ---

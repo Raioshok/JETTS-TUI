@@ -57,6 +57,14 @@ def _run_ddgs_search(query: str, safe_limit: int) -> list[dict[str, Any]]:
     each individual HTTP request; the overall wall-clock cap is enforced by
     the parent via process timeout (#68096).
     """
+    try:
+        # A sealed-venv deployment lazy-installs ddgs into a durable target
+        # dir; this worker is a fresh interpreter, so wire that dir in first.
+        from tools.lazy_deps import activate_durable_lazy_target
+
+        activate_durable_lazy_target()
+    except Exception:  # noqa: BLE001 — best effort; import below reports
+        pass
     from ddgs import DDGS  # type: ignore
 
     results: list[dict[str, Any]] = []
@@ -264,6 +272,30 @@ def _run_ddgs_search_bounded(query: str, safe_limit: int) -> list[dict[str, Any]
     raise RuntimeError(str(envelope.get("error") or "DDGS worker failed"))
 
 
+_LAZY_FEATURE = "search.ddgs"
+
+
+def _ddgs_installable_on_demand() -> bool:
+    """Return True when the ``ddgs`` package may be lazy-installed on use."""
+    try:
+        from tools.lazy_deps import can_install
+
+        return can_install(_LAZY_FEATURE)
+    except Exception:  # noqa: BLE001 — lazy_deps optional; never fatal
+        return False
+
+
+def _lazy_install_ddgs() -> Optional[str]:
+    """Install ``ddgs`` on first use; return an error message on failure."""
+    try:
+        from tools.lazy_deps import ensure
+
+        ensure(_LAZY_FEATURE, prompt=False)
+    except Exception as exc:  # noqa: BLE001 — FeatureUnavailable carries the pip hint
+        return f"ddgs package is not installed and could not be installed: {exc}"
+    return None
+
+
 class DDGSWebSearchProvider(WebSearchProvider):
     """DuckDuckGo HTML-scrape search provider.
 
@@ -281,18 +313,20 @@ class DDGSWebSearchProvider(WebSearchProvider):
         return "DuckDuckGo (ddgs)"
 
     def is_available(self) -> bool:
-        """Return True when the ``ddgs`` package is importable.
+        """Return True when ``ddgs`` is importable or can be lazy-installed.
 
-        Probes the import once; cheap because Python caches the import. Must
-        NOT perform network I/O — runs at tool-registration time and on every
-        ``jettstui tools`` paint.
+        DuckDuckGo is the keyless fallback that keeps ``web_search`` working
+        on a fresh install, so it counts as available whenever the package
+        can be installed on first search (``security.allow_lazy_installs``).
+        Must NOT perform network I/O — runs at tool-registration time and on
+        every ``jettstui tools`` paint.
         """
         try:
             import ddgs  # noqa: F401
 
             return True
         except ImportError:
-            return False
+            return _ddgs_installable_on_demand()
 
     def supports_search(self) -> bool:
         return True
@@ -310,10 +344,9 @@ class DDGSWebSearchProvider(WebSearchProvider):
         try:
             import ddgs  # type: ignore  # noqa: F401 — availability probe
         except ImportError:
-            return {
-                "success": False,
-                "error": "ddgs package is not installed — run `pip install ddgs`",
-            }
+            error = _lazy_install_ddgs()
+            if error:
+                return {"success": False, "error": error}
 
         # DDGS().text yields at most `max_results` items; we cap defensively
         # in case the package ignores the hint.

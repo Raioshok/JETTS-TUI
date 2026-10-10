@@ -17,6 +17,10 @@ import pytest
 
 import tools.lazy_deps as ld
 
+# The suite-wide ``_no_lazy_install_on_demand`` fixture stubs can_install;
+# keep the real function (bound at collection time) for its own tests.
+_real_can_install = ld.can_install
+
 
 # ---------------------------------------------------------------------------
 # Spec safety
@@ -210,6 +214,23 @@ class TestEnsure:
 # ---------------------------------------------------------------------------
 # is_available
 # ---------------------------------------------------------------------------
+
+
+class TestCanInstall:
+    """can_install() predicts whether ensure() would attempt an install."""
+
+    def test_follows_security_gate(self, monkeypatch):
+        monkeypatch.setitem(ld.LAZY_DEPS, "test.feat", ("pkga==1.0",))
+        monkeypatch.setattr(ld, "_allow_lazy_installs", lambda: True)
+        assert _real_can_install("test.feat") is True
+        monkeypatch.setattr(ld, "_allow_lazy_installs", lambda: False)
+        assert _real_can_install("test.feat") is False
+
+    def test_unknown_or_unsafe_feature_is_not_installable(self, monkeypatch):
+        monkeypatch.setattr(ld, "_allow_lazy_installs", lambda: True)
+        assert _real_can_install("not.a.feature") is False
+        monkeypatch.setitem(ld.LAZY_DEPS, "test.bad", ("git+https://evil/x",))
+        assert _real_can_install("test.bad") is False
 
 
 class TestIsAvailable:

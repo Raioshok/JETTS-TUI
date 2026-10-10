@@ -470,6 +470,20 @@ def mock_config():
 
 
 @pytest.fixture(autouse=True)
+def _no_lazy_install_on_demand(monkeypatch):
+    """Keep install-on-demand backends (e.g. keyless ddgs web search) off.
+
+    Without this, a test that clears web credentials would see ddgs as
+    available and its first search would pip-install the package and hit
+    the network. Tests that exercise the on-demand path patch
+    ``tools.lazy_deps.can_install`` (or the backend helper) themselves.
+    """
+    import tools.lazy_deps
+
+    monkeypatch.setattr(tools.lazy_deps, "can_install", lambda feature: False)
+
+
+@pytest.fixture(autouse=True)
 def _ensure_current_event_loop(request):
     """Provide a default event loop for sync tests that call get_event_loop().
 

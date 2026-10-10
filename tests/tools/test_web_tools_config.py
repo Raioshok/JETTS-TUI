@@ -237,8 +237,17 @@ class TestBackendSelection:
         """No keys, no config → 'firecrawl' (will fail at client init)."""
         from tools.web_tools import _get_backend
         with patch("tools.web_tools._load_web_config", return_value={}), \
-             patch("tools.web_tools._ddgs_package_importable", return_value=False):
+             patch("tools.web_tools._ddgs_package_importable", return_value=False), \
+             patch("tools.web_tools._ddgs_lazy_installable", return_value=False):
             assert _get_backend() == "firecrawl"
+
+    def test_fallback_no_keys_uses_lazy_ddgs(self):
+        """No keys, no config, ddgs installable on demand → 'ddgs'."""
+        from tools.web_tools import _get_backend
+        with patch("tools.web_tools._load_web_config", return_value={}), \
+             patch("tools.web_tools._ddgs_package_importable", return_value=False), \
+             patch("tools.web_tools._ddgs_lazy_installable", return_value=True):
+            assert _get_backend() == "ddgs"
 
     def test_invalid_config_falls_through_to_fallback(self):
         """web.backend=invalid → ignored, uses key-based fallback."""
@@ -421,6 +430,7 @@ class TestCheckWebApiKey:
             # resolution — otherwise these tests flip on machines where the
             # optional ``ddgs`` package is installed (dev venvs) vs CI.
             patch("tools.web_tools._ddgs_package_importable", return_value=False),
+            patch("tools.web_tools._ddgs_lazy_installable", return_value=False),
             patch("agent.web_search_registry.get_active_search_provider", return_value=None),
             patch("agent.web_search_registry.get_active_extract_provider", return_value=None),
         ]
@@ -486,6 +496,18 @@ class TestCheckWebApiKey:
         }):
             from tools.web_tools import check_web_api_key
             assert check_web_api_key() is True
+
+    def test_lazy_ddgs_lights_up_search_but_not_extract(self):
+        from tools.web_tools import check_web_api_key, check_web_extract_available
+        with patch("tools.web_tools._ddgs_lazy_installable", return_value=True):
+            assert check_web_api_key() is True
+            assert check_web_extract_available() is False
+
+    def test_extract_available_with_extract_capable_key(self):
+        from tools.web_tools import check_web_extract_available
+        assert check_web_extract_available() is False
+        with patch.dict(os.environ, {"TAVILY_API_KEY": "tvly-test"}):
+            assert check_web_extract_available() is True
 
     def test_all_three_keys_returns_true(self):
         with patch.dict(os.environ, {
