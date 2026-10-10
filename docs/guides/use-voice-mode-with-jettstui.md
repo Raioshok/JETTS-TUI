@@ -175,7 +175,7 @@ voice:
 stt:
   provider: "local"
   local:
-    model: "base"
+    model: "small"
 
 tts:
   provider: "edge"

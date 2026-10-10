@@ -414,7 +414,7 @@ stt:
                                     # (diarization, alignment, archival, etc.)
   provider: "local"                  # "local" (free) | "groq" | "openai" | "mistral" | "xai"
   local:
-    model: "base"                    # tiny, base, small, medium, large-v3
+    model: "small"                   # tiny, base, small, medium, large-v3
     language: ""                     # optional ISO-639-1 hint; blank = use JETTSTUI_LOCAL_STT_LANGUAGE if set, else auto-detect
   groq:
     language: ""                     # optional ISO-639-1 hint; blank = use JETTSTUI_LOCAL_STT_LANGUAGE if set, else auto-detect

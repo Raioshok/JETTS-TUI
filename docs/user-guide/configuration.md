@@ -1706,9 +1706,9 @@ stt:
   enabled: true                # Auto-transcribe inbound voice messages (default: true)
   echo_transcripts: true       # Post raw transcripts back to the chat as 🎙️ "..." (default: true)
   provider: "local"            # "local" | "groq" | "openai" | "mistral"
-  language: "en"               # GLOBAL language hint for every provider (per-provider language wins); set "" for auto-detect
+  language: ""                 # GLOBAL language hint for every provider (per-provider language wins); "" = auto-detect
   local:
-    model: "base"              # tiny, base, small, medium, large-v3
+    model: "small"             # tiny, base, small, medium, large-v3
     language: ""               # per-provider override of stt.language
     initial_prompt: ""         # optional whisper prompt to bias vocabulary/script (e.g. Simplified Chinese)
   groq:
@@ -1719,7 +1719,7 @@ stt:
   # model: "whisper-1"         # Legacy fallback key still respected
 ```
 
-Language resolution is the same for **every** STT provider (local, groq, openai, mistral, xai, elevenlabs, deepinfra, command providers, and plugins): `stt.<provider>.language` → `stt.language` → `JETTSTUI_LOCAL_STT_LANGUAGE` env var → provider auto-detect. **The default is `stt.language: "en"`** — Whisper auto-detection frequently misidentifies short or accented clips, which shows up as voice notes transcribed in the wrong language. Non-English speakers should set `stt.language` to their language code once (e.g. `"es"`, `"zh"`, `"uk"`); set it to `""` to restore auto-detection for multilingual use.
+Language resolution is the same for **every** STT provider (local, groq, openai, mistral, xai, elevenlabs, deepinfra, command providers, and plugins): `stt.<provider>.language` → `stt.language` → `JETTSTUI_LOCAL_STT_LANGUAGE` env var → provider auto-detect. **The default is `stt.language: ""` (auto-detect)**, so speech in any language is transcribed as spoken. Very short or heavily accented clips are occasionally detected as the wrong language; if that happens often, set `stt.language` to your language code once (e.g. `"pt"`, `"es"`, `"zh"`). The default local model is `small`, which handles non-English speech much better than `base` (about 460 MB, downloaded once on first use).
 
 Set `stt.echo_transcripts: false` when the gateway should transcribe voice notes for the agent but must not post the raw transcript back to the chat (for example, customer-facing WhatsApp bots).
 

@@ -2327,13 +2327,15 @@ DEFAULT_CONFIG = {
         "echo_transcripts": True,
         "provider": "local",  # "local" (free, faster-whisper) | "groq" | "openai" (Whisper API) | "mistral" (Voxtral Transcribe) | "elevenlabs" (Scribe) | "deepinfra"
         # Global language hint applied to EVERY provider unless a per-provider
-        # language overrides it. Defaults to "en" — Whisper auto-detection
-        # frequently misidentifies short/accented clips, which reads as
-        # "STT transcribed the wrong language". Set to "" to restore
-        # auto-detect, or to your language code ("es", "zh", "uk", ...).
-        "language": "en",
+        # language overrides it. Defaults to "" (auto-detect) so speech in any
+        # language is transcribed as spoken — pinning English turned non-English
+        # speech into English-sounding nonsense. Very short clips are sometimes
+        # misdetected; set your language code ("pt", "es", "zh", ...) to pin it.
+        "language": "",
         "local": {
-            "model": "base",  # tiny, base, small, medium, large-v3
+            # "small" detects and transcribes non-English speech far better
+            # than "base" (~460 MB one-time download vs ~150 MB).
+            "model": "small",  # tiny, base, small, medium, large-v3
             "language": "",  # auto-detect by default; set to "en", "es", "fr", etc. to force
             "initial_prompt": "",
         },

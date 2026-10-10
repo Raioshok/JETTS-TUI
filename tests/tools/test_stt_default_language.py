@@ -1,33 +1,33 @@
 """Default STT language contract.
 
-Alice (July 2026): the global ``stt.language`` DEFAULTS to "en" because
-Whisper auto-detection frequently misidentifies short/accented clips
-("STT transcribed the wrong language" class). Users opt back into
-auto-detect with ``stt.language: ""``.
+The global ``stt.language`` defaults to "" (auto-detect) so speech in any
+language is transcribed as spoken; pinning English turned non-English speech
+into English-sounding nonsense. Users who want a fixed language set its code.
 """
 
 from jettstui.config import DEFAULT_CONFIG
 from tools.transcription_tools import _resolve_stt_language
 
+PROVIDERS = ("local", "groq", "openai", "mistral", "xai", "elevenlabs", "deepinfra")
+
 
 class TestDefaultSttLanguage:
-    def test_default_config_pins_english(self):
-        assert DEFAULT_CONFIG["stt"]["language"] == "en"
-
-    def test_default_config_resolves_en_for_every_provider(self, monkeypatch):
+    def test_default_config_auto_detects_for_every_provider(self, monkeypatch):
         monkeypatch.delenv("JETTSTUI_LOCAL_STT_LANGUAGE", raising=False)
         stt = DEFAULT_CONFIG["stt"]
-        for provider in ("local", "groq", "openai", "mistral", "xai", "elevenlabs", "deepinfra"):
-            assert _resolve_stt_language(provider, stt) == "en", provider
+        for provider in PROVIDERS:
+            assert _resolve_stt_language(provider, stt) is None, provider
 
-    def test_blank_global_restores_auto_detect(self, monkeypatch):
+    def test_global_language_pins_every_provider(self, monkeypatch):
         monkeypatch.delenv("JETTSTUI_LOCAL_STT_LANGUAGE", raising=False)
         stt = dict(DEFAULT_CONFIG["stt"])
-        stt["language"] = ""
-        assert _resolve_stt_language("groq", stt) is None
+        stt["language"] = "pt"
+        for provider in PROVIDERS:
+            assert _resolve_stt_language(provider, stt) == "pt", provider
 
-    def test_per_provider_still_wins_over_default(self, monkeypatch):
+    def test_per_provider_still_wins_over_global(self, monkeypatch):
         monkeypatch.delenv("JETTSTUI_LOCAL_STT_LANGUAGE", raising=False)
         stt = dict(DEFAULT_CONFIG["stt"])
+        stt["language"] = "en"
         stt["groq"] = {"language": "he"}
         assert _resolve_stt_language("groq", stt) == "he"

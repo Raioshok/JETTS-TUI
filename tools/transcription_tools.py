@@ -79,7 +79,8 @@ _HAS_MISTRAL = _safe_find_spec("mistralai")
 # ---------------------------------------------------------------------------
 
 DEFAULT_PROVIDER = "local"
-DEFAULT_LOCAL_MODEL = "base"
+DEFAULT_LOCAL_MODEL = "small"
+# Only for local command templates, whose ``{language}`` placeholder needs a value.
 DEFAULT_LOCAL_STT_LANGUAGE = "en"
 DEFAULT_STT_MODEL = os.getenv("STT_OPENAI_MODEL", "whisper-1")
 DEFAULT_GROQ_STT_MODEL = os.getenv("STT_GROQ_MODEL", "whisper-large-v3-turbo")
@@ -1174,7 +1175,7 @@ def _transcribe_local(file_path: str, model_name: str) -> Dict[str, Any]:
             return {"success": False, "transcript": "", "error": "faster-whisper not installed"}
 
     try:
-        # Lazy-load the model (downloads on first use, ~150 MB for 'base')
+        # Lazy-load the model (downloads on first use, ~460 MB for 'small')
         if _local_model is None or _local_model_name != model_name:
             logger.info("Loading faster-whisper model '%s' (first load downloads the model)...", model_name)
             _local_model = _load_local_whisper_model(model_name)
