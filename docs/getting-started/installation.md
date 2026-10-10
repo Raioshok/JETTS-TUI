@@ -32,6 +32,8 @@ Run in powershell:
 iex (irm https://raw.githubusercontent.com/Raioshok/JETTS-TUI/main/scripts/install.ps1)
 ```
 
+On Windows the installer also builds the desktop app and adds **JettsTUI** to the Start menu (so it shows up in Windows search) and to your Desktop. If the desktop build fails, for example because the app is open and its files are locked, the CLI install still completes and you can build the desktop app later with `jettstui desktop`. To skip the desktop app, download `install.ps1` and run `.\install.ps1 -NoDesktop`.
+
 To build and run the desktop app from a source install, run
 ```bash
 jettstui desktop

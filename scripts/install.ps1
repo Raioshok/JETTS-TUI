@@ -41,22 +41,24 @@ param(
     [string]$Ensure = "",
     [switch]$PostInstall,
 
-    # --- Desktop GUI build (opt-in) ---
-    # When set, install.ps1 includes Stage-Desktop in the manifest and
-    # builds apps/desktop into a launchable JettsTUI.exe.
+    # --- Desktop GUI build ---
+    # Builds apps/desktop into a launchable JettsTUI.exe and registers it in
+    # Windows navigation (Start Menu + Desktop shortcuts, searchable from
+    # Start).
     #
-    # Why opt-in:
-    #   * JettsTUI-Setup.exe (the signed Tauri bootstrap installer) passes
-    #     -IncludeDesktop so a user who installed via the GUI ends up
-    #     with a launchable desktop binary.
-    #   * The Electron desktop's own bootstrap-runner.ts runs install.ps1
-    #     from inside an already-launched JettsTUI.exe; if THAT recursively
-    #     built apps/desktop it would try to overwrite the live JettsTUI.exe
-    #     on disk and fail. The recursive path omits the flag.
-    #   * The canonical CLI one-liner (irm | iex) omits the flag too;
-    #     terminal users don't need a desktop binary built for them, and
-    #     `jettstui desktop` already builds on demand.
-    [switch]$IncludeDesktop
+    # When it runs:
+    #   * A plain interactive install (the irm | iex one-liner, or running
+    #     install.ps1 directly) builds it by default; -NoDesktop opts out.
+    #     A desktop build failure there is a warning, not a failed install.
+    #   * -IncludeDesktop forces it in every mode (JettsTUI-Setup.exe, the
+    #     signed Tauri bootstrap installer) and makes a build failure fatal.
+    #   * Driver modes (-Manifest / -Stage / -Ensure / -NonInteractive) leave
+    #     it out unless -IncludeDesktop is passed: the Electron desktop's own
+    #     bootstrap-runner.ts drives install.ps1 that way from inside an
+    #     already-launched JettsTUI.exe, and rebuilding would try to overwrite
+    #     the live JettsTUI.exe on disk.
+    [switch]$IncludeDesktop,
+    [switch]$NoDesktop
 )
 
 $ErrorActionPreference = "Stop"
@@ -3123,6 +3125,90 @@ function Install-Desktop {
     New-DesktopShortcuts -TargetExe $desktopExe
 }
 
+# Keep in sync with apps/desktop/package.json build.appId and the
+# app.setAppUserModelId(...) call in apps/desktop/electron/main.ts.
+$script:DesktopAppUserModelId = 'com.jetts.tui'
+
+function Set-ShortcutAppUserModelId {
+    # WScript.Shell can't set a shortcut's System.AppUserModel.ID property, so
+    # write it through the shell link's IPropertyStore.
+    param(
+        [Parameter(Mandatory = $true)][string]$LnkPath,
+        [Parameter(Mandatory = $true)][string]$AppId
+    )
+    if (-not ('JettsTUIInstall.ShortcutAppId' -as [type])) {
+        Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+
+namespace JettsTUIInstall {
+    [ComImport, Guid("0000010b-0000-0000-C000-000000000046"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    interface IPersistFile {
+        void GetClassID(out Guid pClassID);
+        [PreserveSig] int IsDirty();
+        void Load([MarshalAs(UnmanagedType.LPWStr)] string pszFileName, uint dwMode);
+        void Save([MarshalAs(UnmanagedType.LPWStr)] string pszFileName, [MarshalAs(UnmanagedType.Bool)] bool fRemember);
+        void SaveCompleted([MarshalAs(UnmanagedType.LPWStr)] string pszFileName);
+        void GetCurFile([MarshalAs(UnmanagedType.LPWStr)] out string ppszFileName);
+    }
+
+    [StructLayout(LayoutKind.Sequential, Pack = 4)]
+    struct PropertyKey {
+        public Guid fmtid;
+        public uint pid;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    struct PropVariant {
+        public ushort vt;
+        public ushort reserved1;
+        public ushort reserved2;
+        public ushort reserved3;
+        public IntPtr pointer;
+        public IntPtr padding;
+    }
+
+    [ComImport, Guid("886D8EEB-8CF2-4446-8D02-CDBA1DBDCF99"), InterfaceType(ComInterfaceType.InterfaceIsIUnknown)]
+    interface IPropertyStore {
+        void GetCount(out uint cProps);
+        void GetAt(uint iProp, out PropertyKey pkey);
+        void GetValue(ref PropertyKey key, out PropVariant pv);
+        void SetValue(ref PropertyKey key, ref PropVariant pv);
+        void Commit();
+    }
+
+    [ComImport, Guid("00021401-0000-0000-C000-000000000046")]
+    class CShellLink { }
+
+    public static class ShortcutAppId {
+        public static void Set(string lnkPath, string appId) {
+            object link = new CShellLink();
+            IntPtr value = Marshal.StringToCoTaskMemUni(appId);
+            try {
+                IPersistFile file = (IPersistFile)link;
+                file.Load(lnkPath, 2); // STGM_READWRITE
+                PropertyKey key = new PropertyKey();
+                key.fmtid = new Guid("9F4C2855-9F79-4B39-A8D0-E1D42DE1D5F3"); // PKEY_AppUserModel_ID
+                key.pid = 5;
+                PropVariant pv = new PropVariant();
+                pv.vt = 31; // VT_LPWSTR
+                pv.pointer = value;
+                IPropertyStore store = (IPropertyStore)link;
+                store.SetValue(ref key, ref pv);
+                store.Commit();
+                file.Save(lnkPath, true);
+            } finally {
+                Marshal.FreeCoTaskMem(value);
+                Marshal.ReleaseComObject(link);
+            }
+        }
+    }
+}
+'@
+    }
+    [JettsTUIInstall.ShortcutAppId]::Set($LnkPath, $AppId)
+}
+
 function New-DesktopShortcuts {
     param([Parameter(Mandatory = $true)][string]$TargetExe)
 
@@ -3162,7 +3248,17 @@ function New-DesktopShortcuts {
                 $sc.IconLocation = $iconLocation
                 $sc.Description = 'JettsTUI'
                 $sc.Save()
+                # Windows only delivers the app's toast notifications, and
+                # groups its taskbar button with a pinned shortcut, when the
+                # shortcut carries the same AppUserModelID the app sets at
+                # startup (app.setAppUserModelId in electron/main.ts).
+                try {
+                    Set-ShortcutAppUserModelId -LnkPath $lnkPath -AppId $script:DesktopAppUserModelId
+                } catch {
+                    Write-Warn "Could not tag $lnkPath with the app ID (notifications may not show): $($_.Exception.Message)"
+                }
                 Write-Success "Shortcut created: $lnkPath"
+                $script:DesktopShortcutsCreated = $true
             } catch {
                 Write-Warn "Could not create shortcut $lnkPath : $($_.Exception.Message)"
             }
@@ -3441,6 +3537,11 @@ function Write-Completion {
     Write-Host "   jettstui update       " -NoNewline -ForegroundColor Green
     Write-Host "Update to latest version"
     Write-Host ""
+    if ($script:DesktopShortcutsCreated) {
+        Write-Host "* Desktop app: " -NoNewline -ForegroundColor Cyan
+        Write-Host "open JettsTUI from the Start menu (or search 'JettsTUI'), or the Desktop shortcut"
+        Write-Host ""
+    }
     
     Write-Host "---------------------------------------------------------" -ForegroundColor Cyan
     Write-Host ""
@@ -3545,10 +3646,19 @@ $InstallStages = @(
     @{ Name = "dependencies";     Title = "Installing Python dependencies";       Category = "install";      NeedsUserInput = $false; Worker = "Stage-Dependencies" }
     @{ Name = "node-deps";        Title = "Installing Node.js dependencies";      Category = "install";      NeedsUserInput = $false; Worker = "Stage-NodeDeps" }
 )
-if ($IncludeDesktop) {
+# Default-on only for a plain interactive full install; see the -IncludeDesktop
+# / -NoDesktop parameter notes for why driver modes stay opt-in.
+$script:DesktopByDefault = (
+    -not $NoDesktop -and
+    -not $Manifest -and
+    -not $PSBoundParameters.ContainsKey("Stage") -and
+    $Ensure -eq "" -and
+    -not $PostInstall -and
+    -not $NonInteractive
+)
+if ($IncludeDesktop -or $script:DesktopByDefault) {
     # Insert AFTER node-deps so workspace npm is already installed when
-    # the desktop build runs. Inserted only when explicitly requested
-    # (JettsTUI-Setup.exe), never via the irm|iex CLI one-liner.
+    # the desktop build runs.
     $InstallStages += @{ Name = "desktop"; Title = "Building desktop app"; Category = "install"; NeedsUserInput = $false; Worker = "Stage-Desktop" }
 }
 $InstallStages += @(
@@ -3597,7 +3707,19 @@ function Stage-Repository       { Install-Repository }
 function Stage-Venv             { Resolve-UvCmd; Install-Venv }
 function Stage-Dependencies     { Resolve-UvCmd; Install-Dependencies }
 function Stage-NodeDeps         { Install-NodeDeps }
-function Stage-Desktop          { Install-Desktop }
+function Stage-Desktop          {
+    if ($IncludeDesktop) { Install-Desktop; return }
+    # Built by default: the CLI install is still complete without the desktop
+    # app, so a failed build (no Node, a running JettsTUI.exe locking the old
+    # build, a blocked Electron download) must not fail the whole install.
+    try {
+        Install-Desktop
+    } catch {
+        Write-Warn "Desktop app was not built: $_"
+        Write-Info "  The CLI is installed. Close any running JettsTUI desktop window, then build it with: jettstui desktop"
+        $script:_StageSkippedReason = "desktop build failed: $_"
+    }
+}
 function Stage-Path             { Set-PathVariable }
 function Stage-ConfigTemplates  { Copy-ConfigTemplates }
 function Stage-PlatformSdks     { Resolve-UvCmd; Install-PlatformSdks }
