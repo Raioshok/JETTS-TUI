@@ -58,3 +58,55 @@ def test_refspec_fetch_creates_remote_tracking_ref_and_branch_switch_works(singl
     assert _git(clone, "rev-parse", "origin/main") == _git(origin, "rev-parse", "main")
     _git(clone, "checkout", "-qB", "main", "origin/main")
     assert (clone / "a.txt").read_text() == "main\n"
+
+
+def test_update_fetch_creates_tracking_ref_without_touching_fetch_head(single_branch_clone, monkeypatch):
+    """FETCH_HEAD is what a concurrent background fetch holds; the update must not need it."""
+    import jettstui.main as jettstui_main
+
+    origin, clone = single_branch_clone
+    (clone / ".git" / "FETCH_HEAD").unlink(missing_ok=True)
+    monkeypatch.setattr(jettstui_main, "PROJECT_ROOT", clone)
+
+    result = jettstui_main._fetch_update_branch(["git"], "origin", "main")
+
+    assert result.returncode == 0, result.stderr
+    assert _git(clone, "rev-parse", "origin/main") == _git(origin, "rev-parse", "main")
+    assert not (clone / ".git" / "FETCH_HEAD").exists()
+
+
+def _scripted_run(monkeypatch, outcomes):
+    """Patch subprocess.run in jettstui.main to return scripted fetch results."""
+    import types
+
+    import jettstui.main as jettstui_main
+
+    calls = []
+
+    def fake_run(cmd, **_kwargs):
+        calls.append(cmd)
+        code, stderr = outcomes[min(len(calls), len(outcomes)) - 1]
+        return types.SimpleNamespace(returncode=code, stdout="", stderr=stderr)
+
+    monkeypatch.setattr(jettstui_main.subprocess, "run", fake_run)
+    monkeypatch.setattr(jettstui_main._time, "sleep", lambda _s: None)
+    return jettstui_main, calls
+
+
+def test_update_fetch_falls_back_when_git_lacks_no_write_fetch_head(monkeypatch):
+    jettstui_main, calls = _scripted_run(monkeypatch, [
+        (129, "error: unknown option `no-write-fetch-head'"),
+        (0, ""),
+    ])
+    assert jettstui_main._fetch_update_branch(["git"], "origin", "main").returncode == 0
+    assert "--no-write-fetch-head" in calls[0]
+    assert "--no-write-fetch-head" not in calls[1]
+
+
+def test_update_fetch_retries_once_when_another_git_holds_a_lock(monkeypatch):
+    jettstui_main, calls = _scripted_run(monkeypatch, [
+        (255, "error: cannot lock ref 'refs/remotes/origin/main': Unable to create '.git/refs/remotes/origin/main.lock'"),
+        (0, ""),
+    ])
+    assert jettstui_main._fetch_update_branch(["git"], "origin", "main").returncode == 0
+    assert len(calls) == 2

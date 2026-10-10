@@ -10877,6 +10877,53 @@ def _branch_fetch_refspec(remote: str, branch: str) -> str:
     return f"+refs/heads/{branch}:refs/remotes/{remote}/{branch}"
 
 
+_FETCH_LOCK_MARKERS = ("Permission denied", ".lock", "Unable to create")
+
+
+def _fetch_update_branch(git_cmd, remote: str, branch: str, extra_args=()):
+    """Fetch ``branch`` from ``remote`` into ``refs/remotes/<remote>/<branch>``.
+
+    ``--no-write-fetch-head``: the update reads the remote-tracking ref, never
+    FETCH_HEAD, and FETCH_HEAD is what a concurrent background fetch (the
+    startup update check in a running desktop backend or gateway) holds
+    open — on Windows that surfaced as "cannot open '.git/FETCH_HEAD':
+    Permission denied". Git older than 2.29 lacks the flag, so retry without
+    it; a lock held by another git process gets one retry after a pause.
+    """
+    refspec = _branch_fetch_refspec(remote, branch)
+
+    def _run(no_fetch_head: bool):
+        flag = ["--no-write-fetch-head"] if no_fetch_head else []
+        return subprocess.run(
+            git_cmd + ["fetch"] + flag + list(extra_args) + [remote, refspec],
+            cwd=PROJECT_ROOT,
+            capture_output=True,
+            text=True, encoding="utf-8", errors="replace",
+        )
+
+    no_fetch_head = True
+    result = _run(no_fetch_head)
+    if result.returncode != 0 and "no-write-fetch-head" in (result.stderr or ""):
+        no_fetch_head = False
+        result = _run(no_fetch_head)
+    if result.returncode != 0 and any(m in (result.stderr or "") for m in _FETCH_LOCK_MARKERS):
+        _time.sleep(2)
+        result = _run(no_fetch_head)
+    return result
+
+
+def _print_fetch_permission_hint(stderr: str) -> None:
+    """Explain a git permission/lock failure the user can actually act on."""
+    if not any(m in stderr for m in _FETCH_LOCK_MARKERS):
+        return
+    print("  Another JettsTUI process may be using the repository, or some files in it")
+    print("  belong to a different user (for example, created from an Administrator terminal).")
+    print("  Close the desktop app and other JettsTUI windows, then run `jettstui update` again.")
+    if sys.platform == "win32":
+        print("  If it still fails, run this once from an Administrator PowerShell, then retry:")
+        print(f'    icacls "{PROJECT_ROOT}" /grant "$env:USERNAME:(OI)(CI)F" /T /C /Q')
+
+
 def _resolve_update_branch(args) -> str:
     """Normalize ``args.branch`` into a non-empty branch name.
 
@@ -10947,21 +10994,11 @@ def _cmd_update_check(branch: str = "main", *, branch_explicit: bool = False):
 
     if branch == "main":
         print("→ Fetching from upstream...")
-        fetch_result = subprocess.run(
-            git_cmd + ["fetch"] + depth_args + ["upstream", _branch_fetch_refspec("upstream", branch)],
-            cwd=PROJECT_ROOT,
-            capture_output=True,
-            text=True, encoding="utf-8", errors="replace",
-        )
+        fetch_result = _fetch_update_branch(git_cmd, "upstream", branch, depth_args)
         if fetch_result.returncode != 0:
             # Fallback to origin if upstream doesn't exist
             print("→ Fetching from origin...")
-            fetch_result = subprocess.run(
-                git_cmd + ["fetch"] + depth_args + ["origin", _branch_fetch_refspec("origin", branch)],
-                cwd=PROJECT_ROOT,
-                capture_output=True,
-                text=True, encoding="utf-8", errors="replace",
-            )
+            fetch_result = _fetch_update_branch(git_cmd, "origin", branch, depth_args)
             upstream_exists = False
             compare_branch = f"origin/{branch}"
         else:
@@ -10970,12 +11007,7 @@ def _cmd_update_check(branch: str = "main", *, branch_explicit: bool = False):
     else:
         # Non-default branch: compare against origin/<branch> directly.
         print("→ Fetching from origin...")
-        fetch_result = subprocess.run(
-            git_cmd + ["fetch"] + depth_args + ["origin", _branch_fetch_refspec("origin", branch)],
-            cwd=PROJECT_ROOT,
-            capture_output=True,
-            text=True, encoding="utf-8", errors="replace",
-        )
+        fetch_result = _fetch_update_branch(git_cmd, "origin", branch, depth_args)
         upstream_exists = False
         compare_branch = f"origin/{branch}"
 
@@ -10989,6 +11021,7 @@ def _cmd_update_check(branch: str = "main", *, branch_explicit: bool = False):
             print("✗ Failed to fetch.")
             if stderr:
                 print(f"  {stderr.splitlines()[0]}")
+            _print_fetch_permission_hint(stderr)
         sys.exit(1)
 
     # Verify the compare ref actually exists before asking rev-list about it.
@@ -12201,12 +12234,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
         branch = _resolve_update_branch(args)
 
         print("→ Fetching updates...")
-        fetch_result = subprocess.run(
-            git_cmd + ["fetch", "origin", _branch_fetch_refspec("origin", branch)],
-            cwd=PROJECT_ROOT,
-            capture_output=True,
-            text=True, encoding="utf-8", errors="replace",
-        )
+        fetch_result = _fetch_update_branch(git_cmd, "origin", branch)
         if fetch_result.returncode != 0:
             stderr = fetch_result.stderr.strip()
             if "Could not resolve host" in stderr or "unable to access" in stderr:
@@ -12222,6 +12250,7 @@ def _cmd_update_impl(args, gateway_mode: bool):
                 print("✗ Failed to fetch updates from origin.")
                 if stderr:
                     print(f"  {stderr.splitlines()[0]}")
+                _print_fetch_permission_hint(stderr)
             sys.exit(1)
 
         # Get current branch (returns literal "HEAD" when detached)

@@ -488,7 +488,7 @@ def test_cmd_update_retries_optional_extras_individually_when_all_fails(monkeypa
         if cmd[:3] == ["git", "-c", "windows.appendAtomically=false"]:
             cmd = ["git", *cmd[3:]]
         recorded.append(cmd)
-        if cmd == ["git", "fetch", "origin", "+refs/heads/main:refs/remotes/origin/main"]:
+        if cmd == ["git", "fetch", "--no-write-fetch-head", "origin", "+refs/heads/main:refs/remotes/origin/main"]:
             return SimpleNamespace(stdout="", stderr="", returncode=0)
         if cmd == ["git", "rev-parse", "--abbrev-ref", "HEAD"]:
             return SimpleNamespace(stdout="main\n", stderr="", returncode=0)
@@ -539,7 +539,7 @@ def test_cmd_update_succeeds_with_extras(monkeypatch, tmp_path):
         if cmd[:3] == ["git", "-c", "windows.appendAtomically=false"]:
             cmd = ["git", *cmd[3:]]
         recorded.append(cmd)
-        if cmd == ["git", "fetch", "origin", "+refs/heads/main:refs/remotes/origin/main"]:
+        if cmd == ["git", "fetch", "--no-write-fetch-head", "origin", "+refs/heads/main:refs/remotes/origin/main"]:
             return SimpleNamespace(stdout="", stderr="", returncode=0)
         if cmd == ["git", "rev-parse", "--abbrev-ref", "HEAD"]:
             return SimpleNamespace(stdout="main\n", stderr="", returncode=0)
@@ -659,7 +659,7 @@ def test_cmd_update_reloads_runtime_modules_before_lazy_refresh(monkeypatch, tmp
     def fake_run(cmd, **kwargs):
         if cmd[:3] == ["git", "-c", "windows.appendAtomically=false"]:
             cmd = ["git", *cmd[3:]]
-        if cmd == ["git", "fetch", "origin", "+refs/heads/main:refs/remotes/origin/main"]:
+        if cmd == ["git", "fetch", "--no-write-fetch-head", "origin", "+refs/heads/main:refs/remotes/origin/main"]:
             return SimpleNamespace(stdout="", stderr="", returncode=0)
         if cmd == ["git", "rev-parse", "--abbrev-ref", "HEAD"]:
             return SimpleNamespace(stdout="main\n", stderr="", returncode=0)
@@ -965,7 +965,7 @@ def test_cmd_update_fetch_is_scoped_to_target_branch(monkeypatch, tmp_path):
     jettstui_main.cmd_update(SimpleNamespace())
 
     fetch_calls = [c for c in recorded if "fetch" in c]
-    assert fetch_calls == [["git", "fetch", "origin", "+refs/heads/main:refs/remotes/origin/main"]]
+    assert fetch_calls == [["git", "fetch", "--no-write-fetch-head", "origin", "+refs/heads/main:refs/remotes/origin/main"]]
     assert ["git", "fetch", "origin"] not in recorded
 
 
