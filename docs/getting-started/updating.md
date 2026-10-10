@@ -42,6 +42,16 @@ jettstui update --check --branch experimental   # preview behindness only
 
 If your local checkout is on a different branch, JettsTUI auto-stashes any uncommitted work, switches HEAD to the target branch, and then pulls. Branches that don't exist locally are auto-tracked from `origin/<name>` (`git checkout -B <name> origin/<name>`). Branches that don't exist anywhere fail cleanly — your stashed changes are restored before exit so you're never stranded in a weird state. The `main`-only fork-upstream sync logic is automatically skipped on non-`main` branches.
 
+The switch sticks: the install stays on the target branch even when that branch has nothing new to pull, and the update still installs dependencies and builds for the code it switched to. The target branch is fetched into `origin/<name>` explicitly, so this also works on installer checkouts, which are single-branch clones.
+
+Installs made before this fix could fail with `'origin/main' is not a commit`, or keep reporting "Already up to date" while still on an old branch. Repair them once from the install directory (`%LOCALAPPDATA%\jettstui\jettstui` on Windows):
+
+```bash
+git fetch origin +refs/heads/main:refs/remotes/origin/main
+git checkout -B main origin/main
+jettstui update
+```
+
 ### Local changes on non-interactive updates
 
 When you run `jettstui update` in a terminal, JettsTUI stashes any uncommitted source-tree changes, pulls, then **asks** whether to restore them — exactly as it always has. Nothing changes for interactive updates.

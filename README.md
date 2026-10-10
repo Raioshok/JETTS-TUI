@@ -40,7 +40,13 @@ cd JETTS-TUI
 bash setup-jetts-tui.sh
 ```
 
-**Windows (PowerShell)**
+**Windows (PowerShell)** — one-line installer:
+
+```powershell
+iex (irm https://raw.githubusercontent.com/Raioshok/JETTS-TUI/main/scripts/install.ps1)
+```
+
+It installs everything into `%LOCALAPPDATA%\jettstui`, builds the desktop app, and adds **JettsTUI** to the Start menu (searchable from Start) and to your Desktop. Skip the desktop app with `.\install.ps1 -NoDesktop`. To set up a clone you work on instead:
 
 ```powershell
 git clone https://github.com/Raioshok/JETTS-TUI.git
@@ -105,7 +111,7 @@ Configuration lives in `~/.jettstui/config.yaml` (`%LOCALAPPDATA%\jettstui` on W
 
 - **Full-screen terminal UI** (`jettstui`) — Ink/React TUI with streaming output, multiline composer, slash-command autocomplete, `@file` references, session switcher, live tool activity, approval prompts, and image paste.
 - **Classic CLI** (`jettstui chat`) — prompt_toolkit REPL with Rich panels and themed spinners.
-- **Desktop app** (`jettstui desktop`) — Electron app with a chat transcript, projects, file previews, review pane, integrated terminal, command palette, and light/dark themes.
+- **Desktop app** (`jettstui desktop`, or the Start menu on Windows) — Electron app with a chat transcript, projects, file previews, review pane, integrated terminal, command palette, and light/dark themes.
 - **Web dashboard** (`jettstui dashboard`) — browser admin for sessions, models, logs, cron, skills, plugins, MCP, channels, webhooks, pairing, profiles, config, keys, and system health, plus the embedded TUI.
 - **Messaging gateway** (`jettstui gateway`) — the same agent on 29 chat platforms with per-chat sessions.
 - **Headless backend** (`jettstui serve`) — JSON-RPC/WebSocket server that powers the desktop app and remote clients.
@@ -116,8 +122,8 @@ Configuration lives in `~/.jettstui/config.yaml` (`%LOCALAPPDATA%\jettstui` on W
 
 ### Models & providers
 
-- **44 inference providers** built in as plugins, plus any OpenAI-compatible endpoint.
-- **Sign-in providers** — ChatGPT/Codex, GitHub Copilot, Qwen, MiniMax, and xAI OAuth flows; `jettstui proxy` exposes them as a local OpenAI-compatible endpoint.
+- **45 inference providers** built in as plugins, plus any OpenAI-compatible endpoint.
+- **Sign-in providers** — ChatGPT/Codex, GitHub Copilot, Qwen, MiniMax, and xAI OAuth flows (`jettstui proxy` exposes them as a local OpenAI-compatible endpoint), plus **Google Antigravity**: sign in with a Google AI Pro / Ultra plan to use Gemini 3 and Claude.
 - **Fallback providers** (`jettstui fallback`) tried automatically when the primary model fails.
 - **Credential pools** (`jettstui auth`) — rotate several keys per provider with cooldown on rate limits.
 - **Mixture of Agents** (`jettstui moa`) — fan a prompt out to reference models and aggregate.
@@ -418,7 +424,7 @@ Type these inside a conversation — in the TUI, the desktop app, or any messagi
 
 ## Desktop app
 
-The desktop app lives in [`apps/desktop`](apps/desktop). It starts a headless `jettstui serve` backend and talks to it over JSON-RPC, so it shares sessions, skills, and memory with the TUI.
+The desktop app lives in [`apps/desktop`](apps/desktop). It starts a headless `jettstui serve` backend and talks to it over JSON-RPC, so it shares sessions, skills, and memory with the TUI. On Windows the one-line installer builds it and adds it to the Start menu; elsewhere `jettstui desktop` builds it on first run. Sign-in providers, Google Antigravity included, can be connected from its provider list without a terminal.
 
 ```bash
 npm ci                     # from the repository root
