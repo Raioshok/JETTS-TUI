@@ -1019,6 +1019,8 @@ export const zh: Translations = {
         outOfQuota: '额度已用完',
         outOfQuotaUntil: when => `额度已用完，${when} 重置`,
         signInAgain: '需要重新登录',
+        needsVerification: '需要验证',
+        verify: '验证',
         removeConfirm: account => `移除 ${account}？`,
         switchedTitle: '已切换账号',
         switched: account => `现在使用 ${account}。已打开的对话会在下一条消息时切换。`,

@@ -79,8 +79,11 @@ def list_accounts(provider: str) -> List[Dict[str, Any]]:
                 "detail": account["plan"],
                 "source": "antigravity",
                 "active": account["active"],
-                "status": "exhausted" if account["exhausted_until"] else "ok",
+                "status": "verify"
+                if account.get("verify_url")
+                else ("exhausted" if account["exhausted_until"] else "ok"),
                 "exhausted_until": account["exhausted_until"],
+                "verify_url": account.get("verify_url"),
             }
             for account in list_antigravity()
         ]

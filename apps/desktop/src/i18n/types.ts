@@ -702,6 +702,8 @@ export interface Translations {
         outOfQuota: string
         outOfQuotaUntil: (when: string) => string
         signInAgain: string
+        needsVerification: string
+        verify: string
         removeConfirm: (account: string) => string
         switchedTitle: string
         switched: (account: string) => string

@@ -165,3 +165,26 @@ def test_antigravity_single_account_state_migrates_and_removing_active_falls_bac
     accounts.remove_account("antigravity", "old@example.com")
     assert ag.list_accounts() == []
     assert ag.get_antigravity_auth_status()["logged_in"] is False
+
+
+def test_account_needing_verification_is_flagged_and_skipped_until_picked_again():
+    _sign_in_antigravity("a@example.com", "tok-a")
+    _sign_in_antigravity("b@example.com", "tok-b")
+
+    switched = ag.rotate_after_verification_required("https://accounts.google.com/verify")
+    assert switched["email"] == "a@example.com"
+    flagged = next(a for a in accounts.list_accounts("antigravity") if a["label"] == "b@example.com")
+    assert flagged["status"] == "verify" and flagged["verify_url"] == "https://accounts.google.com/verify"
+
+    # After verifying in the browser, picking the account clears the flag.
+    accounts.use_account("antigravity", "b@example.com")
+    picked = next(a for a in accounts.list_accounts("antigravity") if a["label"] == "b@example.com")
+    assert picked["active"] and picked["status"] == "ok" and not picked["verify_url"]
+
+
+def test_only_account_needing_verification_is_flagged_but_stays_active():
+    _sign_in_antigravity("solo@example.com", "tok-solo")
+    assert ag.rotate_after_verification_required("https://accounts.google.com/verify") is None
+    (only,) = accounts.list_accounts("antigravity")
+    assert only["active"] and only["status"] == "verify"
+    assert ag.resolve_antigravity_runtime_credentials()["api_key"] == "tok-solo"

@@ -254,3 +254,51 @@ def test_streaming_unwraps_sse_events():
     text = "".join(c.choices[0].delta.content or "" for c in chunks)
     assert text == "Hello"
     assert chunks[-1].choices[0].finish_reason == "stop"
+
+
+VERIFY_URL = "https://accounts.google.com/signin/continue?sarp=1&plt=abc"
+VERIFICATION_BODY = {"error": {"code": 403, "message": "Verify your account to continue.", "status": "PERMISSION_DENIED",
+                               "details": [{"@type": "type.googleapis.com/google.rpc.ErrorInfo",
+                                            "reason": "VALIDATION_REQUIRED",
+                                            "metadata": {"validation_url": VERIFY_URL}}]}}
+
+
+def test_account_needing_verification_switches_to_another_account():
+    seen = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen.append(request.headers["authorization"])
+        if request.headers["authorization"] == "Bearer tok-a":
+            return httpx.Response(403, json=VERIFICATION_BODY)
+        return httpx.Response(200, json={"response": _gemini_payload([{"text": "ok"}])})
+
+    source, _rotator, state = _switching_accounts()
+    flagged = []
+
+    def verify_rotator(url):
+        flagged.append(url)
+        state["active"] += 1
+        return True
+
+    result = _client(handler, credential_source=source, verification_rotator=verify_rotator).chat.completions.create(
+        model="gemini-3-flash", messages=PARALLEL_HISTORY[:2])
+    assert result.choices[0].message.content == "ok"
+    assert seen == ["Bearer tok-a", "Bearer tok-b"] and flagged == [VERIFY_URL]
+
+
+@pytest.mark.parametrize("stream", [False, True])
+def test_verification_link_reaches_the_user_without_retrying_other_endpoints(stream):
+    hosts = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        hosts.append(request.url.host)
+        return httpx.Response(403, json=VERIFICATION_BODY)
+
+    client = _client(handler, verification_rotator=lambda _url: False)
+    with pytest.raises(GeminiAPIError) as exc_info:
+        result = client.chat.completions.create(model="gemini-3-flash", messages=PARALLEL_HISTORY[:2], stream=stream)
+        list(result) if stream else None
+    assert exc_info.value.status_code == 403
+    assert exc_info.value.code == "antigravity_verification_required"
+    assert VERIFY_URL in str(exc_info.value)
+    assert len(hosts) == 1

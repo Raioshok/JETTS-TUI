@@ -450,7 +450,12 @@ def _format_cooldown(until) -> str:
 def _print_accounts(accounts: list) -> None:
     for idx, account in enumerate(accounts, start=1):
         marker = "← in use" if account["active"] else ""
-        status = " dead (sign in again)" if account["status"] == "dead" else _format_cooldown(account["exhausted_until"])
+        if account["status"] == "dead":
+            status = " dead (sign in again)"
+        elif account["status"] == "verify":
+            status = f" needs verification: {account.get('verify_url')}"
+        else:
+            status = _format_cooldown(account["exhausted_until"])
         detail = f" {account['detail']}" if account.get("detail") else ""
         print(f"  #{idx}  {account['label']:<28}{detail}{status} {marker}".rstrip())
 

@@ -86,4 +86,22 @@ describe('ProviderAccounts', () => {
     await waitFor(() => expect(api.listOAuthAccounts).toHaveBeenCalled())
     expect(screen.queryByText('work@example.com')).toBeNull()
   })
+
+  it('links an account Google blocked to its verification page', async () => {
+    const open = vi.spyOn(window, 'open').mockReturnValue(null)
+    renderAccounts([
+      account({ active: true, id: 'w' }),
+      account({
+        exhausted_until: Date.now() / 1000 + 3600,
+        id: 'b',
+        label: 'blocked@example.com',
+        status: 'verify',
+        verify_url: 'https://accounts.google.com/verify'
+      })
+    ])
+
+    expect(await screen.findByText(/needs verification/)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Verify' }))
+    expect(open).toHaveBeenCalledWith('https://accounts.google.com/verify', '_blank', 'noopener,noreferrer')
+  })
 })

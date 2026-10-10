@@ -828,6 +828,8 @@ export const ar = defineLocale({
         outOfQuota: 'نفدت الحصة',
         outOfQuotaUntil: when => `نفدت الحصة، يُعاد التعيين ${when}`,
         signInAgain: 'سجّل الدخول مجددًا',
+        needsVerification: 'يحتاج إلى تحقق',
+        verify: 'تحقق',
         removeConfirm: account => `إزالة ${account}؟`,
         switchedTitle: 'تم تبديل الحساب',
         switched: account => `يتم الآن استخدام ${account}. تنتقل المحادثات المفتوحة مع رسالتها التالية.`,

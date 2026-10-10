@@ -710,7 +710,10 @@ DEFAULT_QUOTA_COOLDOWN_SECONDS = 60 * 60
 # 429s that ask for a shorter wait than this are treated as transient rate
 # limits (retry the same account) rather than a drained quota (switch accounts).
 QUOTA_ROTATE_MIN_RETRY_SECONDS = 60.0
-_ACCOUNT_ONLY_KEYS = frozenset({"id", "exhausted_until"})
+# Google blocked the account until the user verifies it in a browser
+# (403 VALIDATION_REQUIRED); retried after this long or when picked again.
+VERIFICATION_COOLDOWN_SECONDS = 6 * 60 * 60
+_ACCOUNT_ONLY_KEYS = frozenset({"id", "exhausted_until", "verify_url"})
 
 
 def _load_state() -> Optional[Dict[str, Any]]:
@@ -827,6 +830,7 @@ def list_accounts() -> List[Dict[str, Any]]:
             "plan": describe_tier(tier_id),
             "active": account_id == active_id,
             "exhausted_until": _cooldown_until(account, now),
+            "verify_url": (account.get("verify_url") or None) if _cooldown_until(account, now) else None,
         })
     return out
 
@@ -842,7 +846,9 @@ def activate_account(account_id: str) -> Dict[str, Any]:
             raise _auth_error(f"No saved Antigravity account {account_id!r}.", "antigravity_account_missing")
         # Picking an account is an explicit "try this one": drop its cooldown.
         accounts = [
-            {k: v for k, v in a.items() if k != "exhausted_until"} if a.get("id") == account_id else a
+            {k: v for k, v in a.items() if k not in {"exhausted_until", "verify_url"}}
+            if a.get("id") == account_id
+            else a
             for a in accounts
         ]
         active = _account_to_active(record)
@@ -877,9 +883,34 @@ def rotate_after_quota_exhausted(retry_after_seconds: Optional[float] = None) ->
     Returns the newly active account's fields, or ``None`` when no other
     account is usable (the active account is then left untouched).
     """
+    cooldown = retry_after_seconds if retry_after_seconds and retry_after_seconds > 0 else DEFAULT_QUOTA_COOLDOWN_SECONDS
+    return _rotate_active_account(cooldown, reason="quota exhausted")
+
+
+def rotate_after_verification_required(verify_url: str) -> Optional[Dict[str, Any]]:
+    """Google wants the active account verified (403 VALIDATION_REQUIRED).
+
+    The account is marked with the verification link (shown in the account
+    list) whether or not another account can take over. Returns the newly
+    active account's fields, or ``None`` when no other account is usable.
+    """
+    return _rotate_active_account(
+        VERIFICATION_COOLDOWN_SECONDS,
+        reason="verification required",
+        mark={"verify_url": verify_url},
+        mark_without_switch=True,
+    )
+
+
+def _rotate_active_account(
+    cooldown: float,
+    *,
+    reason: str,
+    mark: Optional[Dict[str, Any]] = None,
+    mark_without_switch: bool = False,
+) -> Optional[Dict[str, Any]]:
     from jettstui.auth import _auth_store_lock
 
-    cooldown = retry_after_seconds if retry_after_seconds and retry_after_seconds > 0 else DEFAULT_QUOTA_COOLDOWN_SECONDS
     now = time.time()
     with _auth_store_lock():
         state = _load_state()
@@ -895,16 +926,20 @@ def rotate_after_quota_exhausted(retry_after_seconds: Optional[float] = None) ->
             (a for a in ordered if a.get("id") != active_id and _cooldown_until(a, now) is None),
             None,
         )
-        if nxt is None:
+        if nxt is None and not mark_without_switch:
             return None
         accounts = [
-            {**a, "exhausted_until": now + cooldown} if a.get("id") == active_id else a
+            {**a, "exhausted_until": now + cooldown, **(mark or {})} if a.get("id") == active_id else a
             for a in accounts
         ]
-        active = _account_to_active(nxt)
+        active = _account_to_active(nxt) if nxt is not None else _active_fields(state)
         _write_state({**active, ACCOUNTS_KEY: accounts}, set_active=False)
+    if nxt is None:
+        logger.info("antigravity: %s for %s, no other account to switch to", reason, state.get("email") or active_id)
+        return None
     logger.info(
-        "antigravity: quota exhausted for %s, switched to %s",
+        "antigravity: %s for %s, switched to %s",
+        reason,
         state.get("email") or active_id,
         nxt.get("email") or nxt.get("id"),
     )

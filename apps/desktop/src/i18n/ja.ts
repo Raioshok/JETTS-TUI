@@ -890,6 +890,8 @@ export const ja = defineLocale({
         outOfQuota: 'クォータ切れ',
         outOfQuotaUntil: when => `クォータ切れ、${when} にリセット`,
         signInAgain: '再サインインが必要',
+        needsVerification: '確認が必要',
+        verify: '確認する',
         removeConfirm: account => `${account} を削除しますか？`,
         switchedTitle: 'アカウントを切り替えました',
         switched: account => `${account} を使用中です。開いているチャットは次のメッセージから切り替わります。`,

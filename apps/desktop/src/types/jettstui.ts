@@ -54,7 +54,9 @@ export interface OAuthAccount {
   id: string
   label: string
   source: string
-  status: 'dead' | 'exhausted' | 'ok'
+  /** 'verify': Google blocked the account until its owner verifies it at `verify_url`. */
+  status: 'dead' | 'exhausted' | 'ok' | 'verify'
+  verify_url?: null | string
 }
 
 export interface OAuthAccountsResponse {

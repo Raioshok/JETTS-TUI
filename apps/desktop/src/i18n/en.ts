@@ -817,6 +817,8 @@ export const en: Translations = {
         outOfQuota: 'out of quota',
         outOfQuotaUntil: when => `out of quota, resets ${when}`,
         signInAgain: 'sign in again',
+        needsVerification: 'needs verification',
+        verify: 'Verify',
         removeConfirm: account => `Remove ${account}?`,
         switchedTitle: 'Account switched',
         switched: account => `Now using ${account}. Open chats switch on their next message.`,

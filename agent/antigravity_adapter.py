@@ -265,6 +265,51 @@ def classify_quota_error(body_text: str) -> tuple[bool, Optional[float]]:
     return ("quota" in str(error.get("message") or "").lower(), None)
 
 
+def verification_url(body_text: str) -> Optional[str]:
+    """The "Verify your account" link from a 403 VALIDATION_REQUIRED body, if any.
+
+    Google blocks an account until its owner verifies it in a browser; the
+    link must reach the user or they cannot unblock it.
+    """
+    try:
+        payload = json.loads(body_text or "")
+    except ValueError:
+        return None
+    if isinstance(payload, list) and payload and isinstance(payload[0], dict):
+        payload = payload[0]
+    error = payload.get("error") if isinstance(payload, dict) else None
+    if not isinstance(error, dict):
+        return None
+    details = [d for d in error.get("details") or [] if isinstance(d, dict)]
+    if not any(str(d.get("reason") or "").upper() == "VALIDATION_REQUIRED" for d in details):
+        return None
+    for detail in details:
+        metadata = detail.get("metadata") if isinstance(detail.get("metadata"), dict) else {}
+        if metadata.get("validation_url"):
+            return str(metadata["validation_url"])
+    for detail in details:
+        for link in detail.get("links") or []:
+            if isinstance(link, dict) and link.get("url") and "verify" in str(link.get("description") or "").lower():
+                return str(link["url"])
+    return "https://support.google.com/accounts?p=al_alert"
+
+
+def verification_required_error(url: str, response: Optional[httpx.Response] = None) -> GeminiAPIError:
+    return GeminiAPIError(
+        "Google needs you to verify this Antigravity account before it can be used. "
+        f"Open this link while signed in to that Google account, then retry: {url}",
+        code="antigravity_verification_required",
+        status_code=403,
+        response=response,
+    )
+
+
+def _default_verification_rotator(url: str) -> bool:
+    from jettstui.antigravity_auth import rotate_after_verification_required
+
+    return rotate_after_verification_required(url) is not None
+
+
 def _default_account_rotator(retry_after_seconds: Optional[float]) -> bool:
     from jettstui.antigravity_auth import rotate_after_quota_exhausted
 
@@ -296,6 +341,7 @@ class AntigravityClient(GeminiNativeClient):
         http_client: Optional[httpx.Client] = None,
         credential_source: Optional[CredentialSource] = None,
         account_rotator: Optional[Callable[[Optional[float]], bool]] = None,
+        verification_rotator: Optional[Callable[[str], bool]] = None,
         **_: Any,
     ) -> None:
         from jettstui.antigravity_auth import ANTIGRAVITY_INFERENCE_ENDPOINTS, DEFAULT_ANTIGRAVITY_BASE_URL
@@ -309,6 +355,7 @@ class AntigravityClient(GeminiNativeClient):
         )
         self._credential_source = credential_source or _default_credential_source
         self._account_rotator = account_rotator or _default_account_rotator
+        self._verification_rotator = verification_rotator or _default_verification_rotator
         self._project_id = project_id
         self._fallback_token = api_key
         endpoints = [self.base_url] + [e for e in ANTIGRAVITY_INFERENCE_ENDPOINTS if e != self.base_url]
@@ -345,6 +392,25 @@ class AntigravityClient(GeminiNativeClient):
         if switched:
             self._refresh_credentials()
         return bool(switched)
+
+    def _handle_verification_required(self, body_text: str, response: Optional[httpx.Response]) -> bool:
+        """403 VALIDATION_REQUIRED: switch accounts (True) or raise with the link.
+
+        Returns False when the 403 is something else. Never falls through to
+        the other endpoints: the block is on the account, not the endpoint.
+        """
+        url = verification_url(body_text)
+        if url is None:
+            return False
+        try:
+            switched = self._verification_rotator(url)
+        except Exception as exc:  # pragma: no cover - rotation is best-effort
+            logger.debug("antigravity verification rotation failed: %s", exc)
+            switched = False
+        if switched:
+            self._refresh_credentials()
+            return True
+        raise verification_required_error(url, response)
 
     def _headers(self) -> Dict[str, str]:
         from jettstui.antigravity_auth import antigravity_headers
@@ -452,6 +518,14 @@ class AntigravityClient(GeminiNativeClient):
                 rotations += 1
                 refreshed = False
                 continue
+            if (
+                response.status_code == 403
+                and rotations < _MAX_ACCOUNT_ROTATIONS
+                and self._handle_verification_required(response.text, response)
+            ):
+                rotations += 1
+                refreshed = False
+                continue
             last_response = response
             if response.status_code not in _FALLBACK_STATUSES:
                 break
@@ -483,6 +557,14 @@ class AntigravityClient(GeminiNativeClient):
                                 response.status_code == 429
                                 and rotations < _MAX_ACCOUNT_ROTATIONS
                                 and self._rotate_account(body_text)
+                            ):
+                                rotations += 1
+                                refreshed = False
+                                continue
+                            if (
+                                response.status_code == 403
+                                and rotations < _MAX_ACCOUNT_ROTATIONS
+                                and self._handle_verification_required(body_text, response)
                             ):
                                 rotations += 1
                                 refreshed = False

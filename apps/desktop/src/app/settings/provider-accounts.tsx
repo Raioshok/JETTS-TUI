@@ -115,13 +115,15 @@ function AccountRow({
   const copy = t.settings.providers.accounts
 
   const status =
-    account.status === 'dead'
-      ? copy.signInAgain
-      : account.status === 'exhausted'
-        ? account.exhausted_until
-          ? copy.outOfQuotaUntil(relativeTime(account.exhausted_until * 1000))
-          : copy.outOfQuota
-        : null
+    account.status === 'verify'
+      ? copy.needsVerification
+      : account.status === 'dead'
+        ? copy.signInAgain
+        : account.status === 'exhausted'
+          ? account.exhausted_until
+            ? copy.outOfQuotaUntil(relativeTime(account.exhausted_until * 1000))
+            : copy.outOfQuota
+          : null
 
   return (
     <li className="flex min-w-0 items-center gap-2 text-[length:var(--conversation-caption-font-size)]">
@@ -130,6 +132,16 @@ function AccountRow({
         {!compact && account.detail && <span className="ml-1.5 text-muted-foreground">{account.detail}</span>}
         {status && <span className="ml-1.5 text-(--ui-text-tertiary)">· {status}</span>}
       </span>
+      {account.status === 'verify' && account.verify_url && (
+        <Button
+          onClick={() => window.open(account.verify_url ?? '', '_blank', 'noopener,noreferrer')}
+          size="xs"
+          type="button"
+          variant="outline"
+        >
+          {copy.verify}
+        </Button>
+      )}
       {account.active ? (
         <span className="inline-flex shrink-0 items-center gap-1 bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary">
           <Check className="size-3" />

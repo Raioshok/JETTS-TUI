@@ -863,6 +863,8 @@ export const zhHant = defineLocale({
         outOfQuota: '額度已用完',
         outOfQuotaUntil: when => `額度已用完，${when} 重設`,
         signInAgain: '需要重新登入',
+        needsVerification: '需要驗證',
+        verify: '驗證',
         removeConfirm: account => `移除 ${account}？`,
         switchedTitle: '已切換帳號',
         switched: account => `現在使用 ${account}。已開啟的對話會在下一則訊息時切換。`,
