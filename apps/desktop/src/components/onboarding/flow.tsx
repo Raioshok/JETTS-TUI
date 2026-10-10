@@ -19,6 +19,7 @@ import {
   recheckExternalSignin,
   setOnboardingCode,
   setOnboardingModel,
+  startProviderOAuth,
   submitOnboardingCode
 } from '@/store/onboarding'
 
@@ -62,10 +63,15 @@ export function FlowPanel({
           <ErrorIcon className="shrink-0" size="0.875rem" />
           <span>{flow.message || t.onboarding.signInFailed}</span>
         </div>
-        <div className="flex justify-end">
+        <div className="flex justify-end gap-2">
           <Button onClick={cancelOnboardingFlow} variant="outline">
             {t.onboarding.pickDifferentProvider}
           </Button>
+          {flow.provider && (
+            <Button onClick={() => flow.provider && void startProviderOAuth(flow.provider, ctx)}>
+              {t.onboarding.tryAgain}
+            </Button>
+          )}
         </div>
       </div>
     )
@@ -77,7 +83,13 @@ export function FlowPanel({
         <ol className="list-decimal space-y-1 pl-5 text-sm text-muted-foreground">
           <li>{t.onboarding.openedBrowser(title)}</li>
           <li>{t.onboarding.authorizeThere}</li>
-          <li>{t.onboarding.copyAuthCode}</li>
+          <li>
+            {flow.start.loopback === true
+              ? t.onboarding.autoPickupHint
+              : flow.start.loopback === false
+                ? t.onboarding.noAutoPickup
+                : t.onboarding.copyAuthCode}
+          </li>
         </ol>
         <Input
           autoFocus
@@ -86,6 +98,12 @@ export function FlowPanel({
           placeholder={t.onboarding.pasteAuthCode}
           value={flow.code}
         />
+        {flow.error && (
+          <div className="flex items-start gap-1.5 text-sm text-destructive" role="alert">
+            <ErrorIcon className="mt-0.5 shrink-0" size="0.875rem" />
+            <span>{flow.error}</span>
+          </div>
+        )}
         <FlowFooter left={<DocsLink href={flow.start.auth_url}>{t.onboarding.reopenAuthPage}</DocsLink>}>
           <CancelBtn />
           <Button disabled={!flow.code.trim()} onClick={() => void submitOnboardingCode(ctx)}>

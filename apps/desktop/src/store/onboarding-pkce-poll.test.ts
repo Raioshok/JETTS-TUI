@@ -76,4 +76,21 @@ describe('PKCE sign-in polling', () => {
     expect(api.pollOAuthSession.mock.calls.length).toBe(pollsAtSubmit)
     expect($desktopOnboarding.get().flow.status).toBe('error')
   })
+
+  it('keeps the paste step open with the error when a pasted code is rejected', async () => {
+    api.pollOAuthSession.mockResolvedValue({ status: 'pending' })
+    api.submitOAuthCode.mockResolvedValue({ message: 'Malformed auth code', ok: false, status: 'pending' })
+    await startProviderOAuth(provider, ctx)
+    setOnboardingCode('4/0Abad')
+    await submitOnboardingCode(ctx)
+
+    const flow = $desktopOnboarding.get().flow
+    expect(flow.status).toBe('awaiting_user')
+    expect(flow.status === 'awaiting_user' && flow.error).toBe('Malformed auth code')
+
+    // Editing the field clears the stale error.
+    setOnboardingCode('4/0Agood')
+    const edited = $desktopOnboarding.get().flow
+    expect(edited.status === 'awaiting_user' && edited.error).toBeUndefined()
+  })
 })

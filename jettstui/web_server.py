@@ -11150,26 +11150,48 @@ def _claim_antigravity_session(sess: Dict[str, Any]) -> bool:
         return True
 
 
-def _finish_antigravity_session(sess: Dict[str, Any], code: str) -> Dict[str, Any]:
+def _finish_antigravity_session(sess: Dict[str, Any], code: str, *, retryable: bool = False) -> Dict[str, Any]:
+    """Exchange the code. With *retryable* (a pasted code), a rejected code
+    leaves the session open so the user can paste again: Google only consumes
+    a code it accepts, so the real one is still good after a bad paste."""
     from jettstui.antigravity_auth import complete_login
 
     try:
         with _profile_scope(sess.get("profile")):
             complete_login(code, sess["verifier"], set_active=False)
     except Exception as e:
+        message = f"Antigravity sign-in failed: {e}"
         with _oauth_sessions_lock:
+            if retryable:
+                sess["completing"] = False
+                return {"ok": False, "status": "pending", "message": message}
             sess["status"] = "error"
-            sess["error_message"] = f"Antigravity sign-in failed: {e}"
-        return {"ok": False, "status": "error", "message": sess["error_message"]}
+            sess["error_message"] = message
+        return {"ok": False, "status": "error", "message": message}
     with _oauth_sessions_lock:
         sess["status"] = "approved"
     _log.info("oauth/pkce: antigravity login completed (session=%s)", sess["session_id"])
     return {"ok": True, "status": "approved"}
 
 
+def _supersede_antigravity_sessions(keep_sid: str) -> None:
+    """Close older pending Antigravity sign-ins so their listeners free port 51121."""
+    with _oauth_sessions_lock:
+        for sid, sess in list(_oauth_sessions.items()):
+            if sid != keep_sid and sess.get("provider") == "antigravity" and sess.get("status") == "pending":
+                sess["status"] = "cancelled"
+                sess["error_message"] = "Superseded by a newer sign-in attempt."
+
+
 def _start_antigravity_pkce(profile: Optional[str] = None) -> Dict[str, Any]:
-    """Begin Antigravity sign-in and listen on its loopback redirect."""
-    from jettstui.antigravity_auth import _wait_for_loopback_callback, start_login
+    """Begin Antigravity sign-in and listen on its loopback redirect.
+
+    Only one attempt listens at a time: a new attempt cancels older pending
+    ones (their listeners close within ~0.1s) and binds port 51121 exclusively.
+    The response says whether the redirect will be picked up automatically
+    (``loopback``); when it cannot be, the user pastes the code instead.
+    """
+    from jettstui.antigravity_auth import LoopbackListener, start_login
     from jettstui.auth import AuthError
 
     try:
@@ -11179,17 +11201,24 @@ def _start_antigravity_pkce(profile: Optional[str] = None) -> Dict[str, Any]:
     sid, sess = _new_oauth_session("antigravity", "pkce", profile=profile)
     sess["verifier"] = login["verifier"]
     sess["state"] = login["state"]
+    _supersede_antigravity_sessions(sid)
 
     def _abandoned() -> bool:
         with _oauth_sessions_lock:
             return _oauth_sessions.get(sid) is not sess or sess["status"] != "pending" or bool(sess.get("completing"))
 
+    try:
+        listener = LoopbackListener(expected_state=login["state"], bind_timeout_seconds=3.0)
+    except Exception as e:
+        # Port held by another app (e.g. the Antigravity IDE) — paste still works.
+        _log.info("oauth/pkce: antigravity loopback unavailable: %s", e)
+        listener = None
+
     def _listen() -> None:
         try:
-            callback = _wait_for_loopback_callback(_OAUTH_SESSION_TTL_SECONDS, should_stop=_abandoned)
+            callback = listener.wait(_OAUTH_SESSION_TTL_SECONDS, should_stop=_abandoned)
         except Exception as e:
-            # Port busy (e.g. the Antigravity app) — the paste fallback still works.
-            _log.info("oauth/pkce: antigravity loopback unavailable: %s", e)
+            _log.info("oauth/pkce: antigravity loopback ended: %s", e)
             return
         if callback.get("error"):
             with _oauth_sessions_lock:
@@ -11202,12 +11231,14 @@ def _start_antigravity_pkce(profile: Optional[str] = None) -> Dict[str, Any]:
         if _claim_antigravity_session(sess):
             _finish_antigravity_session(sess, str(callback["code"]))
 
-    threading.Thread(target=_listen, name=f"antigravity-oauth-{sid[:6]}", daemon=True).start()
+    if listener is not None:
+        threading.Thread(target=_listen, name=f"antigravity-oauth-{sid[:6]}", daemon=True).start()
     return {
         "session_id": sid,
         "flow": "pkce",
         "auth_url": login["auth_url"],
         "expires_in": _OAUTH_SESSION_TTL_SECONDS,
+        "loopback": listener is not None,
     }
 
 
@@ -11223,12 +11254,20 @@ def _submit_antigravity_pkce(session_id: str, code_input: str, profile: Optional
     if parsed.get("error"):
         return {"ok": False, "status": "error", "message": f"Google sign-in failed: {parsed['error']}"}
     if not parsed.get("code"):
-        return {"ok": False, "status": "error", "message": "Paste the full localhost URL from your browser's address bar."}
+        return {
+            "ok": False,
+            "status": "pending",
+            "message": "No code found. Copy the code shown on the browser page (or its full address) and paste it here.",
+        }
     if parsed.get("state") and parsed["state"] != sess["state"]:
-        return {"ok": False, "status": "error", "message": "That URL belongs to a different sign-in attempt."}
+        return {
+            "ok": False,
+            "status": "pending",
+            "message": "That code is from an earlier sign-in attempt. Use the newest browser tab, or start the sign-in again.",
+        }
     if not _claim_antigravity_session(sess):
         return {"ok": sess["status"] == "approved", "status": sess["status"], "message": sess.get("error_message")}
-    return _finish_antigravity_session(sess, str(parsed["code"]))
+    return _finish_antigravity_session(sess, str(parsed["code"]), retryable=True)
 
 
 @app.post("/api/providers/oauth/{provider_id}/start")

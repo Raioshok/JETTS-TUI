@@ -89,6 +89,9 @@ export type OAuthStartResponse =
       auth_url: string
       expires_in: number
       flow: 'pkce'
+      /** False when the loopback redirect can't be received (port busy):
+       *  the user must paste the code. Undefined for paste-only providers. */
+      loopback?: boolean
       session_id: string
     }
   | {
@@ -103,7 +106,8 @@ export type OAuthStartResponse =
 export interface OAuthSubmitResponse {
   message?: string
   ok: boolean
-  status: 'approved' | 'error'
+  /** 'pending': the code was rejected but the attempt is still open — paste again. */
+  status: 'approved' | 'error' | 'pending'
 }
 
 export interface OAuthPollResponse {

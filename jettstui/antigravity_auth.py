@@ -28,17 +28,19 @@ from __future__ import annotations
 
 import base64
 import hashlib
+import html
 import json
 import logging
 import os
 import secrets
+import socket
 import threading
 import time
 import webbrowser
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, HTTPServer
 from typing import Any, Dict, List, Optional
-from urllib.parse import parse_qs, urlencode, urlparse
+from urllib.parse import parse_qs, unquote, urlencode, urlparse
 
 import httpx
 
@@ -176,16 +178,28 @@ def build_authorize_url(*, state: str, code_challenge: str) -> str:
 
 
 def parse_redirect_input(raw: str) -> Dict[str, Optional[str]]:
-    """Extract ``code``/``state``/``error`` from a pasted redirect URL or bare code."""
-    text = (raw or "").strip()
+    """Extract ``code``/``state``/``error`` from whatever the user pasted.
+
+    Accepts the full redirect URL, its query string (``code=...&state=...``),
+    or the bare code — including a bare code still URL-encoded from the
+    address bar (``4%2F0A...``), which Google rejects as "Malformed auth code"
+    unless decoded.
+    """
+    text = (raw or "").strip().strip("'\"<>").strip()
     if not text:
         return {"code": None, "state": None, "error": None}
     if "://" not in text and "?" not in text and "=" not in text:
-        return {"code": text, "state": None, "error": None}
-    query = urlparse(text).query if "://" in text else text.lstrip("?")
+        return {"code": unquote("".join(text.split())), "state": None, "error": None}
+    if "://" in text:
+        parsed = urlparse(text)
+        # Some browsers / copy paths leave the parameters in the fragment.
+        query = parsed.query or parsed.fragment
+    else:
+        query = text.lstrip("?#")
     params = parse_qs(query)
+    code = (params.get("code") or [None])[0]
     return {
-        "code": (params.get("code") or [None])[0],
+        "code": "".join(code.split()) if code else None,
         "state": (params.get("state") or [None])[0],
         "error": (params.get("error") or [None])[0],
     }
@@ -195,10 +209,179 @@ def parse_redirect_input(raw: str) -> Dict[str, Optional[str]]:
 # Loopback callback
 # ---------------------------------------------------------------------------
 
+_CALLBACK_PAGE = """<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>JettsTUI · Google Antigravity</title>
+<style>
+:root {{ color-scheme: light dark; --fg: #1d1d1f; --muted: #6e6e73; --bg: #f5f5f7; --card: #fff; --line: #d2d2d7; --accent: #0a66d8; }}
+@media (prefers-color-scheme: dark) {{ :root {{ --fg: #f5f5f7; --muted: #a1a1a6; --bg: #111113; --card: #1c1c1f; --line: #333338; --accent: #4c9bff; }} }}
+body {{ margin: 0; min-height: 100vh; display: grid; place-items: center; background: var(--bg); color: var(--fg);
+  font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; padding: 16px; box-sizing: border-box; }}
+main {{ width: 100%; max-width: 560px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 24px; }}
+h1 {{ font-size: 20px; margin: 0 0 8px; }}
+p {{ margin: 0 0 12px; color: var(--muted); }}
+.code {{ display: flex; gap: 8px; align-items: stretch; margin: 16px 0 8px; }}
+textarea {{ flex: 1; min-width: 0; resize: none; height: 72px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--bg); color: var(--fg); font: 13px/1.4 ui-monospace, SFMono-Regular, Consolas, monospace; word-break: break-all; }}
+button {{ padding: 0 16px; border: 0; border-radius: 8px; background: var(--accent); color: #fff; font: inherit; font-weight: 600; cursor: pointer; }}
+small {{ color: var(--muted); }}
+</style></head>
+<body><main>
+<h1>{heading}</h1>
+<p>{message}</p>
+{code_block}
+</main>
+<script>
+const box = document.getElementById("code"), btn = document.getElementById("copy");
+if (box && btn) btn.addEventListener("click", async () => {{
+  box.select();
+  try {{ await navigator.clipboard.writeText(box.value); }} catch (e) {{ document.execCommand("copy"); }}
+  btn.textContent = "Copied";
+  setTimeout(() => (btn.textContent = "Copy"), 1500);
+}});
+</script>
+</body></html>
+"""
+
+
+def render_callback_page(*, code: Optional[str], error: Optional[str], stale: bool = False) -> str:
+    """HTML shown on the loopback redirect page.
+
+    The authorization code is always shown with a Copy button: if JettsTUI
+    does not finish the sign-in on its own (the listener could not bind, the
+    app was closed, ...), the user pastes it into the sign-in field.
+    """
+    if error:
+        heading = "Sign-in failed"
+        message = f"Google returned: {html.escape(error)}. Return to JettsTUI and start the sign-in again."
+        return _CALLBACK_PAGE.format(heading=heading, message=message, code_block="")
+    if stale:
+        heading = "This sign-in link has expired"
+        message = (
+            "It belongs to an earlier sign-in attempt. Return to JettsTUI, start the sign-in again, "
+            "and use the newest browser tab."
+        )
+        return _CALLBACK_PAGE.format(heading=heading, message=message, code_block="")
+    heading = "Signed in to Google Antigravity"
+    message = (
+        "JettsTUI should finish signing in on its own, so you can usually close this tab. "
+        "If it is still waiting for a code, copy the code below and paste it into the sign-in field."
+    )
+    code_block = (
+        '<label for="code"><small>Authorization code</small></label>'
+        '<div class="code">'
+        f'<textarea id="code" readonly spellcheck="false">{html.escape(code or "")}</textarea>'
+        '<button id="copy" type="button">Copy</button>'
+        "</div>"
+        "<small>The code works once, only with the sign-in attempt that opened this page.</small>"
+    )
+    return _CALLBACK_PAGE.format(heading=heading, message=message, code_block=code_block)
+
+
+class LoopbackListener:
+    """Exclusive listener on the registered redirect URI (``localhost:51121``).
+
+    Binding is exclusive on Windows. ``HTTPServer`` defaults to
+    ``SO_REUSEADDR``, which there lets several sockets share the port, so a
+    listener left over from an earlier attempt (or another app) could take
+    the redirect, find a state it does not know, and drop it — the user then
+    saw "Signed in" while JettsTUI kept waiting.
+
+    With ``expected_state`` set, a redirect from another attempt gets an
+    "expired link" page and the listener keeps waiting for the right one.
+    """
+
+    def __init__(self, *, expected_state: Optional[str] = None, bind_timeout_seconds: float = 0.0) -> None:
+        self.result: Dict[str, Optional[str]] = {"code": None, "state": None, "error": None}
+        listener = self
+
+        class _Handler(BaseHTTPRequestHandler):
+            def do_GET(self) -> None:  # noqa: N802
+                parsed = urlparse(self.path)
+                if parsed.path != ANTIGRAVITY_REDIRECT_PATH:
+                    self.send_response(404)
+                    self.end_headers()
+                    return
+                params = parse_qs(parsed.query)
+                code = (params.get("code") or [None])[0]
+                state = (params.get("state") or [None])[0]
+                error = (params.get("error") or [None])[0]
+                stale = bool(expected_state and state and state != expected_state)
+                if not stale and not listener.done:
+                    listener.result.update({"code": code, "state": state, "error": error})
+                body = render_callback_page(code=code, error=error, stale=stale).encode("utf-8")
+                self.send_response(200)
+                self.send_header("Content-Type", "text/html; charset=utf-8")
+                self.send_header("Cache-Control", "no-store")
+                self.send_header("Content-Length", str(len(body)))
+                self.end_headers()
+                self.wfile.write(body)
+
+            def log_message(self, format: str, *args: Any) -> None:  # noqa: A003
+                return
+
+        class _ExclusiveHTTPServer(HTTPServer):
+            allow_reuse_address = os.name != "nt"
+
+            def server_bind(self) -> None:
+                if os.name == "nt" and hasattr(socket, "SO_EXCLUSIVEADDRUSE"):
+                    self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_EXCLUSIVEADDRUSE, 1)
+                super().server_bind()
+
+        deadline = time.monotonic() + max(0.0, bind_timeout_seconds)
+        while True:
+            try:
+                self._server = _ExclusiveHTTPServer(("127.0.0.1", ANTIGRAVITY_REDIRECT_PORT), _Handler)
+                break
+            except OSError as exc:
+                # A superseded listener releases the port within ~0.1s.
+                if time.monotonic() < deadline:
+                    time.sleep(0.1)
+                    continue
+                raise _auth_error(
+                    f"Could not listen on {ANTIGRAVITY_REDIRECT_URI} ({exc}). "
+                    "Close whatever is using port 51121 (for example the Antigravity app) and retry.",
+                    "antigravity_callback_bind_failed",
+                ) from exc
+        self._closed = False
+        self._thread = threading.Thread(target=self._server.serve_forever, kwargs={"poll_interval": 0.1}, daemon=True)
+        self._thread.start()
+
+    @property
+    def done(self) -> bool:
+        return bool(self.result["code"] or self.result["error"])
+
+    def wait(self, timeout_seconds: float, *, should_stop: Optional[Any] = None) -> Dict[str, Optional[str]]:
+        """Wait for the redirect; always closes the listener before returning."""
+        deadline = time.monotonic() + max(5.0, timeout_seconds)
+        try:
+            while time.monotonic() < deadline:
+                if self.done:
+                    return dict(self.result)
+                if should_stop is not None and should_stop():
+                    return dict(self.result)
+                time.sleep(0.1)
+        finally:
+            self.close()
+        raise _auth_error(
+            "Timed out waiting for the Google sign-in redirect.",
+            "antigravity_callback_timeout",
+        )
+
+    def close(self) -> None:
+        if self._closed:
+            return
+        self._closed = True
+        self._server.shutdown()
+        self._server.server_close()
+        self._thread.join(timeout=1.0)
+
+
 def _wait_for_loopback_callback(
     timeout_seconds: float,
     *,
     should_stop: Optional[Any] = None,
+    expected_state: Optional[str] = None,
 ) -> Dict[str, Optional[str]]:
     """Serve the registered redirect URI until Google calls back.
 
@@ -206,60 +389,7 @@ def _wait_for_loopback_callback(
     desktop flow stops listening once the user pastes the redirect URL or
     cancels.
     """
-    result: Dict[str, Optional[str]] = {"code": None, "state": None, "error": None}
-
-    class _Handler(BaseHTTPRequestHandler):
-        def do_GET(self) -> None:  # noqa: N802
-            parsed = urlparse(self.path)
-            if parsed.path != ANTIGRAVITY_REDIRECT_PATH:
-                self.send_response(404)
-                self.end_headers()
-                return
-            params = parse_qs(parsed.query)
-            result["code"] = (params.get("code") or [None])[0]
-            result["state"] = (params.get("state") or [None])[0]
-            result["error"] = (params.get("error") or [None])[0]
-            self.send_response(200)
-            self.send_header("Content-Type", "text/html; charset=utf-8")
-            self.end_headers()
-            heading = "Sign-in failed." if result["error"] else "Signed in to Antigravity."
-            self.wfile.write(
-                f"<html><body><h1>{heading}</h1>You can close this tab and return to JettsTUI.</body></html>".encode("utf-8")
-            )
-
-        def log_message(self, format: str, *args: Any) -> None:  # noqa: A003
-            return
-
-    class _ReuseHTTPServer(HTTPServer):
-        allow_reuse_address = True
-
-    try:
-        server = _ReuseHTTPServer(("127.0.0.1", ANTIGRAVITY_REDIRECT_PORT), _Handler)
-    except OSError as exc:
-        raise _auth_error(
-            f"Could not listen on {ANTIGRAVITY_REDIRECT_URI} ({exc}). "
-            "Close whatever is using port 51121 (for example the Antigravity app) and retry.",
-            "antigravity_callback_bind_failed",
-        ) from exc
-
-    thread = threading.Thread(target=server.serve_forever, kwargs={"poll_interval": 0.1}, daemon=True)
-    thread.start()
-    deadline = time.monotonic() + max(5.0, timeout_seconds)
-    try:
-        while time.monotonic() < deadline:
-            if result["code"] or result["error"]:
-                return result
-            if should_stop is not None and should_stop():
-                return result
-            time.sleep(0.1)
-    finally:
-        server.shutdown()
-        server.server_close()
-        thread.join(timeout=1.0)
-    raise _auth_error(
-        "Timed out waiting for the Google sign-in redirect.",
-        "antigravity_callback_timeout",
-    )
+    return LoopbackListener(expected_state=expected_state).wait(timeout_seconds, should_stop=should_stop)
 
 
 # ---------------------------------------------------------------------------
@@ -285,6 +415,13 @@ def _token_request(data: Dict[str, str], *, timeout_seconds: float, failure_code
         error = payload.get("error") if isinstance(payload, dict) else None
         description = (payload.get("error_description") if isinstance(payload, dict) else None) or response.text[:300]
         relogin = error in {"invalid_grant", "unauthorized_client"}
+        if data.get("grant_type") == "authorization_code":
+            raise _auth_error(
+                f"Google did not accept the sign-in code ({description or error or 'unknown error'}). "
+                "The code may be incomplete, already used, or from an earlier sign-in attempt. "
+                "Start the sign-in again and use the code from the newest browser tab.",
+                failure_code,
+            )
         raise _auth_error(
             f"Google token request failed (HTTP {response.status_code}): {description or error or 'unknown error'}"
             + (" — run `jettstui auth add antigravity` to sign in again." if relogin else ""),
@@ -909,7 +1046,7 @@ def login_antigravity(
                 print("Could not open a browser automatically; use the URL above.")
         else:
             print("Waiting for Google sign-in...")
-        callback = _wait_for_loopback_callback(timeout_seconds)
+        callback = _wait_for_loopback_callback(timeout_seconds, expected_state=state_nonce)
 
     if callback.get("error"):
         raise _auth_error(f"Google sign-in failed: {callback['error']}", "antigravity_authorize_failed")

@@ -127,3 +127,45 @@ def test_logged_in_account_is_reported_and_resolvable_by_alias():
     _seed_state()
     assert get_auth_status("antigravity")["logged_in"] is True
     assert resolve_provider("google-antigravity") == "antigravity"
+
+
+@pytest.mark.parametrize("raw", [
+    "4%2F0AbCd-ef",                                                     # copied from the address bar
+    "  4/0AbCd-ef \n",                                                  # stray whitespace
+    "\"4/0AbCd-ef\"",                                                   # quoted
+    "http://localhost:51121/oauth-callback?state=s&code=4%2F0AbCd-ef&scope=x",
+    "http://localhost:51121/oauth-callback#state=s&code=4%2F0AbCd-ef",  # params in the fragment
+])
+def test_pasted_code_is_normalised_to_the_real_code(raw):
+    assert ag.parse_redirect_input(raw)["code"] == "4/0AbCd-ef"
+
+
+def test_callback_page_shows_the_code_to_copy_and_escapes_it():
+    page = ag.render_callback_page(code="4/0Ab<script>", error=None)
+    assert 'id="code"' in page and 'id="copy"' in page
+    assert "4/0Ab&lt;script&gt;" in page and "4/0Ab<script>" not in page
+    assert 'id="code"' not in ag.render_callback_page(code="4/x", error=None, stale=True)
+    assert 'id="code"' not in ag.render_callback_page(code=None, error="access_denied")
+
+
+def test_loopback_listener_is_exclusive_and_ignores_other_attempts():
+    import httpx
+
+    try:
+        listener = ag.LoopbackListener(expected_state="current")
+    except AuthError:
+        pytest.skip("port 51121 is in use on this machine")
+    try:
+        with pytest.raises(AuthError):
+            ag.LoopbackListener(expected_state="other")
+
+        base = f"http://127.0.0.1:{ag.ANTIGRAVITY_REDIRECT_PORT}{ag.ANTIGRAVITY_REDIRECT_PATH}"
+        stale = httpx.get(f"{base}?code=4%2Fold&state=earlier", timeout=5)
+        assert "expired" in stale.text and not listener.done
+
+        fresh = httpx.get(f"{base}?code=4%2Fnew&state=current", timeout=5)
+        assert "4/new" in fresh.text
+        result = listener.wait(5)
+        assert result["code"] == "4/new" and result["state"] == "current"
+    finally:
+        listener.close()

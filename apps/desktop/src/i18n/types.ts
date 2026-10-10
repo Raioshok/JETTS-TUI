@@ -1884,6 +1884,9 @@ export interface Translations {
     connectedPicking: (provider: string) => string
     signInFailed: string
     pickDifferentProvider: string
+    tryAgain: string
+    autoPickupHint: string
+    noAutoPickup: string
     signInWith: (provider: string) => string
     openedBrowser: (provider: string) => string
     authorizeThere: string

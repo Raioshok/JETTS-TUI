@@ -13,17 +13,27 @@ client = TestClient(app)
 HEADERS = {"X-JettsTUI-Session-Token": _SESSION_TOKEN}
 
 
-def _never_called(*_args, **_kwargs):  # loopback listener stand-in
-    return {"code": None, "state": None, "error": None}
+class _IdleListener:
+    """LoopbackListener stand-in: binds nothing, never receives a redirect."""
+
+    def __init__(self, **_kwargs):
+        pass
+
+    def wait(self, _timeout, *, should_stop=None):
+        return {"code": None, "state": None, "error": None}
 
 
-def _start():
-    with patch("jettstui.antigravity_auth._wait_for_loopback_callback", side_effect=_never_called):
+def _start(listener=_IdleListener):
+    with patch("jettstui.antigravity_auth.LoopbackListener", listener):
         resp = client.post("/api/providers/oauth/antigravity/start", headers=HEADERS)
     assert resp.status_code == 200, resp.text
     body = resp.json()
     state = parse_qs(urlparse(body["auth_url"]).query)["state"][0]
     return body, state
+
+
+def _poll(session_id):
+    return client.get(f"/api/providers/oauth/antigravity/poll/{session_id}", headers=HEADERS).json()
 
 
 def test_antigravity_is_offered_as_an_in_app_sign_in():
@@ -65,3 +75,46 @@ def test_redirect_from_another_attempt_is_rejected():
         })
     assert resp.json()["ok"] is False
     complete.assert_not_called()
+
+
+def test_starting_again_cancels_the_older_attempt():
+    first, _ = _start()
+    second, _ = _start()
+    assert _poll(first["session_id"])["status"] == "cancelled"
+    assert _poll(second["session_id"])["status"] == "pending"
+
+
+def test_rejected_paste_keeps_the_attempt_open_for_another_paste():
+    from jettstui.auth import AuthError
+
+    body, state = _start()
+    attempts = []
+
+    def flaky(code, verifier, **_):
+        attempts.append(code)
+        if len(attempts) == 1:
+            raise AuthError("Google did not accept the sign-in code (Malformed auth code).")
+        return {}
+
+    with patch("jettstui.antigravity_auth.complete_login", side_effect=flaky):
+        bad = client.post("/api/providers/oauth/antigravity/submit", headers=HEADERS,
+                          json={"session_id": body["session_id"], "code": "4/0Abad"})
+        assert bad.json()["status"] == "pending" and "Malformed" in bad.json()["message"]
+        good = client.post("/api/providers/oauth/antigravity/submit", headers=HEADERS,
+                           json={"session_id": body["session_id"], "code": "4%2F0Agood"})
+    assert good.json() == {"ok": True, "status": "approved"}
+    # The address-bar form of the code is URL-decoded before the exchange.
+    assert attempts == ["4/0Abad", "4/0Agood"]
+
+
+def test_start_reports_when_the_redirect_cannot_be_picked_up_automatically():
+    from jettstui.auth import AuthError
+
+    class _PortBusy:
+        def __init__(self, **_kwargs):
+            raise AuthError("Could not listen on http://localhost:51121/oauth-callback")
+
+    body, _ = _start(listener=_PortBusy)
+    assert body["loopback"] is False
+    ok, _ = _start()
+    assert ok["loopback"] is True

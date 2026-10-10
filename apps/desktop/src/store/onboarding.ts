@@ -25,7 +25,7 @@ export type OnboardingMode = 'apikey' | 'oauth'
 export type OnboardingFlow =
   | { status: 'idle' }
   | { provider: OAuthProvider; status: 'starting' }
-  | { code: string; provider: OAuthProvider; start: PkceStart; status: 'awaiting_user' }
+  | { code: string; error?: string; provider: OAuthProvider; start: PkceStart; status: 'awaiting_user' }
   | { copied: boolean; provider: OAuthProvider; start: DeviceStart; status: 'polling' }
   | { provider: OAuthProvider; start: OAuthStartResponse; status: 'submitting' }
   | { copied: boolean; provider: OAuthProvider; status: 'external_pending' }
@@ -657,7 +657,7 @@ export function setOnboardingCode(code: string) {
   const { flow } = $desktopOnboarding.get()
 
   if (flow.status === 'awaiting_user') {
-    setFlow({ ...flow, code })
+    setFlow({ ...flow, code, error: undefined })
   }
 }
 
@@ -684,6 +684,9 @@ export async function submitOnboardingCode(ctx: OnboardingContext) {
           message: providerResolutionFailure(reason)
         })
       )
+    } else if (resp.status === 'pending' && start.flow === 'pkce') {
+      // The code was rejected but the attempt is still open: paste again.
+      setFlow({ status: 'awaiting_user', provider, start, code, error: resp.message || 'Token exchange failed.' })
     } else {
       setFlow({ status: 'error', provider, start, message: resp.message || 'Token exchange failed.' })
     }
