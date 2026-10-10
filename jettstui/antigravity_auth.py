@@ -38,7 +38,7 @@ import threading
 import time
 import webbrowser
 from datetime import datetime, timezone
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Dict, List, Optional
 from urllib.parse import parse_qs, unquote, urlencode, urlparse
 
@@ -296,6 +296,10 @@ class LoopbackListener:
         listener = self
 
         class _Handler(BaseHTTPRequestHandler):
+            # Browsers open speculative connections that may never send a
+            # request; time them out instead of letting them hang a thread.
+            timeout = 10
+
             def do_GET(self) -> None:  # noqa: N802
                 parsed = urlparse(self.path)
                 if parsed.path != ANTIGRAVITY_REDIRECT_PATH:
@@ -313,6 +317,7 @@ class LoopbackListener:
                 self.send_response(200)
                 self.send_header("Content-Type", "text/html; charset=utf-8")
                 self.send_header("Cache-Control", "no-store")
+                self.send_header("Connection", "close")
                 self.send_header("Content-Length", str(len(body)))
                 self.end_headers()
                 self.wfile.write(body)
@@ -320,8 +325,13 @@ class LoopbackListener:
             def log_message(self, format: str, *args: Any) -> None:  # noqa: A003
                 return
 
-        class _ExclusiveHTTPServer(HTTPServer):
+        class _ExclusiveHTTPServer(ThreadingHTTPServer):
+            # One thread per connection: with a single-threaded server, an idle
+            # speculative connection from the browser blocked the real redirect
+            # request, so the sign-in tab loaded forever.
             allow_reuse_address = os.name != "nt"
+            daemon_threads = True
+            block_on_close = False
 
             def server_bind(self) -> None:
                 if os.name == "nt" and hasattr(socket, "SO_EXCLUSIVEADDRUSE"):

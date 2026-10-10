@@ -169,3 +169,28 @@ def test_loopback_listener_is_exclusive_and_ignores_other_attempts():
         assert result["code"] == "4/new" and result["state"] == "current"
     finally:
         listener.close()
+
+
+def test_idle_browser_connection_does_not_block_the_redirect():
+    import socket
+    import time as _time
+
+    import httpx
+
+    try:
+        listener = ag.LoopbackListener(expected_state="current")
+    except AuthError:
+        pytest.skip("port 51121 is in use on this machine")
+    idle = socket.create_connection(("127.0.0.1", ag.ANTIGRAVITY_REDIRECT_PORT), timeout=5)
+    try:
+        # A speculative connection that never sends a request (browsers open
+        # these) must not hold up the real redirect.
+        base = f"http://127.0.0.1:{ag.ANTIGRAVITY_REDIRECT_PORT}{ag.ANTIGRAVITY_REDIRECT_PATH}"
+        resp = httpx.get(f"{base}?code=4%2Fnew&state=current", timeout=5)
+        assert resp.status_code == 200 and "4/new" in resp.text
+        started = _time.monotonic()
+        assert listener.wait(5)["code"] == "4/new"
+        assert _time.monotonic() - started < 3  # shutdown is not stuck on the idle socket
+    finally:
+        idle.close()
+        listener.close()
