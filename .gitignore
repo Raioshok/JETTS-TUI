@@ -209,3 +209,6 @@ build/
 
 # Prebuilt plugin dashboard bundles ship in the repo (the dashboard loads them as-is).
 !plugins/*/dashboard/dist/
+
+# Runtime marker written by the lazy-backend refresh (see jettstui/main.py)
+.lazy-refresh-incomplete
