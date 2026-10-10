@@ -153,6 +153,7 @@ export function monitorSpeechDuringPlayback(callbacks: BargeMonitorCallbacks): (
       const data = new Uint8Array(analyser.fftSize)
       const startedAt = Date.now()
       const floorSamples: number[] = []
+      let floor: null | number = null
       let segmentStartedAt = Date.now()
       let speechStartedAt: number | null = null
       let tripped = false
@@ -179,7 +180,7 @@ export function monitorSpeechDuringPlayback(callbacks: BargeMonitorCallbacks): (
         if (!tripped && now - startedAt < CALIBRATION_MS) {
           floorSamples.push(level)
         } else if (!tripped) {
-          const floor = floorSamples.length ? [...floorSamples].sort((a, b) => a - b)[floorSamples.length >> 1] : 0
+          floor ??= floorSamples.length ? [...floorSamples].sort((a, b) => a - b)[floorSamples.length >> 1] : 0
           const trigger = Math.max(MIN_TRIGGER_LEVEL, floor * 3.5)
 
           if (level >= trigger) {
@@ -211,8 +212,9 @@ export function monitorSpeechDuringPlayback(callbacks: BargeMonitorCallbacks): (
           }
         } else {
           // Tripped: keep recording until the user goes quiet (endpoint).
-          // Playback is already stopped, so plain silence-vs-speech works.
-          if (level >= MIN_TRIGGER_LEVEL) {
+          // Playback is already stopped, so "quiet" is back near the room's
+          // floor — a fixed level never reads as quiet in a noisy room.
+          if (level >= Math.max(MIN_TRIGGER_LEVEL, (floor ?? 0) * 1.35 + 0.015)) {
             quietSince = null
           } else {
             quietSince ??= now

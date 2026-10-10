@@ -1,5 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 
+import { createSpeechGate } from '@/lib/voice-activity'
+
 type BrowserAudioContext = typeof AudioContext
 
 export interface MicRecorderOptions {
@@ -75,7 +77,6 @@ export function useMicRecorder(copy: MicRecorderErrorCopy): {
   const startedAtRef = useRef(0)
   const heardSpeechRef = useRef(false)
   const silenceTriggeredRef = useRef(false)
-  const silenceStartedAtRef = useRef<number | null>(null)
   const stopResolverRef = useRef<((recording: MicRecording | null) => void) | null>(null)
 
   const cleanup = () => {
@@ -115,6 +116,26 @@ export function useMicRecorder(copy: MicRecorderErrorCopy): {
       source.connect(analyser)
       audioContextRef.current = audioContext
 
+      // Created after awaiting the mic, i.e. outside the click: Chromium may
+      // start it suspended, which reads as permanent silence.
+      if (audioContext.state === 'suspended') {
+        void audioContext.resume().catch(() => undefined)
+      }
+
+      const speechThreshold = options.silenceLevel ?? 0
+
+      const gate =
+        speechThreshold > 0 && options.onSilence
+          ? createSpeechGate(
+              {
+                idleSilenceMs: options.idleSilenceMs ?? 0,
+                minSpeechLevel: speechThreshold,
+                silenceMs: options.silenceMs ?? 0
+              },
+              startedAtRef.current
+            )
+          : null
+
       const tick = () => {
         analyser.getByteTimeDomainData(data)
 
@@ -132,24 +153,11 @@ export function useMicRecorder(copy: MicRecorderErrorCopy): {
         setLevel(normalized)
         options.onLevel?.(normalized)
 
-        const speechThreshold = options.silenceLevel ?? 0
-        const silenceMs = options.silenceMs ?? 0
-        const idleSilenceMs = options.idleSilenceMs ?? 0
+        if (gate && options.onSilence && !silenceTriggeredRef.current) {
+          const event = gate.update(normalized, now)
+          heardSpeechRef.current = gate.heardSpeech
 
-        if (speechThreshold > 0 && options.onSilence && !silenceTriggeredRef.current) {
-          if (normalized >= speechThreshold) {
-            heardSpeechRef.current = true
-            silenceStartedAtRef.current = null
-          } else if (heardSpeechRef.current && silenceMs > 0) {
-            silenceStartedAtRef.current ??= now
-
-            if (now - silenceStartedAtRef.current >= silenceMs) {
-              silenceTriggeredRef.current = true
-              options.onSilence()
-
-              return
-            }
-          } else if (!heardSpeechRef.current && idleSilenceMs > 0 && now - startedAtRef.current >= idleSilenceMs) {
+          if (event) {
             silenceTriggeredRef.current = true
             options.onSilence()
 
@@ -210,7 +218,6 @@ export function useMicRecorder(copy: MicRecorderErrorCopy): {
     recorderRef.current = recorder
     heardSpeechRef.current = false
     silenceTriggeredRef.current = false
-    silenceStartedAtRef.current = null
     startedAtRef.current = Date.now()
 
     recorder.ondataavailable = event => {
