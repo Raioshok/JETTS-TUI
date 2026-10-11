@@ -1174,9 +1174,9 @@ export const en: Translations = {
   specs: {
     title: 'Specs',
     subtitle:
-      'Spec-driven development, the Kiro way: turn an idea into requirements, a design and a task list in .kiro/specs/, then let the agent implement it one task at a time.',
+      'Turn an idea into requirements, a design and a task list you review, then let the agent build it one task at a time.',
     noProjectTitle: 'Open a project to use specs',
-    noProjectBody: "Specs live in the project's .kiro/specs folder.",
+    noProjectBody: 'Specs are saved inside a project. Open one, or start a chat in one, to plan a feature here.',
     loadFailed: 'Could not load specs',
     retry: 'Retry',
     newTitle: 'New spec',
@@ -1191,8 +1191,6 @@ export const en: Translations = {
       auto: { label: 'Autopilot', hint: 'Write the whole spec and implement every task without stopping for approval.' }
     },
     listTitle: 'Specs in this project',
-    empty: 'No specs yet — describe a feature to start one.',
-    select: 'Select a spec to see its documents.',
     legacy: 'Legacy .jettstui spec',
     phase: {
       requirements: 'Requirements',
@@ -1204,7 +1202,7 @@ export const en: Translations = {
     tabs: { requirements: 'Requirements', design: 'Design', tasks: 'Task list' },
     tasksProgress: (done, total) => `${done}/${total} tasks`,
     notWritten: {
-      requirements: 'The requirements are being written in chat. They appear here as soon as the file exists.',
+      requirements: 'The requirements are being written. They appear here as soon as the file exists.',
       design: 'Approve the requirements to generate the design.',
       tasks: 'Approve the design to generate the task list.'
     },
@@ -1229,7 +1227,24 @@ export const en: Translations = {
     optional: 'optional',
     requirementsRef: ids => `Requirements ${ids}`,
     taskStatus: { not_started: 'Not started', in_progress: 'In progress', queued: 'Queued', completed: 'Done' },
-    runsInNewChat: 'Each action runs in a new chat; this page follows the files as they change.'
+    runsInBackground: 'The agent works on specs right here, in the background — no chat is opened.',
+    startFailed: 'Could not start the agent',
+    stopFailed: 'Could not stop the agent',
+    stop: 'Stop',
+    runStatus: { running: 'Working', completed: 'Done', failed: 'Failed', interrupted: 'Stopped' },
+    newSpec: 'New spec',
+    welcomeTitle: 'Plan it before you build it',
+    welcomeBody:
+      'Describe a feature. The agent writes the requirements, a technical design and a task list for you to review, then implements it one task at a time.',
+    steps: { requirements: 'Requirements', design: 'Design', tasks: 'Tasks', build: 'Build' },
+    stepHints: {
+      requirements: 'User stories and acceptance criteria',
+      design: 'Architecture, interfaces and data',
+      tasks: 'A checklist of small coding steps',
+      build: 'The agent works through the tasks'
+    },
+    stepState: { done: 'Done', drafting: 'Being written', review: 'Ready for review', upcoming: 'Not started' },
+    working: 'The agent is starting…'
   },
   agents: {
     close: 'Close agents',

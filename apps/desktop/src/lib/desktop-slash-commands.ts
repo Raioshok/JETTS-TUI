@@ -239,7 +239,7 @@ const DESKTOP_COMMAND_SPECS: readonly DesktopCommandSpec[] = [
   },
   {
     name: '/spec',
-    description: 'Create and approve a Kiro-style requirements/design/tasks spec',
+    description: 'Write a spec (requirements, design, tasks) and build it task by task',
     surface: exec(),
     argumentMode: 'mixed'
   },

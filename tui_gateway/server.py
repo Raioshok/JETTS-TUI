@@ -16391,6 +16391,109 @@ def _(rid, params: dict) -> dict:
         return _err(rid, 5038, str(e))
 
 
+_SPEC_CREATE_VERBS = {"new", "create", "quick", "quick-spec", "quick_spec", "auto", "autopilot"}
+
+
+@method("spec.run")
+def _(rid, params: dict) -> dict:
+    """Run a /spec action headlessly for the Specs page (no chat, no session).
+
+    ``args`` is the /spec argument string ("approve my-spec requirements").
+    Actions that need the agent start a hidden run in the spec's workspace;
+    the rest (e.g. approving the task list) just return their message.
+    """
+    try:
+        from jettstui.specs import run_spec_command, slugify
+        from tui_gateway import spec_runs
+
+        cwd = _spec_cwd(params)
+        if cwd is None:
+            return _err(rid, 4001, "workspace (cwd) required")
+        args = str(params.get("args") or "").strip()
+        tokens = args.split()
+        if not tokens:
+            return _err(rid, 4001, "args required")
+        # Refuse before run_spec_command touches anything on disk.
+        if tokens[0].lower() not in _SPEC_CREATE_VERBS and len(tokens) > 1:
+            if spec_runs.active_run(str(cwd), slugify(tokens[1])):
+                return _err(rid, 4009, f"'{slugify(tokens[1])}' is already being worked on")
+
+        result = run_spec_command(args, cwd)
+        if not result.agent_seed:
+            return _ok(rid, {"output": result.text, "spec": result.active_spec or "", "run": None})
+
+        session = _sessions.get(str(params.get("session_id") or ""))
+        parent_agent = session.get("agent") if isinstance(session, dict) else None
+
+        def make_agent(run):
+            from run_agent import AIAgent
+
+            kwargs = _background_agent_kwargs(parent_agent, run.id)
+            kwargs.update(
+                {
+                    # Hidden: no session record, no memory writes, and no
+                    # clarify — nothing could answer it.
+                    "session_db": None,
+                    "skip_memory": True,
+                    "disabled_toolsets": ["clarify"],
+                }
+            )
+            kwargs.update(spec_runs.callbacks_for(run))
+            agent = AIAgent(**kwargs)
+            agent._work_mode = run.mode or "default"
+            return agent
+
+        def run_in_context(task_id, fn):
+            from tools.terminal_tool import clear_task_env_overrides, register_task_env_overrides
+
+            tokens_ctx = _set_session_context(task_id, cwd=str(cwd))
+            register_task_env_overrides(task_id, {"cwd": str(cwd)})
+            try:
+                fn()
+            finally:
+                clear_task_env_overrides(task_id)
+                _clear_session_context(tokens_ctx)
+
+        try:
+            run = spec_runs.start_run(
+                cwd=str(cwd),
+                spec=result.active_spec or "",
+                label=result.text.splitlines()[0] if result.text else args,
+                seed=result.agent_seed,
+                mode=result.requested_mode or "default",
+                make_agent=make_agent,
+                run_in_context=run_in_context,
+            )
+        except RuntimeError as e:
+            return _err(rid, 4009, str(e))
+        return _ok(rid, {"output": result.text, "spec": result.active_spec or "", "run": run.to_dict()})
+    except Exception as e:
+        return _err(rid, 5039, str(e))
+
+
+@method("spec.runs")
+def _(rid, params: dict) -> dict:
+    """Headless spec runs for a workspace, newest first."""
+    try:
+        from tui_gateway import spec_runs
+
+        cwd = _spec_cwd(params)
+        return _ok(rid, {"runs": spec_runs.list_runs(str(cwd)) if cwd else []})
+    except Exception as e:
+        return _err(rid, 5040, str(e))
+
+
+@method("spec.stop")
+def _(rid, params: dict) -> dict:
+    """Interrupt a running headless spec run."""
+    try:
+        from tui_gateway import spec_runs
+
+        return _ok(rid, {"stopped": spec_runs.stop_run(str(params.get("run_id") or ""))})
+    except Exception as e:
+        return _err(rid, 5041, str(e))
+
+
 @method("model.save_key")
 def _(rid, params: dict) -> dict:
     """Save an API key for a provider, then return its refreshed model list.

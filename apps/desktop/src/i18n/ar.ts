@@ -1030,10 +1030,9 @@ export const ar = defineLocale({
   },
   specs: {
     title: 'المواصفات',
-    subtitle:
-      'تطوير قائم على المواصفات بأسلوب Kiro: حوّل الفكرة إلى متطلبات وتصميم وقائمة مهام في .kiro/specs/، ثم دع الوكيل ينفّذها مهمةً تلو الأخرى.',
+    subtitle: 'حوّل الفكرة إلى متطلبات وتصميم وقائمة مهام تراجعها، ثم دع الوكيل ينفّذها مهمةً تلو الأخرى.',
     noProjectTitle: 'افتح مشروعًا لاستخدام المواصفات',
-    noProjectBody: 'تُحفَظ المواصفات في مجلد .kiro/specs داخل المشروع.',
+    noProjectBody: 'تُحفَظ المواصفات داخل المشروع. افتح مشروعًا أو ابدأ محادثة فيه للتخطيط هنا.',
     loadFailed: 'تعذّر تحميل المواصفات',
     retry: 'إعادة المحاولة',
     newTitle: 'مواصفة جديدة',
@@ -1045,8 +1044,6 @@ export const ar = defineLocale({
       auto: { label: 'الطيار الآلي', hint: 'اكتب المواصفة كاملة ونفّذ كل المهام دون التوقف للموافقة.' }
     },
     listTitle: 'المواصفات في هذا المشروع',
-    empty: 'لا توجد مواصفات بعد — صف ميزة للبدء.',
-    select: 'اختر مواصفة لعرض مستنداتها.',
     legacy: 'مواصفة .jettstui قديمة',
     phase: {
       requirements: 'المتطلبات',
@@ -1058,7 +1055,7 @@ export const ar = defineLocale({
     tabs: { requirements: 'المتطلبات', design: 'التصميم', tasks: 'قائمة المهام' },
     tasksProgress: (done, total) => `${done}/${total} مهام`,
     notWritten: {
-      requirements: 'تُكتب المتطلبات الآن في المحادثة، وستظهر هنا فور إنشاء الملف.',
+      requirements: 'تُكتب المتطلبات الآن، وستظهر هنا فور إنشاء الملف.',
       design: 'وافق على المتطلبات لإنشاء التصميم.',
       tasks: 'وافق على التصميم لإنشاء قائمة المهام.'
     },
@@ -1083,7 +1080,23 @@ export const ar = defineLocale({
     optional: 'اختيارية',
     requirementsRef: ids => `المتطلبات ${ids}`,
     taskStatus: { not_started: 'لم تبدأ', in_progress: 'قيد التنفيذ', queued: 'في الانتظار', completed: 'مكتملة' },
-    runsInNewChat: 'يعمل كل إجراء في محادثة جديدة، وتتابع هذه الصفحة تغيّر الملفات.'
+    runsInBackground: 'يعمل الوكيل على المواصفات هنا في الخلفية — دون فتح محادثة.',
+    startFailed: 'تعذّر بدء الوكيل',
+    stopFailed: 'تعذّر إيقاف الوكيل',
+    stop: 'إيقاف',
+    runStatus: { running: 'قيد العمل', completed: 'مكتمل', failed: 'فشل', interrupted: 'متوقف' },
+    newSpec: 'مواصفة جديدة',
+    welcomeTitle: 'خطّط قبل أن تبني',
+    welcomeBody: 'صف ميزة، وسيكتب الوكيل المتطلبات وتصميمًا تقنيًا وقائمة مهام لتراجعها، ثم ينفّذها مهمةً تلو الأخرى.',
+    steps: { requirements: 'المتطلبات', design: 'التصميم', tasks: 'المهام', build: 'التنفيذ' },
+    stepHints: {
+      requirements: 'قصص المستخدم ومعايير القبول',
+      design: 'البنية والواجهات والبيانات',
+      tasks: 'قائمة بخطوات برمجية صغيرة',
+      build: 'ينجز الوكيل المهام بالترتيب'
+    },
+    stepState: { done: 'مكتمل', drafting: 'قيد الكتابة', review: 'جاهز للمراجعة', upcoming: 'لم يبدأ' },
+    working: 'جارٍ بدء الوكيل…'
   },
   agents: {
     close: 'إغلاق الوكلاء',

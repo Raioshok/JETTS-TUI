@@ -1173,10 +1173,10 @@ export const ja = defineLocale({
   },
   specs: {
     title: 'スペック',
-    subtitle:
-      'Kiro 方式のスペック駆動開発：アイデアを .kiro/specs/ の要件・設計・タスクリストにまとめ、エージェントが 1 タスクずつ実装します。',
+    subtitle: 'アイデアを要件・設計・タスクリストにまとめてレビューし、エージェントが 1 タスクずつ実装します。',
     noProjectTitle: 'スペックを使うにはプロジェクトを開いてください',
-    noProjectBody: 'スペックはプロジェクトの .kiro/specs フォルダーに保存されます。',
+    noProjectBody:
+      'スペックはプロジェクト内に保存されます。プロジェクトを開くか、プロジェクト内でチャットを始めてください。',
     loadFailed: 'スペックを読み込めませんでした',
     retry: '再試行',
     newTitle: '新しいスペック',
@@ -1188,14 +1188,12 @@ export const ja = defineLocale({
       auto: { label: 'オートパイロット', hint: '承認を待たずにスペック全体を書き、すべてのタスクを実装します。' }
     },
     listTitle: 'このプロジェクトのスペック',
-    empty: 'まだスペックはありません。機能を説明して始めましょう。',
-    select: 'スペックを選ぶとドキュメントが表示されます。',
     legacy: '旧形式の .jettstui スペック',
     phase: { requirements: '要件', design: '設計', tasks: 'タスクリスト', implementation: '実装中', done: '完了' },
     tabs: { requirements: '要件', design: '設計', tasks: 'タスクリスト' },
     tasksProgress: (done, total) => `${done}/${total} タスク`,
     notWritten: {
-      requirements: '要件はチャットで作成中です。ファイルができるとここに表示されます。',
+      requirements: '要件を作成中です。ファイルができるとここに表示されます。',
       design: '要件を承認すると設計が作成されます。',
       tasks: '設計を承認するとタスクリストが作成されます。'
     },
@@ -1220,7 +1218,24 @@ export const ja = defineLocale({
     optional: '任意',
     requirementsRef: ids => `要件 ${ids}`,
     taskStatus: { not_started: '未着手', in_progress: '進行中', queued: '待機中', completed: '完了' },
-    runsInNewChat: '各操作は新しいチャットで実行され、このページはファイルの変更に追従します。'
+    runsInBackground: 'エージェントはこの画面のままバックグラウンドで作業します。チャットは開きません。',
+    startFailed: 'エージェントを開始できませんでした',
+    stopFailed: 'エージェントを停止できませんでした',
+    stop: '停止',
+    runStatus: { running: '作業中', completed: '完了', failed: '失敗', interrupted: '停止' },
+    newSpec: '新しいスペック',
+    welcomeTitle: '作る前に計画しよう',
+    welcomeBody:
+      '機能を説明すると、エージェントが要件・技術設計・タスクリストを作成します。レビュー後、1 タスクずつ実装します。',
+    steps: { requirements: '要件', design: '設計', tasks: 'タスク', build: '実装' },
+    stepHints: {
+      requirements: 'ユーザーストーリーと受け入れ基準',
+      design: 'アーキテクチャ・インターフェース・データ',
+      tasks: '小さなコーディング手順のチェックリスト',
+      build: 'エージェントがタスクを順に進めます'
+    },
+    stepState: { done: '完了', drafting: '作成中', review: 'レビュー待ち', upcoming: '未着手' },
+    working: 'エージェントを起動しています…'
   },
   agents: {
     close: 'エージェントを閉じる',

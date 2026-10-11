@@ -780,9 +780,9 @@ export function ContribWiring({ children }: { children: ReactNode }) {
     toggleSelectedPin
   })
 
-  // Page actions that start work (Orchestrator's Run, every Specs action): a
-  // fresh chat + the normal submit (Quick Entry's "new chat" path; slash
-  // commands like `/spec …` route through it too). They're clicked on a page,
+  // Page actions that start work in a chat (Orchestrator's Run): a fresh chat
+  // + the normal submit (Quick Entry's "new chat" path; slash commands route
+  // through it too). They're clicked on a page,
   // and the fresh draft navigates to the new-chat route — submitting before that
   // lands reads as the user switching chats mid-create and the submit drift
   // guard aborts it. So park the prompt and send once the route has settled.

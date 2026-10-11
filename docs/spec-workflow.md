@@ -1,10 +1,9 @@
 # Spec-driven development
 
-JettsTUI implements [Kiro](https://kiro.dev)'s spec workflow, file for file.
 A spec turns a feature idea into three documents the agent writes and you
 approve one phase at a time, then the agent implements it task by task.
-Specs live in the workspace, in Kiro's own layout, so a repository moves
-between Kiro and JettsTUI without conversion:
+Specs live in the workspace, in the widely shared `.kiro/specs` layout, so a
+repository moves between spec-driven tools without conversion:
 
 ```text
 .kiro/specs/<feature-name>/
@@ -35,7 +34,7 @@ Steering documents in `.kiro/steering/` are read before every phase.
    referenced requirements, then marks it `[x]`. A single task never runs into
    the next one, so you can review between tasks.
 
-Like Kiro, the phase is read from which documents exist; documents appear one
+The phase is read from which documents exist; documents appear one
 at a time, and approving a phase is what produces the next one. Ask for
 changes at any phase — if an earlier document changes after later ones exist,
 the agent tells you what is affected before touching them.
@@ -64,19 +63,29 @@ execution runs in Accept Edits mode.
 Open **Specs** in the sidebar (or the command palette) to drive the whole
 workflow without typing commands:
 
-- **New spec** — describe the feature and pick **Guided** (Kiro's phase-by-phase
-  flow), **Quick** (all three documents at once) or **Autopilot** (spec and
-  implementation in one go).
-- Each spec shows Kiro's three tabs — Requirements, Design, Task list — with
-  the documents rendered, **Approve**, **Request changes** and **Open file**.
+- **New spec** — describe the feature and pick **Guided** (phase by phase,
+  approving each document), **Quick** (all three documents at once) or
+  **Autopilot** (spec and implementation in one go).
+- Each spec shows its progress as four steps — Requirements, Design, Tasks,
+  Build. Click a step to read its document, with **Approve**, **Request
+  changes** and **Open file** beside it.
+- While the agent works on something you sent, the spec shows it as in
+  progress and holds its buttons, so a second click can't open a duplicate
+  chat.
 - A **Next step** bar always offers the one action that moves the spec forward:
   approve the newest document, or start the next task.
 - The task list shows each task's state, its requirement references and a
   **Start task** button; **Run all tasks** runs the rest in order.
 
-Every action runs in a new chat, so you can watch the agent work; the page
-re-reads the files as they change and moves to a new document as soon as it is
-written.
+Everything happens on the Specs page itself — no chat is opened and spec work
+never appears in your session list. Each action starts a background agent in
+the project; the spec shows what it is doing live (with a **Stop** button) and,
+when it finishes, its reply — usually the question for your review. One spec
+runs one agent at a time. The page re-reads the files as they change and moves
+to a new document as soon as it is written.
+
+The `/spec` command still works in any chat if you prefer to drive specs from
+the conversation.
 
 ## Older specs
 

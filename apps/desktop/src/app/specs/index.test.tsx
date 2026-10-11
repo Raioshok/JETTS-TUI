@@ -4,9 +4,11 @@ import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testi
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { $newChatRunAction } from '@/store/new-chat-run'
-import { $currentCwd, $gatewayState } from '@/store/session'
+import { notify, notifyError } from '@/store/notifications'
+import { $activeSessionId, $currentCwd, $gatewayState } from '@/store/session'
+import { $workspaceChangeTick } from '@/store/workspace-events'
 
-import type { SpecDetail, SpecSummary } from './spec-model'
+import type { SpecDetail, SpecRun, SpecSummary } from './spec-model'
 
 const requestGateway = vi.fn()
 
@@ -94,6 +96,24 @@ function detail(name: string, overrides: Partial<SpecDetail> = {}): SpecDetail {
 
 let specs: SpecSummary[] = []
 let details: Record<string, SpecDetail> = {}
+let runs: SpecRun[] = []
+let runResult: { output: string; run: null | SpecRun; spec: string } | Error = { output: '', run: null, spec: '' }
+
+function specRun(overrides: Partial<SpecRun> = {}): SpecRun {
+  return {
+    activity: [],
+    error: '',
+    finished_at: null,
+    id: 'spec_1',
+    label: 'Starting task 2.1 of offline-search: Parse queries',
+    mode: 'accept-edits',
+    spec: 'offline-search',
+    started_at: Date.now() / 1000,
+    status: 'running',
+    summary: '',
+    ...overrides
+  }
+}
 
 async function renderView() {
   const { SpecsView } = await import('./index')
@@ -108,32 +128,53 @@ async function renderView() {
   })
 }
 
-const run = vi.fn()
+// Spec work never opens a chat: the shell's new-chat action must stay unused.
+const openChat = vi.fn()
+
+const specRunCalls = () =>
+  requestGateway.mock.calls.filter(([method]) => method === 'spec.run').map(([, params]) => params.args)
 
 beforeEach(() => {
   $gatewayState.set('open')
   $currentCwd.set(CWD)
-  $newChatRunAction.set(run)
+  $activeSessionId.set('sess-7')
+  $newChatRunAction.set(openChat)
   specs = [summary('offline-search')]
   details = { 'offline-search': detail('offline-search') }
+  runs = []
+  runResult = { output: 'Started.', run: specRun(), spec: 'offline-search' }
   requestGateway.mockImplementation((method: string, params: { cwd: string; name?: string }) => {
-    if (method === 'spec.list') {
-      return Promise.resolve({ specs })
-    }
+    switch (method) {
+      case 'spec.list':
+        return Promise.resolve({ specs })
 
-    if (method === 'spec.get') {
-      return Promise.resolve(details[params.name!])
-    }
+      case 'spec.get':
+        return Promise.resolve(details[params.name!])
 
-    return Promise.reject(new Error(method))
+      case 'spec.runs':
+        return Promise.resolve({ runs })
+
+      case 'spec.run':
+        return runResult instanceof Error ? Promise.reject(runResult) : Promise.resolve(runResult)
+
+      case 'spec.stop':
+        return Promise.resolve({ stopped: true })
+
+      default:
+        return Promise.reject(new Error(method))
+    }
   })
 })
 
 afterEach(() => {
+  expect(openChat).not.toHaveBeenCalled()
   cleanup()
-  run.mockReset()
+  openChat.mockReset()
   requestGateway.mockReset()
+  vi.mocked(notify).mockReset()
+  vi.mocked(notifyError).mockReset()
   $newChatRunAction.set(null)
+  $activeSessionId.set(null)
 })
 
 describe('SpecsView', () => {
@@ -144,51 +185,126 @@ describe('SpecsView', () => {
     expect(requestGateway).not.toHaveBeenCalled()
   })
 
-  it("lists the workspace's specs and opens the newest document tab", async () => {
+  it('creates a spec headlessly from the welcome composer', async () => {
+    specs = []
+    await renderView()
+
+    expect(await screen.findByText('Plan it before you build it')).toBeTruthy()
+    fireEvent.change(screen.getByLabelText('New spec'), { target: { value: 'offline search' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Create spec' }))
+
+    await waitFor(() =>
+      expect(requestGateway).toHaveBeenCalledWith('spec.run', {
+        args: 'new offline search',
+        cwd: CWD,
+        session_id: 'sess-7'
+      })
+    )
+  })
+
+  it("lists the workspace's specs and opens the newest document", async () => {
     await renderView()
 
     await waitFor(() => expect(screen.getAllByTestId('spec-list-item')).toHaveLength(1))
     expect(requestGateway).toHaveBeenCalledWith('spec.list', { cwd: CWD })
-    expect(screen.getByText('1/3 tasks', { selector: 'span' })).toBeTruthy()
-    // Tasks exist → the task list tab is open with Kiro's checkbox states.
+    expect(screen.getAllByText('1/3 tasks').length).toBeGreaterThan(0)
     const tasks = await screen.findAllByTestId('spec-task')
     expect(tasks.map(task => task.dataset.status)).toEqual(['completed', 'in_progress', 'not_started', 'not_started'])
   })
 
-  it('creates a spec in each mode through /spec in a new chat', async () => {
+  it('creates another spec in any mode from the New spec button', async () => {
     await renderView()
 
-    const box = screen.getByLabelText('New spec')
-    fireEvent.change(box, { target: { value: 'offline search' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Create spec' }))
-    expect(run).toHaveBeenLastCalledWith('/spec new offline search')
-
-    fireEvent.change(box, { target: { value: 'dark mode' } })
+    fireEvent.click(await screen.findByRole('button', { name: 'New spec' }))
+    fireEvent.change(screen.getByLabelText('New spec'), { target: { value: 'dark mode' } })
     fireEvent.click(screen.getByRole('button', { name: 'Autopilot' }))
     fireEvent.click(screen.getByRole('button', { name: 'Create spec' }))
-    expect(run).toHaveBeenLastCalledWith('/spec auto dark mode')
+
+    await waitFor(() => expect(specRunCalls()).toEqual(['auto dark mode']))
+    expect(screen.queryByRole('button', { name: 'Create spec' })).toBeNull()
   })
 
-  it('starts the next task, any task, or all of them', async () => {
+  it('starts the next task in the background', async () => {
     await renderView()
     await screen.findAllByTestId('spec-task')
 
     fireEvent.click(within(screen.getByTestId('spec-next-step')).getByRole('button'))
-    expect(run).toHaveBeenLastCalledWith('/spec task offline-search 2.1')
+    await waitFor(() => expect(specRunCalls()).toEqual(['task offline-search 2.1']))
+  })
+
+  it("shows the agent's live work in place and holds the spec's actions", async () => {
+    runs = [
+      specRun({
+        activity: [
+          { at: 1, kind: 'tool', text: 'read_file  src/search.py' },
+          { at: 2, kind: 'tool', text: 'patch  src/search.py' }
+        ]
+      })
+    ]
+    await renderView()
+
+    const card = await screen.findByTestId('spec-run')
+    expect(card.dataset.status).toBe('running')
+    expect(within(card).getByTestId('spec-run-activity').textContent).toContain('patch  src/search.py')
+    // No next-step offer and no actions while the agent works on this spec.
+    expect(screen.queryByTestId('spec-next-step')).toBeNull()
+    expect((screen.getByRole('button', { name: /Run all tasks/ }) as HTMLButtonElement).disabled).toBe(true)
+
+    fireEvent.click(within(card).getByRole('button', { name: /Stop/ }))
+    await waitFor(() => expect(requestGateway).toHaveBeenCalledWith('spec.stop', { run_id: 'spec_1' }))
+  })
+
+  it("shows the agent's reply once it finishes", async () => {
+    runs = [specRun({ status: 'completed', summary: 'Do the requirements look good?', finished_at: 2 })]
+    await renderView()
+
+    const card = await screen.findByTestId('spec-run')
+    expect(card.dataset.status).toBe('completed')
+    expect(within(card).getByTestId('spec-run-reply').textContent).toContain('Do the requirements look good?')
+    expect(screen.getByTestId('spec-next-step')).toBeTruthy()
+  })
+
+  it('reports a refused action instead of starting anything', async () => {
+    runResult = new Error("'offline-search' is already being worked on")
+    await renderView()
+    await screen.findAllByTestId('spec-task')
+
+    fireEvent.click(within(screen.getByTestId('spec-next-step')).getByRole('button'))
+    await waitFor(() => expect(notifyError).toHaveBeenCalledWith(runResult, 'Could not start the agent'))
+  })
+
+  it("shows the message of an action that doesn't need the agent", async () => {
+    const output = "Task list approved — 'offline-search' is ready."
+    runResult = { output, run: null, spec: 'offline-search' }
+    await renderView()
+    await screen.findAllByTestId('spec-task')
+
+    fireEvent.click(within(screen.getByTestId('spec-next-step')).getByRole('button'))
+    await waitFor(() => expect(notify).toHaveBeenCalledWith(expect.objectContaining({ message: output })))
+  })
+
+  it('starts any task from its row', async () => {
+    await renderView()
+    await screen.findAllByTestId('spec-task')
 
     const optional = screen.getAllByTestId('spec-task').find(task => task.dataset.task === '2.2')!
     fireEvent.click(within(optional).getByRole('button', { name: /Start task/ }))
-    expect(run).toHaveBeenLastCalledWith('/spec task offline-search 2.2')
-
-    fireEvent.click(screen.getByRole('checkbox'))
-    fireEvent.click(screen.getByRole('button', { name: /Run all tasks/ }))
-    expect(run).toHaveBeenLastCalledWith('/spec run offline-search --optional')
+    await waitFor(() => expect(specRunCalls()).toEqual(['task offline-search 2.2']))
 
     const done = screen.getAllByTestId('spec-task').find(task => task.dataset.task === '1')!
     expect(within(done).queryByRole('button')).toBeNull()
   })
 
-  it('approves the newest document and sends requested changes', async () => {
+  it('runs all remaining tasks, optional ones on request', async () => {
+    await renderView()
+    await screen.findAllByTestId('spec-task')
+
+    fireEvent.click(screen.getByRole('checkbox'))
+    fireEvent.click(screen.getByRole('button', { name: /Run all tasks/ }))
+    await waitFor(() => expect(specRunCalls()).toEqual(['run offline-search --optional']))
+  })
+
+  function requirementsOnly() {
     specs = [
       summary('offline-search', {
         documents: { design: false, requirements: true, tasks: false },
@@ -203,19 +319,61 @@ describe('SpecsView', () => {
         tasks: []
       })
     }
+  }
+
+  it('approves the newest document', async () => {
+    requirementsOnly()
     await renderView()
 
     await waitFor(() => expect(screen.getByTestId('spec-doc-requirements').textContent).toContain('THE System SHALL'))
-
     fireEvent.click(within(screen.getByTestId('spec-next-step')).getByRole('button', { name: 'Approve → design' }))
-    expect(run).toHaveBeenLastCalledWith('/spec approve offline-search requirements')
-
-    fireEvent.click(screen.getByRole('button', { name: 'Request changes' }))
-    fireEvent.change(screen.getByPlaceholderText('What should change?'), { target: { value: 'cover offline mode' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Send' }))
-    expect(run).toHaveBeenLastCalledWith('/spec refine offline-search requirements cover offline mode')
+    await waitFor(() => expect(specRunCalls()).toEqual(['approve offline-search requirements']))
 
     fireEvent.click(screen.getByRole('tab', { name: /Design/ }))
     expect(screen.getByText('Approve the requirements to generate the design.')).toBeTruthy()
+  })
+
+  it('sends requested changes for a document', async () => {
+    requirementsOnly()
+    await renderView()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Request changes' }))
+    fireEvent.change(screen.getByPlaceholderText('What should change?'), { target: { value: 'cover offline mode' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+    await waitFor(() => expect(specRunCalls()).toEqual(['refine offline-search requirements cover offline mode']))
+  })
+
+  it('keeps showing the specs when a background refresh fails', async () => {
+    await renderView()
+    await screen.findAllByTestId('spec-task')
+
+    requestGateway.mockImplementation(() => Promise.reject(new Error('gateway hiccup')))
+    act(() => $workspaceChangeTick.set($workspaceChangeTick.get() + 1))
+
+    await new Promise(resolve => setTimeout(resolve, 50))
+    expect(screen.getAllByTestId('spec-list-item')).toHaveLength(1)
+    expect(screen.getByTestId('spec-panel')).toBeTruthy()
+    expect(screen.queryByText('Could not load specs')).toBeNull()
+  })
+
+  it('keeps the current spec on screen while another one loads', async () => {
+    specs = [summary('offline-search'), summary('dark-mode')]
+    details = { 'offline-search': detail('offline-search'), 'dark-mode': detail('dark-mode') }
+    let releaseDarkMode: (value: SpecDetail) => void = () => undefined
+    const base = requestGateway.getMockImplementation()!
+
+    requestGateway.mockImplementation((method: string, params: { cwd: string; name?: string }) =>
+      method === 'spec.get' && params.name === 'dark-mode'
+        ? new Promise<SpecDetail>(resolve => (releaseDarkMode = resolve))
+        : base(method, params)
+    )
+    await renderView()
+    await screen.findByTestId('spec-panel')
+
+    fireEvent.click(screen.getAllByTestId('spec-list-item')[1]!)
+    expect(screen.getByTestId('spec-panel').textContent).toContain('offline-search')
+
+    await act(async () => releaseDarkMode(details['dark-mode']!))
+    await waitFor(() => expect(screen.getByTestId('spec-panel').textContent).toContain('dark-mode'))
   })
 })

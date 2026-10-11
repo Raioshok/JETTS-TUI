@@ -511,7 +511,7 @@ export function CommandPalette() {
           {
             icon: Layers3,
             id: 'nav-specs',
-            keywords: ['specs', 'spec', 'kiro', 'requirements', 'design', 'tasks', 'plan'],
+            keywords: ['specs', 'spec', 'requirements', 'design', 'tasks', 'plan'],
             label: t.specs.title,
             run: go(SPECS_ROUTE)
           },

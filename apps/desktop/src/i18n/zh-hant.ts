@@ -1129,10 +1129,9 @@ export const zhHant = defineLocale({
   },
   specs: {
     title: '規格',
-    subtitle:
-      '以 Kiro 的方式進行規格驅動開發：把想法整理成 .kiro/specs/ 中的需求、設計與任務清單，再由代理逐一實作任務。',
+    subtitle: '把想法整理成需求、設計與任務清單供你審閱，再由代理逐一實作任務。',
     noProjectTitle: '開啟專案後才能使用規格',
-    noProjectBody: '規格儲存在專案的 .kiro/specs 資料夾中。',
+    noProjectBody: '規格儲存在專案中。請先開啟一個專案，或在專案中開始對話。',
     loadFailed: '無法載入規格',
     retry: '重試',
     newTitle: '新增規格',
@@ -1144,14 +1143,12 @@ export const zhHant = defineLocale({
       auto: { label: '自動駕駛', hint: '不等待核准，寫完整份規格並實作所有任務。' }
     },
     listTitle: '此專案中的規格',
-    empty: '還沒有規格——描述一個功能即可開始。',
-    select: '選擇一份規格以查看其文件。',
     legacy: '舊版 .jettstui 規格',
     phase: { requirements: '需求', design: '設計', tasks: '任務清單', implementation: '進行中', done: '已完成' },
     tabs: { requirements: '需求', design: '設計', tasks: '任務清單' },
     tasksProgress: (done, total) => `${done}/${total} 項任務`,
     notWritten: {
-      requirements: '需求正在對話中撰寫，檔案產生後會顯示在這裡。',
+      requirements: '正在撰寫需求，檔案產生後會顯示在這裡。',
       design: '核准需求後將產生設計。',
       tasks: '核准設計後將產生任務清單。'
     },
@@ -1176,7 +1173,23 @@ export const zhHant = defineLocale({
     optional: '選用',
     requirementsRef: ids => `需求 ${ids}`,
     taskStatus: { not_started: '未開始', in_progress: '進行中', queued: '排隊中', completed: '已完成' },
-    runsInNewChat: '每個操作都會在新對話中執行，本頁會隨檔案變化自動更新。'
+    runsInBackground: '代理就在這裡於背景處理規格——不會開啟對話。',
+    startFailed: '無法啟動代理',
+    stopFailed: '無法停止代理',
+    stop: '停止',
+    runStatus: { running: '進行中', completed: '已完成', failed: '失敗', interrupted: '已停止' },
+    newSpec: '新增規格',
+    welcomeTitle: '先規劃，再動手',
+    welcomeBody: '描述一個功能，代理會寫出需求、技術設計與任務清單供你審閱，然後逐一實作任務。',
+    steps: { requirements: '需求', design: '設計', tasks: '任務', build: '實作' },
+    stepHints: {
+      requirements: '使用者故事與驗收標準',
+      design: '架構、介面與資料',
+      tasks: '由小步驟組成的程式清單',
+      build: '代理逐項完成任務'
+    },
+    stepState: { done: '已完成', drafting: '撰寫中', review: '待審閱', upcoming: '未開始' },
+    working: '正在啟動代理…'
   },
   agents: {
     close: '關閉代理',

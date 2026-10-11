@@ -1,7 +1,7 @@
-"""Kiro-style spec-driven development.
+"""Spec-driven development: requirements -> design -> tasks -> build.
 
-Specs follow Kiro's layout and workflow so a repository can move between Kiro
-and JettsTUI without conversion::
+Specs use the widely shared ``.kiro/specs`` layout, so a repository can move
+between spec-driven tools without conversion::
 
     .kiro/specs/<feature-name>/
     ├── .config.kiro        {"specId", "workflowType", "specType"}
@@ -9,13 +9,13 @@ and JettsTUI without conversion::
     ├── design.md           architecture, interfaces, correctness properties
     └── tasks.md            checkbox implementation plan
 
-Documents appear one phase at a time, exactly like Kiro: the agent writes
+Documents appear one phase at a time: the agent writes
 ``requirements.md``; when the user approves it the agent writes ``design.md``;
 approving that produces ``tasks.md``.  The phase is read from which documents
 exist — there is no status bookkeeping inside the files.  Tasks are executed
 one at a time ("Start task") or in order ("Run all tasks"), and the agent
 tracks progress in the checkboxes: ``[ ]`` not started, ``[-]`` in progress,
-``[x]`` done.  ``[ ]*`` marks an optional task (Kiro's optional tests), which
+``[x]`` done.  ``[ ]*`` marks an optional task (usually extra tests), which
 "Run all" skips.
 
 Steering documents in ``.kiro/steering/`` are read before drafting.  Specs
@@ -105,7 +105,7 @@ class SpecTask:
 
 
 def parse_tasks(text: str) -> List[SpecTask]:
-    """Kiro task list → tasks with id, status, optional flag and details."""
+    """Task list markdown → tasks with id, status, optional flag and details."""
     tasks: List[SpecTask] = []
     for lineno, raw in enumerate(text.splitlines()):
         match = _TASK_RE.match(raw)
@@ -186,7 +186,7 @@ def _is_legacy(spec: Path) -> bool:
 
 
 def _tasks_filename(spec: Path) -> str:
-    """Kiro's tasks.md, with the legacy tasklist.md fallback."""
+    """tasks.md, with the legacy tasklist.md fallback."""
     if (spec / "tasks.md").exists() or not (spec / "tasklist.md").exists():
         return "tasks.md"
     return "tasklist.md"
@@ -279,7 +279,7 @@ def find_spec(cwd: Path, name: str) -> Optional[Path]:
     return _resolve(cwd, name)
 
 
-# ─── Agent prompts (Kiro's workflow) ────────────────────────────────────────
+# ─── Agent prompts ──────────────────────────────────────────────────────────
 
 
 def _rel(spec: Path, filename: str = "") -> str:
@@ -455,7 +455,7 @@ def _refine_seed(spec: Path, stage: str, feedback: str) -> str:
     return "\n\n".join([
         f"Update `{_rel(spec, _doc_path(spec, stage).name)}` with this feedback from the user:",
         feedback.strip(),
-        f"Keep the Kiro {stage} format and change nothing else in the repository.{later}",
+        f"Keep the {stage} document format and change nothing else in the repository.{later}",
         _review_question(spec, stage, {
             "requirements": "the design",
             "design": "the implementation plan",
@@ -466,7 +466,7 @@ def _refine_seed(spec: Path, stage: str, feedback: str) -> str:
 
 def _auto_seed(spec: Path, feature: str) -> str:
     return "\n\n".join([
-        f"Autopilot spec for '{feature}': produce the whole Kiro spec in "
+        f"Autopilot spec for '{feature}': produce the whole spec in "
         f"`{_rel(spec)}` and then implement it, without stopping for approvals.",
         _STEERING,
         f"1. Write `{_rel(spec, 'requirements.md')}`.\n{_REQUIREMENTS_FORMAT}",

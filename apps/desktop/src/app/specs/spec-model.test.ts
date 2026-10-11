@@ -9,7 +9,9 @@ import {
   refineCommand,
   runAllCommand,
   type SpecDetail,
-  startTaskCommand
+  specSignature,
+  startTaskCommand,
+  stepStates
 } from './spec-model'
 
 function spec(documents: Partial<SpecDetail['documents']>, nextTask: null | string = null): SpecDetail {
@@ -31,16 +33,14 @@ function spec(documents: Partial<SpecDetail['documents']>, nextTask: null | stri
 
 describe('spec commands', () => {
   it('map each action onto the /spec command the backend runs', () => {
-    expect(createCommand('step', '  offline\n search ')).toBe('/spec new offline search')
-    expect(createCommand('quick', 'x')).toBe('/spec quick x')
-    expect(createCommand('auto', 'x')).toBe('/spec auto x')
-    expect(approveCommand('s', 'design')).toBe('/spec approve s design')
-    expect(refineCommand('s', 'requirements', 'add\nfuzzy  search')).toBe(
-      '/spec refine s requirements add fuzzy search'
-    )
-    expect(startTaskCommand('s', '2.1')).toBe('/spec task s 2.1')
-    expect(runAllCommand('s')).toBe('/spec run s')
-    expect(runAllCommand('s', true)).toBe('/spec run s --optional')
+    expect(createCommand('step', '  offline\n search ')).toBe('new offline search')
+    expect(createCommand('quick', 'x')).toBe('quick x')
+    expect(createCommand('auto', 'x')).toBe('auto x')
+    expect(approveCommand('s', 'design')).toBe('approve s design')
+    expect(refineCommand('s', 'requirements', 'add\nfuzzy  search')).toBe('refine s requirements add fuzzy search')
+    expect(startTaskCommand('s', '2.1')).toBe('task s 2.1')
+    expect(runAllCommand('s')).toBe('run s')
+    expect(runAllCommand('s', true)).toBe('run s --optional')
   })
 })
 
@@ -70,5 +70,38 @@ describe('spec workflow', () => {
       taskId: '2.1'
     })
     expect(nextAction(spec({ requirements: true, design: true, tasks: true }))).toEqual({ kind: 'done' })
+  })
+})
+
+describe('spec progress', () => {
+  it('walks the four steps through drafting, review and done', () => {
+    expect(stepStates(spec({}))).toEqual({
+      requirements: 'drafting',
+      design: 'upcoming',
+      tasks: 'upcoming',
+      build: 'upcoming'
+    })
+    expect(stepStates(spec({ requirements: true })).requirements).toBe('review')
+    expect(stepStates(spec({ requirements: true, design: true }))).toMatchObject({
+      requirements: 'done',
+      design: 'review'
+    })
+
+    const started = {
+      ...spec({ requirements: true, design: true, tasks: true }),
+      progress: { completed: 1, in_progress: 0, optional: 0, total: 3 }
+    }
+
+    expect(stepStates(started)).toMatchObject({ tasks: 'done', build: 'drafting' })
+    expect(stepStates({ ...started, phase: 'done' }).build).toBe('done')
+  })
+
+  it('signature moves exactly when the agent changes something', () => {
+    const before = spec({ requirements: true })
+    expect(specSignature(before)).toBe(specSignature(spec({ requirements: true })))
+    expect(specSignature(spec({ requirements: true, design: true }))).not.toBe(specSignature(before))
+    expect(specSignature({ ...before, progress: { completed: 0, in_progress: 1, optional: 0, total: 3 } })).not.toBe(
+      specSignature(before)
+    )
   })
 })

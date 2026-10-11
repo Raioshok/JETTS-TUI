@@ -1015,8 +1015,6 @@ export interface Translations {
     create: string
     modes: Record<'step' | 'quick' | 'auto', { label: string; hint: string }>
     listTitle: string
-    empty: string
-    select: string
     legacy: string
     phase: Record<'requirements' | 'design' | 'tasks' | 'implementation' | 'done', string>
     tabs: Record<'requirements' | 'design' | 'tasks', string>
@@ -1037,7 +1035,18 @@ export interface Translations {
     optional: string
     requirementsRef: (ids: string) => string
     taskStatus: Record<'not_started' | 'in_progress' | 'queued' | 'completed', string>
-    runsInNewChat: string
+    runsInBackground: string
+    startFailed: string
+    stopFailed: string
+    stop: string
+    runStatus: Record<'running' | 'completed' | 'failed' | 'interrupted', string>
+    newSpec: string
+    welcomeTitle: string
+    welcomeBody: string
+    steps: Record<'requirements' | 'design' | 'tasks' | 'build', string>
+    stepHints: Record<'requirements' | 'design' | 'tasks' | 'build', string>
+    stepState: Record<'done' | 'drafting' | 'review' | 'upcoming', string>
+    working: string
   }
   agents: {
     close: string

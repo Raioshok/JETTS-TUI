@@ -45,30 +45,31 @@ export interface SpecDetail extends SpecSummary {
   tasks: SpecTask[]
 }
 
-/** The `/spec` subcommand each creation mode maps to. */
+/** The spec command each creation mode maps to. Commands are `/spec`
+ *  arguments; the page runs them headlessly through `spec.run`. */
 const CREATE_VERB: Record<SpecCreateMode, string> = { auto: 'auto', quick: 'quick', step: 'new' }
 
 export function createCommand(mode: SpecCreateMode, feature: string): string {
-  return `/spec ${CREATE_VERB[mode]} ${feature.replace(/\s+/g, ' ').trim()}`
+  return `${CREATE_VERB[mode]} ${feature.replace(/\s+/g, ' ').trim()}`
 }
 
 export function approveCommand(name: string, stage: SpecStage): string {
-  return `/spec approve ${name} ${stage}`
+  return `approve ${name} ${stage}`
 }
 
 export function refineCommand(name: string, stage: SpecStage, feedback: string): string {
-  return `/spec refine ${name} ${stage} ${feedback.replace(/\s+/g, ' ').trim()}`
+  return `refine ${name} ${stage} ${feedback.replace(/\s+/g, ' ').trim()}`
 }
 
 export function startTaskCommand(name: string, taskId: string): string {
-  return `/spec task ${name} ${taskId}`
+  return `task ${name} ${taskId}`
 }
 
 export function runAllCommand(name: string, includeOptional = false): string {
-  return `/spec run ${name}${includeOptional ? ' --optional' : ''}`
+  return `run ${name}${includeOptional ? ' --optional' : ''}`
 }
 
-/** The stage after `stage` in Kiro's order, or null after tasks. */
+/** The stage after `stage` in workflow order, or null after tasks. */
 export function nextStage(stage: SpecStage): null | SpecStage {
   const index = SPEC_STAGES.indexOf(stage)
 
@@ -77,7 +78,7 @@ export function nextStage(stage: SpecStage): null | SpecStage {
 
 /** A stage can be approved once its document exists and the next one doesn't
  *  yet — approving is what produces the next document. Tasks need no approval
- *  to start (Kiro's "Start task" works as soon as the list exists). */
+ *  to start ("Start task" works as soon as the list exists). */
 export function canApprove(spec: Pick<SpecSummary, 'documents'>, stage: SpecStage): boolean {
   const next = nextStage(stage)
 
@@ -113,4 +114,65 @@ export function nextAction(spec: SpecDetail): SpecNextAction {
 /** Leaf tasks can be started; a parent runs through its sub-tasks. */
 export function isStartable(task: SpecTask): boolean {
   return task.status !== 'completed'
+}
+
+/** Changes whenever the agent moves the spec forward (a document appears, a
+ *  task starts or finishes) — what clears the "working in chat" state. */
+export function specSignature(spec: Pick<SpecSummary, 'documents' | 'phase' | 'progress'>): string {
+  const docs = SPEC_STAGES.map(stage => (spec.documents[stage] ? 1 : 0)).join('')
+
+  return `${spec.phase}|${docs}|${spec.progress.completed}|${spec.progress.in_progress}`
+}
+
+export const SPEC_STEPS = ['requirements', 'design', 'tasks', 'build'] as const
+
+export type SpecStep = (typeof SPEC_STEPS)[number]
+export type SpecStepState = 'done' | 'drafting' | 'review' | 'upcoming'
+
+/** Where each workflow step stands: written and approved (done), waiting on
+ *  the user (review), being written (drafting) or not reached yet. */
+export function stepStates(
+  spec: Pick<SpecSummary, 'documents' | 'phase' | 'progress'>
+): Record<SpecStep, SpecStepState> {
+  const { documents: docs, phase, progress } = spec
+  const started = progress.completed > 0 || progress.in_progress > 0
+
+  return {
+    requirements: docs.design ? 'done' : docs.requirements ? 'review' : 'drafting',
+    design: docs.tasks ? 'done' : docs.design ? 'review' : 'upcoming',
+    tasks: docs.tasks ? (started ? 'done' : 'review') : 'upcoming',
+    build: phase === 'done' ? 'done' : started ? 'drafting' : 'upcoming'
+  }
+}
+
+/** The document a step shows; building happens on the task list. */
+export function stepStage(step: SpecStep): SpecStage {
+  return step === 'build' ? 'tasks' : step
+}
+
+export type SpecRunStatus = 'completed' | 'failed' | 'interrupted' | 'running'
+
+/** A headless agent run started from the Specs page (`spec.run`). */
+export interface SpecRun {
+  activity: { at: number; kind: string; text: string }[]
+  error: string
+  finished_at: null | number
+  id: string
+  label: string
+  mode: string
+  spec: string
+  started_at: number
+  status: SpecRunStatus
+  summary: string
+}
+
+/** Each spec's newest run — `spec.runs` lists newest first. */
+export function latestRunBySpec(runs: readonly SpecRun[]): Record<string, SpecRun> {
+  const out: Record<string, SpecRun> = {}
+
+  for (const run of runs) {
+    out[run.spec] ??= run
+  }
+
+  return out
 }

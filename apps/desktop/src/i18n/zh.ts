@@ -1354,10 +1354,9 @@ export const zh: Translations = {
   },
   specs: {
     title: '规格',
-    subtitle:
-      '按 Kiro 方式进行规格驱动开发：把想法整理成 .kiro/specs/ 中的需求、设计和任务清单，再由智能体逐个任务实现。',
+    subtitle: '把想法整理成需求、设计和任务清单供你审阅，再由智能体逐个任务实现。',
     noProjectTitle: '打开项目后才能使用规格',
-    noProjectBody: '规格保存在项目的 .kiro/specs 文件夹中。',
+    noProjectBody: '规格保存在项目中。请先打开一个项目，或在项目中开始对话。',
     loadFailed: '无法加载规格',
     retry: '重试',
     newTitle: '新建规格',
@@ -1369,14 +1368,12 @@ export const zh: Translations = {
       auto: { label: '自动驾驶', hint: '不等待批准，写完整个规格并实现所有任务。' }
     },
     listTitle: '此项目中的规格',
-    empty: '还没有规格——描述一个功能即可开始。',
-    select: '选择一个规格以查看其文档。',
     legacy: '旧版 .jettstui 规格',
     phase: { requirements: '需求', design: '设计', tasks: '任务清单', implementation: '进行中', done: '已完成' },
     tabs: { requirements: '需求', design: '设计', tasks: '任务清单' },
     tasksProgress: (done, total) => `${done}/${total} 个任务`,
     notWritten: {
-      requirements: '需求正在对话中编写，文件生成后会显示在这里。',
+      requirements: '正在编写需求，文件生成后会显示在这里。',
       design: '批准需求后将生成设计。',
       tasks: '批准设计后将生成任务清单。'
     },
@@ -1401,7 +1398,23 @@ export const zh: Translations = {
     optional: '可选',
     requirementsRef: ids => `需求 ${ids}`,
     taskStatus: { not_started: '未开始', in_progress: '进行中', queued: '排队中', completed: '已完成' },
-    runsInNewChat: '每个操作都会在新对话中运行，本页会随文件变化自动更新。'
+    runsInBackground: '智能体就在这里于后台处理规格——不会打开对话。',
+    startFailed: '无法启动智能体',
+    stopFailed: '无法停止智能体',
+    stop: '停止',
+    runStatus: { running: '进行中', completed: '已完成', failed: '失败', interrupted: '已停止' },
+    newSpec: '新建规格',
+    welcomeTitle: '先规划，再动手',
+    welcomeBody: '描述一个功能，智能体会写出需求、技术设计和任务清单供你审阅，然后逐个任务实现。',
+    steps: { requirements: '需求', design: '设计', tasks: '任务', build: '实现' },
+    stepHints: {
+      requirements: '用户故事与验收标准',
+      design: '架构、接口与数据',
+      tasks: '由小步编码组成的清单',
+      build: '智能体逐项完成任务'
+    },
+    stepState: { done: '已完成', drafting: '编写中', review: '待审阅', upcoming: '未开始' },
+    working: '正在启动智能体…'
   },
   agents: {
     close: '关闭代理',

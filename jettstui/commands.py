@@ -113,7 +113,7 @@ COMMAND_REGISTRY: list[CommandDef] = [
                args_hint="<prompt>"),
     CommandDef("goal", "Set a standing goal JettsTUI works on across turns until achieved", "Session",
                args_hint="[text | draft <text> | show | pause | resume | clear | status | wait <pid> | unwait]"),
-    CommandDef("spec", "Create and approve a Kiro-style requirements/design/tasks spec", "Session",
+    CommandDef("spec", "Write a spec (requirements, design, tasks) and build it task by task", "Session",
                cli_only=True,
                args_hint="[list|new|quick|auto <feature>|status|approve <name> <stage>|refine|task <name> [id]|run <name>]",
                subcommands=("list", "new", "quick", "auto", "status", "approve", "refine", "task", "run", "implement")),
