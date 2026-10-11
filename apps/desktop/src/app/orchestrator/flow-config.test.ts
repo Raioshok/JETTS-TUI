@@ -5,7 +5,6 @@ import {
   balanceOf,
   DEFAULT_BALANCE,
   MAX_REVIEW_ROUNDS,
-  orchestratePrompt,
   type OrchestratorConfig,
   parseRoleChoice,
   roleChoice,
@@ -51,13 +50,6 @@ describe('orchestrator role choices', () => {
   it('clamps review rounds to the backend range', () => {
     expect(withReviewRounds(base, -3).max_review_rounds).toBe(0)
     expect(withReviewRounds(base, 99).max_review_rounds).toBe(MAX_REVIEW_ROUNDS)
-  })
-
-  it('names the orchestrate tool and carries the task', () => {
-    const prompt = orchestratePrompt('  add dark mode  ')
-
-    expect(prompt).toContain('orchestrate tool')
-    expect(prompt.endsWith('add dark mode')).toBe(true)
   })
 })
 

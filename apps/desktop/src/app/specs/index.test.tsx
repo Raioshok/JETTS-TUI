@@ -3,7 +3,6 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { $newChatRunAction } from '@/store/new-chat-run'
 import { notify, notifyError } from '@/store/notifications'
 import { $activeSessionId, $currentCwd, $gatewayState } from '@/store/session'
 import { $workspaceChangeTick } from '@/store/workspace-events'
@@ -128,9 +127,6 @@ async function renderView() {
   })
 }
 
-// Spec work never opens a chat: the shell's new-chat action must stay unused.
-const openChat = vi.fn()
-
 const specRunCalls = () =>
   requestGateway.mock.calls.filter(([method]) => method === 'spec.run').map(([, params]) => params.args)
 
@@ -138,7 +134,6 @@ beforeEach(() => {
   $gatewayState.set('open')
   $currentCwd.set(CWD)
   $activeSessionId.set('sess-7')
-  $newChatRunAction.set(openChat)
   specs = [summary('offline-search')]
   details = { 'offline-search': detail('offline-search') }
   runs = []
@@ -167,13 +162,10 @@ beforeEach(() => {
 })
 
 afterEach(() => {
-  expect(openChat).not.toHaveBeenCalled()
   cleanup()
-  openChat.mockReset()
   requestGateway.mockReset()
   vi.mocked(notify).mockReset()
   vi.mocked(notifyError).mockReset()
-  $newChatRunAction.set(null)
   $activeSessionId.set(null)
 })
 

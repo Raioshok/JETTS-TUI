@@ -218,6 +218,7 @@ describe('FlowPanel agent detail', () => {
     const timelineRow = screen
       .getAllByRole('button')
       .find(el => el.textContent?.includes('Reviewer') && !el.closest('[data-testid="flow-agent"]'))!
+
     fireEvent.click(timelineRow)
     expect(screen.getByTestId('flow-agent-detail')).toBeTruthy()
 

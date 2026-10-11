@@ -138,12 +138,123 @@ function emptyRun(id: string, now: number): FlowRun {
   }
 }
 
-function updateRun(sessionId: string, runId: string, update: (run: FlowRun, isNew: boolean) => FlowRun) {
+/** Fold an `orchestrator.run` payload into a run. Pure — `now` stamps any
+ *  stage it settles, so replaying recorded events keeps their real times. */
+export function reduceFlowRunEvent(prev: FlowRun | undefined, payload: Payload, now = Date.now()): FlowRun | undefined {
+  const runId = str(payload.run_id)
+
+  if (!runId) {
+    return prev
+  }
+
+  const fresh = !prev
+  const run = prev ?? emptyRun(runId, now)
+  const status = asRunStatus(payload.status)
+  const assignments = asAssignments(payload.assignments)
+  const ended = status !== 'running'
+
+  return {
+    ...run,
+    task: str(payload.task) || run.task,
+    status,
+    round: num(payload.round) ?? run.round,
+    maxRounds: num(payload.max_rounds) ?? run.maxRounds,
+    phase: ended ? run.phase : asPhase(payload.phase) || run.phase,
+    balance: str(payload.balance) || run.balance,
+    boardDir: str(payload.board_dir) || run.boardDir,
+    note: str(payload.note) || run.note,
+    startedAt: fresh ? (secondsToMs(payload.started_at) ?? run.startedAt) : run.startedAt,
+    finishedAt: ended ? (run.finishedAt ?? now) : undefined,
+    assignments: Object.keys(assignments).length ? assignments : run.assignments,
+    // A run that ends mid-phase (failure / interrupt) leaves no stage spinning.
+    stages: ended
+      ? run.stages.map(stage =>
+          stage.status === 'running'
+            ? { ...stage, status: status === 'interrupted' ? 'interrupted' : 'failed', finishedAt: now }
+            : stage
+        )
+      : run.stages
+  }
+}
+
+/** Fold an `orchestrator.stage` payload into a run. Pure; see above. */
+export function reduceFlowStageEvent(
+  prev: FlowRun | undefined,
+  payload: Payload,
+  now = Date.now()
+): FlowRun | undefined {
+  const runId = str(payload.run_id)
+  const role = payload.role
+  const phase = asPhase(payload.phase)
+  const round = num(payload.round)
+
+  if (!runId || !isRole(role) || !phase || round === undefined) {
+    return prev
+  }
+
+  const run = prev ?? emptyRun(runId, now)
+  const key = `${round}:${phase}:${role}`
+  const before = run.stages.find(stage => stage.key === key)
+  const status = asStageStatus(payload.status)
+
+  const stage: FlowStage = {
+    key,
+    role,
+    round,
+    phase,
+    status,
+    model: str(payload.model_used) || str(payload.model) || before?.model || '',
+    provider: str(payload.provider) || before?.provider || '',
+    subagentId: str(payload.subagent_id) || before?.subagentId,
+    verdict: asVerdict(payload.verdict) ?? before?.verdict,
+    summary: str(payload.summary) || before?.summary,
+    report: str(payload.report) || before?.report,
+    startedAt: before?.startedAt ?? now,
+    finishedAt: status === 'running' ? undefined : (before?.finishedAt ?? now)
+  }
+
+  return {
+    ...run,
+    round: Math.max(run.round, round),
+    stages: before ? run.stages.map(s => (s.key === key ? stage : s)) : [...run.stages, stage]
+  }
+}
+
+export interface RecordedFlowEvent {
+  /** Seconds since the epoch, as recorded by the backend. */
+  at: number
+  payload: Payload
+  type: string
+}
+
+/** Rebuild a run from events a headless flow recorded (Orchestrator page). */
+export function replayFlowEvents(events: readonly RecordedFlowEvent[]): FlowRun | undefined {
+  let run: FlowRun | undefined
+
+  for (const event of events) {
+    const now = Math.round(event.at * 1000)
+
+    if (event.type === 'orchestrator.run') {
+      run = reduceFlowRunEvent(run, event.payload, now)
+    } else if (event.type === 'orchestrator.stage') {
+      run = reduceFlowStageEvent(run, event.payload, now)
+    }
+  }
+
+  return run
+}
+
+function updateRun(sessionId: string, runId: string, reduce: (run: FlowRun | undefined) => FlowRun | undefined) {
   const map = $flowRunsBySession.get()
   const runs = map[sessionId] ?? []
   const index = runs.findIndex(run => run.id === runId)
   const isNew = index < 0
-  const next = update(isNew ? emptyRun(runId, Date.now()) : runs[index], isNew)
+  const next = reduce(isNew ? undefined : runs[index])
+
+  if (!next) {
+    return false
+  }
+
   const merged = isNew ? [...runs, next].slice(-MAX_RUNS_PER_SESSION) : runs.map((run, i) => (i === index ? next : run))
 
   $flowRunsBySession.set({ ...map, [sessionId]: merged })
@@ -161,79 +272,18 @@ export function applyFlowRunEvent(sessionId: string, payload: Payload): boolean 
     return false
   }
 
-  const status = asRunStatus(payload.status)
+  const isNew = updateRun(sessionId, runId, run => reduceFlowRunEvent(run, payload))
 
-  const isNew = updateRun(sessionId, runId, (run, fresh) => {
-    const assignments = asAssignments(payload.assignments)
-    const ended = status !== 'running'
-
-    return {
-      ...run,
-      task: str(payload.task) || run.task,
-      status,
-      round: num(payload.round) ?? run.round,
-      maxRounds: num(payload.max_rounds) ?? run.maxRounds,
-      phase: ended ? run.phase : asPhase(payload.phase) || run.phase,
-      balance: str(payload.balance) || run.balance,
-      boardDir: str(payload.board_dir) || run.boardDir,
-      note: str(payload.note) || run.note,
-      startedAt: fresh ? (secondsToMs(payload.started_at) ?? run.startedAt) : run.startedAt,
-      finishedAt: ended ? (run.finishedAt ?? Date.now()) : undefined,
-      assignments: Object.keys(assignments).length ? assignments : run.assignments,
-      // A run that ends mid-phase (failure / interrupt) leaves no stage spinning.
-      stages: ended
-        ? run.stages.map(stage =>
-            stage.status === 'running'
-              ? { ...stage, status: status === 'interrupted' ? 'interrupted' : 'failed', finishedAt: Date.now() }
-              : stage
-          )
-        : run.stages
-    }
-  })
-
-  return isNew && status === 'running'
+  return isNew && asRunStatus(payload.status) === 'running'
 }
 
 /** Apply an `orchestrator.stage` event (stage started / spawned / finished). */
 export function applyFlowStageEvent(sessionId: string, payload: Payload) {
-  const runId = str(payload.run_id)
-  const role = payload.role
-  const phase = asPhase(payload.phase)
-  const round = num(payload.round)
-
-  if (!sessionId || !runId || !isRole(role) || !phase || round === undefined) {
+  if (!sessionId) {
     return
   }
 
-  const key = `${round}:${phase}:${role}`
-  const now = Date.now()
-
-  updateRun(sessionId, runId, run => {
-    const prev = run.stages.find(stage => stage.key === key)
-    const status = asStageStatus(payload.status)
-
-    const stage: FlowStage = {
-      key,
-      role,
-      round,
-      phase,
-      status,
-      model: str(payload.model_used) || str(payload.model) || prev?.model || '',
-      provider: str(payload.provider) || prev?.provider || '',
-      subagentId: str(payload.subagent_id) || prev?.subagentId,
-      verdict: asVerdict(payload.verdict) ?? prev?.verdict,
-      summary: str(payload.summary) || prev?.summary,
-      report: str(payload.report) || prev?.report,
-      startedAt: prev?.startedAt ?? now,
-      finishedAt: status === 'running' ? undefined : (prev?.finishedAt ?? now)
-    }
-
-    return {
-      ...run,
-      round: Math.max(run.round, round),
-      stages: prev ? run.stages.map(s => (s.key === key ? stage : s)) : [...run.stages, stage]
-    }
-  })
+  updateRun(sessionId, str(payload.run_id), run => reduceFlowStageEvent(run, payload))
 }
 
 export function latestFlowRun(runs: readonly FlowRun[] | undefined): FlowRun | undefined {

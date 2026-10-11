@@ -1,14 +1,13 @@
 // @vitest-environment jsdom
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
-import { $newChatRunAction } from '@/store/new-chat-run'
 import { notifyError } from '@/store/notifications'
-import { $flowPanelOpen } from '@/store/orchestrator-flow'
-import { $gatewayState } from '@/store/session'
+import { $activeSessionId, $currentCwd, $gatewayState } from '@/store/session'
 
 import type { OrchestratorConfig, OrchestratorPayload } from './flow-config'
+import type { HeadlessRun } from './headless-runs'
 
 const requestGateway = vi.fn()
 
@@ -66,22 +65,101 @@ async function renderView() {
   })
 }
 
+/** Settings live on the Team & models tab; Runs is the default. */
+async function renderTeamTab() {
+  await renderView()
+  fireEvent.click(await screen.findByRole('button', { name: 'Team & models' }))
+}
+
+const CWD = '/work/app'
+let runs: HeadlessRun[] = []
+
+function headlessRun(overrides: Partial<HeadlessRun> = {}): HeadlessRun {
+  return {
+    cwd: CWD,
+    error: '',
+    events: [
+      {
+        at: 1000,
+        type: 'orchestrator.run',
+        payload: {
+          run_id: 'flow-1',
+          status: 'running',
+          task: 'add a dark mode toggle',
+          round: 1,
+          max_rounds: 3,
+          phase: 'work'
+        }
+      },
+      {
+        at: 1001,
+        type: 'orchestrator.stage',
+        payload: {
+          run_id: 'flow-1',
+          role: 'executor',
+          phase: 'work',
+          round: 1,
+          status: 'running',
+          subagent_id: 'sa-1',
+          model: 'claude-x'
+        }
+      }
+    ],
+    finished_at: null,
+    id: 'orch_1',
+    note: '',
+    started_at: 1000,
+    status: 'running',
+    subagents: [
+      {
+        current_tool: 'write_file',
+        id: 'sa-1',
+        model: 'claude-x',
+        status: 'running',
+        stream: [{ at: 1002, error: false, text: 'write_file src/theme.ts' }]
+      }
+    ],
+    task: 'add a dark mode toggle',
+    verdict: '',
+    ...overrides
+  }
+}
+
 beforeEach(() => {
   $gatewayState.set('open')
-  requestGateway.mockImplementation((method: string, params?: { config: OrchestratorConfig }) =>
-    Promise.resolve(method === 'orchestrator.save' && params ? payload(params.config) : payload(initial))
-  )
+  $currentCwd.set(CWD)
+  $activeSessionId.set('sess-3')
+  runs = []
+  requestGateway.mockImplementation((method: string, params?: { config: OrchestratorConfig }) => {
+    switch (method) {
+      case 'orchestrator.save':
+        return Promise.resolve(payload(params!.config))
+
+      case 'orchestrator.runs':
+        return Promise.resolve({ runs })
+
+      case 'orchestrator.run':
+        return Promise.resolve({ run: headlessRun() })
+
+      case 'orchestrator.stop':
+        return Promise.resolve({ stopped: true })
+
+      default:
+        return Promise.resolve(payload(initial))
+    }
+  })
 })
 
 afterEach(() => {
   cleanup()
   requestGateway.mockReset()
-  $newChatRunAction.set(null)
+  vi.mocked(notifyError).mockReset()
+  $activeSessionId.set(null)
 })
 
-describe('OrchestratorView', () => {
+describe('Orchestrator team settings', () => {
   it('shows every role with the model Auto resolved to', async () => {
-    await renderView()
+    await renderTeamTab()
 
     await waitFor(() => expect(screen.getByText('Planner')).toBeTruthy())
     expect(screen.getByText('Executor')).toBeTruthy()
@@ -90,17 +168,11 @@ describe('OrchestratorView', () => {
     expect(screen.getAllByText('Auto → gemini-y')).toHaveLength(2)
   })
 
-  it('saves the toggle and only runs once enabled, through the shell run action', async () => {
-    const run = vi.fn()
-    $newChatRunAction.set(run)
-    await renderView()
-
-    const runButton = await screen.findByRole('button', { name: 'Run in new chat' })
-    fireEvent.change(screen.getByLabelText('Run a task'), { target: { value: 'add a dark mode toggle' } })
-    expect((runButton as HTMLButtonElement).disabled).toBe(true)
+  it('saves the in-chat toggle', async () => {
+    await renderTeamTab()
 
     await act(async () => {
-      fireEvent.click(screen.getByRole('switch'))
+      fireEvent.click(await screen.findByRole('switch'))
     })
 
     await waitFor(() =>
@@ -108,16 +180,10 @@ describe('OrchestratorView', () => {
         config: expect.objectContaining({ enabled: true })
       })
     )
-    await waitFor(() => expect((runButton as HTMLButtonElement).disabled).toBe(false))
-
-    fireEvent.click(runButton)
-    expect(run).toHaveBeenCalledTimes(1)
-    expect(run.mock.calls[0][0]).toContain('orchestrate tool')
-    expect(run.mock.calls[0][0]).toContain('add a dark mode toggle')
   })
 
   it('saves the Auto cost/quality balance', async () => {
-    await renderView()
+    await renderTeamTab()
 
     const economy = await screen.findByRole('button', { name: 'Economy' })
     expect(screen.getByRole('button', { name: 'Balanced' }).getAttribute('aria-pressed')).toBe('true')
@@ -134,19 +200,15 @@ describe('OrchestratorView', () => {
     expect(economy.getAttribute('aria-pressed')).toBe('true')
   })
 
-  it('opens the flow sidebar on request', async () => {
-    $flowPanelOpen.set(false)
-    await renderView()
-
-    fireEvent.click(await screen.findByRole('button', { name: 'Show flow sidebar' }))
-    expect($flowPanelOpen.get()).toBe(true)
-  })
-
   it('rolls the choice back when the save fails', async () => {
     requestGateway.mockImplementation((method: string) =>
-      method === 'orchestrator.save' ? Promise.reject(new Error('disk full')) : Promise.resolve(payload(initial))
+      method === 'orchestrator.save'
+        ? Promise.reject(new Error('disk full'))
+        : method === 'orchestrator.runs'
+          ? Promise.resolve({ runs: [] })
+          : Promise.resolve(payload(initial))
     )
-    await renderView()
+    await renderTeamTab()
 
     const toggle = await screen.findByRole('switch')
 
@@ -158,5 +220,78 @@ describe('OrchestratorView', () => {
       expect(notifyError).toHaveBeenCalledWith(expect.any(Error), 'Could not save the orchestrator settings')
     )
     expect(toggle.getAttribute('aria-checked')).toBe('false')
+  })
+})
+
+describe('Orchestrator runs', () => {
+  it('runs a task headlessly from the tab, whether or not the chat tool is enabled', async () => {
+    await renderView()
+
+    fireEvent.change(await screen.findByLabelText('Run a task'), { target: { value: '  add a dark mode toggle ' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Run' }))
+
+    await waitFor(() =>
+      expect(requestGateway).toHaveBeenCalledWith('orchestrator.run', {
+        cwd: CWD,
+        session_id: 'sess-3',
+        task: 'add a dark mode toggle'
+      })
+    )
+  })
+
+  it('shows the live team for a running flow, and stops it', async () => {
+    runs = [headlessRun()]
+    await renderView()
+
+    const run = await screen.findByTestId('orchestrator-run')
+    expect(run.dataset.status).toBe('running')
+
+    const executor = within(run)
+      .getAllByTestId('flow-agent')
+      .find(el => el.dataset.role === 'executor')!
+
+    expect(executor.dataset.status).toBe('running')
+    expect(within(executor).getByText(/write_file src\/theme.ts/)).toBeTruthy()
+
+    // Only one flow per project: the run button waits.
+    fireEvent.change(screen.getByLabelText('Run a task'), { target: { value: 'another' } })
+    expect((screen.getByRole('button', { name: 'Run' }) as HTMLButtonElement).disabled).toBe(true)
+
+    fireEvent.click(within(run).getByRole('button', { name: /Stop/ }))
+    await waitFor(() => expect(requestGateway).toHaveBeenCalledWith('orchestrator.stop', { run_id: 'orch_1' }))
+  })
+
+  it('lists past runs and opens their outcome', async () => {
+    const finished = headlessRun({
+      events: [
+        ...headlessRun().events,
+        {
+          at: 1010,
+          type: 'orchestrator.run',
+          payload: { run_id: 'flow-1', status: 'approved', round: 1, note: 'Every verifier approved.' }
+        }
+      ],
+      finished_at: 1010,
+      id: 'orch_2',
+      status: 'approved',
+      task: 'fix the login bug'
+    })
+
+    runs = [finished, headlessRun({ id: 'orch_1', status: 'failed', error: 'provider down', events: [] })]
+    await renderView()
+
+    const items = await screen.findAllByTestId('orchestrator-run-item')
+    expect(items.map(item => item.dataset.status)).toEqual(['approved', 'failed'])
+    expect(screen.getByText('Every verifier approved.')).toBeTruthy()
+
+    fireEvent.click(items[1]!)
+    expect(await screen.findByText('provider down')).toBeTruthy()
+    expect(screen.getByText('The flow stopped before any agent started.')).toBeTruthy()
+  })
+
+  it('asks for a project when the chat has no workspace', async () => {
+    $currentCwd.set('')
+    await renderView()
+    expect(await screen.findByText('Open a project to run the team')).toBeTruthy()
   })
 })

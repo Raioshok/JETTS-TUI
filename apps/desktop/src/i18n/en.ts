@@ -1072,8 +1072,8 @@ export const en: Translations = {
     title: 'Orchestrator',
     subtitle:
       'Run a task through a team of models working at the same time: one plans, one builds, and two independent reviewers check correctness, security and quality while the work happens — then they all verify the result.',
-    enable: 'Enable orchestrator',
-    enableHint: 'Gives the agent the orchestrate tool in new turns. Off by default so it adds nothing to other chats.',
+    enable: 'Also use from chats',
+    enableHint: 'Gives the agent the orchestrate tool in chats too. Runs from this tab work either way.',
     rolesTitle: 'Roles',
     rolesHint:
       'Pin a model per role or leave it on Auto. Auto weighs quality against cost for every role using the balance below, and prefers a different model lineage for review than the one that writes the code.',
@@ -1106,11 +1106,24 @@ export const en: Translations = {
     roundsValue: n => (n === 0 ? 'None' : n === 1 ? '1 round' : `${n} rounds`),
     runTitle: 'Run a task',
     taskPlaceholder: 'Describe the task for the team, with every requirement…',
-    run: 'Run in new chat',
-    runNeedsEnable: 'Enable the orchestrator to run a task.',
+    run: 'Run',
     loadFailed: 'Could not load the orchestrator settings',
     saveFailed: 'Could not save the orchestrator settings',
     retry: 'Retry',
+    tabs: { runs: 'Runs', team: 'Team & models' },
+    runsTitle: 'Runs in this project',
+    runsHere: 'The team works right here — no chat is opened. Ctrl+Enter to run.',
+    oneAtATime: 'A flow is already running in this project; wait for it or stop it first.',
+    runsEmptyTitle: 'No runs yet',
+    runsEmptyBody:
+      'Describe a task above. Four agents plan, build, review and check it together, and you watch them work here.',
+    noProjectTitle: 'Open a project to run the team',
+    noProjectBody: 'The team works inside a project. Open one, or start a chat in one, then run a task here.',
+    runFailed: 'Could not start the flow',
+    stopFailed: 'Could not stop the flow',
+    stop: 'Stop',
+    starting: 'Starting the team…',
+    noFlowRecorded: 'The flow stopped before any agent started.',
     balance: 'Auto balance',
     balanceHint: 'How Auto trades cost for quality when it picks a model for each role.',
     balanceModes: {
@@ -1128,7 +1141,6 @@ export const en: Translations = {
         'Verify — the reviewer, the security & quality verifier and the planner judge the final state in parallel.',
       loop: 'Any change request starts another round with the findings, until everyone approves.'
     },
-    showFlow: 'Show flow sidebar',
     flow: {
       title: 'Flow',
       close: 'Close flow sidebar',

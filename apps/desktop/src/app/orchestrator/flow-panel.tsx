@@ -107,10 +107,12 @@ function FlowEmpty() {
 
 interface FlowRunViewProps {
   run: FlowRun
+  /** Hosts that already headline the task (the Orchestrator tab) hide it. */
+  showTask?: boolean
   subagents: readonly SubagentProgress[]
 }
 
-function FlowRunView({ run, subagents }: FlowRunViewProps) {
+export function FlowRunView({ run, showTask = true, subagents }: FlowRunViewProps) {
   const { t } = useI18n()
   const f = t.orchestrator.flow
   const running = run.status === 'running'
@@ -137,9 +139,11 @@ function FlowRunView({ run, subagents }: FlowRunViewProps) {
             <ActivityTimerText seconds={running ? elapsed : finishedSeconds} />
           </span>
         </div>
-        <p className="line-clamp-3 text-[0.72rem] leading-snug text-(--ui-text-secondary)" title={run.task}>
-          {run.task}
-        </p>
+        {showTask && (
+          <p className="line-clamp-3 text-[0.72rem] leading-snug text-(--ui-text-secondary)" title={run.task}>
+            {run.task}
+          </p>
+        )}
         <RoundStepper run={run} />
       </section>
 
@@ -221,7 +225,7 @@ const RUN_TONE: Record<FlowRun['status'], string> = {
   running: 'bg-(--ui-bg-tertiary) text-(--ui-text-primary)'
 }
 
-function RunStatusChip({ status }: { status: FlowRun['status'] }) {
+export function RunStatusChip({ status }: { status: FlowRun['status'] }) {
   const { t } = useI18n()
 
   return (

@@ -40,22 +40,26 @@ still get each other's reports between phases.
 
 ## Desktop
 
-Open **Orchestrator** in the sidebar (or the command palette):
+Open **Orchestrator** in the sidebar (or the command palette). The tab has two
+views:
 
-1. Turn on **Enable orchestrator**.
-2. Pick a model per role, or leave it on **Auto**, and choose the **Auto
-   balance**.
-3. Describe a task and press **Run in new chat**.
+- **Runs** — describe a task and press **Run** (or Ctrl+Enter). The team works
+  right there in the tab: no chat is opened and the flow never appears in your
+  session list. The run shows live — each agent's model and price tier, what
+  it is doing right now, its verdict, a progress bar per round and phase, and a
+  timeline of every stage. Click an agent (or a timeline row) to see its work:
+  every report it filed, newest first, its live tool activity while it runs and
+  its notes on the shared board. **Stop** halts the whole team. Past runs stay
+  listed beside it. One flow runs per project at a time.
+- **Team & models** — pick a model per role or leave it on **Auto**, choose the
+  **Auto balance** and the number of extra rounds.
 
-The **Flow** sidebar opens beside the chat and follows the run live: each
-agent's model and price tier, what it is doing right now, its verdict, a
-progress bar per round and phase, and a timeline of every stage. Click an agent
-(or a timeline row) to see its work: every report it filed, newest first, its
-live tool activity while it runs, its notes on the shared board, and a button to
-open its own session in a window. Toggle the sidebar with
-**Toggle orchestrator flow** in the command palette. When the agent starts a
-flow on its own, a notification offers to open the sidebar instead of opening it
-for you.
+Runs from the tab don't need any switch. **Also use from chats** (on Team &
+models) additionally gives the agent the `orchestrate` tool in chats; a flow
+started that way follows along in the **Flow** sidebar beside the chat (toggle
+it with **Toggle orchestrator flow** in the command palette). When the agent
+starts a flow on its own, a notification offers to open the sidebar instead of
+opening it for you.
 
 ## Auto model selection
 
@@ -99,8 +103,8 @@ orchestrator:
     verifier: {provider: "", model: ""}
 ```
 
-When `enabled` is true the agent gets the `orchestrate` tool, so you can also
-ask for it in any chat ("orchestrate adding a dark mode toggle"). It is off by
+When `enabled` is true (**Also use from chats**) the agent gets the
+`orchestrate` tool, so you can also ask for it in any chat ("orchestrate adding a dark mode toggle"). It is off by
 default and adds nothing to the tool list until enabled. Subagents never get the
 tool, so flows cannot nest. Stage limits (iterations, timeouts) follow the
 [`delegation`](./delegation.md) settings. Because four agents run at once, a

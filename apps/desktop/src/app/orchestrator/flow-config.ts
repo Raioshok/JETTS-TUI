@@ -86,8 +86,3 @@ export function balanceOf(config: OrchestratorConfig): BalanceMode {
 export function withBalance(config: OrchestratorConfig, balance: BalanceMode): OrchestratorConfig {
   return { ...config, auto_balance: balance }
 }
-
-/** The chat message that hands a task to the `orchestrate` tool. */
-export function orchestratePrompt(task: string): string {
-  return `Run this task through the orchestrator flow with the orchestrate tool, then summarize each stage's outcome for me:\n\n${task.trim()}`
-}

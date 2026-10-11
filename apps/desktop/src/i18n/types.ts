@@ -957,16 +957,27 @@ export interface Translations {
     runTitle: string
     taskPlaceholder: string
     run: string
-    runNeedsEnable: string
     loadFailed: string
     saveFailed: string
     retry: string
+    tabs: Record<'runs' | 'team', string>
+    runsTitle: string
+    runsHere: string
+    oneAtATime: string
+    runsEmptyTitle: string
+    runsEmptyBody: string
+    noProjectTitle: string
+    noProjectBody: string
+    runFailed: string
+    stopFailed: string
+    stop: string
+    starting: string
+    noFlowRecorded: string
     balance: string
     balanceHint: string
     balanceModes: Record<'economy' | 'balanced' | 'quality', { label: string; hint: string }>
     howTitle: string
     howSteps: { work: string; verify: string; loop: string }
-    showFlow: string
     flow: {
       title: string
       close: string

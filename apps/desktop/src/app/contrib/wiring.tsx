@@ -10,17 +10,7 @@
 
 import { useStore } from '@nanostores/react'
 import { useQueryClient } from '@tanstack/react-query'
-import {
-  type CSSProperties,
-  lazy,
-  type ReactNode,
-  Suspense,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState
-} from 'react'
+import { type CSSProperties, lazy, type ReactNode, Suspense, useCallback, useEffect, useMemo, useRef } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 import { formatRefValue } from '@/components/assistant-ui/directive-text'
@@ -42,7 +32,6 @@ import { latestSessionTodos } from '@/lib/todos'
 import { $billingSettingsRequest } from '@/store/billing-block'
 import { setCronFocusJobId } from '@/store/cron'
 import { $pinnedSessionIds, pinSession, restoreWorktree, unpinSession } from '@/store/layout'
-import { $newChatRunAction } from '@/store/new-chat-run'
 import { $previewTarget } from '@/store/preview'
 import { $activeGatewayProfile, $freshSessionRequest, $profileScope, refreshActiveProfile } from '@/store/profile'
 import { $startWorkSessionRequest, followActiveSessionCwd } from '@/store/projects'
@@ -83,14 +72,7 @@ import { RemoteFolderPicker } from '../right-sidebar/files/remote-picker'
 import { resetProjectTreeState } from '../right-sidebar/files/use-project-tree'
 import { PersistentTerminal } from '../right-sidebar/terminal/persistent'
 import { closeAllTerminals } from '../right-sidebar/terminal/terminals'
-import {
-  CRON_ROUTE,
-  navigateToWorkspacePage,
-  NEW_CHAT_ROUTE,
-  routeSessionId,
-  SETTINGS_ROUTE,
-  syncWorkspaceRoute
-} from '../routes'
+import { CRON_ROUTE, navigateToWorkspacePage, routeSessionId, SETTINGS_ROUTE, syncWorkspaceRoute } from '../routes'
 import { SessionPickerOverlay } from '../session-picker-overlay'
 import { SessionSwitcher } from '../session-switcher'
 import { useBackgroundQueueDrain } from '../session/hooks/use-background-queue-drain'
@@ -779,32 +761,6 @@ export function ContribWiring({ children }: { children: ReactNode }) {
     toggleCommandCenter,
     toggleSelectedPin
   })
-
-  // Page actions that start work in a chat (Orchestrator's Run): a fresh chat
-  // + the normal submit (Quick Entry's "new chat" path; slash commands route
-  // through it too). They're clicked on a page,
-  // and the fresh draft navigates to the new-chat route — submitting before that
-  // lands reads as the user switching chats mid-create and the submit drift
-  // guard aborts it. So park the prompt and send once the route has settled.
-  const [pendingNewChatRun, setPendingNewChatRun] = useState<string | null>(null)
-
-  useEffect(() => {
-    $newChatRunAction.set(prompt => {
-      startFreshSessionDraft()
-      setPendingNewChatRun(prompt)
-    })
-
-    return () => $newChatRunAction.set(null)
-  }, [startFreshSessionDraft])
-
-  useEffect(() => {
-    if (pendingNewChatRun === null || location.pathname !== NEW_CHAT_ROUTE) {
-      return
-    }
-
-    setPendingNewChatRun(null)
-    void submitText(pendingNewChatRun)
-  }, [location.pathname, pendingNewChatRun, submitText])
 
   // Register the tab-strip "+" action (the generic renderer stays
   // session-agnostic; null until wired hides the glyph).

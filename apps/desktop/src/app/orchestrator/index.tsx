@@ -18,12 +18,9 @@ import {
   SelectValue
 } from '@/components/ui/select'
 import { Switch } from '@/components/ui/switch'
-import { Textarea } from '@/components/ui/textarea'
 import { useI18n } from '@/i18n'
 import { requestModelOptions } from '@/lib/model-options'
-import { $newChatRunAction } from '@/store/new-chat-run'
 import { notifyError } from '@/store/notifications'
-import { $flowPanelOpen, setFlowPanelOpen } from '@/store/orchestrator-flow'
 import { $activeGatewayProfile } from '@/store/profile'
 import { $gatewayState } from '@/store/session'
 import type { ModelOptionProvider } from '@/types/jettstui'
@@ -35,7 +32,6 @@ import {
   BALANCE_MODES,
   balanceOf,
   MAX_REVIEW_ROUNDS,
-  orchestratePrompt,
   ORCHESTRATOR_ROLE_IDS,
   type OrchestratorAssignment,
   type OrchestratorConfig,
@@ -46,19 +42,22 @@ import {
   withReviewRounds,
   withRoleChoice
 } from './flow-config'
+import { RunsPanel } from './runs-panel'
+
+const ORCHESTRATOR_TABS = ['runs', 'team'] as const
+
+type OrchestratorTab = (typeof ORCHESTRATOR_TABS)[number]
 
 const ROUND_OPTIONS = Array.from({ length: MAX_REVIEW_ROUNDS + 1 }, (_, n) => n)
 
 export function OrchestratorView(props: React.ComponentProps<'section'>) {
   const { t } = useI18n()
   const { requestGateway } = useGatewayRequest()
-  const run = useStore($newChatRunAction)
   const o = t.orchestrator
   const queryClient = useQueryClient()
   const gatewayState = useStore($gatewayState)
   const profile = useStore($activeGatewayProfile)
-  const flowPanelOpen = useStore($flowPanelOpen)
-  const [task, setTask] = useState('')
+  const [tab, setTab] = useState<OrchestratorTab>('runs')
   // Saves can overlap (quick successive picks); only the newest may publish
   // its server response, so an older reply never reverts a newer choice.
   const saveGeneration = useRef(0)
@@ -129,7 +128,6 @@ export function OrchestratorView(props: React.ComponentProps<'section'>) {
     provider => provider.authenticated !== false && (provider.models ?? []).length > 0
   )
 
-  const canRun = Boolean(run) && config.enabled && task.trim().length > 0
   const balance = balanceOf(config)
 
   return (
@@ -139,112 +137,93 @@ export function OrchestratorView(props: React.ComponentProps<'section'>) {
       data-testid="orchestrator-view"
     >
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-        <div className="mx-auto grid w-full max-w-2xl gap-8 px-6 pb-12 pt-[calc(var(--titlebar-height,34px)+1.5rem)]">
-          <header className="grid gap-1.5">
-            <div className="flex items-center justify-between gap-4">
+        <div className="mx-auto grid w-full max-w-6xl gap-6 px-6 pb-12 pt-[calc(var(--titlebar-height,34px)+1.5rem)]">
+          <header className="flex flex-wrap items-end justify-between gap-4">
+            <div className="grid max-w-2xl gap-1">
               <h1 className="text-xl font-semibold tracking-tight text-(--ui-text-primary)">{o.title}</h1>
-              {!flowPanelOpen && (
-                <Button onClick={() => setFlowPanelOpen(true)} size="sm" variant="ghost">
-                  {o.showFlow}
-                </Button>
-              )}
+              <p className="text-sm leading-5 text-(--ui-text-secondary)">{o.subtitle}</p>
             </div>
-            <p className="text-sm leading-5 text-(--ui-text-secondary)">{o.subtitle}</p>
+            <SegmentedControl
+              onChange={setTab}
+              options={ORCHESTRATOR_TABS.map(id => ({ id, label: o.tabs[id] }))}
+              value={tab}
+            />
           </header>
 
-          <RoundDiagram />
+          {tab === 'runs' ? (
+            <RunsPanel />
+          ) : (
+            <div className="grid w-full max-w-2xl gap-8">
+              <RoundDiagram />
 
-          <div className="flex items-start justify-between gap-6">
-            <label className="grid gap-1" htmlFor="orchestrator-enabled">
-              <span className="text-sm font-medium text-(--ui-text-primary)">{o.enable}</span>
-              <FieldHint>{o.enableHint}</FieldHint>
-            </label>
-            <Switch
-              checked={config.enabled}
-              id="orchestrator-enabled"
-              onCheckedChange={enabled => commit({ ...config, enabled })}
-            />
-          </div>
-
-          <section className="grid gap-2">
-            <h2 className="text-sm font-semibold text-(--ui-text-primary)">{o.rolesTitle}</h2>
-            <FieldHint>{o.rolesHint}</FieldHint>
-            <ul className="mt-1 divide-y divide-(--ui-stroke-tertiary)">
-              {ORCHESTRATOR_ROLE_IDS.map(role => (
-                <RoleRow
-                  assignment={assignments[role]}
-                  choice={roleChoice(config.roles[role])}
-                  key={role}
-                  onChoose={choice => commit(withRoleChoice(config, role, choice))}
-                  providers={providers}
-                  role={role}
+              <div className="flex items-start justify-between gap-6">
+                <label className="grid gap-1" htmlFor="orchestrator-enabled">
+                  <span className="text-sm font-medium text-(--ui-text-primary)">{o.enable}</span>
+                  <FieldHint>{o.enableHint}</FieldHint>
+                </label>
+                <Switch
+                  checked={config.enabled}
+                  id="orchestrator-enabled"
+                  onCheckedChange={enabled => commit({ ...config, enabled })}
                 />
-              ))}
-            </ul>
-          </section>
+              </div>
 
-          <section className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-6">
-            <div className="grid gap-1">
-              <span className="text-sm font-medium text-(--ui-text-primary)" id="orchestrator-balance">
-                {o.balance}
-              </span>
-              <FieldHint>{o.balanceModes[balance].hint}</FieldHint>
-            </div>
-            <div aria-labelledby="orchestrator-balance" role="group">
-              <SegmentedControl
-                onChange={mode => commit(withBalance(config, mode))}
-                options={BALANCE_MODES.map(mode => ({ id: mode, label: o.balanceModes[mode].label }))}
-                value={balance}
-              />
-            </div>
-          </section>
+              <section className="grid gap-2">
+                <h2 className="text-sm font-semibold text-(--ui-text-primary)">{o.rolesTitle}</h2>
+                <FieldHint>{o.rolesHint}</FieldHint>
+                <ul className="mt-1 divide-y divide-(--ui-stroke-tertiary)">
+                  {ORCHESTRATOR_ROLE_IDS.map(role => (
+                    <RoleRow
+                      assignment={assignments[role]}
+                      choice={roleChoice(config.roles[role])}
+                      key={role}
+                      onChoose={choice => commit(withRoleChoice(config, role, choice))}
+                      providers={providers}
+                      role={role}
+                    />
+                  ))}
+                </ul>
+              </section>
 
-          <section className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_14rem] sm:items-start sm:gap-6">
-            <label className="grid gap-1" htmlFor="orchestrator-rounds">
-              <span className="text-sm font-medium text-(--ui-text-primary)">{o.rounds}</span>
-              <FieldHint>{o.roundsHint}</FieldHint>
-            </label>
-            <Select
-              onValueChange={value => commit(withReviewRounds(config, Number(value)))}
-              value={String(config.max_review_rounds)}
-            >
-              <SelectTrigger className="h-9 rounded-md" id="orchestrator-rounds">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {ROUND_OPTIONS.map(n => (
-                  <SelectItem key={n} value={String(n)}>
-                    {o.roundsValue(n)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </section>
+              <section className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-6">
+                <div className="grid gap-1">
+                  <span className="text-sm font-medium text-(--ui-text-primary)" id="orchestrator-balance">
+                    {o.balance}
+                  </span>
+                  <FieldHint>{o.balanceModes[balance].hint}</FieldHint>
+                </div>
+                <div aria-labelledby="orchestrator-balance" role="group">
+                  <SegmentedControl
+                    onChange={mode => commit(withBalance(config, mode))}
+                    options={BALANCE_MODES.map(mode => ({ id: mode, label: o.balanceModes[mode].label }))}
+                    value={balance}
+                  />
+                </div>
+              </section>
 
-          <section className="grid gap-2">
-            <h2 className="text-sm font-semibold text-(--ui-text-primary)">{o.runTitle}</h2>
-            <Textarea
-              aria-label={o.runTitle}
-              className="min-h-28 resize-y"
-              onChange={event => setTask(event.target.value)}
-              placeholder={o.taskPlaceholder}
-              value={task}
-            />
-            <div className="flex items-center justify-between gap-4">
-              <FieldHint>{config.enabled ? '' : o.runNeedsEnable}</FieldHint>
-              <Button
-                disabled={!canRun}
-                onClick={() => {
-                  // The user asked to run it: show the flow where it'll be watched.
-                  setFlowPanelOpen(true)
-                  run?.(orchestratePrompt(task))
-                  setTask('')
-                }}
-              >
-                {o.run}
-              </Button>
+              <section className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_14rem] sm:items-start sm:gap-6">
+                <label className="grid gap-1" htmlFor="orchestrator-rounds">
+                  <span className="text-sm font-medium text-(--ui-text-primary)">{o.rounds}</span>
+                  <FieldHint>{o.roundsHint}</FieldHint>
+                </label>
+                <Select
+                  onValueChange={value => commit(withReviewRounds(config, Number(value)))}
+                  value={String(config.max_review_rounds)}
+                >
+                  <SelectTrigger className="h-9 rounded-md" id="orchestrator-rounds">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {ROUND_OPTIONS.map(n => (
+                      <SelectItem key={n} value={String(n)}>
+                        {o.roundsValue(n)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </section>
             </div>
-          </section>
+          )}
         </div>
       </div>
     </section>

@@ -16342,6 +16342,88 @@ def _(rid, params: dict) -> dict:
         return _err(rid, 5035, str(e))
 
 
+@method("orchestrator.run")
+def _(rid, params: dict) -> dict:
+    """Run an orchestrator flow headlessly for the Orchestrator tab (no chat).
+
+    A hidden coordinator agent lends the flow its credentials and tools; the
+    flow's events are recorded for ``orchestrator.runs``. Works whether or not
+    ``orchestrator.enabled`` (which only gates the in-chat tool) is on.
+    """
+    try:
+        from tui_gateway import orchestrator_runs
+
+        task = str(params.get("task") or "").strip()
+        if not task:
+            return _err(rid, 4001, "task required")
+        cwd = _spec_cwd(params)
+        if cwd is None:
+            return _err(rid, 4001, "workspace (cwd) required")
+
+        session = _sessions.get(str(params.get("session_id") or ""))
+        parent_agent = session.get("agent") if isinstance(session, dict) else None
+
+        def make_coordinator(run):
+            from run_agent import AIAgent
+
+            kwargs = _background_agent_kwargs(parent_agent, run.id)
+            kwargs.update({"session_db": None, "skip_memory": True, "disabled_toolsets": ["clarify"]})
+            return AIAgent(**kwargs)
+
+        def run_flow(coordinator, flow_task):
+            from agent.orchestrator import run_flow as _run_flow
+
+            return _run_flow(coordinator, flow_task)
+
+        def run_in_context(task_id, fn):
+            from tools.terminal_tool import clear_task_env_overrides, register_task_env_overrides
+
+            tokens_ctx = _set_session_context(task_id, cwd=str(cwd))
+            register_task_env_overrides(task_id, {"cwd": str(cwd)})
+            try:
+                fn()
+            finally:
+                clear_task_env_overrides(task_id)
+                _clear_session_context(tokens_ctx)
+
+        try:
+            run = orchestrator_runs.start_run(
+                cwd=str(cwd),
+                task=task,
+                make_coordinator=make_coordinator,
+                run_flow=run_flow,
+                run_in_context=run_in_context,
+            )
+        except RuntimeError as e:
+            return _err(rid, 4009, str(e))
+        return _ok(rid, {"run": run.to_dict()})
+    except Exception as e:
+        return _err(rid, 5042, str(e))
+
+
+@method("orchestrator.runs")
+def _(rid, params: dict) -> dict:
+    """Headless orchestrator flows for a workspace, newest first."""
+    try:
+        from tui_gateway import orchestrator_runs
+
+        cwd = _spec_cwd(params)
+        return _ok(rid, {"runs": orchestrator_runs.list_runs(str(cwd)) if cwd else []})
+    except Exception as e:
+        return _err(rid, 5043, str(e))
+
+
+@method("orchestrator.stop")
+def _(rid, params: dict) -> dict:
+    """Stop a running headless flow and its subagents."""
+    try:
+        from tui_gateway import orchestrator_runs
+
+        return _ok(rid, {"stopped": orchestrator_runs.stop_run(str(params.get("run_id") or ""))})
+    except Exception as e:
+        return _err(rid, 5044, str(e))
+
+
 @method("orchestrator.board")
 def _(rid, params: dict) -> dict:
     """One role's file from an orchestrator run's shared board (Flow sidebar)."""
