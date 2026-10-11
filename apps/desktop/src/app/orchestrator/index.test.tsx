@@ -8,6 +8,7 @@ import { $activeSessionId, $currentCwd, $gatewayState } from '@/store/session'
 
 import type { OrchestratorConfig, OrchestratorPayload } from './flow-config'
 import type { HeadlessRun } from './headless-runs'
+import { $orchestratorWorkspace } from './project-picker'
 
 const requestGateway = vi.fn()
 
@@ -155,6 +156,7 @@ afterEach(() => {
   requestGateway.mockReset()
   vi.mocked(notifyError).mockReset()
   $activeSessionId.set(null)
+  $orchestratorWorkspace.set(null)
 })
 
 describe('Orchestrator team settings', () => {
@@ -289,9 +291,30 @@ describe('Orchestrator runs', () => {
     expect(screen.getByText('The flow stopped before any agent started.')).toBeTruthy()
   })
 
-  it('asks for a project when the chat has no workspace', async () => {
+  it('offers a project picker when the chat has no project', async () => {
     $currentCwd.set('')
     await renderView()
-    expect(await screen.findByText('Open a project to run the team')).toBeTruthy()
+
+    expect(await screen.findByText('Choose a project to run the team')).toBeTruthy()
+    expect(screen.getByTestId('orchestrator-project')).toBeTruthy()
+    expect(requestGateway).not.toHaveBeenCalledWith('orchestrator.runs', expect.anything())
+  })
+
+  it('runs in the picked project instead of the chat project', async () => {
+    $orchestratorWorkspace.set('/work/other')
+    await renderView()
+
+    await waitFor(() => expect(requestGateway).toHaveBeenCalledWith('orchestrator.runs', { cwd: '/work/other' }))
+    expect(screen.getByTestId('orchestrator-project').textContent).toContain('other')
+
+    fireEvent.change(screen.getByLabelText('Run a task'), { target: { value: 'tidy the readme' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Run' }))
+    await waitFor(() =>
+      expect(requestGateway).toHaveBeenCalledWith('orchestrator.run', {
+        cwd: '/work/other',
+        session_id: 'sess-3',
+        task: 'tidy the readme'
+      })
+    )
   })
 })

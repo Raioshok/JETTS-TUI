@@ -968,6 +968,11 @@ export interface Translations {
     runsEmptyBody: string
     noProjectTitle: string
     noProjectBody: string
+    project: string
+    projects: string
+    pickProject: string
+    browseFolder: string
+    browseFailed: string
     runFailed: string
     stopFailed: string
     stop: string

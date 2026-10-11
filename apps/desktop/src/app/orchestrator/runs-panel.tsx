@@ -15,6 +15,7 @@ import { useGatewayRequest } from '../gateway/hooks/use-gateway-request'
 
 import { FlowRunView, RunStatusChip } from './flow-panel'
 import { type HeadlessRun, toFlowRun, toSubagents } from './headless-runs'
+import { $orchestratorWorkspace, ProjectPicker } from './project-picker'
 
 // A running flow is polled briskly so its agents read as live; otherwise the
 // list only needs to notice runs finishing.
@@ -27,7 +28,10 @@ const runsKey = (cwd: string) => ['orchestrator-runs', cwd] as const
 export function RunsPanel() {
   const { t } = useI18n()
   const o = t.orchestrator
-  const cwd = useStore($currentCwd).trim()
+  const chatCwd = useStore($currentCwd).trim()
+  const picked = useStore($orchestratorWorkspace)
+  // The picked project, else the one the current chat is in.
+  const cwd = (picked ?? chatCwd).trim()
   const gatewayState = useStore($gatewayState)
   const { requestGateway } = useGatewayRequest()
   const queryClient = useQueryClient()
@@ -83,7 +87,11 @@ export function RunsPanel() {
   }
 
   if (!cwd) {
-    return <Notice icon="folder-opened" text={o.noProjectBody} title={o.noProjectTitle} />
+    return (
+      <Notice icon="folder-opened" text={o.noProjectBody} title={o.noProjectTitle}>
+        <ProjectPicker chatCwd={chatCwd} value="" />
+      </Notice>
+    )
   }
 
   return (
@@ -103,6 +111,7 @@ export function RunsPanel() {
           value={task}
         />
         <div className="flex flex-wrap items-center gap-3 border-t border-(--ui-stroke-tertiary) pt-3">
+          <ProjectPicker chatCwd={chatCwd} value={cwd} />
           <p className="min-w-0 flex-1 text-[0.7rem] leading-4 text-(--ui-text-tertiary)">
             {anyRunning ? o.oneAtATime : o.runsHere}
           </p>
@@ -125,13 +134,24 @@ export function RunsPanel() {
   )
 }
 
-function Notice({ icon, text, title }: { icon: string; text: string; title: string }) {
+function Notice({
+  children,
+  icon,
+  text,
+  title
+}: {
+  children?: React.ReactNode
+  icon: string
+  text: string
+  title: string
+}) {
   return (
     <div className="grid place-items-center rounded-xl border border-dashed border-(--ui-stroke-tertiary) px-6 py-14 text-center">
       <div className="grid max-w-sm justify-items-center gap-2">
         <Codicon className="text-(--ui-text-tertiary)" name={icon} size="1.5rem" />
         <h2 className="text-sm font-semibold text-(--ui-text-primary)">{title}</h2>
         <p className="text-xs leading-5 text-(--ui-text-tertiary)">{text}</p>
+        {children && <div className="pt-2">{children}</div>}
       </div>
     </div>
   )

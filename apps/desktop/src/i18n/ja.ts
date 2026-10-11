@@ -1121,9 +1121,13 @@ export const ja = defineLocale({
     runsEmptyTitle: 'まだ実行はありません',
     runsEmptyBody:
       '上にタスクを書いてください。4 つのエージェントが計画・実装・レビュー・検証を同時に行い、その様子をここで見られます。',
-    noProjectTitle: 'チームを動かすにはプロジェクトを開いてください',
-    noProjectBody:
-      'チームはプロジェクト内で作業します。プロジェクトを開くか、その中でチャットを始めてから実行してください。',
+    noProjectTitle: 'チームを動かすプロジェクトを選んでください',
+    noProjectBody: 'プロジェクトか任意のフォルダーを選ぶと、チームはそこで作業します。',
+    project: 'プロジェクト',
+    projects: 'プロジェクト',
+    pickProject: 'プロジェクトを選択',
+    browseFolder: 'フォルダーを参照…',
+    browseFailed: 'フォルダー選択を開けませんでした',
     runFailed: 'フローを開始できませんでした',
     stopFailed: 'フローを停止できませんでした',
     stop: '停止',

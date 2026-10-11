@@ -43,14 +43,15 @@ still get each other's reports between phases.
 Open **Orchestrator** in the sidebar (or the command palette). The tab has two
 views:
 
-- **Runs** — describe a task and press **Run** (or Ctrl+Enter). The team works
-  right there in the tab: no chat is opened and the flow never appears in your
+- **Runs** — pick the project to work on (it starts on your current chat's
+  project; **Browse for a folder…** opens any other), describe a task and press
+  **Run** (or Ctrl+Enter). The team works right there in the tab: no chat is opened and the flow never appears in your
   session list. The run shows live — each agent's model and price tier, what
   it is doing right now, its verdict, a progress bar per round and phase, and a
   timeline of every stage. Click an agent (or a timeline row) to see its work:
   every report it filed, newest first, its live tool activity while it runs and
-  its notes on the shared board. **Stop** halts the whole team. Past runs stay
-  listed beside it. One flow runs per project at a time.
+  its notes on the shared board. **Stop** halts the whole team. Past runs for the
+  selected project stay listed beside it. One flow runs per project at a time.
 - **Team & models** — pick a model per role or leave it on **Auto**, choose the
   **Auto balance** and the number of extra rounds.
 

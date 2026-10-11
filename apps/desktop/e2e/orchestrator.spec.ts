@@ -69,6 +69,14 @@ test('the Orchestrator tab runs the team headlessly, without a chat', async () =
 
   // Runs: the in-chat tool is still off — runs from the tab don't need it.
   await page.getByRole('button', { name: 'Runs', exact: true }).click()
+
+  // The project picker defaults to the chat's project and offers any folder.
+  const picker = page.getByTestId('orchestrator-project')
+  await expect(picker).toContainText(path.basename(workspace))
+  await picker.click()
+  await expect(page.getByRole('option', { name: 'Browse for a folder…' })).toBeVisible()
+  await page.keyboard.press('Escape')
+
   await page.getByLabel('Run a task').fill('Add a dark mode toggle')
   await page.getByRole('button', { name: 'Run', exact: true }).click()
 
