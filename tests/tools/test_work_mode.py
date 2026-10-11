@@ -29,6 +29,11 @@ def test_plan_mode_allows_reads_and_planning_documents():
         "write_file", {"path": ".jettstui/specs/../../src/app.py"}
     )
     assert "Plan mode blocked" in json.loads(traversal)["error"]
+    assert maybe_block_tool(
+        "write_file", {"path": ".kiro/specs/login/requirements.md"}
+    ) is None
+    kiro_traversal = maybe_block_tool("write_file", {"path": ".kiro/specs/../steering/x.md"})
+    assert "Plan mode blocked" in json.loads(kiro_traversal)["error"]
 
 
 def test_default_and_accept_edits_do_not_add_a_guard():

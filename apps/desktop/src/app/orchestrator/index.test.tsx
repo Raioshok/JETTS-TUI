@@ -3,12 +3,12 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { $newChatRunAction } from '@/store/new-chat-run'
 import { notifyError } from '@/store/notifications'
 import { $flowPanelOpen } from '@/store/orchestrator-flow'
 import { $gatewayState } from '@/store/session'
 
 import type { OrchestratorConfig, OrchestratorPayload } from './flow-config'
-import { $orchestratorRunAction } from './run-action'
 
 const requestGateway = vi.fn()
 
@@ -76,7 +76,7 @@ beforeEach(() => {
 afterEach(() => {
   cleanup()
   requestGateway.mockReset()
-  $orchestratorRunAction.set(null)
+  $newChatRunAction.set(null)
 })
 
 describe('OrchestratorView', () => {
@@ -92,7 +92,7 @@ describe('OrchestratorView', () => {
 
   it('saves the toggle and only runs once enabled, through the shell run action', async () => {
     const run = vi.fn()
-    $orchestratorRunAction.set(run)
+    $newChatRunAction.set(run)
     await renderView()
 
     const runButton = await screen.findByRole('button', { name: 'Run in new chat' })

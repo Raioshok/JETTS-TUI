@@ -1,9 +1,11 @@
 import { useStore } from '@nanostores/react'
-import type { ReactNode } from 'react'
+import { useQuery } from '@tanstack/react-query'
+import { type ReactNode, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 
 import { useElapsedSeconds } from '@/components/chat/activity-timer'
 import { ActivityTimerText } from '@/components/chat/activity-timer-text'
+import { CompactMarkdown } from '@/components/chat/compact-markdown'
 import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
 import { CopyButton } from '@/components/ui/copy-button'
@@ -25,7 +27,9 @@ import {
 } from '@/store/orchestrator-flow'
 import { $activeSessionId } from '@/store/session'
 import { $subagentsBySession, type SubagentProgress } from '@/store/subagents'
+import { canOpenSessionWindow, openSessionInNewWindow } from '@/store/windows'
 
+import { useGatewayRequest } from '../gateway/hooks/use-gateway-request'
 import { PaneEmptyState, RightSidebarSectionHeader } from '../right-sidebar'
 import { navigateToWorkspacePage, ORCHESTRATOR_ROUTE } from '../routes'
 import { SidebarPanelLabel } from '../shell/sidebar-label'
@@ -76,7 +80,11 @@ export function FlowPanel() {
           </Button>
         </Tip>
       </RightSidebarSectionHeader>
-      {picked ? <FlowRunView run={picked.run} subagents={subagentsBySession[picked.sessionId] ?? []} /> : <FlowEmpty />}
+      {picked ? (
+        <FlowRunView key={picked.run.id} run={picked.run} subagents={subagentsBySession[picked.sessionId] ?? []} />
+      ) : (
+        <FlowEmpty />
+      )}
     </aside>
   )
 }
@@ -109,6 +117,12 @@ function FlowRunView({ run, subagents }: FlowRunViewProps) {
   const elapsed = useElapsedSeconds(running, `flow:${run.id}`, run.startedAt)
   const finishedSeconds = run.finishedAt ? Math.max(0, Math.round((run.finishedAt - run.startedAt) / 1000)) : 0
   const subagentById = new Map(subagents.map(s => [s.id, s]))
+  // Drill-down: clicking an agent shows its work in place of the overview.
+  const [selected, setSelected] = useState<FlowRole | null>(null)
+
+  if (selected) {
+    return <AgentDetail onBack={() => setSelected(null)} role={selected} run={run} subagentById={subagentById} />
+  }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden px-2.5 pb-4">
@@ -140,6 +154,7 @@ function FlowRunView({ run, subagents }: FlowRunViewProps) {
                 assignmentModel={run.assignments[role]?.model ?? ''}
                 costTier={run.assignments[role]?.cost_tier ?? ''}
                 key={role}
+                onSelect={() => setSelected(role)}
                 role={role}
                 stage={stage}
                 subagent={stage?.subagentId ? subagentById.get(stage.subagentId) : undefined}
@@ -168,7 +183,7 @@ function FlowRunView({ run, subagents }: FlowRunViewProps) {
               {(['verify', 'work'] as const).map(phase =>
                 stages
                   .filter(stage => stage.phase === phase)
-                  .map(stage => <TimelineRow key={stage.key} stage={stage} />)
+                  .map(stage => <TimelineRow key={stage.key} onSelect={() => setSelected(stage.role)} stage={stage} />)
               )}
             </div>
           ))}
@@ -297,12 +312,13 @@ function stageGlyph(stage: FlowStage | undefined, label: string): ReactNode {
 interface AgentCardProps {
   assignmentModel: string
   costTier: string
+  onSelect: () => void
   role: FlowRole
   stage: FlowStage | undefined
   subagent: SubagentProgress | undefined
 }
 
-function AgentCard({ assignmentModel, costTier, role, stage, subagent }: AgentCardProps) {
+function AgentCard({ assignmentModel, costTier, onSelect, role, stage, subagent }: AgentCardProps) {
   const { t } = useI18n()
   const o = t.orchestrator
   const f = o.flow
@@ -315,47 +331,49 @@ function AgentCard({ assignmentModel, costTier, role, stage, subagent }: AgentCa
   const detail = liveLine || (stage?.status === 'running' ? f.starting : stage?.summary)
 
   return (
-    <li
-      className={cn(
-        'grid gap-1 rounded-md px-2 py-1.5 transition-colors',
-        running ? 'bg-(--ui-bg-tertiary)/70' : 'hover:bg-(--ui-bg-tertiary)/40'
-      )}
-      data-role={role}
-      data-status={stage?.status ?? 'waiting'}
-      data-testid="flow-agent"
-    >
-      <div className="flex min-w-0 items-center gap-2">
-        {stageGlyph(stage, statusLabel)}
-        <span className="truncate text-[0.74rem] font-medium text-(--ui-text-primary)">{o.roles[role].title}</span>
-        {stage && (
-          <span className="shrink-0 rounded-sm bg-(--ui-bg-tertiary) px-1 py-px text-[0.56rem] uppercase tracking-[0.05em] text-(--ui-text-tertiary)">
-            {f.phase[stage.phase]}
-          </span>
+    <li data-role={role} data-status={stage?.status ?? 'waiting'} data-testid="flow-agent">
+      <button
+        aria-label={f.showWork(o.roles[role].title)}
+        className={cn(
+          'grid w-full gap-1 rounded-md px-2 py-1.5 text-left transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-(--ui-stroke-secondary)',
+          running ? 'bg-(--ui-bg-tertiary)/70 hover:bg-(--ui-bg-tertiary)' : 'hover:bg-(--ui-bg-tertiary)/50'
         )}
-        {stage?.verdict && stage.status === 'completed' && <VerdictChip verdict={stage.verdict} />}
-        <span className="ml-auto shrink-0">{running && <ActivityTimerText seconds={elapsed} />}</span>
-      </div>
-      <div className="flex min-w-0 items-center gap-1.5 pl-5.5">
-        <span className="min-w-0 truncate font-mono text-[0.62rem] text-(--ui-text-tertiary)" title={model}>
-          {model}
-        </span>
-        {costTier && (
-          <span className="shrink-0 text-[0.6rem] text-(--ui-text-quaternary)" title={f.costTier}>
-            {costTier}
-          </span>
-        )}
-      </div>
-      {detail && (
-        <p
-          className={cn(
-            'line-clamp-2 pl-5.5 text-[0.66rem] leading-snug',
-            liveLine ? 'font-mono text-(--ui-text-secondary)' : 'text-(--ui-text-tertiary)'
+        onClick={onSelect}
+        type="button"
+      >
+        <div className="flex min-w-0 items-center gap-2">
+          {stageGlyph(stage, statusLabel)}
+          <span className="truncate text-[0.74rem] font-medium text-(--ui-text-primary)">{o.roles[role].title}</span>
+          {stage && (
+            <span className="shrink-0 rounded-sm bg-(--ui-bg-tertiary) px-1 py-px text-[0.56rem] uppercase tracking-[0.05em] text-(--ui-text-tertiary)">
+              {f.phase[stage.phase]}
+            </span>
           )}
-          title={detail}
-        >
-          {detail}
-        </p>
-      )}
+          {stage?.verdict && stage.status === 'completed' && <VerdictChip verdict={stage.verdict} />}
+          <span className="ml-auto shrink-0">{running && <ActivityTimerText seconds={elapsed} />}</span>
+        </div>
+        <div className="flex min-w-0 items-center gap-1.5 pl-5.5">
+          <span className="min-w-0 truncate font-mono text-[0.62rem] text-(--ui-text-tertiary)" title={model}>
+            {model}
+          </span>
+          {costTier && (
+            <span className="shrink-0 text-[0.6rem] text-(--ui-text-quaternary)" title={f.costTier}>
+              {costTier}
+            </span>
+          )}
+        </div>
+        {detail && (
+          <p
+            className={cn(
+              'line-clamp-2 pl-5.5 text-[0.66rem] leading-snug',
+              liveLine ? 'font-mono text-(--ui-text-secondary)' : 'text-(--ui-text-tertiary)'
+            )}
+            title={detail}
+          >
+            {detail}
+          </p>
+        )}
+      </button>
     </li>
   )
 }
@@ -377,13 +395,18 @@ function VerdictChip({ verdict }: { verdict: NonNullable<FlowStage['verdict']> }
   )
 }
 
-function TimelineRow({ stage }: { stage: FlowStage }) {
+function TimelineRow({ onSelect, stage }: { onSelect: () => void; stage: FlowStage }) {
   const { t } = useI18n()
   const o = t.orchestrator
   const seconds = stage.finishedAt ? Math.max(0, Math.round((stage.finishedAt - stage.startedAt) / 1000)) : undefined
 
   return (
-    <div className="flex min-w-0 items-center gap-2 rounded px-1 py-0.5" title={stage.summary}>
+    <button
+      className="flex w-full min-w-0 items-center gap-2 rounded px-1 py-0.5 text-left hover:bg-(--ui-bg-tertiary)/50"
+      onClick={onSelect}
+      title={stage.summary}
+      type="button"
+    >
       {stageGlyph(stage, o.flow.stage[stage.status])}
       <span className="w-12 shrink-0 text-[0.6rem] uppercase tracking-[0.05em] text-(--ui-text-quaternary)">
         {o.flow.phase[stage.phase]}
@@ -393,6 +416,168 @@ function TimelineRow({ stage }: { stage: FlowStage }) {
       </span>
       {stage.verdict && stage.status === 'completed' && <VerdictChip verdict={stage.verdict} />}
       {seconds !== undefined && <ActivityTimerText seconds={seconds} />}
+    </button>
+  )
+}
+
+const PHASE_ORDER: Record<FlowPhase, number> = { verify: 1, work: 0 }
+
+interface AgentDetailProps {
+  onBack: () => void
+  role: FlowRole
+  run: FlowRun
+  subagentById: ReadonlyMap<string, SubagentProgress>
+}
+
+/** One agent's work: live activity, every report it filed, and its board file. */
+function AgentDetail({ onBack, role, run, subagentById }: AgentDetailProps) {
+  const { t } = useI18n()
+  const o = t.orchestrator
+  const f = o.flow
+  const { requestGateway } = useGatewayRequest()
+  const running = run.status === 'running'
+  const assignment = run.assignments[role]
+
+  const stages = run.stages
+    .filter(stage => stage.role === role)
+    .sort((a, b) => b.round - a.round || PHASE_ORDER[b.phase] - PHASE_ORDER[a.phase])
+
+  const latest = stages[0]
+  const live = latest?.status === 'running' && latest.subagentId ? subagentById.get(latest.subagentId) : undefined
+
+  const board = useQuery({
+    queryKey: ['orchestrator-board', run.id, role],
+    queryFn: () => requestGateway<{ content: string }>('orchestrator.board', { run_id: run.id, role }),
+    enabled: Boolean(run.boardDir),
+    refetchInterval: running ? 3000 : false,
+    retry: false
+  })
+
+  const boardText = board.data?.content.trim() ?? ''
+
+  return (
+    <div
+      className="flex min-h-0 flex-1 flex-col overflow-y-auto overflow-x-hidden px-2.5 pb-4"
+      data-testid="flow-agent-detail"
+    >
+      <div className="flex items-center gap-1.5 pb-2 pt-1">
+        <Button aria-label={f.back} onClick={onBack} size="icon-xs" variant="ghost">
+          <Codicon name="arrow-left" size="0.8125rem" />
+        </Button>
+        {stageGlyph(latest, latest ? f.stage[latest.status] : f.waiting)}
+        <span className="truncate text-[0.8rem] font-semibold text-(--ui-text-primary)">{o.roles[role].title}</span>
+        {latest?.verdict && latest.status === 'completed' && <VerdictChip verdict={latest.verdict} />}
+      </div>
+
+      <div className="grid gap-0.5 px-1 pb-3">
+        <div className="flex min-w-0 items-center gap-1.5">
+          <span className="min-w-0 truncate font-mono text-[0.66rem] text-(--ui-text-secondary)">
+            {latest?.model || assignment?.model || f.sessionModel}
+          </span>
+          {assignment?.cost_tier && (
+            <span className="shrink-0 text-[0.62rem] text-(--ui-text-quaternary)" title={f.costTier}>
+              {assignment.cost_tier}
+            </span>
+          )}
+        </div>
+        {assignment?.reason && (
+          <p className="text-[0.64rem] leading-snug text-(--ui-text-quaternary)">{assignment.reason}</p>
+        )}
+        <p className="pt-1 text-[0.66rem] leading-snug text-(--ui-text-tertiary)">{o.roles[role].description}</p>
+      </div>
+
+      {live && (
+        <section className="grid gap-1 pb-3">
+          <div className="flex items-center gap-2">
+            <SectionLabel>{f.liveActivity}</SectionLabel>
+            {live.sessionId && canOpenSessionWindow() && (
+              <Button
+                className="ml-auto h-6 px-2 text-[0.64rem]"
+                onClick={() => void openSessionInNewWindow(live.sessionId!, { watch: true })}
+                size="sm"
+                variant="ghost"
+              >
+                {f.openSession}
+              </Button>
+            )}
+          </div>
+          <ol
+            className="grid gap-0.5 rounded-md bg-(--ui-bg-tertiary)/50 px-2 py-1.5"
+            data-testid="flow-agent-activity"
+          >
+            {live.stream.length === 0 && <li className="text-[0.64rem] text-(--ui-text-quaternary)">{f.starting}</li>}
+            {live.stream.slice(-12).map((entry, i) => (
+              <li
+                className={cn(
+                  'truncate font-mono text-[0.62rem] leading-relaxed',
+                  entry.isError ? 'text-destructive' : 'text-(--ui-text-secondary)'
+                )}
+                key={`${entry.at}-${i}`}
+                title={entry.text}
+              >
+                {entry.text}
+              </li>
+            ))}
+          </ol>
+        </section>
+      )}
+
+      <section className="grid gap-2 pb-3">
+        <SectionLabel>{f.reports}</SectionLabel>
+        {stages.length === 0 && <p className="px-1 text-[0.66rem] text-(--ui-text-quaternary)">{f.waiting}</p>}
+        {stages.map(stage => {
+          const body = stage.report || stage.summary
+          const session = stage.subagentId ? subagentById.get(stage.subagentId)?.sessionId : undefined
+
+          return (
+            <article
+              className="grid gap-1 rounded-md bg-(--ui-bg-tertiary)/40 px-2.5 py-2"
+              data-testid="flow-agent-report"
+              key={stage.key}
+            >
+              <header className="flex min-w-0 items-center gap-1.5">
+                {stageGlyph(stage, f.stage[stage.status])}
+                <span className="text-[0.62rem] font-medium uppercase tracking-[0.05em] text-(--ui-text-tertiary)">
+                  {f.roundLabel(stage.round)} · {f.phase[stage.phase]}
+                </span>
+                {stage.verdict && stage.status === 'completed' && <VerdictChip verdict={stage.verdict} />}
+                {stage.status !== 'running' && session && canOpenSessionWindow() && (
+                  <Button
+                    className="ml-auto h-5 px-1.5 text-[0.6rem]"
+                    onClick={() => void openSessionInNewWindow(session, { watch: true })}
+                    size="sm"
+                    variant="ghost"
+                  >
+                    {f.openSession}
+                  </Button>
+                )}
+              </header>
+              {body ? (
+                <CompactMarkdown className="text-[0.68rem]" text={body} />
+              ) : (
+                <p className="text-[0.66rem] text-(--ui-text-quaternary)">
+                  {stage.status === 'running' ? f.working : f.noReport}
+                </p>
+              )}
+            </article>
+          )
+        })}
+      </section>
+
+      {run.boardDir && (
+        <section className="grid gap-1">
+          <SectionLabel>{f.boardFile}</SectionLabel>
+          <div className="rounded-md bg-(--ui-bg-tertiary)/40 px-2.5 py-2" data-testid="flow-agent-board">
+            {boardText ? (
+              <CompactMarkdown className="text-[0.68rem]" text={boardText} />
+            ) : (
+              <p className="text-[0.66rem] text-(--ui-text-quaternary)">
+                {board.isError ? f.boardUnavailable : f.boardEmpty}
+              </p>
+            )}
+          </div>
+        </section>
+      )}
     </div>
   )
 }

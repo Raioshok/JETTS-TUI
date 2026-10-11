@@ -49,7 +49,10 @@ Open **Orchestrator** in the sidebar (or the command palette):
 
 The **Flow** sidebar opens beside the chat and follows the run live: each
 agent's model and price tier, what it is doing right now, its verdict, a
-progress bar per round and phase, and a timeline of every stage. Toggle it with
+progress bar per round and phase, and a timeline of every stage. Click an agent
+(or a timeline row) to see its work: every report it filed, newest first, its
+live tool activity while it runs, its notes on the shared board, and a button to
+open its own session in a window. Toggle the sidebar with
 **Toggle orchestrator flow** in the command palette. When the agent starts a
 flow on its own, a notification offers to open the sidebar instead of opening it
 for you.

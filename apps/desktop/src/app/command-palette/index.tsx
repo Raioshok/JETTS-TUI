@@ -79,6 +79,7 @@ import {
   PROFILES_ROUTE,
   SETTINGS_ROUTE,
   SKILLS_ROUTE,
+  SPECS_ROUTE,
   STARMAP_ROUTE
 } from '../routes'
 import { FIELD_LABELS, SECTIONS } from '../settings/constants'
@@ -506,6 +507,13 @@ export function CommandPalette() {
             keywords: ['orchestrator', 'flow', 'team', 'review', 'planner', 'multi-agent', 'models'],
             label: t.orchestrator.title,
             run: go(ORCHESTRATOR_ROUTE)
+          },
+          {
+            icon: Layers3,
+            id: 'nav-specs',
+            keywords: ['specs', 'spec', 'kiro', 'requirements', 'design', 'tasks', 'plan'],
+            label: t.specs.title,
+            run: go(SPECS_ROUTE)
           },
           {
             action: 'nav.cron',

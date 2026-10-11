@@ -369,6 +369,53 @@ function orchestratorTurn(messages: any[]): ScriptedTurn | null {
     : { text: '', toolCalls: [{ name: 'orchestrate', args: { task: 'E2E orchestrated task' } }] }
 }
 
+// ─── Spec workflow script ───────────────────────────────────────────────
+//
+// The Specs page sends `/spec …` commands; the backend turns each into a
+// phase prompt (jettstui/specs.py). Each runs in a fresh chat, so the first
+// user message identifies the phase, and the reply writes that phase's Kiro
+// document into the session's workspace with a real write_file call.
+export const SPEC_E2E_NAME = 'offline-search'
+const SPEC_DIR = `.kiro/specs/${SPEC_E2E_NAME}`
+
+export const SPEC_E2E_DOCS = {
+  requirements:
+    '# Requirements Document\n\n## Introduction\n\nSearch notes offline.\n\n## Requirements\n\n### Requirement 1\n\n' +
+    '**User Story:** As a user, I want offline search, so that I can find notes without a network\n\n' +
+    '#### Acceptance Criteria\n\n1. WHEN the device is offline, THE Search SHALL return local results\n',
+  design: '# Design Document\n\n## Overview\n\nA local inverted index.\n',
+  tasks:
+    '# Implementation Plan\n\n- [ ] 1. Build the local index\n  - _Requirements: 1.1_\n\n' +
+    '- [ ] 2. Wire search to the index\n  - _Requirements: 1.1_\n'
+}
+
+const SPEC_PHASES: Array<{ marker: string; file: string; content: string }> = [
+  { marker: 'REQUIREMENTS phase', file: 'requirements.md', content: SPEC_E2E_DOCS.requirements },
+  { marker: 'DESIGN phase', file: 'design.md', content: SPEC_E2E_DOCS.design },
+  { marker: 'TASKS phase', file: 'tasks.md', content: SPEC_E2E_DOCS.tasks },
+  {
+    marker: 'Execute task 1 from',
+    file: 'tasks.md',
+    content: SPEC_E2E_DOCS.tasks.replace('- [ ] 1.', '- [x] 1.')
+  }
+]
+
+function specTurn(messages: any[]): ScriptedTurn | null {
+  const first = messages.find(m => m?.role === 'user' && typeof m.content === 'string')?.content ?? ''
+  const phase = SPEC_PHASES.find(p => first.includes(p.marker))
+
+  if (!phase) {
+    return null
+  }
+
+  return messages.some(m => m?.role === 'tool')
+    ? { text: `Wrote ${phase.file}.` }
+    : {
+        text: '',
+        toolCalls: [{ name: 'write_file', args: { path: `${SPEC_DIR}/${phase.file}`, content: phase.content } }]
+      }
+}
+
 /**
  * Start the mock server on an ephemeral port.
  *
@@ -484,7 +531,7 @@ export function startMockServer(options: MockServerOptions = {}): Promise<MockSe
             message => typeof message?.content === 'string' && message.content.includes(CORRECTION_SWITCH_TRIGGER),
           )
 
-          const orchestrated = orchestratorTurn(messages)
+          const orchestrated = orchestratorTurn(messages) ?? specTurn(messages)
 
           if (orchestrated) {
             if (stream) {

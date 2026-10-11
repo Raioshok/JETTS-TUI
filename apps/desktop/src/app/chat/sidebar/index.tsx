@@ -104,7 +104,8 @@ import {
   ORCHESTRATOR_ROUTE,
   SIDEBAR_NAV_AREA,
   type SidebarNavContribution,
-  SKILLS_ROUTE
+  SKILLS_ROUTE,
+  SPECS_ROUTE
 } from '../../routes'
 import type { SidebarNavItem } from '../../types'
 
@@ -174,6 +175,12 @@ const SIDEBAR_NAV: SidebarNavItem[] = [
     label: '',
     icon: props => <Codicon name="organization" {...props} />,
     route: ORCHESTRATOR_ROUTE
+  },
+  {
+    id: 'specs',
+    label: '',
+    icon: props => <Codicon name="checklist" {...props} />,
+    route: SPECS_ROUTE
   }
 ]
 

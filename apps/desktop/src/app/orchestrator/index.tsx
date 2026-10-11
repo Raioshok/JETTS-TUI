@@ -21,6 +21,7 @@ import { Switch } from '@/components/ui/switch'
 import { Textarea } from '@/components/ui/textarea'
 import { useI18n } from '@/i18n'
 import { requestModelOptions } from '@/lib/model-options'
+import { $newChatRunAction } from '@/store/new-chat-run'
 import { notifyError } from '@/store/notifications'
 import { $flowPanelOpen, setFlowPanelOpen } from '@/store/orchestrator-flow'
 import { $activeGatewayProfile } from '@/store/profile'
@@ -45,14 +46,13 @@ import {
   withReviewRounds,
   withRoleChoice
 } from './flow-config'
-import { $orchestratorRunAction } from './run-action'
 
 const ROUND_OPTIONS = Array.from({ length: MAX_REVIEW_ROUNDS + 1 }, (_, n) => n)
 
 export function OrchestratorView(props: React.ComponentProps<'section'>) {
   const { t } = useI18n()
   const { requestGateway } = useGatewayRequest()
-  const run = useStore($orchestratorRunAction)
+  const run = useStore($newChatRunAction)
   const o = t.orchestrator
   const queryClient = useQueryClient()
   const gatewayState = useStore($gatewayState)

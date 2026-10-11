@@ -1,43 +1,88 @@
 # Spec-driven development
 
-JettsTUI's interactive CLI supports a Kiro-style, three-document specification
-workflow. Specs live inside the active workspace at:
+JettsTUI implements [Kiro](https://kiro.dev)'s spec workflow, file for file.
+A spec turns a feature idea into three documents the agent writes and you
+approve one phase at a time, then the agent implements it task by task.
+Specs live in the workspace, in Kiro's own layout, so a repository moves
+between Kiro and JettsTUI without conversion:
 
 ```text
-.jettstui/specs/<feature>/
-├── requirements.md
-├── design.md
-└── tasks.md
+.kiro/specs/<feature-name>/
+├── .config.kiro      {"specId", "workflowType": "requirements-first", "specType": "feature"}
+├── requirements.md   user stories + EARS acceptance criteria
+├── design.md         architecture, interfaces, data models, correctness properties
+└── tasks.md          checkbox implementation plan
 ```
 
-No hidden fourth state file is created. Each document carries `draft` or
-`approved` status in its YAML frontmatter.
+Steering documents in `.kiro/steering/` are read before every phase.
 
-## Workflow
+## The workflow
+
+1. **Requirements.** `/spec new <feature>` creates the spec folder and the
+   agent writes `requirements.md`: an introduction, a glossary, and numbered
+   requirements, each a user story with acceptance criteria in EARS form
+   (`WHEN …, THE <System> SHALL …`, `IF … THEN …`, `WHILE …`, `WHERE …`).
+2. **Design.** When the requirements look right, approve them and the agent
+   writes `design.md`: overview, architecture, components and interfaces,
+   data models, correctness properties (each tagged with the acceptance
+   criteria it validates), error handling and testing strategy.
+3. **Tasks.** Approve the design and the agent writes `tasks.md`: an
+   implementation plan of numbered checkbox tasks (`1`, `2`, `2.1` …), each
+   referencing the acceptance criteria it satisfies (`_Requirements: 1.1, 2.3_`).
+   Optional tasks — usually extra tests — are marked `- [ ]*`.
+4. **Implementation.** Start one task at a time, or run them all. The agent
+   marks a task `[-]` when it starts, implements it, verifies it against the
+   referenced requirements, then marks it `[x]`. A single task never runs into
+   the next one, so you can review between tasks.
+
+Like Kiro, the phase is read from which documents exist; documents appear one
+at a time, and approving a phase is what produces the next one. Ask for
+changes at any phase — if an earlier document changes after later ones exist,
+the agent tells you what is affected before touching them.
+
+Drafting phases run in Plan mode (read-only except the spec folder); task
+execution runs in Accept Edits mode.
+
+## Commands
 
 ```text
-/spec new offline search
-/spec approve offline-search requirements
-/spec approve offline-search design
-/spec approve offline-search tasks
-/spec implement offline-search
-```
-
-`/spec new` enters Plan mode and asks the agent to refine requirements after
-inspecting the repository. Approval is sequential: design cannot be approved
-before requirements, and tasks cannot be approved before design. Implementation
-requires an approved task list and switches to Accept Edits mode.
-
-Use `/spec quick <feature>` when you want the agent to draft all three files in
-one pass. New specs use Kiro-compatible `tasks.md`; existing `tasklist.md`
-specs continue to work without migration.
-
-Inspect progress at any point:
-
-```text
+/spec new <feature>                       start with requirements (guided)
+/spec quick <feature>                     draft all three documents, then stop
+/spec auto <feature>                      write the whole spec and implement it, no approval stops
+/spec approve <name> requirements|design|tasks
+/spec refine <name> <stage> <feedback>    request changes to a document
+/spec task <name> [id]                    start one task (default: the next unfinished one)
+/spec run <name> [--optional]             run all remaining tasks (optional ones only with --optional)
 /spec list
-/spec status offline-search
+/spec status <name>                       documents + every task's checkbox
 ```
+
+`/spec implement <name>` still works as the old spelling of `/spec run`.
+
+## Desktop: the Specs page
+
+Open **Specs** in the sidebar (or the command palette) to drive the whole
+workflow without typing commands:
+
+- **New spec** — describe the feature and pick **Guided** (Kiro's phase-by-phase
+  flow), **Quick** (all three documents at once) or **Autopilot** (spec and
+  implementation in one go).
+- Each spec shows Kiro's three tabs — Requirements, Design, Task list — with
+  the documents rendered, **Approve**, **Request changes** and **Open file**.
+- A **Next step** bar always offers the one action that moves the spec forward:
+  approve the newest document, or start the next task.
+- The task list shows each task's state, its requirement references and a
+  **Start task** button; **Run all tasks** runs the rest in order.
+
+Every action runs in a new chat, so you can watch the agent work; the page
+re-reads the files as they change and moves to a new document as soon as it is
+written.
+
+## Older specs
+
+Specs created by earlier JettsTUI versions under `.jettstui/specs/` (with
+`status:` frontmatter in each file) keep working with every command and on the
+Specs page. New specs are always created under `.kiro/specs/`.
 
 ## Work modes
 
@@ -59,7 +104,7 @@ the next turn.
 
 - `default` uses normal tool behavior.
 - `plan` is enforced read-only. The agent can research and may write only below
-  `.jettstui/plans/` and `.jettstui/specs/`.
+  `.jettstui/plans/`, `.jettstui/specs/` and `.kiro/specs/`.
 - `accept-edits` authorizes workspace edits for the requested work without an
   extra confirmation before every file. Dangerous terminal commands and
   external actions retain their existing approval gates.

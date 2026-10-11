@@ -1093,6 +1093,16 @@ export const zhHant = defineLocale({
       openOrchestrator: '開啟編排器',
       startedTitle: '編排器流程已開始',
       show: '顯示流程',
+      showWork: role => `查看${role}的工作`,
+      back: '返回代理列表',
+      liveActivity: '即時活動',
+      reports: '報告',
+      boardFile: '看板紀錄',
+      boardEmpty: '看板上還沒有內容。',
+      boardUnavailable: '無法讀取看板。',
+      openSession: '開啟工作階段',
+      working: '工作中…',
+      noReport: '沒有報告。',
       agents: '代理',
       agentsLive: '代理 · 即時',
       timeline: '時間軸',
@@ -1116,6 +1126,57 @@ export const zhHant = defineLocale({
       stage: { running: '執行中', completed: '完成', failed: '失敗', interrupted: '已停止' },
       verdict: { approved: '核准', changes_requested: '需修改', unknown: '無結論' }
     }
+  },
+  specs: {
+    title: '規格',
+    subtitle:
+      '以 Kiro 的方式進行規格驅動開發：把想法整理成 .kiro/specs/ 中的需求、設計與任務清單，再由代理逐一實作任務。',
+    noProjectTitle: '開啟專案後才能使用規格',
+    noProjectBody: '規格儲存在專案的 .kiro/specs 資料夾中。',
+    loadFailed: '無法載入規格',
+    retry: '重試',
+    newTitle: '新增規格',
+    newPlaceholder: '描述你想打造的功能…',
+    create: '建立規格',
+    modes: {
+      step: { label: '逐步', hint: '依序審閱並核准需求、設計與任務清單。' },
+      quick: { label: '快速', hint: '一次起草三份文件，再進行審閱。' },
+      auto: { label: '自動駕駛', hint: '不等待核准，寫完整份規格並實作所有任務。' }
+    },
+    listTitle: '此專案中的規格',
+    empty: '還沒有規格——描述一個功能即可開始。',
+    select: '選擇一份規格以查看其文件。',
+    legacy: '舊版 .jettstui 規格',
+    phase: { requirements: '需求', design: '設計', tasks: '任務清單', implementation: '進行中', done: '已完成' },
+    tabs: { requirements: '需求', design: '設計', tasks: '任務清單' },
+    tasksProgress: (done, total) => `${done}/${total} 項任務`,
+    notWritten: {
+      requirements: '需求正在對話中撰寫，檔案產生後會顯示在這裡。',
+      design: '核准需求後將產生設計。',
+      tasks: '核准設計後將產生任務清單。'
+    },
+    next: {
+      requirements: '請審閱需求，核准後進入設計。',
+      design: '請審閱設計，核准後進入實作計畫。',
+      tasks: '任務清單已就緒。從第一項任務開始，或全部執行。',
+      implementation: '正在實作，繼續下一項任務。',
+      done: '所有必要任務都已完成。'
+    },
+    approve: { requirements: '核准 → 設計', design: '核准 → 任務清單' },
+    startNext: (id, title) => `開始任務 ${id}${title ? `：${title}` : ''}`,
+    requestChanges: '要求修改',
+    changesPlaceholder: '需要修改什麼？',
+    sendChanges: '送出',
+    cancel: '取消',
+    openFile: '開啟檔案',
+    openFailed: '無法開啟檔案',
+    startTask: '開始任務',
+    runAll: '執行所有任務',
+    includeOptional: '包含選用任務',
+    optional: '選用',
+    requirementsRef: ids => `需求 ${ids}`,
+    taskStatus: { not_started: '未開始', in_progress: '進行中', queued: '排隊中', completed: '已完成' },
+    runsInNewChat: '每個操作都會在新對話中執行，本頁會隨檔案變化自動更新。'
   },
   agents: {
     close: '關閉代理',
@@ -1690,7 +1751,8 @@ export const zhHant = defineLocale({
       skills: '技能與工具',
       messaging: '訊息平台',
       artifacts: '成品',
-      orchestrator: '編排器'
+      orchestrator: '編排器',
+      specs: '規格'
     },
     searchAria: '搜尋工作階段',
     searchPlaceholder: '搜尋工作階段…',

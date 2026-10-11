@@ -16342,6 +16342,55 @@ def _(rid, params: dict) -> dict:
         return _err(rid, 5035, str(e))
 
 
+@method("orchestrator.board")
+def _(rid, params: dict) -> dict:
+    """One role's file from an orchestrator run's shared board (Flow sidebar)."""
+    try:
+        from agent.orchestrator import read_board
+
+        content = read_board(str(params.get("run_id") or ""), str(params.get("role") or ""))
+        if content is None:
+            return _err(rid, 4004, "board not found")
+        return _ok(rid, {"content": content})
+    except Exception as e:
+        return _err(rid, 5036, str(e))
+
+
+def _spec_cwd(params: dict) -> Path | None:
+    raw = str(params.get("cwd") or "").strip()
+    if not raw:
+        return None
+    path = Path(raw).expanduser()
+    return path if path.is_dir() else None
+
+
+@method("spec.list")
+def _(rid, params: dict) -> dict:
+    """Kiro specs (.kiro/specs, legacy .jettstui/specs) in a workspace."""
+    try:
+        from jettstui.specs import list_spec_summaries
+
+        cwd = _spec_cwd(params)
+        return _ok(rid, {"specs": list_spec_summaries(cwd) if cwd else []})
+    except Exception as e:
+        return _err(rid, 5037, str(e))
+
+
+@method("spec.get")
+def _(rid, params: dict) -> dict:
+    """One spec's documents, phase and parsed task list."""
+    try:
+        from jettstui.specs import find_spec, spec_detail
+
+        cwd = _spec_cwd(params)
+        spec = find_spec(cwd, str(params.get("name") or "")) if cwd else None
+        if spec is None:
+            return _err(rid, 4004, "spec not found")
+        return _ok(rid, spec_detail(spec))
+    except Exception as e:
+        return _err(rid, 5038, str(e))
+
+
 @method("model.save_key")
 def _(rid, params: dict) -> dict:
     """Save an API key for a provider, then return its refreshed model list.

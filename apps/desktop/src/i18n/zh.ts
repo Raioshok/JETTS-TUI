@@ -1318,6 +1318,16 @@ export const zh: Translations = {
       openOrchestrator: '打开编排器',
       startedTitle: '编排器流程已开始',
       show: '显示流程',
+      showWork: role => `查看${role}的工作`,
+      back: '返回智能体列表',
+      liveActivity: '实时活动',
+      reports: '报告',
+      boardFile: '看板记录',
+      boardEmpty: '看板上还没有内容。',
+      boardUnavailable: '无法读取看板。',
+      openSession: '打开会话',
+      working: '工作中…',
+      noReport: '没有报告。',
       agents: '智能体',
       agentsLive: '智能体 · 实时',
       timeline: '时间线',
@@ -1341,6 +1351,57 @@ export const zh: Translations = {
       stage: { running: '运行中', completed: '完成', failed: '失败', interrupted: '已停止' },
       verdict: { approved: '批准', changes_requested: '需修改', unknown: '无结论' }
     }
+  },
+  specs: {
+    title: '规格',
+    subtitle:
+      '按 Kiro 方式进行规格驱动开发：把想法整理成 .kiro/specs/ 中的需求、设计和任务清单，再由智能体逐个任务实现。',
+    noProjectTitle: '打开项目后才能使用规格',
+    noProjectBody: '规格保存在项目的 .kiro/specs 文件夹中。',
+    loadFailed: '无法加载规格',
+    retry: '重试',
+    newTitle: '新建规格',
+    newPlaceholder: '描述你想构建的功能…',
+    create: '创建规格',
+    modes: {
+      step: { label: '逐步', hint: '依次审阅并批准需求、设计和任务清单。' },
+      quick: { label: '快速', hint: '一次性起草三份文档，然后再审阅。' },
+      auto: { label: '自动驾驶', hint: '不等待批准，写完整个规格并实现所有任务。' }
+    },
+    listTitle: '此项目中的规格',
+    empty: '还没有规格——描述一个功能即可开始。',
+    select: '选择一个规格以查看其文档。',
+    legacy: '旧版 .jettstui 规格',
+    phase: { requirements: '需求', design: '设计', tasks: '任务清单', implementation: '进行中', done: '已完成' },
+    tabs: { requirements: '需求', design: '设计', tasks: '任务清单' },
+    tasksProgress: (done, total) => `${done}/${total} 个任务`,
+    notWritten: {
+      requirements: '需求正在对话中编写，文件生成后会显示在这里。',
+      design: '批准需求后将生成设计。',
+      tasks: '批准设计后将生成任务清单。'
+    },
+    next: {
+      requirements: '请审阅需求，批准后进入设计。',
+      design: '请审阅设计，批准后进入实现计划。',
+      tasks: '任务清单已就绪。从第一个任务开始，或全部运行。',
+      implementation: '正在实现，继续下一个任务。',
+      done: '所有必需任务均已完成。'
+    },
+    approve: { requirements: '批准 → 设计', design: '批准 → 任务清单' },
+    startNext: (id, title) => `开始任务 ${id}${title ? `：${title}` : ''}`,
+    requestChanges: '请求修改',
+    changesPlaceholder: '需要修改什么？',
+    sendChanges: '发送',
+    cancel: '取消',
+    openFile: '打开文件',
+    openFailed: '无法打开文件',
+    startTask: '开始任务',
+    runAll: '运行所有任务',
+    includeOptional: '包括可选任务',
+    optional: '可选',
+    requirementsRef: ids => `需求 ${ids}`,
+    taskStatus: { not_started: '未开始', in_progress: '进行中', queued: '排队中', completed: '已完成' },
+    runsInNewChat: '每个操作都会在新对话中运行，本页会随文件变化自动更新。'
   },
   agents: {
     close: '关闭代理',
@@ -2037,7 +2098,8 @@ export const zh: Translations = {
       skills: '技能与工具',
       messaging: '消息平台',
       artifacts: '产物',
-      orchestrator: '编排器'
+      orchestrator: '编排器',
+      specs: '规格'
     },
     searchAria: '搜索会话',
     searchPlaceholder: '搜索会话…',

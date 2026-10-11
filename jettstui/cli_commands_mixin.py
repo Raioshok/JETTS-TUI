@@ -2842,7 +2842,7 @@ class CLICommandsMixin:
         self._set_work_mode(requested)
         detail = {
             "default": "normal tool behavior",
-            "plan": "read-only except .jettstui/plans and .jettstui/specs",
+            "plan": "read-only except .jettstui/plans and spec folders",
             "accept-edits": "workspace edits accepted; dangerous-command approvals remain",
         }[requested]
         _cprint(f"  Work mode: {requested} — {detail}.")
@@ -2881,7 +2881,7 @@ class CLICommandsMixin:
             "  /tools list|enable|disable <name>",
         ]
         if work_mode == "plan":
-            lines.insert(2, "  Plan boundary:   read-only except .jettstui/plans and .jettstui/specs")
+            lines.insert(2, "  Plan boundary:   read-only except .jettstui/plans and spec folders")
         return "\n".join(lines)
 
     def _handle_permissions_command(self, _cmd_original: str = "") -> None:

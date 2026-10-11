@@ -994,6 +994,16 @@ export const ar = defineLocale({
       openOrchestrator: 'فتح المنسّق',
       startedTitle: 'بدأ تدفق المنسّق',
       show: 'إظهار التدفق',
+      showWork: role => `عرض عمل ${role}`,
+      back: 'العودة إلى الوكلاء',
+      liveActivity: 'النشاط المباشر',
+      reports: 'التقارير',
+      boardFile: 'ملاحظات اللوحة',
+      boardEmpty: 'لم يُنشر شيء على اللوحة بعد.',
+      boardUnavailable: 'اللوحة غير متاحة.',
+      openSession: 'فتح الجلسة',
+      working: 'جارٍ العمل…',
+      noReport: 'لا يوجد تقرير.',
       agents: 'الوكلاء',
       agentsLive: 'الوكلاء · مباشر',
       timeline: 'المخطط الزمني',
@@ -1017,6 +1027,63 @@ export const ar = defineLocale({
       stage: { running: 'قيد التشغيل', completed: 'تم', failed: 'فشل', interrupted: 'متوقف' },
       verdict: { approved: 'موافقة', changes_requested: 'تغييرات', unknown: 'بلا حكم' }
     }
+  },
+  specs: {
+    title: 'المواصفات',
+    subtitle:
+      'تطوير قائم على المواصفات بأسلوب Kiro: حوّل الفكرة إلى متطلبات وتصميم وقائمة مهام في .kiro/specs/، ثم دع الوكيل ينفّذها مهمةً تلو الأخرى.',
+    noProjectTitle: 'افتح مشروعًا لاستخدام المواصفات',
+    noProjectBody: 'تُحفَظ المواصفات في مجلد .kiro/specs داخل المشروع.',
+    loadFailed: 'تعذّر تحميل المواصفات',
+    retry: 'إعادة المحاولة',
+    newTitle: 'مواصفة جديدة',
+    newPlaceholder: 'صف الميزة التي تريد بناءها…',
+    create: 'إنشاء مواصفة',
+    modes: {
+      step: { label: 'خطوة بخطوة', hint: 'راجع المتطلبات ثم التصميم ثم قائمة المهام ووافق على كلٍّ منها.' },
+      quick: { label: 'سريع', hint: 'اكتب المستندات الثلاثة دفعةً واحدة ثم راجعها.' },
+      auto: { label: 'الطيار الآلي', hint: 'اكتب المواصفة كاملة ونفّذ كل المهام دون التوقف للموافقة.' }
+    },
+    listTitle: 'المواصفات في هذا المشروع',
+    empty: 'لا توجد مواصفات بعد — صف ميزة للبدء.',
+    select: 'اختر مواصفة لعرض مستنداتها.',
+    legacy: 'مواصفة .jettstui قديمة',
+    phase: {
+      requirements: 'المتطلبات',
+      design: 'التصميم',
+      tasks: 'قائمة المهام',
+      implementation: 'قيد التنفيذ',
+      done: 'مكتملة'
+    },
+    tabs: { requirements: 'المتطلبات', design: 'التصميم', tasks: 'قائمة المهام' },
+    tasksProgress: (done, total) => `${done}/${total} مهام`,
+    notWritten: {
+      requirements: 'تُكتب المتطلبات الآن في المحادثة، وستظهر هنا فور إنشاء الملف.',
+      design: 'وافق على المتطلبات لإنشاء التصميم.',
+      tasks: 'وافق على التصميم لإنشاء قائمة المهام.'
+    },
+    next: {
+      requirements: 'راجع المتطلبات، ووافق عليها للانتقال إلى التصميم.',
+      design: 'راجع التصميم، ووافق عليه للانتقال إلى خطة التنفيذ.',
+      tasks: 'قائمة المهام جاهزة. ابدأ بالمهمة الأولى أو شغّلها كلها.',
+      implementation: 'التنفيذ جارٍ. تابع بالمهمة التالية.',
+      done: 'اكتملت كل المهام المطلوبة.'
+    },
+    approve: { requirements: 'موافقة ← التصميم', design: 'موافقة ← قائمة المهام' },
+    startNext: (id, title) => `بدء المهمة ${id}${title ? `: ${title}` : ''}`,
+    requestChanges: 'طلب تغييرات',
+    changesPlaceholder: 'ما الذي يجب تغييره؟',
+    sendChanges: 'إرسال',
+    cancel: 'إلغاء',
+    openFile: 'فتح الملف',
+    openFailed: 'تعذّر فتح الملف',
+    startTask: 'بدء المهمة',
+    runAll: 'تشغيل كل المهام',
+    includeOptional: 'تضمين المهام الاختيارية',
+    optional: 'اختيارية',
+    requirementsRef: ids => `المتطلبات ${ids}`,
+    taskStatus: { not_started: 'لم تبدأ', in_progress: 'قيد التنفيذ', queued: 'في الانتظار', completed: 'مكتملة' },
+    runsInNewChat: 'يعمل كل إجراء في محادثة جديدة، وتتابع هذه الصفحة تغيّر الملفات.'
   },
   agents: {
     close: 'إغلاق الوكلاء',
@@ -1635,6 +1702,7 @@ export const ar = defineLocale({
       messaging: 'المراسلة',
       artifacts: 'العناصر',
       orchestrator: 'المنسّق',
+      specs: 'المواصفات',
       chat: 'المحادثة',
       settings: 'الإعدادات',
       cron: 'المهام المجدولة',

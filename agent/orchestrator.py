@@ -541,6 +541,19 @@ def _prune_boards(root: Path) -> None:
         shutil.rmtree(stale, ignore_errors=True)
 
 
+_BOARD_ID_RE = re.compile(r"^[A-Za-z0-9_-]{1,64}$")
+
+
+def read_board(run_id: str, role: str) -> Optional[str]:
+    """A role's board file for a run, or None. Only ids/roles we issue resolve."""
+    if role not in ROLE_IDS or not _BOARD_ID_RE.match(run_id or ""):
+        return None
+    try:
+        return (_boards_root() / run_id / f"{role}.md").read_text(encoding="utf-8")
+    except OSError:
+        return None
+
+
 def _board_section(board: Path, role_id: str) -> str:
     others = ", ".join(f"{board / f'{r}.md'}" for r in ROLE_IDS if r != role_id)
     return (
@@ -762,6 +775,8 @@ class _FlowRun:
             model_used=stage.model, verdict=stage.verdict,
             # The verdict travels as its own field; keep the line out of the gist.
             summary=_short(_VERDICT_LINE_RE.sub("", stage.summary).strip() or stage.error),
+            # Full (bounded) report for the sidebar's per-agent detail view.
+            report=_clip(stage.summary or stage.error, _EVENT_REPORT_CHARS),
         )
         return stage
 
@@ -864,6 +879,9 @@ def run_flow(
     return _finish(flow, verdict, note)
 
 
+# Per-stage report carried on the finished-stage event (Flow sidebar detail).
+_EVENT_REPORT_CHARS = 6000
+
 # Report budget: the final round's verdicts and executor report in full-ish,
 # its other work notes shorter, and earlier rounds (already fed back) as gist.
 _REPORT_LIMITS = {
@@ -929,6 +947,7 @@ __all__ = [
     "normalize_config",
     "parse_verdict",
     "quality_estimate",
+    "read_board",
     "resolve_assignments",
     "run_flow",
     "score_candidate",

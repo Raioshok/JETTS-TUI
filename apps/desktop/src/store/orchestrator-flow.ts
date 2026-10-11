@@ -36,6 +36,8 @@ export interface FlowStage {
   subagentId?: string
   verdict?: FlowVerdict
   summary?: string
+  /** The stage's full (bounded) report — the agent detail view's body. */
+  report?: string
   startedAt: number
   finishedAt?: number
 }
@@ -221,6 +223,7 @@ export function applyFlowStageEvent(sessionId: string, payload: Payload) {
       subagentId: str(payload.subagent_id) || prev?.subagentId,
       verdict: asVerdict(payload.verdict) ?? prev?.verdict,
       summary: str(payload.summary) || prev?.summary,
+      report: str(payload.report) || prev?.report,
       startedAt: prev?.startedAt ?? now,
       finishedAt: status === 'running' ? undefined : (prev?.finishedAt ?? now)
     }

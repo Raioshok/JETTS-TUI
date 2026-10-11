@@ -328,6 +328,21 @@ class TestFlowEvents:
         assert judged and all("VERDICT" not in p.get("summary", "") for p in judged)
         assert all(p["verdict"] == "approved" for p in judged)
 
+    def test_finished_stage_carries_its_full_report(self, tmp_path):
+        parent = _Recorder()
+        _run(_ScriptedRunner(), tmp_path, parent=parent)
+        done = [p for t, p in parent.events if t == "orchestrator.stage" and p["status"] == "completed"]
+        assert any("VERDICT: APPROVED" in p["report"] for p in done)
+        assert any(p["report"] == "1. do the thing" for p in done)
+
+    def test_read_board_only_serves_issued_runs_and_roles(self):
+        board = orch.create_board("abc123", "task")
+        (board / "executor.md").write_text("changed x", encoding="utf-8")
+        assert orch.read_board("abc123", "executor") == "changed x"
+        assert orch.read_board("abc123", "../../config") is None
+        assert orch.read_board("../runs", "executor") is None
+        assert orch.read_board("missing", "executor") is None
+
     def test_run_events_end_with_the_verdict(self, tmp_path):
         parent = _Recorder()
         report = _run(_ScriptedRunner(), tmp_path, parent=parent)

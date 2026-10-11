@@ -1137,6 +1137,16 @@ export const en: Translations = {
       openOrchestrator: 'Open Orchestrator',
       startedTitle: 'Orchestrator flow started',
       show: 'Show flow',
+      showWork: role => `Show ${role}'s work`,
+      back: 'Back to agents',
+      liveActivity: 'Live activity',
+      reports: 'Reports',
+      boardFile: 'Board notes',
+      boardEmpty: 'Nothing posted to the board yet.',
+      boardUnavailable: 'Board not available.',
+      openSession: 'Open session',
+      working: 'Working…',
+      noReport: 'No report.',
       agents: 'Agents',
       agentsLive: 'Agents · live',
       timeline: 'Timeline',
@@ -1160,6 +1170,66 @@ export const en: Translations = {
       stage: { running: 'Running', completed: 'Done', failed: 'Failed', interrupted: 'Stopped' },
       verdict: { approved: 'Approved', changes_requested: 'Changes', unknown: 'No verdict' }
     }
+  },
+  specs: {
+    title: 'Specs',
+    subtitle:
+      'Spec-driven development, the Kiro way: turn an idea into requirements, a design and a task list in .kiro/specs/, then let the agent implement it one task at a time.',
+    noProjectTitle: 'Open a project to use specs',
+    noProjectBody: "Specs live in the project's .kiro/specs folder.",
+    loadFailed: 'Could not load specs',
+    retry: 'Retry',
+    newTitle: 'New spec',
+    newPlaceholder: 'Describe the feature you want to build…',
+    create: 'Create spec',
+    modes: {
+      step: {
+        label: 'Guided',
+        hint: 'Review and approve the requirements, then the design, then the task list.'
+      },
+      quick: { label: 'Quick', hint: 'Draft all three documents in one go, then review them.' },
+      auto: { label: 'Autopilot', hint: 'Write the whole spec and implement every task without stopping for approval.' }
+    },
+    listTitle: 'Specs in this project',
+    empty: 'No specs yet — describe a feature to start one.',
+    select: 'Select a spec to see its documents.',
+    legacy: 'Legacy .jettstui spec',
+    phase: {
+      requirements: 'Requirements',
+      design: 'Design',
+      tasks: 'Task list',
+      implementation: 'In progress',
+      done: 'Done'
+    },
+    tabs: { requirements: 'Requirements', design: 'Design', tasks: 'Task list' },
+    tasksProgress: (done, total) => `${done}/${total} tasks`,
+    notWritten: {
+      requirements: 'The requirements are being written in chat. They appear here as soon as the file exists.',
+      design: 'Approve the requirements to generate the design.',
+      tasks: 'Approve the design to generate the task list.'
+    },
+    next: {
+      requirements: 'Review the requirements. Approve them to move on to the design.',
+      design: 'Review the design. Approve it to move on to the implementation plan.',
+      tasks: 'The task list is ready. Start with the first task, or run them all.',
+      implementation: 'Implementation is under way. Continue with the next task.',
+      done: 'Every required task is done.'
+    },
+    approve: { requirements: 'Approve → design', design: 'Approve → task list' },
+    startNext: (id, title) => `Start task ${id}${title ? `: ${title}` : ''}`,
+    requestChanges: 'Request changes',
+    changesPlaceholder: 'What should change?',
+    sendChanges: 'Send',
+    cancel: 'Cancel',
+    openFile: 'Open file',
+    openFailed: 'Could not open the file',
+    startTask: 'Start task',
+    runAll: 'Run all tasks',
+    includeOptional: 'Include optional tasks',
+    optional: 'optional',
+    requirementsRef: ids => `Requirements ${ids}`,
+    taskStatus: { not_started: 'Not started', in_progress: 'In progress', queued: 'Queued', completed: 'Done' },
+    runsInNewChat: 'Each action runs in a new chat; this page follows the files as they change.'
   },
   agents: {
     close: 'Close agents',
@@ -1859,7 +1929,8 @@ export const en: Translations = {
       skills: 'Capabilities',
       messaging: 'Messaging',
       artifacts: 'Artifacts',
-      orchestrator: 'Orchestrator'
+      orchestrator: 'Orchestrator',
+      specs: 'Specs'
     },
     searchAria: 'Search sessions',
     searchPlaceholder: 'Search sessions…',

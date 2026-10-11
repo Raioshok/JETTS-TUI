@@ -1,13 +1,20 @@
 // @vitest-environment jsdom
-import { act, cleanup, render, screen, within } from '@testing-library/react'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { afterEach, beforeEach, describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { $flowRunsBySession, applyFlowRunEvent, applyFlowStageEvent } from '@/store/orchestrator-flow'
 import { $activeSessionId } from '@/store/session'
 import { $subagentsBySession, upsertSubagent } from '@/store/subagents'
 
 import { FlowPanel, pickPanelRun } from './flow-panel'
+
+const requestGateway = vi.fn()
+
+vi.mock('../gateway/hooks/use-gateway-request', () => ({
+  useGatewayRequest: () => ({ requestGateway })
+}))
 
 const SID = 'sess-1'
 
@@ -30,10 +37,14 @@ function seedRun(sessionId = SID, runId = 'run-a', startedAt = 1_000) {
 }
 
 function renderPanel() {
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } })
+
   render(
-    <MemoryRouter>
-      <FlowPanel />
-    </MemoryRouter>
+    <QueryClientProvider client={client}>
+      <MemoryRouter>
+        <FlowPanel />
+      </MemoryRouter>
+    </QueryClientProvider>
   )
 }
 
@@ -122,6 +133,97 @@ describe('FlowPanel', () => {
       applyFlowStageEvent(SID, { run_id: 'run-a', role: 'planner', phase: 'work', round: 1, status: 'running' })
     )
     expect(agent('planner').dataset.status).toBe('running')
+  })
+})
+
+describe('FlowPanel agent detail', () => {
+  beforeEach(() => {
+    requestGateway.mockReset()
+    requestGateway.mockImplementation((method: string, params: { role: string }) =>
+      method === 'orchestrator.board'
+        ? Promise.resolve({ content: `## ${params.role} notes\n- watching src/theme.ts` })
+        : Promise.reject(new Error(`unexpected ${method}`))
+    )
+  })
+
+  function seedReviewer() {
+    seedRun()
+    applyFlowRunEvent(SID, { run_id: 'run-a', status: 'running', round: 1, board_dir: '/home/.jettstui/runs/run-a' })
+    applyFlowStageEvent(SID, {
+      run_id: 'run-a',
+      role: 'reviewer',
+      phase: 'work',
+      round: 1,
+      status: 'completed',
+      summary: 'gathered edge cases',
+      report: '## Pieces\n1. toggle must persist'
+    })
+    applyFlowStageEvent(SID, {
+      run_id: 'run-a',
+      role: 'reviewer',
+      phase: 'verify',
+      round: 1,
+      status: 'completed',
+      verdict: 'changes_requested',
+      summary: '1. persistence missing',
+      report: '1. persistence missing\nVERDICT: CHANGES_REQUESTED'
+    })
+  }
+
+  it('clicking an agent shows every report it filed, newest first, and its board notes', async () => {
+    seedReviewer()
+    renderPanel()
+
+    fireEvent.click(within(agent('reviewer')).getByRole('button', { name: "Show Reviewer's work" }))
+
+    const detail = screen.getByTestId('flow-agent-detail')
+    const reports = within(detail).getAllByTestId('flow-agent-report')
+    expect(reports).toHaveLength(2)
+    expect(reports[0]!.textContent).toContain('Verify')
+    expect(reports[0]!.textContent).toContain('persistence missing')
+    expect(reports[1]!.textContent).toContain('toggle must persist')
+
+    await waitFor(() =>
+      expect(within(detail).getByTestId('flow-agent-board').textContent).toContain('watching src/theme.ts')
+    )
+    expect(requestGateway).toHaveBeenCalledWith('orchestrator.board', { run_id: 'run-a', role: 'reviewer' })
+  })
+
+  it("shows the running agent's live activity", () => {
+    seedRun()
+    applyFlowStageEvent(SID, {
+      run_id: 'run-a',
+      role: 'executor',
+      phase: 'work',
+      round: 1,
+      status: 'running',
+      subagent_id: 'sa-0-live'
+    })
+    upsertSubagent(
+      SID,
+      { subagent_id: 'sa-0-live', goal: 'g', status: 'running', tool_name: 'patch', text: 'src/theme.ts' },
+      true,
+      'subagent.tool'
+    )
+    renderPanel()
+
+    fireEvent.click(within(agent('executor')).getByRole('button'))
+    expect(screen.getByTestId('flow-agent-activity').textContent).toContain('Patch')
+  })
+
+  it('timeline rows open the same detail, and Back returns to the overview', () => {
+    seedReviewer()
+    renderPanel()
+
+    const timelineRow = screen
+      .getAllByRole('button')
+      .find(el => el.textContent?.includes('Reviewer') && !el.closest('[data-testid="flow-agent"]'))!
+    fireEvent.click(timelineRow)
+    expect(screen.getByTestId('flow-agent-detail')).toBeTruthy()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Back to agents' }))
+    expect(screen.queryByTestId('flow-agent-detail')).toBeNull()
+    expect(screen.getAllByTestId('flow-agent')).toHaveLength(4)
   })
 })
 

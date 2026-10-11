@@ -71,4 +71,12 @@ test('orchestrator page configures roles and runs a flow', async () => {
   await expect(flow.getByTestId('flow-run-status')).toHaveText('Approved', { timeout: 15_000 })
   await expect(flow.getByTestId('flow-agent')).toHaveCount(4)
   await expect(flow.locator('[data-testid="flow-agent"][data-status="completed"]')).toHaveCount(4)
+
+  // Clicking an agent shows its work: its report and its board file.
+  await flow.getByRole('button', { name: "Show Executor's work" }).click()
+  const detail = flow.getByTestId('flow-agent-detail')
+  await expect(detail.getByTestId('flow-agent-report').first()).toContainText('Made the change and verified it.')
+  await expect(detail.getByTestId('flow-agent-board')).toContainText('Executor')
+  await detail.getByRole('button', { name: 'Back to agents' }).click()
+  await expect(flow.getByTestId('flow-agent')).toHaveCount(4)
 })

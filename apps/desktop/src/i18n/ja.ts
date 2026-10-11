@@ -1137,6 +1137,16 @@ export const ja = defineLocale({
       openOrchestrator: 'オーケストレーターを開く',
       startedTitle: 'オーケストレーターのフローを開始しました',
       show: 'フローを表示',
+      showWork: role => `${role}の作業を表示`,
+      back: 'エージェント一覧に戻る',
+      liveActivity: 'ライブの動作',
+      reports: 'レポート',
+      boardFile: 'ボードのメモ',
+      boardEmpty: 'ボードにはまだ何も投稿されていません。',
+      boardUnavailable: 'ボードを読み込めません。',
+      openSession: 'セッションを開く',
+      working: '作業中…',
+      noReport: 'レポートはありません。',
       agents: 'エージェント',
       agentsLive: 'エージェント · ライブ',
       timeline: 'タイムライン',
@@ -1160,6 +1170,57 @@ export const ja = defineLocale({
       stage: { running: '実行中', completed: '完了', failed: '失敗', interrupted: '停止' },
       verdict: { approved: '承認', changes_requested: '要修正', unknown: '判定なし' }
     }
+  },
+  specs: {
+    title: 'スペック',
+    subtitle:
+      'Kiro 方式のスペック駆動開発：アイデアを .kiro/specs/ の要件・設計・タスクリストにまとめ、エージェントが 1 タスクずつ実装します。',
+    noProjectTitle: 'スペックを使うにはプロジェクトを開いてください',
+    noProjectBody: 'スペックはプロジェクトの .kiro/specs フォルダーに保存されます。',
+    loadFailed: 'スペックを読み込めませんでした',
+    retry: '再試行',
+    newTitle: '新しいスペック',
+    newPlaceholder: '作りたい機能を説明してください…',
+    create: 'スペックを作成',
+    modes: {
+      step: { label: '段階的', hint: '要件、設計、タスクリストの順にレビューして承認します。' },
+      quick: { label: 'クイック', hint: '3 つのドキュメントを一度に作成してからレビューします。' },
+      auto: { label: 'オートパイロット', hint: '承認を待たずにスペック全体を書き、すべてのタスクを実装します。' }
+    },
+    listTitle: 'このプロジェクトのスペック',
+    empty: 'まだスペックはありません。機能を説明して始めましょう。',
+    select: 'スペックを選ぶとドキュメントが表示されます。',
+    legacy: '旧形式の .jettstui スペック',
+    phase: { requirements: '要件', design: '設計', tasks: 'タスクリスト', implementation: '実装中', done: '完了' },
+    tabs: { requirements: '要件', design: '設計', tasks: 'タスクリスト' },
+    tasksProgress: (done, total) => `${done}/${total} タスク`,
+    notWritten: {
+      requirements: '要件はチャットで作成中です。ファイルができるとここに表示されます。',
+      design: '要件を承認すると設計が作成されます。',
+      tasks: '設計を承認するとタスクリストが作成されます。'
+    },
+    next: {
+      requirements: '要件をレビューしてください。承認すると設計に進みます。',
+      design: '設計をレビューしてください。承認すると実装計画に進みます。',
+      tasks: 'タスクリストの準備ができました。最初のタスクから始めるか、すべて実行します。',
+      implementation: '実装中です。次のタスクに進みましょう。',
+      done: '必須のタスクはすべて完了しました。'
+    },
+    approve: { requirements: '承認 → 設計', design: '承認 → タスクリスト' },
+    startNext: (id, title) => `タスク ${id} を開始${title ? `：${title}` : ''}`,
+    requestChanges: '変更を依頼',
+    changesPlaceholder: '何を変更しますか？',
+    sendChanges: '送信',
+    cancel: 'キャンセル',
+    openFile: 'ファイルを開く',
+    openFailed: 'ファイルを開けませんでした',
+    startTask: 'タスクを開始',
+    runAll: 'すべてのタスクを実行',
+    includeOptional: '任意のタスクも含める',
+    optional: '任意',
+    requirementsRef: ids => `要件 ${ids}`,
+    taskStatus: { not_started: '未着手', in_progress: '進行中', queued: '待機中', completed: '完了' },
+    runsInNewChat: '各操作は新しいチャットで実行され、このページはファイルの変更に追従します。'
   },
   agents: {
     close: 'エージェントを閉じる',
@@ -1755,7 +1816,8 @@ export const ja = defineLocale({
       skills: 'スキルとツール',
       messaging: 'メッセージング',
       artifacts: 'アーティファクト',
-      orchestrator: 'オーケストレーター'
+      orchestrator: 'オーケストレーター',
+      specs: 'スペック'
     },
     searchAria: 'セッションを検索',
     searchPlaceholder: 'セッションを検索…',

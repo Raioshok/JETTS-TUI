@@ -166,7 +166,7 @@ Configuration lives in `~/.jettstui/config.yaml` (`%LOCALAPPDATA%\jettstui` on W
 - **Git worktrees** (`jettstui -w`) — run parallel agents on isolated branches.
 - **Checkpoints and rollback** (`jettstui checkpoints`, `/rollback`) — filesystem snapshots before destructive edits.
 - **Shell hooks** (`jettstui hooks`) and Python plugin hooks around tool and LLM calls.
-- **Spec workflow** — Kiro-style requirements → design → tasks documents.
+- **Spec workflow** — Kiro's requirements → design → tasks workflow in `.kiro/specs/`, with a desktop Specs page.
 - **Background processes** with completion notifications.
 - **Batch runner** — process prompt datasets in parallel and save trajectories.
 
@@ -333,7 +333,7 @@ Type these inside a conversation — in the TUI, the desktop app, or any messagi
 | `/queue <prompt>` | `/q` | Everywhere | Queue a prompt for the next turn (doesn't interrupt) |
 | `/steer <prompt>` | — | Everywhere | Inject a message after the next tool call without interrupting |
 | `/goal [text \| draft <text> \| show \| pause \| resume \| clear \| status \| wait <pid> \| unwait]` | — | Everywhere | Set a standing goal JettsTUI works on across turns until achieved |
-| `/spec [list\|new <feature>\|quick <feature>\|status <name>\|approve <name> <stage>\|implement <name>]` | — | CLI/TUI | Create and approve a Kiro-style requirements/design/tasks spec |
+| `/spec [list\|new\|quick\|auto <feature>\|status <name>\|approve <name> <stage>\|refine <name> <stage> <feedback>\|task <name> [id]\|run <name>]` | — | CLI/TUI/Desktop | Kiro spec workflow: requirements → design → tasks → implementation |
 | `/moa <prompt>` | — | Everywhere | Run one prompt through the default Mixture of Agents preset, then restore your model |
 | `/subgoal [text \| remove N \| clear]` | — | Everywhere | Add or manage extra criteria on the active goal |
 | `/status` | — | Everywhere | Show session, model, token, and context info |

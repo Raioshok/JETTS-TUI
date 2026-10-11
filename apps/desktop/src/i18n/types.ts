@@ -975,6 +975,16 @@ export interface Translations {
       openOrchestrator: string
       startedTitle: string
       show: string
+      showWork: (role: string) => string
+      back: string
+      liveActivity: string
+      reports: string
+      boardFile: string
+      boardEmpty: string
+      boardUnavailable: string
+      openSession: string
+      working: string
+      noReport: string
       agents: string
       agentsLive: string
       timeline: string
@@ -992,6 +1002,42 @@ export interface Translations {
       stage: Record<'running' | 'completed' | 'failed' | 'interrupted', string>
       verdict: Record<'approved' | 'changes_requested' | 'unknown', string>
     }
+  }
+  specs: {
+    title: string
+    subtitle: string
+    noProjectTitle: string
+    noProjectBody: string
+    loadFailed: string
+    retry: string
+    newTitle: string
+    newPlaceholder: string
+    create: string
+    modes: Record<'step' | 'quick' | 'auto', { label: string; hint: string }>
+    listTitle: string
+    empty: string
+    select: string
+    legacy: string
+    phase: Record<'requirements' | 'design' | 'tasks' | 'implementation' | 'done', string>
+    tabs: Record<'requirements' | 'design' | 'tasks', string>
+    tasksProgress: (done: number, total: number) => string
+    notWritten: Record<'requirements' | 'design' | 'tasks', string>
+    next: Record<'requirements' | 'design' | 'tasks' | 'implementation' | 'done', string>
+    approve: Record<'requirements' | 'design', string>
+    startNext: (id: string, title: string) => string
+    requestChanges: string
+    changesPlaceholder: string
+    sendChanges: string
+    cancel: string
+    openFile: string
+    openFailed: string
+    startTask: string
+    runAll: string
+    includeOptional: string
+    optional: string
+    requirementsRef: (ids: string) => string
+    taskStatus: Record<'not_started' | 'in_progress' | 'queued' | 'completed', string>
+    runsInNewChat: string
   }
   agents: {
     close: string
