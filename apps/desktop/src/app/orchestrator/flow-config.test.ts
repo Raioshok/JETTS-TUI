@@ -2,11 +2,14 @@ import { describe, expect, it } from 'vitest'
 
 import {
   AUTO_CHOICE,
+  balanceOf,
+  DEFAULT_BALANCE,
   MAX_REVIEW_ROUNDS,
   orchestratePrompt,
   type OrchestratorConfig,
   parseRoleChoice,
   roleChoice,
+  withBalance,
   withReviewRounds,
   withRoleChoice
 } from './flow-config'
@@ -55,5 +58,18 @@ describe('orchestrator role choices', () => {
 
     expect(prompt).toContain('orchestrate tool')
     expect(prompt.endsWith('add dark mode')).toBe(true)
+  })
+})
+
+describe('orchestrator auto balance', () => {
+  it('defaults configs saved before the setting existed, and round-trips a choice', () => {
+    expect(balanceOf(base)).toBe(DEFAULT_BALANCE)
+    expect(balanceOf(withBalance(base, 'economy'))).toBe('economy')
+    expect(balanceOf({ ...base, auto_balance: 'bogus' as never })).toBe(DEFAULT_BALANCE)
+  })
+
+  it('leaves the rest of the config untouched', () => {
+    const next = withBalance(base, 'quality')
+    expect({ ...next, auto_balance: undefined }).toEqual({ ...base, auto_balance: undefined })
   })
 })

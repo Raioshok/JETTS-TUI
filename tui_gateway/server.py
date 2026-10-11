@@ -4880,6 +4880,13 @@ def _on_tool_progress(
             phase_payload["aggregator"] = str(name)
         _emit("moa.phase", sid, phase_payload)
         return
+    if event_type in ("orchestrator.run", "orchestrator.stage"):
+        # Display-only orchestrator flow progress (agent/orchestrator.py) —
+        # drives the desktop Flow sidebar. The payload is already JSON-safe.
+        flow = _kwargs.get("flow")
+        if isinstance(flow, dict):
+            _emit(event_type, sid, flow)
+        return
     if event_type.startswith("subagent."):
         payload = {
             "goal": str(_kwargs.get("goal") or ""),
@@ -16287,11 +16294,12 @@ def _(rid, params: dict) -> dict:
 
 
 def _orchestrator_payload(conf: dict) -> dict:
-    from agent.orchestrator import ROLES, resolve_assignments
+    from agent.orchestrator import BALANCE_MODES, ROLES, resolve_assignments
 
     assignments = resolve_assignments(conf)
     return {
         "config": conf,
+        "balance_modes": list(BALANCE_MODES),
         "roles": [{"id": r.id, "title": r.title} for r in ROLES],
         "assignments": {rid: a.to_dict() for rid, a in assignments.items()},
     }

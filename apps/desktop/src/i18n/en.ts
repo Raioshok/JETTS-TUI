@@ -1071,19 +1071,28 @@ export const en: Translations = {
   orchestrator: {
     title: 'Orchestrator',
     subtitle:
-      'Run a task through a team of models: one plans, one builds, and two independent reviewers check the result and its security & quality.',
+      'Run a task through a team of models working at the same time: one plans, one builds, and two independent reviewers check correctness, security and quality while the work happens — then they all verify the result.',
     enable: 'Enable orchestrator',
     enableHint: 'Gives the agent the orchestrate tool in new turns. Off by default so it adds nothing to other chats.',
     rolesTitle: 'Roles',
     rolesHint:
-      'Pin a model per role or leave it on Auto. Auto picks from your configured providers and prefers a different model family for review than the one that wrote the code.',
+      'Pin a model per role or leave it on Auto. Auto weighs quality against cost for every role using the balance below, and prefers a different model lineage for review than the one that writes the code.',
     roles: {
-      planner: { title: 'Planner', description: 'Investigates and writes a step-by-step plan. Never edits files.' },
-      executor: { title: 'Executor', description: 'Follows the plan, makes the changes and runs the checks.' },
-      reviewer: { title: 'Reviewer', description: 'Reviews the changes for bugs and missed requirements.' },
+      planner: {
+        title: 'Planner',
+        description: 'Drafts the plan the executor builds from, refines it live, then checks every requirement was met.'
+      },
+      executor: {
+        title: 'Executor',
+        description: 'Builds from the live plan, posts progress, and fixes findings while the reviewers watch.'
+      },
+      reviewer: {
+        title: 'Reviewer',
+        description: 'Gathers what correctness requires, flags issues as they appear, then judges the result.'
+      },
       verifier: {
         title: 'Security & quality',
-        description: 'Checks for security problems, failing tests and lint, and missing error handling.'
+        description: 'Baselines tests and lint, watches for security problems, then re-runs the checks on the result.'
       }
     },
     auto: 'Auto',
@@ -1091,16 +1100,66 @@ export const en: Translations = {
     autoSessionModel: "Auto → the chat's current model",
     pinned: 'Pinned',
     pickModel: role => `Model for ${role}`,
-    rounds: 'Fix rounds',
-    roundsHint: 'How many times the executor may address review findings before the flow stops and reports.',
-    roundsValue: n => (n === 0 ? 'No fix rounds' : n === 1 ? '1 round' : `${n} rounds`),
+    rounds: 'Extra rounds',
+    roundsHint:
+      'How many more work + verify rounds run when a verifier requests changes, before the flow stops and reports.',
+    roundsValue: n => (n === 0 ? 'None' : n === 1 ? '1 round' : `${n} rounds`),
     runTitle: 'Run a task',
     taskPlaceholder: 'Describe the task for the team, with every requirement…',
     run: 'Run in new chat',
     runNeedsEnable: 'Enable the orchestrator to run a task.',
     loadFailed: 'Could not load the orchestrator settings',
     saveFailed: 'Could not save the orchestrator settings',
-    retry: 'Retry'
+    retry: 'Retry',
+    balance: 'Auto balance',
+    balanceHint: 'How Auto trades cost for quality when it picks a model for each role.',
+    balanceModes: {
+      economy: { label: 'Economy', hint: 'The cheapest models that can still do each role well.' },
+      balanced: {
+        label: 'Balanced',
+        hint: 'Best quality for the cost — premium models only where they clearly pay off.'
+      },
+      quality: { label: 'Quality', hint: 'The strongest models for every role, whatever they cost.' }
+    },
+    howTitle: 'How a round works',
+    howSteps: {
+      work: 'Work — all four agents run at once and share a board: the plan fills in while the executor builds, and the reviewers gather evidence and flag issues early.',
+      verify:
+        'Verify — the reviewer, the security & quality verifier and the planner judge the final state in parallel.',
+      loop: 'Any change request starts another round with the findings, until everyone approves.'
+    },
+    showFlow: 'Show flow sidebar',
+    flow: {
+      title: 'Flow',
+      close: 'Close flow sidebar',
+      emptyTitle: 'No flow yet',
+      emptyBody: 'Run a task from the Orchestrator to watch its agents work here live.',
+      openOrchestrator: 'Open Orchestrator',
+      startedTitle: 'Orchestrator flow started',
+      show: 'Show flow',
+      agents: 'Agents',
+      agentsLive: 'Agents · live',
+      timeline: 'Timeline',
+      progress: 'Flow progress',
+      board: 'Board',
+      copyBoard: 'Copy board path',
+      costTier: 'Price tier',
+      sessionModel: "Chat's model",
+      waiting: 'Waiting',
+      starting: 'Starting…',
+      roundOf: (round, total) => `Round ${round} of ${total}`,
+      roundLabel: round => `Round ${round}`,
+      phase: { work: 'Work', verify: 'Verify' },
+      status: {
+        running: 'Running',
+        approved: 'Approved',
+        changes_requested: 'Changes requested',
+        failed: 'Failed',
+        interrupted: 'Stopped'
+      },
+      stage: { running: 'Running', completed: 'Done', failed: 'Failed', interrupted: 'Stopped' },
+      verdict: { approved: 'Approved', changes_requested: 'Changes', unknown: 'No verdict' }
+    }
   },
   agents: {
     close: 'Close agents',
@@ -2311,8 +2370,10 @@ export const en: Translations = {
     signInFailed: 'Sign-in failed. Try again.',
     pickDifferentProvider: 'Pick a different provider',
     tryAgain: 'Try again',
-    autoPickupHint: 'JettsTUI finishes on its own once you approve. If it keeps waiting, copy the code shown on the browser page and paste it below.',
-    noAutoPickup: 'JettsTUI can\'t receive the sign-in automatically: port 51121 is in use (often by the Antigravity app). After you approve, copy the code from the browser page, or its full address, and paste it below.',
+    autoPickupHint:
+      'JettsTUI finishes on its own once you approve. If it keeps waiting, copy the code shown on the browser page and paste it below.',
+    noAutoPickup:
+      "JettsTUI can't receive the sign-in automatically: port 51121 is in use (often by the Antigravity app). After you approve, copy the code from the browser page, or its full address, and paste it below.",
     signInWith: provider => `Sign in with ${provider}`,
     openedBrowser: provider => `We opened ${provider} in your browser.`,
     authorizeThere: 'Authorize JettsTUI there.',

@@ -961,6 +961,37 @@ export interface Translations {
     loadFailed: string
     saveFailed: string
     retry: string
+    balance: string
+    balanceHint: string
+    balanceModes: Record<'economy' | 'balanced' | 'quality', { label: string; hint: string }>
+    howTitle: string
+    howSteps: { work: string; verify: string; loop: string }
+    showFlow: string
+    flow: {
+      title: string
+      close: string
+      emptyTitle: string
+      emptyBody: string
+      openOrchestrator: string
+      startedTitle: string
+      show: string
+      agents: string
+      agentsLive: string
+      timeline: string
+      progress: string
+      board: string
+      copyBoard: string
+      costTier: string
+      sessionModel: string
+      waiting: string
+      starting: string
+      roundOf: (round: number, total: number) => string
+      roundLabel: (round: number) => string
+      phase: Record<'work' | 'verify', string>
+      status: Record<'running' | 'approved' | 'changes_requested' | 'failed' | 'interrupted', string>
+      stage: Record<'running' | 'completed' | 'failed' | 'interrupted', string>
+      verdict: Record<'approved' | 'changes_requested' | 'unknown', string>
+    }
   }
   agents: {
     close: string

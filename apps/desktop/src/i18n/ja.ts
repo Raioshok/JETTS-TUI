@@ -1075,19 +1075,29 @@ export const ja = defineLocale({
   orchestrator: {
     title: 'オーケストレーター',
     subtitle:
-      'モデルのチームでタスクを実行します。1つが計画し、1つが実装し、2つの独立したレビュアーが結果とそのセキュリティと品質を確認します。',
+      '同時に動くモデルのチームでタスクを実行します。1つが計画し、1つが実装し、2つの独立したレビュアーが作業中に正しさ・セキュリティ・品質を確認し、最後に全員で結果を検証します。',
     enable: 'オーケストレーターを有効にする',
-    enableHint: '新しいターンでエージェントに orchestrate ツールを提供します。既定ではオフで、他のチャットには影響しません。',
+    enableHint:
+      '新しいターンでエージェントに orchestrate ツールを提供します。既定ではオフで、他のチャットには影響しません。',
     rolesTitle: 'ロール',
     rolesHint:
-      'ロールごとにモデルを指定するか、自動のままにします。自動は設定済みのプロバイダーから選び、レビューにはコードを書いたモデルとは別のモデルファミリーを優先します。',
+      'ロールごとにモデルを指定するか、自動のままにします。自動は下のバランス設定に従ってすべてのロールで品質とコストを比較し、レビューにはコードを書くモデルとは別の系統を優先します。',
     roles: {
-      planner: { title: 'プランナー', description: '調査して段階的な計画を書きます。ファイルは編集しません。' },
-      executor: { title: 'エグゼキューター', description: '計画に従って変更を行い、チェックを実行します。' },
-      reviewer: { title: 'レビュアー', description: 'バグや見落とされた要件がないか変更をレビューします。' },
+      planner: {
+        title: 'プランナー',
+        description: '実装の元になる計画を書き、作業中に改善し、最後にすべての要件が満たされたか確認します。'
+      },
+      executor: {
+        title: 'エグゼキューター',
+        description: '最新の計画に沿って実装し、進捗を共有し、レビュアーの指摘をその場で修正します。'
+      },
+      reviewer: {
+        title: 'レビュアー',
+        description: '正しさに必要な情報を集め、問題を早期に指摘し、最後に結果を判定します。'
+      },
       verifier: {
         title: 'セキュリティと品質',
-        description: 'セキュリティ上の問題、失敗するテストや lint、不足しているエラー処理を確認します。'
+        description: 'テストと lint の基準を取り、セキュリティ問題を監視し、結果に対してチェックを再実行します。'
       }
     },
     auto: '自動',
@@ -1095,16 +1105,61 @@ export const ja = defineLocale({
     autoSessionModel: '自動 → チャットの現在のモデル',
     pinned: '指定済み',
     pickModel: role => `${role}のモデル`,
-    rounds: '修正ラウンド',
-    roundsHint: 'フローが停止して報告するまでに、エグゼキューターがレビュー指摘に対応できる回数です。',
-    roundsValue: n => (n === 0 ? '修正なし' : `${n} ラウンド`),
+    rounds: '追加ラウンド',
+    roundsHint: '検証者が変更を求めたときに、フローが停止して報告するまで追加で実行する作業＋検証ラウンドの数です。',
+    roundsValue: n => (n === 0 ? 'なし' : `${n} ラウンド`),
     runTitle: 'タスクを実行',
     taskPlaceholder: 'チームに任せるタスクとすべての要件を記述…',
     run: '新しいチャットで実行',
     runNeedsEnable: 'タスクを実行するにはオーケストレーターを有効にしてください。',
     loadFailed: 'オーケストレーターの設定を読み込めませんでした',
     saveFailed: 'オーケストレーターの設定を保存できませんでした',
-    retry: '再試行'
+    retry: '再試行',
+    balance: '自動のバランス',
+    balanceHint: '各ロールのモデルを選ぶとき、自動がコストと品質をどう両立させるかを決めます。',
+    balanceModes: {
+      economy: { label: '節約', hint: '各ロールをこなせる最も安いモデル。' },
+      balanced: { label: 'バランス', hint: 'コストに対して最良の品質。高価なモデルは明確に効果がある場合のみ。' },
+      quality: { label: '品質', hint: 'コストに関係なく、すべてのロールで最も強いモデル。' }
+    },
+    howTitle: 'ラウンドの流れ',
+    howSteps: {
+      work: '作業 — 4つのエージェントが同時に動き、ボードを共有します。計画が埋まる間にエグゼキューターが実装し、レビュアーは根拠を集めて早めに問題を指摘します。',
+      verify: '検証 — レビュアー、セキュリティと品質の検証者、プランナーが最終状態を並行して判定します。',
+      loop: '変更要求があれば、指摘を持って次のラウンドが始まり、全員が承認するまで続きます。'
+    },
+    showFlow: 'フローのサイドバーを表示',
+    flow: {
+      title: 'フロー',
+      close: 'フローのサイドバーを閉じる',
+      emptyTitle: 'フローはまだありません',
+      emptyBody: 'オーケストレーターからタスクを実行すると、エージェントの作業がここにライブで表示されます。',
+      openOrchestrator: 'オーケストレーターを開く',
+      startedTitle: 'オーケストレーターのフローを開始しました',
+      show: 'フローを表示',
+      agents: 'エージェント',
+      agentsLive: 'エージェント · ライブ',
+      timeline: 'タイムライン',
+      progress: 'フローの進捗',
+      board: 'ボード',
+      copyBoard: 'ボードのパスをコピー',
+      costTier: '価格帯',
+      sessionModel: 'チャットのモデル',
+      waiting: '待機中',
+      starting: '開始中…',
+      roundOf: (round, total) => `ラウンド ${round} / ${total}`,
+      roundLabel: round => `ラウンド ${round}`,
+      phase: { work: '作業', verify: '検証' },
+      status: {
+        running: '実行中',
+        approved: '承認済み',
+        changes_requested: '変更要求',
+        failed: '失敗',
+        interrupted: '停止'
+      },
+      stage: { running: '実行中', completed: '完了', failed: '失敗', interrupted: '停止' },
+      verdict: { approved: '承認', changes_requested: '要修正', unknown: '判定なし' }
+    }
   },
   agents: {
     close: 'エージェントを閉じる',
@@ -2211,8 +2266,10 @@ export const ja = defineLocale({
     signInFailed: 'サインインに失敗しました。再試行してください。',
     pickDifferentProvider: '別のプロバイダーを選択',
     tryAgain: '再試行',
-    autoPickupHint: '承認すると JettsTUI が自動的に完了します。待ち続ける場合は、ブラウザーのページに表示されたコードをコピーして下に貼り付けてください。',
-    noAutoPickup: 'ポート 51121 が使用中のため（多くの場合 Antigravity アプリ）、JettsTUI はサインインを自動で受け取れません。承認後、ブラウザーのページのコード、またはアドレス全体をコピーして下に貼り付けてください。',
+    autoPickupHint:
+      '承認すると JettsTUI が自動的に完了します。待ち続ける場合は、ブラウザーのページに表示されたコードをコピーして下に貼り付けてください。',
+    noAutoPickup:
+      'ポート 51121 が使用中のため（多くの場合 Antigravity アプリ）、JettsTUI はサインインを自動で受け取れません。承認後、ブラウザーのページのコード、またはアドレス全体をコピーして下に貼り付けてください。',
     signInWith: provider => `${provider} でサインイン`,
     openedBrowser: provider => `${provider} をブラウザーで開きました。`,
     authorizeThere: 'そこで JettsTUI を承認してください。',

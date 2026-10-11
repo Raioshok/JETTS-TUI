@@ -34,13 +34,14 @@ def orchestrate_tool(task: str, context: str = "") -> str:
 ORCHESTRATE_SCHEMA = {
     "name": "orchestrate",
     "description": (
-        "Run the user's multi-agent flow: a planner writes a plan, an executor "
-        "does the work, then a reviewer and a security & quality verifier check "
-        "it, looping back to the executor until they approve. Each stage runs as "
-        "a subagent on the model the user assigned to that role. Use when the "
-        "user asks to orchestrate a task or run it through the orchestrator flow. "
-        "Returns every stage's model, status and report; summarize the outcome "
-        "for the user."
+        "Run the user's multi-agent flow: a planner, an executor, a reviewer and "
+        "a security & quality verifier work on the task at the same time, each "
+        "on the model the user assigned to that role, cross-checking each other "
+        "through a shared board; then the reviewer, verifier and planner judge "
+        "the result, looping back until all approve. Use when the user asks to "
+        "orchestrate a task or run it through the orchestrator flow. Returns "
+        "every stage's model, status and report; summarize the outcome for the "
+        "user."
     ),
     "parameters": {
         "type": "object",

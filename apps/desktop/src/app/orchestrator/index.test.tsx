@@ -4,6 +4,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { notifyError } from '@/store/notifications'
+import { $flowPanelOpen } from '@/store/orchestrator-flow'
 import { $gatewayState } from '@/store/session'
 
 import type { OrchestratorConfig, OrchestratorPayload } from './flow-config'
@@ -113,6 +114,32 @@ describe('OrchestratorView', () => {
     expect(run).toHaveBeenCalledTimes(1)
     expect(run.mock.calls[0][0]).toContain('orchestrate tool')
     expect(run.mock.calls[0][0]).toContain('add a dark mode toggle')
+  })
+
+  it('saves the Auto cost/quality balance', async () => {
+    await renderView()
+
+    const economy = await screen.findByRole('button', { name: 'Economy' })
+    expect(screen.getByRole('button', { name: 'Balanced' }).getAttribute('aria-pressed')).toBe('true')
+
+    await act(async () => {
+      fireEvent.click(economy)
+    })
+
+    await waitFor(() =>
+      expect(requestGateway).toHaveBeenCalledWith('orchestrator.save', {
+        config: expect.objectContaining({ auto_balance: 'economy' })
+      })
+    )
+    expect(economy.getAttribute('aria-pressed')).toBe('true')
+  })
+
+  it('opens the flow sidebar on request', async () => {
+    $flowPanelOpen.set(false)
+    await renderView()
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Show flow sidebar' }))
+    expect($flowPanelOpen.get()).toBe(true)
   })
 
   it('rolls the choice back when the save fails', async () => {

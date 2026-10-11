@@ -2428,12 +2428,15 @@ DEFAULT_CONFIG = {
     # configured providers (OpenRouter, JettsTUI, Z.ai, Kimi, etc.) are supported.
     # Multi-model orchestrator flow (desktop Orchestrator tab). When enabled,
     # the agent gets the `orchestrate` tool: a planner, executor, reviewer and
-    # security & quality verifier each run as a subagent on their own model.
+    # security & quality verifier run concurrently as subagents, each on its
+    # own model, cross-checking each other through a shared board.
     # Empty role model = Auto (picked from your configured providers).
-    # max_review_rounds = fix rounds the executor gets after the first review.
+    # auto_balance = how Auto trades cost for quality: economy | balanced | quality.
+    # max_review_rounds = extra rounds after the first verification.
     "orchestrator": {
         "enabled": False,
         "max_review_rounds": 2,
+        "auto_balance": "balanced",
         "roles": {
             "planner": {"provider": "", "model": ""},
             "executor": {"provider": "", "model": ""},

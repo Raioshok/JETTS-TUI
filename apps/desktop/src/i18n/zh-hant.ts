@@ -679,7 +679,8 @@ export const zhHant = defineLocale({
       defaultConnection: '預設連線適用於所有沒有自訂覆寫的設定檔。',
       profileConnection: profile => `僅當「${profile}」為作用中設定檔時使用此連線。選擇「使用預設閘道」可移除其覆寫。`,
       envOverrideTitle: '環境變數正在控制此桌面工作階段。',
-      envOverrideDesc: '取消設定 JETTSTUI_DESKTOP_REMOTE_URL 和 JETTSTUI_DESKTOP_REMOTE_TOKEN 後才會使用下方儲存的設定。',
+      envOverrideDesc:
+        '取消設定 JETTSTUI_DESKTOP_REMOTE_URL 和 JETTSTUI_DESKTOP_REMOTE_TOKEN 後才會使用下方儲存的設定。',
       localTitle: '本機閘道',
       localDesc: '在 localhost 啟動私有 JettsTUI 後端。這是預設方式，可離線使用。',
       inheritTitle: '使用預設閘道',
@@ -1042,32 +1043,79 @@ export const zhHant = defineLocale({
   },
   orchestrator: {
     title: '編排器',
-    subtitle: '讓一組模型協作完成任務：一個負責規劃，一個負責實作，另外兩個獨立審查結果及其安全與品質。',
+    subtitle:
+      '讓一組模型同時協作完成任務：一個規劃，一個實作，另外兩個在工作進行中獨立檢查正確性、安全與品質，最後所有人一起驗證結果。',
     enable: '啟用編排器',
     enableHint: '在新的對話輪次中為代理提供 orchestrate 工具。預設關閉，不影響其他對話。',
     rolesTitle: '角色',
-    rolesHint: '為每個角色指定模型，或保持「自動」。自動模式從已設定的供應商中挑選，並讓審查使用與撰寫程式碼不同的模型家族。',
+    rolesHint:
+      '為每個角色指定模型，或保持「自動」。自動模式依下方的平衡設定為每個角色權衡品質與成本，並讓審查使用與撰寫程式碼不同系列的模型。',
     roles: {
-      planner: { title: '規劃者', description: '調查並撰寫分步計畫，從不修改檔案。' },
-      executor: { title: '執行者', description: '依計畫進行修改並執行檢查。' },
-      reviewer: { title: '審查者', description: '審查變更中的缺陷與遺漏的需求。' },
-      verifier: { title: '安全與品質', description: '檢查安全問題、失敗的測試與 lint，以及缺少的錯誤處理。' }
+      planner: { title: '規劃者', description: '起草執行者依據的計畫，即時完善，最後檢查每項需求是否完成。' },
+      executor: { title: '執行者', description: '依即時計畫實作，同步進度，並在審查者關注下修正問題。' },
+      reviewer: { title: '審查者', description: '收集判斷正確性所需的資訊，及時指出問題，最後評判結果。' },
+      verifier: { title: '安全與品質', description: '建立測試與 lint 基準，關注安全問題，最後對結果重新執行檢查。' }
     },
     auto: '自動',
     autoPick: model => `自動 → ${model}`,
     autoSessionModel: '自動 → 目前對話的模型',
     pinned: '已指定',
     pickModel: role => `${role}的模型`,
-    rounds: '修正輪數',
-    roundsHint: '執行者處理審查意見的最多次數，超過後流程停止並回報。',
-    roundsValue: n => (n === 0 ? '不修正' : `${n} 輪`),
+    rounds: '額外輪數',
+    roundsHint: '驗證者要求修改時，流程停止並回報前最多再執行的「工作 + 驗證」輪數。',
+    roundsValue: n => (n === 0 ? '無' : `${n} 輪`),
     runTitle: '執行任務',
     taskPlaceholder: '描述要交給團隊的任務及所有需求…',
     run: '在新對話中執行',
     runNeedsEnable: '啟用編排器後才能執行任務。',
     loadFailed: '無法載入編排器設定',
     saveFailed: '無法儲存編排器設定',
-    retry: '重試'
+    retry: '重試',
+    balance: '自動平衡',
+    balanceHint: '自動為每個角色選擇模型時，如何在成本與品質之間取捨。',
+    balanceModes: {
+      economy: { label: '經濟', hint: '仍能勝任各角色的最便宜模型。' },
+      balanced: { label: '均衡', hint: '性價比最高——只在明顯值得時使用高價模型。' },
+      quality: { label: '品質', hint: '不論成本，每個角色都用最強的模型。' }
+    },
+    howTitle: '每一輪如何進行',
+    howSteps: {
+      work: '工作——四個代理同時執行並共享看板：計畫逐步完善的同時執行者在實作，審查者收集證據並及早指出問題。',
+      verify: '驗證——審查者、安全與品質驗證者和規劃者並行評判最終結果。',
+      loop: '只要有修改要求，就帶著問題進入下一輪，直到所有人都核准。'
+    },
+    showFlow: '顯示流程側欄',
+    flow: {
+      title: '流程',
+      close: '關閉流程側欄',
+      emptyTitle: '尚無流程',
+      emptyBody: '從編排器執行任務後，可在此即時查看各代理的工作。',
+      openOrchestrator: '開啟編排器',
+      startedTitle: '編排器流程已開始',
+      show: '顯示流程',
+      agents: '代理',
+      agentsLive: '代理 · 即時',
+      timeline: '時間軸',
+      progress: '流程進度',
+      board: '看板',
+      copyBoard: '複製看板路徑',
+      costTier: '價格級距',
+      sessionModel: '對話的模型',
+      waiting: '等待中',
+      starting: '啟動中…',
+      roundOf: (round, total) => `第 ${round} / ${total} 輪`,
+      roundLabel: round => `第 ${round} 輪`,
+      phase: { work: '工作', verify: '驗證' },
+      status: {
+        running: '執行中',
+        approved: '已核准',
+        changes_requested: '需要修改',
+        failed: '失敗',
+        interrupted: '已停止'
+      },
+      stage: { running: '執行中', completed: '完成', failed: '失敗', interrupted: '已停止' },
+      verdict: { approved: '核准', changes_requested: '需修改', unknown: '無結論' }
+    }
   },
   agents: {
     close: '關閉代理',
@@ -2132,7 +2180,8 @@ export const zhHant = defineLocale({
     pickDifferentProvider: '選擇其他提供方',
     tryAgain: '重試',
     autoPickupHint: '你核准後 JettsTUI 會自動完成。如果一直在等待，請複製瀏覽器頁面上顯示的代碼並貼到下方。',
-    noAutoPickup: 'JettsTUI 無法自動接收登入：連接埠 51121 已被占用（通常是 Antigravity 應用程式）。核准後，請複製瀏覽器頁面上的代碼或完整網址，並貼到下方。',
+    noAutoPickup:
+      'JettsTUI 無法自動接收登入：連接埠 51121 已被占用（通常是 Antigravity 應用程式）。核准後，請複製瀏覽器頁面上的代碼或完整網址，並貼到下方。',
     signInWith: provider => `使用 ${provider} 登入`,
     openedBrowser: provider => `已在瀏覽器中開啟 ${provider}。`,
     authorizeThere: '請在那裡授權 JettsTUI。',

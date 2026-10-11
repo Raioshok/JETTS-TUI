@@ -38,7 +38,7 @@ import { useContributions } from '@/contrib/react/use-contributions'
 import { registry } from '@/contrib/registry'
 import { discoverRuntimePlugins } from '@/contrib/runtime-loader'
 import { sessionTitle as storedSessionTitle } from '@/lib/chat-runtime'
-import { LayoutDashboard, PanelBottom } from '@/lib/icons'
+import { LayoutDashboard, PanelBottom, Users } from '@/lib/icons'
 import { type KeybindContribution, KEYBINDS_AREA } from '@/lib/keybinds/actions'
 import { Codecs, persistentAtom } from '@/lib/persisted'
 import { pruneComposerPopoutZones } from '@/store/composer-popout'
@@ -54,6 +54,7 @@ import {
   SIDEBAR_DEFAULT_WIDTH,
   SIDEBAR_MAX_WIDTH
 } from '@/store/layout'
+import { $flowPanelOpen, setFlowPanelOpen, toggleFlowPanel } from '@/store/orchestrator-flow'
 import { $previewOpenRequest, $previewTabs, closeRightRail } from '@/store/preview'
 import { $reviewOpen, closeReview, REVIEW_PANE_ID } from '@/store/review'
 import { $currentCwd, $selectedStoredSessionId, $sessions, sessionMatchesStoredId } from '@/store/session'
@@ -69,6 +70,7 @@ import {
   watchSessionTiles,
   WorkspaceTabMenu
 } from '../chat/session-tile'
+import { FlowPanel } from '../orchestrator/flow-panel'
 import { $terminalTakeover, setTerminalTakeover } from '../right-sidebar/store'
 import { $workspaceIsPage } from '../routes'
 
@@ -230,6 +232,23 @@ registry.registerMany([
     render: () => idle(<ReviewPaneContent />)
   },
   {
+    // Orchestrator flow sidebar: live agents, phases and verdicts of the
+    // active chat's flow. Hidden until a flow starts ($flowPanelOpen flips on
+    // with the first orchestrator.run event) or ⌘K "Toggle orchestrator flow".
+    id: 'flow',
+    area: 'panes',
+    title: 'flow',
+    data: {
+      placement: 'right',
+      collapsible: true,
+      dock: { pane: 'workspace', pos: 'right' },
+      width: FILE_BROWSER_DEFAULT_WIDTH,
+      minWidth: FILE_BROWSER_MIN_WIDTH,
+      maxWidth: FILE_BROWSER_MAX_WIDTH
+    },
+    render: () => idle(<FlowPanel />)
+  },
+  {
     // Optional chrome — in NO default layout. Adoption stacks it with the
     // terminal; $logsOpen (default off, ⌘K "Toggle logs") reveals it.
     id: 'logs',
@@ -352,11 +371,12 @@ const DEFAULT_TREE = split(
         split(
           'row',
           [
+            group(['flow'], { id: 'grp-flow' }),
             group(['review'], { id: 'grp-review' }),
             group(['preview'], { id: 'grp-preview' }),
             group(['files'], { id: 'grp-files' })
           ],
-          [1, 1, 1.2],
+          [1.1, 1, 1, 1.2],
           'spl-rail'
         ),
         group(['terminal'], { id: 'grp-terminal' })
@@ -371,14 +391,18 @@ const DEFAULT_TREE = split(
 
 const FOCUS_TREE = split(
   'row',
-  [group(['sessions']), group(['workspace', 'files', 'preview', 'review', 'terminal'])],
+  [group(['sessions']), group(['workspace', 'files', 'preview', 'review', 'flow', 'terminal'])],
   [1, 4.6]
 )
 
 const TERMINAL_TREE = split(
   'column',
   [
-    split('row', [group(['sessions']), group(['workspace']), group(['files', 'preview', 'review'])], [1, 3.2, 1.2]),
+    split(
+      'row',
+      [group(['sessions']), group(['workspace']), group(['flow', 'files', 'preview', 'review'])],
+      [1, 3.2, 1.2]
+    ),
     group(['terminal'])
   ],
   [3, 1]
@@ -387,7 +411,7 @@ const TERMINAL_TREE = split(
 const QUAD_TREE = split(
   'column',
   [
-    split('row', [group(['sessions', 'files']), group(['workspace'])], [1, 3]),
+    split('row', [group(['sessions', 'files']), group(['workspace']), group(['flow'])], [1, 3, 1.1]),
     split('row', [group(['terminal']), group(['preview', 'review', 'logs'])], [1.4, 1])
   ],
   [3, 1]
@@ -590,6 +614,25 @@ const $previewVisible = computed($previewTabs, tabs => tabs.length > 0)
 
 bindPaneVisibility('preview', $previewVisible, closeRightRail)
 
+// The flow sidebar opens itself when a flow starts; Close / ⌘K hide it.
+bindPaneVisibility(
+  'flow',
+  $flowPanelOpen,
+  () => setFlowPanelOpen(false),
+  () => setFlowPanelOpen(true)
+)
+registry.register({
+  id: 'flow.toggle',
+  area: PALETTE_AREA,
+  data: {
+    id: 'flow.toggle',
+    label: 'Toggle orchestrator flow',
+    icon: Users,
+    keywords: ['orchestrator', 'flow', 'agents', 'workflow', 'planner', 'reviewer', 'sidebar'],
+    run: toggleFlowPanel
+  } satisfies PaletteContribution
+})
+
 // Logs are optional chrome: off by default, toggled from ⌘K, persisted.
 const $logsOpen = persistentAtom('jettstui.desktop.logsOpen', false, Codecs.bool)
 
@@ -648,6 +691,23 @@ const revealPreview = () => {
 // exists must still un-hide and front the pane, and closing one of two tabs
 // must not.
 $previewOpenRequest.listen(() => revealPreview())
+
+// Opening the flow sidebar (Run on the Orchestrator page, the flow toast's
+// "Show flow", ⌘K) fronts it even when its column is collapsed — un-collapsed
+// directly, like the preview, so it never drags the file tree (⌘J) along.
+$flowPanelOpen.listen(open => {
+  if (!open) {
+    return
+  }
+
+  const side = treeSideOfPane('flow')
+
+  if (side) {
+    setTreeSideCollapsed(side, false)
+  }
+
+  revealTreePane('flow')
+})
 
 // ---------------------------------------------------------------------------
 

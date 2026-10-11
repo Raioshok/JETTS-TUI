@@ -11,14 +11,25 @@ export interface OrchestratorRoleModel {
   model: string
 }
 
+/** How Auto trades cost for quality (agent/orchestrator.py BALANCE_MODES). */
+export const BALANCE_MODES = ['economy', 'balanced', 'quality'] as const
+
+export type BalanceMode = (typeof BALANCE_MODES)[number]
+
+export const DEFAULT_BALANCE: BalanceMode = 'balanced'
+
 export interface OrchestratorConfig {
   enabled: boolean
   max_review_rounds: number
+  /** Absent from configs saved before the balance setting existed. */
+  auto_balance?: BalanceMode
   roles: Record<OrchestratorRoleId, OrchestratorRoleModel>
 }
 
 export interface OrchestratorAssignment extends OrchestratorRoleModel {
   auto: boolean
+  /** '$' … '$$$$', or '' when the model's price is unknown. */
+  cost_tier?: string
   reason: string
   role: OrchestratorRoleId
 }
@@ -62,6 +73,18 @@ export function withReviewRounds(config: OrchestratorConfig, rounds: number): Or
   const clamped = Math.max(0, Math.min(MAX_REVIEW_ROUNDS, Math.round(rounds)))
 
   return { ...config, max_review_rounds: clamped }
+}
+
+export function isBalanceMode(value: unknown): value is BalanceMode {
+  return BALANCE_MODES.includes(value as BalanceMode)
+}
+
+export function balanceOf(config: OrchestratorConfig): BalanceMode {
+  return isBalanceMode(config.auto_balance) ? config.auto_balance : DEFAULT_BALANCE
+}
+
+export function withBalance(config: OrchestratorConfig, balance: BalanceMode): OrchestratorConfig {
+  return { ...config, auto_balance: balance }
 }
 
 /** The chat message that hands a task to the `orchestrate` tool. */

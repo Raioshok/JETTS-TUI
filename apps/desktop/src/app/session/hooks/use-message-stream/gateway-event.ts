@@ -27,6 +27,7 @@ import { applyGoalStatusText } from '@/store/goals'
 import { dispatchNativeNotification } from '@/store/native-notifications'
 import { notify } from '@/store/notifications'
 import { requestDesktopOnboarding, requestDesktopOnboardingForCredentialWarning } from '@/store/onboarding'
+import { $flowPanelOpen, applyFlowRunEvent, applyFlowStageEvent, setFlowPanelOpen } from '@/store/orchestrator-flow'
 import { revealDesktopPane } from '@/store/pane-focus'
 import { flashPetActivity, markPetUnread, setPetActivity } from '@/store/pet'
 import { $activeGatewayProfile, normalizeProfileKey } from '@/store/profile'
@@ -785,6 +786,28 @@ export function useGatewayEventHandler(deps: GatewayEventDeps) {
             event.type === 'subagent.spawn_requested' || event.type === 'subagent.start',
             event.type
           )
+        }
+      } else if (event.type === 'orchestrator.run' || event.type === 'orchestrator.stage') {
+        // Orchestrator flow progress (agent/orchestrator.py) — display-only,
+        // drives the Flow sidebar. Joined to live subagent rows by subagent_id.
+        if (sessionId && payload) {
+          const flowPayload = payload as Record<string, unknown>
+
+          if (event.type === 'orchestrator.run') {
+            // Offer, don't hijack: a flow the agent started surfaces as a toast
+            // with a way into the sidebar unless the sidebar is already open.
+            if (applyFlowRunEvent(sessionId, flowPayload) && !$flowPanelOpen.get()) {
+              notify({
+                id: `orchestrator-flow:${String(flowPayload.run_id)}`,
+                kind: 'info',
+                title: translateNow('orchestrator.flow.startedTitle'),
+                message: typeof flowPayload.task === 'string' ? flowPayload.task : '',
+                action: { label: translateNow('orchestrator.flow.show'), onClick: () => setFlowPanelOpen(true) }
+              })
+            }
+          } else {
+            applyFlowStageEvent(sessionId, flowPayload)
+          }
         }
       } else if (event.type === 'clarify.request') {
         // Surface the clarify tool's overlay. The Python side is blocked on

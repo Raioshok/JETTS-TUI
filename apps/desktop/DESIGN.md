@@ -46,7 +46,8 @@ one-off at the call site.
 ## Information architecture
 
 - **Chat is the home surface.** The transcript and composer stay primary; tools,
-  previews, files, review, and terminal complement the conversation.
+  previews, files, review, the orchestrator flow, and terminal complement the
+  conversation.
 - **Pages are durable destinations.** Chat, Skills, Messaging, Artifacts, and
   Orchestrator remain in shell chrome. Do not hide a distinct product noun inside an
   unrelated page.

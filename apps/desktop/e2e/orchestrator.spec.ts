@@ -2,8 +2,10 @@
  * E2E: the Orchestrator page drives a real multi-stage flow.
  *
  * Opens the page from the sidebar, enables the orchestrator (persisted to
- * config.yaml through the orchestrator.save RPC), runs a task, and checks that
- * the backend ran every stage as a subagent and the chat shows the outcome.
+ * config.yaml through the orchestrator.save RPC), picks the Auto balance, runs
+ * a task, and checks that the backend ran every role in both phases as a
+ * subagent, the Flow sidebar followed the run live, and the chat shows the
+ * outcome.
  *
  * Prerequisite: `npm run build` must have been run so dist/ exists.
  */
@@ -47,6 +49,9 @@ test('orchestrator page configures roles and runs a flow', async () => {
   const configPath = path.join(fixture!.sandbox.jettstuiHome, 'config.yaml')
   await expect.poll(() => fs.readFileSync(configPath, 'utf8')).toMatch(/orchestrator:\s*\n\s*enabled: true/)
 
+  await page.getByRole('button', { name: 'Economy' }).click()
+  await expect.poll(() => fs.readFileSync(configPath, 'utf8')).toMatch(/auto_balance: economy/)
+
   await page.getByLabel('Run a task').fill('Add a dark mode toggle')
   await page.getByRole('button', { name: 'Run in new chat' }).click()
 
@@ -60,4 +65,10 @@ test('orchestrator page configures roles and runs a flow', async () => {
     expect(prompts.some(text => text.startsWith(marker))).toBe(true)
   }
 
+  // The Flow sidebar opened with the run and settled on the verdict.
+  const flow = page.getByTestId('flow-panel')
+  await expect(flow).toBeVisible()
+  await expect(flow.getByTestId('flow-run-status')).toHaveText('Approved', { timeout: 15_000 })
+  await expect(flow.getByTestId('flow-agent')).toHaveCount(4)
+  await expect(flow.locator('[data-testid="flow-agent"][data-status="completed"]')).toHaveCount(4)
 })

@@ -4,8 +4,10 @@ import { useRef, useState } from 'react'
 
 import { PageLoader } from '@/components/page-loader'
 import { Button } from '@/components/ui/button'
+import { Codicon } from '@/components/ui/codicon'
 import { ErrorState } from '@/components/ui/error-state'
 import { FieldHint } from '@/components/ui/field'
+import { SegmentedControl } from '@/components/ui/segmented-control'
 import {
   Select,
   SelectContent,
@@ -20,6 +22,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { useI18n } from '@/i18n'
 import { requestModelOptions } from '@/lib/model-options'
 import { notifyError } from '@/store/notifications'
+import { $flowPanelOpen, setFlowPanelOpen } from '@/store/orchestrator-flow'
 import { $activeGatewayProfile } from '@/store/profile'
 import { $gatewayState } from '@/store/session'
 import type { ModelOptionProvider } from '@/types/jettstui'
@@ -28,6 +31,8 @@ import { useGatewayRequest } from '../gateway/hooks/use-gateway-request'
 
 import {
   AUTO_CHOICE,
+  BALANCE_MODES,
+  balanceOf,
   MAX_REVIEW_ROUNDS,
   orchestratePrompt,
   ORCHESTRATOR_ROLE_IDS,
@@ -36,6 +41,7 @@ import {
   type OrchestratorPayload,
   type OrchestratorRoleId,
   roleChoice,
+  withBalance,
   withReviewRounds,
   withRoleChoice
 } from './flow-config'
@@ -51,6 +57,7 @@ export function OrchestratorView(props: React.ComponentProps<'section'>) {
   const queryClient = useQueryClient()
   const gatewayState = useStore($gatewayState)
   const profile = useStore($activeGatewayProfile)
+  const flowPanelOpen = useStore($flowPanelOpen)
   const [task, setTask] = useState('')
   // Saves can overlap (quick successive picks); only the newest may publish
   // its server response, so an older reply never reverts a newer choice.
@@ -123,6 +130,7 @@ export function OrchestratorView(props: React.ComponentProps<'section'>) {
   )
 
   const canRun = Boolean(run) && config.enabled && task.trim().length > 0
+  const balance = balanceOf(config)
 
   return (
     <section
@@ -133,9 +141,18 @@ export function OrchestratorView(props: React.ComponentProps<'section'>) {
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
         <div className="mx-auto grid w-full max-w-2xl gap-8 px-6 pb-12 pt-[calc(var(--titlebar-height,34px)+1.5rem)]">
           <header className="grid gap-1.5">
-            <h1 className="text-xl font-semibold tracking-tight text-(--ui-text-primary)">{o.title}</h1>
+            <div className="flex items-center justify-between gap-4">
+              <h1 className="text-xl font-semibold tracking-tight text-(--ui-text-primary)">{o.title}</h1>
+              {!flowPanelOpen && (
+                <Button onClick={() => setFlowPanelOpen(true)} size="sm" variant="ghost">
+                  {o.showFlow}
+                </Button>
+              )}
+            </div>
             <p className="text-sm leading-5 text-(--ui-text-secondary)">{o.subtitle}</p>
           </header>
+
+          <RoundDiagram />
 
           <div className="flex items-start justify-between gap-6">
             <label className="grid gap-1" htmlFor="orchestrator-enabled">
@@ -164,6 +181,22 @@ export function OrchestratorView(props: React.ComponentProps<'section'>) {
                 />
               ))}
             </ul>
+          </section>
+
+          <section className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-start sm:gap-6">
+            <div className="grid gap-1">
+              <span className="text-sm font-medium text-(--ui-text-primary)" id="orchestrator-balance">
+                {o.balance}
+              </span>
+              <FieldHint>{o.balanceModes[balance].hint}</FieldHint>
+            </div>
+            <div aria-labelledby="orchestrator-balance" role="group">
+              <SegmentedControl
+                onChange={mode => commit(withBalance(config, mode))}
+                options={BALANCE_MODES.map(mode => ({ id: mode, label: o.balanceModes[mode].label }))}
+                value={balance}
+              />
+            </div>
           </section>
 
           <section className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_14rem] sm:items-start sm:gap-6">
@@ -202,6 +235,8 @@ export function OrchestratorView(props: React.ComponentProps<'section'>) {
               <Button
                 disabled={!canRun}
                 onClick={() => {
+                  // The user asked to run it: show the flow where it'll be watched.
+                  setFlowPanelOpen(true)
                   run?.(orchestratePrompt(task))
                   setTask('')
                 }}
@@ -238,6 +273,8 @@ function RoleRow({ assignment, choice, onChoose, providers, role }: RoleRowProps
 
   const resolved =
     choice !== AUTO_CHOICE ? o.pinned : assignment?.model ? o.autoPick(assignment.model) : o.autoSessionModel
+
+  const costTier = assignment?.cost_tier
 
   return (
     <li className="grid gap-2 py-3 sm:grid-cols-[minmax(0,1fr)_14rem] sm:items-start sm:gap-6">
@@ -276,12 +313,43 @@ function RoleRow({ assignment, choice, onChoose, providers, role }: RoleRowProps
           </SelectContent>
         </Select>
         <p
-          className="truncate text-[0.66rem] leading-4 text-(--ui-text-tertiary)"
+          className="flex min-w-0 items-center gap-1.5 text-[0.66rem] leading-4 text-(--ui-text-tertiary)"
           title={choice === AUTO_CHOICE ? assignment?.reason : undefined}
         >
-          {resolved}
+          <span className="min-w-0 truncate">{resolved}</span>
+          {costTier && (
+            <span className="shrink-0 text-(--ui-text-quaternary)" title={o.flow.costTier}>
+              {costTier}
+            </span>
+          )}
         </p>
       </div>
     </li>
+  )
+}
+
+/** The concurrent round at a glance: everyone works, everyone verifies, loop. */
+function RoundDiagram() {
+  const { t } = useI18n()
+  const o = t.orchestrator
+
+  const steps = [
+    { key: 'work', icon: 'organization', text: o.howSteps.work },
+    { key: 'verify', icon: 'verified', text: o.howSteps.verify },
+    { key: 'loop', icon: 'sync', text: o.howSteps.loop }
+  ] as const
+
+  return (
+    <section aria-label={o.howTitle} className="grid gap-2 rounded-lg bg-(--ui-bg-tertiary)/50 px-4 py-3">
+      <h2 className="text-xs font-semibold uppercase tracking-[0.06em] text-(--ui-text-tertiary)">{o.howTitle}</h2>
+      <ol className="grid gap-2">
+        {steps.map(step => (
+          <li className="flex items-start gap-2.5" key={step.key}>
+            <Codicon className="mt-0.5 shrink-0 text-(--ui-text-tertiary)" name={step.icon} size="0.875rem" />
+            <span className="text-xs leading-5 text-(--ui-text-secondary)">{step.text}</span>
+          </li>
+        ))}
+      </ol>
+    </section>
   )
 }
