@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { clearAllPrompts, setApprovalRequest } from '@/store/prompts'
 import { $activeSessionId } from '@/store/session'
 import { clearDismissedToolRows } from '@/store/tool-dismiss'
-import { $toolDisclosureStates } from '@/store/tool-view'
+import { $toolDisclosureStates, setToolDisclosureOpen } from '@/store/tool-view'
 
 import { Thread } from '../thread'
 
@@ -522,6 +522,35 @@ describe('live tool run', () => {
     expect(await screen.findByText('Running 2 commands')).toBeTruthy()
     expect(container.querySelector('[data-tool-ticker]')).not.toBeNull()
     expect(container.querySelector('[data-tool-summary] button[aria-expanded]')).toBeNull()
+  })
+})
+
+// Regression: a row opened earlier (or clicked inside the ticker) rendered its
+// bordered card and detail inside the one-line ticker window, which clipped it
+// into a garbled sliver mid-run. Inside the ticker a row is always its line.
+describe('live tool run ticker', () => {
+  it('shows rows collapsed and non-interactive even when they were opened', async () => {
+    setToolDisclosureOpen('tool-entry:assistant-between-calls:tool:term-a', true)
+    setToolDisclosureOpen('tool-entry:assistant-between-calls:tool:term-b', true)
+
+    const { container } = render(<GroupHarness message={betweenSequentialCallsMessage()} />)
+
+    await waitFor(() => expect(container.querySelector('[data-tool-ticker] [data-tool-row]')).not.toBeNull())
+    const ticker = container.querySelector('[data-tool-ticker]')!
+
+    expect(ticker.querySelector('[data-tool-open]')).toBeNull()
+    expect(ticker.querySelector('button[aria-expanded]')).toBeNull()
+    expect([...ticker.querySelectorAll('.tool-ticker__row')].every(row => row.hasAttribute('inert'))).toBe(true)
+  })
+
+  it('keeps the row open state for when the run lists in full', async () => {
+    setToolDisclosureOpen('tool-run:read-3', true)
+    setToolDisclosureOpen('tool-entry:assistant-abandoned-run:tool:read-3', true)
+
+    const { container } = render(<GroupHarness message={abandonedRunMessage()} />)
+
+    await waitFor(() => expect(container.querySelector('[data-tool-open]')).not.toBeNull())
+    expect(container.querySelector('[data-tool-ticker]')).toBeNull()
   })
 })
 
