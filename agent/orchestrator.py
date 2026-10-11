@@ -565,14 +565,26 @@ def _run_reviews(
         return [_to_stage(r, rnd, assigned[r], futures[r].result()) for r in roles]
 
 
+# Earlier rounds were already fed back to the executor; the report only needs
+# their gist, keeping the tool result bounded however many rounds ran.
+_SUPERSEDED_SUMMARY_CHARS = 600
+
+
 def _report(verdict: str, stages: List[StageResult], assigned: Dict[str, Assignment], note: str) -> dict:
+    last_round = max((s.round for s in stages), default=0)
+    out = []
+    for stage in stages:
+        d = stage.to_dict()
+        if 0 < stage.round < last_round:
+            d["summary"] = _clip(stage.summary, _SUPERSEDED_SUMMARY_CHARS)
+        out.append(d)
     return {
         "success": verdict == "approved",
         "verdict": verdict,
         "note": note,
         "rounds": max((s.round for s in stages if s.role == "executor"), default=0),
         "models": {r: a.to_dict() for r, a in assigned.items()},
-        "stages": [s.to_dict() for s in stages],
+        "stages": out,
     }
 
 

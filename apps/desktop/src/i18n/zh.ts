@@ -1265,6 +1265,36 @@ export const zh: Translations = {
     importedBadge: '导入的图谱',
     resetToMine: '返回我的图谱'
   },
+  orchestrator: {
+    title: '编排器',
+    subtitle: '让一组模型协作完成任务：一个负责规划，一个负责实现，另外两个独立审查结果及其安全与质量。',
+    enable: '启用编排器',
+    enableHint: '在新的对话轮次中为智能体提供 orchestrate 工具。默认关闭，不影响其他对话。',
+    rolesTitle: '角色',
+    rolesHint:
+      '为每个角色指定模型，或保持“自动”。自动模式从已配置的提供商中选择，并让审查使用与编写代码不同的模型家族。',
+    roles: {
+      planner: { title: '规划者', description: '调查并编写分步计划，从不修改文件。' },
+      executor: { title: '执行者', description: '按计划进行修改并运行检查。' },
+      reviewer: { title: '审查者', description: '审查改动中的缺陷和遗漏的需求。' },
+      verifier: { title: '安全与质量', description: '检查安全问题、失败的测试和 lint，以及缺失的错误处理。' }
+    },
+    auto: '自动',
+    autoPick: model => `自动 → ${model}`,
+    autoSessionModel: '自动 → 当前对话的模型',
+    pinned: '已指定',
+    pickModel: role => `${role}的模型`,
+    rounds: '修复轮数',
+    roundsHint: '执行者处理审查意见的最多次数，超过后流程停止并汇报。',
+    roundsValue: n => (n === 0 ? '不修复' : `${n} 轮`),
+    runTitle: '运行任务',
+    taskPlaceholder: '描述要交给团队的任务及全部要求…',
+    run: '在新对话中运行',
+    runNeedsEnable: '启用编排器后才能运行任务。',
+    loadFailed: '无法加载编排器设置',
+    saveFailed: '无法保存编排器设置',
+    retry: '重试'
+  },
   agents: {
     close: '关闭代理',
     title: '派生树',
@@ -1959,7 +1989,8 @@ export const zh: Translations = {
       'new-session': '新建会话',
       skills: '技能与工具',
       messaging: '消息平台',
-      artifacts: '产物'
+      artifacts: '产物',
+      orchestrator: '编排器'
     },
     searchAria: '搜索会话',
     searchPlaceholder: '搜索会话…',

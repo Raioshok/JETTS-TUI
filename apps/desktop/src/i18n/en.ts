@@ -1068,6 +1068,40 @@ export const en: Translations = {
     importedBadge: 'imported map',
     resetToMine: 'Back to my map'
   },
+  orchestrator: {
+    title: 'Orchestrator',
+    subtitle:
+      'Run a task through a team of models: one plans, one builds, and two independent reviewers check the result and its security & quality.',
+    enable: 'Enable orchestrator',
+    enableHint: 'Gives the agent the orchestrate tool in new turns. Off by default so it adds nothing to other chats.',
+    rolesTitle: 'Roles',
+    rolesHint:
+      'Pin a model per role or leave it on Auto. Auto picks from your configured providers and prefers a different model family for review than the one that wrote the code.',
+    roles: {
+      planner: { title: 'Planner', description: 'Investigates and writes a step-by-step plan. Never edits files.' },
+      executor: { title: 'Executor', description: 'Follows the plan, makes the changes and runs the checks.' },
+      reviewer: { title: 'Reviewer', description: 'Reviews the changes for bugs and missed requirements.' },
+      verifier: {
+        title: 'Security & quality',
+        description: 'Checks for security problems, failing tests and lint, and missing error handling.'
+      }
+    },
+    auto: 'Auto',
+    autoPick: model => `Auto → ${model}`,
+    autoSessionModel: "Auto → the chat's current model",
+    pinned: 'Pinned',
+    pickModel: role => `Model for ${role}`,
+    rounds: 'Fix rounds',
+    roundsHint: 'How many times the executor may address review findings before the flow stops and reports.',
+    roundsValue: n => (n === 0 ? 'No fix rounds' : n === 1 ? '1 round' : `${n} rounds`),
+    runTitle: 'Run a task',
+    taskPlaceholder: 'Describe the task for the team, with every requirement…',
+    run: 'Run in new chat',
+    runNeedsEnable: 'Enable the orchestrator to run a task.',
+    loadFailed: 'Could not load the orchestrator settings',
+    saveFailed: 'Could not save the orchestrator settings',
+    retry: 'Retry'
+  },
   agents: {
     close: 'Close agents',
     title: 'Spawn tree',
@@ -1765,7 +1799,8 @@ export const en: Translations = {
       'new-session': 'New session',
       skills: 'Capabilities',
       messaging: 'Messaging',
-      artifacts: 'Artifacts'
+      artifacts: 'Artifacts',
+      orchestrator: 'Orchestrator'
     },
     searchAria: 'Search sessions',
     searchPlaceholder: 'Search sessions…',

@@ -18,6 +18,7 @@ export const CRON_ROUTE = '/cron'
 export const PROFILES_ROUTE = '/profiles'
 export const AGENTS_ROUTE = '/agents'
 export const STARMAP_ROUTE = '/starmap'
+export const ORCHESTRATOR_ROUTE = '/orchestrator'
 
 export type AppView =
   | 'agents'
@@ -31,6 +32,7 @@ export type AppView =
   // session-title dropdown while a plugin page was showing.
   | 'extension'
   | 'messaging'
+  | 'orchestrator'
   | 'profiles'
   | 'settings'
   | 'skills'
@@ -44,6 +46,7 @@ export type AppRouteId =
   | 'cron'
   | 'messaging'
   | 'new'
+  | 'orchestrator'
   | 'profiles'
   | 'settings'
   | 'skills'
@@ -64,6 +67,7 @@ export const APP_ROUTES = [
   { id: 'messaging', path: MESSAGING_ROUTE, view: 'messaging' },
   { id: 'webhooks', path: WEBHOOKS_ROUTE, view: 'webhooks' },
   { id: 'artifacts', path: ARTIFACTS_ROUTE, view: 'artifacts' },
+  { id: 'orchestrator', path: ORCHESTRATOR_ROUTE, view: 'orchestrator' },
   { id: 'cron', path: CRON_ROUTE, view: 'cron' },
   { id: 'profiles', path: PROFILES_ROUTE, view: 'profiles' },
   { id: 'agents', path: AGENTS_ROUTE, view: 'agents' },

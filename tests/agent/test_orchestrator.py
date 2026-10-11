@@ -127,6 +127,22 @@ class TestRunFlow:
         assert "fix bug-1" in second_exec_goal
         assert "1. do the thing" in second_exec_goal  # plan carried forward
 
+    def test_report_stays_bounded_across_rounds(self):
+        long = "x" * 20000
+
+        def runner(parent, assignment, goal):
+            if assignment.role in ("reviewer", "verifier"):
+                return {"status": "completed", "summary": long + "\nVERDICT: CHANGES_REQUESTED"}
+            return {"status": "completed", "summary": long}
+
+        report = orch.run_flow(object(), "task", config=_conf(rounds=4), assignments=_assign(), runner=runner)
+        assert report["rounds"] == 5
+        last = max(s["round"] for s in report["stages"])
+        for stage in report["stages"]:
+            limit = orch._STAGE_SUMMARY_CHARS if stage["round"] in (0, last) else orch._SUPERSEDED_SUMMARY_CHARS
+            assert len(stage["summary"]) <= limit + 64
+        assert len(json.dumps(report)) < 60_000
+
     def test_rounds_are_bounded(self):
         runner = _ScriptedRunner(reject_rounds=99)
         report = orch.run_flow(object(), "task", config=_conf(rounds=1), assignments=_assign(), runner=runner)

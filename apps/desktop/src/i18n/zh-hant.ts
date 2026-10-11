@@ -1040,6 +1040,35 @@ export const zhHant = defineLocale({
     emptyTitle: '尚無學習內容',
     emptyDesc: '當 JettsTUI 為你的工作建立技能與記憶時，會顯示在這裡。'
   },
+  orchestrator: {
+    title: '編排器',
+    subtitle: '讓一組模型協作完成任務：一個負責規劃，一個負責實作，另外兩個獨立審查結果及其安全與品質。',
+    enable: '啟用編排器',
+    enableHint: '在新的對話輪次中為代理提供 orchestrate 工具。預設關閉，不影響其他對話。',
+    rolesTitle: '角色',
+    rolesHint: '為每個角色指定模型，或保持「自動」。自動模式從已設定的供應商中挑選，並讓審查使用與撰寫程式碼不同的模型家族。',
+    roles: {
+      planner: { title: '規劃者', description: '調查並撰寫分步計畫，從不修改檔案。' },
+      executor: { title: '執行者', description: '依計畫進行修改並執行檢查。' },
+      reviewer: { title: '審查者', description: '審查變更中的缺陷與遺漏的需求。' },
+      verifier: { title: '安全與品質', description: '檢查安全問題、失敗的測試與 lint，以及缺少的錯誤處理。' }
+    },
+    auto: '自動',
+    autoPick: model => `自動 → ${model}`,
+    autoSessionModel: '自動 → 目前對話的模型',
+    pinned: '已指定',
+    pickModel: role => `${role}的模型`,
+    rounds: '修正輪數',
+    roundsHint: '執行者處理審查意見的最多次數，超過後流程停止並回報。',
+    roundsValue: n => (n === 0 ? '不修正' : `${n} 輪`),
+    runTitle: '執行任務',
+    taskPlaceholder: '描述要交給團隊的任務及所有需求…',
+    run: '在新對話中執行',
+    runNeedsEnable: '啟用編排器後才能執行任務。',
+    loadFailed: '無法載入編排器設定',
+    saveFailed: '無法儲存編排器設定',
+    retry: '重試'
+  },
   agents: {
     close: '關閉代理',
     title: '派生樹',
@@ -1612,7 +1641,8 @@ export const zhHant = defineLocale({
       'new-session': '新工作階段',
       skills: '技能與工具',
       messaging: '訊息平台',
-      artifacts: '成品'
+      artifacts: '成品',
+      orchestrator: '編排器'
     },
     searchAria: '搜尋工作階段',
     searchPlaceholder: '搜尋工作階段…',

@@ -319,6 +319,44 @@ function includesBlockingClarifyTrigger(value: unknown): boolean {
   return false
 }
 
+// ─── Orchestrator flow script ───────────────────────────────────────────
+//
+// The Orchestrator page sends a prompt asking the agent to use the
+// `orchestrate` tool. The main turn calls it; each stage then runs as a
+// subagent whose first user message starts with its role marker, so the
+// reply is chosen per stage (stateless — stages may run concurrently).
+export const ORCHESTRATOR_TRIGGER = 'orchestrator flow with the orchestrate tool'
+export const ORCHESTRATOR_DONE = 'Orchestrated: all reviewers approved.'
+export const ORCHESTRATOR_STAGE_MARKERS = ['[Planner]', '[Executor]', '[Reviewer]', '[Security & quality]'] as const
+
+function orchestratorTurn(messages: any[]): ScriptedTurn | null {
+  const userTexts = messages
+    .filter(m => m?.role === 'user' && typeof m.content === 'string')
+    .map(m => m.content as string)
+
+  const first = userTexts[0] ?? ''
+
+  if (first.startsWith('[Planner]')) {
+    return { text: '1. Write the change.\n2. Verify it.' }
+  }
+
+  if (first.startsWith('[Executor]')) {
+    return { text: 'Made the change and verified it.' }
+  }
+
+  if (first.startsWith('[Reviewer]') || first.startsWith('[Security & quality]')) {
+    return { text: 'No problems found.\nVERDICT: APPROVED' }
+  }
+
+  if (!userTexts.some(text => text.includes(ORCHESTRATOR_TRIGGER))) {
+    return null
+  }
+
+  return messages.some(m => m?.role === 'tool')
+    ? { text: ORCHESTRATOR_DONE }
+    : { text: '', toolCalls: [{ name: 'orchestrate', args: { task: 'E2E orchestrated task' } }] }
+}
+
 /**
  * Start the mock server on an ephemeral port.
  *
@@ -433,6 +471,18 @@ export function startMockServer(options: MockServerOptions = {}): Promise<MockSe
           const isCorrectionSwitchTrigger = messages.some(
             message => typeof message?.content === 'string' && message.content.includes(CORRECTION_SWITCH_TRIGGER),
           )
+
+          const orchestrated = orchestratorTurn(messages)
+
+          if (orchestrated) {
+            if (stream) {
+              streamScriptedTurn(res, model, orchestrated)
+            } else {
+              nonStreamingScriptedTurn(res, model, orchestrated)
+            }
+
+            return
+          }
 
           if (includesBlockingClarifyTrigger(parsed.messages)) {
             if (stream) {

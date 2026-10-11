@@ -75,6 +75,7 @@ import {
   MESSAGING_ROUTE,
   navigateToWorkspacePage,
   NEW_CHAT_ROUTE,
+  ORCHESTRATOR_ROUTE,
   PROFILES_ROUTE,
   SETTINGS_ROUTE,
   SKILLS_ROUTE,
@@ -498,6 +499,13 @@ export function CommandPalette() {
             id: 'nav-artifacts',
             label: cc.nav.artifacts.title,
             run: go(ARTIFACTS_ROUTE)
+          },
+          {
+            icon: GitBranch,
+            id: 'nav-orchestrator',
+            keywords: ['orchestrator', 'flow', 'team', 'review', 'planner', 'multi-agent', 'models'],
+            label: t.orchestrator.title,
+            run: go(ORCHESTRATOR_ROUTE)
           },
           {
             action: 'nav.cron',

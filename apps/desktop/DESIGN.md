@@ -47,8 +47,8 @@ one-off at the call site.
 
 - **Chat is the home surface.** The transcript and composer stay primary; tools,
   previews, files, review, and terminal complement the conversation.
-- **Pages are durable destinations.** Chat, Skills, Messaging, and Artifacts
-  remain in shell chrome. Do not hide a distinct product noun inside an
+- **Pages are durable destinations.** Chat, Skills, Messaging, Artifacts, and
+  Orchestrator remain in shell chrome. Do not hide a distinct product noun inside an
   unrelated page.
 - **Route overlays are short tasks.** Settings, Command Center, Cron, Profiles,
   Agents, and Starmap render as `OverlayView` cards and return to the previous

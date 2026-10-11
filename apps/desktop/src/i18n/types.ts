@@ -938,6 +938,30 @@ export interface Translations {
     importedBadge: string
     resetToMine: string
   }
+  orchestrator: {
+    title: string
+    subtitle: string
+    enable: string
+    enableHint: string
+    rolesTitle: string
+    rolesHint: string
+    roles: Record<'planner' | 'executor' | 'reviewer' | 'verifier', { title: string; description: string }>
+    auto: string
+    autoPick: (model: string) => string
+    autoSessionModel: string
+    pinned: string
+    pickModel: (role: string) => string
+    rounds: string
+    roundsHint: string
+    roundsValue: (n: number) => string
+    runTitle: string
+    taskPlaceholder: string
+    run: string
+    runNeedsEnable: string
+    loadFailed: string
+    saveFailed: string
+    retry: string
+  }
   agents: {
     close: string
     title: string

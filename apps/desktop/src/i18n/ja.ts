@@ -1072,6 +1072,40 @@ export const ja = defineLocale({
     emptyTitle: 'まだ学習はありません',
     emptyDesc: 'JettsTUI がスキルやメモリを蓄積すると、ここに表示されます。'
   },
+  orchestrator: {
+    title: 'オーケストレーター',
+    subtitle:
+      'モデルのチームでタスクを実行します。1つが計画し、1つが実装し、2つの独立したレビュアーが結果とそのセキュリティと品質を確認します。',
+    enable: 'オーケストレーターを有効にする',
+    enableHint: '新しいターンでエージェントに orchestrate ツールを提供します。既定ではオフで、他のチャットには影響しません。',
+    rolesTitle: 'ロール',
+    rolesHint:
+      'ロールごとにモデルを指定するか、自動のままにします。自動は設定済みのプロバイダーから選び、レビューにはコードを書いたモデルとは別のモデルファミリーを優先します。',
+    roles: {
+      planner: { title: 'プランナー', description: '調査して段階的な計画を書きます。ファイルは編集しません。' },
+      executor: { title: 'エグゼキューター', description: '計画に従って変更を行い、チェックを実行します。' },
+      reviewer: { title: 'レビュアー', description: 'バグや見落とされた要件がないか変更をレビューします。' },
+      verifier: {
+        title: 'セキュリティと品質',
+        description: 'セキュリティ上の問題、失敗するテストや lint、不足しているエラー処理を確認します。'
+      }
+    },
+    auto: '自動',
+    autoPick: model => `自動 → ${model}`,
+    autoSessionModel: '自動 → チャットの現在のモデル',
+    pinned: '指定済み',
+    pickModel: role => `${role}のモデル`,
+    rounds: '修正ラウンド',
+    roundsHint: 'フローが停止して報告するまでに、エグゼキューターがレビュー指摘に対応できる回数です。',
+    roundsValue: n => (n === 0 ? '修正なし' : `${n} ラウンド`),
+    runTitle: 'タスクを実行',
+    taskPlaceholder: 'チームに任せるタスクとすべての要件を記述…',
+    run: '新しいチャットで実行',
+    runNeedsEnable: 'タスクを実行するにはオーケストレーターを有効にしてください。',
+    loadFailed: 'オーケストレーターの設定を読み込めませんでした',
+    saveFailed: 'オーケストレーターの設定を保存できませんでした',
+    retry: '再試行'
+  },
   agents: {
     close: 'エージェントを閉じる',
     title: 'スポーンツリー',
@@ -1665,7 +1699,8 @@ export const ja = defineLocale({
       'new-session': '新しいセッション',
       skills: 'スキルとツール',
       messaging: 'メッセージング',
-      artifacts: 'アーティファクト'
+      artifacts: 'アーティファクト',
+      orchestrator: 'オーケストレーター'
     },
     searchAria: 'セッションを検索',
     searchPlaceholder: 'セッションを検索…',
