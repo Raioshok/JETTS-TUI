@@ -2,6 +2,7 @@ import { useStore } from '@nanostores/react'
 import { useEffect, useRef, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 
+import { TITLEBAR_HEIGHT } from '@/app/shell/titlebar'
 import { Tip } from '@/components/ui/tooltip'
 import { useI18n } from '@/i18n'
 import { findBarKeyAction, formatMatchLabel } from '@/lib/find-in-page'
@@ -159,10 +160,14 @@ export function FindBar() {
   return (
     <div
       className={cn(
-        'pointer-events-auto fixed right-4 top-[calc(var(--titlebar-height,0px)+0.5rem)] z-50',
+        'pointer-events-auto fixed right-4 z-50',
         'flex items-center gap-1 rounded-lg border border-(--ui-stroke-tertiary) bg-(--ui-surface-background) px-2 py-1 shadow-md'
       )}
       role="search"
+      // The bar mounts at the app root, outside every scope that sets
+      // --titlebar-height, so anchor it below the titlebar directly — the
+      // old var(..., 0px) fallback parked it on top of the window controls.
+      style={{ top: `calc(${TITLEBAR_HEIGHT}px + 0.5rem)` }}
     >
       <input
         aria-label={t.keybinds.actions['view.findInPage'] ?? 'Find in page'}

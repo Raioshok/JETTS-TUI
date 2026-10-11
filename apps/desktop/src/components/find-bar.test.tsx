@@ -2,6 +2,7 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { MemoryRouter, useNavigate } from 'react-router-dom'
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { TITLEBAR_HEIGHT } from '@/app/shell/titlebar'
 import { FindBar } from '@/components/find-bar'
 import { I18nProvider } from '@/i18n'
 import { en } from '@/i18n/en'
@@ -397,6 +398,15 @@ function renderFindBarWithNavigation(initialPath = '/session/a') {
 }
 
 describe('FindBar', () => {
+  it('sits below the titlebar even without a --titlebar-height scope', () => {
+    renderFindBar()
+    actStore(() => openFindBar())
+
+    const top = screen.getByRole('search').style.top
+
+    expect(top).toContain(`${TITLEBAR_HEIGHT}px`)
+  })
+
   it('renders nothing while closed', () => {
     renderFindBar()
 
