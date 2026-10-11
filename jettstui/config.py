@@ -2426,6 +2426,21 @@ DEFAULT_CONFIG = {
     # so child agents can run on a different (cheaper/faster) provider and model.
     # Uses the same runtime provider resolution as CLI/gateway startup, so all
     # configured providers (OpenRouter, JettsTUI, Z.ai, Kimi, etc.) are supported.
+    # Multi-model orchestrator flow (desktop Orchestrator tab). When enabled,
+    # the agent gets the `orchestrate` tool: a planner, executor, reviewer and
+    # security & quality verifier each run as a subagent on their own model.
+    # Empty role model = Auto (picked from your configured providers).
+    # max_review_rounds = fix rounds the executor gets after the first review.
+    "orchestrator": {
+        "enabled": False,
+        "max_review_rounds": 2,
+        "roles": {
+            "planner": {"provider": "", "model": ""},
+            "executor": {"provider": "", "model": ""},
+            "reviewer": {"provider": "", "model": ""},
+            "verifier": {"provider": "", "model": ""},
+        },
+    },
     "delegation": {
         "model": "",       # e.g. "google/gemini-3-flash-preview" (empty = inherit parent model)
         "provider": "",    # e.g. "openrouter" (empty = inherit parent provider + credentials)

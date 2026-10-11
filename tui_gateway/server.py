@@ -16286,6 +16286,54 @@ def _(rid, params: dict) -> dict:
         return _err(rid, 5033, str(e))
 
 
+def _orchestrator_payload(conf: dict) -> dict:
+    from agent.orchestrator import ROLES, resolve_assignments
+
+    assignments = resolve_assignments(conf)
+    return {
+        "config": conf,
+        "roles": [{"id": r.id, "title": r.title} for r in ROLES],
+        "assignments": {rid: a.to_dict() for rid, a in assignments.items()},
+    }
+
+
+@method("orchestrator.get")
+def _(rid, params: dict) -> dict:
+    """Orchestrator config plus the model each role resolves to (Auto included)."""
+    try:
+        from agent.orchestrator import normalize_config
+
+        return _ok(rid, _orchestrator_payload(normalize_config(_load_cfg().get("orchestrator"))))
+    except Exception as e:
+        return _err(rid, 5034, str(e))
+
+
+@method("orchestrator.save")
+def _(rid, params: dict) -> dict:
+    """Persist the orchestrator section (validated) and return the new resolution."""
+    try:
+        from agent.orchestrator import normalize_config
+        from jettstui.config import is_managed
+
+        if is_managed():
+            return _err(rid, 4006, "managed install — config is read-only")
+        incoming = params.get("config")
+        if not isinstance(incoming, dict):
+            return _err(rid, 4001, "config object required")
+        conf = normalize_config(incoming)
+        cfg = _load_cfg()
+        cfg["orchestrator"] = conf
+        _save_cfg(cfg)
+        # The orchestrate tool is gated on orchestrator.enabled; drop cached
+        # check_fn results so the toggle takes effect on the next turn.
+        from tools.registry import invalidate_check_fn_cache
+
+        invalidate_check_fn_cache()
+        return _ok(rid, _orchestrator_payload(conf))
+    except Exception as e:
+        return _err(rid, 5035, str(e))
+
+
 @method("model.save_key")
 def _(rid, params: dict) -> dict:
     """Save an API key for a provider, then return its refreshed model list.

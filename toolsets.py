@@ -63,6 +63,10 @@ _JETTSTUI_CORE_TOOLS = [
     "clarify",
     # Code execution + delegation
     "execute_code", "delegate_task",
+    # Multi-model orchestrator flow (plan → execute → review + verify). Only in
+    # schema when orchestrator.enabled is true (check_fn in
+    # tools/orchestrator_tool.py), set from the desktop Orchestrator tab.
+    "orchestrate",
     # Cronjob management
     "cronjob",
     # Home Assistant smart home control (gated on HASS_TOKEN via check_fn)
@@ -248,6 +252,12 @@ TOOLSETS = {
     "delegation": {
         "description": "Spawn subagents with isolated context for complex subtasks",
         "tools": ["delegate_task"],
+        "includes": []
+    },
+
+    "orchestrator": {
+        "description": "Run the multi-model plan → execute → review flow (enable in config: orchestrator.enabled)",
+        "tools": ["orchestrate"],
         "includes": []
     },
 
