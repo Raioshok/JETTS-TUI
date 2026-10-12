@@ -1154,6 +1154,48 @@ class TestRenameProfile:
         with pytest.raises(FileExistsError):
             rename_profile("alpha", "beta")
 
+    def test_stops_profile_backends_before_moving_the_directory(self, profile_env):
+        """A Desktop-spawned backend holds the profile's files open; on Windows
+        the directory can't be renamed until it's stopped (WinError 5)."""
+        create_profile("busy", no_alias=True)
+        calls = []
+        with patch("jettstui.profiles.check_alias_collision", return_value="skip"), patch(
+            "jettstui.profiles._stop_profile_backends", side_effect=lambda canon, d: calls.append((canon, d.name, d.is_dir()))
+        ):
+            rename_profile("busy", "free")
+        # Stopped while the directory still had its old name.
+        assert calls == [("busy", "busy", True)]
+
+    def test_retries_a_transient_lock_then_succeeds(self, profile_env, monkeypatch):
+        create_profile("locked", no_alias=True)
+        real_rename = Path.rename
+        attempts = []
+
+        def flaky_rename(self, target):
+            attempts.append(1)
+            if len(attempts) < 3:
+                raise PermissionError(5, "Access is denied")
+            return real_rename(self, target)
+
+        monkeypatch.setattr(Path, "rename", flaky_rename)
+        monkeypatch.setattr("jettstui.profiles.time.sleep", lambda _s: None)
+        with patch("jettstui.profiles.check_alias_collision", return_value="skip"), patch(
+            "jettstui.profiles._stop_profile_backends"
+        ):
+            new_dir = rename_profile("locked", "unlocked")
+        assert new_dir.is_dir() and len(attempts) == 3
+
+    def test_a_lasting_lock_says_what_to_do(self, profile_env, monkeypatch):
+        create_profile("stuck", no_alias=True)
+
+        def always_locked(self, target):
+            raise PermissionError(5, "Access is denied")
+
+        monkeypatch.setattr(Path, "rename", always_locked)
+        monkeypatch.setattr("jettstui.profiles.time.sleep", lambda _s: None)
+        with patch("jettstui.profiles._stop_profile_backends"), pytest.raises(PermissionError, match="still in use"):
+            rename_profile("stuck", "moved")
+
 
 # ===================================================================
 # TestExportImport

@@ -1103,6 +1103,31 @@ class TestDelegateObservability(unittest.TestCase):
             result = json.loads(delegate_task(goal="Test no reply", parent_agent=parent))
             self.assertEqual(result["results"][0]["status"], "failed")
 
+    def test_turn_that_gave_up_marks_status_failed(self):
+        """A child whose API retries ran out returns failed=True with the
+        error notice as final_response; it must not read as completed (the
+        orchestrator would treat the notice as the stage's work)."""
+        parent = _make_mock_parent(depth=0)
+
+        with patch("run_agent.AIAgent") as MockAgent:
+            mock_child = MagicMock()
+            mock_child.model = "m"
+            mock_child.session_prompt_tokens = 0
+            mock_child.session_completion_tokens = 0
+            mock_child.run_conversation.return_value = {
+                "final_response": "API call failed after 3 retries: HTTP 404 — Error 404 (Not Found)!!1",
+                "completed": False,
+                "failed": True,
+                "error": "HTTP 404",
+                "interrupted": False,
+                "api_calls": 3,
+                "messages": [],
+            }
+            MockAgent.return_value = mock_child
+
+            result = json.loads(delegate_task(goal="Test api failure", parent_agent=parent))
+            self.assertEqual(result["results"][0]["status"], "failed")
+
     def test_children_of_a_persistence_isolated_parent_stay_isolated(self):
         """A hidden (never stored) parent's children must not write sessions
         parented to it — that violates the session store's foreign key."""

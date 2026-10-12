@@ -25,13 +25,14 @@ import {
   renameProfile,
   updateProfileSoul
 } from '@/jettstui'
+import { errorText } from '@/lib/error-text'
 import { AlertTriangle, Save } from '@/lib/icons'
 import { profileColorSoft, resolveProfileColor } from '@/lib/profile-color'
 import { slug } from '@/lib/sanitize'
 import { normalize } from '@/lib/text'
 import { cn } from '@/lib/utils'
 import { notify, notifyError } from '@/store/notifications'
-import { $profileColors, refreshProfiles } from '@/store/profile'
+import { $profileColors, $profiles, prepareProfileFollow, refreshProfiles } from '@/store/profile'
 
 import { useRefreshHotkey } from '../hooks/use-refresh-hotkey'
 import {
@@ -62,7 +63,13 @@ interface ProfilesViewProps {
 export function ProfilesView({ onClose }: ProfilesViewProps) {
   const { t } = useI18n()
   const p = t.profiles
-  const [profiles, setProfiles] = useState<null | ProfileInfo[]>(null)
+  // The shared list is the single truth: the sidebar rail renames/creates
+  // profiles too, and a panel-local copy went stale (showed the old name) when
+  // that happened while the panel was open. `loaded` keeps the first-load
+  // spinner until this panel's own refresh lands.
+  const sharedProfiles = useStore($profiles)
+  const [loaded, setLoaded] = useState(false)
+  const profiles: null | ProfileInfo[] = loaded || sharedProfiles.length > 0 ? sharedProfiles : null
   const [selectedName, setSelectedName] = useState<null | string>(null)
   const [query, setQuery] = useState('')
   const [createOpen, setCreateOpen] = useState(false)
@@ -73,7 +80,7 @@ export function ProfilesView({ onClose }: ProfilesViewProps) {
   const refresh = useCallback(async () => {
     try {
       const list = await refreshProfiles()
-      setProfiles(list)
+      setLoaded(true)
       setSelectedName(current => {
         if (current && list.some(p => p.name === current)) {
           return current
@@ -121,7 +128,7 @@ export function ProfilesView({ onClose }: ProfilesViewProps) {
       }
 
       await createProfile({ name: trimmed, clone_from: cloneFrom })
-      notify({ kind: 'success', title: p.created, message: trimmed })
+      notify({ global: true, kind: 'success', title: p.created, message: trimmed })
       setSelectedName(trimmed)
       await refresh()
     },
@@ -140,10 +147,12 @@ export function ProfilesView({ onClose }: ProfilesViewProps) {
         throw new Error(p.nameHint)
       }
 
+      const follow = prepareProfileFollow(from)
       await renameProfile(from, target)
-      notify({ kind: 'success', title: p.renamed, message: `${from} → ${target}` })
+      notify({ global: true, kind: 'success', title: p.renamed, message: `${from} → ${target}` })
       setSelectedName(target)
       await refresh()
+      follow(target)
     },
     [p, refresh]
   )
@@ -156,11 +165,13 @@ export function ProfilesView({ onClose }: ProfilesViewProps) {
     setDeleting(true)
 
     try {
+      const follow = prepareProfileFollow(pendingDelete.name)
       await deleteProfile(pendingDelete.name)
-      notify({ kind: 'success', title: p.deleted, message: pendingDelete.name })
+      notify({ global: true, kind: 'success', title: p.deleted, message: pendingDelete.name })
       setPendingDelete(null)
       setSelectedName(null)
       await refresh()
+      follow(null)
     } catch (err) {
       notifyError(err, p.failedDelete)
     } finally {
@@ -287,6 +298,7 @@ function ProfileRow({
   profile: ProfileInfo
 }) {
   const colors = useStore($profileColors)
+  const { t } = useI18n()
 
   return (
     <PanelListRow
@@ -299,7 +311,8 @@ function ProfileRow({
         />
       }
       menuItems={menuItems}
-      menuLabel={profile.name}
+      // Distinct from the row itself, which is already named after the profile.
+      menuLabel={`${t.profiles.actions}: ${profile.name}`}
       onSelect={onSelect}
       rowKey={profile.name}
       title={profile.name}
@@ -403,7 +416,7 @@ function SoulEditor({ profileName }: { profileName: string }) {
         }
       } catch (err) {
         if (requestRef.current === profileName) {
-          setError(err instanceof Error ? err.message : p.failedLoadSoul)
+          setError(errorText(err, p.failedLoadSoul))
         }
       } finally {
         if (requestRef.current === profileName) {
@@ -424,7 +437,7 @@ function SoulEditor({ profileName }: { profileName: string }) {
       setOriginal(content)
       notify({ kind: 'success', title: p.soulSaved, message: profileName })
     } catch (err) {
-      setError(err instanceof Error ? err.message : p.failedSaveSoul)
+      setError(errorText(err, p.failedSaveSoul))
     } finally {
       setSaving(false)
     }
@@ -520,7 +533,7 @@ function CreateProfileDialog({
       await onCreate(trimmed, cloneFrom)
       onClose()
     } catch (err) {
-      setError(err instanceof Error ? err.message : p.failedCreate)
+      setError(errorText(err, p.failedCreate))
     } finally {
       setSaving(false)
     }
@@ -649,7 +662,7 @@ function RenameProfileDialog({
     try {
       await onRename(trimmed)
     } catch (err) {
-      setError(err instanceof Error ? err.message : p.failedRename)
+      setError(errorText(err, p.failedRename))
     } finally {
       setSaving(false)
     }

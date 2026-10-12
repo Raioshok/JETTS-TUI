@@ -200,6 +200,27 @@ def test_a_turn_that_ended_without_an_answer_is_a_failure():
     assert run.error.startswith("the turn was stopped") and run.summary == ""
 
 
+def test_a_turn_that_gave_up_on_the_api_is_a_failure_not_done():
+    """Retries exhausted (e.g. a provider 404) used to show as a green "Done"
+    with the error text as the summary."""
+
+    class Agent(FakeAgent):
+        def run_conversation(self, user_message, task_id=None):
+            return {
+                "final_response": "API call failed after 3 retries: HTTP 404 — Error 404 (Not Found)!!1",
+                "failed": True,
+                "completed": False,
+                "error": "HTTP 404 — Error 404 (Not Found)!!1",
+            }
+
+    run = spec_runs.start_run(
+        cwd="/w", spec="s", label="x", seed="go", mode="plan",
+        make_agent=lambda r: Agent(), run_in_context=lambda _id, fn: fn(), spawn=lambda fn: fn(),
+    )
+    assert run.status == "failed"
+    assert "404" in run.error and run.summary == ""
+
+
 def test_stop_while_the_agent_is_still_starting_is_honoured():
     """Pressing Stop right after Create lands before the agent exists; it used
     to be silently ignored and the run carried on."""

@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 
 import { useI18n } from '@/i18n'
 import { deleteEnvVar, getEnvVars, revealEnvVar, setEnvVar } from '@/jettstui'
+import { errorText } from '@/lib/error-text'
 import { type IconComponent } from '@/lib/icons'
 import { notify, notifyError } from '@/store/notifications'
 import type { EnvVarInfo } from '@/types/jettstui'
@@ -131,7 +132,7 @@ export function useEnvCredentials(): UseEnvCredentials {
     } catch (err) {
       notifyError(err, toolsets.failedSave(key))
 
-      return { message: err instanceof Error ? err.message : credentials.couldNotSave, ok: false }
+      return { message: errorText(err, credentials.couldNotSave), ok: false }
     } finally {
       setSaving(null)
     }

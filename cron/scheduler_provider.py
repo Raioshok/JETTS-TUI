@@ -24,6 +24,35 @@ from abc import ABC, abstractmethod
 from typing import Any
 
 
+# Wakes the in-process ticker early. The built-in loop otherwise sleeps the
+# full interval (60s), so "Trigger now" in the desktop app — which marks the
+# job due on the next tick — could take up to a minute to actually run.
+_tick_requested = threading.Event()
+
+
+def request_tick() -> None:
+    """Ask the running in-process ticker to tick as soon as possible."""
+    _tick_requested.set()
+
+
+def _wait_for_next_tick(stop_event: threading.Event, interval: float) -> None:
+    """Sleep until the interval passes, a tick is requested, or we stop.
+
+    Short slices keep both a stop and a wake prompt without needing one
+    event to fan in two signals.
+    """
+    import time
+
+    deadline = time.monotonic() + interval
+    while not stop_event.is_set():
+        remaining = deadline - time.monotonic()
+        if remaining <= 0:
+            return
+        if _tick_requested.wait(min(0.5, remaining)):
+            _tick_requested.clear()
+            return
+
+
 class CronScheduler(ABC):
     """Axis-B trigger provider. Decides WHEN a due cron job fires.
 
@@ -258,7 +287,7 @@ class InProcessCronScheduler(CronScheduler):
             record_ticker_heartbeat(success=ok)
             if ok:
                 clear_ticker_error()
-            stop_event.wait(interval)
+            _wait_for_next_tick(stop_event, interval)
 
     def _start_multiplex(
         self,
@@ -354,4 +383,4 @@ class InProcessCronScheduler(CronScheduler):
                             record_ticker_error(_tick_error)
                 finally:
                     reset_jettstui_home_override(home_token)
-            stop_event.wait(interval)
+            _wait_for_next_tick(stop_event, interval)

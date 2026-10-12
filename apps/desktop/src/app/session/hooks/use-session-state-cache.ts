@@ -235,7 +235,13 @@ export function useSessionStateCache({
       // state anyway). The plain busy heartbeat stays RAF-batched: that
       // coalescing exists only to keep periodic `session.info` updates from
       // churning `$messages` and jerking the scroll position while reading.
-      const isCriticalTransition = !state.busy || state.needsInput
+      // A turn *starting* is just as critical: the first send of a new chat
+      // re-homes the view onto the freshly created session, and an RAF-deferred
+      // busy flag left that chat idle-looking (no Stop, no thinking indicator)
+      // until the next frame Electron chose to run — over a second when the
+      // window isn't focused.
+      const startsTurn = state.busy && !busyRef.current
+      const isCriticalTransition = !state.busy || state.needsInput || startsTurn
 
       if (isCriticalTransition) {
         if (viewSyncRafRef.current !== null && typeof window !== 'undefined') {
@@ -263,7 +269,7 @@ export function useSessionStateCache({
         flushPendingViewState()
       })
     },
-    [flushPendingViewState]
+    [busyRef, flushPendingViewState]
   )
 
   useEffect(

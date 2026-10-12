@@ -1,10 +1,12 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
+import { createClientSessionState } from '@/lib/chat-runtime'
 import {
   $attentionSessionIds,
   $stalledSessionIds,
   $workingSessionIds,
   clearAllSessionStates,
+  publishSessionState,
   SESSION_WATCHDOG_TIMEOUT_MS
 } from '@/store/session-states'
 
@@ -71,5 +73,15 @@ describe('rehydrateLiveSessionStatuses', () => {
     expect($workingSessionIds.get()).toEqual([])
     expect($attentionSessionIds.get()).toEqual([])
     expect($stalledSessionIds.get()).toEqual([])
+  })
+
+  it("never flips a just-sent turn back to idle while the backend is still 'starting' it", () => {
+    // The renderer optimistically marks the first send of a new chat busy; the
+    // backend still builds the agent and (older runtimes) reports "starting".
+    publishSessionState('runtime-new', { ...createClientSessionState('new-chat'), busy: true })
+
+    rehydrateLiveSessionStatuses({ sessions: [{ id: 'runtime-new', session_key: 'new-chat', status: 'starting' }] })
+
+    expect($workingSessionIds.get()).toEqual(['new-chat'])
   })
 })

@@ -38,11 +38,27 @@ export function setActiveProfile(name: string): void {
   $activeProfile.set(name || 'default')
 }
 
-export async function refreshProfiles(): Promise<ProfileInfo[]> {
-  const { profiles } = await getProfiles()
-  $profiles.set(profiles)
+// Listing profiles is slow (each profile's skills are counted), so refreshes
+// overlap: the Profiles panel refreshes on open, then again after a rename. An
+// older response landing last used to put the pre-rename list back (the panel
+// showed the old name and dropped the selection). Only the newest request may
+// publish, and every caller resolves to the newest list.
+let latestProfilesRequest: null | Promise<ProfileInfo[]> = null
 
-  return profiles
+export function refreshProfiles(): Promise<ProfileInfo[]> {
+  const request: Promise<ProfileInfo[]> = getProfiles().then(({ profiles }) => {
+    if (latestProfilesRequest === request) {
+      $profiles.set(profiles)
+    }
+
+    return profiles
+  })
+
+  latestProfilesRequest = request
+
+  return request.then(profiles =>
+    latestProfilesRequest === request || !latestProfilesRequest ? profiles : latestProfilesRequest
+  )
 }
 
 // ── Rail order ─────────────────────────────────────────────────────────────
@@ -346,6 +362,36 @@ export function selectProfile(name: string): void {
   }
 
   void ensureGatewayProfile(target)
+}
+
+/**
+ * Call BEFORE deleting or renaming a profile; call the returned function after
+ * it succeeds. Whatever still pointed at the old name — the live gateway and
+ * where new chats go — follows it: to the new name after a rename, to
+ * `default` after a delete. Left alone, the app kept reconnecting to the
+ * removed profile's backend ("Gateway offline / Reconnecting…" forever), and a
+ * reconnect under the old name would respawn it and recreate the old folder.
+ *
+ * Captured up front because a refresh racing the dying backend can move the
+ * pointers before the change lands.
+ */
+export function prepareProfileFollow(from: string): (to: null | string) => void {
+  const old = normalizeProfileKey(from)
+  const wasActive = normalizeProfileKey($activeGatewayProfile.get()) === old
+  const wasNewChatTarget = normalizeProfileKey($newChatProfile.get()) === old
+
+  return to => {
+    const next = to ? normalizeProfileKey(to) : 'default'
+
+    if (wasNewChatTarget) {
+      $newChatProfile.set(next)
+    }
+
+    if (wasActive) {
+      selectProfile(next)
+      setActiveProfile(next)
+    }
+  }
 }
 
 // Start a fresh session in `name` WITHOUT collapsing the "All profiles" browse

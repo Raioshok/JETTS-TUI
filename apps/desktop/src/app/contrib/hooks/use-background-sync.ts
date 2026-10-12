@@ -64,8 +64,6 @@ export function rehydrateLiveSessionStatuses(
   for (const session of response.sessions ?? []) {
     const runtimeSessionId = session.id?.trim()
     const storedSessionId = session.session_key?.trim()
-    const needsInput = session.status === 'waiting'
-    const working = session.status === 'working' || needsInput
 
     if (!runtimeSessionId || !storedSessionId) {
       continue
@@ -74,6 +72,12 @@ export function rehydrateLiveSessionStatuses(
     seen.add(runtimeSessionId)
 
     const existing = $sessionStates.get()[runtimeSessionId]
+    const needsInput = session.status === 'waiting'
+    // "starting" = the agent is still being built. Older backends report it
+    // even after prompt.submit (a new chat's first turn), so it must not flip a
+    // turn this renderer already has in flight back to idle (no Stop button).
+    const startingOurTurn = session.status === 'starting' && Boolean(existing?.busy)
+    const working = session.status === 'working' || needsInput || startingOurTurn
 
     // Avoid re-arming the watchdog on every poll. Publish only when the
     // authoritative live snapshot differs from the renderer mirror; normal

@@ -291,6 +291,12 @@ def copilot_device_code_login(
 # Maps raw_token_fingerprint -> (api_token, expires_at_epoch, base_url).
 _jwt_cache: dict[str, tuple[str, float, Optional[str]]] = {}
 _JWT_REFRESH_MARGIN_SECONDS = 120  # refresh 2 min before expiry
+# Failed exchanges are remembered briefly too: a GitHub token without Copilot
+# access fails the same way every time, and the model picker resolves the
+# Copilot row several times per open — each a ~0.5s round-trip that made the
+# Model / API-keys settings pages take seconds to appear.
+_exchange_failures: dict[str, tuple[float, str]] = {}
+_EXCHANGE_FAILURE_TTL_SECONDS = 300
 
 # Token exchange endpoint and headers (matching VS Code / Copilot CLI)
 _TOKEN_EXCHANGE_URL = "https://api.github.com/copilot_internal/v2/token"
@@ -331,6 +337,10 @@ def exchange_copilot_token(raw_token: str, *, timeout: float = 10.0) -> tuple[st
         if time.time() < expires_at - _JWT_REFRESH_MARGIN_SECONDS:
             return api_token, expires_at, base_url
 
+    failed = _exchange_failures.get(fp)
+    if failed and time.time() < failed[0]:
+        raise ValueError(failed[1])
+
     req = urllib.request.Request(
         _TOKEN_EXCHANGE_URL,
         method="GET",
@@ -346,12 +356,17 @@ def exchange_copilot_token(raw_token: str, *, timeout: float = 10.0) -> tuple[st
         with urllib.request.urlopen(req, timeout=timeout) as resp:
             data = json.loads(resp.read().decode())
     except Exception as exc:
-        raise ValueError(f"Copilot token exchange failed: {exc}") from exc
+        message = f"Copilot token exchange failed: {exc}"
+        _exchange_failures[fp] = (time.time() + _EXCHANGE_FAILURE_TTL_SECONDS, message)
+        raise ValueError(message) from exc
 
     api_token = data.get("token", "")
     expires_at = data.get("expires_at", 0)
     if not api_token:
-        raise ValueError("Copilot token exchange returned empty token")
+        message = "Copilot token exchange returned empty token"
+        _exchange_failures[fp] = (time.time() + _EXCHANGE_FAILURE_TTL_SECONDS, message)
+        raise ValueError(message)
+    _exchange_failures.pop(fp, None)
 
     # Convert expires_at to float if needed
     expires_at = float(expires_at) if expires_at else time.time() + 1800

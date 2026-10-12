@@ -12666,6 +12666,14 @@ def _trigger_cron_job_sync(job_id: str, profile: Optional[str] = None):
     job = _call_cron_for_profile(selected, "trigger_job", job_id)
     if not job:
         raise HTTPException(status_code=404, detail="Job not found")
+    # "Trigger now" marks the job due; wake the in-process ticker so it runs
+    # now instead of on the next 60s tick.
+    try:
+        from cron.scheduler_provider import request_tick
+
+        request_tick()
+    except Exception:
+        pass
     return job
 
 
@@ -15379,6 +15387,10 @@ async def rename_profile_endpoint(name: str, body: ProfileRename):
         raise HTTPException(status_code=404, detail=str(e))
     except (ValueError, FileExistsError) as e:
         raise HTTPException(status_code=400, detail=str(e))
+    except PermissionError as e:
+        # Still locked by another process after retries (Windows) — the
+        # message says what to close; it's a conflict, not a server bug.
+        raise HTTPException(status_code=409, detail=str(e))
     except Exception as e:
         _log.exception("PATCH /api/profiles/%s failed", name)
         raise HTTPException(status_code=500, detail=str(e))

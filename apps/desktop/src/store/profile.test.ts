@@ -19,8 +19,15 @@ vi.mock('@/jettstui', () => ({
 vi.mock('@/lib/query-client', () => ({ invalidateProfileScopedQueries: vi.fn() }))
 vi.mock('@/store/starmap', () => ({ resetStarmapGraph }))
 
-const { $activeGatewayProfile, $profiles, ensureGatewayProfile, prewarmProfileBackend, refreshProfiles } =
-  await import('./profile')
+const {
+  $activeGatewayProfile,
+  $newChatProfile,
+  $profiles,
+  ensureGatewayProfile,
+  prepareProfileFollow,
+  prewarmProfileBackend,
+  refreshProfiles
+} = await import('./profile')
 
 const { $connection } = await import('./session')
 const { invalidateProfileScopedQueries } = await import('@/lib/query-client')
@@ -171,4 +178,56 @@ describe('refreshProfiles shared rail list (#49289)', () => {
 
     expect($profiles.get().map(profile => profile.name)).toEqual(['default', 'test1'])
   })
+
+  it('never lets a slow, older refresh put a pre-rename list back', async () => {
+    // Panel-open refresh is slow; the post-rename refresh returns first.
+    let releaseOld!: (value: { profiles: ProfileInfo[] }) => void
+    vi.mocked(getProfiles)
+      .mockImplementationOnce(() => new Promise(resolve => (releaseOld = resolve)))
+      .mockResolvedValueOnce({ profiles: [profile('default', true), profile('work2')] })
+
+    const older = refreshProfiles()
+    const newer = refreshProfiles()
+
+    expect((await newer).map(p => p.name)).toEqual(['default', 'work2'])
+    releaseOld({ profiles: [profile('default', true), profile('work')] })
+
+    // The stale response neither publishes nor reaches its own caller.
+    expect((await older).map(p => p.name)).toEqual(['default', 'work2'])
+    expect($profiles.get().map(p => p.name)).toEqual(['default', 'work2'])
+  })
 })
+
+describe('prepareProfileFollow', () => {
+  it('moves the live gateway and new-chat target off a deleted active profile to default', async () => {
+    $activeGatewayProfile.set('work')
+    $newChatProfile.set('work')
+    getConnection.mockResolvedValue(localConn())
+
+    const follow = prepareProfileFollow('work')
+    follow(null)
+
+    expect($newChatProfile.get()).toBe('default')
+    await vi.waitFor(() => expect($activeGatewayProfile.get()).toBe('default'))
+  })
+
+  it('follows a rename of the active profile to the new name', () => {
+    $activeGatewayProfile.set('work')
+    $newChatProfile.set('work')
+
+    prepareProfileFollow('work')('work2')
+
+    expect($newChatProfile.get()).toBe('work2')
+  })
+
+  it('leaves everything alone when another profile changes', () => {
+    $activeGatewayProfile.set('default')
+    $newChatProfile.set('default')
+
+    prepareProfileFollow('work')(null)
+
+    expect($activeGatewayProfile.get()).toBe('default')
+    expect($newChatProfile.get()).toBe('default')
+  })
+})
+

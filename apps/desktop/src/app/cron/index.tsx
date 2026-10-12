@@ -44,6 +44,7 @@ import {
   triggerCronJob,
   updateCronJob
 } from '@/jettstui'
+import { errorText } from '@/lib/error-text'
 import { AlertTriangle } from '@/lib/icons'
 import { requestModelOptions } from '@/lib/model-options'
 import { asText } from '@/lib/text'
@@ -657,7 +658,7 @@ function CronJobDetail({
         </section>
       ) : null}
 
-      <CronJobRuns c={c} jobId={job.id} onOpenSession={onOpenSession} />
+      <CronJobRuns c={c} jobId={job.id} lastRunAt={job.last_run_at} onOpenSession={onOpenSession} />
     </PanelDetail>
   )
 }
@@ -680,10 +681,14 @@ const RUNS_POLL_INTERVAL_MS = 8000
 function CronJobRuns({
   c,
   jobId,
+  lastRunAt,
   onOpenSession
 }: {
   c: Translations['cron']
   jobId: string
+  /** The job's last run time — when it moves, a run just finished: reload now
+   *  instead of waiting for the poll (which also pauses while unfocused). */
+  lastRunAt?: null | number | string
   onOpenSession?: (sessionId: string) => void
 }) {
   const [runs, setRuns] = useState<null | SessionInfo[]>(null)
@@ -725,7 +730,7 @@ function CronJobRuns({
       window.clearInterval(intervalId)
       document.removeEventListener('visibilitychange', onVisible)
     }
-  }, [jobId])
+  }, [jobId, lastRunAt])
 
   return (
     <div>
@@ -967,7 +972,7 @@ function CronEditorDialog({
         schedule: schedule.trim()
       })
     } catch (err) {
-      setError(err instanceof Error ? err.message : c.failedSave)
+      setError(errorText(err, c.failedSave))
     } finally {
       setSaving(false)
     }

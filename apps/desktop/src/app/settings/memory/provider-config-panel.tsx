@@ -4,6 +4,7 @@ import { PageLoader } from '@/components/page-loader'
 import { Button } from '@/components/ui/button'
 import { DisclosureCaret } from '@/components/ui/disclosure-caret'
 import { getMemoryProviderConfig, saveMemoryProviderConfig } from '@/jettstui'
+import { errorText } from '@/lib/error-text'
 import { SlidersHorizontal } from '@/lib/icons'
 import { notifyError } from '@/store/notifications'
 import type { MemoryProviderConfig, MemoryProviderField } from '@/types/jettstui'
@@ -38,7 +39,7 @@ export function ProviderConfigPanel({ provider }: { provider: string }) {
       setLoadError(null)
     } catch (err) {
       setConfig(null)
-      setLoadError(err instanceof Error ? err.message : 'Memory provider settings failed to load')
+      setLoadError(errorText(err, 'Memory provider settings failed to load'))
     }
   }, [provider])
 

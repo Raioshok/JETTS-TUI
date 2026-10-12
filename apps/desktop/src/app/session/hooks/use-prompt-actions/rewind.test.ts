@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest'
 
-import { truncateSubmitParams } from './rewind'
+import type { ChatMessage } from '@/lib/chat-messages'
+
+import {
+  trimLastExchange,
+  truncateSubmitParams
+} from './rewind'
 
 describe('truncateSubmitParams', () => {
   it('omits truncation fields when no ordinal is set', () => {
@@ -17,3 +22,22 @@ describe('truncateSubmitParams', () => {
     })
   })
 })
+
+describe('trimLastExchange (/retry)', () => {
+  const msg = (id: string, role: ChatMessage['role'], hidden = false): ChatMessage =>
+    ({ id, role, parts: [], hidden }) as unknown as ChatMessage
+
+  it('drops the last visible user turn and everything after it', () => {
+    const messages = [msg('u1', 'user'), msg('a1', 'assistant'), msg('u2', 'user'), msg('a2', 'assistant')]
+
+    expect(trimLastExchange(messages).map(m => m.id)).toEqual(['u1', 'a1'])
+  })
+
+  it('skips hidden user rows and leaves a user-less transcript alone', () => {
+    const messages = [msg('u1', 'user'), msg('a1', 'assistant'), msg('h', 'user', true)]
+
+    expect(trimLastExchange(messages).map(m => m.id)).toEqual([])
+    expect(trimLastExchange([msg('s', 'system')]).map(m => m.id)).toEqual(['s'])
+  })
+})
+

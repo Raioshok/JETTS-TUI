@@ -15,6 +15,7 @@ import { useEffect, useState } from 'react'
 import { HUD_ITEM, HUD_TEXT } from '@/app/floating-hud'
 import type { DesktopMarketplaceSearchItem } from '@/global'
 import { useI18n } from '@/i18n'
+import { errorText } from '@/lib/error-text'
 import { triggerHaptic } from '@/lib/haptics'
 import { Check, Download, Loader2, Palette } from '@/lib/icons'
 import { cn } from '@/lib/utils'
@@ -83,7 +84,7 @@ export function MarketplaceThemePage({ search, onPickTheme }: MarketplaceThemePa
       triggerHaptic('crisp')
       onPickTheme(theme.name)
     } catch (error) {
-      setInstallError(error instanceof Error ? error.message : copy.error)
+      setInstallError(errorText(error, copy.error))
     } finally {
       setInstallingId(null)
     }

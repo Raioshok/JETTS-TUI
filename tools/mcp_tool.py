@@ -195,6 +195,17 @@ def _write_stderr_log_header(server_name: str) -> None:
     except Exception:
         pass
 
+
+def _write_stderr_log_line(server_name: str, message: str) -> None:
+    """Append a marker line for ``server_name`` to the shared MCP stderr log."""
+    fh = _get_mcp_stderr_log()
+    try:
+        ts = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        fh.write(f"===== [{ts}] MCP server '{server_name}' {message} =====\n")
+        fh.flush()
+    except Exception:
+        pass
+
 # ---------------------------------------------------------------------------
 # Graceful import -- MCP SDK is an optional dependency
 # ---------------------------------------------------------------------------
@@ -2517,6 +2528,13 @@ class MCPServerTask:
                     # _reconnect_event (e.g. future manual /mcp refresh) for
                     # consistency with _run_http.
                     return await self._wait_for_lifecycle_event()
+        except Exception as exc:
+            # A server that never started (missing binary, bad cwd, crash
+            # before the handshake) writes nothing of its own, so the log the
+            # Desktop MCP panel shows had only the "starting" banner and no
+            # reason for the red Error dot. Record why, then propagate.
+            _write_stderr_log_line(self.name, f"failed to start: {type(exc).__name__}: {exc}")
+            raise
         finally:
             # Runs on clean exit, exceptions, AND asyncio cancellation.
             # If any of the spawned PIDs are still alive, the SDK's

@@ -9,7 +9,7 @@
  * Prerequisite: `npm run build` must have been run so dist/ exists.
  */
 
-import { expect, test, type Page } from '@playwright/test'
+import { expect, type Page, test } from '@playwright/test'
 
 import {
   type MockBackendFixture,
@@ -106,6 +106,7 @@ test.describe('sidebar states — background process and subagent', () => {
     const viewportText = await page
       .locator('[data-slot="aui_thread-viewport"]')
       .textContent()
+
     expect(viewportText).toContain(SIDEBAR_TEXTS.finalText)
   })
 })
@@ -118,14 +119,21 @@ test.describe('sidebar states — subagent and background dot coexist', () => {
   test.describe.configure({ mode: 'serial' })
 
   let fixture: MockBackendFixture
+  // A fixed `sleep 5` ended right as the subagent turn finished, so the dot
+  // (which yields to the "working" arc while the turn runs) was only visible
+  // for a fraction of a second. Hold the process until the test releases it.
+  const bgRelease = createBackgroundReleaseHandle()
 
   test.beforeAll(async () => {
     restartMockServer()
-    fixture = await setupMockBackend()
+    fixture = await setupMockBackend({
+      mockServer: { backgroundReleasePath: bgRelease.path },
+    })
     await waitForAppReady(fixture, 120_000)
   })
 
   test.afterAll(async () => {
+    bgRelease.release()
     await fixture?.cleanup()
   })
 
@@ -147,26 +155,25 @@ test.describe('sidebar states — subagent and background dot coexist', () => {
       { timeout: 15_000 },
     )
 
-    // The background process (sleep 5) should show a "Background task
-    // running" dot while the subagent is also running.
-    await expect
-      .poll(
-        () => page.locator(`[aria-label="${BG_DOT_LABEL}"]`).count(),
-        { timeout: 30_000, message: 'background dot should appear while subagent runs' },
-      )
-      .toBeGreaterThan(0)
-
-    // Evidence: the background dot is visible while the subagent runs.
-    await page.screenshot({ path: 'test-results/bg-dot-while-subagent-runs.png' })
-
-    // Now wait for the final answer to appear.
+    // While the turn (and its subagent) runs, the row shows the working arc;
+    // once the turn finishes, the still-running process owns the dot.
     await page.waitForFunction(
       (text) => (document.body.textContent ?? '').includes(text),
       SIDEBAR_CROSS_TEXTS.finalText,
       { timeout: 90_000 },
     )
+    await expect
+      .poll(
+        () => page.locator(`[aria-label="${BG_DOT_LABEL}"]`).count(),
+        { timeout: 30_000, message: 'background dot should appear once the subagent turn is done' },
+      )
+      .toBeGreaterThan(0)
 
-    // After the turn + auto-dismiss, the background dot should be gone.
+    // Evidence: the background dot is visible after the subagent finished.
+    await page.screenshot({ path: 'test-results/bg-dot-while-subagent-runs.png' })
+
+    // Release the process; after it exits + auto-dismiss, the dot is gone.
+    bgRelease.release()
     await page.waitForTimeout(8000)
     const bgCount = await page.locator(`[aria-label="${BG_DOT_LABEL}"]`).count()
     expect(bgCount, 'background dot should be gone after process exits').toBe(0)
@@ -218,10 +225,12 @@ test.describe('sidebar states — cross-session dot transition', () => {
       .poll(
         async () => {
           const approve = page.getByRole('button', { name: /^Run Ctrl/ }).first()
+
           if (!approvedBackgroundCommand && await approve.isVisible()) {
             await approve.click()
             approvedBackgroundCommand = true
           }
+
           return page.locator(`[aria-label="${BG_DOT_LABEL}"]`).count()
         },
         { timeout: 30_000, message: 'background dot should appear' },

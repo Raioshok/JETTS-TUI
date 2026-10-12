@@ -20,6 +20,7 @@ import {
   runSecurityAudit,
   setCuratorPaused
 } from '@/jettstui'
+import { errorText } from '@/lib/error-text'
 import { AlertCircle } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 import { upsertDesktopActionTask } from '@/store/activity'
@@ -127,7 +128,7 @@ export function MaintenancePanel() {
         setActionName(started.name)
         notify({ kind: 'success', title: mm.actionStarted(label), message: '' })
       } catch (err) {
-        setError(err instanceof Error ? err.message : String(err))
+        setError(errorText(err))
         notifyError(err, mm.actionFailed(label))
       }
     },
@@ -142,7 +143,7 @@ export function MaintenancePanel() {
     try {
       setShare(await runDebugShare())
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(errorText(err))
       notifyError(err, mm.debugShareFailed)
     } finally {
       setSharing(false)

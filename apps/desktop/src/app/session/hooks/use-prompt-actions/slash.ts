@@ -46,6 +46,7 @@ import type {
 } from '../../../types'
 
 import { resolveTargetSessionId } from './resolve-target-session'
+import { trimLastExchange } from './rewind'
 import {
   type GatewayRequest,
   isSessionIdCandidate,
@@ -307,6 +308,16 @@ export function useSlashCommand(deps: SlashCommandDeps) {
           // its kickoff as a user message into whatever conversation was on
           // screen. Every other target the dispatcher serves (tile, background
           // queue drain, a session created by this very call) had the same leak.
+          // /retry resends the last user message after the backend rewound
+          // that exchange; drop it from the view as well, or it shows twice.
+          if (name === 'retry') {
+            updateSessionState(
+              sessionId,
+              state => ({ ...state, messages: trimLastExchange(state.messages) }),
+              storedSessionId ?? undefined
+            )
+          }
+
           await submitPromptText(message, { sessionId, storedSessionId, displayText })
         }
 

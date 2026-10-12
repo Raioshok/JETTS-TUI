@@ -14,7 +14,9 @@ import { Field, FieldHint } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { useI18n } from '@/i18n'
 import { renameProfile } from '@/jettstui'
+import { errorText } from '@/lib/error-text'
 import { AlertTriangle } from '@/lib/icons'
+import { prepareProfileFollow } from '@/store/profile'
 
 import { isValidProfileName } from './create-profile-dialog'
 
@@ -71,13 +73,15 @@ export function RenameProfileDialog({
     setError(null)
 
     try {
+      const follow = prepareProfileFollow(currentName)
       await renameProfile(currentName, trimmed)
       await onRenamed?.(trimmed)
+      follow(trimmed)
       setStatus('done')
       window.setTimeout(onClose, 800)
     } catch (err) {
       setStatus('idle')
-      setError(err instanceof Error ? err.message : p.failedRename)
+      setError(errorText(err, p.failedRename))
     }
   }
 

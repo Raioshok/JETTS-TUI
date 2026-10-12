@@ -27,7 +27,7 @@ import { type MockServer, startMockServer } from './mock-server'
 import { RealSessionBuilder } from './real-session-builder'
 import { type ElectronApplication, expect, type Page, test } from './test'
 
-// A seeded session has no generated title, so every label falls back to the
+// Seeded with a title; until it is applied the label falls back to the
 // session preview — the first 60 characters of the first user message.
 const SESSION_TITLE = 'E2E attached image session'
 const CAPTION = 'E2E attached image must survive a relaunch'
@@ -89,8 +89,14 @@ async function setupSeededDesktop(): Promise<SeededFixture> {
   }
 }
 
+// The gateway applies the requested title after the first turn, racing the
+// builder's session.close — so the row is labelled by that title or, when the
+// close won, by the preview (the caption). Either is a valid label.
 function sessionRow(page: Page) {
-  return page.locator('[data-slot="sidebar"] button').filter({ hasText: CAPTION }).first()
+  return page
+    .locator('[data-slot="sidebar"] button')
+    .filter({ hasText: new RegExp(`^(${SESSION_TITLE}|${CAPTION})`) })
+    .first()
 }
 
 // Inactive tabs stay mounted under a data-pane-hidden ancestor. Match the
@@ -177,8 +183,10 @@ test.describe('attached image resume', () => {
     const row = sessionRow(fixture.page)
     await row.waitFor({ state: 'visible', timeout: 60_000 })
 
+    // Never a truncated file path: a leading directive would read as one.
     const label = (await row.textContent())?.trim() ?? ''
-    expect(label.startsWith(CAPTION), `sidebar label should open with the caption: ${label}`).toBe(true)
+    expect(label.startsWith(CAPTION) || label.startsWith(SESSION_TITLE), `unexpected sidebar label: ${label}`).toBe(true)
+    expect(label).not.toContain('@image:')
 
     await openSeededSession(fixture.page)
     await assertRendersThumbnail(fixture.page, 'first open')

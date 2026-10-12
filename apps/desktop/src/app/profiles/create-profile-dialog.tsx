@@ -16,6 +16,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Textarea } from '@/components/ui/textarea'
 import { useI18n } from '@/i18n'
 import { createProfile, updateProfileSoul } from '@/jettstui'
+import { errorText } from '@/lib/error-text'
 import { AlertTriangle } from '@/lib/icons'
 import type { ProfileInfo } from '@/types/jettstui'
 
@@ -87,7 +88,7 @@ export function CreateProfileDialog({
       window.setTimeout(onClose, 800)
     } catch (err) {
       setStatus('idle')
-      setError(err instanceof Error ? err.message : p.failedCreate)
+      setError(errorText(err, p.failedCreate))
     }
   }
 

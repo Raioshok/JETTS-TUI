@@ -12,6 +12,7 @@ import { useI18n } from '@/i18n'
 import { getActionStatus, getLogs, getStatus, getUsageAnalytics, restartGateway, updateJettsTUI } from '@/jettstui'
 import type { ActionStatusResponse, AnalyticsResponse, StatusResponse } from '@/jettstui'
 import { sessionTitle } from '@/lib/chat-runtime'
+import { errorText } from '@/lib/error-text'
 import { compactNumber, formatUsd } from '@/lib/format'
 import {
   Activity,
@@ -190,7 +191,7 @@ export function CommandCenterView({ initialSection, onClose, onDeleteSession, on
       setStatus(nextStatus)
       setLogs(nextLogs.lines)
     } catch (error) {
-      setSystemError(error instanceof Error ? error.message : String(error))
+      setSystemError(errorText(error))
     } finally {
       setSystemLoading(false)
     }
@@ -210,7 +211,7 @@ export function CommandCenterView({ initialSection, onClose, onDeleteSession, on
       }
     } catch (error) {
       if (usageRequestRef.current === requestId) {
-        setUsageError(error instanceof Error ? error.message : String(error))
+        setUsageError(errorText(error))
       }
     } finally {
       if (usageRequestRef.current === requestId) {
@@ -287,7 +288,7 @@ export function CommandCenterView({ initialSection, onClose, onDeleteSession, on
           upsertDesktopActionTask(pendingStatus)
         }
       } catch (error) {
-        setSystemError(error instanceof Error ? error.message : String(error))
+        setSystemError(errorText(error))
       } finally {
         void refreshSystem()
       }

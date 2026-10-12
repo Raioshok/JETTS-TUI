@@ -736,3 +736,46 @@ class TestMCPInitialConnectionRetry:
                 await task
 
         asyncio.get_event_loop().run_until_complete(_run())
+
+
+def test_a_server_that_fails_to_start_logs_why():
+    """A missing binary writes nothing of its own; the Desktop MCP log showed
+    only the "starting" banner next to a red Error dot. The failure reason
+    must land in the same log."""
+    import asyncio
+    import io
+    from unittest.mock import AsyncMock, MagicMock, patch
+
+    import pytest
+
+    from tools.mcp_tool import MCPServerTask
+
+    server = MCPServerTask.__new__(MCPServerTask)
+    server.name = "ghost"
+    server._ready = MagicMock()
+    server._shutdown_event = MagicMock()
+    server._shutdown_event.is_set.return_value = True
+    server._reconnect_event = MagicMock()
+    server._sampling = None
+    server._elicitation = None
+    server._registered_tool_names = []
+    log = io.StringIO()
+
+    async def _run():
+        cm = MagicMock()
+        cm.__aenter__ = AsyncMock(side_effect=FileNotFoundError(2, "No such file", "definitely-not-real"))
+        cm.__aexit__ = AsyncMock(return_value=False)
+        with patch("tools.mcp_tool._MCP_AVAILABLE", True), \
+             patch("tools.mcp_tool._build_safe_env", return_value={}), \
+             patch("tools.mcp_tool._resolve_stdio_command", return_value=("definitely-not-real", {})), \
+             patch("tools.mcp_tool._get_mcp_stderr_log", return_value=log), \
+             patch("tools.osv_check.check_package_for_malware", return_value=None), \
+             patch("tools.mcp_tool.stdio_client", return_value=cm):
+            await server._run_stdio({"command": "definitely-not-real", "args": []})
+
+    with pytest.raises(FileNotFoundError):
+        asyncio.run(_run())
+
+    text = log.getvalue()
+    assert "starting MCP server 'ghost'" in text
+    assert "MCP server 'ghost' failed to start: FileNotFoundError" in text

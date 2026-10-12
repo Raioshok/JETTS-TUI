@@ -14,8 +14,10 @@ def _clear_jwt_cache():
     """Reset the module-level JWT cache before each test."""
     import jettstui.copilot_auth as mod
     mod._jwt_cache.clear()
+    mod._exchange_failures.clear()
     yield
     mod._jwt_cache.clear()
+    mod._exchange_failures.clear()
 
 
 class TestExchangeCopilotToken:
@@ -48,6 +50,42 @@ class TestExchangeCopilotToken:
         req = call_args[0][0]
         assert req.get_header("Authorization") == "token gho_test123"
         assert "GitHubCopilotChat" in req.get_header("User-agent")
+
+    @patch("urllib.request.urlopen")
+    def test_a_failed_exchange_is_not_retried_immediately(self, mock_urlopen):
+        """A token without Copilot access fails the same way every time; the
+        model picker resolves Copilot several times per open, so retrying the
+        network each call made settings pages take seconds."""
+        from jettstui.copilot_auth import exchange_copilot_token
+
+        mock_urlopen.side_effect = OSError("HTTP Error 404: Not Found")
+        for _ in range(3):
+            with pytest.raises(ValueError, match="404"):
+                exchange_copilot_token("gho_nocopilot")
+        assert mock_urlopen.call_count == 1
+
+        # A different token is a different account: it gets its own attempt.
+        with pytest.raises(ValueError):
+            exchange_copilot_token("gho_other")
+        assert mock_urlopen.call_count == 2
+
+    @patch("urllib.request.urlopen")
+    def test_a_failure_expires_and_success_clears_it(self, mock_urlopen):
+        import jettstui.copilot_auth as mod
+        from jettstui.copilot_auth import exchange_copilot_token
+
+        mock_urlopen.side_effect = OSError("timed out")
+        with pytest.raises(ValueError):
+            exchange_copilot_token("gho_flaky")
+
+        # Past the failure window the network is tried again.
+        fp = mod._token_fingerprint("gho_flaky")
+        until, message = mod._exchange_failures[fp]
+        mod._exchange_failures[fp] = (time.time() - 1, message)
+        mock_urlopen.side_effect = None
+        mock_urlopen.return_value = self._mock_urlopen(token="tid=ok")
+        assert exchange_copilot_token("gho_flaky")[0] == "tid=ok"
+        assert fp not in mod._exchange_failures
 
     @patch("urllib.request.urlopen")
     def test_caches_result(self, mock_urlopen):

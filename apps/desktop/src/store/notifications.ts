@@ -1,6 +1,7 @@
 import { atom } from 'nanostores'
 
 import { translateNow } from '@/i18n'
+import { errorText } from '@/lib/error-text'
 
 export type NotificationKind = 'error' | 'warning' | 'info' | 'success'
 
@@ -27,6 +28,8 @@ export interface AppNotification {
   onDismiss?: () => void
   createdAt: number
   placement?: NotificationPlacement
+  /** App-level (not about the current chat): survives the chat-switch clear. */
+  global?: boolean
 }
 
 export interface NotificationInput {
@@ -42,6 +45,9 @@ export interface NotificationInput {
   onDismiss?: () => void
   durationMs?: number
   placement?: NotificationPlacement
+  /** App-level confirmation (e.g. a profile was deleted) that must outlive the
+   *  chat switch it may itself trigger; see clearNotifications. */
+  global?: boolean
 }
 
 let notificationCounter = 0
@@ -123,10 +129,7 @@ function summarizeErrorMessage(message: string, fallback: string) {
 }
 
 function readableError(error: unknown, fallback: string): { message: string; detail?: string } {
-  const raw = error instanceof Error ? error.message : typeof error === 'string' ? error : fallback
-  const unwrapped = raw.match(/Error invoking remote method '[^']+': Error: (.+)$/)?.[1] ?? raw
-  const cleaned = cleanErrorText(unwrapped)
-  const detail = cleaned.match(/"detail"\s*:\s*"([^"]+)"/)?.[1] ?? cleaned
+  const detail = cleanErrorText(errorText(error, fallback))
   const summary = summarizeErrorMessage(detail, fallback)
 
   return { message: summary, detail: detail === summary ? undefined : detail }
@@ -148,7 +151,8 @@ export function notify(input: NotificationInput): string {
     action: input.action,
     onDismiss: input.onDismiss,
     createdAt: Date.now(),
-    placement: input.placement ?? defaultPlacement(kind, input.action)
+    placement: input.placement ?? defaultPlacement(kind, input.action),
+    global: input.global
   }
 
   window.clearTimeout(timers.get(id))
@@ -186,16 +190,25 @@ export function dismissNotification(id: string) {
   dismissed?.onDismiss?.()
 }
 
+/** Drop chat-scoped notifications (a chat switch makes them stale). App-level
+ *  `global` ones stay — e.g. "Profile deleted", whose own switch to default
+ *  starts a fresh chat and used to wipe the confirmation instantly. */
 export function clearNotifications() {
-  for (const timer of timers.values()) {
-    window.clearTimeout(timer)
+  const all = $notifications.get()
+  const cleared = all.filter(item => !item.global)
+
+  if (cleared.length === 0) {
+    return
   }
 
-  timers.clear()
-  const all = $notifications.get()
-  $notifications.set([])
+  for (const item of cleared) {
+    window.clearTimeout(timers.get(item.id))
+    timers.delete(item.id)
+  }
 
-  for (const item of all) {
+  $notifications.set(all.filter(item => item.global))
+
+  for (const item of cleared) {
     item.onDismiss?.()
   }
 }

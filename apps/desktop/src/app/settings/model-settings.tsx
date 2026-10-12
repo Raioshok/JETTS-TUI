@@ -24,6 +24,7 @@ import type {
   ModelOptionProvider,
   StaleAuxAssignment
 } from '@/jettstui'
+import { errorText } from '@/lib/error-text'
 import { AlertTriangle, Cpu, Loader2 } from '@/lib/icons'
 import { DEFAULT_REASONING_EFFORT, REASONING_EFFORT_VALUES } from '@/lib/reasoning-effort'
 import { cn } from '@/lib/utils'
@@ -263,7 +264,7 @@ export function ModelSettings({ onMainModelChanged }: ModelSettingsProps) {
       void invalidateJettsTUIConfig()
     } catch (err) {
       if (profileEpoch.current === epoch) {
-        setError(err instanceof Error ? err.message : String(err))
+        setError(errorText(err))
       }
     } finally {
       if (profileEpoch.current === epoch) {
@@ -398,7 +399,7 @@ export function ModelSettings({ onMainModelChanged }: ModelSettingsProps) {
         })
         .catch(err => {
           if (moaSaveGeneration.current === generation) {
-            setError(err instanceof Error ? err.message : String(err))
+            setError(errorText(err))
           }
         })
     }, 600)
@@ -464,7 +465,7 @@ export function ModelSettings({ onMainModelChanged }: ModelSettingsProps) {
 
       setMoa(saved)
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(errorText(err))
     } finally {
       setApplying(false)
     }
@@ -577,7 +578,7 @@ export function ModelSettings({ onMainModelChanged }: ModelSettingsProps) {
       const fallbackModel = refreshedRow?.models?.[0] ?? ''
       setSelectedModel(nextModel || fallbackModel)
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(errorText(err))
     } finally {
       setActivating(false)
     }
@@ -632,7 +633,7 @@ export function ModelSettings({ onMainModelChanged }: ModelSettingsProps) {
       onMainModelChanged?.(provider, model)
       await refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(errorText(err))
     } finally {
       setApplying(false)
     }
@@ -651,7 +652,7 @@ export function ModelSettings({ onMainModelChanged }: ModelSettingsProps) {
         await setModelAssignment({ model: mainModel.model, provider: mainModel.provider, scope: 'auxiliary', task })
         await refresh()
       } catch (err) {
-        setError(err instanceof Error ? err.message : String(err))
+        setError(errorText(err))
       } finally {
         setApplying(false)
       }
@@ -673,7 +674,7 @@ export function ModelSettings({ onMainModelChanged }: ModelSettingsProps) {
         setEditingAuxTask(null)
         await refresh()
       } catch (err) {
-        setError(err instanceof Error ? err.message : String(err))
+        setError(errorText(err))
       } finally {
         setApplying(false)
       }
@@ -713,7 +714,7 @@ export function ModelSettings({ onMainModelChanged }: ModelSettingsProps) {
       setSwitchStaleAux([])
       await refresh()
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(errorText(err))
     } finally {
       setApplying(false)
     }

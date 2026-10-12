@@ -788,3 +788,44 @@ def test_multiplex_heartbeat_scoped_per_profile(tmp_path, monkeypatch):
         "default profile heartbeat file missing"
     assert (p_sec / "cron" / "ticker_heartbeat").exists(), \
         "secondary profile heartbeat file missing"
+
+
+def test_request_tick_wakes_the_ticker_early():
+    """'Trigger now' in Desktop marks a job due on the next tick; the built-in
+    loop slept the full interval, so the run could lag up to a minute."""
+    import threading
+    import time
+
+    from cron import scheduler_provider as sp
+
+    stop = threading.Event()
+    sp._tick_requested.clear()
+    woke = []
+
+    def sleeper():
+        sp._wait_for_next_tick(stop, 60)
+        woke.append(time.monotonic())
+
+    t0 = time.monotonic()
+    th = threading.Thread(target=sleeper, daemon=True)
+    th.start()
+    time.sleep(0.2)
+    sp.request_tick()
+    th.join(timeout=5)
+    assert woke and woke[0] - t0 < 3
+
+
+def test_stop_still_ends_the_wait_promptly():
+    import threading
+    import time
+
+    from cron import scheduler_provider as sp
+
+    stop = threading.Event()
+    sp._tick_requested.clear()
+    th = threading.Thread(target=sp._wait_for_next_tick, args=(stop, 60), daemon=True)
+    t0 = time.monotonic()
+    th.start()
+    stop.set()
+    th.join(timeout=5)
+    assert not th.is_alive() and time.monotonic() - t0 < 3

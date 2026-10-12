@@ -175,6 +175,12 @@ export function useSubmitPrompt(deps: SubmitPromptDeps) {
       // must never inherit the currently selected session after the user moves
       // to another chat.
       const targetStoredSessionId = options?.storedSessionId ?? selectedStoredSessionIdRef.current
+      // Stored id for the optimistic writes below. A brand-new chat has none yet
+      // (null) — and an explicit null tells the session cache to DETACH the
+      // stored id, which unlinked the just-created session from its sidebar row
+      // and left the first turn looking idle (no Stop) until message.start.
+      // `undefined` leaves whatever the cache already knows untouched.
+      const optimisticStoredId = targetStoredSessionId ?? undefined
 
       const targetStartedInCurrentView =
         !targetStoredSessionId || targetStoredSessionId === selectedStoredSessionIdRef.current
@@ -310,7 +316,7 @@ export function useSubmitPrompt(deps: SubmitPromptDeps) {
             // (what made drained-after-interrupt sends go silent).
             interrupted: false
           }),
-          targetStoredSessionId
+          optimisticStoredId
         )
 
       // After sync rewrites refs, refresh the optimistic message in place so the
@@ -322,7 +328,7 @@ export function useSubmitPrompt(deps: SubmitPromptDeps) {
             ...state,
             messages: state.messages.map(message => (message.id === optimisticId ? buildUserMessage() : message))
           }),
-          targetStoredSessionId
+          optimisticStoredId
         )
 
       const dropOptimistic = (sid: null | string) => {
@@ -343,7 +349,7 @@ export function useSubmitPrompt(deps: SubmitPromptDeps) {
             awaitingResponse: false,
             pendingBranchGroup: null
           }),
-          targetStoredSessionId
+          optimisticStoredId
         )
       }
 
@@ -654,7 +660,7 @@ export function useSubmitPrompt(deps: SubmitPromptDeps) {
             pendingBranchGroup: null,
             sawAssistantPayload: true
           }),
-          targetStoredSessionId
+          optimisticStoredId
         )
 
         if (targetIsCurrentView() && isProviderSetupError(err)) {

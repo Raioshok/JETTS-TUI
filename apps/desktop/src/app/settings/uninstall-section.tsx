@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import type { DesktopUninstallMode, DesktopUninstallSummary } from '@/global'
+import { errorText } from '@/lib/error-text'
 import { AlertTriangle, Loader2, Trash2 } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 
@@ -112,7 +113,7 @@ export function UninstallSection() {
       }
       // On success the app quits shortly; keep the spinner up until it does.
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(errorText(err))
       setRunning(false)
       setPending(null)
     }

@@ -28,6 +28,7 @@ import {
   readDesktopFileText,
   writeDesktopFileText
 } from '@/lib/desktop-fs'
+import { errorText } from '@/lib/error-text'
 import { Check, Pencil, X } from '@/lib/icons'
 import { shikiLanguageForFilename } from '@/lib/markdown-code'
 import { cn } from '@/lib/utils'
@@ -821,7 +822,7 @@ export function LocalFilePreview({ reloadKey, target }: { reloadKey: number; tar
       notifyWorkspaceChanged()
       setSelfReload(n => n + 1)
     } catch (error) {
-      setSaveError(error instanceof Error ? error.message : String(error))
+      setSaveError(errorText(error))
     } finally {
       setSaving(false)
     }

@@ -493,3 +493,35 @@ describe('useSessionStateCache — cross-thread error isolation', () => {
     expect(cache.getRuntimeIdForStoredSession('stored-A')).toBeNull()
   })
 })
+
+describe('useSessionStateCache — turn start paints without waiting for a frame', () => {
+  beforeEach(() => {
+    // A throttled (unfocused) Electron window: rAF callbacks never run here.
+    vi.spyOn(window, 'requestAnimationFrame').mockImplementation(() => 1)
+    vi.spyOn(window, 'cancelAnimationFrame').mockImplementation(() => undefined)
+    setTurnStartedAt(null)
+  })
+
+  afterEach(() => {
+    cleanup()
+    vi.restoreAllMocks()
+    setTurnStartedAt(null)
+  })
+
+  it('flushes an idle → busy transition at once, but keeps mid-turn heartbeats batched', () => {
+    let cache!: Cache
+    render(<Harness activeSessionId="fg-runtime" onReady={c => (cache = c)} selectedStoredSessionId="fg-stored" />)
+
+    // First send of a new chat: the view is idle and the session starts a turn.
+    act(() => {
+      cache.updateSessionState('fg-runtime', state => ({ ...state, busy: true, turnStartedAt: 1_000 }), 'fg-stored')
+    })
+    expect($turnStartedAt.get()).toBe(1_000)
+
+    // Already busy: a heartbeat stays on the rAF path (not flushed here).
+    act(() => {
+      cache.updateSessionState('fg-runtime', state => ({ ...state, turnStartedAt: 2_000 }))
+    })
+    expect($turnStartedAt.get()).toBe(1_000)
+  })
+})

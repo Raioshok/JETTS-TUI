@@ -46,6 +46,34 @@ export function profileNameFromDeleteRequest(request) {
   return name.toLowerCase()
 }
 
+/**
+ * Parse a profile RENAME (PATCH /api/profiles/<name> with a `new_name` body)
+ * into the profile being renamed, or null when the request is not a rename.
+ *
+ * A rename moves the profile directory. Its backend must be torn down first,
+ * exactly like a delete: on Windows a directory with open handles (state.db,
+ * logs) cannot be renamed at all ("[WinError 5] Access is denied"), and on
+ * POSIX a backend left running would keep writing to the old path.
+ */
+export function profileNameFromRenameRequest(request) {
+  if (!request || String(request.method || 'GET').toUpperCase() !== 'PATCH') {
+    return null
+  }
+
+  const newName = request.body && typeof request.body === 'object' ? request.body.new_name : undefined
+
+  if (typeof newName !== 'string' || !newName.trim()) {
+    return null
+  }
+
+  return profileNameFromDeleteRequest({ ...request, method: 'DELETE' })
+}
+
+/** The profile a delete OR rename targets — both need its backend torn down. */
+export function profileNameFromLifecycleRequest(request) {
+  return profileNameFromDeleteRequest(request) ?? profileNameFromRenameRequest(request)
+}
+
 export type ProfileDeleteAction = 'noop' | 'teardown-primary' | 'teardown-pool'
 
 export interface ProfileDeleteDecision {

@@ -5,6 +5,7 @@ import { Codicon } from '@/components/ui/codicon'
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@/components/ui/dialog'
 import { useI18n } from '@/i18n'
 import { readDesktopDir, setDesktopFsRemotePicker } from '@/lib/desktop-fs'
+import { errorText } from '@/lib/error-text'
 import { cn } from '@/lib/utils'
 
 function clean(path: string) {
@@ -83,7 +84,7 @@ export function RemoteFolderPicker() {
       })
       .catch(err => {
         if (active) {
-          setError(err instanceof Error ? err.message : String(err))
+          setError(errorText(err))
           setEntries([])
         }
       })

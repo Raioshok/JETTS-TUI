@@ -92,6 +92,21 @@ export async function runRewindSubmit(
 }
 
 /** Cancel/stop finalize: drop empty pending/stream placeholders, un-pend the rest. */
+/**
+ * Drop the last user turn and everything after it — what `/retry` replaces.
+ * The backend rewinds its own transcript and resends that user message; the
+ * view must drop the old exchange too or it shows the turn twice.
+ */
+export function trimLastExchange(messages: ChatMessage[]): ChatMessage[] {
+  for (let i = messages.length - 1; i >= 0; i--) {
+    if (messages[i].role === 'user' && !messages[i].hidden) {
+      return messages.slice(0, i)
+    }
+  }
+
+  return messages
+}
+
 export function finalizeInterruptedMessages(messages: ChatMessage[], streamId?: null | string): ChatMessage[] {
   return messages
     .filter(message => !((message.pending || message.id === streamId) && !chatMessageText(message).trim()))

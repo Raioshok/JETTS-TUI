@@ -2326,9 +2326,14 @@ def _run_single_child(
             or _stripped.startswith(("⚠️ No reply:", "No reply:"))
         )
 
+        # run_agent marks a turn that gave up (retries exhausted, billing wall…)
+        # with failed=True; its final_response is the error notice
+        # ("API call failed after 3 retries: …"), not usable output.
+        _turn_failed = bool(result.get("failed"))
+
         if interrupted:
             status = "interrupted"
-        elif summary and not _empty_sentinel and not _error_shaped:
+        elif summary and not _empty_sentinel and not _error_shaped and not _turn_failed:
             # A summary means the subagent produced usable output.
             # exit_reason ("completed" vs "max_iterations") already
             # tells the parent *how* the task ended.

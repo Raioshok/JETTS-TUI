@@ -2401,3 +2401,68 @@ def test_skin_change_broadcasts_to_every_connected_client(server, monkeypatch):
         types = [f["params"]["type"] for f in transport.frames]
         assert types == ["skin.changed", "skin.changed"]
         assert transport.frames[-1]["params"]["payload"]["name"] == "synthwave"
+
+
+def test_live_status_reports_a_submitted_turn_as_working_while_the_agent_builds():
+    """A new chat's first prompt waits on agent_ready. The turn is already
+    running, so the liveness poll must say "working" — "starting" made Desktop
+    flip the just-sent turn back to idle (no Stop) until the first model event."""
+    import threading
+
+    from tui_gateway import server
+
+    ready = threading.Event()
+    session = {"agent_ready": ready, "agent_build_started": True, "running": False}
+    sid = "live-status-probe"
+
+    assert server._session_live_status(sid, session) == "starting"
+    session["running"] = True
+    assert server._session_live_status(sid, session) == "working"
+    ready.set()
+    assert server._session_live_status(sid, session) == "working"
+    session["running"] = False
+    assert server._session_live_status(sid, session) == "idle"
+
+
+def test_retry_rewinds_the_stored_exchange_it_replaces(tmp_path, monkeypatch):
+    """/retry used to truncate only the in-memory history: the old exchange
+    stayed in state.db, so the chat showed it twice (also after a reload) and
+    a resume fed the duplicate back to the model."""
+    import types
+
+    from jettstui_state import SessionDB
+    from tui_gateway import server
+
+    db = SessionDB(db_path=tmp_path / "state.db")
+    db.create_session("s-retry", source="desktop")
+    for text in ("q1", "a1", "q2", "a2"):
+        db.append_message("s-retry", "user" if text.startswith("q") else "assistant", text)
+    monkeypatch.setattr(server, "_get_db", lambda: db)
+
+    agent = types.SimpleNamespace(_last_flushed_db_idx=4)
+    session = {
+        "session_key": "s-retry",
+        "agent": agent,
+        "history": [{"role": "user", "content": "q1"}, {"role": "assistant", "content": "a1"}],
+    }
+    server._rewind_stored_retry(session, "q2")
+
+    active = db.get_messages_as_conversation("s-retry")
+    assert [m["content"] for m in active] == ["q1", "a1"]
+    # The retried turn is flushed after the truncated history, not skipped.
+    assert agent._last_flushed_db_idx == 2
+
+
+def test_retry_rewind_refuses_a_mismatched_stored_turn(tmp_path, monkeypatch):
+    from jettstui_state import SessionDB
+    from tui_gateway import server
+
+    db = SessionDB(db_path=tmp_path / "state.db")
+    db.create_session("s-other", source="desktop")
+    db.append_message("s-other", "user", "something else entirely")
+    db.append_message("s-other", "assistant", "reply")
+    monkeypatch.setattr(server, "_get_db", lambda: db)
+
+    server._rewind_stored_retry({"session_key": "s-other", "history": []}, "q2")
+
+    assert len(db.get_messages_as_conversation("s-other")) == 2

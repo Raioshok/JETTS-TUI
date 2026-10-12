@@ -5365,8 +5365,40 @@ def _agent_fallback_model(agent):
     return _load_fallback_model()
 
 
+def _configured_runtime_kwargs() -> dict:
+    """Runtime (provider/endpoint/credentials) for an agent with no live parent.
+
+    The Specs and Orchestrator pages start hidden runs without a chat session,
+    so there is no parent agent to copy a resolved runtime from. Passing only
+    the bare model name leaves AIAgent with an empty provider: providers with
+    their own transport (e.g. antigravity's Cloud Code endpoint) then get a
+    plain /chat/completions call and fail with an HTTP 404. Resolve exactly
+    what a fresh chat session would use instead.
+    """
+    try:
+        model, requested_provider = _resolve_startup_runtime()
+        resolution = _resolve_runtime_with_fallback(
+            {"requested": requested_provider, "target_model": model or None}
+        )
+    except Exception as exc:  # surfaced by the agent's own credential error
+        logger.debug("background agent runtime resolution failed: %s", exc)
+        return {}
+    runtime = resolution.runtime
+    return {
+        "provider": runtime.get("provider") or None,
+        "base_url": runtime.get("base_url") or None,
+        "api_key": runtime.get("api_key") or None,
+        "api_mode": runtime.get("api_mode") or None,
+        "acp_command": runtime.get("command") or None,
+        "acp_args": runtime.get("args") or None,
+        "credential_pool": runtime.get("credential_pool"),
+        "model": (resolution.selected_model if resolution.used_fallback else model) or _resolve_model(),
+    }
+
+
 def _background_agent_kwargs(agent, task_id: str) -> dict:
     cfg = _load_cfg()
+    runtime = _configured_runtime_kwargs() if agent is None else {}
 
     return {
         "base_url": getattr(agent, "base_url", None) or None,
@@ -5400,6 +5432,7 @@ def _background_agent_kwargs(agent, task_id: str) -> dict:
         "platform": "tui",
         "session_db": _get_db(),
         "fallback_model": _agent_fallback_model(agent),
+        **runtime,
     }
 
 
@@ -7834,16 +7867,52 @@ def _session_pending_kind(sid: str) -> str:
     return ""
 
 
+def _rewind_stored_retry(session: dict, content: str) -> None:
+    """Make /retry replace the last exchange on disk too, not just in memory.
+
+    Truncating only ``session["history"]`` left the old user/assistant rows in
+    the session DB, so the retried turn was appended after them: the chat
+    showed the exchange twice (also after a reload), and a later resume fed
+    the duplicate back to the model. Soft-delete from the last stored user
+    message — the same rewind /undo uses — but only when that row is the
+    message being retried. Best-effort: a failure keeps the old behaviour.
+    """
+    db = _get_db()
+    session_key = session.get("session_key", "")
+    if db is None or not session_key:
+        return
+    try:
+        recents = db.list_recent_user_messages(session_key, limit=1)
+        if not recents:
+            return
+        preview = str(recents[0].get("preview") or "").strip()
+        flat = " ".join(str(content).split())
+        if preview and preview != "[multimodal content]" and not flat.startswith(" ".join(preview.split())[:60]):
+            return
+        db.rewind_to_message(session_key, recents[0]["id"])
+    except Exception:
+        logger.debug("/retry: stored transcript rewind failed", exc_info=True)
+        return
+    agent = session.get("agent")
+    if agent is not None and hasattr(agent, "_last_flushed_db_idx"):
+        # The next flush must append after the truncated history, not skip it.
+        agent._last_flushed_db_idx = len(session.get("history", []))
+
+
 def _session_live_status(sid: str, session: dict) -> str:
     if _session_pending_kind(sid):
         return "waiting"
+    # A submitted turn is working even while the agent is still being built
+    # (a new chat's first prompt waits on agent_ready). Reporting "starting"
+    # here made Desktop's liveness poll flip the just-sent turn back to idle —
+    # no Stop button — until the first model event arrived.
+    if session.get("running"):
+        return "working"
     ready = session.get("agent_ready")
     # Unset + build never started = a lazy watch session sitting idle, not a
     # session stuck mid-construction.
     if ready is not None and not ready.is_set() and session.get("agent_build_started"):
         return "starting"
-    if session.get("running"):
-        return "working"
     return "idle"
 
 
@@ -15323,6 +15392,7 @@ def _(rid, params: dict) -> dict:
         with session["history_lock"]:
             session["history"] = history[:last_user_idx]
             session["history_version"] = int(session.get("history_version", 0)) + 1
+        _rewind_stored_retry(session, content)
         return _ok(rid, {"type": "send", "message": content})
 
     if name == "steer":

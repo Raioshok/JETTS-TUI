@@ -304,6 +304,19 @@ export const VERIFICATION_STOP_TEXT = 'I cannot provide fresh verification evide
  */
 /** A chat turn the model never answers, so the session stays working (pet feed e2e). */
 export const PET_STALL_TRIGGER = 'E2E_PET_STALL'
+/** Asks to run a command the approval guard flags (a recursive delete of a
+ *  directory that doesn't exist — harmless if allowed), then reports back. */
+export const APPROVAL_TRIGGER = 'E2E_APPROVAL_TRIGGER'
+export const APPROVAL_COMMAND = 'rm -rf ./jettstui-e2e-approval-probe'
+export const APPROVAL_DONE = 'The cleanup command finished.'
+
+const APPROVAL_SCRIPT: ScriptedTurn[] = [
+  { text: 'I need to clean up first.', toolCalls: [{ name: 'terminal', args: { command: APPROVAL_COMMAND } }] },
+  { text: APPROVAL_DONE }
+]
+
+/** Any request mentioning this answers HTTP 404 (a misrouted provider endpoint). */
+export const PROVIDER_404_TRIGGER = 'E2E_PROVIDER_404'
 
 export const BLOCKING_CLARIFY_TRIGGER = 'E2E_BLOCKING_CLARIFY_TRIGGER'
 export const BLOCKING_CLARIFY_QUESTION = 'Keep this test turn running?'
@@ -541,6 +554,13 @@ export function startMockServer(options: MockServerOptions = {}): Promise<MockSe
             _receivedUserTexts.push(userText)
           }
 
+          if (JSON.stringify(messages).includes(PROVIDER_404_TRIGGER)) {
+            res.writeHead(404, { 'Content-Type': 'text/html' })
+            res.end('<!DOCTYPE html><title>Error 404 (Not Found)!!1</title>')
+
+            return
+          }
+
           const isInterimTrigger = userText.includes('E2E_INTERIM_TRIGGER')
           const isSidebarTrigger = userText.includes('E2E_SIDEBAR_TRIGGER')
           const isSidebarCrossTrigger = userText.includes('E2E_SIDEBAR_CROSS')
@@ -607,6 +627,19 @@ export function startMockServer(options: MockServerOptions = {}): Promise<MockSe
             const script = verificationStopScript(options.verificationWritePath ?? 'e2e-verification-target.py')
             const turn = script[_verificationStopIndex] ?? script[script.length - 1]
             _verificationStopIndex++
+
+            if (stream) {
+              streamScriptedTurn(res, model, turn)
+            } else {
+              nonStreamingScriptedTurn(res, model, turn)
+            }
+
+            return
+          }
+
+          // Stateless: the tool call first, the wrap-up once its result is in.
+          if (messages.some(m => typeof m?.content === 'string' && m.content.includes(APPROVAL_TRIGGER))) {
+            const turn = messages.at(-1)?.role === 'tool' ? APPROVAL_SCRIPT[1] : APPROVAL_SCRIPT[0]
 
             if (stream) {
               streamScriptedTurn(res, model, turn)

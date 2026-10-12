@@ -1,9 +1,9 @@
 import { beforeEach, expect, test } from 'vitest'
 
-import { $notifications, clearNotifications, notifyError } from './notifications'
+import { $notifications, clearNotifications, notify, notifyError } from './notifications'
 
 beforeEach(() => {
-  clearNotifications()
+  $notifications.set([])
 })
 
 function lastMessage(): string {
@@ -32,3 +32,13 @@ test('provider invalid_api_key error still maps to the OpenAI summary', () => {
 
   expect(lastMessage()).toMatch(/OpenAI rejected the API key/i)
 })
+
+test('a chat switch clears chat notifications but keeps app-level confirmations', () => {
+  notify({ kind: 'error', message: 'turn failed' })
+  notify({ global: true, kind: 'success', message: 'work', title: 'Profile deleted' })
+
+  clearNotifications()
+
+  expect($notifications.get().map(n => n.title ?? n.message)).toEqual(['Profile deleted'])
+})
+

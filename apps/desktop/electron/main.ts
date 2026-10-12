@@ -144,7 +144,7 @@ import { serializeJsonBody, setJsonRequestHeaders } from './oauth-net-request'
 import { createKeepAwake } from './power-save'
 import { FirstRunSetupResetError, runPrimaryBackendStartup } from './primary-backend-startup'
 import { rehomePrimaryConnection } from './primary-connection-rehome'
-import { decideProfileDeleteAction, profileNameFromDeleteRequest, resolveRouteProfile } from './profile-delete-routing'
+import { decideProfileDeleteAction, profileNameFromLifecycleRequest, resolveRouteProfile } from './profile-delete-routing'
 import { fetchPrimaryProfileSessions } from './profile-session-routing'
 import { createQuickEntryShortcut, quickEntryWindowBounds, sanitizeQuickEntrySettings } from './quick-entry'
 import { type ActiveWork, mergeActiveWork, normalizeActiveWork, quitPromptFor } from './quit-guard'
@@ -510,6 +510,7 @@ function resolveJettsTUIHome() {
   const defaultBase = IS_WINDOWS
     ? process.env.LOCALAPPDATA || path.join(app.getPath('home'), 'AppData', 'Local')
     : app.getPath('home')
+
   const defaultHome = path.join(defaultBase, IS_WINDOWS ? 'jettstui' : '.jettstui')
   const resolveOverride = (value: string) => normalizeJettsTUIHomeRoot(value)
 
@@ -1848,6 +1849,7 @@ function backendSupportsServe(backend) {
       try {
         const src = fs.readFileSync(path.join(backend.root, packageName, 'subcommands', 'dashboard.py'), 'utf8')
         supported = sourceDeclaresServe(src)
+
         break
       } catch {
         // Try the legacy package path before probing the command.
@@ -7700,7 +7702,8 @@ function stopAllPoolBackends() {
 // profile-delete-routing.ts; this function only performs the side effects
 // that decision calls for.
 async function prepareProfileDeleteRequest(request) {
-  const profile = profileNameFromDeleteRequest(request)
+  // Renames move the profile directory, so they need the same teardown.
+  const profile = profileNameFromLifecycleRequest(request)
 
   const decision = decideProfileDeleteAction(profile, {
     isDefaultProfile: p => p === 'default',
@@ -10593,6 +10596,7 @@ ipcMain.handle('jettstui:updates:branch:set', async (_event, name) => {
 function resolveJettsTUIVersion() {
   try {
     const root = resolveUpdateRoot()
+
     const initPath = ['jettstui']
       .map(packageName => path.join(root, packageName, '__init__.py'))
       .find(fileExists)

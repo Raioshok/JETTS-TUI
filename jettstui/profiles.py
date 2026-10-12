@@ -2148,6 +2148,29 @@ def _migrate_honcho_profile_host(old_name: str, new_name: str, new_dir: Path) ->
         print(f"✓ Honcho host updated: {source_host} → {new_host}")
 
 
+def _rename_with_retry(old_dir: Path, new_dir: Path, attempts: int = 6) -> None:
+    """``Path.rename`` with spaced retries for Windows handle-release lag.
+
+    A just-stopped backend (or an antivirus / indexer scan of its files) can
+    keep a handle open for a moment after the process exits, which Windows
+    reports as ``PermissionError`` on the rename. Retry briefly; if it still
+    fails, raise an error that says what to do instead of a bare WinError.
+    """
+    last_exc: Optional[OSError] = None
+    for attempt in range(attempts):
+        try:
+            old_dir.rename(new_dir)
+            return
+        except PermissionError as e:
+            last_exc = e
+            time.sleep(0.25 * (attempt + 1))
+    raise PermissionError(
+        f"Profile '{old_dir.name}' is still in use, so its folder can't be renamed. "
+        "Close anything using it (its chats, terminals, or another JettsTUI window) "
+        f"and try again. ({last_exc})"
+    )
+
+
 def rename_profile(old_name: str, new_name: str) -> Path:
     """Rename a profile: directory, wrapper script, service, active_profile.
 
@@ -2176,8 +2199,14 @@ def rename_profile(old_name: str, new_name: str) -> Path:
         _cleanup_gateway_service(old_canon, old_dir)
         _stop_gateway_process(old_dir)
 
+    # 1b. Stop Desktop-spawned / stray backends bound to this profile (same as
+    # delete). They hold its state.db and logs open — on Windows a directory
+    # with open handles cannot be renamed at all ("[WinError 5] Access is
+    # denied"), and on POSIX they'd keep writing to the old path.
+    _stop_profile_backends(old_canon, old_dir)
+
     # 2. Rename directory
-    old_dir.rename(new_dir)
+    _rename_with_retry(old_dir, new_dir)
     print(f"✓ Renamed {old_dir.name} → {new_dir.name}")
 
     # 3. Update profile-scoped Honcho host blocks, preserving aiPeer identity

@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { SegmentedControl } from '@/components/ui/segmented-control'
 import type { DesktopMarketplaceSearchItem } from '@/global'
 import { useI18n } from '@/i18n'
+import { errorText } from '@/lib/error-text'
 import { triggerHaptic } from '@/lib/haptics'
 import { Check, Download, Loader2, Palette, Trash2 } from '@/lib/icons'
 import { selectableCardClass } from '@/lib/selectable-card'
@@ -147,7 +148,7 @@ function MarketplaceThemeResults({
       triggerHaptic('crisp')
       onInstalled(theme.name)
     } catch (e) {
-      setError(e instanceof Error ? e.message : copy.error)
+      setError(errorText(e, copy.error))
     } finally {
       setInstallingId(null)
     }

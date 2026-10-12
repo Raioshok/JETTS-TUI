@@ -519,7 +519,9 @@ export function CommandPalette() {
             action: 'nav.cron',
             icon: Clock,
             id: 'nav-cron',
-            keywords: ['schedule', 'jobs'],
+            // The panel is titled "Scheduled jobs": searching its own title
+            // (or the word "cron") must find it, in every locale.
+            keywords: ['schedule', 'scheduled', 'jobs', 'cron', t.cron.title],
             label: t.shell.statusbar.cron,
             run: go(CRON_ROUTE)
           },

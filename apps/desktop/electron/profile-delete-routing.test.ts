@@ -2,7 +2,13 @@ import assert from 'node:assert/strict'
 
 import { test } from 'vitest'
 
-import { decideProfileDeleteAction, profileNameFromDeleteRequest, resolveRouteProfile } from './profile-delete-routing'
+import {
+  decideProfileDeleteAction,
+  profileNameFromDeleteRequest,
+  profileNameFromLifecycleRequest,
+  profileNameFromRenameRequest,
+  resolveRouteProfile
+} from './profile-delete-routing'
 
 // ---------------------------------------------------------------------------
 // profileNameFromDeleteRequest
@@ -79,4 +85,27 @@ test('resolveRouteProfile passes the requested profile through when nothing was 
 
 test('resolveRouteProfile passes through undefined when nothing was torn down and no profile was requested', () => {
   assert.equal(resolveRouteProfile(null, undefined), undefined)
+})
+
+// ---------------------------------------------------------------------------
+// rename → same teardown as delete
+// ---------------------------------------------------------------------------
+
+test('a profile rename (PATCH with new_name) targets the renamed profile', () => {
+  const rename = { method: 'PATCH', path: '/api/profiles/Work', body: { new_name: 'work2' } }
+
+  assert.equal(profileNameFromRenameRequest(rename), 'work')
+  assert.equal(profileNameFromLifecycleRequest(rename), 'work')
+})
+
+test('other PATCHes and non-profile paths are not renames', () => {
+  assert.equal(profileNameFromRenameRequest({ method: 'PATCH', path: '/api/profiles/work', body: { color: 'red' } }), null)
+  assert.equal(profileNameFromRenameRequest({ method: 'PATCH', path: '/api/profiles/work', body: { new_name: '  ' } }), null)
+  assert.equal(profileNameFromRenameRequest({ method: 'POST', path: '/api/profiles/work', body: { new_name: 'x' } }), null)
+  assert.equal(profileNameFromRenameRequest({ method: 'PATCH', path: '/api/profiles/work/soul', body: { new_name: 'x' } }), null)
+  assert.equal(profileNameFromLifecycleRequest({ method: 'GET', path: '/api/profiles/work' }), null)
+})
+
+test('delete still parses through the lifecycle helper', () => {
+  assert.equal(profileNameFromLifecycleRequest({ method: 'DELETE', path: '/api/profiles/worker' }), 'worker')
 })

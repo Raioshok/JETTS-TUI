@@ -2985,6 +2985,44 @@ def test_background_agent_kwargs_preserves_full_fallback_chain(monkeypatch):
     assert kwargs["fallback_model"] == chain
 
 
+def test_background_agent_without_parent_uses_the_configured_runtime(monkeypatch):
+    """Specs/Orchestrator page runs have no chat session. They must resolve the
+    same provider/endpoint a chat would — a bare model with an empty provider
+    sent antigravity a plain /chat/completions call (HTTP 404)."""
+    monkeypatch.setattr(server, "_load_cfg", lambda: {"max_turns": 25})
+    monkeypatch.setattr(server, "_load_enabled_toolsets", lambda: ["file"])
+    monkeypatch.setattr(server, "_get_db", lambda: None)
+    monkeypatch.setattr(server, "_resolve_startup_runtime", lambda: ("gemini-x", "antigravity"))
+    seen = {}
+
+    def resolve(kwargs):
+        seen.update(kwargs)
+        runtime = {
+            "provider": kwargs["requested"],
+            "base_url": "https://cloudcode.example",
+            "api_key": "k",
+            "api_mode": "chat_completions",
+        }
+        return server._RuntimeFallbackResolution(runtime, None, False)
+
+    monkeypatch.setattr(server, "_resolve_runtime_with_fallback", resolve)
+
+    kwargs = server._background_agent_kwargs(None, "task-id")
+
+    assert seen == {"requested": "antigravity", "target_model": "gemini-x"}
+    assert (kwargs["provider"], kwargs["base_url"], kwargs["model"]) == (
+        "antigravity",
+        "https://cloudcode.example",
+        "gemini-x",
+    )
+
+    # A live parent keeps owning the runtime — no re-resolution.
+    seen.clear()
+    parent = types.SimpleNamespace(model="m", provider="openrouter", base_url="https://or", _fallback_chain=[])
+    kwargs = server._background_agent_kwargs(parent, "task-id")
+    assert seen == {} and kwargs["provider"] == "openrouter"
+
+
 def test_background_agent_kwargs_preserves_empty_fallback_chain(monkeypatch):
     agent = types.SimpleNamespace(
         model="gpt-5.5",

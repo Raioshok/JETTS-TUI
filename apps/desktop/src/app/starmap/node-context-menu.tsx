@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { deleteLearningNode, editLearningNode, getLearningNode } from '@/jettstui'
+import { errorText } from '@/lib/error-text'
 import { notifyError } from '@/store/notifications'
 import { evictStarmapNode, loadStarmapGraph } from '@/store/starmap'
 
@@ -74,7 +75,7 @@ export function NodeContextMenu({ onClose, onNodeRemoved, target }: NodeContextM
       setEditing({ content: detail.content, id: target.id, label: target.label })
       onClose()
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setError(errorText(e))
     } finally {
       setLoading(false)
     }
@@ -98,7 +99,7 @@ export function NodeContextMenu({ onClose, onNodeRemoved, target }: NodeContextM
       setEditing(null)
       void loadStarmapGraph(true)
     } catch (e) {
-      setError(e instanceof Error ? e.message : String(e))
+      setError(errorText(e))
     } finally {
       setSaving(false)
     }

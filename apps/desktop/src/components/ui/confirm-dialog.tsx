@@ -12,6 +12,7 @@ import {
   DialogTitle
 } from '@/components/ui/dialog'
 import { useI18n } from '@/i18n'
+import { errorText } from '@/lib/error-text'
 import { AlertTriangle } from '@/lib/icons'
 
 interface ConfirmDialogProps {
@@ -74,7 +75,7 @@ export function ConfirmDialog({
         await onConfirm()
         onClose()
       } catch (err) {
-        setError(err instanceof Error ? err.message : t.errors.genericFailure)
+        setError(errorText(err, t.errors.genericFailure))
       }
 
       return
@@ -88,7 +89,7 @@ export function ConfirmDialog({
       window.setTimeout(onClose, 600)
     } catch (err) {
       setStatus('idle')
-      setError(err instanceof Error ? err.message : t.errors.genericFailure)
+      setError(errorText(err, t.errors.genericFailure))
     }
   }
 

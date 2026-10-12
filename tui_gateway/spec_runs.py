@@ -192,6 +192,11 @@ def start_run(
                 # real text the agent had already produced.
                 run.status = "interrupted"
                 run.summary = "" if text.startswith(_CANCELLED_PREFIX) else text[:_SUMMARY_CHARS]
+            elif isinstance(result, dict) and result.get("failed"):
+                # The turn gave up (e.g. "API call failed after 3 retries: …");
+                # its final_response is an error notice, not a reply.
+                run.status = "failed"
+                run.error = str(result.get("error") or text)[:_SUMMARY_CHARS]
             elif text.startswith(_FAILURE_PREFIXES):
                 run.status = "failed"
                 run.error = text.split(":", 1)[1].strip()[:_SUMMARY_CHARS]
