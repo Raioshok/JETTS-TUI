@@ -83,7 +83,10 @@ def test_spec_run_works_headlessly_and_reports_back(tmp_path: Path, fake_agent):
     assert agent.kwargs["skip_memory"] is True
     assert "clarify" in agent.kwargs["disabled_toolsets"]
     assert agent._work_mode == "plan"
+    assert agent._persist_disabled is True  # not even a lazily-opened store
     assert "REQUIREMENTS phase" in agent.seed
+    # Retrying a create resumes its step (re-creating would refuse).
+    assert run["retry_args"] == "resume offline-search"
 
 
 def test_actions_without_agent_work_just_answer(tmp_path: Path, fake_agent):
@@ -171,3 +174,47 @@ def test_runs_are_scoped_to_their_workspace(tmp_path: Path):
     )
     assert len(_call("spec.runs", cwd=str(tmp_path))["result"]["runs"]) == 1
     assert _call("spec.runs", cwd=str(other))["result"]["runs"] == []
+
+
+def _finish_with(text: str, interrupted: bool = False):
+    class Agent(FakeAgent):
+        def run_conversation(self, user_message, task_id=None):
+            self._interrupt_requested = interrupted
+            return {"final_response": text, "interrupted": interrupted}
+
+    return spec_runs.start_run(
+        cwd="/w", spec="s", label="x", seed="go", mode="plan", retry_args="approve s requirements",
+        make_agent=lambda r: Agent(), run_in_context=lambda _id, fn: fn(), spawn=lambda fn: fn(),
+    )
+
+
+def test_a_stop_is_not_shown_as_the_agents_reply():
+    run = _finish_with("Operation interrupted: waiting for model response (1.6s elapsed).", interrupted=True)
+    assert run.status == "interrupted" and run.summary == ""
+    assert run.to_dict()["retry_args"] == "approve s requirements"
+
+
+def test_a_turn_that_ended_without_an_answer_is_a_failure():
+    run = _finish_with("⚠️ No reply: the turn was stopped because session storage could not be written.")
+    assert run.status == "failed"
+    assert run.error.startswith("the turn was stopped") and run.summary == ""
+
+
+def test_stop_while_the_agent_is_still_starting_is_honoured():
+    """Pressing Stop right after Create lands before the agent exists; it used
+    to be silently ignored and the run carried on."""
+    started = []
+
+    class Agent(FakeAgent):
+        def run_conversation(self, user_message, task_id=None):
+            started.append(True)
+            return {"final_response": "done"}
+
+    held = []
+    run = spec_runs.start_run(
+        cwd="/w", spec="s", label="x", seed="go", mode="plan",
+        make_agent=lambda r: Agent(), run_in_context=lambda _id, fn: fn(), spawn=held.append,
+    )
+    assert spec_runs.stop_run(run.id) is True  # nothing to interrupt yet
+    held[0]()  # the worker builds the agent now
+    assert run.status == "interrupted" and started == []

@@ -1123,11 +1123,6 @@ export const ja = defineLocale({
       '上にタスクを書いてください。4 つのエージェントが計画・実装・レビュー・検証を同時に行い、その様子をここで見られます。',
     noProjectTitle: 'チームを動かすプロジェクトを選んでください',
     noProjectBody: 'プロジェクトか任意のフォルダーを選ぶと、チームはそこで作業します。',
-    project: 'プロジェクト',
-    projects: 'プロジェクト',
-    pickProject: 'プロジェクトを選択',
-    browseFolder: 'フォルダーを参照…',
-    browseFailed: 'フォルダー選択を開けませんでした',
     runFailed: 'フローを開始できませんでした',
     stopFailed: 'フローを停止できませんでした',
     stop: '停止',
@@ -1187,6 +1182,13 @@ export const ja = defineLocale({
       stage: { running: '実行中', completed: '完了', failed: '失敗', interrupted: '停止' },
       verdict: { approved: '承認', changes_requested: '要修正', unknown: '判定なし' }
     }
+  },
+  projectPicker: {
+    project: 'プロジェクト',
+    projects: 'プロジェクト',
+    pickProject: 'プロジェクトを選択',
+    browseFolder: 'フォルダーを参照…',
+    browseFailed: 'フォルダー選択を開けませんでした'
   },
   specs: {
     title: 'スペック',
@@ -1252,7 +1254,11 @@ export const ja = defineLocale({
       build: 'エージェントがタスクを順に進めます'
     },
     stepState: { done: '完了', drafting: '作成中', review: 'レビュー待ち', upcoming: '未着手' },
-    working: 'エージェントを起動しています…'
+    working: 'エージェントを起動しています…',
+    requirementsMissing: '要件はまだ作成されていません。',
+    writeRequirements: '要件を作成',
+    stoppedNote: '完了前に停止しました。これ以上は書き込まれていません。',
+    runFailedNote: 'エージェントは完了せずに停止しました。'
   },
   agents: {
     close: 'エージェントを閉じる',

@@ -27,6 +27,11 @@ _MAX_ACTIVITY = 40
 _MAX_FINISHED = 30
 _SUMMARY_CHARS = 6000
 
+# Machine-generated texts a turn can end with that are not the agent's reply:
+# run_agent's cancellation sentinel and its turn-failure notice.
+_CANCELLED_PREFIX = "Operation interrupted:"
+_FAILURE_PREFIXES = ("⚠️ No reply:", "No reply:")
+
 AgentFactory = Callable[["SpecRun"], Any]
 """run -> an AIAgent-like object (run_conversation, interrupt) for that run."""
 
@@ -38,6 +43,8 @@ class SpecRun:
     spec: str
     label: str
     mode: str
+    # The /spec arguments that redo this run's step (Retry on the page).
+    retry_args: str = ""
     status: str = "running"  # running | completed | failed | interrupted
     started_at: float = field(default_factory=time.time)
     finished_at: Optional[float] = None
@@ -45,6 +52,9 @@ class SpecRun:
     summary: str = ""
     error: str = ""
     agent: Any = None
+    # Set by Stop. Honoured even while the agent is still being built, when
+    # there is nothing to interrupt yet.
+    stop_requested: bool = False
 
     def note(self, text: str, kind: str = "progress") -> None:
         text = " ".join(str(text or "").split())
@@ -58,6 +68,7 @@ class SpecRun:
             "spec": self.spec,
             "label": self.label,
             "mode": self.mode,
+            "retry_args": self.retry_args,
             "status": self.status,
             "started_at": self.started_at,
             "finished_at": self.finished_at,
@@ -96,12 +107,15 @@ def list_runs(cwd: str) -> List[dict]:
 def stop_run(run_id: str) -> bool:
     with _lock:
         run = _runs.get(run_id)
-    if run is None or run.status != "running" or run.agent is None:
-        return False
-    try:
-        run.agent.interrupt("Stopped from the Specs page")
-    except Exception:  # noqa: BLE001 — a dead agent is already stopping
-        return False
+        if run is None or run.status != "running":
+            return False
+        run.stop_requested = True
+        agent = run.agent
+    if agent is not None:
+        try:
+            agent.interrupt("Stopped from the Specs page")
+        except Exception:  # noqa: BLE001 — a dead agent is already stopping
+            pass
     run.note("Stopping…", "status")
     return True
 
@@ -138,6 +152,7 @@ def start_run(
     seed: str,
     mode: str,
     make_agent: AgentFactory,
+    retry_args: str = "",
     run_in_context: Callable[[str, Callable[[], None]], None],
     spawn: Callable[[Callable[[], None]], None] = lambda fn: threading.Thread(target=fn, daemon=True).start(),
 ) -> SpecRun:
@@ -148,7 +163,7 @@ def start_run(
     Raises ``RuntimeError`` when the spec already has a run in progress.
     """
     task_id = f"spec_{uuid.uuid4().hex[:8]}"
-    run = SpecRun(id=task_id, cwd=cwd, spec=spec, label=label, mode=mode)
+    run = SpecRun(id=task_id, cwd=cwd, spec=spec, label=label, mode=mode, retry_args=retry_args)
     with _lock:
         for other in _runs.values():
             if other.status == "running" and other.spec == spec and _same_cwd(other.cwd, cwd):
@@ -158,15 +173,31 @@ def start_run(
     def work() -> None:
         try:
             agent = make_agent(run)
-            run.agent = agent
+            with _lock:
+                run.agent = agent
+                stopped_early = run.stop_requested
+            if stopped_early:
+                # Stopped while the agent was starting: don't begin the turn.
+                run.status = "interrupted"
+                return
             run.note(label, "status")
             result = agent.run_conversation(user_message=seed, task_id=task_id)
             text = result.get("final_response", "") if isinstance(result, dict) else str(result or "")
-            interrupted = bool(getattr(agent, "_interrupt_requested", False)) or (
+            text = str(text or "").strip()
+            interrupted = run.stop_requested or bool(getattr(agent, "_interrupt_requested", False)) or (
                 isinstance(result, dict) and result.get("interrupted")
             )
-            run.summary = str(text or "").strip()[:_SUMMARY_CHARS]
-            run.status = "interrupted" if interrupted else "completed"
+            if interrupted:
+                # The cancellation sentinel is metadata, not a reply; keep any
+                # real text the agent had already produced.
+                run.status = "interrupted"
+                run.summary = "" if text.startswith(_CANCELLED_PREFIX) else text[:_SUMMARY_CHARS]
+            elif text.startswith(_FAILURE_PREFIXES):
+                run.status = "failed"
+                run.error = text.split(":", 1)[1].strip()[:_SUMMARY_CHARS]
+            else:
+                run.status = "completed"
+                run.summary = text[:_SUMMARY_CHARS]
         except Exception as exc:  # noqa: BLE001 — reported on the run, never raised
             run.error = f"{type(exc).__name__}: {exc}"
             run.status = "failed"

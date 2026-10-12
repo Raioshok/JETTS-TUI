@@ -75,8 +75,10 @@ describe('spec workflow', () => {
 
 describe('spec progress', () => {
   it('walks the four steps through drafting, review and done', () => {
+    // Missing requirements only read as "being written" while an agent runs.
+    expect(stepStates(spec({}), true).requirements).toBe('drafting')
     expect(stepStates(spec({}))).toEqual({
-      requirements: 'drafting',
+      requirements: 'upcoming',
       design: 'upcoming',
       tasks: 'upcoming',
       build: 'upcoming'

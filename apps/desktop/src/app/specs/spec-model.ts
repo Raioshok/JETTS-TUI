@@ -65,6 +65,11 @@ export function startTaskCommand(name: string, taskId: string): string {
   return `task ${name} ${taskId}`
 }
 
+/** Redo a step that never got written (a stopped or failed draft). */
+export function resumeCommand(name: string): string {
+  return `resume ${name}`
+}
+
 export function runAllCommand(name: string, includeOptional = false): string {
   return `run ${name}${includeOptional ? ' --optional' : ''}`
 }
@@ -130,15 +135,17 @@ export type SpecStep = (typeof SPEC_STEPS)[number]
 export type SpecStepState = 'done' | 'drafting' | 'review' | 'upcoming'
 
 /** Where each workflow step stands: written and approved (done), waiting on
- *  the user (review), being written (drafting) or not reached yet. */
+ *  the user (review), being written (drafting) or not reached yet. Only a
+ *  running agent makes a missing document read as "being written". */
 export function stepStates(
-  spec: Pick<SpecSummary, 'documents' | 'phase' | 'progress'>
+  spec: Pick<SpecSummary, 'documents' | 'phase' | 'progress'>,
+  running = false
 ): Record<SpecStep, SpecStepState> {
   const { documents: docs, phase, progress } = spec
   const started = progress.completed > 0 || progress.in_progress > 0
 
   return {
-    requirements: docs.design ? 'done' : docs.requirements ? 'review' : 'drafting',
+    requirements: docs.design ? 'done' : docs.requirements ? 'review' : running ? 'drafting' : 'upcoming',
     design: docs.tasks ? 'done' : docs.design ? 'review' : 'upcoming',
     tasks: docs.tasks ? (started ? 'done' : 'review') : 'upcoming',
     build: phase === 'done' ? 'done' : started ? 'drafting' : 'upcoming'
@@ -160,6 +167,8 @@ export interface SpecRun {
   id: string
   label: string
   mode: string
+  /** The spec command that redoes this run's step (Retry). */
+  retry_args: string
   spec: string
   started_at: number
   status: SpecRunStatus

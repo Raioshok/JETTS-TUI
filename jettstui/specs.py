@@ -495,6 +495,9 @@ def _create_dir(cwd: Path, feature: str) -> Tuple[Optional[Path], Optional[SpecC
         "specId": str(uuid.uuid4()),
         "workflowType": "requirements-first",
         "specType": "feature",
+        # Kept so a requirements draft that was stopped can be resumed with
+        # the user's own words rather than the slug.
+        "description": feature.strip(),
     }, indent=2) + "\n")
     return spec, None
 
@@ -653,6 +656,27 @@ def _start_task(cwd: Path, name: str, task_id: str) -> SpecCommandResult:
     )
 
 
+def _resume(cwd: Path, name: str) -> SpecCommandResult:
+    """Redo the step a spec is stuck on: the requirements draft that never
+    got written (stopped, failed). Other phases resume through approve/task."""
+    spec = _resolve(cwd, name)
+    if spec is None:
+        return SpecCommandResult(f"Spec '{name}' was not found.")
+    if not _has_doc(spec, "requirements"):
+        feature = str(_spec_config(spec).get("description") or "").strip() or spec.name.replace("-", " ")
+        return SpecCommandResult(
+            f"Writing requirements.md for '{spec.name}'.",
+            agent_seed=_requirements_seed(spec, feature),
+            active_spec=spec.name,
+            requested_mode="plan",
+        )
+    return SpecCommandResult(
+        f"Nothing to resume for '{spec.name}' — its {spec_phase(spec)} step is ready. "
+        f"Approve the newest document or start a task.",
+        active_spec=spec.name,
+    )
+
+
 def _run_all(cwd: Path, name: str, include_optional: bool) -> SpecCommandResult:
     spec = _resolve(cwd, name)
     if spec is None:
@@ -670,7 +694,7 @@ def _run_all(cwd: Path, name: str, include_optional: bool) -> SpecCommandResult:
 USAGE = (
     "Usage: /spec [list | new <feature> | quick <feature> | auto <feature> | status <name> | "
     "approve <name> <requirements|design|tasks> | refine <name> <stage> <feedback> | "
-    "task <name> [id] | run <name> [--optional]]"
+    "task <name> [id] | run <name> [--optional] | resume <name>]"
 )
 
 
@@ -704,6 +728,8 @@ def run_spec_command(args: str, cwd: Path, active_spec: Optional[str] = None) ->
         return _refine(cwd, named(0), rest[1] if len(rest) > 1 else "", " ".join(rest[2:]))
     if command in {"task", "start"}:
         return _start_task(cwd, named(0), rest[1] if len(rest) > 1 else "")
+    if command in {"resume", "retry", "continue"}:
+        return _resume(cwd, named(0))
     if command in {"run", "run-all", "implement"}:
         include_optional = "--optional" in rest
         names = [r for r in rest if r != "--optional"]

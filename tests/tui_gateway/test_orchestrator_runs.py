@@ -74,12 +74,16 @@ def test_rpc_runs_a_flow_headlessly_and_records_it(monkeypatch, tmp_path: Path):
     assert all(isinstance(e["at"], float) for e in run["events"])
 
     (sub,) = run["subagents"]
-    assert sub["id"] == "sa-1" and sub["status"] == "completed" and sub["session_id"] == "child-1"
+    assert sub["id"] == "sa-1" and sub["status"] == "completed"
+    # Hidden subagents are never stored: no session to offer opening.
+    assert "session_id" not in sub
     assert [line["text"] for line in sub["stream"]] == ["write_file src/app.py"]
 
     # Hidden: the coordinator keeps no session and no memory.
     coordinator = FakeCoordinator.instances[0]
     assert coordinator.kwargs["session_db"] is None and coordinator.kwargs["skip_memory"] is True
+    # ...and never writes one lazily; its subagents inherit this.
+    assert coordinator._persist_disabled is True
 
 
 def test_rpc_validates_input(tmp_path: Path):
@@ -136,3 +140,16 @@ def test_subagent_log_is_bounded_and_deduplicated(tmp_path: Path):
     stream = run.to_dict()["subagents"][0]["stream"]
     assert len(stream) == orchestrator_runs._MAX_SUBAGENT_LINES
     assert len({line["text"] for line in stream}) == len(stream)
+
+
+def test_stop_before_the_coordinator_exists_is_honoured(tmp_path: Path):
+    flows = []
+    held = []
+    run = orchestrator_runs.start_run(
+        cwd=str(tmp_path), task="t", make_coordinator=lambda r: FakeCoordinator(),
+        run_flow=lambda c, t: flows.append(t) or {"verdict": "approved"},
+        run_in_context=lambda _id, fn: fn(), spawn=held.append,
+    )
+    assert orchestrator_runs.stop_run(run.id) is True
+    held[0]()
+    assert run.status == "interrupted" and flows == []

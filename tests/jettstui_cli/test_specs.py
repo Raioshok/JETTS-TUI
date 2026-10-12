@@ -214,3 +214,21 @@ def test_cli_spec_handler_queues_seed_and_enters_plan(tmp_path: Path, monkeypatc
     assert cli._work_mode == "plan"
     assert cli._active_spec_slug == "offline-search"
     assert cli._pending_agent_seed
+
+
+def test_resume_rewrites_missing_requirements_from_the_original_description(tmp_path: Path):
+    run_spec_command("new Offline search for notes on flights", tmp_path)
+    config = json.loads((tmp_path / SPEC.parent / "offline-search-for-notes-on-flights" / ".config.kiro").read_text())
+    assert config["description"] == "Offline search for notes on flights"
+
+    resumed = run_spec_command("resume offline-search-for-notes-on-flights", tmp_path)
+    assert resumed.requested_mode == "plan"
+    assert "REQUIREMENTS phase" in resumed.agent_seed
+    assert "Offline search for notes on flights" in resumed.agent_seed
+
+
+def test_resume_has_nothing_to_do_once_requirements_exist(tmp_path: Path):
+    run_spec_command("new Offline Search", tmp_path)
+    _write(tmp_path, "requirements.md")
+    result = run_spec_command("resume offline-search", tmp_path)
+    assert result.agent_seed is None and "Nothing to resume" in result.text

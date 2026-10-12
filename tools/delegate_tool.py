@@ -1547,6 +1547,12 @@ def _build_child_agent(
     child._parent_subagent_id = parent_subagent_id
     child._subagent_goal = goal
     child._parent_turn_id = getattr(parent_agent, "_current_turn_id", "") or ""
+    # A persistence-isolated parent (a hidden Specs/Orchestrator-tab agent,
+    # never stored as a session) must not have children writing sessions
+    # that point at it: their parent_session_id would violate the session
+    # store's foreign key and every write would fail mid-turn.
+    if getattr(parent_agent, "_persist_disabled", False):
+        child._persist_disabled = True
     # Stable sidebar marker: delegate subagent sessions must stay out of
     # session pickers even when a parent delete orphans them (parent_session_id
     # → NULL). Mirrors /branch's ``_branched_from`` pattern — see
@@ -2315,6 +2321,9 @@ def _run_single_child(
         _error_shaped = (
             (_stripped.startswith("HTTP ") and _stripped[5:8].isdigit())
             or _stripped.startswith("Error code: ")
+            # run_agent's turn-failure notice ("⚠️ No reply: …") is all a
+            # child returns when its turn stopped without an answer.
+            or _stripped.startswith(("⚠️ No reply:", "No reply:"))
         )
 
         if interrupted:

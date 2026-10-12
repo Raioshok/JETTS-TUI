@@ -6,9 +6,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { notifyError } from '@/store/notifications'
 import { $activeSessionId, $currentCwd, $gatewayState } from '@/store/session'
 
+import { $orchestratorWorkspace } from '../project-picker'
+
 import type { OrchestratorConfig, OrchestratorPayload } from './flow-config'
 import type { HeadlessRun } from './headless-runs'
-import { $orchestratorWorkspace } from './project-picker'
 
 const requestGateway = vi.fn()
 
@@ -296,7 +297,7 @@ describe('Orchestrator runs', () => {
     await renderView()
 
     expect(await screen.findByText('Choose a project to run the team')).toBeTruthy()
-    expect(screen.getByTestId('orchestrator-project')).toBeTruthy()
+    expect(screen.getByTestId('project-picker')).toBeTruthy()
     expect(requestGateway).not.toHaveBeenCalledWith('orchestrator.runs', expect.anything())
   })
 
@@ -305,7 +306,7 @@ describe('Orchestrator runs', () => {
     await renderView()
 
     await waitFor(() => expect(requestGateway).toHaveBeenCalledWith('orchestrator.runs', { cwd: '/work/other' }))
-    expect(screen.getByTestId('orchestrator-project').textContent).toContain('other')
+    expect(screen.getByTestId('project-picker').textContent).toContain('other')
 
     fireEvent.change(screen.getByLabelText('Run a task'), { target: { value: 'tidy the readme' } })
     fireEvent.click(screen.getByRole('button', { name: 'Run' }))

@@ -71,7 +71,7 @@ test('the Orchestrator tab runs the team headlessly, without a chat', async () =
   await page.getByRole('button', { name: 'Runs', exact: true }).click()
 
   // The project picker defaults to the chat's project and offers any folder.
-  const picker = page.getByTestId('orchestrator-project')
+  const picker = page.getByTestId('project-picker')
   await expect(picker).toContainText(path.basename(workspace))
   await picker.click()
   await expect(page.getByRole('option', { name: 'Browse for a folder…' })).toBeVisible()
@@ -89,6 +89,17 @@ test('the Orchestrator tab runs the team headlessly, without a chat', async () =
   for (const marker of ORCHESTRATOR_STAGE_MARKERS) {
     expect(prompts.some(text => text.startsWith(marker))).toBe(true)
   }
+
+  // The planner looked something up first (session_search): its plan must
+  // still arrive. Before the persistence fix every hidden subagent's turn was
+  // aborted with "No reply: … session storage could not be written".
+  await run.getByRole('button', { name: "Show Planner's work" }).click()
+  const plannerReports = run.getByTestId('flow-agent-report')
+  await expect(plannerReports.last()).toContainText('Write the change.')
+  // Hidden subagents are never stored, so there is no session to open.
+  await expect(run.getByRole('button', { name: 'Open session' })).toHaveCount(0)
+  await expect(run.getByText(/No reply/)).toHaveCount(0)
+  await run.getByRole('button', { name: 'Back to agents' }).click()
 
   // Clicking an agent shows its work: its report and its board file.
   await run.getByRole('button', { name: "Show Executor's work" }).click()

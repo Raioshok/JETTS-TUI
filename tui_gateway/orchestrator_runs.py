@@ -45,6 +45,8 @@ class OrchestratorRun:
     report: Optional[dict] = None
     error: str = ""
     coordinator: Any = None
+    # Set by Stop; honoured even before the coordinator exists.
+    stop_requested: bool = False
     lock: threading.Lock = field(default_factory=threading.Lock)
 
     # ── recording (called from the flow's worker threads) ─────────────────
@@ -70,8 +72,8 @@ class OrchestratorRun:
             )
             if kw.get("model"):
                 row["model"] = str(kw["model"])
-            if kw.get("child_session_id"):
-                row["session_id"] = str(kw["child_session_id"])
+            # No child_session_id: a headless flow's subagents are never
+            # stored (persistence-isolated), so there is no session to open.
             if kw.get("status"):
                 row["status"] = str(kw["status"])
             if event_type == "subagent.complete":
@@ -127,14 +129,17 @@ def list_runs(cwd: str) -> List[dict]:
 def stop_run(run_id: str) -> bool:
     with _lock:
         run = _runs.get(run_id)
-    if run is None or run.status != "running" or run.coordinator is None:
-        return False
-    try:
-        # Propagates to the flow's running subagents; the flow also checks it
-        # between phases.
-        run.coordinator.interrupt("Stopped from the Orchestrator tab")
-    except Exception:  # noqa: BLE001
-        return False
+        if run is None or run.status != "running":
+            return False
+        run.stop_requested = True
+        coordinator = run.coordinator
+    if coordinator is not None:
+        try:
+            # Propagates to the flow's running subagents; the flow also checks
+            # it between phases.
+            coordinator.interrupt("Stopped from the Orchestrator tab")
+        except Exception:  # noqa: BLE001
+            pass
     return True
 
 
@@ -168,9 +173,14 @@ def start_run(
         try:
             coordinator = make_coordinator(run)
             coordinator.tool_progress_callback = run.record
-            run.coordinator = coordinator
+            with _lock:
+                run.coordinator = coordinator
+                stopped_early = run.stop_requested
+            if stopped_early:
+                run.status = "interrupted"
+                return
             run.report = run_flow(coordinator, run.task)
-            run.status = str(run.report.get("verdict") or "failed")
+            run.status = "interrupted" if run.stop_requested else str(run.report.get("verdict") or "failed")
         except Exception as exc:  # noqa: BLE001 — reported on the run, never raised
             run.error = f"{type(exc).__name__}: {exc}"
             run.status = "failed"

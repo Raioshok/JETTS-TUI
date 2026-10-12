@@ -12,10 +12,10 @@ import { notifyError } from '@/store/notifications'
 import { $activeSessionId, $currentCwd, $gatewayState } from '@/store/session'
 
 import { useGatewayRequest } from '../gateway/hooks/use-gateway-request'
+import { $orchestratorWorkspace, ProjectPicker } from '../project-picker'
 
 import { FlowRunView, RunStatusChip } from './flow-panel'
 import { type HeadlessRun, toFlowRun, toSubagents } from './headless-runs'
-import { $orchestratorWorkspace, ProjectPicker } from './project-picker'
 
 // A running flow is polled briskly so its agents read as live; otherwise the
 // list only needs to notice runs finishing.
@@ -89,7 +89,7 @@ export function RunsPanel() {
   if (!cwd) {
     return (
       <Notice icon="folder-opened" text={o.noProjectBody} title={o.noProjectTitle}>
-        <ProjectPicker chatCwd={chatCwd} value="" />
+        <ProjectPicker chatCwd={chatCwd} onChange={path => $orchestratorWorkspace.set(path)} value="" />
       </Notice>
     )
   }
@@ -111,7 +111,7 @@ export function RunsPanel() {
           value={task}
         />
         <div className="flex flex-wrap items-center gap-3 border-t border-(--ui-stroke-tertiary) pt-3">
-          <ProjectPicker chatCwd={chatCwd} value={cwd} />
+          <ProjectPicker chatCwd={chatCwd} onChange={path => $orchestratorWorkspace.set(path)} value={cwd} />
           <p className="min-w-0 flex-1 text-[0.7rem] leading-4 text-(--ui-text-tertiary)">
             {anyRunning ? o.oneAtATime : o.runsHere}
           </p>

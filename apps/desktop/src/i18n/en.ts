@@ -1119,11 +1119,6 @@ export const en: Translations = {
       'Describe a task above. Four agents plan, build, review and check it together, and you watch them work here.',
     noProjectTitle: 'Choose a project to run the team',
     noProjectBody: 'Pick one of your projects, or any folder — the team works there.',
-    project: 'Project',
-    projects: 'Your projects',
-    pickProject: 'Choose a project',
-    browseFolder: 'Browse for a folder…',
-    browseFailed: 'Could not open the folder picker',
     runFailed: 'Could not start the flow',
     stopFailed: 'Could not stop the flow',
     stop: 'Stop',
@@ -1187,6 +1182,13 @@ export const en: Translations = {
       stage: { running: 'Running', completed: 'Done', failed: 'Failed', interrupted: 'Stopped' },
       verdict: { approved: 'Approved', changes_requested: 'Changes', unknown: 'No verdict' }
     }
+  },
+  projectPicker: {
+    project: 'Project',
+    projects: 'Your projects',
+    pickProject: 'Choose a project',
+    browseFolder: 'Browse for a folder…',
+    browseFailed: 'Could not open the folder picker'
   },
   specs: {
     title: 'Specs',
@@ -1261,7 +1263,11 @@ export const en: Translations = {
       build: 'The agent works through the tasks'
     },
     stepState: { done: 'Done', drafting: 'Being written', review: 'Ready for review', upcoming: 'Not started' },
-    working: 'The agent is starting…'
+    working: 'The agent is starting…',
+    requirementsMissing: "The requirements haven't been written yet.",
+    writeRequirements: 'Write requirements',
+    stoppedNote: 'Stopped before it finished — nothing more was written.',
+    runFailedNote: 'The agent stopped without finishing.'
   },
   agents: {
     close: 'Close agents',

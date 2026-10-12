@@ -1080,6 +1080,47 @@ class TestDelegateObservability(unittest.TestCase):
             self.assertEqual(entry["status"], "failed")
             self.assertIn("410", entry["error"])
 
+    def test_turn_failure_notice_marks_status_failed(self):
+        """A child whose turn stopped without an answer returns only run_agent's
+        "No reply" notice (e.g. session storage refused a write). That is not
+        a result — it must read as failed, not completed."""
+        parent = _make_mock_parent(depth=0)
+
+        with patch("run_agent.AIAgent") as MockAgent:
+            mock_child = MagicMock()
+            mock_child.model = "m"
+            mock_child.session_prompt_tokens = 0
+            mock_child.session_completion_tokens = 0
+            mock_child.run_conversation.return_value = {
+                "final_response": "⚠️ No reply: the turn was stopped because session storage could not be written.",
+                "completed": True,
+                "interrupted": False,
+                "api_calls": 1,
+                "messages": [],
+            }
+            MockAgent.return_value = mock_child
+
+            result = json.loads(delegate_task(goal="Test no reply", parent_agent=parent))
+            self.assertEqual(result["results"][0]["status"], "failed")
+
+    def test_children_of_a_persistence_isolated_parent_stay_isolated(self):
+        """A hidden (never stored) parent's children must not write sessions
+        parented to it — that violates the session store's foreign key."""
+        from tools.delegate_tool import _build_child_agent
+
+        for isolated in (True, False):
+            parent = _make_mock_parent(depth=0)
+            parent._persist_disabled = isolated
+            with patch("run_agent.AIAgent") as MockAgent:
+                child = MagicMock()
+                child._persist_disabled = False
+                MockAgent.return_value = child
+                built = _build_child_agent(
+                    task_index=0, goal="g", context=None, toolsets=None, model=None,
+                    max_iterations=5, task_count=1, parent_agent=parent,
+                )
+            self.assertIs(built._persist_disabled, isolated)
+
 
 class TestSubagentCostRollup(unittest.TestCase):
     """Port of Kilo-Org/kilocode#9448 — parent's session_estimated_cost_usd

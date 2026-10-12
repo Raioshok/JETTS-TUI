@@ -18,10 +18,12 @@ import { selectDesktopPaths } from '@/lib/desktop-fs'
 import { notifyError } from '@/store/notifications'
 import { $projectTree, refreshProjectTree } from '@/store/projects'
 
-/** The folder the Orchestrator tab runs the team in. Null follows the current
- *  chat's project. Window-scoped and in memory: a pick holds while you work,
- *  and a fresh window starts from wherever its chat is. */
+// Pages that do work in a project (Orchestrator, Specs) let you pick which.
+// Each page keeps its own pick; null follows the current chat's project.
+// Window-scoped and in memory: a pick holds while you work, and a fresh
+// window starts from wherever its chat is.
 export const $orchestratorWorkspace = atom<null | string>(null)
+export const $specsWorkspace = atom<null | string>(null)
 
 const BROWSE = '__browse__'
 
@@ -73,11 +75,12 @@ interface ProjectPickerProps {
   value: string
   /** The current chat's folder, offered even if no project covers it. */
   chatCwd: string
+  onChange: (path: string) => void
 }
 
-export function ProjectPicker({ chatCwd, value }: ProjectPickerProps) {
+export function ProjectPicker({ chatCwd, onChange, value }: ProjectPickerProps) {
   const { t } = useI18n()
-  const o = t.orchestrator
+  const o = t.projectPicker
   const tree = useStore($projectTree)
   const options = workspaceOptions(tree, [chatCwd, value])
 
@@ -98,7 +101,7 @@ export function ProjectPicker({ chatCwd, value }: ProjectPickerProps) {
       })
 
       if (dir) {
-        $orchestratorWorkspace.set(dir)
+        onChange(dir)
       }
     } catch (error) {
       notifyError(error, o.browseFailed)
@@ -109,7 +112,7 @@ export function ProjectPicker({ chatCwd, value }: ProjectPickerProps) {
     if (next === BROWSE) {
       void browse()
     } else {
-      $orchestratorWorkspace.set(next)
+      onChange(next)
     }
   }
 
@@ -118,7 +121,7 @@ export function ProjectPicker({ chatCwd, value }: ProjectPickerProps) {
       <SelectTrigger
         aria-label={o.project}
         className="h-8 w-auto min-w-44 max-w-72 gap-1.5 rounded-md text-xs"
-        data-testid="orchestrator-project"
+        data-testid="project-picker"
       >
         <Codicon className="shrink-0 text-(--ui-text-tertiary)" name="folder" size="0.8rem" />
         <SelectValue placeholder={o.pickProject} />

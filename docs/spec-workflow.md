@@ -52,6 +52,7 @@ execution runs in Accept Edits mode.
 /spec refine <name> <stage> <feedback>    request changes to a document
 /spec task <name> [id]                    start one task (default: the next unfinished one)
 /spec run <name> [--optional]             run all remaining tasks (optional ones only with --optional)
+/spec resume <name>                       rewrite requirements that a stopped or failed draft never wrote
 /spec list
 /spec status <name>                       documents + every task's checkbox
 ```
@@ -62,6 +63,10 @@ execution runs in Accept Edits mode.
 
 Open **Specs** in the sidebar (or the command palette) to drive the whole
 workflow without typing commands:
+
+- **Project** — the selector in the header picks where specs live: one of your
+  projects or any folder (**Browse for a folder…**). It starts on the current
+  chat's project.
 
 - **New spec** — describe the feature and pick **Guided** (phase by phase,
   approving each document), **Quick** (all three documents at once) or
@@ -80,7 +85,9 @@ workflow without typing commands:
 Everything happens on the Specs page itself — no chat is opened and spec work
 never appears in your session list. Each action starts a background agent in
 the project; the spec shows what it is doing live (with a **Stop** button) and,
-when it finishes, its reply — usually the question for your review. One spec
+when it finishes, its reply — usually the question for your review. If you
+stop it or it fails, the spec says so and offers **Retry**; requirements that
+were never written can be started again with **Write requirements**. One spec
 runs one agent at a time. The page re-reads the files as they change and moves
 to a new document as soon as it is written.
 

@@ -116,7 +116,7 @@ COMMAND_REGISTRY: list[CommandDef] = [
     CommandDef("spec", "Write a spec (requirements, design, tasks) and build it task by task", "Session",
                cli_only=True,
                args_hint="[list|new|quick|auto <feature>|status|approve <name> <stage>|refine|task <name> [id]|run <name>]",
-               subcommands=("list", "new", "quick", "auto", "status", "approve", "refine", "task", "run", "implement")),
+               subcommands=("list", "new", "quick", "auto", "status", "approve", "refine", "task", "run", "implement", "resume")),
     CommandDef("moa", "Run one prompt through the default Mixture of Agents preset, then restore your model", "Session",
                args_hint="<prompt>"),
     CommandDef("subgoal", "Add or manage extra criteria on the active goal", "Session",

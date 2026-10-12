@@ -968,11 +968,6 @@ export interface Translations {
     runsEmptyBody: string
     noProjectTitle: string
     noProjectBody: string
-    project: string
-    projects: string
-    pickProject: string
-    browseFolder: string
-    browseFailed: string
     runFailed: string
     stopFailed: string
     stop: string
@@ -1019,6 +1014,13 @@ export interface Translations {
       verdict: Record<'approved' | 'changes_requested' | 'unknown', string>
     }
   }
+  projectPicker: {
+    project: string
+    projects: string
+    pickProject: string
+    browseFolder: string
+    browseFailed: string
+  }
   specs: {
     title: string
     subtitle: string
@@ -1063,6 +1065,10 @@ export interface Translations {
     stepHints: Record<'requirements' | 'design' | 'tasks' | 'build', string>
     stepState: Record<'done' | 'drafting' | 'review' | 'upcoming', string>
     working: string
+    requirementsMissing: string
+    writeRequirements: string
+    stoppedNote: string
+    runFailedNote: string
   }
   agents: {
     close: string

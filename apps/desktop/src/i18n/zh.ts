@@ -1303,11 +1303,6 @@ export const zh: Translations = {
     runsEmptyBody: '在上方描述一个任务。四个智能体会同时规划、实现、审查和检查，你可以在这里看着它们工作。',
     noProjectTitle: '选择一个项目来运行团队',
     noProjectBody: '选择你的某个项目或任意文件夹，团队会在那里工作。',
-    project: '项目',
-    projects: '你的项目',
-    pickProject: '选择项目',
-    browseFolder: '浏览文件夹…',
-    browseFailed: '无法打开文件夹选择器',
     runFailed: '无法启动流程',
     stopFailed: '无法停止流程',
     stop: '停止',
@@ -1367,6 +1362,13 @@ export const zh: Translations = {
       stage: { running: '运行中', completed: '完成', failed: '失败', interrupted: '已停止' },
       verdict: { approved: '批准', changes_requested: '需修改', unknown: '无结论' }
     }
+  },
+  projectPicker: {
+    project: '项目',
+    projects: '你的项目',
+    pickProject: '选择项目',
+    browseFolder: '浏览文件夹…',
+    browseFailed: '无法打开文件夹选择器'
   },
   specs: {
     title: '规格',
@@ -1430,7 +1432,11 @@ export const zh: Translations = {
       build: '智能体逐项完成任务'
     },
     stepState: { done: '已完成', drafting: '编写中', review: '待审阅', upcoming: '未开始' },
-    working: '正在启动智能体…'
+    working: '正在启动智能体…',
+    requirementsMissing: '需求尚未编写。',
+    writeRequirements: '编写需求',
+    stoppedNote: '在完成前已停止——没有再写入内容。',
+    runFailedNote: '智能体未完成就停止了。'
   },
   agents: {
     close: '关闭代理',

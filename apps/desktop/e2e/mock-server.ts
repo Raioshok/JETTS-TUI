@@ -39,6 +39,11 @@ verificationWritePath?: string
  * handle's `path` to let the test decide when the process exits.
  */
 backgroundReleasePath?: string
+/**
+ * Stall the first spec requirements draft (the reply never arrives on its own)
+ * so a Specs-page test can press Stop mid-run and then Retry.
+ */
+stallFirstSpecRequirements?: boolean
 }
 
 export interface MockServer {
@@ -49,6 +54,8 @@ export interface MockServer {
   waitForHeldCompletion: () => Promise<void>
   releaseHeldStream: () => void
   heldCompletionCount: () => number
+  /** Spec requirements requests stalled so far (see stallFirstSpecRequirements). */
+  stalledSpecRequests: () => number
   close: () => Promise<void>
 }
 
@@ -349,7 +356,12 @@ function orchestratorTurn(messages: any[]): ScriptedTurn | null {
   }
 
   if (first.startsWith('[Planner · work]')) {
-    return { text: '1. Write the change.\n2. Verify it.' }
+    // Look something up first, like real models do: session_search opens the
+    // session store lazily, which is what broke hidden (Orchestrator-tab)
+    // flows in the real app — their subagents' transcript writes were refused.
+    return messages.some(m => m?.role === 'tool')
+      ? { text: '1. Write the change.\n2. Verify it.' }
+      : { text: '', toolCalls: [{ name: 'session_search', args: { query: 'dark mode' } }] }
   }
 
   if (first.startsWith('[Executor · work]')) {
@@ -400,12 +412,20 @@ const SPEC_PHASES: Array<{ marker: string; file: string; content: string }> = [
   }
 ]
 
-function specTurn(messages: any[]): ScriptedTurn | null {
+let specRequirementsStalled = false
+
+function specTurn(messages: any[], options: MockServerOptions): ScriptedTurn | 'stall' | null {
   const first = messages.find(m => m?.role === 'user' && typeof m.content === 'string')?.content ?? ''
   const phase = SPEC_PHASES.find(p => first.includes(p.marker))
 
   if (!phase) {
     return null
+  }
+
+  if (options.stallFirstSpecRequirements && phase.file === 'requirements.md' && !specRequirementsStalled) {
+    specRequirementsStalled = true
+
+    return 'stall'
   }
 
   return messages.some(m => m?.role === 'tool')
@@ -531,7 +551,20 @@ export function startMockServer(options: MockServerOptions = {}): Promise<MockSe
             message => typeof message?.content === 'string' && message.content.includes(CORRECTION_SWITCH_TRIGGER),
           )
 
-          const orchestrated = orchestratorTurn(messages) ?? specTurn(messages)
+          const orchestrated = orchestratorTurn(messages) ?? specTurn(messages, options)
+
+          if (orchestrated === 'stall') {
+            // Never answer, but keep the stream alive (empty deltas) so the
+            // agent's stale-stream watchdog doesn't reconnect: the agent sits
+            // waiting on the model until the user stops it.
+            res.writeHead(200, { 'Content-Type': 'text/event-stream', 'Cache-Control': 'no-cache', Connection: 'keep-alive' })
+            const keepAlive = setInterval(() => res.write(sseChunk(model, { content: '' })), 1000)
+            // The response's close = the client went away (Stop). The request's
+            // own 'close' fires as soon as its body is read in current Node.
+            res.on('close', () => clearInterval(keepAlive))
+
+            return
+          }
 
           if (orchestrated) {
             if (stream) {
@@ -694,6 +727,7 @@ export function startMockServer(options: MockServerOptions = {}): Promise<MockSe
         waitForHeldCompletion: () => heldStreamStarted,
         releaseHeldStream: () => releaseHeldStream?.(),
         heldCompletionCount: () => heldCompletionCount,
+        stalledSpecRequests: () => (specRequirementsStalled ? 1 : 0),
         close: () =>
           new Promise((resolveClose, rejectClose) => {
             server.close((err) => {

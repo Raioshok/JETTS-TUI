@@ -979,11 +979,6 @@ export const ar = defineLocale({
     runsEmptyBody: 'صف مهمة في الأعلى. يخطط أربعة وكلاء وينفّذون ويراجعون ويتحققون معًا، وتشاهدهم يعملون هنا.',
     noProjectTitle: 'اختر مشروعًا لتشغيل الفريق',
     noProjectBody: 'اختر أحد مشاريعك أو أي مجلد، وسيعمل الفريق هناك.',
-    project: 'المشروع',
-    projects: 'مشاريعك',
-    pickProject: 'اختر مشروعًا',
-    browseFolder: 'استعراض مجلد…',
-    browseFailed: 'تعذّر فتح منتقي المجلدات',
     runFailed: 'تعذّر بدء التدفق',
     stopFailed: 'تعذّر إيقاف التدفق',
     stop: 'إيقاف',
@@ -1043,6 +1038,13 @@ export const ar = defineLocale({
       stage: { running: 'قيد التشغيل', completed: 'تم', failed: 'فشل', interrupted: 'متوقف' },
       verdict: { approved: 'موافقة', changes_requested: 'تغييرات', unknown: 'بلا حكم' }
     }
+  },
+  projectPicker: {
+    project: 'المشروع',
+    projects: 'مشاريعك',
+    pickProject: 'اختر مشروعًا',
+    browseFolder: 'استعراض مجلد…',
+    browseFailed: 'تعذّر فتح منتقي المجلدات'
   },
   specs: {
     title: 'المواصفات',
@@ -1112,7 +1114,11 @@ export const ar = defineLocale({
       build: 'ينجز الوكيل المهام بالترتيب'
     },
     stepState: { done: 'مكتمل', drafting: 'قيد الكتابة', review: 'جاهز للمراجعة', upcoming: 'لم يبدأ' },
-    working: 'جارٍ بدء الوكيل…'
+    working: 'جارٍ بدء الوكيل…',
+    requirementsMissing: 'لم تُكتب المتطلبات بعد.',
+    writeRequirements: 'كتابة المتطلبات',
+    stoppedNote: 'توقف قبل أن ينتهي — لم يُكتب شيء آخر.',
+    runFailedNote: 'توقف الوكيل دون أن ينتهي.'
   },
   agents: {
     close: 'إغلاق الوكلاء',

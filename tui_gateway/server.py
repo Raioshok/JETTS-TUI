@@ -16368,7 +16368,11 @@ def _(rid, params: dict) -> dict:
 
             kwargs = _background_agent_kwargs(parent_agent, run.id)
             kwargs.update({"session_db": None, "skip_memory": True, "disabled_toolsets": ["clarify"]})
-            return AIAgent(**kwargs)
+            coordinator = AIAgent(**kwargs)
+            # Hidden and never stored; its subagents inherit this, so none of
+            # them write sessions parented to a session that doesn't exist.
+            coordinator._persist_disabled = True
+            return coordinator
 
         def run_flow(coordinator, flow_task):
             from agent.orchestrator import run_flow as _run_flow
@@ -16523,6 +16527,9 @@ def _(rid, params: dict) -> dict:
             kwargs.update(spec_runs.callbacks_for(run))
             agent = AIAgent(**kwargs)
             agent._work_mode = run.mode or "default"
+            # Never write a session — not even lazily (session_search opens
+            # the store on demand); see _persist_disabled in run_agent.
+            agent._persist_disabled = True
             return agent
 
         def run_in_context(task_id, fn):
@@ -16541,6 +16548,13 @@ def _(rid, params: dict) -> dict:
                 cwd=str(cwd),
                 spec=result.active_spec or "",
                 label=result.text.splitlines()[0] if result.text else args,
+                # Re-running a create would refuse ("already exists"); its
+                # step is resumed instead.
+                retry_args=(
+                    f"resume {result.active_spec}"
+                    if tokens[0].lower() in _SPEC_CREATE_VERBS and result.active_spec
+                    else args
+                ),
                 seed=result.agent_seed,
                 mode=result.requested_mode or "default",
                 make_agent=make_agent,

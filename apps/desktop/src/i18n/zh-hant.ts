@@ -1078,11 +1078,6 @@ export const zhHant = defineLocale({
     runsEmptyBody: '在上方描述一項任務。四個代理會同時規劃、實作、審查與檢查，你可以在這裡看著它們工作。',
     noProjectTitle: '選擇一個專案來執行團隊',
     noProjectBody: '選擇你的某個專案或任意資料夾，團隊會在那裡工作。',
-    project: '專案',
-    projects: '你的專案',
-    pickProject: '選擇專案',
-    browseFolder: '瀏覽資料夾…',
-    browseFailed: '無法開啟資料夾選擇器',
     runFailed: '無法啟動流程',
     stopFailed: '無法停止流程',
     stop: '停止',
@@ -1142,6 +1137,13 @@ export const zhHant = defineLocale({
       stage: { running: '執行中', completed: '完成', failed: '失敗', interrupted: '已停止' },
       verdict: { approved: '核准', changes_requested: '需修改', unknown: '無結論' }
     }
+  },
+  projectPicker: {
+    project: '專案',
+    projects: '你的專案',
+    pickProject: '選擇專案',
+    browseFolder: '瀏覽資料夾…',
+    browseFailed: '無法開啟資料夾選擇器'
   },
   specs: {
     title: '規格',
@@ -1205,7 +1207,11 @@ export const zhHant = defineLocale({
       build: '代理逐項完成任務'
     },
     stepState: { done: '已完成', drafting: '撰寫中', review: '待審閱', upcoming: '未開始' },
-    working: '正在啟動代理…'
+    working: '正在啟動代理…',
+    requirementsMissing: '需求尚未撰寫。',
+    writeRequirements: '撰寫需求',
+    stoppedNote: '在完成前已停止——沒有再寫入內容。',
+    runFailedNote: '代理未完成就停止了。'
   },
   agents: {
     close: '關閉代理',

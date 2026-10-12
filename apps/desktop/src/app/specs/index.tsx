@@ -20,6 +20,7 @@ import { $activeSessionId, $currentCwd, $gatewayState } from '@/store/session'
 import { $workspaceChangeTick } from '@/store/workspace-events'
 
 import { useGatewayRequest } from '../gateway/hooks/use-gateway-request'
+import { $specsWorkspace, ProjectPicker } from '../project-picker'
 
 import {
   approveCommand,
@@ -29,6 +30,7 @@ import {
   latestRunBySpec,
   nextAction,
   refineCommand,
+  resumeCommand,
   runAllCommand,
   SPEC_STEPS,
   type SpecCreateMode,
@@ -53,7 +55,10 @@ const RUN_REFRESH_MS = 1000
 export function SpecsView(props: React.ComponentProps<'section'>) {
   const { t } = useI18n()
   const s = t.specs
-  const cwd = useStore($currentCwd).trim()
+  const chatCwd = useStore($currentCwd).trim()
+  const picked = useStore($specsWorkspace)
+  // The picked project, else the one the current chat is in.
+  const cwd = (picked ?? chatCwd).trim()
   const gatewayState = useStore($gatewayState)
   const tick = useStore($workspaceChangeTick)
   const { requestGateway } = useGatewayRequest()
@@ -176,7 +181,11 @@ export function SpecsView(props: React.ComponentProps<'section'>) {
   let body: ReactNode
 
   if (!cwd) {
-    body = <PageNotice icon="folder-opened" text={s.noProjectBody} title={s.noProjectTitle} />
+    body = (
+      <PageNotice icon="folder-opened" text={s.noProjectBody} title={s.noProjectTitle}>
+        <ProjectPicker chatCwd={chatCwd} onChange={path => $specsWorkspace.set(path)} value="" />
+      </PageNotice>
+    )
   } else if (!list.data && list.isError) {
     // Only a load that never succeeded is an error page; a failed refresh
     // keeps showing what we already have.
@@ -228,12 +237,15 @@ export function SpecsView(props: React.ComponentProps<'section'>) {
               <h1 className="text-xl font-semibold tracking-tight text-(--ui-text-primary)">{s.title}</h1>
               <p className="text-sm leading-5 text-(--ui-text-secondary)">{s.subtitle}</p>
             </div>
-            {specs.length > 0 && !composerOpen && (
-              <Button disabled={!connected} onClick={() => setComposerOpen(true)} size="sm">
-                <Codicon name="add" size="0.85rem" />
-                {s.newSpec}
-              </Button>
-            )}
+            <div className="flex flex-wrap items-center gap-2">
+              {cwd && <ProjectPicker chatCwd={chatCwd} onChange={path => $specsWorkspace.set(path)} value={cwd} />}
+              {specs.length > 0 && !composerOpen && (
+                <Button disabled={!connected} onClick={() => setComposerOpen(true)} size="sm">
+                  <Codicon name="add" size="0.85rem" />
+                  {s.newSpec}
+                </Button>
+              )}
+            </div>
           </header>
           {body}
         </div>
@@ -528,9 +540,15 @@ function SpecPanel({ cwd, onSend, onStop, pending, run, spec }: SpecPanelProps) 
         </p>
       </header>
 
-      <Stepper active={tab} onSelect={setTab} spec={spec} />
+      <Stepper active={tab} onSelect={setTab} running={pending} spec={spec} />
 
-      {run && <RunCard onStop={() => onStop(run.id)} run={run} />}
+      {run && (
+        <RunCard
+          onRetry={run.retry_args && !pending ? () => onSend(run.retry_args) : undefined}
+          onStop={() => onStop(run.id)}
+          run={run}
+        />
+      )}
 
       {!pending && <NextStep onSend={onSend} onShow={setTab} spec={spec} />}
 
@@ -555,15 +573,17 @@ function SpecPanel({ cwd, onSend, onStop, pending, run, spec }: SpecPanelProps) 
 function Stepper({
   active,
   onSelect,
+  running,
   spec
 }: {
   active: SpecStage
   onSelect: (stage: SpecStage) => void
+  running: boolean
   spec: SpecDetail
 }) {
   const { t } = useI18n()
   const s = t.specs
-  const states = stepStates(spec)
+  const states = stepStates(spec, running)
 
   const stateLabel = (step: SpecStep, state: SpecStepState) =>
     step === 'build' && state !== 'upcoming'
@@ -675,7 +695,15 @@ function NextStep({
       </Button>
     )
   } else if (action.kind === 'wait') {
-    text = s.notWritten.requirements
+    // Nothing is running (the bar only shows then): the draft was stopped or
+    // failed, so offer to write it rather than claiming it's being written.
+    text = s.requirementsMissing
+    button = (
+      <Button onClick={() => onSend(resumeCommand(spec.name))} size="sm">
+        <Codicon name="edit" size="0.75rem" />
+        {s.writeRequirements}
+      </Button>
+    )
   }
 
   return (
@@ -686,15 +714,11 @@ function NextStep({
       )}
       data-testid="spec-next-step"
     >
-      {action.kind === 'wait' ? (
-        <GlyphSpinner ariaLabel={s.working} className="shrink-0" spinner="breathe" />
-      ) : (
-        <Codicon
-          className="shrink-0 text-violet-600 dark:text-violet-300"
-          name={action.kind === 'done' ? 'pass' : 'arrow-right'}
-          size="0.95rem"
-        />
-      )}
+      <Codicon
+        className="shrink-0 text-violet-600 dark:text-violet-300"
+        name={action.kind === 'done' ? 'pass' : action.kind === 'wait' ? 'info' : 'arrow-right'}
+        size="0.95rem"
+      />
       <p className="min-w-0 flex-1 text-xs leading-5 text-(--ui-text-secondary)">{text}</p>
       {button}
     </div>
@@ -717,7 +741,9 @@ function DocumentView({ onOpen, onSend, pending, spec, stage }: DocumentViewProp
   if (!spec.documents[stage]) {
     return (
       <div className="grid place-items-center rounded-lg border border-dashed border-(--ui-stroke-tertiary) px-6 py-12 text-center">
-        <p className="max-w-sm text-xs leading-5 text-(--ui-text-tertiary)">{s.notWritten[stage]}</p>
+        <p className="max-w-sm text-xs leading-5 text-(--ui-text-tertiary)">
+          {stage === 'requirements' && !pending ? s.requirementsMissing : s.notWritten[stage]}
+        </p>
       </div>
     )
   }
@@ -920,13 +946,14 @@ const RUN_ICON: Record<Exclude<SpecRun['status'], 'running'>, string> = {
 
 /** The agent's work on this spec, shown in place: live activity while it
  *  runs, then its reply (usually the review question for the next phase). */
-function RunCard({ onStop, run }: { onStop: () => void; run: SpecRun }) {
+function RunCard({ onRetry, onStop, run }: { onRetry?: () => void; onStop: () => void; run: SpecRun }) {
   const { t } = useI18n()
   const s = t.specs
   const running = run.status === 'running'
   const elapsed = useElapsedSeconds(running, `spec-run:${run.id}`, run.started_at * 1000)
   const recent = run.activity.slice(-6)
-  const reply = run.summary || run.error
+  const reply = run.summary
+  const unfinished = run.status === 'interrupted' || run.status === 'failed'
 
   return (
     <section
@@ -952,6 +979,12 @@ function RunCard({ onStop, run }: { onStop: () => void; run: SpecRun }) {
         </span>
         <span className={cn('shrink-0 text-[0.66rem]', RUN_TONE[run.status])}>{s.runStatus[run.status]}</span>
         {running && <ActivityTimerText seconds={elapsed} />}
+        {unfinished && onRetry && (
+          <Button className="h-6 px-2 text-[0.66rem]" onClick={onRetry} size="sm" variant="secondary">
+            <Codicon name="refresh" size="0.7rem" />
+            {s.retry}
+          </Button>
+        )}
         {running && (
           <Button className="h-6 px-2 text-[0.66rem]" onClick={onStop} size="sm" variant="ghost">
             <Codicon name="debug-stop" size="0.7rem" />
@@ -975,6 +1008,12 @@ function RunCard({ onStop, run }: { onStop: () => void; run: SpecRun }) {
             </li>
           ))}
         </ol>
+      ) : run.status === 'failed' ? (
+        <p className="pl-6 text-[0.72rem] leading-5 text-destructive" data-testid="spec-run-error">
+          {run.error || s.runFailedNote}
+        </p>
+      ) : run.status === 'interrupted' && !reply ? (
+        <p className="pl-6 text-[0.72rem] leading-5 text-(--ui-text-tertiary)">{s.stoppedNote}</p>
       ) : (
         reply && (
           <div className="max-h-56 overflow-y-auto pl-6" data-testid="spec-run-reply">

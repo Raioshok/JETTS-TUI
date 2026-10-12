@@ -7,6 +7,8 @@ import { notify, notifyError } from '@/store/notifications'
 import { $activeSessionId, $currentCwd, $gatewayState } from '@/store/session'
 import { $workspaceChangeTick } from '@/store/workspace-events'
 
+import { $specsWorkspace } from '../project-picker'
+
 import type { SpecDetail, SpecRun, SpecSummary } from './spec-model'
 
 const requestGateway = vi.fn()
@@ -106,6 +108,7 @@ function specRun(overrides: Partial<SpecRun> = {}): SpecRun {
     id: 'spec_1',
     label: 'Starting task 2.1 of offline-search: Parse queries',
     mode: 'accept-edits',
+    retry_args: 'task offline-search 2.1',
     spec: 'offline-search',
     started_at: Date.now() / 1000,
     status: 'running',
@@ -167,6 +170,7 @@ afterEach(() => {
   vi.mocked(notify).mockReset()
   vi.mocked(notifyError).mockReset()
   $activeSessionId.set(null)
+  $specsWorkspace.set(null)
 })
 
 describe('SpecsView', () => {
@@ -333,6 +337,71 @@ describe('SpecsView', () => {
     fireEvent.change(screen.getByPlaceholderText('What should change?'), { target: { value: 'cover offline mode' } })
     fireEvent.click(screen.getByRole('button', { name: 'Send' }))
     await waitFor(() => expect(specRunCalls()).toEqual(['refine offline-search requirements cover offline mode']))
+  })
+
+  function noRequirementsYet() {
+    specs = [
+      summary('offline-search', {
+        documents: { design: false, requirements: false, tasks: false },
+        phase: 'requirements'
+      })
+    ]
+    details = {
+      'offline-search': detail('offline-search', {
+        documents: { design: false, requirements: false, tasks: false },
+        next_task: null,
+        phase: 'requirements',
+        tasks: []
+      })
+    }
+  }
+
+  it('a stopped draft says so and offers Retry — not "being written"', async () => {
+    noRequirementsYet()
+    runs = [specRun({ status: 'interrupted', retry_args: 'resume offline-search', finished_at: 2 })]
+    await renderView()
+
+    const card = await screen.findByTestId('spec-run')
+    expect(within(card).getByText('Stopped before it finished — nothing more was written.')).toBeTruthy()
+    expect(screen.queryByText(/being written/i)).toBeNull()
+    expect(screen.getByRole('tab', { name: /Requirements/ }).dataset.state).toBe('upcoming')
+
+    fireEvent.click(within(card).getByRole('button', { name: /Retry/ }))
+    await waitFor(() => expect(specRunCalls()).toEqual(['resume offline-search']))
+  })
+
+  it('offers to write missing requirements when nothing is running', async () => {
+    noRequirementsYet()
+    await renderView()
+
+    const next = await screen.findByTestId('spec-next-step')
+    expect(next.textContent).toContain("The requirements haven't been written yet.")
+    fireEvent.click(within(next).getByRole('button', { name: /Write requirements/ }))
+    await waitFor(() => expect(specRunCalls()).toEqual(['resume offline-search']))
+  })
+
+  it("shows a failed run's reason as an error, with Retry", async () => {
+    runs = [specRun({ status: 'failed', error: 'the turn was stopped because session storage could not be written.' })]
+    await renderView()
+
+    const card = await screen.findByTestId('spec-run')
+    expect(within(card).getByTestId('spec-run-error').textContent).toContain('session storage')
+    expect(within(card).queryByTestId('spec-run-reply')).toBeNull()
+    expect(within(card).getByRole('button', { name: /Retry/ })).toBeTruthy()
+  })
+
+  it('works in the picked project instead of the chat project', async () => {
+    $specsWorkspace.set('/work/other')
+    await renderView()
+
+    await waitFor(() => expect(requestGateway).toHaveBeenCalledWith('spec.list', { cwd: '/work/other' }))
+    expect(screen.getByTestId('project-picker').textContent).toContain('other')
+  })
+
+  it('offers a project picker when the chat has no project', async () => {
+    $currentCwd.set('')
+    await renderView()
+    expect(screen.getByTestId('project-picker')).toBeTruthy()
   })
 
   it('keeps showing the specs when a background refresh fails', async () => {
