@@ -932,8 +932,13 @@ app.setName(APP_NAME)
 // keep this string in sync with package.json `build.appId`. macOS/Linux don't
 // need this, so gate it on Windows. (Fixes: desktop approval/turn notifications
 // never firing on Windows.)
+//
+// Unpackaged runs (dev, e2e) use their own AUMID. On the first toast Electron
+// writes a Start Menu shortcut for the *running exe* under the current AUMID;
+// sharing the release id let node_modules' electron.exe claim it, and the
+// installed app then showed the default Electron icon in the taskbar.
 if (IS_WINDOWS) {
-  app.setAppUserModelId('com.jetts.tui')
+  app.setAppUserModelId(app.isPackaged ? 'com.jetts.tui' : 'com.jetts.tui.dev')
 }
 
 // Seed the native About panel with the live JettsTUI version. This is refreshed
