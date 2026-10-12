@@ -3,11 +3,13 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { PetHeartField, playVibeHearts } from '@/components/chat/vibe-hearts'
 import { PetBubble } from '@/components/pet/pet-bubble'
+import { PetSessionFeed } from '@/components/pet/pet-session-feed'
 import { PetSprite } from '@/components/pet/pet-sprite'
 import { type PetZoomAnchor, usePetZoomGesture } from '@/components/pet/use-pet-zoom-gesture'
 import { Mail } from '@/lib/icons'
 import { $petActivity, $petInfo, setPetInfo } from '@/store/pet'
 import { overlayWindowSize } from '@/store/pet-overlay'
+import type { PetSessionFeedItem, PetSessionFeedLabels } from '@/store/pet-sessions'
 import { setAwaitingResponse, setBusy } from '@/store/session'
 
 // Fallbacks mirror pet-sprite's defaults; the gateway normally sends real values.
@@ -66,6 +68,10 @@ export function PetOverlayApp() {
   const [draft, setDraft] = useState('')
   // Mirrored from the main renderer: a finish landed while you were away.
   const [unread, setUnread] = useState(false)
+  // Mirrored from the main renderer: what each active session is doing.
+  const [sessions, setSessions] = useState<PetSessionFeedItem[]>([])
+  const [sessionLabels, setSessionLabels] = useState<null | PetSessionFeedLabels>(null)
+  const feedRef = useRef<HTMLDivElement | null>(null)
 
   const dragRef = useRef<DragState | null>(null)
   // Last Alt+wheel anchor, consumed by the resize effect to zoom toward the
@@ -95,6 +101,8 @@ export function PetOverlayApp() {
       setBusy(Boolean(payload.busy))
       setAwaitingResponse(Boolean(payload.awaiting))
       setUnread(Boolean(payload.unread))
+      setSessions(Array.isArray(payload.sessions) ? payload.sessions : [])
+      setSessionLabels(payload.sessionLabels ?? null)
 
       // Play a reaction on a new id (ignore the first sync, which just primes it).
       const reaction = payload.reaction ?? null
@@ -132,6 +140,11 @@ export function PetOverlayApp() {
     const isInteractiveAt = (x: number, y: number): boolean => {
       const pet = petRef.current
       const target = document.elementFromPoint(x, y)
+
+      // Session feed cards are always clickable.
+      if (target && feedRef.current?.contains(target)) {
+        return true
+      }
 
       if (!pet || !target || !pet.contains(target)) {
         return false
@@ -386,6 +399,16 @@ export function PetOverlayApp() {
         width: '100vw'
       }}
     >
+      {sessionLabels && sessions.length > 0 && !composerOpen && (
+        <div ref={feedRef} style={{ marginBottom: 6 }}>
+          <PetSessionFeed
+            items={sessions}
+            labels={sessionLabels}
+            onOpen={id => window.jettstuiDesktop?.petOverlay?.control({ id, type: 'open-session' })}
+          />
+        </div>
+      )}
+
       {composerOpen && (
         <input
           onChange={e => setDraft(e.target.value)}

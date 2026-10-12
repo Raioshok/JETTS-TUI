@@ -473,6 +473,8 @@ export const en: Translations = {
         scaleDesc: 'Resize the floating mascot. Applies everywhere instantly.',
         roamTitle: 'Roam',
         roamDesc: 'Let the pet wander the window on its own while idle.',
+        sessionsTitle: 'Session updates',
+        sessionsDesc: 'Show what each active session is doing above the pet. Click one to open it.',
         chooseTitle: 'Choose a pet',
         chooseDesc: 'Picking one installs it (if needed) and makes it active.',
         searchPlaceholder: 'Search pets…',
@@ -1298,6 +1300,16 @@ export const en: Translations = {
     durationSeconds: seconds => `${seconds}s`,
     durationMinutes: (minutes, seconds) => `${minutes}m ${seconds}s`,
     tokens: value => `${value} tok`
+  },
+
+  petSessions: {
+    heading: 'Active sessions',
+    needsInput: 'needs you',
+    working: 'working',
+    stalled: 'quiet',
+    finished: 'done',
+    untitled: 'Untitled session',
+    moreCount: '+{count} more'
   },
 
   commandCenter: {

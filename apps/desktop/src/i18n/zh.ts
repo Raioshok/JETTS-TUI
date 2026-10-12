@@ -461,6 +461,8 @@ export const zh: Translations = {
         scaleDesc: '调整悬浮宠物的大小，所有界面即时生效。',
         roamTitle: '漫游',
         roamDesc: '空闲时让宠物自己在窗口内四处走动。',
+        sessionsTitle: '会话动态',
+        sessionsDesc: '在宠物上方显示每个活动会话的状态。点击即可打开。',
         on: '开启',
         off: '关闭',
         chooseTitle: '选择宠物',
@@ -1467,6 +1469,16 @@ export const zh: Translations = {
     durationSeconds: seconds => `${seconds} 秒`,
     durationMinutes: (minutes, seconds) => `${minutes} 分 ${seconds} 秒`,
     tokens: value => `${value} 词元`
+  },
+
+  petSessions: {
+    heading: '活动会话',
+    needsInput: '需要你',
+    working: '进行中',
+    stalled: '无响应',
+    finished: '已完成',
+    untitled: '未命名会话',
+    moreCount: '还有 {count} 个'
   },
 
   commandCenter: {

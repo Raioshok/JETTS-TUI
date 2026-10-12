@@ -476,6 +476,8 @@ export const pt = defineLocale({
         scaleDesc: 'Redimensiona o mascote flutuante. Vale em todo lugar na hora.',
         roamTitle: 'Passear',
         roamDesc: 'Deixa o mascote andar pela janela sozinho quando estiver ocioso.',
+        sessionsTitle: 'Atualizações de sessões',
+        sessionsDesc: 'Mostra acima do mascote o que cada sessão ativa está fazendo. Clique em uma para abri-la.',
         chooseTitle: 'Escolha um mascote',
         chooseDesc: 'Escolher um instala (se preciso) e o deixa ativo.',
         searchPlaceholder: 'Pesquisar mascotes…',
@@ -1322,6 +1324,16 @@ export const pt = defineLocale({
     durationSeconds: seconds => `${seconds}s`,
     durationMinutes: (minutes, seconds) => `${minutes}min ${seconds}s`,
     tokens: value => `${value} tok`
+  },
+
+  petSessions: {
+    heading: 'Sessões ativas',
+    needsInput: 'precisa de você',
+    working: 'trabalhando',
+    stalled: 'em silêncio',
+    finished: 'pronta',
+    untitled: 'Sessão sem título',
+    moreCount: '+{count} outras'
   },
 
   commandCenter: {

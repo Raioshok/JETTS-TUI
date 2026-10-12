@@ -351,6 +351,8 @@ export const ja = defineLocale({
         scaleDesc: '浮遊マスコットの大きさを変更します。すべての画面に即時反映されます。',
         roamTitle: '散歩',
         roamDesc: 'アイドル中にペットがウィンドウ内を自由に歩き回ります。',
+        sessionsTitle: 'セッションの状況',
+        sessionsDesc: 'アクティブな各セッションの状況をペットの上に表示します。クリックで開きます。',
         on: 'オン',
         off: 'オフ',
         chooseTitle: 'ペットを選ぶ',
@@ -1289,6 +1291,16 @@ export const ja = defineLocale({
     durationSeconds: seconds => `${seconds}秒`,
     durationMinutes: (minutes, seconds) => `${minutes}分 ${seconds}秒`,
     tokens: value => `${value} トーク`
+  },
+
+  petSessions: {
+    heading: 'アクティブなセッション',
+    needsInput: '入力待ち',
+    working: '作業中',
+    stalled: '応答なし',
+    finished: '完了',
+    untitled: '無題のセッション',
+    moreCount: '他 {count} 件'
   },
 
   commandCenter: {

@@ -3,6 +3,7 @@ import { useEffect, useRef } from 'react'
 import { setPetActivity } from '@/store/pet'
 import { setPetScale } from '@/store/pet-gallery'
 import { setPetOverlayOpenAppHandler, setPetOverlayScaleHandler, setPetOverlaySubmitHandler } from '@/store/pet-overlay'
+import { setPetSessionOpener } from '@/store/pet-sessions'
 import { $sessions } from '@/store/session'
 import { $attentionSessionIds } from '@/store/session-states'
 import { isSecondaryWindow } from '@/store/windows'
@@ -10,6 +11,8 @@ import { isSecondaryWindow } from '@/store/windows'
 import type { GatewayRequester } from '../types'
 
 interface PetBridgeParams {
+  /** Navigate to a stored session (same path as a sidebar click). */
+  openSession: (storedSessionId: string) => void
   requestGateway: GatewayRequester
   resumeSession: (sessionId: string) => Promise<unknown> | unknown
   submitText: (text: string) => Promise<unknown> | unknown
@@ -22,7 +25,9 @@ interface PetBridgeParams {
  * latest callbacks — re-registering on identity churn leaves a nulled-handler
  * window that can drop a submit. Primary window only.
  */
-export function usePetBridge({ requestGateway, resumeSession, submitText }: PetBridgeParams): void {
+export function usePetBridge({ openSession, requestGateway, resumeSession, submitText }: PetBridgeParams): void {
+  const openSessionRef = useRef(openSession)
+  openSessionRef.current = openSession
   const submitTextRef = useRef(submitText)
   submitTextRef.current = submitText
   const resumeSessionRef = useRef(resumeSession)
@@ -49,7 +54,11 @@ export function usePetBridge({ requestGateway, resumeSession, submitText }: PetB
       }
     })
 
+    // Session feed cards (in-window pet and the overlay) open their session.
+    setPetSessionOpener(id => openSessionRef.current(id))
+
     return () => {
+      setPetSessionOpener(null)
       setPetOverlaySubmitHandler(null)
       setPetOverlayOpenAppHandler(null)
       setPetOverlayScaleHandler(null)

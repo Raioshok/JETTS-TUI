@@ -35,6 +35,7 @@ import {
   setPetEnabled,
   setPetScale
 } from '@/store/pet-gallery'
+import { $petSessionFeedEnabled, setPetSessionFeedEnabled } from '@/store/pet-sessions'
 import { $gatewayState } from '@/store/session'
 
 import { ListRow, SectionHeading } from './primitives'
@@ -57,6 +58,7 @@ export function PetSettings() {
   const busySlug = useStore($petBusy)
   const petInfo = useStore($petInfo)
   const roam = useStore($petRoam)
+  const sessionFeed = useStore($petSessionFeedEnabled)
   const [query, setQuery] = useState('')
   const [confirmDelete, setConfirmDelete] = useState<GalleryPet | null>(null)
   const [renameTarget, setRenameTarget] = useState<GalleryPet | null>(null)
@@ -314,6 +316,26 @@ export function PetSettings() {
             }
             description={copy.roamDesc}
             title={copy.roamTitle}
+          />
+        )}
+
+        {enabled && (
+          <ListRow
+            action={
+              <SegmentedControl
+                onChange={id => {
+                  setPetSessionFeedEnabled(id === 'on')
+                  triggerHaptic('crisp')
+                }}
+                options={[
+                  { id: 'off', label: copy.off },
+                  { id: 'on', label: copy.on }
+                ]}
+                value={sessionFeed ? 'on' : 'off'}
+              />
+            }
+            description={copy.sessionsDesc}
+            title={copy.sessionsTitle}
           />
         )}
       </div>

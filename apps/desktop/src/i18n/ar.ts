@@ -1149,6 +1149,16 @@ export const ar = defineLocale({
     durationMinutes: (minutes, seconds) => `${minutes} د ${seconds} ث`,
     tokens: value => `${value} رمز`
   },
+  petSessions: {
+    heading: 'الجلسات النشطة',
+    needsInput: 'بحاجة إليك',
+    working: 'قيد العمل',
+    stalled: 'صامتة',
+    finished: 'اكتملت',
+    untitled: 'جلسة بلا عنوان',
+    moreCount: '+{count} أخرى'
+  },
+
   commandCenter: {
     close: 'إغلاق',
     paletteTitle: 'لوحة الأوامر',

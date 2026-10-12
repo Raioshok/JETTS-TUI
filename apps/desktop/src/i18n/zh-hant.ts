@@ -341,6 +341,8 @@ export const zhHant = defineLocale({
         scaleDesc: '調整懸浮寵物的大小，所有介面即時生效。',
         roamTitle: '漫遊',
         roamDesc: '閒置時讓寵物自己在視窗內四處走動。',
+        sessionsTitle: '工作階段動態',
+        sessionsDesc: '在寵物上方顯示每個進行中工作階段的狀態。點擊即可開啟。',
         on: '開啟',
         off: '關閉',
         chooseTitle: '選擇寵物',
@@ -1242,6 +1244,16 @@ export const zhHant = defineLocale({
     durationSeconds: seconds => `${seconds} 秒`,
     durationMinutes: (minutes, seconds) => `${minutes} 分 ${seconds} 秒`,
     tokens: value => `${value} 詞元`
+  },
+
+  petSessions: {
+    heading: '進行中的工作階段',
+    needsInput: '需要你',
+    working: '進行中',
+    stalled: '無回應',
+    finished: '已完成',
+    untitled: '未命名工作階段',
+    moreCount: '還有 {count} 個'
   },
 
   commandCenter: {

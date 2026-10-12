@@ -381,6 +381,8 @@ export interface Translations {
         scaleDesc: string
         roamTitle: string
         roamDesc: string
+        sessionsTitle: string
+        sessionsDesc: string
         chooseTitle: string
         chooseDesc: string
         searchPlaceholder: string
@@ -1099,6 +1101,17 @@ export interface Translations {
     durationSeconds: (seconds: string) => string
     durationMinutes: (minutes: number, seconds: number) => string
     tokens: (value: number | string) => string
+  }
+
+  petSessions: {
+    heading: string
+    needsInput: string
+    working: string
+    stalled: string
+    finished: string
+    untitled: string
+    /** Overflow chip; `{count}` is replaced with the hidden-row count. */
+    moreCount: string
   }
 
   commandCenter: {

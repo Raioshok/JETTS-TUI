@@ -1,10 +1,11 @@
 import { useStore } from '@nanostores/react'
-import { useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { useGatewayRequest } from '@/app/gateway/hooks/use-gateway-request'
 import { useOnProfileSwitch } from '@/app/hooks/use-on-profile-switch'
 import { useRouteOverlayActive } from '@/app/hooks/use-route-overlay-active'
 import { PetHeartField } from '@/components/chat/vibe-hearts'
+import { useI18n } from '@/i18n'
 import { persistString, storedString } from '@/lib/storage'
 import {
   $petAtRest,
@@ -18,10 +19,13 @@ import {
 } from '@/store/pet'
 import { resetPetGallery, setPetScale } from '@/store/pet-gallery'
 import { $petOverlayActive, initPetOverlayBridge, popOutPet, restorePetOverlay } from '@/store/pet-overlay'
+import { $petSessionFeed, openPetSession, petSessionFeedLabels } from '@/store/pet-sessions'
 import { $gatewayState } from '@/store/session'
+import { $focusedStoredSessionId } from '@/store/session-states'
 import { isSecondaryWindow } from '@/store/windows'
 import { useTheme } from '@/themes/context'
 
+import { PetSessionFeed } from './pet-session-feed'
 import { PetSprite, roamWalkRow } from './pet-sprite'
 import { usePetRoam } from './use-pet-roam'
 import { type PetZoomAnchor, usePetZoomGesture } from './use-pet-zoom-gesture'
@@ -108,6 +112,8 @@ function loadPosition(): Point {
  * sprite + state logic here is reused as-is, only the host changes.
  */
 const PET_POLL_MS = 3000
+// Room the session feed needs above the pet; closer to the top it drops below.
+const FEED_FLIP_PX = 120
 const PET_ACTIVE_REFRESH_MS = 15000
 
 export function FloatingPet() {
@@ -120,6 +126,13 @@ export function FloatingPet() {
   const atRest = useStore($petAtRest)
   const roamDir = useStore($petRoamDir)
   const routeOverlayOpen = useRouteOverlayActive()
+  const { t } = useI18n()
+  const feed = useStore($petSessionFeed)
+  const focusedId = useStore($focusedStoredSessionId)
+  // The session you're looking at already shows its own status; the feed is
+  // about everything else.
+  const feedItems = useMemo(() => feed.filter(item => item.id !== focusedId), [feed, focusedId])
+  const feedLabels = useMemo(() => petSessionFeedLabels(t.petSessions), [t])
 
   const [position, setPosition] = useState<Point>(loadPosition)
   const containerRef = useRef<HTMLDivElement | null>(null)
@@ -400,6 +413,8 @@ export function FloatingPet() {
   // While roaming, drive the directional run row + mirror from the travel
   // direction; at rest, fall back to the inward-facing static mascot.
   const walk = roamWalkRow(roamDir, info.stateRows)
+  // Pet on the left half → feed hugs its left edge and grows rightward (inward).
+  const facingLeft = position.x + petW / 2 < (window.innerWidth || 800) / 2
 
   // While popped out, the desktop overlay window owns the mascot — hide the
   // in-window one so there aren't two.
@@ -452,6 +467,25 @@ export function FloatingPet() {
       {/* Hearts puff off the pet; its celebrate ("yay"/jump) pose is driven by
           burstVibeHearts's router. */}
       <PetHeartField petH={petH} petW={petW} />
+      {feedItems.length > 0 && (
+        <div
+          style={{
+            left: facingLeft ? 0 : undefined,
+            position: 'absolute',
+            right: facingLeft ? undefined : 0,
+            width: 'max-content',
+            zIndex: 2,
+            ...(position.y < FEED_FLIP_PX ? { top: '100%', paddingTop: 8 } : { bottom: '100%', paddingBottom: 6 })
+          }}
+        >
+          <PetSessionFeed
+            align={facingLeft ? 'start' : 'end'}
+            items={feedItems}
+            labels={feedLabels}
+            onOpen={openPetSession}
+          />
+        </div>
+      )}
     </div>
   )
 }

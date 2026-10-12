@@ -302,6 +302,9 @@ export const VERIFICATION_STOP_TEXT = 'I cannot provide fresh verification evide
  * A marker that makes the mock emit a real blocking clarify tool call. Tests
  * use it to hold a turn open while exercising busy-composer interactions.
  */
+/** A chat turn the model never answers, so the session stays working (pet feed e2e). */
+export const PET_STALL_TRIGGER = 'E2E_PET_STALL'
+
 export const BLOCKING_CLARIFY_TRIGGER = 'E2E_BLOCKING_CLARIFY_TRIGGER'
 export const BLOCKING_CLARIFY_QUESTION = 'Keep this test turn running?'
 
@@ -551,7 +554,8 @@ export function startMockServer(options: MockServerOptions = {}): Promise<MockSe
             message => typeof message?.content === 'string' && message.content.includes(CORRECTION_SWITCH_TRIGGER),
           )
 
-          const orchestrated = orchestratorTurn(messages) ?? specTurn(messages, options)
+          const orchestrated =
+            orchestratorTurn(messages) ?? specTurn(messages, options) ?? (userText.includes(PET_STALL_TRIGGER) ? 'stall' : null)
 
           if (orchestrated === 'stall') {
             // Never answer, but keep the stream alive (empty deltas) so the

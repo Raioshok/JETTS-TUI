@@ -1,7 +1,16 @@
 import { atom } from 'nanostores'
 
+import { TRANSLATIONS } from '@/i18n/catalog'
+import { getRuntimeI18nLocale } from '@/i18n/runtime'
 import { persistBoolean, persistString, storedBoolean, storedString } from '@/lib/storage'
 import { $petActivity, $petInfo, $petUnread, clearPetUnread, type PetActivity, type PetInfo } from '@/store/pet'
+import {
+  $petSessionFeed,
+  openPetSession,
+  type PetSessionFeedItem,
+  petSessionFeedLabels,
+  type PetSessionFeedLabels
+} from '@/store/pet-sessions'
 import { $awaitingResponse, $busy } from '@/store/session'
 
 /**
@@ -48,6 +57,10 @@ export interface PetOverlayStatePayload {
   unread: boolean
   /** Latest reaction — bumping its id forwards a burst to the overlay. */
   reaction: PetReaction | null
+  /** Active-session feed shown above the pet, plus its localized strings (the
+   *  overlay window has no i18n of its own). */
+  sessions: PetSessionFeedItem[]
+  sessionLabels: PetSessionFeedLabels
 }
 
 export type PetOverlayControl =
@@ -56,6 +69,7 @@ export type PetOverlayControl =
   | { type: 'submit'; text: string }
   | { type: 'bounds'; bounds: PetOverlayBounds }
   | { type: 'open-app' }
+  | { type: 'open-session'; id: string }
   | { type: 'toggle-app' }
   | { type: 'scale'; scale: number }
 
@@ -147,7 +161,9 @@ function currentPayload(): PetOverlayStatePayload {
     busy: $busy.get(),
     awaiting: $awaitingResponse.get(),
     unread: $petUnread.get(),
-    reaction: $petReaction.get()
+    reaction: $petReaction.get(),
+    sessions: $petSessionFeed.get(),
+    sessionLabels: petSessionFeedLabels(TRANSLATIONS[getRuntimeI18nLocale()].petSessions)
   }
 }
 
@@ -184,7 +200,8 @@ function openOverlay(request: PetOverlayOpenRequest): void {
     $busy.subscribe(pushNow),
     $awaitingResponse.subscribe(pushNow),
     $petUnread.subscribe(pushNow),
-    $petReaction.subscribe(pushNow)
+    $petReaction.subscribe(pushNow),
+    $petSessionFeed.subscribe(pushNow)
   ]
 }
 
@@ -296,6 +313,9 @@ export function initPetOverlayBridge(): () => void {
       // focused the window before forwarding this) and mark it read.
       clearPetUnread()
       openAppHandler?.()
+    } else if (payload?.type === 'open-session' && typeof payload.id === 'string') {
+      // A feed card: main.ts already raised the window; open that session.
+      openPetSession(payload.id)
     }
   })
 
