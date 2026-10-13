@@ -202,11 +202,11 @@ def _model_flow_openrouter(config, current_model=""):
 
     openrouter_models = model_ids(
         api_key=_resolved or existing_key,
-        force_refresh=True,
+        force_refresh=False,
     )
 
     # Fetch live pricing (non-blocking — returns empty dict on failure)
-    pricing = get_pricing_for_provider("openrouter", force_refresh=True)
+    pricing = get_pricing_for_provider("openrouter", force_refresh=False)
 
     selected = _prompt_model_selection(
         openrouter_models,
@@ -2656,7 +2656,17 @@ def _model_flow_api_key_provider(config, provider_id, current_model=""):
                         f'  Showing {len(model_list)} curated models — use "Enter custom model name" for others.'
                     )
     else:
-        curated = _PROVIDER_MODELS.get(provider_id, [])
+        curated = list(_PROVIDER_MODELS.get(provider_id, []))
+        if not curated and hasattr(pconfig, "fallback_models") and pconfig.fallback_models:
+            curated = list(pconfig.fallback_models)
+        if not curated:
+            try:
+                from providers import get_provider_profile
+                _prof = get_provider_profile(provider_id)
+                if _prof and _prof.fallback_models:
+                    curated = list(_prof.fallback_models)
+            except Exception:
+                pass
         api_key_for_probe = existing_key or (
             get_env_value(key_env) if key_env else ""
         )

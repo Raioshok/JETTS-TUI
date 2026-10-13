@@ -392,6 +392,11 @@ _PROVIDER_MODELS: dict[str, list[str]] = {
         "anthropic/claude-sonnet-4.6",
         "openai/gpt-5.4",
     ],
+    "dahl": [
+        "MiniMaxAI/MiniMax-M2.7",
+        "zai-org/GLM-5.3-Flash",
+        "deepseek-ai/DeepSeek-V4-Flash-0731",
+    ],
     "opencode-zen": [
         "kimi-k2.5",
         "kimi-k2.6",
@@ -3313,18 +3318,23 @@ def github_model_reasoning_efforts(
     return _github_reasoning_efforts_for_model_id(str(model_id or normalized))
 
 
+_PROBE_API_MODELS_CACHE: dict[tuple, tuple[float, dict[str, Any]]] = {}
+_PROBE_API_MODELS_CACHE_TTL = 300  # 5 minutes cache for model endpoint probes
+
+
 def probe_api_models(
     api_key: Optional[str],
     base_url: Optional[str],
-    timeout: float = 5.0,
+    timeout: float = 3.5,
     api_mode: Optional[str] = None,
     request_headers: Optional[dict[str, str]] = None,
+    force_refresh: bool = False,
 ) -> dict[str, Any]:
     """Probe a ``/models`` endpoint with light URL heuristics.
 
     For ``anthropic_messages`` mode, uses ``x-api-key`` and
     ``anthropic-version`` headers (Anthropic's native auth) instead of
-    ``Authorization: Bearer``.  The response shape (``data[].id``) is
+    ``Authorization: ***  The response shape (``data[].id``) is
     identical, so the same parser works for both.
     """
     normalized = (base_url or "").strip().rstrip("/")
@@ -3336,6 +3346,17 @@ def probe_api_models(
             "suggested_base_url": None,
             "used_fallback": False,
         }
+
+    cache_key = (
+        normalized,
+        api_key or "",
+        api_mode or "",
+        tuple(sorted((request_headers or {}).items())),
+    )
+    if not force_refresh and cache_key in _PROBE_API_MODELS_CACHE:
+        ts, cached = _PROBE_API_MODELS_CACHE[cache_key]
+        if (time.time() - ts) < _PROBE_API_MODELS_CACHE_TTL:
+            return dict(cached)
 
     if _is_github_models_base_url(normalized):
         models = _fetch_github_models(api_key=api_key, timeout=timeout)
@@ -3381,13 +3402,15 @@ def probe_api_models(
         try:
             with _urlopen_model_catalog_request(req, timeout=timeout) as resp:
                 data = json.loads(resp.read().decode())
-                return {
+                res = {
                     "models": [m.get("id", "") for m in data.get("data", [])],
                     "probed_url": url,
                     "resolved_base_url": candidate_base.rstrip("/"),
                     "suggested_base_url": alternate_base if alternate_base != candidate_base else normalized,
                     "used_fallback": is_fallback,
                 }
+                _PROBE_API_MODELS_CACHE[cache_key] = (time.time(), dict(res))
+                return res
         except Exception:
             continue
 
@@ -3624,9 +3647,10 @@ def _fetch_deepinfra_pricing(
 def fetch_api_models(
     api_key: Optional[str],
     base_url: Optional[str],
-    timeout: float = 5.0,
+    timeout: float = 3.5,
     api_mode: Optional[str] = None,
     headers: Optional[dict[str, str]] = None,
+    force_refresh: bool = False,
 ) -> Optional[list[str]]:
     """Fetch the list of available model IDs from the provider's ``/models`` endpoint.
 
@@ -3639,6 +3663,7 @@ def fetch_api_models(
         timeout=timeout,
         api_mode=api_mode,
         request_headers=headers,
+        force_refresh=force_refresh,
     ).get("models")
 
 

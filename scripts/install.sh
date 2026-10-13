@@ -1452,7 +1452,13 @@ install_deps() {
 
     if [ "$USE_VENV" = true ]; then
         # Tell uv to install into our venv (no need to activate)
-        export VIRTUAL_ENV="$INSTALL_DIR/venv"
+        if [ -d "$INSTALL_DIR/.venv" ]; then
+            export VIRTUAL_ENV="$INSTALL_DIR/.venv"
+            export UV_PROJECT_ENVIRONMENT="$INSTALL_DIR/.venv"
+        else
+            export VIRTUAL_ENV="$INSTALL_DIR/venv"
+            export UV_PROJECT_ENVIRONMENT="$INSTALL_DIR/venv"
+        fi
     fi
 
     # On Debian/Ubuntu (including WSL), some Python packages need build tools.
@@ -2345,7 +2351,13 @@ run_setup_wizard() {
     # Run jettstui setup using the venv Python directly (no activation needed).
     # Redirect stdin from /dev/tty so interactive prompts work when piped from curl.
     if [ "$USE_VENV" = true ]; then
-        "$INSTALL_DIR/venv/bin/python" -m jettstui.main setup < /dev/tty
+        if [ -x "$INSTALL_DIR/venv/bin/python" ]; then
+            "$INSTALL_DIR/venv/bin/python" -m jettstui.main setup < /dev/tty
+        elif [ -x "$INSTALL_DIR/.venv/bin/python" ]; then
+            "$INSTALL_DIR/.venv/bin/python" -m jettstui.main setup < /dev/tty
+        else
+            python -m jettstui.main setup < /dev/tty
+        fi
     else
         python -m jettstui.main setup < /dev/tty
     fi

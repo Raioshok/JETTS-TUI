@@ -2053,7 +2053,8 @@ function Install-Dependencies {
         # empty and producing the broken state where `jettstui.exe` exists
         # in the wrong directory and imports fail with ModuleNotFoundError.
         # (Mirrors the same flag in scripts/install.sh::install_deps.)
-        $env:UV_PROJECT_ENVIRONMENT = "$InstallDir\venv"
+        $targetVenvDir = if (Test-Path "$InstallDir\.venv") { "$InstallDir\.venv" } else { "$InstallDir\venv" }
+        $env:UV_PROJECT_ENVIRONMENT = $targetVenvDir
         Invoke-NativeWithRelaxedErrorAction { & $UvCmd sync --extra all --locked }
         if ($LASTEXITCODE -eq 0) {
             Write-Success "Main package installed (hash-verified via uv.lock)"
@@ -2091,7 +2092,8 @@ function Install-Dependencies {
 
     # Parse [project.optional-dependencies].all from pyproject.toml.
     # tomllib is stdlib on Python 3.11+ which the bootstrap guarantees.
-    $pythonExeForParse = if (-not $NoVenv) { "$InstallDir\venv\Scripts\python.exe" } else { (& $UvCmd python find $PythonVersion) }
+    $targetVenvDir = if (Test-Path "$InstallDir\.venv") { "$InstallDir\.venv" } else { "$InstallDir\venv" }
+    $pythonExeForParse = if (-not $NoVenv) { "$targetVenvDir\Scripts\python.exe" } else { (& $UvCmd python find $PythonVersion) }
     $allExtras = @()
     if (Test-Path $pythonExeForParse) {
         $parsed = & $pythonExeForParse -c @"
@@ -2151,9 +2153,10 @@ except Exception:
     # We probe via the venv's own python so a misdirected sync is caught
     # here, not 30 seconds later when the user runs `jettstui`.
     if (-not $NoVenv) {
-        $venvPython = "$InstallDir\venv\Scripts\python.exe"
+        $targetVenv = if (Test-Path "$InstallDir\.venv\Scripts\python.exe") { "$InstallDir\.venv" } else { "$InstallDir\venv" }
+        $venvPython = "$targetVenv\Scripts\python.exe"
         if (-not (Test-Path $venvPython)) {
-            throw "Install reported success but $venvPython does not exist. The dependency sync likely landed in a sibling .venv\ directory. Re-run the installer; if it persists, manually: cd '$InstallDir'; Remove-Item -Recurse -Force venv,.venv; uv venv venv --python $PythonVersion; `$env:UV_PROJECT_ENVIRONMENT='$InstallDir\venv'; uv sync --extra all --locked"
+            throw "Install reported success but $venvPython does not exist. Re-run the installer; if it persists, manually: cd '$InstallDir'; uv sync --extra all --locked"
         }
         # Relax EAP=Stop while running the import probe.  Python writes
         # deprecation warnings and import-system info to stderr; under
@@ -2167,13 +2170,7 @@ except Exception:
         $importExitCode = $LASTEXITCODE
         $ErrorActionPreference = $prevEAP
         if ($importExitCode -ne 0) {
-            $sibling = "$InstallDir\.venv"
-            $hint = if (Test-Path $sibling) {
-                "Detected sibling .venv\ at $sibling -- uv synced there instead of venv\. Recover with: cd '$InstallDir'; Remove-Item -Recurse -Force venv; Move-Item .venv venv"
-            } else {
-                "Recover with: cd '$InstallDir'; `$env:UV_PROJECT_ENVIRONMENT='$InstallDir\venv'; uv sync --extra all --locked"
-            }
-            throw "Baseline imports failed in $InstallDir\venv (dotenv/openai/rich/prompt_toolkit). The install completed but dependencies are not in the venv. $hint"
+            throw "Baseline imports failed in $targetVenv (dotenv/openai/rich/prompt_toolkit). The install completed but dependencies are not healthy. Recover with: cd '$InstallDir'; uv sync --extra all --locked"
         }
         Write-Success "Baseline imports verified in venv"
     }
@@ -3411,7 +3408,15 @@ function Invoke-SetupWizard {
 
     # Run jettstui setup using the venv Python directly (no activation needed)
     if (-not $NoVenv) {
-        & ".\venv\Scripts\python.exe" -m jettstui.main setup
+        $venvPy = Join-Path $InstallDir "venv\Scripts\python.exe"
+        $dotVenvPy = Join-Path $InstallDir ".venv\Scripts\python.exe"
+        if (Test-Path $venvPy) {
+            & $venvPy -m jettstui.main setup
+        } elseif (Test-Path $dotVenvPy) {
+            & $dotVenvPy -m jettstui.main setup
+        } else {
+            python -m jettstui.main setup
+        }
     } else {
         python -m jettstui.main setup
     }

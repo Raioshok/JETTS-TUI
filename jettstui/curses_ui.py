@@ -552,7 +552,7 @@ def _run_curses_menu(
             )
 
             while True:
-                stdscr.clear()
+                stdscr.erase()
                 max_y, max_x = stdscr.getmaxyx()
 
                 filtered = (

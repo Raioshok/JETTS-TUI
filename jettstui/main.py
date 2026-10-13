@@ -2996,6 +2996,7 @@ def _is_profile_api_key_provider(provider_id: str) -> bool:
     without requiring an explicit elif branch here.
     """
     try:
+        import model_tools  # noqa: F401 - triggers plugin discovery
         from providers import get_provider_profile
         _p = get_provider_profile(provider_id)
         return _p is not None and _p.auth_type == "api_key"
@@ -3469,6 +3470,7 @@ def select_provider_and_model(args=None):
         "xiaomi",
         "arcee",
         "gmi",
+        "dahl",
         "nvidia",
         "ollama-cloud",
         "tencent-tokenhub",
@@ -3913,6 +3915,8 @@ def _prompt_provider_choice(choices, *, default=0, title="Select provider:"):
         if idx >= 0:
             print()
             return idx
+        elif idx == -1:
+            return None
     except Exception:
         pass
 
@@ -5317,6 +5321,30 @@ def _nixos_build_env() -> dict[str, str] | None:
         pass  # nix-shell not available — caller will get None
 
     return None
+
+
+def _get_project_venv_dir() -> Path:
+    """Detect the active or project virtualenv directory (.venv or venv)."""
+    virtual_env = os.environ.get("VIRTUAL_ENV")
+    if virtual_env:
+        ve = Path(virtual_env)
+        if ve.is_dir():
+            return ve
+    for candidate in (".venv", "venv"):
+        p = PROJECT_ROOT / candidate
+        if p.is_dir():
+            return p
+    if sys.prefix != sys.base_prefix:
+        p = Path(sys.prefix)
+        try:
+            if p.is_relative_to(PROJECT_ROOT) and p.is_dir():
+                return p
+        except (ValueError, AttributeError):
+            if str(p).startswith(str(PROJECT_ROOT)) and p.is_dir():
+                return p
+    return PROJECT_ROOT / "venv"
+
+
 def _run_npm_install_deterministic(
     npm: str,
     cwd: Path,
@@ -7958,7 +7986,8 @@ def _update_via_zip(args):
     if not uv_bin:
         uv_bin = _ensure_uv_for_termux(pip_cmd)
     if uv_bin:
-        uv_env = {**os.environ, "VIRTUAL_ENV": str(PROJECT_ROOT / "venv")}
+        venv_dir = _get_project_venv_dir()
+        uv_env = {**os.environ, "VIRTUAL_ENV": str(venv_dir), "UV_PROJECT_ENVIRONMENT": str(venv_dir)}
         if _is_termux_env(uv_env):
             uv_env.pop("PYTHONPATH", None)
             uv_env.pop("PYTHONHOME", None)
@@ -9039,7 +9068,8 @@ def _recover_core_update_marker_locked() -> None:
 
         uv_bin = ensure_uv()
         if uv_bin:
-            uv_env = {**os.environ, "VIRTUAL_ENV": str(PROJECT_ROOT / "venv")}
+            venv_dir = _get_project_venv_dir()
+            uv_env = {**os.environ, "VIRTUAL_ENV": str(venv_dir), "UV_PROJECT_ENVIRONMENT": str(venv_dir)}
             if _is_termux_env(uv_env):
                 uv_env.pop("PYTHONPATH", None)
                 uv_env.pop("PYTHONHOME", None)
@@ -9122,7 +9152,8 @@ def _default_venv_install_target() -> tuple[list[str], dict[str, str] | None]:
     except Exception:
         uv_bin = None
     if uv_bin:
-        env = {**os.environ, "VIRTUAL_ENV": str(PROJECT_ROOT / "venv")}
+        venv_dir = _get_project_venv_dir()
+        env = {**os.environ, "VIRTUAL_ENV": str(venv_dir), "UV_PROJECT_ENVIRONMENT": str(venv_dir)}
         if _is_termux_env(env):
             env.pop("PYTHONPATH", None)
             env.pop("PYTHONHOME", None)
@@ -9175,7 +9206,7 @@ def _is_windows() -> bool:
 
 def _venv_scripts_dir() -> Path | None:
     """Return the venv Scripts directory if we're running inside the project venv."""
-    venv_dir = PROJECT_ROOT / "venv"
+    venv_dir = _get_project_venv_dir()
     if not venv_dir.is_dir():
         return None
     scripts = venv_dir / ("Scripts" if _is_windows() else "bin")
@@ -11477,7 +11508,7 @@ def _venv_core_imports_healthy() -> tuple[bool, str]:
     Returns ``(healthy, detail)``. Never raises; unknown states report
     healthy so a probe failure can't force needless reinstalls.
     """
-    venv_dir = PROJECT_ROOT / "venv"
+    venv_dir = _get_project_venv_dir()
     python_name = "python.exe" if _is_windows() else "python"
     bin_dir = "Scripts" if _is_windows() else "bin"
     venv_python = venv_dir / bin_dir / python_name
@@ -11558,7 +11589,7 @@ def _detect_venv_python_processes(
     except Exception:
         return []
 
-    venv_dir = PROJECT_ROOT / "venv"
+    venv_dir = _get_project_venv_dir()
     try:
         venv_prefix = str(venv_dir.resolve()).lower().rstrip(os.sep) + os.sep
     except OSError:
@@ -12390,21 +12421,21 @@ def _cmd_update_impl(args, gateway_mode: bool):
                 # A managed install whose venv is gone entirely (interrupted
                 # repair after the old venv was moved aside) needs the venv
                 # recreated before dependencies can be installed into it.
+                venv_dir = _get_project_venv_dir()
                 venv_python_missing = not (
-                    PROJECT_ROOT
-                    / "venv"
+                    venv_dir
                     / ("Scripts" if _is_windows() else "bin")
                     / ("python.exe" if _is_windows() else "python")
                 ).exists()
                 if venv_python_missing and repair_uv:
                     print("→ Recreating virtual environment...")
                     subprocess.run(
-                        [repair_uv, "venv", "venv"],
+                        [repair_uv, "venv", venv_dir.name],
                         cwd=PROJECT_ROOT,
                         check=False,
                     )
                 if repair_uv:
-                    repair_env = {**os.environ, "VIRTUAL_ENV": str(PROJECT_ROOT / "venv")}
+                    repair_env = {**os.environ, "VIRTUAL_ENV": str(venv_dir), "UV_PROJECT_ENVIRONMENT": str(venv_dir)}
                     _install_python_dependencies_with_optional_fallback(
                         [repair_uv, "pip"], env=repair_env, group="all"
                     )
@@ -12592,7 +12623,8 @@ def _cmd_update_impl(args, gateway_mode: bool):
         install_group = "all"
 
         if uv_bin:
-            uv_env = {**os.environ, "VIRTUAL_ENV": str(PROJECT_ROOT / "venv")}
+            venv_dir = _get_project_venv_dir()
+            uv_env = {**os.environ, "VIRTUAL_ENV": str(venv_dir), "UV_PROJECT_ENVIRONMENT": str(venv_dir)}
             if _is_termux_env(uv_env):
                 uv_env.pop("PYTHONPATH", None)
                 uv_env.pop("PYTHONHOME", None)

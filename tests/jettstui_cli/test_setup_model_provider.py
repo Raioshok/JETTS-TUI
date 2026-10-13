@@ -288,3 +288,84 @@ def test_setup_summary_marks_anthropic_auth_as_vision_available(tmp_path, monkey
     assert "missing run 'jettstui setup' to configure" not in output
 
 
+def test_dahl_provider_in_provider_models_and_profile_api_key():
+    """Dahl is recognized in _PROVIDER_MODELS and _is_profile_api_key_provider."""
+    import model_tools  # noqa: F401
+    from jettstui.models import _PROVIDER_MODELS
+    from jettstui.main import _is_profile_api_key_provider
+    from providers import get_provider_profile
+
+    assert "dahl" in _PROVIDER_MODELS
+    assert len(_PROVIDER_MODELS["dahl"]) >= 3
+    assert _is_profile_api_key_provider("dahl") is True
+    profile = get_provider_profile("dahl")
+    assert profile is not None
+    assert profile.auth_type == "api_key"
+    assert "MiniMaxAI/MiniMax-M2.7" in profile.fallback_models
+
+
+def test_get_project_venv_dir_prefers_existing_venv(tmp_path, monkeypatch):
+    """_get_project_venv_dir resolves .venv or venv accurately."""
+    from jettstui.main import _get_project_venv_dir
+
+    # Empty env
+    monkeypatch.delenv("VIRTUAL_ENV", raising=False)
+    monkeypatch.setattr("jettstui.main.PROJECT_ROOT", tmp_path)
+
+    # 1. Neither exists -> defaults to venv
+    assert _get_project_venv_dir() == tmp_path / "venv"
+
+    # 2. .venv exists -> returns .venv
+    dot_venv = tmp_path / ".venv"
+    dot_venv.mkdir()
+    assert _get_project_venv_dir() == dot_venv
+
+    # 3. VIRTUAL_ENV set to a real dir overrides
+    custom_venv = tmp_path / "custom_env"
+    custom_venv.mkdir()
+    monkeypatch.setenv("VIRTUAL_ENV", str(custom_venv))
+    assert _get_project_venv_dir() == custom_venv
+
+
+def test_probe_api_models_caching(monkeypatch):
+    """probe_api_models caches responses so repeated probes in setup are fast."""
+    from jettstui.models import probe_api_models, _PROBE_API_MODELS_CACHE
+
+    call_count = [0]
+
+    class FakeResp:
+        def __enter__(self):
+            return self
+        def __exit__(self, *a):
+            pass
+        def read(self):
+            call_count[0] += 1
+            return b'{"data": [{"id": "model-1"}, {"id": "model-2"}]}'
+
+    monkeypatch.setattr("jettstui.models._urlopen_model_catalog_request", lambda req, timeout=None: FakeResp())
+    _PROBE_API_MODELS_CACHE.clear()
+
+    res1 = probe_api_models("key1", "https://api.testprovider.com/v1")
+    assert res1["models"] == ["model-1", "model-2"]
+    assert call_count[0] == 1
+
+    # Second call uses cache — no HTTP request made
+    res2 = probe_api_models("key1", "https://api.testprovider.com/v1")
+    assert res2["models"] == ["model-1", "model-2"]
+    assert call_count[0] == 1
+
+
+def test_prompt_provider_choice_cancel_returns_none(monkeypatch):
+    """When user cancels (-1) in curses, _prompt_provider_choice returns None immediately."""
+    from jettstui.main import _prompt_provider_choice
+
+    # Return -1 (user pressed ESC in curses)
+    monkeypatch.setattr("jettstui.setup._curses_prompt_choice", lambda *a, **k: -1)
+
+    # Should return None directly, without prompting builtins.input
+    res = _prompt_provider_choice(["p1", "p2"])
+    assert res is None
+
+
+
+
