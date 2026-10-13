@@ -196,6 +196,12 @@ JETTSTUI_OVERLAYS: Dict[str, JettsTUIOverlay] = {
         base_url_override="https://api.gmi-serving.com/v1",
         base_url_env_var="GMI_BASE_URL",
     ),
+    "dahl": JettsTUIOverlay(
+        transport="openai_chat",
+        extra_env_vars=("DAHL_API_KEY",),
+        base_url_override="https://inference.dahl.global/v1",
+        base_url_env_var="DAHL_BASE_URL",
+    ),
     "fireworks": JettsTUIOverlay(
         transport="openai_chat",
         extra_env_vars=("FIREWORKS_API_KEY",),
@@ -367,6 +373,10 @@ ALIASES: Dict[str, str] = {
     "gmi-cloud": "gmi",
     "gmicloud": "gmi",
 
+    # dahl
+    "dahl-inference": "dahl",
+    "dahl-ai": "dahl",
+
     # fireworks
     "fireworks-ai": "fireworks",
     "fw": "fireworks",
@@ -397,6 +407,7 @@ _LABEL_OVERRIDES: Dict[str, str] = {
     "stepfun": "StepFun Step Plan",
     "xiaomi": "Xiaomi MiMo",
     "gmi": "GMI Cloud",
+    "dahl": "Dahl Inference",
     "upstage": "Upstage Solar",
     "tencent-tokenhub": "Tencent TokenHub",
     "lmstudio": "LM Studio",
@@ -427,7 +438,16 @@ def normalize_provider(name: str) -> str:
     corresponds to a known provider.
     """
     key = name.strip().lower()
-    return ALIASES.get(key, key)
+    if key in ALIASES:
+        return ALIASES[key]
+    try:
+        from providers import get_provider_profile as _get_profile
+        prof = _get_profile(key)
+        if prof is not None:
+            return prof.name
+    except Exception:
+        pass
+    return key
 
 
 def get_provider(name: str) -> Optional[ProviderDef]:
@@ -496,6 +516,41 @@ def get_provider(name: str) -> Optional[ProviderDef]:
             auth_type=overlay.auth_type,
             source="jettstui",
         )
+
+    # 3. Dynamic lookup from registered ProviderProfile plugins
+    try:
+        from providers import get_provider_profile as _get_profile
+        profile = _get_profile(canonical)
+        if profile is not None:
+            api_key_vars = tuple(
+                v for v in profile.env_vars
+                if not v.endswith("_BASE_URL") and not v.endswith("_URL")
+            )
+            base_url_var = next(
+                (v for v in profile.env_vars if v.endswith("_BASE_URL") or v.endswith("_URL")),
+                "",
+            )
+            transport = "openai_chat"
+            if profile.api_mode == "anthropic_messages":
+                transport = "anthropic_messages"
+            elif profile.api_mode == "codex_responses":
+                transport = "codex_responses"
+            elif profile.api_mode == "bedrock_converse":
+                transport = "bedrock_converse"
+            return ProviderDef(
+                id=profile.name,
+                name=profile.display_name or _LABEL_OVERRIDES.get(profile.name, profile.name),
+                transport=transport,
+                api_key_env_vars=api_key_vars or tuple(profile.env_vars),
+                base_url=profile.base_url,
+                base_url_env_var=base_url_var,
+                is_aggregator=False,
+                auth_type=profile.auth_type,
+                doc=profile.signup_url,
+                source="provider-plugin",
+            )
+    except Exception:
+        pass
 
     return None
 

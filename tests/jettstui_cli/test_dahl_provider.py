@@ -133,3 +133,49 @@ class TestDahlProfile:
         )
         models = profile.fetch_models(api_key="dahl-test")
         assert models == ["MiniMaxAI/MiniMax-M2.7", "zai-org/GLM-5.3-Flash"]
+
+
+class TestDahlModelSwitch:
+    """Verify provider resolution and model switching in both CLI and gateway."""
+
+    def test_resolve_provider_full(self):
+        from jettstui.providers import resolve_provider_full, get_provider
+
+        pdef = resolve_provider_full("dahl")
+        assert pdef is not None
+        assert pdef.id == "dahl"
+        assert pdef.base_url == "https://inference.dahl.global/v1"
+        assert pdef.transport == "openai_chat"
+
+        pdef_alias = resolve_provider_full("dahl-inference")
+        assert pdef_alias is not None
+        assert pdef_alias.id == "dahl"
+
+    def test_switch_model_explicit_provider(self, monkeypatch):
+        from jettstui.model_switch import switch_model
+
+        monkeypatch.setenv("DAHL_API_KEY", "dahl-test-key")
+        result = switch_model(
+            raw_input="MiniMaxAI/MiniMax-M2.7",
+            current_provider="openai-api",
+            current_model="gpt-5.5",
+            explicit_provider="dahl",
+        )
+        assert result.success is True
+        assert result.target_provider == "dahl"
+        assert result.new_model == "MiniMaxAI/MiniMax-M2.7"
+        assert result.base_url == "https://inference.dahl.global/v1"
+        assert result.api_key == "dahl-test-key"
+
+    def test_gateway_apply_model_switch(self, monkeypatch):
+        """Simulate desktop sending 'model MiniMaxAI/MiniMax-M2.7 --provider dahl --session'."""
+        from tui_gateway.server import _apply_model_switch
+
+        monkeypatch.setenv("DAHL_API_KEY", "dahl-test-key")
+        res = _apply_model_switch(
+            sid="test-session",
+            session={"agent": None},
+            raw_input="MiniMaxAI/MiniMax-M2.7 --provider dahl --session",
+        )
+        assert res["value"] == "MiniMaxAI/MiniMax-M2.7"
+        assert res.get("confirm_required") is False
