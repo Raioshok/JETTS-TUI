@@ -4028,6 +4028,22 @@ OPTIONAL_ENV_VARS = {
         "category": "provider",
         "advanced": True,
     },
+    "DAHL_API_KEY": {
+        "description": "Dahl Inference API key",
+        "prompt": "Dahl Inference API key",
+        "url": "https://inference.dahl.global/",
+        "password": True,
+        "category": "provider",
+        "advanced": True,
+    },
+    "DAHL_BASE_URL": {
+        "description": "Dahl Inference base URL override",
+        "prompt": "Dahl base URL (leave empty for default)",
+        "url": None,
+        "password": False,
+        "category": "provider",
+        "advanced": True,
+    },
     "GMI_API_KEY": {
         "description": "GMI Cloud API key",
         "prompt": "GMI Cloud API key",

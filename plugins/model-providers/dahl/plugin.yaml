@@ -1,0 +1,5 @@
+name: dahl-provider
+kind: model-provider
+version: 1.0.0
+description: Dahl Inference — OpenAI-compatible open-model API
+author: JettsTUI

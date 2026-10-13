@@ -163,6 +163,7 @@ describe('settings helpers', () => {
       expect(providerGroup('ACME_API_KEY')).toBe('Other')
       expect(providerGroup('FIREWORKS_API_KEY')).toBe('Fireworks AI')
       expect(providerGroup('OPENROUTER_API_KEY')).toBe('OpenRouter')
+      expect(providerGroup('DAHL_API_KEY')).toBe('Dahl Inference')
     })
 
     it('prefers the longest matching prefix so CN/regional buckets win', () => {

@@ -193,25 +193,32 @@ export const PROVIDER_GROUPS: ProviderPrefix[] = [
   },
   { prefix: 'ARCEE_', name: 'Arcee AI', priority: 20 },
   {
+    prefix: 'DAHL_',
+    name: 'Dahl Inference',
+    description: 'Open models (MiniMax M2.7, GLM 5.3 Flash, DeepSeek V4 Flash) on a decentralized GPU network',
+    docsUrl: 'https://inference.dahl.global/',
+    priority: 21
+  },
+  {
     prefix: 'GMI_',
     name: 'GMI Cloud',
     description: 'GMI Cloud GPU + model serving',
     docsUrl: 'https://www.gmicloud.ai/',
-    priority: 21
+    priority: 22
   },
   {
     prefix: 'AZURE_FOUNDRY_',
     name: 'Azure Foundry',
     description: 'Azure AI Foundry custom endpoints (OpenAI / Anthropic-compatible)',
     docsUrl: 'https://ai.azure.com/',
-    priority: 22
+    priority: 23
   },
   {
     prefix: 'AWS_',
     name: 'AWS Bedrock',
     description: 'Authenticate via AWS profile + region',
     docsUrl: 'https://docs.aws.amazon.com/bedrock/latest/userguide/bedrock-regions.html',
-    priority: 23
+    priority: 24
   }
 ]
 
