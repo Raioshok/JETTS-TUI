@@ -24,4 +24,17 @@ def build_model_parser(subparsers, *, cmd_model: Callable) -> None:
         action="store_true",
         help="Wipe the model picker disk cache and re-fetch every provider's live /v1/models list.",
     )
+    model_parser.add_argument(
+        "--update",
+        "-u",
+        action="store_true",
+        help="Automatically check and update model catalogs from all OAuth and API-key providers.",
+    )
+    model_parser.add_argument(
+        "action",
+        nargs="?",
+        choices=["update", "status"],
+        default=None,
+        help="Optional action: 'update' to run the model autoupdater, or 'status' to view last update info.",
+    )
     model_parser.set_defaults(func=cmd_model)

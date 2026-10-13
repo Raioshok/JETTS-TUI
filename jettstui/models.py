@@ -2066,7 +2066,47 @@ def provider_model_ids(provider: Optional[str], *, force_refresh: bool = False) 
             access_token = None
         return get_codex_model_ids(access_token=access_token)
     if normalized == "xai-oauth":
+        try:
+            from jettstui.auth import resolve_xai_oauth_runtime_credentials
+
+            creds = resolve_xai_oauth_runtime_credentials()
+            token = str(creds.get("api_key") or "").strip()
+            base = str(creds.get("base_url") or "https://api.x.ai/v1").strip()
+            if token:
+                live = fetch_api_models(token, base, force_refresh=force_refresh)
+                if live:
+                    return live
+        except Exception:
+            pass
         return list(_PROVIDER_MODELS.get("xai-oauth", _PROVIDER_MODELS.get("xai", [])))
+    if normalized == "qwen-oauth":
+        try:
+            from jettstui.auth import resolve_qwen_runtime_credentials
+
+            creds = resolve_qwen_runtime_credentials()
+            token = str(creds.get("api_key") or "").strip()
+            base = str(creds.get("base_url") or "https://portal.qwen.ai/v1").strip()
+            if token:
+                live = fetch_api_models(token, base, force_refresh=force_refresh)
+                if live:
+                    return live
+        except Exception:
+            pass
+        return list(_DEFAULT_QWEN_PORTAL_MODELS)
+    if normalized == "minimax-oauth":
+        try:
+            from jettstui.auth import resolve_minimax_oauth_runtime_credentials
+
+            creds = resolve_minimax_oauth_runtime_credentials()
+            token = str(creds.get("api_key") or "").strip()
+            base = str(creds.get("base_url") or "https://api.minimax.chat/v1").strip()
+            if token:
+                live = fetch_api_models(token, base, force_refresh=force_refresh)
+                if live:
+                    return live
+        except Exception:
+            pass
+        return list(_PROVIDER_MODELS.get("minimax", []))
     if normalized == "antigravity":
         try:
             from jettstui.antigravity_auth import (

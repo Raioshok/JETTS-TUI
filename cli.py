@@ -8991,6 +8991,14 @@ class JettsTUICLI(CLIAgentSetupMixin, CLICommandsMixin):
             explicit_provider=explicit_provider,
         )
 
+        # Handle /model update or /model --update
+        if model_input in ("update", "--update") or raw_args.strip() in ("update", "--update", "-u"):
+            from jettstui.model_autoupdater import update_all_models, format_update_report
+            _cprint("  Checking for newer models across OAuth and API key providers...")
+            report = update_all_models(force_refresh=True)
+            _cprint(format_update_report(report, use_color=True))
+            return
+
         # --refresh: wipe the on-disk picker cache before building the
         # provider list. Forces a live re-fetch of every authed provider's
         # /v1/models endpoint on this open.

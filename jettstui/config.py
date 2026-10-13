@@ -3144,6 +3144,10 @@ DEFAULT_CONFIG = {
         #     openrouter:
         #       url: https://example.com/my-curation.json
         "providers": {},
+        # Model autoupdater settings — periodically discovers new models
+        # across configured OAuth providers, API key providers, and models.dev.
+        "autoupdate": True,
+        "autoupdate_interval_hours": 12,
     },
 
     # Network settings — workarounds for connectivity issues.

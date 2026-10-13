@@ -2568,6 +2568,14 @@ def cmd_chat(args):
     except Exception:
         pass
 
+    # Model catalog background autoupdate — non-blocking, periodic check
+    try:
+        from jettstui.model_autoupdater import maybe_auto_update_models
+
+        maybe_auto_update_models(background=True)
+    except Exception:
+        pass
+
     # First-run guard: check if any provider is configured before launching
     if not _has_any_provider_configured():
         print()
@@ -2976,7 +2984,27 @@ def cmd_setup(args):
 
 
 def cmd_model(args):
-    """Select default model — starts with provider selection, then model picker."""
+    """Select default model, or run the model autoupdater."""
+    action = getattr(args, "action", None)
+    if getattr(args, "update", False) or action == "update":
+        from jettstui.model_autoupdater import update_all_models, format_update_report
+
+        print("Checking for newer models across OAuth and API key providers...")
+        report = update_all_models(force_refresh=True)
+        print()
+        print(format_update_report(report, use_color=True))
+        return
+
+    if action == "status":
+        from jettstui.model_autoupdater import get_autoupdate_status, format_update_report
+
+        status = get_autoupdate_status()
+        if not status:
+            print("No model autoupdate has been recorded yet. Run 'jettstui model update'.")
+        else:
+            print(format_update_report(status, use_color=True))
+        return
+
     _require_tty("model")
     if getattr(args, "refresh", False):
         try:
