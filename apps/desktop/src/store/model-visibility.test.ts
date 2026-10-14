@@ -84,6 +84,12 @@ describe('model visibility', () => {
     expect(families.map(f => f.id)).toEqual(['claude-opus-4-5'])
   })
 
+  it('folds a -thinking variant into its base model when present', () => {
+    const families = collapseModelFamilies(['gemini-4-argon', 'gemini-4-argon-thinking'])
+
+    expect(families.map(f => f.id)).toEqual(['gemini-4-argon'])
+  })
+
   it('keeps a date-pinned snapshot standing alone when it has no alias', () => {
     const families = collapseModelFamilies(['claude-opus-4-5-20251101', 'claude-haiku-4-5-20251001'])
 

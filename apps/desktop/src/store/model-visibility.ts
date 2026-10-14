@@ -50,6 +50,11 @@ export function collapseModelFamilies(models: readonly string[]): ModelFamily[] 
       continue
     }
 
+    if (/-thinking$/i.test(model) && present.has(model.replace(/-thinking$/i, ''))) {
+      // Represented by its base entry — drop the duplicate thinking row.
+      continue
+    }
+
     if (/-\d{8}$/.test(model) && present.has(model.replace(/-\d{8}$/, ''))) {
       // A date-pinned snapshot superseded by its rolling alias — drop the dupe.
       continue

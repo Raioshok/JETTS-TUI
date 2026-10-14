@@ -229,11 +229,8 @@ _PROVIDER_MODELS: dict[str, list[str]] = {
     "xai-oauth": _xai_curated_models(),
     "antigravity": [
         "gemini-4-argon",
-        "gemini-4-argon-thinking",
         "claude-opus-5-5-thinking",
         "claude-sonnet-5-5",
-        "claude-opus-5-5",
-        "claude-sonnet-5-5-thinking",
         "gemini-3.1-pro-high",
         "gemini-3.1-pro-low",
         "gemini-3-flash",

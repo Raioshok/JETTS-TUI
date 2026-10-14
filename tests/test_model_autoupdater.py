@@ -277,7 +277,7 @@ def test_antigravity_opus_5_5_sonnet_5_5_and_model_cleanup():
     # 4. Alias resolution for Opus 5.5 and Sonnet 5.5
     for alias, expected in [
         ("opus 5.5", "claude-opus-5-5-thinking"),
-        ("opus", "claude-opus-5-5"),
+        ("opus", "claude-opus-5-5-thinking"),
         ("sonnet 5.5", "claude-sonnet-5-5"),
         ("sonnet", "claude-sonnet-5-5"),
     ]:

@@ -109,11 +109,8 @@ ANTIGRAVITY_ACCESS_TOKEN_REFRESH_SKEW_SECONDS = 120
 # first; the live list always wins when it answers.
 DEFAULT_ANTIGRAVITY_MODELS = (
     "gemini-4-argon",
-    "gemini-4-argon-thinking",
     "claude-opus-5-5-thinking",
     "claude-sonnet-5-5",
-    "claude-opus-5-5",
-    "claude-sonnet-5-5-thinking",
     "gemini-3.1-pro-high",
     "gemini-3.1-pro-low",
     "gemini-3-flash",
