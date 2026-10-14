@@ -2621,19 +2621,21 @@ def run_conversation(
                     # string for unrelated reasons — treat those as normal
                     # truncations that deserve continuation retries, not as
                     # thinking-budget exhaustion.
+                    _extracted_reasoning = (agent._extract_reasoning(_trunc_msg) or "").strip() if _trunc_msg else ""
                     _has_think_tags = bool(
                         _trunc_content and re.search(
                             r'<(?:think|thinking|reasoning|REASONING_SCRATCHPAD)[^>]*>',
                             _trunc_content,
                             re.IGNORECASE,
                         )
-                    )
+                    ) or bool(_extracted_reasoning)
                     _thinking_exhausted = (
                         not _trunc_has_tool_calls
                         and _has_think_tags
                         and (
                             (_trunc_content is not None and not agent._has_content_after_think_block(_trunc_content))
                             or _trunc_content is None
+                            or not _trunc_content.strip()
                         )
                     )
 
@@ -2740,7 +2742,11 @@ def run_conversation(
                                 getattr(response, "id", "") == PARTIAL_STREAM_STUB_ID
                                 and not getattr(assistant_message, "content", None)
                             )
-                            if not _is_empty_partial_stub:
+                            _is_empty_assistant = (
+                                not getattr(assistant_message, "content", None)
+                                and not getattr(assistant_message, "tool_calls", None)
+                            )
+                            if not _is_empty_partial_stub and not _is_empty_assistant:
                                 interim_msg = agent._build_assistant_message(assistant_message, finish_reason)
                                 messages.append(interim_msg)
                                 if assistant_message.content:
@@ -5504,6 +5510,16 @@ def run_conversation(
                     try:
                         json.loads(args)
                     except json.JSONDecodeError as e:
+                        # Attempt common repairs before flagging as invalid/truncated
+                        repaired = _repair_tool_call_arguments(args, tc.function.name)
+                        if repaired != "{}":
+                            try:
+                                json.loads(repaired)
+                                tc.function.arguments = repaired
+                                continue
+                            except (json.JSONDecodeError, TypeError):
+                                pass
+
                         if (
                             _mixed_invalid_batch
                             and tc.function.name not in agent.valid_tool_names

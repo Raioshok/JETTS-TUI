@@ -213,3 +213,28 @@ def test_cmd_model_update_dispatches_cleanly(monkeypatch, capsys):
     out = capsys.readouterr().out
     assert "Checking for newer models" in out
     assert "openrouter [API Key]: 5 models (+1 new: new-model-1)" in out
+
+
+def test_antigravity_gemini_4_argon_detection():
+    """Verify Gemini 4 Argon is detected and resolved for Antigravity OAuth."""
+    from jettstui.antigravity_auth import DEFAULT_ANTIGRAVITY_MODELS, fetch_available_models
+    from jettstui.models import _PROVIDER_MODELS
+    from jettstui.model_switch import switch_model, _ensure_direct_aliases
+
+    _ensure_direct_aliases()
+
+    # 1. Present in default and static models
+    assert "gemini-4-argon" in DEFAULT_ANTIGRAVITY_MODELS
+    assert "gemini-4-argon" in _PROVIDER_MODELS["antigravity"]
+
+    # 2. Returned in fetch_available_models discovery
+    models = fetch_available_models("dummy-token", "dummy-project")
+    assert "gemini-4-argon" in models
+
+    # 3. Model switch aliases resolve cleanly to Antigravity
+    for alias in ["argon", "4 argon", "4-argon", "gemini-4", "gemini-4-argon"]:
+        res = switch_model(alias, current_provider="antigravity", current_model="gemini-3.8-flash-tiered")
+        assert res.success is True, f"Failed for alias {alias}: {res.error_message}"
+        assert res.target_provider == "antigravity"
+        assert res.new_model == "gemini-4-argon"
+

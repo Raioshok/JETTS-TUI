@@ -228,6 +228,10 @@ _PROVIDER_MODELS: dict[str, list[str]] = {
     "openai-codex": _codex_curated_models(),
     "xai-oauth": _xai_curated_models(),
     "antigravity": [
+        "gemini-4-argon",
+        "gemini-4-argon-high",
+        "gemini-4-argon-low",
+        "gemini-4-argon-thinking",
         "gemini-3.1-pro-high",
         "gemini-3.1-pro-low",
         "gemini-3-pro-high",
@@ -4064,7 +4068,7 @@ def validate_requested_model(
             _family_prefixes = {
                 "openai-codex": ("gpt-", "codex-", "o1", "o3", "o4"),
                 "xai-oauth": ("grok-",),
-                "antigravity": ("gemini-", "claude-", "gpt-oss"),
+                "antigravity": ("gemini-", "claude-", "gpt-oss", "argon", "4-argon", "gemini-4"),
             }.get(normalized, ())
             _lower = requested_for_lookup.strip().lower()
             _plausible = (not _family_prefixes) or any(

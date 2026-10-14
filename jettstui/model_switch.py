@@ -291,6 +291,11 @@ MODEL_ALIASES: dict[str, ModelIdentity] = {
 
     # Google
     "gemini":    ModelIdentity("google", "gemini"),
+    "argon":     ModelIdentity("google", "gemini-4-argon"),
+    "4-argon":   ModelIdentity("google", "gemini-4-argon"),
+    "4 argon":   ModelIdentity("google", "gemini-4-argon"),
+    "gemini-4":  ModelIdentity("google", "gemini-4-argon"),
+    "gemini-4-argon": ModelIdentity("google", "gemini-4-argon"),
 
     # DeepSeek
     "deepseek":  ModelIdentity("deepseek", "deepseek-chat"),
@@ -343,7 +348,13 @@ class DirectAlias(NamedTuple):
 
 
 # Built-in direct aliases (can be extended via config.yaml model_aliases:)
-_BUILTIN_DIRECT_ALIASES: dict[str, DirectAlias] = {}
+_BUILTIN_DIRECT_ALIASES: dict[str, DirectAlias] = {
+    "argon": DirectAlias("gemini-4-argon", "antigravity", ""),
+    "4-argon": DirectAlias("gemini-4-argon", "antigravity", ""),
+    "4 argon": DirectAlias("gemini-4-argon", "antigravity", ""),
+    "gemini-4": DirectAlias("gemini-4-argon", "antigravity", ""),
+    "gemini-4-argon": DirectAlias("gemini-4-argon", "antigravity", ""),
+}
 
 # Merged dict (builtins + user config); populated by _load_direct_aliases()
 DIRECT_ALIASES: dict[str, DirectAlias] = {}

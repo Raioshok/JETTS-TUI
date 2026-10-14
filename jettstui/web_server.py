@@ -16833,18 +16833,29 @@ def _get_usage_analytics(days: int = 30, profile: Optional[str] = None):
         by_model = _merge_aux_into_by_model(by_model, aux_rows)
 
         cur3 = db._conn.execute("""
-            SELECT SUM(input_tokens) as total_input,
-                   SUM(output_tokens) as total_output,
-                   SUM(cache_read_tokens) as total_cache_read,
-                   SUM(cache_write_tokens) as total_cache_write,
-                   SUM(reasoning_tokens) as total_reasoning,
+            SELECT COALESCE(SUM(input_tokens), 0) as total_input,
+                   COALESCE(SUM(output_tokens), 0) as total_output,
+                   COALESCE(SUM(cache_read_tokens), 0) as total_cache_read,
+                   COALESCE(SUM(cache_write_tokens), 0) as total_cache_write,
+                   COALESCE(SUM(reasoning_tokens), 0) as total_reasoning,
                    COALESCE(SUM(estimated_cost_usd), 0) as total_estimated_cost,
                    COALESCE(SUM(actual_cost_usd), 0) as total_actual_cost,
                    COUNT(*) as total_sessions,
-                   SUM(COALESCE(api_call_count, 0)) as total_api_calls
+                   COALESCE(SUM(api_call_count), 0) as total_api_calls
             FROM sessions WHERE started_at > ?
         """, (cutoff,))
-        totals = dict(cur3.fetchone())
+        row = cur3.fetchone()
+        totals = {k: (0 if v is None else v) for k, v in dict(row).items()} if row else {
+            "total_input": 0,
+            "total_output": 0,
+            "total_cache_read": 0,
+            "total_cache_write": 0,
+            "total_reasoning": 0,
+            "total_estimated_cost": 0,
+            "total_actual_cost": 0,
+            "total_sessions": 0,
+            "total_api_calls": 0,
+        }
         insights_report = InsightsEngine(db).generate(days=days)
         skills = insights_report.get("skills", {
             "summary": {
@@ -16969,7 +16980,14 @@ def _get_provider_quotas(profile: Optional[str] = None) -> Dict[str, Any]:
         # this context so worker threads read the requested profile's auth.
         with ThreadPoolExecutor(max_workers=len(rows)) as pool:
             futures = [pool.submit(contextvars.copy_context().run, _fetch, row) for row in rows]
-            return {"providers": [future.result() for future in futures]}
+            results = []
+            for future in futures:
+                try:
+                    results.append(future.result())
+                except Exception as exc:
+                    _log.debug("Provider quota fetch failed: %s", exc)
+                    results.append({"error": "Could not fetch quota right now.", "supported": False})
+            return {"providers": results}
 
 
 @app.get("/api/providers/quota")

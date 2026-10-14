@@ -108,6 +108,10 @@ ANTIGRAVITY_ACCESS_TOKEN_REFRESH_SKEW_SECONDS = 120
 # Used when live discovery (fetchAvailableModels) is unavailable. Newest
 # first; the live list always wins when it answers.
 DEFAULT_ANTIGRAVITY_MODELS = (
+    "gemini-4-argon",
+    "gemini-4-argon-high",
+    "gemini-4-argon-low",
+    "gemini-4-argon-thinking",
     "gemini-3.1-pro-high",
     "gemini-3.1-pro-low",
     "gemini-3-pro-high",
@@ -624,8 +628,9 @@ def _fetch_model_entries(
     Internal routing / tab-completion / image models are dropped: they are
     not chat models.
     """
+    entries: Dict[str, Dict[str, Any]] = {}
     with httpx.Client(timeout=timeout_seconds) as client:
-        for endpoint in ANTIGRAVITY_INFERENCE_ENDPOINTS:
+        for endpoint in ANTIGRAVITY_LOAD_ENDPOINTS:
             try:
                 response = _post_v1internal(
                     client, endpoint, "fetchAvailableModels", access_token, {"project": project_id}
@@ -638,22 +643,23 @@ def _fetch_model_entries(
                 models = response.json().get("models")
             except ValueError:
                 continue
-            entries: Dict[str, Dict[str, Any]] = {}
             if isinstance(models, dict):
                 for name, meta in models.items():
-                    entries[str(name)] = meta if isinstance(meta, dict) else {}
+                    sname = str(name)
+                    if sname and not sname.startswith(("chat_", "tab_")) and "image" not in sname:
+                        entries.setdefault(sname, meta if isinstance(meta, dict) else {})
             elif isinstance(models, list):
                 for item in models:
                     if isinstance(item, dict):
-                        entries[str(item.get("name") or item.get("id") or "")] = item
+                        k = str(item.get("name") or item.get("id") or "")
+                        if k and not k.startswith(("chat_", "tab_")) and "image" not in k:
+                            entries.setdefault(k, item)
                     else:
-                        entries[str(item)] = {}
-            entries = {
-                name: meta for name, meta in entries.items()
-                if name and not name.startswith(("chat_", "tab_")) and "image" not in name
-            }
-            if entries:
-                return entries
+                        sitem = str(item)
+                        if sitem and not sitem.startswith(("chat_", "tab_")) and "image" not in sitem:
+                            entries.setdefault(sitem, {})
+        if entries:
+            return entries
     return {}
 
 
@@ -665,7 +671,13 @@ def fetch_available_models(
 ) -> List[str]:
     """Return the model ids the account can use, or ``[]`` when discovery fails."""
     entries = _fetch_model_entries(access_token, project_id, timeout_seconds=timeout_seconds)
-    return sorted(entries, key=_model_sort_key)
+    models = list(entries.keys())
+    # Merge curated defaults so flagship models like gemini-4-argon are always
+    # available for selection even if the live endpoint rollout is phased.
+    for default_m in DEFAULT_ANTIGRAVITY_MODELS:
+        if default_m not in models:
+            models.append(default_m)
+    return sorted(models, key=_model_sort_key)
 
 
 def fetch_model_quotas(

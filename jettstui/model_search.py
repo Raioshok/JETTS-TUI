@@ -13,6 +13,7 @@ from __future__ import annotations
 # Lowercased wire id → extra tokens appended to the search haystack only.
 _MODEL_SEARCH_ALIASES: dict[str, tuple[str, ...]] = {
     "k3": ("kimi-k3", "kimi"),
+    "gemini-4-argon": ("4 argon", "argon", "gemini 4 argon", "gemini-4"),
 }
 
 # Lowercased wire id → canonical public slug it aliases. Used by picker
