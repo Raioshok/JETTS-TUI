@@ -535,7 +535,7 @@ export default function ChatPage({ isActive = true }: { isActive?: boolean }) {
     // OSC 52 reads (terminal asking to read the clipboard) are not
     // supported — that would let any content the TUI renders exfiltrate
     // the user's clipboard.
-    term.parser.registerOscHandler(52, (data) => {
+    const osc52Disposable = term.parser.registerOscHandler(52, (data) => {
       // Format: "<targets>;<base64 | '?'>"
       const semi = data.indexOf(";");
       if (semi < 0) return false;
@@ -1144,6 +1144,11 @@ export default function ChatPage({ isActive = true }: { isActive?: boolean }) {
       unmounting = true;
       imageUploadDisposed = true;
       syncMetricsRef.current = null;
+      try {
+        osc52Disposable?.dispose();
+      } catch {
+        /* already disposed */
+      }
       onDataDisposable?.dispose();
       onResizeDisposable?.dispose();
       mobileInputCleanup?.();

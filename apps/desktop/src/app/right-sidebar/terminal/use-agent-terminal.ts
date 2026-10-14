@@ -95,6 +95,7 @@ export function useAgentTerminal({ active, id, procId }: { active: boolean; id: 
       unregister()
       unregisterReader()
       observer.disconnect()
+      fitRef.current = null
       term.dispose()
       termRef.current = null
       webglRef.current = null

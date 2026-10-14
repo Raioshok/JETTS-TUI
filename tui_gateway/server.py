@@ -11077,6 +11077,8 @@ def _notification_poller_loop(
         _dedup_key = _notification_event_dedup_key(evt)
         if _dedup_key not in _emitted:
             _emit("status.update", sid, {"kind": "process", "text": text})
+            if len(_emitted) >= 500:
+                _emitted.clear()
             _emitted.add(_dedup_key)
 
         _requeued = False
@@ -11935,6 +11937,12 @@ def _run_prompt_submit(
             _retire_turn_marker(session, marker_key)
             session.pop("_auto_continue_scheduled", None)
             _emit_settled_session_info(sid, session, agent)
+            try:
+                from agent.auxiliary_client import cleanup_stale_async_clients
+
+                cleanup_stale_async_clients()
+            except Exception:
+                pass
 
         # A user prompt that arrived mid-turn (interrupt + queue) wins over
         # every auto follow-up below — drain it first and skip them this cycle;

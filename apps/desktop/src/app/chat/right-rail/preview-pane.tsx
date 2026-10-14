@@ -615,7 +615,16 @@ export function PreviewPane({
       webview.removeEventListener('did-navigate-in-page', onNavigate)
       webview.removeEventListener('did-start-loading', onStart)
       webview.removeEventListener('did-stop-loading', onStop)
+      try {
+        webview.stop?.()
+        webview.src = 'about:blank'
+      } catch {
+        // webview already torn down
+      }
       webview.remove()
+      if (webviewRef.current === webview) {
+        webviewRef.current = null
+      }
     }
   }, [appendConsoleEntry, consoleState, copy, isWebPreview, target.url])
 

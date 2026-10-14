@@ -1149,6 +1149,7 @@ class ProcessRegistry:
         with self._lock:
             was_running = self._running.pop(session.id, None) is not None
             self._finished[session.id] = session
+        session.env_ref = None
         session._completion_event.set()
         self._write_checkpoint()
 
@@ -1943,6 +1944,10 @@ class ProcessRegistry:
         stale_polls = self._poll_observed - tracked
         if stale_polls:
             self._poll_observed -= stale_polls
+        if self.pending_watchers:
+            self.pending_watchers = [
+                w for w in self.pending_watchers if w.get("session_id") in tracked
+            ]
 
     # ----- Checkpoint (crash recovery) -----
 

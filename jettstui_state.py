@@ -2670,6 +2670,18 @@ class SessionDB:
         except Exception:
             pass  # Best effort — never fatal.
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.close()
+
+    def __del__(self):
+        try:
+            self.close()
+        except Exception:
+            pass
+
     def close(self):
         """Close the database connection.
 
@@ -2678,11 +2690,15 @@ class SessionDB:
         """
         with self._lock:
             if self._conn:
+                if not getattr(self, "read_only", False):
+                    try:
+                        self._conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
+                    except Exception as exc:
+                        logger.debug("WAL checkpoint (TRUNCATE) at close failed: %s", exc)
                 try:
-                    self._conn.execute("PRAGMA wal_checkpoint(TRUNCATE)")
-                except Exception as exc:
-                    logger.debug("WAL checkpoint (TRUNCATE) at close failed: %s", exc)
-                self._conn.close()
+                    self._conn.close()
+                except Exception:
+                    pass
                 self._conn = None
 
     # ── Chunked FTS rebuild engine (v23 opt-in optimize) ──

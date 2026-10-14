@@ -16960,14 +16960,18 @@ def _get_provider_quotas(profile: Optional[str] = None) -> Dict[str, Any]:
                 pinned = pinned_pool_credential(row["source"])
             except Exception:
                 _log.debug("pinned credential lookup failed for %s", row["source"], exc_info=True)
-            if pinned is not None:
-                snapshot = fetch_account_usage(
-                    row["source"],
-                    base_url=pinned.runtime_base_url,
-                    api_key=pinned.runtime_api_key,
-                )
-            else:
-                snapshot = fetch_account_usage(row["source"])
+            try:
+                if pinned is not None:
+                    snapshot = fetch_account_usage(
+                        row["source"],
+                        base_url=pinned.runtime_base_url,
+                        api_key=pinned.runtime_api_key,
+                    )
+                else:
+                    snapshot = fetch_account_usage(row["source"])
+            except Exception as exc:
+                _log.debug("fetch_account_usage failed for %s: %s", row["source"], exc)
+                snapshot = None
             if snapshot is None:
                 result["error"] = "Could not fetch quota right now."
             else:
@@ -17155,17 +17159,28 @@ def _get_models_analytics(days: int = 30, profile: Optional[str] = None):
 
         totals_cur = db._conn.execute("""
             SELECT COUNT(DISTINCT model) as distinct_models,
-                   SUM(input_tokens) as total_input,
-                   SUM(output_tokens) as total_output,
-                   SUM(cache_read_tokens) as total_cache_read,
-                   SUM(reasoning_tokens) as total_reasoning,
+                   COALESCE(SUM(input_tokens), 0) as total_input,
+                   COALESCE(SUM(output_tokens), 0) as total_output,
+                   COALESCE(SUM(cache_read_tokens), 0) as total_cache_read,
+                   COALESCE(SUM(reasoning_tokens), 0) as total_reasoning,
                    COALESCE(SUM(estimated_cost_usd), 0) as total_estimated_cost,
                    COALESCE(SUM(actual_cost_usd), 0) as total_actual_cost,
                    COUNT(*) as total_sessions,
-                   SUM(COALESCE(api_call_count, 0)) as total_api_calls
+                   COALESCE(SUM(api_call_count), 0) as total_api_calls
             FROM sessions WHERE started_at > ? AND model IS NOT NULL AND model != ''
         """, (cutoff,))
-        totals = dict(totals_cur.fetchone())
+        t_row = totals_cur.fetchone()
+        totals = {k: (0 if v is None else v) for k, v in dict(t_row).items()} if t_row else {
+            "distinct_models": 0,
+            "total_input": 0,
+            "total_output": 0,
+            "total_cache_read": 0,
+            "total_reasoning": 0,
+            "total_estimated_cost": 0,
+            "total_actual_cost": 0,
+            "total_sessions": 0,
+            "total_api_calls": 0,
+        }
 
         return {
             "models": models,

@@ -1594,6 +1594,14 @@ def _resolve_static_model_alias(
         for model in models:
             if model.lower().startswith(prefix):
                 return model
+        # If the versioned alias is newer than the static catalog (e.g. claude-sonnet-5-5 vs claude-sonnet-5),
+        # fall back to progressively shorter prefix matching so the correct family provider is resolved.
+        cur_prefix = prefix
+        while "-" in cur_prefix:
+            cur_prefix = cur_prefix.rsplit("-", 1)[0]
+            for model in models:
+                if model.lower().startswith(cur_prefix):
+                    return model
         return None
 
     for provider in current_keys:
