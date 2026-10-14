@@ -1,4 +1,5 @@
 import atexit
+import collections
 import concurrent.futures
 import contextlib
 import contextvars
@@ -318,7 +319,7 @@ class _SlashWorker:
     def __init__(self, session_key: str, model: str, profile_home: str | None = None):
         self._lock = threading.Lock()
         self._seq = 0
-        self.stderr_tail: list[str] = []
+        self.stderr_tail: collections.deque[str] = collections.deque(maxlen=80)
         self.stdout_queue: queue.Queue[dict | None] = queue.Queue()
 
         argv = [
@@ -383,7 +384,7 @@ class _SlashWorker:
     def _drain_stderr(self):
         for line in self.proc.stderr or []:
             if text := line.rstrip("\n"):
-                self.stderr_tail = (self.stderr_tail + [text])[-80:]
+                self.stderr_tail.append(text)
 
     def run(self, command: str) -> str:
         if self.proc.poll() is not None:
@@ -983,15 +984,20 @@ def _max_live_sessions() -> int:
         from jettstui.active_sessions import coerce_max_concurrent_sessions
 
         cfg = _load_cfg() or {}
+        has_cfg = "max_live_sessions" in cfg
         raw = cfg.get("max_live_sessions")
-        if raw is None:
+        if not has_cfg:
             gateway_cfg = cfg.get("gateway")
-            if isinstance(gateway_cfg, dict):
+            if isinstance(gateway_cfg, dict) and "max_live_sessions" in gateway_cfg:
                 raw = gateway_cfg.get("max_live_sessions")
+                has_cfg = True
+        if not has_cfg:
+            # Fall back to default (16 from DEFAULT_CONFIG) so soft LRU cap is default-on
+            return 16
         coerced = coerce_max_concurrent_sessions(raw, key="max_live_sessions")
         return int(coerced) if coerced else 0
     except Exception:
-        return 0
+        return 16
 
 
 def _session_is_lru_evictable(sid: str, session: dict) -> bool:

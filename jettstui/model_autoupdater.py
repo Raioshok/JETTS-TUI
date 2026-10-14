@@ -198,6 +198,8 @@ def update_all_models(
     force_refresh: bool = True,
     update_models_dev: bool = True,
     max_workers: int = 6,
+    lock_already_held: bool = False,
+    timeout: float = 60.0,
 ) -> dict[str, Any]:
     """Run parallel model updates across providers and the models.dev registry.
 
@@ -213,8 +215,11 @@ def update_all_models(
       }
     """
     global _IS_UPDATING
-    with _UPDATE_LOCK:
-        _IS_UPDATING = True
+    if not lock_already_held:
+        with _UPDATE_LOCK:
+            if _IS_UPDATING:
+                return {"error": "update already in progress"}
+            _IS_UPDATING = True
 
     start_time = time.time()
     target_providers = providers if providers is not None else get_updatable_providers()
@@ -241,25 +246,39 @@ def update_all_models(
                 except Exception as exc:
                     logger.debug("Failed to submit models.dev fetch: %s", exc)
 
-            for future in concurrent.futures.as_completed(future_to_pid):
-                pid = future_to_pid[future]
-                try:
-                    res = future.result()
-                    provider_results[pid] = res
-                except Exception as exc:
-                    provider_results[pid] = {
-                        "provider": pid,
-                        "kind": "oauth" if pid in OAUTH_PROVIDERS else "api_key",
-                        "status": "error",
-                        "models": [],
-                        "new_models": [],
-                        "total": 0,
-                        "error": str(exc),
-                    }
+            try:
+                for future in concurrent.futures.as_completed(future_to_pid, timeout=timeout):
+                    pid = future_to_pid[future]
+                    try:
+                        res = future.result()
+                        provider_results[pid] = res
+                    except Exception as exc:
+                        provider_results[pid] = {
+                            "provider": pid,
+                            "kind": "oauth" if pid in OAUTH_PROVIDERS else "api_key",
+                            "status": "error",
+                            "models": [],
+                            "new_models": [],
+                            "total": 0,
+                            "error": str(exc),
+                        }
+            except TimeoutError:
+                logger.warning("Model autoupdater timed out after %ss for some providers", timeout)
+                for fut, pid in future_to_pid.items():
+                    if pid not in provider_results:
+                        provider_results[pid] = {
+                            "provider": pid,
+                            "kind": "oauth" if pid in OAUTH_PROVIDERS else "api_key",
+                            "status": "error",
+                            "models": [],
+                            "new_models": [],
+                            "total": 0,
+                            "error": f"timed out after {timeout}s",
+                        }
 
             if mdev_future is not None:
                 try:
-                    mdev_data = mdev_future.result()
+                    mdev_data = mdev_future.result(timeout=timeout)
                     if isinstance(mdev_data, dict):
                         # Count total models across all providers in models.dev
                         models_dev_count = sum(
@@ -324,17 +343,27 @@ def maybe_auto_update_models(*, background: bool = True) -> bool:
         if elapsed_hours < interval_hours:
             return False  # Still fresh
 
+        with _UPDATE_LOCK:
+            if _IS_UPDATING:
+                return False
+            _IS_UPDATING = True
+
         if background:
-            t = threading.Thread(
-                target=update_all_models,
-                kwargs={"force_refresh": True, "update_models_dev": True},
-                name="model-autoupdater",
-                daemon=True,
-            )
-            t.start()
-            return True
+            try:
+                t = threading.Thread(
+                    target=update_all_models,
+                    kwargs={"force_refresh": True, "update_models_dev": True, "lock_already_held": True},
+                    name="model-autoupdater",
+                    daemon=True,
+                )
+                t.start()
+                return True
+            except Exception:
+                with _UPDATE_LOCK:
+                    _IS_UPDATING = False
+                raise
         else:
-            update_all_models(force_refresh=True, update_models_dev=True)
+            update_all_models(force_refresh=True, update_models_dev=True, lock_already_held=True)
             return True
     except Exception as exc:
         logger.debug("maybe_auto_update_models check failed: %s", exc)

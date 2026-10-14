@@ -8693,6 +8693,7 @@ function createWindow() {
   const createdMainWindow = mainWindow
   mainWindow.on('closed', () => {
     closePetOverlay()
+    closePreviewWatchers()
 
     if (mainWindow === createdMainWindow) {
       mainWindow = null
@@ -8704,6 +8705,7 @@ function createWindow() {
   wireCommonWindowHandlers(mainWindow, zoomWiringForWindowKind('chat'))
 
   mainWindow.webContents.on('render-process-gone', (_event, details) => {
+    closePreviewWatchers()
     rememberLog(`[renderer] render-process-gone reason=${details?.reason} exitCode=${details?.exitCode}`)
 
     if (details?.reason === 'crashed' || details?.reason === 'oom') {

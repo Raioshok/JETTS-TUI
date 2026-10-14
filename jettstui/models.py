@@ -10,6 +10,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import threading
 import urllib.parse
 import urllib.request
 import urllib.error
@@ -2402,6 +2403,9 @@ def _credential_fingerprint(provider: str) -> str:
     return hashlib.blake2b(blob, digest_size=8).hexdigest()
 
 
+_provider_models_cache_lock = threading.Lock()
+
+
 def _load_provider_models_cache() -> dict:
     """Return the full cache dict, or {} on any error."""
     try:
@@ -2424,6 +2428,18 @@ def _save_provider_models_cache(data: dict) -> None:
         atomic_json_write(path, data, indent=None)
     except Exception:
         pass
+
+
+def _update_single_provider_cache(provider: str, fp: str, now: float, models: list[str]) -> None:
+    """Update a single provider's entry thread-safely without clobbering siblings."""
+    with _provider_models_cache_lock:
+        cache = _load_provider_models_cache()
+        cache[provider] = {
+            "fp": fp,
+            "at": now,
+            "models": list(models),
+        }
+        _save_provider_models_cache(cache)
 
 
 def cached_provider_model_ids(
@@ -2459,12 +2475,7 @@ def cached_provider_model_ids(
     # Cache miss / stale / forced refresh — call the live path.
     live = provider_model_ids(normalized, force_refresh=force_refresh)
     if live:
-        cache[normalized] = {
-            "fp": fp,
-            "at": now,
-            "models": list(live),
-        }
-        _save_provider_models_cache(cache)
+        _update_single_provider_cache(normalized, fp, now, list(live))
         return list(live)
 
     # Live fetch returned nothing. If we have a stale entry with the
@@ -2488,16 +2499,17 @@ def clear_provider_models_cache(provider: Optional[str] = None) -> None:
     ``jettstui model --refresh``.
     """
     try:
-        if provider is None:
-            path = _provider_models_cache_path()
-            if path.exists():
-                path.unlink()
-            return
-        cache = _load_provider_models_cache()
-        normalized = normalize_provider(provider) or provider or ""
-        if normalized in cache:
-            del cache[normalized]
-            _save_provider_models_cache(cache)
+        with _provider_models_cache_lock:
+            if provider is None:
+                path = _provider_models_cache_path()
+                if path.exists():
+                    path.unlink()
+                return
+            cache = _load_provider_models_cache()
+            normalized = normalize_provider(provider) or provider or ""
+            if normalized in cache:
+                del cache[normalized]
+                _save_provider_models_cache(cache)
     except Exception:
         pass
 

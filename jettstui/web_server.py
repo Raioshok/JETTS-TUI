@@ -239,6 +239,13 @@ async def _lifespan(app: "FastAPI"):
         await PTY_REGISTRY.close_all()
         if cron_stop is not None:
             cron_stop.set()
+        pty_files = _get_pty_active_session_files(app)
+        for p in list(pty_files.values()):
+            try:
+                p.unlink(missing_ok=True)
+            except Exception:
+                pass
+        pty_files.clear()
 
 
 def _get_event_state(app: "FastAPI"):
@@ -17838,6 +17845,14 @@ def _forget_active_session_file(path: Path) -> None:
         pass
 
 
+def _cleanup_pty_active_session_file(app: Any, channel: str) -> None:
+    """Pop and unlink the per-channel active session file when channel tears down."""
+    files = _get_pty_active_session_files(app)
+    path = files.pop(channel, None)
+    if path is not None:
+        _forget_active_session_file(path)
+
+
 def _ws_close_reason(text: str) -> str:
     """Clamp a WS close reason to the protocol's 123-byte UTF-8 limit.
 
@@ -18704,6 +18719,7 @@ async def events_ws(ws: WebSocket) -> None:
 
                 if not subs:
                     event_channels.pop(channel, None)
+                    _cleanup_pty_active_session_file(ws.app, channel)
 
 
 def _normalise_prefix(raw: Optional[str]) -> str:
