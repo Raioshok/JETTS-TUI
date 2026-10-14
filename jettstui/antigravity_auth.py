@@ -109,14 +109,15 @@ ANTIGRAVITY_ACCESS_TOKEN_REFRESH_SKEW_SECONDS = 120
 # first; the live list always wins when it answers.
 DEFAULT_ANTIGRAVITY_MODELS = (
     "gemini-4-argon",
-    "gemini-4-argon-high",
-    "gemini-4-argon-low",
     "gemini-4-argon-thinking",
+    "claude-opus-5-5-thinking",
+    "claude-sonnet-5-5",
+    "claude-opus-5-5",
+    "claude-sonnet-5-5-thinking",
     "gemini-3.1-pro-high",
     "gemini-3.1-pro-low",
-    "gemini-3-pro-high",
-    "gemini-3-pro-low",
     "gemini-3-flash",
+    "gemini-3.8-flash-tiered",
     "claude-opus-4-6-thinking",
     "claude-sonnet-4-6",
 )
@@ -617,6 +618,35 @@ def _onboard_user(
     return ""
 
 
+def _is_antigravity_usable_model(name: str) -> bool:
+    """Filter out obsolete, internal, routing, and experimental micro-tier models.
+
+    Antigravity's raw backend enumerates dozens of internal stubs (chat_*, tab_*),
+    superseded generations (gemini-2.5-*), obsolete checkpoint micro-tiers
+    (gemini-3.5-*, gemini-3.6-*, gemini-3.7-*), preview routing agents, and
+    image models. Only clean, current frontier and daily-driver models are kept.
+    """
+    n = (name or "").strip().lower()
+    if not n:
+        return False
+    # Drop internal routing, tab completion, image generation, and preview stubs
+    if n.startswith(("chat_", "tab_")) or "image" in n or "preview" in n:
+        return False
+    # Drop obsolete 2.5 generation
+    if "gemini-2.5" in n:
+        return False
+    # Drop internal checkpoint micro-tiers and intermediate test variants
+    if any(n.startswith(p) for p in ("gemini-3.5-", "gemini-3.6-", "gemini-3.7-", "gemini-3.1-flash")):
+        return False
+    # Drop internal agent routing stubs
+    if n.endswith("-agent"):
+        return False
+    # Drop third-party expiring models
+    if "gpt-oss" in n:
+        return False
+    return True
+
+
 def _fetch_model_entries(
     access_token: str,
     project_id: str,
@@ -625,8 +655,8 @@ def _fetch_model_entries(
 ) -> Dict[str, Dict[str, Any]]:
     """Return ``{model_id: metadata}`` from ``fetchAvailableModels`` (``{}`` on failure).
 
-    Internal routing / tab-completion / image models are dropped: they are
-    not chat models.
+    Internal routing, deprecated generations, and experimental micro-tier models
+    are dropped so OAuth menus stay clean and responsive.
     """
     entries: Dict[str, Dict[str, Any]] = {}
     with httpx.Client(timeout=timeout_seconds) as client:
@@ -646,17 +676,17 @@ def _fetch_model_entries(
             if isinstance(models, dict):
                 for name, meta in models.items():
                     sname = str(name)
-                    if sname and not sname.startswith(("chat_", "tab_")) and "image" not in sname:
+                    if _is_antigravity_usable_model(sname):
                         entries.setdefault(sname, meta if isinstance(meta, dict) else {})
             elif isinstance(models, list):
                 for item in models:
                     if isinstance(item, dict):
                         k = str(item.get("name") or item.get("id") or "")
-                        if k and not k.startswith(("chat_", "tab_")) and "image" not in k:
+                        if _is_antigravity_usable_model(k):
                             entries.setdefault(k, item)
                     else:
                         sitem = str(item)
-                        if sitem and not sitem.startswith(("chat_", "tab_")) and "image" not in sitem:
+                        if _is_antigravity_usable_model(sitem):
                             entries.setdefault(sitem, {})
         if entries:
             return entries

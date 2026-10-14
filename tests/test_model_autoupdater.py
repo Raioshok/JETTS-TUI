@@ -238,3 +238,52 @@ def test_antigravity_gemini_4_argon_detection():
         assert res.target_provider == "antigravity"
         assert res.new_model == "gemini-4-argon"
 
+
+def test_antigravity_opus_5_5_sonnet_5_5_and_model_cleanup():
+    """Verify Opus 5.5 and Sonnet 5.5 are present and bloated models are discarded."""
+    from jettstui.antigravity_auth import (
+        DEFAULT_ANTIGRAVITY_MODELS,
+        fetch_available_models,
+        _is_antigravity_usable_model,
+    )
+    from jettstui.models import _PROVIDER_MODELS
+    from jettstui.model_switch import switch_model, _ensure_direct_aliases
+
+    _ensure_direct_aliases()
+
+    # 1. New Opus 5.5 and Sonnet 5.5 models are present
+    assert "claude-opus-5-5-thinking" in DEFAULT_ANTIGRAVITY_MODELS
+    assert "claude-sonnet-5-5" in DEFAULT_ANTIGRAVITY_MODELS
+    assert "claude-opus-5-5-thinking" in _PROVIDER_MODELS["antigravity"]
+    assert "claude-sonnet-5-5" in _PROVIDER_MODELS["antigravity"]
+
+    # 2. Obsolete / bloated models are discarded by cleanup filter
+    assert not _is_antigravity_usable_model("gemini-2.5-flash")
+    assert not _is_antigravity_usable_model("gemini-2.5-pro")
+    assert not _is_antigravity_usable_model("chat_20706")
+    assert not _is_antigravity_usable_model("tab_jump_flash_lite_preview")
+    assert not _is_antigravity_usable_model("gemini-3.5-flash-extra-low")
+    assert not _is_antigravity_usable_model("gemini-3.6-flash-low")
+    assert not _is_antigravity_usable_model("gemini-3.7-flash-tiered")
+    assert not _is_antigravity_usable_model("gemini-3-flash-agent")
+    assert not _is_antigravity_usable_model("gpt-oss-120b-medium")
+
+    # 3. Clean models are accepted
+    assert _is_antigravity_usable_model("gemini-4-argon")
+    assert _is_antigravity_usable_model("gemini-3.8-flash-tiered")
+    assert _is_antigravity_usable_model("claude-opus-5-5-thinking")
+    assert _is_antigravity_usable_model("claude-sonnet-5-5")
+
+    # 4. Alias resolution for Opus 5.5 and Sonnet 5.5
+    for alias, expected in [
+        ("opus 5.5", "claude-opus-5-5-thinking"),
+        ("opus", "claude-opus-5-5"),
+        ("sonnet 5.5", "claude-sonnet-5-5"),
+        ("sonnet", "claude-sonnet-5-5"),
+    ]:
+        res = switch_model(alias, current_provider="antigravity", current_model="gemini-3.8-flash-tiered")
+        assert res.success is True, f"Failed for {alias}: {res.error_message}"
+        assert res.target_provider == "antigravity"
+        assert res.new_model == expected
+
+

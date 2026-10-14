@@ -277,8 +277,8 @@ class ModelIdentity(NamedTuple):
 
 MODEL_ALIASES: dict[str, ModelIdentity] = {
     # Anthropic
-    "sonnet":    ModelIdentity("anthropic", "claude-sonnet"),
-    "opus":      ModelIdentity("anthropic", "claude-opus"),
+    "sonnet":    ModelIdentity("anthropic", "claude-sonnet-5-5"),
+    "opus":      ModelIdentity("anthropic", "claude-opus-5-5"),
     "haiku":     ModelIdentity("anthropic", "claude-haiku"),
     "claude":    ModelIdentity("anthropic", "claude"),
 
@@ -349,11 +349,24 @@ class DirectAlias(NamedTuple):
 
 # Built-in direct aliases (can be extended via config.yaml model_aliases:)
 _BUILTIN_DIRECT_ALIASES: dict[str, DirectAlias] = {
+    # Gemini 4 Argon
     "argon": DirectAlias("gemini-4-argon", "antigravity", ""),
     "4-argon": DirectAlias("gemini-4-argon", "antigravity", ""),
     "4 argon": DirectAlias("gemini-4-argon", "antigravity", ""),
     "gemini-4": DirectAlias("gemini-4-argon", "antigravity", ""),
     "gemini-4-argon": DirectAlias("gemini-4-argon", "antigravity", ""),
+    # Claude Opus 5.5
+    "opus 5.5": DirectAlias("claude-opus-5-5-thinking", "antigravity", ""),
+    "opus-5.5": DirectAlias("claude-opus-5-5-thinking", "antigravity", ""),
+    "opus5.5": DirectAlias("claude-opus-5-5-thinking", "antigravity", ""),
+    "claude-opus-5.5": DirectAlias("claude-opus-5-5-thinking", "antigravity", ""),
+    "claude-opus-5-5": DirectAlias("claude-opus-5-5-thinking", "antigravity", ""),
+    # Claude Sonnet 5.5
+    "sonnet 5.5": DirectAlias("claude-sonnet-5-5", "antigravity", ""),
+    "sonnet-5.5": DirectAlias("claude-sonnet-5-5", "antigravity", ""),
+    "sonnet5.5": DirectAlias("claude-sonnet-5-5", "antigravity", ""),
+    "claude-sonnet-5.5": DirectAlias("claude-sonnet-5-5", "antigravity", ""),
+    "claude-sonnet-5-5": DirectAlias("claude-sonnet-5-5", "antigravity", ""),
 }
 
 # Merged dict (builtins + user config); populated by _load_direct_aliases()

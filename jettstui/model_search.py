@@ -14,6 +14,8 @@ from __future__ import annotations
 _MODEL_SEARCH_ALIASES: dict[str, tuple[str, ...]] = {
     "k3": ("kimi-k3", "kimi"),
     "gemini-4-argon": ("4 argon", "argon", "gemini 4 argon", "gemini-4"),
+    "claude-opus-5-5-thinking": ("opus 5.5", "opus 5", "claude opus 5.5", "opus"),
+    "claude-sonnet-5-5": ("sonnet 5.5", "sonnet 5", "claude sonnet 5.5", "sonnet"),
 }
 
 # Lowercased wire id → canonical public slug it aliases. Used by picker
