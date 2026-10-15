@@ -41,8 +41,18 @@ _REJECT_CHARS = frozenset(('"', "'", "<", ">", " ", "\n", "\r", "\t"))
 # un-deduplicated warning would flood the logs once per request for a
 # misconfigured deploy. Keyed on the raw value too, so changing the
 # config and reloading surfaces a fresh warning.
-_warned_malformed_public_urls: set = set()
-_warned_malformed_prefixes: set = set()
+#
+# Both sets are hard-capped: _warn_if_malformed_prefix is reachable from
+# request headers (X-Forwarded-Prefix via prefix_from_request in the auth
+# middleware), so its key space is attacker-controlled — a long-lived
+# dashboard would otherwise grow one entry per unique malicious header
+# value. Both are insertion-ordered dicts used as ordered sets so the
+# oldest entry can be evicted on overflow (set.pop() is a random pop);
+# at worst that re-emits a warning for an evicted repeat, which is the
+# correct trade-off for an attacker-bounded memory floor.
+_warned_malformed_public_urls: dict = {}
+_warned_malformed_prefixes: dict = {}
+_WARNED_MALFORMED_MAX = 32
 
 
 def _warn_if_malformed(source: str, raw: str) -> None:
@@ -65,7 +75,9 @@ def _warn_if_malformed(source: str, raw: str) -> None:
     key = (source, cleaned)
     if key in _warned_malformed_public_urls:
         return
-    _warned_malformed_public_urls.add(key)
+    _warned_malformed_public_urls[key] = None
+    while len(_warned_malformed_public_urls) > _WARNED_MALFORMED_MAX:
+        _warned_malformed_public_urls.pop(next(iter(_warned_malformed_public_urls)))
     _log.warning(
         "%s is set to %r but was ignored because it is not a valid "
         "absolute URL — it must include an http:// or https:// scheme "
@@ -86,7 +98,12 @@ def _warn_if_malformed_prefix(raw: Optional[str], reason: str) -> None:
     key = (cleaned, reason)
     if key in _warned_malformed_prefixes:
         return
-    _warned_malformed_prefixes.add(key)
+    _warned_malformed_prefixes[key] = None
+    # Hard cap — reachable from attacker-controlled request headers, so the
+    # key space is unbounded without it (memory-leak audit fix). Evict the
+    # oldest inserted key on overflow.
+    while len(_warned_malformed_prefixes) > _WARNED_MALFORMED_MAX:
+        _warned_malformed_prefixes.pop(next(iter(_warned_malformed_prefixes)))
     _log.warning(
         "X-Forwarded-Prefix header %r was ignored because %s. "
         "Dashboard URLs will be generated without a reverse-proxy path prefix.",

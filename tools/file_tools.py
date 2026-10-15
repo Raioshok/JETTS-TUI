@@ -746,6 +746,15 @@ _file_ops_cache: dict = {}
 #                      by the same task don't trigger false warnings.
 _read_tracker_lock = threading.Lock()
 _read_tracker: dict = {}
+# Outer-dict cap: one entry per task_id. Sub-agent / batch / one-shot tasks each
+# create an entry that is never removed (the inner containers are capped by
+# _cap_read_tracker_data, but the outer keys live forever), so a long gateway
+# process that handles many sessions accumulates one task_data dict (~1KB of
+# capped sub-containers) per distinct task_id forever. Evict the
+# least-recently-touched task on overflow — a stale task's tracker only feeds
+# dedup/loop-detection diagnostics, so evicting it is a graceful degradation
+# (the next read for that task re-creates a fresh entry).
+_READ_TRACKER_MAX_TASKS = 64
 
 # Track consecutive patch failures per (task_id, resolved_path).  Used to
 # escalate the hint when the model repeatedly fails to patch the same file
@@ -1098,12 +1107,30 @@ def _get_file_ops(task_id: str = "default") -> ShellFileOperations:
 
 
 def clear_file_ops_cache(task_id: str = None):
-    """Clear the file operations cache."""
+    """Clear the file operations cache.
+
+    Also drops the per-task read-tracker / patch-failure state so a finished
+    task's diagnostic containers don't outlive its sandbox: the env reaper
+    (tools/terminal_tool.py:cleanup_vm / _cleanup_inactive_envs) calls this on
+    every environment teardown, which is the same lifecycle boundary the
+    read/patch trackers should respect. (Memory-leak audit: _read_tracker and
+    _patch_failure_tracker previously only grew their outer task_id keys.)
+    """
     with _file_ops_lock:
         if task_id:
             _file_ops_cache.pop(task_id, None)
         else:
             _file_ops_cache.clear()
+    with _read_tracker_lock:
+        if task_id:
+            _read_tracker.pop(task_id, None)
+        else:
+            _read_tracker.clear()
+    with _patch_failure_lock:
+        if task_id:
+            _patch_failure_tracker.pop(task_id, None)
+        else:
+            _patch_failure_tracker.clear()
 
 
 def read_file_tool(path: str, offset: int = 1, limit: int = 500, task_id: str = "default") -> str:
@@ -1218,6 +1245,13 @@ def read_file_tool(path: str, offset: int = 1, limit: int = 500, task_id: str = 
                 "read_history": set(), "dedup": {},
                 "dedup_hits": {}, "read_timestamps": {},
             })
+            # Re-insertion moves task_id to the dict's most-recent end, so the
+            # LRU eviction below drops genuinely idle tasks.
+            if len(_read_tracker) > _READ_TRACKER_MAX_TASKS:
+                try:
+                    _read_tracker.pop(next(iter(_read_tracker)))
+                except (StopIteration, KeyError):
+                    pass
             # Backward-compat for pre-existing tracker entries that predate
             # dedup_hits/read_timestamps (long-lived task or crossed an
             # upgrade boundary).

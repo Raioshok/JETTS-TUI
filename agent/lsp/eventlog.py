@@ -53,8 +53,15 @@ event_log = logging.getLogger("jettstui.lint.lsp")
 _announce_lock = threading.Lock()
 _announced_active: set = set()        # keys: (server_id, workspace_root)
 _announced_unavailable: set = set()   # keys: (server_id, binary_path_or_name)
-_announced_no_root: set = set()       # keys: (server_id, file_path)
+_announced_no_root: dict = {}         # ordered-set keys: (server_id, file_path) → None
 _announced_no_server: set = set()     # keys: (server_id,)
+# Hard cap for the per-file dedup container (_announced_no_root keys on
+# file_path, so it grows by one entry per distinct file without a recognized
+# project root — unbounded across a long session that touches many files).
+# It is an insertion-ordered dict (used as an ordered set) so the oldest entry
+# can be evicted on overflow. Eviction only downgrades a repeat to a DEBUG
+# line, never changes behavior.
+_ANNOUNCED_NO_ROOT_MAX = 512
 
 
 def _short_path(file_path: str) -> str:
@@ -79,16 +86,20 @@ def _emit(server_id: str, level: int, message: str) -> None:
     event_log.log(level, "lsp[%s] %s", server_id, message)
 
 
-def _announce_once(bucket: set, key: Tuple) -> bool:
+def _announce_once(bucket, key: Tuple) -> bool:
     """Return True if *key* has not been announced for *bucket* yet.
 
     Atomically marks the key as announced so concurrent callers
-    cannot both win the race and double-log.
+    cannot both win the race and double-log. *bucket* may be a set or an
+    insertion-ordered dict used as an ordered set.
     """
     with _announce_lock:
         if key in bucket:
             return False
-        bucket.add(key)
+        if isinstance(bucket, dict):
+            bucket[key] = None
+        else:
+            bucket.add(key)
         return True
 
 
@@ -133,6 +144,10 @@ def log_no_project_root(server_id: str, file_path: str) -> None:
     DEBUG thereafter."""
     key = (server_id, file_path)
     if _announce_once(_announced_no_root, key):
+        # Bound the per-file dedup container (see _ANNOUNCED_NO_ROOT_MAX).
+        with _announce_lock:
+            while len(_announced_no_root) > _ANNOUNCED_NO_ROOT_MAX:
+                _announced_no_root.pop(next(iter(_announced_no_root)))
         _emit(server_id, logging.INFO, f"no project root for {_short_path(file_path)}")
     else:
         _emit(server_id, logging.DEBUG, f"no project root for {_short_path(file_path)}")
