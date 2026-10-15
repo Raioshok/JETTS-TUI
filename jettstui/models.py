@@ -2103,6 +2103,8 @@ def provider_model_ids(provider: Optional[str], *, force_refresh: bool = False) 
                     return live
         except Exception:
             pass
+        from jettstui.main import _DEFAULT_QWEN_PORTAL_MODELS
+
         return list(_DEFAULT_QWEN_PORTAL_MODELS)
     if normalized == "minimax-oauth":
         try:

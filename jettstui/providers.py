@@ -578,6 +578,8 @@ def is_aggregator(provider: str) -> bool:
     provider_norm = normalize_provider(provider or "")
     if provider_norm.startswith("custom:"):
         return True
+    if provider_norm in _FLAT_NAMESPACE_RESELLERS:
+        return True
     pdef = get_provider(provider_norm)
     return pdef.is_aggregator if pdef else False
 
