@@ -38,7 +38,9 @@
     "yauzl": "^3.3.1",
     "source-map-js": "^1.2.2",
     "http-cache-semantics": "^4.3.0",
-    "postcss": "^8.5.30"
+    "postcss": "^8.5.30",
+    "postcss-selector-parser": "7.1.6",
+    "katex": "^0.18.2"
   },
   "engines": {
     "node": ">=20.0.0"

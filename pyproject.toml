@@ -155,7 +155,7 @@ modal = ["modal==1.3.4"]
 daytona = ["daytona==0.155.0"]
 hindsight = ["hindsight-client==0.6.1"]
 dev = ["debugpy==1.8.20", "pytest==9.0.3", "pytest-asyncio==1.3.0", "mcp==1.28.1", "starlette==1.3.1", "ty==0.0.21", "ruff==0.15.10", "setuptools==83.0.0"]  # starlette: CVE-2026-48710; pytest: PYSEC-2026-1845; setuptools: PYSEC-2026-3447 (83.0.0 is fine here — no torch in this project's lock; build-system cap stays <83 with >=77 floor, dev extra is a test env not the build backend)
-messaging = ["python-telegram-bot[webhooks]==22.6", "discord.py==2.7.1", "davey==0.1.6", "pynacl==1.6.2", "aiohttp==3.14.1", "brotlicffi==1.2.0.1", "slack-bolt==1.29.0", "slack-sdk==3.43.0", "qrcode==7.4.2"]  # aiohttp 3.14.1: CVE-2026-34513/34518/34519/34520/34525 + 34993(RCE)/47265.
+messaging = ["python-telegram-bot[webhooks]==22.6", "discord.py==2.7.1", "davey==0.1.6", "pynacl==1.6.2", "aiohttp==3.14.5", "brotlicffi==1.2.0.1", "slack-bolt==1.29.0", "slack-sdk==3.43.0", "qrcode==7.4.2"]  # aiohttp 3.14.5: CVE-2026-34513/34518/34519/34520/34525 + 34993(RCE)/47265, CVE-2026-59881, CVE-2026-69243, CVE-2026-69244.
 # discord.py is declared WITHOUT [voice]: that extra caps pynacl<1.6, which ships the
 # vulnerable libsodium (PYSEC-2026-1448/3002). The voice extra only adds davey + pynacl;
 # both are declared explicitly here with pynacl at the fixed 1.6.2 (discord.py's voice
@@ -163,8 +163,8 @@ messaging = ["python-telegram-bot[webhooks]==22.6", "discord.py==2.7.1", "davey=
 # davey was previously an undeclared transitive — the Discord adapter imports it
 # directly (plugins/platforms/discord/adapter.py:652).
 cron = []  # croniter is now a core dependency; this extra kept for back-compat
-slack = ["slack-bolt==1.29.0", "slack-sdk==3.43.0", "aiohttp==3.14.1"]
-matrix = ["mautrix[encryption]==0.21.0", "aiosqlite==0.22.1", "asyncpg==0.31.0", "aiohttp-socks==0.11.0", "aiohttp==3.14.1"]  # aiohttp 3.14.1: CVE-2026-34993(RCE)/47265 + 34513/34518/34519/34520/34525 (mautrix/aiohttp-socks only cap aiohttp<4 / >=3.10, so pin the patched floor directly)
+slack = ["slack-bolt==1.29.0", "slack-sdk==3.43.0", "aiohttp==3.14.5"]
+matrix = ["mautrix[encryption]==0.21.0", "aiosqlite==0.22.1", "asyncpg==0.31.0", "aiohttp-socks==0.11.0", "aiohttp==3.14.5"]  # aiohttp 3.14.5: CVE-2026-34993(RCE)/47265 + 34513/34518/34519/34520/34525 + CVE-2026-59881, CVE-2026-69243, CVE-2026-69244 (mautrix/aiohttp-socks only cap aiohttp<4 / >=3.10, so pin the patched floor directly)
 # WeCom callback-mode adapter — parses untrusted XML POST bodies from
 # WeCom-controlled callback endpoints, so we use defusedxml (drop-in
 # replacement for stdlib xml.etree.ElementTree) to block billion-laughs
@@ -207,9 +207,9 @@ pty = []
 # a vulnerable pre-1.0.1 transitive. Bump in lockstep with uv.lock.
 mcp = ["mcp==1.28.1", "starlette==1.3.1"]  # starlette: CVE-2026-48710
 nemo-relay = ["nemo-relay>=0.5,<1.0"]
-homeassistant = ["aiohttp==3.14.1"]
-sms = ["aiohttp==3.14.1"]
-teams = ["microsoft-teams-apps==2.0.13.4", "aiohttp==3.14.1"]  # aiohttp 3.14.1: CVE-2026-34993(RCE)/47265 + 34513/34518/34519/34520/34525
+homeassistant = ["aiohttp==3.14.5"]
+sms = ["aiohttp==3.14.5"]
+teams = ["microsoft-teams-apps==2.0.13.4", "aiohttp==3.14.5"]  # aiohttp 3.14.5: CVE-2026-34993(RCE)/47265 + 34513/34518/34519/34520/34525 + CVE-2026-59881, CVE-2026-69243, CVE-2026-69244
 # Computer use — macOS background desktop control via cua-driver (MCP stdio).
 # The cua-driver binary itself is installed via `jettstui tools` post-setup
 # (curl install script); this extra just pins the MCP client used to talk

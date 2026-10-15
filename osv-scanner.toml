@@ -1,0 +1,14 @@
+# OSV-Scanner configuration
+# https://google.github.io/osv-scanner/configuration/
+
+# sprintf-js 1.1.3 has an unbounded precision specifier DoS advisory (CVE-2026-97058 / GHSA-hp3w-g68c-fv3c)
+# with NO patched version available upstream (1.1.3 is the latest release).
+# It is pulled strictly as a dev/build dependency via electron-builder -> global-agent -> roarr -> sprintf-js.
+# It is never bundled into production runtime or exposed to untrusted input.
+[[IgnoredVulns]]
+id = "CVE-2026-97058"
+reason = "Dev/build dependency only (electron-builder); no upstream fix available for sprintf-js."
+
+[[IgnoredVulns]]
+id = "GHSA-hp3w-g68c-fv3c"
+reason = "Dev/build dependency only (electron-builder); no upstream fix available for sprintf-js."
