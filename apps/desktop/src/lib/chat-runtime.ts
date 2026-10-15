@@ -63,13 +63,22 @@ export function createClientSessionState(
 
 export function sessionTitle(session: SessionInfo): string {
   const title = session.title?.trim()
-  if (title) return title
+
+  if (title) {
+    return title
+  }
+
   const preview = session.preview?.trim()
+
   if (preview) {
     // Strip leading @image:<path> directives if preview captured a raw turn
     const cleaned = preview.replace(/^@image:[^\n]*\n?/gm, '').trim()
-    if (cleaned) return cleaned
+
+    if (cleaned) {
+      return cleaned
+    }
   }
+
   return 'Untitled session'
 }
 
