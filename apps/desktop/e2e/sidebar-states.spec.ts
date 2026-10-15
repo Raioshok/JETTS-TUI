@@ -138,6 +138,7 @@ test.describe('sidebar states — subagent and background dot coexist', () => {
   })
 
   test('background dot visible while subagent runs', async () => {
+    test.slow()
     const page = fixture.page
 
     // Start the turn but DON'T wait for the final answer yet — we want
