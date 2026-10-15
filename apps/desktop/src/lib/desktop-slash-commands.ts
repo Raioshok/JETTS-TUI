@@ -41,6 +41,7 @@ export type DesktopActionId =
   | 'profile'
   | 'skin'
   | 'title'
+  | 'update'
   | 'yolo'
 
 /** A command fulfilled by opening a desktop overlay picker. */
@@ -179,6 +180,12 @@ const DESKTOP_COMMAND_SPECS: readonly DesktopCommandSpec[] = [
     description: 'Open the memory graph — skills + memories over time',
     aliases: ['/learning', '/memory-graph'],
     surface: action('journey')
+  },
+  {
+    name: '/update',
+    description: 'Check for updates and update JettsTUI in the desktop app',
+    aliases: ['/upgrade'],
+    surface: action('update')
   },
 
   // Overlay pickers
@@ -372,7 +379,6 @@ const NO_DESKTOP_SURFACE: Record<DesktopUnavailableReason, readonly string[]> = 
     '/snapshot',
     '/statusbar',
     '/toolsets',
-    '/update',
     '/verbose'
   ],
   messaging: ['/approve', '/deny'],

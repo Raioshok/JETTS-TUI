@@ -67,6 +67,15 @@ describe('desktop slash command curation', () => {
     expect(desktopSlashUnavailableMessage('/personality')).toBeNull()
   })
 
+  it('routes /update and /upgrade to the desktop action handler', () => {
+    expect(isDesktopSlashSuggestion('/update')).toBe(true)
+    expect(isDesktopSlashCommand('/update')).toBe(true)
+    expect(isDesktopSlashCommand('/upgrade')).toBe(true)
+    expect(resolveDesktopCommand('/update')?.surface).toEqual({ kind: 'action', action: 'update' })
+    expect(resolveDesktopCommand('/upgrade')?.surface).toEqual({ kind: 'action', action: 'update' })
+    expect(desktopSlashUnavailableMessage('/update')).toBeNull()
+  })
+
   it('routes /pet through the desktop action handler and drops /pets', () => {
     expect(resolveDesktopCommand('/pet')?.surface).toEqual({ kind: 'action', action: 'pet' })
     expect(desktopSlashCommandArgumentMode('/pet')).toBe('options')

@@ -187,6 +187,7 @@ import {
   sandboxPreflight
 } from './update-relaunch'
 import { isOfficialSshRemote, OFFICIAL_REPO_HTTPS_URL } from './update-remote'
+import { buildWindowsUpdateScript } from './update-windows-script'
 import { spawnUpdaterProcess } from './updater-process'
 import { fetchMarketplaceThemes, searchMarketplaceThemes } from './vscode-marketplace'
 import {
@@ -2791,48 +2792,12 @@ async function applyUpdates(opts = {}) {
   try {
     const updater = resolveUpdaterBinary()
 
-    if (!updater && !IS_WINDOWS) {
-      // macOS/Linux drag-install: no staged Tauri jettstui-setup. Unlike Windows
-      // (where a venv-shim file lock forces the quit→hand-off→rebuild dance),
-      // there's no mandatory file locking here, so the desktop can drive the
-      // whole update itself: `jettstui update` (backend) + `jettstui desktop
-      // --build-only` (OS-aware GUI rebuild), then swap the running .app bundle
-      // with the freshly built one and relaunch.
-      return await applyUpdatesPosixInApp(opts)
-    }
-
     if (!updater) {
-      // No staged updater binary — this is a CLI-installed user (they ran
-      // `jettstui desktop`, never the Tauri installer that self-copies
-      // jettstui-setup.exe into JETTSTUI_HOME). They DO have a working `jettstui`
-      // on PATH / in the venv, so the correct path is the one-liner in their
-      // native medium. We show the EXACT command, branch-pinned to the
-      // checkout they're on — bare `jettstui update` defaults to main and would
-      // silently switch a bb/gui (or any non-main) install off-branch. Mirror
-      // the GUI button's contract: append --branch <current> for non-main
-      // checkouts, keep it bare for main so the card stays clean.
-      const updateRoot = resolveUpdateRoot()
-      let command = 'jettstui update'
-
-      try {
-        const head = await runGit(['rev-parse', '--abbrev-ref', 'HEAD'], { cwd: updateRoot })
-        const current = (head.stdout || '').trim()
-
-        if (head.code === 0 && current && current !== 'HEAD') {
-          const branch = await resolveHealedBranch(updateRoot, current)
-
-          if (branch !== 'main') {
-            command = `jettstui update --branch ${branch}`
-          }
-        }
-      } catch {
-        // Best-effort: fall back to bare `jettstui update` if branch detection fails.
+      if (IS_WINDOWS) {
+        return await applyUpdatesWindowsInApp(opts)
       }
 
-      rememberLog(`[updates] no staged updater; surfacing manual \`${command}\` for CLI install at ${updateRoot}`)
-      emitUpdateProgress({ stage: 'manual', message: command, percent: null })
-
-      return { ok: true, manual: true, command, jettstuiRoot: updateRoot }
+      return await applyUpdatesPosixInApp(opts)
     }
 
     emitUpdateProgress({
@@ -2996,10 +2961,18 @@ async function handOffWindowsBootstrapRecovery(reason) {
 // Resolve the jettstui CLI to drive an in-app update: prefer the venv shim in
 // the install we're updating, fall back to `jettstui` on PATH.
 function resolveJettsTUICliBinary(updateRoot) {
-  const venvJettsTUI = path.join(updateRoot, 'venv', 'bin', 'jettstui')
+  const venvCandidates = IS_WINDOWS
+    ? [
+        path.join(updateRoot, 'venv', 'Scripts', 'jettstui.exe'),
+        path.join(updateRoot, 'venv', 'Scripts', 'jettstui.cmd'),
+        path.join(updateRoot, 'venv', 'Scripts', 'jettstui')
+      ]
+    : [path.join(updateRoot, 'venv', 'bin', 'jettstui')]
 
-  if (fileExists(venvJettsTUI)) {
-    return venvJettsTUI
+  for (const candidate of venvCandidates) {
+    if (fileExists(candidate)) {
+      return candidate
+    }
   }
 
   return findOnPath('jettstui') || null
@@ -3147,6 +3120,118 @@ function preflightStateDb(jettstuiHome, rememberLog) {
 
 function shellQuote(value) {
   return `'${String(value).replace(/'/g, `'\\''`)}'`
+}
+
+// Windows in-app update for CLI and git-source installs (no staged Tauri updater).
+// The desktop stops its backend to release all venv/.pyd file locks, writes the
+// update-in-progress marker, generates a detached PowerShell updater script,
+// spawns it in a visible console window, and cleanly exits. The script waits for
+// this process to exit, runs `jettstui update` (which also rebuilds the desktop),
+// and relaunches the updated desktop application.
+async function applyUpdatesWindowsInApp(opts: any = {}) {
+  const updateRoot = resolveUpdateRoot()
+  const gitDir = path.join(updateRoot, '.git')
+
+  if (!directoryExists(gitDir)) {
+    const command = 'jettstui update'
+    rememberLog(`[updates] ${updateRoot} isn't a git checkout; surfacing manual \`${command}\``)
+    emitUpdateProgress({ stage: 'manual', message: command, percent: null })
+
+    return { ok: true, manual: true, command, jettstuiRoot: updateRoot }
+  }
+
+  emitUpdateProgress({
+    stage: 'restart',
+    message:
+      'Updating JettsTUI — this window will close and the updater will run. Don’t reopen JettsTUI yourself; it restarts automatically when the update finishes.',
+    percent: 100
+  })
+
+  const { branch: configuredBranch } = readDesktopUpdateConfig()
+  const branch = await resolveHealedBranch(updateRoot, configuredBranch || DEFAULT_UPDATE_BRANCH)
+
+  // 1. Emergency backup and header verification before update touches disk
+  preflightStateDb(JETTSTUI_HOME, rememberLog)
+
+  // 2. Stop backends and release venv locks
+  const lock = await releaseBackendLockForUpdate(updateRoot)
+
+  if (!lock.unlocked) {
+    const message =
+      'Update aborted: another process is holding the JettsTUI install open ' +
+      '(a second JettsTUI window or a terminal running jettstui?). Close it and retry.'
+
+    emitUpdateProgress({ stage: 'error', message, percent: null })
+    startJettsTUI().catch(() => {})
+
+    return { ok: false, error: message }
+  }
+
+  const scriptPath = path.join(app.getPath('temp'), `jettstui-desktop-update-${Date.now()}.ps1`)
+  const markerPath = path.join(JETTSTUI_HOME, '.jettstui-update-in-progress')
+  const relaunchArgs = collectRelaunchArgs(process.argv.slice(1))
+
+  const scriptContent = buildWindowsUpdateScript({
+    parentPid: process.pid,
+    updateRoot,
+    branch,
+    execPath: process.execPath,
+    execArgs: relaunchArgs,
+    jettstuiHome: JETTSTUI_HOME,
+    markerPath
+  })
+
+  try {
+    fs.writeFileSync(scriptPath, scriptContent, 'utf8')
+  } catch (err: any) {
+    emitUpdateProgress({ stage: 'error', message: `Could not write update script: ${err.message}`, percent: null })
+    startJettsTUI().catch(() => {})
+
+    return { ok: false, error: err.message }
+  }
+
+  try {
+    const child = spawn(
+      'cmd.exe',
+      [
+        '/c',
+        'start',
+        'JettsTUI Desktop Update',
+        'powershell.exe',
+        '-NoProfile',
+        '-ExecutionPolicy',
+        'Bypass',
+        '-File',
+        scriptPath
+      ],
+      {
+        cwd: updateRoot,
+        detached: true,
+        stdio: 'ignore'
+      }
+    )
+
+    if (Number.isInteger(child.pid)) {
+      writeUpdateMarker(JETTSTUI_HOME, child.pid)
+    }
+
+    child.unref()
+
+    rememberLog(`[updates] launched windows detached updater: ${scriptPath}; exiting desktop`)
+
+    isQuittingForHandoff = true
+    setTimeout(() => {
+      app.quit()
+    }, UPDATE_HANDOFF_DWELL_MS)
+
+    return { ok: true, handedOff: true, scriptPath }
+  } catch (err: any) {
+    rememberLog(`[updates] windows detached updater launch failed: ${err.message}`)
+    emitUpdateProgress({ stage: 'error', message: `Updater launch failed: ${err.message}`, percent: null })
+    startJettsTUI().catch(() => {})
+
+    return { ok: false, error: err.message }
+  }
 }
 
 // macOS/Linux in-app update: backend (`jettstui update`) + OS-aware GUI rebuild

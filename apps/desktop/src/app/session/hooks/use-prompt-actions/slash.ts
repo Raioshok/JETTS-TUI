@@ -36,6 +36,7 @@ import {
   setYoloActive
 } from '@/store/session'
 import { $sessionStates } from '@/store/session-states'
+import { startActiveUpdate } from '@/store/updates'
 
 import type {
   BrowserManageResponse,
@@ -759,6 +760,9 @@ export function useSlashCommand(deps: SlashCommandDeps) {
         // Args are ignored, matching the TUI overlay behavior.
         journey: async () => {
           openMemoryGraph()
+        },
+        update: async () => {
+          startActiveUpdate()
         },
         // /hatch opens the pet generator overlay (the desktop's rich, multi-step
         // generate→pick→hatch→adopt flow). A typed description seeds the prompt
