@@ -156,16 +156,35 @@ test.describe('sidebar states — subagent and background dot coexist', () => {
       { timeout: 15_000 },
     )
 
+    // The sentinel loop is an executable shell command and asks for approval
+    // in a fresh profile. Accept it if prompted so the command can run.
+    let approvedBackgroundCommand = false
+    const maybeApprove = async () => {
+      const approve = page.getByRole('button', { name: /^Run Ctrl/ }).first()
+      if (!approvedBackgroundCommand && await approve.isVisible()) {
+        await approve.click()
+        approvedBackgroundCommand = true
+      }
+    }
+    await maybeApprove()
+
     // While the turn (and its subagent) runs, the row shows the working arc;
     // once the turn finishes, the still-running process owns the dot.
     await page.waitForFunction(
-      (text) => (document.body.textContent ?? '').includes(text),
+      async (text) => {
+        const textFound = (document.body.textContent ?? '').includes(text)
+        return textFound
+      },
       SIDEBAR_CROSS_TEXTS.finalText,
       { timeout: 120_000 },
     )
+    await maybeApprove()
     await expect
       .poll(
-        () => page.locator(`[aria-label="${BG_DOT_LABEL}"]`).count(),
+        async () => {
+          await maybeApprove()
+          return page.locator(`[aria-label="${BG_DOT_LABEL}"]`).count()
+        },
         { timeout: 30_000, message: 'background dot should appear once the subagent turn is done' },
       )
       .toBeGreaterThan(0)

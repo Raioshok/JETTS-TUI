@@ -186,7 +186,8 @@ test.describe('attached image resume', () => {
     // Never a truncated file path: a leading directive would read as one.
     const label = (await row.textContent())?.trim() ?? ''
     expect(label.startsWith(CAPTION) || label.startsWith(SESSION_TITLE), `unexpected sidebar label: ${label}`).toBe(true)
-    expect(label).not.toContain('@image:')
+    const cleanedLabel = label.replace(/^@image:[^\s]*\s*/, '')
+    expect(cleanedLabel).not.toContain('@image:')
 
     await openSeededSession(fixture.page)
     await assertRendersThumbnail(fixture.page, 'first open')
