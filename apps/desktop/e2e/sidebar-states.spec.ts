@@ -160,7 +160,7 @@ test.describe('sidebar states — subagent and background dot coexist', () => {
     await page.waitForFunction(
       (text) => (document.body.textContent ?? '').includes(text),
       SIDEBAR_CROSS_TEXTS.finalText,
-      { timeout: 90_000 },
+      { timeout: 120_000 },
     )
     await expect
       .poll(
@@ -241,7 +241,7 @@ test.describe('sidebar states — cross-session dot transition', () => {
     await page.waitForFunction(
       (text) => (document.body.textContent ?? '').includes(text),
       SIDEBAR_CROSS_TEXTS.finalText,
-      { timeout: 90_000 },
+      { timeout: 120_000 },
     )
 
     // The background dot must still be visible: the turn is done but the

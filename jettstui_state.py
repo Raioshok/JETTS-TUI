@@ -191,6 +191,10 @@ def _shape_preview(raw: Any) -> str:
     text = str(raw or "").strip()
     if not text:
         return ""
+    import re
+    text = re.sub(r"(?m)^@image:[^\n]*\n?", "", text).strip()
+    if not text:
+        return ""
     described = describe_skill_invocation(text)
     text = described if described is not None else text.split(SKILL_EXCERPT_JOINT)[0]
     if len(text) > _PREVIEW_MAX_CHARS:
