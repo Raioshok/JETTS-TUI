@@ -590,6 +590,25 @@ export const en: Translations = {
       unavailable: 'Discord Presence is not available on this backend. Update JettsTUI to use it.',
       saveFailed: 'Could not save Discord Presence settings'
     },
+    claudeOAuth: {
+      title: 'Claude Subscription',
+      description: 'Sign in with your Claude Pro or Max account to use your subscription for inference.',
+      signIn: 'Sign in with Claude',
+      signOut: 'Sign out',
+      signOutConfirm: 'Sign out of your Claude subscription? JettsTUI will stop using it for inference.',
+      signOutFailed: 'Could not sign out of Claude.',
+      opening: 'Opening browser…',
+      loopbackHint:
+        'We opened Claude.ai in your browser. Authorize JettsTUI there — you will be connected automatically.',
+      pasteCodeHint:
+        'After you approve in your browser, copy the authorization code from the callback page and paste it below.',
+      pasteCode: 'Paste authorization code',
+      waitingAuthorize: 'Waiting for you to authorize…',
+      submitting: 'Connecting…',
+      signedInVia: (label: string) => `Signed in via ${label}`,
+      expiresAt: (date: string) => `Token expires ${date}`,
+      reopenBrowser: 'Re-open authorization page'
+    },
     quickEntry: {
       enabledTitle: 'Quick Entry',
       enabledDesc:

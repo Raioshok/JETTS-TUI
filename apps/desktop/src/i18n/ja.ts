@@ -691,6 +691,23 @@ export const ja = defineLocale({
       unavailable: 'このバックエンドでは Discord プレゼンスを利用できません。JettsTUI を更新してください。',
       saveFailed: 'Discord プレゼンスの設定を保存できませんでした'
     },
+    claudeOAuth: {
+      title: 'Claude サブスクリプション',
+      description: 'Claude Pro または Max アカウントでサインインして、サブスクリプションを推論に使用します。',
+      signIn: 'Claude でサインイン',
+      signOut: 'サインアウト',
+      signOutConfirm: 'Claude サブスクリプションからサインアウトしますか？JettsTUI は推論に使用しなくなります。',
+      signOutFailed: 'Claude からサインアウトできませんでした。',
+      opening: 'ブラウザを開いています…',
+      loopbackHint: 'ブラウザで Claude.ai を開きました。そこで JettsTUI を承認すると自動的に接続されます。',
+      pasteCodeHint: 'ブラウザで承認した後、コールバックページの認証コードをコピーして以下に貼り付けてください。',
+      pasteCode: '認証コードを貼り付け',
+      waitingAuthorize: '承認を待っています…',
+      submitting: '接続中…',
+      signedInVia: (label: string) => `${label} 経由でサインイン済み`,
+      expiresAt: (date: string) => `トークンの有効期限: ${date}`,
+      reopenBrowser: '認証ページを再度開く'
+    },
     quickEntry: {
       enabledTitle: 'クイック入力',
       enabledDesc:

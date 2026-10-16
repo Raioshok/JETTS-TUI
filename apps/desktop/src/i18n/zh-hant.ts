@@ -679,6 +679,23 @@ export const zhHant = defineLocale({
       unavailable: '此後端不支援 Discord 狀態。請更新 JettsTUI 後使用。',
       saveFailed: '無法儲存 Discord 狀態設定'
     },
+    claudeOAuth: {
+      title: 'Claude 訂閱',
+      description: '使用 Claude Pro 或 Max 帳戶登入，以便將訂閱用於推理。',
+      signIn: '使用 Claude 登入',
+      signOut: '登出',
+      signOutConfirm: '登出 Claude 訂閱？JettsTUI 將不再使用它進行推理。',
+      signOutFailed: '無法登出 Claude。',
+      opening: '正在開啟瀏覽器…',
+      loopbackHint: '已在瀏覽器中開啟 Claude.ai。在那裡授權 JettsTUI，即可自動連線。',
+      pasteCodeHint: '在瀏覽器中授權後，從回呼頁面複製授權碼並貼到下方。',
+      pasteCode: '貼上授權碼',
+      waitingAuthorize: '等待授權…',
+      submitting: '連線中…',
+      signedInVia: (label: string) => `已透過 ${label} 登入`,
+      expiresAt: (date: string) => `權杖到期：${date}`,
+      reopenBrowser: '重新開啟授權頁面'
+    },
     quickEntry: {
       enabledTitle: '快速輸入',
       enabledDesc: '用全域快速鍵在任何地方喚出一個小輸入框，無需開啟 JettsTUI 即可送出提示。',

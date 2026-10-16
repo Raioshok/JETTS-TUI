@@ -596,6 +596,23 @@ export const pt = defineLocale({
       unavailable: 'A Presença no Discord não está disponível neste backend. Atualize o JettsTUI para usá-la.',
       saveFailed: 'Não foi possível salvar as configurações da Presença no Discord'
     },
+    claudeOAuth: {
+      title: 'Assinatura Claude',
+      description: 'Entre com sua conta Claude Pro ou Max para usar sua assinatura para inferência.',
+      signIn: 'Entrar com o Claude',
+      signOut: 'Sair',
+      signOutConfirm: 'Sair da assinatura Claude? O JettsTUI deixará de usá-la para inferência.',
+      signOutFailed: 'Não foi possível sair do Claude.',
+      opening: 'Abrindo navegador…',
+      loopbackHint: 'Abrimos o Claude.ai no seu navegador. Autorize o JettsTUI lá — você será conectado automaticamente.',
+      pasteCodeHint: 'Após autorizar no navegador, copie o código de autorização da página de retorno e cole abaixo.',
+      pasteCode: 'Cole o código de autorização',
+      waitingAuthorize: 'Aguardando sua autorização…',
+      submitting: 'Conectando…',
+      signedInVia: (label: string) => `Conectado via ${label}`,
+      expiresAt: (date: string) => `Token expira em ${date}`,
+      reopenBrowser: 'Reabrir página de autorização'
+    },
     quickEntry: {
       enabledTitle: 'Entrada rápida',
       enabledDesc:

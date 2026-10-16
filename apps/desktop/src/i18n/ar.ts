@@ -659,6 +659,23 @@ export const ar = defineLocale({
       unavailable: 'حالة Discord غير متاحة على هذه الخلفية. حدّث JettsTUI لاستخدامها.',
       saveFailed: 'تعذر حفظ إعدادات حالة Discord'
     },
+    claudeOAuth: {
+      title: 'اشتراك Claude',
+      description: 'سجّل الدخول بحساب Claude Pro أو Max لاستخدام اشتراكك في الاستدلال.',
+      signIn: 'تسجيل الدخول بـ Claude',
+      signOut: 'تسجيل الخروج',
+      signOutConfirm: 'تسجيل الخروج من اشتراك Claude؟ لن يستخدمه JettsTUI بعد الآن للاستدلال.',
+      signOutFailed: 'تعذر تسجيل الخروج من Claude.',
+      opening: 'جارٍ فتح المتصفح…',
+      loopbackHint: 'فتحنا Claude.ai في متصفحك. فوّض JettsTUI هناك وستتصل تلقائيًا.',
+      pasteCodeHint: 'بعد التفويض في المتصفح، انسخ رمز التفويض من صفحة الاستجابة والصقه أدناه.',
+      pasteCode: 'لصق رمز التفويض',
+      waitingAuthorize: 'جارٍ انتظار التفويض…',
+      submitting: 'جارٍ الاتصال…',
+      signedInVia: (label: string) => `تم تسجيل الدخول عبر ${label}`,
+      expiresAt: (date: string) => `تنتهي صلاحية الرمز في ${date}`,
+      reopenBrowser: 'إعادة فتح صفحة التفويض'
+    },
     quickEntry: {
       enabledTitle: 'الإدخال السريع',
       enabledDesc: 'استدعِ محرّرا صغيرا من أي مكان باختصار عام وأرسل طلبا دون فتح JettsTUI.',
