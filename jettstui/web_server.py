@@ -9860,7 +9860,7 @@ def _anthropic_oauth_status() -> Dict[str, Any]:
         return {
             "logged_in": True,
             "source": "jettstui_pkce",
-            "source_label": f"JettsTUI PKCE ({_get_jettstui_oauth_file() if _get_jettstui_oauth_file else None})",
+            "source_label": "Claude Pro / Max",
             "token_preview": _truncate_token(jettstui_creds.get("accessToken")),
             "expires_at": jettstui_creds.get("expiresAt"),
             "has_refresh_token": bool(jettstui_creds.get("refreshToken")),
@@ -10390,6 +10390,7 @@ try:
         _OAUTH_CLIENT_ID as _ANTHROPIC_OAUTH_CLIENT_ID,
         _OAUTH_TOKEN_URL as _ANTHROPIC_OAUTH_TOKEN_URL,
         _OAUTH_TOKEN_URLS as _ANTHROPIC_OAUTH_TOKEN_URLS,
+        _OAUTH_TOKEN_USER_AGENT as _ANTHROPIC_OAUTH_TOKEN_USER_AGENT,
         _OAUTH_REDIRECT_URI as _ANTHROPIC_OAUTH_REDIRECT_URI,
         _OAUTH_SCOPES as _ANTHROPIC_OAUTH_SCOPES,
         _generate_pkce as _generate_pkce_pair,
@@ -10580,7 +10581,7 @@ def _submit_anthropic_pkce(
             data=exchange_data,
             headers={
                 "Content-Type": "application/json",
-                "User-Agent": "jettstui-dashboard/1.0",
+                "User-Agent": _ANTHROPIC_OAUTH_TOKEN_USER_AGENT,
             },
             method="POST",
         )
