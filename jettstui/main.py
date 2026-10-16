@@ -5352,24 +5352,27 @@ def _nixos_build_env() -> dict[str, str] | None:
 
 
 def _get_project_venv_dir() -> Path:
-    """Detect the active or project virtualenv directory (.venv or venv)."""
+    """Detect the active or project virtualenv directory (.venv or venv).
+
+    Only venvs inside PROJECT_ROOT count: ``jettstui update`` run from a shell
+    with some other project's venv activated must not install (or recreate)
+    JettsTUI's dependencies in that unrelated environment.
+    """
+    def _inside_project(path: Path) -> bool:
+        try:
+            return path.resolve().is_relative_to(PROJECT_ROOT.resolve()) and path.is_dir()
+        except (OSError, ValueError):
+            return False
+
     virtual_env = os.environ.get("VIRTUAL_ENV")
-    if virtual_env:
-        ve = Path(virtual_env)
-        if ve.is_dir():
-            return ve
+    if virtual_env and _inside_project(Path(virtual_env)):
+        return Path(virtual_env)
     for candidate in (".venv", "venv"):
         p = PROJECT_ROOT / candidate
         if p.is_dir():
             return p
-    if sys.prefix != sys.base_prefix:
-        p = Path(sys.prefix)
-        try:
-            if p.is_relative_to(PROJECT_ROOT) and p.is_dir():
-                return p
-        except (ValueError, AttributeError):
-            if str(p).startswith(str(PROJECT_ROOT)) and p.is_dir():
-                return p
+    if sys.prefix != sys.base_prefix and _inside_project(Path(sys.prefix)):
+        return Path(sys.prefix)
     return PROJECT_ROOT / "venv"
 
 

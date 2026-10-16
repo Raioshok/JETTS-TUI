@@ -5510,8 +5510,13 @@ def run_conversation(
                     try:
                         json.loads(args)
                     except json.JSONDecodeError as e:
-                        # Attempt common repairs before flagging as invalid/truncated
-                        repaired = _repair_tool_call_arguments(args, tc.function.name)
+                        # Attempt common repairs (trailing commas, control
+                        # chars) before flagging as invalid — but never on
+                        # truncated args: the repair closes open braces, which
+                        # would turn a cut-off write/patch into a partial one
+                        # and bypass the truncation refusal below.
+                        _looks_truncated = not args.rstrip().endswith(("}", "]"))
+                        repaired = "{}" if _looks_truncated else _repair_tool_call_arguments(args, tc.function.name)
                         if repaired != "{}":
                             try:
                                 json.loads(repaired)

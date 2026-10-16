@@ -1240,18 +1240,17 @@ def read_file_tool(path: str, offset: int = 1, limit: int = 500, task_id: str = 
         resolved_str = str(_resolved)
         dedup_key = (resolved_str, offset, limit)
         with _read_tracker_lock:
-            task_data = _read_tracker.setdefault(task_id, {
+            # Pop + re-insert moves task_id to the dict's most-recent end
+            # (setdefault alone keeps the original slot), so the LRU eviction
+            # below drops genuinely idle tasks, never the one reading now.
+            task_data = _read_tracker.pop(task_id, None) or {
                 "last_key": None, "consecutive": 0,
                 "read_history": set(), "dedup": {},
                 "dedup_hits": {}, "read_timestamps": {},
-            })
-            # Re-insertion moves task_id to the dict's most-recent end, so the
-            # LRU eviction below drops genuinely idle tasks.
-            if len(_read_tracker) > _READ_TRACKER_MAX_TASKS:
-                try:
-                    _read_tracker.pop(next(iter(_read_tracker)))
-                except (StopIteration, KeyError):
-                    pass
+            }
+            _read_tracker[task_id] = task_data
+            while len(_read_tracker) > _READ_TRACKER_MAX_TASKS:
+                _read_tracker.pop(next(iter(_read_tracker)))
             # Backward-compat for pre-existing tracker entries that predate
             # dedup_hits/read_timestamps (long-lived task or crossed an
             # upgrade boundary).

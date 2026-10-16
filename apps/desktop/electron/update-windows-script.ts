@@ -27,13 +27,16 @@ export interface WindowsUpdateScriptOptions {
 /**
  * Escape a string for inclusion inside PowerShell double quotes (`"..."`).
  * In PowerShell double quotes, backtick (`) is the escape character, while
- * backslash (\) is treated literally. We escape `, $, and ".
+ * backslash (\) is treated literally. We escape `, $, and every character
+ * PowerShell accepts as a double-quote delimiter — the typographic quotes
+ * “ ” „ terminate a "..." string too, so leaving them bare would let a path
+ * or relaunch argument break out of the string.
  */
 export function psEscape(str: string): string {
   return String(str || '')
     .replace(/`/g, '``')
     .replace(/\$/g, '`$')
-    .replace(/"/g, '`"')
+    .replace(/["“”„]/g, quote => `\`${quote}`)
 }
 
 /**
@@ -61,6 +64,16 @@ Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host "       Updating JettsTUI Desktop          " -ForegroundColor Cyan
 Write-Host "==========================================" -ForegroundColor Cyan
 Write-Host ""
+
+$markerPath = "${psEscape(markerPath)}"
+if ($markerPath) {
+  # Claim the update-in-progress marker with this script's pid before waiting,
+  # so a relaunched desktop parks instead of re-locking the venv mid-update.
+  try {
+    $startedAt = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+    [IO.File]::WriteAllText($markerPath, "$PID\`n$startedAt\`n")
+  } catch {}
+}
 
 $parentPid = ${parentPid}
 if ($parentPid -gt 0) {
@@ -95,10 +108,11 @@ if (Test-Path $venvJettstui) {
 
 $exitCode = $LASTEXITCODE
 
-$markerPath = "${psEscape(markerPath)}"
-if ($markerPath -and (Test-Path $markerPath)) {
-  Remove-Item -Path $markerPath -Force -ErrorAction SilentlyContinue
+if ($markerPath -and (Test-Path -LiteralPath $markerPath)) {
+  Remove-Item -LiteralPath $markerPath -Force -ErrorAction SilentlyContinue
 }
+# This script is single-use; don't leave it behind in %TEMP%.
+Remove-Item -LiteralPath $PSCommandPath -Force -ErrorAction SilentlyContinue
 
 $execPath = "${psEscape(execPath)}"
 $execArgs = ${formattedArgs}

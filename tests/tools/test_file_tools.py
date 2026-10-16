@@ -871,3 +871,25 @@ class TestSilentFileMisplacementE2E:
             "file silently misplaced into config default (the #26211 bug)"
 
         tt.clear_session_cwd(task_id)
+
+
+def test_read_tracker_evicts_least_recently_reading_task(tmp_path, monkeypatch):
+    """The per-task cap is LRU: a task that keeps reading is never the one evicted."""
+    import tools.file_tools as ft
+
+    target = tmp_path / "f.txt"
+    target.write_text("hello\n", encoding="utf-8")
+    monkeypatch.setattr(ft, "_READ_TRACKER_MAX_TASKS", 4)
+    ft._read_tracker.clear()
+    try:
+        ft.read_file_tool(str(target), task_id="main")
+        for i in range(3):
+            ft.read_file_tool(str(target), task_id=f"sub-{i}")
+        ft.read_file_tool(str(target), task_id="main")  # touch: now most recent
+        ft.read_file_tool(str(target), task_id="sub-new")
+
+        assert "main" in ft._read_tracker
+        assert "sub-0" not in ft._read_tracker
+        assert len(ft._read_tracker) == 4
+    finally:
+        ft._read_tracker.clear()

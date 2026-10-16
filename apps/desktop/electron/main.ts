@@ -3211,9 +3211,10 @@ async function applyUpdatesWindowsInApp(opts: any = {}) {
       }
     )
 
-    if (Number.isInteger(child.pid)) {
-      writeUpdateMarker(JETTSTUI_HOME, child.pid)
-    }
+    // `child` is cmd.exe, which exits as soon as `start` returns, so its pid
+    // would read as a dead marker immediately. Hold the marker with our own
+    // pid until we quit; the script rewrites it with its $PID before waiting.
+    writeUpdateMarker(JETTSTUI_HOME, process.pid)
 
     child.unref()
 

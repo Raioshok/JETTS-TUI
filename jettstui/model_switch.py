@@ -281,6 +281,18 @@ MODEL_ALIASES: dict[str, ModelIdentity] = {
     "opus":      ModelIdentity("anthropic", "claude-opus-5-5"),
     "haiku":     ModelIdentity("anthropic", "claude-haiku"),
     "claude":    ModelIdentity("anthropic", "claude"),
+    # Versioned shorthands. These are family aliases, not direct aliases: they
+    # resolve on the *current* provider first (antigravity → the -thinking
+    # variant, anthropic → its own model), so they never pull an Anthropic
+    # API-key user onto another provider.
+    "opus 5.5":        ModelIdentity("anthropic", "claude-opus-5-5"),
+    "opus-5.5":        ModelIdentity("anthropic", "claude-opus-5-5"),
+    "opus5.5":         ModelIdentity("anthropic", "claude-opus-5-5"),
+    "claude-opus-5.5": ModelIdentity("anthropic", "claude-opus-5-5"),
+    "sonnet 5.5":        ModelIdentity("anthropic", "claude-sonnet-5-5"),
+    "sonnet-5.5":        ModelIdentity("anthropic", "claude-sonnet-5-5"),
+    "sonnet5.5":         ModelIdentity("anthropic", "claude-sonnet-5-5"),
+    "claude-sonnet-5.5": ModelIdentity("anthropic", "claude-sonnet-5-5"),
 
     # OpenAI
     "gpt5":      ModelIdentity("openai", "gpt-5"),
@@ -355,18 +367,6 @@ _BUILTIN_DIRECT_ALIASES: dict[str, DirectAlias] = {
     "4 argon": DirectAlias("gemini-4-argon", "antigravity", ""),
     "gemini-4": DirectAlias("gemini-4-argon", "antigravity", ""),
     "gemini-4-argon": DirectAlias("gemini-4-argon", "antigravity", ""),
-    # Claude Opus 5.5
-    "opus 5.5": DirectAlias("claude-opus-5-5-thinking", "antigravity", ""),
-    "opus-5.5": DirectAlias("claude-opus-5-5-thinking", "antigravity", ""),
-    "opus5.5": DirectAlias("claude-opus-5-5-thinking", "antigravity", ""),
-    "claude-opus-5.5": DirectAlias("claude-opus-5-5-thinking", "antigravity", ""),
-    "claude-opus-5-5": DirectAlias("claude-opus-5-5-thinking", "antigravity", ""),
-    # Claude Sonnet 5.5
-    "sonnet 5.5": DirectAlias("claude-sonnet-5-5", "antigravity", ""),
-    "sonnet-5.5": DirectAlias("claude-sonnet-5-5", "antigravity", ""),
-    "sonnet5.5": DirectAlias("claude-sonnet-5-5", "antigravity", ""),
-    "claude-sonnet-5.5": DirectAlias("claude-sonnet-5-5", "antigravity", ""),
-    "claude-sonnet-5-5": DirectAlias("claude-sonnet-5-5", "antigravity", ""),
 }
 
 # Merged dict (builtins + user config); populated by _load_direct_aliases()

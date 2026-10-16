@@ -431,6 +431,9 @@ TRANSPORT_TO_API_MODE: Dict[str, str] = {
 
 # -- Helper functions ---------------------------------------------------------
 
+_ALIAS_TARGETS = frozenset(ALIASES.values())
+
+
 def normalize_provider(name: str) -> str:
     """Resolve aliases and normalise casing to a canonical provider id.
 
@@ -440,6 +443,13 @@ def normalize_provider(name: str) -> str:
     key = name.strip().lower()
     if key in ALIASES:
         return ALIASES[key]
+    # Already a canonical id (an overlay, or something ALIASES resolves *to*,
+    # such as the virtual "local"). Must win over the profile lookup below, or
+    # normalization stops being idempotent: "copilot" → "github-copilot" via
+    # ALIASES, but the plugin profile is named "copilot", so a second pass
+    # would flip it back.
+    if key in JETTSTUI_OVERLAYS or key in _ALIAS_TARGETS:
+        return key
     try:
         from providers import get_provider_profile as _get_profile
         prof = _get_profile(key)

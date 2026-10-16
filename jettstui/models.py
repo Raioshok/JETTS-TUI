@@ -1582,53 +1582,63 @@ def _resolve_static_model_alias(
     vendor = identity.vendor
     family = identity.family
 
-    def _match(provider: str) -> Optional[str]:
-        models = _PROVIDER_MODELS.get(provider, [])
-        if not models:
-            return None
-        prefix = (
+    def _prefixes(provider: str) -> list[str]:
+        base = (
             f"{vendor}/{family}"
             if provider in _AGGREGATOR_PROVIDERS
             else family
         ).lower()
-        for model in models:
-            if model.lower().startswith(prefix):
-                return model
-        # If the versioned alias is newer than the static catalog (e.g. claude-sonnet-5-5 vs claude-sonnet-5),
-        # fall back to progressively shorter prefix matching so the correct family provider is resolved.
-        cur_prefix = prefix
-        while "-" in cur_prefix:
-            cur_prefix = cur_prefix.rsplit("-", 1)[0]
-            for model in models:
-                if model.lower().startswith(cur_prefix):
-                    return model
+        return [base]
+
+    def _version_relaxed(provider: str) -> list[str]:
+        # An alias can be newer than the static catalog (claude-sonnet-5-5 vs
+        # a catalog that tops out at claude-sonnet-5). Relax trailing *version*
+        # segments only — never the model line itself, so "opus" can't fall
+        # through to "claude" and resolve to a sonnet/haiku entry.
+        parts = _prefixes(provider)[0].split("-")
+        relaxed: list[str] = []
+        while len(parts) > 1 and parts[-1].isdigit():
+            parts.pop()
+            relaxed.append("-".join(parts))
+        return relaxed
+
+    def _resolve(prefixes_for) -> Optional[tuple[str, str]]:
+        def _match(provider: str) -> Optional[str]:
+            models = _PROVIDER_MODELS.get(provider, [])
+            for prefix in prefixes_for(provider):
+                for model in models:
+                    if model.lower().startswith(prefix):
+                        return model
+            return None
+
+        for provider in current_keys:
+            if matched := _match(provider):
+                return provider, matched
+
+        for provider in _PROVIDER_MODELS:
+            if (
+                provider in current_keys
+                or provider in _AGGREGATOR_PROVIDERS
+                or provider in _BORROWED_MODEL_PROVIDERS
+            ):
+                continue
+            if matched := _match(provider):
+                return provider, matched
+
+        for provider in _AGGREGATOR_PROVIDERS:
+            if provider in current_keys and (matched := _match(provider)):
+                return provider, matched
+
+        # Last resort: providers that re-expose other vendors' models. Only reached
+        # when no native-vendor catalog matched — so `sonnet` resolves to anthropic.
+        for provider in _BORROWED_MODEL_PROVIDERS:
+            if provider in current_keys and (matched := _match(provider)):
+                return provider, matched
         return None
 
-    for provider in current_keys:
-        if matched := _match(provider):
-            return provider, matched
-
-    for provider in _PROVIDER_MODELS:
-        if (
-            provider in current_keys
-            or provider in _AGGREGATOR_PROVIDERS
-            or provider in _BORROWED_MODEL_PROVIDERS
-        ):
-            continue
-        if matched := _match(provider):
-            return provider, matched
-
-    for provider in _AGGREGATOR_PROVIDERS:
-        if provider in current_keys and (matched := _match(provider)):
-            return provider, matched
-
-    # Last resort: providers that re-expose other vendors' models. Only reached
-    # when no native-vendor catalog matched — so `sonnet` resolves to anthropic.
-    for provider in _BORROWED_MODEL_PROVIDERS:
-        if provider in current_keys and (matched := _match(provider)):
-            return provider, matched
-
-    return None
+    # Exact family prefix across every provider first; the version-relaxed
+    # pass only runs when no catalog carries the exact family.
+    return _resolve(_prefixes) or _resolve(_version_relaxed)
 
 
 def detect_static_provider_for_model(

@@ -114,7 +114,7 @@ def get_updatable_providers() -> list[str]:
             updatable.add(norm)
 
     # 3. Always include OpenRouter if configured or if API key exists
-    if os.getenv("OPENROUTER_API_KEY") or os.getenv("OPENAI_API_KEY"):
+    if os.getenv("OPENROUTER_API_KEY"):
         updatable.add("openrouter")
 
     # If nothing configured yet, at least check active provider or openrouter
@@ -167,7 +167,9 @@ def update_provider_models(
 
     try:
         live = cached_provider_model_ids(norm, force_refresh=force_refresh)
-        new_models = [m for m in live if m.strip().lower() not in old_set]
+        # With no previous snapshot there is nothing to diff against — a first
+        # fetch would otherwise report the provider's whole catalog as "new".
+        new_models = [m for m in live if m.strip().lower() not in old_set] if old_set else []
 
         status = "updated" if new_models else ("unchanged" if live else "empty")
         return {
@@ -226,70 +228,72 @@ def update_all_models(
     provider_results: dict[str, dict[str, Any]] = {}
     models_dev_count = 0
 
+    # Not a ``with`` block: its exit waits for every worker, so a hung provider
+    # would hold the caller far past ``timeout``. Shut down without waiting.
+    executor = concurrent.futures.ThreadPoolExecutor(max_workers=max_workers, thread_name_prefix="model-update")
     try:
-        # Run provider fetches in parallel
-        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
-            future_to_pid = {
-                executor.submit(
-                    update_provider_models, pid, force_refresh=force_refresh
-                ): pid
-                for pid in target_providers
-            }
+        future_to_pid = {
+            executor.submit(
+                update_provider_models, pid, force_refresh=force_refresh
+            ): pid
+            for pid in target_providers
+        }
 
-            # Also trigger models.dev refresh concurrently if requested
-            mdev_future = None
-            if update_models_dev:
-                try:
-                    from agent.models_dev import fetch_models_dev
-
-                    mdev_future = executor.submit(fetch_models_dev, force_refresh=force_refresh)
-                except Exception as exc:
-                    logger.debug("Failed to submit models.dev fetch: %s", exc)
-
+        # Also trigger models.dev refresh concurrently if requested
+        mdev_future = None
+        if update_models_dev:
             try:
-                for future in concurrent.futures.as_completed(future_to_pid, timeout=timeout):
-                    pid = future_to_pid[future]
-                    try:
-                        res = future.result()
-                        provider_results[pid] = res
-                    except Exception as exc:
-                        provider_results[pid] = {
-                            "provider": pid,
-                            "kind": "oauth" if pid in OAUTH_PROVIDERS else "api_key",
-                            "status": "error",
-                            "models": [],
-                            "new_models": [],
-                            "total": 0,
-                            "error": str(exc),
-                        }
-            except TimeoutError:
-                logger.warning("Model autoupdater timed out after %ss for some providers", timeout)
-                for fut, pid in future_to_pid.items():
-                    if pid not in provider_results:
-                        provider_results[pid] = {
-                            "provider": pid,
-                            "kind": "oauth" if pid in OAUTH_PROVIDERS else "api_key",
-                            "status": "error",
-                            "models": [],
-                            "new_models": [],
-                            "total": 0,
-                            "error": f"timed out after {timeout}s",
-                        }
+                from agent.models_dev import fetch_models_dev
 
-            if mdev_future is not None:
+                mdev_future = executor.submit(fetch_models_dev, force_refresh=force_refresh)
+            except Exception as exc:
+                logger.debug("Failed to submit models.dev fetch: %s", exc)
+
+        try:
+            for future in concurrent.futures.as_completed(future_to_pid, timeout=timeout):
+                pid = future_to_pid[future]
                 try:
-                    mdev_data = mdev_future.result(timeout=timeout)
-                    if isinstance(mdev_data, dict):
-                        # Count total models across all providers in models.dev
-                        models_dev_count = sum(
-                            len(pinfo.get("models", {}))
-                            for pinfo in mdev_data.values()
-                            if isinstance(pinfo, dict)
-                        )
+                    res = future.result()
+                    provider_results[pid] = res
                 except Exception as exc:
-                    logger.debug("models.dev refresh failed: %s", exc)
+                    provider_results[pid] = {
+                        "provider": pid,
+                        "kind": "oauth" if pid in OAUTH_PROVIDERS else "api_key",
+                        "status": "error",
+                        "models": [],
+                        "new_models": [],
+                        "total": 0,
+                        "error": str(exc),
+                    }
+        except TimeoutError:
+            logger.warning("Model autoupdater timed out after %ss for some providers", timeout)
+            for fut, pid in future_to_pid.items():
+                if pid not in provider_results:
+                    provider_results[pid] = {
+                        "provider": pid,
+                        "kind": "oauth" if pid in OAUTH_PROVIDERS else "api_key",
+                        "status": "error",
+                        "models": [],
+                        "new_models": [],
+                        "total": 0,
+                        "error": f"timed out after {timeout}s",
+                    }
+
+        if mdev_future is not None:
+            try:
+                mdev_data = mdev_future.result(timeout=timeout)
+                if isinstance(mdev_data, dict):
+                    # Count total models across all providers in models.dev
+                    models_dev_count = sum(
+                        len(pinfo.get("models", {}))
+                        for pinfo in mdev_data.values()
+                        if isinstance(pinfo, dict)
+                    )
+            except Exception as exc:
+                logger.debug("models.dev refresh failed: %s", exc)
 
     finally:
+        executor.shutdown(wait=False, cancel_futures=True)
         with _UPDATE_LOCK:
             _IS_UPDATING = False
 

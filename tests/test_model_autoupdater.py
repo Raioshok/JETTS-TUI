@@ -287,3 +287,43 @@ def test_antigravity_opus_5_5_sonnet_5_5_and_model_cleanup():
         assert res.new_model == expected
 
 
+
+
+def test_first_fetch_without_previous_snapshot_reports_no_new_models(monkeypatch):
+    """With nothing cached yet, the whole catalog must not be reported as new."""
+    monkeypatch.setattr("jettstui.models._load_provider_models_cache", lambda: {})
+    monkeypatch.setattr(
+        "jettstui.models.cached_provider_model_ids",
+        lambda prov, force_refresh=True: ["model-A", "model-B"],
+    )
+
+    res = update_provider_models("testprov", force_refresh=True)
+    assert res["total"] == 2
+    assert res["new_models"] == []
+
+
+def test_update_all_models_timeout_bounds_wall_clock(monkeypatch):
+    """A hung provider must not hold the caller past ``timeout``."""
+    import threading
+    import time as _time
+
+    from jettstui.model_autoupdater import update_all_models
+
+    release = threading.Event()
+
+    def hang(pid, force_refresh=True):
+        release.wait(10)
+        return {"provider": pid, "status": "unchanged", "models": [], "new_models": [], "total": 0}
+
+    monkeypatch.setattr("jettstui.model_autoupdater.update_provider_models", hang)
+    monkeypatch.setattr("jettstui.model_autoupdater.save_autoupdate_status", lambda report: None)
+    monkeypatch.setattr("jettstui.model_autoupdater._IS_UPDATING", False)
+    try:
+        started = _time.monotonic()
+        report = update_all_models(["slowprov"], update_models_dev=False, timeout=0.5)
+        elapsed = _time.monotonic() - started
+    finally:
+        release.set()
+
+    assert elapsed < 5
+    assert report["providers"]["slowprov"]["status"] == "error"
