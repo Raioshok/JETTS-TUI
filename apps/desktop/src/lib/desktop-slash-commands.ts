@@ -315,6 +315,12 @@ const DESKTOP_COMMAND_SPECS: readonly DesktopCommandSpec[] = [
   { name: '/retry', description: 'Retry the last user message', surface: exec() },
   { name: '/rollback', description: 'List or restore filesystem checkpoints', surface: exec() },
   {
+    name: '/rpc',
+    description: 'Discord Rich Presence: /rpc [on|off|status|preset|test]',
+    surface: exec(),
+    argumentMode: 'options'
+  },
+  {
     name: '/save',
     description: 'Save the current transcript to JSON',
     surface: rpc('session.save', ctx => ({ session_id: ctx.sessionId }))

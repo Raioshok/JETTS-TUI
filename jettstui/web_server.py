@@ -874,6 +874,42 @@ _SCHEMA_OVERRIDES: Dict[str, Dict[str, Any]] = {
         "description": "CLI visual theme",
         "options": ["default", "ares", "mono", "slate"],
     },
+    "discord_rpc.enabled": {
+        "type": "boolean",
+        "description": "Showcase your JettsTUI activity and workspace on your Discord profile",
+        "category": "integrations",
+    },
+    "discord_rpc.preset": {
+        "type": "select",
+        "description": "Activity preset style displayed on Discord profile",
+        "options": ["pairing", "vibe_coding", "autonomous", "fine_tuning", "idle"],
+        "category": "integrations",
+    },
+    "discord_rpc.client_id": {
+        "type": "string",
+        "description": "Discord Application ID (leave default or use your own custom app ID)",
+        "category": "integrations",
+    },
+    "discord_rpc.show_model": {
+        "type": "boolean",
+        "description": "Display active LLM model name in presence details",
+        "category": "integrations",
+    },
+    "discord_rpc.show_project": {
+        "type": "boolean",
+        "description": "Display current workspace/project directory name",
+        "category": "integrations",
+    },
+    "discord_rpc.show_tool_activity": {
+        "type": "boolean",
+        "description": "Display active tool execution (e.g. running terminal or search_files)",
+        "category": "integrations",
+    },
+    "discord_rpc.show_elapsed": {
+        "type": "boolean",
+        "description": "Show elapsed session timer on Discord",
+        "category": "integrations",
+    },
     "dashboard.theme": {
         "type": "select",
         "description": "Web dashboard visual theme",
@@ -6525,6 +6561,79 @@ async def get_egress_status():
     return {"text": format_status_text()}
 
 
+@app.get("/api/rpc/status")
+async def get_rpc_status(profile: Optional[str] = None):
+    """Return live Discord Rich Presence connection and preview status."""
+    try:
+        from jettstui.discord_rpc import (
+            DEFAULT_CLIENT_ID,
+            DiscordRPCManager,
+            find_active_ipc_pipe,
+            get_rpc_manager,
+        )
+        with _profile_scope(profile):
+            cfg = load_config().get("discord_rpc", {})
+        mgr = get_rpc_manager()
+        if not mgr:
+            mgr = DiscordRPCManager(
+                client_id=cfg.get("client_id") or DEFAULT_CLIENT_ID,
+                preset=cfg.get("preset", "pairing"),
+                buttons=cfg.get("buttons"),
+                large_image=cfg.get("large_image"),
+                large_text=cfg.get("large_text"),
+                small_image=cfg.get("small_image"),
+                small_text=cfg.get("small_text"),
+                enabled=cfg.get("enabled", False),
+            )
+        pipe = find_active_ipc_pipe()
+        presence = mgr.build_current_presence()
+        return {
+            "ok": True,
+            "enabled": cfg.get("enabled", False),
+            "connected": bool(pipe),
+            "pipe": pipe,
+            "preset": mgr.preset,
+            "client_id": mgr.client_id,
+            "presence": presence.to_payload_dict(),
+        }
+    except Exception as exc:
+        _log.debug("GET /api/rpc/status error: %s", exc)
+        return {"ok": False, "enabled": False, "connected": False, "error": str(exc)}
+
+
+@app.post("/api/rpc/test")
+async def test_rpc_presence(profile: Optional[str] = None):
+    """Trigger a live 5-second Rich Presence test to the local Discord client."""
+    try:
+        from jettstui.discord_rpc import (
+            DEFAULT_CLIENT_ID,
+            DiscordIPCClient,
+            DiscordRPCManager,
+        )
+        with _profile_scope(profile):
+            cfg = load_config().get("discord_rpc", {})
+        client_id = cfg.get("client_id") or DEFAULT_CLIENT_ID
+        mgr = DiscordRPCManager(
+            client_id=client_id,
+            preset=cfg.get("preset", "pairing"),
+            buttons=cfg.get("buttons"),
+            enabled=True,
+        )
+        presence = mgr.build_current_presence()
+        client = DiscordIPCClient(client_id=client_id)
+        connected = await client.connect()
+        if not connected:
+            return {"ok": False, "error": client.last_error or "Could not connect to Discord"}
+        ok = await client.set_activity(presence)
+        await asyncio.sleep(5.0)
+        await client.clear_activity()
+        await client.close()
+        return {"ok": ok, "pipe": client.pipe_path}
+    except Exception as exc:
+        _log.debug("POST /api/rpc/test error: %s", exc)
+        return {"ok": False, "error": str(exc)}
+
+
 _EMPTY_MODEL_INFO: dict = {
     "model": "",
     "provider": "",
@@ -7207,7 +7316,16 @@ async def update_config(body: ConfigUpdate, profile: Optional[str] = None):
             # frontend can only overwrite what it explicitly sends.
             existing = read_raw_config()
             incoming = _denormalize_config_from_web(body.config)
-            save_config(_deep_merge(existing, incoming))
+            merged = _deep_merge(existing, incoming)
+            save_config(merged)
+            try:
+                from jettstui.discord_rpc import init_rpc_manager, stop_rpc_manager
+                if merged.get("discord_rpc", {}).get("enabled"):
+                    init_rpc_manager(merged)
+                else:
+                    stop_rpc_manager()
+            except Exception:
+                pass
         return {"ok": True}
     except HTTPException:
         raise
@@ -20333,6 +20451,13 @@ def start_server(
             else:
                 print(f"  JettsTUI Web UI → http://{host}:{actual_port}")
             _maybe_open_browser(host, actual_port, open_browser, initial_profile)
+            try:
+                from jettstui.discord_rpc import init_rpc_manager
+                _server_cfg = load_config()
+                if _server_cfg.get("discord_rpc", {}).get("enabled"):
+                    init_rpc_manager(_server_cfg)
+            except Exception:
+                pass
 
             # Collapse the peer-hangup teardown flood (#50005). When the Desktop
             # forcibly closes its WebSocket mid-write, asyncio logs a full
@@ -20378,6 +20503,11 @@ def start_server(
 
             await server.main_loop()
             if server.started:
+                try:
+                    from jettstui.discord_rpc import stop_rpc_manager
+                    stop_rpc_manager()
+                except Exception:
+                    pass
                 await server.shutdown()
 
     # On POSIX, keep the long-standing ``asyncio.run(_serve())`` behavior

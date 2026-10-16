@@ -1353,17 +1353,32 @@ def handle_function_call(
                     )
             from jettstui.middleware import run_tool_execution_middleware
 
-            result = run_tool_execution_middleware(
-                function_name,
-                function_args,
-                _dispatch,
-                original_args=_tool_original_args,
-                task_id=task_id or "",
-                session_id=session_id or "",
-                tool_call_id=tool_call_id or "",
-                turn_id=turn_id or "",
-                api_request_id=api_request_id or "",
-            )
+            try:
+                from jettstui.discord_rpc import get_rpc_manager
+                _rpc = get_rpc_manager()
+                if _rpc and _rpc.is_connected:
+                    _rpc.on_tool_start(function_name)
+            except Exception:
+                _rpc = None
+
+            try:
+                result = run_tool_execution_middleware(
+                    function_name,
+                    function_args,
+                    _dispatch,
+                    original_args=_tool_original_args,
+                    task_id=task_id or "",
+                    session_id=session_id or "",
+                    tool_call_id=tool_call_id or "",
+                    turn_id=turn_id or "",
+                    api_request_id=api_request_id or "",
+                )
+            finally:
+                if _rpc and _rpc.is_connected:
+                    try:
+                        _rpc.on_tool_end(function_name)
+                    except Exception:
+                        pass
         finally:
             if _approval_tokens is not None and reset_current_observability_context is not None:
                 try:

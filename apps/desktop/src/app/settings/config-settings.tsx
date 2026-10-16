@@ -17,6 +17,7 @@ import { useOnProfileSwitch } from '../hooks/use-on-profile-switch'
 import { PanelEmpty } from '../overlays/panel'
 
 import { ConfigField } from './config-field'
+import { DiscordRpcSettings } from './discord-rpc-settings'
 import { enumOptionsFor, getNested, isExternalMemoryProvider, sectionFieldEntries, setNested } from './helpers'
 import { MemoryConnect } from './memory/connect'
 import { ProviderConfigPanel } from './memory/provider-config-panel'
@@ -290,6 +291,9 @@ export function ConfigSettings({
         <div className="mb-6">
           <ModelSettings onMainModelChanged={onMainModelChanged} />
         </div>
+      )}
+      {activeSectionId === 'discord' && (
+        <DiscordRpcSettings config={config} onConfigChange={updateConfig} />
       )}
       {/* Device-local desktop prefs (not config.yaml) — they live here since
           keeping the machine awake and the global Quick Entry chord are both

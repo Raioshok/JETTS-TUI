@@ -742,6 +742,42 @@ export function saveJettsTUIConfig(config: JettsTUIConfigRecord): Promise<{ ok: 
   })
 }
 
+export interface DiscordRpcStatusResponse {
+  ok: boolean
+  enabled: boolean
+  connected: boolean
+  pipe?: string | null
+  preset: string
+  client_id: string
+  presence: {
+    state?: string
+    details?: string
+    timestamps?: { start?: number; end?: number }
+    assets?: {
+      large_image?: string
+      large_text?: string
+      small_image?: string
+      small_text?: string
+    }
+    buttons?: Array<{ label: string; url: string }>
+  }
+}
+
+export function getDiscordRpcStatus(): Promise<DiscordRpcStatusResponse> {
+  return window.jettstuiDesktop.api<DiscordRpcStatusResponse>({
+    ...profileScoped(),
+    path: '/api/rpc/status'
+  })
+}
+
+export function testDiscordRpc(): Promise<{ ok: boolean; pipe?: string; error?: string }> {
+  return window.jettstuiDesktop.api<{ ok: boolean; pipe?: string; error?: string }>({
+    ...profileScoped(),
+    path: '/api/rpc/test',
+    method: 'POST'
+  })
+}
+
 // surface=declared serves the curated desktop schema; the dashboard consumes the raw plugin schema.
 export function getMemoryProviderConfig(provider: string): Promise<MemoryProviderConfig> {
   return window.jettstuiDesktop.api<MemoryProviderConfig>({

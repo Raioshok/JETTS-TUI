@@ -11338,6 +11338,13 @@ def _run_prompt_submit(
         except Exception:
             pass
     _emit("message.start", sid)
+    try:
+        from jettstui.discord_rpc import get_rpc_manager
+        _rpc = get_rpc_manager()
+        if _rpc and _rpc.is_connected:
+            _rpc.on_session_start(model=getattr(agent, "model", "") or "")
+    except Exception:
+        pass
 
     def run():
         approval_token = None
@@ -11729,6 +11736,13 @@ def _run_prompt_submit(
                 payload["recoverable"] = True
             _retire_turn_marker(session, marker_key)
             _emit("message.complete", sid, payload)
+            try:
+                from jettstui.discord_rpc import get_rpc_manager
+                _rpc = get_rpc_manager()
+                if _rpc and _rpc.is_connected:
+                    _rpc.on_turn_end()
+            except Exception:
+                pass
 
             # ── /goal continuation (Ralph-style loop) ─────────────────
             # After every TUI turn, if a /goal is active, ask the judge

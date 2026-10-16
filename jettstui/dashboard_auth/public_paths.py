@@ -44,6 +44,7 @@ PUBLIC_API_PATHS: frozenset[str] = frozenset({
     # Read-only config-defaults / schema feeds for the SPA's Config page.
     "/api/config/defaults",
     "/api/config/schema",
+    "/api/rpc/status",
     # Read-only model metadata (context windows, etc.) — same shape as
     # provider catalogs already exposed on the public internet.
     "/api/model/info",

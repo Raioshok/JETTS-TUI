@@ -3410,3 +3410,75 @@ class CLICommandsMixin:
         else:
             _cprint(f"Unknown voice subcommand: {subcommand}")
             _cprint("Usage: /voice [on|off|tts|status]")
+
+    def _handle_rpc_command(self, command: str):
+        """Handle /rpc [on|off|status|preset|test] command."""
+        from cli import _cprint
+        from jettstui.discord_rpc import (
+            find_active_ipc_pipe,
+            get_rpc_manager,
+            init_rpc_manager,
+            render_discord_card,
+            stop_rpc_manager,
+            PRESETS,
+        )
+        from jettstui.config_edit import save_config_value
+
+        parts = command.strip().split(maxsplit=2)
+        subcommand = parts[1].lower().strip() if len(parts) > 1 else "status"
+
+        if subcommand == "status":
+            mgr = get_rpc_manager()
+            if not mgr:
+                mgr = init_rpc_manager(self.config)
+            pipe = find_active_ipc_pipe()
+            card = render_discord_card(
+                mgr.build_current_presence(),
+                client_name="JettsTUI",
+                is_connected=bool(pipe),
+                pipe_path=pipe,
+            )
+            try:
+                from rich.console import Console
+                Console().print(card)
+            except Exception:
+                _cprint(str(card))
+
+        elif subcommand in ("on", "enable"):
+            save_config_value("discord_rpc.enabled", True)
+            self.config.setdefault("discord_rpc", {})["enabled"] = True
+            mgr = init_rpc_manager(self.config)
+            mgr.enabled = True
+            mgr.start()
+            _cprint("✓ Discord Rich Presence enabled! Active session is now advertised on your Discord profile.")
+
+        elif subcommand in ("off", "disable"):
+            save_config_value("discord_rpc.enabled", False)
+            self.config.setdefault("discord_rpc", {})["enabled"] = False
+            stop_rpc_manager()
+            _cprint("Discord Rich Presence disabled.")
+
+        elif subcommand == "preset":
+            preset_name = parts[2].strip().lower() if len(parts) > 2 else ""
+            if preset_name in PRESETS:
+                save_config_value("discord_rpc.preset", preset_name)
+                self.config.setdefault("discord_rpc", {})["preset"] = preset_name
+                mgr = get_rpc_manager() or init_rpc_manager(self.config)
+                mgr.set_preset(preset_name)
+                _cprint(f"✓ Switched Discord presence preset to: {preset_name}")
+            else:
+                _cprint(f"Unknown preset: {preset_name}. Available: {', '.join(PRESETS.keys())}")
+
+        elif subcommand == "test":
+            _cprint("Testing Discord Rich Presence (15s)...")
+            import subprocess
+            from jettstui._subprocess_compat import windows_hide_flags
+            subprocess.Popen(
+                [sys.executable, "-m", "jettstui.discord_rpc", "--test"],
+                creationflags=windows_hide_flags(),
+            )
+            _cprint("Test presence dispatched. Check your Discord profile!")
+
+        else:
+            _cprint(f"Unknown rpc subcommand: {subcommand}")
+            _cprint("Usage: /rpc [on|off|status|preset <name>|test]")
