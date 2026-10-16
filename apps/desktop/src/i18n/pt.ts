@@ -411,7 +411,8 @@ export const pt = defineLocale({
       safety: 'Segurança',
       memory: 'Memória e contexto',
       voice: 'Voz',
-      advanced: 'Avançado'
+      advanced: 'Avançado',
+      discord: 'Presença no Discord'
     },
     searchPlaceholder: {
       about: 'Sobre o JettsTUI Desktop',
@@ -553,6 +554,47 @@ export const pt = defineLocale({
       keepAwakeTitle: 'Manter o computador acordado',
       keepAwakeDesc:
         'Impede que esta máquina entre em repouso para que execuções longas ou noturnas continuem. A tela ainda pode escurecer.'
+    },
+    discordPresence: {
+      intro:
+        'Mostre no seu perfil do Discord o que o JettsTUI está fazendo. Prompts, arquivos e argumentos de ferramentas nunca saem deste computador.',
+      enableTitle: 'Mostrar atividade no Discord',
+      enableDesc: 'Requer o app do Discord aberto neste computador.',
+      appTitle: 'Aplicativo do Discord',
+      appDesc:
+        'Crie um em discord.com/developers/applications. O nome dele é o que seu perfil mostra que você está jogando.',
+      appPlaceholder: 'ID do aplicativo',
+      verify: 'Verificar',
+      appSaved: name => `Usando “${name}”`,
+      appInvalid: 'O Discord não aceitou esse ID de aplicativo',
+      openPortal: 'Abrir Developer Portal',
+      statusOff: 'Desligado',
+      statusNeedsApp: 'Falta o aplicativo',
+      statusWaiting: 'Aguardando o Discord',
+      statusConnected: name => `Conectado como ${name}`,
+      previewTitle: 'Prévia',
+      previewDesc: 'O que seu perfil mostra enquanto o JettsTUI trabalha.',
+      playing: 'Jogando',
+      elapsed: time => `${time} decorridos`,
+      styleTitle: 'Estilo',
+      presets: { pairing: 'Pareamento', vibe_coding: 'Vibe coding', autonomous: 'Autônomo', minimal: 'Mínimo' },
+      privacyTitle: 'O que compartilhar',
+      showModel: 'Nome do modelo',
+      showModelDesc: 'O modelo que o JettsTUI está usando.',
+      showProject: 'Pasta do projeto',
+      showProjectDesc: 'O nome da pasta em que você está trabalhando.',
+      showActivity: 'Atividade atual',
+      showActivityDesc: 'O que o agente está fazendo, como “Editing code”. Desligado mostra “Working”.',
+      showElapsed: 'Tempo decorrido',
+      showElapsedDesc: 'Há quanto tempo a sessão está rodando.',
+      idleTitle: 'Ocultar quando ocioso',
+      idleDesc: 'Limpa a atividade após estes minutos ocioso. 0 mantém visível.',
+      customTitle: 'Texto personalizado',
+      detailsLabel: 'Primeira linha',
+      stateLabel: 'Segunda linha',
+      customDesc: 'Variáveis: {activity}, {model}, {project}, {tool_calls}. Deixe em branco para usar o estilo.',
+      unavailable: 'A Presença no Discord não está disponível neste backend. Atualize o JettsTUI para usá-la.',
+      saveFailed: 'Não foi possível salvar as configurações da Presença no Discord'
     },
     quickEntry: {
       enabledTitle: 'Entrada rápida',

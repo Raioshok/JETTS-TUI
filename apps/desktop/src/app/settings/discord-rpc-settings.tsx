@@ -1,217 +1,424 @@
-import { useQuery } from '@tanstack/react-query'
-import { useState } from 'react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
-import { getDiscordRpcStatus, testDiscordRpc } from '@/jettstui'
-import { DiscordIcon, ExternalLink, Loader2, Zap } from '@/lib/icons'
-import { notify, notifyError } from '@/store/notifications'
-import type { JettsTUIConfigRecord } from '@/types/jettstui'
+import { Input } from '@/components/ui/input'
+import { useI18n } from '@/i18n'
+import {
+  type DiscordActivity,
+  type DiscordPresenceSettings,
+  type DiscordPresenceStatus,
+  getDiscordApplication,
+  getDiscordPresence,
+  setDiscordApplication,
+  setDiscordPresenceEnabled,
+  updateDiscordPresenceSettings
+} from '@/jettstui'
+import { errorText } from '@/lib/error-text'
+import { DiscordIcon, ExternalLink, Eye, Loader2, Lock, Palette } from '@/lib/icons'
+import { cn } from '@/lib/utils'
+import { notifyError } from '@/store/notifications'
 
-import { getNested, setNested } from './helpers'
+import { useOnProfileSwitch } from '../hooks/use-on-profile-switch'
 
-const PRESET_OPTIONS = [
-  {
-    id: 'pairing',
-    title: 'Pairing',
-    details: '⚡ Pairing with JettsTUI ({model})',
-    state: '📂 Workspace: {project}'
-  },
-  {
-    id: 'vibe_coding',
-    title: 'Vibe Coding',
-    details: '✨ Vibe Coding: {project}',
-    state: '🧠 {model} • Flow State'
-  },
-  {
-    id: 'autonomous',
-    title: 'Autonomous',
-    details: '🤖 Autonomous Agent Running',
-    state: '⚡ 12 tools active • {project}'
-  },
-  {
-    id: 'fine_tuning',
-    title: 'Fine-Tuning',
-    details: '🔬 Local LLM Fine-Tuning ({model})',
-    state: '🎯 RTX 3060 CUDA • {project}'
-  },
-  {
-    id: 'idle',
-    title: 'Idle / Ready',
-    details: 'JettsTUI — Ready to Code',
-    state: '📂 {project}'
-  }
-]
+import { EmptyState, ListRow, Pill, SettingsSection, ToggleRow } from './primitives'
 
-export function DiscordRpcSettings({
-  config,
-  onConfigChange
-}: {
-  config: JettsTUIConfigRecord
-  onConfigChange: (updated: JettsTUIConfigRecord) => void
+const STATUS_KEY = ['discord-presence', 'status'] as const
+const PORTAL_URL = 'https://discord.com/developers/applications'
+
+type EditableSettings = Parameters<typeof updateDiscordPresenceSettings>[0]
+
+const PRIVACY_KEYS = [
+  ['show_model', 'showModel', 'showModelDesc'],
+  ['show_project', 'showProject', 'showProjectDesc'],
+  ['show_tool_activity', 'showActivity', 'showActivityDesc'],
+  ['show_elapsed', 'showElapsed', 'showElapsedDesc']
+] as const
+
+function isMissingBackend(error: unknown): boolean {
+  return /\b404\b|not found/i.test(error instanceof Error ? error.message : String(error ?? ''))
+}
+
+function formatElapsed(seconds: number): string {
+  const s = Math.max(0, Math.floor(seconds))
+  const h = Math.floor(s / 3600)
+  const mm = String(Math.floor((s % 3600) / 60)).padStart(2, '0')
+  const ss = String(s % 60).padStart(2, '0')
+
+  return h > 0 ? `${h}:${mm}:${ss}` : `${mm}:${ss}`
+}
+
+/** Seconds since `start` (unix seconds), ticking once a second. */
+function useElapsed(start?: number): null | number {
+  const [now, setNow] = useState(() => Date.now())
+
+  useEffect(() => {
+    if (!start) {
+      return
+    }
+
+    const id = window.setInterval(() => setNow(Date.now()), 1000)
+
+    return () => window.clearInterval(id)
+  }, [start])
+
+  return start ? now / 1000 - start : null
+}
+
+/** Text field that saves on blur/Enter, so typing doesn't write config per keystroke. */
+function CommitInput({
+  onCommit,
+  value,
+  ...props
+}: Omit<React.ComponentProps<typeof Input>, 'onChange' | 'value'> & {
+  onCommit: (value: string) => void
+  value: string
 }) {
-  const [testing, setTesting] = useState(false)
+  const [draft, setDraft] = useState(value)
 
-  const { data: status, refetch: refetchStatus } = useQuery({
-    queryKey: ['discord-rpc-status'],
-    queryFn: getDiscordRpcStatus,
-    refetchInterval: 5000
-  })
+  useEffect(() => setDraft(value), [value])
 
-  const isEnabled = Boolean(getNested(config, 'discord_rpc.enabled'))
-  const currentPreset = String(getNested(config, 'discord_rpc.preset') ?? 'pairing')
-  const customDetails = getNested(config, 'discord_rpc.details')
-  const customState = getNested(config, 'discord_rpc.state')
-
-  const activePresetInfo = PRESET_OPTIONS.find(p => p.id === currentPreset) ?? PRESET_OPTIONS[0]
-
-  const displayDetails = customDetails
-    ? String(customDetails).replace('{model}', 'Qwen-2.5-Coder').replace('{project}', 'JETTS-TUI')
-    : activePresetInfo.details.replace('{model}', 'Qwen-2.5-Coder').replace('{project}', 'JETTS-TUI')
-
-  const displayState = customState
-    ? String(customState).replace('{model}', 'Qwen-2.5-Coder').replace('{project}', 'JETTS-TUI')
-    : activePresetInfo.state.replace('{model}', 'Qwen-2.5-Coder').replace('{project}', 'JETTS-TUI')
-
-  async function handleTest() {
-    try {
-      setTesting(true)
-      const res = await testDiscordRpc()
-
-      if (res.ok) {
-        notify({
-          kind: 'success',
-          title: 'Discord Presence Active',
-          message: 'Test activity sent! Check your Discord profile.'
-        })
-      } else {
-        notifyError(new Error(res.error || 'Discord IPC rejected activity'), 'Test Failed')
-      }
-
-      void refetchStatus()
-    } catch (err) {
-      notifyError(err, 'Failed to connect to Discord')
-    } finally {
-      setTesting(false)
+  const commit = () => {
+    if (draft.trim() !== value) {
+      onCommit(draft.trim())
     }
   }
 
-  function handleSelectPreset(presetId: string) {
-    onConfigChange(setNested(config, 'discord_rpc.preset', presetId))
-  }
+  return (
+    <Input
+      {...props}
+      onBlur={commit}
+      onChange={e => setDraft(e.target.value)}
+      onKeyDown={e => {
+        if (e.key === 'Enter') {
+          commit()
+        }
+      }}
+      value={draft}
+    />
+  )
+}
+
+function PresenceCard({
+  activity,
+  appName,
+  iconUrl
+}: {
+  activity: DiscordActivity | null
+  appName: string
+  iconUrl: string
+}) {
+  const { t } = useI18n()
+  const c = t.settings.discordPresence
+  const elapsed = useElapsed(activity?.timestamps?.start)
+  const image = activity?.assets?.large_image?.startsWith('https://') ? activity.assets.large_image : iconUrl
 
   return (
-    <div className="mb-6 flex flex-col gap-4">
-      {/* Discord Profile Card Preview */}
-      <div className="relative overflow-hidden rounded-2xl border border-[#5865F2]/30 bg-[#2B2D31] p-5 shadow-lg text-[#F2F3F5]">
-        <div className="flex items-center justify-between pb-3 border-b border-[#35373C]">
-          <div className="flex items-center gap-2 text-xs font-bold tracking-wider text-[#949BA4] uppercase">
-            <DiscordIcon className="size-4 text-[#5865F2]" />
-            <span>Playing a Game</span>
-          </div>
-          <div className="flex items-center gap-2">
-            <span
-              className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                status?.connected ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'
-              }`}
-            >
-              <span className={`size-1.5 rounded-full ${status?.connected ? 'bg-emerald-400' : 'bg-amber-400'}`} />
-              {status?.connected ? 'Connected to Discord' : 'Discord Not Running'}
-            </span>
-          </div>
+    <div className="rounded-xl border border-border/70 bg-(--ui-bg-secondary) p-4">
+      <div className="mb-3 text-[0.68rem] font-semibold tracking-wide text-muted-foreground uppercase">{c.playing}</div>
+      <div className="flex gap-3">
+        <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-(--ui-bg-tertiary)">
+          {image ? (
+            <img alt="" className="size-full object-cover" src={image} />
+          ) : (
+            <DiscordIcon className="size-7 text-muted-foreground" />
+          )}
         </div>
-
-        {/* Card Body */}
-        <div className="flex gap-4 pt-4">
-          {/* Large Image with Small Badge */}
-          <div className="relative size-16 shrink-0 rounded-xl bg-[#1E1F22] p-1 border border-[#35373C] flex items-center justify-center overflow-hidden">
-            <img
-              alt="JettsTUI"
-              className="size-full object-contain rounded-lg"
-              src="https://raw.githubusercontent.com/Raioshok/JETTS-TUI/main/apps/desktop/assets/icon.png"
-            />
-            <div className="absolute -bottom-1 -right-1 size-5 rounded-full bg-[#1E1F22] p-0.5 flex items-center justify-center">
-              <span className="size-3 rounded-full bg-[#5865F2] flex items-center justify-center text-[8px] text-white font-bold">
-                ⚡
-              </span>
+        <div className="min-w-0 text-[length:var(--conversation-caption-font-size)] leading-snug">
+          <div className="truncate font-semibold text-foreground">{appName}</div>
+          {activity?.details && <div className="truncate text-foreground/90">{activity.details}</div>}
+          {activity?.state && <div className="truncate text-muted-foreground">{activity.state}</div>}
+          {elapsed !== null && (
+            <div className="truncate font-mono text-[0.7rem] text-muted-foreground">
+              {c.elapsed(formatElapsed(elapsed))}
             </div>
-          </div>
-
-          {/* Details & State */}
-          <div className="flex flex-col justify-center min-w-0">
-            <div className="font-bold text-sm text-[#F2F3F5] truncate">JettsTUI</div>
-            <div className="text-xs text-[#DBDEE1] truncate font-medium">{displayDetails}</div>
-            <div className="text-xs text-[#949BA4] truncate">{displayState}</div>
-            <div className="text-[11px] text-[#57F287] font-mono mt-0.5">⏱️ 00:42:15 elapsed</div>
-          </div>
-        </div>
-
-        {/* Buttons Simulation */}
-        <div className="mt-4 grid grid-cols-2 gap-2">
-          <a
-            className="flex items-center justify-center gap-1.5 rounded-md bg-[#4E5058]/40 hover:bg-[#4E5058]/70 px-3 py-2 text-xs font-semibold text-white transition-colors"
-            href="https://github.com/Raioshok/JETTS-TUI"
-            rel="noreferrer"
-            target="_blank"
-          >
-            <span>⭐ Star on GitHub</span>
-            <ExternalLink className="size-3 opacity-70" />
-          </a>
-          <a
-            className="flex items-center justify-center gap-1.5 rounded-md bg-[#4E5058]/40 hover:bg-[#4E5058]/70 px-3 py-2 text-xs font-semibold text-white transition-colors"
-            href="https://github.com/Raioshok/JETTS-TUI"
-            rel="noreferrer"
-            target="_blank"
-          >
-            <span>🚀 Try JettsTUI</span>
-            <ExternalLink className="size-3 opacity-70" />
-          </a>
-        </div>
-
-        {/* Card Footer Actions */}
-        <div className="mt-4 flex items-center justify-between pt-3 border-t border-[#35373C]/80">
-          <div className="text-xs text-[#949BA4]">
-            {isEnabled ? 'Rich Presence is active for this computer.' : 'Enable presence below to advertise on Discord.'}
-          </div>
-          <Button
-            className="gap-1.5 bg-[#5865F2] hover:bg-[#4752C4] text-white border-0 text-xs h-7"
-            disabled={testing}
-            onClick={handleTest}
-            size="sm"
-          >
-            {testing ? <Loader2 className="size-3.5 animate-spin" /> : <Zap className="size-3.5" />}
-            <span>Test Presence (5s)</span>
-          </Button>
+          )}
         </div>
       </div>
+      {activity?.buttons && activity.buttons.length > 0 && (
+        <div className="mt-3 grid gap-1.5">
+          {activity.buttons.map(button => (
+            <div
+              className="truncate rounded-md bg-(--ui-bg-tertiary) px-3 py-1.5 text-center text-[0.72rem] font-medium text-foreground"
+              key={button.url}
+              title={button.url}
+            >
+              {button.label}
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
-      {/* Preset Picker Cards */}
-      <div className="flex flex-col gap-2">
-        <label className="text-xs font-semibold text-foreground">Activity Preset</label>
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-          {PRESET_OPTIONS.map(preset => {
-            const isSelected = currentPreset === preset.id
+export function DiscordRpcSettings() {
+  const { t } = useI18n()
+  const c = t.settings.discordPresence
+  const queryClient = useQueryClient()
+  const [appDraft, setAppDraft] = useState<null | string>(null)
+  const [verifying, setVerifying] = useState(false)
+  const [appError, setAppError] = useState('')
+
+  const statusQuery = useQuery({
+    queryKey: STATUS_KEY,
+    queryFn: getDiscordPresence,
+    refetchInterval: 5000,
+    retry: (count, error) => !isMissingBackend(error) && count < 2
+  })
+
+  useOnProfileSwitch(() => {
+    setAppDraft(null)
+    setAppError('')
+    void queryClient.invalidateQueries({ queryKey: ['discord-presence'] })
+  })
+
+  const status = statusQuery.data
+  const settings = status?.settings
+  const clientId = settings?.client_id ?? ''
+
+  const appQuery = useQuery({
+    queryKey: ['discord-presence', 'application', clientId],
+    queryFn: getDiscordApplication,
+    enabled: Boolean(clientId),
+    staleTime: Infinity,
+    retry: false
+  })
+
+  if (statusQuery.error && isMissingBackend(statusQuery.error)) {
+    return <EmptyState description={c.unavailable} title={t.settings.sections.discord ?? 'Discord Presence'} />
+  }
+
+  if (!status || !settings) {
+    return (
+      <div className="flex items-center gap-2 py-6 text-muted-foreground">
+        <Loader2 className="size-4 animate-spin" />
+      </div>
+    )
+  }
+
+  const publish = (next: DiscordPresenceStatus) => queryClient.setQueryData(STATUS_KEY, next)
+
+  async function run(action: () => Promise<DiscordPresenceStatus>) {
+    try {
+      publish(await action())
+    } catch (error) {
+      notifyError(error, c.saveFailed)
+      void statusQuery.refetch()
+    }
+  }
+
+  // Optimistic: paint the change now, let the server's answer have the last word.
+  function change(changes: EditableSettings) {
+    if (status && settings) {
+      publish({ ...status, settings: { ...settings, ...changes } as DiscordPresenceSettings })
+    }
+
+    void run(() => updateDiscordPresenceSettings(changes))
+  }
+
+  async function verifyApplication() {
+    const value = (appDraft ?? clientId).trim()
+
+    if (!value) {
+      return
+    }
+
+    setVerifying(true)
+    setAppError('')
+
+    try {
+      const result = await setDiscordApplication(value)
+      queryClient.setQueryData(['discord-presence', 'application', result.application.id], result.application)
+      publish(result.status)
+      setAppDraft(null)
+    } catch (error) {
+      setAppError(errorText(error, c.appInvalid) || c.appInvalid)
+    } finally {
+      setVerifying(false)
+    }
+  }
+
+  const userName = status.user.display_name || status.user.username || ''
+
+  const statusPill = !status.enabled ? (
+    <Pill>{c.statusOff}</Pill>
+  ) : !status.configured ? (
+    <Pill tone="warn">{c.statusNeedsApp}</Pill>
+  ) : status.connected ? (
+    <Pill tone="primary">{c.statusConnected(userName || 'Discord')}</Pill>
+  ) : (
+    <Pill tone="warn">{c.statusWaiting}</Pill>
+  )
+
+  const application = appQuery.data
+  const appName = application?.name || 'JettsTUI'
+  const draftValue = appDraft ?? clientId
+
+  return (
+    <div className="mb-6">
+      <SettingsSection aside={statusPill} icon={DiscordIcon} title={t.settings.sections.discord ?? 'Discord Presence'}>
+        <p className="mb-1 text-[length:var(--conversation-caption-font-size)] text-(--ui-text-tertiary)">{c.intro}</p>
+        <ToggleRow
+          checked={status.enabled}
+          description={
+            status.enabled && status.configured && !status.connected && status.error ? status.error : c.enableDesc
+          }
+          label={c.enableTitle}
+          onChange={on => void run(() => setDiscordPresenceEnabled(on))}
+        />
+        <ListRow
+          action={
+            <div className="flex gap-2">
+              <Input
+                aria-label={c.appPlaceholder}
+                className="font-mono"
+                inputMode="numeric"
+                onChange={e => {
+                  setAppDraft(e.target.value)
+                  setAppError('')
+                }}
+                onKeyDown={e => {
+                  if (e.key === 'Enter') {
+                    void verifyApplication()
+                  }
+                }}
+                placeholder={c.appPlaceholder}
+                value={draftValue}
+              />
+              <Button
+                disabled={verifying || !draftValue.trim() || (appDraft === null && Boolean(application))}
+                onClick={() => void verifyApplication()}
+                size="sm"
+                variant="outline"
+              >
+                {verifying ? <Loader2 className="size-3.5 animate-spin" /> : c.verify}
+              </Button>
+            </div>
+          }
+          below={
+            <div className="mt-1.5 flex flex-wrap items-center gap-x-3 gap-y-1 text-[length:var(--conversation-caption-font-size)]">
+              {appError ? (
+                <span className="text-destructive">{appError}</span>
+              ) : (
+                application && (
+                  <span className="text-foreground/80">{c.appSaved(application.name || application.id)}</span>
+                )
+              )}
+              <a
+                className="inline-flex items-center gap-1 text-muted-foreground hover:text-foreground"
+                href={PORTAL_URL}
+                rel="noreferrer"
+                target="_blank"
+              >
+                {c.openPortal}
+                <ExternalLink className="size-3" />
+              </a>
+            </div>
+          }
+          description={c.appDesc}
+          title={c.appTitle}
+        />
+      </SettingsSection>
+
+      <SettingsSection icon={Eye} title={c.previewTitle}>
+        <p className="mb-2 text-[length:var(--conversation-caption-font-size)] text-(--ui-text-tertiary)">
+          {c.previewDesc}
+        </p>
+        <PresenceCard
+          activity={status.connected && status.activity ? status.activity : status.preview}
+          appName={appName}
+          iconUrl={application?.icon_url ?? ''}
+        />
+      </SettingsSection>
+
+      <SettingsSection icon={Palette} title={c.styleTitle}>
+        <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+          {status.presets.map(preset => {
+            const active = settings.preset === preset.id
 
             return (
               <button
-                className={`flex flex-col items-start gap-1 p-2.5 rounded-xl border text-left transition-all ${
-                  isSelected
-                    ? 'border-[#5865F2] bg-[#5865F2]/10 text-foreground font-medium ring-1 ring-[#5865F2]'
-                    : 'border-border/60 bg-card hover:bg-muted/40 text-muted-foreground'
-                }`}
+                aria-pressed={active}
+                className={cn(
+                  'rounded-lg border px-3 py-2 text-left text-[length:var(--conversation-caption-font-size)] transition',
+                  active
+                    ? 'border-primary bg-primary/10 font-medium text-foreground'
+                    : 'border-border/70 text-muted-foreground hover:bg-(--chrome-action-hover) hover:text-foreground'
+                )}
                 key={preset.id}
-                onClick={() => handleSelectPreset(preset.id)}
+                onClick={() => change({ preset: preset.id })}
                 type="button"
               >
-                <div className="text-xs font-semibold text-foreground flex items-center justify-between w-full">
-                  <span>{preset.title}</span>
-                  {isSelected && <span className="size-1.5 rounded-full bg-[#5865F2]" />}
-                </div>
-                <div className="text-[11px] text-muted-foreground line-clamp-1">{preset.details}</div>
+                {c.presets[preset.id] ?? preset.label}
               </button>
             )
           })}
         </div>
-      </div>
+      </SettingsSection>
+
+      <SettingsSection icon={Lock} title={c.privacyTitle}>
+        {PRIVACY_KEYS.map(([key, label, description]) => (
+          <ToggleRow
+            checked={settings[key]}
+            description={c[description]}
+            key={key}
+            label={c[label]}
+            onChange={on => change({ [key]: on })}
+          />
+        ))}
+        <ListRow
+          action={
+            <CommitInput
+              aria-label={c.idleTitle}
+              className="w-24"
+              inputMode="numeric"
+              min={0}
+              onCommit={value => {
+                const minutes = Number.parseInt(value, 10)
+
+                if (Number.isFinite(minutes) && minutes >= 0) {
+                  change({ idle_timeout_minutes: minutes })
+                }
+              }}
+              type="number"
+              value={String(settings.idle_timeout_minutes)}
+            />
+          }
+          description={c.idleDesc}
+          title={c.idleTitle}
+        />
+      </SettingsSection>
+
+      <SettingsSection icon={Palette} title={c.customTitle}>
+        <p className="mb-1 text-[length:var(--conversation-caption-font-size)] text-(--ui-text-tertiary)">
+          {c.customDesc}
+        </p>
+        <ListRow
+          action={
+            <CommitInput
+              aria-label={c.detailsLabel}
+              maxLength={128}
+              onCommit={value => change({ details: value })}
+              placeholder={status.preview?.details}
+              value={settings.details}
+            />
+          }
+          title={c.detailsLabel}
+        />
+        <ListRow
+          action={
+            <CommitInput
+              aria-label={c.stateLabel}
+              maxLength={128}
+              onCommit={value => change({ state: value })}
+              placeholder={status.preview?.state}
+              value={settings.state}
+            />
+          }
+          title={c.stateLabel}
+        />
+      </SettingsSection>
     </div>
   )
 }

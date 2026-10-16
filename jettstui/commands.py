@@ -195,9 +195,6 @@ COMMAND_REGISTRY: list[CommandDef] = [
                subcommands=("kaomoji", "emoji", "unicode", "ascii")),
     CommandDef("voice", "Toggle voice mode", "Configuration",
                args_hint="[on|off|tts|status]", subcommands=("on", "off", "tts", "status")),
-    CommandDef("rpc", "Discord Rich Presence: /rpc [on|off|status|preset|test]", "Configuration",
-               cli_only=True, args_hint="[on|off|status|preset|test]",
-               subcommands=("on", "off", "status", "preset", "test")),
     CommandDef("busy", "Control what Enter does while JettsTUI is working", "Configuration",
                cli_only=True, args_hint="[queue|steer|interrupt|status]",
                subcommands=("queue", "steer", "interrupt", "status")),
@@ -304,7 +301,7 @@ DISCOVERABLE_COMMANDS: frozenset[str] = frozenset(
         "resume",
         # Model and behavior
         "model", "personality", "approvals", "mode", "reasoning", "fast",
-        "skin", "voice", "rpc",
+        "skin", "voice",
         # Capabilities
         "tools", "skills", "learn", "brain", "init", "cron", "browser",
         # Essentials

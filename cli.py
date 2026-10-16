@@ -1192,11 +1192,6 @@ def _run_cleanup(*, notify_session_finalize: bool = True):
     except Exception:
         pass
     try:
-        from jettstui.discord_rpc import stop_rpc_manager
-        stop_rpc_manager()
-    except Exception:
-        pass
-    try:
         _cleanup_all_browsers()
     except Exception:
         pass
@@ -9902,8 +9897,6 @@ class JettsTUICLI(CLIAgentSetupMixin, CLICommandsMixin):
             self._handle_skin_command(cmd_original)
         elif canonical == "voice":
             self._handle_voice_command(cmd_original)
-        elif canonical == "rpc":
-            self._handle_rpc_command(cmd_original)
         elif canonical == "busy":
             self._handle_busy_command(cmd_original)
         else:
@@ -13940,13 +13933,6 @@ class JettsTUICLI(CLIAgentSetupMixin, CLICommandsMixin):
             pass
 
         self.show_banner()
-        if self.config.get("discord_rpc", {}).get("enabled"):
-            try:
-                from jettstui.discord_rpc import init_rpc_manager
-                rpc_mgr = init_rpc_manager(self.config)
-                rpc_mgr.on_session_start(model=getattr(self, "resolved_model", "") or "", project=Path.cwd().name)
-            except Exception:
-                pass
         # Surface any active supply-chain security advisories right after the
         # welcome banner. Quiet/single-query paths call this themselves.
         self._show_security_advisories()

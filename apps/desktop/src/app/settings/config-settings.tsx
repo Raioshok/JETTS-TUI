@@ -292,9 +292,7 @@ export function ConfigSettings({
           <ModelSettings onMainModelChanged={onMainModelChanged} />
         </div>
       )}
-      {activeSectionId === 'discord' && (
-        <DiscordRpcSettings config={config} onConfigChange={updateConfig} />
-      )}
+      {activeSectionId === 'discord' && <DiscordRpcSettings />}
       {/* Device-local desktop prefs (not config.yaml) — they live here since
           keeping the machine awake and the global Quick Entry chord are both
           power-user, this-computer-only knobs. */}
@@ -309,7 +307,7 @@ export function ConfigSettings({
           <QuickEntrySettings />
         </>
       )}
-      {visibleFields.length === 0 ? (
+      {activeSectionId === 'discord' ? null : visibleFields.length === 0 ? (
         <EmptyState description={c.emptyDesc} title={c.emptyTitle} />
       ) : (
         <div className="grid gap-1">

@@ -1,0 +1,10 @@
+{
+  "name": "discord-presence",
+  "label": "Discord Presence",
+  "description": "Backend routes for the Discord Presence settings in JettsTUI Desktop.",
+  "icon": "Gamepad2",
+  "version": "1.0.0",
+  "tab": { "hidden": true },
+  "entry": "dist/index.js",
+  "api": "plugin_api.py"
+}

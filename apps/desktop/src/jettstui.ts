@@ -742,39 +742,97 @@ export function saveJettsTUIConfig(config: JettsTUIConfigRecord): Promise<{ ok: 
   })
 }
 
-export interface DiscordRpcStatusResponse {
-  ok: boolean
-  enabled: boolean
-  connected: boolean
-  pipe?: string | null
-  preset: string
-  client_id: string
-  presence: {
-    state?: string
-    details?: string
-    timestamps?: { start?: number; end?: number }
-    assets?: {
-      large_image?: string
-      large_text?: string
-      small_image?: string
-      small_text?: string
-    }
-    buttons?: Array<{ label: string; url: string }>
-  }
+export interface DiscordActivity {
+  details?: string
+  state?: string
+  timestamps?: { start?: number }
+  assets?: { large_image?: string; large_text?: string; small_image?: string; small_text?: string }
+  buttons?: { label: string; url: string }[]
 }
 
-export function getDiscordRpcStatus(): Promise<DiscordRpcStatusResponse> {
-  return window.jettstuiDesktop.api<DiscordRpcStatusResponse>({
+export interface DiscordPresenceSettings {
+  enabled: boolean
+  client_id: string
+  preset: string
+  activity_type: string
+  show_model: boolean
+  show_project: boolean
+  show_tool_activity: boolean
+  show_elapsed: boolean
+  idle_timeout_minutes: number
+  details: string
+  state: string
+  large_image: string
+  large_text: string
+  small_image: string
+  small_text: string
+  buttons: { label: string; url: string }[]
+}
+
+export interface DiscordPresenceStatus {
+  enabled: boolean
+  configured: boolean
+  running: boolean
+  connected: boolean
+  user: { id?: string; username?: string; display_name?: string }
+  error: string
+  phase: 'approval' | 'idle' | 'thinking' | 'tool'
+  activity: DiscordActivity | null
+  preview: DiscordActivity | null
+  settings: DiscordPresenceSettings
+  presets: { id: string; label: string }[]
+}
+
+export interface DiscordApplication {
+  id: string
+  name: string
+  icon_url: string
+}
+
+const DISCORD_PRESENCE_API = '/api/plugins/discord-presence'
+
+export function getDiscordPresence(): Promise<DiscordPresenceStatus> {
+  return window.jettstuiDesktop.api<DiscordPresenceStatus>({
     ...profileScoped(),
-    path: '/api/rpc/status'
+    path: `${DISCORD_PRESENCE_API}/status`
   })
 }
 
-export function testDiscordRpc(): Promise<{ ok: boolean; pipe?: string; error?: string }> {
-  return window.jettstuiDesktop.api<{ ok: boolean; pipe?: string; error?: string }>({
+export function setDiscordPresenceEnabled(enabled: boolean): Promise<DiscordPresenceStatus> {
+  return window.jettstuiDesktop.api<DiscordPresenceStatus>({
     ...profileScoped(),
-    path: '/api/rpc/test',
-    method: 'POST'
+    path: `${DISCORD_PRESENCE_API}/enabled`,
+    method: 'POST',
+    body: { enabled }
+  })
+}
+
+export function setDiscordApplication(
+  clientId: string
+): Promise<{ application: DiscordApplication; status: DiscordPresenceStatus }> {
+  return window.jettstuiDesktop.api<{ application: DiscordApplication; status: DiscordPresenceStatus }>({
+    ...profileScoped(),
+    path: `${DISCORD_PRESENCE_API}/application`,
+    method: 'POST',
+    body: { client_id: clientId }
+  })
+}
+
+export function getDiscordApplication(): Promise<DiscordApplication> {
+  return window.jettstuiDesktop.api<DiscordApplication>({
+    ...profileScoped(),
+    path: `${DISCORD_PRESENCE_API}/application`
+  })
+}
+
+export function updateDiscordPresenceSettings(
+  changes: Partial<Omit<DiscordPresenceSettings, 'client_id' | 'enabled'>>
+): Promise<DiscordPresenceStatus> {
+  return window.jettstuiDesktop.api<DiscordPresenceStatus>({
+    ...profileScoped(),
+    path: `${DISCORD_PRESENCE_API}/settings`,
+    method: 'PATCH',
+    body: { changes }
   })
 }
 

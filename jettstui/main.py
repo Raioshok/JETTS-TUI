@@ -466,7 +466,6 @@ from jettstui.subcommands.pairing import build_pairing_parser
 from jettstui.subcommands.plugins import build_plugins_parser
 from jettstui.subcommands.mcp import build_mcp_parser
 from jettstui.subcommands.claw import build_claw_parser
-from jettstui.subcommands.rpc import build_rpc_parser, cmd_rpc
 
 
 def _require_tty(command_name: str) -> None:
@@ -15374,7 +15373,6 @@ _BUILTIN_SUBCOMMANDS = frozenset(
         "model", "pairing", "pets", "plugins", "profile",
         "project", "proxy",
         "prompt-size",
-        "rpc",
         "send", "sessions", "setup",
         "skin", "skills", "slack", "status", "tools", "uninstall", "update",
         "version", "webhook", "whatsapp", "whatsapp-cloud", "chat", "secrets", "security",
@@ -16198,11 +16196,6 @@ def main():
     # doctor command  (parser built in jettstui/subcommands/doctor.py)
     # =========================================================================
     build_doctor_parser(subparsers, cmd_doctor=cmd_doctor)
-
-    # =========================================================================
-    # rpc command — Discord Rich Presence management
-    # =========================================================================
-    build_rpc_parser(subparsers, cmd_rpc=cmd_rpc)
 
     # =========================================================================
     # security command — on-demand supply-chain audit

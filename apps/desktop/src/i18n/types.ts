@@ -456,6 +456,45 @@ export interface Translations {
       keepAwakeTitle: string
       keepAwakeDesc: string
     }
+    discordPresence: {
+      intro: string
+      enableTitle: string
+      enableDesc: string
+      appTitle: string
+      appDesc: string
+      appPlaceholder: string
+      verify: string
+      appSaved: (name: string) => string
+      appInvalid: string
+      openPortal: string
+      statusOff: string
+      statusNeedsApp: string
+      statusWaiting: string
+      statusConnected: (name: string) => string
+      previewTitle: string
+      previewDesc: string
+      playing: string
+      elapsed: (time: string) => string
+      styleTitle: string
+      presets: Record<string, string>
+      privacyTitle: string
+      showModel: string
+      showModelDesc: string
+      showProject: string
+      showProjectDesc: string
+      showActivity: string
+      showActivityDesc: string
+      showElapsed: string
+      showElapsedDesc: string
+      idleTitle: string
+      idleDesc: string
+      customTitle: string
+      detailsLabel: string
+      stateLabel: string
+      customDesc: string
+      unavailable: string
+      saveFailed: string
+    }
     quickEntry: {
       enabledTitle: string
       enabledDesc: string

@@ -2750,9 +2750,11 @@ DEFAULT_CONFIG = {
         # When enabled, the bot installs a software mixer on the outgoing voice
         # stream so a low ambient "thinking" bed, verbal acknowledgements, and
         # TTS replies can OVERLAP (ducking the ambient under speech) instead of
-        # fighting over the speaker or playing serially.
-        "voice_effects": {
-            "enabled": False,
+        # stop-and-swap — the Grok-voice-mode feel. discord.py ships no mixer;
+        # this is implemented in plugins/platforms/discord/voice_mixer.py.
+        "voice_fx": {
+            "enabled": False,         # master switch for the mixer subsystem
+            "ambient_enabled": True,  # play the idle "thinking" bed while tools run
             "ambient_path": "",       # custom loop audio file; "" = synthesised pad
             "ambient_gain": 0.18,     # idle bed loudness, 0.0–1.0
             "duck_gain": 0.06,        # ambient loudness while speech plays
@@ -2766,27 +2768,6 @@ DEFAULT_CONFIG = {
                 "On it.",
             ],
         },
-    },
-
-    # Discord Rich Presence (RPC) - Show activity on Discord profile
-    "discord_rpc": {
-        "enabled": False,
-        "client_id": "1343714589234567890",
-        "preset": "pairing",
-        "show_model": True,
-        "show_project": True,
-        "show_tool_activity": True,
-        "show_elapsed": True,
-        "large_image": "https://raw.githubusercontent.com/Raioshok/JETTS-TUI/main/apps/desktop/assets/icon.png",
-        "large_text": "JettsTUI — Autonomous AI Coding Agent",
-        "small_image": "https://raw.githubusercontent.com/Raioshok/JETTS-TUI/main/apps/desktop/public/apple-touch-icon.png",
-        "small_text": "⚡ Vibe Coding with AI",
-        "details": "",
-        "state": "",
-        "buttons": [
-            {"label": "⭐ Star on GitHub", "url": "https://github.com/Raioshok/JETTS-TUI"},
-            {"label": "🚀 Try JettsTUI", "url": "https://github.com/Raioshok/JETTS-TUI"},
-        ],
     },
 
     # WhatsApp platform settings (gateway mode)

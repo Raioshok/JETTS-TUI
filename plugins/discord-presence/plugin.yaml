@@ -1,0 +1,14 @@
+name: discord-presence
+version: 1.0.0
+description: "Show what JettsTUI is doing on your Discord profile (Rich Presence over local IPC). Opt-in; never shares prompts, files or tool arguments."
+author: "Raioshok (@Raioshok), JettsTUI"
+hooks:
+  - on_session_start
+  - pre_llm_call
+  - pre_tool_call
+  - post_tool_call
+  - pre_approval_request
+  - post_approval_response
+  - on_session_end
+  - on_session_reset
+  - on_session_finalize

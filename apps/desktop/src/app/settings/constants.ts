@@ -546,19 +546,6 @@ export const FIELD_LABELS: Record<string, string> = defineFieldCopy({
     childTimeoutSeconds: 'Subagent Timeout',
     reasoningEffort: 'Subagent Reasoning Effort'
   },
-  discordRpc: {
-    enabled: 'Enable Discord Presence',
-    preset: 'Activity Preset',
-    clientId: 'Application ID',
-    showModel: 'Show Active Model',
-    showProject: 'Show Workspace Folder',
-    showToolActivity: 'Show Tool Executions',
-    showElapsed: 'Show Elapsed Timer',
-    details: 'Custom Details Format',
-    state: 'Custom State Format',
-    largeText: 'Large Image Tooltip',
-    smallText: 'Small Badge Tooltip'
-  },
   updates: {
     nonInteractiveLocalChanges: 'In-App Update Local Changes'
   }
@@ -638,19 +625,6 @@ export const FIELD_DESCRIPTIONS: Record<string, string> = defineFieldCopy({
     elevenlabs: {
       languageCode: 'Optional ISO-639-3 language code. Blank lets ElevenLabs auto-detect.'
     }
-  },
-  discordRpc: {
-    enabled: 'Display your JettsTUI activity, active models, and clickable repo links on your Discord profile card.',
-    preset: 'Select a curated activity style: Pairing, Vibe Coding, Autonomous, Fine-Tuning, or Idle.',
-    clientId: 'Discord Application Client ID. Leave default or create a custom named application at https://discord.com/developers/applications.',
-    showModel: 'Include the active AI model name in your Discord status.',
-    showProject: 'Include the current workspace folder name.',
-    showToolActivity: 'Display live tool executions (e.g. running search_files or terminal).',
-    showElapsed: 'Display session elapsed timer (01:23 elapsed) on Discord.',
-    details: 'Optional custom format string for line 1. Supports {model}, {project}, {tools_count}.',
-    state: 'Optional custom format string for line 2.',
-    largeText: 'Hover tooltip text displayed over the main JettsTUI logo.',
-    smallText: 'Hover tooltip text displayed over the small status badge.'
   },
   updates: {
     nonInteractiveLocalChanges:
@@ -778,19 +752,7 @@ export const SECTIONS: DesktopConfigSection[] = [
     id: 'discord',
     label: 'Discord Presence',
     icon: DiscordIcon,
-    keys: [
-      'discord_rpc.enabled',
-      'discord_rpc.preset',
-      'discord_rpc.client_id',
-      'discord_rpc.show_model',
-      'discord_rpc.show_project',
-      'discord_rpc.show_tool_activity',
-      'discord_rpc.show_elapsed',
-      'discord_rpc.details',
-      'discord_rpc.state',
-      'discord_rpc.large_text',
-      'discord_rpc.small_text'
-    ]
+    keys: []
   },
   {
     id: 'advanced',
