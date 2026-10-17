@@ -21,7 +21,6 @@ import { notify, notifyError } from '@/store/notifications'
 import { $desktopOnboarding, startManualLocalEndpoint, startManualProviderOAuth } from '@/store/onboarding'
 import type { EnvVarInfo, OAuthProvider } from '@/types/jettstui'
 
-import { ClaudeOAuthLogin } from './claude-oauth-login'
 import { isKeyVar, ProviderKeyRows } from './credential-key-ui'
 import { CustomEndpointsSettings } from './custom-endpoints-settings'
 import { SettingsCategoryHeading, useEnvCredentials } from './env-credentials'
@@ -474,20 +473,14 @@ export function ProvidersSettings({
     return <CustomEndpointsSettings onConfigSaved={onConfigSaved} onMainModelChanged={onMainModelChanged} />
   }
 
-  const anthropicProvider = oauthProviders.find(p => p.id === 'anthropic')
-  const genericProviders = oauthProviders.filter(p => p.id !== 'anthropic')
-
   return (
     <SettingsContent>
-      {anthropicProvider && (
-        <ClaudeOAuthLogin provider={anthropicProvider} onRefresh={refreshOAuthProviders} />
-      )}
       <OAuthPicker
         disconnecting={disconnecting}
         onDisconnect={provider => void handleDisconnect(provider)}
         onTerminalDisconnect={handleTerminalDisconnect}
         onWantApiKey={() => onViewChange('keys')}
-        providers={genericProviders}
+        providers={oauthProviders}
       />
     </SettingsContent>
   )

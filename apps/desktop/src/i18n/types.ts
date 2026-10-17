@@ -495,24 +495,6 @@ export interface Translations {
       unavailable: string
       saveFailed: string
     }
-    claudeOAuth: {
-      title: string
-      description: string
-      signIn: string
-      signOut: string
-      signOutConfirm: string
-      signOutFailed: string
-      opening: string
-      loopbackHint: string
-      pasteCodeHint: string
-      pasteCode: string
-      waitingAuthorize: string
-      submitting: string
-      signedInVia: (label: string) => string
-      expiresAt: (date: string) => string
-      reopenBrowser: string
-      addUsageCredits: string
-    }
     quickEntry: {
       enabledTitle: string
       enabledDesc: string

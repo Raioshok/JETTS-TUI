@@ -803,24 +803,6 @@ export const zh: Translations = {
       unavailable: '此后端不支持 Discord 状态。请更新 JettsTUI 后使用。',
       saveFailed: '无法保存 Discord 状态设置'
     },
-    claudeOAuth: {
-      title: 'Claude 订阅',
-      description: '使用 Claude Pro 或 Max 账户登录，以便将订阅用于推理。',
-      signIn: '使用 Claude 登录',
-      signOut: '退出登录',
-      signOutConfirm: '退出 Claude 订阅？JettsTUI 将不再使用它进行推理。',
-      signOutFailed: '无法退出 Claude。',
-      opening: '正在打开浏览器…',
-      loopbackHint: '已在浏览器中打开 Claude.ai。在那里授权 JettsTUI，即可自动连接。',
-      pasteCodeHint: '在浏览器中授权后，从回调页面复制授权码并粘贴到下方。',
-      pasteCode: '粘贴授权码',
-      waitingAuthorize: '等待授权…',
-      submitting: '连接中…',
-      signedInVia: (label: string) => `已通过 ${label} 登录`,
-      expiresAt: (date: string) => `令牌到期：${date}`,
-      reopenBrowser: '重新打开授权页面',
-      addUsageCredits: '在 claude.ai 添加使用积分'
-    },
     quickEntry: {
       enabledTitle: '快速输入',
       enabledDesc: '用全局快捷键在任何地方唤出一个小输入框，无需打开 JettsTUI 即可发送提示。',
