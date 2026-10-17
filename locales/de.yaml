@@ -362,7 +362,6 @@ Future messages in this room will use that transcript until `/reset` or another 
 
   update:
     platform_not_messaging:  "✗ /update ist nur auf Messaging-Plattformen verfügbar. Führen Sie `jettstui update` im Terminal aus."
-    not_git_repo:            "✗ Kein Git-Repository — Update nicht möglich."
     jettstui_cmd_not_found:    "✗ Der Befehl `jettstui` konnte nicht gefunden werden. JettsTUI läuft, aber der Update-Befehl konnte das ausführbare Programm weder im PATH noch über den aktuellen Python-Interpreter finden. Versuchen Sie, `jettstui update` manuell im Terminal auszuführen."
     start_failed:            "✗ Update konnte nicht gestartet werden: {error}"
     starting:                "⚕ JettsTUI-Update wird gestartet… Ich streame den Fortschritt hier."

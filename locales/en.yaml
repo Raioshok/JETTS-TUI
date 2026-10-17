@@ -375,7 +375,6 @@ gateway:
 
   update:
     platform_not_messaging:  "✗ /update is only available from messaging platforms. Run `jettstui update` from the terminal."
-    not_git_repo:            "✗ Not a git repository — cannot update."
     jettstui_cmd_not_found:    "✗ Could not locate the `jettstui` command. JettsTUI is running, but the update command could not find the executable on PATH or via the current Python interpreter. Try running `jettstui update` manually in your terminal."
     start_failed:            "✗ Failed to start update: {error}"
     starting:                "⚕ Starting JettsTUI update… I'll stream progress here."

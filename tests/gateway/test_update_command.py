@@ -46,47 +46,24 @@ class TestHandleUpdateCommand:
     """Tests for GatewayRunner._handle_update_command."""
 
     @pytest.mark.asyncio
-    async def test_no_git_directory(self, tmp_path):
-        """Returns an error when .git does not exist."""
+    async def test_gitless_install_still_spawns_update(self, tmp_path):
+        """A tree without .git is handed to `jettstui update`, which converts it."""
         runner = _make_runner()
         event = _make_event()
-        # Point _jettstui_home to tmp_path and project_root to a dir without .git
         fake_root = tmp_path / "project"
-        fake_root.mkdir()
-        with patch("gateway.run._jettstui_home", tmp_path), \
-             patch("gateway.run.Path") as MockPath:
-            # Path(__file__).parent.parent.resolve() -> fake_root
-            MockPath.return_value = MagicMock()
-            MockPath.__truediv__ = Path.__truediv__
-            # Easier: just patch the __file__ resolution in the method
-            pass
+        (fake_root / "gateway").mkdir(parents=True)
+        (fake_root / "gateway" / "slash_commands.py").touch()
+        jettstui_home = tmp_path / "jettstui"
+        jettstui_home.mkdir()
 
-        # Simpler approach — mock at method level using a wrapper
-        runner = _make_runner()
+        with patch("gateway.run._jettstui_home", jettstui_home), \
+             patch("gateway.slash_commands.__file__", str(fake_root / "gateway" / "slash_commands.py")), \
+             patch("shutil.which", side_effect=lambda x: "/usr/bin/jettstui" if x == "jettstui" else "/usr/bin/setsid"), \
+             patch("subprocess.Popen") as popen:
+            await runner._handle_update_command(event)
 
-        with patch("gateway.run._jettstui_home", tmp_path):
-            # The handler does Path(__file__).parent.parent.resolve()
-            # We need to make project_root / '.git' not exist.
-            # Since Path(__file__) resolves to the real gateway/run.py,
-            # project_root will be the real jettstui dir (which HAS .git).
-            # Patch Path to control this.
-            original_path = Path
-
-            class FakePath(type(Path())):
-                pass
-
-            # Actually, simplest: just patch the specific file attr.
-            # The _handle_update_command handler lives in gateway/slash_commands.py
-            # (extracted from run.py in the god-file decomposition); it resolves
-            # project_root via Path(__file__).parent.parent, so fake that file.
-            fake_file = str(fake_root / "gateway" / "slash_commands.py")
-            (fake_root / "gateway").mkdir(parents=True)
-            (fake_root / "gateway" / "slash_commands.py").touch()
-
-            with patch("gateway.slash_commands.__file__", fake_file):
-                result = await runner._handle_update_command(event)
-
-        assert "Not a git repository" in result
+        assert popen.called
+        assert (jettstui_home / ".update_pending.json").exists()
 
     @pytest.mark.asyncio
     async def test_no_jettstui_binary(self, tmp_path):

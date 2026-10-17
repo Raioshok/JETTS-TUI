@@ -364,7 +364,6 @@ gateway:
 
   update:
     platform_not_messaging:  "✗ /update متاح فقط من منصّات المراسلة. شغّل `jettstui update` من الطرفية."
-    not_git_repo:            "✗ ليس مستودع git — لا يمكن التحديث."
     jettstui_cmd_not_found:    "✗ تعذّر تحديد موقع أمر `jettstui`. JettsTUI يعمل، لكن أمر التحديث لم يجد الملف التنفيذي على PATH أو عبر مُفسّر Python الحالي. جرّب تشغيل `jettstui update` يدويًا في طرفيتك."
     start_failed:            "✗ فشل بدء التحديث: {error}"
     starting:                "⚕ جارٍ بدء تحديث JettsTUI… سأبثّ التقدّم هنا."

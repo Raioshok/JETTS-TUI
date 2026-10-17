@@ -427,7 +427,7 @@ resolve_install_layout() {
     # macOS root installs keep the legacy layout because /usr/local/ on macOS
     # is Homebrew territory and we don't want to fight that.
     if [ "$OS" = "linux" ] && [ "$(id -u)" -eq 0 ]; then
-        if [ -d "$JETTSTUI_HOME/jettstui/.git" ]; then
+        if [ -d "$JETTSTUI_HOME/jettstui/.git" ] || [ -f "$JETTSTUI_HOME/jettstui/jettstui/main.py" ]; then
             INSTALL_DIR="$JETTSTUI_HOME/jettstui"
             log_info "Existing install detected at $INSTALL_DIR — keeping legacy layout"
             log_info "  (new root installs use /usr/local/lib/jettstui)"
@@ -1300,6 +1300,24 @@ EOF
                     log_info "Your changes are still preserved in git stash."
                     log_info "Restore manually with: git stash apply $autostash_ref"
                 fi
+            fi
+        elif [ -f "$INSTALL_DIR/jettstui/main.py" ]; then
+            # A JettsTUI tree without .git (copied, extracted from an archive,
+            # or .git deleted). Adopt it in place so the venv and local data
+            # survive; tracked files are replaced with origin/$BRANCH.
+            log_warn "Existing install at $INSTALL_DIR isn't a git checkout; converting it..."
+            cd "$INSTALL_DIR"
+            if git init -q \
+                && git remote add origin "$REPO_URL_HTTPS" \
+                && git fetch --depth 1 origin "$BRANCH" \
+                && git checkout -q -f -B "$BRANCH" "origin/$BRANCH" \
+                && git branch -q --set-upstream-to="origin/$BRANCH" "$BRANCH"; then
+                log_success "Converted existing install to a git checkout"
+            else
+                rm -rf "$INSTALL_DIR/.git"
+                log_error "Could not convert $INSTALL_DIR to a git checkout"
+                log_info "Move it aside or choose a different directory with --dir"
+                exit 1
             fi
         else
             log_error "Directory exists but is not a git repository: $INSTALL_DIR"

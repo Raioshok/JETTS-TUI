@@ -5311,12 +5311,6 @@ class GatewaySlashCommandsMixin:
         if is_managed():
             return f"✗ {format_managed_message('update JettsTUI')}"
 
-        project_root = Path(__file__).parent.parent.resolve()
-        git_dir = project_root / '.git'
-
-        if not git_dir.exists():
-            return t("gateway.update.not_git_repo")
-
         jettstui_cmd = _resolve_jettstui_bin()
         if not jettstui_cmd:
             return t("gateway.update.jettstui_cmd_not_found")

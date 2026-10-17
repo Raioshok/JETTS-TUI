@@ -8593,6 +8593,42 @@ OFFICIAL_REPO_URL = "https://github.com/Raioshok/JETTS-TUI.git"
 SKIP_UPSTREAM_PROMPT_FILE = ".skip_upstream_prompt"
 
 
+def _adopt_non_git_install(git_cmd: list[str], root: Path, branch: str) -> bool:
+    """Turn a git-less install tree into a shallow checkout of the official repo.
+
+    Tracked files are replaced with origin/<branch>; untracked files (venv,
+    node_modules, local data) are left in place. On any failure the partial
+    ``.git`` is removed so the tree is exactly as it was.
+    """
+    if not shutil.which(git_cmd[0]):
+        print("✗ git is not installed — install git, then run `jettstui update` again.")
+        return False
+
+    steps = [
+        ["init", "-q"],
+        ["remote", "add", "origin", OFFICIAL_REPO_URL],
+        ["fetch", "--depth", "1", "origin", branch],
+        ["checkout", "-q", "-f", "-B", branch, f"origin/{branch}"],
+        ["branch", "-q", f"--set-upstream-to=origin/{branch}", branch],
+    ]
+    for step in steps:
+        result = subprocess.run(
+            git_cmd + step,
+            cwd=root,
+            capture_output=True,
+            text=True, encoding="utf-8", errors="replace",
+            stdin=subprocess.DEVNULL,
+        )
+        if result.returncode != 0:
+            detail = (result.stderr or result.stdout).strip().splitlines()
+            print(f"✗ Could not convert {root} to a git checkout (git {step[0]} failed).")
+            if detail:
+                print(f"  {detail[-1]}")
+            shutil.rmtree(root / ".git", ignore_errors=True)
+            return False
+    return True
+
+
 def _get_origin_url(git_cmd: list[str], cwd: Path) -> Optional[str]:
     """Get the URL of the origin remote, or None if not set."""
     try:
@@ -11028,7 +11064,8 @@ def _cmd_update_check(branch: str = "main", *, branch_explicit: bool = False):
 
     git_dir = PROJECT_ROOT / ".git"
     if not git_dir.exists():
-        print("✗ Not a git repository — cannot check for updates.")
+        print(f"⚠ {PROJECT_ROOT} isn't a git checkout, so its version can't be compared.")
+        print("  Run `jettstui update` to convert it to a git checkout and update to the latest version.")
         sys.exit(1)
 
     git_cmd = ["git"]
@@ -12234,11 +12271,11 @@ def _cmd_update_impl(args, gateway_mode: bool):
         if sys.platform == "win32":
             use_zip_update = True
         else:
-            print("✗ Not a git repository. Please reinstall:")
-            print(
-                "  curl -fsSL https://raw.githubusercontent.com/Raioshok/JETTS-TUI/main/scripts/install.sh | bash"
-            )
-            sys.exit(1)
+            print(f"→ {PROJECT_ROOT} isn't a git checkout — converting it so it can be updated...")
+            if not _adopt_non_git_install(["git"], PROJECT_ROOT, _resolve_update_branch(args)):
+                _resume_windows_gateways_after_update(_windows_gateway_resume)
+                sys.exit(1)
+            print("✓ Install is now tracked by git")
 
     # On Windows, git can fail with "unable to write loose object file: Invalid argument"
     # due to filesystem atomicity issues. Set the recommended workaround.

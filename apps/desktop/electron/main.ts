@@ -2399,10 +2399,49 @@ async function checkUpdates() {
   const gitDir = path.join(updateRoot, '.git')
 
   if (!directoryExists(gitDir)) {
+    // POSIX `jettstui update` converts a git-less install into a checkout, so
+    // offer the update; the local version is unknowable until then. Windows
+    // ZIP updates never create .git, so offering there would nag forever.
+    if (!IS_WINDOWS && isJettsTUISourceRoot(updateRoot)) {
+      const remote = await runGit(['ls-remote', OFFICIAL_REPO_HTTPS_URL, `refs/heads/${branch || 'main'}`], {
+        cwd: updateRoot
+      }).catch(() => null)
+
+      const targetSha = remote?.code === 0 ? firstLine(remote.stdout).split(/\s+/)[0] || '' : ''
+
+      if (targetSha) {
+        return {
+          supported: true,
+          branch: branch || 'main',
+          currentBranch: branch || 'main',
+          behind: 1,
+          currentSha: '',
+          targetSha,
+          commits: [],
+          dirty: false,
+          jettstuiRoot: updateRoot,
+          fetchedAt: Date.now()
+        }
+      }
+
+      if (remote) {
+        return {
+          supported: true,
+          branch,
+          error: 'fetch-failed',
+          message: firstLine(remote.stderr) || 'git ls-remote failed.',
+          jettstuiRoot: updateRoot,
+          fetchedAt: Date.now()
+        }
+      }
+    }
+
     return {
       supported: false,
       reason: 'not-a-git-checkout',
-      message: `${updateRoot} isn't a git checkout — desktop self-update only runs against a source install.`,
+      message: IS_WINDOWS
+        ? `${updateRoot} isn't a git checkout — run \`jettstui update\` in a terminal to update.`
+        : `${updateRoot} isn't a git checkout and git isn't available — install git, then run \`jettstui update\`.`,
       jettstuiRoot: updateRoot,
       branch
     }
