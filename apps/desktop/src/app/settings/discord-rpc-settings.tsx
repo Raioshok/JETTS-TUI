@@ -112,16 +112,27 @@ function PresenceCard({
   const c = t.settings.discordPresence
   const elapsed = useElapsed(activity?.timestamps?.start)
   const image = activity?.assets?.large_image?.startsWith('https://') ? activity.assets.large_image : iconUrl
+  const badge = activity?.assets?.small_image?.startsWith('https://') ? activity.assets.small_image : ''
 
   return (
     <div className="rounded-xl border border-border/70 bg-(--ui-bg-secondary) p-4">
       <div className="mb-3 text-[0.68rem] font-semibold tracking-wide text-muted-foreground uppercase">{c.playing}</div>
       <div className="flex gap-3">
-        <div className="flex size-16 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-(--ui-bg-tertiary)">
-          {image ? (
-            <img alt="" className="size-full object-cover" src={image} />
-          ) : (
-            <DiscordIcon className="size-7 text-muted-foreground" />
+        <div className="relative size-16 shrink-0" title={activity?.assets?.large_text}>
+          <div className="flex size-full items-center justify-center overflow-hidden rounded-lg bg-(--ui-bg-tertiary)">
+            {image ? (
+              <img alt="" className="size-full object-cover" src={image} />
+            ) : (
+              <DiscordIcon className="size-7 text-muted-foreground" />
+            )}
+          </div>
+          {badge && (
+            <img
+              alt=""
+              className="absolute -right-1 -bottom-1 size-6 rounded-full bg-(--ui-bg-secondary) p-0.5 ring-2 ring-(--ui-bg-secondary)"
+              src={badge}
+              title={activity?.assets?.small_text}
+            />
           )}
         </div>
         <div className="min-w-0 text-[length:var(--conversation-caption-font-size)] leading-snug">
@@ -355,6 +366,18 @@ export function DiscordRpcSettings() {
             )
           })}
         </div>
+        <ToggleRow
+          checked={settings.phase_badges}
+          description={c.phaseBadgesDesc}
+          label={c.phaseBadges}
+          onChange={on => change({ phase_badges: on })}
+        />
+        <ToggleRow
+          checked={settings.status_display !== 'name'}
+          description={c.memberListDesc}
+          label={c.memberList}
+          onChange={on => change({ status_display: on ? 'details' : 'name' })}
+        />
       </SettingsSection>
 
       <SettingsSection icon={Lock} title={c.privacyTitle}>

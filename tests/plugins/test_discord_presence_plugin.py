@@ -276,9 +276,17 @@ class Clock:
         return self.now
 
 
-def _service(peer: Optional[FakeDiscord], settings: Any) -> tuple:
-    clock = Clock()
+def _service(
+    peer: Optional[FakeDiscord],
+    settings: Any,
+    *,
+    registry: Any = None,
+    clock: Optional[Clock] = None,
+    projects: Optional[Dict[str, str]] = None,
+) -> tuple:
+    clock = clock or Clock()
     box = {"settings": settings}
+    projects = projects or {}
 
     def ipc_factory(client_id: str):
         if peer is None:
@@ -292,7 +300,8 @@ def _service(peer: Optional[FakeDiscord], settings: Any) -> tuple:
         ipc_factory=ipc_factory,
         clock=clock,
         monotonic=clock,
-        project_resolver=lambda: "demo",
+        project_resolver=lambda task_id="": projects.get(task_id, "demo"),
+        registry=registry,
         autostart=False,
     )
     return svc, clock, box
@@ -360,6 +369,120 @@ def test_status_preview_never_contains_tool_arguments():
     assert status["settings"]["client_id"] == APP_ID
     assert status["preview"]["details"]
     assert {p["id"] for p in status["presets"]} == set(act.PRESETS)
+
+
+# ------------------------------------------------------------ multi-project
+
+def test_aggregate_follows_the_session_that_needs_attention():
+    editing = _working(project="api", tool="patch", last_active_at=1010.0, started_at=1005.0, tool_calls=2)
+    waiting = _working(project="web", phase=act.PHASE_APPROVAL, tool="", last_active_at=1001.0, started_at=990.0)
+    card = act.aggregate([editing, waiting])
+    assert card.phase == act.PHASE_APPROVAL
+    assert card.project_names == ("web", "api")
+    assert card.started_at == 990.0  # elapsed time covers the whole stretch of work
+    assert card.tool_calls == 2 + 3
+
+
+def test_card_counts_projects_and_names_the_focused_one():
+    card = act.aggregate([
+        _working(project="api", tool="patch", last_active_at=1003.0),
+        _working(project="web", phase=act.PHASE_THINKING, last_active_at=1002.0),
+        _working(project="cli", phase=act.PHASE_IDLE, last_active_at=1001.0),
+    ])
+    activity = act.compose_activity(_settings(preset="minimal"), card, now=1004.0)
+    assert activity["details"] == "Working in 3 projects"
+    assert activity["state"] == "Editing code · api"
+    assert activity["assets"]["large_text"] == "JettsTUI · api, web, cli"
+    assert activity["assets"]["small_image"] == act.PHASE_BADGES[act.PHASE_TOOL]
+    assert activity["status_display_type"] == act.STATUS_DISPLAY_TYPES["details"]
+
+    single = act.compose_activity(_settings(preset="minimal"), _working(project="api"), now=1004.0)
+    assert single["details"] == "Using JettsTUI"
+
+
+def test_hidden_project_names_still_show_a_count():
+    card = act.aggregate([_working(project="secret-a"), _working(project="secret-b", last_active_at=999.0)])
+    activity = act.compose_activity(_settings(preset="minimal", show_project=False), card, now=1001.0)
+    text = _all_text(activity)
+    assert "secret-a" not in text and "secret-b" not in text
+    assert activity["details"] == "Working in 2 projects"
+
+
+def test_presentation_extras_can_be_turned_off():
+    activity = act.compose_activity(
+        _settings(phase_badges=False, status_display="name"), _working(), now=1001.0
+    )
+    assert "small_image" not in activity.get("assets", {})
+    assert "status_display_type" not in activity
+
+
+def test_sessions_in_one_process_are_tracked_per_project():
+    peer = FakeDiscord()
+    svc, _, _ = _service(peer, _settings(preset="pairing"), projects={"task-a": "api", "task-b": "web"})
+    svc.turn_started(session_id="a", task_id="task-a", platform="desktop")
+    svc.turn_started(session_id="b", task_id="task-b", platform="desktop")
+    svc.tool_started(session_id="b", tool_call_id="1", tool_name="terminal", task_id="task-b")
+    svc._tick()
+    shown = peer.activities[-1]
+    assert shown["details"] == "Pairing across 2 projects"
+    assert shown["state"] == "Running commands · web"
+    assert svc.status()["project_count"] == 2
+
+    svc.session_reset(session_id="b")
+    assert svc.snapshot().project_names == ("api",)
+
+
+def test_only_one_process_owns_the_card_and_it_hands_over(tmp_path):
+    peers_mod = sys.modules[f"{PACKAGE}.peers"]
+    clock = Clock()
+    first_discord, second_discord = FakeDiscord(), FakeDiscord()
+    first, _, _ = _service(first_discord, _settings(preset="minimal"), clock=clock,
+                           registry=peers_mod.PeerRegistry(tmp_path, pid=100), projects={"t": "api"})
+    second, _, _ = _service(second_discord, _settings(preset="minimal"), clock=clock,
+                            registry=peers_mod.PeerRegistry(tmp_path, pid=200), projects={"t": "web"})
+
+    first.turn_started(session_id="s1", task_id="t", platform="cli")
+    second.turn_started(session_id="s2", task_id="t", platform="cli")
+    # pid 200 ticks before pid 100 has published, so it briefly owns the card;
+    # its next tick sees the lower pid, clears its own card and steps back.
+    second._tick()
+    first._tick()
+    second._tick()
+    assert second_discord.activities[-1] is None
+    assert not second.status()["connected"]
+    assert second.status()["shown_by_other_process"]
+    assert first_discord.activities[-1]["details"] == "Working in 2 projects"
+
+    # The owner stops working: once its sessions time out it withdraws and the
+    # other process takes over with just its own project.
+    first.stop()
+    clock.now += service_mod.MIN_UPDATE_INTERVAL
+    second._tick()
+    assert second_discord.activities[-1]["details"] == "Using JettsTUI"
+
+
+def test_stale_peers_are_forgotten(tmp_path):
+    peers_mod = sys.modules[f"{PACKAGE}.peers"]
+    crashed = peers_mod.PeerRegistry(tmp_path, pid=1)
+    crashed.publish([_working(project="ghost")], now=1000.0)
+    me = peers_mod.PeerRegistry(tmp_path, pid=2)
+    assert [pid for pid, _ in me.peers(now=1000.0 + 10)] == [1]
+    assert me.peers(now=1000.0 + peers_mod.PEER_TTL + 1) == []
+    assert not list(tmp_path.glob("1.json"))
+
+
+def test_old_discord_rejecting_status_display_still_gets_the_card():
+    peer = FakeDiscord()
+    svc, _, _ = _service(peer, _settings())
+    svc.turn_started(session_id="s", platform="cli")
+    svc._tick()  # connect
+    peer.activities.clear()
+    peer.reject_next = {"code": 4000, "message": "Unknown field status_display_type"}
+    svc.tool_started(session_id="s", tool_call_id="1", tool_name="patch")
+    svc._clock.now += service_mod.MIN_UPDATE_INTERVAL
+    svc._tick()
+    assert peer.activities and "status_display_type" not in peer.activities[-1]
+    assert "Editing code" in peer.activities[-1]["state"]
 
 
 # ---------------------------------------------------------- slash + register

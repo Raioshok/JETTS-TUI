@@ -30,28 +30,32 @@ Set the Discord Application ID with: jettstui rpc setup <application-id>"""
 
 # ----------------------------------------------------------------- hooks
 
-def _on_session_start(session_id: str = "", model: str = "", platform: str = "", **_: object) -> None:
-    get_service().session_started(session_id=session_id, model=model or "", platform=platform or "")
+def _on_session_start(session_id: str = "", model: str = "", platform: str = "", task_id: str = "", **_: object) -> None:
+    get_service().session_started(session_id=session_id or "", model=model or "", platform=platform or "", task_id=task_id or "")
 
 
-def _on_pre_llm_call(session_id: str = "", model: str = "", platform: str = "", **_: object) -> None:
-    get_service().turn_started(session_id=session_id, model=model or "", platform=platform or "")
+def _on_pre_llm_call(session_id: str = "", model: str = "", platform: str = "", task_id: str = "", **_: object) -> None:
+    get_service().turn_started(session_id=session_id or "", model=model or "", platform=platform or "", task_id=task_id or "")
 
 
-def _on_pre_tool_call(tool_name: str = "", session_id: str = "", tool_call_id: str = "", **_: object) -> None:
-    get_service().tool_started(session_id=session_id or "", tool_call_id=tool_call_id or "", tool_name=tool_name)
+def _on_pre_tool_call(tool_name: str = "", session_id: str = "", tool_call_id: str = "", task_id: str = "", **_: object) -> None:
+    get_service().tool_started(
+        session_id=session_id or "", tool_call_id=tool_call_id or "", tool_name=tool_name, task_id=task_id or ""
+    )
 
 
-def _on_post_tool_call(tool_name: str = "", session_id: str = "", tool_call_id: str = "", **_: object) -> None:
-    get_service().tool_finished(session_id=session_id or "", tool_call_id=tool_call_id or "", tool_name=tool_name)
+def _on_post_tool_call(tool_name: str = "", session_id: str = "", tool_call_id: str = "", task_id: str = "", **_: object) -> None:
+    get_service().tool_finished(
+        session_id=session_id or "", tool_call_id=tool_call_id or "", tool_name=tool_name, task_id=task_id or ""
+    )
 
 
-def _on_approval_request(**_: object) -> None:
-    get_service().approval_requested()
+def _on_approval_request(session_id: str = "", session_key: str = "", **_: object) -> None:
+    get_service().approval_requested(session_id=session_id or session_key or "")
 
 
-def _on_approval_response(**_: object) -> None:
-    get_service().approval_resolved()
+def _on_approval_response(session_id: str = "", session_key: str = "", **_: object) -> None:
+    get_service().approval_resolved(session_id=session_id or session_key or "")
 
 
 def _on_turn_end(session_id: str = "", **_: object) -> None:
@@ -60,8 +64,8 @@ def _on_turn_end(session_id: str = "", **_: object) -> None:
     get_service().turn_finished(session_id=session_id or "")
 
 
-def _on_session_reset(**_: object) -> None:
-    get_service().session_reset()
+def _on_session_reset(session_id: str = "", **_: object) -> None:
+    get_service().session_reset(session_id=session_id or "")
 
 
 # ----------------------------------------------------------- slash command

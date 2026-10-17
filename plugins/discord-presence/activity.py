@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass, field, replace
-from typing import Any, Dict, List, Mapping, Optional, Tuple
+from typing import Any, Dict, Iterable, List, Mapping, Optional, Tuple
 
 CONFIG_SECTION = "discord_rpc"
 
@@ -24,11 +24,26 @@ MAX_BUTTON_LABEL = 32
 MAX_BUTTON_URL = 512
 
 ACTIVITY_TYPES: Dict[str, int] = {"playing": 0, "listening": 2, "watching": 3, "competing": 5}
+# Which line Discord shows under the user's name in member lists.
+STATUS_DISPLAY_TYPES: Dict[str, int] = {"name": 0, "state": 1, "details": 2}
 
 PHASE_IDLE = "idle"
 PHASE_THINKING = "thinking"
 PHASE_TOOL = "tool"
 PHASE_APPROVAL = "approval"
+
+# When several sessions are live, the card follows the one that most needs
+# the user's attention, then the most recently active.
+_PHASE_PRIORITY = {PHASE_APPROVAL: 3, PHASE_TOOL: 2, PHASE_THINKING: 1, PHASE_IDLE: 0}
+
+# Corner badge per phase (Twemoji, CC-BY 4.0), used when no small image is set.
+_TWEMOJI = "https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/72x72/{}.png"
+PHASE_BADGES: Dict[str, str] = {
+    PHASE_THINKING: _TWEMOJI.format("1f9e0"),
+    PHASE_TOOL: _TWEMOJI.format("26a1"),
+    PHASE_APPROVAL: _TWEMOJI.format("270b"),
+    PHASE_IDLE: _TWEMOJI.format("1f4a4"),
+}
 
 # Friendly, argument-free descriptions. Tool arguments never leave the machine.
 _TOOL_VERBS: Tuple[Tuple[str, str], ...] = (
@@ -61,28 +76,35 @@ _PHASE_TEXT = {
 
 # Each preset is (details parts, state parts). Parts are joined with " · "
 # after rendering, and any part that renders empty (a hidden field) is dropped.
+# ``multi_details`` replaces ``details`` while more than one project is live;
+# the state line then names the project the activity belongs to.
 PRESETS: Dict[str, Dict[str, Any]] = {
     "pairing": {
         "label": "Pairing",
         "details": ("Pair programming with JettsTUI",),
+        "multi_details": ("Pairing across {project_count}",),
         "state": ("{activity}", "{model}"),
     },
     "vibe_coding": {
         "label": "Vibe coding",
         "details": ("Vibe coding", "{project}"),
+        "multi_details": ("Vibe coding across {project_count}",),
         "state": ("{activity}",),
     },
     "autonomous": {
         "label": "Autonomous",
         "details": ("Autonomous agent at work", "{project}"),
+        "multi_details": ("Agents at work in {project_count}",),
         "state": ("{activity}", "{tool_calls}"),
     },
     "minimal": {
         "label": "Minimal",
         "details": ("Using JettsTUI",),
+        "multi_details": ("Working in {project_count}",),
         "state": ("{activity}",),
     },
 }
+_MULTI_STATE = ("{activity}", "{project}")
 DEFAULT_PRESET = "pairing"
 # Names shipped by the first version of this feature.
 PRESET_ALIASES = {"fine_tuning": "autonomous", "idle": "minimal"}
@@ -143,6 +165,8 @@ class PresenceSettings:
     show_project: bool = True
     show_tool_activity: bool = True
     show_elapsed: bool = True
+    phase_badges: bool = True
+    status_display: str = "details"
     idle_timeout_minutes: int = 15
     details: str = ""
     state: str = ""
@@ -183,6 +207,10 @@ class PresenceSettings:
         if activity_type not in ACTIVITY_TYPES:
             activity_type = base.activity_type
 
+        status_display = _as_text(section.get("status_display")).lower() or base.status_display
+        if status_display not in STATUS_DISPLAY_TYPES:
+            status_display = base.status_display
+
         def text(key: str, default: str) -> str:
             return _as_text(section[key]) if key in section else default
 
@@ -195,6 +223,8 @@ class PresenceSettings:
             show_project=_as_bool(section.get("show_project"), base.show_project),
             show_tool_activity=_as_bool(section.get("show_tool_activity"), base.show_tool_activity),
             show_elapsed=_as_bool(section.get("show_elapsed"), base.show_elapsed),
+            phase_badges=_as_bool(section.get("phase_badges"), base.phase_badges),
+            status_display=status_display,
             idle_timeout_minutes=max(0, idle),
             details=text("details", base.details),
             state=text("state", base.state),
@@ -216,6 +246,8 @@ class PresenceSettings:
             "show_project": self.show_project,
             "show_tool_activity": self.show_tool_activity,
             "show_elapsed": self.show_elapsed,
+            "phase_badges": self.phase_badges,
+            "status_display": self.status_display,
             "idle_timeout_minutes": self.idle_timeout_minutes,
             "details": self.details,
             "state": self.state,
@@ -238,9 +270,41 @@ class Snapshot:
     started_at: Optional[float] = None
     last_active_at: float = 0.0
     tool_calls: int = 0
+    # Every live project, the focused one first. Empty means just ``project``.
+    projects: Tuple[str, ...] = ()
 
     def with_(self, **changes: Any) -> "Snapshot":
         return replace(self, **changes)
+
+    @property
+    def project_names(self) -> Tuple[str, ...]:
+        if self.projects:
+            return self.projects
+        return (self.project,) if self.project else ()
+
+
+def aggregate(sessions: Iterable[Snapshot]) -> Snapshot:
+    """Fold every live session into one card-worthy snapshot.
+
+    The focus is the session that most needs attention (approval > tool >
+    thinking > idle), ties broken by recency. Elapsed time starts at the
+    earliest session, and tool calls add up.
+    """
+    live = list(sessions)
+    if not live:
+        return Snapshot()
+    focus = max(live, key=lambda s: (_PHASE_PRIORITY.get(s.phase, 0), s.last_active_at))
+    names: List[str] = []
+    for session in [focus, *sorted(live, key=lambda s: s.last_active_at, reverse=True)]:
+        if session.project and session.project not in names:
+            names.append(session.project)
+    starts = [s.started_at for s in live if s.started_at]
+    return focus.with_(
+        projects=tuple(names),
+        started_at=min(starts) if starts else None,
+        last_active_at=max(s.last_active_at for s in live),
+        tool_calls=sum(s.tool_calls for s in live),
+    )
 
 
 def describe_tool(tool_name: str) -> str:
@@ -264,12 +328,25 @@ def _model_label(model: str) -> str:
     return (model or "").strip().rsplit("/", 1)[-1]
 
 
+def _project_list(names: Tuple[str, ...], limit: int = 3) -> str:
+    shown = ", ".join(names[:limit])
+    return f"{shown} +{len(names) - limit}" if len(names) > limit else shown
+
+
 def _variables(settings: PresenceSettings, snapshot: Snapshot) -> Dict[str, str]:
     calls = snapshot.tool_calls
+    names = snapshot.project_names
+    count = len(names)
+    # A count reveals nothing identifying, so it shows even with names hidden.
+    project_count = f"{count} project{'s' if count != 1 else ''}" if count else ""
+    project = snapshot.project.strip() if settings.show_project else ""
     return {
         "activity": activity_text(settings, snapshot),
         "model": _model_label(snapshot.model) if settings.show_model else "",
-        "project": snapshot.project.strip() if settings.show_project else "",
+        "project": project,
+        "projects": _project_list(names) if settings.show_project else "",
+        "project_count": project_count,
+        "workspace": project_count if count > 1 else project,
         "tool_calls": (f"{calls} tool call{'s' if calls != 1 else ''}" if calls and settings.show_tool_activity else ""),
     }
 
@@ -314,10 +391,16 @@ def compose_activity(settings: PresenceSettings, snapshot: Snapshot, now: float)
 
     preset = PRESETS[resolve_preset(settings.preset)]
     variables = _variables(settings, snapshot)
-    details = render_template(settings.details, variables) if settings.details else _join_parts(preset["details"], variables)
-    state = render_template(settings.state, variables) if settings.state else _join_parts(preset["state"], variables)
+    multi = len(snapshot.project_names) > 1
+    details_parts = preset["multi_details"] if multi else preset["details"]
+    state_parts = _MULTI_STATE if multi else preset["state"]
+    details = render_template(settings.details, variables) if settings.details else _join_parts(details_parts, variables)
+    state = render_template(settings.state, variables) if settings.state else _join_parts(state_parts, variables)
 
     activity: Dict[str, Any] = {"type": ACTIVITY_TYPES.get(settings.activity_type, 0), "instance": False}
+    status_display = STATUS_DISPLAY_TYPES.get(settings.status_display, 0)
+    if status_display:
+        activity["status_display_type"] = status_display
     if fit_text(details):
         activity["details"] = fit_text(details)
     if fit_text(state):
@@ -329,11 +412,16 @@ def compose_activity(settings: PresenceSettings, snapshot: Snapshot, now: float)
     assets: Dict[str, str] = {}
     if settings.large_image:
         assets["large_image"] = settings.large_image
-        large_text = fit_text(render_template(settings.large_text, variables))
+        large_text = render_template(settings.large_text, variables)
+        if multi and variables["projects"] and settings.large_text == PresenceSettings.large_text:
+            # Hovering the art lists the projects instead of crowding the text lines.
+            large_text = f"{large_text} · {variables['projects']}"
+        large_text = fit_text(large_text)
         if large_text:
             assets["large_text"] = large_text
-    if settings.small_image:
-        assets["small_image"] = settings.small_image
+    small_image = settings.small_image or (PHASE_BADGES.get(snapshot.phase, "") if settings.phase_badges else "")
+    if small_image:
+        assets["small_image"] = small_image
         small_text = fit_text(render_template(settings.small_text, variables) or variables["activity"])
         if small_text:
             assets["small_text"] = small_text

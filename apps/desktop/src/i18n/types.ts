@@ -486,6 +486,10 @@ export interface Translations {
       showActivityDesc: string
       showElapsed: string
       showElapsedDesc: string
+      phaseBadges: string
+      phaseBadgesDesc: string
+      memberList: string
+      memberListDesc: string
       idleTitle: string
       idleDesc: string
       customTitle: string

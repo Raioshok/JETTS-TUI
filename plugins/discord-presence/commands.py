@@ -13,7 +13,7 @@ from .service import get_service, lookup_application
 PLUGIN_NAME = "discord-presence"
 
 # Settings the desktop tab may edit through update_settings().
-_EDITABLE_BOOL = {"show_model", "show_project", "show_tool_activity", "show_elapsed"}
+_EDITABLE_BOOL = {"show_model", "show_project", "show_tool_activity", "show_elapsed", "phase_badges"}
 _EDITABLE_TEXT = {"details", "state", "large_image", "large_text", "small_image", "small_text"}
 
 
@@ -87,6 +87,10 @@ def update_settings(changes: Dict[str, Any]) -> Dict[str, Any]:
             _save(key, text[: act.MAX_TEXT] if not key.endswith("_image") else text)
         elif key == "preset":
             set_preset(str(value))
+        elif key == "status_display":
+            if value not in act.STATUS_DISPLAY_TYPES:
+                raise ValueError(f"status_display must be one of: {', '.join(act.STATUS_DISPLAY_TYPES)}")
+            _save(key, value)
         elif key == "activity_type":
             if value not in act.ACTIVITY_TYPES:
                 raise ValueError(f"activity_type must be one of: {', '.join(act.ACTIVITY_TYPES)}")
@@ -156,10 +160,16 @@ def format_status(status: Dict[str, Any], *, user: Optional[Dict[str, Any]] = No
     if user:
         name = user.get("display_name") or user.get("global_name") or user.get("username") or "?"
         lines.append(f"  Discord:     connected as {name}")
+    elif status.get("shown_by_other_process"):
+        lines.append("  Discord:     shown by another JettsTUI window")
     elif error:
         lines.append(f"  Discord:     {error}")
     else:
         lines.append("  Discord:     not connected")
+    count = status.get("project_count") or 0
+    if count:
+        names = ", ".join(status.get("projects") or [])
+        lines.append(f"  Projects:    {count}{f' ({names})' if names else ''}")
     lines.append(f"  Preset:      {settings['preset']}")
     shown = [label for key, label in (
         ("show_model", "model"),

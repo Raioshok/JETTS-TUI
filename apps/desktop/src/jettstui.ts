@@ -759,6 +759,8 @@ export interface DiscordPresenceSettings {
   show_project: boolean
   show_tool_activity: boolean
   show_elapsed: boolean
+  phase_badges: boolean
+  status_display: 'details' | 'name' | 'state'
   idle_timeout_minutes: number
   details: string
   state: string
@@ -777,6 +779,9 @@ export interface DiscordPresenceStatus {
   user: { id?: string; username?: string; display_name?: string }
   error: string
   phase: 'approval' | 'idle' | 'thinking' | 'tool'
+  projects: string[]
+  project_count: number
+  shown_by_other_process: boolean
   activity: DiscordActivity | null
   preview: DiscordActivity | null
   settings: DiscordPresenceSettings
