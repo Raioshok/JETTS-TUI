@@ -723,7 +723,13 @@ class TestStopRun:
         task_started = asyncio.Event()
         allow_task = asyncio.Event()
 
-        def _delayed_create_task(coro):
+        def _delayed_create_task(coro, **kwargs):
+            # The patch is process-global (api_server.asyncio is the asyncio
+            # module), so only hold back the /v1/runs worker — aiohttp's client
+            # schedules the request body write through create_task too.
+            if not coro.__qualname__.endswith("_run_and_close"):
+                return original_create_task(coro, **kwargs)
+
             async def _delayed():
                 task_started.set()
                 await allow_task.wait()

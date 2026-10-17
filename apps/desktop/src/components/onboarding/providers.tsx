@@ -9,10 +9,10 @@ const PROVIDER_DISPLAY: Record<string, { order: number; title: string }> = {
   'qwen-oauth': { order: 3, title: 'Qwen Code' },
   'xai-oauth': { order: 4, title: 'xAI Grok' },
   antigravity: { order: 5, title: 'Google Antigravity (AI Pro / Ultra)' },
-  // Both Anthropic entries sit at the bottom: the OAuth subscription path
-  // first (handled by ClaudeOAuthLogin in settings), then the Claude Code CLI path.
-  anthropic: { order: 6, title: 'Claude Subscription (OAuth)' },
-  'claude-code': { order: 7, title: 'Claude Code Subscription' }
+  // Both Anthropic entries sit at the bottom: the API-key path first, then
+  // the subscription OAuth path (only works with extra usage credits).
+  anthropic: { order: 6, title: 'Anthropic API Key' },
+  'claude-code': { order: 7, title: 'Anthropic OAuth: Required Extra Usage Credits to Use Subscription' }
 }
 
 export const providerTitle = (p: Pick<OAuthProvider, 'id' | 'name'>) => PROVIDER_DISPLAY[p.id]?.title ?? p.name

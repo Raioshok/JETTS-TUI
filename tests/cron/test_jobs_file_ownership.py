@@ -225,13 +225,10 @@ class TestTickerLoopRecordsErrors:
         monkeypatch.setattr("cron.scheduler.tick", tick_fn)
 
         stop_event = threading.Event()
-        original_wait = stop_event.wait
-
-        def _stop_after_first_tick(timeout=None):
-            stop_event.set()
-            return original_wait(0)
-
-        stop_event.wait = _stop_after_first_tick
+        monkeypatch.setattr(
+            "cron.scheduler_provider._wait_for_next_tick",
+            lambda event, interval: event.set(),
+        )
         provider.start(stop_event)
 
     def test_failing_tick_persists_error(self, cron_store, monkeypatch):
