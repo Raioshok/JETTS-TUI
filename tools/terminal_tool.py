@@ -39,6 +39,7 @@ import platform
 import re
 import time
 import threading
+from collections import OrderedDict
 import atexit
 import shutil
 import subprocess
@@ -1170,29 +1171,66 @@ def clear_task_env_overrides(task_id: str):
     clear_session_cwd(task_id)
 
 
+# Task ids ``run_conversation`` invents for callers that pass none (API server,
+# one-shot runs, background review). They change every turn, so they must not
+# key a terminal of their own — they keep sharing the "default" one.
+EPHEMERAL_TASK_PREFIX = "turn-"
+
+# delegate_task child -> parent task id, so a subagent runs in its parent
+# chat's terminal. Bounded: entries are tiny, but one is added per delegation.
+_task_parents: "OrderedDict[str, str]" = OrderedDict()
+_task_parents_lock = threading.Lock()
+_TASK_PARENTS_MAX = 4096
+
+
+def register_task_parent(child_task_id: Optional[str], parent_task_id: Optional[str]) -> None:
+    """Make *child_task_id* share *parent_task_id*'s terminal."""
+    if not child_task_id or not parent_task_id or child_task_id == parent_task_id:
+        return
+    with _task_parents_lock:
+        _task_parents[child_task_id] = parent_task_id
+        _task_parents.move_to_end(child_task_id)
+        while len(_task_parents) > _TASK_PARENTS_MAX:
+            _task_parents.popitem(last=False)
+
+
+def _chat_root(task_id: str) -> str:
+    """Follow subagent -> parent links to the chat that owns the terminal."""
+    with _task_parents_lock:
+        for _ in range(16):
+            parent = _task_parents.get(task_id)
+            if not parent:
+                break
+            task_id = parent
+    return task_id
+
+
+def _local_backend() -> bool:
+    _ensure_terminal_env_bridged()
+    return os.getenv("TERMINAL_ENV", "local").strip().lower() in {"", "local"}
+
+
 def _resolve_container_task_id(task_id: Optional[str]) -> str:
     """
-    Map a tool-call ``task_id`` to the container/sandbox key used by
-    ``_active_environments``.
+    Map a tool-call ``task_id`` to the environment key used by
+    ``_active_environments`` (and the file-ops cache and process registry).
 
-    The top-level agent passes ``task_id=None`` and lands on ``"default"``.
-    ``delegate_task`` children pass their own subagent ID so that
-    file-state tracking, the active-subagents registry, and TUI events stay
-    distinct per child -- but we deliberately collapse that ID back to
-    ``"default"`` here so subagents share the parent's long-lived container
-    (one bash, one /workspace, one set of installed packages).
+    Local backend: every chat gets its OWN terminal, keyed by the chat's task
+    id. Local environments are cheap (each command is a fresh bash, and new
+    ones copy a cached startup snapshot instead of running a login shell), and
+    sharing one let a chat's ``cd``, ``export`` and background processes leak
+    into whatever else was running. ``delegate_task`` children resolve to
+    their parent chat's terminal; per-turn ephemeral ids and the CLI's
+    ``None`` keep the shared ``"default"`` one.
+
+    Container/remote backends: every chat collapses to ``"default"`` so they
+    share ONE long-lived sandbox (one container, one set of installed
+    packages) — a sandbox per chat would be slow and heavy.
 
     Exception: RL / benchmark environments (TerminalBench2, JettsTUISweEnv, ...)
-    call ``register_task_env_overrides(task_id, {...})`` to request a
-    per-task Docker/Modal image. When an override is registered for a
-    task_id, we honour it by returning the task_id unchanged -- those
-    rollouts need their own isolated sandbox, which is the whole point of
-    the override.
-
-    CWD-only overrides (registered by the ACP adapter for workspace
-    tracking) are *not* isolation signals — they should not cause each
-    session to spin up its own container.  Only overrides containing
-    backend-specific image keys or ``env_type`` trigger isolation.
+    call ``register_task_env_overrides(task_id, {...})`` with backend image
+    keys to request an isolated per-task sandbox; those return the task_id
+    unchanged. CWD-only overrides are workspace tracking, not isolation.
     """
     _ISOLATION_KEYS = frozenset({
         "docker_image", "modal_image", "singularity_image",
@@ -1202,6 +1240,10 @@ def _resolve_container_task_id(task_id: Optional[str]) -> str:
         overrides = _task_env_overrides[task_id]
         if set(overrides.keys()) & _ISOLATION_KEYS:
             return task_id
+    if task_id and _local_backend():
+        root = _chat_root(task_id)
+        if not root.startswith(EPHEMERAL_TASK_PREFIX):
+            return root
     return "default"
 
 

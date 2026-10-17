@@ -289,9 +289,9 @@ def test_absolute_terminal_cwd_anchors_with_empty_registry(_isolated_cwd, monkey
 def test_registered_task_cwd_override_anchors_before_terminal_env_exists(_isolated_cwd, monkeypatch):
     """TUI/Desktop sessions register cwd by raw session key before tools run.
 
-    CWD-only overrides collapse to the shared terminal environment key, but the
-    file resolver must still read the raw task/session override before falling
-    back to TERMINAL_CWD or the process cwd.
+    On the local backend each session has its own terminal environment, and the
+    file resolver must read the raw task/session override before falling back
+    to TERMINAL_CWD or the process cwd.
     """
     workspace, decoy = _isolated_cwd
     task_id = "desktop-session-cwd"
@@ -303,7 +303,7 @@ def test_registered_task_cwd_override_anchors_before_terminal_env_exists(_isolat
 
     resolved = ft._resolve_path_for_task("target.py", task_id=task_id)
 
-    assert terminal_tool._resolve_container_task_id(task_id) == "default"
+    assert terminal_tool._resolve_container_task_id(task_id) == task_id
     assert resolved == (workspace / "target.py")
     assert not str(resolved).startswith(str(decoy))
 

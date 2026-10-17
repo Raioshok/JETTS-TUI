@@ -21,6 +21,13 @@ from tools import terminal_tool
 
 
 @pytest.fixture(autouse=True)
+def _container_backend(monkeypatch):
+    """This is the container contract; local gives each chat its own terminal
+    (see test_terminal_per_chat.py)."""
+    monkeypatch.setenv("TERMINAL_ENV", "docker")
+
+
+@pytest.fixture(autouse=True)
 def _clean_overrides():
     """Ensure no stray overrides from other tests leak in."""
     before = dict(terminal_tool._task_env_overrides)

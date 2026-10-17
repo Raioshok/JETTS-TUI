@@ -10,7 +10,9 @@ import signal
 import subprocess
 import sys
 import tempfile
+import threading
 import time
+from collections import OrderedDict
 from pathlib import Path
 
 from tools.environments.base import BaseEnvironment, _pipe_stdin
@@ -1285,6 +1287,16 @@ def _prepend_shell_init(cmd_string: str, files: list[str]) -> str:
     return prelude + cmd_string
 
 
+# Startup snapshots, keyed by everything that shapes them. Capturing one runs a
+# login shell (~0.4-0.6s with Windows Git Bash); every chat gets its own local
+# terminal, so later ones copy the cached text instead (~1ms) and then diverge
+# through their own exports. Bounded: a key only changes with the host env.
+_SNAPSHOT_TEMPLATES: "OrderedDict[tuple, str]" = OrderedDict()
+_SNAPSHOT_TEMPLATES_LOCK = threading.Lock()
+_SNAPSHOT_TEMPLATES_MAX = 8
+_SNAPSHOT_KEY_EXCLUDED_PREFIXES = ("JETTSTUI_SESSION_", "JETTSTUI_CRON_AUTO_DELIVER_")
+
+
 class LocalEnvironment(BaseEnvironment):
     """Run commands directly on the host machine.
 
@@ -1293,10 +1305,58 @@ class LocalEnvironment(BaseEnvironment):
     CWD persists via file-based read after each command.
     """
 
+    # The host filesystem outlives turns; the idle reaper frees the terminal.
+    _persistent = True
+
     def __init__(self, cwd: str = "", timeout: int = 60, env: dict = None):
         cwd = _resolve_local_initial_cwd(cwd)
         super().__init__(cwd=cwd, timeout=timeout, env=env)
         self.init_session()
+
+    def _snapshot_template_key(self) -> tuple:
+        host_env = tuple(sorted(
+            (k, v) for k, v in os.environ.items()
+            if not k.startswith(_SNAPSHOT_KEY_EXCLUDED_PREFIXES)
+        ))
+        return (tuple(sorted(self.env.items())), host_env)
+
+    def init_session(self):
+        key = self._snapshot_template_key()
+        with _SNAPSHOT_TEMPLATES_LOCK:
+            template = _SNAPSHOT_TEMPLATES.get(key)
+        if template is not None and self._install_snapshot(template):
+            return
+        super().init_session()
+        if not self._snapshot_ready:
+            return
+        try:
+            with open(self._snapshot_path, encoding="utf-8") as handle:
+                captured = handle.read()
+        except OSError:
+            return
+        with _SNAPSHOT_TEMPLATES_LOCK:
+            _SNAPSHOT_TEMPLATES[key] = captured
+            _SNAPSHOT_TEMPLATES.move_to_end(key)
+            while len(_SNAPSHOT_TEMPLATES) > _SNAPSHOT_TEMPLATES_MAX:
+                _SNAPSHOT_TEMPLATES.popitem(last=False)
+
+    def _install_snapshot(self, text: str) -> bool:
+        """Publish *text* as this terminal's snapshot (0600, atomic)."""
+        tmp = f"{self._snapshot_path}.tmp.{os.getpid()}"
+        try:
+            fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+            with os.fdopen(fd, "w", encoding="utf-8", newline="") as handle:
+                handle.write(text)
+            os.replace(tmp, self._snapshot_path)
+        except OSError:
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+            return False
+        self._snapshot_ready = True
+        self._prefer_nonlogin = False
+        return True
 
     def get_temp_dir(self) -> str:
         """Return a shell-safe writable temp dir for local execution.

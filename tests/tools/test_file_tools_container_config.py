@@ -74,12 +74,12 @@ class TestFileToolsContainerConfig:
         assert cc.get("docker_forward_env") == []
 
     def test_cwd_only_raw_task_override_reaches_file_environment(self):
-        """CWD-only task overrides collapse to default but must keep their cwd."""
+        """A local session's CWD-only override keys its own terminal and keeps its cwd."""
         captured = self._run(
             _make_env_config(env_type="local", cwd="/config-cwd"),
             "desktop-session-cwd",
             task_env_overrides={"desktop-session-cwd": {"cwd": "/workspace/session"}},
         )
 
-        assert captured["task_id"] == "default"
+        assert captured["task_id"] == "desktop-session-cwd"
         assert captured["cwd"] == "/workspace/session"
