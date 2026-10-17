@@ -15889,6 +15889,10 @@ def _list_repo_files(root: str) -> list[str]:
             pass
 
     with _fuzzy_cache_lock:
+        # Expired entries are never read again; drop them so a long-lived
+        # backend doesn't keep a full file listing for every root it saw.
+        for stale_root in [r for r, (ts, _) in _fuzzy_cache.items() if now - ts >= _FUZZY_CACHE_TTL_S]:
+            del _fuzzy_cache[stale_root]
         _fuzzy_cache[root] = (now, files)
 
     return files

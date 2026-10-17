@@ -415,3 +415,24 @@ def test_leading_slash_falls_back_only_when_absolute_is_missing(tmp_path, monkey
     assert "@folder:nonexistent-at-root/" in [
         t for t, _, _ in _items("@/nonexistent-at-root")
     ]
+
+
+def test_fuzzy_cache_drops_expired_roots(tmp_path, monkeypatch):
+    """Expired listings are evicted so a long-lived backend doesn't keep every root."""
+    clock = [1000.0]
+    monkeypatch.setattr(server.time, "monotonic", lambda: clock[0])
+    roots = []
+    for name in ("a", "b", "c"):
+        root = tmp_path / name
+        root.mkdir()
+        (root / "f.txt").write_text("x")
+        roots.append(str(root))
+
+    server._list_repo_files(roots[0])
+    server._list_repo_files(roots[1])
+    assert set(server._fuzzy_cache) == {roots[0], roots[1]}
+
+    clock[0] += server._FUZZY_CACHE_TTL_S + 1
+    server._list_repo_files(roots[2])
+
+    assert set(server._fuzzy_cache) == {roots[2]}
