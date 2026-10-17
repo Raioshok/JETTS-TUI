@@ -1055,8 +1055,11 @@ class BaseEnvironment(ABC):
     def _extract_cwd_from_output(self, result: dict):
         """Parse the __JETTSTUI_CWD_{session}__ marker from stdout output.
 
-        Updates self.cwd and strips the marker from result["output"].
-        Used by remote backends (Docker, SSH, Modal, Daytona, Singularity).
+        Updates self.cwd, reports the directory THIS command finished in as
+        result["cwd"], and strips the marker from result["output"]. Callers
+        must read result["cwd"], not self.cwd: an environment is shared by
+        concurrent sessions, so self.cwd may already belong to another
+        session's command by the time the caller looks.
         """
         output = result.get("output", "")
         marker = self._cwd_marker
@@ -1073,6 +1076,7 @@ class BaseEnvironment(ABC):
         cwd_path = output[first + len(marker) : last].strip()
         if cwd_path:
             self.cwd = cwd_path
+            result["cwd"] = cwd_path
 
         # Strip the marker line AND the \n we injected before it.
         # The wrapper emits: printf '\n__MARKER__%s__MARKER__\n'

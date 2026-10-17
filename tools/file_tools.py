@@ -976,13 +976,15 @@ def _get_file_ops(task_id: str = "default") -> ShellFileOperations:
                 # Environment was cleaned up -- preserve the old cwd in the
                 # session record before invalidating the stale cache entry
                 # (fixes #26211: silent file-creation failures in long-running
-                # conversations). Usually a no-op: every completed command
-                # already recorded its cwd.
+                # conversations). Only seed a session that has no record: the
+                # cached ops are shared across sessions, so their cwd may be
+                # another session's and must never overwrite this one's.
                 old_cwd = getattr(cached, "cwd", None)
                 if old_cwd:
                     try:
-                        from tools.terminal_tool import record_session_cwd
-                        record_session_cwd(raw_task_id, old_cwd)
+                        from tools.terminal_tool import get_session_cwd, record_session_cwd
+                        if get_session_cwd(raw_task_id) is None:
+                            record_session_cwd(raw_task_id, old_cwd)
                     except Exception:
                         pass
                 with _file_ops_lock:

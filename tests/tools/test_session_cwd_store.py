@@ -95,7 +95,7 @@ class TestPostCommandDualWrite:
             def execute(self, command, **kwargs):
                 # Simulate the env's own post-command tracking (marker parse).
                 self.cwd = "/new/dir"
-                return {"output": "", "returncode": 0}
+                return {"output": "", "returncode": 0, "cwd": "/new/dir"}
 
         result = self._run(monkeypatch, "sess-a", FakeEnv())
         assert result["exit_code"] == 0
@@ -112,6 +112,32 @@ class TestPostCommandDualWrite:
         result = self._run(monkeypatch, "sess-a", FakeEnv())
         assert result["exit_code"] == 0
         assert tt.get_session_cwd("sess-a") is None
+
+    def test_records_the_commands_own_dir_not_the_shared_env_cwd(self, monkeypatch):
+        """Concurrent sessions share one env: by the time this command returns,
+        another session's command may already have moved env.cwd."""
+        class SharedEnv:
+            env = {}
+            cwd = "/start"
+            def execute(self, command, **kwargs):
+                self.cwd = "/other/session/repo"  # the busy chat next door finished last
+                return {"output": "", "returncode": 0, "cwd": "/my/project"}
+
+        result = self._run(monkeypatch, "sess-new", SharedEnv())
+        assert result["exit_code"] == 0
+        assert tt.get_session_cwd("sess-new") == "/my/project"
+
+    def test_a_command_without_a_reported_dir_keeps_the_record(self, monkeypatch):
+        tt.record_session_cwd("sess-new", "/my/project")
+
+        class SharedEnv:
+            env = {}
+            cwd = "/other/session/repo"
+            def execute(self, command, **kwargs):
+                return {"output": "", "returncode": 0}
+
+        self._run(monkeypatch, "sess-new", SharedEnv())
+        assert tt.get_session_cwd("sess-new") == "/my/project"
 
 
 class TestFileToolsReadTheRecord:
@@ -223,7 +249,7 @@ class TestCommandCwdReadsTheRecord:
                 self.last_cwd_arg = kwargs.get("cwd")
                 if command.startswith("cd "):
                     self.cwd = command[3:]
-                return {"output": "", "returncode": 0}
+                return {"output": "", "returncode": 0, "cwd": self.cwd}
 
         fake = FakeEnv()
         monkeypatch.setattr(tt, "_active_environments", {"sess-a": fake})

@@ -186,3 +186,49 @@ class TestUpdateCwdRejectsMissingPaths:
         )
 
         assert env.cwd == str(new_dir)
+
+
+class TestCommandReportsItsOwnCwd:
+    """The command's final directory travels in its result, so callers never
+    have to read the shared ``env.cwd`` (which concurrent sessions overwrite)."""
+
+    def test_marker_dir_is_reported_in_the_result(self, tmp_path):
+        original = tmp_path / "starting"
+        original.mkdir()
+        new_dir = tmp_path / "next"
+        new_dir.mkdir()
+
+        with patch.object(LocalEnvironment, "init_session", autospec=True, return_value=None):
+            env = LocalEnvironment(cwd=str(original), timeout=10)
+        marker = env._cwd_marker
+        result = {"output": f"x\n{marker}{new_dir}{marker}\n", "returncode": 0}
+
+        env._update_cwd(result)
+
+        assert result["cwd"] == str(new_dir)
+
+    def test_missing_dir_is_not_reported(self, tmp_path):
+        original = tmp_path / "starting"
+        original.mkdir()
+
+        with patch.object(LocalEnvironment, "init_session", autospec=True, return_value=None):
+            env = LocalEnvironment(cwd=str(original), timeout=10)
+        marker = env._cwd_marker
+        result = {"output": f"x\n{marker}{tmp_path / 'gone'}{marker}\n", "returncode": 0}
+
+        env._update_cwd(result)
+
+        assert "cwd" not in result
+
+    def test_real_cd_into_a_folder_with_a_space(self, tmp_path):
+        start = tmp_path / "Telegram Desktop" / "Projects"
+        target = start / "app"
+        target.mkdir(parents=True)
+        env = LocalEnvironment(cwd=str(start), timeout=30)
+        try:
+            result = env.execute("cd app && pwd")
+        finally:
+            env.cleanup()
+
+        assert result["returncode"] == 0
+        assert os.path.normcase(os.path.realpath(result["cwd"])) == os.path.normcase(os.path.realpath(target))

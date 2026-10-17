@@ -2755,13 +2755,12 @@ def terminal_tool(
                 # Got a result
                 break
 
-            # Dual-write (cwd rearch step 1): the env's post-command tracking
-            # (marker parse / local sync) has just updated env.cwd with the
-            # directory this command finished in. That cwd belongs to THIS
-            # session — record it under the session key so the durable record
-            # never depends on the shared env surviving or on who drives the
-            # env next.
-            record_session_cwd(session_key, getattr(env, "cwd", None))
+            # Record the directory THIS command finished in under this
+            # session's key. Read it from the command's own result, never from
+            # env.cwd: concurrent sessions share one environment, so env.cwd
+            # may already hold another session's directory — recording that
+            # re-homed new chats into whichever project was busy beside them.
+            record_session_cwd(session_key, result.get("cwd"))
 
             # Extract output
             output = result.get("output", "")

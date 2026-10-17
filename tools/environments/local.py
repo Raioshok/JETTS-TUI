@@ -1530,14 +1530,18 @@ class LocalEnvironment(BaseEnvironment):
         # stripping, then validate / normalize whatever it assigned.
         prev_cwd = self.cwd
         super()._extract_cwd_from_output(result)
-        if self.cwd != prev_cwd:
-            normalized = _msys_to_windows_path(self.cwd) if _IS_WINDOWS else self.cwd
-            if normalized and os.path.isdir(normalized):
-                self.cwd = normalized
-            else:
-                # Stale / non-existent path — keep previous cwd; _run_bash
-                # will resolve a safe fallback on the next call if needed.
-                self.cwd = prev_cwd
+        reported = result.get("cwd")
+        if not reported:
+            return
+        normalized = _msys_to_windows_path(reported) if _IS_WINDOWS else reported
+        if normalized and os.path.isdir(normalized):
+            self.cwd = normalized
+            result["cwd"] = normalized
+        else:
+            # Stale / non-existent path — keep previous cwd; _run_bash
+            # will resolve a safe fallback on the next call if needed.
+            self.cwd = prev_cwd
+            result.pop("cwd", None)
 
     def cleanup(self):
         """Clean up temp files."""
