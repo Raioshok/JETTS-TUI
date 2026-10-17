@@ -76,6 +76,13 @@ JETTSTUI_OVERLAYS: Dict[str, JettsTUIOverlay] = {
         base_url_override="https://portal.qwen.ai/v1",
         base_url_env_var="JETTSTUI_QWEN_BASE_URL",
     ),
+    "freebuff": JettsTUIOverlay(
+        transport="openai_chat",
+        auth_type="oauth_external",
+        base_url_override="https://codebuff.com/api/v1",
+        base_url_env_var="FREEBUFF_BASE_URL",
+        extra_env_vars=("FREEBUFF_API_KEY",),
+    ),
     "antigravity": JettsTUIOverlay(
         transport="openai_chat",
         auth_type="oauth_external",
@@ -384,6 +391,11 @@ ALIASES: Dict[str, str] = {
     # upstage
     "solar": "upstage",
 
+    # freebuff
+    "freebuff-oauth": "freebuff",
+    "freebuff-ai": "freebuff",
+    "codebuff": "freebuff",
+
     # Local server aliases → virtual "local" concept (resolved via user config)
     "lmstudio": "lmstudio",
     "lm-studio": "lmstudio",
@@ -409,6 +421,7 @@ _LABEL_OVERRIDES: Dict[str, str] = {
     "gmi": "GMI Cloud",
     "dahl": "Dahl Inference",
     "upstage": "Upstage Solar",
+    "freebuff": "Freebuff",
     "tencent-tokenhub": "Tencent TokenHub",
     "lmstudio": "LM Studio",
     "local": "Local endpoint",

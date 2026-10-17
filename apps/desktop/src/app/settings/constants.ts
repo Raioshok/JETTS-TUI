@@ -130,6 +130,13 @@ export const PROVIDER_GROUPS: ProviderPrefix[] = [
     priority: 11
   },
   {
+    prefix: 'FREEBUFF_',
+    name: 'Freebuff',
+    description: 'Free coding agent models with 1h sessions',
+    docsUrl: 'https://freebuff.com',
+    priority: 11
+  },
+  {
     prefix: 'HF_',
     name: 'Hugging Face',
     description: 'Inference Providers — 20+ open models via router.huggingface.co',

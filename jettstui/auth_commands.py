@@ -34,7 +34,7 @@ from jettstui.secret_prompt import masked_secret_prompt
 
 
 # Providers that support OAuth login in addition to API keys.
-_OAUTH_CAPABLE_PROVIDERS = {"anthropic", "openai-codex", "xai-oauth", "qwen-oauth", "minimax-oauth", "antigravity"}
+_OAUTH_CAPABLE_PROVIDERS = {"anthropic", "openai-codex", "xai-oauth", "qwen-oauth", "minimax-oauth", "antigravity", "freebuff"}
 
 
 def _get_custom_provider_names() -> list:
@@ -80,6 +80,8 @@ def _normalize_provider(provider: str) -> str:
         return "openrouter"
     if normalized in {"grok-oauth", "xai-oauth", "x-ai-oauth", "xai-grok-oauth"}:
         return "xai-oauth"
+    if normalized in {"freebuff-oauth", "freebuff-ai", "codebuff"}:
+        return "freebuff"
     # Check if it matches a custom provider name
     custom_key = _resolve_custom_provider_input(normalized)
     if custom_key:
@@ -397,6 +399,34 @@ def auth_add_command(args) -> None:
             base_url=creds.get("inference_base_url"),
         )
         pool.add_entry(entry)
+        print(f'Added {provider} OAuth credential #{len(pool.entries())}: "{entry.label}"')
+        return
+
+    if provider == "freebuff":
+        creds = auth_mod._freebuff_oauth_login(
+            open_browser=not getattr(args, "no_browser", False),
+            timeout_seconds=getattr(args, "timeout", None) or 300.0,
+        )
+        token = creds["tokens"]["access_token"]
+        label = (getattr(args, "label", None) or "").strip() or label_from_token(
+            token,
+            _oauth_default_label(provider, len(pool.entries()) + 1),
+        )
+        entry = PooledCredential(
+            provider=provider,
+            id=uuid.uuid4().hex[:6],
+            label=label,
+            auth_type=AUTH_TYPE_OAUTH,
+            priority=0,
+            source=SOURCE_MANUAL_DEVICE_CODE,
+            access_token=token,
+            base_url=creds.get("base_url") or "https://codebuff.com/api/v1",
+            last_refresh=creds.get("last_refresh"),
+        )
+        first_credential = not pool.entries()
+        pool.add_entry(entry)
+        if first_credential:
+            auth_mod.mark_provider_active_if_unset(provider)
         print(f'Added {provider} OAuth credential #{len(pool.entries())}: "{entry.label}"')
         return
 

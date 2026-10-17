@@ -23,7 +23,7 @@ import uuid
 from typing import Any, Dict, List, Optional
 
 ANTIGRAVITY = "antigravity"
-POOLED_ACCOUNT_PROVIDERS = ("anthropic", "openai-codex", "xai-oauth", "qwen-oauth", "minimax-oauth")
+POOLED_ACCOUNT_PROVIDERS = ("anthropic", "openai-codex", "xai-oauth", "qwen-oauth", "minimax-oauth", "freebuff")
 ACCOUNT_PROVIDERS = (*POOLED_ACCOUNT_PROVIDERS, ANTIGRAVITY)
 
 

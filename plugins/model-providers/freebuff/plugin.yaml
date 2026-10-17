@@ -1,0 +1,5 @@
+name: freebuff-provider
+kind: model-provider
+version: 1.0.0
+description: Freebuff (free coding agent models with 1h sessions)
+author: JettsTUI

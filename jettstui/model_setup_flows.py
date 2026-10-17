@@ -660,6 +660,69 @@ def _model_flow_minimax_oauth(config, current_model="", args=None):
     print(f"\u2713 Using MiniMax model: {selected}")
 
 
+def _model_flow_freebuff(config, current_model="", args=None):
+    """Freebuff OAuth provider: ensure logged in, admit 1-hour free session, pick model."""
+    from jettstui.auth import (
+        get_provider_auth_state,
+        _prompt_model_selection,
+        _save_model_choice,
+        _update_config_for_provider,
+        resolve_freebuff_runtime_credentials,
+        AuthError,
+        format_auth_error,
+        _login_freebuff_oauth,
+        PROVIDER_REGISTRY,
+    )
+    from jettstui.freebuff_auth import get_or_create_freebuff_session
+
+    state = get_provider_auth_state("freebuff")
+    token = state.get("access_token") if state else None
+    if not token:
+        print("Not logged into Freebuff. Starting OAuth login...")
+        print()
+        try:
+            mock_args = argparse.Namespace(
+                no_browser=bool(getattr(args, "no_browser", False)),
+                timeout=getattr(args, "timeout", None) or 300.0,
+            )
+            _login_freebuff_oauth(mock_args, PROVIDER_REGISTRY.get("freebuff"))
+        except SystemExit:
+            print("Login cancelled or failed.")
+            return
+        except Exception as exc:
+            print(f"Login failed: {exc}")
+            return
+
+    try:
+        creds = resolve_freebuff_runtime_credentials()
+    except AuthError as exc:
+        print(format_auth_error(exc))
+        return
+
+    from jettstui.models import _PROVIDER_MODELS
+
+    model_ids = _PROVIDER_MODELS.get("freebuff", [])
+    selected = _prompt_model_selection(
+        model_ids,
+        current_model,
+        confirm_provider="freebuff",
+        confirm_base_url=creds["base_url"],
+    )
+    if not selected:
+        return
+
+    # Trigger 1-hour free session admission on the selected model
+    try:
+        session = get_or_create_freebuff_session(creds["api_key"], selected)
+        print(f"\u2713 1-hour free model session active for {selected} (expires in 1h)")
+    except Exception as exc:
+        print(f"Note: Session admission will be finalized on first prompt: {exc}")
+
+    _save_model_choice(selected)
+    _update_config_for_provider("freebuff", creds["base_url"])
+    print(f"\u2713 Using Freebuff model: {selected}")
+
+
 def _model_flow_custom(config):
     """Custom endpoint: collect URL, API key, and model name.
 

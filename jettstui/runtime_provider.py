@@ -1892,6 +1892,23 @@ def resolve_runtime_provider(
                 "requested_provider": requested_provider,
             }
 
+    if provider in {"freebuff", "freebuff-oauth"}:
+        try:
+            from jettstui.auth import resolve_freebuff_runtime_credentials
+            creds = resolve_freebuff_runtime_credentials()
+            return {
+                "provider": "freebuff",
+                "api_mode": "chat_completions",
+                "base_url": creds.get("base_url", "https://codebuff.com/api/v1").rstrip("/"),
+                "api_key": creds.get("api_key", ""),
+                "source": creds.get("source", "oauth"),
+                "requested_provider": requested_provider,
+            }
+        except AuthError:
+            if requested_provider != "auto":
+                raise
+            logger.info("Freebuff OAuth credentials failed; falling through to next provider.")
+
     if provider == "copilot-acp":
         creds = resolve_external_process_provider_credentials(provider)
         return {

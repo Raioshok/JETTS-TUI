@@ -226,6 +226,19 @@ _PROVIDER_MODELS: dict[str, list[str]] = {
         "gpt-4o-mini",
     ],
     "openai-codex": _codex_curated_models(),
+    "freebuff": [
+        "deepseek/deepseek-v4-pro",
+        "deepseek/deepseek-v4.1-flash",
+        "openai/gpt-5.6-luna",
+        "openai/gpt-6-luna",
+        "openai/gpt-6.1-sol",
+        "google/gemini-4-argon",
+        "google/gemini-3.8-flash",
+        "minimax/minimax-m3",
+        "anthropic/claude-opus-5.5",
+        "anthropic/claude-sonnet-5",
+        "qwen/qwen3.8-max-prime",
+    ],
     "xai-oauth": _xai_curated_models(),
     "antigravity": [
         "gemini-4-argon",
@@ -622,6 +635,7 @@ CANONICAL_PROVIDERS: list[ProviderEntry] = [
     ProviderEntry("bedrock",        "AWS Bedrock",              "AWS Bedrock (Claude, Nova, Llama, DeepSeek; IAM or API key)"),
     ProviderEntry("azure-foundry",  "Azure Foundry",            "Azure Foundry (OpenAI-style or Anthropic-style endpoint, your Azure AI deployment)"),
     ProviderEntry("qwen-oauth",     "Qwen OAuth (Portal)",      "Qwen OAuth (Reuses local Qwen CLI login)"),
+    ProviderEntry("freebuff",       "Freebuff",                 "Freebuff (Free coding agent models with 1h sessions, freebuff.com)"),
 ]
 
 
@@ -793,6 +807,9 @@ _PROVIDER_ALIASES = {
     "minimax-portal": "minimax-oauth",
     "minimax-global": "minimax-oauth",
     "minimax_oauth": "minimax-oauth",
+    "freebuff-oauth": "freebuff",
+    "freebuff-ai": "freebuff",
+    "codebuff": "freebuff",
     "claude": "anthropic",
     "claude-code": "anthropic",
     "deep-seek": "deepseek",

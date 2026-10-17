@@ -3863,6 +3863,22 @@ OPTIONAL_ENV_VARS = {
         "category": "provider",
         "advanced": True,
     },
+    "FREEBUFF_API_KEY": {
+        "description": "Freebuff API key or OAuth bearer token (freebuff.com)",
+        "prompt": "Freebuff API key / OAuth token",
+        "url": "https://freebuff.com",
+        "password": True,
+        "category": "provider",
+        "advanced": True,
+    },
+    "FREEBUFF_BASE_URL": {
+        "description": "Freebuff base URL override (default: https://codebuff.com/api/v1)",
+        "prompt": "Freebuff base URL (leave empty for default)",
+        "url": None,
+        "password": False,
+        "category": "provider",
+        "advanced": True,
+    },
     "VERTEX_CREDENTIALS_PATH": {
         "description": "Path to a Google Cloud service account JSON for Vertex AI (Gemini). "
                        "Vertex uses OAuth2, not a static API key — this points at the "

@@ -189,6 +189,14 @@ PROVIDER_REGISTRY: Dict[str, ProviderConfig] = {
         auth_type="oauth_external",
         inference_base_url=DEFAULT_QWEN_BASE_URL,
     ),
+    "freebuff": ProviderConfig(
+        id="freebuff",
+        name="Freebuff (OAuth · freebuff.com)",
+        auth_type="oauth_external",
+        inference_base_url="https://codebuff.com/api/v1",
+        api_key_env_vars=("FREEBUFF_API_KEY",),
+        base_url_env_var="FREEBUFF_BASE_URL",
+    ),
     "antigravity": ProviderConfig(
         id="antigravity",
         name="Google Antigravity (Google AI Pro / Ultra)",
@@ -1881,6 +1889,7 @@ def resolve_provider(
         "github-copilot-acp": "copilot-acp", "copilot-acp-agent": "copilot-acp",
         "opencode": "opencode-zen", "zen": "opencode-zen",
         "qwen-portal": "qwen-oauth", "qwen-cli": "qwen-oauth", "qwen-oauth": "qwen-oauth",
+        "freebuff-oauth": "freebuff", "freebuff-ai": "freebuff", "codebuff": "freebuff",
         "google-antigravity": "antigravity", "antigravity-oauth": "antigravity",
         "google-ai-pro": "antigravity", "google-ai-ultra": "antigravity",
         "hf": "huggingface", "hugging-face": "huggingface", "huggingface-hub": "huggingface",
@@ -4980,6 +4989,8 @@ def get_auth_status(provider_id: Optional[str] = None) -> Dict[str, Any]:
         return get_antigravity_auth_status()
     if target == "minimax-oauth":
         return get_minimax_oauth_auth_status()
+    if target in {"freebuff", "freebuff-oauth"}:
+        return get_freebuff_auth_status()
     if target == "copilot-acp":
         return get_external_process_provider_status(target)
     if target == "azure-foundry":
@@ -6623,6 +6634,140 @@ def _login_minimax_oauth(args, pconfig: ProviderConfig) -> None:
     except AuthError as exc:
         print(format_auth_error(exc))
         raise SystemExit(1)
+
+
+def _freebuff_oauth_login(
+    *,
+    open_browser: bool = True,
+    timeout_seconds: float = 300.0,
+) -> Dict[str, Any]:
+    """Run Freebuff OAuth device login and persist tokens."""
+    from jettstui.freebuff_auth import run_freebuff_oauth_login
+
+    portal_url = os.getenv("FREEBUFF_PORTAL_URL", "https://freebuff.com").strip()
+    try:
+        creds = run_freebuff_oauth_login(
+            portal_base_url=portal_url,
+            open_browser=open_browser,
+            timeout_seconds=timeout_seconds,
+        )
+    except Exception as exc:
+        raise AuthError(
+            f"Freebuff OAuth login failed: {exc}",
+            provider="freebuff",
+            code="login_failed",
+        ) from exc
+
+    _save_freebuff_tokens(creds)
+    return creds
+
+
+def _save_freebuff_tokens(creds: Dict[str, Any]) -> None:
+    """Save Freebuff OAuth state to JettsTUI auth.json."""
+    with _auth_store_lock():
+        auth_store = _load_auth_store()
+        token = creds.get("tokens", {}).get("access_token") or creds.get("access_token")
+        state = {
+            "provider": "freebuff",
+            "access_token": token,
+            "tokens": creds.get("tokens", {"access_token": token}),
+            "user": creds.get("user", {}),
+            "base_url": creds.get("base_url", "https://codebuff.com/api/v1"),
+            "last_refresh": creds.get("last_refresh") or datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
+            "source": "oauth-device-code",
+        }
+        _save_provider_state(auth_store, "freebuff", state)
+        _save_auth_store(auth_store)
+
+
+def _login_freebuff_oauth(args, pconfig: ProviderConfig | None = None) -> None:
+    """CLI entry for Freebuff OAuth login."""
+    del pconfig
+    timeout = getattr(args, "timeout", None) or 300.0
+    open_browser = not getattr(args, "no_browser", False)
+    try:
+        creds = _freebuff_oauth_login(
+            open_browser=open_browser,
+            timeout_seconds=float(timeout),
+        )
+        base_url = creds.get("base_url", "https://codebuff.com/api/v1")
+        config_path = _update_config_for_provider("freebuff", base_url)
+        print(f"  Config updated: {config_path} (model.provider=freebuff)")
+    except AuthError as exc:
+        print(format_auth_error(exc))
+        raise SystemExit(1)
+
+
+def resolve_freebuff_runtime_credentials() -> Dict[str, Any]:
+    """Resolve active credentials for Freebuff."""
+    # 1. Environment variable override
+    env_key = (os.getenv("FREEBUFF_API_KEY") or "").strip()
+    base_url = (os.getenv("FREEBUFF_BASE_URL") or "https://codebuff.com/api/v1").strip().rstrip("/")
+    if env_key:
+        return {
+            "provider": "freebuff",
+            "api_key": env_key,
+            "base_url": base_url,
+            "source": "environment",
+        }
+
+    # 2. Credential pool
+    try:
+        from agent.credential_pool import load_pool
+
+        pool = load_pool("freebuff")
+        if pool and pool.has_credentials():
+            entry = pool.select()
+            if entry and (entry.access_token or getattr(entry, "runtime_api_key", None)):
+                token = getattr(entry, "runtime_api_key", None) or entry.access_token
+                return {
+                    "provider": "freebuff",
+                    "api_key": token,
+                    "base_url": entry.base_url or base_url,
+                    "source": "pool",
+                    "label": entry.label,
+                }
+    except Exception:
+        pass
+
+    # 3. auth.json provider state
+    state = get_provider_auth_state("freebuff")
+    token = None
+    if state:
+        token = state.get("access_token") or (state.get("tokens") or {}).get("access_token")
+    if token:
+        return {
+            "provider": "freebuff",
+            "api_key": token,
+            "base_url": state.get("base_url") or base_url,
+            "source": "oauth",
+        }
+
+    raise AuthError(
+        "Not logged into Freebuff. Run `jettstui auth login freebuff` or sign in at https://freebuff.com",
+        provider="freebuff",
+        code="not_logged_in",
+        relogin_required=True,
+    )
+
+
+def get_freebuff_auth_status() -> Dict[str, Any]:
+    """Return auth status dict for Freebuff provider."""
+    try:
+        creds = resolve_freebuff_runtime_credentials()
+        return {
+            "logged_in": True,
+            "configured": True,
+            "provider": "freebuff",
+            "source": creds.get("source", "oauth"),
+            "base_url": creds.get("base_url"),
+        }
+    except AuthError:
+        return {
+            "logged_in": False,
+            "configured": False,
+            "provider": "freebuff",
+        }
 
 
 def logout_command(args) -> None:
