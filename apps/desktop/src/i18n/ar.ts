@@ -674,7 +674,8 @@ export const ar = defineLocale({
       submitting: 'جارٍ الاتصال…',
       signedInVia: (label: string) => `تم تسجيل الدخول عبر ${label}`,
       expiresAt: (date: string) => `تنتهي صلاحية الرمز في ${date}`,
-      reopenBrowser: 'إعادة فتح صفحة التفويض'
+      reopenBrowser: 'إعادة فتح صفحة التفويض',
+      addUsageCredits: 'إضافة رصيد الاستخدام على claude.ai'
     },
     quickEntry: {
       enabledTitle: 'الإدخال السريع',

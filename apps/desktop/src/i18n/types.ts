@@ -511,6 +511,7 @@ export interface Translations {
       signedInVia: (label: string) => string
       expiresAt: (date: string) => string
       reopenBrowser: string
+      addUsageCredits: string
     }
     quickEntry: {
       enabledTitle: string

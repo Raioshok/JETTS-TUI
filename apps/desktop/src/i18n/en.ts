@@ -607,7 +607,8 @@ export const en: Translations = {
       submitting: 'Connecting…',
       signedInVia: (label: string) => `Signed in via ${label}`,
       expiresAt: (date: string) => `Token expires ${date}`,
-      reopenBrowser: 'Re-open authorization page'
+      reopenBrowser: 'Re-open authorization page',
+      addUsageCredits: 'Add usage credits at claude.ai'
     },
     quickEntry: {
       enabledTitle: 'Quick Entry',

@@ -268,9 +268,25 @@ export function ClaudeOAuthLogin({ onRefresh, provider }: ClaudeOAuthLoginProps)
 
   if (flow.stage === 'error') {
     const { message, authUrl, sessionId } = flow
+    const isUsageError = /extra usage|usage limit|add more|claude\.ai\/settings\/usage/i.test(message)
     return (
       <div className="grid gap-2 rounded-[8px] border border-destructive/30 bg-destructive/5 px-4 py-3">
         <p className="text-[length:var(--conversation-caption-font-size)] text-destructive">{message}</p>
+        {isUsageError && (
+          <a
+            className="inline-flex items-center gap-1 rounded-[6px] bg-primary px-3 py-1.5 text-[length:var(--conversation-caption-font-size)] font-medium text-primary-foreground hover:bg-primary/90"
+            href="https://claude.ai/settings/usage"
+            onClick={e => {
+              e.preventDefault()
+              window.open('https://claude.ai/settings/usage', '_blank', 'noopener,noreferrer')
+            }}
+            rel="noopener noreferrer"
+            target="_blank"
+          >
+            <ExternalLink className="size-3" />
+            {copy.addUsageCredits}
+          </a>
+        )}
         <div className="flex gap-2">
           <Button onClick={() => void handleSignIn()} size="sm" type="button" variant="outline">
             {t.onboarding.tryAgain}
@@ -289,7 +305,7 @@ export function ClaudeOAuthLogin({ onRefresh, provider }: ClaudeOAuthLoginProps)
             {t.common.cancel}
           </Button>
         </div>
-        {authUrl && (
+        {authUrl && !isUsageError && (
           <a
             className="inline-flex items-center gap-1 text-[length:var(--conversation-caption-font-size)] text-primary/80 hover:text-primary"
             href={authUrl}

@@ -611,7 +611,8 @@ export const pt = defineLocale({
       submitting: 'Conectando…',
       signedInVia: (label: string) => `Conectado via ${label}`,
       expiresAt: (date: string) => `Token expira em ${date}`,
-      reopenBrowser: 'Reabrir página de autorização'
+      reopenBrowser: 'Reabrir página de autorização',
+      addUsageCredits: 'Adicionar créditos em claude.ai'
     },
     quickEntry: {
       enabledTitle: 'Entrada rápida',

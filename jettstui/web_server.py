@@ -10589,6 +10589,23 @@ def _submit_anthropic_pkce(
             with urllib.request.urlopen(req, timeout=20) as resp:
                 result = json.loads(resp.read().decode())
             break
+        except urllib.error.HTTPError as e:
+            # Read the response body — Anthropic includes a human-readable
+            # error_message in the JSON (e.g. "extra usage" quota errors).
+            try:
+                body = json.loads(e.read().decode())
+                api_msg = body.get("error_message") or body.get("message") or body.get("error") or str(e)
+            except Exception:
+                api_msg = str(e)
+            # 4xx from one endpoint won't be fixed by retrying the other;
+            # surface the message immediately.
+            if 400 <= e.code < 500:
+                with _oauth_sessions_lock:
+                    sess["status"] = "error"
+                    sess["error_message"] = api_msg
+                return {"ok": False, "status": "error", "message": api_msg}
+            last_exc = e
+            continue
         except Exception as e:
             last_exc = e
             continue

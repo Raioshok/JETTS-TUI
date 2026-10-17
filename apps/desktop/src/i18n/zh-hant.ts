@@ -694,7 +694,8 @@ export const zhHant = defineLocale({
       submitting: '連線中…',
       signedInVia: (label: string) => `已透過 ${label} 登入`,
       expiresAt: (date: string) => `權杖到期：${date}`,
-      reopenBrowser: '重新開啟授權頁面'
+      reopenBrowser: '重新開啟授權頁面',
+      addUsageCredits: '在 claude.ai 新增使用點數'
     },
     quickEntry: {
       enabledTitle: '快速輸入',

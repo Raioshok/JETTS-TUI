@@ -818,7 +818,8 @@ export const zh: Translations = {
       submitting: '连接中…',
       signedInVia: (label: string) => `已通过 ${label} 登录`,
       expiresAt: (date: string) => `令牌到期：${date}`,
-      reopenBrowser: '重新打开授权页面'
+      reopenBrowser: '重新打开授权页面',
+      addUsageCredits: '在 claude.ai 添加使用积分'
     },
     quickEntry: {
       enabledTitle: '快速输入',

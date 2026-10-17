@@ -706,7 +706,8 @@ export const ja = defineLocale({
       submitting: '接続中…',
       signedInVia: (label: string) => `${label} 経由でサインイン済み`,
       expiresAt: (date: string) => `トークンの有効期限: ${date}`,
-      reopenBrowser: '認証ページを再度開く'
+      reopenBrowser: '認証ページを再度開く',
+      addUsageCredits: 'claude.aiで使用クレジットを追加'
     },
     quickEntry: {
       enabledTitle: 'クイック入力',
