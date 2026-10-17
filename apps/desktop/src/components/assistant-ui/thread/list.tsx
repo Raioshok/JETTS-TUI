@@ -15,6 +15,7 @@ import {
 } from 'react'
 import { useStickToBottom } from 'use-stick-to-bottom'
 
+import { useComposerScope } from '@/app/chat/composer/scope'
 import { useI18n } from '@/i18n'
 import { cn } from '@/lib/utils'
 import {
@@ -164,6 +165,7 @@ const ThreadMessageListInner: FC<ThreadMessageListProps> = ({
   const weightSignature = useAuiState(s => s.thread.messages.map(message => message.content?.length ?? 1).join(','))
 
   const { t } = useI18n()
+  const scrollTarget = useComposerScope().target
   // Row structure is memoized on the STRUCTURAL signature only, so streaming
   // part-appends can't churn group identity (that would defeat the rows memo
   // below on every tick). Weights are folded in separately for the budget.
@@ -266,11 +268,11 @@ const ThreadMessageListInner: FC<ThreadMessageListProps> = ({
     ? 'pt-[calc(var(--titlebar-height)+0.75rem)]'
     : 'pt-[calc(var(--titlebar-height)-0.5rem)]'
 
-  useEffect(() => setThreadAtBottom(isAtBottom), [isAtBottom])
-  useEffect(() => () => resetThreadScroll(), [])
+  useEffect(() => setThreadAtBottom(scrollTarget, isAtBottom), [isAtBottom, scrollTarget])
+  useEffect(() => () => resetThreadScroll(scrollTarget), [scrollTarget])
 
   // Floating jump button (outside this subtree) → return to the bottom.
-  useEffect(() => onScrollToBottomRequest(() => void scrollToBottom()), [scrollToBottom])
+  useEffect(() => onScrollToBottomRequest(scrollTarget, () => void scrollToBottom()), [scrollTarget, scrollToBottom])
 
   const endEditHold = useCallback(() => {
     scrollRef.current?.removeAttribute('data-editing')
@@ -290,8 +292,8 @@ const ThreadMessageListInner: FC<ThreadMessageListProps> = ({
     el.setAttribute('data-editing', 'true')
   }, [endEditHold, scrollRef, stopScroll])
 
-  useEffect(() => onThreadEditOpen(beginEditHold), [beginEditHold])
-  useEffect(() => onThreadEditClose(endEditHold), [endEditHold])
+  useEffect(() => onThreadEditOpen(scrollTarget, beginEditHold), [beginEditHold, scrollTarget])
+  useEffect(() => onThreadEditClose(scrollTarget, endEditHold), [endEditHold, scrollTarget])
   useEffect(() => () => endEditHold(), [endEditHold])
   // New run → snap to the latest turn.
   useAuiEvent('thread.runStart', () => void scrollToBottom())

@@ -13,11 +13,15 @@ import {
 import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
 import { DiffCount } from '@/components/ui/diff-count'
-import type { JettsTUIGitBranch } from '@/global'
+import type { JettsTUIGitBranch, JettsTUIGitWorktree } from '@/global'
 import { useI18n } from '@/i18n'
-import { $repoStatus, $repoWorktrees } from '@/store/coding-status'
+import { $repoByCwd, $repoStatus, $repoWorktrees, watchRepoStatus } from '@/store/coding-status'
 import { notifyError } from '@/store/notifications'
 import { $newWorktreeRequest } from '@/store/projects'
+
+import { useComposerScope } from '../scope'
+
+const NO_WORKTREES: JettsTUIGitWorktree[] = []
 
 // Tiny uppercase section header, matching the composer "+" menu's labels.
 const MENU_SECTION = 'text-[0.625rem] font-semibold uppercase tracking-wider text-(--ui-text-tertiary)'
@@ -62,8 +66,18 @@ export const CodingStatusRow = memo(function CodingStatusRow({
   const { t } = useI18n()
   const s = t.statusStack.coding
   const p = t.sidebar.projects
-  const status = useStore($repoStatus)
-  const worktrees = useStore($repoWorktrees)
+  // The main composer follows the active session's probe; a tile composer reads
+  // its own folder, so two chats side by side never show each other's repo.
+  const isTile = useComposerScope().target !== 'main'
+  const tileCwd = isTile ? repoPath?.trim() || '' : ''
+  const mainStatus = useStore($repoStatus)
+  const mainWorktrees = useStore($repoWorktrees)
+  const tileRepo = useStore($repoByCwd)[tileCwd]
+
+  useEffect(() => (tileCwd ? watchRepoStatus(tileCwd) : undefined), [tileCwd])
+
+  const status = isTile ? (tileRepo?.status ?? null) : mainStatus
+  const worktrees = isTile ? (tileRepo?.worktrees ?? NO_WORKTREES) : mainWorktrees
 
   // Shared worktree dialog — replaces the old inline dialog. Opened by the
   // dropdown menu's "branch off" items and the global ⌘⇧B hotkey.

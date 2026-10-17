@@ -658,12 +658,66 @@ type SessionRuntimeStatePatch = Partial<
   >
 >
 
-export function applyRuntimeInfo(info: SessionRuntimeInfo | undefined): SessionRuntimeStatePatch | null {
+/** The per-session state a runtime info payload describes. Pure. */
+export function runtimeInfoPatch(info: SessionRuntimeInfo | undefined): SessionRuntimeStatePatch | null {
   if (!info) {
     return null
   }
 
-  const sessionState: SessionRuntimeStatePatch = {}
+  const patch: SessionRuntimeStatePatch = {}
+
+  if (typeof info.model === 'string') {
+    patch.model = info.model
+  }
+
+  if (typeof info.provider === 'string') {
+    patch.provider = info.provider
+  }
+
+  if (info.cwd) {
+    patch.cwd = info.cwd
+  }
+
+  if (info.branch !== undefined) {
+    patch.branch = info.branch || ''
+  }
+
+  if (typeof info.personality === 'string') {
+    patch.personality = normalizePersonalityValue(info.personality)
+  }
+
+  if (typeof info.reasoning_effort === 'string') {
+    patch.reasoningEffort = info.reasoning_effort
+  }
+
+  if (typeof info.service_tier === 'string') {
+    patch.serviceTier = info.service_tier
+  }
+
+  if (typeof info.fast === 'boolean') {
+    patch.fast = info.fast
+  }
+
+  if (typeof info.yolo === 'boolean') {
+    patch.yolo = info.yolo
+  }
+
+  return patch
+}
+
+/**
+ * Report a session's runtime info and return its state patch. With
+ * `foreground` (the default) it also repaints the primary composer — pass
+ * `false` for sessions that open beside it (tiles, branch tabs), or the main
+ * chat jumps to their folder, branch and model.
+ */
+export function applyRuntimeInfo(
+  info: SessionRuntimeInfo | undefined,
+  { foreground = true }: { foreground?: boolean } = {}
+): SessionRuntimeStatePatch | null {
+  if (!info) {
+    return null
+  }
 
   reportBackendContract(info.desktop_contract)
 
@@ -675,57 +729,53 @@ export function applyRuntimeInfo(info: SessionRuntimeInfo | undefined): SessionR
 
   reportInstallMethodWarning(info.install_warning)
 
-  if (typeof info.model === 'string') {
-    setCurrentModel(info.model)
-    sessionState.model = info.model
+  const patch = runtimeInfoPatch(info) ?? {}
+
+  if (!foreground) {
+    return patch
   }
 
-  if (typeof info.provider === 'string') {
-    setCurrentProvider(info.provider)
-    sessionState.provider = info.provider
+  if (patch.model !== undefined) {
+    setCurrentModel(patch.model)
   }
 
-  if (info.cwd) {
-    setCurrentCwd(info.cwd)
-    sessionState.cwd = info.cwd
+  if (patch.provider !== undefined) {
+    setCurrentProvider(patch.provider)
   }
 
-  if (info.branch !== undefined) {
-    setCurrentBranch(info.branch || '')
-    sessionState.branch = info.branch || ''
+  if (patch.cwd) {
+    setCurrentCwd(patch.cwd)
   }
 
-  if (typeof info.personality === 'string') {
-    const personality = normalizePersonalityValue(info.personality)
-    setCurrentPersonality(personality)
-    sessionState.personality = personality
+  if (patch.branch !== undefined) {
+    setCurrentBranch(patch.branch)
   }
 
-  if (typeof info.reasoning_effort === 'string') {
-    setCurrentReasoningEffort(info.reasoning_effort)
-    sessionState.reasoningEffort = info.reasoning_effort
+  if (patch.personality !== undefined) {
+    setCurrentPersonality(patch.personality)
   }
 
-  if (typeof info.service_tier === 'string') {
-    setCurrentServiceTier(info.service_tier)
-    sessionState.serviceTier = info.service_tier
+  if (patch.reasoningEffort !== undefined) {
+    setCurrentReasoningEffort(patch.reasoningEffort)
   }
 
-  if (typeof info.fast === 'boolean') {
-    setCurrentFastMode(info.fast)
-    sessionState.fast = info.fast
+  if (patch.serviceTier !== undefined) {
+    setCurrentServiceTier(patch.serviceTier)
   }
 
-  if (typeof info.yolo === 'boolean') {
-    setYoloActive(info.yolo)
-    sessionState.yolo = info.yolo
+  if (patch.fast !== undefined) {
+    setCurrentFastMode(patch.fast)
+  }
+
+  if (patch.yolo !== undefined) {
+    setYoloActive(patch.yolo)
   }
 
   if (info.usage) {
     setCurrentUsage(current => ({ ...current, ...info.usage }))
   }
 
-  return sessionState
+  return patch
 }
 
 export function applyStoredSessionPreviewRuntimeInfo(stored: { model?: null | string } | undefined) {

@@ -6,7 +6,7 @@ import { publishSessionState, setSessionTileDelegate } from '@/store/session-sta
 import type { SessionResumeResponse } from '@/types/jettstui'
 
 import type { usePromptActions } from '../../session/hooks/use-prompt-actions'
-import { resolveSessionProfile } from '../../session/hooks/use-session-actions/utils'
+import { resolveSessionProfile, runtimeInfoPatch } from '../../session/hooks/use-session-actions/utils'
 import type { useSessionStateCache } from '../../session/hooks/use-session-state-cache'
 import type { GatewayRequester } from '../types'
 
@@ -93,6 +93,7 @@ export function useSessionTileDelegate({
           runtimeId,
           state => ({
             ...state,
+            ...runtimeInfoPatch(resumed?.info),
             busy: Boolean(resumed?.info?.running),
             messages:
               state.messages.length > 0 ? state.messages : toChatMessages(prefetch?.messages ?? resumed?.messages ?? [])

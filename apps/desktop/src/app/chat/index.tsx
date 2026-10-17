@@ -533,7 +533,7 @@ export function ChatView({
               </ErrorState>
             </div>
           )}
-          {showChatBar && <ScrollToBottomButton />}
+          {showChatBar && <ScrollToBottomButton sessionId={activeSessionId} />}
           {/* Vibe hearts rise from the composer only when no pet is out (else
               they play on the pet). Fired by the core `reaction` event. */}
           {!petPresent && (

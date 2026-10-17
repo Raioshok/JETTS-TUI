@@ -1,11 +1,12 @@
 import { useStore } from '@nanostores/react'
-import { useRef } from 'react'
+import { useMemo, useRef } from 'react'
 
+import { useComposerScope } from '@/app/chat/composer/scope'
 import { Codicon } from '@/components/ui/codicon'
 import { useI18n } from '@/i18n'
 import { triggerHaptic } from '@/lib/haptics'
 import { cn } from '@/lib/utils'
-import { $approvalRequest } from '@/store/prompts'
+import { sessionApprovalRequest } from '@/store/prompts'
 import { $threadJumpButtonVisible, requestScrollToBottom } from '@/store/thread-scroll'
 
 /**
@@ -28,10 +29,12 @@ import { $threadJumpButtonVisible, requestScrollToBottom } from '@/store/thread-
  * `data-state`. `idle` (never-shown) stays silent so it can't flash on mount;
  * `in`/`out` only swap once it has actually appeared.
  */
-export function ScrollToBottomButton() {
+export function ScrollToBottomButton({ sessionId }: { sessionId: null | string }) {
   const { t } = useI18n()
-  const visible = useStore($threadJumpButtonVisible)
-  const request = useStore($approvalRequest)
+  // This pane's thread and session only — chats side by side each own one.
+  const target = useComposerScope().target
+  const visible = Boolean(useStore($threadJumpButtonVisible)[target])
+  const request = useStore(useMemo(() => sessionApprovalRequest(sessionId), [sessionId]))
   // Scrolled away while an approval is pending → the inline Run/Reject bar is
   // below the fold. Relabel so the user knows the session needs them, not just
   // that there's more to read.
@@ -59,7 +62,7 @@ export function ScrollToBottomButton() {
       data-state={state}
       onClick={() => {
         triggerHaptic('selection')
-        requestScrollToBottom()
+        requestScrollToBottom(target)
       }}
       style={{
         bottom: 'calc(var(--composer-measured-height) + var(--status-stack-measured-height) + 0.625rem)'

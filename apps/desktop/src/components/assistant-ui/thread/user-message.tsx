@@ -1,6 +1,7 @@
 import { ActionBarPrimitive, BranchPickerPrimitive, MessagePrimitive, useAuiState } from '@assistant-ui/react'
 import { type FC, type ReactNode, useCallback, useRef, useState } from 'react'
 
+import { useComposerScope } from '@/app/chat/composer/scope'
 import { DirectiveContent } from '@/components/assistant-ui/directive-text'
 import { messageAttachmentRefs, messageContentText } from '@/components/assistant-ui/thread/content'
 import { type RestoreMessageTarget } from '@/components/assistant-ui/thread/types'
@@ -102,6 +103,7 @@ export const UserMessage: FC<{
   onRequestRestoreConfirm?: (messageId: string, target: RestoreMessageTarget) => void
 }> = ({ onCancel, onRequestRestoreConfirm }) => {
   const { t } = useI18n()
+  const scrollTarget = useComposerScope().target
   const copy = t.assistant.thread
   const messageId = useAuiState(s => s.message.id)
   const content = useAuiState(s => s.message.content)
@@ -285,7 +287,7 @@ export const UserMessage: FC<{
                     aria-label={copy.editMessage}
                     className={bubbleClassName}
                     onClick={() => triggerHaptic('selection')}
-                    onPointerDown={() => notifyThreadEditOpen()}
+                    onPointerDown={() => notifyThreadEditOpen(scrollTarget)}
                     title={copy.editMessage}
                     type="button"
                   >

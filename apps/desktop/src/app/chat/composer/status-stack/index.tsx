@@ -3,6 +3,7 @@ import { type ReactNode, useEffect, useLayoutEffect, useMemo, useRef } from 'rea
 import { useNavigate } from 'react-router-dom'
 
 import { blurComposerInput } from '@/app/chat/composer/focus'
+import { useComposerScope } from '@/app/chat/composer/scope'
 import { clearSurfaceVar, setSurfaceVar, STATUS_STACK_VAR } from '@/app/chat/surface-vars'
 import { AGENTS_ROUTE } from '@/app/routes'
 import { BillingBanner } from '@/components/billing-banner'
@@ -93,7 +94,7 @@ export function ComposerStatusStack({ queue, sessionId }: ComposerStatusStackPro
   // items actually changed.
   const items = useSessionSlice($statusItemsBySession, sessionId)
   const previews = useSessionSlice($previewStatusBySession, sessionId)
-  const scrolledUp = useStore($threadScrolledUp)
+  const scrolledUp = Boolean(useStore($threadScrolledUp)[useComposerScope().target])
   const billing = useStore($billingBlock)
 
   const groups = useMemo(() => groupStatusItems(items), [items])

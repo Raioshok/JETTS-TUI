@@ -38,6 +38,8 @@ export interface RealSessionSpec {
   /** Session label. The durable row stores no title, so clients fall back to
    * the preview (the first 60 characters of the first user message). */
   title: string
+  /** Workspace the session runs in. Defaults to the repo root. */
+  cwd?: string
   /** Each item becomes one real user prompt followed by the mock provider's reply. */
   turns: readonly (RealSessionTurn | string)[]
 }
@@ -107,7 +109,7 @@ export class RealSessionBuilder {
 
     const created = await this.request<CreatedSession>('session.create', {
       cols: 120,
-      cwd: REPO_ROOT,
+      cwd: spec.cwd ?? REPO_ROOT,
       source: 'desktop',
       title: spec.title,
     })

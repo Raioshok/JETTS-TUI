@@ -39,6 +39,7 @@ import {
   renderComposerContents,
   RICH_INPUT_SLOT
 } from '@/app/chat/composer/rich-editor'
+import { useComposerScope } from '@/app/chat/composer/scope'
 import { detectTrigger, textBeforeCaret, type TriggerState } from '@/app/chat/composer/text-utils'
 import { ComposerTriggerPopover } from '@/app/chat/composer/trigger-popover'
 import { isRedoShortcut, isUndoShortcut } from '@/app/chat/composer/undo-history'
@@ -80,6 +81,7 @@ interface UserEditComposerProps {
 
 export const UserEditComposer: FC<UserEditComposerProps> = ({ cwd, gateway, sessionId }) => {
   const { t } = useI18n()
+  const scrollTarget = useComposerScope().target
   const copy = t.assistant.thread
   const aui = useAui()
   const draft = useAuiState(s => s.composer.text)
@@ -111,7 +113,7 @@ export const UserEditComposer: FC<UserEditComposerProps> = ({ cwd, gateway, sess
   const at = useAtCompletions({ cwd, gateway, sessionId })
   const slash = useSlashCompletions({ gateway })
 
-  useEffect(() => () => notifyThreadEditClose(), [])
+  useEffect(() => () => notifyThreadEditClose(scrollTarget), [scrollTarget])
 
   const focusEditor = useCallback(() => {
     const editor = editorRef.current

@@ -115,7 +115,7 @@ export function ChatBar({
   const scope = useComposerScope()
   const attachments = useStore(scope.attachments.$attachments)
   const compacting = useStore(useMemo(() => sessionCompacting(sessionId ?? null), [sessionId]))
-  const scrolledUp = useStore($threadScrolledUp)
+  const scrolledUp = Boolean(useStore($threadScrolledUp)[scope.target])
   const autoSpeak = useStore($autoSpeakReplies)
   // The turn is parked on the user (clarify / approval / sudo / secret). Esc must
   // not interrupt it — there's nothing actively running to stop, and stopping

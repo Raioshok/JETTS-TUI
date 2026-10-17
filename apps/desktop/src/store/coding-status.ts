@@ -1,4 +1,4 @@
-import { atom, computed } from 'nanostores'
+import { atom, computed, map } from 'nanostores'
 
 import type { JettsTUIGitWorktree, JettsTUIRepoStatus } from '@/global'
 import { desktopGit } from '@/lib/desktop-git'
@@ -175,6 +175,102 @@ function scheduleRepoStatusRefresh(cwd?: null | string): void {
   }, REPO_STATUS_REFRESH_DEBOUNCE_MS)
 }
 
+// ── Folders beside the main chat ─────────────────────────────────────────────
+// Session tiles render the same composer next to the main thread, each in its
+// own folder. The probe above follows only the main chat's cwd, so a tile reads
+// a small refcounted per-folder cache instead — otherwise its git row shows the
+// main chat's branch and diff.
+
+export interface RepoSnapshot {
+  status: JettsTUIRepoStatus | null
+  worktrees: JettsTUIGitWorktree[]
+}
+
+const EMPTY_REPO_SNAPSHOT: RepoSnapshot = { status: null, worktrees: [] }
+
+export const $repoByCwd = map<Record<string, RepoSnapshot | undefined>>({})
+
+const repoWatchers = new Map<string, number>()
+const repoProbes = new Set<string>()
+const repoProbesDirty = new Set<string>()
+let watchedRefreshTimer: ReturnType<typeof setTimeout> | null = null
+
+function probeRepo(cwd: string): void {
+  if (repoProbes.has(cwd)) {
+    repoProbesDirty.add(cwd)
+
+    return
+  }
+
+  repoProbes.add(cwd)
+  const git = desktopGit()
+
+  void (async () => {
+    let next = EMPTY_REPO_SNAPSHOT
+
+    try {
+      const status = git?.repoStatus ? await git.repoStatus(cwd) : null
+      const worktrees = status && git?.worktreeList ? await git.worktreeList(cwd).catch(() => []) : []
+      next = { status, worktrees }
+    } catch {
+      next = EMPTY_REPO_SNAPSHOT
+    }
+
+    repoProbes.delete(cwd)
+
+    if (repoWatchers.has(cwd)) {
+      $repoByCwd.setKey(cwd, next)
+
+      if (repoProbesDirty.delete(cwd)) {
+        probeRepo(cwd)
+      }
+    }
+  })()
+}
+
+/** Keep `cwd`'s git status fresh while a surface shows it; returns the release. */
+export function watchRepoStatus(cwd: string): () => void {
+  const target = normalizeCwd(cwd)
+
+  if (!target) {
+    return () => undefined
+  }
+
+  repoWatchers.set(target, (repoWatchers.get(target) ?? 0) + 1)
+
+  if (repoWatchers.get(target) === 1) {
+    probeRepo(target)
+  }
+
+  return () => {
+    const remaining = (repoWatchers.get(target) ?? 1) - 1
+
+    if (remaining > 0) {
+      repoWatchers.set(target, remaining)
+
+      return
+    }
+
+    repoWatchers.delete(target)
+    repoProbesDirty.delete(target)
+    $repoByCwd.setKey(target, undefined)
+  }
+}
+
+function scheduleWatchedRepoRefresh(): void {
+  if (repoWatchers.size === 0 || watchedRefreshTimer) {
+    return
+  }
+
+  watchedRefreshTimer = setTimeout(() => {
+    watchedRefreshTimer = null
+
+    for (const cwd of repoWatchers.keys()) {
+      probeRepo(cwd)
+    }
+  }, REPO_STATUS_REFRESH_DEBOUNCE_MS)
+}
+
 // ── Triggers ─────────────────────────────────────────────────────────────────
 // Wired once at module load (mirrors projects.ts's module-scope subscriptions).
 // Each is a structural edge where the working tree may have changed under us.
@@ -198,11 +294,17 @@ $selectedStoredSessionId.subscribe(() => scheduleRepoStatusRefresh())
 
 // A worktree add/remove (desktop op, or the agent's out-of-band git in a settled
 // turn / a window refocus — both already bump this token) → re-probe.
-$worktreeRefreshToken.subscribe(() => scheduleRepoStatusRefresh())
+$worktreeRefreshToken.subscribe(() => {
+  scheduleRepoStatusRefresh()
+  scheduleWatchedRepoRefresh()
+})
 
 // A file-mutating tool finished (event-driven, not polled) → re-probe so the
 // rail's branch/+/- move exactly when the agent touches the tree.
-$workspaceChangeTick.subscribe(() => scheduleRepoStatusRefresh())
+$workspaceChangeTick.subscribe(() => {
+  scheduleRepoStatusRefresh()
+  scheduleWatchedRepoRefresh()
+})
 
 // A turn settling is the backstop for changes no tool diff announced (e.g. a
 // raw `git` in the terminal): one final refresh when the agent goes idle.
@@ -211,6 +313,7 @@ let prevBusy = $busy.get()
 $busy.subscribe(busy => {
   if (prevBusy && !busy) {
     scheduleRepoStatusRefresh()
+    scheduleWatchedRepoRefresh()
   }
 
   prevBusy = busy
@@ -219,5 +322,8 @@ $busy.subscribe(busy => {
 // External changes while the window was away (an outside terminal) — refresh on
 // refocus, the git-GUI standard.
 if (typeof window !== 'undefined') {
-  window.addEventListener('focus', () => scheduleRepoStatusRefresh())
+  window.addEventListener('focus', () => {
+    scheduleRepoStatusRefresh()
+    scheduleWatchedRepoRefresh()
+  })
 }
