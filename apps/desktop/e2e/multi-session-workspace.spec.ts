@@ -139,6 +139,30 @@ test.afterAll(async () => {
   fixture = null
 })
 
+test('a fresh app: "New session in <project>" with no chat open keeps that folder', async () => {
+  test.slow()
+  const page = fixture!.page
+
+  // Runs first: the app has just launched onto a blank draft, nothing open.
+
+  const showProjects = page.getByRole('button', { name: 'Show projects' })
+
+  if (await showProjects.isVisible().catch(() => false)) {
+    await showProjects.click()
+  }
+
+  await page.getByRole('button', { name: `New session in ${betaRepoName}` }).first().click()
+  await expect(page.locator(MAIN_ROW)).toContainText('beta-branch', { timeout: 20_000 })
+
+  await send(page, 'fresh app first message')
+  await waitForVisibleTranscript(page, 'fresh app first message')
+
+  const seen = await sampleRows(page, MAIN_ROW, 3_000)
+
+  expect(seen.filter(text => text.includes('alpha-branch'))).toEqual([])
+  await expect(page.locator(MAIN_ROW)).toContainText('beta-branch')
+})
+
 test('a background chat never paints its repo onto the visible chat', async () => {
   test.slow()
   const page = fixture!.page

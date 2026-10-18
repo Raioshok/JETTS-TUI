@@ -7041,6 +7041,16 @@ def _(rid, params: dict) -> dict:
         explicit_cwd = bool(raw_cwd) and os.path.isdir(os.path.abspath(os.path.expanduser(raw_cwd)))
     except Exception:
         explicit_cwd = False
+    if raw_cwd and not explicit_cwd and _is_local_terminal_backend():
+        # A folder that was moved, renamed or deleted (often a project whose
+        # directory changed). Starting anyway would silently run the chat in
+        # the gateway's launch directory and file it under "No workspace".
+        return _err(
+            rid,
+            4017,
+            f"Folder not found: {raw_cwd}. It may have been moved, renamed or "
+            "deleted — update the project's folder and try again.",
+        )
     resolved_cwd = _completion_cwd(params)
     source = _resolve_session_source(str(params.get("source") or "").strip() or None)
     _enable_gateway_prompts()
