@@ -7,6 +7,13 @@ import type { SubagentProgress } from '../types.js'
 
 export const RESIDENT_WORKSPACE_MIN_COLS = 118
 export const RESIDENT_WORKSPACE_MIN_ROWS = 30
+// When the user is actively juggling more than one agent, seeing the others is
+// worth a tighter layout: the sidebar (29 cols) plus a still-usable transcript
+// fit well below the single-session comfort bar. Without this, a second agent
+// silently vanishes on a normal-width terminal — the agent "tab" collapses and
+// its work can't be seen until the window is dragged past 118 cols.
+export const RESIDENT_WORKSPACE_MULTI_MIN_COLS = 90
+export const RESIDENT_WORKSPACE_MULTI_MIN_ROWS = 24
 export const RESIDENT_SIDEBAR_COLS = 29
 
 export type ResidentWorkspacePref = 'auto' | 'off' | 'on'
@@ -18,9 +25,14 @@ export const shouldUseResidentWorkspace = (
   pref: ResidentWorkspacePref = 'auto'
 ) => {
   if (pref === 'off') {return false}
-  const sized = cols >= RESIDENT_WORKSPACE_MIN_COLS && rows >= RESIDENT_WORKSPACE_MIN_ROWS && sessionCount > 0
+  if (sessionCount <= 0) {return false}
+  if (pref === 'on') {return true}
 
-  return pref === 'on' ? sessionCount > 0 : sized
+  const multiAgent = sessionCount >= 2
+  const minCols = multiAgent ? RESIDENT_WORKSPACE_MULTI_MIN_COLS : RESIDENT_WORKSPACE_MIN_COLS
+  const minRows = multiAgent ? RESIDENT_WORKSPACE_MULTI_MIN_ROWS : RESIDENT_WORKSPACE_MIN_ROWS
+
+  return cols >= minCols && rows >= minRows
 }
 
 export const residentSessionLabel = (session: SessionActiveItem, index: number) =>

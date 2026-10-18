@@ -45,11 +45,20 @@ const sessions: SessionActiveItem[] = [
 ]
 
 describe('resident workspace responsiveness', () => {
-  it('activates only when the terminal can hold the full workspace', () => {
+  it('activates when the terminal can hold the full workspace', () => {
     expect(shouldUseResidentWorkspace(140, 40, 2)).toBe(true)
-    expect(shouldUseResidentWorkspace(100, 40, 2)).toBe(false)
-    expect(shouldUseResidentWorkspace(140, 24, 2)).toBe(false)
     expect(shouldUseResidentWorkspace(140, 40, 0)).toBe(false)
+  })
+
+  it('drops the width bar once a second agent is running so neither collapses', () => {
+    // A single ambient session keeps the comfortable bar...
+    expect(shouldUseResidentWorkspace(100, 40, 1)).toBe(false)
+    // ...but two live agents must stay visible on a normal-width terminal.
+    expect(shouldUseResidentWorkspace(100, 40, 2)).toBe(true)
+    expect(shouldUseResidentWorkspace(100, 28, 2)).toBe(true)
+    // Still gated below the multi-agent floor (too few cols / rows to render).
+    expect(shouldUseResidentWorkspace(80, 40, 2)).toBe(false)
+    expect(shouldUseResidentWorkspace(100, 20, 2)).toBe(false)
   })
 
   it('honors the explicit resident_workspace preference', () => {
