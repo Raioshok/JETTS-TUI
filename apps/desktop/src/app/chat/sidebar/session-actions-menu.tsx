@@ -43,6 +43,8 @@ import { canOpenSessionWindow } from '@/store/windows'
 
 import type { SessionTitleResponse } from '../../types'
 
+import { SessionUsageDialog } from './session-usage-dialog'
+
 // Rename a session, preferring the gateway's session.title RPC over REST.
 //
 // A freshly *branched* session (and any brand-new chat) lives only in the
@@ -149,6 +151,7 @@ function useSessionActions({
   const { t } = useI18n()
   const r = t.sidebar.row
   const [renameOpen, setRenameOpen] = useState(false)
+  const [usageOpen, setUsageOpen] = useState(false)
   const tiles = useStore($sessionTiles)
   const selectedStoredSessionId = useStore($selectedStoredSessionId)
 
@@ -226,6 +229,15 @@ function useSessionActions({
       onSelect: () => {
         triggerHaptic('selection')
         onBranch?.()
+      }
+    }),
+    spec({
+      disabled: !sessionId,
+      icon: 'dashboard',
+      label: r.usage,
+      onSelect: () => {
+        triggerHaptic('selection')
+        setUsageOpen(true)
       }
     }),
     spec({
@@ -368,13 +380,16 @@ function useSessionActions({
   )
 
   const renameDialog = (
-    <RenameSessionDialog
-      currentTitle={title}
-      onOpenChange={setRenameOpen}
-      open={renameOpen}
-      profile={profile}
-      sessionId={sessionId}
-    />
+    <>
+      <RenameSessionDialog
+        currentTitle={title}
+        onOpenChange={setRenameOpen}
+        open={renameOpen}
+        profile={profile}
+        sessionId={sessionId}
+      />
+      <SessionUsageDialog onOpenChange={setUsageOpen} open={usageOpen} sessionId={sessionId} title={title} />
+    </>
   )
 
   return { renameDialog, renderItems }

@@ -613,6 +613,31 @@ export interface UsageStats {
   total: number
 }
 
+/** Durable per-session usage: model working time + est cost + token/call
+ *  breakdown, served by the `session.stats` gateway RPC for any stored
+ *  session (not just the live one). */
+export interface SessionStats {
+  session_id: string
+  model: string
+  provider: string
+  /** Sum of every API call's wall-clock — real model working time. */
+  active_seconds: number
+  /** started_at..ended_at span (idle-inclusive); null while active. */
+  wall_seconds: number | null
+  api_call_count: number
+  tool_call_count: number
+  input_tokens: number
+  output_tokens: number
+  cache_read_tokens: number
+  cache_write_tokens: number
+  reasoning_tokens: number
+  total_tokens: number
+  /** null when no pricing is known for the model/route. */
+  cost_usd: number | null
+  cost_status: string
+  cost_label: string
+}
+
 /** One graph node in the star map (learned skill or memory chunk). */
 export interface StarmapNode {
   id: string

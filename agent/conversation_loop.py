@@ -2150,7 +2150,13 @@ def run_conversation(
                     break
                 
                 api_duration = time.time() - api_start_time
-                
+                try:
+                    agent.session_active_seconds = (
+                        getattr(agent, "session_active_seconds", 0.0) or 0.0
+                    ) + api_duration
+                except Exception:
+                    pass
+
                 # Stop thinking spinner silently -- the response box or tool
                 # execution messages that follow are more informative.
                 if thinking_spinner:
@@ -3100,6 +3106,7 @@ def run_conversation(
                                 if cost_result.status == "included" else None,
                                 model=agent.model,
                                 api_call_count=1,
+                                active_seconds=api_duration,
                             )
                         except Exception as e:
                             # Log token persistence failures so they're
@@ -3135,6 +3142,28 @@ def run_conversation(
                             f"({hit_pct:.0f}% hit, {written:,} written)"
                         )
                 
+                else:
+                    # The provider returned no usage object (some proxies and
+                    # subscription routes omit it), but a call still happened
+                    # and took api_duration seconds. Persist the call count and
+                    # working time anyway so /usage and the desktop usage dialog
+                    # stay accurate — only the token/cost columns are skipped.
+                    if agent._session_db and agent.session_id:
+                        try:
+                            if not agent._session_db_created:
+                                agent._ensure_db_session()
+                            agent._session_db.update_token_counts(
+                                agent.session_id,
+                                model=agent.model,
+                                api_call_count=1,
+                                active_seconds=api_duration,
+                            )
+                        except Exception as e:
+                            logger.debug(
+                                "Working-time persistence failed (session=%s): %s",
+                                agent.session_id, e,
+                            )
+
                 _retry.has_retried_429 = False  # Reset on success
                 # Note: don't clear the retry buffer here — an "API call
                 # success" only means we got bytes back, not that we got

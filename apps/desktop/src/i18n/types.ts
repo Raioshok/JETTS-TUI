@@ -1750,10 +1750,26 @@ export interface Translations {
     loading: string
     loadMore: string
     loadCount: (step: number) => string
+    usage: {
+      title: string
+      loading: string
+      unavailable: string
+      workingTime: string
+      estCost: string
+      included: string
+      costUnknown: string
+      model: string
+      apiCalls: string
+      toolCalls: string
+      tokensIn: string
+      tokensOut: string
+      tokensCached: string
+    }
     row: {
       pin: string
       unpin: string
       copyId: string
+      usage: string
       export: string
       branchFrom: string
       rename: string

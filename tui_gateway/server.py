@@ -8577,6 +8577,123 @@ def _(rid, params: dict) -> dict:
     return _ok(rid, usage)
 
 
+@method("session.stats")
+def _(rid, params: dict) -> dict:
+    """Working time + estimated cost + token/call breakdown for ANY session.
+
+    Reads the durable sessions row, so it serves a right-click on a stored
+    session the user hasn't opened — unlike session.usage, which needs the
+    session live in memory. Cost is recomputed from the stored tokens via the
+    pricing table (subscription-included providers resolve to $0, not unknown),
+    so the figure is present even when the live run never attached a price.
+    """
+    sid = str(params.get("session_id") or "").strip()
+    if not sid:
+        return _err(rid, 4004, "session_id required")
+    db = _get_db()
+    if db is None:
+        return _db_unavailable_error(rid, code=5008)
+
+    # Accept either the durable session id or a live-session key / ui id.
+    row = None
+    try:
+        resolved = db.resolve_session_id(sid)
+        if resolved:
+            row = db.get_session(resolved)
+    except Exception:
+        row = None
+    if row is None:
+        live = _sessions.get(sid)
+        if live is not None:
+            agent = live.get("agent")
+            durable = getattr(agent, "session_id", None) or live.get("session_key")
+            if durable:
+                try:
+                    row = db.get_session(db.resolve_session_id(durable) or durable)
+                except Exception:
+                    row = None
+    if row is None:
+        return _err(rid, 4015, f"no stats for session {sid}")
+
+    def _i(key: str) -> int:
+        try:
+            return int(row.get(key) or 0)
+        except (TypeError, ValueError):
+            return 0
+
+    model = str(row.get("model") or "")
+    provider = str(row.get("billing_provider") or "")
+    base_url = str(row.get("billing_base_url") or "") or None
+    input_tokens = _i("input_tokens")
+    output_tokens = _i("output_tokens")
+    cache_read = _i("cache_read_tokens")
+    cache_write = _i("cache_write_tokens")
+    reasoning = _i("reasoning_tokens")
+
+    try:
+        active_seconds = float(row.get("active_seconds") or 0.0)
+    except (TypeError, ValueError):
+        active_seconds = 0.0
+
+    started = row.get("started_at")
+    ended = row.get("ended_at")
+    try:
+        wall_seconds = (float(ended) - float(started)) if started and ended else None
+    except (TypeError, ValueError):
+        wall_seconds = None
+
+    # Recompute cost from the stored tokens. Prefer a live price; fall back to
+    # the value the run persisted when pricing isn't resolvable now.
+    cost_amount = None
+    cost_label = "n/a"
+    cost_status = str(row.get("cost_status") or "unknown")
+    try:
+        from agent.usage_pricing import CanonicalUsage, estimate_usage_cost
+
+        usage = CanonicalUsage(
+            input_tokens=input_tokens,
+            output_tokens=output_tokens,
+            cache_read_tokens=cache_read,
+            cache_write_tokens=cache_write,
+            reasoning_tokens=reasoning,
+        )
+        result = estimate_usage_cost(model, usage, provider=provider or None, base_url=base_url)
+        cost_status = result.status
+        cost_label = result.label
+        if result.amount_usd is not None:
+            cost_amount = float(result.amount_usd)
+        elif result.status == "included":
+            cost_amount = 0.0
+    except Exception as exc:
+        logger.debug("session.stats cost estimate failed (session=%s): %s", sid, exc)
+    if cost_amount is None:
+        try:
+            persisted = row.get("estimated_cost_usd")
+            if persisted is not None:
+                cost_amount = float(persisted)
+        except (TypeError, ValueError):
+            pass
+
+    return _ok(rid, {
+        "session_id": str(row.get("id") or sid),
+        "model": model,
+        "provider": provider,
+        "active_seconds": active_seconds,
+        "wall_seconds": wall_seconds,
+        "api_call_count": _i("api_call_count"),
+        "tool_call_count": _i("tool_call_count"),
+        "input_tokens": input_tokens,
+        "output_tokens": output_tokens,
+        "cache_read_tokens": cache_read,
+        "cache_write_tokens": cache_write,
+        "reasoning_tokens": reasoning,
+        "total_tokens": input_tokens + output_tokens + cache_read + cache_write,
+        "cost_usd": cost_amount,
+        "cost_status": cost_status,
+        "cost_label": cost_label,
+    })
+
+
 @method("session.context_breakdown")
 def _(rid, params: dict) -> dict:
     session, err = _sess_nowait(params, rid)

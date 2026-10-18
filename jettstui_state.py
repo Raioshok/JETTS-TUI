@@ -1290,6 +1290,10 @@ CREATE TABLE IF NOT EXISTS sessions (
     pricing_version TEXT,
     title TEXT,
     api_call_count INTEGER DEFAULT 0,
+    -- Accumulated model working time: the sum of every API call's wall-clock
+    -- duration, so it reflects time the model actually spent generating, not
+    -- the session's idle-inclusive started_at..ended_at span.
+    active_seconds REAL NOT NULL DEFAULT 0,
     handoff_state TEXT,
     handoff_platform TEXT,
     handoff_error TEXT,
@@ -5116,6 +5120,7 @@ class SessionDB:
         billing_base_url: Optional[str] = None,
         billing_mode: Optional[str] = None,
         api_call_count: int = 0,
+        active_seconds: float = 0.0,
         absolute: bool = False,
     ) -> None:
         """Update token counters and backfill model if not already set.
@@ -5151,7 +5156,8 @@ class SessionDB:
                    billing_base_url = COALESCE(billing_base_url, ?),
                    billing_mode = COALESCE(billing_mode, ?),
                    model = COALESCE(model, ?),
-                   api_call_count = ?
+                   api_call_count = ?,
+                   active_seconds = ?
                    WHERE id = ?"""
         else:
             sql = """UPDATE sessions SET
@@ -5172,7 +5178,8 @@ class SessionDB:
                    billing_base_url = COALESCE(billing_base_url, ?),
                    billing_mode = COALESCE(billing_mode, ?),
                    model = COALESCE(model, ?),
-                   api_call_count = COALESCE(api_call_count, 0) + ?
+                   api_call_count = COALESCE(api_call_count, 0) + ?,
+                   active_seconds = COALESCE(active_seconds, 0) + ?
                    WHERE id = ?"""
         has_accounted_usage = bool(
             input_tokens or output_tokens or cache_read_tokens
@@ -5196,6 +5203,7 @@ class SessionDB:
             billing_mode if has_accounted_usage else None,
             model if has_accounted_usage else None,
             api_call_count,
+            max(0.0, float(active_seconds or 0.0)),
             session_id,
         )
         # Per-model usage attribution.  ``update_token_counts`` is the single

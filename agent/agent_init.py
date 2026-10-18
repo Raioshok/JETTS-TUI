@@ -2548,6 +2548,9 @@ def init_agent(
     agent.session_estimated_cost_usd = 0.0
     agent.session_cost_status = "unknown"
     agent.session_cost_source = "none"
+    # Accumulated model working time (sum of every API call's wall-clock), kept
+    # in-memory for the live usage snapshot and persisted per call to state.db.
+    agent.session_active_seconds = 0.0
     
     # ── Ollama num_ctx injection ──
     # Ollama defaults to 2048 context regardless of the model's capabilities.

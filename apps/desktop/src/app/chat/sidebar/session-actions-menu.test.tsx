@@ -23,11 +23,27 @@ vi.mock('@/i18n', () => ({
       common: { cancel: 'Cancel', close: 'Close', delete: 'Delete', save: 'Save' },
       sidebar: {
         projects: { menuAppearance: 'Appearance', noColor: 'No color' },
+        usage: {
+          title: 'Session usage',
+          loading: 'Loading…',
+          unavailable: 'Usage unavailable for this session.',
+          workingTime: 'Working time',
+          estCost: 'Est. cost',
+          included: 'Included',
+          costUnknown: '—',
+          model: 'Model',
+          apiCalls: 'API calls',
+          toolCalls: 'Tool calls',
+          tokensIn: 'Tokens in',
+          tokensOut: 'Tokens out',
+          tokensCached: 'Tokens cached'
+        },
         row: {
           archive: 'Archive',
           branchFrom: 'Branch from here',
           copyId: 'Copy ID',
           copyIdFailed: 'Failed to copy ID',
+          usage: 'Usage',
           export: 'Export',
           hideTabBar: 'Hide tab bar',
           pin: 'Pin',
