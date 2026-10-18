@@ -473,3 +473,50 @@ def test_skill_patch_off_silent_verbose_shows_diff():
     )
     assert len(verbose) == 1
     assert "demo" in verbose[0] and "→" in verbose[0]
+
+
+def test_background_review_fork_leaves_the_parents_terminal_and_processes(monkeypatch):
+    """The fork shares the parent's session_id, which keys the chat's terminal
+    and background processes; its close() must not tear those down."""
+    seen = {}
+
+    class FakeReviewAgent:
+        def __init__(self, **kwargs):
+            self._session_messages = []
+
+        def run_conversation(self, **kwargs):
+            seen["owns"] = getattr(self, "_owns_session_resources", True)
+
+        def shutdown_memory_provider(self):
+            pass
+
+        def close(self):
+            pass
+
+    monkeypatch.setattr(run_agent_module, "AIAgent", FakeReviewAgent)
+    monkeypatch.setattr(run_agent_module.threading, "Thread", ImmediateThread)
+
+    AIAgent._spawn_background_review(
+        _bare_agent(),
+        messages_snapshot=[{"role": "user", "content": "hello"}],
+        review_memory=True,
+    )
+
+    assert seen["owns"] is False
+
+
+def test_close_skips_session_resources_it_does_not_own(monkeypatch):
+    from tools.process_registry import process_registry
+
+    killed, cleaned = [], []
+    monkeypatch.setattr(process_registry, "kill_all", lambda task_id=None: killed.append(task_id))
+    monkeypatch.setattr(run_agent_module, "cleanup_vm", lambda task_id: cleaned.append(task_id))
+
+    borrower = _bare_agent()
+    borrower._owns_session_resources = False
+    AIAgent.close(borrower)
+    assert killed == [] and cleaned == []
+
+    owner = _bare_agent()
+    AIAgent.close(owner)
+    assert killed == ["test-session"] and cleaned == ["test-session"]

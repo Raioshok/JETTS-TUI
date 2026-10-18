@@ -13666,6 +13666,7 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
                                     # It must never finalize on close() — close()
                                     # would end the live gateway session row.
                                     _hyg_agent._end_session_on_close = False
+                                    _hyg_agent._owns_session_resources = False
                                     _hyg_agent._print_fn = lambda *a, **kw: None
 
                                     loop = asyncio.get_running_loop()

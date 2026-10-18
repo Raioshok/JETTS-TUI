@@ -3732,19 +3732,25 @@ class AIAgent:
         independently guarded so a failure in one does not prevent the rest.
         """
         task_id = getattr(self, "session_id", None) or ""
+        # Helper agents that borrow a live chat's session_id (background review,
+        # compression hygiene, slash helpers) must not kill that chat's
+        # background processes or tear down its terminal when they close.
+        owns_session_resources = getattr(self, "_owns_session_resources", True)
 
         # 1. Kill background processes for this task
-        try:
-            from tools.process_registry import process_registry
-            process_registry.kill_all(task_id=task_id)
-        except Exception:
-            pass
+        if owns_session_resources:
+            try:
+                from tools.process_registry import process_registry
+                process_registry.kill_all(task_id=task_id)
+            except Exception:
+                pass
 
         # 2. Clean terminal sandbox environments
-        try:
-            cleanup_vm(task_id)
-        except Exception:
-            pass
+        if owns_session_resources:
+            try:
+                cleanup_vm(task_id)
+            except Exception:
+                pass
 
         # 3. Clean browser daemon sessions
         try:
