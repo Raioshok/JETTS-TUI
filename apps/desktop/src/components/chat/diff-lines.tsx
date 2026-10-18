@@ -65,6 +65,42 @@ const PREVIEW_OVERSCAN_LINES = 400
 const DIFF_BOX_CLASS =
   '-mx-1.5 -mb-1.5 max-h-[12rem] max-w-none min-w-0 overflow-auto overscroll-x-contain overscroll-y-auto font-mono text-[0.7rem] leading-relaxed text-(--ui-text-secondary)'
 
+// A long agent run keeps hundreds of edit diffs open in one turn, and each
+// compact box renders every line (Shiki spans included) behind its 12rem clamp
+// — tens of thousands of DOM nodes per chat. Diffs this long always fill the
+// clamp, so off-screen ones swap for an exact 12rem placeholder: no layout
+// shift, and only the few near the viewport stay mounted.
+const LAZY_DIFF_MIN_LINES = 14
+const NEAR_VIEWPORT_PX = 800
+
+function useNearViewport(ref: React.RefObject<Element | null>, enabled: boolean): boolean {
+  const [near, setNear] = React.useState(!enabled)
+
+  React.useLayoutEffect(() => {
+    const el = ref.current
+
+    if (!enabled || !el || typeof IntersectionObserver === 'undefined') {
+      setNear(true)
+
+      return
+    }
+
+    // Decide before the first paint so on-screen diffs never flash empty.
+    const rect = el.getBoundingClientRect()
+    setNear(rect.bottom > -NEAR_VIEWPORT_PX && rect.top < window.innerHeight + NEAR_VIEWPORT_PX)
+
+    const observer = new IntersectionObserver(([entry]) => setNear(entry.isIntersecting), {
+      rootMargin: `${NEAR_VIEWPORT_PX}px 0px`
+    })
+
+    observer.observe(el)
+
+    return () => observer.disconnect()
+  }, [enabled, ref])
+
+  return near
+}
+
 function diffKind(line: string): DiffKind {
   if (line.startsWith('+') && !line.startsWith('+++')) {
     return 'add'
@@ -595,9 +631,13 @@ export function FileDiffPanel({
 
   const visibleLineChunks = lineChunks.slice(startChunk, endChunk + 1)
 
+  const windowed = showLineNumbers || virtualized
+  const lazy = !windowed && lines.length >= LAZY_DIFF_MIN_LINES
+  const compactBoxRef = React.useRef<HTMLDivElement>(null)
+  const near = useNearViewport(compactBoxRef, lazy)
+
   const language = shikiLanguageForFilename(path)
   const canHighlight = Boolean(language) && !exceedsHighlightBudget(fullText ?? diff)
-  const windowed = showLineNumbers || virtualized
 
   // Windowed: we own fixed-height rows and render only the visible chunks, so a
   // large diff never mounts (or Shiki-highlights) every line. Compact tool cards
@@ -625,8 +665,12 @@ export function FileDiffPanel({
 
   if (!windowed) {
     return (
-      <div className={cn(DIFF_BOX_CLASS, className)} data-slot="file-diff-panel">
-        {compactBody}
+      <div
+        className={cn(DIFF_BOX_CLASS, className, lazy && !near && 'h-[12rem]')}
+        data-slot="file-diff-panel"
+        ref={compactBoxRef}
+      >
+        {near ? compactBody : null}
       </div>
     )
   }
