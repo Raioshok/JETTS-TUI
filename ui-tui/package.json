@@ -16,7 +16,8 @@
     "fix": "npm run lint:fix && npm run fmt",
     "check": "npm run build:ink && npm run typecheck && npm run test && npm run lint",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "test:e2e": "npm run build:ink && node ../node_modules/tsx/dist/cli.mjs e2e/tui-smoke.mts"
   },
   "dependencies": {
     "@jetts-tui/ink": "file:./packages/jetts-tui-ink",
