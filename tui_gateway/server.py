@@ -5190,19 +5190,43 @@ def _apply_project_workspace(task_id: str, path: str, _name: str = "") -> None:
         logger.debug("failed to emit session.info after project workspace move", exc_info=True)
 
 
+def _turn_ui_sid(fallback: str) -> str:
+    """The live turn's UI session id, from the thread-local session context.
+
+    ``_secret_capture_callback`` (and the sudo callback) are reinstalled every
+    turn; the secret one is a module global shared by every concurrent chat. A
+    blocking prompt must reach the chat whose turn is actually running — which
+    is bound thread-locally via ``_SESSION_UI_SESSION_ID`` in
+    ``_set_session_context`` — not whichever chat last wired the callback.
+    """
+    try:
+        from gateway.session_context import get_session_env
+
+        return get_session_env("JETTSTUI_UI_SESSION_ID", fallback) or fallback
+    except Exception:
+        return fallback
+
+
 def _wire_callbacks(sid: str):
     from tools.terminal_tool import set_sudo_password_callback
     from tools.skills_tool import set_secret_capture_callback
     from tools.project_tools import set_project_workspace_callback
 
-    set_sudo_password_callback(lambda: _block("sudo.request", sid, {}, timeout=120))
+    # The sudo callback is thread-local (set_sudo_password_callback stores it in
+    # a threading.local), so capturing sid here is safe — each turn thread owns
+    # its own slot. The secret callback below is a MODULE GLOBAL, so it must NOT
+    # capture sid: with two chats running, chat B's turn reinstalls the global
+    # and chat A's secret prompt would then pop in chat B's window. Resolve the
+    # live turn's UI session id from the thread-local session context at call
+    # time instead, falling back to the wiring-time sid only off the turn thread.
+    set_sudo_password_callback(lambda: _block("sudo.request", _turn_ui_sid(sid), {}, timeout=120))
     set_project_workspace_callback(_apply_project_workspace)
 
     def secret_cb(env_var, prompt, metadata=None):
         pl = {"prompt": prompt, "env_var": env_var}
         if metadata:
             pl["metadata"] = metadata
-        val = _block("secret.request", sid, pl)
+        val = _block("secret.request", _turn_ui_sid(sid), pl)
         if not val:
             return {
                 "success": True,

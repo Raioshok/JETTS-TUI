@@ -78,3 +78,34 @@ def test_set_session_context_unknown_key_uses_key(monkeypatch):
     server._set_session_context("ephemeral-key")
 
     assert get_session_env("JETTSTUI_SESSION_ID") == "ephemeral-key"
+
+
+def test_secret_prompt_targets_the_running_turn_not_the_last_wired_chat(monkeypatch):
+    """The secret-capture callback is a module global reinstalled every turn.
+    Two chats run concurrently: chat A wires it, chat B wires it (global now
+    points at B's closure), then chat A's tool fires a secret capture ON A'S
+    TURN THREAD. The prompt must reach chat A's window, resolved from the live
+    thread-local UI session id — not chat B, whose sid the global captured.
+    """
+    import tools.skills_tool as skills_tool
+
+    blocked_on = []
+    monkeypatch.setattr(server, "_block", lambda event, sid, payload, **kw: blocked_on.append(sid) or "secret-value")
+    monkeypatch.setattr(
+        "jettstui.config.save_env_value_secure",
+        lambda env_var, val: {"success": True, "stored_as": env_var, "validated": True},
+    )
+
+    _install_session(monkeypatch, session_key="skey-A", agent_session_id="sid-A")
+
+    # Chat A's turn binds its UI session id thread-locally, then wires callbacks.
+    server._set_session_context("skey-A", ui_session_id="ui-A")
+    server._wire_callbacks("ui-A")
+
+    # Chat B's turn reinstalls the module-global secret callback (captures ui-B).
+    server._wire_callbacks("ui-B")
+
+    # Back on chat A's turn thread (ui-A still bound), a tool fires the capture.
+    skills_tool._secret_capture_callback("MY_TOKEN", "Enter token")
+
+    assert blocked_on == ["ui-A"], f"secret prompt leaked to {blocked_on}"
