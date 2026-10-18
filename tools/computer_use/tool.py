@@ -154,14 +154,56 @@ _session_auto_approve: Dict[str, bool] = {}
 _always_allow: Dict[str, set] = {}
 
 
+def _computer_use_config() -> Dict[str, Any]:
+    """The ``computer_use`` config block, or ``{}`` when config is unreadable."""
+    try:
+        from jettstui.config import load_config
+        return (load_config() or {}).get("computer_use") or {}
+    except Exception:
+        return {}
+
+
+def _native_max_width() -> int:
+    """Longest-edge cap handed to the native backend's screenshots."""
+    try:
+        return int(_computer_use_config().get("max_width", 1280))
+    except Exception:
+        return 1280
+
+
+def _resolve_backend_name() -> str:
+    """Decide which backend to instantiate.
+
+    Order: explicit env override → ``computer_use.backend`` config → ``auto``.
+    ``auto`` prefers cua-driver when its binary is installed (background,
+    no-focus-steal delivery) and otherwise falls back to the self-contained
+    native (coordinate-first) backend so computer-use works with zero install.
+    """
+    name = os.environ.get("JETTSTUI_COMPUTER_USE_BACKEND", "").strip().lower()
+    if not name:
+        name = str(_computer_use_config().get("backend", "auto")).strip().lower()
+    if name in {"", "auto"}:
+        try:
+            from tools.computer_use.cua_backend import cua_driver_binary_available
+            if cua_driver_binary_available():
+                return "cua"
+        except Exception:
+            pass
+        return "native"
+    return name
+
+
 def _get_backend() -> ComputerUseBackend:
     global _backend
     with _backend_lock:
         if _backend is None:
-            backend_name = os.environ.get("JETTSTUI_COMPUTER_USE_BACKEND", "cua").lower()
-            if backend_name in {"cua", "cua-driver", ""}:
+            backend_name = _resolve_backend_name()
+            if backend_name in {"cua", "cua-driver"}:
                 from tools.computer_use.cua_backend import CuaDriverBackend
                 _backend = CuaDriverBackend()
+            elif backend_name in {"native", "pyautogui"}:
+                from tools.computer_use.native_backend import NativeBackend
+                _backend = NativeBackend(max_width=_native_max_width())
             elif backend_name == "noop":  # pragma: no cover
                 _backend = _NoopBackend()
             else:
@@ -1029,17 +1071,35 @@ def _element_to_dict(e: UIElement) -> Dict[str, Any]:
 def check_computer_use_requirements() -> bool:
     """Return True iff computer_use can run on this host.
 
-    Conditions: macOS, Windows, or Linux + cua-driver binary installed (or
-    override via env). cua-driver runs on all three; the Linux path is
-    headed/X11 today (Wayland via XWayland), pure-Wayland progress tracked
-    upstream. Linux users see specific blocked checks via
-    `jettstui computer-use doctor` if their session is incomplete (e.g. no
-    DISPLAY set).
+    Supported on macOS, Windows, and Linux. The tool is available when EITHER
+    backend can run:
+
+    * **cua-driver** — the binary is installed (background, no-focus-steal
+      delivery; the preferred upgrade). `jettstui computer-use doctor` reports
+      per-check status.
+    * **native** — the self-contained, coordinate-first backend (Pillow
+      screenshots + native input). Needs only an interactive desktop session,
+      so computer-use works out of the box with no install.
+
+    When the config pins ``computer_use.backend`` to a specific backend, only
+    that backend's availability counts. ``auto`` (default) accepts either.
     """
     if sys.platform not in ("darwin", "win32", "linux"):
         return False
-    from tools.computer_use.cua_backend import cua_driver_binary_available
-    return cua_driver_binary_available()
+    name = _resolve_backend_name()
+    if name in {"cua", "cua-driver"}:
+        from tools.computer_use.cua_backend import cua_driver_binary_available
+        return cua_driver_binary_available()
+    if name in {"native", "pyautogui"}:
+        from tools.computer_use.native_backend import NativeBackend
+        try:
+            return NativeBackend().is_available()
+        except Exception:
+            return False
+    if name == "noop":  # pragma: no cover
+        return True
+    # Unknown explicit name: fail closed.
+    return False
 
 
 def get_computer_use_schema() -> Dict[str, Any]:

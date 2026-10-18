@@ -125,8 +125,12 @@ class TestRegistration:
             assert cu_tool.check_computer_use_requirements() is True
 
     def test_check_fn_false_on_linux_without_binary(self):
+        # With the backend pinned to cua, the tool stays gated on the binary.
+        # (In the default "auto" mode a missing binary falls back to the
+        # self-contained native backend — covered in test_computer_use_native.)
         from tools.computer_use import tool as cu_tool
         with patch("tools.computer_use.tool.sys.platform", "linux"), \
+             patch.object(cu_tool, "_resolve_backend_name", return_value="cua"), \
              patch("tools.computer_use.cua_backend.cua_driver_binary_available", return_value=False):
             assert cu_tool.check_computer_use_requirements() is False
 
@@ -143,8 +147,10 @@ class TestRegistration:
             assert cu_tool.check_computer_use_requirements() is True
 
     def test_check_fn_false_on_windows_without_binary(self):
+        # Backend pinned to cua → still gated on the binary (see note above).
         from tools.computer_use import tool as cu_tool
         with patch("tools.computer_use.tool.sys.platform", "win32"), \
+             patch.object(cu_tool, "_resolve_backend_name", return_value="cua"), \
              patch("tools.computer_use.cua_backend.cua_driver_binary_available", return_value=False):
             assert cu_tool.check_computer_use_requirements() is False
 

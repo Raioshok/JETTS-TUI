@@ -3665,6 +3665,22 @@ DEFAULT_CONFIG = {
 
     # Computer Use (cua-driver) toolset settings.
     "computer_use": {
+        # Which backend drives the desktop:
+        #   "auto"   (default) — use cua-driver when its binary is installed
+        #            (background, no-focus-steal delivery), else fall back to
+        #            the self-contained native backend so computer-use works
+        #            with zero install.
+        #   "cua"    — force cua-driver (errors if the binary is missing).
+        #   "native" — force the self-contained, coordinate-first backend
+        #            (Pillow screenshots + native input; moves the real cursor).
+        # Env override: JETTSTUI_COMPUTER_USE_BACKEND.
+        "backend": "auto",
+        # Native backend only: downscale each screenshot so its longest edge is
+        # at most this many pixels before handing it to the model (Claude/Codex
+        # target ~1280; accuracy drops and token cost climbs on 4K frames).
+        # Model click coordinates are rescaled back to real device pixels. 0
+        # disables downscaling.
+        "max_width": 1280,
         # cua-driver ships with anonymous usage telemetry (PostHog) ENABLED
         # by default upstream. JettsTUI disables it for our users unless they
         # explicitly opt in here. When false (default), JettsTUI sets
