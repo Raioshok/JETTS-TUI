@@ -12,6 +12,9 @@ import pytest
 
 from tools import browser_tool as bt
 
+# These tests cover the agent-browser CLI driver specifically.
+pytestmark = pytest.mark.usefixtures("agent_browser_driver")
+
 
 @pytest.fixture(autouse=True)
 def _reset_chromium_cache():

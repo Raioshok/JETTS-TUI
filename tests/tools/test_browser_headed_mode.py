@@ -10,6 +10,9 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+# These tests cover the agent-browser CLI driver specifically.
+pytestmark = pytest.mark.usefixtures("agent_browser_driver")
+
 
 def _reset_headed_cache():
     """Reset the module-level headed-mode cache so tests start clean."""

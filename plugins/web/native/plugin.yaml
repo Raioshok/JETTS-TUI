@@ -1,0 +1,7 @@
+name: web-native
+version: 1.0.0
+description: "Built-in web search (DuckDuckGo HTML) and page extraction (direct fetch → Markdown). No API key or extra package required."
+author: jettstui
+kind: backend
+provides_web_providers:
+  - native

@@ -70,6 +70,10 @@ from jettstui_constants import agent_browser_runnable, get_jettstui_home
 from utils import env_int, is_truthy_value
 from jettstui.config import DEFAULT_CONFIG, cfg_get
 from jettstui._subprocess_compat import windows_hide_flags
+# Imported eagerly so its atexit hook registers before ours: atexit runs LIFO,
+# so _emergency_cleanup_all_sessions (supervisors first, then browsers) runs
+# before browser_native's last-resort close_all.
+from tools import browser_native
 
 # Browser-specific tool keys passed through to the agent-browser subprocess
 # AFTER credential stripping.  agent-browser is a Node process loading npm
@@ -968,6 +972,46 @@ def _should_inject_engine(engine: str) -> bool:
 def _using_lightpanda_engine() -> bool:
     """Return True when local browser commands are configured for Lightpanda."""
     return _get_browser_engine() == "lightpanda"
+
+
+_cached_browser_driver: Optional[str] = None
+
+
+def _get_browser_driver() -> str:
+    """Return the driver that executes browser commands: ``native`` or ``agent-browser``.
+
+    ``browser.driver`` in config.yaml:
+
+    - ``auto`` (default) — the built-in CDP driver (``tools/browser_native.py``),
+      which needs only an installed Chrome/Chromium/Edge. Lightpanda is the one
+      engine only the ``agent-browser`` CLI speaks, so ``engine: lightpanda``
+      keeps using it.
+    - ``native`` / ``agent-browser`` — force one driver.
+    """
+    global _cached_browser_driver
+    if _cached_browser_driver is not None:
+        return _cached_browser_driver
+    raw = ""
+    try:
+        from jettstui.config import read_raw_config
+
+        browser_cfg = read_raw_config().get("browser") or {}
+        if isinstance(browser_cfg, dict):
+            raw = str(browser_cfg.get("driver") or "").strip().lower()
+    except Exception as e:
+        logger.debug("Could not read browser.driver from config: %s", e)
+    if raw in ("native", "agent-browser"):
+        driver = raw
+    else:
+        if raw not in ("", "auto"):
+            logger.warning("Unknown browser.driver %r (valid: auto, native, agent-browser); using auto", raw)
+        driver = "agent-browser" if _using_lightpanda_engine() else "native"
+    _cached_browser_driver = driver
+    return driver
+
+
+def _native_driver_active() -> bool:
+    return _get_browser_driver() == "native"
 
 
 def _lightpanda_fallback_reason(engine: str, command: str, result: Dict[str, Any]) -> Optional[str]:
@@ -2330,6 +2374,92 @@ def _extract_screenshot_path_from_text(text: str) -> Optional[str]:
     return None
 
 
+def _run_native_command(
+    task_id: str,
+    command: str,
+    args: List[str],
+    timeout: int,
+) -> Dict[str, Any]:
+    """Execute a browser command with the built-in CDP driver.
+
+    Same session bookkeeping as the agent-browser path (``_get_session_info``
+    → local launch, cloud provider, or CDP override); only the executor
+    differs. Returns the agent-browser-shaped result dict.
+    """
+    from tools.interrupt import is_interrupted
+
+    if command == "close":
+        with _cleanup_lock:
+            session_info = _active_sessions.get(task_id)
+        if not session_info:
+            return {"success": True, "data": {}}
+        return browser_native.run_command(session_info, "close", [], timeout)
+
+    if is_interrupted():
+        return {"success": False, "error": "Interrupted"}
+
+    try:
+        session_info = _get_session_info(task_id)
+    except Exception as e:
+        logger.warning("Failed to create browser session for task=%s: %s", task_id, e)
+        return {"success": False, "error": f"Failed to create browser session: {str(e)}"}
+
+    local_launch = not session_info.get("cdp_url")
+    if local_launch and browser_native.find_browser_executable() is None:
+        if _running_in_docker():
+            hint = (
+                "Chromium browser is missing. You're running in Docker — pull "
+                "the latest image to get the bundled Chromium: "
+                "docker pull ghcr.io/jettstui/jettstui:latest"
+            )
+        else:
+            hint = "No Chrome/Chromium/Edge browser found. " + browser_native.install_hint()
+        return {"success": False, "error": hint}
+
+    def _supervisor_dialogs() -> List[Dict[str, Any]]:
+        from tools.browser_supervisor import SUPERVISOR_REGISTRY
+
+        sup = SUPERVISOR_REGISTRY.get(task_id)
+        return [d.to_dict() for d in sup.snapshot().pending_dialogs] if sup else []
+
+    try:
+        from tools.browser_supervisor import SUPERVISOR_REGISTRY
+
+        has_supervisor = SUPERVISOR_REGISTRY.get(task_id) is not None
+    except ImportError:
+        has_supervisor = False
+
+    result = browser_native.run_command(
+        session_info,
+        command,
+        args,
+        timeout,
+        headed=_is_headed_mode(),
+        no_sandbox=_needs_chromium_sandbox_bypass(),
+        dialog_probe=_supervisor_dialogs if has_supervisor else None,
+    )
+
+    # A locally launched browser exposes a DevTools endpoint too: attach the
+    # CDP supervisor so dialogs, frame trees and the eval fast path work the
+    # same as on cloud / CDP-override sessions.
+    if local_launch:
+        ws_url = browser_native.get_session_ws_url(session_info.get("session_name", ""))
+        if ws_url:
+            try:
+                from tools.browser_supervisor import SUPERVISOR_REGISTRY
+
+                policy, dialog_timeout = _get_dialog_policy_config()
+                SUPERVISOR_REGISTRY.get_or_start(
+                    task_id=task_id,
+                    cdp_url=ws_url,
+                    dialog_policy=policy,
+                    dialog_timeout_s=dialog_timeout,
+                )
+            except Exception as exc:
+                logger.debug("CDP supervisor attach for native session %s failed: %s", task_id, exc)
+    return result
+
+
 def _run_browser_command(
     task_id: str,
     command: str,
@@ -2356,6 +2486,9 @@ def _run_browser_command(
     if timeout is None:
         timeout = _safe_command_timeout()
     args = args or []
+
+    if _native_driver_active():
+        return _run_native_command(task_id, command, args, timeout)
 
     # Build the command
     try:
@@ -4569,6 +4702,9 @@ def cleanup_all_browsers() -> None:
     _chromium_autoinstall_attempted = False
     _cached_browser_engine = None
     _browser_engine_resolved = False
+    global _cached_browser_driver
+    _cached_browser_driver = None
+    browser_native._reset_executable_cache()
 
 # ============================================================================
 # Requirements Check
@@ -4777,6 +4913,14 @@ def check_browser_requirements() -> bool:
     # where a stale endpoint must not cost a blocking HTTP probe.
     if _get_cdp_override_raw():
         return True
+
+    # Built-in CDP driver: cloud providers host their own browser; local mode
+    # only needs an installed Chrome/Chromium/Edge (no Node CLI).
+    if _native_driver_active():
+        provider = _get_cloud_provider()
+        if provider is not None:
+            return provider.is_configured()
+        return browser_native.find_browser_executable() is not None
 
     # The agent-browser CLI is required for local launch and cloud-provider flows.
     # Tool-schema assembly runs during Desktop startup; do not execute

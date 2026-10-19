@@ -16,6 +16,9 @@ from tools.browser_tool import (
 )
 import tools.browser_tool as _bt
 
+# These tests cover the agent-browser CLI driver specifically.
+pytestmark = pytest.mark.usefixtures("agent_browser_driver")
+
 
 @pytest.fixture(autouse=True)
 def _clear_browser_caches():

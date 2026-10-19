@@ -41,3 +41,10 @@ from tools.computer_use.tool import (  # noqa: F401
     check_computer_use_requirements,
     get_computer_use_schema,
 )
+from tools.computer_use.vm_manager import (  # noqa: F401
+    VMExecutionResult,
+    VMInfo,
+    VMManager,
+    VMSnapshotInfo,
+    get_vm_manager,
+)

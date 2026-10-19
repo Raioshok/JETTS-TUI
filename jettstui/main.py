@@ -16559,6 +16559,62 @@ def main():
         help="Request the grants (opens the dialog attributed to CuaDriver)",
     )
 
+    computer_use_vm = computer_use_sub.add_parser(
+        "vm",
+        help="Manage Linux and Windows virtual machines and VPSes",
+        description="List, start, stop, snapshot, execute commands, and inspect VMs/VPSes.",
+    )
+    computer_use_vm_sub = computer_use_vm.add_subparsers(dest="computer_use_vm_action")
+
+    vm_list_p = computer_use_vm_sub.add_parser("list", help="List registered and discovered VMs/VPSes")
+    vm_list_p.add_argument("--json", action="store_true", help="Output as JSON")
+
+    vm_status_p = computer_use_vm_sub.add_parser("status", help="Get status of a VM/VPS")
+    vm_status_p.add_argument("name", help="VM or VPS name")
+    vm_status_p.add_argument("--json", action="store_true", help="Output as JSON")
+
+    vm_start_p = computer_use_vm_sub.add_parser("start", help="Start/power-on a VM or probe VPS")
+    vm_start_p.add_argument("name", help="VM or VPS name")
+
+    vm_stop_p = computer_use_vm_sub.add_parser("stop", help="Stop a VM/VPS")
+    vm_stop_p.add_argument("name", help="VM or VPS name")
+    vm_stop_p.add_argument("--force", action="store_true", help="Force power-off immediately")
+
+    vm_restart_p = computer_use_vm_sub.add_parser("restart", help="Restart a VM/VPS")
+    vm_restart_p.add_argument("name", help="VM or VPS name")
+    vm_restart_p.add_argument("--force", action="store_true", help="Force reset")
+
+    vm_exec_p = computer_use_vm_sub.add_parser("exec", help="Run a command inside a VM/VPS")
+    vm_exec_p.add_argument("name", help="VM or VPS name")
+    vm_exec_p.add_argument("command", help="Command to run in guest")
+    vm_exec_p.add_argument("--timeout", type=float, default=60.0, help="Timeout in seconds")
+
+    vm_snap_p = computer_use_vm_sub.add_parser("snapshot", help="Manage VM snapshots")
+    vm_snap_p.add_argument("name", help="VM name")
+    vm_snap_p.add_argument("operation", choices=["create", "restore", "delete", "list"], help="Snapshot action")
+    vm_snap_p.add_argument("snapshot_name", nargs="?", default=None, help="Snapshot name")
+    vm_snap_p.add_argument("--json", action="store_true", help="Output as JSON")
+
+    vm_reg_p = computer_use_vm_sub.add_parser("register", help="Register a new VM or VPS")
+    vm_reg_p.add_argument("name", help="Unique VM/VPS name")
+    vm_reg_p.add_argument("--type", dest="vm_type", choices=["hyperv", "qemu", "vmware", "virtualbox", "vps_ssh", "vps_winrm"], default="vps_ssh")
+    vm_reg_p.add_argument("--os", dest="os_type", choices=["linux", "windows", "other"], default="linux")
+    vm_reg_p.add_argument("--host", help="Remote hostname or IP")
+    vm_reg_p.add_argument("--port", type=int, help="Remote port")
+    vm_reg_p.add_argument("--user", help="Remote username")
+    vm_reg_p.add_argument("--key", dest="key_path", help="Path to SSH private key")
+    vm_reg_p.add_argument("--notes", default="", help="Description/notes")
+
+    vm_unreg_p = computer_use_vm_sub.add_parser("unregister", help="Unregister a VM or VPS")
+    vm_unreg_p.add_argument("name", help="VM or VPS name")
+
+    vm_unattended_p = computer_use_vm_sub.add_parser("unattended", help="Configure unattended computer use mode")
+    vm_unattended_p.add_argument("--target", default="auto", help="VM or VPS target name (default: auto)")
+    vm_unattended_p.add_argument("--disable", action="store_true", help="Disable unattended mode")
+
+    vm_unattended_st_p = computer_use_vm_sub.add_parser("unattended-status", help="Check unattended computer use status")
+    vm_unattended_st_p.add_argument("--json", action="store_true", help="Output as JSON")
+
     def cmd_computer_use(args):
         action = getattr(args, "computer_use_action", None)
         if action == "install":
@@ -16648,6 +16704,115 @@ def main():
                     print(f"  ⚠ {st['error']}")
                 sys.exit(0 if st["ready"] else 1)
             computer_use_perms.print_help()
+            return
+        if action == "vm":
+            vm_action = getattr(args, "computer_use_vm_action", None)
+            from tools.computer_use.vm_manager import get_vm_manager
+            mgr = get_vm_manager()
+            if vm_action == "list":
+                vms = mgr.list_vms()
+                if getattr(args, "json", False):
+                    import json as _json
+                    print(_json.dumps(vms, indent=2))
+                else:
+                    if not vms:
+                        print("No VMs or VPSes found or registered.")
+                    else:
+                        print(f"{'NAME':<24} {'TYPE':<12} {'OS':<10} {'STATE':<10} {'HOST / IP'}")
+                        print("-" * 70)
+                        for v in vms:
+                            addr = v.get("host") or (", ".join(v.get("ip_addresses", [])) if v.get("ip_addresses") else "-")
+                            print(f"{v['name']:<24} {v['vm_type']:<12} {v['os_type']:<10} {v['state']:<10} {addr}")
+                return
+            if vm_action == "status":
+                res = mgr.get_status(args.name)
+                import json as _json
+                if getattr(args, "json", False):
+                    print(_json.dumps(res, indent=2))
+                else:
+                    if res.get("ok"):
+                        st = res["status"]
+                        print(f"VM/VPS: {st['name']}")
+                        print(f"  Type:  {st['vm_type']}")
+                        print(f"  OS:    {st['os_type']}")
+                        print(f"  State: {st['state']}")
+                        if st.get("ip_addresses"):
+                            print(f"  IPs:   {', '.join(st['ip_addresses'])}")
+                        if st.get("memory_mb"):
+                            print(f"  RAM:   {st['memory_mb']} MB")
+                    else:
+                        print(f"Error: {res.get('error')}")
+                return
+            if vm_action == "start":
+                res = mgr.start_vm(args.name)
+                print(res.get("message") or ("Started" if res.get("ok") else res.get("error")))
+                return
+            if vm_action == "stop":
+                res = mgr.stop_vm(args.name, force=getattr(args, "force", False))
+                print(res.get("message") or ("Stopped" if res.get("ok") else res.get("error")))
+                return
+            if vm_action == "restart":
+                res = mgr.restart_vm(args.name, force=getattr(args, "force", False))
+                print(res.get("message") or ("Restarted" if res.get("ok") else res.get("error")))
+                return
+            if vm_action == "exec":
+                res = mgr.execute_in_vm(args.name, args.command, timeout=args.timeout)
+                if res.stdout:
+                    print(res.stdout)
+                if res.stderr:
+                    print(res.stderr, file=sys.stderr)
+                sys.exit(res.exit_code)
+            if vm_action == "snapshot":
+                res = mgr.snapshot(args.name, args.operation, snapshot_name=args.snapshot_name)
+                import json as _json
+                if getattr(args, "json", False):
+                    print(_json.dumps(res, indent=2))
+                else:
+                    if res.get("ok"):
+                        if args.operation == "list":
+                            for s in res.get("snapshots", []):
+                                print(f"- {s.get('name')} ({s.get('created_at', '')})")
+                        else:
+                            print(res.get("message", "Success"))
+                    else:
+                        print(f"Error: {res.get('error')}")
+                return
+            if vm_action == "register":
+                res = mgr.register_vm(
+                    name=args.name,
+                    vm_type=args.vm_type,
+                    os_type=args.os_type,
+                    host=args.host,
+                    port=args.port,
+                    user=args.user,
+                    key_path=args.key_path,
+                    notes=args.notes,
+                )
+                print(res.get("message") or ("Registered" if res.get("ok") else res.get("error")))
+                return
+            if vm_action == "unregister":
+                res = mgr.unregister_vm(args.name)
+                print(res.get("message") or ("Unregistered" if res.get("ok") else res.get("error")))
+                return
+            if vm_action == "unattended":
+                res = mgr.set_unattended(target=args.target, enabled=not args.disable)
+                print(res.get("message"))
+                return
+            if vm_action == "unattended-status":
+                res = mgr.get_unattended_status()
+                import json as _json
+                if getattr(args, "json", False):
+                    print(_json.dumps(res, indent=2))
+                else:
+                    status_glyph = "✅ Enabled" if res.get("unattended_enabled") else "⚪ Disabled"
+                    print(f"Unattended Mode:  {status_glyph}")
+                    print(f"Active Target:    {res.get('active_target') or 'None'}")
+                    print(f"Target State:     {res.get('target_state')}")
+                    print(f"Isolation:        {res.get('isolation_type')}")
+                    print(f"Host Input Guard: {'Protected (Zero host mouse/keyboard interference)' if res.get('host_input_protected') else 'Off'}")
+                    print(f"\n{res.get('message')}")
+                return
+            computer_use_vm.print_help()
             return
         # No subcommand → show help
         computer_use_parser.print_help()

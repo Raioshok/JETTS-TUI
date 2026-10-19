@@ -6,6 +6,9 @@ from unittest.mock import patch
 
 import pytest
 
+# These tests cover the agent-browser CLI driver specifically.
+pytestmark = pytest.mark.usefixtures("agent_browser_driver")
+
 
 @pytest.fixture
 def fake_tmpdir(tmp_path):

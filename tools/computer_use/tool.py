@@ -78,12 +78,21 @@ def set_approval_callback(cb) -> None:
 
 
 # Actions that read, not mutate. Always allowed.
-_SAFE_ACTIONS = frozenset({"capture", "wait", "list_apps"})
+_SAFE_ACTIONS = frozenset({
+    "capture", "screenshot", "wait", "list_apps", "list_windows",
+    "cursor_position",
+    "vm_list", "vm_status", "vm_capture",
+    "unattended_status", "unattended_stop",
+})
 
 # Actions that mutate user-visible state. Go through approval.
 _DESTRUCTIVE_ACTIONS = frozenset({
-    "click", "double_click", "right_click", "middle_click",
-    "drag", "scroll", "type", "key", "set_value", "focus_app",
+    "click", "left_click", "double_click", "triple_click", "right_click", "middle_click",
+    "mouse_move", "mouse_down", "mouse_up", "left_mouse_down", "left_mouse_up",
+    "drag", "left_click_drag", "scroll", "type", "key", "set_value", "focus_app",
+    "vm_start", "vm_stop", "vm_restart", "vm_pause", "vm_resume",
+    "vm_snapshot", "vm_exec", "vm_file", "vm_register", "vm_unregister",
+    "vm_input", "unattended_set",
 })
 
 # Hard-blocked key combinations. Mirrored from #4562 — these are destructive
@@ -320,6 +329,26 @@ class _NoopBackend(ComputerUseBackend):  # pragma: no cover
         self.calls.append(("set_value", {"value": value, "element": element}))
         return ActionResult(ok=True, action="set_value")
 
+    def mouse_move(self, **kw) -> ActionResult:
+        self.calls.append(("mouse_move", kw))
+        return ActionResult(ok=True, action="mouse_move")
+
+    def mouse_down(self, **kw) -> ActionResult:
+        self.calls.append(("mouse_down", kw))
+        return ActionResult(ok=True, action="mouse_down")
+
+    def mouse_up(self, **kw) -> ActionResult:
+        self.calls.append(("mouse_up", kw))
+        return ActionResult(ok=True, action="mouse_up")
+
+    def cursor_position(self) -> ActionResult:
+        self.calls.append(("cursor_position", {}))
+        return ActionResult(ok=True, action="cursor_position", message="X=500,Y=300", meta={"x": 500, "y": 300, "coordinate": [500, 300]})
+
+    def triple_click(self, **kw) -> ActionResult:
+        self.calls.append(("triple_click", kw))
+        return ActionResult(ok=True, action="triple_click")
+
 
 # ---------------------------------------------------------------------------
 # Dispatch
@@ -334,6 +363,37 @@ def handle_computer_use(args: Dict[str, Any], **kwargs) -> Any:
     action = (args.get("action") or "").strip().lower()
     if not action:
         return json.dumps({"error": "missing `action`"})
+
+    # Normalize Claude-standard action names
+    if action == "screenshot":
+        action = "capture"
+    elif action == "left_click":
+        action = "click"
+        args["button"] = "left"
+    elif action == "left_click_drag":
+        action = "drag"
+        args["button"] = "left"
+        if args.get("start_coordinate"):
+            args["from_coordinate"] = args["start_coordinate"]
+        if args.get("coordinate"):
+            args["to_coordinate"] = args["coordinate"]
+    elif action in ("left_mouse_down", "mousedown"):
+        action = "mouse_down"
+        args["button"] = "left"
+    elif action in ("left_mouse_up", "mouseup"):
+        action = "mouse_up"
+        args["button"] = "left"
+
+    # Normalize Claude parameter aliases
+    if "scroll_direction" in args and "direction" not in args:
+        args["direction"] = args["scroll_direction"]
+    if "scroll_amount" in args and "amount" not in args:
+        args["amount"] = args["scroll_amount"]
+    if "duration" in args and "seconds" not in args:
+        args["seconds"] = args["duration"]
+    if "key" in args and "keys" not in args:
+        args["keys"] = args["key"]
+
     # Per-run key for approval-state isolation across concurrent sessions.
     session_id = str(kwargs.get("session_id") or "")
 
@@ -445,10 +505,76 @@ def _summarize_action(action: str, args: Dict[str, Any]) -> str:
         return f"key {args.get('keys', '')!r}{fg}"
     if action == "focus_app":
         return f"focus {args.get('app', '')!r}" + (" (raise)" if args.get("raise_window") else "")
+    if action == "vm_list":
+        return "list VMs and VPSes"
+    if action == "vm_status":
+        return f"status of VM/VPS {args.get('vm_name') or args.get('target')!r}"
+    if action in {"vm_start", "vm_stop", "vm_restart", "vm_pause", "vm_resume"}:
+        target = args.get("vm_name") or args.get("target") or "?"
+        force_tag = " (force)" if args.get("force") else ""
+        return f"{action} on {target!r}{force_tag}"
+    if action == "vm_snapshot":
+        target = args.get("vm_name") or args.get("target") or "?"
+        sub = args.get("vm_action", "list")
+        snap = args.get("snapshot_name", "")
+        return f"vm_snapshot {sub} {snap!r} on {target!r}".strip()
+    if action == "vm_exec":
+        target = args.get("vm_name") or args.get("target") or "?"
+        cmd = args.get("command", "")
+        return f"exec in {target!r}: {cmd[:60]!r}" + ("..." if len(cmd) > 60 else "")
+    if action == "vm_file":
+        target = args.get("vm_name") or args.get("target") or "?"
+        sub = args.get("vm_action", "upload")
+        return f"vm_file {sub} {args.get('source_path')} → {args.get('dest_path')} on {target!r}"
+    if action in {"vm_register", "vm_unregister"}:
+        target = args.get("vm_name") or args.get("target") or "?"
+        return f"{action} {target!r}"
+    if action == "vm_capture":
+        target = args.get("vm_name") or args.get("target") or "?"
+        return f"capture screen of {target!r}"
+    if action == "vm_input":
+        target = args.get("vm_name") or args.get("target") or "?"
+        return f"send input to {target!r}"
+    if action == "unattended_set":
+        return f"set unattended computer use target to {args.get('target', 'auto')!r}"
+    if action == "unattended_status":
+        return "check unattended computer use status"
+    if action == "unattended_stop":
+        return "stop unattended computer use mode"
+    if action == "cursor_position":
+        return "query cursor position"
+    if action == "mouse_move":
+        coord = args.get("coordinate")
+        return f"move mouse to {tuple(coord) if coord else '?'}{fg}"
+    if action in ("mouse_down", "mouse_up"):
+        return f"{action} ({args.get('button', 'left')}){fg}"
     return action + fg
 
 
 def _dispatch(backend: ComputerUseBackend, action: str, args: Dict[str, Any]) -> Any:
+    # ── VM / VPS Management, Unattended Mode & Remote Targeting ────────
+    target = args.get("target")
+    unattended = bool(args.get("unattended"))
+    from tools.computer_use.vm_manager import get_vm_manager
+    vm_mgr = get_vm_manager()
+
+    if action.startswith("unattended_"):
+        return vm_mgr.handle_action(action, args)
+
+    if unattended or vm_mgr.is_unattended_enabled():
+        if not target or str(target).lower() in ("local", "localhost", "host", "auto"):
+            target = vm_mgr.get_active_unattended_target()
+            if target:
+                args = dict(args)
+                args["target"] = target
+
+    is_remote_target = bool(target and str(target).lower() not in ("local", "localhost", "host"))
+    if action.startswith("vm_") or is_remote_target:
+        vm_res = vm_mgr.handle_action(action, args)
+        if isinstance(vm_res, CaptureResult):
+            return _capture_response(vm_res, max_elements=_coerce_max_elements(args.get("max_elements")))
+        return vm_res
+
     capture_after = bool(args.get("capture_after"))
 
     if action == "capture":
@@ -489,11 +615,31 @@ def _dispatch(backend: ComputerUseBackend, action: str, args: Dict[str, Any]) ->
     delivery_mode = args.get("delivery_mode")
     bring_to_front = bool(args.get("bring_to_front"))
 
-    if action in {"click", "double_click", "right_click", "middle_click"}:
+    if action == "cursor_position":
+        res = backend.cursor_position()
+        return _text_response(res)
+
+    if action == "mouse_move":
+        coord = args.get("coordinate") or (None, None)
+        x, y = (coord[0], coord[1]) if coord and coord[0] is not None else (None, None)
+        res = backend.mouse_move(x=x, y=y)
+        return _maybe_follow_capture(backend, res, capture_after)
+
+    if action in ("mouse_down", "mouse_up"):
+        coord = args.get("coordinate") or (None, None)
+        x, y = (coord[0], coord[1]) if coord and coord[0] is not None else (None, None)
+        btn = args.get("button", "left")
+        fn = backend.mouse_down if action == "mouse_down" else backend.mouse_up
+        res = fn(x=x, y=y, button=btn)
+        return _maybe_follow_capture(backend, res, capture_after)
+
+    if action in {"click", "double_click", "triple_click", "right_click", "middle_click"}:
         button = args.get("button")
         click_count = 1
         if action == "double_click":
             click_count = 2
+        elif action == "triple_click":
+            click_count = 3
         elif action == "right_click":
             button = "right"
         elif action == "middle_click":

@@ -67,3 +67,16 @@ def disable_lazy_stt_install():
     """
     with patch("tools.transcription_tools._try_lazy_install_stt", return_value=False):
         yield
+
+
+@pytest.fixture
+def agent_browser_driver(monkeypatch):
+    """Pin browser commands to the legacy ``agent-browser`` CLI driver.
+
+    The default ``browser.driver: auto`` resolves to the built-in CDP driver;
+    tests that exercise the agent-browser subprocess path (argv, PATH, socket
+    dirs, owner-pid files) opt back into it with this fixture.
+    """
+    import tools.browser_tool as bt
+
+    monkeypatch.setattr(bt, "_get_browser_driver", lambda: "agent-browser")

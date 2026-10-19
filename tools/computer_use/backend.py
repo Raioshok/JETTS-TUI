@@ -218,3 +218,19 @@ class ComputerUseBackend(ABC):
         import time
         time.sleep(max(0.0, min(seconds, 30.0)))
         return ActionResult(ok=True, action="wait", message=f"waited {seconds:.2f}s")
+
+    # ── Claude reference actions (mouse_move, cursor_position, etc.) ────
+    def mouse_move(self, *, x: Optional[int] = None, y: Optional[int] = None, **kwargs) -> ActionResult:
+        return ActionResult(ok=False, action="mouse_move", message="mouse_move not implemented on this backend")
+
+    def mouse_down(self, *, x: Optional[int] = None, y: Optional[int] = None, button: str = "left", **kwargs) -> ActionResult:
+        return ActionResult(ok=False, action="mouse_down", message="mouse_down not implemented on this backend")
+
+    def mouse_up(self, *, x: Optional[int] = None, y: Optional[int] = None, button: str = "left", **kwargs) -> ActionResult:
+        return ActionResult(ok=False, action="mouse_up", message="mouse_up not implemented on this backend")
+
+    def cursor_position(self) -> ActionResult:
+        return ActionResult(ok=False, action="cursor_position", message="cursor_position not implemented on this backend")
+
+    def triple_click(self, *, x: Optional[int] = None, y: Optional[int] = None, button: str = "left", **kwargs) -> ActionResult:
+        return self.click(x=x, y=y, button=button, click_count=3, **kwargs)

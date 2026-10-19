@@ -105,6 +105,8 @@ class _InputEngine:
     def scroll(self, x: int, y: int, direction: str, amount: int) -> None: ...
     def type_text(self, text: str) -> None: ...
     def key(self, combo: str) -> None: ...
+    def get_cursor_position(self) -> Tuple[int, int]:
+        return 0, 0
 
 
 # ── Windows: ctypes SendInput (no third-party dependency) ──────────────────
@@ -112,13 +114,16 @@ class _InputEngine:
 class _WindowsEngine(_InputEngine):
     name = "windows-sendinput"
 
-    # Virtual-key codes for the names we accept in key combos.
+    # Virtual-key codes for the names we accept in key combos (including Claude reference keynames).
     _VK = {
         "return": 0x0D, "enter": 0x0D, "tab": 0x09, "escape": 0x1B, "esc": 0x1B,
         "space": 0x20, "backspace": 0x08, "delete": 0x2E, "del": 0x2E,
         "home": 0x24, "end": 0x23, "pageup": 0x21, "pagedown": 0x22,
+        "page_up": 0x21, "page_down": 0x22,
         "up": 0x26, "down": 0x28, "left": 0x25, "right": 0x27, "insert": 0x2D,
-        "ctrl": 0x11, "shift": 0x10, "alt": 0x12, "command": 0x5B,
+        "ctrl": 0x11, "shift": 0x10, "alt": 0x12, "command": 0x5B, "win": 0x5B,
+        "windows": 0x5B, "super": 0x5B, "meta": 0x5B, "super_l": 0x5B,
+        "control_l": 0x11, "alt_l": 0x12, "shift_l": 0x10, "caps_lock": 0x14, "capslock": 0x14,
         "f1": 0x70, "f2": 0x71, "f3": 0x72, "f4": 0x73, "f5": 0x74, "f6": 0x75,
         "f7": 0x76, "f8": 0x77, "f9": 0x78, "f10": 0x79, "f11": 0x7A, "f12": 0x7B,
     }
@@ -261,12 +266,20 @@ class _WindowsEngine(_InputEngine):
         # mouseData is an unsigned DWORD; wrap negative wheel deltas.
         self._send(self._mk_mouse(flag, data=delta & 0xFFFFFFFF))
 
+    def get_cursor_position(self) -> Tuple[int, int]:
+        pt = self._wt.POINT()
+        self._user32.GetCursorPos(self._ct.byref(pt))
+        return int(pt.x), int(pt.y)
+
     def type_text(self, text: str) -> None:
+        inputs = []
         for ch in text:
             for cu in ch.encode("utf-16-le").decode("utf-16-le"):
                 cp = ord(cu)
-                self._send(self._mk_unicode(cp), self._mk_unicode(cp, up=True))
-            time.sleep(0.003)
+                inputs.append(self._mk_unicode(cp))
+                inputs.append(self._mk_unicode(cp, up=True))
+        if inputs:
+            self._send(*inputs)
 
     def key(self, combo: str) -> None:
         parts = [p.strip().lower() for p in combo.replace(" ", "").split("+") if p.strip()]
@@ -342,6 +355,10 @@ class _PyAutoGuiEngine(_InputEngine):
         elif parts:
             self._p.hotkey(*parts)
 
+    def get_cursor_position(self) -> Tuple[int, int]:
+        pos = self._p.position()
+        return int(pos[0]), int(pos[1])
+
 
 # ── POSIX CLI fallback: xdotool (Linux) / cliclick (macOS) ─────────────────
 
@@ -415,6 +432,21 @@ class _PosixCliEngine(_InputEngine):
                     "tab": "Tab", "space": "space"}
             keyseq = "+".join(xmap.get(p, p) for p in parts)
             self._run(self._xdotool, "key", "--clearmodifiers", keyseq)
+
+    def get_cursor_position(self) -> Tuple[int, int]:
+        if self._xdotool:
+            try:
+                proc = subprocess.run([self._xdotool, "getmouselocation", "--shell"], capture_output=True, text=True, timeout=2)
+                x, y = 0, 0
+                for line in proc.stdout.splitlines():
+                    if line.startswith("X="):
+                        x = int(line.split("=")[1])
+                    elif line.startswith("Y="):
+                        y = int(line.split("=")[1])
+                return x, y
+            except Exception:
+                pass
+        return 0, 0
 
 
 def _resolve_engine() -> _InputEngine:
@@ -505,17 +537,33 @@ class NativeBackend(ComputerUseBackend):
         img = self._grab()
         nat_w, nat_h = img.size
         out = img
+
+        # Match Anthropic Claude computer use standard scaling targets when max_width is not explicitly capping below:
+        ratio = nat_w / nat_h if nat_h else 1.0
+        target_w, target_h = None, None
         if self._max_width and nat_w > self._max_width:
-            new_w = self._max_width
-            new_h = max(1, round(nat_h * (new_w / nat_w)))
-            out = img.resize((new_w, new_h))
+            target_w = self._max_width
+            target_h = max(1, round(nat_h * (target_w / nat_w)))
+        elif not self._max_width:
+            # Claude standard targets: FWXGA (~16:9, 1366x768), WXGA (16:10, 1280x800), XGA (4:3, 1024x768)
+            if abs(16 / 9 - ratio) < 0.15 and nat_w > 1366:
+                target_w, target_h = 1366, 768
+            elif abs(16 / 10 - ratio) < 0.15 and nat_w > 1280:
+                target_w, target_h = 1280, 800
+            elif abs(4 / 3 - ratio) < 0.15 and nat_w > 1024:
+                target_w, target_h = 1024, 768
+
+        if target_w and target_h:
+            out = img.resize((target_w, target_h))
+
         scaled_w, scaled_h = out.size
         # Record the mapping for subsequent coordinate actions.
         self._scale_x = nat_w / scaled_w if scaled_w else 1.0
         self._scale_y = nat_h / scaled_h if scaled_h else 1.0
 
+        # Fast PNG compression (level 1) cuts encoding time by ~2.5x without visual degradation
         buf = io.BytesIO()
-        out.save(buf, format="PNG")
+        out.save(buf, format="PNG", compress_level=1)
         raw = buf.getvalue()
         return CaptureResult(
             mode="vision",  # native has no AX tree; som/ax degrade to pixels
@@ -526,6 +574,62 @@ class NativeBackend(ComputerUseBackend):
         )
 
     # -- pointer ------------------------------------------------------------
+    def mouse_move(self, *, x: Optional[int] = None, y: Optional[int] = None, **kwargs) -> ActionResult:
+        bad = self._coord_required(x, y, "mouse_move")
+        if bad:
+            return bad
+        dx, dy = self._to_device(x, y)
+        self._eng().move(dx, dy)
+        return ActionResult(
+            ok=True, action="mouse_move", path=f"native_{self._eng().name}",
+            effect="unverifiable", delivery_mode="foreground",
+            message=f"moved mouse to ({x},{y}) [device ({dx},{dy})]",
+            meta={"x": x, "y": y, "device_x": dx, "device_y": dy},
+        )
+
+    def mouse_down(self, *, x: Optional[int] = None, y: Optional[int] = None, button: str = "left", **kwargs) -> ActionResult:
+        if x is not None and y is not None:
+            dx, dy = self._to_device(x, y)
+            self._eng().move(dx, dy)
+        else:
+            dx, dy = self._eng().get_cursor_position()
+        self._eng().mouse_down(dx, dy, button)
+        return ActionResult(
+            ok=True, action="mouse_down", path=f"native_{self._eng().name}",
+            effect="unverifiable", delivery_mode="foreground",
+            message=f"mouse_down {button}",
+        )
+
+    def mouse_up(self, *, x: Optional[int] = None, y: Optional[int] = None, button: str = "left", **kwargs) -> ActionResult:
+        if x is not None and y is not None:
+            dx, dy = self._to_device(x, y)
+            self._eng().move(dx, dy)
+        else:
+            dx, dy = self._eng().get_cursor_position()
+        self._eng().mouse_up(dx, dy, button)
+        return ActionResult(
+            ok=True, action="mouse_up", path=f"native_{self._eng().name}",
+            effect="unverifiable", delivery_mode="foreground",
+            message=f"mouse_up {button}",
+        )
+
+    def cursor_position(self) -> ActionResult:
+        try:
+            dx, dy = self._eng().get_cursor_position()
+            sx = int(round(dx / self._scale_x)) if self._scale_x else dx
+            sy = int(round(dy / self._scale_y)) if self._scale_y else dy
+            return ActionResult(
+                ok=True, action="cursor_position", path=f"native_{self._eng().name}",
+                effect="confirmed", delivery_mode="background",
+                message=f"X={sx},Y={sy}",
+                meta={"x": sx, "y": sy, "coordinate": [sx, sy], "device_x": dx, "device_y": dy, "output": f"X={sx},Y={sy}"},
+            )
+        except Exception as e:
+            return ActionResult(ok=False, action="cursor_position", message=str(e))
+
+    def triple_click(self, *, x: Optional[int] = None, y: Optional[int] = None, button: str = "left",
+                     modifiers: Optional[List[str]] = None, **kwargs) -> ActionResult:
+        return self.click(x=x, y=y, button=button, click_count=3, modifiers=modifiers, **kwargs)
     def click(self, *, element=None, x=None, y=None, button="left", click_count=1,
               modifiers=None, delivery_mode=None, bring_to_front=False) -> ActionResult:
         if element is not None and x is None and y is None:

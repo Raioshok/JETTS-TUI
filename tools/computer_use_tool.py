@@ -24,10 +24,9 @@ registry.register(
     check_fn=check_computer_use_requirements,
     requires_env=[],
     description=(
-        "Universal desktop control (macOS, Windows, Linux) — screenshot, "
-        "mouse, keyboard, scroll, drag. Works with any tool-capable model. "
-        "Self-contained coordinate-first backend out of the box; auto-upgrades "
-        "to cua-driver (background, no-focus-steal delivery) when installed."
+        "Universal desktop control (macOS, Windows, Linux) and VM/VPS management — "
+        "screenshot, mouse, keyboard, scroll, drag, plus Linux & Windows VM/VPS lifecycle, "
+        "snapshots, and guest command execution. Works with any tool-capable model."
     ),
 )
 
@@ -36,4 +35,6 @@ __all__ = [
     "handle_computer_use",
     "set_approval_callback",
     "check_computer_use_requirements",
+    "VMManager",
+    "get_vm_manager",
 ]

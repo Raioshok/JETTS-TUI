@@ -1276,6 +1276,15 @@ DEFAULT_CONFIG = {
         "record_sessions": False,  # Auto-record browser sessions as WebM videos
         "headed": False,  # Local mode: launch Chromium with a visible window (also skips per-turn cleanup so the window persists between turns; idle reaper still applies)
         "allow_private_urls": False,  # Allow navigating to private/internal IPs (localhost, 192.168.x.x, etc.)
+        # What drives the browser.
+        # "auto"          — built-in CDP driver (no Node/npm); falls back to
+        #                   agent-browser only for engine: lightpanda (default)
+        # "native"        — always the built-in CDP driver
+        # "agent-browser" — the legacy agent-browser Node CLI
+        "driver": "auto",
+        # Chrome/Chromium/Edge binary for the built-in driver. Empty = auto-detect
+        # (Chrome, Edge, Chromium, Brave, then Playwright's browser cache).
+        "executable_path": "",
         # Browser engine for local mode.  Passed as ``--engine <value>`` to
         # agent-browser v0.25.3+.
         # "auto"       — use Chrome (default, don't pass --engine at all)
