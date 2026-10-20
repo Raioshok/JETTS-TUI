@@ -79,24 +79,24 @@ GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v1/userinfo?alt=json"
 ANTIGRAVITY_ENDPOINT_DAILY = "https://daily-cloudcode-pa.sandbox.googleapis.com"
 ANTIGRAVITY_ENDPOINT_AUTOPUSH = "https://autopush-cloudcode-pa.sandbox.googleapis.com"
 ANTIGRAVITY_ENDPOINT_PROD = "https://cloudcode-pa.googleapis.com"
-# Inference tries the daily sandbox first (where Antigravity's own client
-# points); project discovery tries prod first.
-ANTIGRAVITY_INFERENCE_ENDPOINTS = (
-    ANTIGRAVITY_ENDPOINT_DAILY,
-    ANTIGRAVITY_ENDPOINT_AUTOPUSH,
-    ANTIGRAVITY_ENDPOINT_PROD,
-)
+# Inference tries the autopush sandbox first (full Claude and Gemini capacity);
+# project discovery tries prod first.
 ANTIGRAVITY_LOAD_ENDPOINTS = (
     ANTIGRAVITY_ENDPOINT_PROD,
     ANTIGRAVITY_ENDPOINT_DAILY,
     ANTIGRAVITY_ENDPOINT_AUTOPUSH,
 )
-DEFAULT_ANTIGRAVITY_BASE_URL = ANTIGRAVITY_ENDPOINT_DAILY
+ANTIGRAVITY_INFERENCE_ENDPOINTS = (
+    ANTIGRAVITY_ENDPOINT_AUTOPUSH,
+    ANTIGRAVITY_ENDPOINT_DAILY,
+    ANTIGRAVITY_ENDPOINT_PROD,
+)
+DEFAULT_ANTIGRAVITY_BASE_URL = ANTIGRAVITY_ENDPOINT_AUTOPUSH
 # Fallback project used by Antigravity when the account has no Cloud Code
 # project of its own and onboarding does not return one.
 ANTIGRAVITY_DEFAULT_PROJECT_ID = "rising-fact-p41fc"
 
-ANTIGRAVITY_VERSION = "1.18.3"
+ANTIGRAVITY_VERSION = "1.20.0"
 ANTIGRAVITY_CLIENT_METADATA = {
     "ideType": "ANTIGRAVITY",
     "platform": "PLATFORM_UNSPECIFIED",
@@ -105,20 +105,21 @@ ANTIGRAVITY_CLIENT_METADATA = {
 
 ANTIGRAVITY_ACCESS_TOKEN_REFRESH_SKEW_SECONDS = 120
 
-# Used when live discovery (fetchAvailableModels) is unavailable. Newest
-# first; the live list always wins when it answers.
+# Used when live discovery (fetchAvailableModels) is unavailable.
 DEFAULT_ANTIGRAVITY_MODELS = (
-    "gemini-4-argon",
-    "claude-opus-5-5-thinking",
-    "claude-sonnet-5-5",
+    "gemini-3.8-flash-tiered",
+    "claude-sonnet-4-6",
+    "claude-opus-4-6-thinking",
+    "gemini-3-flash",
     "gemini-3.1-pro-high",
     "gemini-3.1-pro-low",
-    "gemini-3-flash",
-    "gemini-3.8-flash-tiered",
-    "claude-opus-4-6-thinking",
-    "claude-sonnet-4-6",
+    "gemini-3.6-flash-high",
+    "gemini-3.6-flash-medium",
+    "gemini-3.6-flash-low",
+    "gemini-2.5-flash",
+    "gemini-2.5-pro",
 )
-DEFAULT_ANTIGRAVITY_AUX_MODEL = "gemini-3-flash"
+DEFAULT_ANTIGRAVITY_AUX_MODEL = "gemini-3.8-flash-tiered"
 
 TERMS_WARNING = (
     "Antigravity is not a public API. Google's terms only permit using it\n"
@@ -616,24 +617,15 @@ def _onboard_user(
 
 
 def _is_antigravity_usable_model(name: str) -> bool:
-    """Filter out obsolete, internal, routing, and experimental micro-tier models.
-
-    Antigravity's raw backend enumerates dozens of internal stubs (chat_*, tab_*),
-    superseded generations (gemini-2.5-*), obsolete checkpoint micro-tiers
-    (gemini-3.5-*, gemini-3.6-*, gemini-3.7-*), preview routing agents, and
-    image models. Only clean, current frontier and daily-driver models are kept.
-    """
+    """Filter out internal routing, tab completion, image gen, and preview stubs."""
     n = (name or "").strip().lower()
     if not n:
         return False
-    # Drop internal routing, tab completion, image generation, and preview stubs
-    if n.startswith(("chat_", "tab_")) or "image" in n or "preview" in n:
+    # Drop internal routing, tab completion, and preview stubs
+    if n.startswith(("chat_", "tab_")) or "preview" in n:
         return False
-    # Drop obsolete 2.5 generation
-    if "gemini-2.5" in n:
-        return False
-    # Drop internal checkpoint micro-tiers and intermediate test variants
-    if any(n.startswith(p) for p in ("gemini-3.5-", "gemini-3.6-", "gemini-3.7-", "gemini-3.1-flash")):
+    # Drop image generation endpoints
+    if n.endswith("-image"):
         return False
     # Drop internal agent routing stubs
     if n.endswith("-agent"):
@@ -650,11 +642,7 @@ def _fetch_model_entries(
     *,
     timeout_seconds: float = 15.0,
 ) -> Dict[str, Dict[str, Any]]:
-    """Return ``{model_id: metadata}`` from ``fetchAvailableModels`` (``{}`` on failure).
-
-    Internal routing, deprecated generations, and experimental micro-tier models
-    are dropped so OAuth menus stay clean and responsive.
-    """
+    """Return ``{model_id: metadata}`` from ``fetchAvailableModels`` (``{}`` on failure)."""
     entries: Dict[str, Dict[str, Any]] = {}
     with httpx.Client(timeout=timeout_seconds) as client:
         for endpoint in ANTIGRAVITY_LOAD_ENDPOINTS:
@@ -696,14 +684,11 @@ def fetch_available_models(
     *,
     timeout_seconds: float = 15.0,
 ) -> List[str]:
-    """Return the model ids the account can use, or ``[]`` when discovery fails."""
+    """Return the model ids the account can use, or default catalog when discovery fails."""
     entries = _fetch_model_entries(access_token, project_id, timeout_seconds=timeout_seconds)
     models = list(entries.keys())
-    # Merge curated defaults so flagship models like gemini-4-argon are always
-    # available for selection even if the live endpoint rollout is phased.
-    for default_m in DEFAULT_ANTIGRAVITY_MODELS:
-        if default_m not in models:
-            models.append(default_m)
+    if not models:
+        models = list(DEFAULT_ANTIGRAVITY_MODELS)
     return sorted(models, key=_model_sort_key)
 
 

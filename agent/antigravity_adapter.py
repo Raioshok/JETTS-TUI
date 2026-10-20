@@ -45,6 +45,22 @@ SKIP_THOUGHT_SIGNATURE = "skip_thought_signature_validator"
 # adapter's 65,535 default.
 CLAUDE_DEFAULT_MAX_OUTPUT_TOKENS = 64000
 _CLAUDE_EFFORT_BUDGETS = {"minimal": 4096, "low": 8192, "medium": 16384, "high": 32768}
+
+# Automatic model redirection for renamed, superseded, or speculative model IDs.
+ANTIGRAVITY_MODEL_ALIASES: Dict[str, str] = {
+    "gemini-4-argon": "gemini-3.8-flash-tiered",
+    "argon": "gemini-3.8-flash-tiered",
+    "4-argon": "gemini-3.8-flash-tiered",
+    "claude-opus-5-5-thinking": "claude-opus-4-6-thinking",
+    "claude-opus-5.5-thinking": "claude-opus-4-6-thinking",
+    "claude-sonnet-5-5": "claude-sonnet-4-6",
+    "claude-sonnet-5.5": "claude-sonnet-4-6",
+    "gemini-3-pro-high": "gemini-3.1-pro-high",
+    "gemini-3-pro-low": "gemini-3.1-pro-low",
+    "gemini-3.5-flash-low": "gemini-3.6-flash-low",
+    "gemini-3.5-flash-lite": "gemini-3.1-flash-lite",
+}
+
 # Endpoint fallback: these statuses mean "this backend can't serve it", not
 # "the request is wrong" — try the next endpoint.
 _FALLBACK_STATUSES = {403, 404, 500, 502, 503, 504}
@@ -105,8 +121,8 @@ def _claude_thinking_budget(thinking_config: Optional[Dict[str, Any]]) -> int:
 
 
 def _gemini_pro_tier(model: str) -> Optional[str]:
-    """``gemini-3-pro-high`` → ``high``: the tier is part of the model id."""
-    match = re.match(r"^gemini-[\d.]+-pro-(low|high)$", (model or "").lower())
+    """Extract tier from model id like gemini-3.1-pro-high or gemini-3.6-flash-low."""
+    match = re.match(r"^gemini-[\d.]+(?:-pro|-flash)?-(low|medium|high)$", (model or "").lower())
     return match.group(1) if match else None
 
 
@@ -449,6 +465,7 @@ class AntigravityClient(GeminiNativeClient):
         for prefix in ("antigravity/", "google-antigravity/", "google/", "anthropic/"):
             if model.lower().startswith(prefix):
                 model = model[len(prefix):]
+        model = ANTIGRAVITY_MODEL_ALIASES.get(model.lower(), model)
 
         request = build_gemini_request(
             messages=messages or [],

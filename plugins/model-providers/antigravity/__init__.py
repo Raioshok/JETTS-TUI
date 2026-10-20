@@ -54,20 +54,19 @@ antigravity = AntigravityProfile(
         "google-ai-ultra",
     ),
     api_mode="chat_completions",
-    base_url="https://daily-cloudcode-pa.sandbox.googleapis.com",
+    base_url="https://autopush-cloudcode-pa.sandbox.googleapis.com",
     auth_type="oauth_external",
     supports_health_check=False,
     supports_vision=True,
     fallback_models=(
+        "gemini-3.8-flash-tiered",
+        "claude-sonnet-4-6",
+        "claude-opus-4-6-thinking",
+        "gemini-3-flash",
         "gemini-3.1-pro-high",
         "gemini-3.1-pro-low",
-        "gemini-3-pro-high",
-        "gemini-3-pro-low",
-        "gemini-3-flash",
-        "claude-opus-4-6-thinking",
-        "claude-sonnet-4-6",
     ),
-    default_aux_model="gemini-3-flash",
+    default_aux_model="gemini-3.8-flash-tiered",
 )
 
 register_provider(antigravity)

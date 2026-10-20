@@ -465,7 +465,32 @@ class HyperVProvider(BaseVMProvider):
             code, out, err = _run_powershell(script, timeout=60.0)
             return {"ok": code == 0, "message": out or ("Uploaded" if code == 0 else err)}
         else:
-            return {"ok": False, "error": "Hyper-V Copy-VMFile only supports host-to-guest file copying natively."}
+            cfg = config or {}
+            user = cfg.get("user")
+            pwd = cfg.get("password")
+            cred_block = ""
+            cred_arg = ""
+            if user and pwd:
+                cred_block = f"""
+                $sec = ConvertTo-SecureString '{pwd}' -AsPlainText -Force
+                $cred = New-Object System.Management.Automation.PSCredential('{user}', $sec)
+                """
+                cred_arg = "-Credential $cred"
+            script = f"""
+            {cred_block}
+            try {{
+                $bytes = Invoke-Command -VMName "{name}" {cred_arg} -ScriptBlock {{
+                    [System.IO.File]::ReadAllBytes('{source}')
+                }}
+                [System.IO.File]::WriteAllBytes('{dest}', $bytes)
+                Write-Output "Downloaded"
+            }} catch {{
+                Write-Error $_
+                exit 1
+            }}
+            """
+            code, out, err = _run_powershell(script, timeout=120.0)
+            return {"ok": code == 0, "message": out or ("Downloaded" if code == 0 else err)}
 
     def capture_screen(self, name: str, config: Optional[Dict[str, Any]] = None) -> Tuple[Optional[str], Optional[str]]:
         # Take screenshot inside guest via PowerShell Direct
@@ -939,6 +964,131 @@ class VirtualBoxProvider(BaseVMProvider):
 
 
 # ---------------------------------------------------------------------------
+# WSL / WSL2 Provider (Windows Subsystem for Linux)
+# ---------------------------------------------------------------------------
+
+
+class WSLProvider(BaseVMProvider):
+    """Windows Subsystem for Linux (WSL2) provider."""
+
+    def is_available(self) -> bool:
+        if sys.platform != "win32":
+            return False
+        return bool(shutil.which("wsl") or shutil.which("wsl.exe"))
+
+    def list_vms(self) -> List[VMInfo]:
+        try:
+            proc = subprocess.run(
+                ["wsl.exe", "-l", "-v"],
+                capture_output=True,
+                text=True,
+                encoding="utf-16le",
+                errors="replace",
+                timeout=8.0,
+            )
+            if proc.returncode != 0 or not proc.stdout:
+                return []
+            vms = []
+            for line in proc.stdout.splitlines()[1:]:
+                line = line.strip().replace("*", "").strip()
+                if not line:
+                    continue
+                parts = line.split()
+                if len(parts) >= 2:
+                    name = parts[0]
+                    state_str = parts[1].lower()
+                    state = "running" if "running" in state_str else "stopped"
+                    version = parts[2] if len(parts) >= 3 else "2"
+                    vms.append(
+                        VMInfo(
+                            name=name,
+                            vm_type="wsl2",
+                            os_type="linux",
+                            state=state,
+                            notes=f"WSL version {version}",
+                            extra={"wsl_version": version},
+                        )
+                    )
+            return vms
+        except Exception as exc:
+            logger.debug("Failed listing WSL distros: %s", exc)
+            return []
+
+    def get_status(self, name: str, config: Optional[Dict[str, Any]] = None) -> Optional[VMInfo]:
+        vms = self.list_vms()
+        for v in vms:
+            if v.name.lower() == name.lower():
+                return v
+        return None
+
+    def start(self, name: str, config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        code, out, err = _run_subprocess(["wsl.exe", "-d", name, "--", "echo", "online"], timeout=15.0)
+        return {"ok": code == 0, "message": f"WSL distro '{name}' started" if code == 0 else err}
+
+    def stop(self, name: str, force: bool = False, config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        code, out, err = _run_subprocess(["wsl.exe", "--terminate", name], timeout=15.0)
+        return {"ok": code == 0, "message": f"WSL distro '{name}' terminated" if code == 0 else err}
+
+    def restart(self, name: str, force: bool = False, config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        self.stop(name, force=True, config=config)
+        return self.start(name, config=config)
+
+    def execute(
+        self,
+        name: str,
+        command: str,
+        timeout: float = 60.0,
+        config: Optional[Dict[str, Any]] = None,
+    ) -> VMExecutionResult:
+        start_t = time.time()
+        cmd = ["wsl.exe", "-d", name, "--", "sh", "-c", command]
+        code, out, err = _run_subprocess(cmd, timeout=timeout)
+        duration = time.time() - start_t
+        return VMExecutionResult(exit_code=code, stdout=out, stderr=err, duration_seconds=round(duration, 3))
+
+    def transfer_file(
+        self,
+        name: str,
+        source: str,
+        dest: str,
+        direction: str = "upload",
+        config: Optional[Dict[str, Any]] = None,
+    ) -> Dict[str, Any]:
+        if direction == "upload":
+            cmd = f"wsl.exe -d {shlex.quote(name)} -- cp $(wslpath -u {shlex.quote(source)}) {shlex.quote(dest)}"
+        else:
+            cmd = f"wsl.exe -d {shlex.quote(name)} -- cp {shlex.quote(source)} $(wslpath -u {shlex.quote(dest)})"
+        code, out, err = _run_subprocess(cmd, shell=True, timeout=30.0)
+        return {"ok": code == 0, "message": out or ("Transferred" if code == 0 else err)}
+
+    def capture_screen(self, name: str, config: Optional[Dict[str, Any]] = None) -> Tuple[Optional[str], Optional[str]]:
+        cmd = "scrot -z /tmp/wsl_cap.png && base64 -w 0 /tmp/wsl_cap.png && rm -f /tmp/wsl_cap.png"
+        res = self.execute(name, cmd, timeout=15.0)
+        if res.exit_code == 0 and res.stdout.strip():
+            return res.stdout.strip(), None
+        return None, "No active graphical desktop (scrot) found inside WSL distro"
+
+    def send_input(
+        self,
+        name: str,
+        action: str,
+        config: Optional[Dict[str, Any]] = None,
+        **kwargs,
+    ) -> Dict[str, Any]:
+        if action == "type":
+            text = kwargs.get("text", "")
+            return self.execute(name, f"xdotool type --delay 30 {shlex.quote(text)}").to_dict()
+        elif action == "key":
+            keys = kwargs.get("keys", "")
+            return self.execute(name, f"xdotool key {shlex.quote(keys)}").to_dict()
+        elif action == "click":
+            x = kwargs.get("x", 0)
+            y = kwargs.get("y", 0)
+            return self.execute(name, f"xdotool mousemove {x} {y} click 1").to_dict()
+        return {"ok": False, "error": f"Unsupported action {action} in WSL"}
+
+
+# ---------------------------------------------------------------------------
 # Remote VPS Provider (Linux via SSH, Windows via WinRM / OpenSSH)
 # ---------------------------------------------------------------------------
 
@@ -1176,6 +1326,7 @@ class VMManager:
         self._last_cursor_pos: Dict[str, Tuple[int, int]] = {}
         self._providers: Dict[str, BaseVMProvider] = {
             "hyperv": HyperVProvider(),
+            "wsl": WSLProvider(),
             "qemu": QemuLibvirtProvider(),
             "vmware": VMwareProvider(),
             "virtualbox": VirtualBoxProvider(),
@@ -1372,7 +1523,7 @@ class VMManager:
                 return self._providers[vm_type], reg
 
         # If not registered or type auto, check local hypervisors
-        for prov_key in ("hyperv", "qemu", "vmware", "virtualbox"):
+        for prov_key in ("hyperv", "wsl", "qemu", "vmware", "virtualbox"):
             prov = self._providers[prov_key]
             if prov.is_available():
                 for vm in prov.list_vms():
@@ -1406,10 +1557,9 @@ class VMManager:
 
         # 2. Auto-discover from available local hypervisors
         if include_discovered:
-            for prov_key, prov in self._providers.items():
-                if prov_key == "vps":
-                    continue
-                if prov.is_available():
+            for prov_key in ("hyperv", "wsl", "qemu", "vmware", "virtualbox"):
+                prov = self._providers.get(prov_key)
+                if prov and prov.is_available():
                     try:
                         for vm in prov.list_vms():
                             dict_rep = vm.to_dict()

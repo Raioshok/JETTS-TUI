@@ -508,3 +508,39 @@ class TestClaudeReferenceCompatibilityAndSpeed:
             cap = be.capture()
             assert cap.width == 1024
             assert cap.height == 768
+
+    def test_wsl_provider_discovery_and_exec(self):
+        from tools.computer_use.vm_manager import WSLProvider
+        prov = WSLProvider()
+        fake_wsl_output = "NAME              STATE           VERSION\n* Ubuntu          Running         2\n  Debian          Stopped         2\n"
+
+        with patch("subprocess.run") as mock_sub:
+            mock_sub.return_value = MagicMock(returncode=0, stdout=fake_wsl_output)
+            vms = prov.list_vms()
+            assert len(vms) == 2
+            assert vms[0].name == "Ubuntu"
+            assert vms[0].state == "running"
+            assert vms[0].vm_type == "wsl2"
+            assert vms[1].name == "Debian"
+            assert vms[1].state == "stopped"
+
+        with patch("tools.computer_use.vm_manager._run_subprocess") as mock_run:
+            mock_run.return_value = (0, "Linux 6.1", "")
+            res = prov.execute("Ubuntu", "uname -r")
+            assert res.exit_code == 0
+            assert "Linux 6.1" in res.stdout
+            assert mock_run.call_args[0][0] == ["wsl.exe", "-d", "Ubuntu", "--", "sh", "-c", "uname -r"]
+
+    def test_hyperv_file_download_guest_to_host(self):
+        prov = HyperVProvider()
+        with patch("tools.computer_use.vm_manager._run_powershell") as mock_ps:
+            mock_ps.return_value = (0, "Downloaded", "")
+            res = prov.transfer_file(
+                "Aegis-Lab-Win11",
+                source="C:\\guest\\log.txt",
+                dest="C:\\host\\log.txt",
+                direction="download",
+            )
+            assert res["ok"] is True
+            assert "ReadAllBytes" in mock_ps.call_args[0][0]
+            assert "WriteAllBytes" in mock_ps.call_args[0][0]

@@ -361,12 +361,12 @@ class DirectAlias(NamedTuple):
 
 # Built-in direct aliases (can be extended via config.yaml model_aliases:)
 _BUILTIN_DIRECT_ALIASES: dict[str, DirectAlias] = {
-    # Gemini 4 Argon
-    "argon": DirectAlias("gemini-4-argon", "antigravity", ""),
-    "4-argon": DirectAlias("gemini-4-argon", "antigravity", ""),
-    "4 argon": DirectAlias("gemini-4-argon", "antigravity", ""),
-    "gemini-4": DirectAlias("gemini-4-argon", "antigravity", ""),
-    "gemini-4-argon": DirectAlias("gemini-4-argon", "antigravity", ""),
+    # Gemini 3.8 Flash Tiered / Argon aliases
+    "argon": DirectAlias("gemini-3.8-flash-tiered", "antigravity", ""),
+    "4-argon": DirectAlias("gemini-3.8-flash-tiered", "antigravity", ""),
+    "4 argon": DirectAlias("gemini-3.8-flash-tiered", "antigravity", ""),
+    "gemini-4": DirectAlias("gemini-3.8-flash-tiered", "antigravity", ""),
+    "gemini-4-argon": DirectAlias("gemini-3.8-flash-tiered", "antigravity", ""),
 }
 
 # Merged dict (builtins + user config); populated by _load_direct_aliases()

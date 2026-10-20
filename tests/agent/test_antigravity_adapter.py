@@ -302,3 +302,36 @@ def test_verification_link_reaches_the_user_without_retrying_other_endpoints(str
     assert exc_info.value.code == "antigravity_verification_required"
     assert VERIFY_URL in str(exc_info.value)
     assert len(hosts) == 1
+
+
+def test_antigravity_model_aliases_redirect_defunct_or_renamed_models():
+    seen_models = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        body = json.loads(request.content)
+        seen_models.append(body["model"])
+        return httpx.Response(200, json={"response": _gemini_payload([{"text": "ok"}])})
+
+    client = _client(handler)
+    client.chat.completions.create(model="gemini-4-argon", messages=PARALLEL_HISTORY[:2])
+    client.chat.completions.create(model="claude-sonnet-5-5", messages=PARALLEL_HISTORY[:2])
+    client.chat.completions.create(model="claude-opus-5-5-thinking", messages=PARALLEL_HISTORY[:2])
+    client.chat.completions.create(model="gemini-3-pro-high", messages=PARALLEL_HISTORY[:2])
+
+    assert seen_models == [
+        "gemini-3.8-flash-tiered",
+        "claude-sonnet-4-6",
+        "claude-opus-4-6-thinking",
+        "gemini-3.1-pro-high",
+    ]
+
+
+def test_gemini_pro_tier_matches_flash_and_pro_tiers():
+    from agent.antigravity_adapter import _gemini_pro_tier
+    assert _gemini_pro_tier("gemini-3.1-pro-high") == "high"
+    assert _gemini_pro_tier("gemini-3.1-pro-low") == "low"
+    assert _gemini_pro_tier("gemini-3.6-flash-high") == "high"
+    assert _gemini_pro_tier("gemini-3.6-flash-medium") == "medium"
+    assert _gemini_pro_tier("gemini-3.6-flash-low") == "low"
+    assert _gemini_pro_tier("gemini-3.8-flash-tiered") is None
+
