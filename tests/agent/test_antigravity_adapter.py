@@ -150,7 +150,21 @@ def test_falls_back_to_next_endpoint_on_unavailable_backend():
     assert len(hosts) == 2 and hosts[0] != hosts[1]
 
 
-def test_rate_limit_is_not_retried_on_other_endpoints():
+def test_rate_limit_falls_back_to_other_endpoints():
+    calls = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        calls.append(request.url.host)
+        if len(calls) == 1:
+            return httpx.Response(429, json={"error": {"message": "quota", "status": "RESOURCE_EXHAUSTED"}})
+        return httpx.Response(200, json={"response": _gemini_payload([{"text": "recovered"}])})
+
+    res = _client(handler).chat.completions.create(model="gemini-3-flash", messages=PARALLEL_HISTORY[:2])
+    assert res.choices[0].message.content == "recovered"
+    assert len(calls) == 2
+
+
+def test_rate_limit_on_all_endpoints_surfaces_429():
     calls = []
 
     def handler(request: httpx.Request) -> httpx.Response:
@@ -160,7 +174,7 @@ def test_rate_limit_is_not_retried_on_other_endpoints():
     with pytest.raises(GeminiAPIError) as exc_info:
         _client(handler).chat.completions.create(model="gemini-3-flash", messages=PARALLEL_HISTORY[:2])
     assert exc_info.value.status_code == 429
-    assert len(calls) == 1
+    assert len(calls) == 3
 
 
 QUOTA_EXHAUSTED_BODY = {"error": {"code": 429, "message": "quota", "status": "RESOURCE_EXHAUSTED", "details": [

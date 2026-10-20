@@ -278,7 +278,9 @@ def classify_quota_error(body_text: str) -> tuple[bool, Optional[float]]:
         return True, delay
     if delay is not None:
         return delay >= QUOTA_ROTATE_MIN_RETRY_SECONDS, delay
-    return ("quota" in str(error.get("message") or "").lower(), None)
+    msg = str(error.get("message") or "").lower()
+    is_plan_quota = any(p in msg for p in ("individual quota reached", "quota exhausted", "upgrade your subscription"))
+    return (is_plan_quota, None)
 
 
 def verification_url(body_text: str) -> Optional[str]:
@@ -512,6 +514,7 @@ class AntigravityClient(GeminiNativeClient):
         last_exc: Optional[Exception] = None
         refreshed = False
         rotations = 0
+        accounts_exhausted = False
         index = 0
         while index < len(self._endpoints):
             url = f"{self._endpoints[index]}/v1internal:{method}"
@@ -527,14 +530,19 @@ class AntigravityClient(GeminiNativeClient):
                 refreshed = True
                 self._refresh_credentials(force=True)
                 continue
-            if (
-                response.status_code == 429
-                and rotations < _MAX_ACCOUNT_ROTATIONS
-                and self._rotate_account(response.text)
-            ):
-                rotations += 1
-                refreshed = False
-                continue
+            if response.status_code == 429:
+                if not accounts_exhausted and rotations < _MAX_ACCOUNT_ROTATIONS:
+                    if self._rotate_account(response.text):
+                        rotations += 1
+                        refreshed = False
+                        continue
+                    else:
+                        accounts_exhausted = True
+                last_response = response
+                if index + 1 < len(self._endpoints):
+                    index += 1
+                    continue
+                break
             if (
                 response.status_code == 403
                 and rotations < _MAX_ACCOUNT_ROTATIONS
@@ -555,6 +563,7 @@ class AntigravityClient(GeminiNativeClient):
         def _generator() -> Iterator[_GeminiStreamChunk]:
             refreshed = False
             rotations = 0
+            accounts_exhausted = False
             last_error: Optional[Exception] = None
             endpoints = list(self._endpoints)
             index = 0
@@ -570,14 +579,20 @@ class AntigravityClient(GeminiNativeClient):
                                 refreshed = True
                                 self._refresh_credentials(force=True)
                                 continue
-                            if (
-                                response.status_code == 429
-                                and rotations < _MAX_ACCOUNT_ROTATIONS
-                                and self._rotate_account(body_text)
-                            ):
-                                rotations += 1
-                                refreshed = False
-                                continue
+                            if response.status_code == 429:
+                                if not accounts_exhausted and rotations < _MAX_ACCOUNT_ROTATIONS:
+                                    if self._rotate_account(body_text):
+                                        rotations += 1
+                                        refreshed = False
+                                        continue
+                                    else:
+                                        accounts_exhausted = True
+                                error = gemini_http_error(response, body_text=body_text)
+                                if index + 1 < len(endpoints):
+                                    last_error = error
+                                    index += 1
+                                    continue
+                                raise error
                             if (
                                 response.status_code == 403
                                 and rotations < _MAX_ACCOUNT_ROTATIONS

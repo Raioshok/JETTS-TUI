@@ -81,17 +81,19 @@ ANTIGRAVITY_ENDPOINT_AUTOPUSH = "https://autopush-cloudcode-pa.sandbox.googleapi
 ANTIGRAVITY_ENDPOINT_PROD = "https://cloudcode-pa.googleapis.com"
 # Inference tries the autopush sandbox first (full Claude and Gemini capacity);
 # project discovery tries prod first.
+# Daily sandbox has full Google AI Pro / Ultra quota capacity and active models;
+# project discovery queries daily first so Google AI plan tiers are correctly recognized.
 ANTIGRAVITY_LOAD_ENDPOINTS = (
-    ANTIGRAVITY_ENDPOINT_PROD,
     ANTIGRAVITY_ENDPOINT_DAILY,
+    ANTIGRAVITY_ENDPOINT_PROD,
     ANTIGRAVITY_ENDPOINT_AUTOPUSH,
 )
 ANTIGRAVITY_INFERENCE_ENDPOINTS = (
-    ANTIGRAVITY_ENDPOINT_AUTOPUSH,
     ANTIGRAVITY_ENDPOINT_DAILY,
+    ANTIGRAVITY_ENDPOINT_AUTOPUSH,
     ANTIGRAVITY_ENDPOINT_PROD,
 )
-DEFAULT_ANTIGRAVITY_BASE_URL = ANTIGRAVITY_ENDPOINT_AUTOPUSH
+DEFAULT_ANTIGRAVITY_BASE_URL = ANTIGRAVITY_ENDPOINT_DAILY
 # Fallback project used by Antigravity when the account has no Cloud Code
 # project of its own and onboarding does not return one.
 ANTIGRAVITY_DEFAULT_PROJECT_ID = "rising-fact-p41fc"
@@ -107,6 +109,9 @@ ANTIGRAVITY_ACCESS_TOKEN_REFRESH_SKEW_SECONDS = 120
 
 # Used when live discovery (fetchAvailableModels) is unavailable.
 DEFAULT_ANTIGRAVITY_MODELS = (
+    "gemini-4-argon",
+    "claude-opus-5-5-thinking",
+    "claude-sonnet-5-5",
     "gemini-3.8-flash-tiered",
     "claude-sonnet-4-6",
     "claude-opus-4-6-thinking",
@@ -627,6 +632,12 @@ def _is_antigravity_usable_model(name: str) -> bool:
     # Drop image generation endpoints
     if n.endswith("-image"):
         return False
+    # Drop obsolete 2.5 generation
+    if "gemini-2.5" in n:
+        return False
+    # Drop internal checkpoint micro-tiers and intermediate test variants
+    if any(n.startswith(p) for p in ("gemini-3.5-", "gemini-3.6-", "gemini-3.7-", "gemini-3.1-flash")):
+        return False
     # Drop internal agent routing stubs
     if n.endswith("-agent"):
         return False
@@ -1012,6 +1023,12 @@ def resolve_antigravity_runtime_credentials(
                 current["last_refresh"] = datetime.now(timezone.utc).isoformat()
                 _save_state(current, set_active=False)
             state = current
+
+    # Migrate legacy default base_url from autopush to daily
+    raw_base = str(state.get("base_url") or "").rstrip("/")
+    if not raw_base or raw_base == ANTIGRAVITY_ENDPOINT_AUTOPUSH:
+        state["base_url"] = DEFAULT_ANTIGRAVITY_BASE_URL
+        _save_state(state, set_active=False)
 
     project_id = str(state.get("project_id") or "").strip()
     if not project_id:
