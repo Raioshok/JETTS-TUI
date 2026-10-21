@@ -423,7 +423,31 @@ def handle_computer_use(args: Dict[str, Any], **kwargs) -> Any:
         if err is not None:
             return err
 
-    # Dispatch to backend.
+    # ── VM / VPS Management, Unattended Mode & Remote Targeting ────────
+    target = args.get("target")
+    unattended = bool(args.get("unattended"))
+    from tools.computer_use.vm_manager import get_vm_manager
+    vm_mgr = get_vm_manager()
+
+    if action.startswith("unattended_"):
+        return vm_mgr.handle_action(action, args)
+
+    if unattended or vm_mgr.is_unattended_enabled():
+        if not target or str(target).lower() in ("local", "localhost", "host", "auto"):
+            active_target = vm_mgr.get_active_unattended_target()
+            if active_target:
+                args = dict(args)
+                args["target"] = active_target
+                target = active_target
+
+    is_remote_target = bool(target and str(target).lower() not in ("local", "localhost", "host"))
+    if action.startswith("vm_") or is_remote_target:
+        vm_res = vm_mgr.handle_action(action, args)
+        if isinstance(vm_res, CaptureResult):
+            return _capture_response(vm_res, max_elements=_coerce_max_elements(args.get("max_elements")))
+        return vm_res
+
+    # Dispatch to local desktop backend.
     try:
         backend = _get_backend()
     except Exception as e:

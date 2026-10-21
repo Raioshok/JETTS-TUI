@@ -372,7 +372,7 @@ class _PosixCliEngine(_InputEngine):
             raise RuntimeError("no xdotool/cliclick on PATH")
 
     def _run(self, *args: str) -> None:
-        subprocess.run(list(args), check=False, timeout=15,
+        subprocess.run(list(args), check=False, timeout=15, stdin=subprocess.DEVNULL,
                        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
 
     def move(self, x, y) -> None:
@@ -436,7 +436,15 @@ class _PosixCliEngine(_InputEngine):
     def get_cursor_position(self) -> Tuple[int, int]:
         if self._xdotool:
             try:
-                proc = subprocess.run([self._xdotool, "getmouselocation", "--shell"], capture_output=True, text=True, timeout=2)
+                proc = subprocess.run(
+                    [self._xdotool, "getmouselocation", "--shell"],
+                    capture_output=True,
+                    text=True,
+                    encoding="utf-8",
+                    errors="replace",
+                    stdin=subprocess.DEVNULL,
+                    timeout=2,
+                )
                 x, y = 0, 0
                 for line in proc.stdout.splitlines():
                     if line.startswith("X="):
