@@ -44,9 +44,11 @@ def _creds(**overrides):
 
 
 def _client(handler, **kwargs):
+    mock_transport = httpx.MockTransport(handler)
     return AntigravityClient(
         base_url="https://daily-cloudcode-pa.sandbox.googleapis.com",
-        http_client=httpx.Client(transport=httpx.MockTransport(handler)),
+        http_client=httpx.Client(transport=mock_transport),
+        stream_http_client=httpx.Client(transport=mock_transport),
         credential_source=kwargs.pop("credential_source", _creds()),
         **kwargs,
     )
@@ -429,3 +431,56 @@ def test_external_account_switch_mints_new_session_id():
     assert first_session_id != second_session_id
     assert client.api_key == "tok-2"
     assert client._project_id == "proj-2"
+
+
+def test_streaming_retries_on_connection_reset_10054_before_stream():
+    call_count = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            raise httpx.ReadError("[Errno 10054] An existing connection was forcibly closed by the remote host")
+        events = [{"response": _gemini_payload([{"text": "recovered"}]), "finish": "STOP"}]
+        body = "".join(f"data: {json.dumps(e)}\n\n" for e in events)
+        return httpx.Response(200, text=body, headers={"content-type": "text/event-stream"})
+
+    client = _client(handler)
+    chunks = list(client.chat.completions.create(model="gemini-3-flash", messages=PARALLEL_HISTORY[:2], stream=True))
+    assert "".join(c.choices[0].delta.content or "" for c in chunks) == "recovered"
+    assert call_count == 2
+
+
+def test_streaming_falls_back_to_next_endpoint_when_first_endpoint_persistently_resets():
+    hosts = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        hosts.append(request.url.host)
+        if "daily-cloudcode-pa" in request.url.host:
+            raise httpx.ReadError("[Errno 10054] An existing connection was forcibly closed by the remote host")
+        events = [{"response": _gemini_payload([{"text": "fallback_ok"}]), "finish": "STOP"}]
+        body = "".join(f"data: {json.dumps(e)}\n\n" for e in events)
+        return httpx.Response(200, text=body, headers={"content-type": "text/event-stream"})
+
+    client = _client(handler)
+    chunks = list(client.chat.completions.create(model="gemini-3-flash", messages=PARALLEL_HISTORY[:2], stream=True))
+    assert "".join(c.choices[0].delta.content or "" for c in chunks) == "fallback_ok"
+    # daily tried (1st attempt + 1 retry = 2), then fell back to autopush
+    assert hosts.count("daily-cloudcode-pa.sandbox.googleapis.com") == 2
+    assert "autopush-cloudcode-pa.sandbox.googleapis.com" in hosts
+
+
+def test_non_streaming_retries_on_connection_reset_10054():
+    call_count = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal call_count
+        call_count += 1
+        if call_count == 1:
+            raise httpx.ReadError("[Errno 10054] An existing connection was forcibly closed by the remote host")
+        return httpx.Response(200, json={"response": _gemini_payload([{"text": "recovered_sync"}])})
+
+    client = _client(handler)
+    resp = client.chat.completions.create(model="gemini-3-flash", messages=PARALLEL_HISTORY[:2], stream=False)
+    assert resp.choices[0].message.content == "recovered_sync"
+    assert call_count == 2

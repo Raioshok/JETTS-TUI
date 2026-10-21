@@ -376,6 +376,7 @@ class AntigravityClient(GeminiNativeClient):
         default_headers: Optional[Dict[str, str]] = None,
         timeout: Any = None,
         http_client: Optional[httpx.Client] = None,
+        stream_http_client: Optional[httpx.Client] = None,
         credential_source: Optional[CredentialSource] = None,
         account_rotator: Optional[Callable[[Optional[float]], bool]] = None,
         verification_rotator: Optional[Callable[[str], bool]] = None,
@@ -399,6 +400,24 @@ class AntigravityClient(GeminiNativeClient):
         self._endpoints = endpoints
         self._session_id = f"-{uuid.uuid4().int % 10**19}"
         self._active_account_id = ""
+        # SSE streaming uses a zero-pool client so every streamGenerateContent request
+        # opens a fresh TCP connection. This prevents WinError 10054 / WSAECONNRESET
+        # caused by httpx reusing a stale keepalive socket that Google silently dropped
+        # (Google Cloud Code PA closes idle connections after ~30–60 s).
+        _sse_timeout = timeout or httpx.Timeout(connect=15.0, read=600.0, write=30.0, pool=30.0)
+        self._stream_http = stream_http_client or httpx.Client(
+            timeout=_sse_timeout,
+            limits=httpx.Limits(max_keepalive_connections=0, max_connections=100),
+        )
+
+    # -- lifecycle ----------------------------------------------------------
+
+    def close(self) -> None:
+        try:
+            self._stream_http.close()
+        except Exception:
+            pass
+        super().close()
 
     # -- credentials -------------------------------------------------------
 
@@ -603,12 +622,15 @@ class AntigravityClient(GeminiNativeClient):
             last_error: Optional[Exception] = None
             endpoints = list(self._endpoints)
             index = 0
+            endpoint_attempts: Dict[int, int] = {}  # retry counter per endpoint index
             while index < len(endpoints):
                 url = f"{endpoints[index]}/v1internal:streamGenerateContent?alt=sse"
                 headers = dict(self._headers())
                 headers["Accept"] = "text/event-stream"
+                # self._stream_http has max_keepalive_connections=0 so every attempt
+                # opens a fresh socket — never picks up a stale pooled connection.
                 try:
-                    with self._http.stream("POST", url, json=self._body(model, request), headers=headers, timeout=timeout) as response:
+                    with self._stream_http.stream("POST", url, json=self._body(model, request), headers=headers, timeout=timeout) as response:
                         if response.status_code != 200:
                             body_text = read_streaming_error_body(response)
                             if response.status_code == 401 and not refreshed:
@@ -650,16 +672,26 @@ class AntigravityClient(GeminiNativeClient):
                             for chunk in translate_stream_event(unwrap_response(event), model, tool_call_indices):
                                 yield chunk
                         return
-                except httpx.ConnectError as exc:
-                    # Nothing was streamed yet — safe to try the next endpoint.
+                except (httpx.TransportError, httpx.HTTPError, OSError) as exc:
+                    # Fresh socket per attempt means every exception here is a genuine
+                    # network error, not a stale-pool reuse.  Retry once on the same
+                    # endpoint (covers a transient RST) then fall back to the next.
+                    attempt = endpoint_attempts.get(index, 0)
+                    endpoint_attempts[index] = attempt + 1
+                    if attempt == 0:
+                        logger.warning(
+                            "Antigravity streaming connection error on %s: %s — retrying",
+                            endpoints[index], exc,
+                        )
+                        last_error = exc
+                        continue  # retry same endpoint
+                    logger.warning(
+                        "Antigravity streaming connection error on %s: %s — falling back",
+                        endpoints[index], exc,
+                    )
                     last_error = exc
                     index += 1
                     continue
-                except httpx.HTTPError as exc:
-                    raise GeminiAPIError(
-                        f"Antigravity streaming request failed: {exc}",
-                        code="gemini_stream_error",
-                    ) from exc
             if isinstance(last_error, GeminiAPIError):
                 raise last_error
             raise GeminiAPIError(
