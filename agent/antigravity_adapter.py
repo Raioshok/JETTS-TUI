@@ -66,6 +66,15 @@ ANTIGRAVITY_MODEL_ALIASES: Dict[str, str] = {
 _FALLBACK_STATUSES = {403, 404, 500, 502, 503, 504}
 # Saved Google accounts tried per request when each one reports a drained quota.
 _MAX_ACCOUNT_ROTATIONS = 4
+
+
+def _max_account_rotations() -> int:
+    try:
+        from jettstui.antigravity_auth import list_accounts
+
+        return max(_MAX_ACCOUNT_ROTATIONS, len(list_accounts()) + 1)
+    except Exception:
+        return _MAX_ACCOUNT_ROTATIONS
 _DURATION_PART = re.compile(r"(\d+(?:\.\d+)?)(ms|h|m|s)")
 
 CredentialSource = Callable[..., Dict[str, Any]]
@@ -261,7 +270,7 @@ def classify_quota_error(body_text: str) -> tuple[bool, Optional[float]]:
         payload = payload[0]
     error = payload.get("error") if isinstance(payload, dict) else None
     if not isinstance(error, dict):
-        return ("quota" in (body_text or "").lower(), None)
+        return (False, None)
 
     reason = ""
     delay: Optional[float] = None
@@ -275,12 +284,22 @@ def classify_quota_error(body_text: str) -> tuple[bool, Optional[float]]:
             if parsed is not None:
                 delay = parsed if delay is None else max(delay, parsed)
     if reason.upper() == "QUOTA_EXHAUSTED":
+        if delay is not None and delay < QUOTA_ROTATE_MIN_RETRY_SECONDS:
+            return False, delay
         return True, delay
     if delay is not None:
         return delay >= QUOTA_ROTATE_MIN_RETRY_SECONDS, delay
     msg = str(error.get("message") or "").lower()
     is_plan_quota = any(p in msg for p in ("individual quota reached", "quota exhausted", "upgrade your subscription"))
-    return (is_plan_quota, None)
+    if is_plan_quota:
+        if delay is None:
+            match = re.search(r"resets in\s+([0-9a-z.]+)", msg)
+            if match:
+                delay = _parse_duration_seconds(match.group(1))
+        if delay is not None and delay < QUOTA_ROTATE_MIN_RETRY_SECONDS:
+            return False, delay
+        return True, delay
+    return (False, None)
 
 
 def verification_url(body_text: str) -> Optional[str]:
@@ -379,6 +398,7 @@ class AntigravityClient(GeminiNativeClient):
         endpoints = [self.base_url] + [e for e in ANTIGRAVITY_INFERENCE_ENDPOINTS if e != self.base_url]
         self._endpoints = endpoints
         self._session_id = f"-{uuid.uuid4().int % 10**19}"
+        self._active_account_id = ""
 
     # -- credentials -------------------------------------------------------
 
@@ -394,8 +414,16 @@ class AntigravityClient(GeminiNativeClient):
                 code="antigravity_auth_failed",
                 status_code=401,
             ) from exc
+        account_id = str(creds.get("account_id") or creds.get("email") or "")
+        if self._active_account_id and account_id and account_id != self._active_account_id:
+            # Active account switched externally (e.g. CLI auth use or desktop switcher).
+            # Mint a clean new session ID and clear fallback token so state does not leak.
+            self._session_id = f"-{uuid.uuid4().int % 10**19}"
+            self._fallback_token = ""
+        if account_id:
+            self._active_account_id = account_id
         self.api_key = str(creds.get("api_key") or "")
-        self._project_id = str(creds.get("project_id") or self._project_id or "")
+        self._project_id = str(creds.get("project_id") or "")
 
     def _rotate_account(self, body_text: str) -> bool:
         """On a drained quota, switch to the next saved Google account."""
@@ -408,7 +436,9 @@ class AntigravityClient(GeminiNativeClient):
             logger.debug("antigravity account rotation failed: %s", exc)
             return False
         if switched:
-            self._refresh_credentials()
+            self._session_id = f"-{uuid.uuid4().int % 10**19}"
+            self._fallback_token = ""
+            self._refresh_credentials(force=True)
         return bool(switched)
 
     def _handle_verification_required(self, body_text: str, response: Optional[httpx.Response]) -> bool:
@@ -426,7 +456,9 @@ class AntigravityClient(GeminiNativeClient):
             logger.debug("antigravity verification rotation failed: %s", exc)
             switched = False
         if switched:
-            self._refresh_credentials()
+            self._session_id = f"-{uuid.uuid4().int % 10**19}"
+            self._fallback_token = ""
+            self._refresh_credentials(force=True)
             return True
         raise verification_required_error(url, response)
 
@@ -515,6 +547,7 @@ class AntigravityClient(GeminiNativeClient):
         refreshed = False
         rotations = 0
         accounts_exhausted = False
+        max_rotations = _max_account_rotations()
         index = 0
         while index < len(self._endpoints):
             url = f"{self._endpoints[index]}/v1internal:{method}"
@@ -531,10 +564,11 @@ class AntigravityClient(GeminiNativeClient):
                 self._refresh_credentials(force=True)
                 continue
             if response.status_code == 429:
-                if not accounts_exhausted and rotations < _MAX_ACCOUNT_ROTATIONS:
+                if not accounts_exhausted and rotations < max_rotations:
                     if self._rotate_account(response.text):
                         rotations += 1
                         refreshed = False
+                        index = 0
                         continue
                     else:
                         accounts_exhausted = True
@@ -545,11 +579,12 @@ class AntigravityClient(GeminiNativeClient):
                 break
             if (
                 response.status_code == 403
-                and rotations < _MAX_ACCOUNT_ROTATIONS
+                and rotations < max_rotations
                 and self._handle_verification_required(response.text, response)
             ):
                 rotations += 1
                 refreshed = False
+                index = 0
                 continue
             last_response = response
             if response.status_code not in _FALLBACK_STATUSES:
@@ -564,6 +599,7 @@ class AntigravityClient(GeminiNativeClient):
             refreshed = False
             rotations = 0
             accounts_exhausted = False
+            max_rotations = _max_account_rotations()
             last_error: Optional[Exception] = None
             endpoints = list(self._endpoints)
             index = 0
@@ -580,10 +616,11 @@ class AntigravityClient(GeminiNativeClient):
                                 self._refresh_credentials(force=True)
                                 continue
                             if response.status_code == 429:
-                                if not accounts_exhausted and rotations < _MAX_ACCOUNT_ROTATIONS:
+                                if not accounts_exhausted and rotations < max_rotations:
                                     if self._rotate_account(body_text):
                                         rotations += 1
                                         refreshed = False
+                                        index = 0
                                         continue
                                     else:
                                         accounts_exhausted = True
@@ -595,11 +632,12 @@ class AntigravityClient(GeminiNativeClient):
                                 raise error
                             if (
                                 response.status_code == 403
-                                and rotations < _MAX_ACCOUNT_ROTATIONS
+                                and rotations < max_rotations
                                 and self._handle_verification_required(body_text, response)
                             ):
                                 rotations += 1
                                 refreshed = False
+                                index = 0
                                 continue
                             error = gemini_http_error(response, body_text=body_text)
                             if response.status_code in _FALLBACK_STATUSES and index + 1 < len(endpoints):

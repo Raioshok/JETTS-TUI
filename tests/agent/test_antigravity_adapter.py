@@ -349,3 +349,83 @@ def test_gemini_pro_tier_matches_flash_and_pro_tiers():
     assert _gemini_pro_tier("gemini-3.6-flash-low") == "low"
     assert _gemini_pro_tier("gemini-3.8-flash-tiered") is None
 
+
+
+def test_multi_account_rotation_mints_clean_session_id_and_project_id():
+    seen_requests = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        body = json.loads(request.content)
+        seen_requests.append({
+            "auth": request.headers["authorization"],
+            "session_id": body["request"].get("sessionId"),
+            "project": body.get("project"),
+        })
+        if request.headers["authorization"] == "Bearer tok-a":
+            return httpx.Response(429, json=QUOTA_EXHAUSTED_BODY)
+        return httpx.Response(200, json={"response": _gemini_payload([{"text": "ok"}])})
+
+    source, rotator, state = _switching_accounts()
+    client = _client(handler, credential_source=source, account_rotator=rotator)
+    resp = client.chat.completions.create(model="gemini-3-flash", messages=PARALLEL_HISTORY[:2])
+    assert resp.choices[0].message.content == "ok"
+    assert len(seen_requests) == 2
+    req_a, req_b = seen_requests
+    assert req_a["auth"] == "Bearer tok-a"
+    assert req_b["auth"] == "Bearer tok-b"
+    assert req_a["project"] == "proj-0"
+    assert req_b["project"] == "proj-1"
+    # Session ID must be cleanly minted anew, never leaking the exhausted account's session
+    assert req_a["session_id"] != req_b["session_id"]
+    assert req_a["session_id"] and req_b["session_id"]
+
+
+def test_classify_quota_error_parses_resets_in_from_message():
+    from agent.antigravity_adapter import classify_quota_error
+    raw_msg = (
+        '{"error": {"code": 429, "status": "RESOURCE_EXHAUSTED", '
+        '"message": "Gemini HTTP 429 (RESOURCE_EXHAUSTED): Individual quota reached. '
+        'Please upgrade your subscription to increase your limits. Resets in 164h57m41s."}}'
+    )
+    is_exhausted, retry_after = classify_quota_error(raw_msg)
+    assert is_exhausted is True
+    assert retry_after == pytest.approx(164 * 3600 + 57 * 60 + 41)
+
+
+def test_classify_quota_error_short_burst_limit_with_quota_exhausted_reason():
+    from agent.antigravity_adapter import classify_quota_error
+    short_burst = (
+        '{"error": {"code": 429, "status": "RESOURCE_EXHAUSTED", '
+        '"details": [{"@type": "type.googleapis.com/google.rpc.ErrorInfo", '
+        '"reason": "QUOTA_EXHAUSTED", "metadata": {"quotaResetDelay": "5s"}}]}}'
+    )
+    is_exhausted, delay = classify_quota_error(short_burst)
+    assert is_exhausted is False
+    assert delay == 5.0
+
+
+def test_external_account_switch_mints_new_session_id():
+    state = {"active": 0}
+    accounts = [
+        {"api_key": "tok-1", "project_id": "proj-1", "account_id": "id-1"},
+        {"api_key": "tok-2", "project_id": "proj-2", "account_id": "id-2"},
+    ]
+
+    def source(force_refresh: bool = False):
+        return dict(accounts[state["active"]])
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, json={"response": _gemini_payload([{"text": "ok"}])})
+
+    client = _client(handler, credential_source=source)
+    client.chat.completions.create(model="gemini-3-flash", messages=PARALLEL_HISTORY[:2])
+    first_session_id = client._session_id
+
+    # Switch active account externally
+    state["active"] = 1
+    client.chat.completions.create(model="gemini-3-flash", messages=PARALLEL_HISTORY[:2])
+    second_session_id = client._session_id
+
+    assert first_session_id != second_session_id
+    assert client.api_key == "tok-2"
+    assert client._project_id == "proj-2"

@@ -778,7 +778,14 @@ def _saved_accounts(state: Optional[Dict[str, Any]]) -> List[Dict[str, Any]]:
         return []
     raw = state.get(ACCOUNTS_KEY)
     if isinstance(raw, list):
-        return [dict(a) for a in raw if isinstance(a, dict) and a.get("refresh_token")]
+        out: List[Dict[str, Any]] = []
+        for a in raw:
+            if isinstance(a, dict) and a.get("refresh_token"):
+                rec = dict(a)
+                if not rec.get("id"):
+                    rec["id"] = account_id_for(rec)
+                out.append(rec)
+        return out
     if state.get("refresh_token"):
         record = _active_fields(state)
         record["id"] = account_id_for(record)
@@ -794,9 +801,10 @@ def _upsert_account(accounts: List[Dict[str, Any]], active: Dict[str, Any]) -> L
     out: List[Dict[str, Any]] = []
     replaced = False
     for account in accounts:
-        if account.get("id") == record["id"]:
+        aid = account.get("id") or account_id_for(account)
+        if aid == record["id"]:
             # Fresh tokens win; the saved copy keeps its cooldown bookkeeping.
-            out.append({**account, **record})
+            out.append({**account, **record, "id": aid})
             replaced = True
         else:
             out.append(account)
@@ -876,13 +884,13 @@ def activate_account(account_id: str) -> Dict[str, Any]:
 
     with _auth_store_lock():
         accounts = _saved_accounts(_load_state())
-        record = next((a for a in accounts if a.get("id") == account_id), None)
+        record = next((a for a in accounts if (a.get("id") or account_id_for(a)) == account_id), None)
         if record is None:
             raise _auth_error(f"No saved Antigravity account {account_id!r}.", "antigravity_account_missing")
         # Picking an account is an explicit "try this one": drop its cooldown.
         accounts = [
             {k: v for k, v in a.items() if k not in {"exhausted_until", "verify_url"}}
-            if a.get("id") == account_id
+            if (a.get("id") or account_id_for(a)) == account_id
             else a
             for a in accounts
         ]
@@ -898,7 +906,7 @@ def remove_account(account_id: str) -> bool:
     with _auth_store_lock():
         state = _load_state()
         accounts = _saved_accounts(state)
-        remaining = [a for a in accounts if a.get("id") != account_id]
+        remaining = [a for a in accounts if (a.get("id") or account_id_for(a)) != account_id]
         if len(remaining) == len(accounts):
             return False
         if not remaining:
@@ -953,20 +961,27 @@ def _rotate_active_account(
             return None
         accounts = _saved_accounts(state)
         active_id = account_id_for(state)
-        ids = [a.get("id") for a in accounts]
+        ids = [a.get("id") or account_id_for(a) for a in accounts]
         start = ids.index(active_id) if active_id in ids else -1
         # Rotate in list order, starting after the drained account.
         ordered = accounts[start + 1:] + accounts[:start + 1]
         nxt = next(
-            (a for a in ordered if a.get("id") != active_id and _cooldown_until(a, now) is None),
+            (a for a in ordered if (a.get("id") or account_id_for(a)) != active_id and _cooldown_until(a, now) is None),
             None,
         )
         if nxt is None and not mark_without_switch:
             return None
-        accounts = [
-            {**a, "exhausted_until": now + cooldown, **(mark or {})} if a.get("id") == active_id else a
-            for a in accounts
-        ]
+
+        def _update_acct(a: Dict[str, Any]) -> Dict[str, Any]:
+            aid = a.get("id") or account_id_for(a)
+            if aid == active_id:
+                return {**a, "id": aid, "exhausted_until": now + cooldown, **(mark or {})}
+            if nxt is not None and aid == (nxt.get("id") or account_id_for(nxt)):
+                # Clear cooldown on the newly activated account
+                return {k: v for k, v in a.items() if k not in {"exhausted_until", "verify_url"}}
+            return {**a, "id": aid}
+
+        accounts = [_update_acct(a) for a in accounts]
         active = _account_to_active(nxt) if nxt is not None else _active_fields(state)
         _write_state({**active, ACCOUNTS_KEY: accounts}, set_active=False)
     if nxt is None:
@@ -1044,6 +1059,7 @@ def resolve_antigravity_runtime_credentials(
         "base_url": str(state.get("base_url") or DEFAULT_ANTIGRAVITY_BASE_URL).rstrip("/"),
         "project_id": project_id,
         "email": state.get("email") or "",
+        "account_id": account_id_for(state),
         "tier_id": state.get("tier_id") or "",
         "expires_at_ms": state.get("expires_at_ms"),
         "last_refresh": state.get("last_refresh"),

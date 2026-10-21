@@ -188,3 +188,43 @@ def test_only_account_needing_verification_is_flagged_but_stays_active():
     (only,) = accounts.list_accounts("antigravity")
     assert only["active"] and only["status"] == "verify"
     assert ag.resolve_antigravity_runtime_credentials()["api_key"] == "tok-solo"
+
+
+def test_antigravity_three_accounts_sequential_rotation():
+    _sign_in_antigravity("a@example.com", "tok-a")
+    _sign_in_antigravity("b@example.com", "tok-b")
+    _sign_in_antigravity("c@example.com", "tok-c")
+
+    accounts.use_account("antigravity", "a@example.com")
+    assert _active_label("antigravity") == "a@example.com"
+
+    # Rotation 1: a -> b. Account a is on cooldown, b is active, c is pristine.
+    switched = ag.rotate_after_quota_exhausted(600)
+    assert switched["email"] == "b@example.com"
+    listed = {row["label"]: row for row in accounts.list_accounts("antigravity")}
+    assert listed["a@example.com"]["status"] == "exhausted"
+    assert listed["b@example.com"]["active"] and listed["b@example.com"]["status"] == "ok"
+    assert not listed["c@example.com"]["active"] and listed["c@example.com"]["status"] == "ok"
+
+    # Rotation 2: b -> c. Account a and b on cooldown, c takes over.
+    switched = ag.rotate_after_quota_exhausted(600)
+    assert switched["email"] == "c@example.com"
+    listed = {row["label"]: row for row in accounts.list_accounts("antigravity")}
+    assert listed["a@example.com"]["status"] == "exhausted"
+    assert listed["b@example.com"]["status"] == "exhausted"
+    assert listed["c@example.com"]["active"] and listed["c@example.com"]["status"] == "ok"
+
+    # Rotation 3: c drains, all 3 on cooldown. Returns None without corrupting state.
+    assert ag.rotate_after_quota_exhausted(600) is None
+
+    # Simulate cooldown on account a expiring: rotating switches back to a and clears its cooldown.
+    state = ag._load_state()
+    for acct in state["accounts"]:
+        if acct.get("email") == "a@example.com":
+            acct["exhausted_until"] = time.time() - 10
+    ag._write_state(state, set_active=False)
+
+    switched = ag.rotate_after_quota_exhausted(600)
+    assert switched["email"] == "a@example.com"
+    listed = {row["label"]: row for row in accounts.list_accounts("antigravity")}
+    assert listed["a@example.com"]["active"] and listed["a@example.com"]["status"] == "ok"
