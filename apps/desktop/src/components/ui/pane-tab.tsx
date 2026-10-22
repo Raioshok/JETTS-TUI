@@ -1,5 +1,6 @@
 import * as React from 'react'
 
+import { Codicon } from '@/components/ui/codicon'
 import { cn } from '@/lib/utils'
 
 /** Inset stroke for a vertical tab rail — content-facing edge. */
@@ -135,6 +136,26 @@ export const PaneTab = React.forwardRef<HTMLDivElement, PaneTabProps>(function P
       {...props}
     >
       {children}
+      {onClose && !vertical && (
+        <button
+          aria-label="Close tab"
+          className={cn(
+            'mr-1 flex size-3.5 shrink-0 items-center justify-center rounded-[3px] text-(--ui-text-quaternary) transition-opacity hover:bg-(--ui-control-hover-background) hover:text-foreground',
+            active ? 'opacity-70 hover:opacity-100' : 'opacity-0 group-hover/tab:opacity-70 hover:opacity-100!'
+          )}
+          onClick={event => {
+            event.preventDefault()
+            event.stopPropagation()
+            onClose()
+          }}
+          onPointerDown={event => {
+            event.stopPropagation()
+          }}
+          type="button"
+        >
+          <Codicon name="close" size="0.625rem" />
+        </button>
+      )}
       {dirty && (
         <span
           aria-hidden

@@ -339,13 +339,47 @@ function MarkdownPreview({ text }: { text: string }) {
   )
 }
 
+function FileBreadcrumb({ filePath }: { filePath?: string }) {
+  if (!filePath) {
+    return null
+  }
+
+  const normalized = filePath.replace(/\\/g, '/')
+  const parts = normalized.split('/').filter(Boolean)
+
+  if (parts.length === 0) {
+    return null
+  }
+
+  const segments = parts.length > 3 ? parts.slice(-3) : parts
+  const hasLeadingEllipsis = parts.length > 3
+  const leaf = segments[segments.length - 1]
+  const dirs = segments.slice(0, -1)
+
+  return (
+    <div className="flex min-w-0 items-center gap-1 overflow-hidden font-mono text-[0.6875rem] text-(--ui-text-tertiary)">
+      {hasLeadingEllipsis && <span className="opacity-50">…</span>}
+      {hasLeadingEllipsis && <span className="opacity-40">/</span>}
+      {dirs.map((dir, i) => (
+        <Fragment key={i}>
+          <span className="truncate opacity-70">{dir}</span>
+          <span className="opacity-40">/</span>
+        </Fragment>
+      ))}
+      <span className="truncate font-semibold text-foreground/90">{leaf}</span>
+    </div>
+  )
+}
+
 export function PreviewModeSwitcher({
   active,
+  filePath,
   modes,
   onSelect,
   trailing
 }: {
   active: PreviewViewMode
+  filePath?: string
   modes: PreviewViewMode[]
   onSelect: (mode: PreviewViewMode) => void
   trailing?: ReactNode
@@ -353,7 +387,7 @@ export function PreviewModeSwitcher({
   const { t } = useI18n()
   const showModes = modes.length > 1
 
-  if (!showModes && !trailing) {
+  if (!showModes && !trailing && !filePath) {
     return null
   }
 
@@ -366,24 +400,27 @@ export function PreviewModeSwitcher({
   return (
     // Fixed height so the header is byte-identical between read and edit modes —
     // swapping the trailing controls must never move the body below it.
-    <div className="flex h-[1.625rem] shrink-0 items-center justify-end gap-2.5 border-b border-border/40 px-2.5">
-      {showModes &&
-        modes.map(mode => (
-          <button
-            className={cn(
-              'text-[0.625rem] font-bold underline-offset-4 transition-colors',
-              mode === active
-                ? 'text-foreground underline decoration-current/30'
-                : 'text-muted-foreground hover:text-foreground'
-            )}
-            key={mode}
-            onClick={() => onSelect(mode)}
-            type="button"
-          >
-            {label[mode]}
-          </button>
-        ))}
-      {trailing && <div className="flex items-center gap-1.5">{trailing}</div>}
+    <div className="flex h-[1.625rem] shrink-0 items-center justify-between gap-2.5 border-b border-border/40 px-2.5">
+      <FileBreadcrumb filePath={filePath} />
+      <div className="ml-auto flex items-center justify-end gap-2.5">
+        {showModes &&
+          modes.map(mode => (
+            <button
+              className={cn(
+                'text-[0.625rem] font-bold underline-offset-4 transition-colors',
+                mode === active
+                  ? 'text-foreground underline decoration-current/30'
+                  : 'text-muted-foreground hover:text-foreground'
+              )}
+              key={mode}
+              onClick={() => onSelect(mode)}
+              type="button"
+            >
+              {label[mode]}
+            </button>
+          ))}
+        {trailing && <div className="flex items-center gap-1.5">{trailing}</div>}
+      </div>
     </div>
   )
 }
@@ -837,6 +874,7 @@ export function LocalFilePreview({ reloadKey, target }: { reloadKey: number; tar
       <div className="flex h-full flex-col overflow-hidden bg-transparent">
         <PreviewModeSwitcher
           active="source"
+          filePath={filePath}
           modes={[]}
           onSelect={() => {}}
           trailing={<EditControls dirty={dirty} onCancel={cancelEdit} onSave={() => void saveEdit()} saving={saving} />}
@@ -958,6 +996,7 @@ export function LocalFilePreview({ reloadKey, target }: { reloadKey: number; tar
         )}
         <PreviewModeSwitcher
           active={mode}
+          filePath={filePath}
           modes={modes}
           onSelect={setUserMode}
           trailing={

@@ -1542,7 +1542,7 @@ export function ChatSidebar({
 
         {!showSessionSections && <SidebarBlankState onNewProject={openProjectCreate} />}
 
-        <div className="shrink-0 px-0.5 pb-1 pt-0.5">
+        <div className="shrink-0 border-t border-(--ui-stroke-tertiary) px-1 pb-1 pt-1.5">
           <ProfileRail />
         </div>
       </SidebarContent>
