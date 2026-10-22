@@ -1207,8 +1207,16 @@ export function ChatSidebar({
                     }
                     type="button"
                   >
-                    <item.icon className="size-3.5 shrink-0 text-[color-mix(in_srgb,currentColor_72%,transparent)]" />
-                    <span className="min-w-0 flex-1 truncate">{s.nav[item.id] ?? item.label}</span>
+                    {isNewSession ? (
+                      <span className="flex size-4 shrink-0 items-center justify-center font-bold text-amber-500">
+                        <Codicon name="add" size="0.875rem" />
+                      </span>
+                    ) : (
+                      <item.icon className="size-3.5 shrink-0 text-[color-mix(in_srgb,currentColor_72%,transparent)]" />
+                    )}
+                    <span className={cn('min-w-0 flex-1 truncate', isNewSession && 'font-semibold text-foreground')}>
+                      {s.nav[item.id] ?? item.label}
+                    </span>
                     {isNewSession && (
                       <KbdGroup
                         className={cn('ml-auto opacity-55', newSessionKbdFlash && 'opacity-100!')}

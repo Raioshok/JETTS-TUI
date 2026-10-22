@@ -223,8 +223,41 @@ export function ProfileRail() {
     setCreateOpen(true)
   }, [createRequest])
 
+  const displayName = isAll
+    ? p.allProfiles
+    : defaultProfile && onDefault
+      ? defaultProfile.name
+      : gatewayProfile || 'Default'
+  const initialLetter = (displayName?.[0] || 'J').toUpperCase()
+  const displaySubtitle = isAll ? 'All profiles' : onDefault ? 'default • local' : `${activeKey} • profile`
+
   return (
-    <div aria-label="Profiles" className="flex items-center gap-0.5" data-slot="profile-rail" role="tablist">
+    <div className="flex w-full flex-col gap-1" data-slot="profile-rail">
+      <div
+        className="group/user flex cursor-pointer select-none items-center justify-between gap-2 rounded-md px-1 py-1 transition-colors hover:bg-(--ui-control-hover-background)"
+        onClick={() => {
+          if (multiProfile) {
+            setShowAllProfiles(!isAll)
+          } else {
+            setCreateOpen(true)
+          }
+        }}
+      >
+        <div className="flex min-w-0 flex-1 items-center gap-2">
+          <div className="grid size-7 shrink-0 place-items-center rounded-full bg-foreground text-xs font-semibold text-background shadow-xs">
+            {initialLetter}
+          </div>
+          <div className="flex min-w-0 flex-1 flex-col justify-center">
+            <span className="truncate text-xs font-semibold leading-tight text-foreground">{displayName}</span>
+            <span className="truncate text-[0.6875rem] leading-tight text-(--ui-text-tertiary)">{displaySubtitle}</span>
+          </div>
+        </div>
+        <div className="flex shrink-0 items-center gap-1 text-(--ui-text-quaternary) transition-colors group-hover/user:text-foreground">
+          <Codicon name="chevron-up" size="0.75rem" />
+        </div>
+      </div>
+
+      <div aria-label="Profiles" className="flex items-center gap-0.5" role="tablist">
       {/* One button toggles default ↔ all: home face when scoped to a profile,
           layers face when showing everything. Pinned left like Manage is right.
           Hidden until a second profile exists. */}
@@ -338,6 +371,7 @@ export function ProfileRail() {
       />
 
       <EditSoulDialog onClose={() => setPendingSoul(null)} profileName={pendingSoul} />
+      </div>
     </div>
   )
 }

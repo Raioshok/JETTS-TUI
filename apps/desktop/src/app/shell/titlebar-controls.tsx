@@ -18,6 +18,7 @@ import {
   togglePanesFlipped,
   toggleSidebarOpen
 } from '@/store/layout'
+import { useTheme } from '@/themes'
 
 import { appViewForPath, isOverlayView, SETTINGS_ROUTE } from '../routes'
 
@@ -98,6 +99,7 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
   const { t } = useI18n()
   const navigate = useNavigate()
   const location = useLocation()
+  const { resolvedMode, setMode } = useTheme()
   const modHeld = useModifierHeld()
   const hapticsMuted = useStore($hapticsMuted)
   const fileBrowserOpen = useStore($fileBrowserOpen)
@@ -132,6 +134,22 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
       onSelect: () => {
         triggerHaptic('tap')
         leftEdge.toggle()
+      }
+    },
+    {
+      icon: <Codicon name="chevron-left" />,
+      id: 'history-back',
+      label: 'Back',
+      onSelect: () => {
+        window.history.back()
+      }
+    },
+    {
+      icon: <Codicon name="chevron-right" />,
+      id: 'history-forward',
+      label: 'Forward',
+      onSelect: () => {
+        window.history.forward()
       }
     },
     {
@@ -188,6 +206,15 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
       onSelect: toggleHaptics
     },
     {
+      icon: <Codicon name={resolvedMode === 'dark' ? 'sun' : 'moon'} />,
+      id: 'theme-toggle',
+      label: resolvedMode === 'dark' ? 'Light Mode' : 'Dark Mode',
+      onSelect: () => {
+        triggerHaptic('tap')
+        setMode(resolvedMode === 'dark' ? 'light' : 'dark')
+      }
+    },
+    {
       actionId: 'keybinds.openPanel',
       icon: <Codicon name="keyboard" />,
       id: 'keybinds',
@@ -231,6 +258,45 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
           .map(tool => (
             <TitlebarToolButton key={tool.id} navigate={navigate} tool={tool} />
           ))}
+      </div>
+
+      <div
+        aria-label="Navigation Mode"
+        className="fixed left-1/2 top-(--titlebar-controls-top) z-70 flex -translate-x-1/2 translate-y-0.5 flex-row items-center pointer-events-auto select-none [-webkit-app-region:no-drag]"
+      >
+        <div className="flex items-center gap-0.5 rounded-full border border-(--ui-stroke-tertiary) bg-(--ui-bg-chrome) p-0.5 shadow-xs">
+          {[
+            { id: 'chat', label: 'Chat', path: '/' },
+            { id: 'capabilities', label: 'Capabilities', path: '/skills' },
+            { id: 'artifacts', label: 'Artifacts', path: '/artifacts' },
+            { id: 'orchestrator', label: 'Orchestrator', path: '/orchestrator' }
+          ].map(tab => {
+            const isActive =
+              tab.path === '/'
+                ? location.pathname === '/' ||
+                  (!location.pathname.startsWith('/skills') &&
+                    !location.pathname.startsWith('/artifacts') &&
+                    !location.pathname.startsWith('/orchestrator') &&
+                    !location.pathname.startsWith('/specs'))
+                : location.pathname.startsWith(tab.path)
+
+            return (
+              <button
+                className={cn(
+                  'cursor-pointer rounded-full px-2.5 py-0.5 text-[0.6875rem] font-medium leading-tight transition-all',
+                  isActive
+                    ? 'bg-background font-semibold text-foreground shadow-xs'
+                    : 'text-(--ui-text-tertiary) hover:bg-(--ui-control-hover-background) hover:text-foreground'
+                )}
+                key={tab.id}
+                onClick={() => navigate(tab.path)}
+                type="button"
+              >
+                {tab.label}
+              </button>
+            )
+          })}
+        </div>
       </div>
 
       {/*
