@@ -416,7 +416,7 @@ export function TreeGroup({
             // header reads as one piece of chrome with the titlebar above it.
             // No bottom rule — the active tab's primary underline is the only seam.
             // data-zone-tabstrip: a drop over here STACKS (drag-session reads it).
-            className="group/pane-header relative flex h-7 shrink-0 select-none bg-(--ui-sidebar-surface-background) [-webkit-app-region:no-drag] [--pane-tab-active-bg:var(--ui-sidebar-surface-background)]"
+            className="group/pane-header relative flex h-[1.625rem] shrink-0 select-none bg-(--ui-sidebar-surface-background) [-webkit-app-region:no-drag] [--pane-tab-active-bg:var(--ui-sidebar-surface-background)]"
             data-zone-tabstrip={node.id}
             onContextMenu={e => {
               setMenuPane(
@@ -518,7 +518,7 @@ export function TreeGroup({
               {shown.some(isSessionStripPane) && newSessionTabAction && !node.minimized && (
                 <button
                   aria-label={t.zones.newSessionTab}
-                  className="grid size-7 shrink-0 place-items-center self-center bg-transparent text-(--ui-text-quaternary) transition-colors hover:text-foreground [-webkit-app-region:no-drag]"
+                  className="grid size-6 shrink-0 place-items-center self-center bg-transparent text-(--ui-text-quaternary) transition-colors hover:text-foreground [-webkit-app-region:no-drag]"
                   onClick={() => newSessionTabAction()}
                   onPointerDown={e => {
                     e.stopPropagation()
@@ -616,7 +616,7 @@ export function TreeGroup({
             className="absolute inset-x-0 bottom-0 z-50 flex cursor-grab items-center justify-center outline-1 -outline-offset-2 outline-dashed backdrop-blur-[2px]"
             onPointerDown={e => startPaneDrag(activeId, e, undefined, undefined, undefined, active?.title ?? activeId)}
             style={{
-              top: headerVisible ? 28 : 0,
+              top: headerVisible ? 26 : 0,
               background:
                 'color-mix(in srgb, var(--ui-accent) 6%, color-mix(in srgb, var(--ui-bg-chrome) 55%, transparent))',
               outlineColor: 'color-mix(in srgb, var(--ui-accent) 55%, transparent)'

@@ -19,8 +19,8 @@ export function SidebarSectionMeta({ children }: { children: React.ReactNode }) 
 // stretch to fill the cell and center content internally — never items-center
 // on the shell grid, or short clusters (projects) float 1–2px off sessions.
 
-const rowMinH = 'min-h-[1.625rem]'
-const rowPadX = 'pl-2 pr-1'
+const rowMinH = 'min-h-[1.5rem]'
+const rowPadX = 'pl-1.5 pr-1'
 const rowGap = 'gap-1.5'
 const rowLead = 'grid size-3.5 shrink-0 place-items-center'
 const rowInset = cn(rowPadX, rowGap, 'flex h-full min-w-0 items-center self-stretch py-0.5')
@@ -46,7 +46,7 @@ export function SidebarRowNest({ className, ...props }: React.ComponentProps<'di
  */
 export function SidebarDateDivider({ className, label, ...props }: React.ComponentProps<'div'> & { label: string }) {
   return (
-    <div className={cn('flex select-none items-center gap-2 px-2 pb-0.5 pt-2', className)} {...props}>
+    <div className={cn('flex select-none items-center gap-2 px-2 pb-0.5 pt-1.5', className)} {...props}>
       <span className="shrink-0 text-[0.64rem] font-semibold uppercase tracking-[0.12em] text-(--ui-text-quaternary)">
         {label}
       </span>

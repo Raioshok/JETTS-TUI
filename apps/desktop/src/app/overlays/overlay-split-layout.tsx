@@ -84,7 +84,7 @@ export function OverlayMain({ children, className }: OverlayMainProps) {
         // top clearance, the bottom gutter, and the horizontal clamp gutter
         // (inlined from PAGE_INSET_X so only overlay panes tighten, not the
         // shared page gutter). Narrow top drops toward the OverlayNav bar.
-        'mx-auto flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-transparent pb-2 pt-[calc((var(--titlebar-height)/2+1rem)*2/3)] max-[47.5rem]:pt-[calc(0.5rem*2/3)] px-[clamp(0.8333rem,2.6667vw,2.6667rem)]',
+        'mx-auto flex min-h-0 w-full flex-1 flex-col overflow-hidden bg-transparent pb-2 pt-[calc((var(--titlebar-height)/2+0.75rem)*2/3)] max-[47.5rem]:pt-[calc(0.5rem*2/3)] px-[clamp(0.75rem,2.2vw,2.2rem)]',
         PAGE_MAX_W,
         className
       )}
@@ -98,7 +98,7 @@ export function OverlayNavItem({ active, icon: Icon, label, nested, onClick, tra
   return (
     <button
       className={cn(
-        'flex h-7 w-full items-center justify-start gap-2 rounded-md border px-2 text-left text-[length:var(--conversation-text-font-size)] font-normal transition-colors',
+        'flex h-[1.625rem] w-full items-center justify-start gap-1.5 rounded-md border px-2 text-left text-[length:var(--conversation-text-font-size)] font-normal transition-colors',
         nested
           ? active
             ? 'border-transparent bg-(--chrome-action-hover) font-medium text-foreground'
@@ -113,7 +113,7 @@ export function OverlayNavItem({ active, icon: Icon, label, nested, onClick, tra
       <Icon
         className={cn(
           'shrink-0',
-          nested ? 'size-3.5' : 'size-4',
+          nested ? 'size-3' : 'size-3.5',
           active ? 'text-foreground/80' : 'text-muted-foreground/80'
         )}
       />

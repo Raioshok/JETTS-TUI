@@ -172,6 +172,9 @@ Notes:
 
 ## Layout
 
+- **Compact conversation-first canvas:** Give the transcript and composer maximum
+  usable room. Keep a low-profile composer, restrained vertical rhythm (`--turn-block-gap`,
+  `--paragraph-gap`), and compact shell chrome (sidebar `14rem`, pane headers `1.625rem`).
 - **Gutters:** `PAGE_INSET_X` (`src/app/layout-constants.ts`) for page side
   padding; `PAGE_INSET_NEG_X` to bleed a child to the edge. Don't hardcode
   `px-6`/`px-8` on pages.

@@ -91,7 +91,7 @@ export function PageSearchShell({
       */}
       <div className="shrink-0">
         {(hasTabs || !searchHidden) && (
-          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-3 px-3 pb-2 pt-[calc(var(--titlebar-height)+0.5rem)]">
+          <div className="grid grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-2.5 px-3 pb-1.5 pt-[calc(var(--titlebar-height)+0.25rem)]">
             <div className="flex min-w-0 items-center justify-start">
               {!searchHidden && (
                 <SearchField

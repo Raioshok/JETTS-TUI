@@ -61,7 +61,7 @@ function SidebarSectionHeader({
   )
 
   return (
-    <div className="group/section flex shrink-0 items-center justify-between gap-1 pb-1 pt-1.5">
+    <div className="group/section flex shrink-0 items-center justify-between gap-1 pb-0.5 pt-1">
       {collapsible ? (
         <button
           className="group/section-label flex w-fit items-center gap-1 bg-transparent text-left leading-none"

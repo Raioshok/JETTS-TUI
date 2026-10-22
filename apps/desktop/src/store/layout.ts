@@ -8,7 +8,7 @@ import { arraysEqual, insertUniqueId, readKey } from '@/lib/storage'
 
 import { $paneStates, ensurePaneRegistered, setPaneOpen, setPaneWidthOverride, togglePane } from './panes'
 
-export const SIDEBAR_DEFAULT_WIDTH = 237
+export const SIDEBAR_DEFAULT_WIDTH = 224
 export const SIDEBAR_MAX_WIDTH = 360
 // Open at the same width as the sessions sidebar so the two rails match, but
 // allow shrinking well below that (~30% under the old 14rem floor) for users who

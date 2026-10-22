@@ -231,7 +231,7 @@ export function SpecsView(props: React.ComponentProps<'section'>) {
       data-testid="specs-view"
     >
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-        <div className="mx-auto grid w-full max-w-6xl gap-6 px-6 pb-12 pt-[calc(var(--titlebar-height,34px)+1.5rem)]">
+        <div className="mx-auto grid w-full max-w-6xl gap-4 px-4 pb-8 pt-[calc(var(--titlebar-height,34px)+0.75rem)] sm:px-6">
           <header className="flex flex-wrap items-end justify-between gap-4">
             <div className="grid max-w-2xl gap-1">
               <h1 className="text-xl font-semibold tracking-tight text-(--ui-text-primary)">{s.title}</h1>
