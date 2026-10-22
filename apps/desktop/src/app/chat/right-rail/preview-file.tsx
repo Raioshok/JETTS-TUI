@@ -366,7 +366,7 @@ export function PreviewModeSwitcher({
   return (
     // Fixed height so the header is byte-identical between read and edit modes —
     // swapping the trailing controls must never move the body below it.
-    <div className="flex h-7 shrink-0 items-center justify-end gap-3 border-b border-border/40 px-3">
+    <div className="flex h-[1.625rem] shrink-0 items-center justify-end gap-2.5 border-b border-border/40 px-2.5">
       {showModes &&
         modes.map(mode => (
           <button

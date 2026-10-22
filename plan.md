@@ -2,7 +2,7 @@
 
 ## Objective
 
-Make the JettsTUI **Electron Desktop** interface feel more compact and focused, taking broad interaction cues from Claude's chat UI: a restrained conversation-first workspace, quieter navigation chrome, and less wasted space. Preserve JettsTUI's existing destinations, tabs, controls, and behavior. This is a design and implementation plan; it does not change the UI.
+Make the JettsTUI **Electron Desktop** interface feel like the attached reference's compact, organized desktop workspace while remaining unmistakably JettsTUI. Borrow its layout rhythm, compact navigation, clean tabbed workspace, and clear content hierarchy. Keep JettsTUI's own Prism persona, colors, features, navigation labels, tabs, Orchestrator, controls, and behavior. This is a design and implementation plan; it does not change the UI.
 
 ## What the current UI is based on
 
@@ -13,6 +13,7 @@ Make the JettsTUI **Electron Desktop** interface feel more compact and focused, 
 - The sidebar includes a new-session action; Capabilities; Messaging; Artifacts; Orchestrator; Specs; profile controls; projects/worktrees; pinned and recent sessions; agent, cron, and messaging session groups; and contributed navigation entries.
 - Chat is the home surface. The composer, streaming transcript, model controls, tool activity, approvals, and session switching remain first-class.
 - Durable pages include Capabilities, Messaging, Artifacts, Orchestrator, Specs, and contributed plugin pages. Settings, Command Center, Cron, Profiles, Agents, Starmap, and Webhooks are route overlays. The sidebar is not the only entry point: keybinds, command palette, and titlebar controls also navigate to these surfaces.
+- The reference is inspiration for layout and density only. Do not copy its brand, palette, labels, or product modes. Keep JettsTUI names and identity, including Orchestrator, and retain all current destinations in their appropriate navigation or contextual workspace locations.
 
 ## Existing tabs and tab-like navigation to preserve
 
@@ -23,24 +24,25 @@ Make the JettsTUI **Electron Desktop** interface feel more compact and focused, 
 5. **Settings navigation and sub-tabs:** config categories (Model, Chat, Appearance, Workspace, Safety, Memory, Voice, Discord, Advanced), Providers (Accounts/API keys), Keys (Tools and other key views), Gateway, Keybinds, Notifications, Plugins, Sessions, and About. Keep deep links/query parameters working.
 6. **Contextual pane tabs:** right-side preview/file, review, terminal, and other panes controlled by the pane layout. Preserve their layout persistence and keyboard behavior.
 
-## Redesign direction
+## Redesign direction from the reference image
 
-- Borrow Claude's broad feel: a calm, conversation-led canvas with a tidy left rail, compact navigation, generous readable message width, and a low-profile composer.
-- Reduce visual bulk through tighter vertical rhythm, shorter headers, compact rows, and fewer always-visible labels/actions. Use progressive disclosure for secondary actions and long lists.
-- Keep the current Prism theme, accessible contrast, established icon set, design tokens, and flat-surface rules. A compact redesign should come from spacing and hierarchy, not shrinking text until it is hard to read.
-- Give the transcript and composer more usable room at common desktop sizes. Keep sidebars and contextual panes resizable, hideable, and reversible.
-- Keep tabs discoverable and visually distinct. At narrow widths, allow horizontal scrolling and/or the existing overflow affordance; never silently drop a tab or route.
-- Maintain full keyboard access, focus visibility, tooltips where icons need explanation, responsive behavior, and current localization.
+- Use the reference's overall composition: a clearly bounded left navigation rail, compact top chrome, tidy tabbed work area, and a broad focused content canvas. Keep JettsTUI's Prism identity, current theme colors/accent, typography, icon vocabulary, and light/dark behavior; do not copy the screenshot's gold accent or impose a new palette.
+- Keep a persistent left rail with compact icon-and-label navigation, clear grouping, recents/session rows, and a bottom-pinned profile/account area where it fits the current shell. Preserve JettsTUI's profile, session, project/worktree, agent, cron, messaging, Orchestrator, Specs, Capabilities, Artifacts, and contributed navigation. Group/scroll long lists instead of removing destinations.
+- Keep the existing JettsTUI navigation and tab vocabulary. Do not add Chats / Colab / Code mode tabs from the reference. Use existing titlebar and workspace chrome with compact proportions; keep all existing pages and overlays reachable.
+- In workspaces that show files or code, use a compact workspace header: contextual navigation, horizontal closeable existing tabs, and existing actions/indicators where available. A breadcrumb row and broad low-chrome content area are visual cues to apply where they fit; reuse current preview/file and pane systems rather than inventing an editor.
+- Keep chat calm and central: readable transcript, restrained tool/status details, and a compact composer anchored to the bottom. Reclaim space with tighter row/header spacing and progressive disclosure, not by shrinking type or targets.
+- Keep all current session/page/preview/pane tabs and in-page filters/subtabs discoverable and operable. Allow horizontal tab scrolling/overflow affordances at narrow widths; preserve tab activation, close, drag/split/link, route deep links, and persistence.
+- Use existing primitives, tokens, icon set, i18n, focus behavior, and flat-surface contract. Preserve responsive layout, keyboard navigation, accessible contrast, and dark mode.
 
 ## Implementation sequence
 
-1. **Baseline inventory:** capture the current default layout and representative states: empty chat, long transcript, active tool call, many sessions/projects, settings overlay, a page with subtabs, and multiple open workspace/preview tabs. Record current hit targets and layout behavior.
-2. **Define compact tokens:** review `apps/desktop/src/app/layout-constants.ts`, shared sidebar/pane primitives, and `apps/desktop/src/styles.css`. Specify a compact spacing/density scale using existing tokens/primitives where possible. Keep normal readable typography and minimum usable hit targets.
-3. **Tighten shell chrome:** update the sidebar, titlebar, status area, pane headers/tab strip, and session/project rows in their shared components. Reduce repeated padding and decoration; preserve current actions and contribution slots.
-4. **Refine chat canvas:** tune transcript max width, message spacing, tool activity density, and composer height/spacing. Keep all composer controls, model selection, attachments, voice, approvals, and streaming states available.
-5. **Refine pages and overlays:** apply the same compact rhythm to Capabilities, Messaging, Artifacts, Orchestrator, Specs, and overlay pages. Preserve each page's current tabs, filters, deep links, and actions.
-6. **Responsive and overflow pass:** check small and large window widths, long tab names, many tabs, narrow sidebars, pane flips, hidden panes, and settings sub-navigation. Ensure no clipping, focus loss, or accidental navigation.
-7. **Verify behavior and visual quality:** compare before/after screenshots for the baseline states; confirm tab routes, close/drag/split actions, sidebar toggles, saved layouts, keyboard navigation, and reduced-motion/accessibility behavior. Update all four desktop locales if labels change and update `apps/desktop/DESIGN.md` if shared visual contracts change.
+1. **Baseline and map:** capture current UI states and map the reference's layout cues (rail, compact chrome, tabbed workspace, content canvas) onto JettsTUI's existing surfaces. Preserve every current destination and its label.
+2. **Shell frame:** refine the left navigation rail, recents, pinned account/profile footer, and window/titlebar chrome to match the screenshot's compact proportions while retaining JettsTUI's current identity and navigation.
+3. **Workspace chrome:** refine contextual workspace header, existing pane/file tabs, breadcrumbs where useful, existing actions/indicators, and content canvas. Reuse existing file preview and pane systems.
+4. **Chat canvas:** tighten transcript rhythm, tool/status details, and composer. Keep controls, streaming states, approvals, voice, model selection, and attachments available.
+5. **Pages, overlays, and tabs:** carry the compact style through Capabilities, Messaging, Artifacts, Orchestrator, Specs, and overlays. Preserve all tab sets, filters, deep links, and existing actions.
+6. **Responsive and overflow pass:** check window sizes, long/many tabs, narrow sidebars, pane flips, hidden panes, keyboard focus, and settings sub-navigation.
+7. **Verify:** compare reference and before/after screenshots at representative states; confirm navigation, tab close/drag/split, pane persistence, keybinds, accessibility, dark mode, and localization. Update `apps/desktop/DESIGN.md` when shared contracts change.
 
 ## Acceptance criteria
 
@@ -53,13 +55,13 @@ Make the JettsTUI **Electron Desktop** interface feel more compact and focused, 
 ## Copyable implementation prompt
 
 ```text
-Redesign the JettsTUI Electron Desktop UI in `apps/desktop` to feel more compact and focused, using Claude's conversation-first desktop layout as high-level inspiration. First inspect the current implementation and `apps/desktop/AGENTS.md` plus `apps/desktop/DESIGN.md`. Do not assume this is the web dashboard or Ink TUI.
+Redesign the JettsTUI Electron Desktop UI in `apps/desktop` so it feels like the attached reference image: compact, organized, and centered on a clean tabbed workspace. Treat the image as inspiration for layout, spacing, and hierarchy only. Keep JettsTUI unmistakable: retain the existing Prism persona, theme colors and accents, typography, product naming, navigation destinations, Orchestrator, features, and tabs. Do not copy the reference brand, palette, or product labels/modes. First inspect the current implementation and `apps/desktop/AGENTS.md` plus `apps/desktop/DESIGN.md`. Do not assume this is the web dashboard or Ink TUI.
 
 Preserve the existing information architecture and every current destination and tab behavior. This includes the session/project sidebar and its profile, pinned/recent, project/worktree, agent, cron, and messaging groups; the workspace pane tabs for chats and opened pages; the new-session tab action; preview/file tabs; Capabilities tabs (Skills, Toolsets, MCP, Hub); Artifacts filters (All, Images, Files, Links); all Settings categories and provider/key subviews; and contextual preview, review, terminal, and other pane tabs. Preserve route/query deep links, keybinds, tab close/activation/drag/split behavior, pane layout persistence, and stateful panes while hidden. Do not remove or merge product features to make the UI appear simpler.
 
-Make the layout denser through a calmer shell, tighter but readable vertical spacing, compact sidebar rows and pane headers, reduced redundant chrome, and progressive disclosure of secondary actions. Give the transcript and composer more usable room. Keep the JettsTUI Prism theme, existing design tokens and primitives, flat-surface rules, established icon system, localization, accessible contrast, visible keyboard focus, and usable hit targets. Keep navigation and tabs discoverable, including when the window is narrow or many tabs are open. Do not shrink typography to achieve compactness.
+Make the layout denser with tighter readable spacing, compact sidebar rows and pane headers, minimal decoration, and progressive disclosure. Preserve the current navigation labels and surfaces, especially Orchestrator, along with all chat/session/page/preview/pane tabs and in-page filters/subtabs. In code/file workspaces, reuse the current file tree, preview, tabs, and panes; apply breadcrumbs and a broad content canvas only where they suit existing functionality. Give chat more usable room. Keep JettsTUI's existing Prism design tokens, palette and accents, both theme modes, primitives and icon system, localization, accessible contrast, visible keyboard focus, and usable hit targets. Keep every current route, overlay, and tab discoverable, including at narrow widths or with many tabs. Do not shrink typography to achieve compactness.
 
-Work in small shared components and preserve the desktop architecture: React owns presentation/navigation and the gateway owns agent/session work. Do not rebuild the chat in the browser dashboard or alter `ui-tui`. Before implementation, summarize the current components you will touch. Then implement the redesign, update `apps/desktop/DESIGN.md` if a shared visual contract changes, and update all desktop locales if any user-facing strings change. Validate with the repository's existing desktop UI checks and visual states: empty chat, long transcript, active tools, full sidebar, settings/subtab overlays, multiple workspace tabs, preview tabs, narrow window, hidden/flipped panes, keyboard navigation, and persisted layout. Report changed files, preserved tab surfaces, and verification performed.
+Work in small shared components and preserve desktop architecture: React owns presentation/navigation and the gateway owns agent/session work. Do not rebuild chat in the browser dashboard or alter `ui-tui`. Before implementation, map the reference's layout cues to existing JettsTUI components and list the components to change. Then implement the redesign, update `apps/desktop/DESIGN.md` if a shared visual contract changes, and update all desktop locales if strings change. Validate empty chat, long transcript, active tools, full sidebar, Orchestrator, settings/subtab overlays, multiple workspace tabs, preview tabs, file workspace, narrow window, hidden/flipped panes, keyboard navigation, and persisted layout. Report changed files, preserved JettsTUI identity and tab surfaces, and verification performed.
 ```
 
 ## Source files reviewed
