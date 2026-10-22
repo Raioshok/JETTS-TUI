@@ -137,9 +137,18 @@ export function useComposerVoice({
     }
   }, [conversation, disabled, voiceConversationActive])
 
+  // Subscribe to the focus-bus ONCE per target. `toggleVoiceConversation`
+  // closes over `conversation` / `voiceConversationActive` / `disabled`, which
+  // change across renders, so keying the effect on its identity tore the
+  // listener down and re-added it on those renders (and ~60×/s while voice
+  // drives the mic meter). A latest-value ref keeps the subscription stable
+  // while still invoking the current toggle — behavior is byte-identical.
+  const toggleVoiceConversationRef = useRef(toggleVoiceConversation)
+  toggleVoiceConversationRef.current = toggleVoiceConversation
+
   useEffect(
-    () => onComposerVoiceToggleRequest(toggled => toggled === target && toggleVoiceConversation()),
-    [target, toggleVoiceConversation]
+    () => onComposerVoiceToggleRequest(toggled => toggled === target && toggleVoiceConversationRef.current()),
+    [target]
   )
 
   // Explicit start/end for the on-screen conversation controls (the hotkey uses

@@ -41,7 +41,12 @@ export function useComposerMetrics({ composerRef, composerSurfaceRef, editorRef,
   // presence of a non-trailing newline actually flips, so typing within a line
   // costs nothing here.
   const isEmpty = useAuiState(s => s.composer.text.length === 0)
-  const hasHardNewline = useAuiState(s => s.composer.text.trimEnd().includes('\n'))
+  // Short-circuit on the cheap `includes('\n')` first: a single-line draft (the
+  // common keystroke-by-keystroke case) has no newline at all, so it never pays
+  // for the O(n) `trimEnd()` allocation that previously ran on every keystroke.
+  // Only a draft that already contains a newline trims to distinguish a hard
+  // newline from a trailing one. Result is identical.
+  const hasHardNewline = useAuiState(s => s.composer.text.includes('\n') && s.composer.text.trimEnd().includes('\n'))
 
   // Expansion (input on its own full-width row, controls below) is driven by
   // the editor's *actual* rendered height via the ResizeObserver in

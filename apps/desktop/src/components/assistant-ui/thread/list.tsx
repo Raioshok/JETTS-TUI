@@ -250,7 +250,19 @@ const ThreadMessageListInner: FC<ThreadMessageListProps> = ({
   }, [groups, weightSignature])
 
   const hiddenCount = firstVisibleGroupIndex(weightedGroups, renderBudget)
-  const visibleGroups = hiddenCount > 0 ? groups.slice(hiddenCount) : groups
+
+  // Memoized so the sliced array keeps a STABLE reference across streaming
+  // deltas. `groups` is structural (stable per turn) and `hiddenCount` only
+  // moves when a turn crosses the render-budget boundary — not per token. The
+  // unmemoized `groups.slice(hiddenCount)` handed the `rows` memo below a fresh
+  // array on every delta once a transcript grew past the budget (hiddenCount >
+  // 0), silently defeating it and re-reconciling every visible turn's wrapper
+  // on each streamed token — the churn got worse the longer the session ran.
+  const visibleGroups = useMemo(
+    () => (hiddenCount > 0 ? groups.slice(hiddenCount) : groups),
+    [groups, hiddenCount]
+  )
+
   const restoreFromBottomRef = useRef<number | null>(null)
   // Secondary windows (new-session scratch, subagent watch, cmd-click pop-out)
   // hide the titlebar tool cluster + session header, but the OS traffic lights

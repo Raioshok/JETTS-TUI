@@ -205,7 +205,10 @@ export function TreeGroup({
         everActivePanesRef.current.delete(id)
       }
     }
-  })
+    // Idempotent add+prune: it only has work to do when the active pane or the
+    // zone's pane set changes. Without these deps it re-ran this O(panes) scan
+    // on EVERY commit of the zone (every streaming delta, hover, resize…).
+  }, [activeId, isEmpty, node.minimized, node.panes])
 
   const keptPanes = shown.filter(id => id === activeId || everActivePanesRef.current.has(id))
 

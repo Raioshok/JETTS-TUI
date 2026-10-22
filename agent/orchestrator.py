@@ -106,14 +106,18 @@ ROLES: Tuple[RoleSpec, ...] = (
         "Executor",
         "You are the EXECUTOR. Carry out the task, making the actual changes "
         "and running the relevant checks/tests. Read the planner's board file "
-        "before you start and again between major steps — it may still be "
-        "filling in; while it is empty, start from your own short plan. After "
-        "each meaningful step, append what you changed (files) and what is "
-        "next to your board file so the reviewers can follow along. Before you "
-        "finish, read the reviewer's and verifier's board files and address "
-        "every valid early finding; if you believe a finding is wrong, explain "
-        "why in your board file instead of changing code. Finish with a concise "
-        "summary of what you changed (files), what you verified, and anything "
+        "before you start and again between major steps — it defines the exact "
+        "project directory, targets, and implementation plan. Never assume the "
+        "launch directory is the target if the planner or task specifies a different "
+        "project. If the task is a continuation or concise directive, the planner's "
+        "board file contains the authoritative specification. While it is empty, "
+        "investigate the target indicated in the task, but align with the planner's "
+        "board as soon as it is posted. After each meaningful step, append what you "
+        "changed (files) and what is next to your board file so the reviewers can "
+        "follow along. Before you finish, read the reviewer's and verifier's board "
+        "files and address every valid early finding; if you believe a finding is "
+        "wrong, explain why in your board file instead of changing code. Finish with "
+        "a concise summary of what you changed (files), what you verified, and anything "
         "left undone.",
     ),
     RoleSpec(
@@ -823,6 +827,23 @@ def run_flow(
     flow = _FlowRun(parent_agent, task_text, conf, assigned, runner, board)
     plan = ""
     feedback = ""
+    if board is not None:
+        planner_file = board / "planner.md"
+        if planner_file.is_file():
+            try:
+                p_text = planner_file.read_text(encoding="utf-8").strip()
+                if p_text and "(nothing posted yet)" not in p_text.lower():
+                    plan = p_text
+            except OSError:
+                pass
+        reviewer_file = board / "reviewer.md"
+        if reviewer_file.is_file():
+            try:
+                r_text = reviewer_file.read_text(encoding="utf-8").strip()
+                if r_text and "(nothing posted yet)" not in r_text.lower():
+                    feedback = r_text
+            except OSError:
+                pass
     verdict = "changes_requested"
     rnd = 0
     while True:

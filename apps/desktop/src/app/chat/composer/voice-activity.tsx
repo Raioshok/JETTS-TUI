@@ -14,10 +14,38 @@ type BrowserAudioContext = typeof AudioContext
 
 interface ElementAnalyser {
   analyser: AnalyserNode
+  source: MediaElementAudioSourceNode
 }
 
 const elementAnalysers = new WeakMap<HTMLAudioElement, ElementAnalyser>()
 let playbackAudioContext: AudioContext | null = null
+
+/** Disconnect one playback's Web Audio nodes from the graph. Idempotent — a
+ *  second disconnect() throws, which a repeated teardown must tolerate. */
+export function disconnectAudioGraph(entry: Pick<ElementAnalyser, 'analyser' | 'source'>): void {
+  try {
+    entry.source.disconnect()
+    entry.analyser.disconnect()
+  } catch {
+    // Already disconnected by a prior teardown.
+  }
+}
+
+/** Release the analyser/source built for `audioElement`. The source node pins
+ *  the <audio> element (and its decoded PCM) inside the never-closed context's
+ *  graph, so without disconnecting it every data-URL TTS reply would leak one
+ *  node-pair + element for the app's life. voice-playback.ts mints a fresh
+ *  <audio> per playback, so auto-speak hit this every reply. */
+function releaseElementAnalyser(audioElement: HTMLAudioElement): void {
+  const entry = elementAnalysers.get(audioElement)
+
+  if (!entry) {
+    return
+  }
+
+  disconnectAudioGraph(entry)
+  elementAnalysers.delete(audioElement)
+}
 
 function getPlaybackAudioContext(): AudioContext | null {
   if (playbackAudioContext && playbackAudioContext.state !== 'closed') {
@@ -85,7 +113,7 @@ function getElementAnalyser(audioElement: HTMLAudioElement): ElementAnalyser | n
     analyser.smoothingTimeConstant = 0.65
     source.connect(analyser)
     analyser.connect(context.destination)
-    entry = { analyser }
+    entry = { analyser, source }
     elementAnalysers.set(audioElement, entry)
   }
 
@@ -116,7 +144,9 @@ function PlaybackWaveform({ audioElement }: { audioElement: HTMLAudioElement | n
     const ctx = canvas.getContext('2d')
 
     if (!entry || !ctx) {
-      return
+      // getElementAnalyser may have built and connected the graph even when the
+      // 2d context is unavailable — release it so it doesn't leak.
+      return () => releaseElementAnalyser(audioElement)
     }
 
     const dpr = Math.max(1, window.devicePixelRatio || 1)
@@ -157,7 +187,10 @@ function PlaybackWaveform({ audioElement }: { audioElement: HTMLAudioElement | n
 
     tick()
 
-    return () => cancelAnimationFrame(raf)
+    return () => {
+      cancelAnimationFrame(raf)
+      releaseElementAnalyser(audioElement)
+    }
   }, [audioElement])
 
   return <canvas aria-hidden="true" className="block h-4 w-[88px]" ref={canvasRef} />

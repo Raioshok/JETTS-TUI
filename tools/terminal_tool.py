@@ -1657,6 +1657,9 @@ def _create_environment(env_type: str, image: str, cwd: str, timeout: int,
             key_path=ssh_config.get("key", ""),
             cwd=cwd,
             timeout=timeout,
+            control_persist=ssh_config.get("control_persist", "session"),
+            keepalive_interval=ssh_config.get("keepalive_interval", 15),
+            keepalive_count=ssh_config.get("keepalive_count", 4),
         )
 
     else:
@@ -2319,6 +2322,13 @@ def terminal_tool(
                                 "port": config.get("ssh_port", 22),
                                 "key": config.get("ssh_key", ""),
                                 "persistent": config.get("ssh_persistent", False),
+                                # Connection-reuse tuning: keep the one shared
+                                # ControlMaster connection for the whole session
+                                # and keep it alive so idle drops don't fail the
+                                # next command (see tools/environments/ssh.py).
+                                "control_persist": config.get("ssh_control_persist", "session"),
+                                "keepalive_interval": config.get("ssh_keepalive_interval", 15),
+                                "keepalive_count": config.get("ssh_keepalive_count", 4),
                             }
 
                         container_config = None

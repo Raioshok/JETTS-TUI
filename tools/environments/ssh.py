@@ -33,6 +33,59 @@ def _ensure_ssh_available() -> None:
         )
 
 
+def ssh_connection_opts(
+    control_socket,
+    control_persist="session",
+    keepalive_interval: int = 15,
+    keepalive_count: int = 4,
+) -> list:
+    """The ``ssh -o`` flags that keep ONE shared connection alive and reuse it.
+
+    Every command spawns a fresh ``ssh`` process, but ControlMaster makes that
+    process ride the existing master connection over ``control_socket`` instead
+    of opening a new TCP+auth handshake each time.
+
+    - ``control_persist``: ``"session"`` (or ``"yes"``/any non-numeric) keeps the
+      one master for the whole session — it is closed deterministically by
+      ``cleanup()`` (``ssh -O exit``), so it does not leak. A positive number
+      caps the master's idle lifetime in seconds instead (the legacy behaviour
+      was a fixed 300s, which dropped the connection after 5 min idle and forced
+      a reconnect on the next command).
+    - keepalives (``ServerAliveInterval``/``ServerAliveCountMax``): probe the
+      master so an idle connection is not silently dropped by a NAT/firewall or
+      the server — the drop is what made the next command fail and reconnect.
+      ``keepalive_interval <= 0`` disables probing.
+    """
+    persist = "yes"
+    if isinstance(control_persist, (int, float)) and int(control_persist) > 0:
+        persist = str(int(control_persist))
+    elif isinstance(control_persist, str) and control_persist.strip().isdigit() and int(control_persist) > 0:
+        persist = control_persist.strip()
+
+    opts = [
+        "-o", f"ControlPath={control_socket}",
+        "-o", "ControlMaster=auto",
+        "-o", f"ControlPersist={persist}",
+    ]
+
+    try:
+        interval = int(keepalive_interval)
+    except (TypeError, ValueError):
+        interval = 0
+
+    if interval > 0:
+        try:
+            count = int(keepalive_count)
+        except (TypeError, ValueError):
+            count = 4
+        opts += [
+            "-o", f"ServerAliveInterval={interval}",
+            "-o", f"ServerAliveCountMax={max(1, count)}",
+        ]
+
+    return opts
+
+
 class SSHEnvironment(BaseEnvironment):
     """Run commands on a remote machine over SSH.
 
@@ -43,12 +96,20 @@ class SSHEnvironment(BaseEnvironment):
     """
 
     def __init__(self, host: str, user: str, cwd: str = "~",
-                 timeout: int = 60, port: int = 22, key_path: str = ""):
+                 timeout: int = 60, port: int = 22, key_path: str = "",
+                 control_persist="session", keepalive_interval: int = 15,
+                 keepalive_count: int = 4):
         super().__init__(cwd=cwd, timeout=timeout)
         self.host = host
         self.user = user
         self.port = port
         self.key_path = key_path
+        # Connection-reuse tuning (see ssh_connection_opts): keep the single
+        # shared master connection alive for the whole session and probe it so
+        # idle drops don't fail the next command.
+        self.control_persist = control_persist
+        self.keepalive_interval = keepalive_interval
+        self.keepalive_count = keepalive_count
 
         self.control_dir = Path(tempfile.gettempdir()) / "jettstui-ssh"
         self.control_dir.mkdir(parents=True, exist_ok=True)
@@ -82,9 +143,12 @@ class SSHEnvironment(BaseEnvironment):
 
     def _build_ssh_command(self, extra_args: list | None = None) -> list:
         cmd = ["ssh"]
-        cmd.extend(["-o", f"ControlPath={self.control_socket}"])
-        cmd.extend(["-o", "ControlMaster=auto"])
-        cmd.extend(["-o", "ControlPersist=300"])
+        cmd.extend(ssh_connection_opts(
+            self.control_socket,
+            self.control_persist,
+            self.keepalive_interval,
+            self.keepalive_count,
+        ))
         cmd.extend(["-o", "BatchMode=yes"])
         cmd.extend(["-o", "StrictHostKeyChecking=accept-new"])
         cmd.extend(["-o", "ConnectTimeout=10"])

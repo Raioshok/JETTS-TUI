@@ -650,6 +650,19 @@ export function closeSessionTile(storedSessionId: string) {
   }
 
   saveTiles($sessionTiles.get().filter(t => t.storedSessionId !== storedSessionId))
+
+  // Evict the closed tab's cached runtime state. Otherwise `$sessionStates`
+  // grows for the whole app session as tabs are opened and closed, and every
+  // OTHER session's per-delta `publishSessionState` spreads that ever-larger
+  // Record (O(resident sessions) per token). A still-busy session is left
+  // resident so a backgrounded turn keeps its sidebar "working" state and a
+  // ⌘⇧T reopen shows live progress; an idle/finished one re-hydrates from the
+  // backend on reopen, so dropping its cache is lossless.
+  const runtimeId = tile?.runtimeId
+
+  if (runtimeId && !$sessionStates.get()[runtimeId]?.busy) {
+    dropSessionState(runtimeId)
+  }
 }
 
 /** Drop a DEAD tile — a persisted tile whose session no longer exists on the

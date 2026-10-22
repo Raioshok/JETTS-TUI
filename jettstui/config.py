@@ -1171,6 +1171,20 @@ DEFAULT_CONFIG = {
         "modal_mode": "auto",
         "cwd": ".",  # Use current directory
         "timeout": 180,
+        # SSH connection reuse. The ssh backend always multiplexes every command
+        # over ONE shared ControlMaster connection (no per-command dial); these
+        # tune how long that single connection is kept and how it is kept alive:
+        #   ssh_control_persist   — "session" keeps the one connection for the
+        #       whole session (closed cleanly on teardown); or a number of
+        #       seconds to cap its idle lifetime (was a fixed 300s, which
+        #       dropped after 5 min idle and forced a reconnect next command).
+        #   ssh_keepalive_interval — seconds between keepalive probes so an idle
+        #       connection isn't silently dropped by a NAT/firewall/server
+        #       (the drop is what made the next command fail). 0 disables.
+        #   ssh_keepalive_count    — drop the master after this many missed probes.
+        "ssh_control_persist": "session",
+        "ssh_keepalive_interval": 15,
+        "ssh_keepalive_count": 4,
         # Bounded grace period (seconds) between SIGTERM and an escalated
         # SIGKILL when terminating a host process tree (browser daemons, etc.).
         # A daemon that stalls in its SIGTERM handler is force-killed after this

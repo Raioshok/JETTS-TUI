@@ -34,6 +34,37 @@ export function formatElapsed(seconds: number): string {
   return `${Math.floor(seconds / 60)}:${String(seconds % 60).padStart(2, '0')}`
 }
 
+// One shared 1 Hz ticker drives every elapsed-seconds readout. Each live timer
+// (subagent rows, message ages, status lines) used to run its OWN setInterval,
+// so a fan-out of subagents meant N independent wakeups/sec drifting against
+// each other. A single interval with a listener set means one wakeup/sec with
+// all readouts updated on the same tick (React can batch the resulting state
+// writes). Each listener still computes its value from Date.now(), so the
+// displayed seconds are identical; only the update cadence is shared.
+const elapsedTickListeners = new Set<() => void>()
+let elapsedTickHandle: number | undefined
+
+function subscribeElapsedTick(listener: () => void): () => void {
+  elapsedTickListeners.add(listener)
+
+  if (elapsedTickHandle === undefined) {
+    elapsedTickHandle = window.setInterval(() => {
+      for (const l of [...elapsedTickListeners]) {
+        l()
+      }
+    }, 1000)
+  }
+
+  return () => {
+    elapsedTickListeners.delete(listener)
+
+    if (elapsedTickListeners.size === 0 && elapsedTickHandle !== undefined) {
+      window.clearInterval(elapsedTickHandle)
+      elapsedTickHandle = undefined
+    }
+  }
+}
+
 /**
  * Seconds since the timer's origin, reported once a second while `active`.
  *
@@ -67,9 +98,8 @@ export function useElapsedSeconds(active = true, timerKey?: string, since?: numb
 
     const tick = () => setElapsed(Math.max(0, Math.floor((Date.now() - start.current) / 1000)))
     tick()
-    const id = window.setInterval(tick, 1000)
 
-    return () => window.clearInterval(id)
+    return subscribeElapsedTick(tick)
   }, [active, since, timerKey])
 
   return elapsed
@@ -112,4 +142,10 @@ export function useMeasuredDuration(active: boolean, timerKey: string): null | n
 export function __resetElapsedTimerRegistryForTests() {
   startedAtByKey.clear()
   durationByKey.clear()
+  elapsedTickListeners.clear()
+
+  if (elapsedTickHandle !== undefined) {
+    window.clearInterval(elapsedTickHandle)
+    elapsedTickHandle = undefined
+  }
 }
