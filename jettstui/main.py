@@ -2288,6 +2288,11 @@ def _launch_tui(
     os.close(active_session_fd)
     env["JETTSTUI_TUI_ACTIVE_SESSION_FILE"] = active_session_file
     env.setdefault("NODE_ENV", "development" if tui_dev else "production")
+    # The TUI's own fallback is ~/.jettstui, which is not the home on Windows
+    # (%LOCALAPPDATA%\jettstui): pass the resolved one so its boot-theme cache
+    # lives beside config and is found on the next launch.
+    if not env.get("JETTSTUI_HOME", "").strip():
+        env["JETTSTUI_HOME"] = str(get_jettstui_home())
 
     wt_info = None
     if worktree:

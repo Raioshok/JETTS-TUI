@@ -367,52 +367,46 @@ export function buildPalette(seeds: ThemeSeeds, isLight: boolean): ThemeColors {
   }
 }
 
+// Skinless palette = the backend `default` skin (jettstui/skin_engine.py):
+// Catppuccin Mocha. Keep the two in sync — this paints the first frame before
+// the gateway skin arrives, so any drift shows as a color flash on launch.
 export const DARK_SEEDS: ThemeSeeds = {
-  accent: '#FFBF00',
-  // The classic JettsTUI navy surfaces are IDENTITY, not derivation drift —
-  // keep them as explicit fill seeds (the ladder derives them for skins
-  // that don't care).
-  activeRow: '#333355',
+  accent: '#cba6f7',
+  activeRow: '#45475a',
   bg: '#101014',
-  border: '#CD7F32',
-  error: '#ef5350',
-  ok: '#4caf50',
-  primary: '#FFD700',
-  prompt: '#FFF8DC',
-  selection: '#3a3a55',
-  shellDollar: '#4dabf7',
-  statusBad: '#FF8C00',
-  statusCritical: '#FF6B6B',
-  statusGood: '#8FBC8F',
-  statusWarn: '#FFD700',
-  surface: '#1a1a2e',
-  text: '#FFF8DC',
-  warn: '#ffa726'
+  border: '#585b70',
+  error: '#f38ba8',
+  ok: '#a6e3a1',
+  primary: '#b4befe',
+  prompt: '#cdd6f4',
+  selection: '#45475a',
+  shellDollar: '#89dceb',
+  statusBad: '#fab387',
+  statusCritical: '#f38ba8',
+  statusGood: '#a6e3a1',
+  statusWarn: '#f9e2af',
+  surface: '#1e1e2e',
+  text: '#cdd6f4',
+  warn: '#fab387'
 }
 
-// Light-terminal seeds: darker golds/ambers that stay legible on white.
-// The classic light-mode JettsTUI look was never hand-authored: for years the
-// TUI emitted the DARK golds and hosts with xterm's minimumContrastRatio
-// (Cursor defaults to 4.5) lifted them against white — hue and saturation
-// kept, luminance clamped. These seeds are those exact lifts
-// (liftForContrast(dark, '#ffffff', 4.5)), so hosts WITHOUT a contrast pass
-// render the same thing Cursor always showed. Text/prompt stay ink — body
-// copy historically rendered in the terminal's default near-black fg.
+// Light seeds = the `default` skin's light overlay: Catppuccin Latte (same
+// sync rule as DARK_SEEDS).
 export const LIGHT_SEEDS: ThemeSeeds = {
-  accent: '#956E00',
+  accent: '#8839ef',
   bg: '#ffffff',
-  border: '#A56628',
-  error: '#C14240',
-  ok: '#367E39',
-  primary: '#867000',
-  prompt: '#2B2014',
-  shellDollar: '#377BB3',
-  statusBad: '#A65A00',
-  statusCritical: '#B94D4D',
-  statusGood: '#5C7A5C',
-  statusWarn: '#867000',
-  text: '#3D2F13',
-  warn: '#956115'
+  border: '#9ca0b0',
+  error: '#d20f39',
+  ok: '#40a02b',
+  primary: '#7287fd',
+  prompt: '#4c4f69',
+  shellDollar: '#04a5e5',
+  statusBad: '#fe640b',
+  statusCritical: '#d20f39',
+  statusGood: '#40a02b',
+  statusWarn: '#df8e1d',
+  text: '#4c4f69',
+  warn: '#fe640b'
 }
 
 export const DARK_THEME: Theme = {

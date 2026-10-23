@@ -52,10 +52,17 @@ export const writeActiveSessionFile = (sessionId: null | string, file = process.
   }
 }
 
-export const liveSessionInflightMessages = (inflight?: null | SessionInflightTurn): Msg[] => {
+export const liveSessionInflightMessages = (inflight?: null | SessionInflightTurn, transcript: Msg[] = []): Msg[] => {
   const user = String(inflight?.user ?? '').trim()
+  const last = transcript.at(-1)
 
-  return user ? [{ role: 'user', text: user }] : []
+  // The prompt is persisted when the turn starts, so the stored history may
+  // already end with it — appending it again showed the prompt twice.
+  if (!user || (last?.role === 'user' && last.text.trim() === user)) {
+    return []
+  }
+
+  return [{ role: 'user', text: user }]
 }
 
 export const hydrateLiveSessionInflight = (inflight?: null | SessionInflightTurn) => {
@@ -329,7 +336,8 @@ export function useSessionLifecycle(opts: UseSessionLifecycleOptions) {
 
           resetSession()
           setSessionStartedAt(r.started_at ? r.started_at * 1000 : Date.now())
-          const transcript = [...toTranscriptMessages(r.messages), ...liveSessionInflightMessages(r.inflight)]
+          const stored = toTranscriptMessages(r.messages)
+          const transcript = [...stored, ...liveSessionInflightMessages(r.inflight, stored)]
           setHistoryItems(info ? [introMsg(info), ...transcript] : transcript)
           writeActiveSessionFile(r.session_key ?? r.session_id)
           patchUiState({
@@ -382,7 +390,8 @@ export function useSessionLifecycle(opts: UseSessionLifecycleOptions) {
             resetSession()
             setSessionStartedAt(r.started_at ? r.started_at * 1000 : Date.now())
 
-            const resumed = [...toTranscriptMessages(r.messages), ...liveSessionInflightMessages(r.inflight)]
+            const stored = toTranscriptMessages(r.messages)
+            const resumed = [...stored, ...liveSessionInflightMessages(r.inflight, stored)]
 
             setHistoryItems(info ? [introMsg(info), ...resumed] : resumed)
             writeActiveSessionFile(r.resumed ?? r.session_id)

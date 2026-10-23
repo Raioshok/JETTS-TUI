@@ -14,9 +14,9 @@
  * every later signal overwrites it (then persists the new answer).
  */
 
-import { readFileSync, renameSync, writeFileSync } from 'fs'
+import { mkdirSync, readFileSync, renameSync, writeFileSync } from 'fs'
 import { homedir } from 'os'
-import { join } from 'path'
+import { dirname, join } from 'path'
 
 import type { Theme } from '../theme.js'
 
@@ -37,7 +37,8 @@ interface BootThemeFile {
 // Profile-aware: the Python launcher exports JETTSTUI_HOME (set by
 // _apply_profile_override) before spawning the TUI. Falling back to
 // ~/.jettstui matches get_jettstui_home()'s default.
-const bootFilePath = () => join(process.env.JETTSTUI_HOME ?? join(homedir(), '.jettstui'), 'tui-theme-boot.json')
+// `||`, not `??`: an empty JETTSTUI_HOME must not resolve to the cwd.
+const bootFilePath = () => join(process.env.JETTSTUI_HOME?.trim() || join(homedir(), '.jettstui'), 'tui-theme-boot.json')
 
 // Never touch the user's real ~/.jettstui from test runs (the TS suite has no
 // JETTSTUI_HOME isolation fixture).
@@ -110,6 +111,7 @@ export function writeBootTheme(theme: Theme, background?: string, mode?: 'dark' 
       const path = bootFilePath()
       const tmp = `${path}.tmp`
 
+      mkdirSync(dirname(path), { recursive: true })
       writeFileSync(tmp, JSON.stringify(payload))
       renameSync(tmp, path)
     } catch {

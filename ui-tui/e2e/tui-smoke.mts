@@ -11,6 +11,10 @@
  *     appears
  *   - the chrome stays intact before / during / after the run — no corruption,
  *     no stack trace, no vanished status line
+ *   - no palette flash on a cold start: the first frame (painted before the
+ *     gateway skin arrives) uses only colors the settled theme also uses
+ *   - multi-agent while busy: Ctrl+X → typing starts a second agent, the busy
+ *     one is not offered twice, and switching back shows its turn once
  *
  * Standalone (not a vitest unit): it needs node-pty, a Python backend, the
  * built ink bundle and ~30s. Run with `npm run test:e2e` from ui-tui.
@@ -37,6 +41,15 @@ const CSI = /\u001b\[[0-9;?]*[A-Za-z]/g
 const OSC = /\u001b\][0-9]*;[^\u0007]*\u0007/g
 const plain = (s: string) => s.replace(OSC, '').replace(CSI, '').replace(/\u001b[>=()][AB0]?/g, '')
 const hasSgrColor = (s: string) => /\u001b\[[0-9;]*m/.test(s)
+// Foreground-only SGR color codes: a theme flash is text painted in another
+// palette. Background chips are skipped — some only exist during boot (the
+// composer's placeholder cursor chip), so they have nothing to match later.
+const sgrColors = (s: string) =>
+  new Set(
+    [...s.matchAll(/\u001b\[([0-9;]*)m/g)]
+      .map(m => m[1])
+      .filter(code => code && code !== '0' && !code.split(';').some(p => /^(4\d|10\d)$/.test(p)))
+  )
 const sleep = (ms: number) => new Promise(r => setTimeout(r, ms))
 
 function writeConfig(home: string, mockUrl: string): void {
@@ -122,6 +135,19 @@ async function main(): Promise<void> {
   try {
     // 1. Boots and paints its chrome. The status line names the model.
     await waitFor(() => buf, s => plain(s).includes('mock model') && plain(s).includes('session'), 30_000, 'TUI boot (status line with model)')
+    const firstFrame = buf
+
+    // No palette flash: once the gateway skin has landed, force a full repaint
+    // (resize) and require every color of the first frame to still be in use.
+    // A skinless palette that disagrees with the default skin shows up here.
+    await waitFor(() => buf, s => plain(s).includes('ready'), 30_000, 'session ready (skin applied)')
+    await sleep(1500)
+    const beforeRepaint = buf.length
+    term.resize(101, 30)
+    await sleep(1500)
+    const settled = sgrColors(buf.slice(beforeRepaint))
+    const flashed = [...sgrColors(firstFrame)].filter(code => !settled.has(code))
+    assert.deepEqual(flashed, [], `first frame painted colors the settled theme never uses: ${flashed.join(', ')}`)
 
     // The boot screen must never contain a crash / module-resolution dump.
     const bootPlain = plain(buf)
@@ -158,7 +184,44 @@ async function main(): Promise<void> {
     // The completed-turn marker (✓) proves the model actually ran a turn.
     assert.ok(/✓/.test(buf), 'turn-complete marker (✓) never appeared')
 
-    console.log('TUI e2e OK — boot, colors, composer, run, reply, stable chrome, turn marker.')
+    // 6. Multi-agent while one is busy. E2E_PET_STALL keeps agent A's turn
+    //    running; Ctrl+X opens the switcher and TYPING starts agent B.
+    term.write('E2E_PET_STALL task alpha')
+    await sleep(400)
+    term.write('\r')
+    await waitFor(() => buf, s => s.includes('E2E_PET_STALL task alpha'), 10_000, 'agent A prompt submitted')
+    await sleep(2500)
+
+    let mark = buf.length
+    term.write('\x18')
+    await waitFor(() => buf.slice(mark), s => plain(s).includes('Sessions'), 10_000, 'switcher opens while busy')
+    await sleep(800)
+    assert.ok(plain(buf.slice(mark)).includes('0 resumable'), 'the busy agent is also offered as a resumable session')
+
+    term.write('task bravo')
+    await sleep(500)
+    term.write('\r')
+    await waitFor(() => buf, s => plain(s).includes('2 sessions'), 20_000, 'typing in the switcher starts agent B')
+
+    // Switch back to agent A (row 1; B is current on row 2): its running
+    // prompt shows once — not repeated behind a "next turn" divider.
+    await sleep(1500)
+    mark = buf.length
+    term.write('\x18')
+    await waitFor(() => buf.slice(mark), s => plain(s).includes('2 live'), 10_000, 'switcher lists both agents')
+    term.write('\u001b[A')
+    await sleep(300)
+    term.write('\r')
+    mark = buf.length
+    await waitFor(() => buf.slice(mark), s => plain(s).includes('task alpha'), 10_000, 'switched back to agent A')
+    await sleep(1500)
+    // The bug's shape: the same prompt, a "next turn" divider, the prompt again.
+    assert.ok(
+      !/❯ E2E_PET_STALL task alpha[\s\S]*?next turn[\s\S]*?❯ E2E_PET_STALL task alpha/.test(plain(buf.slice(mark))),
+      'agent A shows its prompt twice after switching back'
+    )
+
+    console.log('TUI e2e OK — boot, no palette flash, colors, composer, run, reply, stable chrome, turn marker, multi-agent.')
   } finally {
     await cleanup()
   }

@@ -91,7 +91,8 @@ export const relativeSessionAge = (ts?: number) => {
 
 /** Drop already-live sessions from the resumable history list (dedupe by id). */
 export const resumableHistory = (history: readonly SessionListItem[], live: readonly SessionActiveItem[]) => {
-  const liveIds = new Set(live.map(s => s.id))
+  // History rows carry the STORED id, which a live row exposes as session_key.
+  const liveIds = new Set(live.flatMap(s => (s.session_key ? [s.id, s.session_key] : [s.id])))
 
   return history.filter(h => !liveIds.has(h.id))
 }
@@ -630,6 +631,14 @@ export function ActiveSessionSwitcher({
       return
     }
 
+    // Typing on a session row starts a new agent: jump to "+ new" and seed the
+    // prompt (arrows/Enter still navigate and switch).
+    if (!newSelected && ch && !key.ctrl && !key.meta && /^[^ -]+$/u.test(ch)) {
+      setDraft(d => d + ch)
+
+      return setSel(0)
+    }
+
     if (newSelected && draftHasText) {
       return
     }
@@ -895,7 +904,7 @@ export function ActiveSessionSwitcher({
             t={t}
           />
           <Text color={t.color.muted} wrap="truncate-end">
-            Select <Text color={newSessionMarkerColor(t, false)}>+new</Text> to type a prompt
+            Type to start a <Text color={newSessionMarkerColor(t, false)}>+new</Text> agent
           </Text>
         </Box>
       )}

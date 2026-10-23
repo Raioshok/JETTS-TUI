@@ -298,40 +298,39 @@ _BUILTIN_SKINS: Dict[str, Dict[str, Any]] = {
             "voice_status_bg": "#181825",
         },
         # Light overlay (merged onto `colors`; dark mode renders the vivid
-        # block above untouched). The goldenrod ladder: on white, the vivid
-        # #FFD700/#FFBF00 read as glare and WCAG-darkened mustard (#867000)
-        # reads as mud — the sweet spot is the statusbar's goldenrod family
-        # (#B8860B/#DAA520): hue kept, saturation tamed, mid luminance.
-        # Hierarchy on white: ink body 8.9:1 > fade 5.2 > label 3.7 >
-        # muted 3.3 > title 2.7 > headers 2.4 (accents recede last, like
-        # slate's pastels — the raw-canon look, just not neon).
+        # block above untouched): Catppuccin Latte, the light flavor of the
+        # same scheme, so both polarities read as one palette. The TUI's
+        # skinless seeds (ui-tui/src/theme.ts DARK_SEEDS / LIGHT_SEEDS) mirror
+        # this skin so the first frame never flashes another palette.
         "light_colors": {
-            "banner_title": "#C8961E",
-            "banner_accent": "#D89B04",
-            "banner_dim": "#B8860B",
-            "banner_text": "#5C4718",
-            "ui_accent": "#D89B04",
-            "ui_label": "#A97E10",
-            "ui_ok": "#2E7D32",
-            "ui_error": "#C62828",
-            "ui_warn": "#D97706",
-            "prompt": "#5C4718",
-            "response_border": "#C8961E",
-            "session_label": "#A97E10",
-            "status_bar_text": "#6F6F6F",
-            "status_bar_strong": "#C8961E",
-            "status_bar_dim": "#9A8A5A",
-            "status_bar_good": "#2E7D32",
-            "status_bar_warn": "#C8961E",
-            "status_bar_bad": "#C2410C",
-            "status_bar_critical": "#B91C1C",
-            "shell_dollar": "#1E6FC0",
-            # Fills: flip the dark navy surfaces to light polarity.
-            "completion_menu_bg": "#F5F5F5",
-            "completion_menu_current_bg": "#E0D1BF",
-            "selection_bg": "#D4E4F7",
-            "status_bar_bg": "#F5F5F5",
-            "voice_status_bg": "#F5F5F5",
+            "banner_border": "#9ca0b0",
+            "banner_title": "#7287fd",
+            "banner_accent": "#8839ef",
+            "banner_dim": "#8c8fa1",
+            "banner_text": "#4c4f69",
+            "ui_accent": "#8839ef",
+            "ui_label": "#7287fd",
+            "ui_ok": "#40a02b",
+            "ui_error": "#d20f39",
+            "ui_warn": "#fe640b",
+            "prompt": "#4c4f69",
+            "input_rule": "#acb0be",
+            "response_border": "#8839ef",
+            "session_label": "#8839ef",
+            "session_border": "#9ca0b0",
+            "status_bar_text": "#5c5f77",
+            "status_bar_strong": "#7287fd",
+            "status_bar_dim": "#8c8fa1",
+            "status_bar_good": "#40a02b",
+            "status_bar_warn": "#df8e1d",
+            "status_bar_bad": "#fe640b",
+            "status_bar_critical": "#d20f39",
+            "shell_dollar": "#04a5e5",
+            "completion_menu_bg": "#eff1f5",
+            "completion_menu_current_bg": "#ccd0da",
+            "selection_bg": "#ccd0da",
+            "status_bar_bg": "#e6e9ef",
+            "voice_status_bg": "#e6e9ef",
         },
         # Bold-gradient-rice spinner: a breathing prism/diamond instead of the
         # kawaii faces, so the default look reads as one geometric, riced scheme.

@@ -205,6 +205,11 @@ describe('unified Sessions overlay helpers', () => {
 
     expect(resumableHistory(history, live).map(h => h.id)).toEqual(['a', 'c'])
     expect(resumableHistory(history, []).map(h => h.id)).toEqual(['a', 'b', 'c'])
+    // A live session also listed in history under its stored id (session_key)
+    // is the same session — never offer to resume it a second time.
+    expect(
+      resumableHistory(history, [{ id: 'runtime-1', session_key: 'c', status: 'working' }]).map(h => h.id)
+    ).toEqual(['a', 'b'])
   })
 
   it('labels live + resumable counts compactly', () => {

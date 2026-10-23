@@ -70,6 +70,12 @@ describe('live session activation in-flight state', () => {
 
   it('ignores empty in-flight payloads', () => {
     expect(liveSessionInflightMessages({ assistant: '', streaming: false, user: '   ' })).toEqual([])
+    // Already the last stored message (persisted at turn start): don't repeat it.
+    const inflight2 = { assistant: '', streaming: true, user: 'task alpha' }
+    expect(liveSessionInflightMessages(inflight2, [{ role: 'user', text: 'task alpha' }])).toEqual([])
+    expect(liveSessionInflightMessages(inflight2, [{ role: 'assistant', text: 'task alpha' }])).toEqual([
+      { role: 'user', text: 'task alpha' }
+    ])
 
     hydrateLiveSessionInflight({ assistant: '', streaming: false, user: '' })
 
