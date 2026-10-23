@@ -350,7 +350,84 @@ export const slateTheme: DesktopTheme = {
   }
 }
 
+const GRAPHITE_MINT = '#7CF29A'
+const GRAPHITE_MINT_DEEP = '#13A35A'
+const graphiteAlpha = (color: string, pct: number) => `color-mix(in srgb, ${color} ${pct}%, transparent)`
+
+/**
+ * Graphite — the default JettsTUI look. Dark-first graphite surfaces, crisp
+ * hairlines and tight radii; neutrals stay neutral (the accent-mix knobs are
+ * zeroed in styles.css under `[data-jettstui-theme='graphite']`) so the single
+ * electric-mint accent only marks focus, selection, activity and send.
+ */
+export const graphiteTheme: DesktopTheme = {
+  name: 'graphite',
+  label: 'Graphite',
+  description: 'Graphite surfaces, crisp hairlines, an electric-mint accent',
+  colors: {
+    background: '#FBFBFC',
+    foreground: '#16181D',
+    card: '#FFFFFF',
+    cardForeground: '#16181D',
+    muted: '#F2F3F5',
+    mutedForeground: '#5E636E',
+    popover: '#FFFFFF',
+    popoverForeground: '#16181D',
+    // Bright mint fill with near-black text keeps the brand legible on white;
+    // strokes use the deeper mint so focus rings clear contrast.
+    primary: '#2BD475',
+    primaryForeground: '#04170B',
+    secondary: '#F1F2F4',
+    secondaryForeground: '#2A2D35',
+    accent: '#ECEEF1',
+    accentForeground: '#16181D',
+    border: graphiteAlpha('#16181D', 9),
+    input: graphiteAlpha('#16181D', 13),
+    ring: GRAPHITE_MINT_DEEP,
+    midground: GRAPHITE_MINT_DEEP,
+    composerRing: GRAPHITE_MINT_DEEP,
+    destructive: '#E5484D',
+    destructiveForeground: '#FFFFFF',
+    sidebarBackground: '#F4F5F7',
+    sidebarBorder: graphiteAlpha('#16181D', 7),
+    userBubble: '#F4F5F7',
+    userBubbleBorder: graphiteAlpha('#16181D', 9)
+  },
+  darkColors: {
+    background: '#0E0F12',
+    foreground: '#E6E7EB',
+    card: '#15171C',
+    cardForeground: '#E6E7EB',
+    muted: '#1A1C22',
+    mutedForeground: '#8A8F98',
+    popover: '#17191F',
+    popoverForeground: '#E6E7EB',
+    primary: GRAPHITE_MINT,
+    primaryForeground: '#06140B',
+    secondary: '#1C1E24',
+    secondaryForeground: '#D5D7DD',
+    accent: '#1F2229',
+    accentForeground: '#F0F1F4',
+    border: graphiteAlpha('#FFFFFF', 8),
+    input: graphiteAlpha('#FFFFFF', 11),
+    ring: GRAPHITE_MINT,
+    midground: GRAPHITE_MINT,
+    composerRing: GRAPHITE_MINT,
+    destructive: '#FF6B6B',
+    destructiveForeground: '#140707',
+    sidebarBackground: '#0A0B0D',
+    sidebarBorder: graphiteAlpha('#FFFFFF', 6),
+    userBubble: '#15171C',
+    userBubbleBorder: graphiteAlpha('#FFFFFF', 8)
+  },
+  typography: {
+    fontSans: SYSTEM_SANS,
+    fontMono: `"JetBrains Mono", ${SYSTEM_MONO}`
+  }
+}
+
 export const BUILTIN_THEMES: Record<string, DesktopTheme> = {
+  graphite: graphiteTheme,
   jettstui: jettstuiTheme,
   cobalt: cobaltTheme,
   midnight: midnightTheme,
@@ -363,4 +440,4 @@ export const BUILTIN_THEMES: Record<string, DesktopTheme> = {
 export const BUILTIN_THEME_LIST = Object.values(BUILTIN_THEMES)
 
 /** Skin used when nothing is persisted or the persisted name is retired. */
-export const DEFAULT_SKIN_NAME = 'jettstui'
+export const DEFAULT_SKIN_NAME = 'graphite'

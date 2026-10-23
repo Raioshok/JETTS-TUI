@@ -2052,3 +2052,138 @@ code {
     opacity: 0.4;
   }
 }
+
+/* -------------------------------------------------------------------------- */
+/* Graphite skin — the default look. Unlayered + scoped to the skin, so it     */
+/* wins over the layered base tokens and leaves every other skin untouched.    */
+/* Neutrals stay neutral (accent-mix knobs zeroed); the mint accent is kept    */
+/* for focus, selection, activity and send.                                    */
+/* -------------------------------------------------------------------------- */
+:root[data-jettstui-theme='graphite'] {
+  --theme-neutral-chrome: #f7f7f8;
+  --theme-neutral-sidebar: #f4f5f7;
+  --theme-neutral-card: #ffffff;
+  --theme-fill-primary-accent-mix: 0%;
+  --theme-fill-secondary-accent-mix: 0%;
+  --theme-fill-tertiary-accent-mix: 0%;
+  --theme-fill-quaternary-accent-mix: 0%;
+  --theme-fill-quinary-accent-mix: 0%;
+  --theme-stroke-primary-accent-mix: 0%;
+  --theme-stroke-secondary-accent-mix: 0%;
+  --theme-stroke-tertiary-accent-mix: 0%;
+  --theme-stroke-quaternary-accent-mix: 0%;
+  --theme-row-hover-accent-mix: 0%;
+  --theme-row-active-accent-mix: 0%;
+  --theme-control-hover-accent-mix: 0%;
+
+  /* Tight, technical geometry. */
+  --radius-scalar: 0.5;
+  --composer-radius: 0.625rem;
+  --dt-letter-spacing: -0.006em;
+
+  /* Crisp elevation: a contact shadow + hairline, little ambient blur. */
+  --elevation-float:
+    0 0 0 1px color-mix(in srgb, #000 6%, transparent),
+    0 0.5rem 1.5rem -0.5rem color-mix(in srgb, #000 18%, transparent);
+  --elevation-composer:
+    0 1px 2px color-mix(in srgb, #000 5%, transparent),
+    0 0.5rem 1.25rem -0.75rem color-mix(in srgb, #000 14%, transparent);
+
+  /* The user turn is a hairline panel, Linear-style. */
+  --dt-user-bubble: var(--ui-chat-bubble-background);
+}
+
+:root[data-jettstui-theme='graphite'].dark {
+  --theme-neutral-chrome: #0e0f12;
+  --theme-neutral-sidebar: #0a0b0d;
+  --theme-neutral-card: #15171c;
+  --elevation-float:
+    inset 0 1px 0 color-mix(in srgb, #fff 4%, transparent),
+    0 0 0 1px color-mix(in srgb, #000 60%, transparent),
+    0 0.75rem 2rem -0.75rem color-mix(in srgb, #000 70%, transparent);
+  --elevation-composer:
+    inset 0 1px 0 color-mix(in srgb, #fff 4%, transparent),
+    0 0.75rem 1.75rem -0.75rem color-mix(in srgb, #000 70%, transparent);
+}
+
+:root[data-jettstui-theme='graphite'] body {
+  /* Inter tuned for dense product UI: single-storey a, open digits. */
+  font-feature-settings: 'cv01', 'cv05', 'cv08', 'cv11', 'ss03';
+}
+
+:root[data-jettstui-theme='graphite'] .composer-human-message {
+  border-color: var(--dt-user-bubble-border) !important;
+}
+
+/* Flat canvas — no ambient glow / dot grid under Graphite. */
+:root[data-jettstui-theme='graphite'] [data-slot='chat-backdrop'] {
+  display: none;
+}
+
+/* Graphite chrome. Hooks are data attributes on shared components, so other  */
+/* skins render exactly as before.                                             */
+:root[data-jettstui-theme='graphite'] [data-slot='sidebar'] {
+  box-shadow: inset -1px 0 0 var(--dt-sidebar-border);
+}
+
+/* "New session" is a real hairline button, not a nav row. */
+:root[data-jettstui-theme='graphite'] [data-nav='new-session'] {
+  border-color: var(--ui-stroke-secondary);
+  background: var(--ui-bg-quinary);
+}
+
+:root[data-jettstui-theme='graphite'] [data-slot='new-session-glyph'] {
+  color: var(--theme-midground);
+}
+
+/* Active session: a mint rail instead of a bare fill. */
+:root[data-jettstui-theme='graphite'] [data-selected='true']::before {
+  content: '';
+  position: absolute;
+  inset-block: 22%;
+  left: 0;
+  width: 2px;
+  border-radius: 2px;
+  background: var(--theme-midground);
+}
+
+/* Header mode switch: squared segmented control, mint underline on the page. */
+:root[data-jettstui-theme='graphite'] [data-slot='nav-mode'] {
+  border-radius: 0.5rem;
+  box-shadow: none;
+}
+
+:root[data-jettstui-theme='graphite'] [data-slot='nav-mode'] > button {
+  border-radius: 0.375rem;
+}
+
+:root[data-jettstui-theme='graphite'] [data-slot='nav-mode'] > button[aria-current='page'] {
+  box-shadow: inset 0 -2px 0 var(--theme-midground);
+}
+
+/* Composer: focus is a faint mint hairline; the primary action (send / voice) is mint. */
+:root[data-jettstui-theme='graphite'] [data-slot='composer-surface']:focus-within {
+  border-color: color-mix(in srgb, var(--theme-midground) 55%, transparent) !important;
+}
+
+:root[data-jettstui-theme='graphite'] [data-slot='composer-primary'] {
+  border-radius: 0.4375rem;
+  background: var(--theme-primary);
+  color: var(--dt-primary-foreground);
+}
+
+:root[data-jettstui-theme='graphite'] [data-slot='composer-primary']:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--theme-primary) 88%, var(--ui-base));
+}
+
+:root[data-jettstui-theme='graphite'] [data-slot='composer-primary']:disabled {
+  background: color-mix(in srgb, var(--theme-primary) 28%, transparent);
+  color: color-mix(in srgb, var(--dt-primary-foreground) 70%, transparent);
+}
+
+/* Status bar reads as instrumentation. */
+:root[data-jettstui-theme='graphite'] [data-slot='statusbar'] {
+  font-family: var(--dt-font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0;
+}

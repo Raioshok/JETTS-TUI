@@ -100,6 +100,7 @@ export function ComposerControls({
           <Button
             aria-label={c.startVoice}
             className={PRIMARY_ICON_BTN}
+            data-slot="composer-primary"
             disabled={disabled}
             onClick={() => {
               triggerHaptic('open')
@@ -133,6 +134,7 @@ export function ComposerControls({
           <Button
             aria-label={busy ? busyLabel : c.send}
             className={PRIMARY_ICON_BTN}
+            data-slot="composer-primary"
             disabled={disabled || !canSubmit}
             type="submit"
           >

@@ -264,7 +264,10 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
         aria-label="Navigation Mode"
         className="fixed left-1/2 top-(--titlebar-controls-top) z-70 flex -translate-x-1/2 translate-y-0.5 flex-row items-center pointer-events-auto select-none [-webkit-app-region:no-drag]"
       >
-        <div className="flex items-center gap-0.5 rounded-full border border-(--ui-stroke-tertiary) bg-(--ui-bg-chrome) p-0.5 shadow-xs">
+        <div
+          className="flex items-center gap-0.5 rounded-full border border-(--ui-stroke-tertiary) bg-(--ui-bg-chrome) p-0.5 shadow-xs"
+          data-slot="nav-mode"
+        >
           {[
             { id: 'chat', label: 'Chat', path: '/' },
             { id: 'capabilities', label: 'Capabilities', path: '/skills' },
@@ -282,6 +285,7 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
 
             return (
               <button
+                aria-current={isActive ? 'page' : undefined}
                 className={cn(
                   'cursor-pointer rounded-full px-2.5 py-0.5 text-[0.6875rem] font-medium leading-tight transition-all',
                   isActive

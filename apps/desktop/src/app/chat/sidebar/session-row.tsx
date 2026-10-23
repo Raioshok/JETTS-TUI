@@ -137,6 +137,7 @@ export function SidebarSessionRow({
           dragging && 'z-10 cursor-grabbing bg-(--ui-sidebar-surface-background)',
           className
         )}
+        data-selected={isSelected ? 'true' : undefined}
         data-working={isWorking ? 'true' : undefined}
         onPointerDown={event => {
           // Reorder drags belong to dnd-kit (the grab handle); the ⋯ actions

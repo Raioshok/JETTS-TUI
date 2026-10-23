@@ -1185,6 +1185,7 @@ export function ChatSidebar({
                       !isInteractive &&
                         'cursor-default hover:border-transparent hover:bg-transparent hover:text-inherit'
                     )}
+                    data-nav={item.id}
                     onClick={() => {
                       // A plain new session lands in whatever profile the live
                       // gateway is on (= the active switcher context). null →
@@ -1208,7 +1209,10 @@ export function ChatSidebar({
                     type="button"
                   >
                     {isNewSession ? (
-                      <span className="flex size-4 shrink-0 items-center justify-center font-bold text-amber-500">
+                      <span
+                        className="flex size-4 shrink-0 items-center justify-center font-bold text-amber-500"
+                        data-slot="new-session-glyph"
+                      >
                         <Codicon name="add" size="0.875rem" />
                       </span>
                     ) : (

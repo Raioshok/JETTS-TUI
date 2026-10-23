@@ -246,11 +246,22 @@ Notes:
   JettsTUI four-facet prism (`PrismGlyph`, an inline SVG) on a fixed ink tile,
   identical in light/dark. Use it for hero/brand moments; don't reintroduce
   decorative star/sparkle icons.
-- **Default theme** is `jettstui` ("Prism", `src/themes/presets.ts`): ink
-  neutrals with one violet accent. Inter Variable is the bundled UI face
+- **Default theme** is `graphite` ("Graphite", `src/themes/presets.ts`),
+  dark-first (`DEFAULT_MODE` in `src/themes/context.tsx`): neutral graphite
+  surfaces, crisp hairlines, tight radii, and one electric-mint accent reserved
+  for focus, selection, the active session rail, the current page, and the
+  composer's primary action. `jettstui` ("Prism", ink + violet) remains a
+  built-in skin. Inter Variable is the bundled UI face
   (`@fontsource-variable/inter`), JetBrains Mono the code face.
+- **Skin-specific geometry/chrome** lives in `styles.css` under
+  `:root[data-jettstui-theme='<skin>']` (unlayered, so it beats the layered base
+  tokens). Prefer overriding tokens there (accent-mix knobs, neutrals,
+  `--radius-scalar`, `--composer-radius`, elevation). When a component must
+  change, target a stable hook — `data-slot` / `data-nav` / `data-selected` /
+  `aria-current` — never a utility class; other skins must render unchanged.
 - **Chat backdrop** (`src/components/Backdrop.tsx`) is CSS-only — an accent
-  glow and a masked dot grid. No images behind the transcript.
+  glow and a masked dot grid. No images behind the transcript. Graphite hides
+  it for a flat canvas.
 
 ## Motion
 

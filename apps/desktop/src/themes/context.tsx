@@ -39,6 +39,9 @@ const RETIRED_SKINS = new Set(['default', 'gold'])
 
 export type ThemeMode = 'light' | 'dark' | 'system'
 
+/** Mode used when nothing is persisted — dark, since the default Graphite skin is dark-first. */
+export const DEFAULT_MODE: ThemeMode = 'dark'
+
 const INJECTED_FONT_URLS = new Set<string>()
 
 const resolveMode = (mode: ThemeMode, systemDark = matchesQuery('(prefers-color-scheme: dark)')): 'light' | 'dark' =>
@@ -48,7 +51,7 @@ const normalizeSkin = (name: string | null): string =>
   name && resolveTheme(name) && !RETIRED_SKINS.has(name) ? name : DEFAULT_SKIN_NAME
 
 const normalizeMode = (value: string | null): ThemeMode =>
-  value === 'light' || value === 'dark' || value === 'system' ? value : 'light'
+  value === 'light' || value === 'dark' || value === 'system' ? value : DEFAULT_MODE
 
 // ─── Per-profile appearance persistence ─────────────────────────────────────
 // Skin and mode are each stored per profile. "default" isn't a real profile —
