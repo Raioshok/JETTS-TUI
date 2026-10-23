@@ -242,16 +242,9 @@ export function SidebarSessionRow({
               />
             </Tip>
           ) : null}
-          <div className="flex min-w-0 flex-1 flex-col justify-center">
-            <SidebarRowLabel className="truncate font-medium group-hover:text-foreground group-data-[working=true]:text-foreground/90">
-              {title}
-            </SidebarRowLabel>
-            {session.preview && (
-              <span className="truncate text-[0.6875rem] leading-tight text-(--ui-text-quaternary) group-hover:text-(--ui-text-tertiary)">
-                {session.preview}
-              </span>
-            )}
-          </div>
+          <SidebarRowLabel className="flex-1 font-normal group-hover:text-foreground group-data-[working=true]:text-foreground/90">
+            {title}
+          </SidebarRowLabel>
           {showProfile && <ProfileTag profile={session.profile} />}
         </SidebarRowBody>
       </SidebarRowShell>

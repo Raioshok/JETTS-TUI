@@ -1813,7 +1813,6 @@ export const ar = defineLocale({
     groupTitleGrouped: 'مجمعة حسب مساحة العمل',
     groupTitleUngrouped: 'كل الجلسات',
     allPinned: 'كل الجلسات مثبتة',
-    shiftClickHint: 'استخدم Shift للتحديد المتعدد',
     noWorkspace: 'بدون مساحة عمل',
     projectEmpty: 'لا توجد جلسات بعد',
     noSessions: 'لا توجد جلسات بعد',

@@ -222,7 +222,7 @@ export const UserMessage: FC<{
   const bubbleClassName = cn(
     USER_BUBBLE_BASE_CLASS,
     'cursor-pointer pr-9 text-[length:var(--conversation-text-font-size)] leading-(--dt-line-height) text-foreground/95 transition-colors',
-    'border-(--ui-stroke-tertiary) hover:border-(--ui-stroke-secondary)'
+    'border-transparent hover:border-(--ui-stroke-tertiary)'
   )
 
   const bubbleContent = hasBody && (

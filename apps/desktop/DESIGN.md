@@ -175,6 +175,16 @@ Notes:
 - **Compact conversation-first canvas:** Give the transcript and composer maximum
   usable room. Keep a low-profile composer, restrained vertical rhythm (`--turn-block-gap`,
   `--paragraph-gap`), and compact shell chrome (sidebar `14rem`, pane headers `1.625rem`).
+- **Quiet chrome (Claude-style density):** section headings use
+  `SidebarPanelLabel` — muted `--ui-text-tertiary`, sentence case, no caps,
+  tracking, or accent color (its square is opt-in via `dotClassName`). Session
+  rows are single-line. A sidebar section with no rows (e.g. Pinned) is not
+  rendered rather than showing a hint row. Keybind chips beside nav items show
+  on hover; the tooltip already carries the combo.
+- **User turn & composer:** the user bubble is a soft fill (`--dt-user-bubble`)
+  with no outline at rest. The composer's radius is `--composer-radius` (the
+  drag frame derives from it), and focus only deepens its hairline to
+  `--ui-stroke-primary` — no colored halo ring.
 - **Gutters:** `PAGE_INSET_X` (`src/app/layout-constants.ts`) for page side
   padding; `PAGE_INSET_NEG_X` to bleed a child to the edge. Don't hardcode
   `px-6`/`px-8` on pages.

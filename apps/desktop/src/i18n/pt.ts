@@ -2077,7 +2077,6 @@ export const pt = defineLocale({
     groupTitleGrouped: 'Desagrupar sessões',
     groupTitleUngrouped: 'Agrupar por espaço de trabalho',
     allPinned: 'Tudo aqui está fixado. Desafixe uma conversa para mostrá-la nas recentes.',
-    shiftClickHint: 'Shift + clique em uma conversa para fixar',
     noWorkspace: 'Sem espaço de trabalho',
     projectEmpty: 'Nenhuma sessão ainda',
     noSessions: 'Nenhuma sessão ainda',

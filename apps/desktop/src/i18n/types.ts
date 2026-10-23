@@ -1680,7 +1680,6 @@ export interface Translations {
     groupTitleGrouped: string
     groupTitleUngrouped: string
     allPinned: string
-    shiftClickHint: string
     noWorkspace: string
     projectEmpty: string
     noSessions: string

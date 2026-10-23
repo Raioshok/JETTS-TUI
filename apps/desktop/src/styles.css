@@ -363,7 +363,8 @@
     --dt-destructive-foreground: #ffffff;
     --dt-sidebar-bg: var(--ui-bg-sidebar);
     --dt-sidebar-border: var(--ui-stroke-secondary);
-    --dt-user-bubble: var(--ui-chat-bubble-background);
+    /* Soft neutral fill, no outline — the compact (Claude-style) user turn. */
+    --dt-user-bubble: var(--ui-bg-quaternary);
     --dt-user-bubble-border: var(--ui-stroke-tertiary);
 
     --dt-font-sans:
@@ -435,6 +436,7 @@
     --file-tree-row-height: 1.375rem;
 
     --composer-width: 50rem;
+    --composer-radius: 1.125rem;
     --composer-control-size: 1.5rem;
     --composer-control-primary-size: 1.625rem;
     --composer-control-gap: 0.25rem;
@@ -1268,7 +1270,7 @@ code {
      for the peel-out drag, matching the floating composer's 5px platform. */
   width: calc(min(var(--composer-width), calc(100% - 2rem)) + 10px);
   padding-inline: 5px;
-  border-radius: calc(0.875rem + 5px);
+  border-radius: calc(var(--composer-radius) + 5px);
   padding-bottom: var(--composer-shell-pad-block-end);
 }
 
@@ -1296,7 +1298,7 @@ code {
    composer is draggable. Inherits the root radius so it clips to the corners. */
 [data-slot='composer-drag-region'] {
   /* Hatch frame radius: matches composer-root so it clips to the corners. */
-  border-radius: calc(0.875rem + 5px);
+  border-radius: calc(var(--composer-radius) + 5px);
   opacity: 0;
   transition: opacity 150ms ease;
   background-image: repeating-linear-gradient(
@@ -1324,18 +1326,16 @@ code {
 [data-slot='composer-surface'] {
   border-color: var(--ui-stroke-secondary) !important;
   /* Concentric with composer-root: outer radius = this radius + 5px grab pad. */
-  border-radius: 0.875rem;
+  border-radius: var(--composer-radius);
   box-shadow: var(--elevation-composer);
   transition-property: border-color, box-shadow;
   transition-duration: 150ms;
   transition-timing-function: ease-out;
 }
 
+/* Focus deepens the hairline only — no colored halo; the caret is the cue. */
 [data-slot='composer-surface']:focus-within {
-  border-color: color-mix(in srgb, var(--dt-composer-ring) 42%, transparent) !important;
-  box-shadow:
-    var(--elevation-composer),
-    0 0 0 0.1875rem color-mix(in srgb, var(--dt-composer-ring) 12%, transparent);
+  border-color: var(--ui-stroke-primary) !important;
 }
 
 [data-slot='composer-fade'] {

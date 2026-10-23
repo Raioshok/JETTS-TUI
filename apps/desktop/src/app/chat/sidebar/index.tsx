@@ -131,7 +131,7 @@ import {
   StartWorkButton,
   useRepoWorktreeMap
 } from './projects'
-import { SidebarBlankState, SidebarPinnedEmptyState, SidebarSessionSkeletons } from './section-states'
+import { SidebarBlankState, SidebarSessionSkeletons } from './section-states'
 import { SidebarSessionsSection, VIRTUALIZE_THRESHOLD } from './sessions-section'
 import { CONTEXT_SPLIT_KIT, SplitSubmenu } from './split-submenu'
 
@@ -1219,7 +1219,7 @@ export function ChatSidebar({
                     </span>
                     {isNewSession && (
                       <KbdGroup
-                        className={cn('ml-auto opacity-55', newSessionKbdFlash && 'opacity-100!')}
+                        className={cn('ml-auto opacity-0 transition-opacity group-hover/menu-item:opacity-55', newSessionKbdFlash && 'opacity-100!')}
                         keys={newSessionKbd}
                         size="sm"
                       />
@@ -1301,12 +1301,14 @@ export function ChatSidebar({
               />
             )}
 
-            {!trimmedQuery && (
+            {/* Like Claude's Starred list, Pinned appears once something is
+                pinned (shift-click or the row menu's Pin). */}
+            {!trimmedQuery && pinnedSessions.length > 0 && (
               <SidebarSessionsSection
                 activeSessionId={activeSidebarSessionId}
                 contentClassName={cn('flex max-h-[50vh] flex-col gap-px rounded-lg pb-2 pt-1', GROUP_BODY)}
                 dndSensors={dndSensors}
-                emptyState={<SidebarPinnedEmptyState />}
+                emptyState={null}
                 label={s.pinned}
                 onArchiveSession={onArchiveSession}
                 onBranchSession={onBranchSession}
