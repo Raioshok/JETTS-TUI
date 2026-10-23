@@ -189,6 +189,9 @@ export const ja = defineLocale({
   },
 
   titlebar: {
+    modeChat: 'チャット',
+    modeCode: 'コード',
+    modeSwitcher: '表示',
     hideSidebar: 'サイドバーを非表示',
     showSidebar: 'サイドバーを表示',
     search: '検索',
@@ -2676,6 +2679,7 @@ export const ja = defineLocale({
     largeBody: (label, size) => `${label} は ${size} です。JettsTUI は最初の 512 KB のみを表示します。`,
     previewAnyway: 'とにかくプレビュー',
     truncated: '最初の 512 KB を表示しています。',
+    lineCount: count => `${count} 行`,
     noInlineTitle: 'インラインプレビューなし',
     noInlineBody: mimeType => `${mimeType || 'このファイルタイプ'} はコンテキストとして添付できます。`,
     edit: '編集',

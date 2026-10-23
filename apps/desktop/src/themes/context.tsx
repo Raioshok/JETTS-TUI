@@ -39,8 +39,8 @@ const RETIRED_SKINS = new Set(['default', 'gold'])
 
 export type ThemeMode = 'light' | 'dark' | 'system'
 
-/** Mode used when nothing is persisted — dark, since the default Graphite skin is dark-first. */
-export const DEFAULT_MODE: ThemeMode = 'dark'
+/** Mode used when nothing is persisted — light, since the default Ivory skin is light-first. */
+export const DEFAULT_MODE: ThemeMode = 'light'
 
 const INJECTED_FONT_URLS = new Set<string>()
 

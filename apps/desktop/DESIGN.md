@@ -177,14 +177,28 @@ Notes:
   `--paragraph-gap`), and compact shell chrome (sidebar `14rem`, pane headers `1.625rem`).
 - **Quiet chrome (Claude-style density):** section headings use
   `SidebarPanelLabel` — muted `--ui-text-tertiary`, sentence case, no caps,
-  tracking, or accent color (its square is opt-in via `dotClassName`). Session
-  rows are single-line. A sidebar section with no rows (e.g. Pinned) is not
-  rendered rather than showing a hint row. Keybind chips beside nav items show
-  on hover; the tooltip already carries the combo.
+  tracking, or accent color (its square is opt-in via `dotClassName`; a skin
+  may restyle it through `data-slot="panel-label"`). Session rows show the
+  title, plus a preview line only when it adds information
+  (`sessionPreviewLine` drops one that just repeats the title). A sidebar
+  section with no rows (e.g. Pinned) is not rendered rather than showing a hint
+  row. Keybind chips beside nav items show on hover; the tooltip already
+  carries the combo.
 - **User turn & composer:** the user bubble is a soft fill (`--dt-user-bubble`)
   with no outline at rest. The composer's radius is `--composer-radius` (the
   drag frame derives from it), and focus only deepens its hairline to
   `--ui-stroke-primary` — no colored halo ring.
+- **Code mode** (`src/store/code-mode.ts`) is a LAYOUT, not a route: the header
+  switcher's Code entry swaps in `sessions | files | editor | chat` and the Chat
+  entry restores the previous tree, preset, sash sizes and pinned panes. Mode
+  switches use `applyTree(..., { revealPanes: false })`, which also keeps each
+  zone's collapsed state (`inheritMinimized`) — switching layouts must never
+  open the terminal/logs or leave the open session.
+- **Code workspace chrome:** file tabs are `PaneTab`s (hook: `data-pane-tab`),
+  the source view carries a `›` breadcrumb (`file-breadcrumb`, current file
+  `file-breadcrumb-leaf`), a line-number gutter (`source-gutter`), and a status
+  bar (`source-status`: language + line count). A skin may ship its own syntax
+  colors via `skinSyntaxTheme` (`src/components/chat/shiki-themes.ts`).
 - **Gutters:** `PAGE_INSET_X` (`src/app/layout-constants.ts`) for page side
   padding; `PAGE_INSET_NEG_X` to bleed a child to the edge. Don't hardcode
   `px-6`/`px-8` on pages.
@@ -246,22 +260,27 @@ Notes:
   JettsTUI four-facet prism (`PrismGlyph`, an inline SVG) on a fixed ink tile,
   identical in light/dark. Use it for hero/brand moments; don't reintroduce
   decorative star/sparkle icons.
-- **Default theme** is `graphite` ("Graphite", `src/themes/presets.ts`),
-  dark-first (`DEFAULT_MODE` in `src/themes/context.tsx`): neutral graphite
-  surfaces, crisp hairlines, tight radii, and one electric-mint accent reserved
-  for focus, selection, the active session rail, the current page, and the
-  composer's primary action. `jettstui` ("Prism", ink + violet) remains a
-  built-in skin. Inter Variable is the bundled UI face
-  (`@fontsource-variable/inter`), JetBrains Mono the code face.
+- **Default theme** is `ivory` ("Ivory", `src/themes/presets.ts`),
+  light-first (`DEFAULT_MODE` in `src/themes/context.tsx`): warm ivory
+  neutrals, a soft peach glow (`--ivory-glow`) behind the chat and editor, and
+  one gold accent reserved for the active file/tab/row, focus, and the
+  composer's primary action, with matching warm syntax colors. `graphite`
+  (dark, electric mint) and `jettstui` ("Prism", ink + violet) remain built-in
+  skins. Inter Variable is the bundled UI face (`@fontsource-variable/inter`),
+  JetBrains Mono the code face.
 - **Skin-specific geometry/chrome** lives in `styles.css` under
   `:root[data-jettstui-theme='<skin>']` (unlayered, so it beats the layered base
   tokens). Prefer overriding tokens there (accent-mix knobs, neutrals,
   `--radius-scalar`, `--composer-radius`, elevation). When a component must
-  change, target a stable hook — `data-slot` / `data-nav` / `data-selected` /
-  `aria-current` — never a utility class; other skins must render unchanged.
+  change, target a stable hook — `data-slot` / `data-region` / `data-nav` /
+  `data-selected` / `data-pane-tab` / `aria-current` — never a utility class;
+  other skins must render unchanged. (Elements wrapped by an `asChild` trigger
+  can have their `data-slot` replaced by the trigger's; use a dedicated
+  attribute there, as `PaneTab` does.)
 - **Chat backdrop** (`src/components/Backdrop.tsx`) is CSS-only — an accent
-  glow and a masked dot grid. No images behind the transcript. Graphite hides
-  it for a flat canvas.
+  glow and a masked dot grid (layers: `backdrop-glow`, `backdrop-grid`). No
+  images behind the transcript. Graphite hides it for a flat canvas; Ivory
+  swaps both for its peach wash.
 
 ## Motion
 

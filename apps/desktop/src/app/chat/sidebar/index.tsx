@@ -1153,7 +1153,10 @@ export function ChatSidebar({
       collapsible="none"
     >
       <SidebarContent className="gap-0 overflow-hidden bg-transparent px-2">
-        <SidebarGroup className="shrink-0 p-0 pb-1.5 pt-[calc(var(--titlebar-height)+0.25rem)]">
+        <SidebarGroup
+          className="shrink-0 p-0 pb-1.5 pt-[calc(var(--titlebar-height)+0.25rem)]"
+          data-region="nav"
+        >
           <SidebarGroupContent>
             <SidebarMenu className="gap-px">
               {[...SIDEBAR_NAV, ...contributedNav].map(item => {
@@ -1263,7 +1266,7 @@ export function ChatSidebar({
         </SidebarGroup>
 
         {showSessionSections && (
-          <div className="shrink-0 px-1.5 pb-1 pt-0.5">
+          <div className="shrink-0 px-1.5 pb-1 pt-0.5" data-region="search">
             <SearchField
               aria-label={s.searchAria}
               inputRef={searchInputRef}

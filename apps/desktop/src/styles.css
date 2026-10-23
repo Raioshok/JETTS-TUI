@@ -2187,3 +2187,231 @@ code {
   font-size: 0.6875rem;
   letter-spacing: 0;
 }
+
+/* -------------------------------------------------------------------------- */
+/* Ivory skin — the default look. Warm neutrals, a soft peach glow, one gold   */
+/* accent (active file/tab/row, focus, primary action). Same unlayered,        */
+/* skin-scoped pattern as Graphite: other skins render unchanged.              */
+/* -------------------------------------------------------------------------- */
+:root[data-jettstui-theme='ivory'] {
+  --theme-neutral-chrome: #fbfaf8;
+  --theme-neutral-sidebar: #f7f6f3;
+  --theme-neutral-card: #ffffff;
+  /* Surfaces stay warm-neutral; gold appears only where it means "active". */
+  --theme-fill-primary-accent-mix: 0%;
+  --theme-fill-secondary-accent-mix: 0%;
+  --theme-fill-tertiary-accent-mix: 0%;
+  --theme-fill-quaternary-accent-mix: 0%;
+  --theme-fill-quinary-accent-mix: 0%;
+  --theme-stroke-primary-accent-mix: 0%;
+  --theme-stroke-secondary-accent-mix: 0%;
+  --theme-stroke-tertiary-accent-mix: 0%;
+  --theme-stroke-quaternary-accent-mix: 0%;
+  --theme-row-hover-accent-mix: 0%;
+  --theme-row-active-accent-mix: 16%;
+  --theme-control-hover-accent-mix: 0%;
+
+  /* Softer, roomier geometry. */
+  --radius-scalar: 0.72;
+  --composer-radius: 1rem;
+
+  --elevation-float:
+    0 1px 2px color-mix(in srgb, #3a2a10 6%, transparent),
+    0 0.75rem 2rem -0.75rem color-mix(in srgb, #3a2a10 18%, transparent);
+  --elevation-composer:
+    0 1px 2px color-mix(in srgb, #3a2a10 5%, transparent),
+    0 0.75rem 1.75rem -0.875rem color-mix(in srgb, #3a2a10 16%, transparent);
+
+  --dt-user-bubble: var(--ui-chat-bubble-background);
+  /* The peach wash used behind the chat and the code canvas. */
+  --ivory-glow:
+    radial-gradient(60% 55% at 100% 100%, color-mix(in srgb, #f9c9a4 42%, transparent), transparent 70%),
+    radial-gradient(45% 35% at 85% 0%, color-mix(in srgb, #fbe1c9 30%, transparent), transparent 70%);
+}
+
+:root[data-jettstui-theme='ivory'].dark {
+  --theme-neutral-chrome: #171512;
+  --theme-neutral-sidebar: #131210;
+  --theme-neutral-card: #1e1b17;
+  --elevation-float:
+    inset 0 1px 0 color-mix(in srgb, #fff 4%, transparent),
+    0 0.75rem 2rem -0.75rem color-mix(in srgb, #000 65%, transparent);
+  --elevation-composer:
+    inset 0 1px 0 color-mix(in srgb, #fff 4%, transparent),
+    0 0.75rem 1.75rem -0.75rem color-mix(in srgb, #000 60%, transparent);
+  --ivory-glow:
+    radial-gradient(60% 55% at 100% 100%, color-mix(in srgb, #c46a2c 16%, transparent), transparent 70%),
+    radial-gradient(45% 35% at 85% 0%, color-mix(in srgb, #b8862b 9%, transparent), transparent 70%);
+}
+
+/* Backdrop: the peach wash replaces the accent glow + dot grid. */
+:root[data-jettstui-theme='ivory'] [data-slot='backdrop-grid'] {
+  display: none;
+}
+
+:root[data-jettstui-theme='ivory'] [data-slot='backdrop-glow'] {
+  inset: 0;
+  height: auto;
+  background: var(--ivory-glow);
+}
+
+/* Sidebar: roomier nav, hairline-separated groups, "SESSIONS" small caps. */
+:root[data-jettstui-theme='ivory'] [data-slot='sidebar'] {
+  box-shadow: inset -1px 0 0 var(--dt-sidebar-border);
+}
+
+:root[data-jettstui-theme='ivory'] [data-region='nav'] [data-sidebar='menu-button'] {
+  height: 2rem;
+  font-size: 0.875rem;
+  color: var(--ui-text-primary, var(--theme-foreground));
+}
+
+:root[data-jettstui-theme='ivory'] [data-region='nav'] [data-sidebar='menu-button'] svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+:root[data-jettstui-theme='ivory'] [data-region='nav'] {
+  margin-bottom: 0.375rem;
+  padding-bottom: 0.625rem;
+  border-bottom: 1px solid var(--ui-stroke-tertiary);
+}
+
+:root[data-jettstui-theme='ivory'] [data-slot='new-session-glyph'] {
+  color: var(--theme-midground);
+}
+
+:root[data-jettstui-theme='ivory'] [data-slot='panel-label'] {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ui-text-tertiary);
+}
+
+:root[data-jettstui-theme='ivory'] [data-slot='session-title'] {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--theme-foreground);
+}
+
+:root[data-jettstui-theme='ivory'] [data-slot='session-preview'] {
+  margin-top: 0.125rem;
+  font-size: 0.75rem;
+  color: var(--ui-text-tertiary);
+}
+
+/* Header mode switch: a soft track with a raised white pill. */
+:root[data-jettstui-theme='ivory'] [data-slot='nav-mode'] {
+  gap: 0.125rem;
+  padding: 0.1875rem;
+  border-color: transparent;
+  background: var(--dt-muted);
+  box-shadow: none;
+}
+
+:root[data-jettstui-theme='ivory'] [data-slot='nav-mode'] > button {
+  padding: 0.25rem 0.875rem;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--ui-text-secondary);
+}
+
+:root[data-jettstui-theme='ivory'] [data-slot='nav-mode'] > button[aria-current='page'] {
+  background: var(--ui-bg-editor);
+  color: var(--theme-foreground);
+  font-weight: 600;
+  box-shadow:
+    0 1px 2px color-mix(in srgb, #3a2a10 10%, transparent),
+    0 0 0 1px color-mix(in srgb, #3a2a10 4%, transparent);
+}
+
+/* Composer: gold hairline on focus; the primary action is gold. */
+:root[data-jettstui-theme='ivory'] [data-slot='composer-surface']:focus-within {
+  border-color: color-mix(in srgb, var(--theme-midground) 50%, transparent) !important;
+}
+
+:root[data-jettstui-theme='ivory'] [data-slot='composer-primary'] {
+  background: var(--theme-primary);
+  color: var(--dt-primary-foreground);
+}
+
+:root[data-jettstui-theme='ivory'] [data-slot='composer-primary']:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--theme-primary) 88%, var(--ui-base));
+}
+
+:root[data-jettstui-theme='ivory'] [data-slot='composer-primary']:disabled {
+  background: color-mix(in srgb, var(--theme-primary) 30%, transparent);
+  color: color-mix(in srgb, var(--dt-primary-foreground) 70%, transparent);
+}
+
+:root[data-jettstui-theme='ivory'] .composer-human-message {
+  border-color: var(--dt-user-bubble-border) !important;
+}
+
+/* Session rows: breathing room between title/preview entries. */
+:root[data-jettstui-theme='ivory'] [data-slot='session-row'] {
+  padding-block: 0.1875rem;
+}
+
+/* Code workspace — flat tabs with a gold underline, the peach wash behind   */
+/* the editor, a sans breadcrumb with a gold current file, quiet gutter.     */
+:root[data-jettstui-theme='ivory'] [data-slot='preview-rail'] {
+  background: var(--ivory-glow), var(--ui-editor-surface-background);
+}
+
+:root[data-jettstui-theme='ivory'] [data-slot='preview-tab-strip'] {
+  background: transparent;
+  box-shadow: inset 0 -1px 0 var(--ui-stroke-tertiary);
+}
+
+:root[data-jettstui-theme='ivory'] [data-pane-tab]:not([data-vertical]) {
+  height: 100%;
+  padding-inline: 0.5rem;
+  border-color: transparent;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+:root[data-jettstui-theme='ivory'] [data-pane-tab]:not([data-vertical])[data-active='true'] {
+  color: var(--theme-foreground);
+  box-shadow: inset 0 -2px 0 var(--theme-midground);
+}
+
+:root[data-jettstui-theme='ivory'] [data-pane-tab][data-active='true'] span {
+  font-weight: 600;
+}
+
+:root[data-jettstui-theme='ivory'] [data-slot='file-breadcrumb'] {
+  font-family: var(--dt-font-sans);
+  font-size: 0.75rem;
+}
+
+:root[data-jettstui-theme='ivory'] [data-slot='file-breadcrumb-leaf'] {
+  color: var(--theme-midground);
+}
+
+:root[data-jettstui-theme='ivory'] [data-slot='preview-rail'] .preview-source-code,
+:root[data-jettstui-theme='ivory'] [data-slot='source-gutter'] {
+  font-size: 0.75rem;
+}
+
+:root[data-jettstui-theme='ivory'] [data-slot='source-gutter'] {
+  padding-left: 0.5rem;
+  color: var(--ui-text-quaternary);
+}
+
+:root[data-jettstui-theme='ivory'] [data-slot='source-status'] {
+  font-size: 0.6875rem;
+}
+
+/* File tree: the open file reads gold on its tinted row. */
+:root[data-jettstui-theme='ivory'] [data-slot='file-tree-pane'] [aria-selected] {
+  font-size: 0.8125rem;
+}
+
+:root[data-jettstui-theme='ivory'] [data-slot='file-tree-pane'] [aria-selected='true'] {
+  color: var(--theme-midground);
+  font-weight: 500;
+}

@@ -81,6 +81,7 @@ export const PaneTab = React.forwardRef<HTMLDivElement, PaneTabProps>(function P
         className
       )}
       data-active={active}
+      data-pane-tab=""
       data-vertical={vertical || undefined}
       onAuxClick={event => {
         // Middle-click closes (browser/IDE). Swallow mousedown so Chromium

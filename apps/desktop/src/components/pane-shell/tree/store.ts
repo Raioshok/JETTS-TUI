@@ -22,6 +22,7 @@ import {
   findGroupOfPane,
   groupLeafIds,
   type GroupNode,
+  inheritMinimized,
   insertAtGroup,
   isLayoutNode,
   type LayoutNode,
@@ -1082,16 +1083,38 @@ export function moveTreePane(paneId: string, target: { groupId: string; pos: Dro
  * preset) are adopted into the group their current siblings land in, so
  * applying a preset never loses a pane.
  */
-export function applyTree(tree: LayoutNode, presetId: string) {
+export interface ApplyTreeOptions {
+  /** Reveal the toggle-gated panes the tree declares (default true — picking a
+   *  named layout is an intent to see them). A mode switch or a restore passes
+   *  false: it rearranges what's there without opening the terminal/logs. */
+  revealPanes?: boolean
+  /** User-placed pins to keep (default none — a preset hands placement back to
+   *  the app). A restore passes back the pins it saved. */
+  userPlaced?: ReadonlySet<string>
+}
+
+export function applyTree(
+  tree: LayoutNode,
+  presetId: string,
+  { revealPanes = true, userPlaced = new Set() }: ApplyTreeOptions = {}
+) {
   const previous = $layoutTree.get()
 
   // A preset defines the layout's SIZES too — stale drag overrides from the
   // previous arrangement would distort it. Same for user-placed pins: picking
   // a layout hands pane placement back to the app (auto-docking resumes).
   clearAllPaneSizeOverrides()
-  saveUserPlaced(new Set())
-  commit(previous ? adoptMissingPanes(tree, previous) : tree)
+  saveUserPlaced(new Set(userPlaced))
+
+  const next = previous ? adoptMissingPanes(tree, previous) : tree
+
+  // No reveal → no visibility change either: zones keep their collapsed state.
+  commit(!revealPanes && previous ? inheritMinimized(next, previous) : next)
   markActivePreset(presetId)
+
+  if (!revealPanes) {
+    return
+  }
 
   // Picking a named layout is an intent to SEE its panes. Toggle-gated panes
   // (the terminal, whose visibility a store owns) would otherwise stay

@@ -13,6 +13,7 @@ export function SidebarPanelLabel({ children, className, dotClassName, ...props 
         'flex min-w-0 items-center gap-2 pl-2 text-[0.75rem] font-medium text-(--ui-text-tertiary)',
         className
       )}
+      data-slot="panel-label"
       {...props}
     >
       {dotClassName && (

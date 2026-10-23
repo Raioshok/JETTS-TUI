@@ -21,7 +21,7 @@ import { SessionStatusDot } from '../session-status-dot'
 
 import { SidebarRowBody, SidebarRowGrab, SidebarRowLabel, SidebarRowLead, SidebarRowShell } from './chrome'
 import { SessionActionsMenu, SessionContextMenu } from './session-actions-menu'
-import { sessionShowsRunningArc } from './session-row-state'
+import { sessionPreviewLine, sessionShowsRunningArc } from './session-row-state'
 import { useProfilePrewarm } from './use-profile-prewarm'
 
 interface SidebarSessionRowProps extends React.ComponentProps<'div'> {
@@ -78,6 +78,7 @@ export function SidebarSessionRow({
   const r = t.sidebar.row
   const { cancelPrewarm, startPrewarm } = useProfilePrewarm(session.profile)
   const title = sessionTitle(session)
+  const preview = sessionPreviewLine(session.preview, title)
   const age = formatAge(session.last_active || session.started_at, r)
   const handleLabel = `Reorder ${title}`
   // A handed-off session's live source is local, but it originated on a
@@ -138,6 +139,7 @@ export function SidebarSessionRow({
           className
         )}
         data-selected={isSelected ? 'true' : undefined}
+        data-slot="session-row"
         data-working={isWorking ? 'true' : undefined}
         onPointerDown={event => {
           // Reorder drags belong to dnd-kit (the grab handle); the ⋯ actions
@@ -243,9 +245,22 @@ export function SidebarSessionRow({
               />
             </Tip>
           ) : null}
-          <SidebarRowLabel className="flex-1 font-normal group-hover:text-foreground group-data-[working=true]:text-foreground/90">
-            {title}
-          </SidebarRowLabel>
+          <div className="flex min-w-0 flex-1 flex-col justify-center">
+            <SidebarRowLabel
+              className="font-normal group-hover:text-foreground group-data-[working=true]:text-foreground/90"
+              data-slot="session-title"
+            >
+              {title}
+            </SidebarRowLabel>
+            {preview && (
+              <span
+                className="truncate text-[0.6875rem] leading-tight text-(--ui-text-quaternary) group-hover:text-(--ui-text-tertiary)"
+                data-slot="session-preview"
+              >
+                {preview}
+              </span>
+            )}
+          </div>
           {showProfile && <ProfileTag profile={session.profile} />}
         </SidebarRowBody>
       </SidebarRowShell>

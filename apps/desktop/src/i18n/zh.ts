@@ -183,6 +183,9 @@ export const zh: Translations = {
   },
 
   titlebar: {
+    modeChat: '聊天',
+    modeCode: '代码',
+    modeSwitcher: '视图',
     hideSidebar: '隐藏侧边栏',
     showSidebar: '显示侧边栏',
     search: '搜索',
@@ -2954,6 +2957,7 @@ export const zh: Translations = {
     largeBody: (label, size) => `${label} 大小为 ${size}。JettsTUI 只会显示前 512 KB。`,
     previewAnyway: '仍然预览',
     truncated: '显示前 512 KB。',
+    lineCount: count => `${count} 行`,
     noInlineTitle: '没有内联预览',
     noInlineBody: mimeType => `${mimeType || '此文件类型'} 仍可作为上下文附件。`,
     edit: '编辑',

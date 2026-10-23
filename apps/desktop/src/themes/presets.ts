@@ -426,7 +426,83 @@ export const graphiteTheme: DesktopTheme = {
   }
 }
 
+const IVORY_GOLD = '#B08415'
+const IVORY_GOLD_DARK = '#E3B651'
+const ivoryAlpha = (color: string, pct: number) => `color-mix(in srgb, ${color} ${pct}%, transparent)`
+
+/**
+ * Ivory — the default JettsTUI look. A warm ivory canvas with a soft peach
+ * glow, quiet warm neutrals, and one gold accent for the active file/tab,
+ * selection, focus and the primary action. Warm neutrals and the glow live in
+ * styles.css under `[data-jettstui-theme='ivory']`.
+ */
+export const ivoryTheme: DesktopTheme = {
+  name: 'ivory',
+  label: 'Ivory',
+  description: 'Warm ivory canvas, a gold accent and a soft peach glow',
+  colors: {
+    background: '#FBFAF8',
+    foreground: '#1F1D1A',
+    card: '#FFFFFF',
+    cardForeground: '#1F1D1A',
+    muted: '#F3F1ED',
+    mutedForeground: '#77726A',
+    popover: '#FFFFFF',
+    popoverForeground: '#1F1D1A',
+    // Gold fill carries dark text — white on gold fails contrast.
+    primary: '#D3A537',
+    primaryForeground: '#1F1606',
+    secondary: '#F2EFEA',
+    secondaryForeground: '#3A362F',
+    accent: '#F6EDD6',
+    accentForeground: '#6E520C',
+    border: ivoryAlpha('#1F1D1A', 9),
+    input: ivoryAlpha('#1F1D1A', 13),
+    ring: IVORY_GOLD,
+    midground: IVORY_GOLD,
+    composerRing: IVORY_GOLD,
+    destructive: '#D64545',
+    destructiveForeground: '#FFFFFF',
+    sidebarBackground: '#F7F6F3',
+    sidebarBorder: ivoryAlpha('#1F1D1A', 7),
+    userBubble: '#F4F2EE',
+    userBubbleBorder: ivoryAlpha('#1F1D1A', 8)
+  },
+  darkColors: {
+    background: '#171512',
+    foreground: '#EDE8DF',
+    card: '#1E1B17',
+    cardForeground: '#EDE8DF',
+    muted: '#22201B',
+    mutedForeground: '#9C958A',
+    popover: '#201D19',
+    popoverForeground: '#EDE8DF',
+    primary: IVORY_GOLD_DARK,
+    primaryForeground: '#1A1406',
+    secondary: '#24211C',
+    secondaryForeground: '#DDD6CA',
+    accent: '#2E2617',
+    accentForeground: '#F1D58C',
+    border: ivoryAlpha('#FFFFFF', 8),
+    input: ivoryAlpha('#FFFFFF', 11),
+    ring: IVORY_GOLD_DARK,
+    midground: IVORY_GOLD_DARK,
+    composerRing: IVORY_GOLD_DARK,
+    destructive: '#F06A6A',
+    destructiveForeground: '#1A0A0A',
+    sidebarBackground: '#131210',
+    sidebarBorder: ivoryAlpha('#FFFFFF', 6),
+    userBubble: '#221F1A',
+    userBubbleBorder: ivoryAlpha('#FFFFFF', 8)
+  },
+  typography: {
+    fontSans: SYSTEM_SANS,
+    fontMono: `"JetBrains Mono", ${SYSTEM_MONO}`
+  }
+}
+
 export const BUILTIN_THEMES: Record<string, DesktopTheme> = {
+  ivory: ivoryTheme,
   graphite: graphiteTheme,
   jettstui: jettstuiTheme,
   cobalt: cobaltTheme,
@@ -440,4 +516,4 @@ export const BUILTIN_THEMES: Record<string, DesktopTheme> = {
 export const BUILTIN_THEME_LIST = Object.values(BUILTIN_THEMES)
 
 /** Skin used when nothing is persisted or the persisted name is retired. */
-export const DEFAULT_SKIN_NAME = 'graphite'
+export const DEFAULT_SKIN_NAME = 'ivory'

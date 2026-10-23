@@ -188,6 +188,9 @@ export const en: Translations = {
   },
 
   titlebar: {
+    modeChat: 'Chat',
+    modeCode: 'Code',
+    modeSwitcher: 'View',
     hideSidebar: 'Hide sidebar',
     showSidebar: 'Show sidebar',
     search: 'Search',
@@ -2802,6 +2805,7 @@ export const en: Translations = {
     largeBody: (label, size) => `${label} is ${size}. JettsTUI will only show the first 512 KB.`,
     previewAnyway: 'Preview anyway',
     truncated: 'Showing first 512 KB.',
+    lineCount: count => (count === 1 ? '1 line' : `${count} lines`),
     noInlineTitle: 'No inline preview',
     noInlineBody: mimeType => `${mimeType || 'This file type'} can still be attached as context.`,
     edit: 'Edit',

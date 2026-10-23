@@ -10,6 +10,7 @@ import { Tip, TipKeybindLabel } from '@/components/ui/tooltip'
 import { useI18n } from '@/i18n'
 import { triggerHaptic } from '@/lib/haptics'
 import { cn } from '@/lib/utils'
+import { $codeMode, enterCodeMode, exitCodeMode } from '@/store/code-mode'
 import { $hapticsMuted, toggleHapticsMuted } from '@/store/haptics'
 import {
   $fileBrowserOpen,
@@ -23,6 +24,16 @@ import { useTheme } from '@/themes'
 import { appViewForPath, isOverlayView, SETTINGS_ROUTE } from '../routes'
 
 import { titlebarButtonClass } from './titlebar'
+
+// Route-backed modes in the header switcher, labelled by their sidebar entries.
+const PAGE_MODES = [
+  { id: 'capabilities', navKey: 'skills', path: '/skills' },
+  { id: 'artifacts', navKey: 'artifacts', path: '/artifacts' },
+  { id: 'orchestrator', navKey: 'orchestrator', path: '/orchestrator' }
+] as const
+
+// Pages that are not the chat surface (Specs has no switcher tab of its own).
+const PAGE_MODE_PATHS = [...PAGE_MODES.map(mode => mode.path), '/specs']
 
 export interface TitlebarTool {
   id: string
@@ -99,6 +110,47 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
   const { t } = useI18n()
   const navigate = useNavigate()
   const location = useLocation()
+  const codeMode = useStore($codeMode)
+
+  // Chat and Code share the chat route: Code is a layout (file tree + wide
+  // editor beside the chat), not a page. Everything else is a route.
+  const onChatRoute = !PAGE_MODE_PATHS.some(path => location.pathname.startsWith(path))
+
+  const modeTabs: { active: boolean; id: string; label: string; select: () => void }[] = [
+    {
+      active: onChatRoute && !codeMode,
+      id: 'chat',
+      label: t.titlebar.modeChat,
+      select: () => {
+        exitCodeMode()
+
+        // Already on the chat surface: only the layout changes — navigating to
+        // '/' would leave the open session for a new one.
+        if (!onChatRoute) {
+          navigate('/')
+        }
+      }
+    },
+    {
+      active: onChatRoute && codeMode,
+      id: 'code',
+      label: t.titlebar.modeCode,
+      select: () => {
+        enterCodeMode()
+
+        if (!onChatRoute) {
+          navigate('/')
+        }
+      }
+    },
+    ...PAGE_MODES.map(mode => ({
+      active: location.pathname.startsWith(mode.path),
+      id: mode.id,
+      label: t.sidebar.nav[mode.navKey],
+      select: () => navigate(mode.path)
+    }))
+  ]
+
   const { resolvedMode, setMode } = useTheme()
   const modHeld = useModifierHeld()
   const hapticsMuted = useStore($hapticsMuted)
@@ -261,45 +313,29 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
       </div>
 
       <div
-        aria-label="Navigation Mode"
+        aria-label={t.titlebar.modeSwitcher}
         className="fixed left-1/2 top-(--titlebar-controls-top) z-70 flex -translate-x-1/2 translate-y-0.5 flex-row items-center pointer-events-auto select-none [-webkit-app-region:no-drag]"
       >
         <div
           className="flex items-center gap-0.5 rounded-full border border-(--ui-stroke-tertiary) bg-(--ui-bg-chrome) p-0.5 shadow-xs"
           data-slot="nav-mode"
         >
-          {[
-            { id: 'chat', label: 'Chat', path: '/' },
-            { id: 'capabilities', label: 'Capabilities', path: '/skills' },
-            { id: 'artifacts', label: 'Artifacts', path: '/artifacts' },
-            { id: 'orchestrator', label: 'Orchestrator', path: '/orchestrator' }
-          ].map(tab => {
-            const isActive =
-              tab.path === '/'
-                ? location.pathname === '/' ||
-                  (!location.pathname.startsWith('/skills') &&
-                    !location.pathname.startsWith('/artifacts') &&
-                    !location.pathname.startsWith('/orchestrator') &&
-                    !location.pathname.startsWith('/specs'))
-                : location.pathname.startsWith(tab.path)
-
-            return (
-              <button
-                aria-current={isActive ? 'page' : undefined}
-                className={cn(
-                  'cursor-pointer rounded-full px-2.5 py-0.5 text-[0.6875rem] font-medium leading-tight transition-all',
-                  isActive
-                    ? 'bg-background font-semibold text-foreground shadow-xs'
-                    : 'text-(--ui-text-tertiary) hover:bg-(--ui-control-hover-background) hover:text-foreground'
-                )}
-                key={tab.id}
-                onClick={() => navigate(tab.path)}
-                type="button"
-              >
-                {tab.label}
-              </button>
-            )
-          })}
+          {modeTabs.map(tab => (
+            <button
+              aria-current={tab.active ? 'page' : undefined}
+              className={cn(
+                'cursor-pointer rounded-full px-2.5 py-0.5 text-[0.6875rem] font-medium leading-tight transition-all',
+                tab.active
+                  ? 'bg-background font-semibold text-foreground shadow-xs'
+                  : 'text-(--ui-text-tertiary) hover:bg-(--ui-control-hover-background) hover:text-foreground'
+              )}
+              key={tab.id}
+              onClick={tab.select}
+              type="button"
+            >
+              {tab.label}
+            </button>
+          ))}
         </div>
       </div>
 

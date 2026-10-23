@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { sessionDotState, sessionShowsRunningArc } from './session-row-state'
+import { sessionDotState, sessionPreviewLine, sessionShowsRunningArc } from './session-row-state'
 
 describe('session row running appearance', () => {
   it('keeps the running arc when an authoritative turn becomes quiet', () => {
@@ -39,5 +39,25 @@ describe('session row running appearance', () => {
         needsInput: false
       })
     ).toBe('background')
+  })
+})
+
+describe('sessionPreviewLine', () => {
+  it('shows a preview that adds information beyond the title', () => {
+    expect(sessionPreviewLine('Comparing transformer variants for seq2seq', 'Neural architecture analysis')).toBe(
+      'Comparing transformer variants for seq2seq'
+    )
+  })
+
+  it('hides a preview that only repeats (or is repeated by) the title', () => {
+    expect(sessionPreviewLine('Plan the onboarding flow for new users', 'Plan the onboarding flow')).toBeNull()
+    expect(sessionPreviewLine('Plan the onboarding', 'Plan the onboarding flow…')).toBeNull()
+    expect(sessionPreviewLine('  plan THE  onboarding flow ', 'Plan the onboarding flow')).toBeNull()
+  })
+
+  it('hides empty previews and collapses whitespace in kept ones', () => {
+    expect(sessionPreviewLine(undefined, 'Title')).toBeNull()
+    expect(sessionPreviewLine('   ', 'Title')).toBeNull()
+    expect(sessionPreviewLine('line one\n  line two', 'Title')).toBe('line one line two')
   })
 })

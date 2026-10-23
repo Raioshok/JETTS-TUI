@@ -488,6 +488,20 @@ function mapGroups(node: LayoutNode, fn: (g: GroupNode) => GroupNode): LayoutNod
   return node.type === 'group' ? fn(node) : { ...node, children: node.children.map(c => mapGroups(c, fn)) }
 }
 
+/**
+ * Carry each zone's collapsed state from `previous` into `next`: a group in
+ * `next` is minimized exactly when the zone that showed its active pane in
+ * `previous` was. Rearranging panes (a mode switch, a layout restore) must not
+ * expand a collapsed terminal or fold an open one.
+ */
+export function inheritMinimized(next: LayoutNode, previous: LayoutNode): LayoutNode {
+  return mapGroups(next, g => {
+    const before = findGroupOfPane(previous, g.active)
+
+    return before ? { ...g, minimized: Boolean(before.minimized) || undefined } : g
+  })
+}
+
 export function setActivePane(root: LayoutNode, groupId: string, paneId: string): LayoutNode {
   return mapGroups(root, g => (g.id === groupId && g.panes.includes(paneId) ? { ...g, active: paneId } : g))
 }

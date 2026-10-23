@@ -87,6 +87,7 @@ export function ChatPreviewRail({ onRestartServer, setTitlebarToolGroup }: ChatP
         'relative flex h-full w-full min-w-0 flex-col overflow-hidden border-(--ui-stroke-tertiary) bg-(--ui-editor-surface-background) text-(--ui-text-tertiary)',
         panesFlipped ? 'border-r' : 'border-l'
       )}
+      data-slot="preview-rail"
       // Windows/WSLg paint Electron's Window Controls Overlay across our
       // titlebar band, so the editor-style tab strip (which normally sits IN that
       // band) would land under the fixed titlebar tools. --right-rail-top-inset
@@ -94,7 +95,10 @@ export function ChatPreviewRail({ onRestartServer, setTitlebarToolGroup }: ChatP
       // titlebar-height so it opens below the band. 0px elsewhere → unchanged.
       style={{ paddingTop: 'var(--right-rail-top-inset, 0px)' }}
     >
-      <div className="group/rail-tabs flex h-(--titlebar-height) shrink-0 bg-(--ui-sidebar-surface-background)">
+      <div
+        className="group/rail-tabs flex h-(--titlebar-height) shrink-0 bg-(--ui-sidebar-surface-background)"
+        data-slot="preview-tab-strip"
+      >
         <div
           className="flex min-w-0 flex-1 overflow-x-auto overflow-y-hidden overscroll-x-contain [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
           role="tablist"
@@ -118,9 +122,11 @@ export function ChatPreviewRail({ onRestartServer, setTitlebarToolGroup }: ChatP
                         role="tab"
                         type="button"
                       >
-                        {tab.target.kind === 'artifact' && (
+                        {tab.target.kind === 'artifact' ? (
                           <Codicon className="mr-1 shrink-0 text-[0.6875rem] opacity-70" name="sparkle" />
-                        )}
+                        ) : tab.target.kind === 'file' ? (
+                          <Codicon className="mr-1 shrink-0 text-[0.6875rem] opacity-60" name="file" />
+                        ) : null}
                         {tab.label}
                       </PaneTabLabel>
                     </Tip>

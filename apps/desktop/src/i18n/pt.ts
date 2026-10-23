@@ -190,6 +190,9 @@ export const pt = defineLocale({
   },
 
   titlebar: {
+    modeChat: 'Chat',
+    modeCode: 'Código',
+    modeSwitcher: 'Visualização',
     hideSidebar: 'Ocultar barra lateral',
     showSidebar: 'Mostrar barra lateral',
     search: 'Pesquisar',
@@ -2846,6 +2849,7 @@ export const pt = defineLocale({
     largeBody: (label, size) => `${label} tem ${size}. O JettsTUI só vai mostrar os primeiros 512 KB.`,
     previewAnyway: 'Pré-visualizar mesmo assim',
     truncated: 'Mostrando os primeiros 512 KB.',
+    lineCount: count => (count === 1 ? '1 linha' : `${count} linhas`),
     noInlineTitle: 'Sem pré-visualização embutida',
     noInlineBody: mimeType => `${mimeType || 'Este tipo de arquivo'} ainda pode ser anexado como contexto.`,
     edit: 'Editar',

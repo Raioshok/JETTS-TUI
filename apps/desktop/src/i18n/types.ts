@@ -230,6 +230,9 @@ export interface Translations {
   }
 
   titlebar: {
+    modeChat: string
+    modeCode: string
+    modeSwitcher: string
     hideSidebar: string
     showSidebar: string
     search: string
@@ -2337,6 +2340,7 @@ export interface Translations {
     largeBody: (label: string, size: string) => string
     previewAnyway: string
     truncated: string
+    lineCount: (count: number) => string
     noInlineTitle: string
     noInlineBody: (mimeType: string) => string
     edit: string

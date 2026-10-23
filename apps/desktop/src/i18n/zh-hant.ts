@@ -183,6 +183,9 @@ export const zhHant = defineLocale({
   },
 
   titlebar: {
+    modeChat: '聊天',
+    modeCode: '程式碼',
+    modeSwitcher: '檢視',
     hideSidebar: '隱藏側邊欄',
     showSidebar: '顯示側邊欄',
     search: '搜尋',
@@ -2582,6 +2585,7 @@ export const zhHant = defineLocale({
     largeBody: (label, size) => `${label} 大小為 ${size}。JettsTUI 只會顯示前 512 KB。`,
     previewAnyway: '仍然預覽',
     truncated: '顯示前 512 KB。',
+    lineCount: count => `${count} 行`,
     noInlineTitle: '沒有行內預覽',
     noInlineBody: mimeType => `${mimeType || '此檔案類型'} 仍可作為脈絡附件。`,
     edit: '編輯',

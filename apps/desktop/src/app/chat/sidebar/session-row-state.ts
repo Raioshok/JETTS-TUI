@@ -40,3 +40,28 @@ export function sessionShowsRunningArc({
 }: Pick<SessionRowState, 'isWorking' | 'needsInput'>): boolean {
   return isWorking && !needsInput
 }
+
+const comparable = (text: string) =>
+  text
+    .replace(/[…\s]+$/u, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase()
+
+/**
+ * The secondary line under a session title, or null when it would only repeat
+ * the title. Untitled sessions fall back to their first message for the title,
+ * so title and preview are often the same text — showing both is noise.
+ */
+export function sessionPreviewLine(preview: null | string | undefined, title: string): null | string {
+  const line = preview?.replace(/\s+/g, ' ').trim()
+
+  if (!line) {
+    return null
+  }
+
+  const a = comparable(line)
+  const b = comparable(title)
+
+  return !b || a.startsWith(b) || b.startsWith(a) ? null : line
+}

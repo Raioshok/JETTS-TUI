@@ -18,7 +18,10 @@ import { CodeEditor } from '@/components/chat/code-editor'
 import { FileDiffPanel } from '@/components/chat/diff-lines'
 import { chunkTextLines, useFixedRowWindow } from '@/components/chat/fixed-row-window'
 import { LazyShiki as ShikiHighlighter } from '@/components/chat/shiki-highlighter'
+import { skinSyntaxTheme } from '@/components/chat/shiki-themes'
 import { PageLoader } from '@/components/page-loader'
+import { Codicon } from '@/components/ui/codicon'
+import { CopyButton } from '@/components/ui/copy-button'
 import { Tip } from '@/components/ui/tooltip'
 import { translateNow, useI18n } from '@/i18n'
 import {
@@ -30,14 +33,22 @@ import {
 } from '@/lib/desktop-fs'
 import { errorText } from '@/lib/error-text'
 import { Check, Pencil, X } from '@/lib/icons'
+import { countLines, languageLabel } from '@/lib/language-label'
 import { shikiLanguageForFilename } from '@/lib/markdown-code'
 import { cn } from '@/lib/utils'
 import type { PreviewTarget } from '@/store/preview'
 import { setPreviewDirty } from '@/store/preview-edit'
 import { $currentCwd } from '@/store/session'
 import { notifyWorkspaceChanged } from '@/store/workspace-events'
+import { useTheme } from '@/themes'
 
 const SHIKI_THEME = { dark: 'github-dark-default', light: 'github-light-default' } as const
+
+/** The active skin's own syntax pair, else the file preview's GitHub default. */
+function useSourceSyntaxTheme() {
+  return skinSyntaxTheme(useTheme().themeName) ?? SHIKI_THEME
+}
+
 const TEXT_PREVIEW_MAX_BYTES = 512 * 1024
 const SOURCE_CHUNK_LINES = 200
 const SOURCE_LINE_PX = 20
@@ -278,6 +289,7 @@ function tagged<T extends keyof typeof MD_TAG_CLASSES>(Tag: T) {
 }
 
 function MarkdownCode({ className, children, ...props }: ComponentProps<'code'>) {
+  const syntaxTheme = useSourceSyntaxTheme()
   const language = /language-([^\s]+)/.exec(className || '')?.[1]
 
   if (!language) {
@@ -304,7 +316,7 @@ function MarkdownCode({ className, children, ...props }: ComponentProps<'code'>)
       delay={80}
       language={language}
       showLanguage={false}
-      theme={SHIKI_THEME}
+      theme={syntaxTheme}
     >
       {code}
     </ShikiHighlighter>
@@ -339,6 +351,10 @@ function MarkdownPreview({ text }: { text: string }) {
   )
 }
 
+function BreadcrumbChevron() {
+  return <Codicon aria-hidden className="shrink-0 opacity-45" name="chevron-right" size="0.625rem" />
+}
+
 function FileBreadcrumb({ filePath }: { filePath?: string }) {
   if (!filePath) {
     return null
@@ -357,17 +373,23 @@ function FileBreadcrumb({ filePath }: { filePath?: string }) {
   const dirs = segments.slice(0, -1)
 
   return (
-    <div className="flex min-w-0 items-center gap-1 overflow-hidden font-mono text-[0.6875rem] text-(--ui-text-tertiary)">
+    <nav
+      aria-label={filePath}
+      className="flex min-w-0 items-center gap-1 overflow-hidden font-mono text-[0.6875rem] text-(--ui-text-tertiary)"
+      data-slot="file-breadcrumb"
+    >
       {hasLeadingEllipsis && <span className="opacity-50">…</span>}
-      {hasLeadingEllipsis && <span className="opacity-40">/</span>}
+      {hasLeadingEllipsis && <BreadcrumbChevron />}
       {dirs.map((dir, i) => (
         <Fragment key={i}>
           <span className="truncate opacity-70">{dir}</span>
-          <span className="opacity-40">/</span>
+          <BreadcrumbChevron />
         </Fragment>
       ))}
-      <span className="truncate font-semibold text-foreground/90">{leaf}</span>
-    </div>
+      <span aria-current="page" className="truncate font-semibold text-foreground/90" data-slot="file-breadcrumb-leaf">
+        {leaf}
+      </span>
+    </nav>
   )
 }
 
@@ -482,6 +504,7 @@ function startLineDrag(event: ReactDragEvent<HTMLElement>, filePath: string, { e
  *  content has no path to reference lines against). */
 export function SourceView({ filePath, language, text }: { filePath?: string; language: string; text: string }) {
   const { t } = useI18n()
+  const syntaxTheme = useSourceSyntaxTheme()
   const chunks = useMemo(() => chunkTextLines(text, SOURCE_CHUNK_LINES), [text])
   const lastChunk = chunks.at(-1)
   const totalLines = lastChunk ? lastChunk.start + lastChunk.lines.length : 0
@@ -565,7 +588,7 @@ export function SourceView({ filePath, language, text }: { filePath?: string; la
         {beforeRows > 0 && <div aria-hidden className="col-span-2" style={{ height: beforeRows * SOURCE_LINE_PX }} />}
         {visibleChunks.map(chunk => (
           <Fragment key={chunk.start}>
-            <div className="select-none text-right text-muted-foreground/55">
+            <div className="select-none text-right text-muted-foreground/55" data-slot="source-gutter">
               {chunk.lines.map((_lineText, offset) => {
                 const line = chunk.start + offset + 1
                 const selected = inSelection(line)
@@ -598,7 +621,7 @@ export function SourceView({ filePath, language, text }: { filePath?: string; la
                 delay={80}
                 language={language || 'text'}
                 showLanguage={false}
-                theme={SHIKI_THEME}
+                theme={syntaxTheme}
               >
                 {chunk.text}
               </ShikiHighlighter>
@@ -976,6 +999,7 @@ export function LocalFilePreview({ reloadKey, target }: { reloadKey: number; tar
     }
 
     const autoMode: PreviewViewMode = hasDiff ? 'diff' : isMarkdown ? 'rendered' : 'source'
+    const sourceLanguage = shikiLanguageForFilename(filePath) || state.language || 'text'
     const mode = userMode && modes.includes(userMode) ? userMode : autoMode
 
     return (
@@ -1000,18 +1024,26 @@ export function LocalFilePreview({ reloadKey, target }: { reloadKey: number; tar
           modes={modes}
           onSelect={setUserMode}
           trailing={
-            canEdit ? (
-              <Tip label={`${t.preview.edit} (e)`}>
-                <button
-                  className="flex items-center gap-1 text-[0.625rem] font-bold text-muted-foreground underline-offset-4 transition-colors hover:text-foreground"
-                  onClick={beginEdit}
-                  type="button"
-                >
-                  <Pencil className="size-3" />
-                  {t.preview.edit}
-                </button>
-              </Tip>
-            ) : null
+            <>
+              <CopyButton
+                appearance="inline"
+                className="gap-1 px-0 py-0 text-[0.625rem] font-bold hover:bg-transparent"
+                iconClassName="size-3"
+                text={state.text}
+              />
+              {canEdit ? (
+                <Tip label={`${t.preview.edit} (e)`}>
+                  <button
+                    className="flex items-center gap-1 text-[0.625rem] font-bold text-muted-foreground underline-offset-4 transition-colors hover:text-foreground"
+                    onClick={beginEdit}
+                    type="button"
+                  >
+                    <Pencil className="size-3" />
+                    {t.preview.edit}
+                  </button>
+                </Tip>
+              ) : null}
+            </>
           }
         />
         <div className="min-h-0 flex-1 overflow-auto">
@@ -1026,12 +1058,19 @@ export function LocalFilePreview({ reloadKey, target }: { reloadKey: number; tar
               showLineNumbers
             />
           ) : (
-            <SourceView
-              filePath={filePath}
-              language={shikiLanguageForFilename(filePath) || state.language || 'text'}
-              text={state.text}
-            />
+            <SourceView filePath={filePath} language={sourceLanguage} text={state.text} />
           )}
+        </div>
+        <div
+          className="flex h-6 shrink-0 items-center gap-3 border-t border-border/40 px-3 text-[0.625rem] text-(--ui-text-tertiary)"
+          data-slot="source-status"
+        >
+          <span className="flex items-center gap-1">
+            <Codicon aria-hidden name="terminal" size="0.6875rem" />
+            {languageLabel(sourceLanguage)}
+          </span>
+          <span className="tabular-nums">{t.preview.lineCount(countLines(state.text))}</span>
+          {state.truncated && <span>{t.preview.truncated}</span>}
         </div>
       </div>
     )

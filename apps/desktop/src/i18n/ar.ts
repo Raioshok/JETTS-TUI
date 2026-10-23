@@ -159,6 +159,9 @@ export const ar = defineLocale({
     message: reason => `العرض البرمجي نشط — تم اكتشاف شاشة بعيدة (${reason}). تم تعطيل تسريع GPU لمنع الوميض.`
   },
   titlebar: {
+    modeChat: 'الدردشة',
+    modeCode: 'الكود',
+    modeSwitcher: 'العرض',
     hideSidebar: 'إخفاء الشريط الجانبي',
     showSidebar: 'إظهار الشريط الجانبي',
     search: 'بحث',
@@ -2443,6 +2446,8 @@ export const ar = defineLocale({
     largeBody: (label, size) => `حجم ${label} هو ${size}. سيعرض JettsTUI أول 512 KB فقط.`,
     previewAnyway: 'معاينة على أي حال',
     truncated: 'عرض أول 512 KB.',
+    lineCount: count =>
+      count === 1 ? 'سطر واحد' : count === 2 ? 'سطران' : count <= 10 ? `${count} أسطر` : `${count} سطرًا`,
     noInlineTitle: 'لا توجد معاينة مضمّنة',
     noInlineBody: mimeType => `${mimeType || 'هذا النوع من الملفات'} لا يزال بالإمكان إرفاقه كسياق.`,
     edit: 'تحرير',
