@@ -16,9 +16,15 @@ def build_auth_parser(subparsers, *, cmd_auth: Callable) -> None:
         help="Manage pooled provider credentials",
     )
     auth_subparsers = auth_parser.add_subparsers(dest="auth_action")
-    auth_add = auth_subparsers.add_parser("add", help="Add a pooled credential")
+    auth_add = auth_subparsers.add_parser(
+        "add",
+        aliases=["login"],
+        help="Add a pooled credential or sign in via OAuth",
+    )
     auth_add.add_argument(
         "provider",
+        nargs="?",
+        default=None,
         help="Provider id (for example: anthropic, openai-codex, openrouter)",
     )
     auth_add.add_argument(

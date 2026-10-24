@@ -164,7 +164,10 @@ def _format_exhausted_status(entry) -> str:
 
 
 def auth_add_command(args) -> None:
-    provider = _normalize_provider(getattr(args, "provider", ""))
+    raw_provider = getattr(args, "provider", None) or ""
+    if not raw_provider:
+        raw_provider = _pick_provider("Provider to add credential / log in for")
+    provider = _normalize_provider(raw_provider)
     if provider not in PROVIDER_REGISTRY and provider != "openrouter" and not provider.startswith(CUSTOM_POOL_PREFIX):
         raise SystemExit(f"Unknown provider: {provider}")
 
@@ -246,7 +249,10 @@ def auth_add_command(args) -> None:
             base_url=_provider_base_url(provider),
         )
         pool.add_entry(entry)
-        print(f'Added {provider} OAuth credential #{len(pool.entries())}: "{entry.label}"')
+        pool.set_preferred(entry.id)
+        from jettstui.auth import mark_provider_active_if_unset
+        mark_provider_active_if_unset(provider)
+        print(f'Added {provider} OAuth credential #{len(pool.entries())}: "{entry.label}" (active)')
         return
 
     if provider == "openai-codex":
@@ -853,7 +859,7 @@ def _interactive_strategy() -> None:
 
 def auth_command(args) -> None:
     action = getattr(args, "auth_action", "")
-    if action == "add":
+    if action in {"add", "login"}:
         auth_add_command(args)
         return
     if action == "list":
