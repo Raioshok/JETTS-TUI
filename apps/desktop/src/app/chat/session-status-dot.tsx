@@ -70,7 +70,7 @@ const DOT_VARIANTS: Record<SessionDotState, DotVariant> = {
     title: r => r.finishedUnread
   },
   idle: {
-    className: 'size-1 rounded-full bg-(--ui-text-quaternary) opacity-80'
+    className: 'size-1.5 rounded-full bg-(--ui-text-quaternary) opacity-80'
   }
 }
 
@@ -127,7 +127,7 @@ export function SessionStatusDot({ storedSessionId, session, branchStem, classNa
         </span>
       ) : null}
       {dotState === 'idle' && color ? (
-        <span aria-hidden="true" className="size-1 rounded-full" style={{ backgroundColor: color }} />
+        <span aria-hidden="true" className="size-1.5 rounded-full" style={{ backgroundColor: color }} />
       ) : (
         <span
           aria-label={DOT_VARIANTS[dotState].ariaLabel?.(r)}

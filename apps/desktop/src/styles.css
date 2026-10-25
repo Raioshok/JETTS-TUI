@@ -2207,8 +2207,8 @@ code {
   --theme-stroke-secondary-accent-mix: 0%;
   --theme-stroke-tertiary-accent-mix: 0%;
   --theme-stroke-quaternary-accent-mix: 0%;
-  --theme-row-hover-accent-mix: 0%;
-  --theme-row-active-accent-mix: 16%;
+  --theme-row-hover-accent-mix: 6%;
+  --theme-row-active-accent-mix: 22%;
   --theme-control-hover-accent-mix: 0%;
 
   /* Softer, roomier geometry. */
@@ -2351,7 +2351,7 @@ code {
 
 /* Session rows: breathing room between title/preview entries. */
 :root[data-jettstui-theme='ivory'] [data-slot='session-row'] {
-  padding-block: 0.1875rem;
+  padding-block: 0.3125rem;
 }
 
 /* Code workspace — flat tabs with a gold underline, the peach wash behind   */
