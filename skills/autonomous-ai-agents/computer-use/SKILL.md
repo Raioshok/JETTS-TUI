@@ -82,40 +82,24 @@ key            keys="ctrl+s" | "return" | "escape" | "alt+tab"
 wait           seconds=0.5
 list_apps / list_windows / focus_app   (focus_app: cua-driver, or Windows native)
 
-# Claude Reference Action Names & Aliases
-screenshot                           → alias for capture
+triple_click     coordinate=[x,y]    → select line/paragraph
 mouse_move       coordinate=[x,y]    → move pointer without clicking
-left_click       coordinate=[x,y]    → left mouse click
-right_click      coordinate=[x,y]    → right mouse click
-double_click     coordinate=[x,y]    → double click
-triple_click     coordinate=[x,y]    → triple click (select line/paragraph)
-middle_click     coordinate=[x,y]    → middle click
-left_click_drag  start_coordinate=[x,y] coordinate=[x,y]
 mouse_down / mouse_up [button=…]     → press/release mouse button
-cursor_position                      → returns current pointer position (X=...,Y=...)
+cursor_position                      → current pointer position
+target="<vm>"    on any action above → act inside that VM guest instead of the host
 
-# VM and VPS Management (Linux & Windows)
-vm_list                              → list registered + discovered VMs & VPSes
-vm_status      vm_name="…"           → status, uptime, RAM, IP addresses
-vm_start       vm_name="…"           → start / power-on VM or probe VPS
-vm_stop        vm_name="…"  [force=…]→ graceful shutdown or force power-off
-vm_restart     vm_name="…"  [force=…]→ reboot VM / VPS
+# `vm` tool (only present when a hypervisor or registered VPS exists)
+vm_list                              → registered + discovered VMs & VPSes
+vm_status / vm_start / vm_stop / vm_restart / vm_pause / vm_resume   vm_name="…" [force=…]
 vm_snapshot    vm_name="…"  vm_action=create|restore|delete|list  snapshot_name="…"
-vm_exec        vm_name="…"  command="…"  [timeout=60] → run command in guest
+vm_exec        vm_name="…"  command="…"  [timeout=60]
 vm_file        vm_name="…"  vm_action=upload|download source_path="…" dest_path="…"
-vm_register    vm_name="…"  vm_type="…" os_type="linux|windows" vm_config={…}
-vm_unregister  vm_name="…"           → remove from registry
-vm_capture     vm_name="…"           → screenshot from VM/VPS screen
-vm_input       vm_name="…"  vm_action=type|key|click  text/keys/coordinate
+unattended_set target="…" / unattended_status / unattended_stop
+  → make a guest the default computer_use target so the host desktop is untouched
 
-# Unattended Computer Use
-unattended=True                      → isolates execution into a VM/VPS so you can use host PC simultaneously
-unattended_status                    → check current isolation target and host protection status
-unattended_set target="…" [enabled=…]→ configure default unattended VM target
-unattended_stop                      → return to interactive local desktop mode
-
-# Remote / VM Targeting
-target="<vm_or_vps_name>" on capture, click, type, key routes to that VM/VPS directly!
+# Registering hosts is user-only (credentials never pass through the model):
+#   jettstui computer-use vm register NAME --type vps_ssh --host … --user … --key …
+#   jettstui computer-use vm register NAME --type hyperv --user … --password-env LAB_PW
 ```
 
 Any action takes `capture_after=true` for an inline follow-up screenshot.

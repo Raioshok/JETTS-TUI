@@ -91,8 +91,7 @@ _DESTRUCTIVE_ACTIONS = frozenset({
     "mouse_move", "mouse_down", "mouse_up", "left_mouse_down", "left_mouse_up",
     "drag", "left_click_drag", "scroll", "type", "key", "set_value", "focus_app",
     "vm_start", "vm_stop", "vm_restart", "vm_pause", "vm_resume",
-    "vm_snapshot", "vm_exec", "vm_file", "vm_register", "vm_unregister",
-    "vm_input", "unattended_set",
+    "vm_snapshot", "vm_exec", "vm_file", "vm_input", "unattended_set",
 })
 
 # Hard-blocked key combinations. Mirrored from #4562 — these are destructive
@@ -550,9 +549,6 @@ def _summarize_action(action: str, args: Dict[str, Any]) -> str:
         target = args.get("vm_name") or args.get("target") or "?"
         sub = args.get("vm_action", "upload")
         return f"vm_file {sub} {args.get('source_path')} → {args.get('dest_path')} on {target!r}"
-    if action in {"vm_register", "vm_unregister"}:
-        target = args.get("vm_name") or args.get("target") or "?"
-        return f"{action} {target!r}"
     if action == "vm_capture":
         target = args.get("vm_name") or args.get("target") or "?"
         return f"capture screen of {target!r}"

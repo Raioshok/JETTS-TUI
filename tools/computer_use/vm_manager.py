@@ -131,19 +131,30 @@ def _run_subprocess(
         return -1, "", str(exc)
 
 
-def _run_powershell(script: str, timeout: float = 45.0) -> Tuple[int, str, str]:
-    """Execute PowerShell script using powershell.exe or pwsh."""
+def _run_powershell(
+    script: str,
+    timeout: float = 45.0,
+    args: Optional[Dict[str, Any]] = None,
+) -> Tuple[int, str, str]:
+    """Execute a PowerShell script using powershell.exe or pwsh.
+
+    Values in ``args`` reach the script as ``$a.<key>`` through an env var,
+    never through string interpolation, so names, paths and passwords cannot
+    inject code. Errors come back as plain text on stderr (exit code 1).
+    """
     pwsh = shutil.which("pwsh") or shutil.which("powershell.exe") or "powershell.exe"
-    cmd = [
-        pwsh,
-        "-NoProfile",
-        "-NonInteractive",
-        "-ExecutionPolicy",
-        "Bypass",
-        "-Command",
-        script,
-    ]
-    return _run_subprocess(cmd, timeout=timeout)
+    env = None
+    if args is not None:
+        script = "$a = $env:JETTSTUI_PS_ARGS | ConvertFrom-Json\n" + script
+        env = {"JETTSTUI_PS_ARGS": json.dumps(args)}
+    # The try/catch keeps -EncodedCommand from emitting CLIXML on stderr.
+    wrapped = (
+        "$ProgressPreference = 'SilentlyContinue'\n$ErrorActionPreference = 'Stop'\n"
+        f"try {{\n{script}\n}} catch {{ [Console]::Error.WriteLine($_.Exception.Message); exit 1 }}"
+    )
+    encoded = base64.b64encode(wrapped.encode("utf-16le")).decode("ascii")
+    cmd = [pwsh, "-NoProfile", "-NonInteractive", "-ExecutionPolicy", "Bypass", "-EncodedCommand", encoded]
+    return _run_subprocess(cmd, timeout=timeout, env=env)
 
 
 def _convert_ppm_to_png_bytes(ppm_data: bytes) -> Optional[bytes]:
@@ -253,7 +264,13 @@ class BaseVMProvider:
 
 
 class HyperVProvider(BaseVMProvider):
-    """Hyper-V management for Windows and Linux guests on Windows host."""
+    """Hyper-V management for Windows and Linux guests on Windows host.
+
+    Lifecycle uses the Hyper-V cmdlets. Screen capture and input go through the
+    host-side WMI devices (thumbnail image, Msvm_Keyboard, Msvm_SyntheticMouse),
+    the same path vmconnect uses, so they work for any guest OS without an
+    interactive session inside the guest.
+    """
 
     def is_available(self) -> bool:
         if sys.platform != "win32":
@@ -264,29 +281,21 @@ class HyperVProvider(BaseVMProvider):
 
     def list_vms(self) -> List[VMInfo]:
         script = """
-        try {
-            $vms = Get-VM -ErrorAction Stop | Select-Object Name, State, CPUUsage, MemoryAssigned, Uptime, Generation, Id
-            $list = @()
-            foreach ($v in $vms) {
-                $ips = @()
-                try {
-                    $adap = Get-VMNetworkAdapter -VMName $v.Name -ErrorAction SilentlyContinue
-                    if ($adap) { $ips = $adap.IPAddresses }
-                } catch {}
-                $list += [PSCustomObject]@{
-                    Name = $v.Name
-                    State = $v.State.ToString()
-                    CPUUsage = $v.CPUUsage
-                    MemoryMB = [math]::Round($v.MemoryAssigned / 1MB)
-                    UptimeSeconds = if ($v.Uptime) { $v.Uptime.TotalSeconds } else { 0 }
-                    IPAddresses = $ips
-                    Id = $v.Id.ToString()
-                }
+        $list = @()
+        foreach ($v in Get-VM) {
+            $ips = @()
+            $adap = Get-VMNetworkAdapter -VMName $v.Name -ErrorAction SilentlyContinue
+            if ($adap) { $ips = $adap.IPAddresses }
+            $list += [PSCustomObject]@{
+                Name = $v.Name
+                State = $v.State.ToString()
+                MemoryMB = [math]::Round($v.MemoryAssigned / 1MB)
+                UptimeSeconds = if ($v.Uptime) { $v.Uptime.TotalSeconds } else { 0 }
+                IPAddresses = $ips
+                Id = $v.Id.ToString()
             }
-            ConvertTo-Json -Depth 3 -Compress -InputObject @($list)
-        } catch {
-            Write-Error $_
         }
+        ConvertTo-Json -Depth 3 -Compress -InputObject @($list)
         """
         code, out, err = _run_powershell(script, timeout=15.0)
         if code != 0 or not out:
@@ -334,32 +343,24 @@ class HyperVProvider(BaseVMProvider):
                 return vm
         return None
 
+    def _cmdlet(self, script: str, args: Dict[str, Any], ok_msg: str, timeout: float = 30.0) -> Dict[str, Any]:
+        code, out, err = _run_powershell(script, timeout=timeout, args=args)
+        return {"ok": code == 0, "message": out or (ok_msg if code == 0 else err)}
+
     def start(self, name: str, config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        script = f'Start-VM -Name "{name}" -ErrorAction Stop'
-        code, out, err = _run_powershell(script, timeout=20.0)
-        return {"ok": code == 0, "message": out or ("Started" if code == 0 else err)}
+        return self._cmdlet("Start-VM -Name $a.name", {"name": name}, "Started", timeout=20.0)
 
     def stop(self, name: str, force: bool = False, config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        flag = "-TurnOff" if force else ""
-        script = f'Stop-VM -Name "{name}" {flag} -ErrorAction Stop'
-        code, out, err = _run_powershell(script, timeout=30.0)
-        return {"ok": code == 0, "message": out or ("Stopped" if code == 0 else err)}
+        return self._cmdlet("Stop-VM -Name $a.name -TurnOff:$a.force", {"name": name, "force": force}, "Stopped")
 
     def restart(self, name: str, force: bool = False, config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        flag = "-Force" if force else ""
-        script = f'Restart-VM -Name "{name}" {flag} -ErrorAction Stop'
-        code, out, err = _run_powershell(script, timeout=30.0)
-        return {"ok": code == 0, "message": out or ("Restarted" if code == 0 else err)}
+        return self._cmdlet("Restart-VM -Name $a.name -Force:$a.force", {"name": name, "force": force}, "Restarted")
 
     def pause(self, name: str, config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        script = f'Suspend-VM -Name "{name}" -ErrorAction Stop'
-        code, out, err = _run_powershell(script, timeout=20.0)
-        return {"ok": code == 0, "message": out or ("Suspended" if code == 0 else err)}
+        return self._cmdlet("Suspend-VM -Name $a.name", {"name": name}, "Suspended", timeout=20.0)
 
     def resume(self, name: str, config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
-        script = f'Resume-VM -Name "{name}" -ErrorAction Stop'
-        code, out, err = _run_powershell(script, timeout=20.0)
-        return {"ok": code == 0, "message": out or ("Resumed" if code == 0 else err)}
+        return self._cmdlet("Resume-VM -Name $a.name", {"name": name}, "Resumed", timeout=20.0)
 
     def snapshot(
         self,
@@ -369,29 +370,23 @@ class HyperVProvider(BaseVMProvider):
         config: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         op = operation.lower().strip()
+        args = {"name": name, "snap": snapshot_name}
         if op == "create":
-            snap = snapshot_name or f"snapshot_{int(time.time())}"
-            script = f'Checkpoint-VM -Name "{name}" -SnapshotName "{snap}" -ErrorAction Stop'
-            code, out, err = _run_powershell(script, timeout=30.0)
-            return {"ok": code == 0, "snapshot_name": snap, "message": out or (err if code != 0 else "Snapshot created")}
-        elif op == "restore":
+            args["snap"] = snapshot_name or f"snapshot_{int(time.time())}"
+            res = self._cmdlet("Checkpoint-VM -Name $a.name -SnapshotName $a.snap", args, "Snapshot created")
+            return {**res, "snapshot_name": args["snap"]}
+        if op in ("restore", "delete"):
             if not snapshot_name:
-                return {"ok": False, "error": "snapshot_name is required for restore"}
-            script = f'Restore-VMSnapshot -VMName "{name}" -Name "{snapshot_name}" -Confirm:$false -ErrorAction Stop'
-            code, out, err = _run_powershell(script, timeout=45.0)
-            return {"ok": code == 0, "message": out or (err if code != 0 else "Snapshot restored")}
-        elif op == "delete":
-            if not snapshot_name:
-                return {"ok": False, "error": "snapshot_name is required for delete"}
-            script = f'Remove-VMSnapshot -VMName "{name}" -Name "{snapshot_name}" -Confirm:$false -ErrorAction Stop'
-            code, out, err = _run_powershell(script, timeout=30.0)
-            return {"ok": code == 0, "message": out or (err if code != 0 else "Snapshot deleted")}
-        elif op == "list":
-            script = f"""
-            $snaps = Get-VMSnapshot -VMName "{name}" -ErrorAction SilentlyContinue | Select-Object Name, CreationTime, Id
+                return {"ok": False, "error": f"snapshot_name is required for {op}"}
+            verb = "Restore-VMSnapshot" if op == "restore" else "Remove-VMSnapshot"
+            return self._cmdlet(f"{verb} -VMName $a.name -Name $a.snap -Confirm:$false", args,
+                                "Snapshot restored" if op == "restore" else "Snapshot deleted", timeout=45.0)
+        if op == "list":
+            script = """
+            $snaps = Get-VMSnapshot -VMName $a.name | Select-Object Name, CreationTime, Id
             ConvertTo-Json -Depth 2 -Compress -InputObject @($snaps)
             """
-            code, out, err = _run_powershell(script, timeout=15.0)
+            code, out, err = _run_powershell(script, timeout=15.0, args=args)
             if code != 0:
                 return {"ok": False, "error": err}
             snaps: List[Dict[str, Any]] = []
@@ -411,6 +406,20 @@ class HyperVProvider(BaseVMProvider):
             return {"ok": True, "snapshots": snaps, "count": len(snaps)}
         return {"ok": False, "error": f"Unknown snapshot operation: {operation}"}
 
+    # PowerShell Direct credential, built from $a.user / $a.password (never interpolated).
+    _CRED = """
+    $cred = $null
+    if ($a.user -and $a.password) {
+        $cred = New-Object System.Management.Automation.PSCredential($a.user, (ConvertTo-SecureString $a.password -AsPlainText -Force))
+    }
+    $ic = @{ VMName = $a.name }
+    if ($cred) { $ic.Credential = $cred }
+    """
+
+    def _direct_args(self, name: str, config: Optional[Dict[str, Any]], **extra: Any) -> Dict[str, Any]:
+        cfg = config or {}
+        return {"name": name, "user": cfg.get("user"), "password": cfg.get("password"), **extra}
+
     def execute(
         self,
         name: str,
@@ -418,37 +427,11 @@ class HyperVProvider(BaseVMProvider):
         timeout: float = 60.0,
         config: Optional[Dict[str, Any]] = None,
     ) -> VMExecutionResult:
-        cfg = config or {}
-        user = cfg.get("user")
-        pwd = cfg.get("password")
-
-        # Encode command safely for PowerShell Direct
-        b64_cmd = base64.b64encode(command.encode("utf-16le")).decode("ascii")
-
-        cred_block = ""
-        cred_arg = ""
-        if user and pwd:
-            cred_block = f"""
-            $sec = ConvertTo-SecureString '{pwd}' -AsPlainText -Force
-            $cred = New-Object System.Management.Automation.PSCredential('{user}', $sec)
-            """
-            cred_arg = "-Credential $cred"
-
-        script = f"""
-        {cred_block}
-        try {{
-            Invoke-Command -VMName "{name}" {cred_arg} -ScriptBlock {{
-                $bytes = [Convert]::FromBase64String('{b64_cmd}')
-                $cmd = [System.Text.Encoding]::Unicode.GetString($bytes)
-                Invoke-Expression $cmd
-            }}
-        }} catch {{
-            Write-Error $_
-            exit 1
-        }}
+        script = self._CRED + """
+        Invoke-Command @ic -ArgumentList $a.cmd -ScriptBlock { param($c) Invoke-Expression $c }
         """
         start_t = time.time()
-        code, out, err = _run_powershell(script, timeout=timeout)
+        code, out, err = _run_powershell(script, timeout=timeout, args=self._direct_args(name, config, cmd=command))
         duration = time.time() - start_t
         return VMExecutionResult(exit_code=code, stdout=out, stderr=err, duration_seconds=round(duration, 3))
 
@@ -460,57 +443,45 @@ class HyperVProvider(BaseVMProvider):
         direction: str = "upload",
         config: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
+        args = self._direct_args(name, config, src=source, dest=dest)
         if direction == "upload":
-            script = f'Copy-VMFile -VMName "{name}" -SourcePath "{source}" -DestinationPath "{dest}" -CreateFullPath -FileSource Host -ErrorAction Stop'
-            code, out, err = _run_powershell(script, timeout=60.0)
-            return {"ok": code == 0, "message": out or ("Uploaded" if code == 0 else err)}
-        else:
-            cfg = config or {}
-            user = cfg.get("user")
-            pwd = cfg.get("password")
-            cred_block = ""
-            cred_arg = ""
-            if user and pwd:
-                cred_block = f"""
-                $sec = ConvertTo-SecureString '{pwd}' -AsPlainText -Force
-                $cred = New-Object System.Management.Automation.PSCredential('{user}', $sec)
-                """
-                cred_arg = "-Credential $cred"
-            script = f"""
-            {cred_block}
-            try {{
-                $bytes = Invoke-Command -VMName "{name}" {cred_arg} -ScriptBlock {{
-                    [System.IO.File]::ReadAllBytes('{source}')
-                }}
-                [System.IO.File]::WriteAllBytes('{dest}', $bytes)
-                Write-Output "Downloaded"
-            }} catch {{
-                Write-Error $_
-                exit 1
-            }}
-            """
-            code, out, err = _run_powershell(script, timeout=120.0)
-            return {"ok": code == 0, "message": out or ("Downloaded" if code == 0 else err)}
+            script = "Copy-VMFile -Name $a.name -SourcePath $a.src -DestinationPath $a.dest -CreateFullPath -FileSource Host"
+            return self._cmdlet(script, args, "Uploaded", timeout=60.0)
+        script = self._CRED + """
+        $bytes = Invoke-Command @ic -ArgumentList $a.src -ScriptBlock { param($p) [System.IO.File]::ReadAllBytes($p) }
+        [System.IO.File]::WriteAllBytes($a.dest, [byte[]]$bytes)
+        """
+        return self._cmdlet(script, args, "Downloaded", timeout=120.0)
+
+    # Resolves $vm plus a Get-Dev helper for the VM's WMI devices.
+    _WMI_VM = """
+    $ns = 'root\\virtualization\\v2'
+    $vm = Get-CimInstance -Namespace $ns -ClassName Msvm_ComputerSystem | Where-Object { $_.ElementName -eq $a.name } | Select-Object -First 1
+    if (-not $vm) { throw "Hyper-V VM not found: $($a.name)" }
+    """
 
     def capture_screen(self, name: str, config: Optional[Dict[str, Any]] = None) -> Tuple[Optional[str], Optional[str]]:
-        # Take screenshot inside guest via PowerShell Direct
-        screencap_script = """
-        Add-Type -AssemblyName System.Windows.Forms,System.Drawing
-        $bounds = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
-        $bmp = New-Object System.Drawing.Bitmap $bounds.Width, $bounds.Height
-        $gfx = [System.Drawing.Graphics]::FromImage($bmp)
-        $gfx.CopyFromScreen($bounds.Location, [System.Drawing.Point]::Empty, $bounds.Size)
-        $ms = New-Object System.IO.MemoryStream
-        $bmp.Save($ms, [System.Drawing.Imaging.ImageFormat]::Png)
-        $bytes = $ms.ToArray()
-        [Convert]::ToBase64String($bytes)
+        script = self._WMI_VM + """
+        $vh = Get-CimAssociatedInstance -InputObject $vm -ResultClassName Msvm_VideoHead | Select-Object -First 1
+        if (-not $vh -or -not $vh.CurrentHorizontalResolution) { throw "VM '$($a.name)' has no active display (is it running?)" }
+        $w = [int]$vh.CurrentHorizontalResolution; $h = [int]$vh.CurrentVerticalResolution
+        $vssd = Get-CimAssociatedInstance -InputObject $vm -ResultClassName Msvm_VirtualSystemSettingData |
+            Where-Object { $_.VirtualSystemType -eq 'Microsoft:Hyper-V:System:Realized' } | Select-Object -First 1
+        $svc = Get-CimInstance -Namespace $ns -ClassName Msvm_VirtualSystemManagementService
+        $r = Invoke-CimMethod -InputObject $svc -MethodName GetVirtualSystemThumbnailImage -Arguments @{
+            TargetSystem = $vssd; WidthPixels = [uint16]$w; HeightPixels = [uint16]$h }
+        if ($r.ReturnValue -ne 0) { throw "GetVirtualSystemThumbnailImage returned $($r.ReturnValue)" }
+        "$w $h " + [Convert]::ToBase64String([byte[]]$r.ImageData)
         """
-        res = self.execute(name, screencap_script, timeout=20.0, config=config)
-        if res.exit_code == 0 and res.stdout.strip():
-            # Filter output for base64 string
-            b64 = res.stdout.strip().replace("\r", "").replace("\n", "")
-            return b64, None
-        return None, f"Hyper-V screen capture failed: {res.stderr or 'No output from guest'}"
+        code, out, err = _run_powershell(script, timeout=30.0, args={"name": name})
+        if code != 0 or not out:
+            return None, f"Hyper-V screen capture failed: {err or 'no output'}"
+        try:
+            w, h, b64 = out.split(" ", 2)
+            png = _rgb565_to_png_bytes(base64.b64decode(b64), int(w), int(h))
+        except Exception as exc:
+            return None, f"Hyper-V screen capture returned unreadable data: {exc}"
+        return base64.b64encode(png).decode("ascii"), None
 
     def send_input(
         self,
@@ -519,136 +490,125 @@ class HyperVProvider(BaseVMProvider):
         config: Optional[Dict[str, Any]] = None,
         **kwargs,
     ) -> Dict[str, Any]:
-        if action == "type":
-            text = kwargs.get("text", "")
-            escaped = text.replace("`", "``").replace('"', '`"').replace("'", "''")
-            script = f"""
-            Add-Type -AssemblyName System.Windows.Forms
-            [System.Windows.Forms.SendKeys]::SendWait('{escaped}')
-            """
-            res = self.execute(name, script, timeout=10.0, config=config)
-            return {"ok": res.exit_code == 0, "message": res.stdout or res.stderr}
-        elif action == "key":
-            keys = kwargs.get("keys", "")
-            key_map = {"return": "{ENTER}", "enter": "{ENTER}", "tab": "{TAB}", "escape": "{ESC}", "space": " "}
-            sk = key_map.get(keys.lower(), keys)
-            script = f"""
-            Add-Type -AssemblyName System.Windows.Forms
-            [System.Windows.Forms.SendKeys]::SendWait('{sk}')
-            """
-            res = self.execute(name, script, timeout=10.0, config=config)
-            return {"ok": res.exit_code == 0, "message": res.stdout or res.stderr}
-        elif action in ("click", "double_click", "right_click", "middle_click"):
-            x = kwargs.get("x", 0)
-            y = kwargs.get("y", 0)
-            btn = kwargs.get("button", "left")
-            if action == "right_click":
-                btn = "right"
-            elif action == "middle_click":
-                btn = "middle"
-            down_flag = 0x0002 if btn == "left" else (0x0008 if btn == "right" else 0x0020)
-            up_flag = 0x0004 if btn == "left" else (0x0010 if btn == "right" else 0x0040)
-            repeat_cnt = 2 if action == "double_click" else 1
-            type_id = int(time.time() * 1000) % 100000
-            script = f"""
-            $code = @'
-            [System.Runtime.InteropServices.DllImport("user32.dll")]
-            public static extern bool SetCursorPos(int X, int Y);
-            [System.Runtime.InteropServices.DllImport("user32.dll")]
-            public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint cButtons, uint dwExtraInfo);
-'@
-            $type = Add-Type -MemberDefinition $code -Name Win32Mouse_{type_id} -Namespace Win32 -PassThru
-            $type::SetCursorPos({x}, {y})
-            for ($i = 0; $i -lt {repeat_cnt}; $i++) {{
-                $type::mouse_event({down_flag}, 0, 0, 0, 0)
-                $type::mouse_event({up_flag}, 0, 0, 0, 0)
-                if ({repeat_cnt} -gt 1) {{ Start-Sleep -Milliseconds 40 }}
-            }}
-            """
-            res = self.execute(name, script, timeout=10.0, config=config)
-            return {"ok": res.exit_code == 0, "message": res.stdout or res.stderr}
-        elif action == "scroll":
-            direction = str(kwargs.get("direction", "down")).lower()
-            amount = int(kwargs.get("amount", 3))
-            delta = amount * 120 if direction == "up" else -amount * 120
-            x = kwargs.get("x")
-            y = kwargs.get("y")
-            move_code = f"$type::SetCursorPos({x}, {y})" if x is not None and y is not None else ""
-            type_id = int(time.time() * 1000) % 100000
-            script = f"""
-            $code = @'
-            [System.Runtime.InteropServices.DllImport("user32.dll")]
-            public static extern bool SetCursorPos(int X, int Y);
-            [System.Runtime.InteropServices.DllImport("user32.dll")]
-            public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint cButtons, uint dwExtraInfo);
-'@
-            $type = Add-Type -MemberDefinition $code -Name Win32Scroll_{type_id} -Namespace Win32 -PassThru
-            {move_code}
-            $type::mouse_event(0x0800, 0, 0, {delta}, 0)
-            """
-            res = self.execute(name, script, timeout=10.0, config=config)
-            return {"ok": res.exit_code == 0, "message": res.stdout or res.stderr}
-        elif action == "drag":
-            fx, fy = kwargs.get("from_xy") or (0, 0)
-            tx, ty = kwargs.get("to_xy") or (0, 0)
-            type_id = int(time.time() * 1000) % 100000
-            script = f"""
-            $code = @'
-            [System.Runtime.InteropServices.DllImport("user32.dll")]
-            public static extern bool SetCursorPos(int X, int Y);
-            [System.Runtime.InteropServices.DllImport("user32.dll")]
-            public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint cButtons, uint dwExtraInfo);
-'@
-            $type = Add-Type -MemberDefinition $code -Name Win32Drag_{type_id} -Namespace Win32 -PassThru
-            $type::SetCursorPos({fx}, {fy})
-            $type::mouse_event(0x0002, 0, 0, 0, 0)
-            for ($step = 1; $step -le 5; $step++) {{
-                $cx = [math]::Round({fx} + ({tx} - {fx}) * $step / 5)
-                $cy = [math]::Round({fy} + ({ty} - {fy}) * $step / 5)
-                $type::SetCursorPos($cx, $cy)
-                Start-Sleep -Milliseconds 15
-            }}
-            $type::mouse_event(0x0004, 0, 0, 0, 0)
-            """
-            res = self.execute(name, script, timeout=10.0, config=config)
-            return {"ok": res.exit_code == 0, "message": res.stdout or res.stderr}
-        elif action == "mouse_move":
-            x = kwargs.get("x", 0)
-            y = kwargs.get("y", 0)
-            type_id = int(time.time() * 1000) % 100000
-            script = f"""
-            $code = @'
-            [System.Runtime.InteropServices.DllImport("user32.dll")]
-            public static extern bool SetCursorPos(int X, int Y);
-'@
-            $type = Add-Type -MemberDefinition $code -Name Win32Move_{type_id} -Namespace Win32 -PassThru
-            $type::SetCursorPos({x}, {y})
-            """
-            res = self.execute(name, script, timeout=10.0, config=config)
-            return {"ok": res.exit_code == 0, "message": res.stdout or res.stderr}
-        elif action in ("mouse_down", "mouse_up"):
-            btn = kwargs.get("button", "left")
-            down_flag = 0x0002 if btn == "left" else (0x0008 if btn == "right" else 0x0020)
-            up_flag = 0x0004 if btn == "left" else (0x0010 if btn == "right" else 0x0040)
-            flag = down_flag if action == "mouse_down" else up_flag
-            x = kwargs.get("x")
-            y = kwargs.get("y")
-            move_code = f"$type::SetCursorPos({x}, {y});" if x is not None and y is not None else ""
-            type_id = int(time.time() * 1000) % 100000
-            script = f"""
-            $code = @'
-            [System.Runtime.InteropServices.DllImport("user32.dll")]
-            public static extern bool SetCursorPos(int X, int Y);
-            [System.Runtime.InteropServices.DllImport("user32.dll")]
-            public static extern void mouse_event(uint dwFlags, uint dx, uint dy, uint cButtons, uint dwExtraInfo);
-'@
-            $type = Add-Type -MemberDefinition $code -Name Win32Btn_{type_id} -Namespace Win32 -PassThru
-            {move_code}
-            $type::mouse_event({flag}, 0, 0, 0, 0)
-            """
-            res = self.execute(name, script, timeout=10.0, config=config)
-            return {"ok": res.exit_code == 0, "message": res.stdout or res.stderr}
-        return {"ok": False, "error": f"Unsupported input action: {action}"}
+        steps = _hyperv_input_steps(action, **kwargs)
+        if isinstance(steps, str):
+            return {"ok": False, "error": steps}
+        script = self._WMI_VM + """
+        $devs = @{}
+        foreach ($s in $a.steps) {
+            if ($s.sleep) { Start-Sleep -Milliseconds $s.sleep; continue }
+            if (-not $devs[$s.dev]) {
+                $devs[$s.dev] = Get-CimAssociatedInstance -InputObject $vm -ResultClassName $s.dev | Select-Object -First 1
+                if (-not $devs[$s.dev]) { throw "$($s.dev) is unavailable for '$($a.name)' (VM off, or guest lacks Hyper-V integration services)" }
+            }
+            $p = @{}
+            foreach ($prop in $s.p.PSObject.Properties) { $p[$prop.Name] = $prop.Value }
+            $r = Invoke-CimMethod -InputObject $devs[$s.dev] -MethodName $s.m -Arguments $p
+            if ($r.ReturnValue -ne 0) { throw "$($s.dev).$($s.m) returned $($r.ReturnValue)" }
+        }
+        """
+        code, out, err = _run_powershell(script, timeout=20.0, args={"name": name, "steps": steps})
+        return {"ok": code == 0, "message": out or (action if code == 0 else err)}
+
+
+# Windows virtual-key codes for Msvm_Keyboard (letters/digits map to their ASCII code).
+_VK_CODES: Dict[str, int] = {
+    "backspace": 0x08, "tab": 0x09, "return": 0x0D, "enter": 0x0D, "shift": 0x10,
+    "ctrl": 0x11, "control": 0x11, "alt": 0x12, "option": 0x12, "pause": 0x13,
+    "capslock": 0x14, "escape": 0x1B, "esc": 0x1B, "space": 0x20, "pageup": 0x21,
+    "pagedown": 0x22, "end": 0x23, "home": 0x24, "left": 0x25, "up": 0x26,
+    "right": 0x27, "down": 0x28, "insert": 0x2D, "delete": 0x2E, "del": 0x2E,
+    "win": 0x5B, "cmd": 0x5B, "super": 0x5B, "meta": 0x5B, "windows": 0x5B,
+    **{f"f{i}": 0x6F + i for i in range(1, 13)},
+}
+_MOUSE_BUTTONS = {"left": 1, "right": 2, "middle": 3}
+_TYPE_TEXT_CHUNK = 256  # Msvm_Keyboard.TypeText accepts at most 256-512 chars per call
+
+
+def _vk(key: str) -> Optional[int]:
+    key = key.strip().lower()
+    if len(key) == 1 and key.isalnum():
+        return ord(key.upper())
+    return _VK_CODES.get(key)
+
+
+def _hyperv_input_steps(action: str, **kw: Any) -> Union[List[Dict[str, Any]], str]:
+    """Translate a computer_use input action into Msvm_Keyboard/Msvm_SyntheticMouse calls.
+
+    Returns the step list, or an error string for unsupported input.
+    """
+    kb, mouse = "Msvm_Keyboard", "Msvm_SyntheticMouse"
+
+    def move(x: Any, y: Any) -> Dict[str, Any]:
+        return {"dev": mouse, "m": "SetAbsolutePosition",
+                "p": {"horizontalPosition": int(x), "verticalPosition": int(y)}}
+
+    def button(idx: int, down: bool) -> Dict[str, Any]:
+        return {"dev": mouse, "m": "SetButtonState", "p": {"buttonIndex": idx, "isDown": down}}
+
+    if action == "type":
+        text = kw.get("text") or ""
+        if not text:
+            return "type requires text"
+        return [{"dev": kb, "m": "TypeText", "p": {"asciiText": text[i:i + _TYPE_TEXT_CHUNK]}}
+                for i in range(0, len(text), _TYPE_TEXT_CHUNK)]
+
+    if action == "key":
+        parts = [p for p in re.split(r"\s*\+\s*", kw.get("keys") or "") if p]
+        codes = [_vk(p) for p in parts]
+        if not parts or None in codes:
+            return f"unsupported key combo {kw.get('keys')!r}"
+        *mods, last = codes
+        return ([{"dev": kb, "m": "PressKey", "p": {"keyCode": c}} for c in mods]
+                + [{"dev": kb, "m": "TypeKey", "p": {"keyCode": last}}]
+                + [{"dev": kb, "m": "ReleaseKey", "p": {"keyCode": c}} for c in reversed(mods)])
+
+    x, y = kw.get("x"), kw.get("y")
+    pos = [move(x, y)] if x is not None and y is not None else []
+    btn_name = {"right_click": "right", "middle_click": "middle"}.get(action, kw.get("button") or "left")
+    btn = _MOUSE_BUTTONS.get(btn_name)
+    if btn is None:
+        return f"unsupported mouse button {btn_name!r}"
+
+    if action in ("click", "double_click", "triple_click", "right_click", "middle_click"):
+        clicks = {"double_click": 2, "triple_click": 3}.get(action, 1)
+        steps = list(pos)
+        for i in range(clicks):
+            if i:
+                steps.append({"sleep": 40})
+            steps += [button(btn, True), button(btn, False)]
+        return steps
+    if action == "mouse_move":
+        return pos or "mouse_move requires coordinate"
+    if action in ("mouse_down", "mouse_up"):
+        return pos + [button(btn, action == "mouse_down")]
+    if action == "scroll":
+        amount = int(kw.get("amount") or 3)
+        direction = str(kw.get("direction") or "down").lower()
+        if direction not in ("up", "down"):
+            return "Hyper-V synthetic mouse only scrolls up/down"
+        delta = 120 * amount * (1 if direction == "up" else -1)
+        return pos + [{"dev": mouse, "m": "SetScrollPosition", "p": {"scrollPositionDelta": delta}}]
+    if action == "drag":
+        if not kw.get("from_xy") or not kw.get("to_xy"):
+            return "drag requires from and to coordinates"
+        (fx, fy), (tx, ty) = kw["from_xy"], kw["to_xy"]
+        steps = [move(fx, fy), button(btn, True)]
+        for i in range(1, 6):
+            steps += [{"sleep": 15}, move(fx + (tx - fx) * i / 5, fy + (ty - fy) * i / 5)]
+        return steps + [button(btn, False)]
+    return f"Unsupported input action: {action}"
+
+
+def _rgb565_to_png_bytes(data: bytes, width: int, height: int) -> bytes:
+    """Convert Hyper-V's raw little-endian RGB565 thumbnail into PNG bytes."""
+    import io
+    from PIL import Image
+
+    img = Image.frombuffer("RGB", (width, height), data, "raw", "BGR;16", 0, 1)
+    buf = io.BytesIO()
+    img.save(buf, format="PNG")
+    return buf.getvalue()
 
 
 # ---------------------------------------------------------------------------
@@ -1055,10 +1015,11 @@ class WSLProvider(BaseVMProvider):
         config: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
         if direction == "upload":
-            cmd = f"wsl.exe -d {shlex.quote(name)} -- cp $(wslpath -u {shlex.quote(source)}) {shlex.quote(dest)}"
+            script = 'cp -- "$(wslpath -u "$1")" "$2"'
         else:
-            cmd = f"wsl.exe -d {shlex.quote(name)} -- cp {shlex.quote(source)} $(wslpath -u {shlex.quote(dest)})"
-        code, out, err = _run_subprocess(cmd, shell=True, timeout=30.0)
+            script = 'cp -- "$1" "$(wslpath -u "$2")"'
+        cmd = ["wsl.exe", "-d", name, "--", "sh", "-c", script, "sh", source, dest]
+        code, out, err = _run_subprocess(cmd, timeout=30.0)
         return {"ok": code == 0, "message": out or ("Transferred" if code == 0 else err)}
 
     def capture_screen(self, name: str, config: Optional[Dict[str, Any]] = None) -> Tuple[Optional[str], Optional[str]]:
@@ -1093,6 +1054,15 @@ class WSLProvider(BaseVMProvider):
 # ---------------------------------------------------------------------------
 
 
+# SSH/WinRM logons run outside the interactive desktop (session 0), so there is
+# no screen to capture or inject into from them.
+_WINDOWS_VPS_GUI_ERROR = (
+    "GUI capture/input is not supported on Windows VPS targets over SSH: remote "
+    "sessions have no interactive desktop. Use vm_exec for commands, or run the "
+    "guest under a local hypervisor (Hyper-V/QEMU/VMware/VirtualBox) for GUI control."
+)
+
+
 class RemoteVPSProvider(BaseVMProvider):
     """Remote VPS management over SSH (Linux) or WinRM/OpenSSH (Windows)."""
 
@@ -1108,7 +1078,7 @@ class RemoteVPSProvider(BaseVMProvider):
         cmd = [
             "ssh",
             "-o", "BatchMode=yes",
-            "-o", "StrictHostKeyChecking=no",
+            "-o", "StrictHostKeyChecking=accept-new",
             "-o", "ConnectTimeout=10",
             "-p", port,
         ]
@@ -1195,7 +1165,7 @@ class RemoteVPSProvider(BaseVMProvider):
         scp_cmd = [
             scp_bin,
             "-o", "BatchMode=yes",
-            "-o", "StrictHostKeyChecking=no",
+            "-o", "StrictHostKeyChecking=accept-new",
             "-P", port,
         ]
         if key_path and os.path.exists(os.path.expanduser(key_path)):
@@ -1225,22 +1195,7 @@ class RemoteVPSProvider(BaseVMProvider):
             if res2.exit_code == 0 and res2.stdout.strip():
                 return res2.stdout.strip(), None
             return None, f"Linux VPS screen capture failed: {res.stderr or res2.stderr or 'No capture utility installed (scrot/import)'}"
-        else:
-            # Windows VPS screen capture via PowerShell .NET Graphics
-            ps_script = """
-            Add-Type -AssemblyName System.Windows.Forms,System.Drawing
-            $b = [System.Windows.Forms.Screen]::PrimaryScreen.Bounds
-            $bmp = New-Object System.Drawing.Bitmap $b.Width, $b.Height
-            $g = [System.Drawing.Graphics]::FromImage($bmp)
-            $g.CopyFromScreen($b.Location, [System.Drawing.Point]::Empty, $b.Size)
-            $ms = New-Object System.IO.MemoryStream
-            $bmp.Save($ms, [System.Drawing.Imaging.ImageFormat]::Png)
-            [Convert]::ToBase64String($ms.ToArray())
-            """
-            res = self.execute(name, f"powershell -NoProfile -Command {shlex.quote(ps_script)}", timeout=25.0, config=cfg)
-            if res.exit_code == 0 and res.stdout.strip():
-                return res.stdout.strip().replace("\r", "").replace("\n", ""), None
-            return None, f"Windows VPS screen capture failed: {res.stderr or 'Empty output'}"
+        return None, _WINDOWS_VPS_GUI_ERROR
 
     def send_input(
         self,
@@ -1301,9 +1256,7 @@ class RemoteVPSProvider(BaseVMProvider):
                 return {"ok": res.exit_code == 0, "message": res.stdout or res.stderr}
 
         elif os_type == "windows":
-            # Delegate to Windows PowerShell user32 injection over remote session
-            hprov = HyperVProvider()
-            return hprov.send_input(name, action, config=cfg, **kwargs)
+            return {"ok": False, "error": _WINDOWS_VPS_GUI_ERROR}
 
         return {"ok": False, "error": f"send_input not supported for {os_type} VPS or action {action}"}
 
@@ -1472,13 +1425,17 @@ class VMManager:
         host: Optional[str] = None,
         port: Optional[int] = None,
         user: Optional[str] = None,
-        password: Optional[str] = None,
+        password_env: Optional[str] = None,
         key_path: Optional[str] = None,
         vmx_path: Optional[str] = None,
         notes: str = "",
         extra: Optional[Dict[str, Any]] = None,
     ) -> Dict[str, Any]:
-        """Register a new VM or remote VPS definition into the persistent inventory."""
+        """Register a new VM or remote VPS definition into the persistent inventory.
+
+        Passwords are never stored: ``password_env`` names the env var (set in
+        ``.env``) that holds it, resolved only when a provider needs it.
+        """
         inv = self._load_inventory()
         inv[name] = {
             "name": name,
@@ -1487,7 +1444,7 @@ class VMManager:
             "host": host,
             "port": port or (22 if "ssh" in vm_type or vm_type == "qemu" else (5985 if "winrm" in vm_type else None)),
             "user": user,
-            "password": password,
+            "password_env": password_env,
             "key_path": key_path,
             "vmx_path": vmx_path,
             "notes": notes,
@@ -1516,6 +1473,14 @@ class VMManager:
         """Resolve a VM/VPS name to a provider and its configuration."""
         reg = self.get_registered_vm(name)
         if reg:
+            reg = dict(reg)
+            if reg.get("password_env"):
+                reg["password"] = os.environ.get(reg["password_env"])
+            elif reg.get("password"):
+                logger.warning(
+                    "VM '%s' has a plaintext password in %s; move it to .env and re-register with --password-env",
+                    name, self._storage_path,
+                )
             vm_type = reg.get("vm_type", "")
             if vm_type in ("vps_ssh", "vps_winrm", "vps"):
                 return self._providers["vps"], reg
@@ -1721,32 +1686,6 @@ class VMManager:
             vms = self.list_vms()
             return json.dumps({"ok": True, "vms": vms, "count": len(vms)})
 
-        if action == "vm_register":
-            name = args.get("vm_name") or args.get("target")
-            if not name:
-                return json.dumps({"ok": False, "error": "vm_name is required for vm_register"})
-            vm_cfg = args.get("vm_config") or {}
-            res = self.register_vm(
-                name=name,
-                vm_type=args.get("vm_type") or vm_cfg.get("vm_type", "vps_ssh"),
-                os_type=args.get("os_type") or vm_cfg.get("os_type", "linux"),
-                host=vm_cfg.get("host"),
-                port=vm_cfg.get("port"),
-                user=vm_cfg.get("user"),
-                password=vm_cfg.get("password"),
-                key_path=vm_cfg.get("key_path"),
-                vmx_path=vm_cfg.get("vmx_path"),
-                notes=args.get("notes") or vm_cfg.get("notes", ""),
-                extra=vm_cfg.get("extra"),
-            )
-            return json.dumps(res)
-
-        if action == "vm_unregister":
-            name = args.get("vm_name") or args.get("target")
-            if not name:
-                return json.dumps({"ok": False, "error": "vm_name is required for vm_unregister"})
-            return json.dumps(self.unregister_vm(name))
-
         if not target:
             return json.dumps({"ok": False, "error": f"Action '{action}' requires 'target' or 'vm_name'"})
 
@@ -1845,6 +1784,18 @@ class VMManager:
             )
 
         return json.dumps({"ok": False, "error": f"Unknown VM action '{action}'"})
+
+
+def check_vm_requirements() -> bool:
+    """Expose the `vm` tool only when there is something to manage (no subprocesses)."""
+    mgr = get_vm_manager()
+    if mgr._load_inventory():
+        return True
+    if sys.platform == "win32":
+        system_root = os.environ.get("SystemRoot", r"C:\Windows")
+        if os.path.exists(os.path.join(system_root, "System32", "vmms.exe")):  # Hyper-V
+            return True
+    return any(mgr._providers[k].is_available() for k in ("wsl", "qemu", "vmware", "virtualbox"))
 
 
 # Global process singleton

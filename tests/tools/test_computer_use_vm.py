@@ -3,13 +3,20 @@
 from __future__ import annotations
 
 import json
+import sys
 from pathlib import Path
 from unittest.mock import MagicMock, patch
 
 import pytest
 
-from tools.computer_use.schema import COMPUTER_USE_SCHEMA
-from tools.computer_use.tool import handle_computer_use, reset_backend_for_tests, set_approval_callback
+from tools.computer_use.schema import COMPUTER_USE_SCHEMA, VM_SCHEMA
+from tools.computer_use.tool import (
+    _DESTRUCTIVE_ACTIONS,
+    _SAFE_ACTIONS,
+    handle_computer_use,
+    reset_backend_for_tests,
+    set_approval_callback,
+)
 from tools.computer_use.vm_manager import (
     BaseVMProvider,
     HyperVProvider,
@@ -20,8 +27,17 @@ from tools.computer_use.vm_manager import (
     VMInfo,
     VMManager,
     VMwareProvider,
+    WSLProvider,
+    _hyperv_input_steps,
+    _rgb565_to_png_bytes,
+    _run_powershell,
     get_vm_manager,
 )
+
+
+def _register(name: str, host: str = "10.0.0.1") -> None:
+    """Hosts are registered by the user (CLI), not through the model tool."""
+    get_vm_manager().register_vm(name, vm_type="vps_ssh", os_type="linux", host=host, user="root")
 
 
 @pytest.fixture(autouse=True)
@@ -41,43 +57,27 @@ def _reset_env(tmp_path: Path):
 
 
 class TestVMSchema:
-    def test_schema_includes_vm_actions(self):
-        actions = set(COMPUTER_USE_SCHEMA["parameters"]["properties"]["action"]["enum"])
-        expected_vm_actions = {
-            "vm_list",
-            "vm_status",
-            "vm_start",
-            "vm_stop",
-            "vm_restart",
-            "vm_pause",
-            "vm_resume",
-            "vm_snapshot",
-            "vm_exec",
-            "vm_file",
-            "vm_register",
-            "vm_unregister",
-            "vm_capture",
-            "vm_input",
-        }
-        assert expected_vm_actions.issubset(actions)
+    def test_vm_actions_live_in_vm_tool_not_computer_use(self):
+        cu_actions = set(COMPUTER_USE_SCHEMA["parameters"]["properties"]["action"]["enum"])
+        vm_actions = set(VM_SCHEMA["parameters"]["properties"]["action"]["enum"])
+        assert vm_actions
+        assert not {a for a in cu_actions if a.startswith(("vm_", "unattended_"))}
+        assert not cu_actions & vm_actions
 
-    def test_schema_includes_vm_parameters(self):
-        props = COMPUTER_USE_SCHEMA["parameters"]["properties"]
-        expected_props = [
-            "target",
-            "vm_name",
-            "vm_action",
-            "vm_type",
-            "os_type",
-            "command",
-            "snapshot_name",
-            "source_path",
-            "dest_path",
-            "vm_config",
-            "force",
-        ]
-        for p in expected_props:
-            assert p in props, f"Missing property: {p}"
+    def test_every_advertised_action_has_an_approval_class(self):
+        for schema in (COMPUTER_USE_SCHEMA, VM_SCHEMA):
+            for action in schema["parameters"]["properties"]["action"]["enum"]:
+                assert action in _SAFE_ACTIONS | _DESTRUCTIVE_ACTIONS | {"set_value"}, action
+
+    def test_no_schema_accepts_credentials(self):
+        for schema in (COMPUTER_USE_SCHEMA, VM_SCHEMA):
+            text = str(schema["parameters"]).lower()
+            assert "password" not in text and "vm_config" not in text
+
+    def test_model_cannot_register_hosts(self):
+        res = json.loads(handle_computer_use({"action": "vm_register", "vm_name": "x", "target": "x"}))
+        assert res.get("ok") is not True
+        assert get_vm_manager().get_registered_vm("x") is None
 
 
 class TestVMManagerRegistry:
@@ -140,17 +140,17 @@ class TestVMProviders:
             mock_ps.return_value = (0, "Stopped", "")
             res = prov.stop("TestVM", force=False)
             assert res["ok"] is True
-            assert "-TurnOff" not in mock_ps.call_args[0][0]
+            assert mock_ps.call_args.kwargs["args"]["force"] is False
 
             # Test stop force
             res = prov.stop("TestVM", force=True)
             assert res["ok"] is True
-            assert "-TurnOff" in mock_ps.call_args[0][0]
+            assert mock_ps.call_args.kwargs["args"]["force"] is True
 
             # Test restart
             res = prov.restart("TestVM", force=True)
             assert res["ok"] is True
-            assert "-Force" in mock_ps.call_args[0][0]
+            assert "Restart-VM" in mock_ps.call_args[0][0]
 
             # Test snapshot create
             mock_ps.return_value = (0, "Checkpoint", "")
@@ -219,17 +219,8 @@ class TestVMProviders:
 
 
 class TestComputerUseToolVMDispatch:
-    def test_tool_vm_register_and_list(self):
-        reg_payload = {
-            "action": "vm_register",
-            "vm_name": "test-agent-vps",
-            "vm_type": "vps_ssh",
-            "os_type": "linux",
-            "vm_config": {"host": "10.10.10.10", "user": "ubuntu"},
-        }
-        res_str = handle_computer_use(reg_payload)
-        res = json.loads(res_str)
-        assert res["ok"] is True
+    def test_tool_vm_list_shows_registered(self):
+        _register("test-agent-vps", "10.10.10.10")
 
         list_res = json.loads(handle_computer_use({"action": "vm_list"}))
         assert list_res["ok"] is True
@@ -237,13 +228,7 @@ class TestComputerUseToolVMDispatch:
         assert "test-agent-vps" in names
 
     def test_tool_vm_status(self):
-        handle_computer_use({
-            "action": "vm_register",
-            "vm_name": "status-vps",
-            "vm_type": "vps_ssh",
-            "os_type": "linux",
-            "vm_config": {"host": "10.10.10.20", "user": "root"},
-        })
+        _register("status-vps", "10.10.10.20")
         with patch.object(RemoteVPSProvider, "get_status") as mock_status:
             mock_status.return_value = VMInfo(name="status-vps", vm_type="vps_ssh", os_type="linux", state="running")
             st_res = json.loads(handle_computer_use({"action": "vm_status", "vm_name": "status-vps"}))
@@ -251,13 +236,7 @@ class TestComputerUseToolVMDispatch:
             assert st_res["status"]["state"] == "running"
 
     def test_tool_vm_exec(self):
-        handle_computer_use({
-            "action": "vm_register",
-            "vm_name": "exec-vm",
-            "vm_type": "vps_ssh",
-            "os_type": "linux",
-            "vm_config": {"host": "10.10.10.30", "user": "root"},
-        })
+        _register("exec-vm", "10.10.10.30")
         with patch.object(RemoteVPSProvider, "execute") as mock_exec:
             mock_exec.return_value = VMExecutionResult(exit_code=0, stdout="uname: Linux", stderr="")
             res = json.loads(handle_computer_use({
@@ -269,13 +248,7 @@ class TestComputerUseToolVMDispatch:
             assert "Linux" in res["stdout"]
 
     def test_tool_targeted_capture_routes_to_vm(self):
-        handle_computer_use({
-            "action": "vm_register",
-            "vm_name": "vis-vm",
-            "vm_type": "vps_ssh",
-            "os_type": "linux",
-            "vm_config": {"host": "10.10.10.40", "user": "root"},
-        })
+        _register("vis-vm", "10.10.10.40")
         fake_b64 = "iVBORw0KGgoAAAANSUhEUgAAAGQAAABkCAIAAAD/gAIDAAAA5UlEQVR4nO3SsREAIAwDscD+O8MK+V6qXf35vGHrrpeIVXhWIFYgViBWIFYgViBWIFYgViBWIFYgViBWIFYgViBWIFYgViBWIFYgViBWIFYgViBWIFYgViBWIFYgViBWIFYgViBWIFYgViBWIFYgViBWIFYgViBWIFYgViBWIFYgViBWIFYgViBWIFYgViBWIFYgViBWIFYgViBWIFYgViBWIFYgViBWIFYgViBWIFYgViBWIFYgViBWIFYgViBWIFYgViBWIFYgViBWIFYgViBWIFYgViBWIFYgViBWIFYgViDW7H2KXgHH3JQfGQAAAABJRU5ErkJggg=="
         with patch.object(RemoteVPSProvider, "capture_screen", return_value=(fake_b64, None)), \
              patch("tools.computer_use.tool._should_route_through_aux_vision", return_value=False):
@@ -288,13 +261,7 @@ class TestComputerUseToolVMDispatch:
             assert any("image_url" in item for item in res.get("content", []))
 
     def test_tool_targeted_input_routes_to_vm(self):
-        handle_computer_use({
-            "action": "vm_register",
-            "vm_name": "input-vm",
-            "vm_type": "vps_ssh",
-            "os_type": "linux",
-            "vm_config": {"host": "10.10.10.50", "user": "root"},
-        })
+        _register("input-vm", "10.10.10.50")
         with patch.object(RemoteVPSProvider, "send_input", return_value={"ok": True, "message": "sent"}) as mock_input:
             res_str = handle_computer_use({
                 "action": "type",
@@ -347,13 +314,7 @@ class TestUnattendedComputerUse:
         assert mgr.is_unattended_enabled() is False
 
     def test_unattended_auto_routing_without_target_arg(self):
-        handle_computer_use({
-            "action": "vm_register",
-            "vm_name": "auto-vm",
-            "vm_type": "vps_ssh",
-            "os_type": "linux",
-            "vm_config": {"host": "10.0.0.1", "user": "user"},
-        })
+        _register("auto-vm", "10.0.0.1")
         handle_computer_use({
             "action": "unattended_set",
             "target": "auto-vm",
@@ -544,3 +505,84 @@ class TestClaudeReferenceCompatibilityAndSpeed:
             assert res["ok"] is True
             assert "ReadAllBytes" in mock_ps.call_args[0][0]
             assert "WriteAllBytes" in mock_ps.call_args[0][0]
+
+
+class TestCredentialsAndInjection:
+    def test_password_is_never_written_to_inventory(self, tmp_path: Path, monkeypatch):
+        monkeypatch.setenv("LAB_PW", "s3cret!")
+        mgr = VMManager(storage_path=tmp_path / "vms.json")
+        mgr.register_vm("lab", vm_type="hyperv", os_type="windows", user="admin", password_env="LAB_PW")
+        assert "s3cret!" not in (tmp_path / "vms.json").read_text(encoding="utf-8")
+        _, cfg = mgr._resolve_target("lab")
+        assert cfg["password"] == "s3cret!"
+        assert all("s3cret!" not in json.dumps(v) for v in mgr.list_vms(include_discovered=False))
+
+    def test_hyperv_values_never_reach_script_text(self):
+        evil = "x'; Remove-Item C:\\ -Recurse #\"$(calc)"
+        prov = HyperVProvider()
+        with patch("tools.computer_use.vm_manager._run_powershell", return_value=(0, "", "")) as mock_ps:
+            prov.start(evil)
+            prov.snapshot(evil, "restore", evil)
+            prov.execute(evil, evil, config={"user": evil, "password": evil})
+            prov.transfer_file(evil, evil, evil, direction="download")
+            prov.send_input(evil, "type", text=evil)
+        assert mock_ps.call_count == 5
+        for call in mock_ps.call_args_list:
+            assert evil not in call[0][0]
+            assert call.kwargs["args"]["name"] == evil
+
+    @pytest.mark.skipif(sys.platform != "win32", reason="needs powershell.exe")
+    def test_run_powershell_passes_args_literally(self):
+        evil = "x'; $(Write-Output pwned) \"q`n"
+        code, out, err = _run_powershell("Write-Output $a.v", timeout=60, args={"v": evil})
+        assert code == 0, err
+        assert out == evil
+        code, out, err = _run_powershell("throw 'boom'", timeout=60)
+        assert code == 1 and err == "boom"
+
+    def test_wsl_transfer_uses_argv_not_host_shell(self):
+        with patch("tools.computer_use.vm_manager._run_subprocess", return_value=(0, "", "")) as mock_run:
+            WSLProvider().transfer_file("Ubuntu", "C:\\a b.txt", "/tmp/$(x)", direction="upload")
+        argv = mock_run.call_args[0][0]
+        assert argv[:4] == ["wsl.exe", "-d", "Ubuntu", "--"]
+        assert argv[-2:] == ["C:\\a b.txt", "/tmp/$(x)"]
+        assert not mock_run.call_args.kwargs.get("shell")
+
+
+class TestHyperVInputSteps:
+    def test_key_combo_presses_modifiers_around_final_key(self):
+        steps = _hyperv_input_steps("key", keys="ctrl+alt+t")
+        assert [(s["m"], s["p"]["keyCode"]) for s in steps] == [
+            ("PressKey", 0x11), ("PressKey", 0x12), ("TypeKey", ord("T")),
+            ("ReleaseKey", 0x12), ("ReleaseKey", 0x11),
+        ]
+
+    def test_unknown_key_is_an_error_not_a_guess(self):
+        assert isinstance(_hyperv_input_steps("key", keys="ctrl+nonsense"), str)
+
+    def test_long_text_is_chunked_within_typetext_limit(self):
+        text = "a" * 700
+        steps = _hyperv_input_steps("type", text=text)
+        assert "".join(s["p"]["asciiText"] for s in steps) == text
+        assert all(len(s["p"]["asciiText"]) <= 256 for s in steps)
+
+    def test_double_click_moves_then_clicks_twice(self):
+        steps = _hyperv_input_steps("double_click", x=10, y=20)
+        assert steps[0]["p"] == {"horizontalPosition": 10, "verticalPosition": 20}
+        presses = [s["p"]["isDown"] for s in steps if s.get("m") == "SetButtonState"]
+        assert presses == [True, False, True, False]
+
+    def test_drag_ends_at_target_with_button_released(self):
+        steps = _hyperv_input_steps("drag", from_xy=(0, 0), to_xy=(100, 50))
+        moves = [s["p"] for s in steps if s.get("m") == "SetAbsolutePosition"]
+        assert moves[0] == {"horizontalPosition": 0, "verticalPosition": 0}
+        assert moves[-1] == {"horizontalPosition": 100, "verticalPosition": 50}
+        assert steps[-1]["p"]["isDown"] is False
+
+    def test_rgb565_decodes_primary_colors(self):
+        import io
+        import struct
+        from PIL import Image
+        png = _rgb565_to_png_bytes(struct.pack("<3H", 0xF800, 0x07E0, 0x001F), 3, 1)
+        img = Image.open(io.BytesIO(png)).convert("RGB")
+        assert [img.getpixel((i, 0)) for i in range(3)] == [(255, 0, 0), (0, 255, 0), (0, 0, 255)]

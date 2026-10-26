@@ -16608,6 +16608,11 @@ def main():
     vm_reg_p.add_argument("--port", type=int, help="Remote port")
     vm_reg_p.add_argument("--user", help="Remote username")
     vm_reg_p.add_argument("--key", dest="key_path", help="Path to SSH private key")
+    vm_reg_p.add_argument("--vmx", dest="vmx_path", help="VMware .vmx path")
+    vm_reg_p.add_argument(
+        "--password-env",
+        help="Name of the .env variable holding the guest password (Hyper-V PowerShell Direct); the password itself is never stored",
+    )
     vm_reg_p.add_argument("--notes", default="", help="Description/notes")
 
     vm_unreg_p = computer_use_vm_sub.add_parser("unregister", help="Unregister a VM or VPS")
@@ -16790,7 +16795,9 @@ def main():
                     host=args.host,
                     port=args.port,
                     user=args.user,
+                    password_env=args.password_env,
                     key_path=args.key_path,
+                    vmx_path=args.vmx_path,
                     notes=args.notes,
                 )
                 print(res.get("message") or ("Registered" if res.get("ok") else res.get("error")))

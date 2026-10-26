@@ -82,6 +82,8 @@ _JETTSTUI_CORE_TOOLS = [
     "kanban_attach", "kanban_attach_url", "kanban_attachments",
     # Computer use (macOS, gated on cua-driver being installed via check_fn)
     "computer_use",
+    # VM/VPS lifecycle (gated on a local hypervisor or registered VPS)
+    "vm",
 ]
 
 # Webhook events may originate from untrusted third-party content (for example,
@@ -160,7 +162,7 @@ TOOLSETS = {
             "screenshots, mouse, keyboard, scroll, drag. Does NOT steal the "
             "user's cursor or keyboard focus. Works with any tool-capable model."
         ),
-        "tools": ["computer_use"],
+        "tools": ["computer_use", "vm"],
         "includes": []
     },
 

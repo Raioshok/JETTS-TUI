@@ -36,56 +36,15 @@ COMPUTER_USE_SCHEMA: Dict[str, Any] = {
             "action": {
                 "type": "string",
                 "enum": [
-                    "capture",
-                    "click",
-                    "double_click",
-                    "right_click",
-                    "middle_click",
-                    "drag",
-                    "scroll",
-                    "type",
-                    "key",
-                    "set_value",
-                    "wait",
-                    "list_apps",
-                    "list_windows",
-                    "focus_app",
-                    "screenshot",
-                    "mouse_move",
-                    "left_click",
-                    "left_click_drag",
-                    "triple_click",
+                    "capture", "click", "double_click", "triple_click",
+                    "right_click", "middle_click", "drag", "scroll", "type",
+                    "key", "set_value", "wait", "list_apps", "list_windows",
+                    "focus_app", "mouse_move", "mouse_down", "mouse_up",
                     "cursor_position",
-                    "mouse_down",
-                    "mouse_up",
-                    "left_mouse_down",
-                    "left_mouse_up",
-                    "vm_list",
-                    "vm_status",
-                    "vm_start",
-                    "vm_stop",
-                    "vm_restart",
-                    "vm_pause",
-                    "vm_resume",
-                    "vm_snapshot",
-                    "vm_exec",
-                    "vm_file",
-                    "vm_register",
-                    "vm_unregister",
-                    "vm_capture",
-                    "vm_input",
-                    "unattended_set",
-                    "unattended_status",
-                    "unattended_stop",
                 ],
                 "description": (
-                    "Which action to perform. `capture`, `screenshot`, `cursor_position`, `wait`, `list_apps`, `list_windows`, "
-                    "`vm_list`, `vm_status`, `vm_capture`, `unattended_status`, and `unattended_stop` are read-only / safe. "
-                    "All other actions require approval unless auto-approved. Supports Claude-standard action names "
-                    "(screenshot, mouse_move, left_click, left_click_drag, triple_click, cursor_position, mouse_down, mouse_up). "
-                    "Actions prefixed with `vm_` manage Linux and Windows virtual machines (Hyper-V, QEMU, VMware, VirtualBox) "
-                    "and remote VPSes (SSH/WinRM). `unattended_*` controls isolated execution where actions run inside a VM/VPS "
-                    "without disturbing host user mouse and keyboard."
+                    "`capture`, `cursor_position`, `wait`, `list_apps` and "
+                    "`list_windows` are read-only; everything else needs approval."
                 ),
             },
             # ── capture ────────────────────────────────────────────
@@ -201,12 +160,6 @@ COMPUTER_USE_SCHEMA: Dict[str, Any] = {
                 "minItems": 2, "maxItems": 2,
                 "description": "Source [x,y] (drag; use when no element available).",
             },
-            "start_coordinate": {
-                "type": "array",
-                "items": {"type": "integer"},
-                "minItems": 2, "maxItems": 2,
-                "description": "Starting [x,y] for left_click_drag (Claude reference parameter; alias for from_coordinate).",
-            },
             "to_coordinate": {
                 "type": "array",
                 "items": {"type": "integer"},
@@ -219,18 +172,9 @@ COMPUTER_USE_SCHEMA: Dict[str, Any] = {
                 "enum": ["up", "down", "left", "right"],
                 "description": "Scroll direction.",
             },
-            "scroll_direction": {
-                "type": "string",
-                "enum": ["up", "down", "left", "right"],
-                "description": "Alias for direction (Claude reference parameter).",
-            },
             "amount": {
                 "type": "integer",
                 "description": "Scroll wheel ticks. Default 3.",
-            },
-            "scroll_amount": {
-                "type": "integer",
-                "description": "Alias for amount (Claude reference parameter).",
             },
             # ── set_value ──────────────────────────────────────────
             "value": {
@@ -257,10 +201,6 @@ COMPUTER_USE_SCHEMA: Dict[str, Any] = {
             "seconds": {
                 "type": "number",
                 "description": "Seconds to wait. Max 30.",
-            },
-            "duration": {
-                "type": "number",
-                "description": "Alias for seconds (Claude reference parameter).",
             },
             # ── focus_app ──────────────────────────────────────────
             "raise_window": {
@@ -301,68 +241,13 @@ COMPUTER_USE_SCHEMA: Dict[str, Any] = {
                     "sequence of foreground actions. Default false."
                 ),
             },
-            # ── VM / VPS management & Unattended execution ───────
-            "unattended": {
-                "type": "boolean",
-                "description": (
-                    "When true, runs in unattended mode: desktop automation is routed to an isolated "
-                    "VM or remote VPS so the user can freely use their PC, mouse, and keyboard "
-                    "without focus stealing or input collision."
-                ),
-            },
+            # ── VM targeting ───────────────────────────────────────
             "target": {
                 "type": "string",
                 "description": (
-                    "Optional VM or VPS target name/identifier (e.g. 'Aegis-Lab-Win11' or 'my-linux-vps'). "
-                    "When provided, computer_use actions (capture, click, type, key, etc.) and vm_* actions "
-                    "route to this virtual machine or remote VPS instead of the local desktop."
+                    "Optional VM/VPS name (see the `vm` tool). Routes capture "
+                    "and input actions into that guest instead of the host desktop."
                 ),
-            },
-            "vm_name": {
-                "type": "string",
-                "description": "Name or identifier of the target VM or VPS (for vm_* actions).",
-            },
-            "vm_action": {
-                "type": "string",
-                "enum": ["create", "restore", "delete", "list", "upload", "download"],
-                "description": "Sub-action for vm_snapshot (create|restore|delete|list) or vm_file (upload|download).",
-            },
-            "vm_type": {
-                "type": "string",
-                "enum": ["auto", "hyperv", "qemu", "vmware", "virtualbox", "vps_ssh", "vps_winrm"],
-                "description": "Virtualization hypervisor or VPS remote connection protocol.",
-            },
-            "os_type": {
-                "type": "string",
-                "enum": ["linux", "windows", "other"],
-                "description": "Operating system running inside the VM/VPS ('linux' or 'windows').",
-            },
-            "command": {
-                "type": "string",
-                "description": "Command or script to execute inside the VM/VPS for action='vm_exec'.",
-            },
-            "snapshot_name": {
-                "type": "string",
-                "description": "Snapshot name or checkpoint name for action='vm_snapshot'.",
-            },
-            "source_path": {
-                "type": "string",
-                "description": "Source path for action='vm_file' transfer.",
-            },
-            "dest_path": {
-                "type": "string",
-                "description": "Destination path for action='vm_file' transfer.",
-            },
-            "vm_config": {
-                "type": "object",
-                "description": (
-                    "Configuration parameters when registering a VM/VPS (host, port, user, "
-                    "password, key_path, vmx_path, notes, extra)."
-                ),
-            },
-            "force": {
-                "type": "boolean",
-                "description": "Force flag for vm_stop (power off without waiting for OS shutdown) or vm_restart.",
             },
             # ── return shape ───────────────────────────────────────
             "capture_after": {
@@ -373,6 +258,51 @@ COMPUTER_USE_SCHEMA: Dict[str, Any] = {
                     "when you need to verify an action's effect."
                 ),
             },
+        },
+        "required": ["action"],
+    },
+}
+
+
+VM_SCHEMA: Dict[str, Any] = {
+    "name": "vm",
+    "description": (
+        "Manage local VMs (Hyper-V, QEMU/libvirt, VMware, VirtualBox, WSL) and "
+        "registered SSH VPSes: lifecycle, snapshots, guest commands, file "
+        "transfer. To see or drive a guest's screen, call `computer_use` with "
+        "target=<vm_name>. `unattended_set` makes that guest the default "
+        "computer_use target so the host desktop is left alone. Hosts and "
+        "credentials are registered by the user with `jettstui computer-use vm "
+        "register`, never through this tool."
+    ),
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "action": {
+                "type": "string",
+                "enum": [
+                    "vm_list", "vm_status", "vm_start", "vm_stop", "vm_restart",
+                    "vm_pause", "vm_resume", "vm_snapshot", "vm_exec", "vm_file",
+                    "unattended_set", "unattended_status", "unattended_stop",
+                ],
+                "description": (
+                    "`vm_list`, `vm_status`, `unattended_status` and "
+                    "`unattended_stop` are read-only; the rest need approval."
+                ),
+            },
+            "vm_name": {"type": "string", "description": "Target VM/VPS name."},
+            "vm_action": {
+                "type": "string",
+                "enum": ["create", "restore", "delete", "list", "upload", "download"],
+                "description": "vm_snapshot: create|restore|delete|list. vm_file: upload|download.",
+            },
+            "snapshot_name": {"type": "string"},
+            "command": {"type": "string", "description": "vm_exec: command to run in the guest."},
+            "timeout": {"type": "number", "description": "vm_exec timeout in seconds. Default 60."},
+            "source_path": {"type": "string", "description": "vm_file source path."},
+            "dest_path": {"type": "string", "description": "vm_file destination path."},
+            "force": {"type": "boolean", "description": "vm_stop/vm_restart: hard power-off/reset."},
+            "target": {"type": "string", "description": "unattended_set: VM name, or 'auto'."},
         },
         "required": ["action"],
     },
