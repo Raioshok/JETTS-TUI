@@ -6,6 +6,7 @@ import { PREVIEW_RAIL_MAX_WIDTH, PREVIEW_RAIL_MIN_WIDTH } from '@/app/chat/right
 import { SessionStatusDot } from '@/app/chat/session-status-dot'
 import { PALETTE_AREA, type PaletteContribution } from '@/app/command-palette/contrib'
 import { type StatusbarItem } from '@/app/shell/statusbar-controls'
+import { $titlebarClusters, titlebarDragGaps } from '@/app/shell/titlebar-drag'
 import { IdleMount } from '@/components/idle-mount'
 import { toggleLayoutEditMode } from '@/components/pane-shell/edit-mode'
 import { allPaneIds, group, groupLeafIds, split } from '@/components/pane-shell/tree/model'
@@ -734,6 +735,7 @@ function TitlebarSlot({ area, className, style }: TitlebarSlotProps) {
 export function ContribController() {
   const sidebarOpen = useStore($sidebarOpen)
   const statusbarVisible = useStore($statusbarVisible)
+  const dragGaps = titlebarDragGaps(useStore($titlebarClusters))
 
   return (
     <SidebarProvider
@@ -759,20 +761,19 @@ export function ContribController() {
                   threading), clamped to clear the REAL TitlebarControls
                   clusters (fixed, z-70); center is truly window-centered. */}
           <div className="relative flex h-[34px] shrink-0 items-center bg-(--ui-sidebar-surface-background) text-xs">
-            {/* Drag strips, AppShell-style: cut to AVOID the fixed control
-                clusters instead of overlapping them — Electron's no-drag
-                carve-out of fixed/transformed elements is unreliable, so a
-                full-bar drag base kills their clicks. In-flow slot content
-                still carves via its own no-drag wrapper (the same pattern as
-                the app's session-title button). */}
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-y-0 left-0 w-(--titlebar-controls-left,14px) [-webkit-app-region:drag]"
-            />
-            <div
-              aria-hidden="true"
-              className="pointer-events-none absolute inset-y-0 left-[calc(var(--titlebar-controls-left,14px)+(var(--titlebar-control-size,1.25rem)*2)+0.75rem)] right-[calc(var(--titlebar-tools-right,0.75rem)+var(--titlebar-tools-width,5.5rem)+0.75rem)] [-webkit-app-region:drag]"
-            />
+            {/* Drag strips: the measured gaps between the fixed control
+                clusters, never overlapping them — Electron's no-drag carve-out
+                of fixed/transformed elements is unreliable, so a strip under a
+                cluster kills its clicks. In-flow slot content still carves via
+                its own no-drag wrapper. */}
+            {dragGaps.map(gap => (
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-y-0 [-webkit-app-region:drag]"
+                key={gap.left}
+                style={gap.right === null ? { left: gap.left, right: 0 } : { left: gap.left, width: gap.right - gap.left }}
+              />
+            ))}
             <TitlebarSlot
               area="titleBar.left"
               className="pointer-events-auto absolute z-10 flex w-max items-center gap-2 [-webkit-app-region:no-drag]"

@@ -1,5 +1,5 @@
 import { useStore } from '@nanostores/react'
-import { type ComponentProps, type MouseEvent, type ReactNode, useEffect, useState } from 'react'
+import { type ComponentProps, type MouseEvent, type ReactNode, useEffect, useLayoutEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 import { toggleLayoutEditMode } from '@/components/pane-shell/edit-mode'
@@ -24,6 +24,7 @@ import { useTheme } from '@/themes'
 import { appViewForPath, isOverlayView, SETTINGS_ROUTE } from '../routes'
 
 import { titlebarButtonClass } from './titlebar'
+import { publishTitlebarClusters } from './titlebar-drag'
 
 // Route-backed modes in the header switcher, labelled by their sidebar entries.
 const PAGE_MODES = [
@@ -106,6 +107,24 @@ function useModifierHeld(): boolean {
   return held
 }
 
+/** Keep the titlebar drag strips cut around the clusters as they mount, resize or move. */
+function usePublishTitlebarClusters() {
+  useLayoutEffect(() => {
+    publishTitlebarClusters()
+
+    const ro = new ResizeObserver(publishTitlebarClusters)
+    document.querySelectorAll('[data-titlebar-cluster]').forEach(el => ro.observe(el))
+
+    return () => ro.disconnect()
+  })
+
+  useEffect(() => {
+    window.addEventListener('resize', publishTitlebarClusters)
+
+    return () => window.removeEventListener('resize', publishTitlebarClusters)
+  }, [])
+}
+
 export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }: TitlebarControlsProps) {
   const { t } = useI18n()
   const navigate = useNavigate()
@@ -176,6 +195,7 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
   // show/hide affordances.
   const leftEdge = { open: sidebarOpen, toggle: toggleSidebarOpen }
   const rightEdge = { open: fileBrowserOpen, toggle: toggleFileBrowserOpen }
+  usePublishTitlebarClusters()
 
   const leftToolbarTools: TitlebarTool[] = [
     {
@@ -304,6 +324,7 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
       <div
         aria-label={t.shell.windowControls}
         className="fixed left-(--titlebar-controls-left) top-(--titlebar-controls-top) z-70 flex translate-y-0.5 flex-row items-center gap-x-1 pointer-events-auto select-none [-webkit-app-region:no-drag]"
+        data-titlebar-cluster
       >
         {leftToolbarTools
           .filter(tool => !tool.hidden)
@@ -315,6 +336,7 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
       <div
         aria-label={t.titlebar.modeSwitcher}
         className="fixed left-1/2 top-(--titlebar-controls-top) z-70 flex -translate-x-1/2 translate-y-0.5 flex-row items-center pointer-events-auto select-none [-webkit-app-region:no-drag]"
+        data-titlebar-cluster
       >
         <div
           className="flex items-center gap-0.5 rounded-full border border-(--ui-stroke-tertiary) bg-(--ui-bg-chrome) p-0.5 shadow-xs"
@@ -351,6 +373,7 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
         <div
           aria-label={t.shell.paneControls}
           className="fixed top-[calc(var(--titlebar-controls-top)+var(--right-rail-top-inset,0px))] right-[calc(var(--titlebar-tools-right)+var(--shell-preview-toolbar-gap,0))] z-70 flex flex-row items-center gap-x-1 pointer-events-auto select-none [-webkit-app-region:no-drag]"
+          data-titlebar-cluster
         >
           {visiblePaneTools.map(tool => (
             <TitlebarToolButton key={tool.id} navigate={navigate} tool={tool} />
@@ -361,6 +384,7 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
       <div
         aria-label={t.shell.appControls}
         className="fixed right-(--titlebar-tools-right) top-(--titlebar-controls-top) z-70 flex flex-row items-center justify-end gap-x-1 pointer-events-auto select-none [-webkit-app-region:no-drag]"
+        data-titlebar-cluster
       >
         {visibleSystemTools.map(tool => (
           <TitlebarToolButton key={tool.id} navigate={navigate} tool={tool} />
