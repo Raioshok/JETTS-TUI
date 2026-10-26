@@ -250,9 +250,12 @@ Notes:
 
 ## Iconography & brand
 
-- **Tabler** is the default component/chrome set. Import its curated aliases and
-  `iconSize` scale from `src/lib/icons.ts`; do not import icon packages directly
-  in feature code.
+- **`src/lib/icons.ts`** is the default component/chrome set: Tabler-shaped
+  aliases (`Plus`, `Settings`, …) and the `iconSize` scale. Each alias is a
+  JettsTUI glyph via `jettsIcon('<glyph>')` (`src/lib/jetts-icon.tsx`), a
+  drop-in for a Tabler icon (`size`, `stroke`, `title`, `{ filled: true }` for
+  `*Filled` variants). Only brand logos (Discord) stay Tabler. Do not import
+  icon packages directly in feature code; add a glyph and an alias instead.
 - **`Codicon`** is the compact editor/tool/status vocabulary. Use
   `src/components/ui/codicon.tsx`, including `codiconIcon()` where a
   Tabler-shaped component is required. Names with an entry in
