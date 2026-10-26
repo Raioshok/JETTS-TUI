@@ -9,7 +9,7 @@ from __future__ import annotations
 
 from abc import ABC, abstractmethod
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Tuple, Union
 
 
 @dataclass
@@ -231,6 +231,11 @@ class ComputerUseBackend(ABC):
 
     def cursor_position(self) -> ActionResult:
         return ActionResult(ok=False, action="cursor_position", message="cursor_position not implemented on this backend")
+
+    def zoom(self, region: List[int]) -> Union["CaptureResult", ActionResult]:
+        """Full-resolution view of ``[x0, y0, x1, y1]`` from the last screenshot."""
+        return ActionResult(ok=False, action="zoom", code="unsupported",
+                            message="zoom is not implemented on this backend")
 
     def triple_click(self, *, x: Optional[int] = None, y: Optional[int] = None, button: str = "left", **kwargs) -> ActionResult:
         return self.click(x=x, y=y, button=button, click_count=3, **kwargs)

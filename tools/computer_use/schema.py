@@ -40,11 +40,11 @@ COMPUTER_USE_SCHEMA: Dict[str, Any] = {
                     "right_click", "middle_click", "drag", "scroll", "type",
                     "key", "set_value", "wait", "list_apps", "list_windows",
                     "focus_app", "mouse_move", "mouse_down", "mouse_up",
-                    "cursor_position",
+                    "cursor_position", "zoom",
                 ],
                 "description": (
-                    "`capture`, `cursor_position`, `wait`, `list_apps` and "
-                    "`list_windows` are read-only; everything else needs approval."
+                    "`capture`, `zoom`, `cursor_position`, `wait`, `list_apps` "
+                    "and `list_windows` are read-only; everything else needs approval."
                 ),
             },
             # ── capture ────────────────────────────────────────────
@@ -110,6 +110,17 @@ COMPUTER_USE_SCHEMA: Dict[str, Any] = {
                 "default": 100,
                 "minimum": 1,
                 "maximum": 1000,
+            },
+            "region": {
+                "type": "array",
+                "items": {"type": "integer"},
+                "minItems": 4,
+                "maxItems": 4,
+                "description": (
+                    "For action='zoom': [x0, y0, x1, y1] in the last screenshot's "
+                    "pixels. Returns that area at full resolution to read small "
+                    "text; keep using full-screenshot coordinates for actions."
+                ),
             },
             # ── click / drag / scroll targeting ────────────────────
             "element": {

@@ -48,6 +48,11 @@ from tools.computer_use.backend import (
 
 logger = logging.getLogger(__name__)
 
+# Pointer drift (device px) tolerated before we decide the user moved the mouse.
+_TAKEOVER_TOLERANCE = 4
+# Longest side of a zoom result; enough to read small text without a huge image.
+_ZOOM_MAX_DIM = 1456
+
 # Anthropic's reference clients target WXGA (~1280x800); accuracy falls off on
 # larger frames and the token cost climbs. 0 disables downscaling.
 _DEFAULT_MAX_WIDTH = 1280
@@ -520,6 +525,10 @@ class NativeBackend(ComputerUseBackend):
         self._scale_y = 1.0
         # (width, height) of the last screenshot; coordinates must fall inside it.
         self._frame: Optional[Tuple[int, int]] = None
+        # Where our last input left the pointer (device px). If it is somewhere
+        # else when the next action starts, the user has taken the mouse.
+        self._expected_cursor: Optional[Tuple[int, int]] = None
+        self._user_took_over = False
 
     # -- lifecycle ----------------------------------------------------------
     def start(self) -> None:
@@ -557,6 +566,25 @@ class NativeBackend(ComputerUseBackend):
         yi = int(round((y or 0) * self._scale_y))
         return xi, yi
 
+    def _takeover_check(self, label: str) -> Optional[ActionResult]:
+        """Refuse input once the user has moved the mouse, until a fresh capture."""
+        if not self._user_took_over and self._expected_cursor is not None:
+            cx, cy = self._eng().get_cursor_position()
+            ex, ey = self._expected_cursor
+            if abs(cx - ex) > _TAKEOVER_TOLERANCE or abs(cy - ey) > _TAKEOVER_TOLERANCE:
+                self._user_took_over = True
+        if not self._user_took_over:
+            return None
+        return ActionResult(
+            ok=False, action=label, code="user_active", effect="suspected_noop",
+            message="The user moved the mouse, so input is paused. Do not fight them "
+                    "for control: capture to see the current screen, and continue "
+                    "only if they are no longer using the computer.",
+        )
+
+    def _pointer_at(self, dx: int, dy: int) -> None:
+        self._expected_cursor = (dx, dy)
+
     def _eng(self) -> _InputEngine:
         if self._engine is None:
             self.start()
@@ -589,6 +617,12 @@ class NativeBackend(ComputerUseBackend):
     def capture(self, mode: str = "som", app: Optional[str] = None,
                 pid: Optional[int] = None, window_id: Optional[int] = None) -> CaptureResult:
         img = self._grab()
+        # Seeing the screen again resumes input after a takeover.
+        self._user_took_over = False
+        try:
+            self._expected_cursor = self._eng().get_cursor_position()
+        except Exception:
+            self._expected_cursor = None
         nat_w, nat_h = img.size
         out = img
 
@@ -628,13 +662,42 @@ class NativeBackend(ComputerUseBackend):
             png_bytes_len=len(raw), image_mime_type="image/png",
         )
 
+    def zoom(self, region: List[int]):
+        if self._frame is None:
+            return ActionResult(ok=False, action="zoom", code="no_capture",
+                                message="capture a screenshot before zooming")
+        x0, y0, x1, y1 = region
+        w, h = self._frame
+        if not (0 <= x0 < x1 <= w and 0 <= y0 < y1 <= h):
+            return ActionResult(
+                ok=False, action="zoom", code="out_of_bounds",
+                message=f"region {region} must satisfy 0<=x0<x1<={w}, 0<=y0<y1<={h}",
+            )
+        # Crop from a fresh full-resolution grab, in device pixels.
+        crop = self._grab().crop((
+            int(x0 * self._scale_x), int(y0 * self._scale_y),
+            int(round(x1 * self._scale_x)), int(round(y1 * self._scale_y)),
+        ))
+        if max(crop.size) > _ZOOM_MAX_DIM:
+            crop.thumbnail((_ZOOM_MAX_DIM, _ZOOM_MAX_DIM))
+        buf = io.BytesIO()
+        crop.save(buf, format="PNG", compress_level=1)
+        raw = buf.getvalue()
+        return CaptureResult(
+            mode="vision", width=crop.size[0], height=crop.size[1],
+            png_b64=base64.b64encode(raw).decode("ascii"), elements=[], app="",
+            window_title=f"zoom of {region}; act with full-screenshot coordinates",
+            png_bytes_len=len(raw), image_mime_type="image/png",
+        )
+
     # -- pointer ------------------------------------------------------------
     def mouse_move(self, *, x: Optional[int] = None, y: Optional[int] = None, **kwargs) -> ActionResult:
-        bad = self._coord_required(x, y, "mouse_move")
+        bad = self._coord_required(x, y, "mouse_move") or self._takeover_check("mouse_move")
         if bad:
             return bad
         dx, dy = self._to_device(x, y)
         self._eng().move(dx, dy)
+        self._pointer_at(dx, dy)
         return ActionResult(
             ok=True, action="mouse_move", path=f"native_{self._eng().name}",
             effect="unverifiable", delivery_mode="foreground",
@@ -643,6 +706,9 @@ class NativeBackend(ComputerUseBackend):
         )
 
     def mouse_down(self, *, x: Optional[int] = None, y: Optional[int] = None, button: str = "left", **kwargs) -> ActionResult:
+        bad = self._takeover_check("mouse_down")
+        if bad:
+            return bad
         if x is not None and y is not None:
             bad = self._out_of_bounds(x, y, "mouse_down")
             if bad:
@@ -652,6 +718,7 @@ class NativeBackend(ComputerUseBackend):
         else:
             dx, dy = self._eng().get_cursor_position()
         self._eng().mouse_down(dx, dy, button)
+        self._pointer_at(dx, dy)
         return ActionResult(
             ok=True, action="mouse_down", path=f"native_{self._eng().name}",
             effect="unverifiable", delivery_mode="foreground",
@@ -659,6 +726,9 @@ class NativeBackend(ComputerUseBackend):
         )
 
     def mouse_up(self, *, x: Optional[int] = None, y: Optional[int] = None, button: str = "left", **kwargs) -> ActionResult:
+        bad = self._takeover_check("mouse_up")
+        if bad:
+            return bad
         if x is not None and y is not None:
             bad = self._out_of_bounds(x, y, "mouse_up")
             if bad:
@@ -668,6 +738,7 @@ class NativeBackend(ComputerUseBackend):
         else:
             dx, dy = self._eng().get_cursor_position()
         self._eng().mouse_up(dx, dy, button)
+        self._pointer_at(dx, dy)
         return ActionResult(
             ok=True, action="mouse_up", path=f"native_{self._eng().name}",
             effect="unverifiable", delivery_mode="foreground",
@@ -695,11 +766,12 @@ class NativeBackend(ComputerUseBackend):
               modifiers=None, delivery_mode=None, bring_to_front=False) -> ActionResult:
         if element is not None and x is None and y is None:
             return self._coord_required(None, None, "click")
-        bad = self._coord_required(x, y, "click")
+        bad = self._coord_required(x, y, "click") or self._takeover_check("click")
         if bad:
             return bad
         dx, dy = self._to_device(x, y)
         self._eng().click(dx, dy, button, click_count, modifiers or [])
+        self._pointer_at(dx, dy)
         return ActionResult(
             ok=True, action="click", path=f"native_{self._eng().name}",
             effect="unverifiable", delivery_mode="foreground",
@@ -715,17 +787,22 @@ class NativeBackend(ComputerUseBackend):
                 effect="suspected_noop", code="element_unsupported",
             )
         bad = (self._out_of_bounds(from_xy[0], from_xy[1], "drag")
-               or self._out_of_bounds(to_xy[0], to_xy[1], "drag"))
+               or self._out_of_bounds(to_xy[0], to_xy[1], "drag")
+               or self._takeover_check("drag"))
         if bad:
             return bad
         x1, y1 = self._to_device(from_xy[0], from_xy[1])
         x2, y2 = self._to_device(to_xy[0], to_xy[1])
         self._eng().drag(x1, y1, x2, y2, button, modifiers or [])
+        self._pointer_at(x2, y2)
         return ActionResult(ok=True, action="drag", effect="unverifiable",
                             delivery_mode="foreground", path=f"native_{self._eng().name}")
 
     def scroll(self, *, direction, amount=3, element=None, x=None, y=None,
                modifiers=None, delivery_mode=None, bring_to_front=False) -> ActionResult:
+        bad = self._takeover_check("scroll")
+        if bad:
+            return bad
         # Scroll at the given point, or wherever the pointer already is.
         if x is None or y is None:
             dx, dy = self._eng().get_cursor_position()
@@ -735,16 +812,23 @@ class NativeBackend(ComputerUseBackend):
                 return bad
             dx, dy = self._to_device(x, y)
         self._eng().scroll(dx, dy, direction, int(amount))
+        self._pointer_at(dx, dy)
         return ActionResult(ok=True, action="scroll", effect="unverifiable",
                             delivery_mode="foreground", path=f"native_{self._eng().name}")
 
     # -- keyboard -----------------------------------------------------------
     def type_text(self, text, *, delivery_mode=None, bring_to_front=False) -> ActionResult:
+        bad = self._takeover_check("type")
+        if bad:
+            return bad
         self._eng().type_text(text)
         return ActionResult(ok=True, action="type", effect="unverifiable",
                             delivery_mode="foreground", path=f"native_{self._eng().name}")
 
     def key(self, keys, *, delivery_mode=None, bring_to_front=False) -> ActionResult:
+        bad = self._takeover_check("key")
+        if bad:
+            return bad
         self._eng().key(keys)
         return ActionResult(ok=True, action="key", effect="unverifiable",
                             delivery_mode="foreground", path=f"native_{self._eng().name}")

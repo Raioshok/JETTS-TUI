@@ -80,7 +80,7 @@ def set_approval_callback(cb) -> None:
 # Actions that read, not mutate. Always allowed.
 _SAFE_ACTIONS = frozenset({
     "capture", "screenshot", "wait", "list_apps", "list_windows",
-    "cursor_position",
+    "cursor_position", "zoom",
     "vm_list", "vm_status", "vm_capture",
     "unattended_status", "unattended_stop",
 })
@@ -625,6 +625,15 @@ def _dispatch(backend: ComputerUseBackend, action: str, args: Dict[str, Any]) ->
             })
         cap = backend.capture(**capture_kwargs)
         return _capture_response(cap, max_elements=_coerce_max_elements(args.get("max_elements")))
+
+    if action == "zoom":
+        region = args.get("region")
+        if not (isinstance(region, list) and len(region) == 4):
+            return json.dumps({"error": "zoom requires region=[x0, y0, x1, y1]"})
+        out = backend.zoom([int(v) for v in region])
+        if isinstance(out, ActionResult):
+            return _text_response(out)
+        return _capture_response(out)
 
     if action == "wait":
         seconds = float(args.get("seconds", 1.0))

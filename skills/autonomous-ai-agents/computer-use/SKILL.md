@@ -86,6 +86,10 @@ triple_click     coordinate=[x,y]    → select line/paragraph
 mouse_move       coordinate=[x,y]    → move pointer without clicking
 mouse_down / mouse_up [button=…]     → press/release mouse button
 cursor_position                      → current pointer position
+zoom             region=[x0,y0,x1,y1] → that area at full resolution (read small text);
+                                        keep acting with full-screenshot coordinates
+code=user_active                     → the user moved the mouse; input is paused until
+                                        you capture again — don't fight them for control
 target="<vm>"    on any action above → act inside that VM guest instead of the host
 
 # `vm` tool (only present when a hypervisor or registered VPS exists)

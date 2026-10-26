@@ -270,3 +270,63 @@ class TestWindowsEngine:
         eng._user32.SendInput.return_value = 0
         with pytest.raises(OSError):
             eng._send(eng._mk_key(0x41))
+
+
+class TestUserTakeover:
+    def _backend(self):
+        from tools.computer_use.native_backend import NativeBackend
+
+        be = NativeBackend(max_width=0)
+        be._engine = _FakeEngine()
+        be._frame = (1000, 1000)
+        return be
+
+    def test_input_pauses_after_the_user_moves_the_mouse_until_recapture(self):
+        from PIL import Image
+
+        be = self._backend()
+        be._engine.get_cursor_position = lambda: (10, 10)
+        assert be.click(x=10, y=10).ok is True
+        be._engine.get_cursor_position = lambda: (500, 500)  # user grabbed the mouse
+        for res in (be.click(x=20, y=20), be.type_text("x"), be.key("return")):
+            assert res.ok is False and res.code == "user_active"
+        with patch.object(type(be), "_grab", return_value=Image.new("RGB", (1000, 1000))):
+            be.capture()
+        assert be.click(x=30, y=30).ok is True
+
+    def test_small_pointer_jitter_is_not_a_takeover(self):
+        be = self._backend()
+        be._engine.get_cursor_position = lambda: (12, 9)
+        be._pointer_at(10, 10)
+        assert be.click(x=50, y=50).ok is True
+
+
+class TestZoom:
+    def test_zoom_crops_full_resolution_without_changing_the_action_frame(self):
+        from PIL import Image
+        from tools.computer_use.native_backend import NativeBackend
+
+        be = NativeBackend(max_width=0)
+        be._engine = _FakeEngine()
+        screen = Image.new("RGB", (2732, 1536))
+        with patch.object(NativeBackend, "_grab", return_value=screen):
+            be.capture()  # downscaled to 1366x768, scale 2.0
+            out = be.zoom([100, 100, 300, 200])
+        assert (out.width, out.height) == (400, 200)
+        assert be._frame == (1366, 768) and be._scale_x == 2.0
+
+    def test_zoom_rejects_bad_regions_and_missing_capture(self):
+        from tools.computer_use.native_backend import NativeBackend
+
+        be = NativeBackend(max_width=0)
+        assert be.zoom([0, 0, 10, 10]).code == "no_capture"
+        be._frame = (100, 100)
+        assert be.zoom([50, 0, 10, 10]).code == "out_of_bounds"
+        assert be.zoom([0, 0, 101, 10]).code == "out_of_bounds"
+
+    def test_zoom_is_read_only_and_needs_no_approval(self):
+        cb = MagicMock(return_value="deny")
+        cu.set_approval_callback(cb)
+        res = json.loads(cu.handle_computer_use({"action": "zoom", "region": [0, 0, 10, 10]}))
+        cb.assert_not_called()
+        assert res["ok"] is False and res["code"] == "unsupported"  # noop backend
