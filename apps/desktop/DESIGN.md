@@ -273,10 +273,14 @@ Notes:
   identical in light/dark. Use it for hero/brand moments; don't reintroduce
   decorative star/sparkle icons.
 - **Default theme** is `ivory` ("Ivory", `src/themes/presets.ts`),
-  light-first (`DEFAULT_MODE` in `src/themes/context.tsx`): warm ivory
-  neutrals, a soft peach glow (`--ivory-glow`) behind the chat and editor, and
-  one gold accent reserved for the active file/tab/row, focus, and the
-  composer's primary action, with matching warm syntax colors. `graphite`
+  light-first (`DEFAULT_MODE` in `src/themes/context.tsx`), styled as
+  **"Leaf"**: every visible pane zone (`[data-tree-group]`, except the sessions
+  rail and zones collapsed to their tab strip) is a paper card on a warm stone
+  ground; surfaces use the icon set's leaf corner via `--leaf-control` /
+  `--leaf-row` / `--leaf-card-r` / `--leaf-dialog` (large radius top-left and
+  bottom-right); one gold accent (`--leaf-gold`) is reserved for the active
+  file/tab/row, focus, and the composer's primary action, with matching warm
+  syntax colors. The spec is the "JettsTUI Desktop Rice" Claude Design canvas. `graphite`
   (dark, electric mint) and `jettstui` ("Prism", ink + violet) remain built-in
   skins. Inter Variable is the bundled UI face (`@fontsource-variable/inter`),
   JetBrains Mono the code face.
@@ -291,8 +295,7 @@ Notes:
   attribute there, as `PaneTab` does.)
 - **Chat backdrop** (`src/components/Backdrop.tsx`) is CSS-only — an accent
   glow and a masked dot grid (layers: `backdrop-glow`, `backdrop-grid`). No
-  images behind the transcript. Graphite hides it for a flat canvas; Ivory
-  swaps both for its peach wash.
+  images behind the transcript. Graphite and Ivory hide it for flat paper.
 
 ## Motion
 
