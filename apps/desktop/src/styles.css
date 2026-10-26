@@ -2211,9 +2211,10 @@ code {
   --theme-row-active-accent-mix: 22%;
   --theme-control-hover-accent-mix: 0%;
 
-  /* Softer, roomier geometry. */
-  --radius-scalar: 0.72;
-  --composer-radius: 1rem;
+  /* Soft but compact geometry. */
+  --radius-scalar: 0.66;
+  --composer-radius: 0.875rem;
+  --dt-letter-spacing: -0.004em;
 
   --elevation-float:
     0 1px 2px color-mix(in srgb, #3a2a10 6%, transparent),
@@ -2255,25 +2256,30 @@ code {
   background: var(--ivory-glow);
 }
 
-/* Sidebar: roomier nav, hairline-separated groups, "SESSIONS" small caps. */
+/* Sidebar: compact nav, hairline-separated groups, "SESSIONS" small caps. */
 :root[data-jettstui-theme='ivory'] [data-slot='sidebar'] {
   box-shadow: inset -1px 0 0 var(--dt-sidebar-border);
 }
 
 :root[data-jettstui-theme='ivory'] [data-region='nav'] [data-sidebar='menu-button'] {
-  height: 2rem;
-  font-size: 0.875rem;
+  height: 1.75rem;
+  font-size: 0.8125rem;
   color: var(--ui-text-primary, var(--theme-foreground));
 }
 
 :root[data-jettstui-theme='ivory'] [data-region='nav'] [data-sidebar='menu-button'] svg {
-  width: 1rem;
-  height: 1rem;
+  width: 0.9375rem;
+  height: 0.9375rem;
+  color: var(--ui-text-tertiary);
+}
+
+:root[data-jettstui-theme='ivory'] [data-region='nav'] [data-sidebar='menu-button']:hover svg {
+  color: var(--theme-foreground);
 }
 
 :root[data-jettstui-theme='ivory'] [data-region='nav'] {
-  margin-bottom: 0.375rem;
-  padding-bottom: 0.625rem;
+  margin-bottom: 0.25rem;
+  padding-bottom: 0.375rem;
   border-bottom: 1px solid var(--ui-stroke-tertiary);
 }
 
@@ -2282,22 +2288,22 @@ code {
 }
 
 :root[data-jettstui-theme='ivory'] [data-slot='panel-label'] {
-  font-size: 0.6875rem;
+  font-size: 0.625rem;
   font-weight: 600;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.09em;
   text-transform: uppercase;
   color: var(--ui-text-tertiary);
 }
 
 :root[data-jettstui-theme='ivory'] [data-slot='session-title'] {
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   font-weight: 500;
   color: var(--theme-foreground);
 }
 
 :root[data-jettstui-theme='ivory'] [data-slot='session-preview'] {
-  margin-top: 0.125rem;
-  font-size: 0.75rem;
+  margin-top: 0.0625rem;
+  font-size: 0.6875rem;
   color: var(--ui-text-tertiary);
 }
 
@@ -2311,8 +2317,8 @@ code {
 }
 
 :root[data-jettstui-theme='ivory'] [data-slot='nav-mode'] > button {
-  padding: 0.25rem 0.875rem;
-  font-size: 0.75rem;
+  padding: 0.1875rem 0.75rem;
+  font-size: 0.71875rem;
   font-weight: 500;
   color: var(--ui-text-secondary);
 }
@@ -2349,9 +2355,9 @@ code {
   border-color: var(--dt-user-bubble-border) !important;
 }
 
-/* Session rows: breathing room between title/preview entries. */
+/* Session rows: dense but still an easy click target. */
 :root[data-jettstui-theme='ivory'] [data-slot='session-row'] {
-  padding-block: 0.3125rem;
+  padding-block: 0.25rem;
 }
 
 /* Code workspace — flat tabs with a gold underline, the peach wash behind   */

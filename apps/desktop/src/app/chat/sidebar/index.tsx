@@ -99,12 +99,9 @@ import { $focusedStoredSessionId, $workingSessionIds, type SplitDir } from '@/st
 
 import {
   type AppView,
-  ARTIFACTS_ROUTE,
   MESSAGING_ROUTE,
-  ORCHESTRATOR_ROUTE,
   SIDEBAR_NAV_AREA,
   type SidebarNavContribution,
-  SKILLS_ROUTE,
   SPECS_ROUTE
 } from '../../routes'
 import type { SidebarNavItem } from '../../types'
@@ -141,6 +138,7 @@ import { CONTEXT_SPLIT_KIT, SplitSubmenu } from './split-submenu'
 const NON_SESSION_INITIAL_ROWS = 3
 const NON_SESSION_LOAD_STEP = 10
 
+// Capabilities / Artifacts / Orchestrator live in the titlebar mode switch only.
 const SIDEBAR_NAV: SidebarNavItem[] = [
   {
     id: 'new-session',
@@ -150,31 +148,11 @@ const SIDEBAR_NAV: SidebarNavItem[] = [
     keybindActionId: 'session.new'
   },
   {
-    id: 'skills',
-    label: '',
-    icon: props => <Codicon name="symbol-misc" {...props} />,
-    route: SKILLS_ROUTE,
-    keybindActionId: 'nav.skills'
-  },
-  {
     id: 'messaging',
     label: '',
     icon: props => <Codicon name="comment" {...props} />,
     route: MESSAGING_ROUTE,
     keybindActionId: 'nav.messaging'
-  },
-  {
-    id: 'artifacts',
-    label: '',
-    icon: props => <Codicon name="files" {...props} />,
-    route: ARTIFACTS_ROUTE,
-    keybindActionId: 'nav.artifacts'
-  },
-  {
-    id: 'orchestrator',
-    label: '',
-    icon: props => <Codicon name="organization" {...props} />,
-    route: ORCHESTRATOR_ROUTE
   },
   {
     id: 'specs',
@@ -1163,9 +1141,7 @@ export function ChatSidebar({
                 const isInteractive = Boolean(item.action) || Boolean(item.route)
 
                 const active =
-                  (item.id === 'skills' && currentView === 'skills') ||
                   (item.id === 'messaging' && currentView === 'messaging') ||
-                  (item.id === 'artifacts' && currentView === 'artifacts') ||
                   // Contributed rows light up at their own route.
                   (Boolean(item.route) && pathname === item.route)
 

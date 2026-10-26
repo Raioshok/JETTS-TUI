@@ -61,6 +61,9 @@ one-off at the call site.
 - **One action, one home.** A command may have keyboard, palette, and visible
   affordances, but they invoke the same action and state. Do not fork behavior
   per entry point.
+- **The titlebar mode switch owns page destinations.** Capabilities, Artifacts
+  and Orchestrator live there only; the sidebar nav keeps what the switch
+  lacks (New session, Messaging, Specs).
 - **Projects own workspace cwd.** Use Sidebar → Projects for local folders and
   worktrees; do not reintroduce a per-session/right-sidebar folder-picker flow.
 
