@@ -688,6 +688,22 @@
   }
 }
 
+/* JettsTUI glyphs (components/ui/jetts-glyphs.ts) stand in for codicon font
+   glyphs: the font's box stays, its ::before glyph goes, the SVG fills 1em. */
+.codicon[data-glyph]::before {
+  content: none;
+}
+
+@layer base {
+  .codicon[data-glyph] > svg {
+    display: block;
+  }
+
+  .codicon[data-glyph].codicon-modifier-spin {
+    animation: codicon-spin 1.5s steps(30) infinite;
+  }
+}
+
 @layer utilities {
   [class*='rounded-full'],
   [class*=':rounded-full'] {

@@ -255,7 +255,13 @@ Notes:
   in feature code.
 - **`Codicon`** is the compact editor/tool/status vocabulary. Use
   `src/components/ui/codicon.tsx`, including `codiconIcon()` where a
-  Tabler-shaped component is required.
+  Tabler-shaped component is required. Names with an entry in
+  `src/components/ui/jetts-glyphs.ts` render JettsTUI's own SVG glyph instead
+  of the font: one path on a 24 grid, 1.75 round stroke in currentColor, dots
+  as zero-length strokes, containers with the **leaf corner** (4.5 radius
+  top-left/bottom-right, 1.5 on the others). Add a glyph there — not a new
+  icon component — to take over another codicon name; the design sheet is the
+  "JettsTUI Icon Set" Claude Design canvas.
 - Pick the vocabulary by semantic context and reuse the existing icon for an
   action. Do not introduce a third icon set or mix styles within one control
   group.
