@@ -396,6 +396,11 @@ def handle_computer_use(args: Dict[str, Any], **kwargs) -> Any:
     # Per-run key for approval-state isolation across concurrent sessions.
     session_id = str(kwargs.get("session_id") or "")
 
+    # Unclassified actions never reach a backend: anything new must be added to
+    # _SAFE_ACTIONS or _DESTRUCTIVE_ACTIONS deliberately.
+    if action not in _SAFE_ACTIONS and action not in _DESTRUCTIVE_ACTIONS:
+        return json.dumps({"error": f"unknown action {action!r}"})
+
     # Safety: validate actions before approval prompt.
     if action == "type":
         text = args.get("text", "")
@@ -416,30 +421,35 @@ def handle_computer_use(args: Dict[str, Any], **kwargs) -> Any:
                     "hint": "Destructive system shortcuts are hard-blocked.",
                 })
 
-    # Approval gate (destructive actions only).
-    if action in _DESTRUCTIVE_ACTIONS:
-        err = _request_approval(action, args, session_id)
-        if err is not None:
-            return err
-
     # ── VM / VPS Management, Unattended Mode & Remote Targeting ────────
-    target = args.get("target")
-    unattended = bool(args.get("unattended"))
+    # Resolve where the action runs BEFORE approval, so the prompt and its
+    # session scope name the real target (the host or a VM guest).
     from tools.computer_use.vm_manager import get_vm_manager
     vm_mgr = get_vm_manager()
-
-    if action.startswith("unattended_"):
-        return vm_mgr.handle_action(action, args)
-
-    if unattended or vm_mgr.is_unattended_enabled():
+    target = args.get("target")
+    if not action.startswith("unattended_") and (args.get("unattended") or vm_mgr.is_unattended_enabled()):
         if not target or str(target).lower() in ("local", "localhost", "host", "auto"):
             active_target = vm_mgr.get_active_unattended_target()
             if active_target:
                 args = dict(args)
                 args["target"] = active_target
                 target = active_target
-
     is_remote_target = bool(target and str(target).lower() not in ("local", "localhost", "host"))
+
+    if action == "vm_exec":
+        err = _guard_vm_command(args)
+        if err is not None:
+            return err
+
+    # Approval gate (destructive actions only).
+    if action in _DESTRUCTIVE_ACTIONS:
+        err = _request_approval(action, args, session_id)
+        if err is not None:
+            return err
+
+    if action.startswith("unattended_"):
+        return vm_mgr.handle_action(action, args)
+
     if action.startswith("vm_") or is_remote_target:
         vm_res = vm_mgr.handle_action(action, args)
         if isinstance(vm_res, CaptureResult):
@@ -463,6 +473,22 @@ def handle_computer_use(args: Dict[str, Any], **kwargs) -> Any:
         return json.dumps({"error": f"{action} failed: {e}"})
 
 
+def _guard_vm_command(args: Dict[str, Any]) -> Optional[str]:
+    """Run vm_exec commands through the terminal's dangerous-command guards.
+
+    Guests are not a sandbox: WSL mounts the host drives and VPSes are real
+    servers, so hardline blocks, deny rules and dangerous-pattern prompts apply.
+    """
+    from tools.approval import check_dangerous_command
+    res = check_dangerous_command(str(args.get("command") or ""), "local")
+    if res.get("approved"):
+        return None
+    blocked: Dict[str, Any] = {"error": res.get("message") or "command blocked", "action": "vm_exec"}
+    if res.get("status"):
+        blocked["status"] = res["status"]
+    return json.dumps(blocked)
+
+
 def _request_approval(action: str, args: Dict[str, Any],
                       session_id: str = "") -> Optional[str]:
     """Return None if approved, or a JSON error string if denied.
@@ -477,18 +503,31 @@ def _request_approval(action: str, args: Dict[str, Any],
     unlocks into one another.
     """
     is_foreground = args.get("delivery_mode") == "foreground"
-    scope_key = (action, "foreground" if is_foreground else "background")
+    mode = "foreground" if is_foreground else "background"
+    # Approving a click inside a VM must not approve clicks on the host.
+    where = str(args.get("target") or args.get("vm_name") or "host")
+    scope_key = (action, mode, where)
     with _approval_lock:
         if _session_auto_approve.get(session_id):
             return None
         if scope_key in _always_allow.get(session_id, set()):
             return None
+    summary = _summarize_action(action, args) + ("" if where == "host" else f" [in {where!r}]")
     cb = _approval_callback
     if cb is None:
-        # No CLI approval wired — default allow. Gateway approval is handled
-        # one layer out via the normal tool-approval infra.
-        return None
-    summary = _summarize_action(action, args)
+        # TUI / desktop / gateway / ACP / cron: the shared approval gate
+        # (approval buttons, /approve, cron_mode, yolo). Fails closed when
+        # no human can answer.
+        from tools.approval import request_tool_approval
+        res = request_tool_approval(
+            "computer_use", summary, rule_key=f"computer_use:{action}:{mode}:{where}",
+        )
+        if res.get("approved"):
+            return None
+        denied: Dict[str, Any] = {"error": res.get("message") or "denied by user", "action": action}
+        if res.get("status"):
+            denied["status"] = res["status"]
+        return json.dumps(denied)
     try:
         verdict = cb(action, args, summary)
     except Exception as e:
@@ -572,29 +611,6 @@ def _summarize_action(action: str, args: Dict[str, Any]) -> str:
 
 
 def _dispatch(backend: ComputerUseBackend, action: str, args: Dict[str, Any]) -> Any:
-    # ── VM / VPS Management, Unattended Mode & Remote Targeting ────────
-    target = args.get("target")
-    unattended = bool(args.get("unattended"))
-    from tools.computer_use.vm_manager import get_vm_manager
-    vm_mgr = get_vm_manager()
-
-    if action.startswith("unattended_"):
-        return vm_mgr.handle_action(action, args)
-
-    if unattended or vm_mgr.is_unattended_enabled():
-        if not target or str(target).lower() in ("local", "localhost", "host", "auto"):
-            target = vm_mgr.get_active_unattended_target()
-            if target:
-                args = dict(args)
-                args["target"] = target
-
-    is_remote_target = bool(target and str(target).lower() not in ("local", "localhost", "host"))
-    if action.startswith("vm_") or is_remote_target:
-        vm_res = vm_mgr.handle_action(action, args)
-        if isinstance(vm_res, CaptureResult):
-            return _capture_response(vm_res, max_elements=_coerce_max_elements(args.get("max_elements")))
-        return vm_res
-
     capture_after = bool(args.get("capture_after"))
 
     if action == "capture":
@@ -896,7 +912,7 @@ def _capture_response(cap: CaptureResult, max_elements: int = _DEFAULT_MAX_ELEME
         # main models tripped HTTP 404 / 400 at the provider boundary even
         # when auxiliary.vision was explicitly configured to handle this.
         if _should_route_through_aux_vision():
-            routed = _route_capture_through_aux_vision(cap, summary)
+            routed = _route_capture_through_aux_vision(cap, summary, max_elements)
             if routed is not None:
                 return routed
             # Aux routing was requested but failed (vision node down, aux call
@@ -1063,6 +1079,7 @@ def _capture_after_mode() -> str:
 def _route_capture_through_aux_vision(
     cap: CaptureResult,
     summary: str,
+    max_elements: int = _DEFAULT_MAX_ELEMENTS,
 ) -> Optional[str]:
     """Pre-analyse the captured PNG via ``vision_analyze`` and return a text result.
 
@@ -1158,7 +1175,8 @@ def _route_capture_through_aux_vision(
         "height": cap.height,
         "app": cap.app,
         "window_title": cap.window_title,
-        "elements": [_element_to_dict(e) for e in cap.elements],
+        "elements": [_element_to_dict(e) for e in cap.elements[:max_elements]],
+        "total_elements": len(cap.elements),
         "summary": summary,
         "vision_analysis": analysis_text,
         "vision_analysis_routed_via": "auxiliary.vision",

@@ -171,7 +171,12 @@ class _WindowsEngine(_InputEngine):
     def _send(self, *inputs) -> None:
         n = len(inputs)
         arr = (self._INPUT * n)(*inputs)
-        self._user32.SendInput(n, arr, self._ct.sizeof(self._INPUT))
+        sent = self._user32.SendInput(n, arr, self._ct.sizeof(self._INPUT))
+        if sent != n:
+            raise OSError(
+                f"SendInput delivered {sent} of {n} events (error {self._ct.GetLastError()}); "
+                "Windows blocks input to elevated windows and the secure desktop"
+            )
 
     def _mk_mouse(self, flags: int, dx: int = 0, dy: int = 0, data: int = 0):
         inp = self._INPUT()
@@ -209,7 +214,10 @@ class _WindowsEngine(_InputEngine):
         self._send(self._mk_mouse(self._MOVE_ABS, ax, ay))
 
     def _press(self, mods: List[str]) -> List[int]:
-        vks = [self._VK[m] for m in mods if m in self._VK]
+        unknown = [m for m in mods if m not in self._VK]
+        if unknown:
+            raise ValueError(f"unknown modifier key(s): {unknown}")
+        vks = [self._VK[m] for m in mods]
         for vk in vks:
             self._send(self._mk_key(vk))
         return vks
@@ -273,11 +281,15 @@ class _WindowsEngine(_InputEngine):
 
     def type_text(self, text: str) -> None:
         inputs = []
-        for ch in text:
-            for cu in ch.encode("utf-16-le").decode("utf-16-le"):
-                cp = ord(cu)
-                inputs.append(self._mk_unicode(cp))
-                inputs.append(self._mk_unicode(cp, up=True))
+        for ch in text.replace("\r\n", "\n"):
+            if ch in "\r\n":
+                # KEYEVENTF_UNICODE newlines are ignored by many controls.
+                inputs += [self._mk_key(0x0D), self._mk_key(0x0D, up=True)]
+                continue
+            data = ch.encode("utf-16-le")
+            for i in range(0, len(data), 2):  # chars above U+FFFF are 2 code units
+                cu = int.from_bytes(data[i:i + 2], "little")
+                inputs += [self._mk_unicode(cu), self._mk_unicode(cu, up=True)]
         if inputs:
             self._send(*inputs)
 
@@ -287,13 +299,20 @@ class _WindowsEngine(_InputEngine):
         if not parts:
             return
         *mods, final = parts
-        held = self._press(mods)
         vk = self._VK.get(final)
         if vk is None and len(final) == 1:
-            vk = self._user32.VkKeyScanW(ord(final)) & 0xFF
-        if vk:
+            scan = self._user32.VkKeyScanW(ord(final))
+            if scan != -1 and (scan & 0xFF) != 0xFF:
+                vk = scan & 0xFF
+                if scan & 0x100 and "shift" not in mods:  # e.g. "?" needs Shift
+                    mods.append("shift")
+        if vk is None:
+            raise ValueError(f"unknown key {final!r}")
+        held = self._press(mods)
+        try:
             self._send(self._mk_key(vk), self._mk_key(vk, up=True))
-        self._release(held)
+        finally:
+            self._release(held)
 
 
 # ── pyautogui: cross-platform, used when installed ─────────────────────────
@@ -344,12 +363,21 @@ class _PyAutoGuiEngine(_InputEngine):
             self._p.hscroll(ticks if direction == "right" else -ticks)
 
     def type_text(self, text: str) -> None:
+        untypeable = sorted({c for c in text if c not in self._p.KEYBOARD_KEYS})
+        if untypeable:
+            raise ValueError(
+                f"pyautogui cannot type {untypeable[:5]!r} (non-ASCII); "
+                "install cua-driver or xdotool for Unicode text"
+            )
         self._p.typewrite(text, interval=0.005)
 
     def key(self, combo: str) -> None:
         parts = [p.strip().lower() for p in combo.replace(" ", "").split("+") if p.strip()]
         parts = [_MODIFIER_ALIASES.get(p, p) for p in parts]
         parts = ["enter" if p == "return" else p for p in parts]
+        unknown = [p for p in parts if p not in self._p.KEYBOARD_KEYS]
+        if unknown:
+            raise ValueError(f"unknown key(s): {unknown}")
         if len(parts) == 1:
             self._p.press(parts[0])
         elif parts:
@@ -372,8 +400,11 @@ class _PosixCliEngine(_InputEngine):
             raise RuntimeError("no xdotool/cliclick on PATH")
 
     def _run(self, *args: str) -> None:
-        subprocess.run(list(args), check=False, timeout=15, stdin=subprocess.DEVNULL,
-                       stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        proc = subprocess.run(list(args), check=False, timeout=15, stdin=subprocess.DEVNULL,
+                              stdout=subprocess.DEVNULL, stderr=subprocess.PIPE,
+                              text=True, encoding="utf-8", errors="replace")
+        if proc.returncode != 0:
+            raise RuntimeError(f"{os.path.basename(args[0])} {args[1]} failed: {proc.stderr.strip()[:200]}")
 
     def move(self, x, y) -> None:
         if self._xdotool:
@@ -432,6 +463,8 @@ class _PosixCliEngine(_InputEngine):
                     "tab": "Tab", "space": "space"}
             keyseq = "+".join(xmap.get(p, p) for p in parts)
             self._run(self._xdotool, "key", "--clearmodifiers", keyseq)
+        else:
+            raise RuntimeError("key combos need xdotool or pyautogui; cliclick has no hotkey support")
 
     def get_cursor_position(self) -> Tuple[int, int]:
         if self._xdotool:
@@ -460,15 +493,15 @@ class _PosixCliEngine(_InputEngine):
 def _resolve_engine() -> _InputEngine:
     """Pick the best input engine available on this host.
 
-    pyautogui first when installed (one proven code path for all three OSes),
-    then the dependency-free Windows ctypes engine, then POSIX CLIs.
+    Windows uses the dependency-free ctypes SendInput engine (full Unicode,
+    delivery checked). Elsewhere pyautogui when installed, then POSIX CLIs.
     """
+    if sys.platform == "win32":
+        return _WindowsEngine()
     try:
         return _PyAutoGuiEngine()
     except Exception:
         pass
-    if sys.platform == "win32":
-        return _WindowsEngine()
     return _PosixCliEngine()
 
 
@@ -485,6 +518,8 @@ class NativeBackend(ComputerUseBackend):
         # Scale factor: device_px = scaled_px * scale. 1.0 until first capture.
         self._scale_x = 1.0
         self._scale_y = 1.0
+        # (width, height) of the last screenshot; coordinates must fall inside it.
+        self._frame: Optional[Tuple[int, int]] = None
 
     # -- lifecycle ----------------------------------------------------------
     def start(self) -> None:
@@ -528,8 +563,7 @@ class NativeBackend(ComputerUseBackend):
         assert self._engine is not None
         return self._engine
 
-    @staticmethod
-    def _coord_required(x, y, label: str) -> Optional[ActionResult]:
+    def _coord_required(self, x, y, label: str) -> Optional[ActionResult]:
         if x is None or y is None:
             return ActionResult(
                 ok=False, action=label,
@@ -537,7 +571,19 @@ class NativeBackend(ComputerUseBackend):
                         "element indices (install cua-driver for element/SOM).",
                 effect="suspected_noop", code="element_unsupported",
             )
-        return None
+        return self._out_of_bounds(x, y, label)
+
+    def _out_of_bounds(self, x, y, label: str) -> Optional[ActionResult]:
+        if self._frame is None:
+            return None  # no screenshot yet: nothing to check against
+        w, h = self._frame
+        if 0 <= x < w and 0 <= y < h:
+            return None
+        return ActionResult(
+            ok=False, action=label, code="out_of_bounds", effect="suspected_noop",
+            message=f"coordinate ({x},{y}) is outside the last screenshot ({w}x{h}); "
+                    "re-capture and read the position again.",
+        )
 
     # -- capture ------------------------------------------------------------
     def capture(self, mode: str = "som", app: Optional[str] = None,
@@ -565,6 +611,7 @@ class NativeBackend(ComputerUseBackend):
             out = img.resize((target_w, target_h))
 
         scaled_w, scaled_h = out.size
+        self._frame = (scaled_w, scaled_h)
         # Record the mapping for subsequent coordinate actions.
         self._scale_x = nat_w / scaled_w if scaled_w else 1.0
         self._scale_y = nat_h / scaled_h if scaled_h else 1.0
@@ -597,6 +644,9 @@ class NativeBackend(ComputerUseBackend):
 
     def mouse_down(self, *, x: Optional[int] = None, y: Optional[int] = None, button: str = "left", **kwargs) -> ActionResult:
         if x is not None and y is not None:
+            bad = self._out_of_bounds(x, y, "mouse_down")
+            if bad:
+                return bad
             dx, dy = self._to_device(x, y)
             self._eng().move(dx, dy)
         else:
@@ -610,6 +660,9 @@ class NativeBackend(ComputerUseBackend):
 
     def mouse_up(self, *, x: Optional[int] = None, y: Optional[int] = None, button: str = "left", **kwargs) -> ActionResult:
         if x is not None and y is not None:
+            bad = self._out_of_bounds(x, y, "mouse_up")
+            if bad:
+                return bad
             dx, dy = self._to_device(x, y)
             self._eng().move(dx, dy)
         else:
@@ -661,6 +714,10 @@ class NativeBackend(ComputerUseBackend):
                 message="native backend needs from_coordinate/to_coordinate.",
                 effect="suspected_noop", code="element_unsupported",
             )
+        bad = (self._out_of_bounds(from_xy[0], from_xy[1], "drag")
+               or self._out_of_bounds(to_xy[0], to_xy[1], "drag"))
+        if bad:
+            return bad
         x1, y1 = self._to_device(from_xy[0], from_xy[1])
         x2, y2 = self._to_device(to_xy[0], to_xy[1])
         self._eng().drag(x1, y1, x2, y2, button, modifiers or [])
@@ -669,11 +726,13 @@ class NativeBackend(ComputerUseBackend):
 
     def scroll(self, *, direction, amount=3, element=None, x=None, y=None,
                modifiers=None, delivery_mode=None, bring_to_front=False) -> ActionResult:
-        # Scroll at the given point, or (0,0) when the model gives no coordinate
-        # (engines scroll the window under the pointer / focused control).
+        # Scroll at the given point, or wherever the pointer already is.
         if x is None or y is None:
-            dx, dy = 0, 0
+            dx, dy = self._eng().get_cursor_position()
         else:
+            bad = self._out_of_bounds(x, y, "scroll")
+            if bad:
+                return bad
             dx, dy = self._to_device(x, y)
         self._eng().scroll(dx, dy, direction, int(amount))
         return ActionResult(ok=True, action="scroll", effect="unverifiable",

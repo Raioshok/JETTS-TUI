@@ -1272,7 +1272,9 @@ class VMManager:
     def __init__(self, storage_path: Optional[Path] = None) -> None:
         self._lock = threading.Lock()
         self._storage_path = storage_path or self._default_storage_path()
-        self._unattended_enabled: bool = False
+        # None = defer to the user's persisted CLI setting; True/False = set
+        # in this process (by the model), which never touches disk.
+        self._unattended_enabled: Optional[bool] = None
         self._unattended_target: Optional[str] = None
         self._scales: Dict[str, Tuple[float, float]] = {}
         self._dimensions: Dict[str, Tuple[int, int]] = {}
@@ -1299,8 +1301,8 @@ class VMManager:
 
     def is_unattended_enabled(self) -> bool:
         """Return True if unattended computer use mode is active."""
-        if self._unattended_enabled:
-            return True
+        if self._unattended_enabled is not None:
+            return self._unattended_enabled
         data = self._load_data()
         return bool(data.get("unattended", {}).get("enabled", False))
 
@@ -1332,22 +1334,29 @@ class VMManager:
 
         return None
 
-    def set_unattended(self, target: Optional[str] = None, enabled: bool = True) -> Dict[str, Any]:
-        """Configure unattended computer use mode and isolation target."""
+    def set_unattended(
+        self, target: Optional[str] = None, enabled: bool = True, persist: bool = False,
+    ) -> Dict[str, Any]:
+        """Configure unattended computer use mode and isolation target.
+
+        Only the user's CLI (``persist=True``) writes the setting to disk; a
+        model-set mode lasts for this process so it can't silently reroute
+        later sessions' desktop actions into a VM.
+        """
         self._unattended_enabled = enabled
         if target:
             self._unattended_target = target if target.lower() != "auto" else self.get_active_unattended_target()
         elif enabled and not self._unattended_target:
             self._unattended_target = self.get_active_unattended_target()
 
-        # Persist unattended state to disk
-        data = self._load_data()
-        data["unattended"] = {
-            "enabled": enabled,
-            "target": self._unattended_target or "auto",
-            "updated_at": time.time(),
-        }
-        self._save_data(data)
+        if persist:
+            data = self._load_data()
+            data["unattended"] = {
+                "enabled": enabled,
+                "target": self._unattended_target or "auto",
+                "updated_at": time.time(),
+            }
+            self._save_data(data)
 
         status_msg = (
             f"Unattended computer use enabled on target '{self._unattended_target}'. "
@@ -1368,22 +1377,28 @@ class VMManager:
         active = self.get_active_unattended_target()
         st = self.get_status(active) if active else None
         state = (st.get("status") or {}).get("state", "unknown") if st and st.get("ok") else "stopped"
-        vm_type = (st.get("status") or {}).get("vm_type", "unknown") if st and st.get("ok") else "vm"
+        vm_type = (st.get("status") or {}).get("vm_type", "unknown") if st and st.get("ok") else "unknown"
+        shares_host_fs = vm_type.startswith("wsl")
 
+        message = (
+            f"Unattended computer use is active on '{active}' (state: {state}). "
+            "Clicks, typing, and captures go to the guest, not the host cursor."
+            if active
+            else "No unattended VM target active. Use 'unattended_set' or 'vm_start' to activate one."
+        )
+        if shares_host_fs:
+            message += (
+                " WSL is NOT isolated: it mounts the host drives (/mnt/c), so guest "
+                "commands can read and change host files."
+            )
         return {
             "ok": True,
             "unattended_enabled": enabled,
             "active_target": active,
             "target_state": state,
-            "isolation_type": f"{vm_type}_hardware_boundary",
-            "host_input_protected": True,
-            "message": (
-                f"Unattended computer use is active on '{active}' (state: {state}). "
-                "All clicks, typing, and captures run inside the VM environment without "
-                "stealing focus or moving the host cursor."
-                if active
-                else "No unattended VM target active. Use 'unattended_set' or 'vm_start' to activate one."
-            ),
+            "isolation_type": "none (shares host filesystem)" if shares_host_fs else vm_type,
+            "host_input_protected": bool(active),
+            "message": message,
         }
 
     # -- Inventory Persistence ----------------------------------------------

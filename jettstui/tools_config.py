@@ -1091,10 +1091,8 @@ def _run_cua_driver_installer(label: str = "Installing", verbose: bool = True) -
 
     if is_windows:
         # Mirror the one-liner printed by cua_driver_install_hint().
-        ps_oneliner = (
-            "irm https://raw.githubusercontent.com/trycua/cua/main/"
-            "libs/cua-driver/scripts/install.ps1 | iex"
-        )
+        from tools.computer_use.cua_backend import CUA_INSTALLER_BASE
+        ps_oneliner = f"irm {CUA_INSTALLER_BASE}install.ps1 | iex"
         install_cmd = [
             "powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
             "-Command", ps_oneliner,
@@ -1113,10 +1111,8 @@ def _run_cua_driver_installer(label: str = "Installing", verbose: bool = True) -
         # since that's what the docs/README teach.
         import tempfile as _tempfile
 
-        install_url = (
-            "https://raw.githubusercontent.com/trycua/cua/main/"
-            "libs/cua-driver/scripts/install.sh"
-        )
+        from tools.computer_use.cua_backend import CUA_INSTALLER_BASE
+        install_url = f"{CUA_INSTALLER_BASE}install.sh"
         manual_hint = f'/bin/bash -c "$(curl -fsSL {install_url})"'
         fd, script_path = _tempfile.mkstemp(prefix="cua-driver-install-", suffix=".sh")
         os.close(fd)

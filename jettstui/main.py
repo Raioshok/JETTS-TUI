@@ -16807,7 +16807,7 @@ def main():
                 print(res.get("message") or ("Unregistered" if res.get("ok") else res.get("error")))
                 return
             if vm_action == "unattended":
-                res = mgr.set_unattended(target=args.target, enabled=not args.disable)
+                res = mgr.set_unattended(target=args.target, enabled=not args.disable, persist=True)
                 print(res.get("message"))
                 return
             if vm_action == "unattended-status":

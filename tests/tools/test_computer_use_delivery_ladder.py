@@ -26,9 +26,11 @@ import pytest
 
 @pytest.fixture(autouse=True)
 def _reset():
-    from tools.computer_use.tool import reset_backend_for_tests
+    from tools.computer_use.tool import reset_backend_for_tests, set_approval_callback
     reset_backend_for_tests()
+    set_approval_callback(lambda *a: "approve_once")
     yield
+    set_approval_callback(None)
     reset_backend_for_tests()
 
 

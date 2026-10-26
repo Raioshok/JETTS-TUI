@@ -19,9 +19,9 @@ rather than failing silently.
 
 Install:
   - **macOS**:
-      /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/trycua/cua/main/libs/cua-driver/scripts/install.sh)"
+      /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/trycua/cua/cb213efb082d88f297283bb95663791a2fc466e3/libs/cua-driver/scripts/install.sh)"
   - **Windows** (PowerShell):
-      irm https://raw.githubusercontent.com/trycua/cua/main/libs/cua-driver/scripts/install.ps1 | iex
+      irm https://raw.githubusercontent.com/trycua/cua/cb213efb082d88f297283bb95663791a2fc466e3/libs/cua-driver/scripts/install.ps1 | iex
 
 After install, `cua-driver` is on $PATH and supports `cua-driver mcp` (stdio
 transport) which is what we invoke.
@@ -647,18 +647,21 @@ def _maybe_nudge_update() -> None:
     ).start()
 
 
+# Installer scripts are pinned to a reviewed commit (dependency pinning policy):
+# a moving `main` would let any upstream push run as the user. Bump deliberately
+# after reading the script diff. The script itself still fetches the latest
+# cua-driver release binary.
+CUA_INSTALLER_SHA = "cb213efb082d88f297283bb95663791a2fc466e3"
+CUA_INSTALLER_BASE = (
+    f"https://raw.githubusercontent.com/trycua/cua/{CUA_INSTALLER_SHA}/libs/cua-driver/scripts/"
+)
+
+
 def cua_driver_install_hint() -> str:
     if sys.platform == "win32":
-        installer = (
-            '  irm https://raw.githubusercontent.com/trycua/cua/main/'
-            'libs/cua-driver/scripts/install.ps1 | iex'
-        )
+        installer = f"  irm {CUA_INSTALLER_BASE}install.ps1 | iex"
     else:
-        installer = (
-            '  /bin/bash -c "$(curl -fsSL '
-            'https://raw.githubusercontent.com/trycua/cua/main/'
-            'libs/cua-driver/scripts/install.sh)"'
-        )
+        installer = f'  /bin/bash -c "$(curl -fsSL {CUA_INSTALLER_BASE}install.sh)"'
     return (
         "cua-driver is not installed. Install with one of:\n"
         "  jettstui computer-use install\n"
@@ -1344,6 +1347,12 @@ class _CuaDriverSession:
     # must not trigger the auto-restart guard below, or start() would recurse
     # into start() when the session-start hasn't flipped _started yet.
     _LIFECYCLE_CALLS = frozenset({"start_session", "end_session"})
+    # Calls that read state only. A transport error can arrive AFTER the driver
+    # already delivered a click/keystroke, so only these may be re-sent.
+    _RETRY_SAFE_CALLS = frozenset({
+        "get_window_state", "list_windows", "list_apps", "get_agent_cursor_state",
+        "zoom", "page", "health_report",
+    })
 
     def call_tool(self, name: str, args: Dict[str, Any], timeout: float = 30.0) -> Dict[str, Any]:
         # A prior session may have died (MCP drop / driver crash): its
@@ -1370,6 +1379,12 @@ class _CuaDriverSession:
         try:
             return self._bridge.run(self._call_tool_async(name, args), timeout=timeout)
         except Exception as e:
+            if name not in self._RETRY_SAFE_CALLS and name not in self._LIFECYCLE_CALLS:
+                if self._is_closed_session_error(e):
+                    # Reconnect for the NEXT call, but don't replay this one.
+                    with self._lock:
+                        self._restart_session_locked()
+                raise
             if self._is_transient_daemon_error(e):
                 logger.warning(
                     "cua-driver MCP transport failed on %s (%s); "

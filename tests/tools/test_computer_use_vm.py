@@ -44,7 +44,7 @@ def _register(name: str, host: str = "10.0.0.1") -> None:
 def _reset_env(tmp_path: Path):
     """Tear down and use a temporary inventory path for isolation."""
     reset_backend_for_tests()
-    set_approval_callback(None)
+    set_approval_callback(lambda *a: "approve_once")
     temp_json = tmp_path / "vms.json"
     with patch("tools.computer_use.vm_manager.VMManager._default_storage_path", return_value=temp_json):
         # Reset global singleton

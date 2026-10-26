@@ -19,11 +19,14 @@ import pytest
 @pytest.fixture(autouse=True)
 def _reset_backend():
     """Tear down the cached backend between tests."""
-    from tools.computer_use.tool import reset_backend_for_tests
+    from tools.computer_use.tool import reset_backend_for_tests, set_approval_callback
     reset_backend_for_tests()
+    # Dispatch tests approve explicitly; with no callback the shared gate fails closed.
+    set_approval_callback(lambda *a: "approve_once")
     # Force the noop backend.
     with patch.dict(os.environ, {"JETTSTUI_COMPUTER_USE_BACKEND": "noop"}, clear=False):
         yield
+    set_approval_callback(None)
     reset_backend_for_tests()
 
 
