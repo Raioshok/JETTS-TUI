@@ -978,6 +978,38 @@ export const ar = defineLocale({
     appliesToNewSessions: name => `ينطبق على الجلسات الجديدة في ${name}`,
     failedToUpdate: name => `فشل تحديث ${name}`
   },
+  bots: {
+    title: 'البوتات',
+    subtitle:
+      'زملاء ذكاء اصطناعي تُسند إليهم عملًا حقيقيًا. لكل بوت مهمة وذاكرة خاصة ومحادثة واحدة مستمرة، ويتشاركون جميعًا ما يعرفونه عنك.',
+    newBot: 'بوت جديد',
+    createHint: 'سمِّ البوت وصِف مهمته بكلمات بسيطة، كما لو كنت تُطلع زميلًا جديدًا.',
+    nameLabel: 'الاسم',
+    namePlaceholder: 'التواصل مع العملاء',
+    roleLabel: 'المهمة',
+    rolePlaceholder: 'صِغ رسائل تواصل للعملاء المحتملين من جدولي. لا ترسل أي شيء دون موافقتي.',
+    create: 'إنشاء البوت',
+    createFailed: 'تعذّر إنشاء البوت',
+    empty: 'لا توجد بوتات بعد. أنشئ واحدًا وأسند إليه مهمة.',
+    start: 'بدء المحادثة',
+    open: 'فتح المحادثة',
+    remove: 'إزالة',
+    removeTitle: 'إزالة هذا البوت؟',
+    removeHint: name => `تتم أرشفة ${name} مع ذاكرته، فلا يضيع شيء. تتوقف مهامه المجدولة عن استخدام دوره.`,
+    loadFailed: 'تعذّر تحميل البوتات',
+    retry: 'إعادة المحاولة',
+    giveTask: 'إسناد مهمة',
+    giveTaskTitle: name => `إسناد مهمة إلى ${name}`,
+    giveTaskHint:
+      'تعمل في الخلفية كرسالة تالية في محادثة البوت. يمكنك متابعة عملك، وسنبلغك عند انتهائها أو عند حاجتها إليك.',
+    taskPlaceholder: 'أعِد إنتاج العطل من المشكلة #412 واكتب مثالًا مصغّرًا يعيد إنتاجه.',
+    assign: 'إرسال إلى البوت',
+    assignFailed: 'تعذّر تسليم المهمة إلى البوت',
+    assigned: name => `${name} يعمل عليها`,
+    finished: name => `أنهى ${name} المهمة`,
+    needsYou: name => `${name} ينتظر موافقتك`,
+    status: { idle: 'متفرغ', working: 'يعمل', needs_you: 'بحاجة إليك' }
+  },
   orchestrator: {
     title: 'المنسّق',
     subtitle:
@@ -1795,6 +1827,7 @@ export const ar = defineLocale({
       messaging: 'المراسلة',
       artifacts: 'العناصر',
       orchestrator: 'المنسّق',
+      bots: 'البوتات',
       specs: 'المواصفات',
       chat: 'المحادثة',
       settings: 'الإعدادات',

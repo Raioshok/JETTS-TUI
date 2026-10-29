@@ -19,8 +19,8 @@ import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { useI18n } from '@/i18n'
-import { $newChatBot, type JettsBot } from '@/store/bots'
-import { notifyError } from '@/store/notifications'
+import { $newChatBot, botsNeedingNotice, type JettsBot } from '@/store/bots'
+import { notify, notifyError } from '@/store/notifications'
 import { $activeGatewayProfile, normalizeProfileKey } from '@/store/profile'
 import { $gatewayState } from '@/store/session'
 
@@ -43,11 +43,52 @@ export function BotsView(props: React.ComponentProps<'section'>) {
   const [name, setName] = useState('')
   const [role, setRole] = useState('')
   const [pendingRemove, setPendingRemove] = useState<JettsBot | null>(null)
+  const [taskFor, setTaskFor] = useState<JettsBot | null>(null)
+  const [task, setTask] = useState('')
 
   const bots = useQuery({
     queryKey,
-    queryFn: () => requestGateway<{ bots: JettsBot[] }>('bots.list', scope),
-    enabled: gatewayState === 'open'
+    queryFn: async () => {
+      const next = await requestGateway<{ bots: JettsBot[] }>('bots.list', scope)
+      // Compare with the cached list so only real transitions notify; the
+      // first load has nothing cached and stays quiet.
+      const previous = queryClient.getQueryData<{ bots: JettsBot[] }>(queryKey)
+
+      if (previous) {
+        const seen = new Map(previous.bots.map(bot => [bot.id, bot.status ?? 'idle']))
+
+        for (const { bot, status } of botsNeedingNotice(seen, next.bots)) {
+          notify({
+            kind: status === 'needs_you' ? 'warning' : 'success',
+            title: bot.name,
+            message: status === 'needs_you' ? b.needsYou(bot.name) : b.finished(bot.name),
+            action: { label: b.open, onClick: () => openBot(bot) }
+          })
+        }
+      }
+
+      return next
+    },
+    enabled: gatewayState === 'open',
+    // Poll only while a bot is busy; idle rosters stay quiet.
+    refetchInterval: query => (query.state.data?.bots.some(bot => (bot.status ?? 'idle') !== 'idle') ? 3000 : false)
+  })
+
+  const assign = useMutation({
+    mutationFn: (bot: JettsBot) => requestGateway('bots.assign', { ...scope, id: bot.id, task }),
+    onError: error => notifyError(error, b.assignFailed),
+    onSuccess: (_result, bot) => {
+      notify({ kind: 'info', title: bot.name, message: b.assigned(bot.name) })
+      // Optimistic: a task that finishes before the next poll still notifies.
+      queryClient.setQueryData<{ bots: JettsBot[] }>(queryKey, current =>
+        current
+          ? { bots: current.bots.map(item => (item.id === bot.id ? { ...item, status: 'working' } : item)) }
+          : current
+      )
+      setTaskFor(null)
+      setTask('')
+      void queryClient.invalidateQueries({ queryKey })
+    }
   })
 
   const create = useMutation({
@@ -73,6 +114,8 @@ export function BotsView(props: React.ComponentProps<'section'>) {
     navigate(NEW_CHAT_ROUTE)
   }
 
+  const list = bots.data?.bots
+
   const remove = async () => {
     if (!pendingRemove) {
       return
@@ -94,11 +137,9 @@ export function BotsView(props: React.ComponentProps<'section'>) {
     )
   }
 
-  if (!bots.data) {
+  if (!list) {
     return <PageLoader />
   }
-
-  const list = bots.data.bots
 
   return (
     <section
@@ -123,11 +164,21 @@ export function BotsView(props: React.ComponentProps<'section'>) {
               {list.map(bot => (
                 <li className="flex items-start justify-between gap-4 py-3" key={bot.id}>
                   <div className="grid min-w-0 gap-1">
-                    <span className="text-sm font-medium text-(--ui-text-primary)">{bot.name}</span>
+                    <span className="flex items-center gap-2 text-sm font-medium text-(--ui-text-primary)">
+                      {bot.name}
+                      {bot.status && bot.status !== 'idle' && (
+                        <span className="rounded-full bg-foreground/5 px-2 py-0.5 text-xs font-normal text-(--ui-text-secondary)">
+                          {b.status[bot.status]}
+                        </span>
+                      )}
+                    </span>
                     <span className="line-clamp-2 text-sm text-(--ui-text-secondary)">{bot.role}</span>
                     {bot.model && <span className="text-xs text-(--ui-text-tertiary)">{bot.model}</span>}
                   </div>
                   <div className="flex shrink-0 gap-2">
+                    <Button onClick={() => setTaskFor(bot)} size="sm" variant="secondary">
+                      {b.giveTask}
+                    </Button>
                     <Button onClick={() => openBot(bot)} size="sm">
                       {bot.session_id ? b.open : b.start}
                     </Button>
@@ -174,6 +225,38 @@ export function BotsView(props: React.ComponentProps<'section'>) {
             <DialogFooter>
               <Button disabled={!name.trim() || !role.trim() || create.isPending} type="submit">
                 {b.create}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog onOpenChange={open => !open && setTaskFor(null)} open={taskFor !== null}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>{taskFor ? b.giveTaskTitle(taskFor.name) : b.giveTask}</DialogTitle>
+            <DialogDescription>{b.giveTaskHint}</DialogDescription>
+          </DialogHeader>
+          <form
+            className="grid gap-4"
+            onSubmit={event => {
+              event.preventDefault()
+
+              if (taskFor) {
+                assign.mutate(taskFor)
+              }
+            }}
+          >
+            <Textarea
+              autoFocus
+              onChange={event => setTask(event.target.value)}
+              placeholder={b.taskPlaceholder}
+              rows={5}
+              value={task}
+            />
+            <DialogFooter>
+              <Button disabled={!task.trim() || assign.isPending} type="submit">
+                {b.assign}
               </Button>
             </DialogFooter>
           </form>

@@ -1337,7 +1337,17 @@ export const zh: Translations = {
     removeTitle: '移除这个 Bot？',
     removeHint: name => `${name} 会连同其记忆一起归档，不会丢失任何内容。它的例行任务将不再使用其职责。`,
     loadFailed: '无法加载你的 Bots',
-    retry: '重试'
+    retry: '重试',
+    giveTask: '分配任务',
+    giveTaskTitle: name => `给 ${name} 分配任务`,
+    giveTaskHint: '任务会在后台作为 Bot 对话中的下一条消息运行。你可以继续工作；完成或需要你时会通知你。',
+    taskPlaceholder: '复现 issue #412 中的崩溃，并写一个最小复现。',
+    assign: '发送给 Bot',
+    assignFailed: '无法把任务交给 Bot',
+    assigned: name => `${name} 已开始处理`,
+    finished: name => `${name} 已完成`,
+    needsYou: name => `${name} 需要你的确认`,
+    status: { idle: '空闲', working: '工作中', needs_you: '需要你' }
   },
   orchestrator: {
     title: '编排器',
@@ -2217,6 +2227,7 @@ export const zh: Translations = {
       messaging: '消息平台',
       artifacts: '产物',
       orchestrator: '编排器',
+      bots: 'Bots',
       specs: '规格'
     },
     searchAria: '搜索会话',

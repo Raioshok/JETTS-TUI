@@ -36,6 +36,20 @@ jettstui bot remove sales-outbound   # archives to ~/.jettstui/bots/.archive/, m
 `--model` / `--provider` pin a model for one Bot; otherwise new chats use the model
 picked in the composer, then the profile default.
 
+## Give a Bot a task
+
+On the Bots page, **Give task** hands the Bot work without opening its chat. The task
+runs in the background as the next message in the Bot's own conversation, so the
+result is an ordinary reply you can read, follow up on, or branch. Give it another task
+while it's busy and that one queues behind the first; nothing is interrupted.
+
+Each Bot shows **Working** while it's busy and **Needs you** when an action is waiting
+for your approval. You get a notification when it finishes or needs you, with a button
+that opens the chat. Several Bots can work at the same time.
+
+Tasks run in the JettsTUI backend, so they keep going while the app is open or
+`jettstui serve` is running; they stop if the backend stops.
+
 ## Routines
 
 Ask a Bot in its own chat to "run this every Friday" — the cron job it creates is tagged

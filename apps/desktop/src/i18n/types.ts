@@ -1005,6 +1005,16 @@ export interface Translations {
     removeHint: (name: string) => string
     loadFailed: string
     retry: string
+    giveTask: string
+    giveTaskTitle: (name: string) => string
+    giveTaskHint: string
+    taskPlaceholder: string
+    assign: string
+    assignFailed: string
+    assigned: (name: string) => string
+    finished: (name: string) => string
+    needsYou: (name: string) => string
+    status: Record<'idle' | 'working' | 'needs_you', string>
   }
   orchestrator: {
     title: string

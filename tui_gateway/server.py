@@ -5970,6 +5970,9 @@ def _apply_session_bot(agent, sid: str, session_id: str | None, session_db) -> N
         slug = slug or owner
         if slug:
             bots.apply_bot(agent, slug)
+            with _sessions_lock:
+                if sid in _sessions:
+                    _sessions[sid]["bot"] = slug
             # A new chat started with a bot becomes its ongoing thread.
             if session_id and owner is None:
                 bots.update_bot(slug, session_id=session_id)
@@ -14349,12 +14352,70 @@ def _build_project_tree(
     return tree, active_id
 
 
+def _bot_status(slug: str) -> str:
+    """``needs_you`` (waiting on an approval), ``working`` or ``idle``."""
+    from tools.approval import has_blocking_approval
+
+    with _sessions_lock:
+        live = [s for s in _sessions.values() if s.get("bot") == slug]
+    if any(has_blocking_approval(str(s.get("session_key") or "")) for s in live):
+        return "needs_you"
+    return "working" if any(s.get("running") for s in live) else "idle"
+
+
 @method("bots.list")
 @_profile_scoped
 def _(rid, params: dict) -> dict:
     from agent import bots
 
-    return _ok(rid, {"bots": bots.list_bots()})
+    return _ok(rid, {"bots": [{**b, "status": _bot_status(b["id"])} for b in bots.list_bots()]})
+
+
+@method("bots.assign")
+@_profile_scoped
+def _(rid, params: dict) -> dict:
+    """Give a bot a task: it runs as the next turn of the bot's own thread, in
+    the background, so the result is an ordinary reply in that chat."""
+    from agent import bots
+
+    bot_id = str(params.get("id") or "")
+    task = str(params.get("task") or "").strip()
+    if not task:
+        return _err(rid, 4006, "task required")
+    try:
+        bot = bots.get_bot(bot_id)
+    except ValueError as e:
+        return _err(rid, 4044, str(e))
+    if bot is None:
+        return _err(rid, 4044, f"No bot named {bot_id!r}")
+
+    # A thread this bot already has open (maybe still building its agent, so not
+    # yet bound) takes the task as a queued next turn instead of a second thread.
+    with _sessions_lock:
+        live_sid = next((k for k, v in _sessions.items() if v.get("bot") == bot_id), None)
+    if live_sid is not None:
+        submitted = _methods["prompt.submit"](rid, {"session_id": live_sid, "text": task, "queued": True})
+        if "error" in submitted:
+            return submitted
+        return _ok(rid, {"session_id": live_sid, "stored_session_id": bot.get("session_id")})
+
+    base = {"cols": 96, "source": "desktop", "profile": params.get("profile")}
+    opened = None
+    if bot.get("session_id"):
+        opened = _methods["session.resume"](rid, {**base, "session_id": bot["session_id"]})
+    if not opened or "error" in opened:
+        # No thread yet, or its first turn never persisted: start one.
+        opened = _methods["session.create"](rid, {**base, "bot": bot_id})
+    if "error" in opened:
+        return opened
+    sid = opened["result"]["session_id"]
+    submitted = _methods["prompt.submit"](rid, {"session_id": sid, "text": task})
+    if "error" in submitted:
+        return submitted
+    return _ok(rid, {
+        "session_id": sid,
+        "stored_session_id": opened["result"].get("stored_session_id") or bot.get("session_id"),
+    })
 
 
 @method("bots.create")

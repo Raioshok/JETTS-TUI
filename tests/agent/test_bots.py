@@ -135,3 +135,74 @@ def test_cli_create_list_remove(capsys):
     assert "scout" in capsys.readouterr().out
     assert run(bot_action="remove", bot="scout") == 0
     assert run(bot_action="remove", bot="scout") == 1
+
+
+class TestBackgroundTasks:
+    def _rpc(self, overrides):
+        from tui_gateway import server
+
+        return patch.dict(server._methods, overrides)
+
+    def test_task_starts_a_thread_when_the_bot_has_none_and_submits_it(self):
+        from tui_gateway import server
+
+        bots.create_bot("Scout", "Find talent")
+        calls = []
+
+        def create(rid, params):
+            calls.append(("create", params.get("bot")))
+            return {"result": {"session_id": "live1", "stored_session_id": "stored1"}}
+
+        def submit(rid, params):
+            calls.append(("submit", params["session_id"], params["text"]))
+            return {"result": {"status": "streaming"}}
+
+        with self._rpc({"session.create": create, "prompt.submit": submit}):
+            res = server._methods["bots.assign"]("r", {"id": "scout", "task": "Find 3 Rust devs"})
+        assert res["result"] == {"session_id": "live1", "stored_session_id": "stored1"}
+        assert calls == [("create", "scout"), ("submit", "live1", "Find 3 Rust devs")]
+
+    def test_task_resumes_the_existing_thread_and_falls_back_when_it_is_gone(self):
+        from tui_gateway import server
+
+        bots.create_bot("Scout", "Find talent")
+        bots.update_bot("scout", session_id="thread")
+        seen = []
+        resume = lambda rid, p: seen.append(("resume", p["session_id"])) or {"error": {"code": 4007}}
+        create = lambda rid, p: seen.append(("create", p["bot"])) or {"result": {"session_id": "live2"}}
+        submit = lambda rid, p: {"result": {}}
+        with self._rpc({"session.resume": resume, "session.create": create, "prompt.submit": submit}):
+            res = server._methods["bots.assign"]("r", {"id": "scout", "task": "go"})
+        assert seen == [("resume", "thread"), ("create", "scout")]
+        assert res["result"]["session_id"] == "live2"
+
+    def test_empty_task_and_unknown_bot_are_rejected(self):
+        from tui_gateway import server
+
+        assert "error" in server._methods["bots.assign"]("r", {"id": "ghost", "task": "x"})
+        bots.create_bot("Scout", "Find talent")
+        assert "error" in server._methods["bots.assign"]("r", {"id": "scout", "task": "  "})
+
+    def test_status_reports_working_and_waiting_on_approval(self):
+        from tui_gateway import server
+
+        bots.create_bot("Scout", "Find talent")
+        live = {"a": {"bot": "scout", "running": True, "session_key": "k1"}}
+        with patch.dict(server._sessions, live):
+            assert server._bot_status("scout") == "working"
+            with patch("tools.approval.has_blocking_approval", side_effect=lambda key: key == "k1"):
+                assert server._bot_status("scout") == "needs_you"
+        assert server._bot_status("scout") == "idle"
+
+    def test_task_for_a_bot_already_open_queues_on_that_thread(self):
+        from tui_gateway import server
+
+        bots.create_bot("Scout", "Find talent")
+        submitted = []
+        submit = lambda rid, p: submitted.append(p) or {"result": {}}
+        create = lambda rid, p: pytest.fail("must not open a second thread")
+        with self._rpc({"prompt.submit": submit, "session.create": create}), \
+             patch.dict(server._sessions, {"live9": {"bot": "scout"}}):
+            res = server._methods["bots.assign"]("r", {"id": "scout", "task": "next"})
+        assert res["result"]["session_id"] == "live9"
+        assert submitted == [{"session_id": "live9", "text": "next", "queued": True}]

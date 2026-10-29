@@ -1137,7 +1137,17 @@ export const en: Translations = {
     removeTitle: 'Remove this Bot?',
     removeHint: name => `${name} is archived with its memory, so nothing is lost. Its routines stop using its role.`,
     loadFailed: 'Could not load your Bots',
-    retry: 'Retry'
+    retry: 'Retry',
+    giveTask: 'Give task',
+    giveTaskTitle: name => `Give ${name} a task`,
+    giveTaskHint: 'It runs in the background as the next message in the Bot’s chat. You can keep working; you’ll hear back when it’s done or needs you.',
+    taskPlaceholder: 'Reproduce the crash from issue #412 and write a minimal repro.',
+    assign: 'Send to Bot',
+    assignFailed: 'Could not hand the task to the Bot',
+    assigned: name => `${name} is on it`,
+    finished: name => `${name} finished`,
+    needsYou: name => `${name} needs your OK`,
+    status: { idle: 'Idle', working: 'Working', needs_you: 'Needs you' }
   },
   orchestrator: {
     title: 'Orchestrator',
