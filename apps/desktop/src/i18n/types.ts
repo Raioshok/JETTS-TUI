@@ -986,6 +986,26 @@ export interface Translations {
     importedBadge: string
     resetToMine: string
   }
+  bots: {
+    title: string
+    subtitle: string
+    newBot: string
+    createHint: string
+    nameLabel: string
+    namePlaceholder: string
+    roleLabel: string
+    rolePlaceholder: string
+    create: string
+    createFailed: string
+    empty: string
+    start: string
+    open: string
+    remove: string
+    removeTitle: string
+    removeHint: (name: string) => string
+    loadFailed: string
+    retry: string
+  }
   orchestrator: {
     title: string
     subtitle: string

@@ -19,11 +19,13 @@ export const PROFILES_ROUTE = '/profiles'
 export const AGENTS_ROUTE = '/agents'
 export const STARMAP_ROUTE = '/starmap'
 export const ORCHESTRATOR_ROUTE = '/orchestrator'
+export const BOTS_ROUTE = '/bots'
 export const SPECS_ROUTE = '/specs'
 
 export type AppView =
   | 'agents'
   | 'artifacts'
+  | 'bots'
   | 'chat'
   | 'command-center'
   | 'cron'
@@ -44,6 +46,7 @@ export type AppView =
 export type AppRouteId =
   | 'agents'
   | 'artifacts'
+  | 'bots'
   | 'command-center'
   | 'cron'
   | 'messaging'
@@ -71,6 +74,7 @@ export const APP_ROUTES = [
   { id: 'webhooks', path: WEBHOOKS_ROUTE, view: 'webhooks' },
   { id: 'artifacts', path: ARTIFACTS_ROUTE, view: 'artifacts' },
   { id: 'orchestrator', path: ORCHESTRATOR_ROUTE, view: 'orchestrator' },
+  { id: 'bots', path: BOTS_ROUTE, view: 'bots' },
   { id: 'specs', path: SPECS_ROUTE, view: 'specs' },
   { id: 'cron', path: CRON_ROUTE, view: 'cron' },
   { id: 'profiles', path: PROFILES_ROUTE, view: 'profiles' },

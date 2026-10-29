@@ -1213,6 +1213,7 @@ def create_job(
     workdir: Optional[str] = None,
     no_agent: bool = False,
     attach_to_session: Optional[bool] = None,
+    bot: Optional[str] = None,
 ) -> Dict[str, Any]:
     """
     Create a new cron job.
@@ -1340,9 +1341,15 @@ def create_job(
             f"{ONESHOT_GRACE_SECONDS}s in the past and cannot be scheduled."
         )
 
+    if bot:
+        from agent.bots import get_bot
+
+        if get_bot(bot) is None:
+            raise ValueError(f"No bot named {bot!r}")
     job = {
         "id": job_id,
         "name": name or label_source[:50].strip(),
+        "bot": bot or None,  # Jetts Bot whose routine this is (runs with its role)
         "prompt": prompt_text,
         "skills": normalized_skills,
         "skill": normalized_skills[0] if normalized_skills else None,

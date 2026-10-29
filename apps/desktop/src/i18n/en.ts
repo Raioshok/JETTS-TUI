@@ -1118,6 +1118,27 @@ export const en: Translations = {
     importedBadge: 'imported map',
     resetToMine: 'Back to my map'
   },
+  bots: {
+    title: 'Bots',
+    subtitle:
+      'AI teammates you give real work to. Each Bot has a job, its own memory and one ongoing conversation; they all share what they know about you.',
+    newBot: 'New Bot',
+    createHint: 'Name the Bot and describe its job in plain words, like you would brief a new teammate.',
+    nameLabel: 'Name',
+    namePlaceholder: 'Sales Outbound',
+    roleLabel: 'Job',
+    rolePlaceholder: 'Draft outreach for prospects from my sheet. Never send anything without my OK.',
+    create: 'Create Bot',
+    createFailed: 'Could not create the Bot',
+    empty: 'No Bots yet. Create one and give it a job.',
+    start: 'Start chat',
+    open: 'Open chat',
+    remove: 'Remove',
+    removeTitle: 'Remove this Bot?',
+    removeHint: name => `${name} is archived with its memory, so nothing is lost. Its routines stop using its role.`,
+    loadFailed: 'Could not load your Bots',
+    retry: 'Retry'
+  },
   orchestrator: {
     title: 'Orchestrator',
     subtitle:
@@ -2028,6 +2049,7 @@ export const en: Translations = {
       messaging: 'Messaging',
       artifacts: 'Artifacts',
       orchestrator: 'Orchestrator',
+      bots: 'Bots',
       specs: 'Specs'
     },
     searchAria: 'Search sessions',

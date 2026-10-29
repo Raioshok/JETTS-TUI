@@ -5907,7 +5907,7 @@ def _make_agent(
                 raise RuntimeError("Auth fallback resolved without a model")
             model = resolution.selected_model
     _pr = _load_provider_routing()
-    return AIAgent(
+    agent = AIAgent(
         model=model,
         max_iterations=_cfg_max_turns(cfg, 500),
         provider=runtime.get("provider"),
@@ -5954,6 +5954,28 @@ def _make_agent(
         fallback_model=_load_fallback_model(),
         **_agent_cbs(sid),
     )
+    _apply_session_bot(agent, sid, session_id or key, session_db)
+    return agent
+
+
+def _apply_session_bot(agent, sid: str, session_id: str | None, session_db) -> None:
+    """Turn the agent into its Jetts Bot when this session belongs to one."""
+    from agent import bots
+
+    with _sessions_lock:
+        slug = (_sessions.get(sid) or {}).get("bot")
+    db = session_db if session_db is not None else _get_db()
+    try:
+        owner = bots.bot_for_session(session_id, db)
+        slug = slug or owner
+        if slug:
+            bots.apply_bot(agent, slug)
+            # A new chat started with a bot becomes its ongoing thread.
+            if session_id and owner is None:
+                bots.update_bot(slug, session_id=session_id)
+    except Exception:
+        # A removed or unreadable bot leaves a normal chat, never a dead session.
+        logger.warning("could not apply Jetts Bot %r to session %s", slug, session_id, exc_info=True)
 
 
 def _init_session(
@@ -7097,6 +7119,22 @@ def _(rid, params: dict) -> dict:
         if create_model
         else None
     )
+    bot_id = str(params.get("bot") or "").strip() or None
+    if bot_id:
+        from agent import bots
+
+        token = set_jettstui_home_override(profile_home) if profile_home else None
+        try:
+            bot = bots.get_bot(bot_id)
+            if bot is None:
+                return _err(rid, 4044, f"No bot named {bot_id!r}")
+        except ValueError as e:
+            return _err(rid, 4044, str(e))
+        finally:
+            if token is not None:
+                reset_jettstui_home_override(token)
+        if not session_model_override and bot.get("model"):
+            session_model_override = {"model": bot["model"], "provider": bot.get("provider") or None}
     create_reasoning_override = None
     if effort := str(params.get("reasoning_effort") or "").strip():
         try:
@@ -7128,6 +7166,7 @@ def _(rid, params: dict) -> dict:
             "agent_error": None,
             "agent_ready": ready,
             "attached_images": [],
+            "bot": bot_id,
             "close_on_disconnect": is_truthy_value(params.get("close_on_disconnect", False)),
             "active_session_lease": lease,
             "cols": cols,
@@ -14308,6 +14347,41 @@ def _build_project_tree(
         exists=_dir_exists_cached,
     )
     return tree, active_id
+
+
+@method("bots.list")
+@_profile_scoped
+def _(rid, params: dict) -> dict:
+    from agent import bots
+
+    return _ok(rid, {"bots": bots.list_bots()})
+
+
+@method("bots.create")
+@_profile_scoped
+def _(rid, params: dict) -> dict:
+    from agent import bots
+
+    try:
+        bot = bots.create_bot(
+            str(params.get("name") or ""), str(params.get("role") or ""),
+            model=params.get("model"), provider=params.get("provider"),
+        )
+    except ValueError as e:
+        return _err(rid, 4045, str(e))
+    return _ok(rid, {"bot": bot})
+
+
+@method("bots.remove")
+@_profile_scoped
+def _(rid, params: dict) -> dict:
+    from agent import bots
+
+    try:
+        archived = bots.remove_bot(str(params.get("id") or ""))
+    except ValueError as e:
+        return _err(rid, 4044, str(e))
+    return _ok(rid, {"archived_to": str(archived)})
 
 
 @method("projects.tree")

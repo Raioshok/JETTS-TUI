@@ -30,7 +30,8 @@ import { publishTitlebarClusters } from './titlebar-drag'
 const PAGE_MODES = [
   { id: 'capabilities', navKey: 'skills', path: '/skills' },
   { id: 'artifacts', navKey: 'artifacts', path: '/artifacts' },
-  { id: 'orchestrator', navKey: 'orchestrator', path: '/orchestrator' }
+  { id: 'orchestrator', navKey: 'orchestrator', path: '/orchestrator' },
+  { id: 'bots', navKey: 'bots', path: '/bots' }
 ] as const
 
 // Pages that are not the chat surface (Specs has no switcher tab of its own).

@@ -9,6 +9,7 @@ import { findBarClaimsCombo } from '@/lib/find-in-page'
 import { contributedKeybindHandler, PROFILE_SLOT_COUNT, SESSION_SLOT_COUNT } from '@/lib/keybinds/actions'
 import { comboAllowedInInput, comboFromEvent, isEditableTarget } from '@/lib/keybinds/combo'
 import { composerFocusKeysAllowed, isComposerFocusSoftCombo, typeToFocusChar } from '@/lib/keybinds/composer-focus-keys'
+import { $newChatBot } from '@/store/bots'
 import { $repoStatus } from '@/store/coding-status'
 import { toggleCommandPalette } from '@/store/command-palette'
 import {
@@ -152,6 +153,7 @@ export function useKeybinds(deps: KeybindRuntimeDeps): void {
       // target the current live profile, not a stale per-profile quick-create
       // selection from a prior action.
       $newChatProfile.set(null)
+      $newChatBot.set(null)
       deps.startFreshSession()
       window.dispatchEvent(new CustomEvent('jettstui:new-session-shortcut'))
     },

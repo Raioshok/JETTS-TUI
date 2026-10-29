@@ -36,6 +36,7 @@ const ArtifactsView = lazy(async () => ({ default: (await import('../artifacts')
 const MessagingView = lazy(async () => ({ default: (await import('../messaging')).MessagingView }))
 const SkillsView = lazy(async () => ({ default: (await import('../skills')).SkillsView }))
 const OrchestratorView = lazy(async () => ({ default: (await import('../orchestrator')).OrchestratorView }))
+const BotsView = lazy(async () => ({ default: (await import('../bots')).BotsView }))
 const SpecsView = lazy(async () => ({ default: (await import('../specs')).SpecsView }))
 
 export function LegacySessionRedirect() {
@@ -170,6 +171,7 @@ export const ChatRoutesSurface = memo(function ChatRoutesSurface({
       <Route element={page(<MessagingView setStatusbarItemGroup={setStatusbarItemGroup} />)} path="messaging" />
       <Route element={page(<ArtifactsView setStatusbarItemGroup={setStatusbarItemGroup} />)} path="artifacts" />
       <Route element={page(<OrchestratorView />)} path="orchestrator" />
+      <Route element={page(<BotsView />)} path="bots" />
       <Route element={page(<SpecsView />)} path="specs" />
       <Route element={null} path="agents" />
       <Route element={null} path="command-center" />

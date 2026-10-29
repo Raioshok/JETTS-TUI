@@ -598,6 +598,8 @@ def _format_job(job: Dict[str, Any]) -> Dict[str, Any]:
         result["enabled_toolsets"] = job["enabled_toolsets"]
     if job.get("workdir"):
         result["workdir"] = job["workdir"]
+    if job.get("bot"):
+        result["bot"] = job["bot"]
     return result
 
 
@@ -678,6 +680,8 @@ def cronjob(
     no_agent: Optional[bool] = None,
     attach_to_session: Optional[bool] = None,
     task_id: str = None,
+    bot: Optional[str] = None,
+    session_id: Optional[str] = None,
 ) -> str:
     """Unified cron job management tool."""
     del task_id  # unused but kept for handler signature compatibility
@@ -733,7 +737,16 @@ def cronjob(
                             success=False,
                         )
 
+            if not bot and session_id:
+                # A routine a bot schedules from its own thread is that bot's routine.
+                try:
+                    from agent.bots import bot_for_session
+
+                    bot = bot_for_session(session_id)
+                except Exception:
+                    bot = None
             job = create_job(
+                bot=bot,
                 prompt=prompt or "",
                 schedule=schedule,
                 name=name,
@@ -1147,6 +1160,7 @@ registry.register(
         workdir=args.get("workdir"),
         no_agent=args.get("no_agent"),
         task_id=kw.get("task_id"),
+        session_id=kw.get("session_id"),
     ))(),
     check_fn=check_cronjob_requirements,
     emoji="⏰",

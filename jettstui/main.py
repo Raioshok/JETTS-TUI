@@ -16234,6 +16234,13 @@ def main():
     project_parser.set_defaults(func=cmd_project)
 
     # =========================================================================
+    # bot command — Jetts Bots (named AI teammates)
+    # =========================================================================
+    from jettstui.bots_cmd import build_parser as _build_bot_parser
+
+    _build_bot_parser(subparsers)
+
+    # =========================================================================
     # hooks command — shell-hook inspection and management
     # =========================================================================
     # hooks command  (parser built in jettstui/subcommands/hooks.py)

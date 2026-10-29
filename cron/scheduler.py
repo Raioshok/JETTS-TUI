@@ -3475,6 +3475,15 @@ def run_job(
             session_id=_cron_session_id,
             session_db=_session_db,
         )
+        if job.get("bot"):
+            # Bot routines run with the bot's role; memory stays off (cron invariant).
+            try:
+                from agent.bots import apply_bot
+
+                apply_bot(agent, job["bot"])
+            except ValueError as exc:
+                logger.warning("Job '%s': bot %r unavailable, running without it: %s",
+                               job_id, job["bot"], exc)
         
         # Run the agent with an *inactivity*-based timeout: the job can run
         # for hours if it's actively calling tools / receiving stream tokens,

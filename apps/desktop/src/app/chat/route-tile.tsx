@@ -15,6 +15,7 @@ import { $routeTiles, closeRouteTile, type RouteTile } from '@/store/route-tiles
 
 import {
   ARTIFACTS_ROUTE,
+  BOTS_ROUTE,
   contributedRoutes,
   MESSAGING_ROUTE,
   ORCHESTRATOR_ROUTE,
@@ -29,6 +30,7 @@ const SkillsView = lazy(async () => ({ default: (await import('../skills')).Skil
 const MessagingView = lazy(async () => ({ default: (await import('../messaging')).MessagingView }))
 const ArtifactsView = lazy(async () => ({ default: (await import('../artifacts')).ArtifactsView }))
 const OrchestratorView = lazy(async () => ({ default: (await import('../orchestrator')).OrchestratorView }))
+const BotsView = lazy(async () => ({ default: (await import('../bots')).BotsView }))
 const SpecsView = lazy(async () => ({ default: (await import('../specs')).SpecsView }))
 
 // Built-in page views + their pane titles, keyed by route.
@@ -36,6 +38,7 @@ const BUILTIN_PAGES: Record<string, { render: () => ReactNode; title: string }> 
   [ARTIFACTS_ROUTE]: { render: () => <ArtifactsView />, title: 'Artifacts' },
   [MESSAGING_ROUTE]: { render: () => <MessagingView />, title: 'Messaging' },
   [ORCHESTRATOR_ROUTE]: { render: () => <OrchestratorView />, title: 'Orchestrator' },
+  [BOTS_ROUTE]: { render: () => <BotsView />, title: 'Bots' },
   [SPECS_ROUTE]: { render: () => <SpecsView />, title: 'Specs' },
   [SKILLS_ROUTE]: { render: () => <SkillsView />, title: 'Capabilities' }
 }

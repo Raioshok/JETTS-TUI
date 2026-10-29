@@ -70,6 +70,7 @@ import { openSession, openSessionIntentFromModifiers } from '../open-session'
 import {
   AGENTS_ROUTE,
   ARTIFACTS_ROUTE,
+  BOTS_ROUTE,
   COMMAND_CENTER_ROUTE,
   CRON_ROUTE,
   MESSAGING_ROUTE,
@@ -500,6 +501,13 @@ export function CommandPalette() {
             id: 'nav-artifacts',
             label: cc.nav.artifacts.title,
             run: go(ARTIFACTS_ROUTE)
+          },
+          {
+            icon: Users,
+            id: 'nav-bots',
+            keywords: ['bots', 'bot', 'teammates', 'team', 'agents', 'jetts bot', 'routines'],
+            label: t.bots.title,
+            run: go(BOTS_ROUTE)
           },
           {
             icon: GitBranch,

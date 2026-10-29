@@ -1319,6 +1319,26 @@ export const zh: Translations = {
     importedBadge: '导入的图谱',
     resetToMine: '返回我的图谱'
   },
+  bots: {
+    title: 'Bots',
+    subtitle: '可以交付真正工作的 AI 队友。每个 Bot 都有自己的职责、自己的记忆和一个持续的对话；它们共享对你的了解。',
+    newBot: '新建 Bot',
+    createHint: '为 Bot 命名，并用平实的语言描述它的职责，就像给新队友做简报一样。',
+    nameLabel: '名称',
+    namePlaceholder: '销售外联',
+    roleLabel: '职责',
+    rolePlaceholder: '根据我的表格为潜在客户起草外联邮件。未经我同意不得发送任何内容。',
+    create: '创建 Bot',
+    createFailed: '无法创建 Bot',
+    empty: '还没有 Bot。创建一个并给它分配职责。',
+    start: '开始对话',
+    open: '打开对话',
+    remove: '移除',
+    removeTitle: '移除这个 Bot？',
+    removeHint: name => `${name} 会连同其记忆一起归档，不会丢失任何内容。它的例行任务将不再使用其职责。`,
+    loadFailed: '无法加载你的 Bots',
+    retry: '重试'
+  },
   orchestrator: {
     title: '编排器',
     subtitle:

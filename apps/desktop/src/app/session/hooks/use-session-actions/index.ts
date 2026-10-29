@@ -9,6 +9,7 @@ import { type ChatMessage, preserveLocalAssistantErrors, toChatMessages } from '
 import { isMissingRpcMethod } from '@/lib/gateway-rpc'
 import { recoverInFlightTurnJournal } from '@/lib/inflight-turn-journal'
 import { setSessionYolo } from '@/lib/yolo-session'
+import { $newChatBot } from '@/store/bots'
 import { migrateSessionDraft } from '@/store/composer'
 import { clearQueuedPrompts, migrateQueuedPrompts } from '@/store/composer-queue'
 import { $pinnedSessionIds } from '@/store/layout'
@@ -170,11 +171,13 @@ async function desktopSessionCreateParams(cwd: string): Promise<Record<string, u
   }
 
   const profile = $newChatProfile.get() ?? normalizeProfileKey($activeGatewayProfile.get())
+  const bot = $newChatBot.get()
   await ensureGatewayProfile(profile)
 
   return {
     cols: 96,
     source: 'desktop',
+    ...(bot ? { bot } : {}),
     ...(cwd && { cwd }),
     ...(profile ? { profile } : {}),
     ...(selection.model
@@ -414,6 +417,7 @@ export function useSessionActions({
 
         setFreshDraftReady(false)
         setNewChatWorkspaceTarget(undefined)
+        $newChatBot.set(null)
         setActiveSessionId(created.session_id)
         setSelectedStoredSessionId(stored)
         setSessionStartedAt(Date.now())
