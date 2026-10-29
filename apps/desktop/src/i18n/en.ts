@@ -1147,7 +1147,16 @@ export const en: Translations = {
     assigned: name => `${name} is on it`,
     finished: name => `${name} finished`,
     needsYou: name => `${name} needs your OK`,
-    status: { idle: 'Idle', working: 'Working', needs_you: 'Needs you' }
+    status: { idle: 'Idle', working: 'Working', needs_you: 'Needs you' },
+    computerTitle: 'Bots’ computer',
+    computerHint: name =>
+      `The Bots work on ${name}, never on your desktop. When one needs you to sign in somewhere, open it and sign in there.`,
+    computerNoneHint: 'Pick a VM to give the Bots a computer of their own. Until then, their desktop work happens on yours, with approval.',
+    computerNone: 'None',
+    computerLoading: 'Looking for VMs…',
+    openComputer: 'Open computer',
+    computerSaveFailed: 'Could not change the Bots’ computer',
+    openComputerFailed: 'Could not open the Bots’ computer'
   },
   orchestrator: {
     title: 'Orchestrator',

@@ -1347,7 +1347,16 @@ export const zh: Translations = {
     assigned: name => `${name} 已开始处理`,
     finished: name => `${name} 已完成`,
     needsYou: name => `${name} 需要你的确认`,
-    status: { idle: '空闲', working: '工作中', needs_you: '需要你' }
+    status: { idle: '空闲', working: '工作中', needs_you: '需要你' },
+    computerTitle: 'Bots 的电脑',
+    computerHint: name => `Bots 在 ${name} 上工作，绝不使用你的桌面。需要你登录时，打开它并在那里登录。`,
+    computerNoneHint:
+      '选择一台虚拟机，让 Bots 拥有自己的电脑。在此之前，它们的桌面操作会在你的电脑上进行，并需要你的批准。',
+    computerNone: '无',
+    computerLoading: '正在查找虚拟机…',
+    openComputer: '打开电脑',
+    computerSaveFailed: '无法更改 Bots 的电脑',
+    openComputerFailed: '无法打开 Bots 的电脑'
   },
   orchestrator: {
     title: '编排器',

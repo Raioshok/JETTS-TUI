@@ -247,6 +247,10 @@ class BaseVMProvider:
         """Capture screenshot from VM console/guest. Returns (png_b64, error)."""
         return None, "Not implemented"
 
+    def open_console(self, name: str, config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        """Open the VM's interactive console window for the user (e.g. to sign in)."""
+        return {"ok": False, "error": f"Open '{name}' from your hypervisor's own console window."}
+
     def send_input(
         self,
         name: str,
@@ -452,6 +456,14 @@ class HyperVProvider(BaseVMProvider):
         [System.IO.File]::WriteAllBytes($a.dest, [byte[]]$bytes)
         """
         return self._cmdlet(script, args, "Downloaded", timeout=120.0)
+
+    def open_console(self, name: str, config: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
+        vmconnect = os.path.join(os.environ.get("SystemRoot", r"C:\Windows"), "System32", "vmconnect.exe")
+        if not os.path.exists(vmconnect):
+            return {"ok": False, "error": "vmconnect.exe not found; open the VM from Hyper-V Manager."}
+        subprocess.Popen([vmconnect, "localhost", name], close_fds=True,
+                         creationflags=getattr(subprocess, "DETACHED_PROCESS", 0))
+        return {"ok": True, "message": f"Opened the console for '{name}'"}
 
     # Resolves $vm plus a Get-Dev helper for the VM's WMI devices.
     _WMI_VM = """
@@ -1652,6 +1664,12 @@ class VMManager:
             self._scales[name] = (1.0, 1.0)
             self._dimensions[name] = (1280, 720)
             return b64_raw, None, 1280, 720
+
+    def open_console(self, name: str) -> Dict[str, Any]:
+        prov, cfg = self._resolve_target(name)
+        if not prov:
+            return {"ok": False, "error": f"Target '{name}' not found"}
+        return prov.open_console(name, cfg)
 
     def send_input(self, name: str, action: str, **kwargs) -> Dict[str, Any]:
         """Send input into VM with automatic coordinate translation from scaled frame."""

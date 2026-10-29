@@ -1015,6 +1015,14 @@ export interface Translations {
     finished: (name: string) => string
     needsYou: (name: string) => string
     status: Record<'idle' | 'working' | 'needs_you', string>
+    computerTitle: string
+    computerHint: (name: string) => string
+    computerNoneHint: string
+    computerNone: string
+    computerLoading: string
+    openComputer: string
+    computerSaveFailed: string
+    openComputerFailed: string
   }
   orchestrator: {
     title: string

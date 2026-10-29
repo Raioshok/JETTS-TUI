@@ -50,6 +50,23 @@ that opens the chat. Several Bots can work at the same time.
 Tasks run in the JettsTUI backend, so they keep going while the app is open or
 `jettstui serve` is running; they stop if the backend stops.
 
+## The Bots' computer
+
+Give the Bots a computer of their own: on the Bots page pick a VM under **Bots'
+computer** (or `jettstui bot computer <vm>`). From then on:
+
+- `computer_use` in a Bot's chat drives that VM. A Bot asking for your desktop is
+  refused, so it never moves your mouse or reads your screen.
+- When a Bot needs you to sign in somewhere, it says what to sign in to and stops.
+  Click **Open computer** to open the VM's window (Hyper-V uses its own console
+  window; other hypervisors: open the VM from their console), sign in there, and tell
+  the Bot to continue. The sign-in stays on the Bots' computer for next time.
+- All Bots share the one computer, like coworkers sharing a machine.
+
+WSL distros aren't offered: WSL shares your host's drives, so it isn't a separate
+computer. A Bot's chat that was already open learns the computer's name from its next
+conversation; the routing applies right away.
+
 ## Routines
 
 Ask a Bot in its own chat to "run this every Friday" — the cron job it creates is tagged

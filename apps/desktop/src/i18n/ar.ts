@@ -1008,7 +1008,17 @@ export const ar = defineLocale({
     assigned: name => `${name} يعمل عليها`,
     finished: name => `أنهى ${name} المهمة`,
     needsYou: name => `${name} ينتظر موافقتك`,
-    status: { idle: 'متفرغ', working: 'يعمل', needs_you: 'بحاجة إليك' }
+    status: { idle: 'متفرغ', working: 'يعمل', needs_you: 'بحاجة إليك' },
+    computerTitle: 'حاسوب البوتات',
+    computerHint: name =>
+      `تعمل البوتات على ${name} ولا تستخدم سطح مكتبك أبدًا. عندما يحتاج أحدها إلى تسجيل دخولك في مكان ما، افتحه وسجّل الدخول هناك.`,
+    computerNoneHint:
+      'اختر جهازًا افتراضيًا ليصبح حاسوبًا خاصًا بالبوتات. حتى ذلك الحين، يجري عملها على سطح المكتب في حاسوبك وبموافقتك.',
+    computerNone: 'لا شيء',
+    computerLoading: 'جارٍ البحث عن الأجهزة الافتراضية…',
+    openComputer: 'فتح الحاسوب',
+    computerSaveFailed: 'تعذّر تغيير حاسوب البوتات',
+    openComputerFailed: 'تعذّر فتح حاسوب البوتات'
   },
   orchestrator: {
     title: 'المنسّق',

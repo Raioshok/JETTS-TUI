@@ -206,3 +206,71 @@ class TestBackgroundTasks:
             res = server._methods["bots.assign"]("r", {"id": "scout", "task": "next"})
         assert res["result"]["session_id"] == "live9"
         assert submitted == [{"session_id": "live9", "text": "next", "queued": True}]
+
+
+class TestBotComputer:
+    @pytest.fixture(autouse=True)
+    def _bot_with_computer(self):
+        from tools.computer_use import tool as cu
+
+        bots.create_bot("Scout", "Find talent")
+        bots.update_bot("scout", session_id="bot-thread")
+        bots.set_bot_computer("Lab-VM")
+        cu.reset_backend_for_tests()
+        cu.set_approval_callback(lambda *a: "approve_once")
+        yield
+        cu.set_approval_callback(None)
+        cu.reset_backend_for_tests()
+
+    def _call(self, args, session_id):
+        from tools.computer_use import tool as cu
+
+        db = SimpleNamespace(get_session=lambda sid: None)
+        with patch("jettstui_state.SessionDB", return_value=db), \
+             patch("tools.computer_use.vm_manager.VMManager.handle_action", return_value='{"ok": true}') as vm, \
+             patch.dict("os.environ", {"JETTSTUI_COMPUTER_USE_BACKEND": "noop"}):
+            out = cu.handle_computer_use(dict(args), session_id=session_id)
+        return out, vm
+
+    def test_bot_desktop_actions_go_to_the_bots_computer(self):
+        _, vm = self._call({"action": "click", "coordinate": [1, 2]}, "bot-thread")
+        assert vm.call_args.args[1]["target"] == "Lab-VM"
+
+    def test_bot_cannot_reach_the_users_desktop(self):
+        import json
+
+        out, vm = self._call({"action": "type", "text": "x", "target": "host"}, "bot-thread")
+        assert "off-limits" in json.loads(out)["error"]
+        vm.assert_not_called()
+
+    def test_ordinary_chats_are_unaffected(self):
+        _, vm = self._call({"action": "click", "coordinate": [1, 2]}, "someone-else")
+        vm.assert_not_called()
+
+    def test_prompt_names_the_computer_only_when_computer_use_is_available(self):
+        with_tool = SimpleNamespace(ephemeral_system_prompt=None, _memory_store=None, valid_tool_names={"computer_use"})
+        without = SimpleNamespace(ephemeral_system_prompt=None, _memory_store=None, valid_tool_names=set())
+        bots.apply_bot(with_tool, "scout")
+        bots.apply_bot(without, "scout")
+        assert "'Lab-VM'" in with_tool.ephemeral_system_prompt
+        assert "Lab-VM" not in without.ephemeral_system_prompt
+
+    def test_open_computer_opens_the_configured_vm_console(self):
+        from tui_gateway import server
+
+        with patch("tools.computer_use.vm_manager.VMManager.open_console",
+                   return_value={"ok": True, "message": "opened"}) as open_console:
+            res = server._methods["bots.open_computer"]("r", {})
+        open_console.assert_called_once_with("Lab-VM")
+        assert res["result"]["ok"] is True
+        bots.set_bot_computer(None)
+        assert "error" in server._methods["bots.open_computer"]("r", {})
+
+
+def test_hyperv_console_launches_vmconnect_for_that_vm():
+    from tools.computer_use.vm_manager import HyperVProvider
+
+    with patch("os.path.exists", return_value=True), patch("subprocess.Popen") as popen:
+        assert HyperVProvider().open_console("Lab VM")["ok"] is True
+    argv = popen.call_args.args[0]
+    assert argv[0].lower().endswith("vmconnect.exe") and argv[1:] == ["localhost", "Lab VM"]

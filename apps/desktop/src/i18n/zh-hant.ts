@@ -1118,7 +1118,16 @@ export const zhHant = defineLocale({
     assigned: name => `${name} 已開始處理`,
     finished: name => `${name} 已完成`,
     needsYou: name => `${name} 需要你的確認`,
-    status: { idle: '閒置', working: '工作中', needs_you: '需要你' }
+    status: { idle: '閒置', working: '工作中', needs_you: '需要你' },
+    computerTitle: 'Bots 的電腦',
+    computerHint: name => `Bots 在 ${name} 上工作，絕不使用你的桌面。需要你登入時，開啟它並在那裡登入。`,
+    computerNoneHint:
+      '選擇一台虛擬機，讓 Bots 擁有自己的電腦。在此之前，它們的桌面操作會在你的電腦上進行，並需要你的核准。',
+    computerNone: '無',
+    computerLoading: '正在尋找虛擬機…',
+    openComputer: '開啟電腦',
+    computerSaveFailed: '無法變更 Bots 的電腦',
+    openComputerFailed: '無法開啟 Bots 的電腦'
   },
   orchestrator: {
     title: '編排器',

@@ -1158,7 +1158,15 @@ export const pt = defineLocale({
     assigned: name => `${name} está cuidando disso`,
     finished: name => `${name} terminou`,
     needsYou: name => `${name} precisa do seu OK`,
-    status: { idle: 'Livre', working: 'Trabalhando', needs_you: 'Precisa de você' }
+    status: { idle: 'Livre', working: 'Trabalhando', needs_you: 'Precisa de você' },
+    computerTitle: 'Computador dos Bots',
+    computerHint: name => `Os Bots trabalham em ${name}, nunca na sua área de trabalho. Quando um precisar que você faça login em algo, abra-o e faça login lá.`,
+    computerNoneHint: 'Escolha uma VM para dar aos Bots um computador próprio. Até lá, o trabalho de desktop deles acontece no seu, com aprovação.',
+    computerNone: 'Nenhum',
+    computerLoading: 'Procurando VMs…',
+    openComputer: 'Abrir computador',
+    computerSaveFailed: 'Não foi possível trocar o computador dos Bots',
+    openComputerFailed: 'Não foi possível abrir o computador dos Bots'
   },
   orchestrator: {
     title: 'Orquestrador',

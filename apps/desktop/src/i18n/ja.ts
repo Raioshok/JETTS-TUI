@@ -1124,7 +1124,8 @@ export const ja = defineLocale({
   },
   bots: {
     title: 'ボット',
-    subtitle: '実際の仕事を任せられる AI チームメイト。各ボットには役割、専用のメモリ、続いていく 1 つの会話があり、あなたについて知っていることは全員で共有します。',
+    subtitle:
+      '実際の仕事を任せられる AI チームメイト。各ボットには役割、専用のメモリ、続いていく 1 つの会話があり、あなたについて知っていることは全員で共有します。',
     newBot: '新しいボット',
     createHint: '新しいチームメイトに説明するように、ボットに名前を付けて仕事をわかりやすく書いてください。',
     nameLabel: '名前',
@@ -1138,19 +1139,31 @@ export const ja = defineLocale({
     open: 'チャットを開く',
     remove: '削除',
     removeTitle: 'このボットを削除しますか？',
-    removeHint: name => `${name} はメモリごとアーカイブされるため、何も失われません。ルーティンはその役割を使わなくなります。`,
+    removeHint: name =>
+      `${name} はメモリごとアーカイブされるため、何も失われません。ルーティンはその役割を使わなくなります。`,
     loadFailed: 'ボットを読み込めませんでした',
     retry: '再試行',
     giveTask: 'タスクを渡す',
     giveTaskTitle: name => `${name} にタスクを渡す`,
-    giveTaskHint: 'ボットのチャットの次のメッセージとしてバックグラウンドで実行されます。作業を続けてかまいません。完了したときや確認が必要なときにお知らせします。',
+    giveTaskHint:
+      'ボットのチャットの次のメッセージとしてバックグラウンドで実行されます。作業を続けてかまいません。完了したときや確認が必要なときにお知らせします。',
     taskPlaceholder: 'issue #412 のクラッシュを再現し、最小の再現手順を書いて。',
     assign: 'ボットに送る',
     assignFailed: 'ボットにタスクを渡せませんでした',
     assigned: name => `${name} が対応中です`,
     finished: name => `${name} が完了しました`,
     needsYou: name => `${name} があなたの確認を待っています`,
-    status: { idle: '待機中', working: '作業中', needs_you: '要確認' }
+    status: { idle: '待機中', working: '作業中', needs_you: '要確認' },
+    computerTitle: 'ボットのコンピューター',
+    computerHint: name =>
+      `ボットは ${name} で作業し、あなたのデスクトップは使いません。サインインが必要なときは、それを開いてそこでサインインしてください。`,
+    computerNoneHint:
+      'VM を選ぶと、ボット専用のコンピューターになります。それまでは、ボットのデスクトップ作業はあなたの承認のもとであなたのコンピューターで行われます。',
+    computerNone: 'なし',
+    computerLoading: 'VM を探しています…',
+    openComputer: 'コンピューターを開く',
+    computerSaveFailed: 'ボットのコンピューターを変更できませんでした',
+    openComputerFailed: 'ボットのコンピューターを開けませんでした'
   },
   orchestrator: {
     title: 'オーケストレーター',

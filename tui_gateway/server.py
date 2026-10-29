@@ -14371,6 +14371,53 @@ def _(rid, params: dict) -> dict:
     return _ok(rid, {"bots": [{**b, "status": _bot_status(b["id"])} for b in bots.list_bots()]})
 
 
+@method("bots.computer")
+@_profile_scoped
+def _(rid, params: dict) -> dict:
+    """The Bots' shared computer and the VMs/VPSes it can be."""
+    from agent import bots
+    from tools.computer_use.vm_manager import get_vm_manager
+
+    try:
+        # WSL shares the host's drives, so it can't be a Bot's own computer.
+        names = sorted({
+            str(v.get("name")) for v in get_vm_manager().list_vms()
+            if v.get("name") and not str(v.get("vm_type") or "").startswith("wsl")
+        })
+    except Exception as e:
+        logger.warning("bots.computer: VM discovery failed: %s", e)
+        names = []
+    return _ok(rid, {"computer": bots.bot_computer(), "vms": names})
+
+
+@method("bots.set_computer")
+@_profile_scoped
+def _(rid, params: dict) -> dict:
+    from agent import bots
+    from jettstui.config import is_managed
+
+    if is_managed():
+        return _err(rid, 4006, "managed install — config is read-only")
+    bots.set_bot_computer(params.get("computer"))
+    return _ok(rid, {"computer": bots.bot_computer()})
+
+
+@method("bots.open_computer")
+@_profile_scoped
+def _(rid, params: dict) -> dict:
+    """Open the Bots' computer on screen so the user can sign in for them."""
+    from agent import bots
+    from tools.computer_use.vm_manager import get_vm_manager
+
+    name = bots.bot_computer()
+    if not name:
+        return _err(rid, 4044, "The Bots have no computer yet; pick one on the Bots page.")
+    res = get_vm_manager().open_console(name)
+    if not res.get("ok"):
+        return _err(rid, 5040, res.get("error") or "could not open the computer")
+    return _ok(rid, res)
+
+
 @method("bots.assign")
 @_profile_scoped
 def _(rid, params: dict) -> dict:

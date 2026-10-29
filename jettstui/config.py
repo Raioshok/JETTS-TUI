@@ -3686,6 +3686,13 @@ DEFAULT_CONFIG = {
     "paste_collapse_threshold_fallback": 5,
     "paste_collapse_char_threshold": 2000,
 
+    # Jetts Bots (named AI teammates, see agent/bots.py).
+    # computer = VM/VPS name the Bots share as their own computer: computer_use
+    # in a Bot's chat goes there and the user's desktop is off-limits to Bots.
+    "bots": {
+        "computer": "",
+    },
+
     # Computer Use (cua-driver) toolset settings.
     "computer_use": {
         # Which backend drives the desktop:

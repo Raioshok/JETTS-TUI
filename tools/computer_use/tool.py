@@ -427,6 +427,17 @@ def handle_computer_use(args: Dict[str, Any], **kwargs) -> Any:
     from tools.computer_use.vm_manager import get_vm_manager
     vm_mgr = get_vm_manager()
     target = args.get("target")
+    # A Jetts Bot with its own computer works there, never on the user's desktop.
+    bot_vm = _bot_computer_for(session_id) if not action.startswith(("vm_", "unattended_")) else None
+    if bot_vm:
+        if target and str(target).lower() in ("local", "localhost", "host"):
+            return json.dumps({
+                "error": f"This Bot works on its own computer '{bot_vm}'; the user's desktop is off-limits.",
+                "action": action,
+            })
+        if not target:
+            args = dict(args)
+            args["target"] = target = bot_vm
     if not action.startswith("unattended_") and (args.get("unattended") or vm_mgr.is_unattended_enabled()):
         if not target or str(target).lower() in ("local", "localhost", "host", "auto"):
             active_target = vm_mgr.get_active_unattended_target()
@@ -471,6 +482,20 @@ def handle_computer_use(args: Dict[str, Any], **kwargs) -> Any:
     except Exception as e:
         logger.exception("computer_use %s failed", action)
         return json.dumps({"error": f"{action} failed: {e}"})
+
+
+def _bot_computer_for(session_id: str) -> Optional[str]:
+    """The Bots' shared computer, when ``session_id`` is a Bot's chat."""
+    if not session_id:
+        return None
+    try:
+        from agent.bots import bot_computer, bot_for_session
+
+        vm = bot_computer()
+        return vm if vm and bot_for_session(session_id) else None
+    except Exception:
+        logger.debug("bot computer lookup failed for %s", session_id, exc_info=True)
+        return None
 
 
 def _guard_vm_command(args: Dict[str, Any]) -> Optional[str]:

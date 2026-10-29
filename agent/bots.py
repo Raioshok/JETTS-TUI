@@ -128,6 +128,19 @@ def remove_bot(slug: str) -> Path:
     return dest
 
 
+def bot_computer() -> Optional[str]:
+    """The VM the Bots share as their own computer (``bots.computer``), if set."""
+    from jettstui.config import load_config
+
+    return str((load_config().get("bots") or {}).get("computer") or "").strip() or None
+
+
+def set_bot_computer(name: Optional[str]) -> None:
+    from jettstui.config import set_config_value
+
+    set_config_value("bots.computer", (name or "").strip())
+
+
 def bot_for_session(session_id: Optional[str], db: Any = None) -> Optional[str]:
     """The bot whose thread ``session_id`` is, following compression/branch parents."""
     owners = {b["session_id"]: b["id"] for b in list_bots() if b.get("session_id")}
@@ -146,14 +159,23 @@ def bot_for_session(session_id: Optional[str], db: Any = None) -> Optional[str]:
     return None
 
 
-def bot_prompt(bot: Dict[str, Any]) -> str:
-    return (
+def bot_prompt(bot: Dict[str, Any], computer: Optional[str] = None) -> str:
+    prompt = (
         f"You are {bot['name']}, one of the user's AI teammates (a Jetts Bot).\n"
         f"Your job: {bot['role']}\n"
         "Work like a teammate: take tasks from start to finish, report what you did "
         "and what is left, keep your memory focused on this job, and stop to ask "
         "before anything irreversible or when you need the user to sign in somewhere."
     )
+    if computer:
+        prompt += (
+            f"\nYour own computer is the virtual machine '{computer}'. computer_use in "
+            "this chat drives that machine; the user's desktop is off-limits. When an "
+            "app or site needs the user to sign in, say exactly what to sign in to, ask "
+            "them to do it on your computer (they open it from the Bots page with "
+            "Open computer), and stop until they confirm."
+        )
+    return prompt
 
 
 def apply_bot(agent: Any, slug: str) -> Dict[str, Any]:
@@ -162,7 +184,8 @@ def apply_bot(agent: Any, slug: str) -> Dict[str, Any]:
     if bot is None:
         raise ValueError(f"no bot named {slug!r}")
     existing = getattr(agent, "ephemeral_system_prompt", None)
-    agent.ephemeral_system_prompt = "\n\n".join(p for p in (existing, bot_prompt(bot)) if p)
+    computer = bot_computer() if "computer_use" in (getattr(agent, "valid_tool_names", None) or ()) else None
+    agent.ephemeral_system_prompt = "\n\n".join(p for p in (existing, bot_prompt(bot, computer)) if p)
     store = getattr(agent, "_memory_store", None)
     if store is not None:
         from tools.memory_tool import MemoryStore

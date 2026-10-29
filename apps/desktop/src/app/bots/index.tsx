@@ -28,6 +28,8 @@ import { useGatewayRequest } from '../gateway/hooks/use-gateway-request'
 import { openSession } from '../open-session'
 import { NEW_CHAT_ROUTE } from '../routes'
 
+import { BotsComputer } from './computer'
+
 export function BotsView(props: React.ComponentProps<'section'>) {
   const { t } = useI18n()
   const b = t.bots
@@ -156,6 +158,8 @@ export function BotsView(props: React.ComponentProps<'section'>) {
             </div>
             <Button onClick={() => setCreateOpen(true)}>{b.newBot}</Button>
           </header>
+
+          <BotsComputer enabled={gatewayState === 'open'} profile={profile} />
 
           {list.length === 0 ? (
             <p className="text-sm text-(--ui-text-secondary)">{b.empty}</p>
