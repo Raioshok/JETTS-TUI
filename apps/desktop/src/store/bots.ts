@@ -11,6 +11,8 @@ export interface JettsBot {
   session_id?: null | string
   /** Live state of the bot's thread: waiting on an approval, mid-task, or free. */
   status?: JettsBotStatus
+  /** A teach-by-showing lesson is recording (or waiting for Stop & learn). */
+  watching?: boolean
 }
 
 export const JETTS_BOT_STATUSES = ['idle', 'working', 'needs_you'] as const

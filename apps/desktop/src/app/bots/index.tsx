@@ -29,6 +29,7 @@ import { openSession } from '../open-session'
 import { NEW_CHAT_ROUTE } from '../routes'
 
 import { BotsComputer } from './computer'
+import { TeachButton } from './teach'
 
 export function BotsView(props: React.ComponentProps<'section'>) {
   const { t } = useI18n()
@@ -170,6 +171,11 @@ export function BotsView(props: React.ComponentProps<'section'>) {
                   <div className="grid min-w-0 gap-1">
                     <span className="flex items-center gap-2 text-sm font-medium text-(--ui-text-primary)">
                       {bot.name}
+                      {bot.watching && (
+                        <span className="rounded-full bg-foreground/5 px-2 py-0.5 text-xs font-normal text-(--ui-text-secondary)">
+                          {b.watchingPill}
+                        </span>
+                      )}
                       {bot.status && bot.status !== 'idle' && (
                         <span className="rounded-full bg-foreground/5 px-2 py-0.5 text-xs font-normal text-(--ui-text-secondary)">
                           {b.status[bot.status]}
@@ -180,6 +186,11 @@ export function BotsView(props: React.ComponentProps<'section'>) {
                     {bot.model && <span className="text-xs text-(--ui-text-tertiary)">{bot.model}</span>}
                   </div>
                   <div className="flex shrink-0 gap-2">
+                    <TeachButton
+                      bot={bot}
+                      onChanged={() => void queryClient.invalidateQueries({ queryKey })}
+                      profile={profile}
+                    />
                     <Button onClick={() => setTaskFor(bot)} size="sm" variant="secondary">
                       {b.giveTask}
                     </Button>

@@ -67,6 +67,23 @@ WSL distros aren't offered: WSL shares your host's drives, so it isn't a separat
 computer. A Bot's chat that was already open learns the computer's name from its next
 conversation; the routing applies right away.
 
+## Teach a Bot by showing it
+
+Click **Teach**, say what you're about to show ("Weekly sales report from the CRM"),
+then do the task once. The Bot watches by taking a screenshot whenever the screen
+changes — on the Bots' computer if they have one, otherwise on your screen. It never
+records keystrokes, so passwords you type are not captured.
+
+Click **Stop & learn** when you're done, optionally with notes ("always pick last
+week"). The Bot studies the screenshots with its vision tool and saves a skill named
+`<bot>-<what you showed>` that it can follow next time; ask it to run that skill, or
+make it a routine. A lesson stops recording by itself after 15 minutes or 120
+screenshots and waits for **Stop & learn**.
+
+Lessons are kept in `~/.jettstui/bots/<id>/lessons/` and are archived with the Bot.
+They are screenshots of whatever was on screen, so delete a lesson folder if it shows
+something sensitive.
+
 ## Routines
 
 Ask a Bot in its own chat to "run this every Friday" — the cron job it creates is tagged

@@ -1127,7 +1127,24 @@ export const zhHant = defineLocale({
     computerLoading: '正在尋找虛擬機…',
     openComputer: '開啟電腦',
     computerSaveFailed: '無法變更 Bots 的電腦',
-    openComputerFailed: '無法開啟 Bots 的電腦'
+    openComputerFailed: '無法開啟 Bots 的電腦',
+    teach: '教學',
+    teachTitle: name => `教 ${name} 一個任務`,
+    teachHint:
+      '在 Bot 觀看時完成一次任務。每當畫面變化時它會截圖——如果 Bots 有自己的電腦就在那台電腦上，否則在你的螢幕上。它從不記錄按鍵。',
+    teachWhatLabel: '你要示範什麼？',
+    teachWhatPlaceholder: 'CRM 中的每週銷售報告',
+    teachStart: '開始觀看',
+    teachStartFailed: '無法開始觀看',
+    teachWatching: (name, source) => `${name} 正在觀看 ${source}。完成任務後，按「停止並學習」。`,
+    watchingPill: '觀看中',
+    stopLearn: '停止並學習',
+    stopTitle: name => `示範給 ${name} 的內容完成了嗎？`,
+    stopHint: 'Bot 會研究你的操作，並儲存為下次可以照做的技能。',
+    notesLabel: '給 Bot 的備註',
+    notesPlaceholder: '一律選擇上週，並略過標記為內部的帳戶。',
+    learning: (name, frames) => `${name} 正在研究 ${frames} 張截圖。技能儲存後會通知你。`,
+    learnFailed: 'Bot 無法從這次示範中學習'
   },
   orchestrator: {
     title: '編排器',

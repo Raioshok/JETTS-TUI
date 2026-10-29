@@ -14368,7 +14368,47 @@ def _bot_status(slug: str) -> str:
 def _(rid, params: dict) -> dict:
     from agent import bots
 
-    return _ok(rid, {"bots": [{**b, "status": _bot_status(b["id"])} for b in bots.list_bots()]})
+    from agent import bot_teach
+
+    return _ok(rid, {"bots": [
+        {**b, "status": _bot_status(b["id"]), "watching": bot_teach.is_watching(b["id"])}
+        for b in bots.list_bots()
+    ]})
+
+
+@method("bots.teach_start")
+@_profile_scoped
+def _(rid, params: dict) -> dict:
+    """Start watching the user do a task (screenshots only, never keystrokes)."""
+    from agent import bot_teach
+
+    try:
+        rec = bot_teach.start(str(params.get("id") or ""), str(params.get("title") or ""))
+    except ValueError as e:
+        return _err(rid, 4045, str(e))
+    return _ok(rid, {"source": rec.source})
+
+
+@method("bots.teach_stop")
+@_profile_scoped
+def _(rid, params: dict) -> dict:
+    """Stop watching and hand the recording to the Bot to learn as a skill."""
+    from agent import bot_teach
+
+    bot_id = str(params.get("id") or "")
+    try:
+        rec = bot_teach.stop(bot_id)
+    except ValueError as e:
+        return _err(rid, 4044, str(e))
+    if not rec.frames:
+        return _err(rid, 4046, rec.error or "Nothing was recorded, so there is nothing to learn.")
+    learned = _methods["bots.assign"](rid, {
+        "id": bot_id, "task": bot_teach.learn_prompt(rec, str(params.get("notes") or "")),
+        "profile": params.get("profile"),
+    })
+    if "error" in learned:
+        return learned
+    return _ok(rid, {**learned["result"], "frames": len(rec.frames)})
 
 
 @method("bots.computer")

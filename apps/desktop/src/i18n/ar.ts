@@ -1018,7 +1018,24 @@ export const ar = defineLocale({
     computerLoading: 'جارٍ البحث عن الأجهزة الافتراضية…',
     openComputer: 'فتح الحاسوب',
     computerSaveFailed: 'تعذّر تغيير حاسوب البوتات',
-    openComputerFailed: 'تعذّر فتح حاسوب البوتات'
+    openComputerFailed: 'تعذّر فتح حاسوب البوتات',
+    teach: 'تعليم',
+    teachTitle: name => `علِّم ${name} مهمة`,
+    teachHint:
+      'أنجز المهمة مرة واحدة بينما يشاهدك البوت. يلتقط لقطة شاشة كلما تغيّرت الشاشة — على حاسوب البوتات إن وُجد، وإلا على شاشتك. لا يسجّل ضغطات المفاتيح أبدًا.',
+    teachWhatLabel: 'ماذا ستعرض؟',
+    teachWhatPlaceholder: 'تقرير المبيعات الأسبوعي من نظام إدارة العملاء',
+    teachStart: 'بدء المشاهدة',
+    teachStartFailed: 'تعذّر بدء المشاهدة',
+    teachWatching: (name, source) => `${name} يشاهد ${source}. أنجز المهمة ثم اضغط «إيقاف وتعلّم».`,
+    watchingPill: 'يشاهد',
+    stopLearn: 'إيقاف وتعلّم',
+    stopTitle: name => `هل انتهيت من العرض على ${name}؟`,
+    stopHint: 'يدرس البوت ما فعلته ويحفظه كمهارة يتّبعها في المرة القادمة.',
+    notesLabel: 'ملاحظات للبوت',
+    notesPlaceholder: 'اختر الأسبوع الماضي دائمًا، وتجاهل الحسابات المعلَّمة بأنها داخلية.',
+    learning: (name, frames) => `${name} يدرس ${frames} لقطة شاشة. سنبلغك عند حفظ المهارة.`,
+    learnFailed: 'تعذّر على البوت التعلّم من هذا العرض'
   },
   orchestrator: {
     title: 'المنسّق',

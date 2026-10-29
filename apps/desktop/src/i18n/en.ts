@@ -1156,7 +1156,25 @@ export const en: Translations = {
     computerLoading: 'Looking for VMs…',
     openComputer: 'Open computer',
     computerSaveFailed: 'Could not change the Bots’ computer',
-    openComputerFailed: 'Could not open the Bots’ computer'
+    openComputerFailed: 'Could not open the Bots’ computer',
+    teach: 'Teach',
+    teachTitle: name => `Teach ${name} a task`,
+    teachHint:
+      'Do the task once while the Bot watches. It takes a screenshot whenever the screen changes — on the Bots’ computer if they have one, otherwise yours. It never records keystrokes.',
+    teachWhatLabel: 'What will you show?',
+    teachWhatPlaceholder: 'Weekly sales report from the CRM',
+    teachStart: 'Start watching',
+    teachStartFailed: 'Could not start watching',
+    teachWatching: (name, source) => `${name} is watching ${source}. Do the task, then press Stop & learn.`,
+    watchingPill: 'Watching',
+    stopLearn: 'Stop & learn',
+    stopTitle: name => `Done showing ${name}?`,
+    stopHint: 'The Bot studies what you did and saves it as a skill it can follow next time.',
+    notesLabel: 'Notes for the Bot',
+    notesPlaceholder: 'Always pick last week, and skip accounts marked internal.',
+    learning: (name, frames) =>
+      `${name} is studying ${frames} screenshot${frames === 1 ? '' : 's'}. You’ll hear back when the skill is saved.`,
+    learnFailed: 'The Bot could not learn from this lesson'
   },
   orchestrator: {
     title: 'Orchestrator',

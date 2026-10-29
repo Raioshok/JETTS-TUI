@@ -1023,6 +1023,22 @@ export interface Translations {
     openComputer: string
     computerSaveFailed: string
     openComputerFailed: string
+    teach: string
+    teachTitle: (name: string) => string
+    teachHint: string
+    teachWhatLabel: string
+    teachWhatPlaceholder: string
+    teachStart: string
+    teachStartFailed: string
+    teachWatching: (name: string, source: string) => string
+    watchingPill: string
+    stopLearn: string
+    stopTitle: (name: string) => string
+    stopHint: string
+    notesLabel: string
+    notesPlaceholder: string
+    learning: (name: string, frames: number) => string
+    learnFailed: string
   }
   orchestrator: {
     title: string

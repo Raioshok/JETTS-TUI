@@ -1356,7 +1356,24 @@ export const zh: Translations = {
     computerLoading: '正在查找虚拟机…',
     openComputer: '打开电脑',
     computerSaveFailed: '无法更改 Bots 的电脑',
-    openComputerFailed: '无法打开 Bots 的电脑'
+    openComputerFailed: '无法打开 Bots 的电脑',
+    teach: '教学',
+    teachTitle: name => `教 ${name} 一个任务`,
+    teachHint:
+      '在 Bot 观看时完成一次任务。每当屏幕变化时它会截图——如果 Bots 有自己的电脑就在那台电脑上，否则在你的屏幕上。它从不记录按键。',
+    teachWhatLabel: '你要演示什么？',
+    teachWhatPlaceholder: 'CRM 中的每周销售报告',
+    teachStart: '开始观看',
+    teachStartFailed: '无法开始观看',
+    teachWatching: (name, source) => `${name} 正在观看 ${source}。完成任务后，按“停止并学习”。`,
+    watchingPill: '观看中',
+    stopLearn: '停止并学习',
+    stopTitle: name => `演示给 ${name} 的内容完成了吗？`,
+    stopHint: 'Bot 会研究你的操作，并保存为下次可以照做的技能。',
+    notesLabel: '给 Bot 的备注',
+    notesPlaceholder: '总是选择上周，并跳过标记为内部的账户。',
+    learning: (name, frames) => `${name} 正在研究 ${frames} 张截图。技能保存后会通知你。`,
+    learnFailed: 'Bot 无法从这次演示中学习'
   },
   orchestrator: {
     title: '编排器',
