@@ -1068,6 +1068,40 @@ def is_claude_code_token_valid(creds: Dict[str, Any]) -> bool:
     return now_ms < (expires_at - 60_000)
 
 
+def _oauth_error_reason(exc: Exception) -> str:
+    """The OAuth server's own refusal (``invalid_grant: ...``); its error bodies never carry tokens."""
+    reason = str(exc)
+    read = getattr(exc, "read", None)
+    if callable(read):
+        try:
+            body = json.loads(read().decode("utf-8", "replace") or "{}")
+            parts = [str(body.get(k)) for k in ("error", "error_description") if body.get(k)]
+            if parts:
+                reason = f"{reason} ({': '.join(parts)})"
+        except Exception:
+            pass
+    return reason
+
+
+# Why the last Claude Code token refresh failed, for the user-facing error.
+_last_refresh_failure: Optional[str] = None
+
+
+def anthropic_missing_credentials_message() -> str:
+    """Error text for when no Anthropic token resolves; names an expired login."""
+    creds = read_claude_code_credentials()
+    if creds and creds.get("refreshToken") and not is_claude_code_token_valid(creds):
+        why = f" ({_last_refresh_failure})" if _last_refresh_failure else ""
+        return (
+            f"Your Claude Code login has expired and could not be refreshed{why}. "
+            "Sign in again with 'claude /login' (or 'claude setup-token'), then retry."
+        )
+    return (
+        "No Anthropic credentials found. Set ANTHROPIC_TOKEN or ANTHROPIC_API_KEY, "
+        "run 'claude setup-token', or authenticate with 'claude /login'."
+    )
+
+
 def refresh_anthropic_oauth_pure(refresh_token: str, *, use_json: bool = False) -> Dict[str, Any]:
     """Refresh an Anthropic OAuth token without mutating local credential files."""
     import time
@@ -1112,8 +1146,11 @@ def refresh_anthropic_oauth_pure(refresh_token: str, *, use_json: bool = False) 
             with urllib.request.urlopen(req, timeout=10) as resp:
                 result = json.loads(resp.read().decode())
         except Exception as exc:
-            last_error = exc
-            logger.debug("Anthropic token refresh failed at %s: %s", endpoint, exc)
+            exc.oauth_reason = _oauth_error_reason(exc)  # type: ignore[attr-defined]
+            # A fallback endpoint's 404 must not hide the primary endpoint's real refusal.
+            if last_error is None or getattr(exc, "code", None) != 404:
+                last_error = exc
+            logger.debug("Anthropic token refresh failed at %s: %s", endpoint, exc.oauth_reason)
             continue
 
         access_token = result.get("access_token", "")
@@ -1181,7 +1218,9 @@ def _refresh_oauth_token(creds: Dict[str, Any]) -> Optional[str]:
         logger.debug("Successfully refreshed Claude Code OAuth token")
         return refreshed["access_token"]
     except Exception as e:
-        logger.debug("Failed to refresh Claude Code token: %s", e)
+        global _last_refresh_failure
+        _last_refresh_failure = getattr(e, "oauth_reason", None) or str(e)
+        logger.warning("Claude Code login expired and could not be refreshed: %s", _last_refresh_failure)
         return None
 
 

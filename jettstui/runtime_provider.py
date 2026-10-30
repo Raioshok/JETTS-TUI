@@ -1467,14 +1467,11 @@ def _resolve_explicit_runtime(
         base_url = explicit_base_url or cfg_base_url or "https://api.anthropic.com"
         api_key = explicit_api_key
         if not api_key:
-            from agent.anthropic_adapter import resolve_anthropic_token
+            from agent.anthropic_adapter import anthropic_missing_credentials_message, resolve_anthropic_token
 
             api_key = resolve_anthropic_token()
             if not api_key:
-                raise AuthError(
-                    "No Anthropic credentials found. Set ANTHROPIC_TOKEN or ANTHROPIC_API_KEY, "
-                    "run 'claude setup-token', or authenticate with 'claude /login'."
-                )
+                raise AuthError(anthropic_missing_credentials_message())
         return {
             "provider": "anthropic",
             "api_mode": "anthropic_messages",
@@ -1975,13 +1972,10 @@ def resolve_runtime_provider(
                     "config.yaml model section at a custom env var."
                 )
         else:
-            from agent.anthropic_adapter import resolve_anthropic_token
+            from agent.anthropic_adapter import anthropic_missing_credentials_message, resolve_anthropic_token
             token = resolve_anthropic_token()
             if not token:
-                raise AuthError(
-                    "No Anthropic credentials found. Set ANTHROPIC_TOKEN or ANTHROPIC_API_KEY, "
-                    "run 'claude setup-token', or authenticate with 'claude /login'."
-                )
+                raise AuthError(anthropic_missing_credentials_message())
         return {
             "provider": "anthropic",
             "api_mode": "anthropic_messages",
