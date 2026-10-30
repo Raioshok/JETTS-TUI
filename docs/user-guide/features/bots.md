@@ -84,6 +84,21 @@ Lessons are kept in `~/.jettstui/bots/<id>/lessons/` and are archived with the B
 They are screenshots of whatever was on screen, so delete a lesson folder if it shows
 something sensitive.
 
+## Bots working together
+
+Bots hand work to each other. In any chat — a Bot's own, or your normal chat acting as
+the coordinator — ask for it in plain words: "have Research find three sources, then
+Comms write the update". The agent hands each piece to that Bot with `delegate_task`,
+the Bots work in parallel where they can, and their results come back into the same
+thread. The agent tree shows who is working ("Research: find three sources").
+
+A Bot doing a handed-off piece works with its own job description and on the Bots'
+computer, like it would in its own chat. Like every delegated helper it doesn't
+write to memory during that piece.
+
+The list of Bots the agent can hand work to updates as soon as you create or remove a
+Bot; chats that are already open keep the list they started with.
+
 ## Routines
 
 Ask a Bot in its own chat to "run this every Friday" — the cron job it creates is tagged

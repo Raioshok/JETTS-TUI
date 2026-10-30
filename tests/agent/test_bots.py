@@ -274,3 +274,62 @@ def test_hyperv_console_launches_vmconnect_for_that_vm():
         assert HyperVProvider().open_console("Lab VM")["ok"] is True
     argv = popen.call_args.args[0]
     assert argv[0].lower().endswith("vmconnect.exe") and argv[1:] == ["localhost", "Lab VM"]
+
+
+class TestBotHandoff:
+    def test_bot_param_appears_only_when_bots_exist_and_never_mutates_the_static_schema(self):
+        from tools.delegate_tool import DELEGATE_TASK_SCHEMA, _build_dynamic_schema_overrides
+
+        assert "bot" not in _build_dynamic_schema_overrides()["parameters"]["properties"]
+        bots.create_bot("Research", "Dig up facts with sources")
+        props = _build_dynamic_schema_overrides()["parameters"]["properties"]
+        assert props["bot"]["enum"] == ["research"]
+        assert props["tasks"]["items"]["properties"]["bot"]["enum"] == ["research"]
+        assert "Dig up facts" in props["bot"]["description"]
+        assert "bot" not in DELEGATE_TASK_SCHEMA["parameters"]["properties"]["tasks"]["items"]["properties"]
+
+    def test_unknown_bot_is_refused_before_anything_spawns(self):
+        import json
+
+        from tests.tools.test_delegate import _make_mock_parent
+        from tools.delegate_tool import delegate_task
+
+        with patch("tools.delegate_tool._build_child_preserving_parent_tools") as build:
+            out = json.loads(delegate_task(goal="x", bot="ghost", parent_agent=_make_mock_parent()))
+        assert "ghost" in out["error"]
+        build.assert_not_called()
+
+    def test_child_takes_the_bots_role_label_and_computer(self):
+        from tests.tools.test_delegate import _make_mock_parent
+        from tools.delegate_tool import _build_child_agent
+
+        bots.create_bot("Research", "Dig up facts with sources")
+        bots.set_bot_computer("Lab-VM")
+        built = SimpleNamespace(ephemeral_system_prompt="Child brief", _memory_store=None,
+                                session_id="child-1", valid_tool_names={"computer_use"})
+        with patch("run_agent.AIAgent", return_value=built):
+            child = _build_child_agent(task_index=0, goal="Find 3 sources", context=None, toolsets=None,
+                                       model=None, max_iterations=5, task_count=1,
+                                       parent_agent=_make_mock_parent(), bot="research")
+        assert child.jetts_bot == "research"
+        assert child.ephemeral_system_prompt.startswith("Child brief\n\n")
+        assert "Your job: Dig up facts with sources" in child.ephemeral_system_prompt
+        assert child._display_goal == "Research: Find 3 sources"
+        # Delegated from an ordinary chat, the child still works on the Bots' computer.
+        from tools.computer_use.tool import _bot_computer_for
+
+        assert _bot_computer_for("child-1") == "Lab-VM"
+
+    def test_new_bots_reach_delegate_task_without_a_restart(self):
+        from model_tools import get_tool_definitions
+
+        def bot_enum():
+            tools = get_tool_definitions(enabled_toolsets=["delegation"], quiet_mode=True)
+            props = next(t["function"] for t in tools if t["function"]["name"] == "delegate_task")["parameters"]["properties"]
+            return props.get("bot", {}).get("enum")
+
+        assert bot_enum() is None
+        bots.create_bot("Research", "Dig up facts")
+        assert bot_enum() == ["research"]
+        bots.remove_bot("research")
+        assert bot_enum() is None

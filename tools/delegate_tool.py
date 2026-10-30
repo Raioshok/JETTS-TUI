@@ -17,6 +17,7 @@ The parent's context only sees the delegation call and the summary result,
 never the child's intermediate tool calls or reasoning.
 """
 
+import copy
 import enum
 import json
 import logging
@@ -1221,6 +1222,8 @@ def _build_child_agent(
     # 'leaf' (default) cannot; 'orchestrator' retains the delegation
     # toolset subject to depth/kill-switch bounds applied below.
     role: str = "leaf",
+    # Jetts Bot that takes this task (its role rides on the child's prompt).
+    bot: Optional[str] = None,
 ):
     """
     Build a child AIAgent on the main thread (thread-safe construction).
@@ -1343,9 +1346,15 @@ def _build_child_agent(
     # Identity kwargs thread the subagent_id through every emitted event so the
     # TUI can reconstruct the spawn tree and route per-branch controls.
     child_session_ref: Dict[str, Any] = {}
+    bot_info = None
+    if bot:
+        from agent.bots import get_bot
+
+        bot_info = get_bot(bot)
+    display_goal = f"{bot_info['name']}: {goal}" if bot_info else goal
     child_progress_cb = _build_child_progress_callback(
         task_index,
-        goal,
+        display_goal,
         parent_agent,
         task_count,
         subagent_id=subagent_id,
@@ -1540,6 +1549,11 @@ def _build_child_agent(
             iteration_budget=None,  # fresh budget per subagent
             **child_optional_kwargs,
         )
+    if bot_info:
+        from agent.bots import apply_bot
+
+        apply_bot(child, bot)
+    child._display_goal = display_goal
     child._print_fn = getattr(parent_agent, "_print_fn", None)
     # Now the child exists, its session id can ride on every relayed event
     # (including the spawn_requested below — first emit happens after this).
@@ -2098,7 +2112,7 @@ def _run_single_child(
                 "subagent_id": _subagent_id,
                 "parent_id": _parent_sid if isinstance(_parent_sid, str) else None,
                 "depth": _tui_depth,
-                "goal": goal,
+                "goal": getattr(child, "_display_goal", goal),
                 "model": (
                     getattr(child, "model", None)
                     if isinstance(getattr(child, "model", None), str)
@@ -2794,6 +2808,7 @@ def delegate_task(
     role: Optional[str] = None,
     background: Optional[bool] = None,
     parent_agent=None,
+    bot: Optional[str] = None,
 ) -> str:
     """
     Spawn one or more child agents to handle delegated tasks.
@@ -2895,7 +2910,7 @@ def delegate_task(
             )
         task_list = tasks
     elif goal and isinstance(goal, str) and goal.strip():
-        task_list = [{"goal": goal, "context": context, "role": top_role}]
+        task_list = [{"goal": goal, "context": context, "role": top_role, "bot": bot}]
     else:
         return tool_error("Provide either 'goal' (single task) or 'tasks' (batch).")
 
@@ -2910,6 +2925,15 @@ def delegate_task(
             )
         if not task.get("goal", "").strip():
             return tool_error(f"Task {i} is missing a 'goal'.")
+        if task.get("bot"):
+            from agent.bots import get_bot
+
+            try:
+                known = get_bot(str(task["bot"])) is not None
+            except ValueError:
+                known = False
+            if not known:
+                return tool_error(f"Task {i}: no Jetts Bot named {task['bot']!r}.")
 
     overall_start = time.monotonic()
     results = []
@@ -2975,6 +2999,7 @@ def delegate_task(
             override_acp_command=creds.get("command"),
             override_acp_args=creds.get("args"),
             role=effective_role,
+            bot=t.get("bot"),
         )
         # Tee the child's progress events into its live transcript log.
         # wrap_progress_callback preserves the inner callback contract
@@ -3817,6 +3842,27 @@ def _build_role_param_description() -> str:
     )
 
 
+def _build_bot_param() -> Optional[dict]:
+    """The ``bot`` property, present only when the user has Jetts Bots."""
+    try:
+        from agent.bots import delegation_targets
+
+        targets = delegation_targets()
+    except Exception:
+        return None
+    if not targets:
+        return None
+    roster = "; ".join(f"{t['id']} ({t['name']}): {t['role'][:80]}" for t in targets)
+    return {
+        "type": "string",
+        "enum": [t["id"] for t in targets],
+        "description": (
+            "Hand the task to one of the user's Jetts Bots, a teammate with its own "
+            f"job, instead of a generic subagent. Bots: {roster}"
+        ),
+    }
+
+
 def _build_dynamic_schema_overrides() -> dict:
     """Return per-call schema overrides reflecting current config.
 
@@ -3828,11 +3874,13 @@ def _build_dynamic_schema_overrides() -> dict:
         **DELEGATE_TASK_SCHEMA["parameters"],
     }
     # Deep-copy properties so we don't mutate the static schema dict.
-    overrides_params["properties"] = {
-        k: dict(v) for k, v in DELEGATE_TASK_SCHEMA["parameters"]["properties"].items()
-    }
+    overrides_params["properties"] = copy.deepcopy(DELEGATE_TASK_SCHEMA["parameters"]["properties"])
     overrides_params["properties"]["tasks"]["description"] = _build_tasks_param_description()
     overrides_params["properties"]["role"]["description"] = _build_role_param_description()
+    bot_param = _build_bot_param()
+    if bot_param:
+        overrides_params["properties"]["bot"] = bot_param
+        overrides_params["properties"]["tasks"]["items"]["properties"]["bot"] = bot_param
 
     return {
         "description": _build_top_level_description(),
@@ -3975,6 +4023,7 @@ registry.register(
         role=args.get("role"),
         background=_model_background_value(args, kw.get("parent_agent")),
         parent_agent=kw.get("parent_agent"),
+        bot=args.get("bot"),
     ),
     check_fn=check_delegate_requirements,
     emoji="🔀",

@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import re
 import shutil
+import sys
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -32,6 +33,9 @@ _SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,31}$")
 _MAX_NAME = 60
 _MAX_ROLE = 2000
 _FIELDS = ("name", "role", "model", "provider", "session_id")
+# session_id -> bot for agents made into bots in this process, including
+# delegated children that have no bot thread in their lineage.
+_session_bots: Dict[str, str] = {}
 
 
 def bots_dir() -> Path:
@@ -55,6 +59,13 @@ def _read(path: Path) -> Dict[str, Any]:
     return bot
 
 
+def _roster_changed() -> None:
+    """delegate_task's ``bot`` enum lists the roster; drop cached tool schemas."""
+    model_tools = sys.modules.get("model_tools")  # no cache exists if it was never loaded
+    if model_tools is not None:
+        model_tools._clear_tool_defs_cache()
+
+
 def _write(slug: str, bot: Dict[str, Any]) -> Dict[str, Any]:
     path = _bot_path(slug)
     path.mkdir(parents=True, exist_ok=True)
@@ -62,6 +73,7 @@ def _write(slug: str, bot: Dict[str, Any]) -> Dict[str, Any]:
     tmp = path / "bot.yaml.tmp"
     tmp.write_text(yaml.safe_dump(data, sort_keys=False, allow_unicode=True), encoding="utf-8")
     tmp.replace(path / "bot.yaml")
+    _roster_changed()
     return _read(path)
 
 
@@ -125,6 +137,7 @@ def remove_bot(slug: str) -> Path:
     dest = bots_dir() / ".archive" / f"{slug}-{int(time.time())}"
     dest.parent.mkdir(parents=True, exist_ok=True)
     shutil.move(str(path), str(dest))
+    _roster_changed()
     return dest
 
 
@@ -143,6 +156,8 @@ def set_bot_computer(name: Optional[str]) -> None:
 
 def bot_for_session(session_id: Optional[str], db: Any = None) -> Optional[str]:
     """The bot whose thread ``session_id`` is, following compression/branch parents."""
+    if session_id in _session_bots:
+        return _session_bots[session_id]
     owners = {b["session_id"]: b["id"] for b in list_bots() if b.get("session_id")}
     if not owners or not session_id:
         return None
@@ -198,4 +213,11 @@ def apply_bot(agent: Any, slug: str) -> Dict[str, Any]:
         bot_store.load_from_disk()
         agent._memory_store = bot_store
     agent.jetts_bot = slug
+    if getattr(agent, "session_id", None):
+        _session_bots[agent.session_id] = slug
     return bot
+
+
+def delegation_targets() -> List[Dict[str, Any]]:
+    """Bots another agent can hand work to (``delegate_task`` ``bot``)."""
+    return [{"id": b["id"], "name": b["name"], "role": b["role"]} for b in list_bots()]
