@@ -31,18 +31,29 @@ export type DelegateRowStatus = SubagentStatus | 'dispatched'
 
 const field = (record: Record<string, unknown>, key: string): string => firstStringField(record, [key])
 
+/** A task's goal, led by the Jetts Bot it was handed to (`bot`), if any. */
+const titled = (task: Record<string, unknown>, goal: string): string => {
+  const bot = field(task, 'bot')
+
+  return bot ? `${bot}: ${goal}` : goal
+}
+
 /** The goals a `delegate_task` call dispatched, in task order. */
 export function delegateGoals(args: unknown): string[] {
   const record = parseMaybeObject(args)
   const tasks = Array.isArray(record.tasks) ? record.tasks : []
 
   if (tasks.length > 0) {
-    return tasks.map((task, index) => field(parseMaybeObject(task), 'goal') || `Task ${index + 1}`)
+    return tasks.map((task, index) => {
+      const parsed = parseMaybeObject(task)
+
+      return titled(parsed, field(parsed, 'goal') || `Task ${index + 1}`)
+    })
   }
 
   const goal = field(record, 'goal')
 
-  return goal ? [goal] : []
+  return goal ? [titled(record, goal)] : []
 }
 
 function resultRows(result: unknown): Record<string, unknown>[] {

@@ -25,6 +25,11 @@ describe('delegateGoals', () => {
     expect(delegateGoals({ goal: 'Solo' })).toEqual(['Solo'])
     expect(delegateGoals('{"goal":"Serialized"}')).toEqual(['Serialized'])
   })
+
+  it('leads with the Jetts Bot a task was handed to', () => {
+    expect(delegateGoals({ bot: 'research', goal: 'Find sources' })).toEqual(['research: Find sources'])
+    expect(delegateGoals({ tasks: [{ bot: 'research', goal: 'A' }, { goal: 'B' }] })).toEqual(['research: A', 'B'])
+  })
 })
 
 describe('delegateRowsFromCall', () => {

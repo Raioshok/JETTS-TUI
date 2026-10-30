@@ -6822,7 +6822,7 @@ def _maybe_schedule_auto_continue(sid: str, session: dict, session_key: str) -> 
     return {"attempt": attempt, "interrupted_at": marker["started_at"]}
 
 
-def _enqueue_prompt(session: dict, text: Any, transport: Any) -> None:
+def _enqueue_prompt(session: dict, text: Any, transport: Any, echo: bool = False) -> None:
     """Stash a message to run as the very next turn once the live one ends.
 
     Used when a prompt arrives mid-turn (see ``_handle_busy_submit``). A single
@@ -6832,6 +6832,9 @@ def _enqueue_prompt(session: dict, text: Any, transport: Any) -> None:
     the client that sent it even if the session transport is rebound meanwhile.
     """
     existing = session.get("queued_prompt")
+    if existing:
+        # A client already drew the text it typed; echo a merge only if all of it was echoed.
+        echo = echo and bool(existing.get("echo"))
     if (
         existing
         and isinstance(existing.get("text"), str)
@@ -6839,7 +6842,7 @@ def _enqueue_prompt(session: dict, text: Any, transport: Any) -> None:
     ):
         prev = existing["text"]
         text = f"{prev}\n\n{text}" if prev and text else (prev or text)
-    session["queued_prompt"] = {"text": text, "transport": transport}
+    session["queued_prompt"] = {"text": text, "transport": transport, "echo": echo}
 
 
 def _interrupt_busy_session(sid: str, session: dict, agent: Any) -> None:
@@ -6878,7 +6881,8 @@ def _interrupt_busy_session(sid: str, session: dict, agent: Any) -> None:
 
 
 def _handle_busy_submit(
-    rid, sid: str, session: dict, text: Any, transport: Any, queued: bool = False
+    rid, sid: str, session: dict, text: Any, transport: Any, queued: bool = False,
+    echo: bool = False,
 ) -> dict | None:
     """Apply the ``display.busy_input_mode`` policy to a prompt that lands while
     a turn is in flight, instead of rejecting it with ``session busy``.
@@ -6941,7 +6945,7 @@ def _handle_busy_submit(
     with session["history_lock"]:
         if not session.get("running"):
             return None
-        _enqueue_prompt(session, text, transport)
+        _enqueue_prompt(session, text, transport, echo)
         session["last_active"] = time.time()
 
     if mode != "queue":
@@ -6974,7 +6978,7 @@ def _drain_queued_prompt(rid, sid: str, session: dict) -> bool:
                     _clear_inflight_turn(session)
                 _emit("error", sid, {"message": message})
         else:
-            _run_prompt_submit(rid, sid, session, queued["text"])
+            _run_prompt_submit(rid, sid, session, queued["text"], echo=bool(queued.get("echo")))
     except Exception as exc:
         print(
             f"[tui_gateway] queued prompt dispatch failed: "
@@ -10690,7 +10694,7 @@ def _(rid, params: dict) -> dict:
                 break
         busy_response = _handle_busy_submit(
             rid, sid, session, text, busy_transport,
-            queued=bool(params.get("queued")),
+            queued=bool(params.get("queued")), echo=bool(params.get("echo")),
         )
         if busy_response is not None:
             return busy_response
@@ -10826,7 +10830,7 @@ def _(rid, params: dict) -> dict:
                     },
                 )
                 return
-        _run_prompt_submit(rid, sid, session, text)
+        _run_prompt_submit(rid, sid, session, text, echo=bool(params.get("echo")))
 
     run_thread = threading.Thread(target=run_after_agent_ready, daemon=True)
     # Keep a handle so session.interrupt can tell a live turn from a stuck
@@ -11512,7 +11516,7 @@ def _start_notification_poller(sid: str, session: dict) -> threading.Event:
 
 def _run_prompt_submit(
     rid, sid: str, session: dict, text: Any, *, display_kind: str | None = None,
-    display_metadata: dict | None = None,
+    display_metadata: dict | None = None, echo: bool = False,
 ) -> None:
     with session["history_lock"]:
         history = list(session["history"])
@@ -11530,7 +11534,9 @@ def _run_prompt_submit(
             agent.clear_interrupt()
         except Exception:
             pass
-    _emit("message.start", sid)
+    # `echo`: the backend sent this message (e.g. a task for a Bot), so no client
+    # drew it yet; clients add it to the transcript from `user_text`.
+    _emit("message.start", sid, {"user_text": text} if echo and isinstance(text, str) else None)
 
     def run():
         approval_token = None
@@ -14481,7 +14487,9 @@ def _(rid, params: dict) -> dict:
     with _sessions_lock:
         live_sid = next((k for k, v in _sessions.items() if v.get("bot") == bot_id), None)
     if live_sid is not None:
-        submitted = _methods["prompt.submit"](rid, {"session_id": live_sid, "text": task, "queued": True})
+        submitted = _methods["prompt.submit"](
+            rid, {"session_id": live_sid, "text": task, "queued": True, "echo": True}
+        )
         if "error" in submitted:
             return submitted
         return _ok(rid, {"session_id": live_sid, "stored_session_id": bot.get("session_id")})
@@ -14496,7 +14504,7 @@ def _(rid, params: dict) -> dict:
     if "error" in opened:
         return opened
     sid = opened["result"]["session_id"]
-    submitted = _methods["prompt.submit"](rid, {"session_id": sid, "text": task})
+    submitted = _methods["prompt.submit"](rid, {"session_id": sid, "text": task, "echo": True})
     if "error" in submitted:
         return submitted
     return _ok(rid, {

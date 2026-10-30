@@ -29,6 +29,8 @@ export type ChatMessage = {
 
 export type GatewayEventPayload = {
   text?: string
+  /** message.start: a user message the backend sent (e.g. a task for a Bot) that no client drew yet. */
+  user_text?: string
   rendered?: string
   status?: string
   message?: string

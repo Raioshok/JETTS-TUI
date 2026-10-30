@@ -155,6 +155,7 @@ class TestBackgroundTasks:
 
         def submit(rid, params):
             calls.append(("submit", params["session_id"], params["text"]))
+            assert params.get("echo") is True  # no client drew the task, so the backend echoes it
             return {"result": {"status": "streaming"}}
 
         with self._rpc({"session.create": create, "prompt.submit": submit}):
@@ -205,7 +206,7 @@ class TestBackgroundTasks:
              patch.dict(server._sessions, {"live9": {"bot": "scout"}}):
             res = server._methods["bots.assign"]("r", {"id": "scout", "task": "next"})
         assert res["result"]["session_id"] == "live9"
-        assert submitted == [{"session_id": "live9", "text": "next", "queued": True}]
+        assert submitted == [{"session_id": "live9", "text": "next", "queued": True, "echo": True}]
 
 
 class TestBotComputer:
@@ -333,3 +334,15 @@ class TestBotHandoff:
         assert bot_enum() == ["research"]
         bots.remove_bot("research")
         assert bot_enum() is None
+
+
+def test_queued_echo_survives_only_if_every_merged_message_was_echoed():
+    from tui_gateway.server import _enqueue_prompt
+
+    session = {}
+    _enqueue_prompt(session, "task one", None, echo=True)
+    _enqueue_prompt(session, "task two", None, echo=True)
+    assert session["queued_prompt"]["echo"] is True
+    assert session["queued_prompt"]["text"].split() == ["task", "one", "task", "two"]
+    _enqueue_prompt(session, "typed by the user", None)
+    assert session["queued_prompt"]["echo"] is False  # the client already drew part of it

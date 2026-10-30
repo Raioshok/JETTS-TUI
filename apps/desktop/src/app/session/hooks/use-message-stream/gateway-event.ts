@@ -478,6 +478,23 @@ export function useGatewayEventHandler(deps: GatewayEventDeps) {
           triggerHaptic('streamStart')
         }
 
+        const echoedUserText = coerceGatewayText(payload?.user_text).trim()
+
+        if (echoedUserText) {
+          updateSessionState(sessionId, state => ({
+            ...state,
+            messages: [
+              ...state.messages,
+              {
+                id: `user-echo-${Date.now()}`,
+                role: 'user',
+                parts: [textPart(echoedUserText)],
+                timestamp: Math.floor(Date.now() / 1000)
+              }
+            ]
+          }))
+        }
+
         updateSessionState(sessionId, state => {
           // If the user clicked Stop (cancelRun set interrupted=true), don't
           // let a stale message.start from a chained turn (goal follow-up,
