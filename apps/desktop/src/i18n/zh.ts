@@ -2403,6 +2403,7 @@ export const zh: Translations = {
     message: '消息',
     wakingProfile: profile => `正在唤醒 ${profile}…`,
     placeholderStarting: '正在启动 JettsTUI…',
+    botPlaceholder: name => `给 ${name} 发消息…`,
     placeholderReconnecting: '正在重新连接 JettsTUI…',
     placeholderFollowUp: '发送后续消息',
     newSessionPlaceholders: [

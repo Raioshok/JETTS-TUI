@@ -48,6 +48,7 @@ export function createClientSessionState(
     fast: false,
     yolo: false,
     personality: '',
+    botName: '',
     busy: false,
     awaitingResponse: false,
     streamId: null,

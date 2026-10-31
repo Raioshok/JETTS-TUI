@@ -2269,6 +2269,7 @@ export const pt = defineLocale({
     message: 'Mensagem',
     wakingProfile: profile => `Acordando ${profile}…`,
     placeholderStarting: 'Iniciando o JettsTUI...',
+    botPlaceholder: name => `Mensagem para ${name}…`,
     placeholderReconnecting: 'Reconectando ao JettsTUI…',
     placeholderFollowUp: 'Enviar continuação',
     newSessionPlaceholders: [

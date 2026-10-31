@@ -183,6 +183,8 @@ export interface ClientSessionState {
   fast: boolean
   yolo: boolean
   personality: string
+  /** Name of the Jetts Bot this chat is with, '' for an ordinary chat. */
+  botName: string
   busy: boolean
   awaitingResponse: boolean
   streamId: string | null

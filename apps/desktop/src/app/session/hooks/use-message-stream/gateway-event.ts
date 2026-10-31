@@ -19,6 +19,7 @@ import { invalidateSlashCompletions } from '@/lib/slash-completion-cache'
 import { type AgentNoticePayload, clearAgentNotice, nativeNoticeInput, showAgentNotice } from '@/store/agent-notices'
 import { reconcileApprovalModeForProfile } from '@/store/approval-mode'
 import { billingCtaLabel, clearBillingBlock, runBillingRecovery, setBillingBlock } from '@/store/billing-block'
+import { $currentBotName } from '@/store/bots'
 import { clearClarifyRequest, normalizeChoices, setClarifyRequest, warnDroppedChoices } from '@/store/clarify'
 import { setSessionCompacting } from '@/store/compaction'
 import { refreshBackgroundProcesses } from '@/store/composer-status'
@@ -355,6 +356,10 @@ export function useGatewayEventHandler(deps: GatewayEventDeps) {
 
           if (typeof payload?.personality === 'string') {
             setCurrentPersonality(normalizePersonalityValue(payload.personality))
+          }
+
+          if (typeof payload?.bot_name === 'string') {
+            $currentBotName.set(payload.bot_name)
           }
 
           if (typeof payload?.reasoning_effort === 'string') {

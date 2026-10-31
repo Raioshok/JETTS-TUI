@@ -4439,6 +4439,19 @@ def _project_info_for_cwd(cwd: str) -> dict | None:
         return None
 
 
+def _bot_name_for(agent) -> str:
+    """The Jetts Bot this agent is acting as, for the composer label ('' if none)."""
+    slug = getattr(agent, "jetts_bot", None)
+    if not slug:
+        return ""
+    try:
+        from agent.bots import get_bot
+
+        return str((get_bot(slug) or {}).get("name") or "")
+    except Exception:
+        return ""
+
+
 def _session_info(agent, session: dict | None = None) -> dict:
     if session is None:
         for candidate in _sessions.values():
@@ -4500,6 +4513,7 @@ def _session_info(agent, session: dict | None = None) -> dict:
         "branch": _git_branch_for_cwd(cwd),
         "project": _project_info_for_cwd(cwd),
         "personality": str(personality or ""),
+        "bot_name": _bot_name_for(agent),
         "running": bool((session or {}).get("running")),
         "title": _session_live_title(session or {}, session_key) if session_key else "",
         "stored_session_id": session_key or "",

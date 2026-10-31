@@ -62,6 +62,7 @@ export type GatewayEventPayload = {
   credential_warning?: string
   install_warning?: string
   personality?: string
+  bot_name?: string
   usage?: Partial<UsageStats>
   // agent.terminal.output — live chunk for a read-only agent terminal tab
   process_id?: string

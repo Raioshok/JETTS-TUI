@@ -590,6 +590,7 @@ export interface SessionRuntimeInfo {
   fast?: boolean
   install_warning?: string
   model?: string
+  bot_name?: string
   personality?: string
   provider?: string
   reasoning_effort?: string

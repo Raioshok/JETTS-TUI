@@ -941,6 +941,7 @@ describe('resumeSession failure recovery', () => {
             needsInput: false,
             pendingBranchGroup: null,
             personality: '',
+            botName: '',
             provider: '',
             reasoningEffort: '',
             sawAssistantPayload: false,

@@ -113,7 +113,7 @@ export function BotsView(props: React.ComponentProps<'section'>) {
     }
 
     // First chat: the next message creates the session as this bot's thread.
-    $newChatBot.set(bot.id)
+    $newChatBot.set({ id: bot.id, name: bot.name })
     navigate(NEW_CHAT_ROUTE)
   }
 

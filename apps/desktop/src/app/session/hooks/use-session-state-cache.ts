@@ -6,6 +6,7 @@ import { preserveLocalAssistantErrors } from '@/lib/chat-messages'
 import { createClientSessionState } from '@/lib/chat-runtime'
 import { persistInFlightTurnState } from '@/lib/inflight-turn-journal'
 import { setMutableRef } from '@/lib/mutable-ref'
+import { $currentBotName } from '@/store/bots'
 import {
   $activeSessionId,
   $busy,
@@ -43,6 +44,7 @@ function syncRuntimeMetadataToView(state: ClientSessionState) {
   setCurrentFastMode(state.fast ?? false)
   setYoloActive(state.yolo ?? false)
   setCurrentPersonality(state.personality ?? '')
+  $currentBotName.set(state.botName ?? '')
 }
 
 export function useSessionStateCache({

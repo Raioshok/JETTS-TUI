@@ -2121,6 +2121,7 @@ export const ja = defineLocale({
     message: 'メッセージ',
     wakingProfile: profile => `${profile} を起動中…`,
     placeholderStarting: 'JettsTUI を起動中...',
+    botPlaceholder: name => `${name} にメッセージ…`,
     placeholderReconnecting: 'JettsTUI に再接続中…',
     placeholderFollowUp: 'フォローアップを送信',
     newSessionPlaceholders: [

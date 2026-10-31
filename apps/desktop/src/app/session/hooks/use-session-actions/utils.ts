@@ -654,7 +654,7 @@ export async function resolveSessionProfile(storedSessionId: null | string): Pro
 type SessionRuntimeStatePatch = Partial<
   Pick<
     ClientSessionState,
-    'branch' | 'cwd' | 'fast' | 'model' | 'personality' | 'provider' | 'reasoningEffort' | 'serviceTier' | 'yolo'
+    'botName' | 'branch' | 'cwd' | 'fast' | 'model' | 'personality' | 'provider' | 'reasoningEffort' | 'serviceTier' | 'yolo'
   >
 >
 
@@ -684,6 +684,10 @@ export function runtimeInfoPatch(info: SessionRuntimeInfo | undefined): SessionR
 
   if (typeof info.personality === 'string') {
     patch.personality = normalizePersonalityValue(info.personality)
+  }
+
+  if (typeof info.bot_name === 'string') {
+    patch.botName = info.bot_name
   }
 
   if (typeof info.reasoning_effort === 'string') {

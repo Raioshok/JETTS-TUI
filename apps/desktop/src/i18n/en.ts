@@ -2237,6 +2237,7 @@ export const en: Translations = {
     message: 'Message',
     wakingProfile: profile => `Waking up ${profile}…`,
     placeholderStarting: 'Starting JettsTUI...',
+    botPlaceholder: name => `Message ${name}…`,
     placeholderReconnecting: 'Reconnecting to JettsTUI…',
     placeholderFollowUp: 'Send follow-up',
     newSessionPlaceholders: [

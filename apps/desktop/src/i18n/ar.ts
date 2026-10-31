@@ -1997,6 +1997,7 @@ export const ar = defineLocale({
     message: 'الرسالة',
     wakingProfile: profile => `جار إيقاظ ${profile}`,
     placeholderStarting: 'جار بدء JettsTUI...',
+    botPlaceholder: name => `راسِل ${name}…`,
     placeholderReconnecting: 'جار إعادة الاتصال...',
     placeholderFollowUp: 'اكتب متابعة...',
     newSessionPlaceholders: ['اسأل JettsTUI عن شيء...', 'اطلب من JettsTUI تنفيذ مهمة...', 'ابدأ محادثة جديدة...'],

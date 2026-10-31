@@ -2046,6 +2046,7 @@ export const zhHant = defineLocale({
     message: '訊息',
     wakingProfile: profile => `正在喚醒 ${profile}…`,
     placeholderStarting: '正在啟動 JettsTUI...',
+    botPlaceholder: name => `傳訊息給 ${name}…`,
     placeholderReconnecting: '正在重新連線至 JettsTUI…',
     placeholderFollowUp: '傳送後續訊息',
     newSessionPlaceholders: [

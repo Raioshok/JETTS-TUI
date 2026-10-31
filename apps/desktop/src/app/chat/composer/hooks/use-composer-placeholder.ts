@@ -1,6 +1,8 @@
+import { useStore } from '@nanostores/react'
 import { useEffect, useRef, useState } from 'react'
 
 import { useI18n } from '@/i18n'
+import { $currentBotName, $newChatBot } from '@/store/bots'
 import { resetBrowseState } from '@/store/composer-input-history'
 
 import { pickPlaceholder } from '../composer-utils'
@@ -20,6 +22,10 @@ interface UseComposerPlaceholderOptions {
  */
 export function useComposerPlaceholder({ disabled, reconnecting, sessionId }: UseComposerPlaceholderOptions): string {
   const { t } = useI18n()
+  const newChatBot = useStore($newChatBot)
+  const currentBotName = useStore($currentBotName)
+  // A Bot chat says who you're talking to; a fresh one before its session exists too.
+  const botName = sessionId ? currentBotName : newChatBot?.name || ''
   const newSessionPlaceholders = t.composer.newSessionPlaceholders
   const followUpPlaceholders = t.composer.followUpPlaceholders
 
@@ -57,5 +63,7 @@ export function useComposerPlaceholder({ disabled, reconnecting, sessionId }: Us
     ? reconnecting
       ? t.composer.placeholderReconnecting
       : t.composer.placeholderStarting
-    : restingPlaceholder
+    : botName
+      ? t.composer.botPlaceholder(botName)
+      : restingPlaceholder
 }

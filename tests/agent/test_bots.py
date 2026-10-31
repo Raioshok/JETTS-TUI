@@ -346,3 +346,12 @@ def test_queued_echo_survives_only_if_every_merged_message_was_echoed():
     assert session["queued_prompt"]["text"].split() == ["task", "one", "task", "two"]
     _enqueue_prompt(session, "typed by the user", None)
     assert session["queued_prompt"]["echo"] is False  # the client already drew part of it
+
+
+def test_session_info_names_the_bot_for_the_composer():
+    from tui_gateway.server import _bot_name_for
+
+    bots.create_bot("Research", "Dig up facts")
+    assert _bot_name_for(SimpleNamespace(jetts_bot="research")) == "Research"
+    assert _bot_name_for(SimpleNamespace()) == ""
+    assert _bot_name_for(SimpleNamespace(jetts_bot="gone")) == ""

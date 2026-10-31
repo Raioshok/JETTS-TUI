@@ -37,4 +37,7 @@ export function botsNeedingNotice(
 }
 
 /** One-shot: the next new chat is created as this bot's thread (see session.create `bot`). */
-export const $newChatBot = atom<null | string>(null)
+export const $newChatBot = atom<null | Pick<JettsBot, 'id' | 'name'>>(null)
+
+/** The Jetts Bot the foreground chat is with ('' for an ordinary chat), from session.info. */
+export const $currentBotName = atom('')

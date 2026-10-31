@@ -177,7 +177,7 @@ async function desktopSessionCreateParams(cwd: string): Promise<Record<string, u
   return {
     cols: 96,
     source: 'desktop',
-    ...(bot ? { bot } : {}),
+    ...(bot ? { bot: bot.id } : {}),
     ...(cwd && { cwd }),
     ...(profile ? { profile } : {}),
     ...(selection.model

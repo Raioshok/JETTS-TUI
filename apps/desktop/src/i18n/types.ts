@@ -1867,6 +1867,7 @@ export interface Translations {
     message: string
     wakingProfile: (profile: string) => string
     placeholderStarting: string
+    botPlaceholder: (name: string) => string
     placeholderReconnecting: string
     placeholderFollowUp: string
     newSessionPlaceholders: readonly string[]
