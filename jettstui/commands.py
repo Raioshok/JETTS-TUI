@@ -67,6 +67,8 @@ COMMAND_REGISTRY: list[CommandDef] = [
                gateway_only=True),
     CommandDef("new", "Start a new session (fresh session ID + history)", "Session",
                aliases=("reset",), args_hint="[name]"),
+    CommandDef("bot", "Talk to one of your Jetts Bots in this chat", "Session",
+               gateway_only=True, args_hint="[name|off]"),
     CommandDef("topic", "Enable or inspect Telegram DM topic sessions", "Session",
                gateway_only=True, args_hint="[off|help|session-id]"),
     CommandDef("clear", "Clear screen and start a new session", "Session",
@@ -1245,6 +1247,8 @@ _SLACK_VIA_JETTSTUI_ONLY = frozenset(
         # Lower-frequency reporting/operations stay available through the
         # catch-all without consuming Slack's capped native command slots.
         "insights", "platform", "usage",
+        # Picked once per chat, so /jettstui bot is enough on Slack.
+        "bot",
     }
 )
 

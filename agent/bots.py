@@ -158,6 +158,50 @@ def remove_bot(slug: str) -> Path:
     return dest
 
 
+def find_bot(query: str) -> Optional[Dict[str, Any]]:
+    """A bot by id, or by name ignoring case (what a user types after /bot)."""
+    q = (query or "").strip()
+    slug = slugify(q)
+    if _SLUG_RE.match(slug or ""):
+        bot = get_bot(slug)
+        if bot:
+            return bot
+    return next((b for b in list_bots() if b["name"].lower() == q.lower()), None)
+
+
+def _chats_path() -> Path:
+    return bots_dir() / "chats.json"
+
+
+def chat_bot(chat_key: str) -> Optional[str]:
+    """The bot a messaging chat (gateway session key) talks to, if any."""
+    import json
+
+    try:
+        slug = json.loads(_chats_path().read_text(encoding="utf-8")).get(chat_key)
+    except (OSError, ValueError):
+        return None
+    return slug if slug and get_bot(slug) else None
+
+
+def set_chat_bot(chat_key: str, slug: Optional[str]) -> None:
+    import json
+
+    path = _chats_path()
+    try:
+        chats = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        chats = {}
+    if slug:
+        chats[chat_key] = slug
+    else:
+        chats.pop(chat_key, None)
+    path.parent.mkdir(parents=True, exist_ok=True)
+    tmp = path.with_suffix(".tmp")
+    tmp.write_text(json.dumps(chats, indent=2), encoding="utf-8")
+    tmp.replace(path)
+
+
 def bot_computer() -> Optional[str]:
     """The VM the Bots share as their own computer (``bots.computer``), if set."""
     from jettstui.config import load_config

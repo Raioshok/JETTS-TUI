@@ -116,6 +116,35 @@ class GatewaySlashCommandsMixin:
         adapter = self.adapters.get(platform) if getattr(self, "adapters", None) else None
         return getattr(adapter, "typed_command_prefix", "/") if adapter is not None else "/"
 
+    async def _handle_bot_command(self, event: MessageEvent) -> str:
+        """/bot [name|off] — switch this chat to a Jetts Bot (a fresh conversation)."""
+        from agent import bots
+
+        arg = event.get_command_args().strip()
+        chat_key = self._session_key_for_source(event.source)
+        current = bots.chat_bot(chat_key)
+        if not arg:
+            roster = bots.list_bots()
+            if not roster:
+                return "You have no Jetts Bots yet. Create one in the desktop app or with `jettstui bot create`."
+            lines = [f"• {b['name']} (`/bot {b['id']}`) — {b['role'][:80]}" for b in roster]
+            now = f"Talking to: {bots.get_bot(current)['name']}" if current else "Talking to: the normal assistant"
+            return "\n".join([now, "", *lines, "", "`/bot off` goes back to the normal assistant."])
+        if arg.lower() in ("off", "none", "stop"):
+            if not current:
+                return "This chat isn't talking to a Bot."
+            bots.set_chat_bot(chat_key, None)
+            reply = "Back to the normal assistant, in a fresh conversation."
+        else:
+            bot = bots.find_bot(arg)
+            if bot is None:
+                return f"No Bot named {arg!r}. Send /bot to see them."
+            bots.set_chat_bot(chat_key, bot["id"])
+            reply = f"You're now talking to {bot['name']} — {bot['role'][:120]} (fresh conversation)."
+        # Who the agent is can't change mid-conversation (prompt cache), so start a new one.
+        await self._handle_reset_command(dataclasses.replace(event, text="/new"))
+        return reply
+
     async def _handle_reset_command(self, event: MessageEvent) -> Union[str, EphemeralReply]:
         """Handle /new or /reset command."""
         source = event.source

@@ -36,6 +36,29 @@ jettstui bot remove sales-outbound   # archives to ~/.jettstui/bots/.archive/, m
 `--model` / `--provider` pin a model for one Bot; otherwise new chats use the model
 picked in the composer, then the profile default.
 
+In a Bot's chat the composer says which Bot you're talking to. Each Bot on the Bots
+page shows what its conversation cost over the last 7 days (routines and handed-off
+work aren't counted).
+
+## Limits and approvals
+
+**Edit** on the Bots page (or `jettstui bot edit <id> --role ... --tools ... --ask-before ...`)
+sets the Bot's job and two limits that are enforced, not just suggested:
+
+- **Only these tools** — the Bot can't call anything else (`memory`, `todo` and
+  `clarify` are always kept). Empty means every tool.
+- **Always ask before** — these tools need your OK every time, even when you've
+  approved that kind of action before.
+
+Changes apply from the Bot's next conversation.
+
+## Bots in messaging apps
+
+In Telegram, Discord and the other messaging platforms (on Slack: `/jettstui bot`), send `/bot` to see your
+Bots, `/bot <name>` to talk to one in that chat, and `/bot off` to go back to the normal
+assistant. Switching starts a fresh conversation, since who the agent is can't change
+mid-conversation. The choice is remembered per chat.
+
 ## Give a Bot a task
 
 On the Bots page, **Give task** hands the Bot work without opening its chat. The task
@@ -62,6 +85,11 @@ computer** (or `jettstui bot computer <vm>`). From then on:
   window; other hypervisors: open the VM from their console), sign in there, and tell
   the Bot to continue. The sign-in stays on the Bots' computer for next time.
 - All Bots share the one computer, like coworkers sharing a machine.
+
+Without a VM, the built-in browser keeps the Bots' web sign-ins too: browsing from a
+Bot's chat uses one shared browser profile (`~/.jettstui/bots/.browser`) that is kept
+between sessions. If that browser is already open in another Bot's chat, the second
+one browses with a fresh, signed-out profile.
 
 WSL distros aren't offered: WSL shares your host's drives, so it isn't a separate
 computer. A Bot's chat that was already open learns the computer's name from its next
@@ -93,8 +121,8 @@ the Bots work in parallel where they can, and their results come back into the s
 thread. The agent tree shows who is working ("Research: find three sources").
 
 A Bot doing a handed-off piece works with its own job description and on the Bots'
-computer, like it would in its own chat. Like every delegated helper it doesn't
-write to memory during that piece.
+computer, like it would in its own chat. It can read its notes but, like every
+delegated helper, doesn't write to memory during that piece.
 
 The list of Bots the agent can hand work to updates as soon as you create or remove a
 Bot; chats that are already open keep the list they started with.
@@ -108,8 +136,8 @@ with that Bot automatically. From the CLI:
 jettstui cron create "0 9 * * 5" "Summarize this week's commits" --bot weekly-reporting
 ```
 
-Routines run with the Bot's job description. Like every cron job they run without
-memory, so a routine never rewrites the Bot's notes.
+Routines run with the Bot's job description and can read the Bot's notes. Like every
+cron job they don't write memory, so a routine never rewrites them.
 
 ## Safety
 

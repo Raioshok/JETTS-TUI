@@ -11842,6 +11842,9 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
                     canonical = _cmd_def.name if _cmd_def else command
                     break
 
+        if canonical == "bot":
+            return await self._handle_bot_command(event)
+
         if canonical == "new":
             if await asyncio.to_thread(self._is_telegram_topic_root_lobby, source):
                 return self._telegram_topic_root_new_message()
@@ -21881,6 +21884,14 @@ class GatewayRunner(GatewayAuthorizationMixin, GatewayKanbanWatchersMixin, Gatew
                     # Reload from disk — do not reuse the startup snapshot (#60955).
                     fallback_model=self._refresh_fallback_model(),
                 )
+                try:
+                    from agent.bots import apply_bot, chat_bot
+
+                    _chat_bot = chat_bot(session_key)
+                    if _chat_bot:
+                        apply_bot(agent, _chat_bot)  # /bot chose who this chat talks to
+                except Exception:
+                    logger.warning("could not apply Jetts Bot to chat %s", session_key, exc_info=True)
                 if _cache_lock and _cache is not None:
                     with _cache_lock:
                         # Record the session_id the snapshot was taken for
