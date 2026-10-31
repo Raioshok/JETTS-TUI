@@ -406,9 +406,56 @@ def _launch_args(executable: str, profile_dir: Path, *, headed: bool, no_sandbox
     return args
 
 
+def _profile_in_use(profile_dir: Path) -> bool:
+    """True while a live Chrome holds ``profile_dir`` (its lock can't be cleared)."""
+    lock = profile_dir / "lockfile"  # Windows: held open exclusively while running
+    if lock.exists():
+        try:
+            lock.unlink()
+        except PermissionError:
+            return True
+        except OSError:
+            pass
+    singleton = profile_dir / "SingletonLock"  # POSIX: symlink to "<host>-<pid>"
+    if singleton.is_symlink():
+        try:
+            pid = int(os.readlink(singleton).rsplit("-", 1)[-1])
+        except (OSError, ValueError):
+            return False
+        return _pid_alive(pid)
+    return False
+
+
+def _bot_browser_profile() -> Optional[Path]:
+    """Jetts Bots share one persistent profile, so their web sign-ins last."""
+    try:
+        from agent.bots import bot_for_session, bots_dir
+        from tools.approval import get_current_session_key
+
+        key = get_current_session_key(default="")
+        if key and key != "default" and bot_for_session(key):
+            return bots_dir() / ".browser"
+    except Exception as exc:
+        logger.debug("bot browser profile lookup failed: %s", exc)
+    return None
+
+
 def launch_browser(*, session_name: str, headed: bool, no_sandbox: bool,
-                   timeout: float = 20.0) -> Tuple[subprocess.Popen, str, Path]:
-    """Start a browser and return ``(process, browser_ws_url, profile_dir)``."""
+                   timeout: float = 20.0,
+                   persistent_profile: Optional[Path] = None) -> Tuple[subprocess.Popen, str, Optional[Path]]:
+    """Start a browser and return ``(process, browser_ws_url, profile_dir)``.
+
+    ``persistent_profile`` is reused and never deleted (``profile_dir`` comes
+    back None so callers have nothing to clean up). When another browser holds
+    it, this launches with a throwaway profile instead.
+    """
+    if persistent_profile is not None:
+        persistent_profile.mkdir(parents=True, exist_ok=True)
+        if _profile_in_use(persistent_profile):
+            # shortcut: one Chrome per profile, so a second concurrent Bot browses
+            # signed-out; give each Bot its own profile if that becomes common.
+            logger.info("shared Bot browser profile is in use; using a throwaway profile")
+            persistent_profile = None
     global _reaped_once
     if not _reaped_once:
         _reaped_once = True
@@ -423,7 +470,8 @@ def launch_browser(*, session_name: str, headed: bool, no_sandbox: bool,
 
     # Unique per launch: a relaunch must never share a profile with a
     # previous instance that is still shutting down (Chrome exits with 21).
-    profile_dir = _profiles_root() / f"{session_name}-{uuid.uuid4().hex[:6]}"
+    keep = persistent_profile is not None
+    profile_dir = persistent_profile or _profiles_root() / f"{session_name}-{uuid.uuid4().hex[:6]}"
     profile_dir.mkdir(parents=True, exist_ok=True)
     port_file = profile_dir / "DevToolsActivePort"
     try:
@@ -456,7 +504,8 @@ def launch_browser(*, session_name: str, headed: bool, no_sandbox: bool,
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
         if proc.poll() is not None:
-            shutil.rmtree(profile_dir, ignore_errors=True)
+            if not keep:
+                shutil.rmtree(profile_dir, ignore_errors=True)
             hint = ""
             if sys.platform.startswith("linux") and not no_sandbox:
                 hint = " (if running as root or in a container, Chromium may need --no-sandbox)"
@@ -464,13 +513,14 @@ def launch_browser(*, session_name: str, headed: bool, no_sandbox: bool,
         try:
             lines = port_file.read_text(encoding="utf-8").splitlines()
             if len(lines) >= 2 and lines[0].strip().isdigit():
-                return proc, f"ws://127.0.0.1:{lines[0].strip()}{lines[1].strip()}", profile_dir
+                return proc, f"ws://127.0.0.1:{lines[0].strip()}{lines[1].strip()}", None if keep else profile_dir
         except OSError:
             pass
         time.sleep(0.05)
 
     _kill_tree(proc.pid)
-    shutil.rmtree(profile_dir, ignore_errors=True)
+    if not keep:
+        shutil.rmtree(profile_dir, ignore_errors=True)
     raise CDPError(f"Browser did not open a DevTools port within {timeout:.0f}s: {executable}")
 
 
@@ -727,7 +777,8 @@ function(text) {
 class NativeSession:
     """One browser page driven over CDP (owned process or attached endpoint)."""
 
-    def __init__(self, name: str, *, cdp_url: Optional[str], headed: bool, no_sandbox: bool):
+    def __init__(self, name: str, *, cdp_url: Optional[str], headed: bool, no_sandbox: bool,
+                 persistent_profile: Optional[Path] = None):
         self.name = name
         self.proc: Optional[subprocess.Popen] = None
         self.profile_dir: Optional[Path] = None
@@ -751,6 +802,7 @@ class NativeSession:
         else:
             self.proc, self.ws_url, self.profile_dir = launch_browser(
                 session_name=name, headed=headed, no_sandbox=no_sandbox,
+                persistent_profile=persistent_profile,
             )
         try:
             self.conn = CDPConnection(self.ws_url, self._on_event, local=self.owns_browser)
@@ -1160,8 +1212,9 @@ def _get_or_create(session_info: Dict[str, Any], *, headed: bool, no_sandbox: bo
             sess.close()
         except Exception:
             pass
-    sess = NativeSession(name, cdp_url=session_info.get("cdp_url") or None,
-                         headed=headed, no_sandbox=no_sandbox)
+    cdp_url = session_info.get("cdp_url") or None
+    sess = NativeSession(name, cdp_url=cdp_url, headed=headed, no_sandbox=no_sandbox,
+                         persistent_profile=None if cdp_url else _bot_browser_profile())
     with _sessions_lock:
         existing = _sessions.get(name)
         if existing is not None and existing.alive():
