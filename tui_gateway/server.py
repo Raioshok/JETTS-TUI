@@ -14391,7 +14391,8 @@ def _(rid, params: dict) -> dict:
     from agent import bot_teach
 
     return _ok(rid, {"bots": [
-        {**b, "status": _bot_status(b["id"]), "watching": bot_teach.is_watching(b["id"])}
+        {**b, "status": _bot_status(b["id"]), "watching": bot_teach.is_watching(b["id"]),
+         "usage": bots.bot_usage(b["id"])}
         for b in bots.list_bots()
     ]})
 

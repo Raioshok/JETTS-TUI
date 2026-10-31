@@ -1035,7 +1035,8 @@ export const ar = defineLocale({
     notesLabel: 'ملاحظات للبوت',
     notesPlaceholder: 'اختر الأسبوع الماضي دائمًا، وتجاهل الحسابات المعلَّمة بأنها داخلية.',
     learning: (name, frames) => `${name} يدرس ${frames} لقطة شاشة. سنبلغك عند حفظ المهارة.`,
-    learnFailed: 'تعذّر على البوت التعلّم من هذا العرض'
+    learnFailed: 'تعذّر على البوت التعلّم من هذا العرض',
+    usageThisWeek: cost => `${cost} هذا الأسبوع`
   },
   orchestrator: {
     title: 'المنسّق',

@@ -1174,7 +1174,8 @@ export const en: Translations = {
     notesPlaceholder: 'Always pick last week, and skip accounts marked internal.',
     learning: (name, frames) =>
       `${name} is studying ${frames} screenshot${frames === 1 ? '' : 's'}. You’ll hear back when the skill is saved.`,
-    learnFailed: 'The Bot could not learn from this lesson'
+    learnFailed: 'The Bot could not learn from this lesson',
+    usageThisWeek: cost => `${cost} this week`
   },
   orchestrator: {
     title: 'Orchestrator',

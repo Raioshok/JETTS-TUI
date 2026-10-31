@@ -1144,7 +1144,8 @@ export const zhHant = defineLocale({
     notesLabel: '給 Bot 的備註',
     notesPlaceholder: '一律選擇上週，並略過標記為內部的帳戶。',
     learning: (name, frames) => `${name} 正在研究 ${frames} 張截圖。技能儲存後會通知你。`,
-    learnFailed: 'Bot 無法從這次示範中學習'
+    learnFailed: 'Bot 無法從這次示範中學習',
+    usageThisWeek: cost => `本週 ${cost}`
   },
   orchestrator: {
     title: '編排器',

@@ -1373,7 +1373,8 @@ export const zh: Translations = {
     notesLabel: '给 Bot 的备注',
     notesPlaceholder: '总是选择上周，并跳过标记为内部的账户。',
     learning: (name, frames) => `${name} 正在研究 ${frames} 张截图。技能保存后会通知你。`,
-    learnFailed: 'Bot 无法从这次演示中学习'
+    learnFailed: 'Bot 无法从这次演示中学习',
+    usageThisWeek: cost => `本周 ${cost}`
   },
   orchestrator: {
     title: '编排器',

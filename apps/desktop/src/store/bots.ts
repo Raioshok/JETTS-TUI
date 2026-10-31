@@ -13,6 +13,13 @@ export interface JettsBot {
   status?: JettsBotStatus
   /** A teach-by-showing lesson is recording (or waiting for Stop & learn). */
   watching?: boolean
+  /** Spend of the Bot's thread (USD) — all time and over the last 7 days. */
+  usage?: { cost_usd: number; cost_usd_week: number; tokens: number }
+}
+
+/** "$1.20", or "<$0.01" for spend too small to round to a cent. */
+export function formatBotCost(usd: number): string {
+  return usd > 0 && usd < 0.005 ? '<$0.01' : `$${usd.toFixed(2)}`
 }
 
 export const JETTS_BOT_STATUSES = ['idle', 'working', 'needs_you'] as const

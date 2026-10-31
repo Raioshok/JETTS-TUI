@@ -174,6 +174,37 @@ def bot_for_session(session_id: Optional[str], db: Any = None) -> Optional[str]:
     return None
 
 
+def bot_usage(slug: str, db: Any = None) -> Dict[str, float]:
+    """Cost and tokens of the Bot's thread and everything descended from it.
+
+    shortcut: routines (cron) and handoffs from other chats run in sessions that
+    aren't descendants of the thread, so they aren't counted; tag those sessions
+    with the bot if per-Bot billing has to be exact.
+    """
+    usage = {"cost_usd": 0.0, "cost_usd_week": 0.0, "tokens": 0}
+    bot = get_bot(slug)
+    root = (bot or {}).get("session_id")
+    if not root:
+        return usage
+    if db is None:
+        from jettstui_state import SessionDB
+
+        db = SessionDB(read_only=True)
+    cost = "COALESCE(NULLIF(actual_cost_usd, 0), estimated_cost_usd, 0)"
+    with db._lock:
+        row = db._conn.execute(
+            f"""WITH RECURSIVE thread(id) AS (
+                    SELECT ? UNION SELECT s.id FROM sessions s JOIN thread t ON s.parent_session_id = t.id)
+                SELECT COALESCE(SUM({cost}), 0),
+                       COALESCE(SUM(CASE WHEN started_at >= ? THEN {cost} END), 0),
+                       COALESCE(SUM(COALESCE(input_tokens, 0) + COALESCE(output_tokens, 0)), 0)
+                FROM sessions WHERE id IN thread""",
+            (root, time.time() - 7 * 86400),
+        ).fetchone()
+    usage.update(cost_usd=float(row[0]), cost_usd_week=float(row[1]), tokens=int(row[2]))
+    return usage
+
+
 def bot_prompt(bot: Dict[str, Any], computer: Optional[str] = None) -> str:
     prompt = (
         f"You are {bot['name']}, one of the user's AI teammates (a Jetts Bot).\n"

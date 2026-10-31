@@ -19,7 +19,7 @@ import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { useI18n } from '@/i18n'
-import { $newChatBot, botsNeedingNotice, type JettsBot } from '@/store/bots'
+import { $newChatBot, botsNeedingNotice, formatBotCost, type JettsBot } from '@/store/bots'
 import { notify, notifyError } from '@/store/notifications'
 import { $activeGatewayProfile, normalizeProfileKey } from '@/store/profile'
 import { $gatewayState } from '@/store/session'
@@ -183,7 +183,13 @@ export function BotsView(props: React.ComponentProps<'section'>) {
                       )}
                     </span>
                     <span className="line-clamp-2 text-sm text-(--ui-text-secondary)">{bot.role}</span>
-                    {bot.model && <span className="text-xs text-(--ui-text-tertiary)">{bot.model}</span>}
+                    {(bot.model || bot.usage?.tokens) && (
+                      <span className="text-xs text-(--ui-text-tertiary)">
+                        {[bot.model, bot.usage?.tokens ? b.usageThisWeek(formatBotCost(bot.usage.cost_usd_week)) : '']
+                          .filter(Boolean)
+                          .join(' · ')}
+                      </span>
+                    )}
                   </div>
                   <div className="flex shrink-0 gap-2">
                     <TeachButton

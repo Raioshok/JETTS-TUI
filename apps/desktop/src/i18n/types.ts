@@ -1039,6 +1039,7 @@ export interface Translations {
     notesPlaceholder: string
     learning: (name: string, frames: number) => string
     learnFailed: string
+    usageThisWeek: (cost: string) => string
   }
   orchestrator: {
     title: string

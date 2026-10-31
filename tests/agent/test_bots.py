@@ -355,3 +355,33 @@ def test_session_info_names_the_bot_for_the_composer():
     assert _bot_name_for(SimpleNamespace(jetts_bot="research")) == "Research"
     assert _bot_name_for(SimpleNamespace()) == ""
     assert _bot_name_for(SimpleNamespace(jetts_bot="gone")) == ""
+
+
+def test_bot_usage_sums_the_thread_lineage_and_this_week_only():
+    import time as _time
+
+    from jettstui_state import SessionDB
+
+    db = SessionDB()
+    now = _time.time()
+    rows = [  # id, parent, started_at, actual, estimated, tokens in, out
+        ("thread", None, now - 10 * 86400, 0.0, 1.00, 100, 50),   # old: total only
+        ("cont", "thread", now - 3600, 0.25, 9.99, 10, 5),        # actual wins over estimate
+        ("branch", "cont", now - 60, 0.0, 0.05, 1, 1),
+        ("other", None, now, 5.0, 5.0, 999, 999),                 # not this bot's
+    ]
+    with db._lock:
+        for sid, parent, started, actual, est, tin, tout in rows:
+            db._conn.execute(
+                "INSERT INTO sessions (id, source, started_at, parent_session_id, actual_cost_usd,"
+                " estimated_cost_usd, input_tokens, output_tokens) VALUES (?,?,?,?,?,?,?,?)",
+                (sid, "desktop", started, parent, actual, est, tin, tout),
+            )
+        db._conn.commit()
+    bots.create_bot("Research", "Dig up facts")
+    assert bots.bot_usage("research", db) == {"cost_usd": 0.0, "cost_usd_week": 0.0, "tokens": 0}
+    bots.update_bot("research", session_id="thread")
+    usage = bots.bot_usage("research", db)
+    assert usage["cost_usd"] == pytest.approx(1.30)
+    assert usage["cost_usd_week"] == pytest.approx(0.30)
+    assert usage["tokens"] == 167

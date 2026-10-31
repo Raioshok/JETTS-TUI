@@ -1179,7 +1179,8 @@ export const ja = defineLocale({
     notesLabel: 'ボットへのメモ',
     notesPlaceholder: '常に先週を選び、社内用のアカウントは除外すること。',
     learning: (name, frames) => `${name} が ${frames} 枚のスクリーンショットを学習中です。スキルが保存されたらお知らせします。`,
-    learnFailed: 'ボットはこの実演から学習できませんでした'
+    learnFailed: 'ボットはこの実演から学習できませんでした',
+    usageThisWeek: cost => `今週 ${cost}`
   },
   orchestrator: {
     title: 'オーケストレーター',

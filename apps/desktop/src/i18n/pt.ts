@@ -1182,7 +1182,8 @@ export const pt = defineLocale({
     notesLabel: 'Notas para o Bot',
     notesPlaceholder: 'Sempre escolha a semana passada e ignore contas marcadas como internas.',
     learning: (name, frames) => `${name} está estudando ${frames} captura${frames === 1 ? '' : 's'} de tela. Avisamos quando a habilidade for salva.`,
-    learnFailed: 'O Bot não conseguiu aprender com esta demonstração'
+    learnFailed: 'O Bot não conseguiu aprender com esta demonstração',
+    usageThisWeek: cost => `${cost} nesta semana`
   },
   orchestrator: {
     title: 'Orquestrador',
