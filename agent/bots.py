@@ -232,10 +232,10 @@ def apply_bot(agent: Any, slug: str) -> Dict[str, Any]:
     existing = getattr(agent, "ephemeral_system_prompt", None)
     computer = bot_computer() if "computer_use" in (getattr(agent, "valid_tool_names", None) or ()) else None
     agent.ephemeral_system_prompt = "\n\n".join(p for p in (existing, bot_prompt(bot, computer)) if p)
+    from tools.memory_tool import MemoryStore
+
     store = getattr(agent, "_memory_store", None)
     if store is not None:
-        from tools.memory_tool import MemoryStore
-
         bot_store = MemoryStore(
             memory_char_limit=store.memory_char_limit,
             user_char_limit=store.user_char_limit,
@@ -243,6 +243,16 @@ def apply_bot(agent: Any, slug: str) -> Dict[str, Any]:
         )
         bot_store.load_from_disk()
         agent._memory_store = bot_store
+    else:
+        # Handoffs and routines run without memory by design; they still read the
+        # Bot's notes (screened snapshot) so what it learned applies everywhere.
+        notes = MemoryStore(memory_dir=_bot_path(slug))
+        notes.load_from_disk()
+        block = notes.format_for_system_prompt("memory")
+        if block:
+            agent.ephemeral_system_prompt += (
+                "\n\nYour notes from past work (read-only during this task):\n" + block
+            )
     agent.jetts_bot = slug
     if getattr(agent, "session_id", None):
         _session_bots[agent.session_id] = slug

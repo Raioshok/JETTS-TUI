@@ -385,3 +385,20 @@ def test_bot_usage_sums_the_thread_lineage_and_this_week_only():
     assert usage["cost_usd"] == pytest.approx(1.30)
     assert usage["cost_usd_week"] == pytest.approx(0.30)
     assert usage["tokens"] == 167
+
+
+def test_memoryless_runs_still_read_the_bots_notes_without_writing_them():
+    from tools.memory_tool import MemoryStore
+
+    bots.create_bot("Research", "Dig up facts")
+    notes = MemoryStore(memory_dir=bots.bots_dir() / "research")
+    notes.load_from_disk()
+    notes.add("memory", "Dana approves offers")
+    child = SimpleNamespace(ephemeral_system_prompt="Brief", _memory_store=None, valid_tool_names=set())
+    bots.apply_bot(child, "research")
+    assert "Dana approves offers" in child.ephemeral_system_prompt
+    assert child._memory_store is None  # still no memory tool or writes
+    empty = SimpleNamespace(ephemeral_system_prompt="Brief", _memory_store=None, valid_tool_names=set())
+    bots.create_bot("Quiet", "Say little")
+    bots.apply_bot(empty, "quiet")
+    assert "notes from past work" not in empty.ephemeral_system_prompt
