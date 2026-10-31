@@ -402,3 +402,57 @@ def test_memoryless_runs_still_read_the_bots_notes_without_writing_them():
     bots.create_bot("Quiet", "Say little")
     bots.apply_bot(empty, "quiet")
     assert "notes from past work" not in empty.ephemeral_system_prompt
+
+
+class TestBotLimits:
+    @pytest.fixture(autouse=True)
+    def _clean_maps(self):
+        bots._session_bots.clear()
+        bots._not_bot_sessions.clear()
+        yield
+        bots._session_bots.clear()
+        bots._not_bot_sessions.clear()
+
+    def _agent(self, sid="s1"):
+        names = ["web_search", "terminal", "memory", "send_message"]
+        return SimpleNamespace(ephemeral_system_prompt=None, _memory_store=None, session_id=sid,
+                               tools=[{"function": {"name": n}} for n in names], valid_tool_names=set(names))
+
+    def test_allowlist_hides_other_tools_but_keeps_memory(self):
+        bots.create_bot("Research", "Dig up facts")
+        bots.update_bot("research", tools="web_search", ask_before=["send_message"])
+        agent = self._agent()
+        bots.apply_bot(agent, "research")
+        assert agent.valid_tool_names == {"web_search", "memory"}
+
+    def test_dispatch_gate_blocks_and_asks_for_that_bot_only(self):
+        from jettstui.plugins import resolve_pre_tool_block
+
+        bots.create_bot("Research", "Dig up facts")
+        bots.update_bot("research", tools="web_search, send_message", ask_before="send_message")
+        bots.apply_bot(self._agent("bot-s"), "research")
+        assert "isn't allowed to use terminal" in resolve_pre_tool_block("terminal", {}, session_id="bot-s")
+        assert resolve_pre_tool_block("web_search", {}, session_id="bot-s") is None
+        with patch("tools.approval.request_tool_approval", return_value={"approved": False, "message": "BLOCKED: no"}) as gate:
+            assert resolve_pre_tool_block("send_message", {}, session_id="bot-s") == "BLOCKED: no"
+        assert "needs your OK" in gate.call_args.args[1]
+        with patch("tools.approval.request_tool_approval", return_value={"approved": True}):
+            assert resolve_pre_tool_block("send_message", {}, session_id="bot-s") is None
+        assert resolve_pre_tool_block("terminal", {}, session_id="someone-else") is None
+
+    def test_continuation_resolves_once_and_non_bots_are_remembered(self):
+        bots.create_bot("Research", "Dig up facts")
+        bots.update_bot("research", tools="web_search")
+        bots.apply_bot(self._agent("root"), "research")
+        with patch("agent.bots.bot_for_session", side_effect=lambda s, db=None: "research" if s == "cont" else None) as walk:
+            assert bots.tool_policy("cont", "terminal")[0] == "block"
+            assert bots.tool_policy("cont", "terminal")[0] == "block"
+            assert bots.tool_policy("plain", "terminal") is None
+            assert bots.tool_policy("plain", "terminal") is None
+        assert walk.call_count == 2  # once per unknown session, then cached
+
+    def test_tool_names_are_validated(self):
+        bots.create_bot("Research", "Dig up facts")
+        with pytest.raises(ValueError):
+            bots.update_bot("research", tools="web_search; rm -rf /")
+        assert bots.update_bot("research", tools="")["tools"] is None

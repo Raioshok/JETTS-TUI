@@ -1145,7 +1145,17 @@ export const zhHant = defineLocale({
     notesPlaceholder: '一律選擇上週，並略過標記為內部的帳戶。',
     learning: (name, frames) => `${name} 正在研究 ${frames} 張截圖。技能儲存後會通知你。`,
     learnFailed: 'Bot 無法從這次示範中學習',
-    usageThisWeek: cost => `本週 ${cost}`
+    usageThisWeek: cost => `本週 ${cost}`,
+    edit: '編輯',
+    editTitle: name => `編輯 ${name}`,
+    editHint:
+      '限制是強制執行的，而不只是建議：Bot 無法使用其他工具，列出的工具每次都會先徵求你的同意。變更從它的下一次對話開始生效。',
+    toolsLabel: '僅限這些工具',
+    toolsHint: '以逗號分隔的工具名稱。留空 = 所有工具。一律保留記憶。',
+    askLabel: '使用前一律詢問',
+    askHint: '這些工具每次都需要你核准後，Bot 才能使用。',
+    save: '儲存',
+    saveFailed: '無法儲存 Bot'
   },
   orchestrator: {
     title: '編排器',

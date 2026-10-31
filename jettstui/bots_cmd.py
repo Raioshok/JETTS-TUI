@@ -39,6 +39,13 @@ def build_parser(parent_subparsers: argparse._SubParsersAction) -> argparse.Argu
     p_rm = sub.add_parser("remove", aliases=["rm"], help="Archive a bot (memory is kept)")
     p_rm.add_argument("bot", help="Bot id")
 
+    p_edit = sub.add_parser("edit", help="Change a bot's job or limits")
+    p_edit.add_argument("bot", help="Bot id")
+    p_edit.add_argument("--role", help="New job description")
+    p_edit.add_argument("--tools", help="Only these tools (comma-separated); '' = all tools")
+    p_edit.add_argument("--ask-before", dest="ask_before",
+                        help="Tools that always need your OK for this bot (comma-separated); '' = none")
+
     p_pc = sub.add_parser("computer", help="Show or set the VM the Bots use as their own computer")
     p_pc.add_argument("vm", nargs="?", help="VM/VPS name (see `jettstui computer-use vm list`)")
     p_pc.add_argument("--clear", action="store_true", help="Bots go back to having no computer")
@@ -70,6 +77,13 @@ def bots_command(args: argparse.Namespace) -> int:
                 raise ValueError(f"no bot named {args.bot!r}")
             print(json.dumps(bot, indent=2))
             return 0
+        if action == "edit":
+            fields = {k: getattr(args, k) for k in ("role", "tools", "ask_before") if getattr(args, k) is not None}
+            if not fields:
+                raise ValueError("nothing to change; pass --role, --tools or --ask-before")
+            bot = bots.update_bot(args.bot, **fields)
+            print(f"Updated {bot['name']}: tools={bot.get('tools') or 'all'}, ask before={bot.get('ask_before') or 'nothing extra'}")
+            return 0
         if action == "computer":
             if args.clear or args.vm:
                 bots.set_bot_computer(None if args.clear else args.vm)
@@ -83,5 +97,5 @@ def bots_command(args: argparse.Namespace) -> int:
     except ValueError as exc:
         print(f"Error: {exc}", file=sys.stderr)
         return 1
-    print("usage: jettstui bot {create,list,show,remove,computer}", file=sys.stderr)
+    print("usage: jettstui bot {create,list,show,edit,remove,computer}", file=sys.stderr)
     return 1

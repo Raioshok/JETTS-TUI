@@ -14543,6 +14543,20 @@ def _(rid, params: dict) -> dict:
     return _ok(rid, {"bot": bot})
 
 
+@method("bots.update")
+@_profile_scoped
+def _(rid, params: dict) -> dict:
+    """Edit a Bot's job and limits (takes effect in its next conversation)."""
+    from agent import bots
+
+    fields = {k: params[k] for k in ("name", "role", "tools", "ask_before") if k in params}
+    try:
+        bot = bots.update_bot(str(params.get("id") or ""), **fields)
+    except ValueError as e:
+        return _err(rid, 4045, str(e))
+    return _ok(rid, {"bot": bot})
+
+
 @method("bots.remove")
 @_profile_scoped
 def _(rid, params: dict) -> dict:

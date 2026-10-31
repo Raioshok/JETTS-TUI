@@ -32,10 +32,14 @@ from jettstui_constants import get_jettstui_home
 _SLUG_RE = re.compile(r"^[a-z0-9][a-z0-9-]{0,31}$")
 _MAX_NAME = 60
 _MAX_ROLE = 2000
-_FIELDS = ("name", "role", "model", "provider", "session_id")
+_FIELDS = ("name", "role", "model", "provider", "session_id", "tools", "ask_before")
+# Agent-level tools a Bot keeps even with a `tools` allowlist: its memory is the Bot.
+_ALWAYS_ALLOWED = frozenset({"memory", "todo", "clarify"})
 # session_id -> bot for agents made into bots in this process, including
 # delegated children that have no bot thread in their lineage.
 _session_bots: Dict[str, str] = {}
+# Sessions known not to be a Bot's, so per-tool-call checks stay O(1).
+_not_bot_sessions: set = set()
 
 
 def bots_dir() -> Path:
@@ -86,6 +90,16 @@ def _clean_text(value: Any, field: str, limit: int) -> str:
     return text
 
 
+def _clean_tool_list(value: Any) -> Optional[List[str]]:
+    """A list of tool names from a list or a comma-separated string; None when empty."""
+    items = value.split(",") if isinstance(value, str) else list(value or [])
+    names = sorted({str(i).strip() for i in items if str(i).strip()})
+    for n in names:
+        if not re.match(r"^[A-Za-z0-9_.:-]{1,64}$", n):
+            raise ValueError(f"not a tool name: {n!r}")
+    return names or None
+
+
 def create_bot(name: str, role: str, model: Optional[str] = None,
                provider: Optional[str] = None) -> Dict[str, Any]:
     name = _clean_text(name, "name", _MAX_NAME)
@@ -122,6 +136,9 @@ def update_bot(slug: str, **fields: Any) -> Dict[str, Any]:
     unknown = set(fields) - set(_FIELDS)
     if unknown:
         raise ValueError(f"unknown bot field(s): {sorted(unknown)}")
+    for key in ("tools", "ask_before"):
+        if key in fields:
+            fields[key] = _clean_tool_list(fields[key])
     if "name" in fields:
         fields["name"] = _clean_text(fields["name"], "name", _MAX_NAME)
     if "role" in fields:
@@ -253,10 +270,44 @@ def apply_bot(agent: Any, slug: str) -> Dict[str, Any]:
             agent.ephemeral_system_prompt += (
                 "\n\nYour notes from past work (read-only during this task):\n" + block
             )
+    allowed = bot.get("tools")
+    if allowed and getattr(agent, "tools", None) is not None:
+        # Hide what the Bot can't use; tool_policy() is the actual boundary.
+        keep = set(allowed) | _ALWAYS_ALLOWED
+        agent.tools = [t for t in agent.tools if t.get("function", {}).get("name") in keep]
+        agent.valid_tool_names = {t["function"]["name"] for t in agent.tools}
     agent.jetts_bot = slug
     if getattr(agent, "session_id", None):
         _session_bots[agent.session_id] = slug
+        _not_bot_sessions.discard(agent.session_id)
     return bot
+
+
+def tool_policy(session_id: Optional[str], tool_name: str) -> Optional[tuple]:
+    """``("block", why)`` / ``("ask", why)`` for a Bot's tool call, else None.
+
+    Runs on every tool call, so it only considers Bots applied in this process
+    and remembers which sessions aren't a Bot's; a compression continuation is
+    resolved once through its parents.
+    """
+    if not session_id or not _session_bots or session_id in _not_bot_sessions:
+        return None
+    slug = _session_bots.get(session_id)
+    if slug is None:
+        slug = bot_for_session(session_id)
+        if slug is None:
+            _not_bot_sessions.add(session_id)
+            return None
+        _session_bots[session_id] = slug
+    bot = get_bot(slug)
+    if bot is None:
+        return None
+    allowed = bot.get("tools")
+    if allowed and tool_name not in set(allowed) | _ALWAYS_ALLOWED:
+        return ("block", f"{bot['name']} isn't allowed to use {tool_name}. Its tools: {', '.join(allowed)}.")
+    if tool_name in (bot.get("ask_before") or []):
+        return ("ask", f"{bot['name']} wants to use {tool_name}, which needs your OK for this Bot.")
+    return None
 
 
 def delegation_targets() -> List[Dict[str, Any]]:

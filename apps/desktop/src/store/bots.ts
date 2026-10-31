@@ -13,6 +13,10 @@ export interface JettsBot {
   status?: JettsBotStatus
   /** A teach-by-showing lesson is recording (or waiting for Stop & learn). */
   watching?: boolean
+  /** Only these tools (enforced at dispatch); absent = every tool. */
+  tools?: null | string[]
+  /** Tools that always need the user's OK in this Bot's chats. */
+  ask_before?: null | string[]
   /** Spend of the Bot's thread (USD) — all time and over the last 7 days. */
   usage?: { cost_usd: number; cost_usd_week: number; tokens: number }
 }

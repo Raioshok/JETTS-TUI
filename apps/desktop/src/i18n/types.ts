@@ -1040,6 +1040,15 @@ export interface Translations {
     learning: (name: string, frames: number) => string
     learnFailed: string
     usageThisWeek: (cost: string) => string
+    edit: string
+    editTitle: (name: string) => string
+    editHint: string
+    toolsLabel: string
+    toolsHint: string
+    askLabel: string
+    askHint: string
+    save: string
+    saveFailed: string
   }
   orchestrator: {
     title: string

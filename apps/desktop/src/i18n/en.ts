@@ -1175,7 +1175,16 @@ export const en: Translations = {
     learning: (name, frames) =>
       `${name} is studying ${frames} screenshot${frames === 1 ? '' : 's'}. You’ll hear back when the skill is saved.`,
     learnFailed: 'The Bot could not learn from this lesson',
-    usageThisWeek: cost => `${cost} this week`
+    usageThisWeek: cost => `${cost} this week`,
+    edit: 'Edit',
+    editTitle: name => `Edit ${name}`,
+    editHint: 'Limits are enforced, not just suggested: the Bot can’t use other tools, and listed ones always ask you first. Changes apply from its next conversation.',
+    toolsLabel: 'Only these tools',
+    toolsHint: 'Comma-separated tool names. Empty = every tool. Memory is always kept.',
+    askLabel: 'Always ask before',
+    askHint: 'Tools this Bot may use only after you approve, every time.',
+    save: 'Save',
+    saveFailed: 'Could not save the Bot'
   },
   orchestrator: {
     title: 'Orchestrator',

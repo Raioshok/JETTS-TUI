@@ -1183,7 +1183,16 @@ export const pt = defineLocale({
     notesPlaceholder: 'Sempre escolha a semana passada e ignore contas marcadas como internas.',
     learning: (name, frames) => `${name} está estudando ${frames} captura${frames === 1 ? '' : 's'} de tela. Avisamos quando a habilidade for salva.`,
     learnFailed: 'O Bot não conseguiu aprender com esta demonstração',
-    usageThisWeek: cost => `${cost} nesta semana`
+    usageThisWeek: cost => `${cost} nesta semana`,
+    edit: 'Editar',
+    editTitle: name => `Editar ${name}`,
+    editHint: 'Os limites são aplicados, não só sugeridos: o Bot não consegue usar outras ferramentas, e as listadas sempre pedem seu OK antes. As mudanças valem a partir da próxima conversa dele.',
+    toolsLabel: 'Só estas ferramentas',
+    toolsHint: 'Nomes de ferramentas separados por vírgula. Vazio = todas. A memória é sempre mantida.',
+    askLabel: 'Sempre perguntar antes',
+    askHint: 'Ferramentas que este Bot só usa depois que você aprovar, toda vez.',
+    save: 'Salvar',
+    saveFailed: 'Não foi possível salvar o Bot'
   },
   orchestrator: {
     title: 'Orquestrador',

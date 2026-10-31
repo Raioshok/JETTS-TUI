@@ -2268,6 +2268,26 @@ def resolve_pre_tool_block(
     times out is fail-closed to a block; ``block`` blocks with its message;
     anything else proceeds.
     """
+    # Jetts Bot limits (`tools` / `ask_before` in bot.yaml) gate here too, so every
+    # dispatch path (tool search bridges, execute_code) is covered.
+    try:
+        from agent.bots import tool_policy
+
+        policy = tool_policy(session_id, tool_name)
+    except Exception:
+        policy = None
+    if policy and policy[0] == "block":
+        return f"BLOCKED: {policy[1]}"
+    if policy and policy[0] == "ask":
+        try:
+            from tools.approval import request_tool_approval
+
+            result = request_tool_approval(tool_name, policy[1], rule_key=f"bot:{session_id}:{tool_name}")
+        except Exception:
+            return f"BLOCKED: approval gate failed for {tool_name}"
+        if not result.get("approved"):
+            return str(result.get("message") or f"BLOCKED: approval required for {tool_name}")
+
     details = _get_pre_tool_call_directive_details(
         tool_name, args, task_id=task_id, session_id=session_id,
         tool_call_id=tool_call_id, turn_id=turn_id,

@@ -1180,7 +1180,16 @@ export const ja = defineLocale({
     notesPlaceholder: '常に先週を選び、社内用のアカウントは除外すること。',
     learning: (name, frames) => `${name} が ${frames} 枚のスクリーンショットを学習中です。スキルが保存されたらお知らせします。`,
     learnFailed: 'ボットはこの実演から学習できませんでした',
-    usageThisWeek: cost => `今週 ${cost}`
+    usageThisWeek: cost => `今週 ${cost}`,
+    edit: '編集',
+    editTitle: name => `${name} を編集`,
+    editHint: '制限は提案ではなく強制されます。ボットは他のツールを使えず、指定したツールは毎回あなたの承認が必要です。変更は次の会話から適用されます。',
+    toolsLabel: 'これらのツールのみ',
+    toolsHint: 'ツール名をカンマ区切りで指定。空欄 = すべてのツール。メモリは常に保持されます。',
+    askLabel: '使用前に必ず確認',
+    askHint: 'このボットが毎回あなたの承認後にのみ使えるツール。',
+    save: '保存',
+    saveFailed: 'ボットを保存できませんでした'
   },
   orchestrator: {
     title: 'オーケストレーター',

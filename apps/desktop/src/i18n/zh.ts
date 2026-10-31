@@ -1374,7 +1374,17 @@ export const zh: Translations = {
     notesPlaceholder: '总是选择上周，并跳过标记为内部的账户。',
     learning: (name, frames) => `${name} 正在研究 ${frames} 张截图。技能保存后会通知你。`,
     learnFailed: 'Bot 无法从这次演示中学习',
-    usageThisWeek: cost => `本周 ${cost}`
+    usageThisWeek: cost => `本周 ${cost}`,
+    edit: '编辑',
+    editTitle: name => `编辑 ${name}`,
+    editHint:
+      '限制是强制执行的，而不只是建议：Bot 无法使用其他工具，列出的工具每次都会先征求你的同意。更改从它的下一次对话开始生效。',
+    toolsLabel: '仅限这些工具',
+    toolsHint: '用逗号分隔的工具名称。留空 = 所有工具。始终保留记忆。',
+    askLabel: '使用前始终询问',
+    askHint: '这些工具每次都需要你批准后，Bot 才能使用。',
+    save: '保存',
+    saveFailed: '无法保存 Bot'
   },
   orchestrator: {
     title: '编排器',

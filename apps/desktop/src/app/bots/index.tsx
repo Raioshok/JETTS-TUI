@@ -29,6 +29,7 @@ import { openSession } from '../open-session'
 import { NEW_CHAT_ROUTE } from '../routes'
 
 import { BotsComputer } from './computer'
+import { EditBotButton } from './edit'
 import { TeachButton } from './teach'
 
 export function BotsView(props: React.ComponentProps<'section'>) {
@@ -192,6 +193,11 @@ export function BotsView(props: React.ComponentProps<'section'>) {
                     )}
                   </div>
                   <div className="flex shrink-0 gap-2">
+                    <EditBotButton
+                      bot={bot}
+                      onChanged={() => void queryClient.invalidateQueries({ queryKey })}
+                      profile={profile}
+                    />
                     <TeachButton
                       bot={bot}
                       onChanged={() => void queryClient.invalidateQueries({ queryKey })}
