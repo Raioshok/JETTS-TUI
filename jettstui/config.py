@@ -4110,6 +4110,22 @@ OPTIONAL_ENV_VARS = {
         "category": "provider",
         "advanced": True,
     },
+    "ABLITERATION_API_KEY": {
+        "description": "Abliteration API key",
+        "prompt": "Abliteration API key",
+        "url": "https://abliteration.ai/",
+        "password": True,
+        "category": "provider",
+        "advanced": True,
+    },
+    "ABLITERATION_BASE_URL": {
+        "description": "Abliteration base URL override",
+        "prompt": "Abliteration base URL (leave empty for default)",
+        "url": None,
+        "password": False,
+        "category": "provider",
+        "advanced": True,
+    },
     "GMI_API_KEY": {
         "description": "GMI Cloud API key",
         "prompt": "GMI Cloud API key",

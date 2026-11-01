@@ -208,6 +208,13 @@ export const PROVIDER_GROUPS: ProviderPrefix[] = [
     priority: 21
   },
   {
+    prefix: 'ABLITERATION_',
+    name: 'Abliteration',
+    description: 'Low-refusal models for security research and red teaming',
+    docsUrl: 'https://docs.abliteration.ai/',
+    priority: 21
+  },
+  {
     prefix: 'GMI_',
     name: 'GMI Cloud',
     description: 'GMI Cloud GPU + model serving',

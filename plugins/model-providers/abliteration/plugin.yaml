@@ -1,0 +1,5 @@
+name: abliteration-provider
+kind: model-provider
+version: 1.0.0
+description: Abliteration — OpenAI-compatible low-refusal model API
+author: JettsTUI
