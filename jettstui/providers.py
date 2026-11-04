@@ -203,6 +203,12 @@ JETTSTUI_OVERLAYS: Dict[str, JettsTUIOverlay] = {
         base_url_override="https://api.gmi-serving.com/v1",
         base_url_env_var="GMI_BASE_URL",
     ),
+    "yeta": JettsTUIOverlay(
+        transport="openai_chat",
+        extra_env_vars=("YETA_API_KEY",),
+        base_url_override="https://platform.yeta.ai/v1",
+        base_url_env_var="YETA_BASE_URL",
+    ),
     "dahl": JettsTUIOverlay(
         transport="openai_chat",
         extra_env_vars=("DAHL_API_KEY",),
@@ -380,6 +386,11 @@ ALIASES: Dict[str, str] = {
     "gmi-cloud": "gmi",
     "gmicloud": "gmi",
 
+    # yeta
+    "yeta-platform": "yeta",
+    "yeta-ai": "yeta",
+    "yetaai": "yeta",
+
     # dahl
     "dahl-inference": "dahl",
     "dahl-ai": "dahl",
@@ -419,6 +430,7 @@ _LABEL_OVERRIDES: Dict[str, str] = {
     "stepfun": "StepFun Step Plan",
     "xiaomi": "Xiaomi MiMo",
     "gmi": "GMI Cloud",
+    "yeta": "Yeta Platform",
     "dahl": "Dahl Inference",
     "upstage": "Upstage Solar",
     "freebuff": "Freebuff",

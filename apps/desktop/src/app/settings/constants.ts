@@ -222,6 +222,13 @@ export const PROVIDER_GROUPS: ProviderPrefix[] = [
     priority: 22
   },
   {
+    prefix: 'YETA_',
+    name: 'Yeta Platform',
+    description: 'OpenAI-compatible API for frontier models and video generation',
+    docsUrl: 'https://platform.yeta.ai/',
+    priority: 22
+  },
+  {
     prefix: 'AZURE_FOUNDRY_',
     name: 'Azure Foundry',
     description: 'Azure AI Foundry custom endpoints (OpenAI / Anthropic-compatible)',

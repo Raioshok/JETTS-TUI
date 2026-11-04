@@ -101,6 +101,7 @@ _MATCHING_PREFIX_STRIP_PROVIDERS: frozenset[str] = frozenset({
     "qwen-oauth",
     "xiaomi",
     "arcee",
+    "yeta",
     "ollama-cloud",
     "custom",
     "gemini",

@@ -4142,6 +4142,22 @@ OPTIONAL_ENV_VARS = {
         "category": "provider",
         "advanced": True,
     },
+    "YETA_API_KEY": {
+        "description": "Yeta Platform API key",
+        "prompt": "Yeta Platform API key",
+        "url": "https://platform.yeta.ai/",
+        "password": True,
+        "category": "provider",
+        "advanced": True,
+    },
+    "YETA_BASE_URL": {
+        "description": "Yeta Platform base URL override",
+        "prompt": "Yeta Platform base URL (leave empty for default)",
+        "url": None,
+        "password": False,
+        "category": "provider",
+        "advanced": True,
+    },
     "FIREWORKS_API_KEY": {
         "description": "Fireworks AI API key",
         "prompt": "Fireworks AI API key",
