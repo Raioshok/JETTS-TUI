@@ -111,8 +111,12 @@ ANTIGRAVITY_CLIENT_METADATA = {
 ANTIGRAVITY_ACCESS_TOKEN_REFRESH_SKEW_SECONDS = 120
 
 # Used when live discovery (fetchAvailableModels) is unavailable.
-# Ordered with responsive, high-reliability models (~1s response) first.
+# Curated list of active Antigravity models, featuring flagship Gemini 3.8 and Claude reasoning models.
 DEFAULT_ANTIGRAVITY_MODELS = (
+    "gemini-3.8-flash-tiered",
+    "gemini-3.8-flash-high",
+    "gemini-3.8-flash-medium",
+    "gemini-3.8-flash-low",
     "gemini-3-flash",
     "claude-sonnet-4-6",
     "claude-opus-4-6-thinking",
@@ -121,7 +125,6 @@ DEFAULT_ANTIGRAVITY_MODELS = (
     "gemini-3.1-flash-lite",
     "gemini-3.5-flash-lite",
     "gemini-4-argon",
-    "gemini-3.8-flash-tiered",
 )
 DEFAULT_ANTIGRAVITY_AUX_MODEL = "gemini-3-flash"
 
@@ -680,9 +683,6 @@ def _is_antigravity_usable_model(name: str) -> bool:
         return True
     # Drop internal checkpoint micro-tiers and intermediate test variants
     if any(n.startswith(p) for p in ("gemini-3.5-", "gemini-3.6-", "gemini-3.7-", "gemini-3.1-flash")):
-        return False
-    # Drop slow 3.8 micro-tiers that experience excessive delays
-    if any(n.startswith(p) for p in ("gemini-3.8-flash-low", "gemini-3.8-flash-medium", "gemini-3.8-flash-high")):
         return False
     # Drop internal agent routing stubs
     if n.endswith("-agent"):

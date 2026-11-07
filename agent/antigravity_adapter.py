@@ -59,10 +59,12 @@ ANTIGRAVITY_MODEL_ALIASES: Dict[str, str] = {
     "gemini-3-pro-low": "gemini-3.1-pro-low",
     "gemini-3.5-flash-low": "gemini-3-flash",
     "gemini-3.5-flash-lite": "gemini-3.1-flash-lite",
-    # Redirect defunct, quota-exhausted, or high-latency models to responsive gemini-3-flash
-    "gemini-3.8-flash-high": "gemini-3-flash",
-    "gemini-3.8-flash-medium": "gemini-3-flash",
-    "gemini-3.8-flash-low": "gemini-3-flash",
+    # Map generic 3.8 aliases to the canonical 3.8 tiered model
+    "gemini-3.8": "gemini-3.8-flash-tiered",
+    "gemini-3.8-flash": "gemini-3.8-flash-tiered",
+    "3.8": "gemini-3.8-flash-tiered",
+    "3.8-flash": "gemini-3.8-flash-tiered",
+    # Redirect defunct/quota-exhausted models
     "gemini-3.6-flash-high": "gemini-3-flash",
     "gemini-3.6-flash-medium": "gemini-3-flash",
     "gemini-3.6-flash-low": "gemini-3-flash",
@@ -158,11 +160,20 @@ def adapt_request_for_model(
 
     if not is_claude_model(model):
         tier = _gemini_pro_tier(model)
-        thinking = generation_config.get("thinkingConfig")
-        if tier and isinstance(thinking, dict) and thinking.get("includeThoughts") is not False:
-            # The model id already selects the level; a conflicting
-            # thinkingLevel is rejected.
-            thinking["thinkingLevel"] = tier
+        # For Gemini 3.8 models, enable reasoning/thoughts and propagate tier level
+        m_lower = (model or "").lower()
+        if "3.8" in m_lower or "argon" in m_lower:
+            thinking = generation_config.setdefault("thinkingConfig", {})
+            thinking.setdefault("includeThoughts", True)
+            if tier:
+                thinking["thinkingLevel"] = tier
+            # Ensure output token limit accommodates reasoning thoughts
+            if max_tokens_explicit and generation_config.get("maxOutputTokens", 0) < 4096:
+                generation_config["maxOutputTokens"] = max(generation_config["maxOutputTokens"] + 2048, 4096)
+        elif tier:
+            thinking = generation_config.get("thinkingConfig")
+            if isinstance(thinking, dict) and thinking.get("includeThoughts") is not False:
+                thinking["thinkingLevel"] = tier
         return request
 
     # Claude via Antigravity is validated against Anthropic's rules:
