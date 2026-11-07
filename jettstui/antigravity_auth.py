@@ -98,10 +98,13 @@ DEFAULT_ANTIGRAVITY_BASE_URL = ANTIGRAVITY_ENDPOINT_DAILY
 # project of its own and onboarding does not return one.
 ANTIGRAVITY_DEFAULT_PROJECT_ID = "rising-fact-p41fc"
 
-ANTIGRAVITY_VERSION = "1.20.0"
+# Version reported to the Cloud Code PA backend in the User-Agent header.
+# Must match a supported Antigravity desktop client version.
+# Override in config.yaml: providers.antigravity.client_version
+ANTIGRAVITY_VERSION = "2.29.0"
 ANTIGRAVITY_CLIENT_METADATA = {
     "ideType": "ANTIGRAVITY",
-    "platform": "PLATFORM_UNSPECIFIED",
+    "platform": "WINDOWS",
     "pluginType": "GEMINI",
 }
 
@@ -147,11 +150,39 @@ def oauth_client_credentials() -> tuple[str, str]:
     return client_id, client_secret
 
 
+def _antigravity_client_version() -> str:
+    """Return the version to report in Antigravity client headers.
+
+    Reads ``providers.antigravity.client_version`` from config.yaml when
+    present, so the version can be bumped without a code change.
+    """
+    try:
+        from jettstui.config import load_config
+        cfg = load_config()
+        v = (
+            cfg.get("providers", {})
+            .get("antigravity", {})
+            .get("client_version", "")
+        )
+        if v and isinstance(v, str):
+            return v.strip()
+    except Exception:
+        pass
+    return ANTIGRAVITY_VERSION
+
+
 def antigravity_headers() -> Dict[str, str]:
-    """Headers the Cloud Code backend expects from an Antigravity client."""
+    """Headers the Cloud Code backend expects from an Antigravity client.
+
+    The version string can be overridden via config.yaml:
+        providers:
+          antigravity:
+            client_version: "2.29.0"
+    """
+    version = _antigravity_client_version()
     return {
-        "User-Agent": f"antigravity/{ANTIGRAVITY_VERSION} windows/amd64",
-        "X-Goog-Api-Client": "google-cloud-sdk vscode_cloudshelleditor/0.1",
+        "User-Agent": f"antigravity/{version} (Windows NT 10.0; Win64; x64) windows/amd64",
+        "X-Goog-Api-Client": f"google-cloud-sdk geminicodeassist/{version}",
         "Client-Metadata": json.dumps(ANTIGRAVITY_CLIENT_METADATA, separators=(",", ":")),
     }
 
