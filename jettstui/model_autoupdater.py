@@ -361,6 +361,13 @@ def maybe_auto_update_models(*, background: bool = True) -> bool:
                     daemon=True,
                 )
                 t.start()
+                # Piggyback: refresh Antigravity client version cache in background.
+                # Uses its own independent staleness check and thread.
+                try:
+                    from jettstui.antigravity_version_check import maybe_check_antigravity_version
+                    maybe_check_antigravity_version(background=True)
+                except Exception as _avg_exc:
+                    logger.debug("antigravity version check skipped: %s", _avg_exc)
                 return True
             except Exception:
                 with _UPDATE_LOCK:

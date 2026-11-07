@@ -153,9 +153,13 @@ def oauth_client_credentials() -> tuple[str, str]:
 def _antigravity_client_version() -> str:
     """Return the version to report in Antigravity client headers.
 
-    Reads ``providers.antigravity.client_version`` from config.yaml when
-    present, so the version can be bumped without a code change.
+    Priority order:
+      1. ``providers.antigravity.client_version`` in config.yaml (manual pin)
+      2. Auto-fetched version cached in
+         $JETTSTUI_HOME/antigravity_client_version.json (updated every 6 h)
+      3. Hardcoded ``ANTIGRAVITY_VERSION`` constant (last-resort fallback)
     """
+    # 1. Manual override in config.yaml
     try:
         from jettstui.config import load_config
         cfg = load_config()
@@ -168,6 +172,15 @@ def _antigravity_client_version() -> str:
             return v.strip()
     except Exception:
         pass
+    # 2. Auto-fetched cache (updated in background every 6 h)
+    try:
+        from jettstui.antigravity_version_check import get_cached_version
+        cached = get_cached_version()
+        if cached:
+            return cached
+    except Exception:
+        pass
+    # 3. Hardcoded fallback
     return ANTIGRAVITY_VERSION
 
 
