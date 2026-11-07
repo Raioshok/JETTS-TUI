@@ -222,16 +222,113 @@ def adapt_request_for_model(
     return request
 
 
+
+# ---------------------------------------------------------------------------
+# Anti-ban request throttle
+# ---------------------------------------------------------------------------
+# Google's Cloud Code PA backend enforces a ~2 rps burst limit and bans
+# clients that show rapid-fire, deterministic request patterns.
+# _AntiBanThrottle is a simple token-bucket that:
+#   • caps throughput to _MAX_RPS sustained requests/second
+#   • adds per-request random jitter (±_JITTER_MS ms)
+#   • applies jittered exponential back-off when a 429/503 is returned
+# It is a module-level singleton (one per process) shared across all
+# AntigravityClient instances so multi-account rotation counts correctly.
+
+import threading as _threading
+import time as _time
+import random as _random
+
+_MAX_RPS: float = 1.5          # max sustained requests/second (well under 2 rps)
+_BURST: int = 3                # token-bucket burst capacity
+_JITTER_MS: float = 150.0      # ±ms of random jitter per request
+_BACKOFF_BASE: float = 1.5     # exponential backoff base (seconds)
+_BACKOFF_MAX: float = 60.0     # max backoff cap
+_BACKOFF_JITTER: float = 0.4   # fraction of backoff added as random jitter
+
+
+class _AntiBanThrottle:
+    """Token-bucket rate limiter + jittered exponential back-off."""
+
+    def __init__(self, max_rps: float = _MAX_RPS, burst: int = _BURST) -> None:
+        self._lock = _threading.Lock()
+        self._tokens: float = burst
+        self._max_tokens: float = burst
+        self._refill_rate: float = max_rps          # tokens per second
+        self._last_refill: float = _time.monotonic()
+        self._backoff_level: int = 0
+        self._backoff_until: float = 0.0
+
+    def _refill(self) -> None:
+        now = _time.monotonic()
+        elapsed = now - self._last_refill
+        self._tokens = min(self._max_tokens, self._tokens + elapsed * self._refill_rate)
+        self._last_refill = now
+
+    def wait(self) -> None:
+        """Block until a request token is available; apply back-off if active."""
+        # Back-off period (after a 429/503)
+        with self._lock:
+            until = self._backoff_until
+        if until:
+            remaining = until - _time.monotonic()
+            if remaining > 0:
+                _time.sleep(remaining)
+
+        # Token-bucket wait
+        while True:
+            with self._lock:
+                self._refill()
+                if self._tokens >= 1.0:
+                    self._tokens -= 1.0
+                    break
+                wait_secs = (1.0 - self._tokens) / self._refill_rate
+            _time.sleep(wait_secs)
+
+        # Per-request jitter
+        jitter = _random.uniform(-_JITTER_MS, _JITTER_MS) / 1000.0
+        if jitter > 0:
+            _time.sleep(jitter)
+
+    def throttled(self, status: int) -> None:
+        """Call after receiving a 429 or 503 to escalate back-off."""
+        if status not in (429, 503):
+            return
+        with self._lock:
+            self._backoff_level = min(self._backoff_level + 1, 10)
+            level = self._backoff_level
+        delay = min(_BACKOFF_BASE ** level, _BACKOFF_MAX)
+        delay += _random.uniform(0, delay * _BACKOFF_JITTER)
+        with self._lock:
+            self._backoff_until = _time.monotonic() + delay
+        logger.warning(
+            "Antigravity anti-ban back-off: %.1fs (level %d) after HTTP %d",
+            delay, level, status,
+        )
+
+    def reset_backoff(self) -> None:
+        """Call on a successful response to decay the back-off level."""
+        with self._lock:
+            if self._backoff_level > 0:
+                self._backoff_level -= 1
+            self._backoff_until = 0.0
+
+
+_global_throttle = _AntiBanThrottle()
+
+
 def wrap_request(request: Dict[str, Any], *, model: str, project_id: str, session_id: str) -> Dict[str, Any]:
     inner = dict(request)
     inner["sessionId"] = session_id
+    from jettstui.antigravity_auth import _antigravity_client_version
+    _ver = _antigravity_client_version()
     return {
         "project": project_id,
         "model": model,
         "request": inner,
-        "userAgent": "antigravity",
-        "requestType": "agent",
-        "requestId": f"agent-{uuid.uuid4()}",
+        "userAgent": f"antigravity/{_ver}",
+        "requestType": "chat",
+        "requestId": str(uuid.uuid4()),
     }
 
 
@@ -398,7 +495,7 @@ class AntigravityClient(GeminiNativeClient):
         self._fallback_token = api_key
         endpoints = [self.base_url] + [e for e in ANTIGRAVITY_INFERENCE_ENDPOINTS if e != self.base_url]
         self._endpoints = endpoints
-        self._session_id = f"-{uuid.uuid4().int % 10**19}"
+        self._session_id = str(uuid.uuid4().int % 10**19)
         self._active_account_id = ""
         # SSE streaming uses a zero-pool client so every streamGenerateContent request
         # opens a fresh TCP connection. This prevents WinError 10054 / WSAECONNRESET
@@ -437,7 +534,7 @@ class AntigravityClient(GeminiNativeClient):
         if self._active_account_id and account_id and account_id != self._active_account_id:
             # Active account switched externally (e.g. CLI auth use or desktop switcher).
             # Mint a clean new session ID and clear fallback token so state does not leak.
-            self._session_id = f"-{uuid.uuid4().int % 10**19}"
+            self._session_id = str(uuid.uuid4().int % 10**19)
             self._fallback_token = ""
         if account_id:
             self._active_account_id = account_id
@@ -455,7 +552,7 @@ class AntigravityClient(GeminiNativeClient):
             logger.debug("antigravity account rotation failed: %s", exc)
             return False
         if switched:
-            self._session_id = f"-{uuid.uuid4().int % 10**19}"
+            self._session_id = str(uuid.uuid4().int % 10**19)
             self._fallback_token = ""
             self._refresh_credentials(force=True)
         return bool(switched)
@@ -475,7 +572,7 @@ class AntigravityClient(GeminiNativeClient):
             logger.debug("antigravity verification rotation failed: %s", exc)
             switched = False
         if switched:
-            self._session_id = f"-{uuid.uuid4().int % 10**19}"
+            self._session_id = str(uuid.uuid4().int % 10**19)
             self._fallback_token = ""
             self._refresh_credentials(force=True)
             return True
@@ -571,6 +668,7 @@ class AntigravityClient(GeminiNativeClient):
         while index < len(self._endpoints):
             url = f"{self._endpoints[index]}/v1internal:{method}"
             try:
+                _global_throttle.wait()
                 response = self._http.post(url, json=self._body(model, request), headers=self._headers(), timeout=timeout)
             except httpx.HTTPError as exc:
                 last_exc = exc
@@ -583,6 +681,7 @@ class AntigravityClient(GeminiNativeClient):
                 self._refresh_credentials(force=True)
                 continue
             if response.status_code == 429:
+                _global_throttle.throttled(429)
                 if not accounts_exhausted and rotations < max_rotations:
                     if self._rotate_account(response.text):
                         rotations += 1
@@ -607,6 +706,8 @@ class AntigravityClient(GeminiNativeClient):
                 continue
             last_response = response
             if response.status_code not in _FALLBACK_STATUSES:
+                if response.status_code == 200:
+                    _global_throttle.reset_backoff()
                 break
             index += 1
         if last_response is not None:
@@ -630,6 +731,7 @@ class AntigravityClient(GeminiNativeClient):
                 # self._stream_http has max_keepalive_connections=0 so every attempt
                 # opens a fresh socket — never picks up a stale pooled connection.
                 try:
+                    _global_throttle.wait()
                     with self._stream_http.stream("POST", url, json=self._body(model, request), headers=headers, timeout=timeout) as response:
                         if response.status_code != 200:
                             body_text = read_streaming_error_body(response)
@@ -638,6 +740,7 @@ class AntigravityClient(GeminiNativeClient):
                                 self._refresh_credentials(force=True)
                                 continue
                             if response.status_code == 429:
+                                _global_throttle.throttled(429)
                                 if not accounts_exhausted and rotations < max_rotations:
                                     if self._rotate_account(body_text):
                                         rotations += 1
@@ -667,6 +770,7 @@ class AntigravityClient(GeminiNativeClient):
                                 index += 1
                                 continue
                             raise error
+                        _global_throttle.reset_backoff()
                         tool_call_indices: Dict[str, Dict[str, Any]] = {}
                         for event in _iter_sse_events(response):
                             for chunk in translate_stream_event(unwrap_response(event), model, tool_call_indices):

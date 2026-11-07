@@ -6,6 +6,17 @@ import json
 
 import httpx
 import pytest
+from unittest import mock
+
+
+@pytest.fixture(autouse=True)
+def _bypass_throttle(monkeypatch):
+    """Disable the anti-ban throttle in all adapter tests to keep them fast."""
+    from agent import antigravity_adapter
+    noop = mock.MagicMock()
+    monkeypatch.setattr(antigravity_adapter, "_global_throttle", noop)
+
+
 
 from agent.antigravity_adapter import (
     SKIP_THOUGHT_SIGNATURE,
