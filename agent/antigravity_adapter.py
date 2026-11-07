@@ -57,8 +57,18 @@ ANTIGRAVITY_MODEL_ALIASES: Dict[str, str] = {
     "claude-sonnet-5.5": "claude-sonnet-4-6",
     "gemini-3-pro-high": "gemini-3.1-pro-high",
     "gemini-3-pro-low": "gemini-3.1-pro-low",
-    "gemini-3.5-flash-low": "gemini-3.6-flash-low",
+    "gemini-3.5-flash-low": "gemini-3-flash",
     "gemini-3.5-flash-lite": "gemini-3.1-flash-lite",
+    # Redirect defunct, quota-exhausted, or high-latency models to responsive gemini-3-flash
+    "gemini-3.8-flash-high": "gemini-3-flash",
+    "gemini-3.8-flash-medium": "gemini-3-flash",
+    "gemini-3.8-flash-low": "gemini-3-flash",
+    "gemini-3.6-flash-high": "gemini-3-flash",
+    "gemini-3.6-flash-medium": "gemini-3-flash",
+    "gemini-3.6-flash-low": "gemini-3-flash",
+    "gemini-2.5-flash": "gemini-3-flash",
+    "gemini-2.5-pro": "gemini-3-flash",
+    "gpt-oss-120b-medium": "gemini-3-flash",
 }
 
 # Endpoint fallback: these statuses mean "this backend can't serve it", not

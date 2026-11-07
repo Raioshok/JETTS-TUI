@@ -111,23 +111,19 @@ ANTIGRAVITY_CLIENT_METADATA = {
 ANTIGRAVITY_ACCESS_TOKEN_REFRESH_SKEW_SECONDS = 120
 
 # Used when live discovery (fetchAvailableModels) is unavailable.
+# Ordered with responsive, high-reliability models (~1s response) first.
 DEFAULT_ANTIGRAVITY_MODELS = (
-    "gemini-4-argon",
-    "claude-opus-5-5-thinking",
-    "claude-sonnet-5-5",
-    "gemini-3.8-flash-tiered",
+    "gemini-3-flash",
     "claude-sonnet-4-6",
     "claude-opus-4-6-thinking",
-    "gemini-3-flash",
-    "gemini-3.1-pro-high",
-    "gemini-3.1-pro-low",
-    "gemini-3.6-flash-high",
-    "gemini-3.6-flash-medium",
-    "gemini-3.6-flash-low",
-    "gemini-2.5-flash",
-    "gemini-2.5-pro",
+    "claude-sonnet-5-5",
+    "claude-opus-5-5-thinking",
+    "gemini-3.1-flash-lite",
+    "gemini-3.5-flash-lite",
+    "gemini-4-argon",
+    "gemini-3.8-flash-tiered",
 )
-DEFAULT_ANTIGRAVITY_AUX_MODEL = "gemini-3.8-flash-tiered"
+DEFAULT_ANTIGRAVITY_AUX_MODEL = "gemini-3-flash"
 
 TERMS_WARNING = (
     "Antigravity is not a public API. Google's terms only permit using it\n"
@@ -679,8 +675,14 @@ def _is_antigravity_usable_model(name: str) -> bool:
     # Drop obsolete 2.5 generation
     if "gemini-2.5" in n:
         return False
+    # Whitelist verified fast lightweight production models
+    if n in ("gemini-3.1-flash-lite", "gemini-3.5-flash-lite"):
+        return True
     # Drop internal checkpoint micro-tiers and intermediate test variants
     if any(n.startswith(p) for p in ("gemini-3.5-", "gemini-3.6-", "gemini-3.7-", "gemini-3.1-flash")):
+        return False
+    # Drop slow 3.8 micro-tiers that experience excessive delays
+    if any(n.startswith(p) for p in ("gemini-3.8-flash-low", "gemini-3.8-flash-medium", "gemini-3.8-flash-high")):
         return False
     # Drop internal agent routing stubs
     if n.endswith("-agent"):
