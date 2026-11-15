@@ -344,12 +344,16 @@ def test_antigravity_model_aliases_redirect_defunct_or_renamed_models():
     client.chat.completions.create(model="claude-sonnet-5-5", messages=PARALLEL_HISTORY[:2])
     client.chat.completions.create(model="claude-opus-5-5-thinking", messages=PARALLEL_HISTORY[:2])
     client.chat.completions.create(model="gemini-3-pro-high", messages=PARALLEL_HISTORY[:2])
+    client.chat.completions.create(model="gemini-3.8-flash-high", messages=PARALLEL_HISTORY[:2])
+    client.chat.completions.create(model="gemini-3.8-flash-low", messages=PARALLEL_HISTORY[:2])
 
     assert seen_models == [
         "gemini-3.8-flash-tiered",
         "claude-sonnet-4-6",
         "claude-opus-4-6-thinking",
         "gemini-3.1-pro-high",
+        "gemini-3.8-flash-tiered",
+        "gemini-3.8-flash-tiered",
     ]
 
 
@@ -518,3 +522,26 @@ def test_non_streaming_retries_on_connection_reset_10054():
     resp = client.chat.completions.create(model="gemini-3-flash", messages=PARALLEL_HISTORY[:2], stream=False)
     assert resp.choices[0].message.content == "recovered_sync"
     assert call_count == 2
+
+
+def test_gemini_38_tiered_alias_preserves_thinking_level():
+    seen_requests = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        body = json.loads(request.content)
+        seen_requests.append(body)
+        return httpx.Response(200, json={"response": _gemini_payload([{"text": "ok"}])})
+
+    client = _client(handler)
+    client.chat.completions.create(model="gemini-3.8-flash-high", messages=PARALLEL_HISTORY[:2])
+    client.chat.completions.create(model="gemini-3.8-flash-low", messages=PARALLEL_HISTORY[:2])
+    client.chat.completions.create(model="gemini-3.8-flash-tiered", messages=PARALLEL_HISTORY[:2])
+
+    assert seen_requests[0]["model"] == "gemini-3.8-flash-tiered"
+    assert seen_requests[0]["request"]["generationConfig"]["thinkingConfig"]["thinkingLevel"] == "high"
+
+    assert seen_requests[1]["model"] == "gemini-3.8-flash-tiered"
+    assert seen_requests[1]["request"]["generationConfig"]["thinkingConfig"]["thinkingLevel"] == "low"
+
+    assert seen_requests[2]["model"] == "gemini-3.8-flash-tiered"
+    assert seen_requests[2]["request"]["generationConfig"]["thinkingConfig"]["thinkingLevel"] == "medium"

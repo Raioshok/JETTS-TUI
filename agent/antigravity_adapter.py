@@ -62,6 +62,12 @@ ANTIGRAVITY_MODEL_ALIASES: Dict[str, str] = {
     # Map generic 3.8 aliases to the canonical 3.8 tiered model
     "gemini-3.8": "gemini-3.8-flash-tiered",
     "gemini-3.8-flash": "gemini-3.8-flash-tiered",
+    "gemini-3.8-flash-high": "gemini-3.8-flash-tiered",
+    "gemini-3.8-flash-medium": "gemini-3.8-flash-tiered",
+    "gemini-3.8-flash-low": "gemini-3.8-flash-tiered",
+    "gemini-3.8-high": "gemini-3.8-flash-tiered",
+    "gemini-3.8-medium": "gemini-3.8-flash-tiered",
+    "gemini-3.8-low": "gemini-3.8-flash-tiered",
     "3.8": "gemini-3.8-flash-tiered",
     "3.8-flash": "gemini-3.8-flash-tiered",
     # Redirect defunct/quota-exhausted models
@@ -153,20 +159,31 @@ def adapt_request_for_model(
     *,
     thinking_config: Optional[Dict[str, Any]] = None,
     max_tokens_explicit: bool = False,
+    tier: Optional[str] = None,
 ) -> Dict[str, Any]:
     """Apply the per-family tweaks Antigravity needs on a Gemini request."""
     request = copy.deepcopy(request)
     generation_config = request.setdefault("generationConfig", {})
 
     if not is_claude_model(model):
-        tier = _gemini_pro_tier(model)
+        if tier is None:
+            tier = _gemini_pro_tier(model)
         # For Gemini 3.8 models, enable reasoning/thoughts and propagate tier level
         m_lower = (model or "").lower()
         if "3.8" in m_lower or "argon" in m_lower:
             thinking = generation_config.setdefault("thinkingConfig", {})
             thinking.setdefault("includeThoughts", True)
-            if tier:
-                thinking["thinkingLevel"] = tier
+            effective_tier = tier
+            if not effective_tier and isinstance(thinking_config, dict):
+                effective_tier = thinking_config.get("thinkingLevel") or thinking_config.get("thinking_level")
+            # Default to "medium" thinking level if none specified, preventing Google's
+            # unconstrained exhaustive reasoning from stalling requests for 20+ seconds.
+            if not effective_tier:
+                effective_tier = "medium"
+            if effective_tier.lower() in ("low", "medium", "high"):
+                thinking["thinkingLevel"] = effective_tier.lower()
+            elif effective_tier.lower() in ("minimal", "off"):
+                thinking["thinkingLevel"] = "low"
             # Ensure output token limit accommodates reasoning thoughts
             if max_tokens_explicit and generation_config.get("maxOutputTokens", 0) < 4096:
                 generation_config["maxOutputTokens"] = max(generation_config["maxOutputTokens"] + 2048, 4096)
@@ -279,6 +296,7 @@ class _AntiBanThrottle:
         self._last_refill: float = _time.monotonic()
         self._backoff_level: int = 0
         self._backoff_until: float = 0.0
+        self._last_backoff_set: float = 0.0         # monotonic time of last throttled() call
 
     def _refill(self) -> None:
         now = _time.monotonic()
@@ -288,8 +306,14 @@ class _AntiBanThrottle:
 
     def wait(self) -> None:
         """Block until a request token is available; apply back-off if active."""
-        # Back-off period (after a 429/503)
+        # Decay stale backoff: if the last 429 was >30s ago, a new request
+        # should not inherit the old session's escalated backoff level.
         with self._lock:
+            if self._backoff_level > 0 and self._last_backoff_set > 0:
+                staleness = _time.monotonic() - self._last_backoff_set
+                if staleness > 30.0:
+                    self._backoff_level = 0
+                    self._backoff_until = 0.0
             until = self._backoff_until
         if until:
             remaining = until - _time.monotonic()
@@ -320,8 +344,10 @@ class _AntiBanThrottle:
             level = self._backoff_level
         delay = min(_BACKOFF_BASE ** level, _BACKOFF_MAX)
         delay += _random.uniform(0, delay * _BACKOFF_JITTER)
+        now = _time.monotonic()
         with self._lock:
-            self._backoff_until = _time.monotonic() + delay
+            self._backoff_until = now + delay
+            self._last_backoff_set = now
         logger.warning(
             "Antigravity anti-ban back-off: %.1fs (level %d) after HTTP %d",
             delay, level, status,
@@ -674,11 +700,12 @@ class AntigravityClient(GeminiNativeClient):
         thinking_config = None
         if isinstance(extra_body, dict):
             thinking_config = extra_body.get("thinking_config") or extra_body.get("thinkingConfig")
-        model = (model or "").strip()
+        original_model = (model or "").strip()
         for prefix in ("antigravity/", "google-antigravity/", "google/", "anthropic/"):
-            if model.lower().startswith(prefix):
-                model = model[len(prefix):]
-        model = ANTIGRAVITY_MODEL_ALIASES.get(model.lower(), model)
+            if original_model.lower().startswith(prefix):
+                original_model = original_model[len(prefix):]
+        tier = _gemini_pro_tier(original_model)
+        model = ANTIGRAVITY_MODEL_ALIASES.get(original_model.lower(), original_model)
 
         request = build_gemini_request(
             messages=messages or [],
@@ -695,6 +722,7 @@ class AntigravityClient(GeminiNativeClient):
             model,
             thinking_config=thinking_config if isinstance(thinking_config, dict) else None,
             max_tokens_explicit=max_tokens is not None,
+            tier=tier,
         )
 
         name_map = claude_tool_name_map(tools) if is_claude_model(model) else {}

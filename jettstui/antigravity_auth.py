@@ -977,8 +977,13 @@ def rotate_after_quota_exhausted(retry_after_seconds: Optional[float] = None) ->
 
 
 def rotate_after_license_required() -> Optional[Dict[str, Any]]:
-    """Google reported this account has no valid license for the requested model (403)."""
-    return _rotate_active_account(86400.0, reason="license required")
+    """Google reported this account has no valid license for the requested model (403).
+
+    Uses a short cooldown (10 min) because the license error is model-specific —
+    the account may work fine for other models and should be eligible for
+    rotation back when the other account hits a quota limit.
+    """
+    return _rotate_active_account(600.0, reason="license required")
 
 
 def rotate_after_verification_required(verify_url: str) -> Optional[Dict[str, Any]]:
