@@ -435,6 +435,20 @@ def classify_quota_error(body_text: str) -> tuple[bool, Optional[float]]:
     return (False, None)
 
 
+def is_license_error(body_text: str) -> bool:
+    try:
+        payload = json.loads(body_text or "")
+    except ValueError:
+        return False
+    if isinstance(payload, list) and payload and isinstance(payload[0], dict):
+        payload = payload[0]
+    error = payload.get("error") if isinstance(payload, dict) else None
+    if not isinstance(error, dict):
+        return False
+    msg = str(error.get("message") or "").lower()
+    return "valid license" in msg or ("license" in msg and "product" in msg)
+
+
 def verification_url(body_text: str) -> Optional[str]:
     """The "Verify your account" link from a 403 VALIDATION_REQUIRED body, if any.
 
@@ -576,6 +590,19 @@ class AntigravityClient(GeminiNativeClient):
             self._active_account_id = account_id
         self.api_key = str(creds.get("api_key") or "")
         self._project_id = str(creds.get("project_id") or "")
+
+    def _rotate_account_for_license(self) -> bool:
+        from jettstui.antigravity_auth import rotate_after_license_required
+        try:
+            switched = rotate_after_license_required()
+        except Exception as exc:
+            logger.debug("antigravity license rotation failed: %s", exc)
+            return False
+        if switched:
+            self._session_id = str(uuid.uuid4().int % 10**19)
+            self._fallback_token = ""
+            self._refresh_credentials(force=True)
+        return bool(switched)
 
     def _rotate_account(self, body_text: str) -> bool:
         """On a drained quota, switch to the next saved Google account."""
@@ -733,16 +760,19 @@ class AntigravityClient(GeminiNativeClient):
                     index += 1
                     continue
                 break
-            if (
-                response.status_code == 403
-                and rotations < max_rotations
-                and self._handle_verification_required(response.text, response)
-            ):
-                rotations += 1
-                refreshed = False
-                index = 0
-                _global_throttle.clear_backoff()
-                continue
+            if response.status_code == 403 and rotations < max_rotations:
+                if self._handle_verification_required(response.text, response):
+                    rotations += 1
+                    refreshed = False
+                    index = 0
+                    _global_throttle.clear_backoff()
+                    continue
+                if is_license_error(response.text) and self._rotate_account_for_license():
+                    rotations += 1
+                    refreshed = False
+                    index = 0
+                    _global_throttle.clear_backoff()
+                    continue
             last_response = response
             if response.status_code not in _FALLBACK_STATUSES:
                 if response.status_code == 200:
@@ -796,17 +826,21 @@ class AntigravityClient(GeminiNativeClient):
                                     index += 1
                                     continue
                                 raise error
-                            if (
-                                response.status_code == 403
-                                and rotations < max_rotations
-                                and self._handle_verification_required(body_text, response)
-                            ):
-                                rotations += 1
-                                refreshed = False
-                                index = 0
-                                _global_throttle.clear_backoff()
-                                endpoint_attempts.clear()
-                                continue
+                            if response.status_code == 403 and rotations < max_rotations:
+                                if self._handle_verification_required(body_text, response):
+                                    rotations += 1
+                                    refreshed = False
+                                    index = 0
+                                    _global_throttle.clear_backoff()
+                                    endpoint_attempts.clear()
+                                    continue
+                                if is_license_error(body_text) and self._rotate_account_for_license():
+                                    rotations += 1
+                                    refreshed = False
+                                    index = 0
+                                    _global_throttle.clear_backoff()
+                                    endpoint_attempts.clear()
+                                    continue
                             error = gemini_http_error(response, body_text=body_text)
                             if response.status_code in _FALLBACK_STATUSES and index + 1 < len(endpoints):
                                 last_error = error

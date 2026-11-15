@@ -787,7 +787,7 @@ def _model_sort_key(name: str) -> tuple:
 # ---------------------------------------------------------------------------
 
 ACCOUNTS_KEY = "accounts"
-DEFAULT_QUOTA_COOLDOWN_SECONDS = 60 * 60
+DEFAULT_QUOTA_COOLDOWN_SECONDS = 120.0  # 2 minutes for transient rolling TPM/RPM rate limits
 # 429s that ask for a shorter wait than this are treated as transient rate
 # limits (retry the same account) rather than a drained quota (switch accounts).
 QUOTA_ROTATE_MIN_RETRY_SECONDS = 60.0
@@ -974,6 +974,11 @@ def rotate_after_quota_exhausted(retry_after_seconds: Optional[float] = None) ->
     """
     cooldown = retry_after_seconds if retry_after_seconds and retry_after_seconds > 0 else DEFAULT_QUOTA_COOLDOWN_SECONDS
     return _rotate_active_account(cooldown, reason="quota exhausted")
+
+
+def rotate_after_license_required() -> Optional[Dict[str, Any]]:
+    """Google reported this account has no valid license for the requested model (403)."""
+    return _rotate_active_account(86400.0, reason="license required")
 
 
 def rotate_after_verification_required(verify_url: str) -> Optional[Dict[str, Any]]:

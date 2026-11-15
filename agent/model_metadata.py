@@ -2448,6 +2448,13 @@ def get_model_context_length(
         except Exception:
             pass  # Fall through to models.dev
 
+    if effective_provider in ("antigravity", "google-antigravity"):
+        # Google's Cloud Code Assist PA backend enforces a per-request / per-minute
+        # ceiling (65,536 tokens) on standard OAuth accounts. Setting context length
+        # to 65,536 ensures preflight compression triggers before requests exceed
+        # Google's rolling TPM limit and return 429 RESOURCE_EXHAUSTED.
+        return 65536
+
     if effective_provider == "openai-codex":
         # Codex OAuth enforces lower context limits than the direct OpenAI
         # API for the same slug (e.g. gpt-5.5 is 1.05M on the API but 272K
