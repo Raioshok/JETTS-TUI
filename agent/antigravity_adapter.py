@@ -328,10 +328,15 @@ class _AntiBanThrottle:
         )
 
     def reset_backoff(self) -> None:
-        """Call on a successful response to decay the back-off level."""
+        """Call on a successful response to reset the back-off level."""
         with self._lock:
-            if self._backoff_level > 0:
-                self._backoff_level -= 1
+            self._backoff_level = 0
+            self._backoff_until = 0.0
+
+    def clear_backoff(self) -> None:
+        """Reset back-off completely (e.g. after switching to a fresh account)."""
+        with self._lock:
+            self._backoff_level = 0
             self._backoff_until = 0.0
 
 
@@ -401,22 +406,32 @@ def classify_quota_error(body_text: str) -> tuple[bool, Optional[float]]:
             parsed = _parse_duration_seconds(candidate) if candidate else None
             if parsed is not None:
                 delay = parsed if delay is None else max(delay, parsed)
-    if reason.upper() == "QUOTA_EXHAUSTED":
-        if delay is not None and delay < QUOTA_ROTATE_MIN_RETRY_SECONDS:
-            return False, delay
-        return True, delay
-    if delay is not None:
-        return delay >= QUOTA_ROTATE_MIN_RETRY_SECONDS, delay
+    reason_upper = reason.upper()
+    status_upper = str(error.get("status") or "").upper()
     msg = str(error.get("message") or "").lower()
-    is_plan_quota = any(p in msg for p in ("individual quota reached", "quota exhausted", "upgrade your subscription"))
+
+    if delay is None:
+        match = re.search(r"resets in\s+([0-9a-z.]+)", msg)
+        if match:
+            delay = _parse_duration_seconds(match.group(1))
+
+    if delay is not None:
+        return (delay >= QUOTA_ROTATE_MIN_RETRY_SECONDS, delay)
+
+    if reason_upper == "RATE_LIMIT_EXCEEDED" and not any(p in msg for p in ("quota", "exhausted", "subscription")):
+        return (False, None)
+
+    is_plan_quota = (
+        reason_upper in ("QUOTA_EXHAUSTED", "RESOURCE_EXHAUSTED")
+        or status_upper == "RESOURCE_EXHAUSTED"
+        or any(p in msg for p in ("individual quota reached", "quota exhausted", "upgrade your subscription", "check quota"))
+        or ("resource has been exhausted" in msg)
+        or ("resource_exhausted" in msg)
+        or ("exhausted" in msg and "quota" in msg)
+    )
     if is_plan_quota:
-        if delay is None:
-            match = re.search(r"resets in\s+([0-9a-z.]+)", msg)
-            if match:
-                delay = _parse_duration_seconds(match.group(1))
-        if delay is not None and delay < QUOTA_ROTATE_MIN_RETRY_SECONDS:
-            return False, delay
-        return True, delay
+        return (True, None)
+
     return (False, None)
 
 
@@ -696,21 +711,23 @@ class AntigravityClient(GeminiNativeClient):
                 index += 1
                 continue
             if response.status_code == 200:
+                _global_throttle.reset_backoff()
                 return response
             if response.status_code == 401 and not refreshed:
                 refreshed = True
                 self._refresh_credentials(force=True)
                 continue
             if response.status_code == 429:
-                _global_throttle.throttled(429)
                 if not accounts_exhausted and rotations < max_rotations:
                     if self._rotate_account(response.text):
                         rotations += 1
                         refreshed = False
                         index = 0
+                        _global_throttle.clear_backoff()
                         continue
                     else:
                         accounts_exhausted = True
+                _global_throttle.throttled(429)
                 last_response = response
                 if index + 1 < len(self._endpoints):
                     index += 1
@@ -724,6 +741,7 @@ class AntigravityClient(GeminiNativeClient):
                 rotations += 1
                 refreshed = False
                 index = 0
+                _global_throttle.clear_backoff()
                 continue
             last_response = response
             if response.status_code not in _FALLBACK_STATUSES:
@@ -761,15 +779,17 @@ class AntigravityClient(GeminiNativeClient):
                                 self._refresh_credentials(force=True)
                                 continue
                             if response.status_code == 429:
-                                _global_throttle.throttled(429)
                                 if not accounts_exhausted and rotations < max_rotations:
                                     if self._rotate_account(body_text):
                                         rotations += 1
                                         refreshed = False
                                         index = 0
+                                        _global_throttle.clear_backoff()
+                                        endpoint_attempts.clear()
                                         continue
                                     else:
                                         accounts_exhausted = True
+                                _global_throttle.throttled(429)
                                 error = gemini_http_error(response, body_text=body_text)
                                 if index + 1 < len(endpoints):
                                     last_error = error
@@ -784,6 +804,8 @@ class AntigravityClient(GeminiNativeClient):
                                 rotations += 1
                                 refreshed = False
                                 index = 0
+                                _global_throttle.clear_backoff()
+                                endpoint_attempts.clear()
                                 continue
                             error = gemini_http_error(response, body_text=body_text)
                             if response.status_code in _FALLBACK_STATUSES and index + 1 < len(endpoints):
@@ -803,7 +825,8 @@ class AntigravityClient(GeminiNativeClient):
                     # endpoint (covers a transient RST) then fall back to the next.
                     attempt = endpoint_attempts.get(index, 0)
                     endpoint_attempts[index] = attempt + 1
-                    if attempt == 0:
+                    is_autopush = "autopush" in str(endpoints[index])
+                    if attempt == 0 and not is_autopush:
                         logger.warning(
                             "Antigravity streaming connection error on %s: %s — retrying",
                             endpoints[index], exc,

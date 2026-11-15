@@ -417,6 +417,29 @@ def test_classify_quota_error_short_burst_limit_with_quota_exhausted_reason():
     assert delay == 5.0
 
 
+def test_classify_quota_error_standard_google_cloud_resource_exhausted():
+    from agent.antigravity_adapter import classify_quota_error
+    body = (
+        '{"error": {"code": 429, "status": "RESOURCE_EXHAUSTED", '
+        '"message": "Resource has been exhausted (e.g. check quota)."}}'
+    )
+    is_exhausted, delay = classify_quota_error(body)
+    assert is_exhausted is True
+    assert delay is None
+
+
+def test_rotation_clears_throttle_backoff():
+    from agent.antigravity_adapter import _AntiBanThrottle
+    throttle = _AntiBanThrottle()
+    throttle.throttled(429)
+    assert throttle._backoff_level > 0
+    assert throttle._backoff_until > 0
+
+    throttle.clear_backoff()
+    assert throttle._backoff_level == 0
+    assert throttle._backoff_until == 0.0
+
+
 def test_external_account_switch_mints_new_session_id():
     state = {"active": 0}
     accounts = [
