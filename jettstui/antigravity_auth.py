@@ -104,7 +104,7 @@ ANTIGRAVITY_DEFAULT_PROJECT_ID = "rising-fact-p41fc"
 ANTIGRAVITY_VERSION = "2.29.0"
 ANTIGRAVITY_CLIENT_METADATA = {
     "ideType": "ANTIGRAVITY",
-    "platform": "WINDOWS",
+    "platform": "PLATFORM_UNSPECIFIED",
     "pluginType": "GEMINI",
 }
 
@@ -1102,11 +1102,18 @@ def resolve_antigravity_runtime_credentials(
         _save_state(state, set_active=False)
 
     project_id = str(state.get("project_id") or "").strip()
-    if not project_id:
+    tier_id = str(state.get("tier_id") or "").strip()
+    if not project_id or (project_id == ANTIGRAVITY_DEFAULT_PROJECT_ID and not tier_id):
         discovered = discover_project(str(state["access_token"]))
-        project_id = discovered["project_id"]
-        state["project_id"] = project_id
-        state["tier_id"] = discovered.get("tier_id") or state.get("tier_id") or ""
+        discovered_proj = str(discovered.get("project_id") or "").strip()
+        discovered_tier = str(discovered.get("tier_id") or "").strip()
+        if discovered_proj:
+            project_id = discovered_proj
+            state["project_id"] = project_id
+        elif not project_id:
+            project_id = ANTIGRAVITY_DEFAULT_PROJECT_ID
+            state["project_id"] = project_id
+        state["tier_id"] = discovered_tier or "free-tier"
         _save_state(state, set_active=False)
 
     return {

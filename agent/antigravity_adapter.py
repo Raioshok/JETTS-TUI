@@ -165,6 +165,33 @@ def adapt_request_for_model(
     request = copy.deepcopy(request)
     generation_config = request.setdefault("generationConfig", {})
 
+    # Google's Cloud Code Assist PA backend (v1internal) enforces a strict, low
+    # token/character ceiling on the systemInstruction field. Exceeding it returns
+    # HTTP 429 RESOURCE_EXHAUSTED ("Resource has been exhausted (e.g. check quota)").
+    # Folding systemInstruction into the first user turn in contents bypasses
+    # this ceiling entirely and allows the full prompt under normal context quota.
+    sys_inst = request.pop("systemInstruction", None)
+    if sys_inst and isinstance(sys_inst, dict):
+        sys_parts = sys_inst.get("parts") or []
+        sys_texts = [p.get("text", "") for p in sys_parts if isinstance(p, dict) and p.get("text")]
+        if sys_texts:
+            sys_combined = "\n\n".join(sys_texts)
+            contents = request.setdefault("contents", [])
+            for c in contents:
+                if isinstance(c, dict) and c.get("role") == "user":
+                    parts = c.setdefault("parts", [])
+                    if parts and isinstance(parts[0], dict) and "text" in parts[0]:
+                        if not parts[0]["text"].startswith("[System Instructions]"):
+                            parts[0]["text"] = f"[System Instructions]\n{sys_combined}\n\n" + parts[0]["text"]
+                    else:
+                        parts.insert(0, {"text": f"[System Instructions]\n{sys_combined}\n\n"})
+                    break
+            else:
+                contents.insert(0, {
+                    "role": "user",
+                    "parts": [{"text": f"[System Instructions]\n{sys_combined}"}],
+                })
+
     if not is_claude_model(model):
         if tier is None:
             tier = _gemini_pro_tier(model)

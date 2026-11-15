@@ -545,3 +545,39 @@ def test_gemini_38_tiered_alias_preserves_thinking_level():
 
     assert seen_requests[2]["model"] == "gemini-3.8-flash-tiered"
     assert seen_requests[2]["request"]["generationConfig"]["thinkingConfig"]["thinkingLevel"] == "medium"
+
+
+def test_system_instruction_folded_into_contents():
+    # Verify that systemInstruction is removed from request and folded into first user content
+    # to avoid Google's Cloud Code PA 429 RESOURCE_EXHAUSTED buffer limit.
+    raw_req = build_gemini_request(
+        messages=[
+            {"role": "system", "content": "System prompt text."},
+            {"role": "user", "content": "User question."},
+        ]
+    )
+    assert "systemInstruction" in raw_req
+
+    adapted = adapt_request_for_model(raw_req, "gemini-3.8-flash-tiered")
+    assert "systemInstruction" not in adapted
+    first_turn = adapted["contents"][0]
+    assert first_turn["role"] == "user"
+    assert "[System Instructions]\nSystem prompt text.\n\nUser question." in first_turn["parts"][0]["text"]
+
+    # Also test for Claude model
+    adapted_claude = adapt_request_for_model(raw_req, "claude-sonnet-4-6")
+    assert "systemInstruction" not in adapted_claude
+    assert "[System Instructions]\nSystem prompt text.\n\nUser question." in adapted_claude["contents"][0]["parts"][0]["text"]
+
+
+def test_system_instruction_folded_when_no_user_turn():
+    raw_req = {
+        "systemInstruction": {"role": "system", "parts": [{"text": "Global sys prompt"}]},
+        "contents": [],
+    }
+    adapted = adapt_request_for_model(raw_req, "gemini-3-flash")
+    assert "systemInstruction" not in adapted
+    assert len(adapted["contents"]) == 1
+    assert adapted["contents"][0]["role"] == "user"
+    assert adapted["contents"][0]["parts"][0]["text"] == "[System Instructions]\nGlobal sys prompt"
+

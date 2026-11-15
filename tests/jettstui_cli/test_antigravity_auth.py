@@ -94,6 +94,20 @@ def test_resolve_discovers_missing_project(monkeypatch):
     assert ag.get_antigravity_auth_status()["plan"] == "Google AI Pro"
 
 
+def test_resolve_auto_heals_default_project_when_tier_id_empty(monkeypatch):
+    _seed_state(project_id=ag.ANTIGRAVITY_DEFAULT_PROJECT_ID, tier_id="")
+    monkeypatch.setattr(ag, "discover_project", lambda token, **_: {"project_id": "aicode-consumers", "tier_id": "g1-pro-tier"})
+    creds = ag.resolve_antigravity_runtime_credentials()
+    assert creds["project_id"] == "aicode-consumers"
+    assert creds["tier_id"] == "g1-pro-tier"
+    assert ag.get_antigravity_auth_status()["plan"] == "Google AI Pro"
+
+
+def test_client_metadata_platform_is_valid():
+    # Protobuf ClientMetadata enum rejects arbitrary strings like WINDOWS; must be PLATFORM_UNSPECIFIED
+    assert ag.ANTIGRAVITY_CLIENT_METADATA["platform"] == "PLATFORM_UNSPECIFIED"
+
+
 def test_discover_project_onboards_when_account_has_no_project(monkeypatch):
     class _Resp:
         def __init__(self, payload):
