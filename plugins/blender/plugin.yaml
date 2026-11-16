@@ -1,0 +1,6 @@
+name: blender
+version: 1.0.0
+description: "Blender 3D Studio: Generate, view, and inspect procedural 3D models and raytraced renders in JettsTUI."
+author: "JettsTUI"
+dashboard:
+  manifest: dashboard/manifest.json

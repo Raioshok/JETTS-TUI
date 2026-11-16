@@ -1,0 +1,12 @@
+{
+  "name": "blender",
+  "label": "Blender 3D",
+  "description": "Interactive 3D model generator, WebGL inspector, and raytraced renderer",
+  "icon": "Box",
+  "version": "1.0.0",
+  "tab": {
+    "path": "/blender",
+    "position": "after:artifacts"
+  },
+  "api": "plugin_api.py"
+}
