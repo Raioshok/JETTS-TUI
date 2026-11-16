@@ -2,7 +2,7 @@
 name: blender-3d
 description: >
   Generate, script, and render 3D models and scenes using Blender from natural language descriptions.
-  Covers procedural bpy scripting, PBR materials, lighting, cameras, and GLB/PNG export.
+  Covers procedural bpy scripting, PBR materials, lighting, cameras, in-chat 3D viewer integration, and GLB/PNG export.
 triggers:
   - "blender"
   - "3d model"
@@ -12,11 +12,29 @@ triggers:
   - "3d scene"
   - "glb"
   - "gltf"
+  - "/3d"
 ---
 
-# Blender 3D Studio & Procedural Modeling
+# Blender 3D Studio & In-Chat Modeling
 
 Use this skill when the user requests generating 3D models, exporting GLB/GLTF assets, or creating raytraced renders using Blender.
+
+## In-Chat 3D Model Generation Workflow
+
+When the user asks to create or view a 3D model in chat (or types `/3d <prompt>`):
+1. **Call `blender_render`**:
+   - Provide the user's prompt (or refined prompt).
+   - Set `output_format="glb"` for interactive 3D models (or `"png"` for photorealistic stills).
+   - Choose a suitable archetype preset (`nature`, `scifi`, `architecture`, `furniture`, `abstract`, or `auto`).
+   - If precise custom geometry or shader details are needed, generate a complete `custom_bpy_script`.
+2. **Interactive Chat Display**:
+   - The desktop chat interface automatically captures `blender_render` tool results and renders an interactive WebGL 3D card right inside the chat bubble!
+   - Users can orbit, pan, zoom, toggle wireframe, auto-spin turntable, download the `.glb` file, or click "Open in Studio" to inspect the model in the full-screen 3D view.
+3. **Conversational Context & Iteration**:
+   - Keep track of the models generated earlier in the conversation.
+   - When the user asks for iterations (e.g. *"add a chimney"*, *"make it blue and metallic"*, *"add more branches"*), adapt the previously generated geometry/script and run `blender_render` with the updated parameters!
+
+---
 
 ## Quick Start & Available Tools
 

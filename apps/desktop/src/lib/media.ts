@@ -2,7 +2,7 @@ import { readDesktopFileDataUrl } from '@/lib/desktop-fs'
 import { capitalize } from '@/lib/text'
 import { $connection } from '@/store/session'
 
-export type MediaKind = 'audio' | 'image' | 'video' | 'file'
+export type MediaKind = 'audio' | 'image' | 'video' | 'model' | 'file'
 
 interface MediaInfo {
   kind: MediaKind
@@ -14,6 +14,8 @@ const MEDIA_BY_EXT: Record<string, MediaInfo> = {
   bmp: { kind: 'image', mime: 'image/bmp' },
   flac: { kind: 'audio', mime: 'audio/flac' },
   gif: { kind: 'image', mime: 'image/gif' },
+  glb: { kind: 'model', mime: 'model/gltf-binary' },
+  gltf: { kind: 'model', mime: 'model/gltf+json' },
   jpeg: { kind: 'image', mime: 'image/jpeg' },
   jpg: { kind: 'image', mime: 'image/jpeg' },
   m4a: { kind: 'audio', mime: 'audio/mp4' },
@@ -21,6 +23,7 @@ const MEDIA_BY_EXT: Record<string, MediaInfo> = {
   mov: { kind: 'video', mime: 'video/quicktime' },
   mp3: { kind: 'audio', mime: 'audio/mpeg' },
   mp4: { kind: 'video', mime: 'video/mp4' },
+  obj: { kind: 'model', mime: 'text/plain' },
   ogg: { kind: 'audio', mime: 'audio/ogg' },
   opus: { kind: 'audio', mime: 'audio/ogg; codecs=opus' },
   png: { kind: 'image', mime: 'image/png' },

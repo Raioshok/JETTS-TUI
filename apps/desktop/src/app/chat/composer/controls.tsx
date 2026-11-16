@@ -3,11 +3,12 @@ import { Codicon } from '@/components/ui/codicon'
 import { Tip, TipKeybindLabel } from '@/components/ui/tooltip'
 import { useI18n } from '@/i18n'
 import { triggerHaptic } from '@/lib/haptics'
-import { AudioLines, iconSize, Layers3, Loader2, Square, SteeringWheel, Volume2, VolumeX } from '@/lib/icons'
+import { AudioLines, Box, iconSize, Layers3, Loader2, Square, SteeringWheel, Volume2, VolumeX } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 
 import type { ConversationStatus } from './hooks/use-voice-conversation'
 import { ModelPill } from './model-pill'
+import { requestComposerInsert } from './focus'
 import type { ChatBarState, VoiceStatus } from './types'
 
 export const ICON_BTN = 'size-(--composer-control-size) shrink-0 rounded-md'
@@ -78,6 +79,22 @@ export function ComposerControls({
   return (
     <div className="ml-auto flex shrink-0 items-center gap-(--composer-control-gap)">
       <ModelPill compact={compactModelPill} disabled={disabled} model={state.model} />
+      <Tip label="Generate 3D Model (/3d)">
+        <Button
+          aria-label="Generate 3D Model"
+          className={GHOST_ICON_BTN}
+          disabled={disabled}
+          onClick={() => {
+            triggerHaptic('tap')
+            requestComposerInsert('/3d ')
+          }}
+          size="icon"
+          type="button"
+          variant="ghost"
+        >
+          <Box className={iconSize.sm} />
+        </Button>
+      </Tip>
       <DictationButton disabled={disabled} onToggle={onDictate} state={state.voice} status={voiceStatus} />
       <AutoSpeakButton active={autoSpeak} disabled={disabled} onToggle={onToggleAutoSpeak} />
       {busyAction === 'steer' ? (

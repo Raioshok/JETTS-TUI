@@ -58,6 +58,7 @@ import { type DroppedFile, partitionDroppedFiles } from './hooks/use-composer-ac
 import { type DragKind, useFileDropZone } from './hooks/use-file-drop-zone'
 import { ProfileTag } from './profile-tag'
 import { useRuntimeMessageRepository } from './runtime-repository'
+import { SessionModelsTray } from '@/components/chat/session-models-tray'
 import { ScrollToBottomButton } from './scroll-to-bottom-button'
 import { useSessionView } from './session-view'
 import { SessionActionsMenu } from './sidebar/session-actions-menu'
@@ -560,7 +561,9 @@ export function ChatView({
             (identical placement), floating resolves against the viewport. Both
             states stay mounted here, so dock⇄float never remounts the editor. */}
         {showChatBar && (
-          <Suspense fallback={<ChatBarFallback />}>
+          <>
+            <SessionModelsTray />
+            <Suspense fallback={<ChatBarFallback />}>
             <ChatBar
               busy={busy}
               cwd={currentCwd}
@@ -586,6 +589,7 @@ export function ChatView({
               state={chatBarState}
             />
           </Suspense>
+        </>
         )}
       </ChatRuntimeBoundary>
     </div>

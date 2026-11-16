@@ -10,7 +10,10 @@ import type { RichFenceProps } from './types'
 // in DOMPurify), loaded only when a block of that language actually appears.
 const LAZY_FENCE: Record<string, LazyExoticComponent<ComponentType<RichFenceProps>>> = {
   mermaid: lazy(() => import('./mermaid-embed')),
-  svg: lazy(() => import('./svg-embed'))
+  svg: lazy(() => import('./svg-embed')),
+  blender: lazy(() => import('./blender-embed')),
+  glb: lazy(() => import('./blender-embed')),
+  '3d': lazy(() => import('./blender-embed'))
 }
 
 export const RICH_FENCE_LANGUAGES: ReadonlySet<string> = new Set(Object.keys(LAZY_FENCE))

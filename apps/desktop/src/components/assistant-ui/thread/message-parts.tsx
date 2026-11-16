@@ -13,9 +13,11 @@ import { ToolFallback, ToolGroupSlot } from '@/components/assistant-ui/tool/fall
 import { formatElapsed, useElapsedSeconds, useMeasuredDuration } from '@/components/chat/activity-timer'
 import { ActivityTimerText } from '@/components/chat/activity-timer-text'
 import { GeneratedImage } from '@/components/chat/generated-image-result'
+import { GeneratedModelResult } from '@/components/chat/generated-model-result'
 import { SCAFFOLD_LABEL_CLASS, SCAFFOLD_META_CLASS, ScaffoldRow } from '@/components/chat/scaffold-row'
 import { useI18n } from '@/i18n'
 import { generatedImageFromResult } from '@/lib/generated-images'
+import { blenderModelFromResult } from '@/lib/generated-models'
 import { useEnterAnimation } from '@/lib/use-enter-animation'
 import { cn } from '@/lib/utils'
 
@@ -33,6 +35,20 @@ const ImageGenerateTool: FC<ToolCallMessagePartProps> = props => {
   return (
     <div className="mt-1.5">
       <GeneratedImage aspectRatio={aspectRatio} result={result} />
+    </div>
+  )
+}
+
+const BlenderModelTool: FC<ToolCallMessagePartProps> = props => {
+  const { args, result, isError } = props
+
+  if (isError || (result !== undefined && !blenderModelFromResult(result))) {
+    return <ToolFallback {...props} />
+  }
+
+  return (
+    <div className="mt-1.5">
+      <GeneratedModelResult args={args} result={result} />
     </div>
   )
 }
@@ -59,6 +75,10 @@ const ChainToolFallback: FC<ToolCallMessagePartProps> = props => {
 
   if (props.toolName === 'image_generate') {
     return <ImageGenerateTool {...props} />
+  }
+
+  if (props.toolName === 'blender_render' || props.toolName === 'blender_run_script') {
+    return <BlenderModelTool {...props} />
   }
 
   if (props.toolName === 'clarify') {

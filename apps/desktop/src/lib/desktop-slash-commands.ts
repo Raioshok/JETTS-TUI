@@ -170,6 +170,13 @@ const DESKTOP_COMMAND_SPECS: readonly DesktopCommandSpec[] = [
   { name: '/title', description: 'Rename the current session', surface: action('title'), argumentMode: 'text' },
   { name: '/help', description: 'Show desktop slash commands', aliases: ['/commands'], surface: action('help') },
   {
+    name: '/3d',
+    description: 'Generate or refine an interactive 3D model using Blender',
+    aliases: ['/blender'],
+    surface: exec(),
+    argumentMode: 'text'
+  },
+  {
     name: '/browser',
     description: 'Manage browser CDP connection [connect|disconnect|status] (local gateway only)',
     surface: action('browser'),

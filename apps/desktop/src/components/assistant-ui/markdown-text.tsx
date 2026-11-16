@@ -11,6 +11,7 @@ import type { code as streamdownCode } from '@streamdown/code'
 import { type ComponentProps, memo, useEffect, useMemo, useState } from 'react'
 
 import { ExpandableBlock } from '@/components/chat/expandable-block'
+import { GeneratedModelResult } from '@/components/chat/generated-model-result'
 import { PreviewAttachment } from '@/components/chat/preview-attachment'
 import { chunkByLines, SyntaxHighlighter } from '@/components/chat/shiki-highlighter'
 import { ZoomableImage } from '@/components/chat/zoomable-image'
@@ -201,6 +202,14 @@ function MediaAttachment({ path }: { path: string }) {
     return (
       <span className="block">
         <MarkdownImage alt={name} src={src} />
+      </span>
+    )
+  }
+
+  if (kind === 'model') {
+    return (
+      <span className="block my-2">
+        <GeneratedModelResult modelUrl={src || path} title={name} />
       </span>
     )
   }
