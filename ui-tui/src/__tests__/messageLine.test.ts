@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 
-import { shouldShowResponseSeparator, shouldShowThinkingTrail } from '../components/messageLine.js'
+import { shouldShowResponseSeparator, shouldShowThinkingTrail, splitTextUrls } from '../components/messageLine.js'
 
 describe('shouldShowResponseSeparator', () => {
   it('separates assistant response text from visible details', () => {
@@ -40,5 +40,33 @@ describe('shouldShowThinkingTrail', () => {
     } as const
 
     expect(shouldShowThinkingTrail(msg, 'hidden', 'hidden', 'hidden')).toBe(true)
+  })
+})
+
+describe('splitTextUrls', () => {
+  it('returns plain text when no url is present', () => {
+    expect(splitTextUrls('hello world')).toEqual([{ isUrl: false, text: 'hello world' }])
+  })
+
+  it('splits out a bare url', () => {
+    expect(splitTextUrls('https://example.com/oauth')).toEqual([
+      { isUrl: true, text: 'https://example.com/oauth', url: 'https://example.com/oauth' }
+    ])
+  })
+
+  it('splits out url with surrounding text and trailing punctuation', () => {
+    expect(splitTextUrls('Sign in at https://example.com/oauth?code=123. Return here.')).toEqual([
+      { isUrl: false, text: 'Sign in at ' },
+      { isUrl: true, text: 'https://example.com/oauth?code=123', url: 'https://example.com/oauth?code=123' },
+      { isUrl: false, text: '. Return here.' }
+    ])
+  })
+
+  it('handles parentheses around a url', () => {
+    expect(splitTextUrls('(see https://example.com/docs)')).toEqual([
+      { isUrl: false, text: '(see ' },
+      { isUrl: true, text: 'https://example.com/docs', url: 'https://example.com/docs' },
+      { isUrl: false, text: ')' }
+    ])
   })
 })

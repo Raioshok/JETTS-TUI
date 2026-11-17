@@ -395,16 +395,163 @@ export function findPlainTextUrlAt(screen: Screen, col: number, row: number): st
   }
 
   let token = ''
+  let clickIdx = 0
 
-  for (let i = lo; i <= hi; i++) {
-    token += cellAt(screen, i, row)!.char
+  // Multi-line wrapped URL detection: if the URL run touches the left or right
+  // edge of rendered content, check adjacent rows for continuation so long
+  // URLs that wrap across lines (e.g. 400+ char OAuth URLs) are extracted fully
+  // no matter which row the user clicks on.
+  type RowSegment = { row: number; lo: number; hi: number; chars: string }
+  const upperSegments: RowSegment[] = []
+  let rUp = row
+  let loUp = lo
+
+  while (rUp > 0) {
+    // Can only be a wrapped continuation from rUp - 1 if all cells before loUp are whitespace
+    let onlySpaceBefore = true
+    for (let x = 0; x < loUp; x++) {
+      const ch = cellAt(screen, x, rUp)?.char
+      if (ch && ch !== ' ') {
+        onlySpaceBefore = false
+        break
+      }
+    }
+    if (!onlySpaceBefore) {
+      break
+    }
+
+    const prevRow = rUp - 1
+    const prevRowOff = prevRow * width
+    let prevHi = width - 1
+    while (prevHi >= 0) {
+      const ch = cellAt(screen, prevHi, prevRow)?.char
+      if (ch && ch !== ' ') {
+        break
+      }
+      prevHi--
+    }
+    if (prevHi < 0) {
+      break
+    }
+
+    const prevCell = cellAt(screen, prevHi, prevRow)
+    if (
+      !prevCell ||
+      prevCell.width !== CellWidth.Narrow ||
+      !isUrlChar(prevCell.char) ||
+      noSelect[prevRowOff + prevHi] === 1
+    ) {
+      break
+    }
+
+    let prevLo = prevHi
+    while (prevLo > 0) {
+      const pCol = prevLo - 1
+      if (noSelect[prevRowOff + pCol] === 1) {
+        break
+      }
+      const pc = cellAt(screen, pCol, prevRow)
+      if (!pc || pc.width !== CellWidth.Narrow || !isUrlChar(pc.char)) {
+        break
+      }
+      prevLo = pCol
+    }
+
+    let prevChars = ''
+    for (let i = prevLo; i <= prevHi; i++) {
+      prevChars += cellAt(screen, i, prevRow)!.char
+    }
+
+    upperSegments.unshift({ row: prevRow, lo: prevLo, hi: prevHi, chars: prevChars })
+    rUp = prevRow
+    loUp = prevLo
+
+    if (/(?:https?|file):\/\//.test(prevChars)) {
+      break
+    }
   }
 
-  // 1 cell = 1 char across [lo, hi] (ASCII-only run), so string index =
-  // column offset. Find the last scheme anchor at or before the click —
-  // a run like `https://a.com,https://b.com` has two, and clicking the
-  // second should return the second URL, not the greedy match of both.
-  const clickIdx = c - lo
+  let curChars = ''
+  for (let i = lo; i <= hi; i++) {
+    curChars += cellAt(screen, i, row)!.char
+  }
+  const curSegment: RowSegment = { row, lo, hi, chars: curChars }
+
+  const lowerSegments: RowSegment[] = []
+  let rDown = row
+  let hiDown = hi
+
+  while (rDown < screen.height - 1) {
+    // Can only wrap to rDown + 1 if all cells after hiDown on rDown are whitespace
+    let onlySpaceAfter = true
+    for (let x = hiDown + 1; x < width; x++) {
+      const ch = cellAt(screen, x, rDown)?.char
+      if (ch && ch !== ' ') {
+        onlySpaceAfter = false
+        break
+      }
+    }
+    if (!onlySpaceAfter) {
+      break
+    }
+
+    const nextRow = rDown + 1
+    const nextRowOff = nextRow * width
+    let nextLo = 0
+    while (nextLo < width) {
+      const ch = cellAt(screen, nextLo, nextRow)?.char
+      if (ch && ch !== ' ') {
+        break
+      }
+      nextLo++
+    }
+    if (nextLo >= width) {
+      break
+    }
+
+    const nextCell = cellAt(screen, nextLo, nextRow)
+    if (
+      !nextCell ||
+      nextCell.width !== CellWidth.Narrow ||
+      !isUrlChar(nextCell.char) ||
+      noSelect[nextRowOff + nextLo] === 1
+    ) {
+      break
+    }
+
+    let nextHi = nextLo
+    while (nextHi < width - 1) {
+      const nCol = nextHi + 1
+      if (noSelect[nextRowOff + nCol] === 1) {
+        break
+      }
+      const nc = cellAt(screen, nCol, nextRow)
+      if (!nc || nc.width !== CellWidth.Narrow || !isUrlChar(nc.char)) {
+        break
+      }
+      nextHi = nCol
+    }
+
+    let nextChars = ''
+    for (let i = nextLo; i <= nextHi; i++) {
+      nextChars += cellAt(screen, i, nextRow)!.char
+    }
+
+    lowerSegments.push({ row: nextRow, lo: nextLo, hi: nextHi, chars: nextChars })
+    rDown = nextRow
+    hiDown = nextHi
+  }
+
+  const allSegments = [...upperSegments, curSegment, ...lowerSegments]
+
+  for (const seg of allSegments) {
+    if (seg.row === row) {
+      clickIdx = token.length + (c - seg.lo)
+    }
+    token += seg.chars
+  }
+
+  // Find the last scheme anchor at or before the click —
   const schemeRe = /(?:https?|file):\/\//g
   let urlStart = -1
   let urlEnd = token.length

@@ -4,6 +4,7 @@ import { cellAt, CellWidth, CharPool, createScreen, HyperlinkPool, setCellAt, St
 import {
   applySelectionOverlay,
   createSelectionState,
+  findPlainTextUrlAt,
   getSelectedText,
   startSelection,
   updateSelection
@@ -78,5 +79,49 @@ describe('selection whitespace handling', () => {
     expect(cellAt(screen, 2, 1)?.styleId).not.toBe(screen.emptyStyleId)
     expect(cellAt(screen, 4, 1)?.styleId).toBe(screen.emptyStyleId)
     expect(cellAt(screen, 0, 2)?.styleId).toBe(screen.emptyStyleId)
+  })
+})
+
+describe('findPlainTextUrlAt', () => {
+  const writeRow = (screen: any, row: number, startCol: number, text: string) => {
+    for (let i = 0; i < text.length; i++) {
+      setCellAt(screen, startCol + i, row, {
+        char: text[i]!,
+        hyperlink: undefined,
+        styleId: screen.emptyStyleId,
+        width: CellWidth.Narrow
+      })
+    }
+  }
+
+  it('detects a single-line URL at clicked column', () => {
+    const styles = new StylePool()
+    const screen = createScreen(30, 1, styles, new CharPool(), new HyperlinkPool())
+    writeRow(screen, 0, 0, 'link: https://example.com/foo.')
+
+    expect(findPlainTextUrlAt(screen, 10, 0)).toBe('https://example.com/foo')
+  })
+
+  it('detects a multi-line wrapped URL when clicking on the first line', () => {
+    const styles = new StylePool()
+    const screen = createScreen(20, 2, styles, new CharPool(), new HyperlinkPool())
+    // 20 chars per row: "https://example.com/" (20 chars) wraps to "auth?client_id=123"
+    writeRow(screen, 0, 0, 'https://example.com/')
+    writeRow(screen, 1, 0, 'auth?client_id=123')
+
+    expect(findPlainTextUrlAt(screen, 5, 0)).toBe('https://example.com/auth?client_id=123')
+  })
+
+  it('detects a multi-line wrapped URL when clicking on a continuation line', () => {
+    const styles = new StylePool()
+    const screen = createScreen(20, 3, styles, new CharPool(), new HyperlinkPool())
+    writeRow(screen, 0, 0, 'https://example.com/')
+    writeRow(screen, 1, 0, 'auth?code=xyz&state=')
+    writeRow(screen, 2, 0, '12345')
+
+    // Click on row 1 (the continuation without scheme)
+    expect(findPlainTextUrlAt(screen, 5, 1)).toBe('https://example.com/auth?code=xyz&state=12345')
+    // Click on row 2 (the final continuation line)
+    expect(findPlainTextUrlAt(screen, 2, 2)).toBe('https://example.com/auth?code=xyz&state=12345')
   })
 })

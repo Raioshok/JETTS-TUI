@@ -348,7 +348,7 @@ def test_antigravity_model_aliases_redirect_defunct_or_renamed_models():
     client.chat.completions.create(model="gemini-3.8-flash-low", messages=PARALLEL_HISTORY[:2])
 
     assert seen_models == [
-        "gemini-3.8-flash-tiered",
+        "gemini-4-hydrogen-sonar",
         "claude-sonnet-4-6",
         "claude-opus-4-6-thinking",
         "gemini-3.1-pro-high",
@@ -580,4 +580,31 @@ def test_system_instruction_folded_when_no_user_turn():
     assert len(adapted["contents"]) == 1
     assert adapted["contents"][0]["role"] == "user"
     assert adapted["contents"][0]["parts"][0]["text"] == "[System Instructions]\nGlobal sys prompt"
+
+
+def test_gemini_38_thinking_disabled_sets_zero_budget():
+    raw_req = {
+        "contents": [{"role": "user", "parts": [{"text": "Hello"}]}],
+    }
+    # Disabled via includeThoughts=False
+    adapted = adapt_request_for_model(raw_req, "gemini-3.8-flash-tiered", thinking_config={"includeThoughts": False})
+    t_cfg = adapted["generationConfig"]["thinkingConfig"]
+    assert t_cfg["includeThoughts"] is False
+    assert t_cfg["thinkingBudget"] == 0
+    assert "thinkingLevel" not in t_cfg
+
+    # Disabled via thinkingLevel="off"
+    adapted_off = adapt_request_for_model(raw_req, "gemini-3.8-flash-tiered", thinking_config={"thinkingLevel": "off"})
+    t_cfg_off = adapted_off["generationConfig"]["thinkingConfig"]
+    assert t_cfg_off["includeThoughts"] is False
+    assert t_cfg_off["thinkingBudget"] == 0
+    assert "thinkingLevel" not in t_cfg_off
+
+
+def test_gemini_4_hydrogen_sonar_aliasing():
+    from agent.antigravity_adapter import ANTIGRAVITY_MODEL_ALIASES
+    assert ANTIGRAVITY_MODEL_ALIASES["gemini-4"] == "gemini-4-hydrogen-sonar"
+    assert ANTIGRAVITY_MODEL_ALIASES["gemini-4-argon"] == "gemini-4-hydrogen-sonar"
+    assert ANTIGRAVITY_MODEL_ALIASES["hydrogen-sonar"] == "gemini-4-hydrogen-sonar"
+
 

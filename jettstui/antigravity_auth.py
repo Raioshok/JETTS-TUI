@@ -40,7 +40,7 @@ import webbrowser
 from datetime import datetime, timezone
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from typing import Any, Dict, List, Optional
-from urllib.parse import parse_qs, unquote, urlencode, urlparse
+from urllib.parse import parse_qs, quote, unquote, urlencode, urlparse
 
 import httpx
 
@@ -124,6 +124,7 @@ DEFAULT_ANTIGRAVITY_MODELS = (
     "claude-opus-5-5-thinking",
     "gemini-3.1-flash-lite",
     "gemini-3.5-flash-lite",
+    "gemini-4-hydrogen-sonar",
     "gemini-4-argon",
 )
 DEFAULT_ANTIGRAVITY_AUX_MODEL = "gemini-3-flash"
@@ -225,7 +226,7 @@ def build_authorize_url(*, state: str, code_challenge: str) -> str:
         "access_type": "offline",
         "prompt": "consent",
     }
-    return f"{GOOGLE_AUTHORIZE_URL}?{urlencode(params)}"
+    return f"{GOOGLE_AUTHORIZE_URL}?{urlencode(params, quote_via=quote)}"
 
 
 def parse_redirect_input(raw: str) -> Dict[str, Optional[str]]:

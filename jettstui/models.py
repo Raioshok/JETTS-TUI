@@ -252,6 +252,7 @@ _PROVIDER_MODELS: dict[str, list[str]] = {
         "claude-opus-5-5-thinking",
         "gemini-3.1-flash-lite",
         "gemini-3.5-flash-lite",
+        "gemini-4-hydrogen-sonar",
         "gemini-4-argon",
     ],
     "copilot-acp": [

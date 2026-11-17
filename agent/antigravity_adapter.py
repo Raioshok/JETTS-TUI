@@ -48,9 +48,12 @@ _CLAUDE_EFFORT_BUDGETS = {"minimal": 4096, "low": 8192, "medium": 16384, "high":
 
 # Automatic model redirection for renamed, superseded, or speculative model IDs.
 ANTIGRAVITY_MODEL_ALIASES: Dict[str, str] = {
-    "gemini-4-argon": "gemini-3.8-flash-tiered",
-    "argon": "gemini-3.8-flash-tiered",
-    "4-argon": "gemini-3.8-flash-tiered",
+    "gemini-4-argon": "gemini-4-hydrogen-sonar",
+    "argon": "gemini-4-hydrogen-sonar",
+    "4-argon": "gemini-4-hydrogen-sonar",
+    "gemini-4": "gemini-4-hydrogen-sonar",
+    "gemini-4-hydrogen": "gemini-4-hydrogen-sonar",
+    "hydrogen-sonar": "gemini-4-hydrogen-sonar",
     "claude-opus-5-5-thinking": "claude-opus-4-6-thinking",
     "claude-opus-5.5-thinking": "claude-opus-4-6-thinking",
     "claude-sonnet-5-5": "claude-sonnet-4-6",
@@ -195,22 +198,57 @@ def adapt_request_for_model(
     if not is_claude_model(model):
         if tier is None:
             tier = _gemini_pro_tier(model)
-        # For Gemini 3.8 models, enable reasoning/thoughts and propagate tier level
+        # For Gemini 3.8 and Gemini 4 models, handle reasoning, thinking level, and zero-budget disabling.
         m_lower = (model or "").lower()
-        if "3.8" in m_lower or "argon" in m_lower:
+        if "3.8" in m_lower or "argon" in m_lower or "sonar" in m_lower or "hydrogen" in m_lower:
             thinking = generation_config.setdefault("thinkingConfig", {})
-            thinking.setdefault("includeThoughts", True)
-            effective_tier = tier
-            if not effective_tier and isinstance(thinking_config, dict):
-                effective_tier = thinking_config.get("thinkingLevel") or thinking_config.get("thinking_level")
-            # Default to "medium" thinking level if none specified, preventing Google's
-            # unconstrained exhaustive reasoning from stalling requests for 20+ seconds.
-            if not effective_tier:
-                effective_tier = "medium"
-            if effective_tier.lower() in ("low", "medium", "high"):
-                thinking["thinkingLevel"] = effective_tier.lower()
-            elif effective_tier.lower() in ("minimal", "off"):
-                thinking["thinkingLevel"] = "low"
+
+            # Check if thinking was explicitly disabled or zero-budgeted
+            explicit_disable = (
+                isinstance(thinking_config, dict)
+                and (
+                    thinking_config.get("includeThoughts") is False
+                    or thinking_config.get("thinkingBudget") == 0
+                    or str(thinking_config.get("thinkingLevel") or thinking_config.get("thinking_level") or "").lower() in ("off", "none", "false")
+                )
+            )
+            if explicit_disable:
+                # Setting thinkingBudget=0 alongside includeThoughts=False is required
+                # on Cloud Code PA; otherwise Google still generates 2,000+ thoughts
+                # silently before streaming, stalling for 20+ seconds.
+                thinking["includeThoughts"] = False
+                thinking["thinkingBudget"] = 0
+                thinking.pop("thinkingLevel", None)
+            elif (
+                isinstance(thinking_config, dict)
+                and isinstance(thinking_config.get("thinkingBudget"), (int, float))
+                and thinking_config["thinkingBudget"] > 0
+            ):
+                thinking["includeThoughts"] = True
+                thinking["thinkingBudget"] = int(thinking_config["thinkingBudget"])
+                thinking.pop("thinkingLevel", None)
+            else:
+                thinking["includeThoughts"] = True
+                effective_tier = tier
+                if not effective_tier and isinstance(thinking_config, dict):
+                    effective_tier = thinking_config.get("thinkingLevel") or thinking_config.get("thinking_level")
+                if not effective_tier:
+                    effective_tier = "medium"
+                et_str = str(effective_tier).lower()
+                if et_str in ("off", "none", "false"):
+                    thinking["includeThoughts"] = False
+                    thinking["thinkingBudget"] = 0
+                    thinking.pop("thinkingLevel", None)
+                elif et_str in ("minimal", "low"):
+                    thinking["thinkingLevel"] = "low"
+                    thinking.pop("thinkingBudget", None)
+                elif et_str in ("high", "xhigh", "max"):
+                    thinking["thinkingLevel"] = "high"
+                    thinking.pop("thinkingBudget", None)
+                else:
+                    thinking["thinkingLevel"] = "medium"
+                    thinking.pop("thinkingBudget", None)
+
             # Ensure output token limit accommodates reasoning thoughts
             if max_tokens_explicit and generation_config.get("maxOutputTokens", 0) < 4096:
                 generation_config["maxOutputTokens"] = max(generation_config["maxOutputTokens"] + 2048, 4096)

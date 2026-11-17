@@ -1,4 +1,4 @@
-import { Ansi, Box, NoSelect, Text } from '@jetts-tui/ink'
+import { Ansi, Box, Link, NoSelect, Text } from '@jetts-tui/ink'
 import { memo, useState } from 'react'
 
 import { TERMUX_TUI_MODE } from '../config/env.js'
@@ -226,6 +226,26 @@ export const MessageLine = memo(function MessageLine({
       )
     }
 
+    const urlSegments = splitTextUrls(msg.text)
+
+    if (urlSegments.length > 1 || urlSegments[0]?.isUrl) {
+      return (
+        <Text {...(body ? { color: body } : {})}>
+          {urlSegments.map((seg, i) =>
+            seg.isUrl ? (
+              <Link key={i} url={seg.url!}>
+                <Text color={t.color.accent} underline>
+                  {seg.text}
+                </Text>
+              </Link>
+            ) : (
+              seg.text
+            )
+          )}
+        </Text>
+      )
+    }
+
     return <Text {...(body ? { color: body } : {})}>{msg.text}</Text>
   })()
 
@@ -281,6 +301,84 @@ export const MessageLine = memo(function MessageLine({
 
 export const shouldShowResponseSeparator = (msg: Msg, showDetails: boolean): boolean =>
   msg.role === 'assistant' && showDetails && /\S/.test(msg.text)
+
+const PLAIN_URL_RE = /(https?:\/\/[^\s<>"'`]+)/g
+const TRAILING_PUNCT_RE = /[.,:;!?]+$/
+
+export interface TextUrlSegment {
+  isUrl: boolean
+  text: string
+  url?: string
+}
+
+export function splitTextUrls(text: string): TextUrlSegment[] {
+  if (!text || (!text.includes('http://') && !text.includes('https://'))) {
+    return [{ isUrl: false, text: text || '' }]
+  }
+
+  const out: TextUrlSegment[] = []
+  let lastIndex = 0
+
+  for (const match of text.matchAll(PLAIN_URL_RE)) {
+    const start = match.index ?? 0
+
+    if (start > lastIndex) {
+      out.push({ isUrl: false, text: text.slice(lastIndex, start) })
+    }
+
+    let raw = match[0]
+    let trailing = ''
+    const punctMatch = raw.match(TRAILING_PUNCT_RE)
+
+    if (punctMatch) {
+      trailing = punctMatch[0]
+      raw = raw.slice(0, -trailing.length)
+    }
+
+    const OPENER: Record<string, string> = { ')': '(', ']': '[', '}': '{' }
+
+    while (raw.length > 0) {
+      const lastChar = raw.at(-1)!
+      const opener = OPENER[lastChar]
+
+      if (!opener) {
+        break
+      }
+
+      const opens = (raw.match(new RegExp(`\\${opener}`, 'g')) || []).length
+      const closes = (raw.match(new RegExp(`\\${lastChar}`, 'g')) || []).length
+
+      if (closes > opens) {
+        trailing = lastChar + trailing
+        raw = raw.slice(0, -1)
+      } else {
+        break
+      }
+    }
+
+    if (raw) {
+      out.push({ isUrl: true, text: raw, url: raw })
+    }
+
+    if (trailing) {
+      out.push({ isUrl: false, text: trailing })
+    }
+
+    lastIndex = start + match[0].length
+  }
+
+  if (lastIndex < text.length) {
+    const tail = text.slice(lastIndex)
+    const prev = out[out.length - 1]
+    if (prev && !prev.isUrl) {
+      prev.text += tail
+    } else {
+      out.push({ isUrl: false, text: tail })
+    }
+  }
+
+  return out.length ? out : [{ isUrl: false, text }]
+}
 
 // A MoA reference block (msg.isMoaReference) is the user-facing
 // mixture-of-agents process the user opted into, not private model
