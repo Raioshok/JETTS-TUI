@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 import { codiconIcon } from '@/components/ui/codicon'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Tip } from '@/components/ui/tooltip'
 import { useI18n } from '@/i18n'
 import { getJettsTUIConfigDefaults, getJettsTUIConfigRecord, saveJettsTUIConfig } from '@/jettstui'
@@ -78,6 +79,7 @@ export function SettingsView({ onClose, onConfigSaved, onMainModelChanged }: Set
   // sub-view is deep-linkable and survives a refresh.
   const [providerView, setProviderView] = useRouteEnumParam<ProviderView>('pview', PROVIDER_VIEWS, 'accounts')
   const [keysView] = useRouteEnumParam<KeysView>('kview', KEYS_VIEWS, 'tools')
+  const [confirmResetOpen, setConfirmResetOpen] = useState(false)
 
   // Jump to a section + its sub-view in one navigate. Two sequential setters
   // would each read the same stale `search` and the second would clobber the
@@ -117,11 +119,11 @@ export function SettingsView({ onClose, onConfigSaved, onMainModelChanged }: Set
     }
   }
 
-  const resetConfig = async () => {
-    if (!window.confirm(t.settings.resetConfirm)) {
-      return
-    }
+  const resetConfig = () => {
+    setConfirmResetOpen(true)
+  }
 
+  const executeResetConfig = async () => {
     try {
       await saveJettsTUIConfig(await getJettsTUIConfigDefaults())
       triggerHaptic('success')
@@ -313,6 +315,14 @@ export function SettingsView({ onClose, onConfigSaved, onMainModelChanged }: Set
           )}
         </OverlayMain>
       </OverlaySplitLayout>
+      <ConfirmDialog
+        destructive
+        dismissOnConfirm
+        onClose={() => setConfirmResetOpen(false)}
+        onConfirm={executeResetConfig}
+        open={confirmResetOpen}
+        title={t.settings.resetConfirm}
+      />
     </OverlayView>
   )
 }

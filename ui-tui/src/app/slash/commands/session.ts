@@ -2,6 +2,8 @@ import { attachedImageNotice, introMsg, toTranscriptMessages } from '../../../do
 import { sessionScopedModelArg, TUI_SESSION_MODEL_FLAG } from '../../../domain/slash.js'
 import type {
   BackgroundStartResponse,
+  BotsAssignResponse,
+  BotsListResponse,
   ConfigGetValueResponse,
   ConfigSetResponse,
   ImageAttachResponse,
@@ -207,6 +209,19 @@ export const sessionCommands: SlashCommand[] = [
     name: 'personality',
     run: (arg, ctx) => {
       if (!arg) {
+        ctx.gateway.gw
+          .request<SlashExecResponse>('slash.exec', { command: 'personality', session_id: ctx.sid })
+          .then(r => {
+            if (ctx.stale()) {
+              return
+            }
+
+            ctx.transcript.sys(r?.output?.trim() || 'usage: /personality <name|default>')
+          })
+          .catch(() => {
+            ctx.transcript.sys('usage: /personality <name|default>')
+          })
+
         return
       }
 
@@ -220,6 +235,63 @@ export const sessionCommands: SlashCommand[] = [
           ctx.local.maybeWarn(r)
         })
       )
+    }
+  },
+
+  {
+    aliases: ['bots'],
+    help: 'list Jetts Bots or assign a task (/bot <id> <task>)',
+    name: 'bot',
+    run: (arg, ctx) => {
+      const trimmed = arg.trim()
+
+      if (!trimmed || trimmed.toLowerCase() === 'list') {
+        ctx.gateway
+          .rpc<BotsListResponse>('bots.list', {})
+          .then(
+            ctx.guarded<BotsListResponse>(r => {
+              const bots = r.bots ?? []
+
+              if (!bots.length) {
+                return ctx.transcript.sys('no bots configured yet — create one in JettsTUI Desktop (/bots)')
+              }
+
+              const items: string[] = bots.map(b => {
+                const label = b.name || b.id || 'bot'
+                const slug = b.id && b.id !== label ? ` (${b.id})` : ''
+
+                return `${label}${slug} — ${b.status || 'idle'}${b.description ? ` · ${b.description}` : ''}`
+              })
+
+              ctx.transcript.panel('Bots', [
+                { items, title: `${bots.length} bot${bots.length === 1 ? '' : 's'} — /bot <id> <task>` }
+              ])
+            })
+          )
+          .catch(ctx.guardedErr)
+
+        return
+      }
+
+      const spaceIdx = trimmed.search(/\s/)
+
+      if (spaceIdx < 0) {
+        return ctx.transcript.sys(`usage: /bot ${trimmed} <task>  (or /bot list)`)
+      }
+
+      const target = trimmed.slice(0, spaceIdx)
+      const task = trimmed.slice(spaceIdx + 1).trim()
+
+      ctx.gateway
+        .rpc<BotsAssignResponse>('bots.assign', { id: target, task })
+        .then(
+          ctx.guarded<BotsAssignResponse>(r => {
+            ctx.transcript.sys(
+              `assigned to bot "${target}"${r.session_id ? ` (session ${r.session_id} — /sessions to view)` : ''}`
+            )
+          })
+        )
+        .catch(ctx.guardedErr)
     }
   },
 
@@ -725,7 +797,6 @@ export const sessionCommands: SlashCommand[] = [
         }
 
         ctx.transcript.panel('Usage', sections)
-
       })
     }
   }

@@ -312,11 +312,11 @@ export function Journey({ gw, onClose, t }: JourneyProps) {
         return setMode('timeline')
       }
 
-      if (key.upArrow || ch === 'k') {
+      if (key.upArrow || ch === 'k' || (key as { wheelUp?: boolean }).wheelUp) {
         return scrollItem(-2)
       }
 
-      if (key.downArrow || ch === 'j') {
+      if (key.downArrow || ch === 'j' || (key as { wheelDown?: boolean }).wheelDown) {
         return scrollItem(2)
       }
 
@@ -328,13 +328,13 @@ export function Journey({ gw, onClose, t }: JourneyProps) {
         return scrollItem(page)
       }
 
-      if (ch === 'g') {
+      if (ch === 'g' || key.home) {
         itemScroll.current?.scrollTo(0)
 
         return setTick(x => x + 1)
       }
 
-      if (ch === 'G') {
+      if (ch === 'G' || key.end) {
         itemScroll.current?.scrollToBottom()
 
         return setTick(x => x + 1)
@@ -353,11 +353,11 @@ export function Journey({ gw, onClose, t }: JourneyProps) {
       return setMode('item')
     }
 
-    if (key.upArrow || ch === 'k') {
+    if (key.upArrow || ch === 'k' || (key as { wheelUp?: boolean }).wheelUp) {
       return setCursor(v => stepRow(v, -1))
     }
 
-    if (key.downArrow || ch === 'j') {
+    if (key.downArrow || ch === 'j' || (key as { wheelDown?: boolean }).wheelDown) {
       return setCursor(v => stepRow(v, 1))
     }
 
@@ -369,11 +369,11 @@ export function Journey({ gw, onClose, t }: JourneyProps) {
       return setCursor(v => snapRow(v + page))
     }
 
-    if (ch === 'g') {
+    if (ch === 'g' || key.home) {
       return setCursor(0)
     }
 
-    if (ch === 'G') {
+    if (ch === 'G' || key.end) {
       return setCursor(Math.max(0, tree.length - 1))
     }
   })

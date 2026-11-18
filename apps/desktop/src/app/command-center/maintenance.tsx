@@ -3,6 +3,8 @@ import { useCallback, useEffect, useState } from 'react'
 import { PageLoader } from '@/components/page-loader'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { LogView } from '@/components/ui/log-view'
 import { useI18n } from '@/i18n'
 import {
   type ActionResponse,
@@ -63,6 +65,11 @@ export function MaintenancePanel() {
   const [share, setShare] = useState<DebugShareResponse | null>(null)
   const [sharing, setSharing] = useState(false)
   const [error, setError] = useState('')
+
+  const [pendingMemoryReset, setPendingMemoryReset] = useState<{
+    label: string
+    target: 'all' | 'memory' | 'user'
+  } | null>(null)
 
   useEffect(() => {
     let cancelled = false
@@ -168,12 +175,8 @@ export function MaintenancePanel() {
     }
   }, [curator, mm])
 
-  const doResetMemory = useCallback(
+  const executeResetMemory = useCallback(
     async (target: 'all' | 'memory' | 'user', label: string) => {
-      if (!window.confirm(mm.resetConfirm(label))) {
-        return
-      }
-
       setMemoryBusy(true)
 
       try {
@@ -256,12 +259,7 @@ export function MaintenancePanel() {
               {mm.viewLog}
               {actionStatus.running && <span className="normal-case tracking-normal">{mm.running}</span>}
             </div>
-            <pre
-              className="max-h-48 overflow-auto whitespace-pre-wrap wrap-break-word rounded-lg border border-(--ui-stroke-tertiary) bg-(--ui-bg-quinary) p-3 font-mono text-[0.65rem] leading-relaxed text-(--ui-text-tertiary)"
-              data-selectable-text="true"
-            >
-              {actionStatus.lines.join('\n')}
-            </pre>
+            <LogView className="max-h-48">{actionStatus.lines.join('\n')}</LogView>
           </div>
         )}
       </section>
@@ -326,7 +324,7 @@ export function MaintenancePanel() {
             <MemoryFileRow
               busy={memoryBusy}
               label={mm.memoryFile}
-              onReset={() => void doResetMemory('memory', mm.memoryFile)}
+              onReset={() => setPendingMemoryReset({ label: mm.memoryFile, target: 'memory' })}
               resetLabel={mm.resetMemory}
               size={memory.builtin_files.memory}
               sizeLabel={memory.builtin_files.memory > 0 ? formatBytes(memory.builtin_files.memory) : mm.empty}
@@ -334,7 +332,7 @@ export function MaintenancePanel() {
             <MemoryFileRow
               busy={memoryBusy}
               label={mm.userFile}
-              onReset={() => void doResetMemory('user', mm.userFile)}
+              onReset={() => setPendingMemoryReset({ label: mm.userFile, target: 'user' })}
               resetLabel={mm.resetUser}
               size={memory.builtin_files.user}
               sizeLabel={memory.builtin_files.user > 0 ? formatBytes(memory.builtin_files.user) : mm.empty}
@@ -342,6 +340,16 @@ export function MaintenancePanel() {
           </div>
         )}
       </section>
+      <ConfirmDialog
+        destructive
+        dismissOnConfirm
+        onClose={() => setPendingMemoryReset(null)}
+        onConfirm={() =>
+          pendingMemoryReset ? executeResetMemory(pendingMemoryReset.target, pendingMemoryReset.label) : undefined
+        }
+        open={pendingMemoryReset !== null}
+        title={pendingMemoryReset ? mm.resetConfirm(pendingMemoryReset.label) : ''}
+      />
     </div>
   )
 }

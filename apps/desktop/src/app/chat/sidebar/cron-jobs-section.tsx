@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState } from 'react'
 
 import { ActionsContextMenu, type MenuKit, renderActionItem } from '@/components/ui/actions-menu'
 import { Codicon } from '@/components/ui/codicon'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { DisclosureCaret } from '@/components/ui/disclosure-caret'
 import { GlyphSpinner } from '@/components/ui/glyph-spinner'
 import { SidebarGroup, SidebarGroupContent } from '@/components/ui/sidebar'
@@ -192,6 +193,7 @@ function CronJobSidebarRow({
   const next = nextRunMs(job)
   const label = jobTitle(job)
   const isPaused = state === 'paused'
+  const [confirmDelete, setConfirmDelete] = useState(false)
 
   const meta = INACTIVE_STATES.has(state) ? (c.states[state] ?? state) : next !== null ? relativeTime(next, nowMs) : '—'
 
@@ -210,10 +212,6 @@ function CronJobSidebarRow({
   }
 
   const remove = async () => {
-    if (!window.confirm(`${c.deleteDescPrefix}${label}${c.deleteDescSuffix}`)) {
-      return
-    }
-
     try {
       await deleteCronJob(job.id)
       updateCronJobs(rows => rows.filter(row => row.id !== job.id))
@@ -239,7 +237,7 @@ function CronJobSidebarRow({
         icon: 'trash',
         key: 'delete',
         label: t.common.delete,
-        onSelect: () => void remove(),
+        onSelect: () => setConfirmDelete(true),
         variant: 'destructive'
       })}
     </>
@@ -314,6 +312,16 @@ function CronJobSidebarRow({
         </div>
       </ActionsContextMenu>
       {expanded && <CronJobSidebarRuns jobId={job.id} onOpenRun={onOpenRun} />}
+      <ConfirmDialog
+        confirmLabel={t.common.delete}
+        description={`${c.deleteDescPrefix}${label}${c.deleteDescSuffix}`}
+        destructive
+        dismissOnConfirm
+        onClose={() => setConfirmDelete(false)}
+        onConfirm={remove}
+        open={confirmDelete}
+        title={t.common.delete}
+      />
     </div>
   )
 }

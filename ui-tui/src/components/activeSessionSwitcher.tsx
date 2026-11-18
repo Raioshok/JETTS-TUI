@@ -594,6 +594,13 @@ export function ActiveSessionSwitcher({
     const isCtrl = (letter: string) => key.ctrl && (lower === letter || ch === ctrlChar(letter))
 
     if (key.escape) {
+      if (newSelected && (draftHasText || draftModel)) {
+        setDraft('')
+        setDraftModel('')
+
+        return
+      }
+
       return onCancel()
     }
 
@@ -633,7 +640,7 @@ export function ActiveSessionSwitcher({
 
     // Typing on a session row starts a new agent: jump to "+ new" and seed the
     // prompt (arrows/Enter still navigate and switch).
-    if (!newSelected && ch && !key.ctrl && !key.meta && /^[^ -]+$/u.test(ch)) {
+    if (!newSelected && ch && !key.ctrl && !key.meta && ch > ' ' && !/\p{Cc}/u.test(ch)) {
       setDraft(d => d + ch)
 
       return setSel(0)
@@ -643,12 +650,28 @@ export function ActiveSessionSwitcher({
       return
     }
 
-    if (key.upArrow && sel > 0) {
+    if ((key.upArrow || (key as { wheelUp?: boolean }).wheelUp) && sel > 0) {
       return setSel(s => Math.max(0, s - 1))
     }
 
-    if (key.downArrow && sel < total - 1) {
+    if ((key.downArrow || (key as { wheelDown?: boolean }).wheelDown) && sel < total - 1) {
       return setSel(s => Math.min(total - 1, s + 1))
+    }
+
+    if (key.pageUp && total > 0) {
+      return setSel(s => Math.max(0, s - visibleLimit))
+    }
+
+    if (key.pageDown && total > 0) {
+      return setSel(s => Math.min(total - 1, s + visibleLimit))
+    }
+
+    if (key.home && total > 0) {
+      return setSel(0)
+    }
+
+    if (key.end && total > 0) {
+      return setSel(total - 1)
     }
 
     if (key.return) {

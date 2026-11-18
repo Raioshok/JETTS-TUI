@@ -3,6 +3,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { PageLoader } from '@/components/page-loader'
 import { Button } from '@/components/ui/button'
 import { DisclosureCaret } from '@/components/ui/disclosure-caret'
+import { ErrorBanner } from '@/components/ui/error-state'
 import { getMemoryProviderConfig, saveMemoryProviderConfig } from '@/jettstui'
 import { errorText } from '@/lib/error-text'
 import { SlidersHorizontal } from '@/lib/icons'
@@ -87,9 +88,7 @@ export function ProviderConfigPanel({ provider }: { provider: string }) {
     if (loadError) {
       return (
         <div className="flex items-center justify-between gap-3 py-2">
-          <span className="text-[length:var(--conversation-caption-font-size)] text-muted-foreground">
-            Memory provider settings failed to load: {loadError}
-          </span>
+          <ErrorBanner className="flex-1">Memory provider settings failed to load: {loadError}</ErrorBanner>
           <Button onClick={() => void refresh()} size="sm" type="button" variant="secondary">
             Retry
           </Button>

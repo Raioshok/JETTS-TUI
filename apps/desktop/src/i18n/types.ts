@@ -230,6 +230,10 @@ export interface Translations {
   }
 
   titlebar: {
+    back: string
+    forward: string
+    lightMode: string
+    darkMode: string
     modeChat: string
     modeCode: string
     modeSwitcher: string
@@ -1877,6 +1881,8 @@ export interface Translations {
     message: string
     wakingProfile: (profile: string) => string
     placeholderStarting: string
+    generate3D: string
+    generate3DTip: string
     botPlaceholder: (name: string) => string
     placeholderReconnecting: string
     placeholderFollowUp: string
@@ -2721,6 +2727,48 @@ export interface Translations {
     boundaryDesc: string
     reloadWindow: string
     openLogs: string
+  }
+
+  blender3d: {
+    sessionModels: string
+    smart3D: string
+    smart3DTip: string
+    smart3DTitle: string
+    smart3DPlaceholder: string
+    insertPrompt: string
+    studio: string
+    openStudio: string
+    openStudioTip: string
+    generatedModelsTitle: string
+    iterate: string
+    iterateInChat: string
+    refineInChat: string
+    iterateTip: string
+    downloadAsset: string
+    downloadPng: string
+    downloadFormat: (format: string) => string
+    inspectInStudio: string
+    generatorTitle: string
+    runningHeadless: string
+    generatingAsset: string
+    buildingGeometry: string
+    streamingSpec: string
+    loadingAsset: string
+    loadFailed: string
+    generationFailed: string
+    pngRender: string
+    wireframe: string
+    turntable: string
+    snapshot: string
+    orbitHint: string
+    orbitActiveHint: string
+    presets: {
+      nature: string
+      scifi: string
+      architecture: string
+      furniture: string
+      abstract: string
+    }
   }
 
   ui: {

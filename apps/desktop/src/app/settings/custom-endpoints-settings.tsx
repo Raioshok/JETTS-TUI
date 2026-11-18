@@ -2,7 +2,9 @@ import { useEffect, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
 import { Checkbox } from '@/components/ui/checkbox'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Input } from '@/components/ui/input'
+import { Tip } from '@/components/ui/tooltip'
 import {
   activateCustomEndpoint,
   deleteCustomEndpoint,
@@ -80,6 +82,7 @@ export function CustomEndpointsSettings({ onConfigSaved, onMainModelChanged }: C
   const [testing, setTesting] = useState(false)
   const [activating, setActivating] = useState<string | null>(null)
   const [deleting, setDeleting] = useState<string | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<CustomEndpoint | null>(null)
   const [endpoints, setEndpoints] = useState<CustomEndpoint[]>([])
   const [form, setForm] = useState<EndpointForm>(EMPTY_FORM)
   const [discoveredModels, setDiscoveredModels] = useState<string[]>([])
@@ -195,10 +198,6 @@ export function CustomEndpointsSettings({ onConfigSaved, onMainModelChanged }: C
   }
 
   async function handleDelete(endpoint: CustomEndpoint) {
-    if (!window.confirm(`Delete ${endpoint.name}?`)) {
-      return
-    }
-
     try {
       setDeleting(endpoint.id)
       const response = await deleteCustomEndpoint(endpoint.id)
@@ -271,16 +270,19 @@ export function CustomEndpointsSettings({ onConfigSaved, onMainModelChanged }: C
                       Use
                     </Button>
                     {endpoint.source !== 'direct-config' && (
-                      <Button
-                        className="hover:text-destructive"
-                        disabled={deleting === endpoint.id}
-                        onClick={() => void handleDelete(endpoint)}
-                        size="icon-sm"
-                        title="Delete endpoint"
-                        variant="ghost"
-                      >
-                        {deleting === endpoint.id ? <Loader2 className="animate-spin" /> : <Trash2 />}
-                      </Button>
+                      <Tip label="Delete endpoint">
+                        <Button
+                          aria-label={`Delete ${endpoint.name}`}
+                          className="hover:text-destructive"
+                          disabled={deleting === endpoint.id}
+                          onClick={() => setPendingDelete(endpoint)}
+                          size="icon-sm"
+                          type="button"
+                          variant="ghost"
+                        >
+                          {deleting === endpoint.id ? <Loader2 className="animate-spin" /> : <Trash2 />}
+                        </Button>
+                      </Tip>
                     )}
                   </div>
                 </div>
@@ -398,6 +400,15 @@ export function CustomEndpointsSettings({ onConfigSaved, onMainModelChanged }: C
           </div>
         </section>
       </div>
+      <ConfirmDialog
+        confirmLabel="Delete"
+        destructive
+        dismissOnConfirm
+        onClose={() => setPendingDelete(null)}
+        onConfirm={() => (pendingDelete ? handleDelete(pendingDelete) : undefined)}
+        open={pendingDelete !== null}
+        title={pendingDelete ? `Delete ${pendingDelete.name}?` : ''}
+      />
     </SettingsContent>
   )
 }

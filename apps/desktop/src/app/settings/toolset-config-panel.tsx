@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 
 import { SETTINGS_ROUTE } from '@/app/routes'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Input } from '@/components/ui/input'
 import { useI18n } from '@/i18n'
 import {
@@ -89,6 +90,7 @@ function EnvVarField({ envVar, isSet, onSaved, onCleared }: EnvVarFieldProps) {
   const [value, setValue] = useState('')
   const [revealed, setRevealed] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [confirmClear, setConfirmClear] = useState(false)
 
   // Internal route change to Settings → API Keys (tools sub-view) with the
   // deep-link param keys-settings consumes to scroll + flash this key's card.
@@ -114,11 +116,13 @@ function EnvVarField({ envVar, isSet, onSaved, onCleared }: EnvVarFieldProps) {
     }
   }
 
-  async function handleClear() {
-    if (!window.confirm(copy.removeConfirm(envVar.key))) {
-      return
-    }
+  function handleClear() {
+    setConfirmClear(true)
 
+    return Promise.resolve()
+  }
+
+  async function executeClear() {
     setBusy(true)
 
     try {
@@ -161,8 +165,9 @@ function EnvVarField({ envVar, isSet, onSaved, onCleared }: EnvVarFieldProps) {
   }
 
   return (
-    <EnvVarContextMenu {...actionProps}>
-      <div className="grid gap-2 rounded-lg bg-background/55 p-2.5">
+    <>
+      <EnvVarContextMenu {...actionProps}>
+        <div className="grid gap-2 rounded-lg bg-background/55 p-2.5">
         <div className="flex flex-wrap items-start justify-between gap-2">
           <div className="min-w-0">
             <div className="flex flex-wrap items-center gap-2">
@@ -208,8 +213,18 @@ function EnvVarField({ envVar, isSet, onSaved, onCleared }: EnvVarFieldProps) {
             </Button>
           </div>
         )}
-      </div>
-    </EnvVarContextMenu>
+        </div>
+      </EnvVarContextMenu>
+      <ConfirmDialog
+        confirmLabel={t.common.remove}
+        destructive
+        dismissOnConfirm
+        onClose={() => setConfirmClear(false)}
+        onConfirm={executeClear}
+        open={confirmClear}
+        title={copy.removeConfirm(envVar.key)}
+      />
+    </>
   )
 }
 

@@ -208,9 +208,18 @@ function ReviewDirRow({
   return (
     <>
       <div
-        className="group/review-row row-hover flex h-6 select-none items-center gap-1.5 rounded-md pr-1.5 text-xs text-(--ui-text-secondary) hover:text-foreground"
+        aria-expanded={open}
+        className="group/review-row row-hover flex h-6 select-none items-center gap-1.5 rounded-md pr-1.5 text-xs text-(--ui-text-secondary) hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring/50 focus-visible:outline-hidden"
         onClick={toggle}
+        onKeyDown={event => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault()
+            toggle()
+          }
+        }}
+        role="treeitem"
         style={rowStyle(depth)}
+        tabIndex={0}
       >
         <Codicon
           className="shrink-0 text-(--ui-text-tertiary)"
@@ -305,7 +314,7 @@ function ReviewFileRow({ node, depth }: { node: ReviewTreeNode; depth: number })
       <div
         aria-selected={selected}
         className={cn(
-          'group/review-row row-hover flex h-6 select-none items-center gap-1.5 rounded-md pr-1.5 text-xs text-(--ui-text-secondary) hover:text-foreground',
+          'group/review-row row-hover flex h-6 select-none items-center gap-1.5 rounded-md pr-1.5 text-xs text-(--ui-text-secondary) hover:text-foreground focus-visible:ring-1 focus-visible:ring-ring/50 focus-visible:outline-hidden',
           selected && 'bg-(--ui-row-active-background) text-foreground'
         )}
         draggable
@@ -319,7 +328,20 @@ function ReviewFileRow({ node, depth }: { node: ReviewTreeNode; depth: number })
           )
           event.dataTransfer.setData('text/plain', dragPath)
         }}
+        onKeyDown={event => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault()
+
+            if (event.shiftKey && event.key === 'Enter') {
+              openInPreview()
+            } else {
+              void selectReviewFile(file)
+            }
+          }
+        }}
+        role="treeitem"
         style={rowStyle(depth)}
+        tabIndex={0}
         title={dragPath}
       >
         <Codicon className={cn('shrink-0', glyph.tone)} name={glyph.icon} size="0.8rem" />

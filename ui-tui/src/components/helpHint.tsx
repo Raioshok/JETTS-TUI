@@ -14,7 +14,8 @@ const COMMON_COMMANDS: [string, string][] = [
 
 const HOTKEY_PREVIEW = HOTKEYS.slice(0, 8)
 
-export function HelpHint({ t }: { t: Theme }) {
+export function HelpHint({ cols = 80, t }: { cols?: number; t: Theme }) {
+  const maxWidth = Math.max(24, Math.min(76, cols - 2))
   const labelW = Math.max(...COMMON_COMMANDS.map(([k]) => k.length), ...HOTKEY_PREVIEW.map(([k]) => k.length))
 
   const pad = (s: string) => s + ' '.repeat(Math.max(0, labelW - s.length + 2))
@@ -29,12 +30,13 @@ export function HelpHint({ t }: { t: Theme }) {
         marginBottom={1}
         opaque
         paddingX={1}
+        width={maxWidth}
       >
-        <Text>
+        <Text wrap="truncate-end">
           <Text bold color={t.color.primary}>
             ? quick help
           </Text>
-          <Text color={t.color.muted}>{'  ·  type /help for the full panel  ·  backspace to dismiss'}</Text>
+          <Text color={t.color.muted}>{'  ·  /help for full panel  ·  Esc/Backspace to dismiss'}</Text>
         </Text>
 
         <Box marginTop={1}>
@@ -44,7 +46,7 @@ export function HelpHint({ t }: { t: Theme }) {
         </Box>
 
         {COMMON_COMMANDS.map(([k, v]) => (
-          <Text key={k}>
+          <Text key={k} wrap="truncate-end">
             <Text color={t.color.label}>{pad(k)}</Text>
             <Text color={t.color.muted}>{v}</Text>
           </Text>
@@ -57,7 +59,7 @@ export function HelpHint({ t }: { t: Theme }) {
         </Box>
 
         {HOTKEY_PREVIEW.map(([k, v]) => (
-          <Text key={k}>
+          <Text key={k} wrap="truncate-end">
             <Text color={t.color.label}>{pad(k)}</Text>
             <Text color={t.color.muted}>{v}</Text>
           </Text>

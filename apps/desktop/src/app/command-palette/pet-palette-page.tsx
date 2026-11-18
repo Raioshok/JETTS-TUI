@@ -13,6 +13,7 @@ import { useEffect, useMemo } from 'react'
 import { HUD_ITEM, HUD_TEXT } from '@/app/floating-hud'
 import { useGatewayRequest } from '@/app/gateway/hooks/use-gateway-request'
 import { PetThumb } from '@/components/pet/pet-thumb'
+import { Tip } from '@/components/ui/tooltip'
 import { useI18n } from '@/i18n'
 import { triggerHaptic } from '@/lib/haptics'
 import { Check, Egg, Loader2, PawPrint } from '@/lib/icons'
@@ -178,24 +179,25 @@ export function PetInlineToggle() {
   }
 
   return (
-    <button
-      aria-label={enabled ? copy.turnOff : copy.turnOn}
-      aria-pressed={enabled}
-      className={cn(
-        'flex shrink-0 items-center justify-center rounded-md p-1.5 transition-colors disabled:opacity-50',
-        enabled
-          ? 'bg-(--chrome-action-hover) text-foreground'
-          : 'text-muted-foreground hover:bg-(--chrome-action-hover)/60'
-      )}
-      disabled={Boolean(busy)}
-      onClick={toggle}
-      // Don't steal focus from the search input on click.
-      onMouseDown={event => event.preventDefault()}
-      title={enabled ? copy.turnOff : copy.turnOn}
-      type="button"
-    >
-      {busy ? <Loader2 className="size-4 animate-spin" /> : <PawPrint className="size-4" />}
-    </button>
+    <Tip label={enabled ? copy.turnOff : copy.turnOn}>
+      <button
+        aria-label={enabled ? copy.turnOff : copy.turnOn}
+        aria-pressed={enabled}
+        className={cn(
+          'flex shrink-0 items-center justify-center rounded-md p-1.5 transition-colors disabled:opacity-50',
+          enabled
+            ? 'bg-(--chrome-action-hover) text-foreground'
+            : 'text-muted-foreground hover:bg-(--chrome-action-hover)/60'
+        )}
+        disabled={Boolean(busy)}
+        onClick={toggle}
+        // Don't steal focus from the search input on click.
+        onMouseDown={event => event.preventDefault()}
+        type="button"
+      >
+        {busy ? <Loader2 className="size-4 animate-spin" /> : <PawPrint className="size-4" />}
+      </button>
+    </Tip>
   )
 }
 

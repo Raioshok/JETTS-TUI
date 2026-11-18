@@ -80,51 +80,52 @@ export function PetSessionFeed({ items, labels, onOpen, align = 'center' }: PetS
         const elapsed = item.status === 'finished' ? '' : formatPetElapsed(item.startedAt, now)
 
         return (
-          <button
-            data-pet-session-row={item.status}
-            key={item.id}
-            onClick={() => onOpen(item.id)}
-            onPointerDown={e => e.stopPropagation()}
-            onPointerUp={e => e.stopPropagation()}
-            role="listitem"
-            style={{
-              alignItems: 'center',
-              background: 'var(--ui-bg-elevated)',
-              border: '1px solid var(--ui-stroke-secondary)',
-              borderRadius: 8,
-              boxShadow: '0 4px 14px rgba(0,0,0,0.22)',
-              color: 'var(--foreground)',
-              cursor: 'pointer',
-              display: 'inline-flex',
-              font: 'inherit',
-              fontSize: 11,
-              gap: 6,
-              lineHeight: 1.2,
-              maxWidth: 220,
-              padding: '4px 8px',
-              textAlign: 'left',
-              whiteSpace: 'nowrap'
-            }}
-            title={`${title} · ${labels.status[item.status]}`}
-            type="button"
-          >
-            <span
-              aria-hidden
-              className={item.status === 'working' || item.status === 'needs-input' ? 'animate-pulse' : undefined}
+          <div key={item.id} role="listitem">
+            <button
+              data-pet-session-row={item.status}
+              onClick={() => onOpen(item.id)}
+              onPointerDown={e => e.stopPropagation()}
+              onPointerUp={e => e.stopPropagation()}
               style={{
-                background: DOT_COLOR[item.status],
-                borderRadius: 999,
-                flexShrink: 0,
-                height: 7,
-                width: 7
+                alignItems: 'center',
+                background: 'var(--ui-bg-elevated)',
+                border: '1px solid var(--ui-stroke-secondary)',
+                borderRadius: 8,
+                boxShadow: '0 4px 14px rgba(0,0,0,0.22)',
+                color: 'var(--foreground)',
+                cursor: 'pointer',
+                display: 'inline-flex',
+                font: 'inherit',
+                fontSize: 11,
+                gap: 6,
+                lineHeight: 1.2,
+                maxWidth: 220,
+                padding: '4px 8px',
+                textAlign: 'left',
+                whiteSpace: 'nowrap'
               }}
-            />
-            <span style={{ fontWeight: 500, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>{title}</span>
-            <span style={{ color: 'var(--ui-text-tertiary)', flexShrink: 0 }}>
-              {labels.status[item.status]}
-              {elapsed ? ` · ${elapsed}` : ''}
-            </span>
-          </button>
+              type="button"
+            >
+              <span
+                aria-hidden
+                className={item.status === 'working' || item.status === 'needs-input' ? 'animate-pulse' : undefined}
+                style={{
+                  background: DOT_COLOR[item.status],
+                  borderRadius: 999,
+                  flexShrink: 0,
+                  height: 7,
+                  width: 7
+                }}
+              />
+              <span style={{ fontWeight: 500, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                {title}
+              </span>
+              <span style={{ color: 'var(--ui-text-tertiary)', flexShrink: 0 }}>
+                {labels.status[item.status]}
+                {elapsed ? ` · ${elapsed}` : ''}
+              </span>
+            </button>
+          </div>
         )
       })}
       {hidden > 0 && (

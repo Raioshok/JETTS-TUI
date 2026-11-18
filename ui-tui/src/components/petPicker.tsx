@@ -40,6 +40,7 @@ export function PetPicker({ gw, maxWidth, onClose, t }: PetPickerProps) {
   const [loading, setLoading] = useState(true)
 
   const { stdout } = useStdout()
+  const visibleLimit = Math.max(4, Math.min(VISIBLE, (stdout?.rows ?? 24) - 12))
   // Optional maxWidth lets grid layouts hand the picker its cell budget.
   const preferredWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, (stdout?.columns ?? 80) - 6))
   const width = clampOverlayWidth(preferredWidth, maxWidth)
@@ -89,15 +90,43 @@ export function PetPicker({ gw, maxWidth, onClose, t }: PetPickerProps) {
     }
 
     if (key.escape) {
+      if (query) {
+        setQuery('')
+
+        return setIdx(0)
+      }
+
       return onClose()
     }
 
-    if (key.upArrow) {
+    if (input === '\u0015' || (key.ctrl && input.toLowerCase() === 'u')) {
+      setQuery('')
+
+      return setIdx(0)
+    }
+
+    if (key.upArrow || (key as { wheelUp?: boolean }).wheelUp) {
       return setIdx(i => Math.max(0, i - 1))
     }
 
-    if (key.downArrow) {
+    if (key.downArrow || (key as { wheelDown?: boolean }).wheelDown) {
       return setIdx(i => Math.min(view.length - 1, i + 1))
+    }
+
+    if (key.pageUp) {
+      return setIdx(i => Math.max(0, i - visibleLimit))
+    }
+
+    if (key.pageDown) {
+      return setIdx(i => Math.min(Math.max(0, view.length - 1), i + visibleLimit))
+    }
+
+    if (key.home) {
+      return setIdx(0)
+    }
+
+    if (key.end) {
+      return setIdx(Math.max(0, view.length - 1))
     }
 
     if (key.return) {
@@ -132,7 +161,7 @@ export function PetPicker({ gw, maxWidth, onClose, t }: PetPickerProps) {
     )
   }
 
-  const { items, offset } = windowItems(view, idx, VISIBLE)
+  const { items, offset } = windowItems(view, idx, visibleLimit)
 
   return (
     <Box flexDirection="column" width={width}>
@@ -140,8 +169,8 @@ export function PetPicker({ gw, maxWidth, onClose, t }: PetPickerProps) {
         Pets
       </Text>
 
-      <Text color={t.color.muted} wrap="truncate-end">
-        {query ? `filter: ${query}` : 'type to filter'} · {view.length} pet{view.length === 1 ? '' : 's'}
+      <Text color={query ? t.color.accent : t.color.muted} wrap="truncate-end">
+        {query ? `filter: ${query}▎` : 'type to filter'} · {view.length} pet{view.length === 1 ? '' : 's'}
       </Text>
 
       {offset > 0 && <Text color={t.color.muted}> ↑ {offset} more</Text>}
@@ -154,12 +183,13 @@ export function PetPicker({ gw, maxWidth, onClose, t }: PetPickerProps) {
           const isActive = enabled && pet.slug === active
           const mark = isActive ? '●' : pet.installed ? '✓' : ' '
           const tag = pet.installed ? '' : pet.curated ? ' · official' : ''
+          const rowProps = chipRowProps(t, at)
 
           return (
-            <Text color={t.color.muted} {...chipRowProps(t, at)} key={pet.slug} wrap="truncate-end">
+            <Text color={t.color.muted} {...rowProps} key={pet.slug} wrap="truncate-end">
               {at ? '▸ ' : '  '}
               {mark} {pet.displayName}
-              <Text color={at ? t.color.accent : t.color.muted}>
+              <Text color={at ? (rowProps.color ?? t.color.accent) : t.color.muted}>
                 {' '}
                 ({pet.slug}
                 {tag})
@@ -169,7 +199,9 @@ export function PetPicker({ gw, maxWidth, onClose, t }: PetPickerProps) {
         })
       )}
 
-      {offset + VISIBLE < view.length && <Text color={t.color.muted}> ↓ {view.length - offset - VISIBLE} more</Text>}
+      {offset + visibleLimit < view.length && (
+        <Text color={t.color.muted}> ↓ {view.length - offset - visibleLimit} more</Text>
+      )}
 
       {err ? <Text color={t.color.label}>error: {err}</Text> : null}
       {busy ? <Text color={t.color.accent}>adopting…</Text> : null}

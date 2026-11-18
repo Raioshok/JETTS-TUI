@@ -771,6 +771,13 @@ function DocumentView({ onOpen, onSend, pending, spec, stage }: DocumentViewProp
             autoFocus
             className={cn(BARE_TEXTAREA, 'min-h-20')}
             onChange={event => setChanges(event.target.value)}
+            onKeyDown={event => {
+              if (event.key === 'Escape') {
+                event.preventDefault()
+                event.stopPropagation()
+                setChanges(null)
+              }
+            }}
             placeholder={s.changesPlaceholder}
             value={changes}
           />

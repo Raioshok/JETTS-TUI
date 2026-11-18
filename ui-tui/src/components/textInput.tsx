@@ -564,6 +564,7 @@ const isPasteResultPromise = (
 
 export function TextInput({
   columns = 80,
+  completionsOpen = false,
   value,
   onChange,
   onPaste,
@@ -1099,6 +1100,10 @@ export function TextInput({
       if (k.upArrow || k.downArrow) {
         flushKeyBurst()
 
+        if (completionsOpen) {
+          return
+        }
+
         const next = lineNav(vRef.current, curRef.current, k.upArrow ? -1 : 1)
 
         if (next !== null) {
@@ -1157,12 +1162,16 @@ export function TextInput({
       }
 
       if (actionHome) {
-        c = 0
+        const prevNl = v.lastIndexOf('\n', Math.max(0, c - 1))
+
+        c = c === 0 ? 0 : prevNl + 1
         moveCursor(c, k.shift)
 
         return
       } else if (actionEnd) {
-        c = v.length
+        const nextNl = v.indexOf('\n', c)
+
+        c = nextNl < 0 ? v.length : nextNl
         moveCursor(c, k.shift)
 
         return
@@ -1437,6 +1446,7 @@ interface TextInputProps {
   /** Hex color for typed text (theme text); terminal default when omitted. */
   color?: string
   columns?: number
+  completionsOpen?: boolean
   focus?: boolean
   mask?: string
   mouseApiRef?: MutableRefObject<null | TextInputMouseApi>

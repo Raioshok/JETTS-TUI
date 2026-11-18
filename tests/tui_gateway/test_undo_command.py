@@ -186,3 +186,26 @@ def test_undo_in_pending_input_commands(server):
     """Registry sanity: /undo must be in _PENDING_INPUT_COMMANDS so
     slash.exec rejects it and the TUI falls through to command.dispatch."""
     assert "undo" in server._PENDING_INPUT_COMMANDS
+
+
+def test_undo_prefill_includes_rewound_transcript_messages(server, session_with_history):
+    """command.dispatch /undo returns active transcript messages so TUI and Desktop
+    immediately remove undone turns from the visible transcript."""
+    sid, _, _, _ = session_with_history
+    resp = _call(server, "command.dispatch", session_id=sid, name="undo", arg="2")
+    result = resp["result"]
+    assert result["type"] == "prefill"
+    assert result["messages"] == [
+        {"role": "user", "text": "question 1"},
+        {"role": "assistant", "text": "answer 1"},
+    ]
+
+
+def test_commands_catalog_registers_version_alias_v(server):
+    """commands.catalog canon maps /v to /version (matching COMMAND_REGISTRY) instead
+    of colliding with /voice prefix matching."""
+    resp = _call(server, "commands.catalog", include_advanced=True)
+    canon = resp["result"]["canon"]
+    assert canon.get("/v") == "/version"
+    assert canon.get("/version") == "/version"
+

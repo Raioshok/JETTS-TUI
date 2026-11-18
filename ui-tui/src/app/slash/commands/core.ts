@@ -3,6 +3,7 @@ import { forceRedraw, type MouseTrackingMode } from '@jetts-tui/ink'
 import { DASHBOARD_TUI_MODE, NO_CONFIRM_DESTRUCTIVE } from '../../../config/env.js'
 import { HOTKEYS } from '../../../content/hotkeys.js'
 import { isSectionName, nextDetailsMode, parseDetailsMode, SECTION_NAMES } from '../../../domain/details.js'
+import { introMsg, toTranscriptMessages } from '../../../domain/messages.js'
 import type {
   CommandsCatalogResponse,
   ConfigGetValueResponse,
@@ -16,6 +17,7 @@ import type {
 } from '../../../gatewayTypes.js'
 import { writeClipboardText } from '../../../lib/clipboard.js'
 import { writeOsc52Clipboard } from '../../../lib/osc52.js'
+import { asCommandDispatch } from '../../../lib/rpc.js'
 import { configureDetectedTerminalKeybindings, configureTerminalKeybindings } from '../../../lib/terminalSetup.js'
 import type { Msg, PanelSection } from '../../../types.js'
 import type { StatusBarMode } from '../../interfaces.js'
@@ -699,23 +701,90 @@ export const coreCommands: SlashCommand[] = [
   },
 
   {
-    help: 'undo last exchange',
+    aliases: ['blender'],
+    help: 'generate or refine a 3D model using Blender',
+    name: '3d',
+    run: (arg, ctx) => {
+      const trimmed = arg.trim()
+
+      if (!trimmed) {
+        ctx.composer.setInput('/3d ')
+
+        return ctx.transcript.sys('usage: /3d <description> — generate or refine a 3D model with Blender')
+      }
+
+      ctx.gateway.gw
+        .request('command.dispatch', { arg: trimmed, name: 'blender-3d', session_id: ctx.sid })
+        .then(raw => {
+          if (ctx.stale()) {
+            return
+          }
+
+          const d = asCommandDispatch(raw)
+
+          if (d?.type === 'skill' && d.message?.trim()) {
+            const shown = d.display?.trim() || `/3d ${trimmed}`
+
+            return ctx.transcript.send(d.message, true, shown)
+          }
+
+          ctx.transcript.sys('/3d: blender-3d skill unavailable')
+        })
+        .catch(ctx.guardedErr)
+    }
+  },
+
+  {
+    help: 'undo last N user turns and prefill composer',
     name: 'undo',
-    run: (_arg, ctx) => {
+    run: (arg, ctx) => {
       if (!ctx.sid) {
         return ctx.transcript.sys('nothing to undo')
       }
 
-      ctx.gateway.rpc<SessionUndoResponse>('session.undo', { session_id: ctx.sid }).then(
-        ctx.guarded<SessionUndoResponse>(r => {
-          if ((r.removed ?? 0) > 0) {
-            ctx.transcript.setHistoryItems((prev: Msg[]) => ctx.transcript.trimLastExchange(prev))
-            ctx.transcript.sys(`undid ${r.removed} messages`)
-          } else {
-            ctx.transcript.sys('nothing to undo')
+      ctx.gateway.gw
+        .request('command.dispatch', { arg: arg.trim(), name: 'undo', session_id: ctx.sid })
+        .then(raw => {
+          if (ctx.stale()) {
+            return
           }
+
+          const d = asCommandDispatch(raw)
+
+          if (d?.type === 'prefill') {
+            if (Array.isArray(d.messages)) {
+              const rows = toTranscriptMessages(d.messages)
+
+              ctx.transcript.setHistoryItems(ctx.ui.info ? [introMsg(ctx.ui.info), ...rows] : rows)
+            } else {
+              ctx.transcript.setHistoryItems((prev: Msg[]) => ctx.transcript.trimLastExchange(prev))
+            }
+
+            if (d.notice?.trim()) {
+              ctx.transcript.sys(d.notice)
+            }
+
+            if (d.message) {
+              ctx.composer.setInput(d.message)
+            }
+
+            return
+          }
+
+          ctx.transcript.sys('nothing to undo')
         })
-      )
+        .catch(() => {
+          ctx.gateway.rpc<SessionUndoResponse>('session.undo', { session_id: ctx.sid }).then(
+            ctx.guarded<SessionUndoResponse>(r => {
+              if ((r.removed ?? 0) > 0) {
+                ctx.transcript.setHistoryItems((prev: Msg[]) => ctx.transcript.trimLastExchange(prev))
+                ctx.transcript.sys(`undid ${r.removed} messages`)
+              } else {
+                ctx.transcript.sys('nothing to undo')
+              }
+            })
+          )
+        })
     }
   },
 

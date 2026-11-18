@@ -3,6 +3,7 @@
 import { type ComponentProps, useState } from 'react'
 
 import { Dialog, DialogContent } from '@/components/ui/dialog'
+import { Tip } from '@/components/ui/tooltip'
 import { useImageDownload } from '@/hooks/use-image-download'
 import { useI18n } from '@/i18n'
 import { Download } from '@/lib/icons'
@@ -32,10 +33,10 @@ export function ZoomableImage({ className, containerClassName, src, alt, slot, .
         data-slot={slot ?? 'aui_zoomable-image'}
       >
         <button
+          aria-label={canOpen ? copy.openImage : undefined}
           className="contents"
           disabled={!canOpen}
           onClick={() => canOpen && setLightboxOpen(true)}
-          title={canOpen ? copy.openImage : undefined}
           type="button"
         >
           <img alt={alt ?? ''} className={className} src={src} {...props} />
@@ -112,22 +113,25 @@ export function ImageActionButton({
   onClick: () => void
   saving: boolean
 }) {
+  const label = saving ? copy.savingImage : copy.downloadImage
+
   return (
-    <button
-      aria-label={saving ? copy.savingImage : copy.downloadImage}
-      className={cn(
-        'absolute right-2 top-2 grid size-8 place-items-center rounded-full border border-border/70 bg-background/80 text-muted-foreground opacity-0 shadow-sm backdrop-blur transition-opacity hover:bg-accent hover:text-foreground focus-visible:opacity-100 disabled:opacity-50',
-        className
-      )}
-      disabled={saving}
-      onClick={event => {
-        event.stopPropagation()
-        void onClick()
-      }}
-      title={saving ? copy.savingImage : copy.downloadImage}
-      type="button"
-    >
-      <Download className={cn('size-4', saving && 'animate-pulse')} />
-    </button>
+    <Tip label={label}>
+      <button
+        aria-label={label}
+        className={cn(
+          'absolute right-2 top-2 grid size-8 place-items-center rounded-full border border-border/70 bg-background/80 text-muted-foreground opacity-0 shadow-sm backdrop-blur transition-opacity hover:bg-accent hover:text-foreground focus-visible:opacity-100 disabled:opacity-50',
+          className
+        )}
+        disabled={saving}
+        onClick={event => {
+          event.stopPropagation()
+          void onClick()
+        }}
+        type="button"
+      >
+        <Download className={cn('size-4', saving && 'animate-pulse')} />
+      </button>
+    </Tip>
   )
 }

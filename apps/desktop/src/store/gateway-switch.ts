@@ -4,6 +4,8 @@ import { resetLiveRuntimeTracking } from '@/app/contrib/hooks/use-background-syn
 import { resetSidebarBatchCapability } from '@/jettstui'
 import { invalidateProfileScopedQueries } from '@/lib/query-client'
 import { clearArtifactRegistry } from '@/store/artifacts'
+import { clearAllSessionModels } from '@/store/blender-models'
+import { $currentBotName, $newChatBot } from '@/store/bots'
 import { resetSessionsLimit } from '@/store/layout'
 import {
   $unreadFinishedSessionIds,
@@ -65,6 +67,9 @@ export function wipeSessionListsForGatewaySwitch(): void {
   // Artifacts are keyed by sessions on the previous backend, so both the
   // registry and any rail tab pointing into it go with them.
   clearArtifactRegistry()
+  clearAllSessionModels()
+  $newChatBot.set(null)
+  $currentBotName.set('')
 
   // Narrowed: account/marketplace/onboarding caches are global, not gateway-
   // scoped, so a mode swap must not refetch them.

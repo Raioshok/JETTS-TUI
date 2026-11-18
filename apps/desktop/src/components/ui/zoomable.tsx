@@ -4,6 +4,7 @@ import { type ReactNode, useEffect, useState } from 'react'
 
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Tip } from '@/components/ui/tooltip'
+import { useI18n } from '@/i18n'
 import { Check, Copy, Maximize, RefreshCw, X, ZoomIn, ZoomOut } from '@/lib/icons'
 import { cn } from '@/lib/utils'
 
@@ -35,9 +36,9 @@ export function Zoomable({ children, overlay, onCopy, label = 'Open full view', 
       <div className={cn('group/zoomable relative', className)}>
         {/* The whole content is the trigger — click anywhere to open, like an image. */}
         <button
+          aria-label={label}
           className="block w-full cursor-zoom-in text-left"
           onClick={() => setOpen(true)}
-          title={label}
           type="button"
         >
           {children}
@@ -115,6 +116,7 @@ function Toolbar({
   zoomIn: () => void
   zoomOut: () => void
 }) {
+  const { t } = useI18n()
   const [copied, setCopied] = useState(false)
 
   const copy = async () => {
@@ -141,15 +143,20 @@ function Toolbar({
       {onCopy && (
         <>
           <Divider />
-          <ToolbarButton label={copied ? 'Copied' : 'Copy'} onClick={() => void copy()}>
+          <ToolbarButton label={copied ? t.common.copied : t.common.copy} onClick={() => void copy()}>
             {copied ? <Check className="size-4" /> : <Copy className="size-4" />}
           </ToolbarButton>
         </>
       )}
       <Divider />
-      <ToolbarButton label="Close" onClick={onClose}>
+      <button
+        aria-label={t.common.close}
+        className="grid size-8 place-items-center rounded-full text-muted-foreground transition-colors hover:bg-accent hover:text-foreground"
+        onClick={onClose}
+        type="button"
+      >
         <X className="size-4" />
-      </ToolbarButton>
+      </button>
     </div>
   )
 }

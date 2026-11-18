@@ -838,11 +838,19 @@ export function AgentsOverlay({ gw, initialHistoryIndex = 0, onClose, t }: Agent
       return setCursor(c => Math.min(Math.max(0, rows.length - 1), c + 1))
     }
 
-    if (ch === 'g') {
+    if (key.pageUp) {
+      return setCursor(c => Math.max(0, c - Math.max(4, rowsH - 2)))
+    }
+
+    if (key.pageDown) {
+      return setCursor(c => Math.min(Math.max(0, rows.length - 1), c + Math.max(4, rowsH - 2)))
+    }
+
+    if (ch === 'g' || key.home) {
       return setCursor(0)
     }
 
-    if (ch === 'G') {
+    if (ch === 'G' || key.end) {
       return setCursor(Math.max(0, rows.length - 1))
     }
 

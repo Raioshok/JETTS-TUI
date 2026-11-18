@@ -9,7 +9,6 @@ import { useLocation } from 'react-router-dom'
 import type { SubmitTextOptions } from '@/app/session/hooks/use-prompt-actions/utils'
 import { Thread } from '@/components/assistant-ui/thread'
 import { Backdrop } from '@/components/Backdrop'
-import { SessionModelsTray } from '@/components/chat/session-models-tray'
 import { COMPOSER_HEART_CONFIG, HeartField } from '@/components/chat/vibe-hearts'
 import { usePaneVisible } from '@/components/pane-shell/pane-visibility'
 import { $sessionTileDragging, $sessionTileEdgeHover } from '@/components/pane-shell/tree/store'
@@ -561,9 +560,7 @@ export function ChatView({
             (identical placement), floating resolves against the viewport. Both
             states stay mounted here, so dock⇄float never remounts the editor. */}
         {showChatBar && (
-          <>
-            <SessionModelsTray />
-            <Suspense fallback={<ChatBarFallback />}>
+          <Suspense fallback={<ChatBarFallback />}>
             <ChatBar
               busy={busy}
               cwd={currentCwd}
@@ -589,7 +586,6 @@ export function ChatView({
               state={chatBarState}
             />
           </Suspense>
-        </>
         )}
       </ChatRuntimeBoundary>
     </div>

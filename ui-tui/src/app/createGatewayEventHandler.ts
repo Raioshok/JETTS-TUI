@@ -870,7 +870,9 @@ export function createGatewayEventHandler(ctx: GatewayEventHandlerContext): (ev:
       case 'gateway.stderr': {
         const line = String(ev.payload.line).slice(0, 120)
 
-        turnController.pushActivity(line, 'info')
+        const tone = /\[gateway-crash\]/i.test(line) ? 'error' : 'info'
+
+        turnController.pushActivity(line, tone)
 
         return
       }

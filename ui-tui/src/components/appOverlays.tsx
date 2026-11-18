@@ -1,4 +1,4 @@
-import { Box, stringWidth, Text } from '@jetts-tui/ink'
+import { Box, stringWidth, Text, useStdout } from '@jetts-tui/ink'
 import { useStore } from '@nanostores/react'
 import type { ReactNode } from 'react'
 
@@ -153,29 +153,41 @@ export function FloatingOverlays({
   | 'pagerPageSize'
 >) {
   const { gw } = useGateway()
+  const { stdout } = useStdout()
   const overlay = useStore($overlayState)
   const sid = useStore($uiSessionId)
   const theme = useStore($uiTheme)
 
-  const hasAny =
+  const hasModalOverlay = Boolean(
     overlay.modelPicker ||
     overlay.pager ||
     overlay.petPicker ||
     overlay.sessions ||
     overlay.skillsHub ||
-    overlay.pluginsHub ||
-    completions.length
+    overlay.pluginsHub
+  )
+
+  const showCompletions = !hasModalOverlay && completions.length > 0
+  const hasAny = hasModalOverlay || showCompletions
 
   if (!hasAny) {
     return null
   }
 
+  // Clamp completion window to terminal height so short split panes never clip
+  // the top of the completion list above row 0.
+  const completionWindow = Math.max(4, Math.min(COMPLETION_WINDOW, (stdout?.rows ?? 24) - 10))
+
   // Fixed viewport centered on compIdx — previously the slice end was
   // compIdx + 8 so the dropdown grew from 8 rows to 16 as the user scrolled
   // down, bouncing the height on every keystroke.
-  const viewportSize = Math.min(COMPLETION_WINDOW, completions.length)
+  const viewportSize = Math.min(completionWindow, completions.length)
 
-  const start = Math.max(0, Math.min(compIdx - Math.floor(COMPLETION_WINDOW / 2), completions.length - viewportSize))
+  const start = Math.max(0, Math.min(compIdx - Math.floor(completionWindow / 2), completions.length - viewportSize))
+
+  // Subtract FloatBox chrome (2 border cols + 2 padding cols = 4) from each
+  // child panel's maxWidth so panels never overflow the terminal's right edge.
+  const innerBudget = (cellWidth: number) => Math.max(16, cellWidth - 4)
 
   // Every floating panel is a widget in a single-column grid. Panels keep
   // their intrinsic (content-hugging) widths inside full-width cells today;
@@ -192,7 +204,7 @@ export function FloatingOverlays({
           <ActiveSessionSwitcher
             currentSessionId={sid}
             gw={gw}
-            maxWidth={width}
+            maxWidth={innerBudget(width)}
             onCancel={() => patchOverlayState({ sessions: false })}
             onClose={onActiveSessionClose}
             onNew={onNewLiveSession}
@@ -216,7 +228,7 @@ export function FloatingOverlays({
           <ModelPicker
             gw={gw}
             initialRefresh={initialRefresh}
-            maxWidth={width}
+            maxWidth={innerBudget(width)}
             onCancel={() => patchOverlayState({ modelPicker: false })}
             onSelect={onModelSelect}
             sessionId={sid}
@@ -232,7 +244,12 @@ export function FloatingOverlays({
       id: 'pet-picker',
       render: width => (
         <FloatBox color={theme.color.border}>
-          <PetPicker gw={gw} maxWidth={width} onClose={() => patchOverlayState({ petPicker: false })} t={theme} />
+          <PetPicker
+            gw={gw}
+            maxWidth={innerBudget(width)}
+            onClose={() => patchOverlayState({ petPicker: false })}
+            t={theme}
+          />
         </FloatBox>
       )
     })
@@ -243,7 +260,12 @@ export function FloatingOverlays({
       id: 'skills-hub',
       render: width => (
         <FloatBox color={theme.color.border}>
-          <SkillsHub gw={gw} maxWidth={width} onClose={() => patchOverlayState({ skillsHub: false })} t={theme} />
+          <SkillsHub
+            gw={gw}
+            maxWidth={innerBudget(width)}
+            onClose={() => patchOverlayState({ skillsHub: false })}
+            t={theme}
+          />
         </FloatBox>
       )
     })
@@ -254,7 +276,12 @@ export function FloatingOverlays({
       id: 'plugins-hub',
       render: width => (
         <FloatBox color={theme.color.border}>
-          <PluginsHub gw={gw} maxWidth={width} onClose={() => patchOverlayState({ pluginsHub: false })} t={theme} />
+          <PluginsHub
+            gw={gw}
+            maxWidth={innerBudget(width)}
+            onClose={() => patchOverlayState({ pluginsHub: false })}
+            t={theme}
+          />
         </FloatBox>
       )
     })
@@ -293,7 +320,9 @@ export function FloatingOverlays({
     })
   }
 
-  if (completions.length) {
+  if (showCompletions) {
+    const boxWidth = Math.max(16, cols - 6)
+
     widgets.push({
       id: 'completions',
       render: () => (
@@ -304,14 +333,13 @@ export function FloatingOverlays({
               surface painting its own background, which is why it could
               disagree with every other overlay). Only the ACTIVE row carries
               a selection chip, mirroring the session switcher. */}
-          <Box flexDirection="column" width={Math.max(28, cols - 6)}>
+          <Box flexDirection="column" width={boxWidth}>
             {(() => {
               const visible = completions.slice(start, start + viewportSize)
               // Two-column grid: the name track auto-sizes to the widest
-              // visible command, so descriptions align — and wrapped
-              // description lines stay inside their own column instead of
-              // running under the names.
-              const nameW = Math.max(...visible.map(item => stringWidth(item.display))) + 2
+              // visible command (capped on narrow viewports), so descriptions align.
+              const rawNameW = Math.max(...visible.map(item => stringWidth(item.display))) + 2
+              const nameW = Math.min(Math.max(10, Math.floor(boxWidth * 0.55)), rawNameW)
 
               return visible.map((item, i) => {
                 const active = start + i === compIdx
@@ -325,7 +353,12 @@ export function FloatingOverlays({
                     width="100%"
                   >
                     <Box flexShrink={0} width={nameW}>
-                      <Text bold color={theme.color.label}>
+                      <Text
+                        backgroundColor={row.backgroundColor}
+                        bold
+                        color={active ? (row.color ?? theme.color.label) : theme.color.label}
+                        wrap="truncate-end"
+                      >
                         {' '}
                         {item.display}
                       </Text>
@@ -335,7 +368,11 @@ export function FloatingOverlays({
                       // tone — label vs muted are near-twins on some skins,
                       // which made command and description read as one run.
                       // Active row: meta rides the chip, so it uses row ink.
-                      <Text backgroundColor={row.backgroundColor} color={active ? row.color : theme.color.statusFg}>
+                      <Text
+                        backgroundColor={row.backgroundColor}
+                        color={active ? row.color : theme.color.statusFg}
+                        wrap="truncate-end"
+                      >
                         {item.meta}
                       </Text>
                     ) : null}

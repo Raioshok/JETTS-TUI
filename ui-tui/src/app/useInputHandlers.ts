@@ -13,6 +13,7 @@ import type {
   SudoRespondResponse,
   VoiceRecordResponse
 } from '../gatewayTypes.js'
+import { writeClipboardText } from '../lib/clipboard.js'
 import { isAction, isCopyShortcut, isMac, isVoiceToggleKey } from '../lib/platform.js'
 import { computePrecisionWheelStep, initPrecisionWheel } from '../lib/precisionWheel.js'
 import { computeWheelStep, initWheelAccelForHost } from '../lib/wheelAccel.js'
@@ -40,11 +41,8 @@ export const shouldAllowIdleHotkeyExit = (dashboardTuiMode = DASHBOARD_TUI_MODE)
 export const previousCompletionIndex = (index: number, length: number): number =>
   length > 0 ? (index - 1 + length) % length : 0
 
-export const residentSessionTargetForHotkey = (
-  ch: string,
-  meta: boolean,
-  sessions: readonly SessionActiveItem[]
-) => (meta && /^[1-9]$/.test(ch) ? sessions[Number(ch) - 1] : undefined)
+export const residentSessionTargetForHotkey = (ch: string, meta: boolean, sessions: readonly SessionActiveItem[]) =>
+  meta && /^[1-9]$/.test(ch) ? sessions[Number(ch) - 1] : undefined
 
 export function handleIdleHotkeyExit(
   actions: Pick<InputHandlerActions, 'die' | 'sys'>,
@@ -176,7 +174,13 @@ export function useInputHandlers(ctx: InputHandlerContext): InputHandlerResult {
   const copySelection = () => {
     // ink's copySelection() already calls setClipboard() which handles
     // pbcopy (macOS), wl-copy/xclip (Linux), tmux, and OSC 52 fallback.
-    terminal.selection.copySelection()
+    void terminal.selection.copySelection().then(copied => {
+      if (copied) {
+        patchUiState({
+          notice: { kind: 'ttl', level: 'info', text: `✓ copied ${copied.length} chars`, ttl_ms: 1800 }
+        })
+      }
+    })
   }
 
   const clearSelection = () => {
@@ -370,11 +374,11 @@ export function useInputHandlers(ctx: InputHandlerContext): InputHandlerResult {
             return next === offset ? prev : { ...prev, pager: { ...prev.pager, offset: next } }
           })
 
-        if (key.upArrow || ch === 'k') {
+        if (key.upArrow || ch === 'k' || key.wheelUp) {
           return move(-1)
         }
 
-        if (key.downArrow || ch === 'j') {
+        if (key.downArrow || ch === 'j' || key.wheelDown) {
           return move(1)
         }
 
@@ -382,11 +386,11 @@ export function useInputHandlers(ctx: InputHandlerContext): InputHandlerResult {
           return move(-pagerPageSize)
         }
 
-        if (ch === 'g') {
+        if (ch === 'g' || key.home) {
           return move('top')
         }
 
-        if (ch === 'G') {
+        if (ch === 'G' || key.end) {
           return move('bottom')
         }
 
@@ -421,10 +425,10 @@ export function useInputHandlers(ctx: InputHandlerContext): InputHandlerResult {
 
       if (isCtrl(key, ch, 'c') || (key.escape && (overlay.secret || overlay.sudo))) {
         cancelOverlayFromCtrlC()
-      } else if (key.escape && overlay.sessions) {
-        patchOverlayState({ sessions: false })
       }
 
+      // Note: overlay.sessions owns its own layered Escape behavior
+      // (pickingModel -> confirmDelete -> draft -> close) in ActiveSessionSwitcher.
       // When a prompt overlay is up and the user pressed a scroll key, fall
       // through to the global scroll handlers below instead of returning.
       // Otherwise nothing above this comment matched, and there's nothing
@@ -471,11 +475,11 @@ export function useInputHandlers(ctx: InputHandlerContext): InputHandlerResult {
       return rows ? scrollTranscript(dir * rows * wheelStep) : undefined
     }
 
-    if (key.shift && key.upArrow) {
+    if (key.shift && key.upArrow && !cState.input.includes('\n')) {
       return scrollTranscript(-1)
     }
 
-    if (key.shift && key.downArrow) {
+    if (key.shift && key.downArrow && !cState.input.includes('\n')) {
       return scrollTranscript(1)
     }
 
@@ -486,6 +490,12 @@ export function useInputHandlers(ctx: InputHandlerContext): InputHandlerResult {
       const step = Math.max(4, Math.floor(viewport / 2))
 
       return scrollTranscript(key.pageUp ? -step : step)
+    }
+
+    if (key.end && !cState.input && !cState.inputBuf.length) {
+      terminal.scrollRef.current?.scrollToBottom()
+
+      return
     }
 
     // Escape-based voice bindings (ctrl/alt/super+escape) must win before the
@@ -503,8 +513,25 @@ export function useInputHandlers(ctx: InputHandlerContext): InputHandlerResult {
       return cActions.clearIn()
     }
 
+    if (key.escape && cState.completions.length) {
+      return cActions.dismissCompletions()
+    }
+
+    if (key.escape && cState.input === '?' && !cState.inputBuf.length) {
+      return cActions.clearIn()
+    }
+
     if (key.escape && terminal.hasSelection) {
       return clearSelection()
+    }
+
+    if (key.upArrow && !cState.input && cState.inputBuf.length > 0) {
+      const popped = cState.inputBuf[cState.inputBuf.length - 1] ?? ''
+
+      cActions.setInputBuf(prev => prev.slice(0, -1))
+      cActions.setInput(popped)
+
+      return
     }
 
     if (key.upArrow && !cState.inputBuf.length) {
@@ -541,6 +568,15 @@ export function useInputHandlers(ctx: InputHandlerContext): InputHandlerResult {
       const inputSel = getInputSelection()
 
       if (inputSel && inputSel.end > inputSel.start) {
+        const selectedText = inputSel.value.slice(inputSel.start, inputSel.end)
+
+        if (selectedText) {
+          void writeClipboardText(selectedText)
+          patchUiState({
+            notice: { kind: 'ttl', level: 'info', text: `✓ copied ${selectedText.length} chars`, ttl_ms: 1800 }
+          })
+        }
+
         inputSel.clear()
 
         return
@@ -646,21 +682,23 @@ export function useInputHandlers(ctx: InputHandlerContext): InputHandlerResult {
 
       // gateway.rpc swallows errors with its own sys() message and resolves to null,
       // so we only speak when it came back with a real shape. null = rpc already spoke.
-      return void gateway.rpc<ConfigSetResponse>('config.set', {
-        key: 'work_mode',
-        session_id: live.sid,
-        value: 'cycle'
-      }).then(r => {
-        const mode = r?.value
+      return void gateway
+        .rpc<ConfigSetResponse>('config.set', {
+          key: 'work_mode',
+          session_id: live.sid,
+          value: 'cycle'
+        })
+        .then(r => {
+          const mode = r?.value
 
-        if (mode && isWorkMode(mode)) {
-          patchUiState(state => ({
-            ...state,
-            info: state.info ? { ...state.info, work_mode: mode } : state.info
-          }))
-          actions.sys(workModeNotice(mode, r.deferred))
-        }
-      })
+          if (mode && isWorkMode(mode)) {
+            patchUiState(state => ({
+              ...state,
+              info: state.info ? { ...state.info, work_mode: mode } : state.info
+            }))
+            actions.sys(workModeNotice(mode, r.deferred))
+          }
+        })
     }
 
     if (key.tab && cState.completions.length) {

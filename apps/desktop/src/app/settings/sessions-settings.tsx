@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { Input } from '@/components/ui/input'
 import { Tip } from '@/components/ui/tooltip'
 import { useI18n } from '@/i18n'
@@ -48,6 +49,7 @@ export function SessionsSettings() {
   const [sessions, setLocalSessions] = useState<SessionInfo[]>([])
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [pendingDelete, setPendingDelete] = useState<SessionInfo | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -90,10 +92,6 @@ export function SessionsSettings() {
 
   const remove = useCallback(
     async (session: SessionInfo) => {
-      if (!window.confirm(s.deleteConfirm(sessionTitle(session)))) {
-        return
-      }
-
       setBusyId(session.id)
 
       try {
@@ -162,7 +160,7 @@ export function SessionsSettings() {
                           aria-label={s.deletePermanently}
                           className="text-muted-foreground hover:text-destructive"
                           disabled={busy}
-                          onClick={() => void remove(session)}
+                          onClick={() => setPendingDelete(session)}
                           size="icon"
                           type="button"
                           variant="ghost"
@@ -181,6 +179,15 @@ export function SessionsSettings() {
           })}
         </div>
       )}
+      <ConfirmDialog
+        confirmLabel={t.common.delete}
+        destructive
+        dismissOnConfirm
+        onClose={() => setPendingDelete(null)}
+        onConfirm={() => (pendingDelete ? remove(pendingDelete) : undefined)}
+        open={pendingDelete !== null}
+        title={pendingDelete ? s.deleteConfirm(sessionTitle(pendingDelete)) : ''}
+      />
     </SettingsContent>
   )
 }

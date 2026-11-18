@@ -1,3 +1,4 @@
+import { introMsg, toTranscriptMessages } from '../domain/messages.js'
 import { parseSlashCommand } from '../domain/slash.js'
 import type { SlashExecResponse } from '../gatewayTypes.js'
 import { asCommandDispatch, rpcErrorMessage } from '../lib/rpc.js'
@@ -8,6 +9,8 @@ import type { SlashHandlerContext } from './interfaces.js'
 import { findSlashCommand } from './slash/registry.js'
 import type { SlashRunCtx } from './slash/types.js'
 import { getUiState } from './uiStore.js'
+
+const NO_PREFIX_AUTO_EXEC = new Set(['/exit', '/quit', '/update', '/upgrade'])
 
 export function createSlashHandler(ctx: SlashHandlerContext): (cmd: string) => boolean {
   const { gw } = ctx.gateway
@@ -78,7 +81,15 @@ export function createSlashHandler(ctx: SlashHandlerContext): (cmd: string) => b
         ]
 
         if (matches.length === 1 && matches[0]!.toLowerCase() !== needle) {
-          return handler(`${matches[0]}${argTail}`)
+          const target = matches[0]!
+
+          if (NO_PREFIX_AUTO_EXEC.has(target.toLowerCase())) {
+            sys(`did you mean ${target}? (type the full command to confirm)`)
+
+            return true
+          }
+
+          return handler(`${target}${argTail}`)
         }
 
         if (matches.length > 1) {
@@ -134,6 +145,13 @@ export function createSlashHandler(ctx: SlashHandlerContext): (cmd: string) => b
         // /undo returns prefill: drop the backed-up message text into
         // the composer so the user can edit and resubmit, instead of
         // submitting it immediately like 'send'.
+        if (Array.isArray(d.messages)) {
+          const rows = toTranscriptMessages(d.messages)
+          const info = getUiState().info
+
+          ctx.transcript.setHistoryItems(info ? [introMsg(info), ...rows] : rows)
+        }
+
         if (d.notice?.trim()) {
           sys(d.notice)
         }

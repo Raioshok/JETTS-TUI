@@ -20,6 +20,7 @@
 
 import { atom, type ReadableAtom } from 'nanostores'
 
+import { navigateWorkspaceHash } from '@/app/routes'
 import { $narrowViewport } from '@/components/pane-shell/tree/store'
 import { onGatewayEvent } from '@/contrib/events'
 import { getLogs, getStatus } from '@/jettstui'
@@ -84,7 +85,7 @@ export const host = {
 
   /** Navigate the app router (hash routes, e.g. '/command-center?section=system'). */
   navigate: (path: string) => {
-    window.location.hash = path.startsWith('#') ? path : `#${path}`
+    navigateWorkspaceHash(path)
   },
 
   /** HEAR the gateway stream (message deltas, session lifecycle, tool

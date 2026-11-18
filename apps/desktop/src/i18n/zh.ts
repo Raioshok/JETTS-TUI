@@ -183,6 +183,10 @@ export const zh: Translations = {
   },
 
   titlebar: {
+    back: '后退',
+    forward: '前进',
+    lightMode: '浅色模式',
+    darkMode: '深色模式',
     modeChat: '聊天',
     modeCode: '代码',
     modeSwitcher: '视图',
@@ -2414,6 +2418,8 @@ export const zh: Translations = {
     message: '消息',
     wakingProfile: profile => `正在唤醒 ${profile}…`,
     placeholderStarting: '正在启动 JettsTUI…',
+    generate3D: '生成 3D 模型',
+    generate3DTip: '生成 3D 模型 (/3d)',
     botPlaceholder: name => `给 ${name} 发消息…`,
     placeholderReconnecting: '正在重新连接 JettsTUI…',
     placeholderFollowUp: '发送后续消息',
@@ -3369,6 +3375,48 @@ export const zh: Translations = {
     boundaryDesc: '此视图遇到意外错误。你的对话和设置是安全的。',
     reloadWindow: '重新加载窗口',
     openLogs: '打开日志'
+  },
+
+  blender3d: {
+    sessionModels: '会话 3D 模型',
+    smart3D: '智能 3D',
+    smart3DTip: '在当前对话中创建新的 3D 模型',
+    smart3DTitle: '智能 3D 生成器',
+    smart3DPlaceholder: '例如：带火把的低多边形中世纪瞭望塔…',
+    insertPrompt: '插入提示词',
+    studio: '工作室',
+    openStudio: '在工作室中打开',
+    openStudioTip: '在 3D Blender 工作室中打开',
+    generatedModelsTitle: '此对话已生成的模型',
+    iterate: '迭代',
+    iterateInChat: '在对话中迭代',
+    refineInChat: '在对话中优化',
+    iterateTip: '向输入框插入优化提示词',
+    downloadAsset: '下载资源',
+    downloadPng: '下载 PNG',
+    downloadFormat: format => `下载 ${format}`,
+    inspectInStudio: '在 3D 工作室中查看',
+    generatorTitle: 'Blender 3D 生成器',
+    runningHeadless: '正在运行无头 bpy…',
+    generatingAsset: '正在生成 3D 资源…',
+    buildingGeometry: '正在构建几何体、着色器与光照',
+    streamingSpec: '正在接收 3D 模型定义…',
+    loadingAsset: '正在加载 3D 资源…',
+    loadFailed: '无法加载 3D 资源',
+    generationFailed: '3D 生成失败',
+    pngRender: 'PNG 渲染图',
+    wireframe: '切换线框视图',
+    turntable: '切换转台自动旋转',
+    snapshot: '保存预览截图',
+    orbitHint: '拖拽旋转 · ⌘/Ctrl+滚轮或点击以缩放',
+    orbitActiveHint: '拖拽旋转 · 滚轮缩放 · Esc 退出缩放',
+    presets: {
+      nature: '自然',
+      scifi: '科幻',
+      architecture: '建筑',
+      furniture: '家具',
+      abstract: '雕塑'
+    }
   },
 
   ui: {

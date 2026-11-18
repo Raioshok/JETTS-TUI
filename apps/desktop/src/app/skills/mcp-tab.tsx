@@ -1223,21 +1223,21 @@ function ServerConfig({
             const on = isToolEnabled(entry, tool.name)
 
             return (
-              <button
-                aria-pressed={on}
-                className={cn(
-                  'rounded-md px-1.5 py-0.5 font-mono text-[0.65rem] text-(--ui-text-tertiary) hover:text-foreground',
-                  saved ? 'cursor-pointer' : 'cursor-default',
-                  on ? 'bg-(--ui-bg-quinary)' : 'line-through opacity-70'
-                )}
-                disabled={!saved}
-                key={tool.name}
-                onClick={() => onToggleTool(tool.name)}
-                title={on ? m.disableTool(tool.name) : m.enableTool(tool.name)}
-                type="button"
-              >
-                {tool.name}
-              </button>
+              <Tip key={tool.name} label={on ? m.disableTool(tool.name) : m.enableTool(tool.name)}>
+                <button
+                  aria-pressed={on}
+                  className={cn(
+                    'rounded-md px-1.5 py-0.5 font-mono text-[0.65rem] text-(--ui-text-tertiary) hover:text-foreground',
+                    saved ? 'cursor-pointer' : 'cursor-default',
+                    on ? 'bg-(--ui-bg-quinary)' : 'line-through opacity-70'
+                  )}
+                  disabled={!saved}
+                  onClick={() => onToggleTool(tool.name)}
+                  type="button"
+                >
+                  {tool.name}
+                </button>
+              </Tip>
             )
           })}
         </div>
@@ -1459,6 +1459,16 @@ function McpCatalog({
                               [entry.name]: { ...prev[entry.name], [env.name]: event.currentTarget.value }
                             }))
                           }
+                          onKeyDown={event => {
+                            if (event.key === 'Escape') {
+                              event.preventDefault()
+                              event.stopPropagation()
+                              setEnvOpenFor(null)
+                            } else if (event.key === 'Enter' && !entry.installed && installing === null) {
+                              event.preventDefault()
+                              void install(entry)
+                            }
+                          }}
                           type="password"
                           value={draft[env.name] ?? ''}
                         />

@@ -1,6 +1,9 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useState } from 'react'
 
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { Tip } from '@/components/ui/tooltip'
 import { useI18n } from '@/i18n'
 import { listOAuthAccounts, removeOAuthAccount, switchOAuthAccount } from '@/jettstui'
 import { Check, Loader2, Plus, Trash2 } from '@/lib/icons'
@@ -28,6 +31,7 @@ export function ProviderAccounts({ compact = false, onAddAccount, providerId }: 
   const { t } = useI18n()
   const copy = t.settings.providers.accounts
   const queryClient = useQueryClient()
+  const [pendingRemove, setPendingRemove] = useState<OAuthAccount | null>(null)
 
   const query = useQuery({
     queryKey: oauthAccountsKey(providerId),
@@ -64,9 +68,7 @@ export function ProviderAccounts({ compact = false, onAddAccount, providerId }: 
   const busyId = (switchTo.isPending && switchTo.variables?.id) || (remove.isPending && remove.variables?.id) || null
 
   const confirmRemove = (account: OAuthAccount) => {
-    if (window.confirm(copy.removeConfirm(account.label))) {
-      remove.mutate(account)
-    }
+    setPendingRemove(account)
   }
 
   return (
@@ -94,6 +96,15 @@ export function ProviderAccounts({ compact = false, onAddAccount, providerId }: 
           </Button>
         </div>
       )}
+      <ConfirmDialog
+        confirmLabel={t.common.remove}
+        destructive
+        dismissOnConfirm
+        onClose={() => setPendingRemove(null)}
+        onConfirm={() => (pendingRemove ? remove.mutateAsync(pendingRemove).then(() => undefined) : undefined)}
+        open={pendingRemove !== null}
+        title={pendingRemove ? copy.removeConfirm(pendingRemove.label) : ''}
+      />
     </div>
   )
 }
@@ -154,17 +165,18 @@ function AccountRow({
         </Button>
       )}
       {!compact && (
-        <Button
-          aria-label={`${t.common.remove} ${account.label}`}
-          disabled={busy}
-          onClick={onRemove}
-          size="icon-xs"
-          title={`${t.common.remove} ${account.label}`}
-          type="button"
-          variant="ghost"
-        >
-          <Trash2 className="size-3" />
-        </Button>
+        <Tip label={`${t.common.remove} ${account.label}`}>
+          <Button
+            aria-label={`${t.common.remove} ${account.label}`}
+            disabled={busy}
+            onClick={onRemove}
+            size="icon-xs"
+            type="button"
+            variant="ghost"
+          >
+            <Trash2 className="size-3" />
+          </Button>
+        </Tip>
       )}
     </li>
   )

@@ -188,6 +188,10 @@ export const en: Translations = {
   },
 
   titlebar: {
+    back: 'Back',
+    forward: 'Forward',
+    lightMode: 'Light mode',
+    darkMode: 'Dark mode',
     modeChat: 'Chat',
     modeCode: 'Code',
     modeSwitcher: 'View',
@@ -585,9 +589,11 @@ export const en: Translations = {
       showElapsed: 'Elapsed time',
       showElapsedDesc: 'How long the session has been running.',
       phaseBadges: 'Phase badge',
-      phaseBadgesDesc: 'A small icon on the art showing whether JettsTUI is thinking, running tools or waiting for you.',
+      phaseBadgesDesc:
+        'A small icon on the art showing whether JettsTUI is thinking, running tools or waiting for you.',
       memberList: 'Show activity in member lists',
-      memberListDesc: 'Friends see what you’re doing (like “Working in 3 projects”) instead of just “Playing JettsTUI”.',
+      memberListDesc:
+        'Friends see what you’re doing (like “Working in 3 projects”) instead of just “Playing JettsTUI”.',
       idleTitle: 'Hide when idle',
       idleDesc: 'Clear the activity after this many idle minutes. 0 keeps it visible.',
       customTitle: 'Custom text',
@@ -1140,7 +1146,8 @@ export const en: Translations = {
     retry: 'Retry',
     giveTask: 'Give task',
     giveTaskTitle: name => `Give ${name} a task`,
-    giveTaskHint: 'It runs in the background as the next message in the Bot’s chat. You can keep working; you’ll hear back when it’s done or needs you.',
+    giveTaskHint:
+      'It runs in the background as the next message in the Bot’s chat. You can keep working; you’ll hear back when it’s done or needs you.',
     taskPlaceholder: 'Reproduce the crash from issue #412 and write a minimal repro.',
     assign: 'Send to Bot',
     assignFailed: 'Could not hand the task to the Bot',
@@ -1151,7 +1158,8 @@ export const en: Translations = {
     computerTitle: 'Bots’ computer',
     computerHint: name =>
       `The Bots work on ${name}, never on your desktop. When one needs you to sign in somewhere, open it and sign in there.`,
-    computerNoneHint: 'Pick a VM to give the Bots a computer of their own. Until then, their desktop work happens on yours, with approval.',
+    computerNoneHint:
+      'Pick a VM to give the Bots a computer of their own. Until then, their desktop work happens on yours, with approval.',
     computerNone: 'None',
     computerLoading: 'Looking for VMs…',
     openComputer: 'Open computer',
@@ -1178,7 +1186,8 @@ export const en: Translations = {
     usageThisWeek: cost => `${cost} this week`,
     edit: 'Edit',
     editTitle: name => `Edit ${name}`,
-    editHint: 'Limits are enforced, not just suggested: the Bot can’t use other tools, and listed ones always ask you first. Changes apply from its next conversation.',
+    editHint:
+      'Limits are enforced, not just suggested: the Bot can’t use other tools, and listed ones always ask you first. Changes apply from its next conversation.',
     toolsLabel: 'Only these tools',
     toolsHint: 'Comma-separated tool names. Empty = every tool. Memory is always kept.',
     askLabel: 'Always ask before',
@@ -2247,6 +2256,8 @@ export const en: Translations = {
     message: 'Message',
     wakingProfile: profile => `Waking up ${profile}…`,
     placeholderStarting: 'Starting JettsTUI...',
+    generate3D: 'Generate 3D model',
+    generate3DTip: 'Generate 3D model (/3d)',
     botPlaceholder: name => `Message ${name}…`,
     placeholderReconnecting: 'Reconnecting to JettsTUI…',
     placeholderFollowUp: 'Send follow-up',
@@ -3238,6 +3249,48 @@ export const en: Translations = {
     boundaryDesc: 'The view hit an unexpected error. Your chats and settings are safe.',
     reloadWindow: 'Reload window',
     openLogs: 'Open logs'
+  },
+
+  blender3d: {
+    sessionModels: 'Session 3D models',
+    smart3D: 'Smart 3D',
+    smart3DTip: 'Create a new 3D model in this conversation',
+    smart3DTitle: 'Smart 3D generator',
+    smart3DPlaceholder: 'e.g. A low-poly medieval watchtower with torch…',
+    insertPrompt: 'Insert prompt',
+    studio: 'Studio',
+    openStudio: 'Open in Studio',
+    openStudioTip: 'Open in 3D Blender Studio',
+    generatedModelsTitle: 'Generated models in this chat',
+    iterate: 'Iterate',
+    iterateInChat: 'Iterate in chat',
+    refineInChat: 'Refine in chat',
+    iterateTip: 'Insert refinement prompt in composer',
+    downloadAsset: 'Download asset',
+    downloadPng: 'Download PNG',
+    downloadFormat: format => `Download ${format}`,
+    inspectInStudio: 'Inspect in 3D Studio',
+    generatorTitle: 'Blender 3D generator',
+    runningHeadless: 'Running headless bpy…',
+    generatingAsset: 'Generating 3D asset…',
+    buildingGeometry: 'Building geometry, shaders & lighting',
+    streamingSpec: 'Streaming 3D model specification…',
+    loadingAsset: 'Loading 3D asset…',
+    loadFailed: 'Could not load 3D asset',
+    generationFailed: '3D generation failed',
+    pngRender: 'PNG render',
+    wireframe: 'Toggle wireframe',
+    turntable: 'Toggle turntable rotation',
+    snapshot: 'Save preview snapshot',
+    orbitHint: 'Drag to spin · ⌘/Ctrl+scroll or click to zoom',
+    orbitActiveHint: 'Drag to spin · Scroll to zoom · Esc to release',
+    presets: {
+      nature: 'Nature',
+      scifi: 'Sci-Fi',
+      architecture: 'Architecture',
+      furniture: 'Furniture',
+      abstract: 'Sculpture'
+    }
   },
 
   ui: {

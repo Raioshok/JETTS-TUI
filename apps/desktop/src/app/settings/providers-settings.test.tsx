@@ -92,6 +92,11 @@ describe('ProvidersSettings', () => {
       fireEvent.click(remove)
     })
 
+    const confirmBtn = await screen.findByRole('button', { name: 'Remove' })
+    await act(async () => {
+      fireEvent.click(confirmBtn)
+    })
+
     await waitFor(() => expect(disconnectOAuthProvider).toHaveBeenCalledWith('acme'))
     expect(listOAuthProviders).toHaveBeenCalledTimes(2)
   })

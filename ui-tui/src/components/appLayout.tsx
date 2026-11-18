@@ -26,7 +26,13 @@ import { composerPromptText } from '../lib/prompt.js'
 import { ActiveWidgetSlot, AmbientDock, AmbientRail, useAmbientRailWidth } from '../sdk/host.js'
 
 import { AgentsOverlay } from './agentsOverlay.js'
-import { GoodVibesHeart, StatusRule, StickyPromptTracker, TranscriptScrollbar } from './appChrome.js'
+import {
+  DetachedScrollIndicator,
+  GoodVibesHeart,
+  StatusRule,
+  StickyPromptTracker,
+  TranscriptScrollbar
+} from './appChrome.js'
 import { FloatingOverlays, PromptZone } from './appOverlays.js'
 import { Panel, SessionPanel } from './branding.js'
 import { FpsOverlay } from './fpsOverlay.js'
@@ -280,6 +286,8 @@ const TranscriptPane = memo(function TranscriptPane({
         </NoSelect>
       </Box>
 
+      <DetachedScrollIndicator busy={ui.busy} scrollRef={transcript.scrollRef} t={ui.theme} />
+
       <StickyPromptTracker
         messages={transcript.historyItems}
         offsets={transcript.virtualHistory.offsets}
@@ -366,6 +374,7 @@ const ComposerPane = memo(function ComposerPane({
 
       <ComposerToolbar
         busy={ui.busy}
+        busyInputMode={ui.busyInputMode}
         cols={composer.cols}
         mode={ui.info?.work_mode}
         queueCount={composer.queuedDisplay.length}
@@ -412,7 +421,7 @@ const ComposerPane = memo(function ComposerPane({
           pagerPageSize={composer.pagerPageSize}
         />
 
-        {composer.input === '?' && !composer.inputBuf.length && <HelpHint t={ui.theme} />}
+        {composer.input === '?' && !composer.inputBuf.length && <HelpHint cols={composer.cols} t={ui.theme} />}
 
         {!isBlocked && (
           <>
@@ -452,6 +461,7 @@ const ComposerPane = memo(function ComposerPane({
                 <TextInput
                   color={ui.theme.color.text}
                   columns={inputColumns}
+                  completionsOpen={composer.completions.length > 0}
                   mouseApiRef={inputMouseRef}
                   onChange={composer.updateInput}
                   onPaste={composer.handleTextPaste}
@@ -579,9 +589,17 @@ export const AppLayout = memo(function AppLayout({
         .slice(0, Math.max(1, Math.min(3, Math.floor((terminalRows - 22) / 7))))
     : []
 
-  const residentComposer = residentWorkspace
-    ? { ...composer, cols: Math.max(40, composer.cols - 30) }
-    : composer
+  const residentComposer = residentWorkspace ? { ...composer, cols: Math.max(40, composer.cols - 30) } : composer
+
+  const hasPromptZone = Boolean(
+    overlay.approval || overlay.confirm || overlay.clarify || overlay.sudo || overlay.secret
+  )
+
+  const extraBottomRows =
+    composer.inputBuf.length +
+    Math.min(4, composer.queuedDisplay.length) +
+    (ui.bgTasks.size > 0 ? 1 : 0) +
+    (hasPromptZone ? 8 : 0)
 
   // Inline mode skips AlternateScreen so the host terminal's native
   // scrollback captures rows scrolled off the top; composer + progress
@@ -596,7 +614,7 @@ export const AppLayout = memo(function AppLayout({
           flexDirection="row"
           flexGrow={1}
           flexShrink={1}
-          height={residentWorkspace ? Math.max(12, terminalRows - 7) : undefined}
+          height={residentWorkspace ? Math.max(8, terminalRows - 7 - extraBottomRows) : undefined}
           minHeight={0}
         >
           {!overlay.agents && !overlay.journey && !residentWorkspace && <AmbientRail side="left" />}

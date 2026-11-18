@@ -106,7 +106,14 @@ describe('parseCommandDispatch', () => {
   it('parses a prefill directive with its notice (e.g. /undo)', () => {
     const parsed = parseCommandDispatch({ type: 'prefill', notice: 'backed up 1 turn', message: 'edit me' })
 
-    expect(parsed).toEqual({ type: 'prefill', message: 'edit me', notice: 'backed up 1 turn' })
+    expect(parsed).toEqual({ type: 'prefill', message: 'edit me', messages: undefined, notice: 'backed up 1 turn' })
+  })
+
+  it('preserves rewound messages on a prefill directive so /undo syncs transcript', () => {
+    const messages = [{ role: 'user', text: 'first turn' }]
+    const parsed = parseCommandDispatch({ type: 'prefill', message: 'edit me', messages, notice: 'undone' })
+
+    expect(parsed).toEqual({ type: 'prefill', message: 'edit me', messages, notice: 'undone' })
   })
 
   it('rejects a prefill directive missing its message', () => {

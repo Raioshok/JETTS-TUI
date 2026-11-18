@@ -7,7 +7,14 @@ import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
 import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
 
 import { requestComposerInsert } from '@/app/chat/composer/focus'
+import { useComposerScope } from '@/app/chat/composer/scope'
 import { useSessionView } from '@/app/chat/session-view'
+import { navigateWorkspaceHash } from '@/app/routes'
+import { Button } from '@/components/ui/button'
+import { ErrorState } from '@/components/ui/error-state'
+import { Loader } from '@/components/ui/loader'
+import { Tip } from '@/components/ui/tooltip'
+import { useI18n } from '@/i18n'
 import {
   blenderModelFromResult,
   type BlenderModelResultData,
@@ -25,7 +32,52 @@ interface GeneratedModelProps {
   title?: string
 }
 
+function extractResultErrorMessage(result: unknown): string | null {
+  if (!result) {
+    return null
+  }
+
+  if (typeof result === 'string') {
+    const trimmed = result.trim()
+
+    if (!trimmed) {
+      return null
+    }
+
+    try {
+      const parsed = JSON.parse(trimmed) as Record<string, unknown>
+
+      if (typeof parsed.error === 'string' && parsed.error.trim()) {
+        return parsed.error.trim()
+      }
+
+      if (typeof parsed.message === 'string' && parsed.success === false) {
+        return parsed.message.trim()
+      }
+    } catch {
+      return trimmed.slice(0, 240)
+    }
+  }
+
+  if (typeof result === 'object') {
+    const row = result as Record<string, unknown>
+
+    if (typeof row.error === 'string' && row.error.trim()) {
+      return row.error.trim()
+    }
+
+    if (typeof row.message === 'string' && row.success === false) {
+      return row.message.trim()
+    }
+  }
+
+  return null
+}
+
 export const GeneratedModelResult: FC<GeneratedModelProps> = ({ args, modelUrl, result, title }) => {
+  const { t } = useI18n()
+  const b3d = t.blender3d
+  const scope = useComposerScope()
   const sessionView = useSessionView()
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -55,7 +107,10 @@ export const GeneratedModelResult: FC<GeneratedModelProps> = ({ args, modelUrl, 
 
   const [wireframe, setWireframe] = useState(false)
   const [autoRotate, setAutoRotate] = useState(true)
+  const [zoomActive, setZoomActive] = useState(false)
   const [loading, setLoading] = useState(true)
+  const [loadError, setLoadError] = useState<string | null>(null)
+  const [reloadNonce, setReloadNonce] = useState(0)
   const [stats, setStats] = useState({ tris: 0, verts: 0 })
 
   // Record completed tool-generated models into the session's 3D context store post-render
@@ -104,7 +159,7 @@ export const GeneratedModelResult: FC<GeneratedModelProps> = ({ args, modelUrl, 
     const renderer = new THREE.WebGLRenderer({
       alpha: true,
       antialias: true,
-      powerPreference: 'high-performance',
+      powerPreference: 'default',
       preserveDrawingBuffer: true
     })
 
@@ -121,7 +176,17 @@ export const GeneratedModelResult: FC<GeneratedModelProps> = ({ args, modelUrl, 
     controls.minDistance = 0.8
     controls.autoRotate = true
     controls.autoRotateSpeed = 2.0
+    // Keep wheel zoom off until clicked or ⌘/Ctrl-held so normal transcript scrolling never traps on the canvas.
+    controls.enableZoom = false
     engine.controls = controls
+
+    const onWheelCapture = (event: WheelEvent) => {
+      if (event.metaKey || event.ctrlKey) {
+        controls.enableZoom = true
+      }
+    }
+
+    renderer.domElement.addEventListener('wheel', onWheelCapture, { capture: true, passive: true })
 
     const ambient = new THREE.AmbientLight(0xffffff, 0.7)
     scene.add(ambient)
@@ -140,6 +205,7 @@ export const GeneratedModelResult: FC<GeneratedModelProps> = ({ args, modelUrl, 
 
     let cancelled = false
     setLoading(true)
+    setLoadError(null)
 
     const mountModel = (model: any) => {
       if (cancelled) {
@@ -200,6 +266,7 @@ export const GeneratedModelResult: FC<GeneratedModelProps> = ({ args, modelUrl, 
       camera.position.set(2.8, 2.0, 2.8)
       camera.lookAt(0, 0.5, 0)
       controls.update()
+      renderer.render(scene, camera)
     }
 
     const handleLoadError = (err: any) => {
@@ -209,6 +276,7 @@ export const GeneratedModelResult: FC<GeneratedModelProps> = ({ args, modelUrl, 
 
       console.error('Failed to load in-chat 3D model:', err)
       setLoading(false)
+      setLoadError(err instanceof Error ? err.message : b3d.loadFailed)
     }
 
     if (resolvedFormat === 'obj') {
@@ -216,31 +284,61 @@ export const GeneratedModelResult: FC<GeneratedModelProps> = ({ args, modelUrl, 
       objLoader.load(resolvedUrl, mountModel, undefined, handleLoadError)
     } else {
       const gltfLoader = new GLTFLoader()
-      gltfLoader.load(
-        resolvedUrl,
-        (gltf: any) => mountModel(gltf.scene || gltf.scenes[0]),
-        undefined,
-        handleLoadError
-      )
+      gltfLoader.load(resolvedUrl, (gltf: any) => mountModel(gltf.scene || gltf.scenes[0]), undefined, handleLoadError)
     }
 
-    let running = true
+    let disposed = false
+    let inViewport = true
+    let pageVisible = typeof document === 'undefined' ? true : document.visibilityState === 'visible'
 
-    const animate = () => {
-      if (!running) {
-        return
+    const scheduleOrPause = () => {
+      const shouldRun = !disposed && inViewport && pageVisible
+
+      if (shouldRun && engine.animId === null) {
+        const animate = () => {
+          if (disposed || !inViewport || !pageVisible) {
+            engine.animId = null
+
+            return
+          }
+
+          engine.animId = requestAnimationFrame(animate)
+
+          if (engine.controls) {
+            engine.controls.update()
+          }
+
+          renderer.render(scene, camera)
+        }
+
+        engine.animId = requestAnimationFrame(animate)
+      } else if (!shouldRun && engine.animId !== null) {
+        cancelAnimationFrame(engine.animId)
+        engine.animId = null
       }
-
-      engine.animId = requestAnimationFrame(animate)
-
-      if (engine.controls) {
-        engine.controls.update()
-      }
-
-      renderer.render(scene, camera)
     }
 
-    animate()
+    scheduleOrPause()
+
+    const intersectionObserver =
+      typeof IntersectionObserver !== 'undefined'
+        ? new IntersectionObserver(
+            entries => {
+              inViewport = entries.some(entry => entry.isIntersecting)
+              scheduleOrPause()
+            },
+            { threshold: 0.05 }
+          )
+        : null
+
+    intersectionObserver?.observe(container)
+
+    const onVisibilityChange = () => {
+      pageVisible = document.visibilityState === 'visible'
+      scheduleOrPause()
+    }
+
+    document.addEventListener('visibilitychange', onVisibilityChange)
 
     const resizeObserver = new ResizeObserver(() => {
       if (!container || !engine.renderer || !engine.camera) {
@@ -262,12 +360,16 @@ export const GeneratedModelResult: FC<GeneratedModelProps> = ({ args, modelUrl, 
 
     return () => {
       cancelled = true
-      running = false
+      disposed = true
 
-      if (engine.animId) {
+      if (engine.animId !== null) {
         cancelAnimationFrame(engine.animId)
+        engine.animId = null
       }
 
+      renderer.domElement.removeEventListener('wheel', onWheelCapture, { capture: true })
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+      intersectionObserver?.disconnect()
       resizeObserver.disconnect()
       controls.dispose()
       renderer.dispose()
@@ -276,7 +378,45 @@ export const GeneratedModelResult: FC<GeneratedModelProps> = ({ args, modelUrl, 
         container.removeChild(renderer.domElement)
       }
     }
-  }, [isImageStill, isPending, resolvedFormat, resolvedUrl])
+  }, [b3d.loadFailed, isImageStill, isPending, reloadNonce, resolvedFormat, resolvedUrl])
+
+  useEffect(() => {
+    if (engineRef.current.controls) {
+      engineRef.current.controls.enableZoom = zoomActive
+    }
+
+    if (!zoomActive) {
+      return
+    }
+
+    const onPointerDownOutside = (event: PointerEvent) => {
+      if (containerRef.current && !containerRef.current.contains(event.target as Node)) {
+        setZoomActive(false)
+      }
+    }
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setZoomActive(false)
+      }
+    }
+
+    const onKeyUp = (event: KeyboardEvent) => {
+      if (!event.metaKey && !event.ctrlKey && engineRef.current.controls && !zoomActive) {
+        engineRef.current.controls.enableZoom = false
+      }
+    }
+
+    window.addEventListener('pointerdown', onPointerDownOutside)
+    window.addEventListener('keydown', onKeyDown)
+    window.addEventListener('keyup', onKeyUp)
+
+    return () => {
+      window.removeEventListener('pointerdown', onPointerDownOutside)
+      window.removeEventListener('keydown', onKeyDown)
+      window.removeEventListener('keyup', onKeyUp)
+    }
+  }, [zoomActive])
 
   useEffect(() => {
     if (!engineRef.current.modelGroup) {
@@ -318,76 +458,88 @@ export const GeneratedModelResult: FC<GeneratedModelProps> = ({ args, modelUrl, 
   }
 
   const handleRefineInChat = () => {
-    requestComposerInsert(`Refine 3D model (${displayTitle}): `)
+    requestComposerInsert(`Refine 3D model (${displayTitle}): `, { target: scope.target })
   }
 
   const handleOpenStudio = () => {
-    window.location.hash = studioDeepLinkHash({
-      format: resolvedFormat,
-      localPath: modelData?.output_path,
-      name: modelData?.filename || displayTitle,
-      url: resolvedUrl
-    })
+    navigateWorkspaceHash(
+      studioDeepLinkHash({
+        format: resolvedFormat,
+        localPath: modelData?.output_path,
+        name: modelData?.filename || displayTitle,
+        url: resolvedUrl
+      })
+    )
   }
 
   if (isPending) {
     return (
-      <div className="my-2.5 max-w-xl rounded-xl border border-violet-500/30 bg-(--ui-surface-background)/90 p-4 shadow-xl backdrop-blur-md">
+      <div className="my-2.5 max-w-xl rounded-xl border border-(--ui-stroke-tertiary) bg-(--ui-bg-elevated) p-4 shadow-xs">
         <div className="mb-3 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <span className="flex size-6 items-center justify-center rounded-md border border-violet-500/30 bg-violet-600/20 text-violet-400">
-              <Box className="size-3.5 animate-pulse" />
+            <span className="flex size-6 items-center justify-center rounded-md bg-primary/12 text-primary">
+              <Box className="size-3.5" />
             </span>
-            <span className="text-xs font-semibold text-(--ui-text-primary)">Blender 3D Generator</span>
+            <span className="text-xs font-semibold text-(--ui-text-primary)">{b3d.generatorTitle}</span>
           </div>
-          <span className="animate-pulse font-mono text-[0.68rem] text-violet-400">Running headless bpy...</span>
+          <span className="font-mono text-[0.6875rem] text-(--ui-text-tertiary)">{b3d.runningHeadless}</span>
         </div>
 
-        <div className="flex h-44 w-full flex-col items-center justify-center gap-3 rounded-lg border border-dashed border-violet-500/30 bg-black/40">
-          <div className="relative flex size-12 items-center justify-center">
-            <div className="absolute inset-0 animate-ping rounded-full border-2 border-violet-500/20" />
-            <div className="size-8 animate-spin rounded-lg border border-violet-400 bg-violet-500/20" />
-          </div>
-          <span className="text-xs font-medium text-zinc-300">
-            {typeof args?.prompt === 'string' ? args.prompt : 'Generating 3D asset...'}
+        <div className="flex h-44 w-full flex-col items-center justify-center gap-2.5 rounded-lg border border-dashed border-(--ui-stroke-secondary) bg-(--ui-bg-card)">
+          <Loader className="size-8" type="lemniscate-bloom" />
+          <span className="px-4 text-center text-xs font-medium text-(--ui-text-primary)">
+            {typeof args?.prompt === 'string' ? args.prompt : b3d.generatingAsset}
           </span>
-          <span className="font-mono text-[0.68rem] text-zinc-500">Building geometry, shaders & lighting</span>
+          <span className="font-mono text-[0.6875rem] text-(--ui-text-tertiary)">{b3d.buildingGeometry}</span>
         </div>
       </div>
     )
   }
 
-  if (isImageStill && resolvedUrl) {
+  if (!resolvedUrl) {
+    const failureText = extractResultErrorMessage(result) || b3d.generationFailed
+
     return (
-      <div className="my-2.5 max-w-xl overflow-hidden rounded-xl border border-(--ui-border) bg-(--ui-surface-background)/90 shadow-xl">
-        <div className="flex items-center justify-between border-b border-(--ui-border) bg-(--ui-panel-background)/50 px-3 py-2">
-          <div className="flex items-center gap-2 truncate">
-            <Box className="size-3.5 shrink-0 text-violet-400" />
-            <span className="truncate text-xs font-medium">{displayTitle}</span>
+      <div className="my-2.5 max-w-xl rounded-xl border border-(--ui-stroke-tertiary) bg-(--ui-bg-elevated) p-4 shadow-xs">
+        <ErrorState description={failureText} title={b3d.generationFailed}>
+          <div className="flex justify-center">
+            <Button onClick={handleRefineInChat} size="sm" type="button" variant="secondary">
+              <Zap className="size-3.5" />
+              <span>{b3d.iterateInChat}</span>
+            </Button>
           </div>
-          <span className="rounded border border-violet-500/20 bg-violet-500/10 px-2 py-0.5 font-mono text-[0.65rem] text-violet-300">
-            PNG Render
+        </ErrorState>
+      </div>
+    )
+  }
+
+  if (isImageStill) {
+    return (
+      <div className="my-2.5 max-w-xl overflow-hidden rounded-xl border border-(--ui-stroke-tertiary) bg-(--ui-bg-elevated) shadow-xs">
+        <div className="flex items-center justify-between border-b border-(--ui-stroke-tertiary) bg-(--ui-bg-card) px-3 py-2">
+          <div className="flex items-center gap-2 truncate">
+            <Box className="size-3.5 shrink-0 text-primary" />
+            <span className="truncate text-xs font-medium text-(--ui-text-primary)">{displayTitle}</span>
+          </div>
+          <span className="rounded border border-(--ui-stroke-tertiary) bg-(--ui-bg-elevated) px-2 py-0.5 font-mono text-[0.625rem] text-(--ui-text-secondary)">
+            {b3d.pngRender}
           </span>
         </div>
-        <div className="flex justify-center bg-black/40 p-3">
+        <div className="flex justify-center bg-[#0a0b10] p-3">
           <img alt={displayTitle} className="max-h-72 rounded-lg object-contain" src={resolvedUrl} />
         </div>
-        <div className="flex items-center justify-between border-t border-(--ui-border) bg-(--ui-panel-background)/40 px-3 py-2 text-xs">
-          <button
-            className="flex cursor-pointer items-center gap-1 text-violet-400 hover:text-violet-300"
-            onClick={handleRefineInChat}
-            type="button"
-          >
-            <Zap className="size-3.5" />
-            <span>Refine in Chat</span>
-          </button>
+        <div className="flex items-center justify-between border-t border-(--ui-stroke-tertiary) bg-(--ui-bg-card) px-3 py-2 text-xs">
+          <Button onClick={handleRefineInChat} size="xs" type="button" variant="ghost">
+            <Zap className="size-3.5 text-primary" />
+            <span>{b3d.refineInChat}</span>
+          </Button>
           <a
-            className="flex items-center gap-1 rounded bg-violet-600 px-2.5 py-1 font-medium text-white hover:bg-violet-500"
+            className="inline-flex items-center gap-1 rounded-md bg-primary px-2.5 py-1 font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             download="render.png"
             href={resolvedUrl}
           >
             <Download className="size-3.5" />
-            <span>Download PNG</span>
+            <span>{b3d.downloadPng}</span>
           </a>
         </div>
       </div>
@@ -395,23 +547,23 @@ export const GeneratedModelResult: FC<GeneratedModelProps> = ({ args, modelUrl, 
   }
 
   return (
-    <div className="my-2.5 max-w-xl overflow-hidden rounded-xl border border-(--ui-border) bg-(--ui-surface-background)/95 shadow-2xl backdrop-blur-md">
-      <div className="flex items-center justify-between border-b border-(--ui-border) bg-(--ui-panel-background)/60 px-3.5 py-2.5">
+    <div className="my-2.5 max-w-xl overflow-hidden rounded-xl border border-(--ui-stroke-tertiary) bg-(--ui-bg-elevated) shadow-xs">
+      <div className="flex items-center justify-between border-b border-(--ui-stroke-tertiary) bg-(--ui-bg-card) px-3.5 py-2.5">
         <div className="flex min-w-0 items-center gap-2.5">
-          <span className="flex size-6 shrink-0 items-center justify-center rounded-md border border-violet-500/30 bg-violet-600/20 text-violet-400">
+          <span className="flex size-6 shrink-0 items-center justify-center rounded-md bg-primary/12 text-primary">
             <Box className="size-3.5" />
           </span>
           <div className="min-w-0">
             <div className="truncate text-xs font-semibold text-(--ui-text-primary)">{displayTitle}</div>
             {stats.verts > 0 && (
-              <div className="flex items-center gap-2 font-mono text-[0.65rem] text-zinc-400">
+              <div className="flex items-center gap-2 font-mono text-[0.65rem] text-(--ui-text-tertiary)">
                 <span>{stats.verts.toLocaleString()} verts</span>
                 <span>•</span>
                 <span>{stats.tris.toLocaleString()} tris</span>
                 {modelData?.duration_seconds && (
                   <>
                     <span>•</span>
-                    <span className="text-emerald-400">{modelData.duration_seconds}s</span>
+                    <span className="text-(--ui-green)">{modelData.duration_seconds}s</span>
                   </>
                 )}
               </div>
@@ -420,92 +572,111 @@ export const GeneratedModelResult: FC<GeneratedModelProps> = ({ args, modelUrl, 
         </div>
 
         <div className="flex items-center gap-1">
-          <button
-            className={cn(
-              'cursor-pointer rounded-md border p-1.5 text-xs transition-colors',
-              wireframe
-                ? 'border-violet-500/50 bg-violet-500/15 text-violet-300'
-                : 'border-(--ui-border) text-(--ui-text-tertiary) hover:text-(--ui-text-primary)'
-            )}
-            onClick={() => setWireframe(!wireframe)}
-            title="Toggle Wireframe"
-            type="button"
-          >
-            <Layers3 className="size-3.5" />
-          </button>
+          <Tip label={b3d.wireframe}>
+            <Button
+              aria-label={b3d.wireframe}
+              aria-pressed={wireframe}
+              className={cn('size-7 p-0', wireframe && 'bg-primary/12 text-primary')}
+              onClick={() => setWireframe(!wireframe)}
+              size="icon"
+              type="button"
+              variant="ghost"
+            >
+              <Layers3 className="size-3.5" />
+            </Button>
+          </Tip>
 
-          <button
-            className={cn(
-              'cursor-pointer rounded-md border p-1.5 text-xs transition-colors',
-              autoRotate
-                ? 'border-violet-500/50 bg-violet-500/15 text-violet-300'
-                : 'border-(--ui-border) text-(--ui-text-tertiary) hover:text-(--ui-text-primary)'
-            )}
-            onClick={() => setAutoRotate(!autoRotate)}
-            title="Toggle Turntable Rotation"
-            type="button"
-          >
-            <RefreshCw className={cn('size-3.5', autoRotate && 'animate-spin')} />
-          </button>
+          <Tip label={b3d.turntable}>
+            <Button
+              aria-label={b3d.turntable}
+              aria-pressed={autoRotate}
+              className={cn('size-7 p-0', autoRotate && 'bg-primary/12 text-primary')}
+              onClick={() => setAutoRotate(!autoRotate)}
+              size="icon"
+              type="button"
+              variant="ghost"
+            >
+              <RefreshCw className={cn('size-3.5', autoRotate && 'animate-spin')} />
+            </Button>
+          </Tip>
 
-          <button
-            className="cursor-pointer rounded-md border border-(--ui-border) p-1.5 text-(--ui-text-tertiary) hover:text-(--ui-text-primary)"
-            onClick={handleSnapshot}
-            title="Take Snapshot"
-            type="button"
-          >
-            <Eye className="size-3.5" />
-          </button>
+          <Tip label={b3d.snapshot}>
+            <Button
+              aria-label={b3d.snapshot}
+              className="size-7 p-0"
+              onClick={handleSnapshot}
+              size="icon"
+              type="button"
+              variant="ghost"
+            >
+              <Eye className="size-3.5" />
+            </Button>
+          </Tip>
         </div>
       </div>
 
-      <div className="relative h-60 w-full overflow-hidden bg-[#0a0b10] select-none" ref={containerRef}>
+      <div
+        className={cn(
+          'relative h-60 w-full overflow-hidden bg-[#0a0b10] select-none',
+          zoomActive && 'ring-1 ring-primary/50 ring-inset'
+        )}
+        onPointerDown={() => setZoomActive(true)}
+        ref={containerRef}
+      >
         {loading && (
-          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/50">
-            <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-black/80 px-3 py-1.5 font-mono text-xs text-zinc-300">
-              <div className="size-3 animate-spin rounded-full border-2 border-violet-400 border-t-transparent" />
-              <span>Loading 3D asset...</span>
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/55">
+            <div className="flex items-center gap-2 rounded-lg border border-white/10 bg-black/80 px-3 py-1.5 text-xs text-zinc-200">
+              <Loader className="size-4" />
+              <span>{b3d.loadingAsset}</span>
             </div>
           </div>
         )}
 
-        <div className="pointer-events-none absolute right-2 bottom-2 rounded bg-black/60 px-2 py-0.5 text-[0.62rem] text-zinc-400 backdrop-blur-xs">
-          Drag to spin • Scroll to zoom
-        </div>
+        {loadError && !loading && (
+          <div className="absolute inset-0 z-10 flex items-center justify-center bg-(--ui-bg-elevated)/95 p-4">
+            <ErrorState description={loadError} title={b3d.loadFailed}>
+              <div className="flex justify-center">
+                <Button onClick={() => setReloadNonce(n => n + 1)} size="xs" type="button" variant="secondary">
+                  {t.common.retry}
+                </Button>
+              </div>
+            </ErrorState>
+          </div>
+        )}
+
+        {!loadError && (
+          <div className="pointer-events-none absolute right-2 bottom-2 rounded bg-black/65 px-2 py-0.5 text-[0.625rem] text-zinc-300 backdrop-blur-xs">
+            {zoomActive ? b3d.orbitActiveHint : b3d.orbitHint}
+          </div>
+        )}
       </div>
 
-      <div className="flex items-center justify-between border-t border-(--ui-border) bg-(--ui-panel-background)/40 px-3 py-2 text-xs">
-        <button
-          className="flex cursor-pointer items-center gap-1.5 font-medium text-violet-400 transition-colors hover:text-violet-300"
-          onClick={handleRefineInChat}
-          title="Refine this model with another prompt in chat"
-          type="button"
-        >
-          <Zap className="size-3.5" />
-          <span>Iterate in Chat</span>
-        </button>
+      <div className="flex items-center justify-between border-t border-(--ui-stroke-tertiary) bg-(--ui-bg-card) px-3 py-2 text-xs">
+        <Tip label={b3d.iterateTip}>
+          <Button onClick={handleRefineInChat} size="xs" type="button" variant="ghost">
+            <Zap className="size-3.5 text-primary" />
+            <span>{b3d.iterateInChat}</span>
+          </Button>
+        </Tip>
 
         <div className="flex items-center gap-2">
           {resolvedUrl && (
             <a
-              className="flex items-center gap-1 rounded-md border border-(--ui-border) px-2.5 py-1 text-xs transition-colors hover:bg-(--ui-hover)"
+              className="inline-flex items-center gap-1 rounded-md border border-(--ui-stroke-tertiary) bg-(--ui-bg-elevated) px-2.5 py-1 text-xs text-(--ui-text-primary) transition-colors hover:bg-(--ui-control-hover-background)"
               download={modelData?.filename || `model.${resolvedFormat}`}
               href={resolvedUrl}
             >
               <Download className="size-3" />
-              <span>Download {resolvedFormat.toUpperCase()}</span>
+              <span>{b3d.downloadFormat(resolvedFormat.toUpperCase())}</span>
             </a>
           )}
 
-          <button
-            className="flex cursor-pointer items-center gap-1 rounded-md bg-violet-600 px-3 py-1 text-xs font-semibold text-white shadow-xs transition-colors hover:bg-violet-500"
-            onClick={handleOpenStudio}
-            title="Open in full 3D Blender Studio"
-            type="button"
-          >
-            <span>Open in Studio</span>
-            <ExternalLink className="size-3" />
-          </button>
+          <Tip label={b3d.openStudioTip}>
+            <Button onClick={handleOpenStudio} size="xs" type="button">
+              <span>{b3d.openStudio}</span>
+              <ExternalLink className="size-3" />
+            </Button>
+          </Tip>
         </div>
       </div>
     </div>

@@ -477,8 +477,7 @@ export function StatusRule({
   const showFocus = !!focusView
 
   const pinnedBadgeWidth =
-    (workModeText ? stringWidth(' · ') + stringWidth(workModeText) : 0) +
-    (showFocus ? stringWidth(' · ◉ focus') : 0)
+    (workModeText ? stringWidth(' · ') + stringWidth(workModeText) : 0) + (showFocus ? stringWidth(' · ◉ focus') : 0)
 
   // Battery read-out — the first (pinned) status-bar element when enabled.
   const showBattery = !!battery && battery.available && battery.percent != null
@@ -750,6 +749,30 @@ export function FloatBox({ children, color }: { children: ReactNode; color: stri
       paddingX={1}
     >
       {children}
+    </Box>
+  )
+}
+
+export function DetachedScrollIndicator({
+  busy,
+  scrollRef,
+  t
+}: {
+  busy: boolean
+  scrollRef: RefObject<null | ScrollBoxHandle>
+  t: Theme
+}) {
+  const { atBottom, scrollHeight, viewportHeight } = useViewportSnapshot(scrollRef)
+
+  if (atBottom || scrollHeight <= viewportHeight || viewportHeight <= 0) {
+    return null
+  }
+
+  return (
+    <Box justifyContent="flex-end" onClick={() => scrollRef.current?.scrollToBottom()} paddingX={1}>
+      <Text bold={busy} color={busy ? t.color.accent : t.color.muted} wrap="truncate-end">
+        {busy ? '↓ streaming below · click or End to jump to bottom' : '↓ scrolled up · click or End for latest'}
+      </Text>
     </Box>
   )
 }

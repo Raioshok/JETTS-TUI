@@ -74,11 +74,9 @@ export function FlowPanel() {
         <div className="flex min-w-0 flex-1">
           <SidebarPanelLabel>{f.title}</SidebarPanelLabel>
         </div>
-        <Tip label={f.close}>
-          <Button aria-label={f.close} onClick={() => setFlowPanelOpen(false)} size="icon-xs" variant="ghost">
-            <Codicon name="close" size="0.8125rem" />
-          </Button>
-        </Tip>
+        <Button aria-label={f.close} onClick={() => setFlowPanelOpen(false)} size="icon-xs" variant="ghost">
+          <Codicon name="close" size="0.8125rem" />
+        </Button>
       </RightSidebarSectionHeader>
       {picked ? (
         <FlowRunView key={picked.run.id} run={picked.run} subagents={subagentsBySession[picked.sessionId] ?? []} />
@@ -404,11 +402,10 @@ function TimelineRow({ onSelect, stage }: { onSelect: () => void; stage: FlowSta
   const o = t.orchestrator
   const seconds = stage.finishedAt ? Math.max(0, Math.round((stage.finishedAt - stage.startedAt) / 1000)) : undefined
 
-  return (
+  const button = (
     <button
       className="flex w-full min-w-0 items-center gap-2 rounded px-1 py-0.5 text-left hover:bg-(--ui-bg-tertiary)/50"
       onClick={onSelect}
-      title={stage.summary}
       type="button"
     >
       {stageGlyph(stage, o.flow.stage[stage.status])}
@@ -422,6 +419,8 @@ function TimelineRow({ onSelect, stage }: { onSelect: () => void; stage: FlowSta
       {seconds !== undefined && <ActivityTimerText seconds={seconds} />}
     </button>
   )
+
+  return stage.summary ? <Tip label={stage.summary}>{button}</Tip> : button
 }
 
 const PHASE_ORDER: Record<FlowPhase, number> = { verify: 1, work: 0 }

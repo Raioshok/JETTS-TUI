@@ -12,12 +12,10 @@ import { describe, expect, it } from 'vitest'
 // This is a source-text scan, not a behavior test — it's the same category as
 // an ESLint rule, expressed as a vitest so it runs with the rest of the suite.
 
-// Recursively walk a directory and collect all .tsx file paths.
 function collectTsxFiles(dir: string): string[] {
   const results: string[] = []
 
   for (const entry of readdirSync(dir)) {
-    // Skip node_modules, dist, and __tests__ (this file itself)
     if (entry === 'node_modules' || entry === 'dist' || entry === '__tests__') {
       continue
     }
@@ -35,33 +33,122 @@ function collectTsxFiles(dir: string): string[] {
   return results
 }
 
+function advancePastCommentOrString(
+  src: string,
+  index: number,
+  quote: string | null
+): { next: number; quote: string | null } {
+  const ch = src[index]
+  const nextCh = src[index + 1]
+
+  if (quote) {
+    if (ch === '\\') {
+      return { next: index + 2, quote }
+    }
+
+    if (ch === quote) {
+      return { next: index + 1, quote: null }
+    }
+
+    return { next: index + 1, quote }
+  }
+
+  if (ch === '/' && nextCh === '/') {
+    const nl = src.indexOf('\n', index + 2)
+
+    return { next: nl === -1 ? src.length : nl + 1, quote: null }
+  }
+
+  if (ch === '/' && nextCh === '*') {
+    const end = src.indexOf('*/', index + 2)
+
+    return { next: end === -1 ? src.length : end + 2, quote: null }
+  }
+
+  if (ch === '"' || ch === "'" || ch === '`') {
+    return { next: index + 1, quote: ch }
+  }
+
+  return { next: index, quote: null }
+}
+
+function findButtonTagsWithTitle(content: string): { lineNum: number; tagName: string }[] {
+  const hits: { lineNum: number; tagName: string }[] = []
+  const startPattern = /<(Button|button)\b/gu
+  let match: RegExpExecArray | null
+
+  while ((match = startPattern.exec(content)) !== null) {
+    const tagName = match[1]
+    const attrStart = match.index + match[0].length
+    let i = attrStart
+    let braceDepth = 0
+    let quote: string | null = null
+    let hasTitle = false
+
+    while (i < content.length) {
+      const skipped = advancePastCommentOrString(content, i, quote)
+
+      if (skipped.next !== i) {
+        i = skipped.next
+        quote = skipped.quote
+
+        continue
+      }
+
+      const ch = content[i]
+
+      if (ch === '{') {
+        braceDepth++
+        i++
+
+        continue
+      }
+
+      if (ch === '}') {
+        if (braceDepth > 0) {
+          braceDepth--
+        }
+
+        i++
+
+        continue
+      }
+
+      if (braceDepth === 0) {
+        if (ch === '>') {
+          break
+        }
+
+        const prev = i === attrStart ? ' ' : content[i - 1]
+
+        if (/\s/.test(prev) && content.slice(i, i + 6) === 'title=') {
+          hasTitle = true
+        }
+      }
+
+      i++
+    }
+
+    if (hasTitle) {
+      const lineNum = content.slice(0, match.index).split('\n').length
+      hits.push({ lineNum, tagName })
+    }
+  }
+
+  return hits
+}
+
 describe('no native title= on button elements', () => {
-  // Scan every .tsx file under src/ for <button or <Button opening tags that
-  // also carry a title= attribute (anywhere in the opening tag, which may span
-  // multiple lines).
   it('uses <Tip> instead of native title= on all button elements', () => {
     const violations: string[] = []
     const srcDir = resolve(__dirname, '../..')
 
     for (const filePath of collectTsxFiles(srcDir)) {
       const content = readFileSync(filePath, 'utf-8')
-      const relativePath = filePath.replace(srcDir + '/', '')
+      const relativePath = filePath.slice(srcDir.length + 1).replace(/\\/g, '/')
 
-      // Match <Button ...> or <button ...> opening tags (may span multiple lines).
-      // We use a non-greedy match up to the closing > — this won't perfectly
-      // handle every edge case (e.g. > inside a string literal), but it's good
-      // enough for a lint-style guard.
-      const tagPattern = /<(Button|button)\b([^>]*?)>/gsu
-      let match: RegExpExecArray | null
-
-      while ((match = tagPattern.exec(content)) !== null) {
-        const tagName = match[1]
-        const attrs = match[2]
-
-        if (/\btitle=/.test(attrs)) {
-          const lineNum = content.slice(0, match.index).split('\n').length
-          violations.push(`${relativePath}:${lineNum} <${tagName}> has title= — use <Tip>`)
-        }
+      for (const hit of findButtonTagsWithTitle(content)) {
+        violations.push(`${relativePath}:${hit.lineNum} <${hit.tagName}> has title= — use <Tip>`)
       }
     }
 

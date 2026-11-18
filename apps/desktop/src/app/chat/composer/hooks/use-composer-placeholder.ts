@@ -1,9 +1,12 @@
 import { useStore } from '@nanostores/react'
-import { useEffect, useRef, useState } from 'react'
+import { computed } from 'nanostores'
+import { useEffect, useMemo, useRef, useState } from 'react'
 
+import { useSessionView } from '@/app/chat/session-view'
 import { useI18n } from '@/i18n'
 import { $currentBotName, $newChatBot } from '@/store/bots'
 import { resetBrowseState } from '@/store/composer-input-history'
+import { $sessionStates } from '@/store/session-states'
 
 import { pickPlaceholder } from '../composer-utils'
 
@@ -22,10 +25,21 @@ interface UseComposerPlaceholderOptions {
  */
 export function useComposerPlaceholder({ disabled, reconnecting, sessionId }: UseComposerPlaceholderOptions): string {
   const { t } = useI18n()
+  const sessionView = useSessionView()
   const newChatBot = useStore($newChatBot)
   const currentBotName = useStore($currentBotName)
+
+  const $tileBotName = useMemo(
+    () => computed($sessionStates, states => (sessionId ? (states[sessionId]?.botName ?? '') : '')),
+    [sessionId]
+  )
+
+  const tileBotName = useStore($tileBotName)
+
   // A Bot chat says who you're talking to; a fresh one before its session exists too.
-  const botName = sessionId ? currentBotName : newChatBot?.name || ''
+  // Split tiles read their own slice's `botName` rather than primary-only globals.
+  const botName = sessionView.kind === 'tile' ? tileBotName : sessionId ? currentBotName : newChatBot?.name || ''
+
   const newSessionPlaceholders = t.composer.newSessionPlaceholders
   const followUpPlaceholders = t.composer.followUpPlaceholders
 

@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react'
 
 import { LanguageSwitcher } from '@/components/language-switcher'
 import { Button } from '@/components/ui/button'
+import { SearchField } from '@/components/ui/search-field'
 import { SegmentedControl } from '@/components/ui/segmented-control'
+import { Tip } from '@/components/ui/tooltip'
 import type { DesktopMarketplaceSearchItem } from '@/global'
 import { useI18n } from '@/i18n'
 import { errorText } from '@/lib/error-text'
@@ -320,11 +322,11 @@ export function AppearanceSettings() {
                 {/* One search box: filters your installed themes (the grid)
                     and live-searches the VS Code Marketplace below. */}
                 <div className="mt-3">
-                  <input
-                    className="w-full rounded-lg border border-(--ui-stroke-tertiary) bg-(--ui-bg-quinary) px-3 py-1.5 text-[length:var(--conversation-caption-font-size)] outline-none placeholder:text-(--ui-text-tertiary) focus:border-(--ui-stroke-secondary)"
-                    onChange={event => setQuery(event.target.value)}
+                  <SearchField
+                    containerClassName="w-full"
+                    inputClassName="w-full"
+                    onChange={setQuery}
                     placeholder="Search your themes or the VS Code Marketplace…"
-                    spellCheck={false}
                     value={query}
                   />
                 </div>
@@ -365,23 +367,24 @@ export function AppearanceSettings() {
                               </div>
                             </button>
                             {removable && (
-                              <button
-                                aria-label={a.removeTheme}
-                                className="absolute right-1.5 top-1.5 grid size-6 place-items-center rounded-md bg-(--ui-bg-elevated)/80 text-(--ui-text-tertiary) opacity-0 backdrop-blur-sm transition hover:text-(--ui-red) focus-visible:opacity-100 group-hover:opacity-100"
-                                onClick={() => {
-                                  triggerHaptic('crisp')
-                                  removeUserTheme(theme.name)
+                              <Tip label={a.removeTheme}>
+                                <button
+                                  aria-label={a.removeTheme}
+                                  className="absolute right-1.5 top-1.5 grid size-6 place-items-center rounded-md bg-(--ui-bg-elevated)/80 text-(--ui-text-tertiary) opacity-0 backdrop-blur-sm transition hover:text-(--ui-red) focus-visible:opacity-100 group-hover:opacity-100"
+                                  onClick={() => {
+                                    triggerHaptic('crisp')
+                                    removeUserTheme(theme.name)
 
-                                  // Re-normalize off the now-missing skin → default.
-                                  if (active) {
-                                    setTheme(theme.name)
-                                  }
-                                }}
-                                title={a.removeTheme}
-                                type="button"
-                              >
-                                <Trash2 className="size-3.5" />
-                              </button>
+                                    // Re-normalize off the now-missing skin → default.
+                                    if (active) {
+                                      setTheme(theme.name)
+                                    }
+                                  }}
+                                  type="button"
+                                >
+                                  <Trash2 className="size-3.5" />
+                                </button>
+                              </Tip>
                             )}
                           </div>
                         )

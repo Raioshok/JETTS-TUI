@@ -30,6 +30,7 @@ import { findGroupOfPane } from '@/components/pane-shell/tree/model'
 import { $layoutTree, moveTreePane, setTreeGroupHeaderHidden } from '@/components/pane-shell/tree/store'
 import { Button } from '@/components/ui/button'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { ErrorState } from '@/components/ui/error-state'
 import { useI18n } from '@/i18n'
 import { transcribeAudio } from '@/jettstui'
 import type { ChatMessage } from '@/lib/chat-messages'
@@ -193,6 +194,7 @@ function TileChat({
 }
 
 export function SessionTilePane({ storedSessionId }: { storedSessionId: string }) {
+  const { t } = useI18n()
   const tiles = useStore($sessionTiles)
   const tile = tiles.find(t => t.storedSessionId === storedSessionId)
   const runtimeId = tile?.runtimeId ?? null
@@ -299,13 +301,13 @@ export function SessionTilePane({ storedSessionId }: { storedSessionId: string }
   if (tile?.error) {
     return (
       <div className="grid h-full place-items-center p-4">
-        <div className="max-w-[24rem] space-y-2 text-center font-mono text-[11px]">
-          <div className="text-(--ui-danger,#f87171)">Couldn't open this session</div>
-          <div className="break-words text-(--ui-text-quaternary)">{tile.error}</div>
-          <Button onClick={() => patchSessionTile(storedSessionId, { error: undefined })} size="sm" variant="outline">
-            Retry
-          </Button>
-        </div>
+        <ErrorState className="max-w-sm" description={tile.error} title={t.desktop.resumeStrandedTitle}>
+          <div className="flex justify-center">
+            <Button onClick={() => patchSessionTile(storedSessionId, { error: undefined })} size="sm" variant="outline">
+              {t.common.retry}
+            </Button>
+          </div>
+        </ErrorState>
       </div>
     )
   }

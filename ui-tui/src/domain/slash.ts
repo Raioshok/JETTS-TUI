@@ -27,8 +27,10 @@ export const looksLikeSlashCommand = (text: string) => /^\/[^\s/]*(?:\s|$)/.test
 // Requiring a single bare segment (no second `/`) keeps real paths out:
 // `look at /usr/local/bin` and `check src/foo/bar` never match. A bare `/us` is
 // genuinely ambiguous with an absolute path, and resolves as a skill reference
-// — typing the next `/` flips it straight back to path completion.
-const INLINE_SLASH_RE = /\s\/([a-zA-Z][\w-]*)?$/
+// — typing the next `/` flips it straight back to path completion. Digit-led
+// skills like `/3d` are also matched while pure numeric ratios remain excluded
+// on finished text.
+const INLINE_SLASH_RE = /\s\/((?=[a-zA-Z0-9]*[a-zA-Z])[a-zA-Z0-9][\w-]*|[0-9])?$/
 
 /**
  * Locate an inline `/skill` reference at the end of `text`, or null when the
@@ -62,7 +64,7 @@ export const parseSlashCommand = (cmd: string) => {
 // otherwise mark `/usr`. `(?![\w-]*\/)` requires the token to end at something
 // other than another slash. A leading `/` is excluded too — that's a command
 // invocation, which never reaches the transcript as a user message.
-const SLASH_SKILL_REF_RE = /(?<=\s)\/[a-zA-Z][\w-]*(?![\w-]*\/)/g
+const SLASH_SKILL_REF_RE = /(?<=\s)\/(?=[a-zA-Z0-9]*[a-zA-Z])[a-zA-Z0-9][\w-]*(?![\w-]*\/)/g
 
 /**
  * Split `text` into alternating plain and `/skill` reference runs. Always

@@ -273,3 +273,15 @@ export function navigateToWorkspacePage(navigate: NavigateLike, to: string, opti
     revealWorkspacePane()
   }
 }
+
+/** Hash-router equivalent of `navigateToWorkspacePage` for non-hook callers
+ *  (SDK `host.navigate`, slash actions, deep-link helpers). */
+export function navigateWorkspaceHash(to: string): void {
+  const clean = to.startsWith('#') ? to.slice(1) : to
+  const normalized = clean.startsWith('/') ? clean : `/${clean}`
+  window.location.hash = `#${normalized}`
+
+  if (isWorkspacePageRoute(normalized)) {
+    revealWorkspacePane()
+  }
+}

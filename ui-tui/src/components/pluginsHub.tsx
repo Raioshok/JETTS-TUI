@@ -51,6 +51,7 @@ export function PluginsHub({ gw, maxWidth, onClose, t }: PluginsHubProps) {
   const [loading, setLoading] = useState(true)
 
   const { stdout } = useStdout()
+  const visibleLimit = Math.max(4, Math.min(VISIBLE, (stdout?.rows ?? 24) - 12))
   // Optional maxWidth lets grid layouts hand the hub its cell budget.
   const preferredWidth = Math.max(MIN_WIDTH, Math.min(MAX_WIDTH, (stdout?.columns ?? 80) - 6))
   const width = clampOverlayWidth(preferredWidth, maxWidth)
@@ -109,14 +110,38 @@ export function PluginsHub({ gw, maxWidth, onClose, t }: PluginsHubProps) {
 
     const count = effectiveRows.length
 
-    if (key.upArrow && clampedIdx > 0) {
+    if ((key.upArrow || (key as { wheelUp?: boolean }).wheelUp) && clampedIdx > 0) {
       setIdx(clampedIdx - 1)
 
       return
     }
 
-    if (key.downArrow && clampedIdx < count - 1) {
+    if ((key.downArrow || (key as { wheelDown?: boolean }).wheelDown) && clampedIdx < count - 1) {
       setIdx(clampedIdx + 1)
+
+      return
+    }
+
+    if (key.pageUp && count > 0) {
+      setIdx(Math.max(0, clampedIdx - visibleLimit))
+
+      return
+    }
+
+    if (key.pageDown && count > 0) {
+      setIdx(Math.min(count - 1, clampedIdx + visibleLimit))
+
+      return
+    }
+
+    if (key.home && count > 0) {
+      setIdx(0)
+
+      return
+    }
+
+    if (key.end && count > 0) {
+      setIdx(count - 1)
 
       return
     }
@@ -142,7 +167,7 @@ export function PluginsHub({ gw, maxWidth, onClose, t }: PluginsHubProps) {
     const n = ch === '0' ? 10 : parseInt(ch, 10)
 
     if (!Number.isNaN(n) && n >= 1 && n <= Math.min(10, count)) {
-      const next = windowOffset(count, clampedIdx, VISIBLE) + n - 1
+      const next = windowOffset(count, clampedIdx, visibleLimit) + n - 1
       const row = effectiveRows[next]
 
       if (row) {
@@ -188,7 +213,7 @@ export function PluginsHub({ gw, maxWidth, onClose, t }: PluginsHubProps) {
     return `${glyph} ${r.name}${ver}${src}${state}`
   })
 
-  const { items, offset } = windowItems(labels, clampedIdx, VISIBLE)
+  const { items, offset } = windowItems(labels, clampedIdx, visibleLimit)
 
   const scopeLabel =
     effectiveScope === 'user'
@@ -221,8 +246,8 @@ export function PluginsHub({ gw, maxWidth, onClose, t }: PluginsHubProps) {
         )
       })}
 
-      {offset + VISIBLE < labels.length && (
-        <Text color={t.color.muted}> ↓ {labels.length - offset - VISIBLE} more</Text>
+      {offset + visibleLimit < labels.length && (
+        <Text color={t.color.muted}> ↓ {labels.length - offset - visibleLimit} more</Text>
       )}
 
       {err ? <Text color={t.color.label}>error: {err}</Text> : null}

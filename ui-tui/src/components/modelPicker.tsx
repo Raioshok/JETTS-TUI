@@ -5,8 +5,10 @@ import { providerDisplayNames } from '../domain/providers.js'
 import { TUI_SESSION_MODEL_FLAG } from '../domain/slash.js'
 import type { GatewayClient } from '../gatewayClient.js'
 import type { ModelOptionProvider, ModelOptionsResponse } from '../gatewayTypes.js'
+import { readClipboardText } from '../lib/clipboard.js'
 import { fuzzyRank } from '../lib/fuzzy.js'
 import { modelSearchText } from '../lib/model-search-text.js'
+import { isActionMod } from '../lib/platform.js'
 import { asRpcResult, rpcErrorMessage } from '../lib/rpc.js'
 import type { Theme } from '../theme.js'
 
@@ -57,6 +59,8 @@ export function ModelPicker({
   const [filter, setFilter] = useState('')
 
   const { stdout } = useStdout()
+  const terminalRows = stdout?.rows ?? 24
+  const visibleLimit = Math.max(4, Math.min(VISIBLE, terminalRows - 14))
   // Pin the picker to a stable width so the FloatBox parent (which shrinks-
   // to-fit with alignSelf="flex-start") doesn't resize as long provider /
   // model names scroll into view, and so `wrap="truncate-end"` on each row
@@ -246,14 +250,37 @@ export function ModelPicker({
       }
 
       // ctrl+u clears input
-      if (ch === '\u0015') {
+      if (ch === '\u0015' || (key.ctrl && ch.toLowerCase() === 'u')) {
         setKeyInput('')
 
         return
       }
 
-      if (ch && !key.ctrl && !key.meta) {
-        setKeyInput(v => v + ch)
+      const bracketPasteRe = new RegExp(`${String.fromCharCode(27)}?\\[20[01]~`, 'g')
+      const sanitizeKeyChunk = (raw: string) => raw.replace(bracketPasteRe, '').replace(/\p{Cc}/gu, '')
+
+      // Support Ctrl+V / Alt+V / Cmd+V clipboard paste on the masked key stage
+      if (
+        ch.toLowerCase() === 'v' &&
+        (isActionMod(key) || key.ctrl || key.meta || (key as { super?: boolean }).super)
+      ) {
+        void readClipboardText().then(clip => {
+          const clean = sanitizeKeyChunk(clip ?? '').trim()
+
+          if (clean) {
+            setKeyInput(v => v + clean)
+          }
+        })
+
+        return
+      }
+
+      if (ch && !key.ctrl && !key.meta && !(key as { super?: boolean }).super) {
+        const clean = sanitizeKeyChunk(ch)
+
+        if (clean) {
+          setKeyInput(v => v + clean)
+        }
       }
 
       return
@@ -331,14 +358,38 @@ export function ModelPicker({
     const sel = stage === 'provider' ? providerIdx : modelIdx
     const setSel = stage === 'provider' ? setProviderIdx : setModelIdx
 
-    if (key.upArrow && sel > 0) {
-      setSel(v => v - 1)
+    if ((key.upArrow || (key as { wheelUp?: boolean }).wheelUp) && sel > 0) {
+      setSel(v => Math.max(0, v - 1))
 
       return
     }
 
-    if (key.downArrow && sel < count - 1) {
-      setSel(v => v + 1)
+    if ((key.downArrow || (key as { wheelDown?: boolean }).wheelDown) && sel < count - 1) {
+      setSel(v => Math.min(count - 1, v + 1))
+
+      return
+    }
+
+    if (key.pageUp && count > 0) {
+      setSel(v => Math.max(0, v - visibleLimit))
+
+      return
+    }
+
+    if (key.pageDown && count > 0) {
+      setSel(v => Math.min(count - 1, v + visibleLimit))
+
+      return
+    }
+
+    if (key.home && count > 0) {
+      setSel(0)
+
+      return
+    }
+
+    if (key.end && count > 0) {
+      setSel(count - 1)
 
       return
     }
@@ -561,8 +612,9 @@ export function ModelPicker({
       return `${authMark} ${name} · ${suffix}`
     })
 
-    const { items, offset } = windowItems(rows, providerIdx, VISIBLE)
+    const { items, offset } = windowItems(rows, providerIdx, visibleLimit)
     const noMatches = !!filter.trim() && rows.length === 0
+    const rowSlots = Math.min(visibleLimit, Math.max(1, rows.length))
 
     return (
       <Box flexDirection="column" width={width}>
@@ -578,7 +630,7 @@ export function ModelPicker({
           Current: {currentModel || '(unknown)'}
         </Text>
         <Text color={filter ? t.color.accent : t.color.muted} wrap="truncate-end">
-          {filter ? `filter: ${filter}▎` : 'type to filter · ↑/↓ select'}
+          {filter ? `filter: ${filter}▎` : 'type to filter · ↑/↓/PgUp/PgDn select'}
         </Text>
         <Text color={t.color.label} wrap="truncate-end">
           {provider?.warning ? `warning: ${provider.warning}` : ' '}
@@ -592,7 +644,7 @@ export function ModelPicker({
             no providers match
           </Text>
         ) : (
-          Array.from({ length: VISIBLE }, (_, i) => {
+          Array.from({ length: rowSlots }, (_, i) => {
             const row = items[i]
             const idx = offset + i
             const p = filteredProviderRows[idx]?.provider
@@ -617,7 +669,7 @@ export function ModelPicker({
         )}
 
         <Text color={t.color.muted} wrap="truncate-end">
-          {offset + VISIBLE < rows.length ? ` ↓ ${rows.length - offset - VISIBLE} more` : ' '}
+          {offset + visibleLimit < rows.length ? ` ↓ ${rows.length - offset - visibleLimit} more` : ' '}
         </Text>
 
         <Text color={t.color.muted} wrap="truncate-end">
@@ -630,8 +682,9 @@ export function ModelPicker({
   }
 
   // ── Model selection stage ────────────────────────────────────────────
-  const { items, offset } = windowItems(models, modelIdx, VISIBLE)
+  const { items, offset } = windowItems(models, modelIdx, visibleLimit)
   const noModelMatches = !!filter.trim() && models.length === 0
+  const modelSlots = Math.min(visibleLimit, Math.max(1, models.length))
 
   return (
     <Box flexDirection="column" width={width}>
@@ -643,7 +696,7 @@ export function ModelPicker({
         {filteredProviderRows[providerIdx]?.name || '(unknown provider)'} · Esc back
       </Text>
       <Text color={filter ? t.color.accent : t.color.muted} wrap="truncate-end">
-        {filter ? `filter: ${filter}▎` : 'type to filter · ↑/↓ select'}
+        {filter ? `filter: ${filter}▎` : 'type to filter · ↑/↓/PgUp/PgDn select'}
       </Text>
       <Text color={t.color.label} wrap="truncate-end">
         {provider?.warning ? `warning: ${provider.warning}` : ' '}
@@ -652,7 +705,7 @@ export function ModelPicker({
         {offset > 0 ? ` ↑ ${offset} more` : ' '}
       </Text>
 
-      {Array.from({ length: VISIBLE }, (_, i) => {
+      {Array.from({ length: modelSlots }, (_, i) => {
         const row = items[i]
         const idx = offset + i
 
@@ -684,7 +737,7 @@ export function ModelPicker({
       })}
 
       <Text color={t.color.muted} wrap="truncate-end">
-        {offset + VISIBLE < models.length ? ` ↓ ${models.length - offset - VISIBLE} more` : ' '}
+        {offset + visibleLimit < models.length ? ` ↓ ${models.length - offset - visibleLimit} more` : ' '}
       </Text>
 
       <Text color={t.color.muted} wrap="truncate-end">

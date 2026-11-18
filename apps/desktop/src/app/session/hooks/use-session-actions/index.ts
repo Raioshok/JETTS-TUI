@@ -9,7 +9,8 @@ import { type ChatMessage, preserveLocalAssistantErrors, toChatMessages } from '
 import { isMissingRpcMethod } from '@/lib/gateway-rpc'
 import { recoverInFlightTurnJournal } from '@/lib/inflight-turn-journal'
 import { setSessionYolo } from '@/lib/yolo-session'
-import { $newChatBot } from '@/store/bots'
+import { migrateDraftSessionModels } from '@/store/blender-models'
+import { $currentBotName, $newChatBot } from '@/store/bots'
 import { migrateSessionDraft } from '@/store/composer'
 import { clearQueuedPrompts, migrateQueuedPrompts } from '@/store/composer-queue'
 import { $pinnedSessionIds } from '@/store/layout'
@@ -331,6 +332,15 @@ export function useSessionActions({
       // is cleared.
       setCurrentServiceTier('')
       setYoloActive(false)
+      $currentBotName.set('')
+
+      // Route-driven transitions (`startFreshSessionDraft(true)` from useRouteResume)
+      // preserve a one-shot `$newChatBot` just armed by `BotsView.openBot`; every
+      // explicit "new session" action (`false` or options object) clears stale bot intent.
+      if (options !== true) {
+        $newChatBot.set(null)
+      }
+
       setNewChatWorkspaceTarget(hasWorkspaceTarget ? workspaceTarget : undefined)
 
       if (!hasWorkspaceTarget) {
@@ -418,6 +428,7 @@ export function useSessionActions({
         setFreshDraftReady(false)
         setNewChatWorkspaceTarget(undefined)
         $newChatBot.set(null)
+        migrateDraftSessionModels(created.session_id)
         setActiveSessionId(created.session_id)
         setSelectedStoredSessionId(stored)
         setSessionStartedAt(Date.now())

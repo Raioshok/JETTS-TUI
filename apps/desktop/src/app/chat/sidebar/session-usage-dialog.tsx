@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { ErrorState } from '@/components/ui/error-state'
+import { Loader } from '@/components/ui/loader'
 import { useI18n } from '@/i18n'
 import { activeGateway } from '@/store/gateway'
 import type { SessionStats } from '@/types/jettstui'
@@ -71,22 +73,31 @@ export function SessionUsageDialog({ open, onOpenChange, sessionId, title }: Ses
         <DialogHeader>
           <DialogTitle>{u.title}</DialogTitle>
         </DialogHeader>
-        {title && <p className="-mt-1 truncate text-[length:var(--conversation-caption-font-size)] text-muted-foreground">{title}</p>}
+        {title && (
+          <p className="-mt-1 truncate text-[length:var(--conversation-caption-font-size)] text-muted-foreground">
+            {title}
+          </p>
+        )}
         {loading && !stats ? (
-          <p className="py-4 text-center text-[length:var(--conversation-caption-font-size)] text-muted-foreground">{u.loading}</p>
+          <div className="flex flex-col items-center gap-2 py-4 text-[length:var(--conversation-caption-font-size)] text-muted-foreground">
+            <Loader className="size-5" />
+            <span>{u.loading}</span>
+          </div>
         ) : error || !stats ? (
-          <p className="py-4 text-center text-[length:var(--conversation-caption-font-size)] text-muted-foreground">{u.unavailable}</p>
+          <ErrorState className="py-2" description={u.unavailable} title={u.title} />
         ) : (
           <dl className="grid gap-2 py-1 text-[length:var(--conversation-caption-font-size)]">
             <HeroRow label={u.workingTime} value={formatDuration(stats.active_seconds)} />
             <HeroRow label={u.estCost} value={formatCost(stats, u)} />
-            <div className="my-0.5 border-t border-(--ui-border)" />
+            <div className="my-0.5 border-t border-(--ui-stroke-tertiary)" />
             <Row label={u.model} value={stats.model || '—'} />
             <Row label={u.apiCalls} value={stats.api_call_count.toLocaleString()} />
             <Row label={u.toolCalls} value={stats.tool_call_count.toLocaleString()} />
             <Row label={u.tokensIn} value={formatTokens(stats.input_tokens)} />
             <Row label={u.tokensOut} value={formatTokens(stats.output_tokens)} />
-            {stats.cache_read_tokens > 0 && <Row label={u.tokensCached} value={formatTokens(stats.cache_read_tokens)} />}
+            {stats.cache_read_tokens > 0 && (
+              <Row label={u.tokensCached} value={formatTokens(stats.cache_read_tokens)} />
+            )}
           </dl>
         )}
       </DialogContent>

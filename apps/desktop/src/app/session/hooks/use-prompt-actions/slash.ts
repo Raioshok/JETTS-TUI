@@ -1,6 +1,7 @@
 import { skillInvocationText } from '@jetts-tui/shared'
 import { type MutableRefObject, useCallback, useRef } from 'react'
 
+import { navigateWorkspaceHash } from '@/app/routes'
 import type { Translations } from '@/i18n'
 import { getProfiles } from '@/jettstui'
 import { type ChatMessage, toChatMessages } from '@/lib/chat-messages'
@@ -16,7 +17,7 @@ import {
 } from '@/lib/desktop-slash-commands'
 import { isMissingRpcMethod } from '@/lib/gateway-rpc'
 import { setSessionYolo } from '@/lib/yolo-session'
-import { $smart3DModalOpen } from '@/store/blender-models'
+import { setSmart3DModalOpen } from '@/store/blender-models'
 import { openCommandPalettePage } from '@/store/command-palette'
 import { setComposerDraft } from '@/store/composer'
 import { enqueueQueuedPrompt } from '@/store/composer-queue'
@@ -231,11 +232,32 @@ export function useSlashCommand(deps: SlashCommandDeps) {
             return
           }
 
-          // send / prefill carry an optional `notice` (e.g. "⊙ Goal set …")
-          // that the backend wants shown as a system line before the message
-          // is acted on. Mirrors the TUI's createSlashHandler — without it a
-          // `/goal <text>` looked like it did nothing.
-          if ((dispatch.type === 'send' || dispatch.type === 'prefill') && dispatch.notice?.trim()) {
+          const message = ('message' in dispatch ? dispatch.message : '')?.trim() ?? ''
+
+          // /undo returns a prefill directive: sync the rewound transcript first so
+          // the notice below appends onto the rewound messages, then prefill composer.
+          if (dispatch.type === 'prefill') {
+            if (Array.isArray(dispatch.messages)) {
+              const nextMessages = toChatMessages(dispatch.messages)
+              updateSessionState(sessionId, state => ({ ...state, messages: nextMessages }), storedSessionId)
+            }
+
+            if (dispatch.notice?.trim()) {
+              renderSlashOutput(dispatch.notice.trim())
+            }
+
+            if (message) {
+              setComposerDraft(message)
+            }
+
+            return
+          }
+
+          // send carries an optional `notice` (e.g. "⊙ Goal set …") that the
+          // backend wants shown as a system line before the message is acted on.
+          // Mirrors the TUI's createSlashHandler — without it a `/goal <text>`
+          // looked like it did nothing.
+          if (dispatch.type === 'send' && dispatch.notice?.trim()) {
             renderSlashOutput(dispatch.notice.trim())
 
             // `/goal <text>` returns its "⊙ Goal set …" notice here and kicks
@@ -246,18 +268,6 @@ export function useSlashCommand(deps: SlashCommandDeps) {
             if (name === 'goal') {
               applyGoalStatusText(sessionId, dispatch.notice.trim())
             }
-          }
-
-          const message = ('message' in dispatch ? dispatch.message : '')?.trim() ?? ''
-
-          // /undo returns a prefill directive: drop the backed-up message into
-          // the composer for editing instead of submitting it immediately.
-          if (dispatch.type === 'prefill') {
-            if (message) {
-              setComposerDraft(message)
-            }
-
-            return
           }
 
           if (!message) {
@@ -781,13 +791,17 @@ export function useSlashCommand(deps: SlashCommandDeps) {
           const trimmed = ctx.arg.trim()
 
           if (!trimmed) {
-            $smart3DModalOpen.set(true)
+            const tileKey = ctx.sessionHint ? $sessionStates.get()[ctx.sessionHint]?.storedSessionId : null
+
+            const scope = tileKey && tileKey !== selectedStoredSessionIdRef.current ? `tile:${tileKey}` : 'main'
+
+            setSmart3DModalOpen(true, scope)
 
             return
           }
 
           if (trimmed.toLowerCase() === 'studio') {
-            window.location.hash = '#/blender'
+            navigateWorkspaceHash('/blender')
 
             return
           }

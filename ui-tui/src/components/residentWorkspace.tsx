@@ -5,6 +5,8 @@ import { commsSessions, relativeTime } from '../lib/residentActivity.js'
 import type { Theme } from '../theme.js'
 import type { SubagentProgress } from '../types.js'
 
+import { listRowStyle } from './overlayPrimitives.js'
+
 export const RESIDENT_WORKSPACE_MIN_COLS = 118
 export const RESIDENT_WORKSPACE_MIN_ROWS = 30
 // When the user is actively juggling more than one agent, seeing the others is
@@ -24,9 +26,17 @@ export const shouldUseResidentWorkspace = (
   sessionCount: number,
   pref: ResidentWorkspacePref = 'auto'
 ) => {
-  if (pref === 'off') {return false}
-  if (sessionCount <= 0) {return false}
-  if (pref === 'on') {return true}
+  if (pref === 'off') {
+    return false
+  }
+
+  if (sessionCount <= 0) {
+    return false
+  }
+
+  if (pref === 'on') {
+    return true
+  }
 
   const multiAgent = sessionCount >= 2
   const minCols = multiAgent ? RESIDENT_WORKSPACE_MULTI_MIN_COLS : RESIDENT_WORKSPACE_MIN_COLS
@@ -38,18 +48,32 @@ export const shouldUseResidentWorkspace = (
 export const residentSessionLabel = (session: SessionActiveItem, index: number) =>
   session.title?.trim() || `agent${index + 1}`
 
-export const residentCurrentSessionIndex = (sessions: readonly SessionActiveItem[], currentSessionId: null | string) => {
+export const residentCurrentSessionIndex = (
+  sessions: readonly SessionActiveItem[],
+  currentSessionId: null | string
+) => {
   const explicit = currentSessionId ? sessions.findIndex(session => session.id === currentSessionId) : -1
 
-  return explicit >= 0 ? explicit : Math.max(0, sessions.findIndex(session => session.current))
+  return explicit >= 0
+    ? explicit
+    : Math.max(
+        0,
+        sessions.findIndex(session => session.current)
+      )
 }
 
 const statusGlyph = (status: SessionActiveItem['status']) => {
-  if (status === 'working') {return '●'}
+  if (status === 'working') {
+    return '●'
+  }
 
-  if (status === 'waiting') {return '!'}
+  if (status === 'waiting') {
+    return '!'
+  }
 
-  if (status === 'starting') {return '…'}
+  if (status === 'starting') {
+    return '…'
+  }
 
   return '○'
 }
@@ -96,7 +120,9 @@ export function ResidentWorkspaceSidebar({
     <Box flexDirection="column" flexShrink={0} height="100%" marginRight={1} width={RESIDENT_SIDEBAR_COLS}>
       <Box borderColor={t.color.border} borderStyle="round" flexDirection="column" flexGrow={1} paddingX={1}>
         <Box justifyContent="space-between">
-          <Text bold color={t.color.label}>Sessions</Text>
+          <Text bold color={t.color.label}>
+            Sessions
+          </Text>
           <Text color={t.color.muted}>{sessions.length} live</Text>
         </Box>
 
@@ -104,32 +130,39 @@ export function ResidentWorkspaceSidebar({
 
         {sessions.slice(0, 9).map((session, index) => {
           const current = residentCurrentSessionIndex(sessions, currentSessionId) === index
+          const row = listRowStyle(t, current)
 
           return (
-            <Box
-              backgroundColor={current ? t.color.completionCurrentBg : undefined}
-              height={1}
-              key={session.id}
-              onClick={() => onSelect(session.id)}
-            >
+            <Box backgroundColor={row.backgroundColor} height={1} key={session.id} onClick={() => onSelect(session.id)}>
               <Box flexShrink={0}>
-                <Text color={current ? t.color.accent : session.status === 'working' ? t.color.ok : t.color.muted}>
+                <Text
+                  color={
+                    current ? (row.color ?? t.color.accent) : session.status === 'working' ? t.color.ok : t.color.muted
+                  }
+                >
                   {statusGlyph(session.status)}{' '}
                 </Text>
-                <Text color={t.color.muted}>{index + 1} </Text>
+                <Text color={current ? (row.color ?? t.color.muted) : t.color.muted}>{index + 1} </Text>
               </Box>
               {/* One line per session: long titles truncate instead of wrapping. */}
               <Box flexGrow={1} flexShrink={1} overflow="hidden">
-                <Text bold={current} color={current ? t.color.text : t.color.label} wrap="truncate-end">
+                <Text bold={current} color={current ? (row.color ?? t.color.text) : t.color.label} wrap="truncate-end">
                   {residentSessionLabel(session, index)}
                 </Text>
               </Box>
               {(() => {
                 const n = unread.get(session.id) ?? 0
 
-                return n > 0 ? <Text bold color={t.color.warn}> +{n}</Text> : n < 0 ? <Text color={t.color.warn}> •</Text> : null
+                return n > 0 ? (
+                  <Text bold color={t.color.warn}>
+                    {' '}
+                    +{n}
+                  </Text>
+                ) : n < 0 ? (
+                  <Text color={t.color.warn}> •</Text>
+                ) : null
               })()}
-              {current ? <Text color={t.color.accent}> ◀</Text> : null}
+              {current ? <Text color={row.color ?? t.color.accent}> ◀</Text> : null}
             </Box>
           )
         })}
@@ -141,7 +174,9 @@ export function ResidentWorkspaceSidebar({
         {subagents.length > 0 ? (
           <Box flexDirection="column" marginTop={1}>
             <Box onClick={onOpenAgents}>
-              <Text bold color={t.color.label}>Child agents</Text>
+              <Text bold color={t.color.label}>
+                Child agents
+              </Text>
               <Text color={t.color.muted}> {runningAgents.length} active ›</Text>
             </Box>
             {visibleAgents.slice(0, 4).map(agent => (
@@ -149,7 +184,9 @@ export function ResidentWorkspaceSidebar({
                 <Text color={agent.status === 'running' ? t.color.ok : t.color.muted}>
                   {agent.status === 'running' ? '●' : agent.status === 'queued' ? '○' : '✓'}{' '}
                 </Text>
-                <Text color={t.color.text} wrap="truncate-end">{agent.goal}</Text>
+                <Text color={t.color.text} wrap="truncate-end">
+                  {agent.goal}
+                </Text>
               </Box>
             ))}
             {subagents.length > 4 ? <Text color={t.color.muted}>+{subagents.length - 4} more · /agents</Text> : null}
@@ -161,35 +198,51 @@ export function ResidentWorkspaceSidebar({
         <Text color={t.color.muted}>Ctrl+X all sessions</Text>
       </Box>
 
-      <Box borderColor={t.color.border} borderStyle="round" flexDirection="column" height={10} marginTop={1} paddingX={1}>
+      <Box
+        borderColor={t.color.border}
+        borderStyle="round"
+        flexDirection="column"
+        height={10}
+        marginTop={1}
+        paddingX={1}
+      >
         <Box justifyContent="space-between">
-          <Text bold color={t.color.label}>Comms</Text>
+          <Text bold color={t.color.label}>
+            Comms
+          </Text>
           <Text color={t.color.muted}>live</Text>
         </Box>
-        {subagents.length > 0 ? visibleAgents.slice(0, 3).map(agent => (
-          <Box flexDirection="column" key={agent.id} onClick={onOpenAgents}>
-            <Text color={agent.status === 'running' ? t.color.ok : t.color.muted} wrap="truncate-end">
-              {agent.status === 'running' ? '●' : '○'} {agent.goal}
-            </Text>
-            <Text color={t.color.muted} dimColor wrap="truncate-end">{'  '}{agentActivity(agent)}</Text>
-          </Box>
-        )) : commsSessions(sessions, 3).map(session => {
-          const index = sessions.findIndex(s => s.id === session.id)
-          const ts = relativeTime(session.last_active, Date.now())
-
-          return (
-            <Box flexDirection="column" key={session.id}>
-              <Text color={session.status === 'working' ? t.color.ok : t.color.muted} wrap="truncate-end">
-                {statusGlyph(session.status)} {residentSessionLabel(session, index)} · {session.status}{ts ? ` · ${ts}` : ''}
-              </Text>
-              {session.preview ? (
-                <Text color={t.color.muted} dimColor wrap="truncate-end">
-                  {'  '}{session.preview}
+        {subagents.length > 0
+          ? visibleAgents.slice(0, 3).map(agent => (
+              <Box flexDirection="column" key={agent.id} onClick={onOpenAgents}>
+                <Text color={agent.status === 'running' ? t.color.ok : t.color.muted} wrap="truncate-end">
+                  {agent.status === 'running' ? '●' : '○'} {agent.goal}
                 </Text>
-              ) : null}
-            </Box>
-          )
-        })}
+                <Text color={t.color.muted} dimColor wrap="truncate-end">
+                  {'  '}
+                  {agentActivity(agent)}
+                </Text>
+              </Box>
+            ))
+          : commsSessions(sessions, 3).map(session => {
+              const index = sessions.findIndex(s => s.id === session.id)
+              const ts = relativeTime(session.last_active, Date.now())
+
+              return (
+                <Box flexDirection="column" key={session.id}>
+                  <Text color={session.status === 'working' ? t.color.ok : t.color.muted} wrap="truncate-end">
+                    {statusGlyph(session.status)} {residentSessionLabel(session, index)} · {session.status}
+                    {ts ? ` · ${ts}` : ''}
+                  </Text>
+                  {session.preview ? (
+                    <Text color={t.color.muted} dimColor wrap="truncate-end">
+                      {'  '}
+                      {session.preview}
+                    </Text>
+                  ) : null}
+                </Box>
+              )
+            })}
       </Box>
     </Box>
   )
@@ -221,7 +274,10 @@ export function ResidentSessionPreview({ index, onSelect, session, t }: Resident
         <Text bold color={session.status === 'working' ? t.color.ok : t.color.accent}>
           {statusGlyph(session.status)} {residentSessionLabel(session, index)}
         </Text>
-        <Text color={t.color.muted}>Alt+{index + 1} · {shortModel(session.model)}{ts ? ` · ${ts}` : ''}</Text>
+        <Text color={t.color.muted}>
+          Alt+{index + 1} · {shortModel(session.model)}
+          {ts ? ` · ${ts}` : ''}
+        </Text>
       </Box>
       <Text color={t.color.muted} wrap="truncate-end">
         {session.status} · {session.message_count ?? 0} messages
@@ -246,12 +302,16 @@ export function ResidentInputTarget({
   const index = residentCurrentSessionIndex(sessions, currentSessionId)
   const target = sessions[index]
 
-  if (!target) {return null}
+  if (!target) {
+    return null
+  }
 
   return (
     <Box>
       <Text color={t.color.muted}>To </Text>
-      <Text bold color={t.color.accent}>{residentSessionLabel(target, index)}</Text>
+      <Text bold color={t.color.accent}>
+        {residentSessionLabel(target, index)}
+      </Text>
     </Box>
   )
 }

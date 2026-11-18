@@ -5,11 +5,12 @@ import { useI18n } from '@/i18n'
 import { triggerHaptic } from '@/lib/haptics'
 import { AudioLines, Box, iconSize, Layers3, Loader2, Square, SteeringWheel, Volume2, VolumeX } from '@/lib/icons'
 import { cn } from '@/lib/utils'
-import { $smart3DModalOpen } from '@/store/blender-models'
+import { toggleSmart3DModal } from '@/store/blender-models'
 
 import { requestComposerInsert } from './focus'
 import type { ConversationStatus } from './hooks/use-voice-conversation'
 import { ModelPill } from './model-pill'
+import { useComposerScope } from './scope'
 import type { ChatBarState, VoiceStatus } from './types'
 
 export const ICON_BTN = 'size-(--composer-control-size) shrink-0 rounded-md'
@@ -69,6 +70,7 @@ export function ComposerControls({
 }) {
   const { t } = useI18n()
   const c = t.composer
+  const scope = useComposerScope()
 
   if (conversation.active) {
     return <ConversationPill {...conversation} disabled={disabled} />
@@ -80,18 +82,18 @@ export function ComposerControls({
   return (
     <div className="ml-auto flex shrink-0 items-center gap-(--composer-control-gap)">
       <ModelPill compact={compactModelPill} disabled={disabled} model={state.model} />
-      <Tip label="Generate 3D Model (/3d)">
+      <Tip label={c.generate3DTip}>
         <Button
-          aria-label="Generate 3D Model"
+          aria-label={c.generate3D}
           className={GHOST_ICON_BTN}
           disabled={disabled}
           onClick={() => {
             triggerHaptic('tap')
 
             if (!hasComposerPayload) {
-              $smart3DModalOpen.set(!$smart3DModalOpen.get())
+              toggleSmart3DModal(scope.target)
             } else {
-              requestComposerInsert('/3d ')
+              requestComposerInsert('/3d ', { target: scope.target })
             }
           }}
           size="icon"

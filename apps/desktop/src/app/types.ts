@@ -148,6 +148,7 @@ export interface SendCommandDispatchResponse {
 export interface PrefillCommandDispatchResponse {
   type: 'prefill'
   message: string
+  messages?: SessionMessage[]
   notice?: string
 }
 

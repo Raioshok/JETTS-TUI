@@ -11,8 +11,10 @@ import {
   sortProviders
 } from '@/components/onboarding'
 import { Button } from '@/components/ui/button'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { RowButton } from '@/components/ui/row-button'
 import { SearchField } from '@/components/ui/search-field'
+import { Tip } from '@/components/ui/tooltip'
 import { useI18n } from '@/i18n'
 import { disconnectOAuthProvider, listOAuthProviders } from '@/jettstui'
 import { Check, ChevronRight, KeyRound, Loader2, Terminal, Trash2 } from '@/lib/icons'
@@ -234,29 +236,31 @@ function ConnectedProviderRow({
         <div className="flex items-center gap-1 pr-2">
           <Trail className="size-4 text-muted-foreground transition group-hover:text-foreground" />
           {canDisconnect && (
-            <Button
-              aria-label={`${t.common.remove} ${title}`}
-              disabled={disconnecting}
-              onClick={() => onDisconnect(provider)}
-              size="icon-xs"
-              title={`${t.common.remove} ${title}`}
-              type="button"
-              variant="ghost"
-            >
-              {disconnecting ? <Loader2 className="size-3 animate-spin" /> : <Trash2 className="size-3" />}
-            </Button>
+            <Tip label={`${t.common.remove} ${title}`}>
+              <Button
+                aria-label={`${t.common.remove} ${title}`}
+                disabled={disconnecting}
+                onClick={() => onDisconnect(provider)}
+                size="icon-xs"
+                type="button"
+                variant="ghost"
+              >
+                {disconnecting ? <Loader2 className="size-3 animate-spin" /> : <Trash2 className="size-3" />}
+              </Button>
+            </Tip>
           )}
           {terminalDisconnect && (
-            <Button
-              aria-label={`${copy.disconnect} ${title}`}
-              onClick={() => onTerminalDisconnect(provider)}
-              size="icon-xs"
-              title={copy.disconnectInTerminal}
-              type="button"
-              variant="ghost"
-            >
-              <Trash2 className="size-3" />
-            </Button>
+            <Tip label={copy.disconnectInTerminal}>
+              <Button
+                aria-label={`${copy.disconnect} ${title}`}
+                onClick={() => onTerminalDisconnect(provider)}
+                size="icon-xs"
+                type="button"
+                variant="ghost"
+              >
+                <Trash2 className="size-3" />
+              </Button>
+            </Tip>
           )}
         </div>
       </div>
@@ -318,10 +322,17 @@ export function ProvidersSettings({
   view
 }: ProvidersSettingsProps) {
   const { t } = useI18n()
-  const { rowProps, vars } = useEnvCredentials()
+  const { confirmDialog: envConfirmDialog, rowProps, vars } = useEnvCredentials()
   const [oauthProviders, setOauthProviders] = useState<OAuthProvider[]>([])
   const [openProvider, setOpenProvider] = useState<null | string>(null)
   const [disconnecting, setDisconnecting] = useState<null | string>(null)
+
+  const [pendingProviderAction, setPendingProviderAction] = useState<
+    | { kind: 'disconnect'; provider: OAuthProvider }
+    | { command: string; kind: 'terminal'; provider: OAuthProvider }
+    | null
+  >(null)
+
   // Free-text filter for the API-keys view (provider name / env-var key / desc).
   const [keyQuery, setKeyQuery] = useState('')
   // The onboarding overlay owns the OAuth flow. Watch its `manual` flag so we
@@ -368,11 +379,11 @@ export function ProvidersSettings({
       return
     }
 
-    const name = providerTitle(provider)
+    setPendingProviderAction({ command, kind: 'terminal', provider })
+  }
 
-    if (!window.confirm(t.settings.providers.removeTerminalConfirm(name, command))) {
-      return
-    }
+  function executeTerminalDisconnect(provider: OAuthProvider, command: string) {
+    const name = providerTitle(provider)
 
     // Leave the settings overlay so the terminal pane (chat-only) is visible.
     onClose()
@@ -384,12 +395,12 @@ export function ProvidersSettings({
     })
   }
 
-  async function handleDisconnect(provider: OAuthProvider) {
-    const name = providerTitle(provider)
+  function handleDisconnect(provider: OAuthProvider) {
+    setPendingProviderAction({ kind: 'disconnect', provider })
+  }
 
-    if (!window.confirm(t.settings.providers.removeConfirm(name))) {
-      return
-    }
+  async function executeDisconnect(provider: OAuthProvider) {
+    const name = providerTitle(provider)
 
     setDisconnecting(provider.id)
 
@@ -465,6 +476,7 @@ export function ProvidersSettings({
         ) : (
           <NoProviderKeys />
         )}
+        {envConfirmDialog}
       </SettingsContent>
     )
   }
@@ -473,14 +485,46 @@ export function ProvidersSettings({
     return <CustomEndpointsSettings onConfigSaved={onConfigSaved} onMainModelChanged={onMainModelChanged} />
   }
 
+  const pendingTitle = pendingProviderAction ? providerTitle(pendingProviderAction.provider) : ''
+
   return (
     <SettingsContent>
       <OAuthPicker
         disconnecting={disconnecting}
-        onDisconnect={provider => void handleDisconnect(provider)}
+        onDisconnect={handleDisconnect}
         onTerminalDisconnect={handleTerminalDisconnect}
         onWantApiKey={() => onViewChange('keys')}
         providers={oauthProviders}
+      />
+      <ConfirmDialog
+        confirmLabel={pendingProviderAction?.kind === 'terminal' ? t.settings.providers.disconnect : t.common.remove}
+        description={
+          pendingProviderAction?.kind === 'terminal'
+            ? t.settings.providers.removeTerminalConfirm(pendingTitle, pendingProviderAction.command)
+            : undefined
+        }
+        destructive
+        dismissOnConfirm
+        onClose={() => setPendingProviderAction(null)}
+        onConfirm={() => {
+          if (!pendingProviderAction) {
+            return
+          }
+
+          if (pendingProviderAction.kind === 'terminal') {
+            executeTerminalDisconnect(pendingProviderAction.provider, pendingProviderAction.command)
+
+            return
+          }
+
+          return executeDisconnect(pendingProviderAction.provider)
+        }}
+        open={pendingProviderAction !== null}
+        title={
+          pendingProviderAction?.kind === 'terminal'
+            ? `${t.settings.providers.disconnect} ${pendingTitle}?`
+            : t.settings.providers.removeConfirm(pendingTitle)
+        }
       />
     </SettingsContent>
   )

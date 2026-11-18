@@ -6,7 +6,7 @@ import { formatRefValue } from '@/components/assistant-ui/directive-text'
 import { type ChatMessage, type ChatMessagePart, chatMessageText, textPart } from '@/lib/chat-messages'
 import { normalize } from '@/lib/text'
 import type { ComposerAttachment } from '@/store/composer'
-import type { ModelOptionsResponse, SessionInfo } from '@/types/jettstui'
+import type { ModelOptionsResponse, SessionInfo, SessionMessage } from '@/types/jettstui'
 
 export const SLASH_COMMAND_RE = /^\/[^\s/]*(?:\s|$)/
 export const BUILTIN_PERSONALITIES = [
@@ -311,7 +311,14 @@ export function parseCommandDispatch(raw: unknown): CommandDispatchResponse | nu
         : null
 
     case 'prefill':
-      return typeof row.message === 'string' ? { type: 'prefill', message: row.message, notice: str(row.notice) } : null
+      return typeof row.message === 'string'
+        ? {
+            type: 'prefill',
+            message: row.message,
+            messages: Array.isArray(row.messages) ? (row.messages as SessionMessage[]) : undefined,
+            notice: str(row.notice)
+          }
+        : null
 
     default:
       return null

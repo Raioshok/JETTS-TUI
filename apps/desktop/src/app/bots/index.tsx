@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle
 } from '@/components/ui/dialog'
+import { EmptyState } from '@/components/ui/empty-state'
 import { ErrorState } from '@/components/ui/error-state'
 import { Field } from '@/components/ui/field'
 import { Input } from '@/components/ui/input'
@@ -25,6 +26,7 @@ import { $activeGatewayProfile, normalizeProfileKey } from '@/store/profile'
 import { $gatewayState } from '@/store/session'
 
 import { useGatewayRequest } from '../gateway/hooks/use-gateway-request'
+import { PAGE_INSET_X } from '../layout-constants'
 import { openSession } from '../open-session'
 import { NEW_CHAT_ROUTE } from '../routes'
 
@@ -152,7 +154,9 @@ export function BotsView(props: React.ComponentProps<'section'>) {
       data-testid="bots-view"
     >
       <div className="min-h-0 flex-1 overflow-y-auto overflow-x-hidden">
-        <div className="mx-auto grid w-full max-w-4xl gap-6 px-4 pb-8 pt-[calc(var(--titlebar-height,34px)+0.75rem)] sm:px-6">
+        <div
+          className={`mx-auto grid w-full max-w-4xl gap-6 pb-8 pt-[calc(var(--titlebar-height,34px)+0.75rem)] ${PAGE_INSET_X}`}
+        >
           <header className="flex flex-wrap items-end justify-between gap-4">
             <div className="grid max-w-2xl gap-1">
               <h1 className="text-xl font-semibold tracking-tight text-(--ui-text-primary)">{b.title}</h1>
@@ -164,7 +168,7 @@ export function BotsView(props: React.ComponentProps<'section'>) {
           <BotsComputer enabled={gatewayState === 'open'} profile={profile} />
 
           {list.length === 0 ? (
-            <p className="text-sm text-(--ui-text-secondary)">{b.empty}</p>
+            <EmptyState description={b.empty} title={b.title} />
           ) : (
             <ul className="divide-y divide-(--ui-stroke-tertiary)">
               {list.map(bot => (

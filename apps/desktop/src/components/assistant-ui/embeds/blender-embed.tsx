@@ -1,17 +1,20 @@
 'use client'
 
-import React from 'react'
-
 import { GeneratedModelResult } from '@/components/chat/generated-model-result'
+import { Loader } from '@/components/ui/loader'
+import { useI18n } from '@/i18n'
 import { resolveModelDisplayUrl } from '@/lib/generated-models'
 
 import type { RichFenceProps } from './types'
 
 export default function BlenderEmbed({ code, streaming }: RichFenceProps) {
+  const { t } = useI18n()
+
   if (streaming) {
     return (
-      <div className="my-2 p-3 rounded-lg border border-violet-500/30 bg-(--ui-surface-background) text-xs font-mono text-violet-400">
-        Streaming 3D model specification...
+      <div className="my-2 flex items-center gap-2 rounded-lg border border-(--ui-stroke-tertiary) bg-(--ui-bg-elevated) px-3 py-2 text-xs text-(--ui-text-secondary)">
+        <Loader className="size-4 shrink-0" />
+        <span>{t.blender3d.streamingSpec}</span>
       </div>
     )
   }

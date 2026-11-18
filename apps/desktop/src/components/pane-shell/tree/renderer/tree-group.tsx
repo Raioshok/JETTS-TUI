@@ -17,6 +17,7 @@ import { ContextMenu, ContextMenuContent, ContextMenuItem, ContextMenuTrigger } 
 import { DecodeText } from '@/components/ui/decode-text'
 import { DROP_SHEET_BLUR_CLASS, DROP_SHEET_CLASS } from '@/components/ui/drop-affordance'
 import { PANE_TAB_STRIP_LINE_LEFT, PANE_TAB_STRIP_LINE_RIGHT, PaneTab, PaneTabLabel } from '@/components/ui/pane-tab'
+import { Tip } from '@/components/ui/tooltip'
 import { ContribBoundary } from '@/contrib/react/boundary'
 import { useContributions } from '@/contrib/react/use-contributions'
 import { useI18n } from '@/i18n'
@@ -519,24 +520,25 @@ export function TreeGroup({
                   focuses this zone first, so the tab lands in THIS strip.
                   Hidden when unwired or the zone is minimized. */}
               {shown.some(isSessionStripPane) && newSessionTabAction && !node.minimized && (
-                <button
-                  aria-label={t.zones.newSessionTab}
-                  className="grid size-6 shrink-0 place-items-center self-center bg-transparent text-(--ui-text-quaternary) transition-colors hover:text-foreground [-webkit-app-region:no-drag]"
-                  onClick={() => newSessionTabAction()}
-                  onPointerDown={e => {
-                    e.stopPropagation()
-                    // The action docks into the FOCUSED chat zone; clicking a
-                    // background strip's "+" must make THAT zone the focused
-                    // one first, or the tab opens in whichever zone was last
-                    // clicked. (pointerdown's own focus tracking would land
-                    // after the click handler reads the anchor.)
-                    noteActiveTreeGroup(node.id)
-                  }}
-                  title={t.zones.newSessionTab}
-                  type="button"
-                >
-                  <Codicon name="add" size="0.8125rem" />
-                </button>
+                <Tip label={t.zones.newSessionTab}>
+                  <button
+                    aria-label={t.zones.newSessionTab}
+                    className="grid size-6 shrink-0 place-items-center self-center bg-transparent text-(--ui-text-quaternary) transition-colors hover:text-foreground [-webkit-app-region:no-drag]"
+                    onClick={() => newSessionTabAction()}
+                    onPointerDown={e => {
+                      e.stopPropagation()
+                      // The action docks into the FOCUSED chat zone; clicking a
+                      // background strip's "+" must make THAT zone the focused
+                      // one first, or the tab opens in whichever zone was last
+                      // clicked. (pointerdown's own focus tracking would land
+                      // after the click handler reads the anchor.)
+                      noteActiveTreeGroup(node.id)
+                    }}
+                    type="button"
+                  >
+                    <Codicon name="add" size="0.8125rem" />
+                  </button>
+                </Tip>
               )}
             </div>
             {minimizable && (

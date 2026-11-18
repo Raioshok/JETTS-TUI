@@ -11,6 +11,7 @@
  *   - `window` (⇧⌘-click) — pop into its own window; falls back to `tab` when
  *     the bridge has no session-window support.
  */
+import { $newChatBot } from '@/store/bots'
 import { focusedSessionNeedsRoute, focusOpenSession, openSessionTile } from '@/store/session-states'
 import { canOpenSessionWindow, openSessionInNewWindow } from '@/store/windows'
 
@@ -53,6 +54,8 @@ export function openSession(
   if (!storedSessionId) {
     return
   }
+
+  $newChatBot.set(null)
 
   let resolved: OpenSessionIntent = intent
 

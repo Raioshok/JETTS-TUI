@@ -178,10 +178,13 @@ export function ClarifyPrompt({ cols = 80, onAnswer, onCancel, req, t }: Clarify
       sel === choices.length ? setTyping(true) : choices[sel] && onAnswer(choices[sel]!)
     }
 
-    const n = parseInt(ch)
+    const n = parseInt(ch, 10)
 
     if (n >= 1 && n <= choices.length) {
       onAnswer(choices[n - 1]!)
+    } else if (n === choices.length + 1) {
+      setSel(choices.length)
+      setTyping(true)
     }
   })
 
@@ -222,7 +225,9 @@ export function ClarifyPrompt({ cols = 80, onAnswer, onCancel, req, t }: Clarify
         </Text>
       ))}
 
-      <Text color={t.color.muted}>↑/↓ select · Enter confirm · 1-{choices.length} quick pick · Esc/Ctrl+C cancel</Text>
+      <Text color={t.color.muted}>
+        ↑/↓ select · Enter confirm · 1-{choices.length + 1} quick pick · Esc/Ctrl+C cancel
+      </Text>
     </Box>
   )
 }
@@ -237,8 +242,12 @@ export function ConfirmPrompt({ onCancel, onConfirm, req, t }: ConfirmPromptProp
       return onCancel()
     }
 
-    if (lower === 'y') {
+    if (lower === 'y' || ch === '2') {
       return onConfirm()
+    }
+
+    if (ch === '1') {
+      return onCancel()
     }
 
     if (key.upArrow) {
@@ -269,9 +278,7 @@ export function ConfirmPrompt({ onCancel, onConfirm, req, t }: ConfirmPromptProp
 
       {req.detail ? (
         <Box paddingLeft={1}>
-          <Text color={t.color.text} wrap="truncate-end">
-            {req.detail}
-          </Text>
+          <Text color={t.color.text}>{req.detail}</Text>
         </Box>
       ) : null}
 
@@ -279,12 +286,14 @@ export function ConfirmPrompt({ onCancel, onConfirm, req, t }: ConfirmPromptProp
 
       {rows.map((row, i) => (
         <Text key={row.label}>
-          <Text color={sel === i ? accent : t.color.muted}>{sel === i ? '▸ ' : '  '}</Text>
-          <Text color={sel === i ? row.color : t.color.muted}>{row.label}</Text>
+          <Text color={sel === i ? row.color : t.color.muted} {...chipRowProps(t, sel === i)}>
+            {sel === i ? '▸ ' : '  '}
+            {i + 1}. {row.label}
+          </Text>
         </Text>
       ))}
 
-      <Text color={t.color.muted}>↑/↓ select · Enter confirm · Y/N quick · Esc cancel</Text>
+      <Text color={t.color.muted}>↑/↓ select · Enter confirm · Y/N or 1/2 quick · Esc cancel</Text>
     </Box>
   )
 }

@@ -477,6 +477,8 @@ const DISPLAY_FOREGROUNDS: readonly (keyof ThemeColors)[] = [
   'statusFg',
   'border',
   'muted',
+  'thinking',
+  'tool',
   'sessionLabel',
   'sessionBorder',
   'shellDollar'

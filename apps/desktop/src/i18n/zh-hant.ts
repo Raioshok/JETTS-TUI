@@ -183,6 +183,10 @@ export const zhHant = defineLocale({
   },
 
   titlebar: {
+    back: '返回',
+    forward: '前進',
+    lightMode: '淺色模式',
+    darkMode: '深色模式',
     modeChat: '聊天',
     modeCode: '程式碼',
     modeSwitcher: '檢視',
@@ -2057,6 +2061,8 @@ export const zhHant = defineLocale({
     message: '訊息',
     wakingProfile: profile => `正在喚醒 ${profile}…`,
     placeholderStarting: '正在啟動 JettsTUI...',
+    generate3D: '產生 3D 模型',
+    generate3DTip: '產生 3D 模型 (/3d)',
     botPlaceholder: name => `傳訊息給 ${name}…`,
     placeholderReconnecting: '正在重新連線至 JettsTUI…',
     placeholderFollowUp: '傳送後續訊息',
@@ -2996,6 +3002,48 @@ export const zhHant = defineLocale({
     boundaryDesc: '此檢視遇到意外錯誤。您的聊天和設定是安全的。',
     reloadWindow: '重新載入視窗',
     openLogs: '開啟記錄'
+  },
+
+  blender3d: {
+    sessionModels: '對話 3D 模型',
+    smart3D: '智慧 3D',
+    smart3DTip: '在目前對話中建立新的 3D 模型',
+    smart3DTitle: '智慧 3D 產生器',
+    smart3DPlaceholder: '例如：帶火把的低多邊形中世紀瞭望塔…',
+    insertPrompt: '插入提示詞',
+    studio: '工作室',
+    openStudio: '在工作室中開啟',
+    openStudioTip: '在 3D Blender 工作室中開啟',
+    generatedModelsTitle: '此對話已產生的模型',
+    iterate: '迭代',
+    iterateInChat: '在對話中迭代',
+    refineInChat: '在對話中最佳化',
+    iterateTip: '向輸入框插入最佳化提示詞',
+    downloadAsset: '下載資源',
+    downloadPng: '下載 PNG',
+    downloadFormat: format => `下載 ${format}`,
+    inspectInStudio: '在 3D 工作室中檢視',
+    generatorTitle: 'Blender 3D 產生器',
+    runningHeadless: '正在執行無頭 bpy…',
+    generatingAsset: '正在產生 3D 資源…',
+    buildingGeometry: '正在建構幾何體、著色器與燈光',
+    streamingSpec: '正在接收 3D 模型定義…',
+    loadingAsset: '正在載入 3D 資源…',
+    loadFailed: '無法載入 3D 資源',
+    generationFailed: '3D 產生失敗',
+    pngRender: 'PNG 算繪圖',
+    wireframe: '切換線框檢視',
+    turntable: '切換轉台自動旋轉',
+    snapshot: '儲存預覽截圖',
+    orbitHint: '拖曳旋轉 · ⌘/Ctrl+滾輪或點擊以縮放',
+    orbitActiveHint: '拖曳旋轉 · 滾輪縮放 · Esc 退出縮放',
+    presets: {
+      nature: '自然',
+      scifi: '科幻',
+      architecture: '建築',
+      furniture: '家具',
+      abstract: '雕塑'
+    }
   },
 
   ui: {

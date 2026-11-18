@@ -8,6 +8,7 @@ import { clearSurfaceVar, setSurfaceVar, STATUS_STACK_VAR } from '@/app/chat/sur
 import { AGENTS_ROUTE } from '@/app/routes'
 import { BillingBanner } from '@/components/billing-banner'
 import { composerDockCard } from '@/components/chat/composer-dock'
+import { SessionModelsTray } from '@/components/chat/session-models-tray'
 import { StatusSection } from '@/components/chat/status-section'
 import { Button } from '@/components/ui/button'
 import { Codicon } from '@/components/ui/codicon'
@@ -16,6 +17,7 @@ import { type Translations, useI18n } from '@/i18n'
 import { useSessionSlice } from '@/lib/use-session-slice'
 import { cn } from '@/lib/utils'
 import { $billingBlock } from '@/store/billing-block'
+import { $session3DModels, $smart3DModalOpen, $smart3DModalScopes } from '@/store/blender-models'
 import {
   $statusItemsBySession,
   type ComposerStatusItem,
@@ -94,8 +96,16 @@ export function ComposerStatusStack({ queue, sessionId }: ComposerStatusStackPro
   // items actually changed.
   const items = useSessionSlice($statusItemsBySession, sessionId)
   const previews = useSessionSlice($previewStatusBySession, sessionId)
-  const scrolledUp = Boolean(useStore($threadScrolledUp)[useComposerScope().target])
+  const scopeTarget = useComposerScope().target
+  const scrolledUp = Boolean(useStore($threadScrolledUp)[scopeTarget])
   const billing = useStore($billingBlock)
+  const sessionModels = useStore($session3DModels)[sessionId || '__draft__']
+  const mainSmart3DOpen = useStore($smart3DModalOpen)
+  const smart3DScopes = useStore($smart3DModalScopes)
+
+  const hasModelsSection =
+    Boolean(sessionModels && sessionModels.length > 0) ||
+    (scopeTarget === 'main' ? mainSmart3DOpen : Boolean(smart3DScopes[scopeTarget]))
 
   const groups = useMemo(() => groupStatusItems(items), [items])
 
@@ -203,6 +213,10 @@ export function ComposerStatusStack({ queue, sessionId }: ComposerStatusStackPro
   // still render them as their own always-visible block.
   if (previewRows.length > 0 && !hasBackgroundGroup) {
     sections.push({ key: 'preview', node: previewBlock })
+  }
+
+  if (hasModelsSection) {
+    sections.push({ key: 'models-3d', node: <SessionModelsTray sessionId={sessionId} /> })
   }
 
   if (queue) {

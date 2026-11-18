@@ -228,13 +228,15 @@ export function ProfileRail() {
     : defaultProfile && onDefault
       ? defaultProfile.name
       : gatewayProfile || 'Default'
+
   const initialLetter = (displayName?.[0] || 'J').toUpperCase()
   const displaySubtitle = isAll ? 'All profiles' : onDefault ? 'default • local' : `${activeKey} • profile`
 
   return (
     <div className="flex w-full flex-col gap-1" data-slot="profile-rail">
-      <div
-        className="group/user flex cursor-pointer select-none items-center justify-between gap-2 rounded-md px-1 py-1 transition-colors hover:bg-(--ui-control-hover-background)"
+      <button
+        aria-expanded={multiProfile ? isAll : undefined}
+        className="group/user flex w-full cursor-pointer select-none items-center justify-between gap-2 rounded-md px-1 py-1 text-left transition-colors hover:bg-(--ui-control-hover-background) focus-visible:ring-1 focus-visible:ring-ring/50 focus-visible:outline-hidden"
         onClick={() => {
           if (multiProfile) {
             setShowAllProfiles(!isAll)
@@ -242,6 +244,7 @@ export function ProfileRail() {
             setCreateOpen(true)
           }
         }}
+        type="button"
       >
         <div className="flex min-w-0 flex-1 items-center gap-2">
           <div className="grid size-7 shrink-0 place-items-center rounded-full bg-foreground text-xs font-semibold text-background shadow-xs">
@@ -253,124 +256,134 @@ export function ProfileRail() {
           </div>
         </div>
         <div className="flex shrink-0 items-center gap-1 text-(--ui-text-quaternary) transition-colors group-hover/user:text-foreground">
-          <Codicon name="chevron-up" size="0.75rem" />
+          <Codicon name={isAll ? 'chevron-down' : 'chevron-up'} size="0.75rem" />
         </div>
-      </div>
+      </button>
 
       <div aria-label="Profiles" className="flex items-center gap-0.5" role="tablist">
-      {/* One button toggles default ↔ all: home face when scoped to a profile,
+        {/* One button toggles default ↔ all: home face when scoped to a profile,
           layers face when showing everything. Pinned left like Manage is right.
           Hidden until a second profile exists. */}
-      {multiProfile &&
-        (defaultProfile ? (
-          // On default → toggle to all. Anywhere else (all view or a named
-          // profile) → return to default. So leaving a profile never lands on all.
+        {multiProfile &&
+          (defaultProfile ? (
+            // On default → toggle to all. Anywhere else (all view or a named
+            // profile) → return to default. So leaving a profile never lands on all.
+            <ProfilePill
+              active={isAll || onDefault}
+              glyph={isAll ? 'layers' : 'home'}
+              label={onDefault ? p.showAllProfiles : p.switchToProfile(defaultProfile.name)}
+              onSelect={() => (onDefault ? setShowAllProfiles(true) : selectProfile(defaultProfile.name))}
+            />
+          ) : (
+            <ProfilePill
+              active={isAll}
+              glyph="layers"
+              label={p.allProfiles}
+              onSelect={() => setShowAllProfiles(true)}
+            />
+          ))}
+
+        {/* Single-profile: the active default's home icon next to the create +. */}
+        {!multiProfile && defaultProfile && (
           <ProfilePill
-            active={isAll || onDefault}
-            glyph={isAll ? 'layers' : 'home'}
-            label={onDefault ? p.showAllProfiles : p.switchToProfile(defaultProfile.name)}
-            onSelect={() => (onDefault ? setShowAllProfiles(true) : selectProfile(defaultProfile.name))}
+            active
+            glyph="home"
+            label={defaultProfile.name}
+            onSelect={() => selectProfile(defaultProfile.name)}
           />
+        )}
+
+        {condensed ? (
+          // Condensed path: one compact dropdown instead of N squares. No drag
+          // reorder, no long-press recolor, no per-square context menu — Manage
+          // covers rename/delete at this scale.
+          <div className="flex min-w-0 flex-1 items-center gap-1">
+            <ProfileDropdown
+              activeKey={isAll ? null : activeKey}
+              colors={colors}
+              onSelect={selectProfile}
+              profiles={named}
+            />
+            <AddProfileButton label={p.newProfile} onClick={() => setCreateOpen(true)} />
+          </div>
         ) : (
-          <ProfilePill active={isAll} glyph="layers" label={p.allProfiles} onSelect={() => setShowAllProfiles(true)} />
-        ))}
-
-      {/* Single-profile: the active default's home icon next to the create +. */}
-      {!multiProfile && defaultProfile && (
-        <ProfilePill
-          active
-          glyph="home"
-          label={defaultProfile.name}
-          onSelect={() => selectProfile(defaultProfile.name)}
-        />
-      )}
-
-      {condensed ? (
-        // Condensed path: one compact dropdown instead of N squares. No drag
-        // reorder, no long-press recolor, no per-square context menu — Manage
-        // covers rename/delete at this scale.
-        <div className="flex min-w-0 flex-1 items-center gap-1">
-          <ProfileDropdown
-            activeKey={isAll ? null : activeKey}
-            colors={colors}
-            onSelect={selectProfile}
-            profiles={named}
-          />
-          <AddProfileButton label={p.newProfile} onClick={() => setCreateOpen(true)} />
-        </div>
-      ) : (
-        <div
-          className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
-          ref={scrollRef}
-        >
-          {multiProfile && (
-            <DndContext
-              collisionDetection={closestCenter}
-              modifiers={[stepThroughCells]}
-              onDragEnd={handleDragEnd}
-              onDragOver={handleDragOver}
-              onDragStart={handleDragStart}
-              sensors={sensors}
-            >
-              <SortableContext items={named.map(profile => profile.name)} strategy={horizontalListSortingStrategy}>
-                {/* relative → the strip is the dragged square's offsetParent, so the
+          <div
+            className="flex min-w-0 flex-1 items-center gap-1 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+            ref={scrollRef}
+          >
+            {multiProfile && (
+              <DndContext
+                collisionDetection={closestCenter}
+                modifiers={[stepThroughCells]}
+                onDragEnd={handleDragEnd}
+                onDragOver={handleDragOver}
+                onDragStart={handleDragStart}
+                sensors={sensors}
+              >
+                <SortableContext items={named.map(profile => profile.name)} strategy={horizontalListSortingStrategy}>
+                  {/* relative → the strip is the dragged square's offsetParent, so the
                     clamp modifier bounds drags to the occupied cells (not the +). */}
-                <div className="relative flex items-center gap-1">
-                  {named.map(profile => (
-                    <ProfileSquare
-                      active={!isAll && normalizeProfileKey(profile.name) === activeKey}
-                      color={resolveProfileColor(profile.name, colors)}
-                      key={profile.name}
-                      label={profile.name}
-                      onDelete={() => setPendingDelete(profile)}
-                      onEditSoul={() => setPendingSoul(profile.name)}
-                      onRecolor={color => setProfileColor(profile.name, color)}
-                      onRename={() => setPendingRename(profile)}
-                      onSelect={() => selectProfile(profile.name)}
-                    />
-                  ))}
-                </div>
-              </SortableContext>
-            </DndContext>
-          )}
+                  <div className="relative flex items-center gap-1">
+                    {named.map(profile => (
+                      <ProfileSquare
+                        active={!isAll && normalizeProfileKey(profile.name) === activeKey}
+                        color={resolveProfileColor(profile.name, colors)}
+                        key={profile.name}
+                        label={profile.name}
+                        onDelete={() => setPendingDelete(profile)}
+                        onEditSoul={() => setPendingSoul(profile.name)}
+                        onRecolor={color => setProfileColor(profile.name, color)}
+                        onRename={() => setPendingRename(profile)}
+                        onSelect={() => selectProfile(profile.name)}
+                      />
+                    ))}
+                  </div>
+                </SortableContext>
+              </DndContext>
+            )}
 
-          <AddProfileButton label={p.newProfile} onClick={() => setCreateOpen(true)} />
-        </div>
-      )}
+            <AddProfileButton label={p.newProfile} onClick={() => setCreateOpen(true)} />
+          </div>
+        )}
 
-      {/* Always reachable, even with only the default profile: the manage
+        {/* Always reachable, even with only the default profile: the manage
           overlay is the only place to edit a profile's SOUL.md, and a
           single-profile user must be able to edit the default's persona
           without first creating a throwaway second profile. */}
-      <ProfilePill active={false} glyph="ellipsis" label={p.manageProfiles} onSelect={() => navigate(PROFILES_ROUTE)} />
+        <ProfilePill
+          active={false}
+          glyph="ellipsis"
+          label={p.manageProfiles}
+          onSelect={() => navigate(PROFILES_ROUTE)}
+        />
 
-      {/* Land in the new profile on a fresh chat (selectProfile triggers the
+        {/* Land in the new profile on a fresh chat (selectProfile triggers the
           new-session reset), not stuck on the session you were just in. */}
-      <CreateProfileDialog
-        onClose={() => setCreateOpen(false)}
-        onCreated={async name => {
-          await refreshActiveProfile()
-          selectProfile(name)
-        }}
-        open={createOpen}
-        profiles={profiles}
-      />
+        <CreateProfileDialog
+          onClose={() => setCreateOpen(false)}
+          onCreated={async name => {
+            await refreshActiveProfile()
+            selectProfile(name)
+          }}
+          open={createOpen}
+          profiles={profiles}
+        />
 
-      <RenameProfileDialog
-        currentName={pendingRename?.name ?? ''}
-        onClose={() => setPendingRename(null)}
-        onRenamed={refreshActiveProfile}
-        open={pendingRename !== null}
-      />
+        <RenameProfileDialog
+          currentName={pendingRename?.name ?? ''}
+          onClose={() => setPendingRename(null)}
+          onRenamed={refreshActiveProfile}
+          open={pendingRename !== null}
+        />
 
-      <DeleteProfileDialog
-        onClose={() => setPendingDelete(null)}
-        onDeleted={refreshActiveProfile}
-        open={pendingDelete !== null}
-        profile={pendingDelete}
-      />
+        <DeleteProfileDialog
+          onClose={() => setPendingDelete(null)}
+          onDeleted={refreshActiveProfile}
+          open={pendingDelete !== null}
+          profile={pendingDelete}
+        />
 
-      <EditSoulDialog onClose={() => setPendingSoul(null)} profileName={pendingSoul} />
+        <EditSoulDialog onClose={() => setPendingSoul(null)} profileName={pendingSoul} />
       </div>
     </div>
   )

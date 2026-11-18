@@ -945,12 +945,12 @@ export const ToolTrail = memo(function ToolTrail({
     visible.subagents === 'hidden' &&
     visible.activity === 'hidden'
 
-  if (allHidden) {
-    const alerts = activity.filter(i => i.tone !== 'info').slice(-2)
+  const ambientAlerts = visible.activity === 'hidden' ? activity.filter(i => i.tone !== 'info').slice(-2) : []
 
-    return alerts.length ? (
+  if (allHidden) {
+    return ambientAlerts.length ? (
       <Box flexDirection="column">
-        {alerts.map(i => (
+        {ambientAlerts.map(i => (
           <Text color={i.tone === 'error' ? t.color.error : t.color.warn} key={`ha-${i.id}`}>
             {i.tone === 'error' ? '✗' : '!'} {i.text}
           </Text>
@@ -1098,7 +1098,11 @@ export const ToolTrail = memo(function ToolTrail({
                   color={group.color}
                   content={
                     <>
-                      <Text color={t.color.tool}>● </Text>
+                      {group.color === t.color.error ? (
+                        <Text color={t.color.error}>✗ </Text>
+                      ) : (
+                        <Text color={t.color.tool}>● </Text>
+                      )}
                       {toolLabel(group)}
                       {isDelegateGroup ? (
                         <Text color={t.color.statusFg} dim>
@@ -1224,6 +1228,15 @@ export const ToolTrail = memo(function ToolTrail({
           dimColor
           t={t}
         />
+      ) : null}
+      {ambientAlerts.length > 0 ? (
+        <Box flexDirection="column">
+          {ambientAlerts.map(i => (
+            <Text color={i.tone === 'error' ? t.color.error : t.color.warn} key={`ha-${i.id}`}>
+              {i.tone === 'error' ? '✗' : '!'} {i.text}
+            </Text>
+          ))}
+        </Box>
       ) : null}
       {outcome ? (
         <Box marginTop={1}>

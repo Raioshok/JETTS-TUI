@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useI18n } from '@/i18n'
 import { deleteEnvVar, getEnvVars, revealEnvVar, setEnvVar } from '@/jettstui'
 import { errorText } from '@/lib/error-text'
@@ -50,6 +51,7 @@ export function useEnvCredentials(): UseEnvCredentials {
   const [edits, setEdits] = useState<Record<string, string>>({})
   const [revealed, setRevealed] = useState<Record<string, string>>({})
   const [saving, setSaving] = useState<string | null>(null)
+  const [pendingClearKey, setPendingClearKey] = useState<string | null>(null)
 
   // Best-effort cleanup of a retired localStorage flag (global "Show
   // advanced" toggle) — everything in these views is configuration-level.
@@ -138,11 +140,13 @@ export function useEnvCredentials(): UseEnvCredentials {
     }
   }
 
-  async function handleClear(key: string) {
-    if (!window.confirm(toolsets.removeConfirm(key))) {
-      return
-    }
+  function handleClear(key: string) {
+    setPendingClearKey(key)
 
+    return Promise.resolve()
+  }
+
+  async function executeClear(key: string) {
     setSaving(key)
 
     try {
@@ -172,7 +176,20 @@ export function useEnvCredentials(): UseEnvCredentials {
     }
   }
 
+  const confirmDialog = (
+    <ConfirmDialog
+      confirmLabel={t.common.remove}
+      destructive
+      dismissOnConfirm
+      onClose={() => setPendingClearKey(null)}
+      onConfirm={() => (pendingClearKey ? executeClear(pendingClearKey) : undefined)}
+      open={pendingClearKey !== null}
+      title={pendingClearKey ? toolsets.removeConfirm(pendingClearKey) : ''}
+    />
+  )
+
   return {
+    confirmDialog,
     saveValue,
     vars,
     rowProps: {
@@ -194,6 +211,7 @@ interface CategoryHeadingProps {
 }
 
 interface UseEnvCredentials {
+  confirmDialog: ReactNode
   rowProps: Omit<EnvRowProps, 'varKey' | 'info'>
   saveValue: (key: string, value: string) => Promise<{ message?: string; ok: boolean }>
   vars: Record<string, EnvVarInfo> | null

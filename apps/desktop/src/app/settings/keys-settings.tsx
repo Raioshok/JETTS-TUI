@@ -30,7 +30,7 @@ const VIEW_CATEGORIES: Record<KeysView, readonly string[]> = {
 
 export function KeysSettings({ view }: KeysSettingsProps) {
   const { t } = useI18n()
-  const { rowProps, vars } = useEnvCredentials()
+  const { confirmDialog, rowProps, vars } = useEnvCredentials()
   const [openKey, setOpenKey] = useState<null | string>(null)
 
   useEffect(() => {
@@ -99,6 +99,7 @@ export function KeysSettings({ view }: KeysSettingsProps) {
           {t.settings.keys.empty}
         </div>
       )}
+      {confirmDialog}
     </SettingsContent>
   )
 }

@@ -15281,17 +15281,16 @@ def _(rid, params: dict) -> dict:
         cat_order: list[str] = []
 
         for cmd in COMMAND_REGISTRY:
-            if (
-                cmd.name in _TUI_HIDDEN
-                or cmd.gateway_only
-                or (not include_advanced and not is_command_discoverable(cmd))
-            ):
+            if cmd.name in _TUI_HIDDEN or cmd.gateway_only:
                 continue
 
             c = f"/{cmd.name}"
             canon[c.lower()] = c
             for a in cmd.aliases:
                 canon[f"/{a}".lower()] = c
+
+            if not include_advanced and not is_command_discoverable(cmd):
+                continue
 
             desc = _build_description(cmd)
             all_pairs.append([c, desc])
@@ -15348,10 +15347,15 @@ def _(rid, params: dict) -> dict:
         try:
             from agent.skill_commands import scan_skill_commands
 
-            for k, info in sorted(scan_skill_commands().items()):
+            scanned_skills = scan_skill_commands()
+            for k, info in sorted(scanned_skills.items()):
+                canon.setdefault(k.lower(), k)
                 d = str(info.get("description", "Skill"))
                 all_pairs.append([k, d[:120] + ("…" if len(d) > 120 else "")])
                 skill_count += 1
+            if "/blender-3d" in scanned_skills:
+                canon.setdefault("/3d", "/blender-3d")
+                canon.setdefault("/blender", "/blender-3d")
         except Exception as e:
             warning = f"skill discovery unavailable: {e}"
 
@@ -15581,6 +15585,15 @@ def _(rid, params: dict) -> dict:
 
         cmds = scan_skill_commands()
         key = f"/{name}"
+        if key not in cmds and name in {"3d", "blender"} and "/blender-3d" in cmds:
+            key = "/blender-3d"
+        elif key not in cmds:
+            from jettstui.commands import resolve_command as _resolve_builtin_cmd
+
+            if _resolve_builtin_cmd(name) is None:
+                prefix_matches = [k for k in cmds if k.lower().startswith(key.lower())]
+                if len(prefix_matches) == 1:
+                    key = prefix_matches[0]
         if key in cmds:
             msg = build_skill_invocation_message(
                 key, arg, task_id=session.get("session_key", "") if session else ""
@@ -16012,7 +16025,12 @@ def _(rid, params: dict) -> dict:
         )
         return _ok(
             rid,
-            {"type": "prefill", "message": target_text, "notice": notice},
+            {
+                "type": "prefill",
+                "message": target_text,
+                "notice": notice,
+                "messages": _history_to_messages(active),
+            },
         )
 
     if name in {"snapshot", "snap"}:
@@ -16710,6 +16728,15 @@ def _(rid, params: dict) -> dict:
                 "kind": "command",
             },
         ]
+        if "blender-3d" in skill_names:
+            extras.append(
+                {
+                    "text": "/3d",
+                    "display": "/3d",
+                    "meta": "Generate or refine a 3D model with Blender",
+                    "kind": "skill",
+                }
+            )
         for extra in extras:
             if extra["text"].startswith(text_lower) and not any(
                 item["text"] == extra["text"] for item in items
@@ -17877,11 +17904,20 @@ def _(rid, params: dict) -> dict:
 
     try:
         from agent.skill_commands import get_skill_commands
+        from jettstui.commands import resolve_command as _resolve_exec_cmd
 
+        _skill_cmds = get_skill_commands()
         _cmd_key = f"/{_cmd_base}"
-        if _cmd_key in get_skill_commands():
+        _matched_skill = _cmd_key if _cmd_key in _skill_cmds else None
+        if _matched_skill is None and _cmd_base in {"3d", "blender"} and "/blender-3d" in _skill_cmds:
+            _matched_skill = "/blender-3d"
+        elif _matched_skill is None and _cmd_base and _resolve_exec_cmd(_cmd_base) is None:
+            _skill_prefixes = [k for k in _skill_cmds if k.lower().startswith(_cmd_key.lower())]
+            if len(_skill_prefixes) == 1:
+                _matched_skill = _skill_prefixes[0]
+        if _matched_skill is not None:
             return _err(
-                rid, 4018, f"skill command: use command.dispatch for {_cmd_key}"
+                rid, 4018, f"skill command: use command.dispatch for {_matched_skill}"
             )
     except Exception:
         pass

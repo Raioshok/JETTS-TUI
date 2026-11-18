@@ -72,7 +72,22 @@ export type CommandDispatchResponse =
   | { target: string; type: 'alias' }
   | { display?: string; message?: string; name: string; type: 'skill' }
   | { display?: string; message: string; notice?: string; type: 'send' }
-  | { message: string; notice?: string; type: 'prefill' }
+  | { message: string; messages?: GatewayTranscriptMessage[]; notice?: string; type: 'prefill' }
+
+export interface BotSummary {
+  description?: string
+  id: string
+  name?: string
+  status?: string
+}
+
+export interface BotsListResponse {
+  bots?: BotSummary[]
+}
+
+export interface BotsAssignResponse {
+  session_id?: string
+}
 
 // ── Config ───────────────────────────────────────────────────────────
 

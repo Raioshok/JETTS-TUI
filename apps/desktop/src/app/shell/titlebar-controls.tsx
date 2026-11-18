@@ -19,9 +19,17 @@ import {
   togglePanesFlipped,
   toggleSidebarOpen
 } from '@/store/layout'
+import { $selectedStoredSessionId } from '@/store/session'
 import { useTheme } from '@/themes'
 
-import { appViewForPath, isOverlayView, SETTINGS_ROUTE } from '../routes'
+import {
+  appViewForPath,
+  isOverlayView,
+  navigateToWorkspacePage,
+  NEW_CHAT_ROUTE,
+  sessionRoute,
+  SETTINGS_ROUTE
+} from '../routes'
 
 import { titlebarButtonClass } from './titlebar'
 import { publishTitlebarClusters } from './titlebar-drag'
@@ -33,9 +41,6 @@ const PAGE_MODES = [
   { id: 'orchestrator', navKey: 'orchestrator', path: '/orchestrator' },
   { id: 'bots', navKey: 'bots', path: '/bots' }
 ] as const
-
-// Pages that are not the chat surface (Specs has no switcher tab of its own).
-const PAGE_MODE_PATHS = [...PAGE_MODES.map(mode => mode.path), '/specs']
 
 export interface TitlebarTool {
   id: string
@@ -133,8 +138,14 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
   const codeMode = useStore($codeMode)
 
   // Chat and Code share the chat route: Code is a layout (file tree + wide
-  // editor beside the chat), not a page. Everything else is a route.
-  const onChatRoute = !PAGE_MODE_PATHS.some(path => location.pathname.startsWith(path))
+  // editor beside the chat), not a page. Contributed plugin pages (/blender),
+  // /messaging, /specs, etc. classify via appViewForPath as non-'chat'.
+  const onChatRoute = appViewForPath(location.pathname) === 'chat'
+
+  const returnToChatRoute = () => {
+    const selected = $selectedStoredSessionId.get()
+    navigateToWorkspacePage(navigate, selected ? sessionRoute(selected) : NEW_CHAT_ROUTE)
+  }
 
   const modeTabs: { active: boolean; id: string; label: string; select: () => void }[] = [
     {
@@ -147,7 +158,7 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
         // Already on the chat surface: only the layout changes — navigating to
         // '/' would leave the open session for a new one.
         if (!onChatRoute) {
-          navigate('/')
+          returnToChatRoute()
         }
       }
     },
@@ -159,7 +170,7 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
         enterCodeMode()
 
         if (!onChatRoute) {
-          navigate('/')
+          returnToChatRoute()
         }
       }
     },
@@ -167,7 +178,7 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
       active: location.pathname.startsWith(mode.path),
       id: mode.id,
       label: t.sidebar.nav[mode.navKey],
-      select: () => navigate(mode.path)
+      select: () => navigateToWorkspacePage(navigate, mode.path)
     }))
   ]
 
@@ -212,7 +223,7 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
     {
       icon: <Codicon name="chevron-left" />,
       id: 'history-back',
-      label: 'Back',
+      label: t.titlebar.back,
       onSelect: () => {
         window.history.back()
       }
@@ -220,7 +231,7 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
     {
       icon: <Codicon name="chevron-right" />,
       id: 'history-forward',
-      label: 'Forward',
+      label: t.titlebar.forward,
       onSelect: () => {
         window.history.forward()
       }
@@ -281,7 +292,7 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
     {
       icon: <Codicon name={resolvedMode === 'dark' ? 'sun' : 'moon'} />,
       id: 'theme-toggle',
-      label: resolvedMode === 'dark' ? 'Light Mode' : 'Dark Mode',
+      label: resolvedMode === 'dark' ? t.titlebar.lightMode : t.titlebar.darkMode,
       onSelect: () => {
         triggerHaptic('tap')
         setMode(resolvedMode === 'dark' ? 'light' : 'dark')
@@ -347,7 +358,7 @@ export function TitlebarControls({ leftTools = [], tools = [], onOpenSettings }:
             <button
               aria-current={tab.active ? 'page' : undefined}
               className={cn(
-                'cursor-pointer rounded-full px-2.5 py-0.5 text-[0.6875rem] font-medium leading-tight transition-all',
+                'cursor-pointer rounded-full px-2.5 py-0.5 text-[0.6875rem] font-medium leading-tight transition-colors',
                 tab.active
                   ? 'bg-background font-semibold text-foreground shadow-xs'
                   : 'text-(--ui-text-tertiary) hover:bg-(--ui-control-hover-background) hover:text-foreground'

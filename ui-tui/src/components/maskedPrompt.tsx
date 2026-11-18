@@ -9,7 +9,7 @@ export function MaskedPrompt({ cols = 80, icon, label, onSubmit, sub, t }: Maske
   const [value, setValue] = useState('')
 
   return (
-    <Box flexDirection="column">
+    <Box borderColor={t.color.warn} borderStyle="round" flexDirection="column" paddingX={1}>
       <Text bold color={t.color.warn}>
         {icon} {label}
       </Text>
@@ -20,13 +20,19 @@ export function MaskedPrompt({ cols = 80, icon, label, onSubmit, sub, t }: Maske
         <Text color={t.color.label}>{'> '}</Text>
         <TextInput
           color={t.color.text}
-          columns={Math.max(20, cols - 6)}
+          columns={Math.max(20, cols - 10)}
           mask="*"
           onChange={setValue}
-          onSubmit={onSubmit}
+          onSubmit={submitted => {
+            if (submitted.trim()) {
+              onSubmit(submitted)
+            }
+          }}
           value={value}
         />
       </Box>
+
+      <Text color={t.color.muted}>Enter submit · Esc/Ctrl+C cancel</Text>
     </Box>
   )
 }

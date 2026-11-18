@@ -1,3 +1,4 @@
+import { Loader } from '@jetts-tui/plugin-sdk'
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
@@ -174,7 +175,7 @@ export const BlenderViewport = forwardRef<ViewportHandle, ViewportProps>(functio
     const renderer = new THREE.WebGLRenderer({
       alpha: true,
       antialias: true,
-      powerPreference: 'high-performance',
+      powerPreference: 'default',
       preserveDrawingBuffer: true
     })
 
@@ -234,28 +235,63 @@ export const BlenderViewport = forwardRef<ViewportHandle, ViewportProps>(functio
     scene.add(defaultMesh)
     engine.defaultMesh = defaultMesh
 
-    let isRunning = true
+    let disposed = false
+    let inViewport = true
+    let pageVisible = typeof document === 'undefined' ? true : document.visibilityState === 'visible'
 
-    const animate = () => {
-      if (!isRunning) {
-        return
+    const scheduleOrPause = () => {
+      const shouldRun = !disposed && inViewport && pageVisible
+
+      if (shouldRun && engine.animFrameId === null) {
+        const animate = () => {
+          if (disposed || !inViewport || !pageVisible) {
+            engine.animFrameId = null
+
+            return
+          }
+
+          engine.animFrameId = requestAnimationFrame(animate)
+
+          if (engine.controls) {
+            engine.controls.update()
+          }
+
+          if (engine.defaultMesh && !engine.currentModel) {
+            engine.defaultMesh.rotation.y += 0.008
+            engine.defaultMesh.rotation.x += 0.004
+          }
+
+          renderer.render(scene, camera)
+        }
+
+        engine.animFrameId = requestAnimationFrame(animate)
+      } else if (!shouldRun && engine.animFrameId !== null) {
+        cancelAnimationFrame(engine.animFrameId)
+        engine.animFrameId = null
       }
-
-      engine.animFrameId = requestAnimationFrame(animate)
-
-      if (engine.controls) {
-        engine.controls.update()
-      }
-
-      if (engine.defaultMesh && !engine.currentModel) {
-        engine.defaultMesh.rotation.y += 0.008
-        engine.defaultMesh.rotation.x += 0.004
-      }
-
-      renderer.render(scene, camera)
     }
 
-    animate()
+    scheduleOrPause()
+
+    const intersectionObserver =
+      typeof IntersectionObserver !== 'undefined'
+        ? new IntersectionObserver(
+            entries => {
+              inViewport = entries.some(entry => entry.isIntersecting)
+              scheduleOrPause()
+            },
+            { threshold: 0.05 }
+          )
+        : null
+
+    intersectionObserver?.observe(container)
+
+    const onVisibilityChange = () => {
+      pageVisible = document.visibilityState === 'visible'
+      scheduleOrPause()
+    }
+
+    document.addEventListener('visibilitychange', onVisibilityChange)
 
     const resizeObserver = new ResizeObserver(() => {
       if (!container || !engine.renderer || !engine.camera) {
@@ -277,12 +313,15 @@ export const BlenderViewport = forwardRef<ViewportHandle, ViewportProps>(functio
     resizeObserver.observe(container)
 
     return () => {
-      isRunning = false
+      disposed = true
 
-      if (engine.animFrameId) {
+      if (engine.animFrameId !== null) {
         cancelAnimationFrame(engine.animFrameId)
+        engine.animFrameId = null
       }
 
+      document.removeEventListener('visibilitychange', onVisibilityChange)
+      intersectionObserver?.disconnect()
       resizeObserver.disconnect()
       geom.dispose()
       mat.dispose()
@@ -477,9 +516,9 @@ export const BlenderViewport = forwardRef<ViewportHandle, ViewportProps>(functio
     <div className="relative h-full w-full overflow-hidden select-none" ref={containerRef}>
       {loading && (
         <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 backdrop-blur-xs">
-          <div className="flex flex-col items-center gap-2 rounded-xl border border-(--ui-border) bg-(--ui-background)/90 p-4 shadow-xl">
-            <div className="h-6 w-6 animate-spin rounded-full border-2 border-violet-500 border-t-transparent" />
-            <span className="font-mono text-xs text-(--ui-text-secondary)">Loading 3D asset...</span>
+          <div className="flex flex-col items-center gap-2 rounded-xl border border-(--ui-stroke-tertiary) bg-(--ui-bg-elevated) p-4 shadow-lg">
+            <Loader className="size-6" />
+            <span className="font-mono text-xs text-(--ui-text-secondary)">Loading 3D asset…</span>
           </div>
         </div>
       )}

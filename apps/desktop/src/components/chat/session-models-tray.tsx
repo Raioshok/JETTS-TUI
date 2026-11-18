@@ -1,8 +1,15 @@
 import { useStore } from '@nanostores/react'
-import { type FC, useState } from 'react'
+import { type FC, useEffect, useState } from 'react'
 
 import { requestComposerInsert } from '@/app/chat/composer/focus'
+import { useComposerScope } from '@/app/chat/composer/scope'
 import { useSessionView } from '@/app/chat/session-view'
+import { navigateWorkspaceHash } from '@/app/routes'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Tip } from '@/components/ui/tooltip'
+import { useI18n } from '@/i18n'
+import { ESCAPE_PRIORITY, isTopEscapeLayer, pushEscapeLayer } from '@/lib/escape-layers'
 import { studioDeepLinkHash } from '@/lib/generated-models'
 import { Box, ChevronDown, ChevronRight, Download, ExternalLink, X, Zap } from '@/lib/icons'
 import { cn } from '@/lib/utils'
@@ -10,20 +17,77 @@ import {
   $activePreviewModel,
   $session3DModels,
   $sessionModelsTrayOpen,
+  $sessionModelsTrayScopes,
   $smart3DModalOpen,
-  type SessionModelRecord
+  $smart3DModalScopes,
+  type SessionModelRecord,
+  setSessionModelsTrayOpen,
+  setSmart3DModalOpen,
+  toggleSessionModelsTray,
+  toggleSmart3DModal
 } from '@/store/blender-models'
 
-export const SessionModelsTray: FC = () => {
-  const sessionView = useSessionView()
-  const activeSessionId = useStore(sessionView.$runtimeId) || '__draft__'
-  const allModels = useStore($session3DModels)
-  const isOpen = useStore($sessionModelsTrayOpen)
-  const showQuickModal = useStore($smart3DModalOpen)
-  const sessionModels = allModels[activeSessionId] || []
+interface SessionModelsTrayProps {
+  sessionId?: null | string
+}
 
-  const [activePreset, setActivePreset] = useState<string>('nature')
+export const SessionModelsTray: FC<SessionModelsTrayProps> = ({ sessionId }) => {
+  const { t } = useI18n()
+  const b3d = t.blender3d
+  const scope = useComposerScope()
+  const sessionView = useSessionView()
+  const runtimeId = useStore(sessionView.$runtimeId)
+  const activeSessionKey = sessionId || runtimeId || '__draft__'
+
+  const allModels = useStore($session3DModels)
+  const activePreview = useStore($activePreviewModel)
+  const mainTrayOpen = useStore($sessionModelsTrayOpen)
+  const scopedTrayMap = useStore($sessionModelsTrayScopes)
+  const mainModalOpen = useStore($smart3DModalOpen)
+  const scopedModalMap = useStore($smart3DModalScopes)
+
+  const isOpen = scope.target === 'main' ? mainTrayOpen : Boolean(scopedTrayMap[scope.target])
+  const showQuickModal = scope.target === 'main' ? mainModalOpen : Boolean(scopedModalMap[scope.target])
+  const sessionModels = allModels[activeSessionKey] || []
+
+  const [activePreset, setActivePreset] = useState<'abstract' | 'architecture' | 'furniture' | 'nature' | 'scifi'>(
+    'nature'
+  )
+
   const [quickPrompt, setQuickPrompt] = useState<string>('')
+
+  const hasOpenLayer = showQuickModal || (isOpen && sessionModels.length > 0)
+
+  useEffect(() => {
+    if (!hasOpenLayer) {
+      return
+    }
+
+    const release = pushEscapeLayer(ESCAPE_PRIORITY.composerPopover)
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented || !isTopEscapeLayer(ESCAPE_PRIORITY.composerPopover)) {
+        return
+      }
+
+      event.preventDefault()
+
+      if (showQuickModal) {
+        setSmart3DModalOpen(false, scope.target)
+
+        return
+      }
+
+      setSessionModelsTrayOpen(false, scope.target)
+    }
+
+    window.addEventListener('keydown', onKeyDown)
+
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      release()
+    }
+  }, [hasOpenLayer, scope.target, showQuickModal])
 
   if (sessionModels.length === 0 && !showQuickModal) {
     return null
@@ -34,22 +98,25 @@ export const SessionModelsTray: FC = () => {
   }
 
   const handleInsertPrompt = (model: SessionModelRecord) => {
-    requestComposerInsert(`Refine the 3D model "${model.name}": `)
+    requestComposerInsert(`Refine the 3D model "${model.name}": `, { target: scope.target })
   }
 
   const handleOpenStudio = (model?: SessionModelRecord) => {
     if (!model) {
-      window.location.hash = '#/blender'
+      navigateWorkspaceHash('/blender')
 
       return
     }
 
-    window.location.hash = studioDeepLinkHash({
-      format: model.format,
-      localPath: model.localPath,
-      name: model.filename || model.name,
-      url: model.url
-    })
+    $activePreviewModel.set(model)
+    navigateWorkspaceHash(
+      studioDeepLinkHash({
+        format: model.format,
+        localPath: model.localPath,
+        name: model.filename || model.name,
+        url: model.url
+      })
+    )
   }
 
   const handleQuickGenerate = () => {
@@ -58,193 +125,242 @@ export const SessionModelsTray: FC = () => {
     }
 
     const formatted = `/3d [preset:${activePreset}] ${quickPrompt.trim()}`
-    requestComposerInsert(formatted)
-    $smart3DModalOpen.set(false)
+    requestComposerInsert(formatted, { target: scope.target })
+    setSmart3DModalOpen(false, scope.target)
     setQuickPrompt('')
   }
 
+  const presets = [
+    { id: 'nature', label: b3d.presets.nature },
+    { id: 'scifi', label: b3d.presets.scifi },
+    { id: 'architecture', label: b3d.presets.architecture },
+    { id: 'furniture', label: b3d.presets.furniture },
+    { id: 'abstract', label: b3d.presets.abstract }
+  ] as const
+
   return (
-    <div className="relative z-10 mb-2 w-full px-4 select-none">
+    <div className="w-full px-2.5 py-1.5 select-none">
       {sessionModels.length > 0 && (
-        <div className="flex items-center justify-between rounded-lg border border-violet-500/30 bg-(--ui-surface-background)/90 px-3 py-1.5 shadow-md backdrop-blur-md">
-          <div className="flex items-center gap-2">
+        <div className="flex items-center justify-between gap-2 py-0.5">
+          <div className="flex min-w-0 items-center gap-2">
             <button
-              className="flex cursor-pointer items-center gap-1.5 text-xs font-medium text-violet-400 transition-colors hover:text-violet-300"
-              onClick={() => $sessionModelsTrayOpen.set(!isOpen)}
+              aria-expanded={isOpen}
+              className="flex cursor-pointer items-center gap-1.5 text-xs font-medium text-(--ui-text-primary) transition-colors hover:text-primary"
+              onClick={() => toggleSessionModelsTray(scope.target)}
               type="button"
             >
-              <Box className="size-3.5" />
-              <span>Session 3D Models</span>
-              <span className="flex size-4 items-center justify-center rounded-full bg-violet-600/30 text-[0.62rem] font-bold text-violet-300">
+              <Box className="size-3.5 text-primary" />
+              <span>{b3d.sessionModels}</span>
+              <span className="flex size-4 items-center justify-center rounded-full bg-primary/15 text-[0.625rem] font-semibold text-primary">
                 {sessionModels.length}
               </span>
               {isOpen ? (
-                <ChevronDown className="size-3 text-zinc-400" />
+                <ChevronDown className="size-3 text-(--ui-text-tertiary)" />
               ) : (
-                <ChevronRight className="size-3 text-zinc-400" />
+                <ChevronRight className="size-3 text-(--ui-text-tertiary)" />
               )}
             </button>
 
             {!isOpen && (
-              <div className="ml-2 hidden items-center gap-1.5 sm:flex">
+              <div className="ml-1 hidden min-w-0 items-center gap-1 sm:flex">
                 {sessionModels.slice(0, 3).map(m => (
-                  <span
-                    className="max-w-[120px] cursor-pointer truncate rounded border border-(--ui-border) bg-(--ui-background) px-2 py-0.5 text-[0.68rem] text-zinc-300 hover:border-violet-500/50"
+                  <button
+                    className={cn(
+                      'max-w-30 cursor-pointer truncate rounded-md border px-2 py-0.5 text-[0.6875rem] transition-colors',
+                      activePreview?.id === m.id
+                        ? 'border-primary/50 bg-primary/10 text-(--ui-text-primary)'
+                        : 'border-(--ui-stroke-tertiary) bg-(--ui-bg-card) text-(--ui-text-secondary) hover:bg-(--ui-control-hover-background) hover:text-(--ui-text-primary)'
+                    )}
                     key={m.id}
                     onClick={() => {
-                      $sessionModelsTrayOpen.set(true)
+                      setSessionModelsTrayOpen(true, scope.target)
                       handleSelectModel(m)
                     }}
-                    title={m.prompt || m.name}
+                    type="button"
                   >
                     {m.name}
-                  </span>
+                  </button>
                 ))}
               </div>
             )}
           </div>
 
-          <div className="flex items-center gap-2">
-            <button
-              className="flex cursor-pointer items-center gap-1 rounded border border-violet-500/30 bg-violet-600/20 px-2 py-1 text-[0.68rem] font-medium text-violet-300 transition-all hover:bg-violet-600/30"
-              onClick={() => $smart3DModalOpen.set(!showQuickModal)}
-              title="Create a new 3D model in this conversation"
-              type="button"
-            >
-              <Zap className="size-3 text-violet-400" />
-              <span>Smart 3D</span>
-            </button>
+          <div className="flex shrink-0 items-center gap-1.5">
+            <Tip label={b3d.smart3DTip}>
+              <Button
+                aria-expanded={showQuickModal}
+                onClick={() => toggleSmart3DModal(scope.target)}
+                size="xs"
+                type="button"
+                variant={showQuickModal ? 'secondary' : 'outline'}
+              >
+                <Zap className="size-3 text-primary" />
+                <span>{b3d.smart3D}</span>
+              </Button>
+            </Tip>
 
-            <button
-              className="flex cursor-pointer items-center gap-1 text-[0.68rem] text-(--ui-text-tertiary) hover:text-(--ui-text-primary)"
-              onClick={() => handleOpenStudio()}
-              title="Open 3D Blender Studio"
-              type="button"
-            >
-              <span>Studio</span>
-              <ExternalLink className="size-2.5" />
-            </button>
+            <Tip label={b3d.openStudioTip}>
+              <Button onClick={() => handleOpenStudio()} size="xs" type="button" variant="ghost">
+                <span>{b3d.studio}</span>
+                <ExternalLink className="size-2.5" />
+              </Button>
+            </Tip>
           </div>
         </div>
       )}
 
       {isOpen && sessionModels.length > 0 && (
-        <div className="mt-1.5 rounded-xl border border-(--ui-border) bg-(--ui-panel-background)/95 p-3 shadow-xl backdrop-blur-md">
-          <div className="mb-2 flex items-center justify-between border-b border-(--ui-border) pb-2 text-xs">
-            <span className="font-medium text-zinc-400">Generated Models in this Chat</span>
-            <button
-              className="cursor-pointer rounded p-0.5 text-zinc-500 hover:text-zinc-300"
-              onClick={() => $sessionModelsTrayOpen.set(false)}
+        <div className="mt-1.5 rounded-lg border border-(--ui-stroke-tertiary) bg-(--ui-bg-elevated) p-2.5">
+          <div className="mb-2 flex items-center justify-between border-b border-(--ui-stroke-tertiary) pb-1.5 text-xs">
+            <span className="font-medium text-(--ui-text-secondary)">{b3d.generatedModelsTitle}</span>
+            <Button
+              aria-label={t.common.close}
+              className="size-5 p-0 text-(--ui-text-tertiary) hover:text-(--ui-text-primary)"
+              onClick={() => setSessionModelsTrayOpen(false, scope.target)}
+              size="icon"
               type="button"
+              variant="ghost"
             >
               <X className="size-3.5" />
-            </button>
+            </Button>
           </div>
 
-          <div className="scrollbar-thin flex gap-2.5 overflow-x-auto pb-1">
-            {sessionModels.map(model => (
-              <div
-                className="group flex w-44 shrink-0 flex-col justify-between rounded-lg border border-(--ui-border) bg-(--ui-surface-background)/80 p-2.5 transition-all hover:border-violet-500/60"
-                key={model.id}
-              >
-                <div>
-                  <div className="mb-1 flex items-center justify-between">
-                    <span className="flex size-5 items-center justify-center rounded bg-violet-600/20 text-violet-400">
-                      <Box className="size-3" />
-                    </span>
-                    <span className="font-mono text-[0.62rem] text-zinc-400 uppercase">{model.format}</span>
-                  </div>
-                  <div className="line-clamp-1 text-xs font-semibold text-(--ui-text-primary)" title={model.name}>
-                    {model.name}
-                  </div>
-                  <div className="mt-0.5 line-clamp-2 text-[0.65rem] leading-snug text-zinc-500">
-                    {model.prompt || model.filename}
-                  </div>
-                </div>
+          <div className="scrollbar-thin flex gap-2 overflow-x-auto pb-1">
+            {sessionModels.map(model => {
+              const selected = activePreview?.id === model.id
 
-                <div className="mt-3 flex items-center justify-between border-t border-(--ui-border)/60 pt-2">
-                  <button
-                    className="flex cursor-pointer items-center gap-1 text-[0.65rem] font-medium text-violet-400 hover:text-violet-300"
-                    onClick={() => handleInsertPrompt(model)}
-                    title="Insert refinement prompt in chat composer"
-                    type="button"
-                  >
-                    <Zap className="size-2.5" />
-                    <span>Iterate</span>
-                  </button>
+              return (
+                <div
+                  className={cn(
+                    'group flex w-44 shrink-0 flex-col justify-between rounded-lg border p-2.5 transition-colors',
+                    selected
+                      ? 'border-primary/60 bg-primary/8'
+                      : 'border-(--ui-stroke-tertiary) bg-(--ui-bg-card) hover:border-(--ui-stroke-secondary)'
+                  )}
+                  key={model.id}
+                  onClick={() => handleSelectModel(model)}
+                >
+                  <div>
+                    <div className="mb-1 flex items-center justify-between">
+                      <span className="flex size-5 items-center justify-center rounded bg-primary/12 text-primary">
+                        <Box className="size-3" />
+                      </span>
+                      <span className="font-mono text-[0.625rem] text-(--ui-text-tertiary) uppercase">
+                        {model.format}
+                      </span>
+                    </div>
+                    <div className="line-clamp-1 text-xs font-semibold text-(--ui-text-primary)">{model.name}</div>
+                    <div className="mt-0.5 line-clamp-2 text-[0.6875rem] leading-snug text-(--ui-text-tertiary)">
+                      {model.prompt || model.filename}
+                    </div>
+                  </div>
 
-                  <div className="flex items-center gap-1">
-                    {model.url && (
-                      <a
-                        className="p-1 text-zinc-400 hover:text-zinc-200"
-                        download={model.filename}
-                        href={model.url}
-                        title="Download asset"
+                  <div className="mt-2.5 flex items-center justify-between border-t border-(--ui-stroke-tertiary) pt-1.5">
+                    <Tip label={b3d.iterateTip}>
+                      <button
+                        className="flex cursor-pointer items-center gap-1 text-[0.6875rem] font-medium text-primary transition-colors hover:opacity-80"
+                        onClick={e => {
+                          e.stopPropagation()
+                          handleInsertPrompt(model)
+                        }}
+                        type="button"
                       >
-                        <Download className="size-3" />
-                      </a>
-                    )}
-                    <button
-                      className="cursor-pointer p-1 text-zinc-400 hover:text-zinc-200"
-                      onClick={() => handleOpenStudio(model)}
-                      title="Inspect in 3D Studio"
-                      type="button"
-                    >
-                      <ExternalLink className="size-3" />
-                    </button>
+                        <Zap className="size-2.5" />
+                        <span>{b3d.iterate}</span>
+                      </button>
+                    </Tip>
+
+                    <div className="flex items-center gap-0.5">
+                      {model.url && (
+                        <Tip label={b3d.downloadAsset}>
+                          <a
+                            aria-label={b3d.downloadAsset}
+                            className="rounded p-1 text-(--ui-text-tertiary) transition-colors hover:bg-(--ui-control-hover-background) hover:text-(--ui-text-primary)"
+                            download={model.filename}
+                            href={model.url}
+                            onClick={e => e.stopPropagation()}
+                          >
+                            <Download className="size-3" />
+                          </a>
+                        </Tip>
+                      )}
+                      <Tip label={b3d.inspectInStudio}>
+                        <button
+                          aria-label={b3d.inspectInStudio}
+                          className="cursor-pointer rounded p-1 text-(--ui-text-tertiary) transition-colors hover:bg-(--ui-control-hover-background) hover:text-(--ui-text-primary)"
+                          onClick={e => {
+                            e.stopPropagation()
+                            handleOpenStudio(model)
+                          }}
+                          type="button"
+                        >
+                          <ExternalLink className="size-3" />
+                        </button>
+                      </Tip>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              )
+            })}
           </div>
         </div>
       )}
 
       {showQuickModal && (
-        <div className="mt-2 rounded-xl border border-violet-500/40 bg-(--ui-surface-background)/98 p-4 shadow-2xl backdrop-blur-md">
+        <div
+          aria-label={b3d.smart3DTitle}
+          className={cn(
+            'rounded-lg border border-(--ui-stroke-secondary) bg-(--ui-bg-elevated) p-3',
+            (sessionModels.length > 0 || isOpen) && 'mt-1.5'
+          )}
+          role="dialog"
+        >
           <div className="mb-2 flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Zap className="size-4 text-violet-400" />
-              <span className="text-xs font-semibold text-white">Smart 3D Generator</span>
+              <Zap className="size-3.5 text-primary" />
+              <span className="text-xs font-semibold text-(--ui-text-primary)">{b3d.smart3DTitle}</span>
             </div>
-            <button
-              className="cursor-pointer text-zinc-400 hover:text-zinc-200"
-              onClick={() => $smart3DModalOpen.set(false)}
+            <Button
+              aria-label={t.common.close}
+              className="size-5 p-0 text-(--ui-text-tertiary) hover:text-(--ui-text-primary)"
+              onClick={() => setSmart3DModalOpen(false, scope.target)}
+              size="icon"
               type="button"
+              variant="ghost"
             >
               <X className="size-3.5" />
-            </button>
+            </Button>
           </div>
 
           <div className="space-y-2.5">
-            <input
+            <Input
               autoFocus
-              className="w-full rounded-lg border border-(--ui-border) bg-(--ui-background) px-3 py-2 text-xs text-white placeholder:text-zinc-500 focus:border-violet-500 focus:outline-hidden"
+              className="h-8 text-xs"
               onChange={e => setQuickPrompt(e.target.value)}
               onKeyDown={e => {
                 if (e.key === 'Enter') {
+                  e.preventDefault()
                   handleQuickGenerate()
+                } else if (e.key === 'Escape') {
+                  e.preventDefault()
+                  e.stopPropagation()
+                  setSmart3DModalOpen(false, scope.target)
                 }
               }}
-              placeholder="e.g. A low-poly medieval watchtower with torch..."
+              placeholder={b3d.smart3DPlaceholder}
               type="text"
               value={quickPrompt}
             />
 
             <div className="flex flex-wrap items-center gap-1.5">
-              {[
-                { id: 'nature', label: '🌲 Nature' },
-                { id: 'scifi', label: '🚀 Sci-Fi' },
-                { id: 'architecture', label: '🏛️ Architecture' },
-                { id: 'furniture', label: '🪑 Furniture' },
-                { id: 'abstract', label: '🔮 Sculpture' }
-              ].map(p => (
+              {presets.map(p => (
                 <button
+                  aria-pressed={activePreset === p.id}
                   className={cn(
-                    'cursor-pointer rounded border px-2 py-1 text-[0.68rem] transition-all',
+                    'cursor-pointer rounded-md border px-2 py-0.5 text-[0.6875rem] transition-colors',
                     activePreset === p.id
-                      ? 'border-violet-500 bg-violet-500/20 font-semibold text-violet-300'
-                      : 'border-(--ui-border) text-zinc-400 hover:bg-(--ui-hover)'
+                      ? 'border-primary/50 bg-primary/12 font-semibold text-(--ui-text-primary)'
+                      : 'border-(--ui-stroke-tertiary) text-(--ui-text-secondary) hover:bg-(--ui-control-hover-background) hover:text-(--ui-text-primary)'
                   )}
                   key={p.id}
                   onClick={() => setActivePreset(p.id)}
@@ -255,23 +371,14 @@ export const SessionModelsTray: FC = () => {
               ))}
             </div>
 
-            <div className="flex justify-end gap-2 pt-1">
-              <button
-                className="cursor-pointer rounded px-3 py-1.5 text-xs text-zinc-400 hover:text-zinc-200"
-                onClick={() => $smart3DModalOpen.set(false)}
-                type="button"
-              >
-                Cancel
-              </button>
-              <button
-                className="flex cursor-pointer items-center gap-1.5 rounded-lg bg-violet-600 px-3.5 py-1.5 text-xs font-semibold text-white shadow-md transition-all hover:bg-violet-500 disabled:opacity-50"
-                disabled={!quickPrompt.trim()}
-                onClick={handleQuickGenerate}
-                type="button"
-              >
+            <div className="flex justify-end gap-2 pt-0.5">
+              <Button onClick={() => setSmart3DModalOpen(false, scope.target)} size="xs" type="button" variant="ghost">
+                {t.common.cancel}
+              </Button>
+              <Button disabled={!quickPrompt.trim()} onClick={handleQuickGenerate} size="xs" type="button">
                 <Box className="size-3.5" />
-                <span>Insert Prompt</span>
-              </button>
+                <span>{b3d.insertPrompt}</span>
+              </Button>
             </div>
           </div>
         </div>

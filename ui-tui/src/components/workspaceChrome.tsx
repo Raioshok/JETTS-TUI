@@ -1,5 +1,6 @@
 import { Box, stringWidth, Text } from '@jetts-tui/ink'
 
+import type { BusyInputMode } from '../app/interfaces.js'
 import type { Theme } from '../theme.js'
 
 type WorkMode = 'accept-edits' | 'default' | 'plan' | undefined
@@ -76,6 +77,7 @@ export function WorkspaceHeader({ brand, busy, cols, cwd, mode, model, project, 
 
 export interface ComposerToolbarProps {
   busy: boolean
+  busyInputMode?: BusyInputMode
   cols: number
   mode?: WorkMode
   queueCount: number
@@ -83,20 +85,25 @@ export interface ComposerToolbarProps {
 }
 
 /** A quiet command strip that separates conversation from composition. */
-export function ComposerToolbar({ busy, cols, mode, queueCount, t }: ComposerToolbarProps) {
+export function ComposerToolbar({ busy, busyInputMode = 'steer', cols, mode, queueCount, t }: ComposerToolbarProps) {
   const width = Math.max(1, cols - 2)
   const wide = width >= 76
   const medium = width >= 48
 
+  const busyShort = busyInputMode === 'steer' ? 'Steer' : busyInputMode === 'queue' ? 'Queue' : 'Working'
+
+  const busyLong =
+    busyInputMode === 'steer' ? 'Steer the agent' : busyInputMode === 'queue' ? 'Queue next turn' : 'Interrupts turn'
+
   const left =
     width < 22
       ? busy
-        ? 'Steer'
+        ? busyShort
         : queueCount > 0
           ? `${queueCount} queued`
           : 'Message'
       : busy
-        ? 'Steer the agent'
+        ? busyLong
         : queueCount > 0
           ? `Message · ${queueCount} queued`
           : 'New message'

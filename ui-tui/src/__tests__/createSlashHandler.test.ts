@@ -1008,6 +1008,90 @@ describe('createSlashHandler', () => {
       expect(ctx.transcript.sys).toHaveBeenCalledWith('title: demo title')
     })
   })
+
+  it('does not auto-execute destructive /exit on unambiguous prefix /ex', () => {
+    const ctx = buildCtx()
+
+    expect(createSlashHandler(ctx)('/ex')).toBe(true)
+    expect(ctx.session.die).not.toHaveBeenCalled()
+  })
+
+  it('dispatches /3d alias to blender-3d skill via command.dispatch', async () => {
+    patchUiState({ sid: 'sid-abc' })
+
+    const request = vi.fn(() => Promise.resolve({ message: 'build a cube', name: 'blender-3d', type: 'skill' }))
+    const baseGw = buildGateway()
+    const ctx = buildCtx({ gateway: { ...baseGw, gw: { ...baseGw.gw, request } } })
+
+    expect(createSlashHandler(ctx)('/3d a cube')).toBe(true)
+    expect(request).toHaveBeenCalledWith('command.dispatch', {
+      arg: 'a cube',
+      name: 'blender-3d',
+      session_id: 'sid-abc'
+    })
+    await vi.waitFor(() => {
+      expect(ctx.transcript.send).toHaveBeenCalledWith('build a cube', true, '/3d a cube')
+    })
+  })
+
+  it('syncs visible transcript messages when /undo returns prefill with messages', async () => {
+    patchUiState({ sid: 'sid-abc' })
+
+    const request = vi.fn(() =>
+      Promise.resolve({
+        message: 'draft prompt',
+        messages: [{ role: 'user', text: 'kept turn' }],
+        notice: 'Undid 1 exchange.',
+        type: 'prefill'
+      })
+    )
+
+    const baseGw = buildGateway()
+
+    const ctx = buildCtx({
+      gateway: { ...baseGw, gw: { ...baseGw.gw, request } },
+      local: { ...buildLocal(), getHistoryItems: vi.fn(() => [{ role: 'user', text: 'old' }]) }
+    })
+
+    expect(createSlashHandler(ctx)('/undo')).toBe(true)
+    expect(request).toHaveBeenCalledWith('command.dispatch', {
+      arg: '',
+      name: 'undo',
+      session_id: 'sid-abc'
+    })
+    await vi.waitFor(() => {
+      expect(ctx.composer.setInput).toHaveBeenCalledWith('draft prompt')
+      expect(ctx.transcript.setHistoryItems).toHaveBeenCalledWith([{ role: 'user', text: 'kept turn' }])
+      expect(ctx.transcript.sys).toHaveBeenCalledWith('Undid 1 exchange.')
+    })
+  })
+
+  it('lists bots on /bot with no arguments and assigns tasks on /bot <id> <task>', async () => {
+    const rpc = vi
+      .fn()
+      .mockResolvedValueOnce({ bots: [{ description: 'Code reviewer', id: 'rev-1', name: 'Reviewer' }] })
+      .mockResolvedValueOnce({ session_id: 'sid-bot-1' })
+
+    const ctx = buildCtx({ gateway: { ...buildGateway(), rpc } })
+    const run = createSlashHandler(ctx)
+
+    expect(run('/bot')).toBe(true)
+    await vi.waitFor(() => {
+      expect(rpc).toHaveBeenCalledWith('bots.list', {})
+      expect(ctx.transcript.panel).toHaveBeenCalledWith('Bots', [
+        {
+          items: ['Reviewer (rev-1) — idle · Code reviewer'],
+          title: '1 bot — /bot <id> <task>'
+        }
+      ])
+    })
+
+    expect(run('/bot rev-1 audit PR')).toBe(true)
+    await vi.waitFor(() => {
+      expect(rpc).toHaveBeenCalledWith('bots.assign', { id: 'rev-1', task: 'audit PR' })
+      expect(ctx.transcript.sys).toHaveBeenCalledWith('assigned to bot "rev-1" (session sid-bot-1 — /sessions to view)')
+    })
+  })
 })
 
 const buildCtx = (overrides: Partial<Ctx> = {}): Ctx => ({

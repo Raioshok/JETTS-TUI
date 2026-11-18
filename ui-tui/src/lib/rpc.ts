@@ -41,6 +41,7 @@ export const asCommandDispatch = (value: unknown): CommandDispatchResponse | nul
     return {
       type: 'prefill',
       message: o.message,
+      messages: Array.isArray(o.messages) ? o.messages : undefined,
       notice: typeof o.notice === 'string' ? o.notice : undefined
     }
   }

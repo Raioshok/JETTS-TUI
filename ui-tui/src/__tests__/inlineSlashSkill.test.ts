@@ -109,4 +109,13 @@ describe('splitSlashSkillRefs', () => {
   it('always returns at least one segment', () => {
     expect(splitSlashSkillRefs('')).toEqual([{ ref: false, text: '' }])
   })
+
+  it('supports digit-led skill names that contain letters such as /3d', () => {
+    expect(inlineSlashTrigger('render with /3d')).toEqual({ query: '3d', start: 12 })
+    expect(splitSlashSkillRefs('render with /3d now')).toEqual([
+      { ref: false, text: 'render with ' },
+      { ref: true, text: '/3d' },
+      { ref: false, text: ' now' }
+    ])
+  })
 })
