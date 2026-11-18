@@ -503,9 +503,37 @@ def test_streaming_falls_back_to_next_endpoint_when_first_endpoint_persistently_
     client = _client(handler)
     chunks = list(client.chat.completions.create(model="gemini-3-flash", messages=PARALLEL_HISTORY[:2], stream=True))
     assert "".join(c.choices[0].delta.content or "" for c in chunks) == "fallback_ok"
-    # daily tried (1st attempt + 1 retry = 2), then fell back to autopush
+    # daily tried (1st attempt + 1 retry = 2), then fell back to prod (2nd in ANTIGRAVITY_INFERENCE_ENDPOINTS)
     assert hosts.count("daily-cloudcode-pa.sandbox.googleapis.com") == 2
-    assert "autopush-cloudcode-pa.sandbox.googleapis.com" in hosts
+    assert "cloudcode-pa.googleapis.com" in hosts
+
+
+def test_antiban_throttle_serializes_concurrent_callers_with_min_spacing():
+    import threading
+    import time as _t
+    from agent.antigravity_adapter import _AntiBanThrottle
+
+    throttle = _AntiBanThrottle(max_rps=100.0, burst=5, min_spacing_ms=60.0)
+    timestamps = []
+    ts_lock = threading.Lock()
+    barrier = threading.Barrier(3)
+
+    def worker():
+        barrier.wait()
+        throttle.wait()
+        with ts_lock:
+            timestamps.append(_t.monotonic())
+
+    threads = [threading.Thread(target=worker) for _ in range(3)]
+    for th in threads:
+        th.start()
+    for th in threads:
+        th.join(timeout=5.0)
+
+    assert len(timestamps) == 3
+    timestamps.sort()
+    assert (timestamps[1] - timestamps[0]) >= 0.055
+    assert (timestamps[2] - timestamps[1]) >= 0.055
 
 
 def test_non_streaming_retries_on_connection_reset_10054():

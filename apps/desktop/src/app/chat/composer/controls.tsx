@@ -5,10 +5,11 @@ import { useI18n } from '@/i18n'
 import { triggerHaptic } from '@/lib/haptics'
 import { AudioLines, Box, iconSize, Layers3, Loader2, Square, SteeringWheel, Volume2, VolumeX } from '@/lib/icons'
 import { cn } from '@/lib/utils'
+import { $smart3DModalOpen } from '@/store/blender-models'
 
+import { requestComposerInsert } from './focus'
 import type { ConversationStatus } from './hooks/use-voice-conversation'
 import { ModelPill } from './model-pill'
-import { requestComposerInsert } from './focus'
 import type { ChatBarState, VoiceStatus } from './types'
 
 export const ICON_BTN = 'size-(--composer-control-size) shrink-0 rounded-md'
@@ -86,7 +87,12 @@ export function ComposerControls({
           disabled={disabled}
           onClick={() => {
             triggerHaptic('tap')
-            requestComposerInsert('/3d ')
+
+            if (!hasComposerPayload) {
+              $smart3DModalOpen.set(!$smart3DModalOpen.get())
+            } else {
+              requestComposerInsert('/3d ')
+            }
           }}
           size="icon"
           type="button"

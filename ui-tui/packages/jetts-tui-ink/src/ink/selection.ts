@@ -397,40 +397,73 @@ export function findPlainTextUrlAt(screen: Screen, col: number, row: number): st
   let token = ''
   let clickIdx = 0
 
-  // Multi-line wrapped URL detection: if the URL run touches the left or right
-  // edge of rendered content, check adjacent rows for continuation so long
-  // URLs that wrap across lines (e.g. 400+ char OAuth URLs) are extracted fully
-  // no matter which row the user clicks on.
+  // Multi-line wrapped URL detection: if the URL run reaches the right content
+  // boundary (soft-wrapped), check adjacent rows for continuation so long URLs
+  // (e.g. 400+ char OAuth URLs, including inside <NoSelect>-bordered boxes) are
+  // extracted fully without falsely gluing unwrapped short URLs onto prose on
+  // the next row.
+  const isBorderOrMargin = (r: number, x: number): boolean => {
+    if (noSelect[r * width + x] === 1) {
+      return true
+    }
+
+    const ch = cellAt(screen, x, r)?.char
+
+    return !ch || ch === ' '
+  }
+
+  const contentRightBound = (r: number): number => {
+    const rOff = r * width
+    let bound = width - 1
+
+    while (bound >= 0 && noSelect[rOff + bound] === 1) {
+      bound--
+    }
+
+    return bound
+  }
+
+  let curChars = ''
+  for (let i = lo; i <= hi; i++) {
+    curChars += cellAt(screen, i, row)!.char
+  }
+
   type RowSegment = { row: number; lo: number; hi: number; chars: string }
+  const curSegment: RowSegment = { row, lo, hi, chars: curChars }
   const upperSegments: RowSegment[] = []
   let rUp = row
   let loUp = lo
+  let activeTopChars = curChars
 
-  while (rUp > 0) {
-    // Can only be a wrapped continuation from rUp - 1 if all cells before loUp are whitespace
-    let onlySpaceBefore = true
+  while (rUp > 0 && !/^(?:https?|file):\/\//.test(activeTopChars)) {
+    let onlyMarginBefore = true
     for (let x = 0; x < loUp; x++) {
-      const ch = cellAt(screen, x, rUp)?.char
-      if (ch && ch !== ' ') {
-        onlySpaceBefore = false
+      if (!isBorderOrMargin(rUp, x)) {
+        onlyMarginBefore = false
         break
       }
     }
-    if (!onlySpaceBefore) {
+    if (!onlyMarginBefore) {
       break
     }
 
     const prevRow = rUp - 1
     const prevRowOff = prevRow * width
-    let prevHi = width - 1
+    const prevRightBound = contentRightBound(prevRow)
+    if (prevRightBound < 0) {
+      break
+    }
+
+    let prevHi = prevRightBound
     while (prevHi >= 0) {
       const ch = cellAt(screen, prevHi, prevRow)?.char
-      if (ch && ch !== ' ') {
+      if (ch && ch !== ' ' && noSelect[prevRowOff + prevHi] !== 1) {
         break
       }
       prevHi--
     }
-    if (prevHi < 0) {
+    // Only treat prevRow as soft-wrapped if its token reached within 2 cols of the right content boundary
+    if (prevHi < 0 || prevHi < prevRightBound - 2) {
       break
     }
 
@@ -465,33 +498,32 @@ export function findPlainTextUrlAt(screen: Screen, col: number, row: number): st
     upperSegments.unshift({ row: prevRow, lo: prevLo, hi: prevHi, chars: prevChars })
     rUp = prevRow
     loUp = prevLo
+    activeTopChars = prevChars
 
     if (/(?:https?|file):\/\//.test(prevChars)) {
       break
     }
   }
 
-  let curChars = ''
-  for (let i = lo; i <= hi; i++) {
-    curChars += cellAt(screen, i, row)!.char
-  }
-  const curSegment: RowSegment = { row, lo, hi, chars: curChars }
-
   const lowerSegments: RowSegment[] = []
   let rDown = row
   let hiDown = hi
 
   while (rDown < screen.height - 1) {
-    // Can only wrap to rDown + 1 if all cells after hiDown on rDown are whitespace
-    let onlySpaceAfter = true
+    const curRightBound = contentRightBound(rDown)
+    // Unwrapped short URLs end well before the right content boundary — do not glue next row
+    if (hiDown < curRightBound - 2) {
+      break
+    }
+
+    let onlyMarginAfter = true
     for (let x = hiDown + 1; x < width; x++) {
-      const ch = cellAt(screen, x, rDown)?.char
-      if (ch && ch !== ' ') {
-        onlySpaceAfter = false
+      if (!isBorderOrMargin(rDown, x)) {
+        onlyMarginAfter = false
         break
       }
     }
-    if (!onlySpaceAfter) {
+    if (!onlyMarginAfter) {
       break
     }
 
@@ -499,8 +531,7 @@ export function findPlainTextUrlAt(screen: Screen, col: number, row: number): st
     const nextRowOff = nextRow * width
     let nextLo = 0
     while (nextLo < width) {
-      const ch = cellAt(screen, nextLo, nextRow)?.char
-      if (ch && ch !== ' ') {
+      if (!isBorderOrMargin(nextRow, nextLo)) {
         break
       }
       nextLo++
@@ -535,6 +566,10 @@ export function findPlainTextUrlAt(screen: Screen, col: number, row: number): st
     let nextChars = ''
     for (let i = nextLo; i <= nextHi; i++) {
       nextChars += cellAt(screen, i, nextRow)!.char
+    }
+
+    if (/^(?:https?|file):\/\//.test(nextChars)) {
+      break
     }
 
     lowerSegments.push({ row: nextRow, lo: nextLo, hi: nextHi, chars: nextChars })

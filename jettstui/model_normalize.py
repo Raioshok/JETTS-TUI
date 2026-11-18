@@ -102,6 +102,7 @@ _MATCHING_PREFIX_STRIP_PROVIDERS: frozenset[str] = frozenset({
     "xiaomi",
     "arcee",
     "yeta",
+    "abliteration",
     "ollama-cloud",
     "custom",
     "gemini",

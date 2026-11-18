@@ -422,6 +422,11 @@ _PROVIDER_MODELS: dict[str, list[str]] = {
         "deepseek-v4.1-flash-uncensored",
         "glm-5.3-flash",
     ],
+    "abliteration": [
+        "abliterated-model-large-v2",
+        "abliterated-model-large-flash",
+        "abliterated-model",
+    ],
     "opencode-zen": [
         "kimi-k2.5",
         "kimi-k2.6",
@@ -639,6 +644,7 @@ CANONICAL_PROVIDERS: list[ProviderEntry] = [
     ProviderEntry("arcee",          "Arcee AI",                 "Arcee AI (Trinity models, direct API)"),
     ProviderEntry("gmi",            "GMI Cloud",                "GMI Cloud (Multi-model direct API)"),
     ProviderEntry("yeta",           "Yeta Platform",            "Yeta Platform (OpenAI-compatible frontier models)"),
+    ProviderEntry("abliteration",   "Abliteration",             "Abliteration (Low-refusal security research models)"),
     ProviderEntry("kilocode",       "Kilo Code",                "Kilo Code (Kilo Gateway API)"),
     ProviderEntry("opencode-zen",   "OpenCode Zen",             "OpenCode Zen (Curated models, pay-as-you-go)"),
     ProviderEntry("opencode-go",    "OpenCode Go",              "OpenCode Go (Open models subscription)"),
@@ -813,6 +819,8 @@ _PROVIDER_ALIASES = {
     "yeta-platform": "yeta",
     "yeta-ai": "yeta",
     "yetaai": "yeta",
+    "abliteration-ai": "abliteration",
+    "abliterated": "abliteration",
     "fireworks-ai": "fireworks",
     "fw": "fireworks",
     "minimax-china": "minimax-cn",

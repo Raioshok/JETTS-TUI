@@ -1,63 +1,105 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useEffect, useRef, useState, useCallback, useImperativeHandle, forwardRef } from 'react'
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js'
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js'
+import { OBJLoader } from 'three/examples/jsm/loaders/OBJLoader.js'
 
-import type { CameraAngle, ModelStats, ShadingMode } from './types'
+import type { CameraAngle, ModelFileFormat, ModelStats, ShadingMode } from './types'
 
 export interface ViewportHandle {
   resetCamera: (angle?: CameraAngle) => void
-  takeSnapshot: () => string | null
+  takeSnapshot: () => null | string
 }
 
 interface ViewportProps {
-  modelUrl: string | null
-  shadingMode: ShadingMode
-  showGrid: boolean
-  showAxes: boolean
   autoRotate: boolean
   lightIntensity: number
-  onStatsChange?: (stats: ModelStats) => void
-  onLoadStart?: () => void
-  onLoadEnd?: () => void
+  modelFormat?: ModelFileFormat
+  modelUrl: null | string
   onError?: (err: string) => void
+  onLoadEnd?: () => void
+  onLoadStart?: () => void
+  onStatsChange?: (stats: ModelStats) => void
+  shadingMode: ShadingMode
+  showAxes: boolean
+  showGrid: boolean
+}
+
+function applyShadingToObject(root: any, mode: ShadingMode): void {
+  root.traverse((child: any) => {
+    if (!child.isMesh) {
+      return
+    }
+
+    if (mode === 'wireframe') {
+      child.material = new THREE.MeshBasicMaterial({
+        color: 0x00ffcc,
+        wireframe: true
+      })
+    } else if (mode === 'normal') {
+      child.material = new THREE.MeshNormalMaterial()
+    } else if (mode === 'matcap') {
+      child.material = new THREE.MeshStandardMaterial({
+        color: 0x999999,
+        metalness: 0.7,
+        roughness: 0.3
+      })
+    } else if (child.userData.originalMaterial) {
+      child.material = child.userData.originalMaterial
+    }
+  })
 }
 
 export const BlenderViewport = forwardRef<ViewportHandle, ViewportProps>(function BlenderViewport(
   {
-    modelUrl,
-    shadingMode,
-    showGrid,
-    showAxes,
     autoRotate,
     lightIntensity,
-    onStatsChange,
-    onLoadStart,
+    modelFormat = 'glb',
+    modelUrl,
+    onError,
     onLoadEnd,
-    onError
+    onLoadStart,
+    onStatsChange,
+    shadingMode,
+    showAxes,
+    showGrid
   },
   ref
 ) {
   const containerRef = useRef<HTMLDivElement>(null)
-  const rendererRef = useRef<any>(null)
-  const sceneRef = useRef<any>(null)
-  const cameraRef = useRef<any>(null)
-  const controlsRef = useRef<any>(null)
-  const currentModelRef = useRef<any>(null)
-  const defaultMeshRef = useRef<any>(null)
-  const gridHelperRef = useRef<any>(null)
-  const axesHelperRef = useRef<any>(null)
-  const lightsGroupRef = useRef<any>(null)
-  const animFrameIdRef = useRef<number | null>(null)
+
+  const engineRef = useRef<{
+    animFrameId: null | number
+    axesHelper: any
+    camera: any
+    controls: any
+    currentModel: any
+    defaultMesh: any
+    gridHelper: any
+    lightsGroup: any
+    renderer: any
+    scene: any
+  }>({
+    animFrameId: null,
+    axesHelper: null,
+    camera: null,
+    controls: null,
+    currentModel: null,
+    defaultMesh: null,
+    gridHelper: null,
+    lightsGroup: null,
+    renderer: null,
+    scene: null
+  })
 
   const [loading, setLoading] = useState(false)
 
-  // Camera reset imperative handler
   const resetCamera = useCallback((angle: CameraAngle = 'iso') => {
-    const camera = cameraRef.current
-    const controls = controlsRef.current
-    if (!camera || !controls) return
+    const { camera, controls } = engineRef.current
+
+    if (!camera || !controls) {
+      return
+    }
 
     controls.target.set(0, 0, 0)
     const dist = 4.2
@@ -65,325 +107,379 @@ export const BlenderViewport = forwardRef<ViewportHandle, ViewportProps>(functio
     switch (angle) {
       case 'front':
         camera.position.set(0, 0, dist)
+
         break
+
       case 'top':
         camera.position.set(0, dist, 0.001)
+
         break
+
       case 'side':
         camera.position.set(dist, 0, 0)
+
         break
+
       case 'iso':
+
       default:
         camera.position.set(dist * 0.7, dist * 0.6, dist * 0.7)
+
         break
     }
+
     camera.lookAt(0, 0, 0)
     controls.update()
   }, [])
 
-  // Snapshot capture handler
-  const takeSnapshot = useCallback((): string | null => {
-    const renderer = rendererRef.current
-    const scene = sceneRef.current
-    const camera = cameraRef.current
-    if (!renderer || !scene || !camera) return null
+  const takeSnapshot = useCallback((): null | string => {
+    const { camera, renderer, scene } = engineRef.current
+
+    if (!renderer || !scene || !camera) {
+      return null
+    }
 
     renderer.render(scene, camera)
+
     return renderer.domElement.toDataURL('image/png')
   }, [])
 
-  useImperativeHandle(ref, () => ({
-    resetCamera,
-    takeSnapshot
-  }), [resetCamera, takeSnapshot])
+  useImperativeHandle(
+    ref,
+    () => ({
+      resetCamera,
+      takeSnapshot
+    }),
+    [resetCamera, takeSnapshot]
+  )
 
-  // Initialize Three.js scene
   useEffect(() => {
     const container = containerRef.current
-    if (!container) return
 
+    if (!container) {
+      return
+    }
+
+    const engine = engineRef.current
     const width = container.clientWidth || 800
     const height = container.clientHeight || 600
 
-    // 1. Scene
     const scene = new THREE.Scene()
-    sceneRef.current = scene
+    engine.scene = scene
 
-    // 2. Camera
     const camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 100)
     camera.position.set(3.2, 2.8, 3.2)
-    cameraRef.current = camera
+    engine.camera = camera
 
-    // 3. WebGLRenderer
     const renderer = new THREE.WebGLRenderer({
-      antialias: true,
       alpha: true,
-      preserveDrawingBuffer: true,
-      powerPreference: 'high-performance'
+      antialias: true,
+      powerPreference: 'high-performance',
+      preserveDrawingBuffer: true
     })
+
     renderer.setSize(width, height)
     renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
     renderer.toneMapping = THREE.ACESFilmicToneMapping
     renderer.toneMappingExposure = 1.1
     container.appendChild(renderer.domElement)
-    rendererRef.current = renderer
+    engine.renderer = renderer
 
-    // 4. Controls
     const controls = new OrbitControls(camera, renderer.domElement)
     controls.enableDamping = true
     controls.dampingFactor = 0.05
     controls.maxDistance = 25
     controls.minDistance = 0.5
-    controlsRef.current = controls
+    engine.controls = controls
 
-    // 5. Lighting
     const lightsGroup = new THREE.Group()
-    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6 * lightIntensity)
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6)
     lightsGroup.add(ambientLight)
 
-    const keyLight = new THREE.DirectionalLight(0xfff5e6, 1.2 * lightIntensity)
+    const keyLight = new THREE.DirectionalLight(0xfff5e6, 1.2)
     keyLight.position.set(5, 8, 5)
     lightsGroup.add(keyLight)
 
-    const fillLight = new THREE.DirectionalLight(0xddeeff, 0.6 * lightIntensity)
+    const fillLight = new THREE.DirectionalLight(0xddeeff, 0.6)
     fillLight.position.set(-6, 3, -4)
     lightsGroup.add(fillLight)
 
-    const rimLight = new THREE.DirectionalLight(0xffeedd, 0.5 * lightIntensity)
+    const rimLight = new THREE.DirectionalLight(0xffeedd, 0.5)
     rimLight.position.set(0, 4, -6)
     lightsGroup.add(rimLight)
 
     scene.add(lightsGroup)
-    lightsGroupRef.current = lightsGroup
+    engine.lightsGroup = lightsGroup
 
-    // 6. Helpers (Grid and Axes)
     const grid = new THREE.GridHelper(10, 20, 0x555566, 0x222233)
     grid.position.y = -0.01
     scene.add(grid)
-    gridHelperRef.current = grid
+    engine.gridHelper = grid
 
     const axes = new THREE.AxesHelper(1.5)
+    axes.visible = false
     scene.add(axes)
-    axesHelperRef.current = axes
+    engine.axesHelper = axes
 
-    // 7. Default Preview Mesh (Geometric Sculpture)
     const geom = new THREE.TorusKnotGeometry(0.8, 0.25, 100, 16)
+
     const mat = new THREE.MeshStandardMaterial({
       color: 0x8b5cf6,
-      roughness: 0.25,
-      metalness: 0.8
+      metalness: 0.8,
+      roughness: 0.25
     })
+
     const defaultMesh = new THREE.Mesh(geom, mat)
     defaultMesh.position.y = 1.0
     scene.add(defaultMesh)
-    defaultMeshRef.current = defaultMesh
+    engine.defaultMesh = defaultMesh
 
-    // 8. Animation Loop
     let isRunning = true
-    const animate = () => {
-      if (!isRunning) return
-      animFrameIdRef.current = requestAnimationFrame(animate)
 
-      if (controlsRef.current) {
-        controlsRef.current.autoRotate = autoRotate
-        controlsRef.current.update()
+    const animate = () => {
+      if (!isRunning) {
+        return
       }
 
-      if (defaultMeshRef.current && !currentModelRef.current) {
-        defaultMeshRef.current.rotation.y += 0.008
-        defaultMeshRef.current.rotation.x += 0.004
+      engine.animFrameId = requestAnimationFrame(animate)
+
+      if (engine.controls) {
+        engine.controls.update()
+      }
+
+      if (engine.defaultMesh && !engine.currentModel) {
+        engine.defaultMesh.rotation.y += 0.008
+        engine.defaultMesh.rotation.x += 0.004
       }
 
       renderer.render(scene, camera)
     }
+
     animate()
 
-    // 9. Resize Observer
     const resizeObserver = new ResizeObserver(() => {
-      if (!container || !rendererRef.current || !cameraRef.current) return
+      if (!container || !engine.renderer || !engine.camera) {
+        return
+      }
+
       const w = container.clientWidth
       const h = container.clientHeight
-      if (w === 0 || h === 0) return
-      cameraRef.current.aspect = w / h
-      cameraRef.current.updateProjectionMatrix()
-      rendererRef.current.setSize(w, h)
+
+      if (w === 0 || h === 0) {
+        return
+      }
+
+      engine.camera.aspect = w / h
+      engine.camera.updateProjectionMatrix()
+      engine.renderer.setSize(w, h)
     })
+
     resizeObserver.observe(container)
 
-    // Cleanup
     return () => {
       isRunning = false
-      if (animFrameIdRef.current) {
-        cancelAnimationFrame(animFrameIdRef.current)
+
+      if (engine.animFrameId) {
+        cancelAnimationFrame(engine.animFrameId)
       }
+
       resizeObserver.disconnect()
+      geom.dispose()
+      mat.dispose()
       controls.dispose()
       renderer.dispose()
+
       if (container.contains(renderer.domElement)) {
         container.removeChild(renderer.domElement)
       }
     }
   }, [])
 
-  // Update light intensity
   useEffect(() => {
-    if (!lightsGroupRef.current) return
-    const group = lightsGroupRef.current
-    group.children.forEach((light: any) => {
-      if (light.isAmbientLight) light.intensity = 0.6 * lightIntensity
-      if (light.isDirectionalLight) light.intensity = 1.0 * lightIntensity
-    })
-  }, [lightIntensity])
+    const group = engineRef.current.lightsGroup
 
-  // Update grid & axes visibility
-  useEffect(() => {
-    if (gridHelperRef.current) gridHelperRef.current.visible = showGrid
-    if (axesHelperRef.current) axesHelperRef.current.visible = showAxes
-  }, [showGrid, showAxes])
-
-  // Update auto rotate
-  useEffect(() => {
-    if (controlsRef.current) {
-      controlsRef.current.autoRotate = autoRotate
-    }
-  }, [autoRotate])
-
-  // Load Model from modelUrl
-  useEffect(() => {
-    const scene = sceneRef.current
-    if (!scene) return
-
-    // If no modelUrl, restore default procedural mesh
-    if (!modelUrl) {
-      if (currentModelRef.current) {
-        scene.remove(currentModelRef.current)
-        currentModelRef.current = null
-      }
-      if (defaultMeshRef.current) {
-        defaultMeshRef.current.visible = true
-      }
-      onStatsChange?.({ vertices: 1600, triangles: 3200, meshes: 1 })
+    if (!group) {
       return
     }
 
+    group.children.forEach((light: any) => {
+      if (light.isAmbientLight) {
+        light.intensity = 0.6 * lightIntensity
+      }
+
+      if (light.isDirectionalLight) {
+        light.intensity = 1.0 * lightIntensity
+      }
+    })
+  }, [lightIntensity])
+
+  useEffect(() => {
+    if (engineRef.current.gridHelper) {
+      engineRef.current.gridHelper.visible = showGrid
+    }
+
+    if (engineRef.current.axesHelper) {
+      engineRef.current.axesHelper.visible = showAxes
+    }
+  }, [showAxes, showGrid])
+
+  useEffect(() => {
+    if (engineRef.current.controls) {
+      engineRef.current.controls.autoRotate = autoRotate
+    }
+  }, [autoRotate])
+
+  useEffect(() => {
+    const engine = engineRef.current
+    const scene = engine.scene
+
+    if (!scene) {
+      return
+    }
+
+    if (!modelUrl) {
+      if (engine.currentModel) {
+        scene.remove(engine.currentModel)
+        engine.currentModel = null
+      }
+
+      if (engine.defaultMesh) {
+        engine.defaultMesh.visible = true
+      }
+
+      onStatsChange?.({ meshes: 1, triangles: 3200, vertices: 1600 })
+
+      return
+    }
+
+    let cancelled = false
     setLoading(true)
     onLoadStart?.()
 
-    const loader = new GLTFLoader()
-
-    loader.load(
-      modelUrl,
-      (gltf: any) => {
-        // Remove prior model & hide placeholder
-        if (currentModelRef.current) {
-          scene.remove(currentModelRef.current)
-        }
-        if (defaultMeshRef.current) {
-          defaultMeshRef.current.visible = false
-        }
-
-        const model = gltf.scene || gltf.scenes[0]
-        currentModelRef.current = model
-
-        // Calculate statistics & normalize size
-        let vertices = 0
-        let triangles = 0
-        let meshes = 0
-
-        model.traverse((child: any) => {
-          if (child.isMesh) {
-            meshes++
-            const geom = child.geometry
-            if (geom) {
-              if (geom.attributes.position) {
-                vertices += geom.attributes.position.count
-              }
-              if (geom.index) {
-                triangles += geom.index.count / 3
-              } else if (geom.attributes.position) {
-                triangles += geom.attributes.position.count / 3
-              }
-            }
-            child.castShadow = true
-            child.receiveShadow = true
-            // Save original materials for shading toggle
-            child.userData.originalMaterial = child.material
-          }
-        })
-
-        // Center and scale model
-        const box = new THREE.Box3().setFromObject(model)
-        const size = box.getSize(new THREE.Vector3())
-        const center = box.getCenter(new THREE.Vector3())
-
-        const maxDim = Math.max(size.x, size.y, size.z) || 1
-        const scale = 2.4 / maxDim
-        model.scale.setScalar(scale)
-
-        // Re-center after scale
-        model.position.x = -center.x * scale
-        model.position.y = -box.min.y * scale // Stand on floor
-        model.position.z = -center.z * scale
-
-        scene.add(model)
-        setLoading(false)
-        onLoadEnd?.()
-
-        onStatsChange?.({
-          vertices: Math.round(vertices),
-          triangles: Math.round(triangles),
-          meshes
-        })
-
-        // Auto-frame camera
-        resetCamera('iso')
-      },
-      undefined,
-      (err: any) => {
-        console.error('Failed to load 3D model:', err)
-        setLoading(false)
-        onError?.(err?.message || 'Failed to load model file')
+    const mountLoadedObject = (rawModel: any) => {
+      if (cancelled) {
+        return
       }
-    )
-  }, [modelUrl, onLoadStart, onLoadEnd, onError, onStatsChange, resetCamera])
 
-  // Handle Shading Mode changes
-  useEffect(() => {
-    const model = currentModelRef.current
-    if (!model) return
+      if (engine.currentModel) {
+        scene.remove(engine.currentModel)
+      }
 
-    model.traverse((child: any) => {
-      if (child.isMesh) {
-        if (shadingMode === 'wireframe') {
-          child.material = new THREE.MeshBasicMaterial({
-            color: 0x00ffcc,
-            wireframe: true
-          })
-        } else if (shadingMode === 'normal') {
-          child.material = new THREE.MeshNormalMaterial()
-        } else if (shadingMode === 'matcap') {
+      if (engine.defaultMesh) {
+        engine.defaultMesh.visible = false
+      }
+
+      engine.currentModel = rawModel
+
+      let vertices = 0
+      let triangles = 0
+      let meshes = 0
+
+      rawModel.traverse((child: any) => {
+        if (!child.isMesh) {
+          return
+        }
+
+        meshes++
+        const geom = child.geometry
+
+        if (geom) {
+          if (geom.attributes.position) {
+            vertices += geom.attributes.position.count
+          }
+
+          if (geom.index) {
+            triangles += geom.index.count / 3
+          } else if (geom.attributes.position) {
+            triangles += geom.attributes.position.count / 3
+          }
+        }
+
+        if (!child.material) {
           child.material = new THREE.MeshStandardMaterial({
-            color: 0x999999,
-            roughness: 0.3,
-            metalness: 0.7
+            color: 0xd4d4d8,
+            metalness: 0.25,
+            roughness: 0.45
           })
-        } else {
-          // restore textured
-          if (child.userData.originalMaterial) {
-            child.material = child.userData.originalMaterial
-          }
         }
+
+        child.castShadow = true
+        child.receiveShadow = true
+        child.userData.originalMaterial = child.material
+      })
+
+      const box = new THREE.Box3().setFromObject(rawModel)
+      const size = box.getSize(new THREE.Vector3())
+      const center = box.getCenter(new THREE.Vector3())
+
+      const maxDim = Math.max(size.x, size.y, size.z) || 1
+      const scale = 2.4 / maxDim
+      rawModel.scale.setScalar(scale)
+
+      rawModel.position.x = -center.x * scale
+      rawModel.position.y = -box.min.y * scale
+      rawModel.position.z = -center.z * scale
+
+      scene.add(rawModel)
+      setLoading(false)
+      onLoadEnd?.()
+
+      onStatsChange?.({
+        meshes,
+        triangles: Math.round(triangles),
+        vertices: Math.round(vertices)
+      })
+
+      resetCamera('iso')
+    }
+
+    const handleLoadError = (err: any) => {
+      if (cancelled) {
+        return
       }
-    })
+
+      console.error('Failed to load 3D model:', err)
+      setLoading(false)
+      onError?.(err?.message || 'Failed to load model file')
+    }
+
+    const isObj = modelFormat === 'obj' || /\.obj(?:$|[?#])/i.test(modelUrl)
+
+    if (isObj) {
+      const objLoader = new OBJLoader()
+      objLoader.load(modelUrl, mountLoadedObject, undefined, handleLoadError)
+    } else {
+      const gltfLoader = new GLTFLoader()
+      gltfLoader.load(
+        modelUrl,
+        (gltf: any) => mountLoadedObject(gltf.scene || gltf.scenes[0]),
+        undefined,
+        handleLoadError
+      )
+    }
+
+    return () => {
+      cancelled = true
+    }
+  }, [modelFormat, modelUrl, onError, onLoadEnd, onLoadStart, onStatsChange, resetCamera])
+
+  useEffect(() => {
+    const model = engineRef.current.currentModel
+
+    if (!model) {
+      return
+    }
+
+    applyShadingToObject(model, shadingMode)
   }, [shadingMode])
 
   return (
     <div className="relative h-full w-full overflow-hidden select-none" ref={containerRef}>
       {loading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/40 backdrop-blur-xs z-20">
-          <div className="flex flex-col items-center gap-2 rounded-xl bg-(--ui-background)/90 p-4 border border-(--ui-border) shadow-xl">
+        <div className="absolute inset-0 z-20 flex items-center justify-center bg-black/40 backdrop-blur-xs">
+          <div className="flex flex-col items-center gap-2 rounded-xl border border-(--ui-border) bg-(--ui-background)/90 p-4 shadow-xl">
             <div className="h-6 w-6 animate-spin rounded-full border-2 border-violet-500 border-t-transparent" />
-            <span className="text-xs font-mono text-(--ui-text-secondary)">Loading 3D asset...</span>
+            <span className="font-mono text-xs text-(--ui-text-secondary)">Loading 3D asset...</span>
           </div>
         </div>
       )}

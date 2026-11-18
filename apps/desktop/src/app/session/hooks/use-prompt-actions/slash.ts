@@ -16,6 +16,7 @@ import {
 } from '@/lib/desktop-slash-commands'
 import { isMissingRpcMethod } from '@/lib/gateway-rpc'
 import { setSessionYolo } from '@/lib/yolo-session'
+import { $smart3DModalOpen } from '@/store/blender-models'
 import { openCommandPalettePage } from '@/store/command-palette'
 import { setComposerDraft } from '@/store/composer'
 import { enqueueQueuedPrompt } from '@/store/composer-queue'
@@ -775,6 +776,23 @@ export function useSlashCommand(deps: SlashCommandDeps) {
           }
 
           openPetGenerate()
+        },
+        blender: async ctx => {
+          const trimmed = ctx.arg.trim()
+
+          if (!trimmed) {
+            $smart3DModalOpen.set(true)
+
+            return
+          }
+
+          if (trimmed.toLowerCase() === 'studio') {
+            window.location.hash = '#/blender'
+
+            return
+          }
+
+          await runSlash(`/blender-3d ${trimmed}`, ctx.sessionHint, ctx.recordInput)
         },
         pet: async ctx => {
           const [sub = '', rawValue = ''] = ctx.arg.trim().split(/\s+/)

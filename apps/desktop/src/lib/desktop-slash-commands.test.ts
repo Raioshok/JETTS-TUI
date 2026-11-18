@@ -76,6 +76,15 @@ describe('desktop slash command curation', () => {
     expect(desktopSlashUnavailableMessage('/update')).toBeNull()
   })
 
+  it('routes /3d and /blender through the desktop blender action handler', () => {
+    expect(isDesktopSlashSuggestion('/3d')).toBe(true)
+    expect(isDesktopSlashCommand('/3d')).toBe(true)
+    expect(isDesktopSlashCommand('/blender')).toBe(true)
+    expect(resolveDesktopCommand('/3d')?.surface).toEqual({ kind: 'action', action: 'blender' })
+    expect(resolveDesktopCommand('/blender')?.surface).toEqual({ kind: 'action', action: 'blender' })
+    expect(desktopSlashCommandArgumentMode('/3d')).toBe('text')
+  })
+
   it('routes /pet through the desktop action handler and drops /pets', () => {
     expect(resolveDesktopCommand('/pet')?.surface).toEqual({ kind: 'action', action: 'pet' })
     expect(desktopSlashCommandArgumentMode('/pet')).toBe('options')

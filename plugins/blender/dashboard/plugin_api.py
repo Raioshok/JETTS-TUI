@@ -11,36 +11,68 @@ import asyncio
 import json
 import logging
 import mimetypes
-import os
-import shutil
+import re
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from fastapi import APIRouter, File, HTTPException, Query, UploadFile, WebSocket, WebSocketDisconnect, status as http_status
+from fastapi import (
+    APIRouter,
+    File,
+    HTTPException,
+    UploadFile,
+    WebSocket,
+    WebSocketDisconnect,
+    status as http_status,
+)
 from fastapi.responses import FileResponse
 from pydantic import BaseModel, Field
 
-from jettstui_constants import get_jettstui_home
-from tools.blender_script_gen import find_blender_binary, generate_blender_script
-from tools.blender_tool import _execute_blender_script, _get_output_dir, blender_status
+from tools.blender_script_gen import (
+    find_blender_binary,
+    generate_blender_script,
+    wrap_custom_bpy_script,
+)
+from tools.blender_tool import _execute_blender_script, _get_output_dir
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
 
+MAX_UPLOAD_BYTES = 100 * 1024 * 1024  # 100 MB cap
+_UPLOAD_CHUNK_SIZE = 64 * 1024
+
 # Active WebSocket connections for broadcasting render progress
 _active_ws: List[WebSocket] = []
 
 
-def _broadcast_event(event: Dict[str, Any]):
-    """Broadcast an event to all connected WebSocket clients."""
+def _ws_upgrade_authorized(ws: WebSocket) -> bool:
+    """Authorize WebSocket upgrades via the canonical dashboard auth gate."""
+    try:
+        from jettstui import web_server as _ws
+    except Exception:
+        # Bare FastAPI unit-test harness without web_server loaded.
+        return True
+    return bool(_ws._ws_auth_ok(ws))
+
+
+async def _broadcast_event(event: Dict[str, Any]) -> None:
+    """Broadcast an event to all connected WebSocket clients and prune dead sockets."""
     payload = json.dumps(event)
+    dead: List[WebSocket] = []
     for ws in list(_active_ws):
         try:
-            asyncio.create_task(ws.send_text(payload))
+            await ws.send_text(payload)
         except Exception:
-            pass
+            dead.append(ws)
+    for ws in dead:
+        if ws in _active_ws:
+            _active_ws.remove(ws)
+
+
+def _sanitize_stem(raw_name: str) -> str:
+    stem = re.sub(r"[^A-Za-z0-9._-]", "_", Path(raw_name).stem).strip("._-")
+    return stem[:64] or "model"
 
 
 class GenerateRequest(BaseModel):
@@ -94,6 +126,7 @@ async def list_models():
                 stat = file.stat()
                 items.append({
                     "filename": file.name,
+                    "path": str(file),
                     "url": f"/api/plugins/blender/files/{file.name}",
                     "size_bytes": stat.st_size,
                     "modified_time": int(stat.st_mtime),
@@ -106,17 +139,15 @@ async def list_models():
 @router.get("/files/{filename}")
 async def get_model_file(filename: str):
     """Serve a 3D model or render file safely."""
-    # Prevent directory traversal
     if ".." in filename or "/" in filename or "\\" in filename:
         raise HTTPException(status_code=400, detail="Invalid filename")
 
-    out_dir = _get_output_dir()
-    file_path = out_dir / filename
+    out_dir = _get_output_dir().resolve()
+    file_path = (out_dir / filename).resolve()
 
-    if not file_path.is_file():
+    if not file_path.is_relative_to(out_dir) or not file_path.is_file():
         raise HTTPException(status_code=404, detail="File not found")
 
-    # Resolve proper MIME type
     ext = file_path.suffix.lower()
     if ext == ".glb":
         media_type = "model/gltf-binary"
@@ -146,7 +177,7 @@ async def generate_model(req: GenerateRequest):
     if not binary:
         raise HTTPException(
             status_code=503,
-            detail="Blender is not installed on this machine. Please install Blender from https://www.blender.org/download/"
+            detail="Blender is not installed on this machine. Please install Blender from https://www.blender.org/download/",
         )
 
     out_dir = _get_output_dir()
@@ -157,7 +188,7 @@ async def generate_model(req: GenerateRequest):
     filename = f"{safe_name}_{timestamp}{ext}"
     output_path = out_dir / filename
 
-    _broadcast_event({
+    await _broadcast_event({
         "type": "render_start",
         "prompt": req.prompt,
         "format": fmt,
@@ -165,7 +196,12 @@ async def generate_model(req: GenerateRequest):
     })
 
     if req.script:
-        script = req.script
+        script = wrap_custom_bpy_script(
+            custom_script=req.script,
+            output_path=str(output_path),
+            output_format=fmt,
+            quality=req.quality,
+        )
     else:
         script = generate_blender_script(
             prompt=req.prompt,
@@ -175,29 +211,38 @@ async def generate_model(req: GenerateRequest):
             quality=req.quality,
         )
 
-    # Run Blender process in thread pool
-    res = await asyncio.to_thread(_execute_blender_script, script, 120)
+    res = await asyncio.to_thread(
+        _execute_blender_script,
+        script,
+        120,
+        {
+            "JETTSTUI_BLENDER_OUTPUT_PATH": str(output_path),
+            "JETTSTUI_BLENDER_FORMAT": fmt,
+        },
+    )
 
-    if not res.get("success"):
-        _broadcast_event({
+    if not res.get("success") or not output_path.is_file() or output_path.stat().st_size == 0:
+        err_msg = res.get("error") or "Blender finished without producing an output file"
+        await _broadcast_event({
             "type": "render_error",
-            "error": res.get("error"),
+            "error": err_msg,
             "stderr": res.get("stderr"),
         })
         raise HTTPException(
             status_code=500,
             detail={
-                "message": res.get("error", "Blender execution failed"),
+                "message": err_msg,
                 "stderr": res.get("stderr", ""),
                 "stdout": res.get("stdout", ""),
-            }
+            },
         )
 
-    file_size = output_path.stat().st_size if output_path.exists() else 0
+    file_size = output_path.stat().st_size
 
     response_data = {
         "success": True,
         "filename": filename,
+        "path": str(output_path),
         "url": f"/api/plugins/blender/files/{filename}",
         "format": fmt,
         "size_bytes": file_size,
@@ -205,7 +250,7 @@ async def generate_model(req: GenerateRequest):
         "stdout": res.get("stdout", ""),
     }
 
-    _broadcast_event({
+    await _broadcast_event({
         "type": "render_complete",
         **response_data,
     })
@@ -228,7 +273,7 @@ async def execute_raw_script(req: ScriptRequest):
                 "message": res.get("error", "Script error"),
                 "stderr": res.get("stderr", ""),
                 "stdout": res.get("stdout", ""),
-            }
+            },
         )
 
     return {
@@ -240,34 +285,57 @@ async def execute_raw_script(req: ScriptRequest):
 
 @router.post("/upload")
 async def upload_model(file: UploadFile = File(...)):
-    """Upload an existing local 3D model (GLB, GLTF, OBJ) to view."""
+    """Upload an existing local 3D model (GLB, GLTF, OBJ) to view with size and filename bounds."""
     filename = file.filename or "uploaded_model.glb"
     ext = Path(filename).suffix.lower()
     if ext not in [".glb", ".gltf", ".obj"]:
         raise HTTPException(status_code=400, detail="Only .glb, .gltf, and .obj files are supported")
 
     out_dir = _get_output_dir()
-    safe_name = f"upload_{int(time.time())}_{Path(filename).name}"
+    safe_name = f"upload_{int(time.time())}_{_sanitize_stem(filename)}{ext}"
     target = out_dir / safe_name
 
-    with target.open("wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+    total_written = 0
+    try:
+        with target.open("wb") as buffer:
+            while True:
+                chunk = await file.read(_UPLOAD_CHUNK_SIZE)
+                if not chunk:
+                    break
+                total_written += len(chunk)
+                if total_written > MAX_UPLOAD_BYTES:
+                    raise HTTPException(
+                        status_code=413,
+                        detail=f"Uploaded file exceeds maximum allowed size ({MAX_UPLOAD_BYTES // (1024 * 1024)} MB)",
+                    )
+                buffer.write(chunk)
+    except HTTPException:
+        target.unlink(missing_ok=True)
+        raise
+    except Exception as exc:
+        target.unlink(missing_ok=True)
+        raise HTTPException(status_code=500, detail=f"Failed to save upload: {exc}") from exc
 
     return {
         "success": True,
         "filename": safe_name,
+        "path": str(target),
         "url": f"/api/plugins/blender/files/{safe_name}",
-        "size_bytes": target.stat().st_size,
+        "format": ext.lstrip("."),
+        "size_bytes": total_written,
     }
 
 
 @router.websocket("/events")
 async def blender_events_ws(ws: WebSocket):
-    """Live WebSocket connection streaming generation progress and status."""
+    """Live WebSocket connection streaming generation progress and status (auth-gated)."""
+    if not _ws_upgrade_authorized(ws):
+        await ws.close(code=http_status.WS_1008_POLICY_VIOLATION)
+        return
+
     await ws.accept()
     _active_ws.append(ws)
     try:
-        # Send initial status
         binary = find_blender_binary()
         await ws.send_json({
             "type": "connected",
@@ -276,7 +344,6 @@ async def blender_events_ws(ws: WebSocket):
         })
 
         while True:
-            # Keep-alive loop / receive commands
             msg = await ws.receive_text()
             try:
                 data = json.loads(msg)

@@ -271,6 +271,40 @@ class TestYetaProfile:
         models = profile.fetch_models(api_key=None)
         assert models == ["deepseek-v4.1-flash", "glm-5.3-flash"]
 
+    def test_fetch_models_filters_video_models_and_honors_custom_base_url(self, monkeypatch):
+        """Keyless /api/pricing discovery excludes video-only models and derives origin from base_url."""
+        import providers
+
+        profile = providers.get_provider_profile("yeta")
+        seen_urls = []
+
+        class _FakeResp:
+            def __enter__(self):
+                return self
+
+            def __exit__(self, *a):
+                return False
+
+            def read(self):
+                return (
+                    b'{"data": ['
+                    b'{"model_name": "deepseek-v4.1-flash", "type": "chat"},'
+                    b'{"model_name": "koray-1.0", "type": "video"},'
+                    b'{"model_name": "wan-3.0-uncensored"},'
+                    b'{"model_name": "seedance-2.0-fast"},'
+                    b'{"model_name": "glm-5.3-flash"}'
+                    b'], "success": true}'
+                )
+
+        def _fake_open(req, timeout):
+            seen_urls.append(req.full_url)
+            return _FakeResp()
+
+        monkeypatch.setattr("jettstui.urllib_security.open_credentialed_url", _fake_open)
+        models = profile.fetch_models(api_key=None, base_url="https://mirror.yeta.example/v1")
+        assert seen_urls == ["https://mirror.yeta.example/api/pricing"]
+        assert models == ["deepseek-v4.1-flash", "glm-5.3-flash"]
+
 
 # =============================================================================
 # Model Switching & Gateway

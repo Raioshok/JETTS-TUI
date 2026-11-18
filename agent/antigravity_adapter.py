@@ -353,7 +353,7 @@ _BACKOFF_JITTER: float = 0.4   # fraction of backoff added as random jitter
 
 
 class _AntiBanThrottle:
-    """Token-bucket rate limiter + jittered exponential back-off + human cadence pacing."""
+    """Token-bucket rate limiter + jittered exponential back-off + atomic slot pacing."""
 
     def __init__(
         self,
@@ -366,7 +366,7 @@ class _AntiBanThrottle:
         self._max_tokens: float = burst
         self._refill_rate: float = max_rps          # tokens per second
         self._last_refill: float = _time.monotonic()
-        self._last_dispatch: float = 0.0            # monotonic time of last request dispatch
+        self._next_dispatch_slot: float = 0.0       # atomically reserved monotonic slot
         self._min_spacing_ms: float = min_spacing_ms
         self._backoff_level: int = 0
         self._backoff_until: float = 0.0
@@ -379,7 +379,7 @@ class _AntiBanThrottle:
         self._last_refill = now
 
     def wait(self) -> None:
-        """Block until a request token is available; apply back-off and human pacing."""
+        """Block until a request token is available; apply back-off and atomic cadence pacing."""
         # Decay stale backoff: if the last 429 was >30s ago, a new request
         # should not inherit the old session's escalated backoff level.
         with self._lock:
@@ -394,14 +394,6 @@ class _AntiBanThrottle:
             if remaining > 0:
                 _time.sleep(remaining)
 
-        # Minimum spacing between requests to eliminate machine-like sub-100ms burst patterns
-        with self._lock:
-            now = _time.monotonic()
-            elapsed_since_last = now - self._last_dispatch
-            wait_spacing = max(0.0, (self._min_spacing_ms / 1000.0) - elapsed_since_last)
-        if wait_spacing > 0:
-            _time.sleep(wait_spacing)
-
         # Token-bucket wait
         while True:
             with self._lock:
@@ -412,11 +404,17 @@ class _AntiBanThrottle:
                 wait_secs = (1.0 - self._tokens) / self._refill_rate
             _time.sleep(wait_secs)
 
-        # Realistic non-deterministic positive dispatch jitter
+        # Atomically reserve a spaced dispatch slot so concurrent callers (subagents,
+        # MoA, background title/compression) never burst simultaneously.
         jitter = _random.uniform(_JITTER_MIN_MS, _JITTER_MAX_MS) / 1000.0
-        _time.sleep(jitter)
+        spacing = self._min_spacing_ms / 1000.0
         with self._lock:
-            self._last_dispatch = _time.monotonic()
+            now = _time.monotonic()
+            scheduled = max(now, self._next_dispatch_slot) + jitter
+            self._next_dispatch_slot = scheduled + spacing
+            sleep_for = max(0.0, scheduled - now)
+        if sleep_for > 0:
+            _time.sleep(sleep_for)
 
     def throttled(self, status: int) -> None:
         """Call after receiving a 429 or 503 to escalate back-off."""

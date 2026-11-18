@@ -1,19 +1,19 @@
 import { atom } from 'nanostores'
 
 export interface SessionModelRecord {
-  id: string
-  sessionId: string
-  filename: string
-  name: string
-  url: string
-  localPath: string
-  format: 'glb' | 'png' | 'gltf' | 'obj'
-  prompt: string
-  sizeBytes?: number
   durationSeconds?: number
+  filename: string
+  format: 'glb' | 'gltf' | 'obj' | 'png'
+  id: string
+  localPath: string
+  name: string
+  prompt: string
+  sessionId: string
+  sizeBytes?: number
   timestamp: number
-  vertices?: number
   triangles?: number
+  url: string
+  vertices?: number
 }
 
 /**
@@ -23,19 +23,24 @@ export interface SessionModelRecord {
 export const $session3DModels = atom<Record<string, SessionModelRecord[]>>({})
 
 /** Active model selected in the session models tray for preview */
-export const $activePreviewModel = atom<SessionModelRecord | null>(null)
+export const $activePreviewModel = atom<null | SessionModelRecord>(null)
 
 /** Whether the session 3D models drawer is open */
 export const $sessionModelsTrayOpen = atom<boolean>(false)
 
-export function recordSessionModel(sessionId: string, model: Omit<SessionModelRecord, 'id' | 'timestamp'>): SessionModelRecord {
+/** Whether the Smart 3D quick-generator modal is open above the composer */
+export const $smart3DModalOpen = atom<boolean>(false)
+
+export function recordSessionModel(
+  sessionId: string,
+  model: Omit<SessionModelRecord, 'id' | 'timestamp'>
+): SessionModelRecord {
   const current = $session3DModels.get()
   const key = sessionId || '__draft__'
   const existingList = current[key] || []
 
-  // Avoid duplicate records by filename or localPath
   const isDuplicate = existingList.some(
-    m => m.filename === model.filename || (model.localPath && m.localPath === model.localPath)
+    m => m.filename === model.filename || (Boolean(model.localPath) && m.localPath === model.localPath)
   )
 
   const record: SessionModelRecord = {
@@ -54,9 +59,10 @@ export function recordSessionModel(sessionId: string, model: Omit<SessionModelRe
   return record
 }
 
-export function getSessionModels(sessionId: string | null): SessionModelRecord[] {
+export function getSessionModels(sessionId: null | string): SessionModelRecord[] {
   const current = $session3DModels.get()
   const key = sessionId || '__draft__'
+
   return current[key] || []
 }
 

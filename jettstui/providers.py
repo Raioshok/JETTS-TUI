@@ -209,6 +209,12 @@ JETTSTUI_OVERLAYS: Dict[str, JettsTUIOverlay] = {
         base_url_override="https://platform.yeta.ai/v1",
         base_url_env_var="YETA_BASE_URL",
     ),
+    "abliteration": JettsTUIOverlay(
+        transport="openai_chat",
+        extra_env_vars=("ABLITERATION_API_KEY",),
+        base_url_override="https://api.abliteration.ai/v1",
+        base_url_env_var="ABLITERATION_BASE_URL",
+    ),
     "dahl": JettsTUIOverlay(
         transport="openai_chat",
         extra_env_vars=("DAHL_API_KEY",),
@@ -391,6 +397,10 @@ ALIASES: Dict[str, str] = {
     "yeta-ai": "yeta",
     "yetaai": "yeta",
 
+    # abliteration
+    "abliteration-ai": "abliteration",
+    "abliterated": "abliteration",
+
     # dahl
     "dahl-inference": "dahl",
     "dahl-ai": "dahl",
@@ -431,6 +441,7 @@ _LABEL_OVERRIDES: Dict[str, str] = {
     "xiaomi": "Xiaomi MiMo",
     "gmi": "GMI Cloud",
     "yeta": "Yeta Platform",
+    "abliteration": "Abliteration",
     "dahl": "Dahl Inference",
     "upstage": "Upstage Solar",
     "freebuff": "Freebuff",

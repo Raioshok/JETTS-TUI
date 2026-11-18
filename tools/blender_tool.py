@@ -7,18 +7,20 @@ via a headless Blender process.
 
 from __future__ import annotations
 
-import json
 import logging
 import os
 import subprocess
-import sys
 import tempfile
 import time
 from pathlib import Path
 from typing import Any, Dict, Optional
 
 from jettstui_constants import get_jettstui_home
-from tools.blender_script_gen import find_blender_binary, generate_blender_script
+from tools.blender_script_gen import (
+    find_blender_binary,
+    generate_blender_script,
+    wrap_custom_bpy_script,
+)
 from tools.registry import registry, tool_error, tool_result
 
 logger = logging.getLogger(__name__)
@@ -38,18 +40,29 @@ def _get_output_dir() -> Path:
     return out_dir
 
 
-def _execute_blender_script(script_code: str, timeout_seconds: int = 120) -> Dict[str, Any]:
+def _execute_blender_script(
+    script_code: str,
+    timeout_seconds: int = 120,
+    extra_env: Optional[Dict[str, str]] = None,
+) -> Dict[str, Any]:
     """Execute a Python bpy script in headless Blender and capture output."""
     blender_bin = find_blender_binary()
     if not blender_bin:
         return {
             "success": False,
-            "error": "Blender binary not found on this system. Please install Blender (https://www.blender.org/download/) or add it to PATH.",
+            "error": (
+                "Blender binary not found on this system. "
+                "Please install Blender (https://www.blender.org/download/) or add it to PATH."
+            ),
         }
 
     with tempfile.NamedTemporaryFile("w", suffix=".py", delete=False, encoding="utf-8") as f:
         f.write(script_code)
         temp_script_path = f.name
+
+    run_env = os.environ.copy()
+    if extra_env:
+        run_env.update(extra_env)
 
     try:
         cmd = [
@@ -68,6 +81,7 @@ def _execute_blender_script(script_code: str, timeout_seconds: int = 120) -> Dic
             timeout=timeout_seconds,
             encoding="utf-8",
             errors="replace",
+            env=run_env,
         )
         duration = round(time.time() - start_time, 2)
 
@@ -159,7 +173,7 @@ def blender_render(
 
     out_dir = _get_output_dir()
     timestamp = int(time.time())
-    safe_name = "".join(c if c.isalnum() else "_" for c in prompt[:25].strip()).strip("_") or "model"
+    safe_name = "".join(c if c.isalnum() else "_" for c in (prompt or "custom")[:25].strip()).strip("_") or "model"
 
     fmt = output_format.lower()
     ext = ".glb" if fmt in ["glb", "gltf"] else ".png"
@@ -167,10 +181,12 @@ def blender_render(
     output_filepath = out_dir / filename
 
     if custom_bpy_script:
-        script = custom_bpy_script
-        # If the script doesn't explicitly mention the output path, provide hint
-        if str(output_filepath).replace("\\", "/") not in script:
-            script += f"\n# Output target: {output_filepath}\n"
+        script = wrap_custom_bpy_script(
+            custom_script=custom_bpy_script,
+            output_path=str(output_filepath),
+            output_format=fmt,
+            quality=quality,
+        )
     else:
         script = generate_blender_script(
             prompt=prompt,
@@ -180,22 +196,39 @@ def blender_render(
             quality=quality,
         )
 
-    res = _execute_blender_script(script, timeout_seconds=120)
+    res = _execute_blender_script(
+        script,
+        timeout_seconds=120,
+        extra_env={
+            "JETTSTUI_BLENDER_OUTPUT_PATH": str(output_filepath),
+            "JETTSTUI_BLENDER_FORMAT": fmt,
+        },
+    )
 
     if not res.get("success"):
         return tool_error(
             res.get("error", "Blender generation failed"),
             stdout=res.get("stdout"),
             stderr=res.get("stderr"),
+            success=False,
         )
 
-    file_size_bytes = output_filepath.stat().st_size if output_filepath.exists() else 0
+    if not output_filepath.is_file() or output_filepath.stat().st_size == 0:
+        return tool_error(
+            f"Blender finished without producing output file at {output_filepath}",
+            stdout=res.get("stdout"),
+            stderr=res.get("stderr"),
+            success=False,
+        )
+
+    file_size_bytes = output_filepath.stat().st_size
 
     return tool_result({
         "success": True,
         "prompt": prompt,
         "format": fmt,
         "output_path": str(output_filepath),
+        "output_exists": True,
         "filename": filename,
         "file_size_bytes": file_size_bytes,
         "duration_seconds": res.get("duration_seconds", 0),
@@ -208,19 +241,26 @@ def blender_run_script(script: str, output_path: Optional[str] = None) -> str:
     if not script or not script.strip():
         return tool_error("Empty script provided.")
 
-    res = _execute_blender_script(script, timeout_seconds=180)
+    extra_env = {"JETTSTUI_BLENDER_OUTPUT_PATH": output_path} if output_path else None
+    res = _execute_blender_script(script, timeout_seconds=180, extra_env=extra_env)
     if not res.get("success"):
         return tool_error(
             res.get("error", "Script execution failed"),
             stdout=res.get("stdout"),
             stderr=res.get("stderr"),
+            success=False,
         )
 
-    output_exists = Path(output_path).exists() if output_path else False
+    resolved_out = Path(output_path) if output_path else None
+    output_exists = bool(resolved_out and resolved_out.is_file() and resolved_out.stat().st_size > 0)
+    file_size_bytes = resolved_out.stat().st_size if output_exists and resolved_out else 0
+
     return tool_result({
         "success": True,
         "duration_seconds": res.get("duration_seconds", 0),
-        "output_path": output_path,
+        "output_path": output_path if output_exists else None,
+        "filename": resolved_out.name if output_exists and resolved_out else None,
+        "file_size_bytes": file_size_bytes if output_exists else None,
         "output_exists": output_exists,
         "stdout": res.get("stdout", ""),
     })
@@ -243,7 +283,8 @@ BLENDER_RENDER_SCHEMA = {
     "name": "blender_render",
     "description": (
         "Generate a 3D model (GLB) or rendered image (PNG) using Blender. "
-        "Can generate from a natural language prompt or a custom bpy Python script."
+        "Can generate from a natural language prompt or a custom bpy Python script "
+        "(which may read os.environ['JETTSTUI_BLENDER_OUTPUT_PATH'] or leave the scene ready for auto-export)."
     ),
     "parameters": {
         "type": "object",
@@ -272,7 +313,7 @@ BLENDER_RENDER_SCHEMA = {
             },
             "custom_bpy_script": {
                 "type": "string",
-                "description": "Optional complete Blender Python (bpy) script. If provided, overrides template generation.",
+                "description": "Optional complete Blender Python (bpy) script. Auto-exported to GLB/PNG if it does not write JETTSTUI_BLENDER_OUTPUT_PATH directly.",
             },
         },
         "required": ["prompt"],
@@ -291,12 +332,14 @@ BLENDER_RUN_SCRIPT_SCHEMA = {
             },
             "output_path": {
                 "type": "string",
-                "description": "Optional path where the script is expected to save output.",
+                "description": "Optional path where the script saves a 3D model or render.",
             },
         },
         "required": ["script"],
     },
 }
+
+registry.register_toolset_alias("blender", BLENDER_TOOLSET)
 
 registry.register(
     name="blender_status",

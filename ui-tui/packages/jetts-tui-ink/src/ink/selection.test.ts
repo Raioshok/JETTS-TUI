@@ -124,4 +124,29 @@ describe('findPlainTextUrlAt', () => {
     // Click on row 2 (the final continuation line)
     expect(findPlainTextUrlAt(screen, 2, 2)).toBe('https://example.com/auth?code=xyz&state=12345')
   })
+
+  it('does not glue next-line prose onto an unwrapped short URL', () => {
+    const styles = new StylePool()
+    const screen = createScreen(80, 2, styles, new CharPool(), new HyperlinkPool())
+    writeRow(screen, 0, 0, 'https://example.com/login')
+    writeRow(screen, 1, 0, 'Please sign in above')
+
+    expect(findPlainTextUrlAt(screen, 5, 0)).toBe('https://example.com/login')
+    expect(findPlainTextUrlAt(screen, 2, 1)).toBeUndefined()
+  })
+
+  it('reconstructs wrapped URLs inside <NoSelect>-bordered TUI boxes', () => {
+    const styles = new StylePool()
+    const screen = createScreen(24, 2, styles, new CharPool(), new HyperlinkPool())
+    writeRow(screen, 0, 0, '│ https://example.com/ │')
+    writeRow(screen, 1, 0, '│ oauth?state=98765    │')
+    // Mark box borders (col 0 and col 23) as NoSelect
+    screen.noSelect[0] = 1
+    screen.noSelect[23] = 1
+    screen.noSelect[24 + 0] = 1
+    screen.noSelect[24 + 23] = 1
+
+    expect(findPlainTextUrlAt(screen, 5, 0)).toBe('https://example.com/oauth?state=98765')
+    expect(findPlainTextUrlAt(screen, 5, 1)).toBe('https://example.com/oauth?state=98765')
+  })
 })

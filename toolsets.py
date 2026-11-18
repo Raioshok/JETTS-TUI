@@ -84,6 +84,8 @@ _JETTSTUI_CORE_TOOLS = [
     "computer_use",
     # VM/VPS lifecycle (gated on a local hypervisor or registered VPS)
     "vm",
+    # Blender 3D generation & rendering (gated on local Blender binary via check_fn)
+    "blender_status", "blender_render", "blender_run_script",
 ]
 
 # Webhook events may originate from untrusted third-party content (for example,
@@ -141,6 +143,15 @@ TOOLSETS = {
     "image_gen": {
         "description": "Creative generation tools (images)",
         "tools": ["image_generate"],
+        "includes": []
+    },
+
+    "blender-3d": {
+        "description": (
+            "Procedural 3D modeling, bpy script execution, and headless rendering "
+            "via Blender (GLB/PNG). Gated on a local Blender installation."
+        ),
+        "tools": ["blender_status", "blender_render", "blender_run_script"],
         "includes": []
     },
 

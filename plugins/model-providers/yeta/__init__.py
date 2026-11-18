@@ -14,12 +14,55 @@ Endpoint, model ids and catalog verified against the live API on 2026-11-04:
 from __future__ import annotations
 
 import json
+import os
 import urllib.request
-from typing import Any
 
 from jettstui import __version__ as _JETTSTUI_VERSION
 from providers import register_provider
 from providers.base import ProviderProfile, _profile_user_agent
+
+_NON_CHAT_MODALITIES = frozenset({
+    "video",
+    "video-generation",
+    "text-to-video",
+    "image-to-video",
+    "image",
+    "image-generation",
+    "audio",
+    "tts",
+    "music",
+})
+
+_KNOWN_VIDEO_PREFIXES = (
+    "koray-",
+    "wan-",
+    "seedance-",
+    "kling-",
+    "sora-",
+    "veo-",
+    "hailuo-",
+    "minimax-video",
+)
+
+
+def _is_chat_capable_pricing_entry(item: dict) -> bool:
+    """Return True if a /api/pricing entry represents an LLM chat model."""
+    raw_kind = str(
+        item.get("type")
+        or item.get("category")
+        or item.get("modality")
+        or item.get("model_type")
+        or ""
+    ).strip().lower()
+    if raw_kind in _NON_CHAT_MODALITIES:
+        return False
+    if raw_kind in {"chat", "llm", "text", "text-generation", "language"}:
+        return True
+
+    name = str(item.get("model_name") or "").strip().lower()
+    if not name:
+        return False
+    return not name.startswith(_KNOWN_VIDEO_PREFIXES)
 
 
 class YetaProfile(ProviderProfile):
@@ -32,10 +75,11 @@ class YetaProfile(ProviderProfile):
         base_url: str | None = None,
         timeout: float = 8.0,
     ) -> list[str] | None:
-        """Fetch the live model list from Yeta Platform.
+        """Fetch the live chat model list from Yeta Platform.
 
         Uses the authenticated /v1/models endpoint when an API key is provided,
-        and falls back to the public /api/pricing catalog when unauthenticated.
+        and falls back to the public /api/pricing catalog (filtered to chat-capable
+        models) when unauthenticated.
         """
         if api_key:
             models = super().fetch_models(
@@ -46,11 +90,20 @@ class YetaProfile(ProviderProfile):
             if models:
                 return models
 
-        # Keyless fallback: discover from public pricing catalog
+        # Keyless fallback: discover from public pricing catalog on configured origin
         try:
             from jettstui.urllib_security import open_credentialed_url
 
-            req = urllib.request.Request("https://platform.yeta.ai/api/pricing")
+            effective_base = (
+                base_url
+                or os.getenv("YETA_BASE_URL", "").strip()
+                or self.base_url
+                or "https://platform.yeta.ai/v1"
+            ).rstrip("/")
+            origin = effective_base[:-3] if effective_base.endswith("/v1") else effective_base
+            pricing_url = f"{origin}/api/pricing"
+
+            req = urllib.request.Request(pricing_url)
             req.add_header("Accept", "application/json")
             req.add_header("User-Agent", _profile_user_agent())
             with open_credentialed_url(req, timeout=timeout) as resp:
@@ -58,7 +111,7 @@ class YetaProfile(ProviderProfile):
             items = data.get("data", [])
             discovered: list[str] = []
             for item in items:
-                if isinstance(item, dict):
+                if isinstance(item, dict) and _is_chat_capable_pricing_entry(item):
                     name = item.get("model_name")
                     if name and name not in discovered:
                         discovered.append(name)

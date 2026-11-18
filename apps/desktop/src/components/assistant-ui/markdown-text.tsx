@@ -102,7 +102,7 @@ function preprocessWithTailRepair(text: string): string {
 async function mediaSrc(path: string): Promise<string> {
   // Stream audio/video through the custom protocol: data URLs are capped and
   // load the whole file into memory, which broke playback for larger videos.
-  if (window.jettstuiDesktop && ['audio', 'video'].includes(mediaKind(path))) {
+  if (window.jettstuiDesktop && ['audio', 'model', 'video'].includes(mediaKind(path))) {
     return mediaStreamUrl(path)
   }
 

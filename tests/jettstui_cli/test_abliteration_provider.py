@@ -170,3 +170,19 @@ class TestAbliterationModelSwitch:
         )
         assert res["value"] == "abliterated-model-large-v2"
         assert res.get("confirm_required") is False
+
+    def test_catalog_and_prefix_normalization_parity(self):
+        from jettstui.model_normalize import _MATCHING_PREFIX_STRIP_PROVIDERS, normalize_model_for_provider
+        from jettstui.models import CANONICAL_PROVIDERS, _PROVIDER_MODELS, normalize_provider
+        from jettstui.providers import normalize_provider as normalize_provider_in_providers
+
+        assert "abliteration" in _MATCHING_PREFIX_STRIP_PROVIDERS
+        assert (
+            normalize_model_for_provider("abliteration/abliterated-model-large-v2", "abliteration")
+            == "abliterated-model-large-v2"
+        )
+        assert "abliteration" in _PROVIDER_MODELS
+        assert "abliteration" in [p.slug for p in CANONICAL_PROVIDERS]
+        assert normalize_provider("abliteration-ai") == "abliteration"
+        assert normalize_provider("abliterated") == "abliteration"
+        assert normalize_provider_in_providers("abliteration-ai") == "abliteration"

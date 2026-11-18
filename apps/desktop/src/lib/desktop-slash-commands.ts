@@ -29,6 +29,7 @@ export interface DesktopThemeCommandOption {
  * keyed by the id.
  */
 export type DesktopActionId =
+  | 'blender'
   | 'branch'
   | 'browser'
   | 'compress'
@@ -173,7 +174,7 @@ const DESKTOP_COMMAND_SPECS: readonly DesktopCommandSpec[] = [
     name: '/3d',
     description: 'Generate or refine an interactive 3D model using Blender',
     aliases: ['/blender'],
-    surface: exec(),
+    surface: action('blender'),
     argumentMode: 'text'
   },
   {

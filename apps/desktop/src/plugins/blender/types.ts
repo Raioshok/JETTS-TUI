@@ -1,40 +1,44 @@
-export type RenderPreset = 'auto' | 'nature' | 'architecture' | 'scifi' | 'furniture' | 'abstract'
+export type RenderPreset = 'abstract' | 'architecture' | 'auto' | 'furniture' | 'nature' | 'scifi'
 
 export type RenderQuality = 'draft' | 'final'
 
 export type OutputFormat = 'glb' | 'png'
 
-export type ShadingMode = 'textured' | 'wireframe' | 'normal' | 'matcap'
+export type ModelFileFormat = 'glb' | 'gltf' | 'obj' | 'png'
 
-export type CameraAngle = 'iso' | 'front' | 'top' | 'side'
+export type ShadingMode = 'matcap' | 'normal' | 'textured' | 'wireframe'
+
+export type CameraAngle = 'front' | 'iso' | 'side' | 'top'
 
 export interface ModelItem {
   filename: string
-  url: string
-  size_bytes: number
-  modified_time: number
   format: string
+  modified_time: number
+  path?: string
+  size_bytes: number
+  url: string
 }
 
 export interface ModelStats {
-  vertices: number
-  triangles: number
   meshes: number
+  triangles: number
+  vertices: number
 }
 
 export interface BlenderStatus {
   available: boolean
-  version: string
-  path?: string | null
   output_dir?: string
+  path?: null | string
+  version: string
 }
 
 export interface GenerateResponse {
-  success: boolean
-  filename: string
-  url: string
-  format: string
-  size_bytes: number
   duration_seconds: number
+  filename: string
+  format: string
+  path?: string
+  size_bytes: number
   stdout?: string
+  success: boolean
+  url: string
 }

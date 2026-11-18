@@ -23,6 +23,7 @@ abliteration = ProviderProfile(
     description="Abliteration — low-refusal models for security research and red teaming",
     signup_url="https://abliteration.ai/",
     base_url="https://api.abliteration.ai/v1",
+    default_aux_model="abliterated-model-large-flash",
     fallback_models=(
         "abliterated-model-large-v2",
         "abliterated-model-large-flash",
