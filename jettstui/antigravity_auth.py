@@ -90,8 +90,8 @@ ANTIGRAVITY_LOAD_ENDPOINTS = (
 )
 ANTIGRAVITY_INFERENCE_ENDPOINTS = (
     ANTIGRAVITY_ENDPOINT_DAILY,
-    ANTIGRAVITY_ENDPOINT_AUTOPUSH,
     ANTIGRAVITY_ENDPOINT_PROD,
+    ANTIGRAVITY_ENDPOINT_AUTOPUSH,
 )
 DEFAULT_ANTIGRAVITY_BASE_URL = ANTIGRAVITY_ENDPOINT_DAILY
 # Fallback project used by Antigravity when the account has no Cloud Code
@@ -187,16 +187,34 @@ def _antigravity_client_version() -> str:
 def antigravity_headers() -> Dict[str, str]:
     """Headers the Cloud Code backend expects from an Antigravity client.
 
-    The version string can be overridden via config.yaml:
-        providers:
-          antigravity:
-            client_version: "2.29.0"
+    Accurately mirrors Google's official Antigravity desktop client headers
+    for the current host OS, runtime architecture, and client metadata.
     """
+    import platform
+    import sys
+
     version = _antigravity_client_version()
+    sys_plat = sys.platform.lower()
+    if sys_plat.startswith("win"):
+        os_info = "Windows NT 10.0; Win64; x64"
+        arch_info = "windows/amd64"
+    elif sys_plat.startswith("darwin"):
+        is_arm = platform.machine().lower() in ("arm64", "aarch64")
+        os_info = "Macintosh; Apple Mac OS X" if is_arm else "Macintosh; Intel Mac OS X 10_15_7"
+        arch_info = f"darwin/{platform.machine().lower()}"
+    else:
+        os_info = "X11; Linux x86_64"
+        arch_info = f"linux/{platform.machine().lower()}"
+
+    metadata = dict(ANTIGRAVITY_CLIENT_METADATA)
+    metadata["ideVersion"] = version
+    metadata["pluginVersion"] = version
+
     return {
-        "User-Agent": f"antigravity/{version} (Windows NT 10.0; Win64; x64) windows/amd64",
-        "X-Goog-Api-Client": f"google-cloud-sdk geminicodeassist/{version}",
-        "Client-Metadata": json.dumps(ANTIGRAVITY_CLIENT_METADATA, separators=(",", ":")),
+        "User-Agent": f"antigravity/{version} ({os_info}) {arch_info}",
+        "X-Goog-Api-Client": f"google-cloud-sdk geminicodeassist/{version} gl-node/20.18.0",
+        "Client-Metadata": json.dumps(metadata, separators=(",", ":")),
+        "Accept-Language": "en-US,en;q=0.9",
     }
 
 

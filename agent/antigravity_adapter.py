@@ -344,21 +344,30 @@ import random as _random
 
 _MAX_RPS: float = 1.5          # max sustained requests/second (well under 2 rps)
 _BURST: int = 3                # token-bucket burst capacity
-_JITTER_MS: float = 150.0      # ±ms of random jitter per request
+_MIN_SPACING_MS: float = 200.0 # minimum ms between consecutive dispatches (anti-burst)
+_JITTER_MIN_MS: float = 50.0   # min positive human/dispatch jitter
+_JITTER_MAX_MS: float = 200.0  # max positive human/dispatch jitter
 _BACKOFF_BASE: float = 1.5     # exponential backoff base (seconds)
 _BACKOFF_MAX: float = 60.0     # max backoff cap
 _BACKOFF_JITTER: float = 0.4   # fraction of backoff added as random jitter
 
 
 class _AntiBanThrottle:
-    """Token-bucket rate limiter + jittered exponential back-off."""
+    """Token-bucket rate limiter + jittered exponential back-off + human cadence pacing."""
 
-    def __init__(self, max_rps: float = _MAX_RPS, burst: int = _BURST) -> None:
+    def __init__(
+        self,
+        max_rps: float = _MAX_RPS,
+        burst: int = _BURST,
+        min_spacing_ms: float = _MIN_SPACING_MS,
+    ) -> None:
         self._lock = _threading.Lock()
         self._tokens: float = burst
         self._max_tokens: float = burst
         self._refill_rate: float = max_rps          # tokens per second
         self._last_refill: float = _time.monotonic()
+        self._last_dispatch: float = 0.0            # monotonic time of last request dispatch
+        self._min_spacing_ms: float = min_spacing_ms
         self._backoff_level: int = 0
         self._backoff_until: float = 0.0
         self._last_backoff_set: float = 0.0         # monotonic time of last throttled() call
@@ -370,7 +379,7 @@ class _AntiBanThrottle:
         self._last_refill = now
 
     def wait(self) -> None:
-        """Block until a request token is available; apply back-off if active."""
+        """Block until a request token is available; apply back-off and human pacing."""
         # Decay stale backoff: if the last 429 was >30s ago, a new request
         # should not inherit the old session's escalated backoff level.
         with self._lock:
@@ -385,6 +394,14 @@ class _AntiBanThrottle:
             if remaining > 0:
                 _time.sleep(remaining)
 
+        # Minimum spacing between requests to eliminate machine-like sub-100ms burst patterns
+        with self._lock:
+            now = _time.monotonic()
+            elapsed_since_last = now - self._last_dispatch
+            wait_spacing = max(0.0, (self._min_spacing_ms / 1000.0) - elapsed_since_last)
+        if wait_spacing > 0:
+            _time.sleep(wait_spacing)
+
         # Token-bucket wait
         while True:
             with self._lock:
@@ -395,10 +412,11 @@ class _AntiBanThrottle:
                 wait_secs = (1.0 - self._tokens) / self._refill_rate
             _time.sleep(wait_secs)
 
-        # Per-request jitter
-        jitter = _random.uniform(-_JITTER_MS, _JITTER_MS) / 1000.0
-        if jitter > 0:
-            _time.sleep(jitter)
+        # Realistic non-deterministic positive dispatch jitter
+        jitter = _random.uniform(_JITTER_MIN_MS, _JITTER_MAX_MS) / 1000.0
+        _time.sleep(jitter)
+        with self._lock:
+            self._last_dispatch = _time.monotonic()
 
     def throttled(self, status: int) -> None:
         """Call after receiving a 429 or 503 to escalate back-off."""
